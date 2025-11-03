@@ -2,6 +2,7 @@ import  express  from "express";
 import dotenv from "dotenv";
 import { connectDB } from "./config/db";
 import PropertiesRoute from "./routes/propertiesRoute";
+import featurePropertiesRoute from "./routes/featurePropertiesRoute";
 
 dotenv.config();
 const app = express();
@@ -16,7 +17,11 @@ async function start() {
         app.get("/", (req, res) => {
            res.json({ message: "Property Service is running" });
         });
+
         app.use('/property', PropertiesRoute);
+        app.use('/');  
+        app.use('/featuredProject', featurePropertiesRoute);
+         
         app.listen(port, () => {
             console.log(`property service is running on port ${port}`); 
         });
