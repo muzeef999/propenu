@@ -12,8 +12,6 @@ const Dropdown = dynamic<DropdownProps>(
 
 const Navbar = () => {
 
-    const [isOpen, setIsOpen] = useState(true);
-
 
     const pPrimeItems = [
     { id: "pp-1", label: "Dashboard", onClick: () => console.log("Go to Dashboard") },
@@ -49,12 +47,22 @@ const Navbar = () => {
         {/* Right side */}
         <div className="flex items-center gap-6 text-gray-700 font-medium">
           <Dropdown
-        buttonContent={<span>P Prime <ArrowDropdownIcon className={`transition-transform duration-200 ${isOpen ? "rotate-180" : "rotate-0"}`}/></span>}
+        buttonContent={({ isOpen }) => (
+    <span className="flex items-center gap-2">
+      p prime
+      <ArrowDropdownIcon className={`transition-transform duration-200 ${isOpen ? "rotate-180" : "rotate-0"}`} />
+    </span>
+        )}
         items={pPrimeItems}
         align="right"
       />
           <Dropdown 
-        buttonContent={<span>Login <ArrowDropdownIcon className={`transition-transform duration-200 ${isOpen ? "rotate-180" : "rotate-0"}`}/></span>}
+        buttonContent={({ isOpen }) => (
+    <span className="flex items-center gap-2">
+      Login
+      <ArrowDropdownIcon className={`transition-transform duration-200 ${isOpen ? "rotate-180" : "rotate-0"}`} />
+    </span>
+        )}
         items={loginItems}
         align="right"
       />

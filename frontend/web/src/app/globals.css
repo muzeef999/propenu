@@ -1,10 +1,9 @@
 @import "tailwindcss";
 
-
-/* Optional fallback for non-tailwind lookups or runtime switching */
 :root {
-  --color-primary-500: #27AE60;
+  --color-primary: #27AE60;
   --color-white: #ffffff;
+  --color-heading-desc :#8C8989;
 }
 
 html,
@@ -12,16 +11,32 @@ body {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  
 }
 
 @layer utilities {
   .text-primary {
-    color: var(--color-primary-500);
+    color: var(--color-primary);
+  }
+  .headingDesc {
+    color: var(--color-heading-desc);
+  }
+
+  .headingSideBar {
+    color: var(--color-primary);
   }
 
 }
 @layer components {
+  
+  .headingSideBar {
+   border-left: #27AE60 4px solid;
+   padding-left: 8px;  
+   flex-direction: column;
+    display: flex;
+    justify-content: space-between;
+  } 
+
   .btn {
     display: inline-flex;
     align-items: center;
@@ -57,6 +72,25 @@ body {
   .btn-secondary:hover {
     background-color: color-mix(in oklch, var(--color-primary-500) 8%, transparent);
   }
+
+.card {
+  margin-top: 26px;
+  background: #fff; /* required for shadow on white layouts */
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;  
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.12));
+}
+
+/* Hover effect */
+.card:hover {
+  transform: translateY(-4px);
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.18));
+}
+
+
 }
 
 
