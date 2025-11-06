@@ -175,7 +175,7 @@ FeaturePropertySchema.pre("validate", function (next) {
 /**
  * Guard against model recompilation during hot reload / nodemon / serverless re-imports
  */
-interface IFeaturedProject extends Document {}
+export interface IFeaturedProject extends Document {}
 const modelName = "featuredProject";
 const FeaturedProject: Model<IFeaturedProject> =
   (mongoose.models && (mongoose.models as any)[modelName]) ||
