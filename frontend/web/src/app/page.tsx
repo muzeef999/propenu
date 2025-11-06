@@ -1,26 +1,56 @@
+import FeaturedProjects from "@/app/(pages)/featured/FeaturedProjects";
+import HeroBannerSVG from "@/svg/HeroBannerSVG";
+import GetOwnerProperties from "./(pages)/owner-listed/PopularOwnerProperties";
 
-export  default   function Home () {
-
-    // const authres = await fetch("http://localhost:4000/v1/auth") ;
-    // const authData = await authres.json();
-
-    // const  paymentres = await fetch("http://localhost:4000/v1/payment") ;
-    // const  PaymentData = await  paymentres.json();
-
-    // const  propertyres = await fetch("http://localhost:4000/v1/property") ;
-    // const  propertyData = await  propertyres.json();
-
-    // const  userres = await fetch("http://localhost:4000/v1/user") ;
-    // const  userData = await  userres.json();
-
-
+export default function Home() {
   return (
-   <div>
-      <h1>Welcome to Propernu</h1>
-      {/* <p>{authData.message}</p>
-      <p>{PaymentData.message}</p>
-      <p>{propertyData.message}</p>
-      <p>{userData.message}</p> */}
+   <div className="container mx-auto p-4 space-y-12">      
+      {/* heroBanner */}
+      <div className="w-full">
+        <HeroBannerSVG />
+      </div>
+
+      {/* Feature projects */}
+      <div>   
+      <div className="headingSideBar">
+      <h1 className="text-2xl font-bold">Feature Projects</h1>
+      <p className="headingDesc">Building excellence in Hyderabad</p>
+       </div> 
+      <FeaturedProjects />
+      </div>
+
+      {/* popular owner Properties */}
+       <div>
+      <div className="headingSideBar">
+      <h1 className="text-2xl font-bold">Popular Owner Properties</h1>
+      <p className="headingDesc">Building excellence in Hyderabad</p>
+       </div> 
+      <GetOwnerProperties />
+      </div>
+
+      {/* Apartments, villas and more  */}
+       <div>   
+      <div className="headingSideBar">
+      <h1 className="text-2xl font-bold">Apartments, Villas and more</h1>
+      <p className="headingDesc">Building excellence in Hyderabad</p>
+       </div> 
+      <FeaturedProjects />
+      </div>
+
+      {/* Top projects */}
+       <div>   
+      <div className="headingSideBar">
+      <h1 className="text-2xl font-bold">Top Projects</h1>
+      <p className="headingDesc">Building excellence in Hyderabad</p>
+       </div> 
+      <FeaturedProjects />
+      </div>
+     
+   
+        <div>
+          <button className="btn btn-primary">Primary Button</button>
+          <button className="btn btn-secondary">Secondary Button</button>
+          </div>
    </div>
   );
 }
