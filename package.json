@@ -10,11 +10,10 @@
   ],
   "scripts": {
     "dev:gateway": "npm run dev --workspace=backend/gateway",
-    "dev:auth": "npm run dev --workspace=backend/services/auth-service",
     "dev:user": "npm run dev --workspace=backend/services/user-service",
     "dev:property": "npm run dev --workspace=backend/services/property-service",
     "dev:payment": "npm run dev --workspace=backend/services/payment-service",
-    "dev:backend": "concurrently \"npm run dev:gateway\" \"npm run dev:auth\" \"npm run dev:user\" \"npm run dev:property\" \"npm run dev:payment\"",
+    "dev:backend": "concurrently \"npm run dev:gateway\"  \"npm run dev:user\" \"npm run dev:property\" \"npm run dev:payment\"",
     "dev:all": "concurrently \"npm run dev:backend\""
   },
   "keywords": [],
