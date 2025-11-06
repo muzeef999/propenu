@@ -1,4 +1,4 @@
-name: Backend CD 
+name: Backend CD
 
 on:
   push:
@@ -11,6 +11,7 @@ on:
 jobs:
   deploy:
     runs-on: self-hosted
+
     env:
       PRPPENU_GATEWAY_ENV: ${{ secrets.PRPPENU_GATEWAY_ENV }}
       PRPPENU_PAYMENT_ENV: ${{ secrets.PRPPENU_PAYMENT_ENV }}
@@ -28,33 +29,62 @@ jobs:
 
       - name: Write gateway .env
         working-directory: backend/gateway
-        run: printf "%s" "${PRPPENU_GATEWAY_ENV}" > .env
+        run: |
+          printf "%s" "${PRPPENU_GATEWAY_ENV}" > .env
+          echo "✅ gateway .env created"
 
       - name: Write service .env files
         run: |
           printf "%s" "${PRPPENU_PAYMENT_ENV}"  > backend/services/payment-service/.env
           printf "%s" "${PRPPENU_PROPERTY_ENV}" > backend/services/property-service/.env
           printf "%s" "${PRPPENU_USER_ENV}"     > backend/services/user-service/.env
+          echo "✅ service .env files created"
 
       - name: Install & build gateway
         working-directory: backend/gateway
         run: |
-          if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
-          if npm run | grep -qE '(^|\s)build(\s|:)'); then npm run build; fi
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            npm install --no-audit --no-fund
+          fi
+          if npm run | grep -qE '(^|[[:space:]])build([[:space:]]|:)'; then
+            npm run build
+          else
+            echo "ℹ️ No build script in gateway."
+          fi
 
       - name: Install & build services
         run: |
           for dir in backend/services/*-service; do
-            [ -f "$dir/package.json" ] || continue
-            if [ -f "$dir/package-lock.json" ]; then (cd "$dir" && npm ci --no-audit --no-fund); else (cd "$dir" && npm install --no-audit --no-fund); fi
-            if (cd "$dir" && npm run | grep -qE '(^|\s)build(\s|:)'); then (cd "$dir" && npm run build); fi
+            [ -d "$dir" ] || continue
+            if [ -f "$dir/package.json" ]; then
+              echo "📦 $dir"
+              if [ -f "$dir/package-lock.json" ]; then
+                (cd "$dir" && npm ci --no-audit --no-fund)
+              else
+                (cd "$dir" && npm install --no-audit --no-fund)
+              fi
+              if (cd "$dir" && npm run | grep -qE '(^|[[:space:]])build([[:space:]]|:)'); then
+                (cd "$dir" && npm run build)
+              else
+                echo "ℹ️ No build script in $dir"
+              fi
+            else
+              echo "ℹ️ Skipping $dir (no package.json)"
+            fi
           done
 
       - name: Reload PM2
         working-directory: backend
         run: |
-          if ! command -v pm2 >/dev/null; then echo "❌ PM2 not installed (npm i -g pm2)"; exit 1; fi
-          if [ ! -f ecosystem.config.cjs ]; then echo "❌ Missing backend/ecosystem.config.cjs"; exit 1; fi
+          if ! command -v pm2 >/dev/null; then
+            echo "❌ PM2 not installed (npm i -g pm2)"; exit 1
+          fi
+          if [ ! -f ecosystem.config.cjs ]; then
+            echo "❌ Missing backend/ecosystem.config.cjs"; exit 1
+          fi
+          echo "🚀 Reloading PM2"
           pm2 start ecosystem.config.cjs || true
           pm2 reload ecosystem.config.cjs
           pm2 save
