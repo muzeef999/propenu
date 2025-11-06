@@ -22,7 +22,6 @@ jobs:
 
     env:
       PRPPENU_GATEWAY_ENV: ${{ secrets.PRPPENU_GATEWAY_ENV }}
-
       PRPPENU_PAYMENT_ENV: ${{ secrets.PRPPENU_PAYMENT_ENV }}
       PRPPENU_PROPERTY_ENV: ${{ secrets.PRPPENU_PROPERTY_ENV }}
       PRPPENU_USER_ENV: ${{ secrets.PRPPENU_USER_ENV }}
@@ -36,23 +35,44 @@ jobs:
         node-version: [18.x]
 
     steps:
-      # 1️⃣ Checkout Code
+      # 1) Checkout
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2️⃣ Setup Node
-      - name: Setup Node.js ${{ matrix.node-version }}
+      # 2) Find existing lockfiles to make caching resilient
+      - name: Find lockfiles
+        id: lock
+        run: |
+          files="$(git ls-files 'backend/**/package-lock.json' || true)"
+          if [ -n "$files" ]; then
+            {
+              echo "paths<<EOF"
+              echo "$files"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "paths=" >> "$GITHUB_OUTPUT"
+          fi
+
+      # 3) Setup Node with cache when lockfiles exist
+      - name: Setup Node.js ${{ matrix.node-version }} (cached)
+        if: ${{ steps.lock.outputs.paths != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
-          cache-dependency-path: |
-            backend/gateway/package-lock.json
-            backend/services/*-service/package-lock.json
+          cache-dependency-path: ${{ steps.lock.outputs.paths }}
 
-      # 3️⃣ Debug Info (workspace path)
+      # 3b) Fallback setup without cache
+      - name: Setup Node.js ${{ matrix.node-version }} (no cache)
+        if: ${{ steps.lock.outputs.paths == '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      # 4) Debug info
       - name: Show runner workspace
         run: |
           echo "GITHUB_WORKSPACE = $GITHUB_WORKSPACE"
@@ -61,7 +81,7 @@ jobs:
           echo "Backend tree:"
           ls -la backend || true
 
-      # 4️⃣ Check secrets exist
+      # 5) Check Secrets
       - name: Check Secrets
         run: |
           check() { [ -n "$2" ] && echo "$1: ✅ OK" || (echo "$1: ❌ MISSING"; exit 1); }
@@ -70,13 +90,12 @@ jobs:
           check PRPPENU_PROPERTY_ENV "${PRPPENU_PROPERTY_ENV}"
           check PRPPENU_USER_ENV "${PRPPENU_USER_ENV}"
 
-      # 5️⃣ Write .env files from secrets
+      # 6) Write .env files from secrets (use printf so vars expand correctly)
       - name: Write gateway .env
         working-directory: backend/gateway
         run: |
-          cat > .env <<'EOF'
-          ${PRPPENU_GATEWAY_ENV}
-          EOF
+          printf "%s" "${PRPPENU_GATEWAY_ENV}" > .env
+          echo "✅ gateway .env created"
 
       - name: Write service .env files
         run: |
@@ -90,10 +109,21 @@ jobs:
           write_env "${PRPPENU_PROPERTY_ENV}" backend/services/property-service/.env
           write_env "${PRPPENU_USER_ENV}" backend/services/user-service/.env
 
-      # 6️⃣ Install & build gateway
+      - name: Verify gateway .env exists
+        working-directory: backend/gateway
+        run: |
+          test -s .env && echo "✅ .env present" || (echo "❌ .env missing"; exit 1)
+
+      # 7) Install & build gateway
       - name: Install gateway deps
         working-directory: backend/gateway
-        run: npm ci --no-audit --no-fund
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            echo "⚠️ package-lock.json missing; using npm install"
+            npm install --no-audit --no-fund
+          fi
 
       - name: Build gateway
         working-directory: backend/gateway
@@ -106,19 +136,30 @@ jobs:
 
       - name: Prune gateway dev deps
         working-directory: backend/gateway
-        run: npm prune --omit=dev
+        run: npm prune --omit=dev || true
 
-      # 7️⃣ Install & build all services
+      # 8) Install & build all services
       - name: Install service deps
         run: |
           for dir in backend/services/*-service; do
-            echo "Installing deps in $dir"
-            (cd "$dir" && npm ci --no-audit --no-fund)
+            [ -d "$dir" ] || continue
+            if [ -f "$dir/package.json" ]; then
+              echo "Installing deps in $dir"
+              if [ -f "$dir/package-lock.json" ]; then
+                (cd "$dir" && npm ci --no-audit --no-fund)
+              else
+                echo "⚠️ $dir has no package-lock.json; using npm install"
+                (cd "$dir" && npm install --no-audit --no-fund)
+              fi
+            else
+              echo "⚠️ No package.json in $dir, skipping install"
+            fi
           done
 
       - name: Build services
         run: |
           for dir in backend/services/*-service; do
+            [ -d "$dir" ] || continue
             if (cd "$dir" && npm run | grep -qE '(^|\s)build(\s|:)'); then
               echo "Building $dir"
               (cd "$dir" && npm run build)
@@ -130,10 +171,11 @@ jobs:
       - name: Prune service dev deps
         run: |
           for dir in backend/services/*-service; do
-            (cd "$dir" && npm prune --omit=dev)
+            [ -d "$dir" ] || continue
+            (cd "$dir" && npm prune --omit=dev) || true
           done
 
-      # 8️⃣ PM2 reload
+      # 9) PM2 reload
       - name: Reload PM2 apps
         working-directory: backend
         run: |
