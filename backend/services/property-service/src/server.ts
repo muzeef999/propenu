@@ -17,10 +17,9 @@ async function start() {
         app.get("/", (req, res) => {
            res.json({ message: "Property Service is running" });
         });
-
-        app.use('/property', PropertiesRoute);
-        app.use('/');  
-        app.use('/featuredProject', featurePropertiesRoute);
+             
+        app.use('/api/properties', PropertiesRoute);
+        app.use('/api/properties/featuredProject', featurePropertiesRoute);
          
         app.listen(port, () => {
             console.log(`property service is running on port ${port}`); 

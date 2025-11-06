@@ -1,75 +1,126 @@
-import express, { NextFunction, Request, Response } from "express";
+// src/server.ts
+import express, { Request, Response } from "express";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import cors, { CorsOptions } from "cors";
 
 dotenv.config();
+
 const app = express();
+const PORT = Number(process.env.PORT ?? 4000);
 
-const PORT = process.env.PORT ?? 4000;
+// Base-only URLs (no trailing slash, no /api/... in these)
+const PAYMENT_SERVICE_URL  = process.env.PAYMENT_SERVICE_URL  || "";
+const PROPERTY_SERVICE_URL = process.env.PROPERTY_SERVICE_URL || "";
+const USER_SERVICE_URL     = process.env.USER_SERVICE_URL     || "";
 
-/** ---- CORS (terminate at the gateway) ---- */
-const ALLOWED_ORIGINS = new Set([
-  "http://localhost:3000",
-  "http://localhost:3001",
-]);
-
-function corsGateway(req: Request, res: Response, next: NextFunction) {
-  const origin = req.headers.origin;
-  if (origin && ALLOWED_ORIGINS.has(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Vary", "Origin");
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "Authorization, Content-Type, X-Requested-With"
-    );
-    res.setHeader(
-      "Access-Control-Allow-Methods",
-      "GET,POST,PUT,PATCH,DELETE,OPTIONS"
-    );
-    res.setHeader("Access-Control-Max-Age", "600");
-  }
-  if (req.method === "OPTIONS") return res.status(204).end(); // preflight short-circuit
-  next();
+if (!PAYMENT_SERVICE_URL || !PROPERTY_SERVICE_URL || !USER_SERVICE_URL) {
+  console.error("❌ Missing service URL(s). Check your .env:");
+  console.error({
+    PAYMENT_SERVICE_URL,
+    PROPERTY_SERVICE_URL,
+    USER_SERVICE_URL,
+  });
+  process.exit(1);
 }
 
-app.use(corsGateway);
+// Helpful when running behind a proxy/load balancer
+app.set("trust proxy", true);
+
+// CORS
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map(s => s.trim())
+  .filter(Boolean);
+
+const corsOptions: CorsOptions = {
+  origin(origin, cb) {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(new Error(`Blocked by CORS: ${origin}`));
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  exposedHeaders: ["Content-Length", "X-Request-Id"],
+  credentials: true,
+  maxAge: 600,
+};
+
+app.use(cors(corsOptions));
+app.use(morgan("dev"));
 app.use(express.json());
-app.use(morgan("tiny"));
+app.use(express.urlencoded({ extended: true }));
 
-/** ---- Targets ---- */
-const AUTH_SERVICE = "http://localhost:4001";
-const PAYMENT_SERVICE = "http://localhost:4002";
-const PROPERTY_SERVICE = "http://localhost:4003";
-const USER_SERVICE = "http://localhost:4004";
-
-function serviceProxy(target: string) {
+/**
+ * Proxy that forwards the EXACT original URL seen at the gateway.
+ * This guarantees:
+ *   http://localhost:4000/api/properties/featuredProject
+ *   → forwards as "/api/properties/featuredProject" to the service.
+ */
+function makeProxy(target: string) {
   return createProxyMiddleware({
     target,
-    changeOrigin: true,          
-    xfwd: true,                  
-    proxyTimeout: 10_000,        
-    timeout: 15_000,             
-    onProxyReq: (proxyReq: import("http").ClientRequest, req: Request, res: Response) => {
+    changeOrigin: true,
+    xfwd: true,
+    proxyTimeout: 30_000,
+    timeout: 30_000,
+
+    // Preserve the full original path (includes the mount prefix)
+    pathRewrite: (_path, req) => (req as any).originalUrl,
+
+    // http-proxy-middleware v3 event API
+    on: {
+      error(err: any, _req: any, res: any) {
+        // Keep this loosely typed to satisfy v3's types across Node versions
+        try {
+          if (!res.headersSent && typeof res.writeHead === "function") {
+            res.writeHead(502, { "Content-Type": "application/json" });
+          }
+          if (typeof res.end === "function") {
+            res.end(JSON.stringify({ error: "Bad gateway", message: String(err?.message || err) }));
+          }
+        } catch (e) {
+          // swallow
+        }
+        // Log after responding to avoid broken pipe
+        console.error("Proxy error:", err?.message || err);
+      },
+      // Optional hook if you ever want to add headers to upstream requests:
+      // proxyReq(proxyReq, _req, _res) {
+      //   proxyReq.setHeader("x-gateway", "propenu");
+      // },
     },
-    onError: (err: Error, req: Request, res: Response) => {
-      if (!res.headersSent) {
-        res.status(502).json({ error: "Upstream error", detail: (err as Error).message });
-      }
-    },
-  } as any);
+  });
 }
 
-app.use("/v1/auth", serviceProxy(AUTH_SERVICE));
-app.use("/v1/payment", serviceProxy(PAYMENT_SERVICE));
-app.use("/v1/property", serviceProxy(PROPERTY_SERVICE));
-app.use("/v1/user", serviceProxy(USER_SERVICE));
+// Mount once per service. No stripPrefix argument.
+app.use("/api/payments",   makeProxy(PAYMENT_SERVICE_URL));
+app.use("/api/properties", makeProxy(PROPERTY_SERVICE_URL));
+app.use("/api/users",      makeProxy(USER_SERVICE_URL));
 
-app.get("/health", (_req, res) => res.json({ ok: true }));
+// Simple health endpoint
+app.get("/health", (_req: Request, res: Response) => {
+  res.json({
+    ok: true,
+    env: process.env.NODE_ENV,
+    services: {
+      payments: PAYMENT_SERVICE_URL,
+      properties: PROPERTY_SERVICE_URL,
+      users: USER_SERVICE_URL,
+    },
+  });
+});
 
+// 404 for anything else
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 
+// Start server
 app.listen(PORT, () => {
-  console.log(`Gateway running on : ${PORT}`);
+  console.log(`✅ Gateway running on : ${PORT}`);
+  console.log("Allowed origins:", allowedOrigins.length ? allowedOrigins : "(none)");
+  console.log("Service URLs:", {
+    PAYMENT_SERVICE_URL,
+    PROPERTY_SERVICE_URL,
+    USER_SERVICE_URL,
+  });
 });
