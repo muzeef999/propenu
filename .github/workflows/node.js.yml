@@ -35,28 +35,32 @@ jobs:
         node-version: [18.x]
 
     steps:
-      # 1) Checkout
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2) Find existing lockfiles to make caching resilient
+      # Find actual lockfiles (if any). We'll only enable cache when we have ≥1.
       - name: Find lockfiles
         id: lock
         run: |
-          files="$(git ls-files 'backend/**/package-lock.json' || true)"
+          set -e
+          files="$(find backend -type f -name package-lock.json | sed 's|^./||' || true)"
           if [ -n "$files" ]; then
+            # Save as a newline-separated output
             {
               echo "paths<<EOF"
               echo "$files"
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
+            echo "Found lockfiles:"
+            echo "$files"
           else
+            echo "No lockfiles found."
             echo "paths=" >> "$GITHUB_OUTPUT"
           fi
 
-      # 3) Setup Node with cache when lockfiles exist
+      # Setup Node with cache ONLY when we have valid paths
       - name: Setup Node.js ${{ matrix.node-version }} (cached)
         if: ${{ steps.lock.outputs.paths != '' }}
         uses: actions/setup-node@v4
@@ -65,14 +69,13 @@ jobs:
           cache: npm
           cache-dependency-path: ${{ steps.lock.outputs.paths }}
 
-      # 3b) Fallback setup without cache
+      # Fallback: Setup Node without cache
       - name: Setup Node.js ${{ matrix.node-version }} (no cache)
         if: ${{ steps.lock.outputs.paths == '' }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
 
-      # 4) Debug info
       - name: Show runner workspace
         run: |
           echo "GITHUB_WORKSPACE = $GITHUB_WORKSPACE"
@@ -81,7 +84,6 @@ jobs:
           echo "Backend tree:"
           ls -la backend || true
 
-      # 5) Check Secrets
       - name: Check Secrets
         run: |
           check() { [ -n "$2" ] && echo "$1: ✅ OK" || (echo "$1: ❌ MISSING"; exit 1); }
@@ -90,7 +92,7 @@ jobs:
           check PRPPENU_PROPERTY_ENV "${PRPPENU_PROPERTY_ENV}"
           check PRPPENU_USER_ENV "${PRPPENU_USER_ENV}"
 
-      # 6) Write .env files from secrets (use printf so vars expand correctly)
+      # Write .env files (use printf so the secret expands)
       - name: Write gateway .env
         working-directory: backend/gateway
         run: |
@@ -99,12 +101,7 @@ jobs:
 
       - name: Write service .env files
         run: |
-          write_env () {
-            local content="$1"; local path="$2"
-            mkdir -p "$(dirname "$path")"
-            printf "%s" "$content" > "$path"
-            echo "✅ wrote $path"
-          }
+          write_env () { printf "%s" "$1" > "$2" && echo "✅ wrote $2"; }
           write_env "${PRPPENU_PAYMENT_ENV}" backend/services/payment-service/.env
           write_env "${PRPPENU_PROPERTY_ENV}" backend/services/property-service/.env
           write_env "${PRPPENU_USER_ENV}" backend/services/user-service/.env
@@ -114,7 +111,7 @@ jobs:
         run: |
           test -s .env && echo "✅ .env present" || (echo "❌ .env missing"; exit 1)
 
-      # 7) Install & build gateway
+      # Install & build gateway
       - name: Install gateway deps
         working-directory: backend/gateway
         run: |
@@ -138,7 +135,7 @@ jobs:
         working-directory: backend/gateway
         run: npm prune --omit=dev || true
 
-      # 8) Install & build all services
+      # Install & build all services
       - name: Install service deps
         run: |
           for dir in backend/services/*-service; do
@@ -175,7 +172,7 @@ jobs:
             (cd "$dir" && npm prune --omit=dev) || true
           done
 
-      # 9) PM2 reload
+      # PM2 reload
       - name: Reload PM2 apps
         working-directory: backend
         run: |
