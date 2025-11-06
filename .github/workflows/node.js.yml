@@ -6,10 +6,6 @@ on:
     paths:
       - "backend/**"
       - "!frontend/**"
-  pull_request:
-    branches: ["deploy"]
-    paths:
-      - "backend/**"
   workflow_dispatch:
 
 concurrency:
@@ -20,50 +16,21 @@ jobs:
   build-and-deploy:
     runs-on: self-hosted
 
-    # GitHub Secrets you said you created
     env:
       PRPPENU_GATEWAY_ENV: ${{ secrets.PRPPENU_GATEWAY_ENV }}
       PRPPENU_PAYMENT_ENV: ${{ secrets.PRPPENU_PAYMENT_ENV }}
       PRPPENU_PROPERTY_ENV: ${{ secrets.PRPPENU_PROPERTY_ENV }}
       PRPPENU_USER_ENV: ${{ secrets.PRPPENU_USER_ENV }}
 
-    defaults:
-      run:
-        shell: bash
-
     steps:
-      # 1) Checkout
       - name: Checkout code
-      - uses: actions/checkout@v4
+        uses: actions/checkout@v4
 
-      # 2) Node (no cache to keep it simple and avoid path errors)
       - name: Setup Node.js 18
         uses: actions/setup-node@v4
         with:
           node-version: 18.x
 
-      # 3) Debug (optional, helpful on self-hosted)
-      - name: Show backend layout
-        run: |
-          pwd
-          ls -la
-          echo "---- backend ----"
-          ls -la backend || true
-          echo "---- gateway ----"
-          ls -la backend/gateway || true
-          echo "---- services ----"
-          ls -la backend/services || true
-
-      # 4) Ensure required secrets are present
-      - name: Check Secrets
-        run: |
-          check() { [ -n "$2" ] && echo "$1: ✅ OK" || (echo "$1: ❌ MISSING" && exit 1); }
-          check PRPPENU_GATEWAY_ENV  "${PRPPENU_GATEWAY_ENV}"
-          check PRPPENU_PAYMENT_ENV  "${PRPPENU_PAYMENT_ENV}"
-          check PRPPENU_PROPERTY_ENV "${PRPPENU_PROPERTY_ENV}"
-          check PRPPENU_USER_ENV     "${PRPPENU_USER_ENV}"
-
-      # 5) Write .env files from secrets
       - name: Write gateway .env
         working-directory: backend/gateway
         run: |
@@ -72,74 +39,32 @@ jobs:
 
       - name: Write service .env files
         run: |
-          write_env () { mkdir -p "$(dirname "$2")"; printf "%s" "$1" > "$2"; echo "✅ wrote $2"; }
-          write_env "${PRPPENU_PAYMENT_ENV}"  backend/services/payment-service/.env
-          write_env "${PRPPENU_PROPERTY_ENV}" backend/services/property-service/.env
-          write_env "${PRPPENU_USER_ENV}"     backend/services/user-service/.env
+          echo "✅ Writing service env files"
+          printf "%s" "${PRPPENU_PAYMENT_ENV}" > backend/services/payment-service/.env
+          printf "%s" "${PRPPENU_PROPERTY_ENV}" > backend/services/property-service/.env
+          printf "%s" "${PRPPENU_USER_ENV}" > backend/services/user-service/.env
 
-      # 6) Install & build gateway
-      - name: Install gateway deps
+      - name: Install & build gateway
         working-directory: backend/gateway
         run: |
-          if [ -f package-lock.json ]; then
-            npm ci --no-audit --no-fund
-          else
-            echo "ℹ️ No package-lock.json in gateway; using npm install"
-            npm install --no-audit --no-fund
-          fi
+          if [ -f package-lock.json ]; then npm ci --no-audit; else npm install --no-audit; fi
+          if npm run | grep -q build; then npm run build; fi
 
-      - name: Build gateway (if script exists)
-        working-directory: backend/gateway
-        run: |
-          if npm run | grep -qE '(^|\s)build(\s|:)'; then
-            npm run build
-          else
-            echo "ℹ️ No build script in gateway/package.json"
-          fi
-
-      # 7) Install & build each service
-      - name: Install service deps
+      - name: Install & build services
         run: |
           for dir in backend/services/*-service; do
-            [ -d "$dir" ] || continue
             if [ -f "$dir/package.json" ]; then
-              echo "Installing deps in $dir"
-              if [ -f "$dir/package-lock.json" ]; then
-                (cd "$dir" && npm ci --no-audit --no-fund)
-              else
-                echo "ℹ️ $dir has no package-lock.json; using npm install"
-                (cd "$dir" && npm install --no-audit --no-fund)
-              fi
-            else
-              echo "⚠️ Skipping $dir (no package.json)"
+              echo "📦 $dir"
+              if [ -f "$dir/package-lock.json" ]; then (cd "$dir" && npm ci --no-audit); else (cd "$dir" && npm install --no-audit); fi
+              if (cd "$dir" && npm run | grep -q build); then (cd "$dir" && npm run build); fi
             fi
           done
 
-      - name: Build services (if script exists)
-        run: |
-          for dir in backend/services/*-service; do
-            [ -d "$dir" ] || continue
-            if (cd "$dir" && npm run | grep -qE '(^|\s)build(\s|:)'); then
-              echo "Building $dir"
-              (cd "$dir" && npm run build)
-            else
-              echo "ℹ️ No build script in $dir"
-            fi
-          done
-
-      # 8) PM2 reload on the server
-      - name: Reload PM2 apps
+      - name: Reload PM2
         working-directory: backend
         run: |
-          if ! command -v pm2 >/dev/null 2>&1; then
-            echo "❌ PM2 not found. Install globally on the runner: npm i -g pm2"
-            exit 1
-          fi
-          if [ ! -f ecosystem.config.cjs ]; then
-            echo "❌ Missing backend/ecosystem.config.cjs"
-            exit 1
-          fi
-          echo "🚀 Reloading PM2"
+          if ! command -v pm2 >/dev/null; then echo "❌ PM2 not installed"; exit 1; fi
+          if [ ! -f ecosystem.config.cjs ]; then echo "❌ Missing ecosystem.config.cjs"; exit 1; fi
           pm2 start ecosystem.config.cjs || true
           pm2 reload ecosystem.config.cjs
           pm2 save
