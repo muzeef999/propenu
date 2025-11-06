@@ -22,7 +22,7 @@ jobs:
 
     env:
       PRPPENU_GATEWAY_ENV: ${{ secrets.PRPPENU_GATEWAY_ENV }}
-      PRPPENU_AUTH_ENV: ${{ secrets.PRPPENU_AUTH_ENV }}
+
       PRPPENU_PAYMENT_ENV: ${{ secrets.PRPPENU_PAYMENT_ENV }}
       PRPPENU_PROPERTY_ENV: ${{ secrets.PRPPENU_PROPERTY_ENV }}
       PRPPENU_USER_ENV: ${{ secrets.PRPPENU_USER_ENV }}
@@ -66,7 +66,6 @@ jobs:
         run: |
           check() { [ -n "$2" ] && echo "$1: ✅ OK" || (echo "$1: ❌ MISSING"; exit 1); }
           check PRPPENU_GATEWAY_ENV "${PRPPENU_GATEWAY_ENV}"
-          check PRPPENU_AUTH_ENV "${PRPPENU_AUTH_ENV}"
           check PRPPENU_PAYMENT_ENV "${PRPPENU_PAYMENT_ENV}"
           check PRPPENU_PROPERTY_ENV "${PRPPENU_PROPERTY_ENV}"
           check PRPPENU_USER_ENV "${PRPPENU_USER_ENV}"
@@ -87,7 +86,6 @@ jobs:
             printf "%s" "$content" > "$path"
             echo "✅ wrote $path"
           }
-          write_env "${PRPPENU_AUTH_ENV}" backend/services/auth-service/.env
           write_env "${PRPPENU_PAYMENT_ENV}" backend/services/payment-service/.env
           write_env "${PRPPENU_PROPERTY_ENV}" backend/services/property-service/.env
           write_env "${PRPPENU_USER_ENV}" backend/services/user-service/.env
