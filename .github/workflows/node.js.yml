@@ -1,4 +1,4 @@
-name: Backend CD 🚀
+name: Backend CD 
 
 on:
   push:
