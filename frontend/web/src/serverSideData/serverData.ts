@@ -1,7 +1,10 @@
 import "server-only";
 
+const url = process.env.API_URL
+
+
 export async function getFeaturedProjects() {
-    const res = await  fetch('http://localhost:4003/featuredProject', { next : { revalidate: 10 } });
+    const res = await  fetch(`${url}/api/properties/featuredProject`, { next : { revalidate: 10 } });
     if(!res.ok) {
         throw new Error('Failed to fetch featured projects');
     }
@@ -9,7 +12,7 @@ export async function getFeaturedProjects() {
 }
 
 export async function getOwnerProperties() {
-    const res = await fetch('http://localhost:4003/property', {next : { revalidate: 10}});
+    const res = await fetch(`${url}/api/properties`, {next : { revalidate: 10}});
     if(!res.ok) {
         throw new Error('Failed to fetch popular Owner Properties');
     }
