@@ -1,39 +1,33 @@
+// backend/ecosystem.config.cjs
 module.exports = {
   apps: [
     {
-      name: "gateway",
-      cwd: "backend/gateway",
+      name: 'gateway',
+      cwd: __dirname + '/gateway',     // <-- we're already inside backend/
+      script: 'dist/server.js',        // <-- NOT backend/gateway/...
+      instances: 'max',
+      exec_mode: 'cluster'
+    },
+    {
+      name: 'user-service',
+      cwd: __dirname + '/services/user-service',
       script: 'dist/server.js',
-      args: "start",
-      env: { NODE_ENV: "production" },
       instances: 1,
-      autorestart: true,
-      watch: false,
-      time: true
-    },    
-    {
-      name: "payment-service",
-      cwd: "backend/services/payment-service",
-      script: 'dist/server.js',
-      args: "start",
-      env: { NODE_ENV: "production" },
-      instances: 1, autorestart: true, watch: false, time: true
+      exec_mode: 'cluster'
     },
     {
-      name: "property-service",
-      cwd: "backend/services/property-service",
+      name: 'property-service',
+      cwd: __dirname + '/services/property-service',
       script: 'dist/server.js',
-      args: "start",
-      env: { NODE_ENV: "production" },
-      instances: 1, autorestart: true, watch: false, time: true
+      instances: 1,
+      exec_mode: 'cluster'
     },
     {
-      name: "user-service",
-      cwd: "backend/services/user-service",
+      name: 'payment-service',
+      cwd: __dirname + '/services/payment-service',
       script: 'dist/server.js',
-      args: "start",
-      env: { NODE_ENV: "production" },
-      instances: 1, autorestart: true, watch: false, time: true
+      instances: 1,
+      exec_mode: 'cluster'
     }
   ]
-};
+}
