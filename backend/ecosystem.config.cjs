@@ -10,15 +10,7 @@ module.exports = {
       autorestart: true,
       watch: false,
       time: true
-    },
-    {
-      name: "auth-service",
-      cwd: "backend/services/auth-service",
-      script: "npm",
-      args: "start",
-      env: { NODE_ENV: "production" },
-      instances: 1, autorestart: true, watch: false, time: true
-    },
+    },    
     {
       name: "payment-service",
       cwd: "backend/services/payment-service",
