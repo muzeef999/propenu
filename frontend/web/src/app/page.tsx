@@ -1,6 +1,10 @@
 import FeaturedProjects from "@/app/(pages)/featured/FeaturedProjects";
 import HeroBannerSVG from "@/svg/HeroBannerSVG";
 import GetOwnerProperties from "./(pages)/owner-listed/PopularOwnerProperties";
+import TestomianalHome from "./(pages)/reviews/TestomianalHome";
+import Link from "next/link";
+import { RiArrowRightSLine } from "react-icons/ri";
+import ExploreMorePropertiesPage from "./(pages)/explore-properties/Explore-properties";
 
 export default function Home() {
   return (
@@ -12,29 +16,43 @@ export default function Home() {
 
       {/* Feature projects */}
       <div>   
-      <div className="headingSideBar">
+      <div className="flex justify-between items-center">
+        <div className="headingSideBar">
       <h1 className="text-2xl font-bold">Feature Projects</h1>
-      <p className="headingDesc">Building excellence in Hyderabad</p>
+      <p className="headingDesc">Building excellence in Hyderabad</p> 
+        </div>
+         <Link href="/featured" className="flex items-center gap-1 text-green-600 hover:text-green-700">
+           View All
+          <RiArrowRightSLine size={18} />
+         </Link>
        </div> 
       <FeaturedProjects />
       </div>
 
+
       {/* popular owner Properties */}
        <div>
+         <div className="flex justify-between items-center">
       <div className="headingSideBar">
       <h1 className="text-2xl font-bold">Popular Owner Properties</h1>
       <p className="headingDesc">Building excellence in Hyderabad</p>
        </div> 
+       <Link href="/featured" className="flex items-center gap-1 text-green-600 hover:text-green-700">
+           View All
+          <RiArrowRightSLine size={18} />
+         </Link>
+         </div>
+         <br/>
       <GetOwnerProperties />
       </div>
 
       {/* Apartments, villas and more  */}
        <div>   
       <div className="headingSideBar">
-      <h1 className="text-2xl font-bold">Apartments, Villas and more</h1>
-      <p className="headingDesc">Building excellence in Hyderabad</p>
+      <h1 className="text-2xl font-bold">Explore Properties in hyderabad</h1>
+      <p className="headingDesc">Find apartments, villas, farmhouses, and residential plots in top localities.</p>
        </div> 
-      <FeaturedProjects />
+      <ExploreMorePropertiesPage />
       </div>
 
       {/* Top projects */}
@@ -42,14 +60,15 @@ export default function Home() {
       <div className="headingSideBar">
       <h1 className="text-2xl font-bold">Top Projects</h1>
       <p className="headingDesc">Building excellence in Hyderabad</p>
-       </div> 
-      <FeaturedProjects />
+       </div>
+       <br/> 
+        <GetOwnerProperties />
       </div>
-     
+
+   <div><TestomianalHome/></div>  
    
         <div>
-          <button className="btn btn-primary">Primary Button</button>
-          <button className="btn btn-secondary">Secondary Button</button>
+         
           </div>
    </div>
   );

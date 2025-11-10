@@ -55,7 +55,7 @@ body {
 
   /* Primary: filled, white text */
   .btn-primary {
-    background-color: var(--color-primary-500);
+    background-color: var(--color-primary);
     color: var(--color-white);
     border-color: transparent;
   }
