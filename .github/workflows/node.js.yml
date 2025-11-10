@@ -26,7 +26,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18.x
+          cache: 'npm'
 
+      # Install once at the monorepo root (will install all workspaces)
+      - name: Install dependencies (root + workspaces)
+        run: npm ci --no-audit --no-fund
+
+      # Write env files
       - name: Write gateway .env
         working-directory: backend/gateway
         run: |
@@ -40,52 +46,41 @@ jobs:
           printf "%s" "${PRPPENU_USER_ENV}"     > backend/services/user-service/.env
           echo "✅ service .env files created"
 
-      - name: Install & build gateway
-        working-directory: backend/gateway
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci --no-audit --no-fund
-          else
-            npm install --no-audit --no-fund
-          fi
-          if npm run | grep -qE '(^|[[:space:]])build([[:space:]]|:)'; then
-            npm run build
-          else
-            echo "ℹ️ No build script in gateway."
-          fi
+      # Build all backend packages using your root script
+      - name: Build backend (all services)
+        run: npm run build:backend
 
-      - name: Install & build services
+      # Sanity check: make sure the compiled entry files exist
+      - name: Verify build outputs
         run: |
-          for dir in backend/services/*-service; do
-            [ -d "$dir" ] || continue
-            if [ -f "$dir/package.json" ]; then
-              echo "📦 $dir"
-              if [ -f "$dir/package-lock.json" ]; then
-                (cd "$dir" && npm ci --no-audit --no-fund)
-              else
-                (cd "$dir" && npm install --no-audit --no-fund)
-              fi
-              if (cd "$dir" && npm run | grep -qE '(^|[[:space:]])build([[:space:]]|:)'); then
-                (cd "$dir" && npm run build)
-              else
-                echo "ℹ️ No build script in $dir"
-              fi
-            else
-              echo "ℹ️ Skipping $dir (no package.json)"
-            fi
-          done
+          ls -la backend/gateway/dist/server.js
+          ls -la backend/services/user-service/dist/server.js
+          ls -la backend/services/property-service/dist/server.js
+          ls -la backend/services/payment-service/dist/server.js
 
+      # Start/Reload PM2 from backend/ so relative paths resolve cleanly
       - name: Reload PM2
         working-directory: backend
         run: |
           if ! command -v pm2 >/dev/null; then
-            echo "❌ PM2 not installed (npm i -g pm2)"; exit 1
+            echo "PM2 not found. Installing..."
+            npm i -g pm2
           fi
+
           if [ ! -f ecosystem.config.cjs ]; then
             echo "❌ Missing backend/ecosystem.config.cjs"; exit 1
           fi
+
           echo "🚀 Reloading PM2"
-          pm2 start ecosystem.config.cjs || true
-          pm2 reload ecosystem.config.cjs
+          # Start missing apps without failing the job on first run,
+          # then reload to apply changes
+          pm2 start ecosystem.config.cjs --update-env || true
+          pm2 reload ecosystem.config.cjs --update-env
           pm2 save
           pm2 status
+
+      # Optional: show last 100 lines if something failed earlier
+      - name: Tail PM2 logs (optional)
+        if: ${{ failure() }}
+        run: |
+          pm2 logs --lines 100 || true
