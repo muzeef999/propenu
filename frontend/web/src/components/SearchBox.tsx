@@ -20,7 +20,10 @@ const SearchBox = () => {
     const timer = setTimeout(() => {
       if (query.trim().length === 0) return setResults([]);
 
-      fetch(`/api/users/locations/search?q=${encodeURIComponent(query)}&limit=7`)
+      fetch(`${process.env.API_URL}/api/users/locations/search?q=${encodeURIComponent(
+          query
+        )}&limit=7`
+      )
         .then((res) => res.json())
         .then((data) => setResults(data || []));
     }, 300);
