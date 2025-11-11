@@ -4,6 +4,9 @@ import dotenv from 'dotenv';
 import { connectDB } from './config/db';
 import agentRoute from './routes/agentRoute';
 import builderRouter from './routes/builderRoute';
+import NodeCache from "node-cache";
+import nominatimRoute from './routes/nominatimRoute';
+
 
 dotenv.config();
 
@@ -21,10 +24,12 @@ async function start() {
            res.json({ message: "User Service is running" });
         });
 
-        app.use('/auth', authRoute);
-        app.use("/agent", agentRoute);
-        app.use("/builder", builderRouter);
-        
+        app.use('/api/users/auth', authRoute);
+        app.use("/api/users/agent", agentRoute);
+        app.use("/api/users/builder", builderRouter);
+        app.use("/api/users/locations", nominatimRoute);
+         
+
         app.listen(port, () => {
             console.log(`user service is running on port ${port}`); 
         });

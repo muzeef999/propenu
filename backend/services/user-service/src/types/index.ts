@@ -58,3 +58,32 @@ export interface Agent {
   createdAt?: Date;
   updatedAt?: Date;
 }
+
+export interface NominatimSearchRaw {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+  type?: string;
+  address?: {
+    city?: string;
+    town?: string;
+    village?: string;
+    county?: string;
+    state?: string;
+    postcode?: string;
+    country?: string;
+  };
+}
+
+export interface LocationItem {
+  id: number;
+  name: string;
+  lat: number;
+  lon: number;
+  type: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  postcode: string | null;
+}
