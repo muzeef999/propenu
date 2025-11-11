@@ -1,5 +1,6 @@
 "use client";
 import Logo from "@/animations/Logo";
+import { useCity } from "@/hooks/useCity";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import type { DropdownProps } from "@/ui/SingleDropDown";
 import dynamic from "next/dynamic";
@@ -12,6 +13,7 @@ const Dropdown = dynamic<DropdownProps>(
 
 const Navbar = () => {
 
+    const { city } = useCity(); 
 
     const pPrimeItems = [
     { id: "pp-1", label: "Dashboard", onClick: () => console.log("Go to Dashboard") },
@@ -35,13 +37,20 @@ const Navbar = () => {
              <div className="w-6 h-6">
             <Logo />
             </div>
-            <span className="text-2xl text-primary font-bold">
-              PROPENU
-            </span>
+            <span className="text-2xl text-primary font-medium relative">
+  PROPENU
+  <sup className="text-[10px] font-normal ml-0.5 align-super text-[#646464]">TM</sup>
+</span>
+
           </div>
-          <span className="ml-4 text-sm text-gray-500 hidden sm:inline">
-            Hyderabad
-          </span>
+                    <button
+            className="ml-4 text-sm text-gray-700 flex items-center gap-1 hover:text-primary transition"
+            onClick={() => console.log("Open city dropdown soon")}
+          >
+            📍 {city}
+            <ArrowDropdownIcon className="w-4 h-4" />
+          </button>
+
         </div>
 
         {/* Right side */}

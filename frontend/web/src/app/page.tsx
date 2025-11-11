@@ -5,11 +5,14 @@ import TestomianalHome from "./(pages)/reviews/TestomianalHome";
 import Link from "next/link";
 import { RiArrowRightSLine } from "react-icons/ri";
 import ExploreMorePropertiesPage from "./(pages)/explore-properties/Explore-properties";
+import SearchBox from "@/components/SearchBox";
 
 export default function Home() {
   return (
    <div className="container mx-auto p-4 space-y-12">      
       {/* heroBanner */}
+
+      <SearchBox />
       <div className="w-full">
         <HeroBannerSVG />
       </div>
@@ -55,15 +58,7 @@ export default function Home() {
       <ExploreMorePropertiesPage />
       </div>
 
-      {/* Top projects */}
-       <div>   
-      <div className="headingSideBar">
-      <h1 className="text-2xl font-bold">Top Projects</h1>
-      <p className="headingDesc">Building excellence in Hyderabad</p>
-       </div>
-       <br/> 
-        <GetOwnerProperties />
-      </div>
+  
 
    <div><TestomianalHome/></div>  
    
