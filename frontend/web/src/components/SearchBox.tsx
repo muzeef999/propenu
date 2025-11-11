@@ -20,7 +20,8 @@ const SearchBox = () => {
     const timer = setTimeout(() => {
       if (query.trim().length === 0) return setResults([]);
 
-      fetch(`${process.env.API_URL}/api/users/locations/search?q=${encodeURIComponent(
+      fetch(
+        `http://localhost:4000/api/users/locations/search?q=${encodeURIComponent(
           query
         )}&limit=7`
       )
@@ -33,7 +34,6 @@ const SearchBox = () => {
 
   return (
     <div className="w-[50%] bg-white shadow-md rounded-xl border border-gray-200">
-
       {/* Top Navigation Tabs */}
       <div className="flex gap-6 px-4 py-3 text-sm text-gray-600 border-b justify-around items-center border-b-[#EBEBEB]">
         {["Buy", "Rent", "Sell", "Plots/Land", "Projects"].map((item) => (
@@ -45,7 +45,6 @@ const SearchBox = () => {
 
       {/* Category Dropdown + Search */}
       <div className="flex items-center gap-3 p-4">
-
         {/* Category Dropdown */}
         <div className="relative">
           <select
@@ -61,11 +60,14 @@ const SearchBox = () => {
 
         {/* Search Input */}
         <div className="relative w-full border-l border-l-[#EBEBEB]">
-          <CiLocationOn className="absolute left-3 top-3 text-gray-500" size={18} />
+          <CiLocationOn
+            className="absolute left-3 top-3 text-gray-500"
+            size={18}
+          />
           <input
             type="text"
             placeholder="Search location, project, or builder..."
-            className="w-full border rounded-lg pl-10 pr-4 py-2 text-sm border-none"
+            className="w-full border rounded-lg pl-10 pr-4 py-2 text-sm border-none outline-none focus:ring-0 focus:border-transparent"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
