@@ -40,7 +40,7 @@ const VideoLazy = ({ src }: { src: string }) => {
   return (
     <video
       ref={videoRef}
-      className="rounded-lg shadow-lg object-cover w-full max-w-[95%]"
+      className="rounded-lg shadow-lg object-cover w-full max-w-[95%] "
       muted
       loop
       playsInline

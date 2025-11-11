@@ -1,18 +1,16 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
+
 import Navbar from "@/components/Navbar";
-// import dynamic from "next/dynamic";
-
-// const ClientLayout = dynamic(() => import("@/app/clientLayout"), { ssr: true });
-
+import Footer from "@/components/Footer";
+import ClientProviders from "@/app/clientLayout"; // client component – used inside <body>
 
 const poppins = Poppins({
   subsets: ["latin"],
   variable: "--font-poppins",
-  weight: ["400", "500", "600", "700"], // Customize as needed
+  weight: ["400", "500", "600", "700"],
 });
-
 
 export const metadata: Metadata = {
   title: "EstatePro | Property Management Made Simple",
@@ -26,22 +24,22 @@ export const metadata: Metadata = {
     "Lease Management",
     "Real Estate Dashboard",
   ],
- 
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      {/* <ClientLayout> */}
-        <body className={`${poppins.variable} antialiased`}>
+      {/* Only head & body may be direct children of html */}
+      <body className={`${poppins.variable} antialiased`}>
+        {/* Providers must be inside <body>, not wrapping it */}
+        <ClientProviders>
           <Navbar />
           {children}
-        </body>
-      {/* </ClientLayout> */}
+          <Footer />
+        </ClientProviders>
+      </body>
     </html>
   );
 }
