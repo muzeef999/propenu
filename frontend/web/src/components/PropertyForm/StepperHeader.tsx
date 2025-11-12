@@ -1,20 +1,19 @@
 // components/StepperHeader.tsx
 "use client";
-import React from "react";
 import clsx from "clsx";
 
-type Step = { key: string; label: string };
+export type Step = { key: string; label: string };
 
 export default function StepperHeader({
   steps,
   current,
   completed,
-  onClick,
+  onStepClick,
 }: {
   steps: Step[];
   current: number;
   completed: boolean[];
-  onClick: (i: number) => void;
+  onStepClick: (i: number) => void;
 }) {
   return (
     <div className="relative w-full">
@@ -32,7 +31,7 @@ export default function StepperHeader({
               {i < steps.length - 1 && (
                 <div
                   className={clsx(
-                    "absolute top-4 left-1/2 w-full h-[2px] -translate-x-[0%] transition-colors duration-300",
+                    "absolute top-4 left-1/2 right-[-50%] h-[2px] transition-colors duration-300",
                     completed[i] ? "bg-green-500" : "bg-gray-200"
                   )}
                 />
@@ -41,7 +40,7 @@ export default function StepperHeader({
               {/* --- step circle --- */}
               <button
                 type="button"
-                onClick={() => onClick(i)}
+                onClick={() => onStepClick(i)}
                 disabled={i > current && !completed.slice(0, i).every(Boolean)}
                 aria-current={active ? "step" : undefined}
                 className="relative z-10"

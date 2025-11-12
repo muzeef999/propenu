@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 
 export type CreatorRole = "builder" | "agent" | "seller" | "admin";
-export const ListingType = ["Rent", "Sell",] as const;
+export const ListingType = ["Rent", "Sell", "Buy"] as const;
 export const PropertyCategory = ["Residential", "Commercial", "LandPlot", "Agricultural"] as const;
 export type ListingTypeT = (typeof ListingType)[number];
 export type PropertyCategoryT = (typeof PropertyCategory)[number];

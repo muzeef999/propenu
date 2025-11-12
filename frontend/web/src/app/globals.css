@@ -90,6 +90,25 @@ body {
   filter: drop-shadow(0 6px 12px rgba(0,0,0,0.18));
 }
 
+.input-field {
+  border: 1px solid #d1d5db; /* same as Tailwind's border-gray-300 */
+  border-radius: 0.5rem; /* rounded-lg */
+  padding: 0.5rem 0.75rem; /* py-2 px-3 */
+  font-size: 0.875rem; /* text-sm */
+  color: #374151; /* text-gray-700 */
+  width: 100%;
+  transition: all 0.2s ease; /* transition duration-200 */
+}
+
+.input-field::placeholder {
+  color: #9ca3af; /* placeholder-gray-400 */
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--color-primary); /* your custom green */
+  box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.4); /* focus:ring-primary/40 */
+}
 
 }
 
