@@ -31,7 +31,7 @@ export default function StepperHeader({
               {i < steps.length - 1 && (
                 <div
                   className={clsx(
-                    "absolute top-4 left-1/2 right-[-50%] h-[2px] transition-colors duration-300",
+                    "absolute top-4 left-1/2 right-[-50%] h-0.5 transition-colors duration-300",
                     completed[i] ? "bg-green-500" : "bg-gray-200"
                   )}
                 />

@@ -22,31 +22,9 @@ export default function OwnerTab({ onBack, onPublish }: BasicTabProps) {
         <br />
         <label>
           Created By (userId)
-          <input {...register("createdBy")} className="input" />
+          <input {...register("userId")} className="input-field" />
         </label>
 
-        <label>
-          Created By Role
-          <select {...register("createdByRole")} className="input">
-            <option value="builder">Builder</option>
-            <option value="agent">Agent</option>
-            <option value="seller">Seller</option>
-            <option value="admin">Admin</option>
-          </select>
-        </label>
-
-        <label>
-          Builder (ref id)
-          <input {...register("builder")} className="input" />
-        </label>
-        <label>
-          Agent (ref id)
-          <input {...register("agent")} className="input" />
-        </label>
-        <label>
-          Seller (ref id)
-          <input {...register("seller")} className="input" />
-        </label>
         <button type="button" onClick={onPublish} className="btn btn-primary">
           Publish →
         </button>

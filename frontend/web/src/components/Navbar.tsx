@@ -4,9 +4,6 @@ import { useCity } from "@/hooks/useCity";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import type { DropdownProps } from "@/ui/SingleDropDown";
 import dynamic from "next/dynamic";
-import { useState } from "react";
-import { CiLocationOn } from "react-icons/ci";
-import PopularCities from "./PopularCities";
 import CityDropdown from "./CityDropdown";
 import Link from "next/link";
 
@@ -58,7 +55,7 @@ const Navbar = () => {
       <div className="container mx-auto flex items-center justify-between px-4 py-3">
         {/* Left side */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
+          <Link href={"/"} className="flex items-center gap-1 cursor-pointer">
             <div className="w-6 h-6">
               <Logo />
             </div>
@@ -68,7 +65,7 @@ const Navbar = () => {
                 TM
               </sup>
             </span>
-          </div>
+          </Link>
 
           {/* show current city */}
           <div className="ml-4">

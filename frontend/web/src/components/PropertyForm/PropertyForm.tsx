@@ -9,6 +9,9 @@ import AmenitiesTab from "./tabs/AmenitiesTab";
 import MediaTab from "./tabs/MediaTab";
 import OwnerTab from "./tabs/OwnerTab";
 import { buildPropertyFormData } from "@/lib/formDataBuilder";
+import confetti from "canvas-confetti";
+import { toast } from "sonner";
+
 
 export default function PropertyForm({
   initialValues,
@@ -77,11 +80,19 @@ export default function PropertyForm({
       videos: videoFiles,
     });
     try {
-      const res = await fetch("/api/properties", { method: "POST", body: fd });
+      const res = await fetch("http://localhost:4000/api/properties", {
+        method: "POST",
+        body: fd,
+      });
+      confetti({
+        particleCount: 150,
+        spread: 80,
+        origin: { y: 0.6 },
+      });
       if (!res.ok) throw new Error("Failed to create property");
-      console.log("✅ Property created");
-    } catch (e) {
-      console.error(e);
+      toast.success("Property created");
+    } catch (e:any) {
+      toast.error("Failed to create property", e);
     }
   };
 

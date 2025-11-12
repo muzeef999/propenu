@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Provider } from "react-redux";
 import { store } from "@/Redux/store";
+import { Toaster } from "sonner";
 
 
 export default function ClientProviders({
@@ -19,6 +20,11 @@ export default function ClientProviders({
      <Provider store={store}>
     <QueryClientProvider client={queryClient}>
       {children}
+      <Toaster
+        position="top-right"
+        richColors
+        expand={true}
+        duration={3000} />
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
     </Provider>
