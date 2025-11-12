@@ -1,7 +1,9 @@
+// components/SearchBox.tsx
 "use client";
 import { useState, useEffect } from "react";
-import { FiSearch, FiChevronDown } from "react-icons/fi"; // ✅ using react-icons
 import { CiLocationOn } from "react-icons/ci";
+import { useCity } from "@/hooks/useCity";
+import { LocationItem } from "@/types";
 
 const CATEGORY_OPTIONS = [
   "All Residential",
@@ -11,41 +13,38 @@ const CATEGORY_OPTIONS = [
 ];
 
 const SearchBox = () => {
-  const [category, setCategory] = useState("All Residential");
+  const [category, setCategory] = useState(CATEGORY_OPTIONS[0]);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<LocationItem[]>([]);
+  const { setCity } = useCity();
 
-  // ✅ Debounced API Search
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (query.trim().length === 0) return setResults([]);
+      if (query.trim().length === 0) {
+        setResults([]);
+        return;
+      }
 
       fetch(
-        `http://localhost:4000/api/users/locations/search?q=${encodeURIComponent(
-          query
-        )}&limit=7`
+        `/api/users/locations/search?q=${encodeURIComponent(query)}&limit=7`
       )
         .then((res) => res.json())
-        .then((data) => setResults(data || []));
+        .then((data) => setResults(data || []))
+        .catch(() => setResults([]));
     }, 300);
 
     return () => clearTimeout(timer);
   }, [query]);
 
+  function handleSelect(item: LocationItem) {
+    setCity(item);
+    setQuery(item.name);
+    setResults([]);
+  }
+
   return (
     <div className="w-[50%] bg-white shadow-md rounded-xl border border-gray-200">
-      {/* Top Navigation Tabs */}
-      <div className="flex gap-6 px-4 py-3 text-sm text-gray-600 border-b justify-around items-center border-b-[#EBEBEB]">
-        {["Buy", "Rent", "Sell", "Plots/Land", "Projects"].map((item) => (
-          <button key={item} className="hover:text-primary transition">
-            {item}
-          </button>
-        ))}
-      </div>
-
-      {/* Category Dropdown + Search */}
       <div className="flex items-center gap-3 p-4">
-        {/* Category Dropdown */}
         <div className="relative">
           <select
             className="px-3 py-2 rounded-lg text-sm bg-white cursor-pointer pr-7"
@@ -58,7 +57,6 @@ const SearchBox = () => {
           </select>
         </div>
 
-        {/* Search Input */}
         <div className="relative w-full border-l border-l-[#EBEBEB]">
           <CiLocationOn
             className="absolute left-3 top-3 text-gray-500"
@@ -74,15 +72,22 @@ const SearchBox = () => {
         </div>
       </div>
 
-      {/* Search Suggestions */}
       {results.length > 0 && (
         <ul className="border-t bg-white max-h-64 overflow-y-auto text-sm">
           {results.map((item) => (
             <li
               key={item.id}
-              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+              onClick={() => handleSelect(item)}
+              className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center"
             >
-              {item.name}
+              <div>
+                <div className="font-medium">{item.name}</div>
+                <div className="text-xs text-gray-500">
+                  {item.city ? `${item.city}` : ""}
+                  {item.state ? `, ${item.state}` : ""}{" "}
+                  {item.country ? `, ${item.country}` : ""}
+                </div>
+              </div>
             </li>
           ))}
         </ul>

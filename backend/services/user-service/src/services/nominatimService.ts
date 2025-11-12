@@ -39,7 +39,9 @@ async function fetchJson<T>(url: string): Promise<T> {
 }
 
 export async function searchLocations(q: string, limit = 5): Promise<LocationItem[]> {
-  const url = `${NOMINATIM_BASE}/search?format=jsonv2&addressdetails=1&limit=${limit}&q=${encodeURIComponent(q)}`;
+  const url = `${NOMINATIM_BASE}/search?format=jsonv2&addressdetails=1&limit=${limit}&countrycodes=IN&q=${encodeURIComponent(
+    q
+  )}`;
   const raw = await fetchJson<NominatimSearchRaw[]>(url);
 
   return raw.map((r) => ({

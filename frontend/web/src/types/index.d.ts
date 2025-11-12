@@ -171,3 +171,58 @@ export interface PopularOwnerProperty {
   createdAt: string;
   updatedAt: string;
 }
+
+
+export type LocationItem = {
+  id: number | string;
+  name: string;
+  lat?: number;
+  lon?: number;
+  type?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  postcode?: string | null;
+};
+
+
+
+export type PropertyFormValues = {
+  title: string;
+  description?: string;
+  category: "Residential" | "Commercial" | "LandPlot" | "Agricultural";
+  listingType: string;
+  status?: "draft" | "published" | "archived";
+
+  address: {
+    addressLine?: string;
+    nearbyLandmarks?: string[];
+    city?: string;
+    pincode?: string;
+  };
+
+  price?: number;
+  area?: number;
+  facing?: string;
+  details?: Record<string, any>;
+
+  amenities: {
+    waterSupply?: boolean;
+    powerBackup?: boolean;
+    parking?: boolean;
+    security?: boolean;
+    gym?: boolean;
+    swimmingPool?: boolean;
+    clubhouse?: boolean;
+    lift?: boolean;
+  };
+
+  images: { url: string; key: string; alt?: string; size?: number }[];
+  videos: { url: string; key: string; alt?: string; size?: number }[];
+
+  createdBy?: string;
+  createdByRole?: "builder" | "agent" | "seller" | "admin";
+  builder?: string | null;
+  agent?: string | null;
+  seller?: string | null;
+};

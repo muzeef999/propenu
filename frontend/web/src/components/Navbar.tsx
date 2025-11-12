@@ -6,6 +6,9 @@ import type { DropdownProps } from "@/ui/SingleDropDown";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { CiLocationOn } from "react-icons/ci";
+import PopularCities from "./PopularCities";
+import CityDropdown from "./CityDropdown";
+import Link from "next/link";
 
 const Dropdown = dynamic<DropdownProps>(() => import("@/ui/SingleDropDown"), {
   ssr: false,
@@ -66,13 +69,11 @@ const Navbar = () => {
               </sup>
             </span>
           </div>
-          <button
-            className="ml-4 text-sm text-gray-700 flex items-center gap-1 hover:text-primary transition"
-            onClick={() => console.log("Open city dropdown soon")}
-          >
-            <CiLocationOn /> {city}
-            <ArrowDropdownIcon className="w-4 h-4" />
-          </button>
+
+          {/* show current city */}
+          <div className="ml-4">
+            <CityDropdown />
+          </div>
         </div>
 
         {/* Right side */}
@@ -106,10 +107,10 @@ const Navbar = () => {
             align="right"
           />
 
-          <button className="btn btn-secondary">
+          <Link href={"/postproperty"} className="btn btn-secondary">
             Post Property{" "}
             <span className="bg-[#27AE60] text-white rounded-md p-1">Free</span>
-          </button>
+          </Link>
         </div>
       </div>
     </nav>

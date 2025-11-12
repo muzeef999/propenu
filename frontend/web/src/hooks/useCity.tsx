@@ -1,39 +1,38 @@
-"use client";
-import { useEffect, useState } from "react";
+// hooks/useCity.ts
+import { useSelector } from "react-redux";
+import { RootState, useAppDispatch } from "@/Redux/store";
+import { setCity as setCityAction, clearCity } from "@/Redux/slice/citySlice";
+import { LocationItem } from "@/types";
 
 export function useCity() {
-  const [city, setCity] = useState("Hyderabad"); // ✅ default fallback
+  const dispatch = useAppDispatch();
+  const city = useSelector((s: RootState) => s.city.selected);
+  const popular = useSelector((s: RootState) => s.city.popularCities);
+  const normal = useSelector((s: RootState) => s.city.normalCities);
 
-  useEffect(() => {
-    // If already saved, reuse it (no popup)
-    const saved = localStorage.getItem("user_city");
-    if (saved) {
-      setCity(saved);
-      return;
-    }
-
-    // Ask permission
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-
-        try {
-          const res = await fetch(`${process.env.API_URL}/api/users/locations/reverse?lat=${lat}&lon=${lon}`);
-          const data = await res.json();
-          const detected = data.city || data.state || data.country || "Hyderabad";
-          setCity(detected);
-          localStorage.setItem("user_city", detected); // Save for next visit
-        } catch {
-          setCity("Hyderabad");
-        }
-      },
-      () => {
-        // ❌ Permission denied → use Hyderabad
-        setCity("Hyderabad");
+  function setCity(cityItem: LocationItem | null) {
+    dispatch(setCityAction(cityItem));
+    // persist to localStorage (optional; non-blocking)
+    try {
+      if (cityItem) {
+        localStorage.setItem("selectedCity", JSON.stringify(cityItem));
+      } else {
+        localStorage.removeItem("selectedCity");
       }
-    );
-  }, []);
+    } catch (e) {
+      // ignore localStorage errors in SSR-safe way (only on client)
+    }
+  }
 
-  return { city, setCity };
+  function clearSelectedCity() {
+    dispatch(clearCity());
+  }
+
+  return {
+    city,
+    setCity,
+    clearSelectedCity,
+    popular,
+    normal,
+  };
 }
