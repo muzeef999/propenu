@@ -12,21 +12,22 @@ export default function Footer() {
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand + Social */}
           <div>
-            <Link href="/" className="inline-flex items-center gap-3 group">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500 text-white">
-                <div className="flex items-center gap-1">
-                  <div className="w-6 h-6">
-                    <Logo />
-                  </div>
-                  <span className="text-2xl text-primary font-medium relative">
-                    PROPENU
-                    <sup className="text-[10px] font-normal ml-0.5 align-super text-[#646464]">
-                      TM
-                    </sup>
-                  </span>
-                </div>
-              </span>
-             
+            <Link
+              href="/"
+              className="flex items-center gap-3 select-none"
+              aria-label="Go to homepage"
+            >
+              <div className="w-7 h-7">
+                <Logo />
+              </div>
+              <div className="hidden sm:block">
+                <span className="text-xl font-semibold text-primary tracking-tight">
+                  PROPENU
+                  <sup className="ml-1 text-[10px] font-normal align-super text-[#646464]">
+                    TM
+                  </sup>
+                </span>
+              </div>
             </Link>
 
             <div className="mt-6 flex items-center gap-4">

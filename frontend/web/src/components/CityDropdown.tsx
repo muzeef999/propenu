@@ -2,8 +2,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CiLocationOn } from "react-icons/ci";
-import { ArrowDropdownIcon } from "@/icons/icons"; // keep your icon
+import { ArrowDropdownIcon, LocationIcon } from "@/icons/icons"; // keep your icon
 import { useCity } from "@/hooks/useCity";
 import { LocationItem } from "@/types";
 
@@ -33,7 +32,6 @@ export default function CityDropdown() {
   function onSelect(item: LocationItem) {
     setCity(item);
     setOpen(false);
-    // focus back to button for keyboard users
     btnRef.current?.focus();
   }
 
@@ -45,13 +43,15 @@ export default function CityDropdown() {
         aria-expanded={open}
         onClick={() => setOpen((s) => !s)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm text-gray-700 hover:text-primary transition focus:outline-none focus:ring-2 focus:ring-primary/40"
-        title={city?.name ?? "Select city"}
+        title={city?.name ?? "Hyderabad"}
       >
-        <CiLocationOn />
+        <LocationIcon size={18} color={"#374151"} />
         <span className="min-w-[90px] text-left">
-          {city?.name ?? "Select city"}
+          {city?.name ?? "Hyderabad"}
         </span>
         <ArrowDropdownIcon
+          size={14}
+          color={"#374151"}
           className={`w-4 h-4 transition-transform ${
             open ? "rotate-180" : "rotate-0"
           }`}
@@ -64,17 +64,14 @@ export default function CityDropdown() {
           aria-label="Select city"
           className="absolute left-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
         >
-          {/* Header + Search (optional; simple text input) */}
           <div className="p-3 border-b border-gray-100">
             <div className="text-sm font-medium text-gray-700">Choose city</div>
             <div className="mt-2">
-              {/* Optional small search inside dropdown */}
               <input
                 type="text"
                 placeholder="Search cities..."
                 className="w-full text-sm px-3 py-2 rounded-md border border-gray-200 outline-none focus:ring-1 focus:ring-primary/40"
                 onKeyDown={(e) => {
-                  // allow keyboard navigation to first item: Enter to close if exact match (optional)
                   if (e.key === "Escape") setOpen(false);
                 }}
               />

@@ -54,8 +54,7 @@ export default function BasicTab({ onNext }: BasicTabProps) {
             (option, index) => (
               <label
                 key={option}
-                className="flex items-center gap-2 p-3  rounded-lg cursor-pointer transition-all duration-200
-                 hover:border-green-400"
+                className={"flex items-center gap-2 p-3  rounded-lg cursor-pointer transition-all duration-200  hover:border-green-400"}
               >
                 <input
                   type="radio"

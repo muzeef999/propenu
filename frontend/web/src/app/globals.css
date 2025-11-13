@@ -11,8 +11,17 @@ body {
   height: 100%;
   margin: 0;
   padding: 0;
-  
 }
+
+/* globals.css */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
 
 @layer utilities {
   .text-primary {
@@ -63,12 +72,19 @@ body {
     background-color: var(--color-primary-600);
   }
 
-  /* Secondary: transparent, primary text and border */
+
   .btn-secondary {
-    background: transparent;
-    color: var(--color-primary-500);
-    border-color: var(--color-primary-500);
-  }
+  background: transparent;
+  font-weight: 400;
+  color: #374151;
+  border: 1px solid #27AE60;
+  padding: 8px 14px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
   .btn-secondary:hover {
     background-color: color-mix(in oklch, var(--color-primary-500) 8%, transparent);
   }
