@@ -42,6 +42,30 @@ export const getAllFeatureProperties = async (req: Request, res: Response) => {
   }
 };
 
+
+export const getFeatureBySlug = async (req: Request, res: Response) => {
+  try {
+    const { slug } = req.params;
+    if (!slug) return res.status(400).json({ error: "Missing slug" });
+
+    const doc = await FeaturePropertyService.getFeatureBySlug(slug);
+    if (!doc) return res.status(404).json({ error: "Property not found" });
+
+    // increment view count async (non-blocking)
+    FeaturePropertyService.incrementViews((doc as any)._id.toString()).catch((e) =>
+      console.error("incrementViews error:", e)
+    );
+
+    return res.json({ data: doc });
+  } catch (err: any) {
+    console.error("getFeatureBySlug:", err);
+    return res
+      .status(500)
+      .json({ error: err.message || "Internal server error" });
+  }
+};
+
+
 export const getIndetailFeatureProperties = async (req: Request, res: Response) => {
   try {
     

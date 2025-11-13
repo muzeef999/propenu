@@ -67,14 +67,10 @@ const NearbyPlaceSchema = new Schema(
 const FeaturePropertySchema = new Schema(
   {
     title: { type: String, required: true, trim: true },
-    // Keep unique on the field OR an explicit index, not both.
-    // We keep `unique: true` here and DO NOT call schema.index({ slug: 1, ... }) later.
     slug: { type: String, required: true, unique: true, trim: true },
-
     developer: { type: Schema.Types.ObjectId, ref: "builders" },
     about: { type: String },
     featuredTagline: { type: String },
-
     address: { type: String, required: true },
     city: { type: String },
     location: {
@@ -89,7 +85,6 @@ const FeaturePropertySchema = new Schema(
       },
     },
     mapEmbedUrl: { type: String },
-
     currency: { type: String, default: "INR" },
     priceFrom: { type: Number },
     priceTo: { type: Number },
@@ -112,7 +107,6 @@ const FeaturePropertySchema = new Schema(
 
     heroImage: { type: String },
     heroVideo: { type: String },
-    gallery: [{ type: Schema.Types.ObjectId, ref: "GalleryImage" }],
     gallerySummary: { type: [GallerySummarySchema], default: [] },
 
     brochureUrl: { type: String },

@@ -15,6 +15,14 @@ export const FeaturePropertyService = {
     return doc;
   },
 
+  async getFeatureBySlug(slug: string) {
+  if (!slug || typeof slug !== "string") throw new Error("Invalid slug");
+  // slug field has unique: true in schema; use findOne
+  const doc = await FeaturedProject.findOne({ slug }).populate("gallery").exec();
+  return doc;
+},
+
+
   async getAllFeatures(options?: {
     page?: number;
     limit?: number;
