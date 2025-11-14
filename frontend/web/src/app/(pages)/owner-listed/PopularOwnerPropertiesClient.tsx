@@ -68,14 +68,7 @@ const PopularOwnerPropertiesClient = ({ items = [] }: Props) => {
           <article
             key={project._id}
             role="listitem"
-            className="
-              min-w-[92%]             /* mobile: show ~1 card */
-              sm:min-w-[48%]          /* small tablets: ~2 cards */
-              md:min-w-[31%]          /* desktops: ~3 cards */
-              lg:min-w-[22%]          /* large laptop: ~4 cards */
-              xl:min-w-[18%]          /* extra-large: ~5 cards */
-              card rounded-md bg-white shadow-sm snap-start
-            "
+            className={"min-w-[92%] sm:min-w-[48%] md:min-w-[31%] lg:min-w-[22%] xl:min-w-[18%] card rounded-md bg-white shadow-sm snap-start"}
           >
             <Link
               href={`/owner-listed/${project.slug}`}

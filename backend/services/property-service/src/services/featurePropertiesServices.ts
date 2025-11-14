@@ -11,14 +11,14 @@ export const FeaturePropertyService = {
 
   async getFeatureById(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
-    const doc = await FeaturedProject.findById(id).populate("gallery").exec();
+    const doc = await FeaturedProject.findById(id).lean();
     return doc;
   },
 
   async getFeatureBySlug(slug: string) {
   if (!slug || typeof slug !== "string") throw new Error("Invalid slug");
   // slug field has unique: true in schema; use findOne
-  const doc = await FeaturedProject.findOne({ slug }).populate("gallery").exec();
+  const doc = await FeaturedProject.findOne({ slug }).lean();
   return doc;
 },
 
