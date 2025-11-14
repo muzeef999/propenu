@@ -1,0 +1,86 @@
+name: Backend CD
+
+on:
+  push:
+    branches: ["deploy"]
+    paths:
+      - "backend/**"
+      - "!frontend/**"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    env:
+      PRPPENU_GATEWAY_ENV: ${{ secrets.PRPPENU_GATEWAY_ENV }}
+      PRPPENU_PAYMENT_ENV: ${{ secrets.PRPPENU_PAYMENT_ENV }}
+      PRPPENU_PROPERTY_ENV: ${{ secrets.PRPPENU_PROPERTY_ENV }}
+      PRPPENU_USER_ENV: ${{ secrets.PRPPENU_USER_ENV }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 18.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18.x
+          cache: 'npm'
+
+      # Install once at the monorepo root (will install all workspaces)
+      - name: Install dependencies (root + workspaces)
+        run: npm ci --no-audit --no-fund
+
+      # Write env files
+      - name: Write gateway .env
+        working-directory: backend/gateway
+        run: |
+          printf "%s" "${PRPPENU_GATEWAY_ENV}" > .env
+          echo "✅ gateway .env created"
+
+      - name: Write service .env files
+        run: |
+          printf "%s" "${PRPPENU_PAYMENT_ENV}"  > backend/services/payment-service/.env
+          printf "%s" "${PRPPENU_PROPERTY_ENV}" > backend/services/property-service/.env
+          printf "%s" "${PRPPENU_USER_ENV}"     > backend/services/user-service/.env
+          echo "✅ service .env files created"
+
+      # Build all backend packages using your root script
+      - name: Build backend (all services)
+        run: npm run build:backend
+
+      # Sanity check: make sure the compiled entry files exist
+      - name: Verify build outputs
+        run: |
+          ls -la backend/gateway/dist/server.js
+          ls -la backend/services/user-service/dist/server.js
+          ls -la backend/services/property-service/dist/server.js
+          ls -la backend/services/payment-service/dist/server.js
+
+      # Start/Reload PM2 from backend/ so relative paths resolve cleanly
+      - name: Reload PM2
+        working-directory: backend
+        run: |
+          if ! command -v pm2 >/dev/null; then
+            echo "PM2 not found. Installing..."
+            npm i -g pm2
+          fi
+
+          if [ ! -f ecosystem.config.cjs ]; then
+            echo "❌ Missing backend/ecosystem.config.cjs"; exit 1
+          fi
+
+          echo "🚀 Reloading PM2"
+          # Start missing apps without failing the job on first run,
+          # then reload to apply changes
+          pm2 start ecosystem.config.cjs --update-env || true
+          pm2 reload ecosystem.config.cjs --update-env
+          pm2 save
+          pm2 status
+
+      # Optional: show last 100 lines if something failed earlier
+      - name: Tail PM2 logs (optional)
+        if: ${{ failure() }}
+        run: |
+          pm2 logs --lines 100 || true
