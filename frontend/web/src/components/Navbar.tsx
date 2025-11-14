@@ -6,7 +6,6 @@ import { ArrowDropdownIcon } from "@/icons/icons";
 import type { DropdownProps } from "@/ui/SingleDropDown";
 import dynamic from "next/dynamic";
 import CityDropdown from "./CityDropdown";
-import { RiArrowDropDownLine } from "react-icons/ri";
 import Link from "next/link";
 
 const Dropdown = dynamic<DropdownProps>(() => import("@/ui/SingleDropDown"), {
@@ -16,7 +15,6 @@ const Dropdown = dynamic<DropdownProps>(() => import("@/ui/SingleDropDown"), {
 const BRAND_GREEN = "#27AE60"; // use your logo color
 
 const Navbar = () => {
-  const { city } = useCity();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const pPrimeItems = [
