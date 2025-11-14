@@ -13,7 +13,6 @@ export const createFeatureProperties = async (req: Request, res: Response) => {
   }
 };
 
-
 export const getAllFeatureProperties = async (req: Request, res: Response) => {
   try {
     const { page, limit, q, status, sortBy, sortOrder } = req.query;
@@ -42,7 +41,6 @@ export const getAllFeatureProperties = async (req: Request, res: Response) => {
   }
 };
 
-
 export const getFeatureBySlug = async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
@@ -56,7 +54,7 @@ export const getFeatureBySlug = async (req: Request, res: Response) => {
       console.error("incrementViews error:", e)
     );
 
-    return res.json({ data: doc });
+    return res.json(doc);
   } catch (err: any) {
     console.error("getFeatureBySlug:", err);
     return res
@@ -64,7 +62,6 @@ export const getFeatureBySlug = async (req: Request, res: Response) => {
       .json({ error: err.message || "Internal server error" });
   }
 };
-
 
 export const getIndetailFeatureProperties = async (req: Request, res: Response) => {
   try {

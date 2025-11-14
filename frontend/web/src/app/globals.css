@@ -1,51 +1,87 @@
 @import "tailwindcss";
+@import "tailwindcss/theme" theme;
 
+/* ------------------------------------ */
+/* Base Theme Values                    */
+/* ------------------------------------ */
 :root {
   --color-primary: #27AE60;
   --color-white: #ffffff;
-  --color-heading-desc :#8C8989;
+  --color-heading-desc: #8C8989;
+
+  /* Make container WIDER + more padding */
+  --container-padding: 2rem;     /* increase spacing */
+  --container-width: 1400px;     /* wider large container */
 }
 
-html,
-body {
-  height: 100%;
+/* Base reset */
+html, body {
   margin: 0;
   padding: 0;
+  height: 100%;
 }
 
-/* globals.css */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+/* Hide scrollbars */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* ------------------------------------ */
+/* Custom Container (Debug + Control)   */
+/* ------------------------------------ */
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--container-padding);
+  padding-right: var(--container-padding);
+  max-width: var(--container-width);
+
 }
 
+/* ------------------------------------ */
+/* Breakpoint Widths (Tailwind v4 vars) */
+/* ------------------------------------ */
+@media (--sm) {
+  :root { --container-width: 100%; }
+}
 
+@media (--md) {
+  :root { --container-width: 720px; }
+}
+
+@media (--lg) {
+  :root { --container-width: 980px; } /* wider */
+}
+
+@media (--xl) {
+  :root { --container-width: 1180px; } /* wider */
+}
+
+@media (--2xl) {
+  :root { --container-width: 1400px; } /* max wide */
+}
+
+/* ------------------------------------ */
+/* Utilities Layer                      */
+/* ------------------------------------ */
 @layer utilities {
-  .text-primary {
-    color: var(--color-primary);
-  }
-  .headingDesc {
-    color: var(--color-heading-desc);
-  }
-
-  .headingSideBar {
-    color: var(--color-primary);
-  }
-
+  .text-primary { color: var(--color-primary); }
+  .headingDesc { color: var(--color-heading-desc); }
 }
-@layer components {
-  
-  .headingSideBar {
-   border-left: #27AE60 4px solid;
-   padding-left: 8px;  
-   flex-direction: column;
-    display: flex;
-    justify-content: space-between;
-  } 
 
+/* ------------------------------------ */
+/* Components Layer                     */
+/* ------------------------------------ */
+@layer components {
+  .headingSideBar {
+    border-left: 4px solid var(--color-primary);
+    padding-left: 8px;
+    display: flex;
+    flex-direction: column;
+  }
+   
+
+  /* Buttons */
   .btn {
     display: inline-flex;
     align-items: center;
@@ -56,76 +92,44 @@ body {
     border-radius: 0.5rem;
     cursor: pointer;
     line-height: 1;
-    transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+    transition: 0.2s ease;
     background: transparent;
     color: inherit;
     border: 1px solid transparent;
   }
 
-  /* Primary: filled, white text */
   .btn-primary {
     background-color: var(--color-primary);
     color: var(--color-white);
-    border-color: transparent;
   }
   .btn-primary:hover {
-    background-color: var(--color-primary-600);
+    background-color: #1f8f50;
   }
-
 
   .btn-secondary {
-  background: transparent;
-  font-weight: 400;
-  color: #374151;
-  border: 1px solid #27AE60;
-  padding: 8px 14px;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
+    background: transparent;
+    font-weight: 400;
+    color: #374151;
+    border: 1px solid #27AE60;
+    padding: 8px 14px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
   .btn-secondary:hover {
-    background-color: color-mix(in oklch, var(--color-primary-500) 8%, transparent);
+    background-color: color-mix(in oklch, var(--color-primary) 8%, transparent);
   }
 
-.card {
-  margin-top: 26px;
-  background: #fff; /* required for shadow on white layouts */
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  cursor: pointer;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;  
-  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.12));
+  .input-field {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid #d1d5db;
+  }
+
+  .input-field:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.4);
+  }
 }
-
-/* Hover effect */
-.card:hover {
-  transform: translateY(-4px);
-  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.18));
-}
-
-.input-field {
-  border: 1px solid #d1d5db; /* same as Tailwind's border-gray-300 */
-  border-radius: 0.5rem; /* rounded-lg */
-  padding: 0.5rem 0.75rem; /* py-2 px-3 */
-  font-size: 0.875rem; /* text-sm */
-  color: #374151; /* text-gray-700 */
-  width: 100%;
-  transition: all 0.2s ease; /* transition duration-200 */
-}
-
-.input-field::placeholder {
-  color: #9ca3af; /* placeholder-gray-400 */
-}
-
-.input-field:focus {
-  outline: none;
-  border-color: var(--color-primary); /* your custom green */
-  box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.4); /* focus:ring-primary/40 */
-}
-
-}
-
-

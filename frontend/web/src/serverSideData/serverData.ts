@@ -12,25 +12,38 @@ export async function getFeaturedProjects() {
     return res.json();
 }
 
-export async function getFeaturedSlugProjects({slug,}: {
-  slug: string;}): Promise<FeaturedProject | null> {
+
+
+export async function getFeaturedSlugProjects({ slug }: { slug: string }) {
+  const API_URL = process.env.API_URL; // <— this is the correct way
+
+  if (!API_URL) {
+    throw new Error("API_URL is not defined");
+  }
+
   const res = await fetch(
-    `${url}/api/properties/featuredProject/slug/${encodeURIComponent(slug)}`,
+    `${API_URL}/api/properties/featuredProject/slug/${encodeURIComponent(
+      slug
+    )}`,
     {
-      // next options control ISR/SSG behavior for App Router server fetch
-      next: { revalidate: 10 },
-      // optionally: cache: "no-store" if you want always fresh
+      next: { revalidate: 10 }, // ISR – recommended by Next.js
     }
   );
 
-  if (res.status === 404) return null;
+  if (res.status === 404) {
+    return null;
+  }
+
   if (!res.ok) {
     throw new Error("Failed to fetch featured project");
   }
 
-  const data: FeaturedProject = await res.json();
-  return data;
+  return (await res.json()) as FeaturedProject;
 }
+
+
+
+
 
 export async function getOwnerProperties() {
     const res = await fetch(`${url}/api/properties`, {next : { revalidate: 10}});

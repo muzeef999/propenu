@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { CiLocationOn } from "react-icons/ci";
 import { useCity } from "@/hooks/useCity";
 import { LocationItem } from "@/types";
+import Image from "next/image";
+import heroBanner  from "@/asserts/heroBanner.png"
 
 const CATEGORY_OPTIONS = [
   "All Residential",
@@ -45,53 +47,63 @@ const SearchBox = () => {
   }
 
   return (
-    <div className="w-[50%] bg-white shadow-md rounded-xl border border-gray-200">
-      <div className="flex items-center gap-3 p-4">
-        <div className="relative">
-          <select
-            className="px-3 py-2 rounded-lg text-sm bg-white cursor-pointer pr-7"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            {CATEGORY_OPTIONS.map((item) => (
-              <option key={item}>{item}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="relative w-full border-l border-l-[#EBEBEB]">
-          <CiLocationOn
-            className="absolute left-3 top-3 text-gray-500"
-            size={18}
-          />
-          <input
-            type="text"
-            placeholder="Search location, project, or builder..."
-            className="w-full border rounded-lg pl-10 pr-4 py-2 text-sm border-none outline-none focus:ring-0 focus:border-transparent"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
+    <div>
+      <div className="w-full">
+        <Image
+          src={heroBanner}
+          className="w-full h-auto"
+          alt="hero sections"
+          priority
+        />
       </div>
-
-      {results.length > 0 && (
-        <ul className="border-t bg-white max-h-64 overflow-y-auto text-sm">
-          {results.map((item) => (
-            <li
-              key={item.id}
-              onClick={() => {
-                console.log(item.city);
-                handleSelect(item);
-              }}
-              className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center"
+      <div className="w-[50%] bg-white shadow-md rounded-xl border border-gray-200">
+        <div className="flex items-center gap-3 p-4">
+          <div className="relative">
+            <select
+              className="px-3 py-2 rounded-lg text-sm bg-white cursor-pointer pr-7"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
             >
-              <div>
-                <div className="text-gray-700">{item.name}</div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+              {CATEGORY_OPTIONS.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="relative w-full border-l border-l-[#EBEBEB]">
+            <CiLocationOn
+              className="absolute left-3 top-3 text-gray-500"
+              size={18}
+            />
+            <input
+              type="text"
+              placeholder="Search location, project, or builder..."
+              className="w-full border rounded-lg pl-10 pr-4 py-2 text-sm border-none outline-none focus:ring-0 focus:border-transparent"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {results.length > 0 && (
+          <ul className="border-t bg-white max-h-64 overflow-y-auto text-sm">
+            {results.map((item) => (
+              <li
+                key={item.id}
+                onClick={() => {
+                  console.log(item.city);
+                  handleSelect(item);
+                }}
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center"
+              >
+                <div>
+                  <div className="text-gray-700">{item.name}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 };

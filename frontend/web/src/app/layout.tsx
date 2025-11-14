@@ -13,7 +13,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "EstatePro | Property Management Made Simple",
+  title: "Property Management Made Simple",
   description:
     "Manage properties, tenants, leases, rent collection, and maintenance requests — all in one smart platform.",
   keywords: [
@@ -31,6 +31,8 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+
       {/* Only head & body may be direct children of html */}
       <body className={`${poppins.variable} antialiased`}>
         {/* Providers must be inside <body>, not wrapping it */}

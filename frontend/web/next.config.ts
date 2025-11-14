@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
 
+  images: {
+    domains: ["propenu.s3.eu-north-1.amazonaws.com"],
+  },
+
   async rewrites() {
     return [
       {
