@@ -4,7 +4,7 @@ import ToggleGroup from "@/ui/ToggleGroup";
 import { useFormContext } from "react-hook-form";
 import { FiTag } from "react-icons/fi";
 
-type BasicTabProps = {
+type BasicTabProps = { 
   onNext: () => void; // 👈 receives the prop
 };
 
@@ -14,7 +14,7 @@ export default function BasicTab({ onNext }: BasicTabProps) {
   const listingType = watch("listingType");
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 min-h-screen">
-      <div className="space-y-4 flex-col bg-[#F8FFFB] flex items-left justify-center">
+      <div className="space-y-4 flex-col card bg-[#F8FFFB] flex items-left justify-center">
         <h1 className="font-medium text-2xl">Fill out basic details</h1>
         <label>
           <label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-1">

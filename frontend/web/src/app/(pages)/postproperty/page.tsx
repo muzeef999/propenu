@@ -4,7 +4,7 @@ import PropertyForm from "@/components/PropertyForm/PropertyForm"
 
 const page = () => {
     return (
-      <div className="container justify-center">
+      <div className="container">
         <PropertyForm />
       </div>
     );

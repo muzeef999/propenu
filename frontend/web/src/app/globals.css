@@ -66,7 +66,9 @@ html, body {
 /* ------------------------------------ */
 @layer utilities {
   .text-primary { color: var(--color-primary); }
-  .headingDesc { color: var(--color-heading-desc); }
+  .headingDesc { color: var(--color-heading-desc);}
+  .headingSideBar { color: var(--color-primary); }
+  
 }
 
 /* ------------------------------------ */
@@ -78,6 +80,7 @@ html, body {
     padding-left: 8px;
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
   }
    
 
@@ -132,4 +135,39 @@ html, body {
     border-color: var(--color-primary);
     box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.4);
   }
+
+  .card {
+    margin-top: 26px;
+    background: #fff;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: 0.25s ease;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.12));
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    filter: drop-shadow(0 6px 12px rgba(0,0,0,0.18));
+  }
+
+
+    .input-field {
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: #374151;
+    width: 100%;
+    transition: all 0.2s ease;
+  }
+  .input-field::placeholder {
+    color: #9ca3af;
+  }
+  .input-field:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.4);
+  }
+
 }

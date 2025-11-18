@@ -66,16 +66,7 @@ export default function CityDropdown() {
         >
           <div className="p-3 border-b border-gray-100">
             <div className="text-sm font-medium text-gray-700">Choose city</div>
-            <div className="mt-2">
-              <input
-                type="text"
-                placeholder="Search cities..."
-                className="w-full text-sm px-3 py-2 rounded-md border border-gray-200 outline-none focus:ring-1 focus:ring-primary/40"
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") setOpen(false);
-                }}
-              />
-            </div>
+         
           </div>
 
           {/* Popular cities */}

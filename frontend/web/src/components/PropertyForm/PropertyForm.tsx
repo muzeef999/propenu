@@ -104,7 +104,7 @@ export default function PropertyForm({
 
   return (
     <FormProvider {...methods}>
-      <div className="bg-white p-6 rounded shadow">
+      <div className="mt-[50px]">
         <StepperHeader
           steps={steps}
           current={step}
@@ -112,7 +112,7 @@ export default function PropertyForm({
           onStepClick={onStepClick}
         />
 
-        <div className="mt-6">
+        <div>
           {step === 0 && <BasicTab onNext={handleNext} />}
           {step === 1 && (
             <LocationTab onNext={handleNext} onBack={handleBack} />

@@ -1,4 +1,3 @@
-
 import HeroBannerSVG from "@/svg/HeroBannerSVG";
 import TestomianalHome from "./(pages)/reviews/TestomianalHome";
 import ExploreMorePropertiesPage from "./(pages)/explore-properties/Explore-properties";
@@ -11,12 +10,10 @@ export default function Home() {
   return (
     <div>
       <SearchBox />
-
+      <br/>
       <div className="container mx-auto  space-y-12">
-        
         <FeaturedProjectsServer />
         <GetOwnerProperties />
-
         {/* Apartments, villas and more  */}
         <div>
           <div className="headingSideBar">
