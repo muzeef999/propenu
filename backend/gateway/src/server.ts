@@ -114,10 +114,15 @@ app.get("/health", (_req: Request, res: Response) => {
 // 404 for anything else
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 
+
+
 // Start server
-app.listen(PORT, () => {
+app.listen(Number(PORT), "0.0.0.0", () => {
   console.log(`✅ Gateway running on : ${PORT}`);
-  console.log("Allowed origins:", allowedOrigins.length ? allowedOrigins : "(none)");
+  console.log(
+    "Allowed origins:",
+    allowedOrigins.length ? allowedOrigins : "(none)"
+  );
   console.log("Service URLs:", {
     PAYMENT_SERVICE_URL,
     PROPERTY_SERVICE_URL,

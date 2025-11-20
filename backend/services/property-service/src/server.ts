@@ -22,9 +22,11 @@ async function start() {
         app.use('/api/properties', PropertiesRoute);
         app.use('/api/properties/featuredProject', featurePropertiesRoute);
 
-        app.listen(port, () => {
-            console.log(`property service is running on port ${port}`); 
-        });
+         
+app.listen(Number(port), "0.0.0.0", () => {
+  console.log(`proportey running on 0.0.0.0:${port}`);
+});
+
     } catch (err) {
         console.error('Failed to start server', err);
         process.exit(1);
