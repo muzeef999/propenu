@@ -6,6 +6,7 @@ import agentRoute from './routes/agentRoute';
 import builderRouter from './routes/builderRoute';
 import NodeCache from "node-cache";
 import nominatimRoute from './routes/nominatimRoute';
+import { seedRoles } from './routes/seedsRoute';
 
 
 dotenv.config();
@@ -28,7 +29,7 @@ async function start() {
         app.use("/api/users/agent", agentRoute);
         app.use("/api/users/builder", builderRouter);
         app.use("/api/users/locations", nominatimRoute);
-         
+        app.use("/api/users/seeds", seedRoles); 
 
         app.listen(port, () => {
             console.log(`user service is running on port ${port}`); 

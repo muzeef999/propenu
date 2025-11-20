@@ -10,7 +10,6 @@ const authRoute = express.Router();
 
 authRoute.post('/request-otp', async (req, res) => {
   try { 
- 
       const name = req.body.name;
       if (!name) return res.status(400).json({ message: 'name is required' });
  
@@ -20,12 +19,12 @@ authRoute.post('/request-otp', async (req, res) => {
 
     const otp = genOtp();
 
-    await saveOtpToRedis(email, otp);        
-    await sendOtpEmail(email, otp, name); 
+    await saveOtpToRedis(email, otp);
+  
+    await sendOtpEmail(email, otp, name);
     res.status(200).json({ message: 'OTP sent successfully' });
-
- } catch(error) {
-     res.status(500).json({ message: 'Failed to send OTP' });
+ } catch(error:any) {
+     res.status(500).json({ message: 'Failed to send OTP', error: error.message});
 }
 });
 

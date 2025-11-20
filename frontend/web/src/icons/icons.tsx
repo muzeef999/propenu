@@ -180,3 +180,51 @@ export const LocationIcon = ({size=24,color="#ADADAD"}:{size?:number; color?:str
   )
 }
 
+export const ServiceHomeCare = () => {
+   return (
+  <svg
+      width="16"
+      height="18"
+      viewBox="0 0 16 18"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M0 18V6L8 0L16 6V18H10V11H6V18H0Z" fill="#FFB625" />
+    </svg>    
+   )
+}
+
+
+export const ServiceHomeLoan = () => {
+  return (
+    <svg
+      width="16"
+      height="18"
+      viewBox="0 0 16 18"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M0 18V6L8 0L16 6V18H10V11H6V18H0Z" fill="#FFB625" />
+    </svg>
+  );
+};
+
+export const ServiceInteriorDesigner = () => {
+  return (
+    <svg
+      width="21"
+      height="19"
+      viewBox="0 0 21 19"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M0 19V16.8889H2.1V0H18.9V16.8889H21V19H0ZM4.2 4.22222H12.6V2.11111H4.2V4.22222ZM4.2 8.44444H12.6V6.33333H4.2V8.44444ZM4.2 16.8889H16.8V10.5556H14.7V12.4819C14.945 12.6579 15.1375 12.8778 15.2775 13.1417C15.4175 13.4056 15.4875 13.687 15.4875 13.9861C15.4875 14.4963 15.3081 14.9317 14.9494 15.2924C14.5906 15.653 14.1575 15.8333 13.65 15.8333C13.1425 15.8333 12.7094 15.653 12.3506 15.2924C11.9919 14.9317 11.8125 14.4963 11.8125 13.9861C11.8125 13.687 11.8825 13.4056 12.0225 13.1417C12.1625 12.8778 12.355 12.6579 12.6 12.4819V10.5556H4.2V16.8889ZM14.7 4.22222H16.8V2.11111H14.7V4.22222ZM14.7 8.44444H16.8V6.33333H14.7V8.44444Z"
+        fill="#8F3AFF"
+      />
+    </svg>
+  );
+};
+
+
+

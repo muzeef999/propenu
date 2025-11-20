@@ -5,6 +5,7 @@ import SearchBox from "@/components/SearchBox";
 import FeaturedProjectsServer from "./(pages)/featured/FeaturedProjectsServer";
 import PopularOwnerPropertiesClient from "./(pages)/owner-listed/PopularOwnerPropertiesClient";
 import GetOwnerProperties from "./(pages)/owner-listed/PopularOwnerPropertiesServer";
+import ExploreOurServices from "@/app/(pages)/explore-properties/ExploreOurServices";
 
 export default function Home() {
   return (
@@ -14,6 +15,7 @@ export default function Home() {
       <div className="container mx-auto  space-y-12">
         <FeaturedProjectsServer />
         <GetOwnerProperties />
+        <ExploreOurServices />
         {/* Apartments, villas and more  */}
         <div>
           <div className="headingSideBar">

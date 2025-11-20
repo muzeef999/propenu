@@ -35,7 +35,7 @@ const CATEGORIES = [
   {
     id: "villa",
     title: "Independent House / Villa",
-     color:"#FFF0E5",
+    color:"#FFF0E5",
     image:Res,
     imageAlt: "Mediterranean villa with palm trees",
     countText: "5,800+ Properties",
@@ -49,27 +49,21 @@ export function PropertyCard({ item }: { item: (typeof CATEGORIES)[number] }) {
   return (
     <Link
       href={item.href}
-      aria-label={`${item.title} – ${item.countText}`}
-      className="relative flex h-[330px] w-full overflow-hidden rounded-2xl shadow-sm transition-all hover:shadow-lg bg-[#F8EDE9]"
+      className={`h-[360px] card bg-[${item.color}]`}
     >
       {/* Text Section */}
       <div className="z-10 flex flex-col gap-2 p-6">
-        <h3 className="text-[32px] leading-[1.2] font-semibold text-gray-900">
-          {item.title}
-        </h3>
-
-        <p className="text-[20px] text-gray-500 font-medium">
-          {item.countText}
-        </p>
+        <h3 className="text-2xl headingblack font-medium">{item.title}</h3>
+        <p className="mt-2 text-base headingDesc">{item.countText}</p>
       </div>
 
       {/* Image Section */}
-      <div className="absolute bottom-0 right-0 w-full h-[55%]">
+      <div className="absolute bottom-0 right-0 w-full">
         <img
           src={item.image.src}
           alt={item.imageAlt}
           loading="lazy"
-          className="h-full w-full object-cover object-center transition-transform duration-300 hover:scale-105"
+          className="h-full w-full object-cover object-center transition-transform duration-300"
         />
       </div>
     </Link>
@@ -80,36 +74,33 @@ export function PropertyCard({ item }: { item: (typeof CATEGORIES)[number] }) {
 // --- Page ------------------------------------------------------------------
 export default function ExploreMorePropertiesPage() {
   return (
-    
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
-       
-        {/* Grid */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {CATEGORIES.map((item) => (
-            <PropertyCard key={item.id} item={item} />
-          ))}
-        </section>
+    <>
+      {/* Grid */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        {CATEGORIES.map((item) => (
+          <PropertyCard key={item.id} item={item} />
+        ))}
+      </section>
 
-        {/* JSON-LD for SEO (category list) */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "CollectionPage",
-              name: "Explore More Properties",
-              description:
-                "Explore Hyderabad property categories including apartments, residential land, farm houses and villas.",
-              hasPart: CATEGORIES.map((c) => ({
-                "@type": "Collection",
-                name: c.title,
-                url: c.href,
-              })),
-            }),
-          }}
-        />
-      </main>
-    
+      {/* JSON-LD for SEO (category list) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            name: "Explore More Properties",
+            description:
+              "Explore Hyderabad property categories including apartments, residential land, farm houses and villas.",
+            hasPart: CATEGORIES.map((c) => ({
+              "@type": "Collection",
+              name: c.title,
+              url: c.href,
+            })),
+          }),
+        }}
+      />
+    </>
   );
 }
 

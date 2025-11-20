@@ -16,20 +16,40 @@ const UserSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
       sparse: true,
-      match: [/^\S+@\S+\.\S+$/, 'Invalid email'],
+      match: [/^\S+@\S+\.\S+$/, "Invalid email"],
     },
     phone: {
       type: String,
       trim: true,
       unique: true,
       sparse: true,
-      match: [/^\+?[1-9]\d{6,14}$/, 'Invalid phone number'],
+      match: [/^\+?[1-9]\d{6,14}$/, "Invalid phone number"],
     },
-    role: {
-      type: String,
-      enum: ['user', 'admin', "Buyer","Owner","Agent","Builder","Admin"],
-      default: 'user',
+
+    //New: tenant/builder/company reference ---
+
+    builderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Builder",
+      required: false,
+      index: true,
     },
+
+    // ---NEW : reference to Role Document (flexible) ---
+
+    roleId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Role",
+      required: false,
+    },
+
+    isActive: { type: Boolean, default: true },
+    isSuperAdmin: { type: Boolean, default: false }, // optional shortcut
+
+    lastLoginAt: { type: Date },
+    loginCount: { type: Number, default: 0 },
+
+    
   },
   {
     timestamps: true, // automatically adds createdAt & updatedAt

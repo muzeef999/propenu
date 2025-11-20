@@ -7,6 +7,7 @@
 :root {
   --color-primary: #27AE60;
   --color-white: #ffffff;
+  --color-black:#111111;
   --color-heading-desc: #8C8989;
 
   /* Make container WIDER + more padding */
@@ -68,7 +69,7 @@ html, body {
   .text-primary { color: var(--color-primary); }
   .headingDesc { color: var(--color-heading-desc);}
   .headingSideBar { color: var(--color-primary); }
-  
+  .headingblack {color: var(--color-black);}   
 }
 
 /* ------------------------------------ */
