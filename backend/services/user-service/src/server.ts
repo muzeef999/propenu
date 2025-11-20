@@ -16,8 +16,7 @@ app.use(express.json());
 
 const port = process.env.PORT ?? 4004;
         
-
-async function start() {
+async function start() { 
     try {
         await connectDB();
 

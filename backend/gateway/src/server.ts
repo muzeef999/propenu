@@ -1,4 +1,3 @@
-// src/server.ts
 import express, { Request, Response } from "express";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import morgan from "morgan";
@@ -10,7 +9,6 @@ dotenv.config();
 const app = express();
 const PORT = Number(process.env.PORT ?? 4000);
 
-// Base-only URLs (no trailing slash, no /api/... in these)
 const PAYMENT_SERVICE_URL  = process.env.PAYMENT_SERVICE_URL  || "";
 const PROPERTY_SERVICE_URL = process.env.PROPERTY_SERVICE_URL || "";
 const USER_SERVICE_URL     = process.env.USER_SERVICE_URL     || "";
@@ -25,10 +23,8 @@ if (!PAYMENT_SERVICE_URL || !PROPERTY_SERVICE_URL || !USER_SERVICE_URL) {
   process.exit(1);
 }
 
-// Helpful when running behind a proxy/load balancer
 app.set("trust proxy", true);
 
-// CORS
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
   .map(s => s.trim())
@@ -51,12 +47,6 @@ app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-/**
- * Proxy that forwards the EXACT original URL seen at the gateway.
- * This guarantees:
- *   http://localhost:4000/api/properties/featuredProject
- *   → forwards as "/api/properties/featuredProject" to the service.
- */
 function makeProxy(target: string) {
   return createProxyMiddleware({
     target,

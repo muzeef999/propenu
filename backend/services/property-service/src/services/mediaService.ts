@@ -3,8 +3,8 @@ import s3 from "../config/s3";
 import { Types } from "mongoose";
 import { v4 as uuid } from "uuid";
 
-const { S3_BUCKET, CDN_URL, AWS_REGION } = process.env;
-if (!S3_BUCKET) throw new Error("Missing S3_BUCKET env");
+const { AWS_S3_BUCKET, CDN_URL, AWS_REGION } = process.env;
+if (!AWS_S3_BUCKET) throw new Error("Missing S3_BUCKET env");
 
 function sanitizeFilename(name: string) {
   return (name || "file").toLowerCase().replace(/[^a-z0-9.\-_]+/g, "-");
@@ -23,7 +23,7 @@ function guessExt(mime: string) {
 
 function buildPublicUrl(key: string) {
   if (CDN_URL) return `${CDN_URL}/${key}`;
-  return `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${key}`;
+  return `https://${AWS_S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${key}`;
 }
 
 export async function uploadBufferToS3({
@@ -44,7 +44,7 @@ export async function uploadBufferToS3({
 
   await s3
     .putObject({
-      Bucket: S3_BUCKET!,
+      Bucket: AWS_S3_BUCKET!,
       Key: key,
       Body: buffer,
       ContentType: mimetype,
