@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
+import { IPlan } from "../types/razorpay";
 
-const planSchema = new mongoose.Schema({
+const planSchema = new mongoose.Schema<IPlan>({
 planId : { type: String, required: true, unique: true },
 name: { type: String, required: true },
 priceCents: { type: Number, required: true },

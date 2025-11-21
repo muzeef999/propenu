@@ -84,7 +84,7 @@ function makeProxy(target: string) {
 }
 
 // Mount once per service. No stripPrefix argument.
-app.use("/api/payments",   makeProxy(PAYMENT_SERVICE_URL));
+app.use("/api/payment",   makeProxy(PAYMENT_SERVICE_URL));
 app.use("/api/properties", makeProxy(PROPERTY_SERVICE_URL));
 app.use("/api/users",      makeProxy(USER_SERVICE_URL));
 

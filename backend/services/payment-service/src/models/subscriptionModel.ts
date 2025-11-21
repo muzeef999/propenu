@@ -1,6 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { ISubscription } from '../types/razorpay';
 
-const subscriptionSchema = new Schema({
+const subscriptionSchema = new Schema<ISubscription>({
   subscriptionId: { type: String, required: true, unique: true },
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   planId: { type: String, required: true },   // references Plan.planId
