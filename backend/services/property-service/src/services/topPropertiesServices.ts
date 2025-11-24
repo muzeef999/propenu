@@ -453,7 +453,7 @@ export const FeaturePropertyService = {
     return await FeaturedProject.findOne({ slug }).lean();
   },
 
-  async getAllFeatures(options?: {
+  async getAlltop(options?: {
     page?: number;
     limit?: number;
     q?: string;
@@ -468,7 +468,7 @@ export const FeaturePropertyService = {
     if (options?.q) filter.$text = { $search: options.q };
     if (options?.status) filter.status = options.status;
 
-    filter.isFeatured = true; 
+          filter.isFeatured = false;   // <-- THIS IS WHERE YOU ADDED IT
 
     const sort: any = {};
     if (options?.sortBy) sort[options.sortBy] = options.sortOrder === "asc" ? 1 : -1;

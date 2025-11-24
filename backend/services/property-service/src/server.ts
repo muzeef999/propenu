@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import { connectDB } from "./config/db";
 import featurePropertiesRoute from "./routes/featurePropertiesRoute";
 import popularOwnerPropertiesRoute from "./routes/popularOwnerPropertiesRoute";
+import topPropertiesRoute from "./routes/topPropertiesRoute";
+
 dotenv.config();
 const app = express();
 app.use(express.json());
@@ -20,6 +22,7 @@ async function start() {
 
         app.use('/api/properties/featured-project', featurePropertiesRoute);
         app.use('/api/properties/owners-properties', popularOwnerPropertiesRoute);
+        app.use('/api/properties/top-project', topPropertiesRoute);
 
          
 app.listen(Number(port), "0.0.0.0", () => {

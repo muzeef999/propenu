@@ -1,21 +1,31 @@
+// src/models/featurePropertiesModel.ts
 import mongoose, { Schema, Document, Model, Types } from 'mongoose';
-import { IAmenity, IBhkSummary, IFeaturedProject, IGalleryItem, ILead, INearbyPlace, ISpecification, ISpecItem } from '../types/featurePropertiesTypes';
-
+import {
+  IAmenity,
+  IBhkSummary,
+  IFeaturedProject,
+  IGalleryItem,
+  ILead,
+  INearbyPlace,
+  ISpecification,
+  ISpecItem,
+} from '../types/featurePropertiesTypes';
 
 export interface IFeaturedProjectDocument extends IFeaturedProject, Document {}
-
 export interface ILeadDocument extends ILead, Document {
   projectId: Types.ObjectId;
 }
 
-
+/* ------------------------
+   Sub-schemas
+   ------------------------ */
 const BhkSummarySchema = new Schema<IBhkSummary>(
   {
     bhk: { type: Number, required: true },
     bhkLabel: { type: String },
     plan: {
       url: { type: String },
-      key: { type: String },        // S3 object key — used to delete/replace
+      key: { type: String },
       filename: { type: String },
       mimetype: { type: String },
     },
@@ -28,7 +38,6 @@ const BhkSummarySchema = new Schema<IBhkSummary>(
   { _id: false }
 );
 
-// Gallery item
 const GallerySummarySchema = new Schema<IGalleryItem>(
   {
     title: { type: String },
@@ -39,7 +48,6 @@ const GallerySummarySchema = new Schema<IGalleryItem>(
   { _id: false }
 );
 
-// Amenity
 const AmenitySchema = new Schema<IAmenity>(
   {
     key: { type: String },
@@ -49,7 +57,6 @@ const AmenitySchema = new Schema<IAmenity>(
   { _id: false }
 );
 
-// Specification item & category
 const SpecificationItemSchema = new Schema<ISpecItem>(
   {
     title: { type: String },
@@ -67,7 +74,6 @@ const SpecificationSchema = new Schema<ISpecification>(
   { _id: false }
 );
 
-// Nearby place
 const NearbyPlaceSchema = new Schema<INearbyPlace>(
   {
     name: { type: String },
@@ -85,7 +91,6 @@ const NearbyPlaceSchema = new Schema<INearbyPlace>(
   { _id: false }
 );
 
-// Lead (embedded)
 const LeadSchema = new Schema<ILead>(
   {
     name: { type: String, required: true, trim: true },
@@ -122,7 +127,7 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
 
     // address & geo
     address: { type: String, required: true },
-    city: { type: String },
+    city: { type: String, index: true },
     location: {
       type: { type: String, enum: ['Point'], default: 'Point' },
       coordinates: { type: [Number], index: '2dsphere' },
@@ -131,8 +136,8 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
 
     // pricing / bhk
     currency: { type: String, default: 'INR' },
-    priceFrom: { type: Number },
-    priceTo: { type: Number },
+    priceFrom: { type: Number, index: true },
+    priceTo: { type: Number, index: true },
     bhkSummary: { type: [BhkSummarySchema], default: [] },
 
     sqftRange: {
@@ -168,8 +173,8 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     leads: { type: [LeadSchema], default: [] },
 
     // flags & meta
-    isFeatured: { type: Boolean, default: false },
-    rank: { type: Number, default: 1 },
+    isFeatured: { type: Boolean, default: false, index: true },
+    rank: { type: Number, default: 1, index: true },
 
     meta: {
       views: { type: Number, default: 0 },
@@ -177,10 +182,10 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
       clicks: { type: Number, default: 0 },
     },
 
-    status: { type: String, enum: ['active', 'inactive', 'archived'], default: 'active' },
+    status: { type: String, enum: ['active', 'inactive', 'archived'], default: 'active', index: true },
 
     // audit
-    createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
 
     relatedProjects: { type: [Schema.Types.ObjectId], ref: 'featuredProject', default: [] },
@@ -188,11 +193,41 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
   { timestamps: true }
 );
 
-FeaturePropertySchema.index({ title: 'text', address: 'text', city: 'text' });
+/* -------------------------
+   Indexes (recommended)
+   ------------------------- */
 
+// text index for search across title/address/city
+FeaturePropertySchema.index({ title: 'text', address: 'text', city: 'text' }, { name: 'Idx_Text_Search' });
+
+// single-field index for boolean featured flag (fast filter)
+FeaturePropertySchema.index({ isFeatured: 1 }, { name: 'Idx_IsFeatured' });
+
+// compound index: filter by isFeatured + status, then sort by rank desc and createdAt desc
+FeaturePropertySchema.index(
+  { isFeatured: 1, status: 1, rank: -1, createdAt: -1 },
+  { name: 'Idx_Featured_Status_Rank_CreatedAt' }
+);
+
+// compound index: featured by city + rank (use when filtering by city)
+FeaturePropertySchema.index({ isFeatured: 1, city: 1, rank: -1 }, { name: 'Idx_Featured_City_Rank' });
+
+// price range index to help range queries (min/max price)
+FeaturePropertySchema.index({ priceFrom: 1, priceTo: 1 }, { name: 'Idx_PriceRange' });
+
+// geospatial index (ensure coordinates exist as [lng, lat])
+FeaturePropertySchema.index({ 'location.coordinates': '2dsphere' }, { name: 'Idx_Location_2dsphere' });
+
+/* -------------------------
+   Hooks
+   -------------------------*/
 FeaturePropertySchema.pre<IFeaturedProjectDocument>('validate', function (next) {
   if (!this.slug && this.title) {
-    this.slug = String(this.title).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    this.slug = String(this.title)
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
   next();
 });
@@ -222,13 +257,12 @@ FeaturePropertySchema.pre<IFeaturedProjectDocument>('save', function (next) {
   next();
 });
 
-
 const featuredModelName = 'featuredProject';
 const FeaturedProject: Model<IFeaturedProjectDocument> =
   (mongoose.models && (mongoose.models as any)[featuredModelName]) ||
   mongoose.model<IFeaturedProjectDocument>(featuredModelName, FeaturePropertySchema);
 
-// Optional: separate Lead model (if you want to scale leads out later)
+/* Optional: separate Lead model (if you want to scale leads out later) */
 const LeadSchemaFull = new Schema<ILeadDocument>(
   {
     projectId: { type: Schema.Types.ObjectId, required: true, ref: featuredModelName, index: true },

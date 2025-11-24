@@ -35,3 +35,5 @@ router.get("/:id", getOwnerPropertyById);
 router.delete("/:id", deleteOwnerProperty);
 
 export default router;
+
+
