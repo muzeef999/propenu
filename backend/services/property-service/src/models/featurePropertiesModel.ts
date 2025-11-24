@@ -1,162 +1,24 @@
 import mongoose, { Schema, Document, Model, Types } from 'mongoose';
+import { IAmenity, IBhkSummary, IFeaturedProject, IGalleryItem, ILead, INearbyPlace, ISpecification, ISpecItem } from '../types/featurePropertiesTypes';
 
-/**
- * TypeScript interfaces (data shapes)
- * Keep these in sync with your service layer.
- */
-export interface IBhkSummary {
-  bhk: number;
-  bhkLabel?: string;
-  minSqft?: number;
-  maxSqft?: number;
-  minPrice?: number;
-  maxPrice?: number;
-  availableCount?: number;
-}
 
-export interface IGalleryItem {
-  title?: string;
-  url: string;
-  category?: string;
-  order?: number;
-}
-
-export interface IAmenity {
-  key?: string;
-  title?: string;
-  description?: string;
-  icon?: string;
-}
-
-export interface ISpecItem {
-  title?: string;
-  description?: string;
-}
-
-export interface ISpecification {
-  category?: string;
-  items?: ISpecItem[];
-  order?: number;
-}
-
-export interface INearbyPlace {
-  name?: string;
-  type?: string;
-  distanceText?: string;
-  coordinates?: [number, number] | number[]; // [lng, lat]
-  order?: number;
-}
-
-export interface ILead {
-  name: string;
-  phone: string;
-  location?: string;
-  message?: string;
-  createdAt?: Date;
-}
-
-/**
- * Core Featured Project shape (POJO)
- */
-export interface IFeaturedProject {
-  title: string;
-  slug: string;
-
-  developer?: Types.ObjectId | string;
-
-  // hero
-  heroImage?: string;
-  heroVideo?: string;
-  heroTagline?: string;
-  heroSubTagline?: string;
-  heroDescription?: string;
-
-  // SEO / branding
-  color?: string;
-  metaTitle?: string;
-  metaDescription?: string;
-  metaKeywords?: string;
-
-  // address & geo
-  address: string;
-  city?: string;
-  location?: {
-    type: 'Point';
-    coordinates: [number, number] | number[];
-  };
-  mapEmbedUrl?: string;
-
-  // pricing / bhk
-  currency?: string;
-  priceFrom?: number;
-  priceTo?: number;
-  bhkSummary: IBhkSummary[];
-  sqftRange?: { min?: number; max?: number };
-
-  // timeline & counts
-  possessionDate?: string;
-  totalTowers?: number;
-  totalFloors?: string;
-  projectArea?: number;
-  totalUnits?: number;
-  availableUnits?: number;
-
-  // legal / banks
-  reraNumber?: string;
-  banksApproved?: string[];
-
-  // media & gallery
-  gallerySummary: IGalleryItem[];
-  brochureUrl?: string;
-  brochureFileName?: string;
-
-  // specifications & amenities
-  specifications: ISpecification[];
-  amenities: IAmenity[];
-
-  // nearby places
-  nearbyPlaces: INearbyPlace[];
-
-  // leads (embedded small-volume) - optional
-  leads?: ILead[];
-
-  // flags & meta
-  isFeatured?: boolean;
-  rank?: number;
-  meta?: {
-    views?: number;
-    inquiries?: number;
-    clicks?: number;
-  };
-
-  // status & audit
-  status?: 'active' | 'inactive' | 'archived';
-  createdBy?: Types.ObjectId | string;
-  updatedBy?: Types.ObjectId | string;
-  relatedProjects?: Array<Types.ObjectId | string>;
-}
-
-/**
- * Mongoose document type (extends both POJO and Document)
- */
 export interface IFeaturedProjectDocument extends IFeaturedProject, Document {}
 
-/**
- * If you want a separate Lead collection later:
- */
 export interface ILeadDocument extends ILead, Document {
   projectId: Types.ObjectId;
 }
 
-/* -------------------------
-   Sub-schemas (Mongoose)
-   -------------------------*/
 
-// BHK summary
 const BhkSummarySchema = new Schema<IBhkSummary>(
   {
     bhk: { type: Number, required: true },
     bhkLabel: { type: String },
+    plan: {
+      url: { type: String },
+      key: { type: String },        // S3 object key — used to delete/replace
+      filename: { type: String },
+      mimetype: { type: String },
+    },
     minSqft: { type: Number },
     maxSqft: { type: Number },
     minPrice: { type: Number },
@@ -183,7 +45,6 @@ const AmenitySchema = new Schema<IAmenity>(
     key: { type: String },
     title: { type: String },
     description: { type: String },
-    icon: { type: String },
   },
   { _id: false }
 );

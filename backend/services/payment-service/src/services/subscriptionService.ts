@@ -12,7 +12,7 @@ export interface CreateOrderInput {
   months?: number;
 }
 
-/** Minimal local typing for plan (lean result) */
+
 interface PlanLean {
   planId: string;
   priceCents: number;

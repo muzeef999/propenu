@@ -1,9 +1,8 @@
 import  express  from "express";
 import dotenv from "dotenv";
 import { connectDB } from "./config/db";
-import PropertiesRoute from "./routes/propertiesRoute";
 import featurePropertiesRoute from "./routes/featurePropertiesRoute";
-
+import popularOwnerPropertiesRoute from "./routes/popularOwnerPropertiesRoute";
 dotenv.config();
 const app = express();
 app.use(express.json());
@@ -19,8 +18,8 @@ async function start() {
         });
         
 
-        app.use('/api/properties', PropertiesRoute);
-        app.use('/api/properties/featuredProject', featurePropertiesRoute);
+        app.use('/api/properties/featured-project', featurePropertiesRoute);
+        app.use('/api/properties/owners-properties', popularOwnerPropertiesRoute);
 
          
 app.listen(Number(port), "0.0.0.0", () => {

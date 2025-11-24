@@ -1,9 +1,17 @@
 import mongoose, { Document, Model, Types } from 'mongoose';
 
+export interface IBhkPlan {
+  url?: string;
+  key?: string;
+  filename?: string;
+  mimetype?: string;
+}
 
 export interface IBhkSummary {
   bhk: number;
+
   bhkLabel?: string;
+  plan?: IBhkPlan | null;
   minSqft?: number;
   maxSqft?: number;
   minPrice?: number;
@@ -22,7 +30,6 @@ export interface IAmenity {
   key?: string;
   title?: string;
   description?: string;
-  icon?: string;
 }
 
 export interface ISpecItem {
@@ -40,22 +47,19 @@ export interface INearbyPlace {
   name?: string;
   type?: string;
   distanceText?: string;
-  coordinates?: [number, number] | number[];
+  coordinates?: [number, number] | number[]; // [lng, lat]
   order?: number;
 }
 
 export interface ILead {
   name: string;
   phone: string;
-  location?: string;        // optional user-supplied location/city
-  message?: string;         // optional message from user
+  location?: string;
+  message?: string;
   createdAt?: Date;
 }
 
-/**
- * Featured Project core shape (plain POJO)
- * - This describes the values stored in Mongo, without the mongoose Document methods.
- */
+
 export interface IFeaturedProject {
   // basic
   title: string;

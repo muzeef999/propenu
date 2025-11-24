@@ -4,6 +4,11 @@ import { z } from "zod";
 const BhkSummarySchema = z.object({
   bhk: z.number().int().nonnegative(),
   bhkLabel: z.string().optional(),
+
+    planUrl: z.string().url().optional(),
+  planFileName: z.string().optional(),
+  planRemove: z.boolean().optional(), // true => delete existing plan if present
+
   minSqft: z.number().nonnegative().optional(),
   maxSqft: z.number().nonnegative().optional(),
   minPrice: z.number().nonnegative().optional(),
@@ -58,7 +63,6 @@ export const CreateFeaturePropertySchema = z.object({
   developer: z.string().optional(),
   about: z.string().optional(),
   featuredTagline: z.string().optional(),
-
   address: z.string().min(1),
   city: z.string().optional(),
   location: z
@@ -92,6 +96,16 @@ export const CreateFeaturePropertySchema = z.object({
 
   heroImage: z.string().url().optional(),
   heroVideo: z.string().url().optional(),
+  heroTagline: z.string().optional(),
+  heroSubTagline: z.string().optional(),
+  heroDescription: z.string().optional(),
+
+
+  // / SEO / branding - added
+  color: z.string().optional(),
+  metaTitle: z.string().optional(),
+  metaDescription: z.string().optional(),
+  metaKeywords: z.string().optional(),
 
   gallery: z.array(z.string()).optional().default([]),
   gallerySummary: z.array(GallerySummarySchema).optional().default([]),

@@ -26,28 +26,23 @@ function slugifyTitle(title: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-/** generate unique slug (append -1, -2, ...) */
+/** generate unique slug (throws if taken) */
 async function generateUniqueSlug(desiredTitleOrSlug: string, excludeId?: string) {
   const slug = slugifyTitle(desiredTitleOrSlug);
 
-  // Check if another document already uses this slug
   const existing = await FeaturedProject.findOne({ slug }).select("_id").lean();
 
   if (existing) {
-    // If this slug belongs to the SAME document (during update), allow it
     if (excludeId && existing._id.toString() === excludeId) {
       return slug;
     }
-
-    // Otherwise → slug already used → STOP auto-increment → throw error
     const err: any = new Error("Slug already in use");
     err.code = "SLUG_TAKEN";
     throw err;
   }
 
-  return slug; // available
+  return slug;
 }
-
 
 /** compute price range from bhkSummary */
 function computePriceRangeFromBhk(bhkSummary?: any[]) {
@@ -97,6 +92,147 @@ async function uploadBufferToS3Local(opts: {
   return { key, url };
 }
 
+/**
+ * Delete S3 object if key exists. Logs errors but doesn't throw so update/create flows continue.
+ */
+async function deleteS3ObjectIfExists(key?: string) {
+  if (!key) return;
+  const bucket = process.env.AWS_S3_BUCKET;
+  if (!bucket) {
+    console.warn("deleteS3ObjectIfExists: AWS_S3_BUCKET not configured");
+    return;
+  }
+  try {
+    await s3.deleteObject({ Bucket: bucket, Key: key }).promise();
+  } catch (e: any) {
+    console.error("deleteS3ObjectIfExists failed for key:", key, e?.message || e);
+    // don't rethrow — allow operation to continue
+  }
+}
+
+/**
+ * Process incoming bhkSummary together with uploaded bhkPlanFiles.
+ * Behavior:
+ *  - planRemove: delete old S3 key and set plan=null
+ *  - new file matched (index or planFileName): upload, delete old key, set plan object
+ *  - planUrl provided: set external URL (optionally delete old S3)
+ *  - otherwise preserve existing plan if present
+ *
+ * Note: incoming array is treated as "desired final array". If you want patch semantics,
+ * merge incoming into existing first (see mergeBhkSummary helper used in update flow).
+ */
+async function processBhkPlanUpdates(opts: {
+  bhkSummaryExisting?: any[];
+  bhkSummaryIncoming?: any[];
+  bhkPlanFiles?: Express.Multer.File[];
+  propertyId: string;
+  deleteOldS3OnExternalUrl?: boolean;
+}) {
+  const {
+    bhkSummaryExisting = [],
+    bhkSummaryIncoming = [],
+    bhkPlanFiles = [],
+    propertyId,
+    deleteOldS3OnExternalUrl = false,
+  } = opts;
+
+  const filesByName = new Map<string, Express.Multer.File>();
+  for (const f of bhkPlanFiles) filesByName.set(f.originalname, f);
+
+  for (let i = 0; i < bhkSummaryIncoming.length; i++) {
+    const incomingEntry = bhkSummaryIncoming[i] as any;
+    const existingEntry = bhkSummaryExisting[i] as any;
+
+    // planRemove requested
+    if (incomingEntry.planRemove) {
+      if (existingEntry?.plan?.key) {
+        await deleteS3ObjectIfExists(existingEntry.plan.key);
+      }
+      incomingEntry.plan = null;
+      continue;
+    }
+
+    // try index match first
+    let matchedFile: Express.Multer.File | undefined = bhkPlanFiles[i];
+
+    // fallback: planFileName match
+    if (!matchedFile && incomingEntry.planFileName && filesByName.has(incomingEntry.planFileName)) {
+      matchedFile = filesByName.get(incomingEntry.planFileName);
+    }
+
+    if (matchedFile) {
+      // upload new file
+      const up = await uploadBufferToS3Local({
+        buffer: matchedFile.buffer,
+        originalname: matchedFile.originalname,
+        mimetype: matchedFile.mimetype,
+        propertyId,
+        folder: "plans",
+      });
+
+      // delete old S3 object if present
+      if (existingEntry?.plan?.key) {
+        await deleteS3ObjectIfExists(existingEntry.plan.key);
+      }
+
+      incomingEntry.plan = {
+        url: up.url,
+        key: up.key,
+        filename: matchedFile.originalname,
+        mimetype: matchedFile.mimetype,
+      };
+      continue;
+    }
+
+    // external URL
+    if (incomingEntry.planUrl) {
+      if (deleteOldS3OnExternalUrl && existingEntry?.plan?.key) {
+        await deleteS3ObjectIfExists(existingEntry.plan.key);
+      }
+      incomingEntry.plan = {
+        url: incomingEntry.planUrl,
+        key: undefined,
+        filename: undefined,
+        mimetype: undefined,
+      };
+      continue;
+    }
+
+    // preserve existing plan if present
+    if (existingEntry?.plan) {
+      incomingEntry.plan = existingEntry.plan;
+    } else {
+      incomingEntry.plan = null;
+    }
+  }
+
+  return bhkSummaryIncoming;
+}
+
+/**
+ * Merge incoming bhkSummary (patch) into existing bhkSummary.
+ * - tries to match by bhk value first
+ * - falls back to index-based merge
+ */
+function mergeBhkSummary(existingArr: any[] = [], incomingArr: any[] = []) {
+  const result: any[] = existingArr ? existingArr.slice() : [];
+  for (let i = 0; i < incomingArr.length; i++) {
+    const inc = incomingArr[i];
+    if (typeof inc.bhk !== "undefined") {
+      const idx = result.findIndex((r) => r && r.bhk === inc.bhk);
+      if (idx >= 0) {
+        result[idx] = { ...result[idx], ...inc };
+      } else {
+        result.push(inc);
+      }
+    } else {
+      if (i < result.length) result[i] = { ...result[i], ...inc };
+      else result.push(inc);
+    }
+  }
+  return result;
+}
+
 /* --------------------
    Service
    --------------------*/
@@ -134,9 +270,11 @@ export const FeaturePropertyService = {
         originalname: f.originalname,
         mimetype: f.mimetype,
         propertyId: propId,
-        folder: "Builder_hero", // folder name you asked for
+        folder: "Builder_hero",
       });
       toCreate.heroImage = up.url;
+      // optional: store heroImageKey in DB to be able to delete later
+      // toCreate.heroImageKey = up.key;
     }
 
     // HERO VIDEO (single)
@@ -151,6 +289,7 @@ export const FeaturePropertyService = {
         folder: "video",
       });
       toCreate.heroVideo = up.url;
+      // toCreate.heroVideoKey = up.key;
     }
 
     // GALLERY FILES (multiple)
@@ -158,7 +297,6 @@ export const FeaturePropertyService = {
     if (galleryFiles.length > 0) {
       toCreate.gallerySummary = toCreate.gallerySummary || [];
       for (const f of galleryFiles) {
-        // f is typed as Express.Multer.File
         const up = await uploadBufferToS3Local({
           buffer: f.buffer,
           originalname: f.originalname,
@@ -172,8 +310,25 @@ export const FeaturePropertyService = {
           category: "image",
           order: (toCreate.gallerySummary.length || 0) + 1,
         });
+        // optionally store key: up.key
       }
     }
+
+    // attach BHK plan files (create flow)
+    const bhkPlanFiles = files?.bhkPlanFiles ?? [];
+    toCreate.bhkSummary = toCreate.bhkSummary || [];
+    // safety: ensure uploaded files count not greater than provided entries (index matching)
+    if (bhkPlanFiles.length > toCreate.bhkSummary.length) {
+      // not fatal but probably a client error — reject to avoid mismapping
+      throw new Error("Too many bhkPlanFiles uploaded for provided bhkSummary entries");
+    }
+    toCreate.bhkSummary = await processBhkPlanUpdates({
+      bhkSummaryExisting: [], // none on create
+      bhkSummaryIncoming: toCreate.bhkSummary,
+      bhkPlanFiles,
+      propertyId: propId,
+      deleteOldS3OnExternalUrl: false,
+    });
 
     // finally create document in DB
     const created = await FeaturedProject.create(toCreate);
@@ -201,14 +356,38 @@ export const FeaturePropertyService = {
       if (priceTo !== undefined) existing.priceTo = priceTo;
     }
 
-    // apply payload fields
+    // apply payload fields (shallow copy)
     Object.keys(payload).forEach((k) => {
       (existing as any)[k] = (payload as any)[k];
     });
 
     const propId = existing._id!.toString();
 
-    // replace hero image
+    // --------- process BHK updates (files + planRemove + external URL) ----------
+    const bhkSummaryIncoming = (payload as any).bhkSummary;
+    const bhkPlanFiles = files?.bhkPlanFiles ?? [];
+
+    if (Array.isArray(bhkSummaryIncoming)) {
+      // basic safety
+      if (bhkPlanFiles.length > bhkSummaryIncoming.length) {
+        throw new Error("Too many bhkPlanFiles uploaded for provided bhkSummary entries");
+      }
+
+      // mergeIncoming => allows partial updates (client can send only changed entries)
+      const mergedIncoming = mergeBhkSummary(existing.bhkSummary || [], bhkSummaryIncoming);
+
+      const processed = await processBhkPlanUpdates({
+        bhkSummaryExisting: existing.bhkSummary || [],
+        bhkSummaryIncoming: mergedIncoming,
+        bhkPlanFiles,
+        propertyId: propId,
+        deleteOldS3OnExternalUrl: true,
+      });
+
+      existing.bhkSummary = processed;
+    }
+
+    // replace hero image (if provided)
     const heroFiles = files?.heroImage;
     if (heroFiles && heroFiles.length > 0) {
       const f: Express.Multer.File = heroFiles[0]!;
@@ -220,10 +399,10 @@ export const FeaturePropertyService = {
         folder: "hero",
       });
       existing.heroImage = up.url;
-      // TODO: delete old object from S3 if you stored its key
+      // TODO: delete old hero key if you store it (existing.heroImageKey)
     }
 
-    // replace hero video
+    // replace hero video (if provided)
     const heroVideoFiles = files?.heroVideo;
     if (heroVideoFiles && heroVideoFiles.length > 0) {
       const v: Express.Multer.File = heroVideoFiles[0]!;
@@ -235,6 +414,7 @@ export const FeaturePropertyService = {
         folder: "video",
       });
       existing.heroVideo = up.url;
+      // TODO: delete old heroVideoKey if you store it
     }
 
     // append gallery files
@@ -255,6 +435,7 @@ export const FeaturePropertyService = {
           category: "image",
           order: (existing.gallerySummary.length || 0) + 1,
         } as any);
+        // optionally store key: up.key
       }
     }
 
@@ -298,6 +479,23 @@ export const FeaturePropertyService = {
 
   async deleteFeatureProperty(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
+    // fetch existing doc so we can remove stored S3 objects (plans, optional hero/gallery keys)
+    const existing = await FeaturedProject.findById(id).lean();
+    if (!existing) return null;
+
+    // delete BHK plan keys
+    if (Array.isArray(existing.bhkSummary)) {
+      for (const e of existing.bhkSummary) {
+        if ((e as any)?.plan?.key) {
+          await deleteS3ObjectIfExists((e as any).plan.key);
+        }
+      }
+    }
+
+    // Optionally delete hero/gallery/video keys here if you stored their keys:
+    // if (existing.heroImageKey) await deleteS3ObjectIfExists(existing.heroImageKey);
+    // if (Array.isArray(existing.gallerySummary)) { ... }
+
     const deleted = await FeaturedProject.findByIdAndDelete(id).exec();
     return deleted;
   },

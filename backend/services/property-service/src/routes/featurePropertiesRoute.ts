@@ -16,7 +16,6 @@ import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
 
 const router = express.Router();
 
-const anyUpload = multer({ storage: multer.memoryStorage() }).any();
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -24,6 +23,7 @@ const cpUpload = upload.fields([
   { name: "heroImage", maxCount: 1 },
   { name: "heroVideo", maxCount: 1 },
   { name: "galleryFiles", maxCount: 12 },
+  { name: "bhkPlanFiles", maxCount: 12 }, 
 ]);
 
 const jsonKeys = [
@@ -42,9 +42,8 @@ router.post("/", cpUpload, parseJsonFields(jsonKeys), fallbackCoerceDefault, val
 
 router.patch("/:id", cpUpload, parseJsonFields(jsonKeys), fallbackCoerceDefault, validateBody(UpdateFeaturePropertySchema), editFeatureProperties);
 router.get("/", getAllFeatureProperties);
-router.get("/slug/:slug", getFeatureBySlug); // GET by slug
-router.get("/:id", getIndetailFeatureProperties); // GET by id
-
+router.get("/slug/:slug", getFeatureBySlug); 
+router.get("/:id", getIndetailFeatureProperties); 
 router.delete("/:id", deleteFeatureProperties);
 
 

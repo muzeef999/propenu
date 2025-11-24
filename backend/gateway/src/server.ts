@@ -25,22 +25,27 @@ if (!PAYMENT_SERVICE_URL || !PROPERTY_SERVICE_URL || !USER_SERVICE_URL) {
 
 app.set("trust proxy", true);
 
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
+
+const allowed = (process.env.ALLOWED_ORIGINS || "http://localhost:3000,http://localhost:3001")
   .split(",")
-  .map(s => s.trim())
+  .map(s => s.trim().replace(/\/+$/, ""))
   .filter(Boolean);
 
-const corsOptions: CorsOptions = {
-  origin(origin, cb) {
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    return cb(new Error(`Blocked by CORS: ${origin}`));
+const corsOptions = {
+  origin(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    // allow requests with no origin (e.g. curl, server-to-server)
+    if (!origin) return callback(null, true);
+    const norm = origin.replace(/\/+$/, "");
+    if (allowed.includes(norm)) return callback(null, true);
+    return callback(new Error(`CORS blocked: ${origin}`));
   },
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  exposedHeaders: ["Content-Length", "X-Request-Id"],
   credentials: true,
   maxAge: 600,
 };
+
+
 
 app.use(cors(corsOptions));
 app.use(morgan("dev"));
@@ -111,7 +116,7 @@ app.listen(Number(PORT), "0.0.0.0", () => {
   console.log(`✅ Gateway running on : ${PORT}`);
   console.log(
     "Allowed origins:",
-    allowedOrigins.length ? allowedOrigins : "(none)"
+    allowed.length ? allowed : "(none)"
   );
   console.log("Service URLs:", {
     PAYMENT_SERVICE_URL,
