@@ -9,10 +9,13 @@ import ExploreOurServices from "@/app/(pages)/explore-properties/ExploreOurServi
 
 export default function Home() {
   return (
+    
     <div>
+
+     
       <SearchBox />
       <br/>
-      <div className="container mx-auto  space-y-12">
+<div className="container mx-auto  space-y-12">
         <FeaturedProjectsServer />
         <GetOwnerProperties />
         <ExploreOurServices />
@@ -34,6 +37,8 @@ export default function Home() {
           <TestomianalHome />
         </div>
       </div>
+      
+      
     </div>
   );
 }

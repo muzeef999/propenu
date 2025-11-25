@@ -4,15 +4,15 @@ import "server-only";
 const url = process.env.API_URL
 
 
+//Featured projects
+
 export async function getFeaturedProjects() {
-    const res = await  fetch(`${url}/api/properties/featuredProject`, { next : { revalidate: 10 } });
+    const res = await  fetch(`${url}/api/properties/featured-project`, { next : { revalidate: 10 } });
     if(!res.ok) {
         throw new Error('Failed to fetch featured projects');
     }
     return res.json();
 }
-
-
 
 export async function getFeaturedSlugProjects({ slug }: { slug: string }) {
   const API_URL = process.env.API_URL; // <— this is the correct way
@@ -22,7 +22,7 @@ export async function getFeaturedSlugProjects({ slug }: { slug: string }) {
   }
 
   const res = await fetch(
-    `${API_URL}/api/properties/featuredProject/slug/${encodeURIComponent(
+    `${API_URL}/api/properties/featured-project/slug/${encodeURIComponent(
       slug
     )}`,
     {
@@ -44,11 +44,24 @@ export async function getFeaturedSlugProjects({ slug }: { slug: string }) {
 
 
 
+//owner listed properties
 
 export async function getOwnerProperties() {
-    const res = await fetch(`${url}/api/properties`, {next : { revalidate: 10}});
+    const res = await fetch(`${url}/api/properties/owners-properties`, {next : { revalidate: 10}});
     if(!res.ok) {
         throw new Error('Failed to fetch popular Owner Properties');
     }
     return res.json();
-} 
+}
+
+
+
+//top projects properties
+
+export async function  getTopProjects() {
+    const res = await fetch(`${url}/api/properties/top-projects`, {next : { revalidate: 10}});
+    if(!res.ok) {
+        throw new Error('Failed to fetch Top Projects');
+    } 
+    return res.json();
+}

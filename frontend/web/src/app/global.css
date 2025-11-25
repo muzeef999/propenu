@@ -39,28 +39,7 @@ html, body {
 
 }
 
-/* ------------------------------------ */
-/* Breakpoint Widths (Tailwind v4 vars) */
-/* ------------------------------------ */
-@media (--sm) {
-  :root { --container-width: 100%; }
-}
 
-@media (--md) {
-  :root { --container-width: 720px; }
-}
-
-@media (--lg) {
-  :root { --container-width: 980px; } /* wider */
-}
-
-@media (--xl) {
-  :root { --container-width: 1180px; } /* wider */
-}
-
-@media (--2xl) {
-  :root { --container-width: 1400px; } /* max wide */
-}
 
 /* ------------------------------------ */
 /* Utilities Layer                      */
