@@ -227,4 +227,41 @@ export const ServiceInteriorDesigner = () => {
 };
 
 
+export const Download = ({
+  size = 24,
+  color = "#ADADAD",
+}: {
+  size?: number;
+  color?: string;
+}) => {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M12 4H14V10H16.5L12 14.5"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill={color}
+      />
+      <path
+        d="M12 4H10V10H7.5L12 14.5"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill={color}
+      />
+      <path d="M6 19H18"  stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+};
+
+
 

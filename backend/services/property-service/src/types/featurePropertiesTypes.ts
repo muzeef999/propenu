@@ -7,6 +7,12 @@ export interface IBhkPlan {
   mimetype?: string;
 }
 
+export interface ILogo {
+  url?: string;
+  key?: string;
+  filename?: string;
+  mimetype?: string;
+}
 
 export interface IBhkUnit {      
   minSqft?: number;                  
@@ -78,6 +84,7 @@ export interface IFeaturedProject {
   // basic
   title: string;
   slug: string;
+  logo?: ILogo | null;
 
   // relations
   developer?: Types.ObjectId | string;

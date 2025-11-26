@@ -87,16 +87,17 @@ export default function AboutUS(props: Props) {
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="flex items-start gap-4">
-        <div
-          className="w-1.5 h-10 rounded"
-          style={{ background: `linear-gradient(${color}, ${color})` }}
-          aria-hidden
-        />
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-semibold leading-tight text-gray-900">{heading}</h2>
-          <p className="mt-1 text-sm text-gray-500">Building excellence in Hyderabad</p>
-        </div>
+     <div className="mb-6 flex items-start justify-between gap-6">
+         <div  style={{color:color, borderLeft:`5px solid ${color}`}}>
+              <div className="ml-2">
+            <h1 className="text-2xl font-bold">
+              About US
+            </h1>
+            <p className="headingDesc">
+             Building excellence in Hyderabad
+            </p>
+          </div>
+          </div>
       </div>
 
       {item?.aboutDescription ? (
@@ -107,7 +108,7 @@ export default function AboutUS(props: Props) {
         {/* Left: image */}
         <div className="lg:w-2/3 w-full">
           {safeUrl ? (
-            <div className="mt-0 lg:mt-6">
+            <div className="mt-0 ">
               {/* use native img for external URLs; can switch to next/image if configured */}
               <img
                 src={safeUrl}
@@ -131,9 +132,10 @@ export default function AboutUS(props: Props) {
         </div>
 
         {/* Right: bullet list */}
+        
         <aside className="lg:w-1/3 w-full flex-shrink-0">
           <div className="bg-white/0">
-            <ul className="space-y-3">
+            <ul className="space-y-4">
               {bullets.length ? (
                 bullets.map((b, idx) => (
                   <li key={idx} className="flex items-start gap-3">

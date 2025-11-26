@@ -1,6 +1,9 @@
 // src/zod/validation.ts
 import { z } from "zod";
 
+/**
+ * Shared sub-schemas
+ */
 export const UnitZ = z.object({
   minSqft: z.number().nonnegative().optional(),
   price: z.number().nonnegative().optional(),
@@ -19,16 +22,15 @@ export const UnitZ = z.object({
 export const BhkSummarySchemaZ = z.object({
   bhk: z.number().int().nonnegative(),
   bhkLabel: z.string().optional(),
-  units: z.array(UnitZ).default([]),
+  // for create we allow units; don't force default here — create schema will decide defaults if needed
+  units: z.array(UnitZ).optional(),
 });
-
 
 export const AboutSummaryZ = z.object({
   aboutDescription: z.string().optional(),
   url: z.string().url("Invalid URL format").optional(),
   rightContent: z.string().min(1, "Right content is required"),
 });
-
 
 const GallerySummarySchema = z.object({
   title: z.string().optional(),
@@ -51,7 +53,8 @@ const SpecificationItemSchema = z.object({
 
 const SpecificationSchema = z.object({
   category: z.string().optional(),
-  items: z.array(SpecificationItemSchema).optional().default([]),
+  // don't default to [] here; let create decide normalization
+  items: z.array(SpecificationItemSchema).optional(),
   order: z.number().int().optional().default(0),
 });
 
@@ -68,12 +71,27 @@ const LeadSchema = z.object({
   phone: z.string().min(6),
   location: z.string().optional(),
   message: z.string().max(2000).optional(),
-  createdAt: z.string().optional(), // accept ISO date strings, service can parse
+  createdAt: z.string().optional(),
 });
 
+export const FileMetaZ = z.object({
+  url: z.string().url().optional(),
+  key: z.string().optional(),
+  filename: z.string().optional(),
+  mimetype: z.string().optional(),
+});
+
+/* ---------------------------
+   Create schema (for POST)
+   - defaults useful for create
+   - aboutSummary normalized to array for downstream code convenience
+   --------------------------- */
 export const CreateFeaturePropertySchema = z.object({
   title: z.string().min(1),
   slug: z.string().optional(),
+
+  logo: FileMetaZ.optional(),
+
   developer: z.string().optional(),
 
   featuredTagline: z.string().optional(),
@@ -89,20 +107,20 @@ export const CreateFeaturePropertySchema = z.object({
   mapEmbedUrl: z.string().url().optional(),
 
   currency: z.string().optional().default("INR"),
-  // priceFrom/priceTo not required — computed
   priceFrom: z.number().optional(),
   priceTo: z.number().optional(),
-  bhkSummary: z.array(BhkSummarySchemaZ).optional().default([]),
 
- 
+  // arrays: optional but create side we may normalize or set defaults later in service
+  bhkSummary: z.array(BhkSummarySchemaZ).optional(),
+
+  // accept either single object or array; normalize to [] if undefined
   aboutSummary: z
-  .union([AboutSummaryZ, z.array(AboutSummaryZ)])
-  .optional()
-  .transform((val) => {
-    // normalize to array for downstream code: undefined -> []
-    if (typeof val === "undefined") return [];
-    return Array.isArray(val) ? val : [val];
-  }),
+    .union([AboutSummaryZ, z.array(AboutSummaryZ)])
+    .optional()
+    .transform((val) => {
+      if (typeof val === "undefined") return [];
+      return Array.isArray(val) ? val : [val];
+    }),
 
   sqftRange: z
     .object({ min: z.number().optional(), max: z.number().optional() })
@@ -116,7 +134,7 @@ export const CreateFeaturePropertySchema = z.object({
   availableUnits: z.number().int().optional(),
 
   reraNumber: z.string().optional(),
-  banksApproved: z.array(z.string()).optional().default([]),
+  banksApproved: z.array(z.string()).optional(),
 
   heroImage: z.string().url().optional(),
   heroVideo: z.string().url().optional(),
@@ -124,26 +142,23 @@ export const CreateFeaturePropertySchema = z.object({
   heroSubTagline: z.string().optional(),
   heroDescription: z.string().optional(),
 
-
-  // / SEO / branding - added
   color: z.string().optional(),
   metaTitle: z.string().optional(),
   metaDescription: z.string().optional(),
   metaKeywords: z.string().optional(),
 
-  gallery: z.array(z.string()).optional().default([]),
-  gallerySummary: z.array(GallerySummarySchema).optional().default([]),
+  gallery: z.array(z.string()).optional(),
+  gallerySummary: z.array(GallerySummarySchema).optional(),
 
   brochureUrl: z.string().url().optional(),
   brochureFileName: z.string().optional(),
 
-  specifications: z.array(SpecificationSchema).optional().default([]),
-  amenities: z.array(AmenitySchema).optional().default([]),
+  specifications: z.array(SpecificationSchema).optional(),
+  amenities: z.array(AmenitySchema).optional(),
 
-  nearbyPlaces: z.array(NearbyPlaceSchema).optional().default([]),
+  nearbyPlaces: z.array(NearbyPlaceSchema).optional(),
 
-  // leads array — only useful for embedded leads (small volume)
-  leads: z.array(LeadSchema).optional().default([]),
+  leads: z.array(LeadSchema).optional(),
 
   isFeatured: z.boolean().optional().default(false),
   rank: z.number().int().optional().default(1),
@@ -157,14 +172,102 @@ export const CreateFeaturePropertySchema = z.object({
     .optional()
     .default(() => ({ views: 0, inquiries: 0, clicks: 0 } as const)),
 
-
   status: z.enum(["active", "inactive", "archived"]).optional().default("active"),
 
   createdBy: z.string().optional(),
   updatedBy: z.string().optional(),
 });
 
-export const UpdateFeaturePropertySchema = CreateFeaturePropertySchema.partial();
+/* ---------------------------
+   Update schema (for PATCH)
+   - Every field optional
+   - Arrays are optional and DO NOT have defaults (so omitted arrays stay undefined)
+   - This prevents Zod from inserting [] into the validated payload.
+   --------------------------- */
 
+export const UpdateFeaturePropertySchema = z.object({
+  title: z.string().min(1).optional(),
+  slug: z.string().optional(),
+
+  logo: FileMetaZ.optional(),
+
+  developer: z.string().optional(),
+
+  featuredTagline: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+
+  location: z
+    .object({
+      type: z.literal("Point").optional(),
+      coordinates: z.tuple([z.number(), z.number()]).optional(),
+    })
+    .optional(),
+
+  mapEmbedUrl: z.string().url().optional(),
+
+  currency: z.string().optional(),
+  priceFrom: z.number().optional(),
+  priceTo: z.number().optional(),
+
+  // arrays: optional, do NOT default to [] (so they won't overwrite existing arrays on patch)
+  bhkSummary: z.array(BhkSummarySchemaZ).optional(),
+  aboutSummary: z.union([AboutSummaryZ, z.array(AboutSummaryZ)]).optional(),
+  sqftRange: z
+    .object({ min: z.number().optional(), max: z.number().optional() })
+    .optional(),
+  possessionDate: z.string().optional(),
+
+  totalTowers: z.number().int().optional(),
+  totalFloors: z.string().optional(),
+  projectArea: z.number().optional(),
+  totalUnits: z.number().int().optional(),
+  availableUnits: z.number().int().optional(),
+
+  reraNumber: z.string().optional(),
+  banksApproved: z.array(z.string()).optional(),
+
+  heroImage: z.string().url().optional(),
+  heroVideo: z.string().url().optional(),
+  heroTagline: z.string().optional(),
+  heroSubTagline: z.string().optional(),
+  heroDescription: z.string().optional(),
+
+  color: z.string().optional(),
+  metaTitle: z.string().optional(),
+  metaDescription: z.string().optional(),
+  metaKeywords: z.string().optional(),
+
+  gallery: z.array(z.string()).optional(),
+  gallerySummary: z.array(GallerySummarySchema).optional(),
+
+  brochureUrl: z.string().url().optional(),
+  brochureFileName: z.string().optional(),
+
+  specifications: z.array(SpecificationSchema).optional(),
+  amenities: z.array(AmenitySchema).optional(),
+
+  nearbyPlaces: z.array(NearbyPlaceSchema).optional(),
+
+  leads: z.array(LeadSchema).optional(),
+
+  isFeatured: z.boolean().optional(),
+  rank: z.number().int().optional(),
+
+  meta: z
+    .object({
+      views: z.number().int().optional(),
+      inquiries: z.number().int().optional(),
+      clicks: z.number().int().optional(),
+    })
+    .optional(),
+
+  status: z.enum(["active", "inactive", "archived"]).optional(),
+
+  createdBy: z.string().optional(),
+  updatedBy: z.string().optional(),
+}).partial(); // keep partial to allow any subset (redundant but explicit)
+
+/* types */
 export type CreateFeaturePropertyDTO = z.infer<typeof CreateFeaturePropertySchema>;
 export type UpdateFeaturePropertyDTO = z.infer<typeof UpdateFeaturePropertySchema>;

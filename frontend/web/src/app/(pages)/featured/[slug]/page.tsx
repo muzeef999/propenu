@@ -3,7 +3,6 @@ import { getFeaturedSlugProjects } from "@/serverSideData/serverData";
 import { FeaturedProject } from "@/types";
 import Image from "next/image";
 import MicroSiteNavbar from "./MicroSiteNavbar";
-import logo from "@/asserts/ap_one.png"
 import Herosection from "./Herosection";
 import AvailableProperties from "./AvailableProperties";
 import Amenities from "./Amenities";
@@ -16,7 +15,6 @@ type PageProps = {
 };
 
 export default async function Page({ params }: PageProps) {
-
   const { slug } = await params;
   let project: FeaturedProject | null;
   try {
@@ -35,7 +33,7 @@ export default async function Page({ params }: PageProps) {
     notFound();
   }
 
-const links = [
+  const links = [
     { title: "Available Properties", href: "#available-properties" },
     { title: "Amenities", href: "#amenities" },
     { title: "Map View", href: "#map-view" },
@@ -44,77 +42,81 @@ const links = [
     { title: "Brochure", href: "#brochure" },
   ];
 
-
   const hero = {
     subTagline: project?.heroSubTagline,
     description: project?.heroDescription,
     color: project?.color?.trim(),
     heroImage: project.heroImage,
     stats: [
-      { value:  "₹1,2Cr+", label: "Starting Price" },
-      { value:  "3-4 BHK", label: "Configurations" },
-      { value:  "50+", label: "Amenities" },
-      { value:   "RERA", label: "Approved" },
+      { value: "₹1,2Cr+", label: "Starting Price" },
+      { value: "3-4 BHK", label: "Configurations" },
+      { value: "50+", label: "Amenities" },
+      { value: "RERA", label: "Approved" },
     ],
-      ctaPrimary: { text: "Explore", href: "/explore" },
+    ctaPrimary: { text: "Explore", href: "/explore" },
     ctaSecondary: { text: "More", href: "/more" },
-  }
-
+  };
 
   const bhkSummary = {
-     bhkSummary:project?.bhkSummary,
-     color: project?.color?.trim(),
-  }
+    bhkSummary: project?.bhkSummary,
+    color: project?.color?.trim(),
+  };
 
   const amenities = {
-      amenities:project?.amenities,
-      color: project?.color?.trim(),
-  }
+    amenities: project?.amenities,
+    color: project?.color?.trim(),
+  };
 
   const nearbyPlaces = {
-    location:project?.location,
-    nearbyPlaces:project?.nearbyPlaces,
+    location: project?.location,
+    nearbyPlaces: project?.nearbyPlaces,
     color: project?.color?.trim(),
-  }
+  };
 
   const gallerySummary = {
-   gallerySummary:project?.gallerySummary,
-   color: project?.color?.trim(),
-  }
+    gallerySummary: project?.gallerySummary,
+    color: project?.color?.trim(),
+  };
 
   const aboutSummary = {
-       aboutSummary:project?.aboutSummary,
-       color: project?.color?.trim(),
-  }
+    aboutSummary: project?.aboutSummary,
+    color: project?.color?.trim(),
+  };
 
   return (
-  <div>
-    <MicroSiteNavbar links={links} logoUrl={logo} />
+    <div>
+      <MicroSiteNavbar
+        links={links}
+        logoUrl={project?.logo?.url}
+        color={project?.color?.trim()}
+        brochureUrl={project?.brochureUrl}
+      />
 
-    <Herosection hero={hero} />
+      <Herosection hero={hero} />
 
-    <div className="container mx-auto px-4">
-      <div id="available-properties" className="scroll-mt-20">
-        <AvailableProperties bhk={bhkSummary} />
-      </div>
+     <br/>
+      <div className="container mx-auto px-4 space-y-2">
 
-      <div id="amenities" className="scroll-mt-20">
-        <Amenities amenities={amenities} />
-      </div>
+        <div id="available-properties" className="scroll-mt-20">
+          <AvailableProperties bhk={bhkSummary} />
+        </div>
 
-      <div id="map-view" className="scroll-mt-20">
-        <LocateUs nearbyPlaces={nearbyPlaces} />
-      </div>
+        <div id="amenities" className="scroll-mt-20">
+          <Amenities amenities={amenities} />
+        </div>
 
-      <div id="gallery" className="scroll-mt-20">
-        <Gallery gallerySummary={gallerySummary} />
-      </div>
+        <div id="map-view" className="scroll-mt-20">
+          <LocateUs nearbyPlaces={nearbyPlaces} />
+        </div>
 
-      <div id="about-us" className="scroll-mt-20">
-        <AboutUS aboutSummary={aboutSummary} />
+        <div id="gallery" className="scroll-mt-20">
+          <Gallery gallerySummary={gallerySummary} />
+        </div>
+
+        <div id="about-us" className="scroll-mt-20">
+          <AboutUS aboutSummary={aboutSummary} />
+        </div>
       </div>
     </div>
-  </div>
-);
-
+  );
 }

@@ -1,6 +1,7 @@
 // components/LocateUs.tsx
 "use client";
 
+import { LocationIcon } from "@/icons/icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 /**
@@ -293,25 +294,23 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="mb-6 flex items-start justify-between gap-6">
-        <div>
-          <h2 className="text-2xl font-extrabold text-slate-900">{heading}</h2>
-          <p className="mt-1 text-sm text-slate-600">Nearby places and directions (OpenStreetMap)</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8">
-          <div className="rounded-lg overflow-hidden border border-slate-100 shadow-sm">
-            <div ref={mapRef} className="w-full h-[430px] sm:h-[520px]" />
+         <div  style={{color:color, borderLeft:`5px solid ${color}`}}>
+              <div className="ml-2">
+            <h1 className="text-2xl font-bold">
+              Locate us
+            </h1>
+            <p className="headingDesc">
+             Building excellence in Hyderabad
+            </p>
           </div>
-          <div className="mt-3 text-xs text-slate-500">Click markers to open details. Click a list item to focus that marker.</div>
-        </div>
+          </div>
+      </div>
+      
 
-        <aside className="lg:col-span-4">
-          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">Nearby Places</h3>
-
-            <ul className="space-y-3 max-h-[480px] overflow-y-auto pr-2">
+      <div className="w-full">
+        
+        
+            <ul className="flex items-center justify-between">
               {withDistance.length === 0 && <li className="text-sm text-slate-500">No nearby places provided.</li>}
               {withDistance.map(({ p, distanceText }, idx) => {
                 const active = selectedIndex === idx;
@@ -327,25 +326,27 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <div className="w-9 h-9 rounded-md flex items-center justify-center" style={{ background: isHex ? `${color}11` : undefined }}>
-                            <img src={FALLBACK_ICON} alt={p.name} className="w-7 h-7 object-cover rounded-sm" />
+                            <LocationIcon color={color} />
                           </div>
+                          <div>
                           <div className="text-sm font-medium text-slate-900 truncate">{p.name}</div>
+                            <div className="mt-1 text-xs text-slate-500">{p.type ?? "Place"} • {distanceText ?? p.distanceText ?? "—"}</div>
+                      </div>
                         </div>
-                        <div className="mt-1 text-xs text-slate-500">{p.type ?? "Place"} • {distanceText ?? p.distanceText ?? "—"}</div>
                       </div>
 
-                      <div className="text-right">
-                        <div className="text-sm font-semibold text-slate-900">{p.order}</div>
-                        <div className="text-xs text-slate-400">{coords ? `${coords[1].toFixed(4)}, ${coords[0].toFixed(4)}` : ""}</div>
-                      </div>
                     </div>
                   </li>
                 );
               })}
             </ul>
+          <div className="rounded-lg overflow-hidden border border-slate-100 shadow-sm">
+            <div ref={mapRef} className="w-full  sm:h-[520px]" />
           </div>
-        </aside>
-      </div>
+          <div className="mt-3 text-xs text-slate-500">Click markers to open details. Click a list item to focus that marker.</div>
+        </div>
+
+      
     </section>
   );
 }

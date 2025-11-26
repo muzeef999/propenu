@@ -328,6 +328,30 @@ export const FeaturePropertyService = {
     const preliminary = new FeaturedProject(toCreate);
     const propId = preliminary._id!.toString();
 
+
+    
+    // LOGO (single file)
+const logoFiles = files?.logo;
+if (logoFiles && logoFiles.length > 0) {
+  const lf = logoFiles[0]!;
+  const up = await uploadBufferToS3Local({
+    buffer: lf.buffer,
+    originalname: lf.originalname,
+    mimetype: lf.mimetype,
+    propertyId: propId,
+    folder: "logo",
+  });
+  // store full object so we can delete later
+  toCreate.logo = {
+    url: up.url,
+    key: up.key,
+    filename: lf.originalname,
+    mimetype: lf.mimetype,
+  };
+}
+
+
+
     // HERO IMAGE (single)
     const heroFiles = files?.heroImage;
     if (heroFiles && heroFiles.length > 0) {
@@ -500,6 +524,35 @@ export const FeaturePropertyService = {
 
       existing.bhkSummary = processed;
     }
+
+
+    const logoFiles = files?.logo;
+if (logoFiles && logoFiles.length > 0) {
+  const lf = logoFiles[0]!;
+  const up = await uploadBufferToS3Local({
+    buffer: lf.buffer,
+    originalname: lf.originalname,
+    mimetype: lf.mimetype,
+    propertyId: propId,
+    folder: "logo",
+  });
+
+  // delete old logo key if present
+  const oldLogoKey = (existing as any).logo?.key;
+  if (oldLogoKey) {
+    await deleteS3ObjectIfExists(oldLogoKey);
+  }
+
+  (existing as any).logo = {
+    url: up.url,
+    key: up.key,
+    filename: lf.originalname,
+    mimetype: lf.mimetype,
+  };
+}
+
+
+
 
     // replace hero image (if provided)
     const heroFiles = files?.heroImage;

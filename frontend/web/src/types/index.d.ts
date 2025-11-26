@@ -3,7 +3,9 @@ export interface FeaturedProject {
   // basic
   title: string;
   slug: string;
-
+  logo:{
+      url:string
+  }
   // relations
   developer?: Types.ObjectId | string;
 

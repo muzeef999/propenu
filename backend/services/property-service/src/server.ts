@@ -18,7 +18,6 @@ async function start() {
         app.get("/", (req, res) => {
            res.json({ message: "Property Service is running" });
         });
-        
 
         app.use('/api/properties/featured-project', featurePropertiesRoute);
         app.use('/api/properties/owners-properties', popularOwnerPropertiesRoute);

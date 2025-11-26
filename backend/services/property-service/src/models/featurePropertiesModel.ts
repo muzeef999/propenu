@@ -7,6 +7,7 @@ import {
   IFeaturedProject,
   IGalleryItem,
   ILead,
+  ILogo,
   INearbyPlace,
   ISpecification,
   ISpecItem,
@@ -124,6 +125,16 @@ const LeadSchema = new Schema<ILead>(
   { _id: false }
 );
 
+const LogoSchema =  new Schema<ILogo>(
+  {
+  url: { type: String },
+  key: {type: String},
+  filename: {type: String},
+  mimetype: {type: String},
+  }
+)
+
+
 /* -------------------------
    Main schema
    -------------------------*/
@@ -131,7 +142,8 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
   {
     title: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, trim: true },
-
+    logo: {type:LogoSchema},
+    
     developer: { type: Schema.Types.ObjectId, ref: 'builders' },
 
     // hero

@@ -1,6 +1,7 @@
 // components/AvailableProperties.tsx
 "use client";
 
+import { hexToRGBA } from "@/ui/hexToRGBA";
 import React, { useEffect, useMemo, useState } from "react";
 
 type Unit = {
@@ -32,7 +33,11 @@ const DEV_PLAN_URL = "/images/placeholder-plan.jpg";
 function formatINR(v?: number) {
   if (v === undefined || v === null) return "--";
   try {
-    return v.toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+    return v.toLocaleString("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    });
   } catch {
     return String(v);
   }
@@ -40,7 +45,9 @@ function formatINR(v?: number) {
 
 export default function AvailableProperties({ bhk }: Props) {
   // new shape: bhk is an object containing bhkSummary and color
-  const items: BhkItem[] = Array.isArray(bhk?.bhkSummary) ? bhk!.bhkSummary! : [];
+  const items: BhkItem[] = Array.isArray(bhk?.bhkSummary)
+    ? bhk!.bhkSummary!
+    : [];
   const color = (bhk?.color ?? "#F59E0B") as string;
 
   // default to first BHK group
@@ -79,7 +86,10 @@ export default function AvailableProperties({ bhk }: Props) {
 
   // readable sqft labels for chips
   const sqftLabels = useMemo(
-    () => units.map((u) => (u.minSqft ? `${u.minSqft} sqft` : u.plan?.url ? "Plan" : "—")),
+    () =>
+      units.map((u) =>
+        u.minSqft ? `${u.minSqft} sqft` : u.plan?.url ? "Plan" : "—"
+      ),
     [units]
   );
 
@@ -87,12 +97,20 @@ export default function AvailableProperties({ bhk }: Props) {
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <div className="mb-4">
-        <h2 className="text-2xl font-semibold">Available Properties</h2>
-        <p className="text-sm text-gray-500 mt-1">Building excellence in Hyderabad</p>
-      </div>
+     
+            <div  style={{color:color, borderLeft:`5px solid ${color}`}}>
+              <div className="ml-2">
+            <h1 className="text-2xl font-bold">
+              Available properties
+            </h1>
+            <p className="headingDesc">
+             Building excellence in Hyderabad
+            </p>
+          </div>
+          </div>
+          <br/>
 
-      <div className="bg-white rounded-lg shadow-sm p-4">
+      <div className="bg-white rounded-lg shadow-sm p-4" style={{backgroundColor: hexToRGBA(color, 0.1),}}>
         {/* Top row: BHK tabs */}
         <div className="flex flex-wrap items-center gap-3 mb-4">
           {items.length === 0 ? (
@@ -103,12 +121,19 @@ export default function AvailableProperties({ bhk }: Props) {
                 key={`${b.bhk}-${i}`}
                 onClick={() => setActiveBhkIndex(i)}
                 aria-pressed={i === activeBhkIndex}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-shadow inline-flex items-center gap-2 ${
-                  i === activeBhkIndex ? "bg-yellow-400 text-black shadow" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
+                className="px-3 py-2 rounded-md text-sm font-medium transition-shadow inline-flex items-center gap-2 shadow"
+                style={
+                  i === activeBhkIndex
+                    ? { backgroundColor: color, color: "#FFF" } // active state
+                    : { backgroundColor: "#f3f4f6", color: "#2c2c2cff" } // default gray
+                }
               >
-                <span className="whitespace-nowrap">{b.bhkLabel ?? `${b.bhk} BHK`}</span>
-                <span className="text-xs text-gray-500 hidden sm:inline">FLAT</span>
+                <span className="whitespace-nowrap">
+                  {b.bhkLabel ?? `${b.bhk} BHK`}
+                </span>
+                <span className="text-xs  hidden sm:inline">
+                  FLAT
+                </span>
               </button>
             ))
           )}
@@ -123,9 +148,16 @@ export default function AvailableProperties({ bhk }: Props) {
               <button
                 key={`${label}-${idx}`}
                 onClick={() => setActiveUnitIndex(idx)}
-                className={`whitespace-nowrap px-3 py-2 rounded-md text-sm border transition ${
-                  idx === activeUnitIndex ? "bg-sky-600 text-white border-sky-600" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-                }`}
+                className="whitespace-nowrap px-3 py-2 rounded-md text-sm border transition"
+                style={
+                  idx === activeUnitIndex
+                    ? {  borderColor: color, backgroundColor:'#FFF', color:color } // sky-600
+                    : {
+                        backgroundColor: "#ffffff",
+                        color: "#374151",
+                        borderColor: "#e5e7eb",
+                      } // gray variants
+                }
                 aria-pressed={idx === activeUnitIndex}
               >
                 {label}
@@ -141,7 +173,7 @@ export default function AvailableProperties({ bhk }: Props) {
             <div className="bg-gray-50 rounded-md p-4 flex items-center justify-center">
               {/* image container keeps aspect and responsiveness */}
               <div className="w-full max-h-[520px] rounded-md overflow-hidden bg-white">
-                {(activeUnit?.plan?.url ?? DEV_PLAN_URL) ? (
+                {activeUnit?.plan?.url ?? DEV_PLAN_URL ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={activeUnit?.plan?.url ?? DEV_PLAN_URL}
@@ -150,7 +182,9 @@ export default function AvailableProperties({ bhk }: Props) {
                     style={{ maxHeight: 520 }}
                   />
                 ) : (
-                  <div className="flex items-center justify-center h-[420px] text-gray-400">No plan available</div>
+                  <div className="flex items-center justify-center h-[420px] text-gray-400">
+                    No plan available
+                  </div>
                 )}
               </div>
             </div>
@@ -160,14 +194,21 @@ export default function AvailableProperties({ bhk }: Props) {
               <div className="flex gap-4 items-center">
                 <div>
                   <div className="text-xs text-gray-500">Price</div>
-                  <div className="text-lg font-bold">{formatINR(activeUnit?.maxPrice)}</div>
+                  <div className="text-lg font-bold">
+                    {formatINR(activeUnit?.maxPrice)}
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs text-gray-500">Area</div>
-                  <div className="text-sm">{activeUnit?.minSqft ? `${activeUnit.minSqft} sqft` : "—"}</div>
+                  <div className="text-sm">
+                    {activeUnit?.minSqft ? `${activeUnit.minSqft} sqft` : "—"}
+                  </div>
                 </div>
                 <div className="ml-auto">
-                  <button style={{ backgroundColor: color }} className="px-4 py-2 rounded-md text-black font-semibold">
+                  <button
+                    style={{ backgroundColor: color, color:'#FFF' }}
+                    className="px-4 py-2 rounded-md  font-semibold"
+                  >
                     Book a Consultation
                   </button>
                 </div>
@@ -181,19 +222,26 @@ export default function AvailableProperties({ bhk }: Props) {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-sm text-gray-500">Starting Price</div>
-                  <div className="text-xl font-bold">{formatINR(activeUnit?.maxPrice)}</div>
+                  <div className="text-xl font-bold">
+                    {formatINR(activeUnit?.maxPrice)}
+                  </div>
                 </div>
               </div>
 
               <ul className="mt-6 space-y-3 text-gray-700">
                 <li className="flex items-center justify-between">
                   <span className="text-sm text-gray-500">Unit</span>
-                  <span className="font-medium">{activeBhk?.bhkLabel ?? (activeBhk?.bhk ? `${activeBhk.bhk} BHK` : "—")}</span>
+                  <span className="font-medium">
+                    {activeBhk?.bhkLabel ??
+                      (activeBhk?.bhk ? `${activeBhk.bhk} BHK` : "—")}
+                  </span>
                 </li>
 
                 <li className="flex items-center justify-between">
                   <span className="text-sm text-gray-500">Area</span>
-                  <span className="font-medium">{activeUnit?.minSqft ? `${activeUnit.minSqft} sqft` : "—"}</span>
+                  <span className="font-medium">
+                    {activeUnit?.minSqft ? `${activeUnit.minSqft} sqft` : "—"}
+                  </span>
                 </li>
 
                 <li className="flex items-center justify-between">
@@ -211,14 +259,17 @@ export default function AvailableProperties({ bhk }: Props) {
                   <span className="font-medium">Available</span>
                 </li>
 
-                <li>
+                <li className="flex items-center justify-between">
                   <span className="text-sm text-gray-500">Possession</span>
                   <div className="font-medium mt-1">Dec. 2025</div>
                 </li>
               </ul>
 
               <div className="mt-6">
-                <button style={{ backgroundColor: color }} className="w-full inline-flex justify-center items-center px-4 py-2 rounded-md text-black font-semibold hover:brightness-95 transition">
+                <button
+                  style={{ backgroundColor: color }}
+                  className="w-full inline-flex justify-center items-center px-4 py-2 rounded-md text-white font-semibold hover:brightness-95 transition"
+                >
                   Book a Consultation
                 </button>
               </div>
