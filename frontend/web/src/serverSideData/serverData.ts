@@ -21,10 +21,7 @@ export async function getFeaturedSlugProjects({ slug }: { slug: string }) {
     throw new Error("API_URL is not defined");
   }
 
-  const res = await fetch(
-    `${API_URL}/api/properties/featured-project/slug/${encodeURIComponent(
-      slug
-    )}`,
+  const res = await fetch(`${API_URL}/api/properties/featured-project/slug/${encodeURIComponent( slug )}`,
     {
       next: { revalidate: 10 }, // ISR – recommended by Next.js
     }
@@ -38,7 +35,9 @@ export async function getFeaturedSlugProjects({ slug }: { slug: string }) {
     throw new Error("Failed to fetch featured project");
   }
 
-  return (await res.json()) as FeaturedProject;
+  const json = await res.json();
+
+  return json.data as FeaturedProject;
 }
 
 

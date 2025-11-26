@@ -7,16 +7,20 @@ export interface IBhkPlan {
   mimetype?: string;
 }
 
+
+export interface IBhkUnit {      
+  minSqft?: number;                  
+  price?: number;          
+  maxPrice?: number;        
+  availableCount?: number;  
+  plan?: IBhkPlan;          
+}
+
 export interface IBhkSummary {
   bhk: number;
-
   bhkLabel?: string;
-  plan?: IBhkPlan | null;
-  minSqft?: number;
-  maxSqft?: number;
-  minPrice?: number;
-  maxPrice?: number;
-  availableCount?: number;
+  units?: IBhkUnit[];
+
 }
 
 export interface IGalleryItem {
@@ -31,6 +35,16 @@ export interface IAmenity {
   title?: string;
   description?: string;
 }
+
+export interface IAboutSummary {
+  aboutDescription?: string;
+  url?: string;          
+  rightContent?: string;  
+  key?: string;          
+  filename?: string;     
+  mimetype?: string;     
+}
+
 
 export interface ISpecItem {
   title?: string;
@@ -81,6 +95,7 @@ export interface IFeaturedProject {
   metaDescription?: string;
   metaKeywords?: string;
 
+
   // address & geo
   address: string;
   city?: string;
@@ -90,6 +105,8 @@ export interface IFeaturedProject {
     coordinates: [number, number] | number[];
   };
   mapEmbedUrl?: string;
+
+    aboutSummary?: IAboutSummary;
 
   // pricing / bhk
   currency?: string;  // default: 'INR'

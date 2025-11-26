@@ -1,6 +1,7 @@
 // src/models/featurePropertiesModel.ts
 import mongoose, { Schema, Document, Model, Types } from 'mongoose';
 import {
+  IAboutSummary,
   IAmenity,
   IBhkSummary,
   IFeaturedProject,
@@ -10,6 +11,7 @@ import {
   ISpecification,
   ISpecItem,
 } from '../types/featurePropertiesTypes';
+import { title } from 'process';
 
 export interface IFeaturedProjectDocument extends IFeaturedProject, Document {}
 export interface ILeadDocument extends ILead, Document {
@@ -19,21 +21,29 @@ export interface ILeadDocument extends ILead, Document {
 /* ------------------------
    Sub-schemas
    ------------------------ */
-const BhkSummarySchema = new Schema<IBhkSummary>(
+
+   const UnitSchema = new Schema(
   {
-    bhk: { type: Number, required: true },
-    bhkLabel: { type: String },
+    minSqft: { type: Number },
+    maxPrice: { type: Number },
+    availableCount: { type: Number, default: 0 },
     plan: {
       url: { type: String },
       key: { type: String },
       filename: { type: String },
       mimetype: { type: String },
     },
-    minSqft: { type: Number },
-    maxSqft: { type: Number },
-    minPrice: { type: Number },
-    maxPrice: { type: Number },
-    availableCount: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
+
+const BhkSummarySchema = new Schema<IBhkSummary>(
+  {
+    bhk: { type: Number, required: true },
+    bhkLabel: { type: String },
+      units: { type: [UnitSchema] },
+  
   },
   { _id: false }
 );
@@ -44,6 +54,18 @@ const GallerySummarySchema = new Schema<IGalleryItem>(
     url: { type: String, required: true },
     category: { type: String },
     order: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
+const AboutSummarySchema = new Schema<IAboutSummary>(
+  {
+    aboutDescription: { type: String },
+    url: { type: String },
+    rightContent: { type: String, required: true },
+    key: { type: String },
+    filename: { type: String },
+    mimetype: { type: String },
   },
   { _id: false }
 );
@@ -68,7 +90,7 @@ const SpecificationItemSchema = new Schema<ISpecItem>(
 const SpecificationSchema = new Schema<ISpecification>(
   {
     category: { type: String },
-    items: { type: [SpecificationItemSchema], default: [] },
+    items: { type: [SpecificationItemSchema] },
     order: { type: Number, default: 0 },
   },
   { _id: false }
@@ -138,7 +160,7 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     currency: { type: String, default: 'INR' },
     priceFrom: { type: Number, index: true },
     priceTo: { type: Number, index: true },
-    bhkSummary: { type: [BhkSummarySchema], default: [] },
+    bhkSummary: { type: [BhkSummarySchema], },
 
     sqftRange: {
       min: { type: Number },
@@ -155,22 +177,25 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
 
     // legal / banks
     reraNumber: { type: String },
-    banksApproved: { type: [String], default: [] },
+    banksApproved: { type: [String] },
 
     // media & gallery
-    gallerySummary: { type: [GallerySummarySchema], default: [] },
+    gallerySummary: { type: [GallerySummarySchema] },
+
+    aboutSummary : {type: [AboutSummarySchema]},
+
     brochureUrl: { type: String },
     brochureFileName: { type: String },
 
     // specifications & amenities
-    specifications: { type: [SpecificationSchema], default: [] },
-    amenities: { type: [AmenitySchema], default: [] },
+    specifications: { type: [SpecificationSchema] },
+    amenities: { type: [AmenitySchema] },
 
     // nearby places
-    nearbyPlaces: { type: [NearbyPlaceSchema], default: [] },
+    nearbyPlaces: { type: [NearbyPlaceSchema] },
 
     // embedded leads (small volume)
-    leads: { type: [LeadSchema], default: [] },
+    leads: { type: [LeadSchema] },
 
     // flags & meta
     isFeatured: { type: Boolean, default: false, index: true },
@@ -188,7 +213,7 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
 
-    relatedProjects: { type: [Schema.Types.ObjectId], ref: 'featuredProject', default: [] },
+    relatedProjects: { type: [Schema.Types.ObjectId], ref: 'featuredProject', },
   },
   { timestamps: true }
 );
@@ -235,14 +260,39 @@ FeaturePropertySchema.pre<IFeaturedProjectDocument>('validate', function (next) 
 FeaturePropertySchema.pre<IFeaturedProjectDocument>('save', function (next) {
   try {
     if (Array.isArray(this.bhkSummary) && this.bhkSummary.length) {
-      const minPrices = this.bhkSummary.map((b) => (b.minPrice ?? Number.POSITIVE_INFINITY));
-      const maxPrices = this.bhkSummary.map((b) => (b.maxPrice ?? Number.NEGATIVE_INFINITY));
-      const min = Math.min(...minPrices);
-      const max = Math.max(...maxPrices);
-      // @ts-ignore assign possible undefined
-      this.priceFrom = Number.isFinite(min) ? min : undefined;
-      // @ts-ignore
-      this.priceTo = Number.isFinite(max) ? max : undefined;
+      const prices: number[] = [];
+
+      for (const b of this.bhkSummary) {
+        // include any top-level price fields if present (defensive)
+        const maybeMin = (b as any).minPrice;
+        const maybeMax = (b as any).maxPrice;
+        if (typeof maybeMin === 'number' && Number.isFinite(maybeMin)) prices.push(maybeMin);
+        if (typeof maybeMax === 'number' && Number.isFinite(maybeMax)) prices.push(maybeMax);
+
+        // include any unit-level prices
+        if (Array.isArray((b as any).units)) {
+          for (const u of (b as any).units) {
+            const uMin = (u as any).minPrice;
+            const uMax = (u as any).maxPrice;
+            if (typeof uMin === 'number' && Number.isFinite(uMin)) prices.push(uMin);
+            if (typeof uMax === 'number' && Number.isFinite(uMax)) prices.push(uMax);
+          }
+        }
+      }
+
+      if (prices.length) {
+        const min = Math.min(...prices);
+        const max = Math.max(...prices);
+        // @ts-ignore assign possible undefined
+        this.priceFrom = Number.isFinite(min) ? min : undefined;
+        // @ts-ignore
+        this.priceTo = Number.isFinite(max) ? max : undefined;
+      } else {
+        // @ts-ignore
+        this.priceFrom = undefined;
+        // @ts-ignore
+        this.priceTo = undefined;
+      }
     } else {
       // @ts-ignore
       this.priceFrom = undefined;

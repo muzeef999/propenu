@@ -1,24 +1,38 @@
 // src/zod/validation.ts
 import { z } from "zod";
 
-const BhkSummarySchema = z.object({
-  bhk: z.number().int().nonnegative(),
-  bhkLabel: z.string().optional(),
-
-    planUrl: z.string().url().optional(),
-  planFileName: z.string().optional(),
-  planRemove: z.boolean().optional(), // true => delete existing plan if present
-
+export const UnitZ = z.object({
   minSqft: z.number().nonnegative().optional(),
-  maxSqft: z.number().nonnegative().optional(),
-  minPrice: z.number().nonnegative().optional(),
+  price: z.number().nonnegative().optional(),
   maxPrice: z.number().nonnegative().optional(),
   availableCount: z.number().int().nonnegative().optional().default(0),
+  plan: z
+    .object({
+      url: z.string().optional(),
+      key: z.string().optional(),
+      filename: z.string().optional(),
+      mimetype: z.string().optional(),
+    })
+    .optional(),
 });
+
+export const BhkSummarySchemaZ = z.object({
+  bhk: z.number().int().nonnegative(),
+  bhkLabel: z.string().optional(),
+  units: z.array(UnitZ).default([]),
+});
+
+
+export const AboutSummaryZ = z.object({
+  aboutDescription: z.string().optional(),
+  url: z.string().url("Invalid URL format").optional(),
+  rightContent: z.string().min(1, "Right content is required"),
+});
+
 
 const GallerySummarySchema = z.object({
   title: z.string().optional(),
-  url: z.string().url(),
+  url: z.string().url().optional(),
   category: z.string().optional(),
   order: z.number().int().optional(),
 });
@@ -61,7 +75,7 @@ export const CreateFeaturePropertySchema = z.object({
   title: z.string().min(1),
   slug: z.string().optional(),
   developer: z.string().optional(),
-  about: z.string().optional(),
+
   featuredTagline: z.string().optional(),
   address: z.string().min(1),
   city: z.string().optional(),
@@ -78,7 +92,17 @@ export const CreateFeaturePropertySchema = z.object({
   // priceFrom/priceTo not required — computed
   priceFrom: z.number().optional(),
   priceTo: z.number().optional(),
-  bhkSummary: z.array(BhkSummarySchema).optional().default([]),
+  bhkSummary: z.array(BhkSummarySchemaZ).optional().default([]),
+
+ 
+  aboutSummary: z
+  .union([AboutSummaryZ, z.array(AboutSummaryZ)])
+  .optional()
+  .transform((val) => {
+    // normalize to array for downstream code: undefined -> []
+    if (typeof val === "undefined") return [];
+    return Array.isArray(val) ? val : [val];
+  }),
 
   sqftRange: z
     .object({ min: z.number().optional(), max: z.number().optional() })

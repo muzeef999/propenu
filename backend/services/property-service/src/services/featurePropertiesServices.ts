@@ -112,14 +112,7 @@ async function deleteS3ObjectIfExists(key?: string) {
 
 /**
  * Process incoming bhkSummary together with uploaded bhkPlanFiles.
- * Behavior:
- *  - planRemove: delete old S3 key and set plan=null
- *  - new file matched (index or planFileName): upload, delete old key, set plan object
- *  - planUrl provided: set external URL (optionally delete old S3)
- *  - otherwise preserve existing plan if present
- *
- * Note: incoming array is treated as "desired final array". If you want patch semantics,
- * merge incoming into existing first (see mergeBhkSummary helper used in update flow).
+ * Behavior unchanged from original.
  */
 async function processBhkPlanUpdates(opts: {
   bhkSummaryExisting?: any[];
@@ -211,8 +204,6 @@ async function processBhkPlanUpdates(opts: {
 
 /**
  * Merge incoming bhkSummary (patch) into existing bhkSummary.
- * - tries to match by bhk value first
- * - falls back to index-based merge
  */
 function mergeBhkSummary(existingArr: any[] = [], incomingArr: any[] = []) {
   const result: any[] = existingArr ? existingArr.slice() : [];
@@ -234,13 +225,89 @@ function mergeBhkSummary(existingArr: any[] = [], incomingArr: any[] = []) {
 }
 
 /* --------------------
+   Gallery helpers
+   --------------------*/
+
+/**
+ * Try to map uploaded files to gallerySummary entries.
+ * Priority:
+ *   1) If a gallerySummary entry has `filename` or `fileName`, match by that to uploaded file originalname.
+ *   2) Else try index-based mapping (galleryFiles[0] -> gallerySummary[0]).
+ * For create: if gallerySummary has fewer entries than files, push new entries for extra files.
+ */
+async function mapAndUploadGallery({
+  incomingGallerySummary,
+  galleryFiles,
+  propertyId,
+}: {
+  incomingGallerySummary?: any[]; // may be undefined or [] or array of partial metadata
+  galleryFiles?: Express.Multer.File[];
+  propertyId: string;
+}) {
+  const files = galleryFiles ?? [];
+  const summary = Array.isArray(incomingGallerySummary) ? incomingGallerySummary.slice() : [];
+
+  // build filename map
+  const filesByName = new Map<string, Express.Multer.File>();
+  for (const f of files) filesByName.set(f.originalname, f);
+
+  // first, ensure summary array exists and has at least as many entries as files for index mapping convenience
+  // (we'll expand as needed later)
+  // Note: we avoid mutating original incoming array reference beyond 'summary' local copy
+  for (let i = 0; i < files.length; i++) {
+    if (i >= summary.length) summary.push({});
+  }
+
+  // upload each file and set url on matched summary entry
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    // guard against sparse arrays / undefined entries
+    if (!file) continue;
+
+    // try match by filename first: find index in summary that declares same filename
+    let matchedIndex = -1;
+    for (let j = 0; j < summary.length; j++) {
+      const declaredName = summary[j]?.filename ?? summary[j]?.fileName ?? summary[j]?.file;
+      if (declaredName && declaredName === file.originalname) {
+        matchedIndex = j;
+        break;
+      }
+    }
+
+    // fallback to same index
+    if (matchedIndex === -1) matchedIndex = i;
+
+    // perform upload
+    const up = await uploadBufferToS3Local({
+      buffer: file.buffer,
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      propertyId,
+      folder: "gallery",
+    });
+
+    // ensure entry exists
+    if (!summary[matchedIndex]) summary[matchedIndex] = {};
+
+    summary[matchedIndex].url = up.url;
+    summary[matchedIndex].filename = file.originalname;
+    // if title not provided, set to original name (nice fallback)
+    if (!summary[matchedIndex].title) summary[matchedIndex].title = file.originalname;
+    if (!summary[matchedIndex].category) summary[matchedIndex].category = "image";
+    if (!summary[matchedIndex].order) summary[matchedIndex].order = (matchedIndex + 1);
+  }
+
+  // final normalization: ensure every summary entry has url if it was an external link or uploaded file
+  // entries with no url are left as-is (caller can decide to reject)
+  return summary;
+}
+
+/* --------------------
    Service
    --------------------*/
 
 export const FeaturePropertyService = {
-  /**
-   * Create feature property with file uploads (multer files)
-   */
+ 
   async createFeatureProperty(payload: CreateFeaturePropertyDTO, files?: MulterFiles) {
     // 1) slug
     const slugSource = (payload.slug && String(payload.slug).trim()) || payload.title;
@@ -294,25 +361,18 @@ export const FeaturePropertyService = {
 
     // GALLERY FILES (multiple)
     const galleryFiles = files?.galleryFiles ?? [];
-    if (galleryFiles.length > 0) {
-      toCreate.gallerySummary = toCreate.gallerySummary || [];
-      for (const f of galleryFiles) {
-        const up = await uploadBufferToS3Local({
-          buffer: f.buffer,
-          originalname: f.originalname,
-          mimetype: f.mimetype,
-          propertyId: propId,
-          folder: "gallery",
-        });
-        toCreate.gallerySummary.push({
-          title: f.originalname,
-          url: up.url,
-          category: "image",
-          order: (toCreate.gallerySummary.length || 0) + 1,
-        });
-        // optionally store key: up.key
-      }
-    }
+    // incoming gallerySummary might be provided in payload (metadata)
+    const incomingGallerySummary = (payload as any).gallerySummary;
+    // map and upload; returns a normalized summary array (entries with url where uploaded)
+    const mappedGallerySummary = await mapAndUploadGallery({
+      incomingGallerySummary,
+      galleryFiles,
+      propertyId: propId,
+    });
+
+    // Merge with any incoming entries that had external URLs or metadata
+    // If no incoming provided, mappedGallerySummary already contains created entries for uploaded files
+    toCreate.gallerySummary = Array.isArray(mappedGallerySummary) ? mappedGallerySummary : [];
 
     // attach BHK plan files (create flow)
     const bhkPlanFiles = files?.bhkPlanFiles ?? [];
@@ -329,6 +389,60 @@ export const FeaturePropertyService = {
       propertyId: propId,
       deleteOldS3OnExternalUrl: false,
     });
+
+
+
+    //About Image (create section)
+     // ---- About image (create) - normalize into aboutSummary array ----
+{
+  // normalize incoming about shapes into an array: prefer payload.aboutSummary, fallback to payload.about
+  const incomingAboutArr: any[] = Array.isArray((toCreate as any).aboutSummary)
+    ? (toCreate as any).aboutSummary.slice()
+    : (toCreate as any).about
+    ? [{ ...(toCreate as any).about }]
+    : [];
+
+  const aboutFiles = files?.aboutImage;
+  if (aboutFiles && aboutFiles.length > 0) {
+    const f = aboutFiles[0];
+    if (!f) throw new Error("Uploaded aboutImage file is missing");
+
+    const up = await uploadBufferToS3Local({
+      buffer: f.buffer,
+      originalname: f.originalname,
+      mimetype: f.mimetype,
+      propertyId: propId,
+      folder: "about",
+    });
+
+    // ensure at least one element (provide required rightContent)
+    if (incomingAboutArr.length === 0) incomingAboutArr.push({ rightContent: "" });
+
+    // write S3 metadata into first element (you can change index strategy if you need)
+    incomingAboutArr[0].url = up.url;
+    incomingAboutArr[0].key = up.key;
+    incomingAboutArr[0].filename = f.originalname;
+    incomingAboutArr[0].mimetype = f.mimetype;
+  }
+
+  // persist normalized array into create payload
+  (toCreate as any).aboutSummary = incomingAboutArr;
+  // keep convenience single object synced with first item
+  if (incomingAboutArr.length > 0) (toCreate as any).about = { ...incomingAboutArr[0] };
+}
+// -----------------------------------------------------------------
+
+
+    // sanitize aboutDescription if present
+    // if (toCreate.about?.aboutDescription && typeof toCreate.about.aboutDescription === "string") {
+    //   toCreate.about.aboutDescription = sanitizeHtml(toCreate.about.aboutDescription, {
+    //     allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img"]),
+    //     allowedAttributes: {
+    //       a: ["href", "name", "target"],
+    //       img: ["src", "alt"],
+    //     },
+    //   });
+    // }
 
     // finally create document in DB
     const created = await FeaturedProject.create(toCreate);
@@ -356,7 +470,7 @@ export const FeaturePropertyService = {
       if (priceTo !== undefined) existing.priceTo = priceTo;
     }
 
-    // apply payload fields (shallow copy)
+    // apply payload fields (shallow copy) for simple fields
     Object.keys(payload).forEach((k) => {
       (existing as any)[k] = (payload as any)[k];
     });
@@ -417,28 +531,177 @@ export const FeaturePropertyService = {
       // TODO: delete old heroVideoKey if you store it
     }
 
-    // append gallery files
+    // GALLERY: merge incoming metadata then upload new files and attach urls
     const galleryFiles = files?.galleryFiles ?? [];
-    if (galleryFiles.length > 0) {
-      existing.gallerySummary = existing.gallerySummary || [];
-      for (const f of galleryFiles) {
-        const up = await uploadBufferToS3Local({
-          buffer: f.buffer,
-          originalname: f.originalname,
-          mimetype: f.mimetype,
-          propertyId: propId,
-          folder: "gallery",
-        });
-        existing.gallerySummary.push({
-          title: f.originalname,
-          url: up.url,
-          category: "image",
-          order: (existing.gallerySummary.length || 0) + 1,
-        } as any);
-        // optionally store key: up.key
+    const incomingGallerySummary = (payload as any).gallerySummary;
+
+    // ensure existing.gallerySummary is array
+    existing.gallerySummary = existing.gallerySummary || [];
+
+    // If payload contains gallerySummary metadata, merge it into existing (index-based / append)
+    if (Array.isArray(incomingGallerySummary)) {
+      for (let i = 0; i < incomingGallerySummary.length; i++) {
+        const inc = incomingGallerySummary[i];
+        if (i < existing.gallerySummary.length) {
+          existing.gallerySummary[i] = { ...existing.gallerySummary[i], ...inc };
+        } else {
+          existing.gallerySummary.push({ ...inc });
+        }
       }
     }
 
+    // Upload new gallery files and map them to existing.gallerySummary entries
+    if (galleryFiles.length > 0) {
+      // We attempt to map by filename first (if existing entries declare filename/fileName),
+      // else by index offset after existing entries.
+      // Build filesByName map for quick lookup
+      const filesByName = new Map<string, Express.Multer.File>();
+      for (const f of galleryFiles) filesByName.set(f.originalname, f);
+
+      // First, try to match files to existing entries by declared filename property
+      for (let i = 0; i < existing.gallerySummary.length && galleryFiles.length > 0; i++) {
+        const entry = existing.gallerySummary[i] as any;
+        const declared = entry?.filename ?? entry?.fileName ?? entry?.file;
+        if (declared && filesByName.has(declared)) {
+              const f = filesByName.get(declared);
+              if (!f) continue;
+              const up = await uploadBufferToS3Local({
+                buffer: f!.buffer,
+                originalname: f!.originalname,
+                mimetype: f!.mimetype,
+                propertyId: propId,
+                folder: "gallery",
+              });
+              // replace URL and store filename
+              entry.url = up.url;
+              entry.filename = f!.originalname;
+              // remove from map so we don't process it again
+              filesByName.delete(declared);
+            }
+      }
+
+      // For remaining files (unmatched), map by order: append to the end or fill first empty slots
+      const remainingFiles = Array.from(filesByName.values());
+      let appendIndex = existing.gallerySummary.length;
+      for (let idx = 0; idx < remainingFiles.length; idx++) {
+        const file = remainingFiles[idx];
+        // guard against sparse/undefined array slots (TypeScript may consider array access possibly undefined)
+        if (!file) continue;
+
+        const up = await uploadBufferToS3Local({
+          buffer: file.buffer,
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          propertyId: propId,
+          folder: "gallery",
+        });
+
+        // try to find first existing entry without url
+        const emptySlotIndex = existing.gallerySummary.findIndex((e: any) => !e.url);
+        if (emptySlotIndex >= 0) {
+          const slot = existing.gallerySummary[emptySlotIndex] as any;
+          if (slot) {
+            slot.url = up.url;
+            slot.filename = file.originalname;
+            if (!slot.title) slot.title = file.originalname;
+            if (!slot.category) slot.category = "image";
+            if (!slot.order) slot.order = emptySlotIndex + 1;
+          } else {
+            // fallback to append if slot is unexpectedly undefined
+            existing.gallerySummary.push({
+              title: file.originalname,
+              url: up.url,
+              filename: file.originalname,
+              category: "image",
+              order: (existing.gallerySummary.length || 0) + 1,
+            } as any);
+          }
+        } else {
+          // append new entry
+          existing.gallerySummary.push({
+            title: file.originalname,
+            url: up.url,
+            filename: file.originalname,
+            category: "image",
+            order: (existing.gallerySummary.length || 0) + 1,
+          } as any);
+        }
+      }
+    }
+
+ 
+// ---- About image (create) - normalize into aboutSummary array ----
+// ---- About merge & aboutImage replacement (update) ----
+{
+  // Build incomingAboutArr from payload.aboutSummary OR payload.about
+  const incomingAboutArr: any[] = Array.isArray((payload as any).aboutSummary)
+    ? (payload as any).aboutSummary.slice()
+    : (payload as any).about
+    ? [{ ...(payload as any).about }]
+    : [];
+
+  // ensure existing.aboutSummary is array (work on a properly typed local array to satisfy TS)
+    const existingAboutArr: any[] = Array.isArray((existing as any).aboutSummary)
+      ? (existing as any).aboutSummary.slice()
+      : [];
+  
+    // merge incoming entries by index (simple index-merge) using the local array
+    for (let i = 0; i < incomingAboutArr.length; i++) {
+      if (i < existingAboutArr.length) {
+        existingAboutArr[i] = { ...(existingAboutArr[i] || {}), ...incomingAboutArr[i] };
+      } else {
+        existingAboutArr.push({ ...incomingAboutArr[i] });
+      }
+    }
+  
+    // write the normalized array back onto the existing document
+    (existing as any).aboutSummary = existingAboutArr;
+
+  // ABOUT image replacement (if file uploaded)
+  const aboutFiles = files?.aboutImage;
+  if (aboutFiles && aboutFiles.length > 0) {
+    const f = aboutFiles[0];
+    if (!f) throw new Error("Uploaded aboutImage file is missing");
+
+    const up = await uploadBufferToS3Local({
+      buffer: f.buffer,
+      originalname: f.originalname,
+      mimetype: f.mimetype,
+      propertyId: propId,
+      folder: "about",
+    });
+
+    // ensure at least one aboutSummary element exists (provide required rightContent)
+    if (!Array.isArray(existing.aboutSummary) || existing.aboutSummary.length === 0) {
+      // cast to any to satisfy TypeScript when IAboutSummary has required properties
+      (existing as any).aboutSummary = [{ rightContent: "" }];
+    }
+
+    // ensure we have an array reference — TypeScript can't rely on earlier type guards across awaits
+    const aboutArr: any[] = Array.isArray(existing.aboutSummary) ? existing.aboutSummary : [{ rightContent: "" }];
+    
+    // delete old S3 key if present on first element
+    const oldKey = aboutArr[0]?.key;
+    if (oldKey) await deleteS3ObjectIfExists(oldKey);
+
+    // set new metadata on first element
+    aboutArr[0].url = up.url;
+    aboutArr[0].key = up.key;
+    aboutArr[0].filename = f.originalname;
+    aboutArr[0].mimetype = f.mimetype;
+  }
+
+  // sync convenience single object with first array element
+  if (Array.isArray(existing.aboutSummary) && existing.aboutSummary.length > 0) {
+    (existing as any).about = { ...(existing as any).about, ...(existing.aboutSummary[0] as any) };
+  }
+}
+// ---------------------------------------------------------
+
+// -----------------------------------------------------------------
+
+
+    // save and return
     await existing.save();
     return existing;
   },
@@ -468,7 +731,7 @@ export const FeaturePropertyService = {
     if (options?.q) filter.$text = { $search: options.q };
     if (options?.status) filter.status = options.status;
 
-    filter.isFeatured = true; 
+    filter.isFeatured = true;
 
     const sort: any = {};
     if (options?.sortBy) sort[options.sortBy] = options.sortOrder === "asc" ? 1 : -1;
@@ -495,9 +758,14 @@ export const FeaturePropertyService = {
       }
     }
 
-    // Optionally delete hero/gallery/video keys here if you stored their keys:
-    // if (existing.heroImageKey) await deleteS3ObjectIfExists(existing.heroImageKey);
-    // if (Array.isArray(existing.gallerySummary)) { ... }
+    // delete gallery keys if present (optional)
+    if (Array.isArray(existing.gallerySummary)) {
+      for (const g of existing.gallerySummary) {
+        if ((g as any)?.key) {
+          await deleteS3ObjectIfExists((g as any).key);
+        }
+      }
+    }
 
     const deleted = await FeaturedProject.findByIdAndDelete(id).exec();
     return deleted;

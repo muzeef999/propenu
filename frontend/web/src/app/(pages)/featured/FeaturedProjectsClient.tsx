@@ -13,7 +13,6 @@ interface Props {
 export default function FeaturedProjectsClient({ items = [] }: Props) {
   const sliderRef = useRef<HTMLDivElement | null>(null);
 
-
   const { city, popular, normal, setCity } = useCity();
 
   const scrollLeft = () =>
@@ -70,13 +69,16 @@ export default function FeaturedProjectsClient({ items = [] }: Props) {
               />
             </Link>
 
-            <div className="p-3">
-              <h2 className="text-md font-medium">{project.title}</h2>
-              {project.featuredTagline && (
+            <div className="p-3 flex justify-between">
+              <div>logo</div>
+              <div>
+              <h2 className="text-md font-medium text-left">{project.title}</h2>
+              {project.address && (
                 <p className="text-gray-600 text-sm">
-                  {project.featuredTagline}
+                  {project.address}
                 </p>
               )}
+              </div>
               <p>80,000</p>
             </div>
           </div>

@@ -16,7 +16,6 @@ import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
 
 const router = express.Router();
 
-
 const upload = multer({ storage: multer.memoryStorage() });
 
 const cpUpload = upload.fields([
@@ -24,6 +23,7 @@ const cpUpload = upload.fields([
   { name: "heroVideo", maxCount: 1 },
   { name: "galleryFiles", maxCount: 12 },
   { name: "bhkPlanFiles", maxCount: 12 }, 
+  { name: "aboutImage", maxCount: 1 }, 
 ]);
 
 const jsonKeys = [
@@ -35,6 +35,9 @@ const jsonKeys = [
   "sqftRange",
   "leads",
   "banksApproved",
+  "location",
+  "city",
+  "aboutSummary"
 ];
 
 

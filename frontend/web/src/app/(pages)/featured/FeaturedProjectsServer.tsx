@@ -12,9 +12,7 @@ export interface FeaturedProjectsResponse {
 export default async function FeaturedProjectsServer(): Promise<JSX.Element> {
   try {
 
-    console.log("Fetching featured projects...");
     const data = await getFeaturedProjects();
-    console.log("Featured projects data:", data);
     const typedData = data as FeaturedProjectsResponse | undefined;
     const items = typedData?.items ?? [];
      

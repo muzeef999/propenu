@@ -2,6 +2,14 @@ import { notFound } from "next/navigation";
 import { getFeaturedSlugProjects } from "@/serverSideData/serverData";
 import { FeaturedProject } from "@/types";
 import Image from "next/image";
+import MicroSiteNavbar from "./MicroSiteNavbar";
+import logo from "@/asserts/ap_one.png"
+import Herosection from "./Herosection";
+import AvailableProperties from "./AvailableProperties";
+import Amenities from "./Amenities";
+import LocateUs from "./LocateUs";
+import Gallery from "./Gallery";
+import AboutUS from "./AboutUs";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -27,31 +35,86 @@ export default async function Page({ params }: PageProps) {
     notFound();
   }
 
+const links = [
+    { title: "Available Properties", href: "#available-properties" },
+    { title: "Amenities", href: "#amenities" },
+    { title: "Map View", href: "#map-view" },
+    { title: "Gallery", href: "#gallery" },
+    { title: "About Us", href: "#about-us" },
+    { title: "Brochure", href: "#brochure" },
+  ];
+
+
+  const hero = {
+    subTagline: project?.heroSubTagline,
+    description: project?.heroDescription,
+    color: project?.color?.trim(),
+    heroImage: project.heroImage,
+    stats: [
+      { value:  "₹1,2Cr+", label: "Starting Price" },
+      { value:  "3-4 BHK", label: "Configurations" },
+      { value:  "50+", label: "Amenities" },
+      { value:   "RERA", label: "Approved" },
+    ],
+      ctaPrimary: { text: "Explore", href: "/explore" },
+    ctaSecondary: { text: "More", href: "/more" },
+  }
+
+
+  const bhkSummary = {
+     bhkSummary:project?.bhkSummary,
+     color: project?.color?.trim(),
+  }
+
+  const amenities = {
+      amenities:project?.amenities,
+      color: project?.color?.trim(),
+  }
+
+  const nearbyPlaces = {
+    location:project?.location,
+    nearbyPlaces:project?.nearbyPlaces,
+    color: project?.color?.trim(),
+  }
+
+  const gallerySummary = {
+   gallerySummary:project?.gallerySummary,
+   color: project?.color?.trim(),
+  }
+
+  const aboutSummary = {
+       aboutSummary:project?.aboutSummary,
+       color: project?.color?.trim(),
+  }
+
   return (
-    <div className="container">
-      <nav className="flex justify-around items-center">
-        <h1>logo</h1>
-         <div className="flex">
-          <li>Available Properties</li>
-          <li>Amenities</li>
-          <li>Map view</li>
-          <li>Gallery</li>
-          <li>Abouts us</li>
-          <li>Brouches</li>
-         </div>
-      </nav>
-      <div className="relative w-full h-screen">
-        <Image
-          src={project.heroImage}
-          alt={project.title}
-          fill
-          priority
-          className="object-cover"
-        />
+  <div>
+    <MicroSiteNavbar links={links} logoUrl={logo} />
+
+    <Herosection hero={hero} />
+
+    <div className="container mx-auto px-4">
+      <div id="available-properties" className="scroll-mt-20">
+        <AvailableProperties bhk={bhkSummary} />
       </div>
 
-      <h1 className="text-2xl font-bold">{project?.title}</h1>
-      <div className="mt-4 text-xs text-gray-500">Slug: {project?.slug}</div>
+      <div id="amenities" className="scroll-mt-20">
+        <Amenities amenities={amenities} />
+      </div>
+
+      <div id="map-view" className="scroll-mt-20">
+        <LocateUs nearbyPlaces={nearbyPlaces} />
+      </div>
+
+      <div id="gallery" className="scroll-mt-20">
+        <Gallery gallerySummary={gallerySummary} />
+      </div>
+
+      <div id="about-us" className="scroll-mt-20">
+        <AboutUS aboutSummary={aboutSummary} />
+      </div>
     </div>
-  );
+  </div>
+);
+
 }
