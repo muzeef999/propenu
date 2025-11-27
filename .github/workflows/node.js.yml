@@ -9,16 +9,14 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Show workspace info
         run: |
           echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
           echo "RUNNER_TEMP=$RUNNER_TEMP"
-          echo "List actions-runner dir:"
+          echo "List actions-runner program dir:"
           ls -la ~/actions-runner || true
-          echo "List _work (if exists):"
+          echo "--- actions-runner/_work (if exists) ---"
           ls -la ~/actions-runner/_work || true
-          echo "List GITHUB_WORKSPACE files:"
+          echo "--- GITHUB_WORKSPACE files ---"
           ls -la "$GITHUB_WORKSPACE" || true
