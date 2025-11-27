@@ -10,7 +10,9 @@ on:
 
 jobs:
   deploy:
-    runs-on: self-hosted
+    # be explicit about labels so the runner matches reliably
+    runs-on: [self-hosted, linux, x64]
+
     env:
       PRPPENU_GATEWAY_ENV: ${{ secrets.PRPPENU_GATEWAY_ENV }}
       PRPPENU_PAYMENT_ENV: ${{ secrets.PRPPENU_PAYMENT_ENV }}
@@ -18,7 +20,7 @@ jobs:
       PRPPENU_USER_ENV: ${{ secrets.PRPPENU_USER_ENV }}
 
     steps:
-      - name: Checkout (fetch full history for reliable git diff)
+      - name: Checkout (full history)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -29,21 +31,32 @@ jobs:
           node-version: 18.x
           cache: 'npm'
 
-      # Detect which backend packages changed
       - name: Detect changed backend services
         id: detect
         run: |
-          set -e
-          # fallback for first commit on branch
-          if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
-            CHANGED=$(git ls-tree -r --name-only HEAD)
-          else
-            CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }})
-          fi
-          echo "Changed files:"
-          echo "$CHANGED"
+          set -euo pipefail
 
-          # defaults
+          # Ensure we have the remote refs so we can diff reliably
+          git fetch --no-tags origin +refs/heads/*:refs/remotes/origin/* || true
+
+          # If push event has valid before/after use it; otherwise fallback to comparing with origin/deploy
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.event.after }}"
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || [ -z "$BEFORE" ]; then
+            # branch-first-commit or manual dispatch -> compare against origin/deploy if exists, else list all files
+            if git rev-parse --verify origin/deploy >/dev/null 2>&1; then
+              CHANGED=$(git diff --name-only origin/deploy HEAD || true)
+            else
+              CHANGED=$(git ls-tree -r --name-only HEAD || true)
+            fi
+          else
+            CHANGED=$(git diff --name-only "$BEFORE" "$AFTER" || true)
+          fi
+
+          echo ">>> Changed files (raw):"
+          echo "$CHANGED" || true
+
+          # default flags
           build_gateway=false
           build_payment=false
           build_property=false
@@ -59,13 +72,15 @@ jobs:
           echo "build_property=$build_property" >> $GITHUB_OUTPUT
           echo "build_user=$build_user" >> $GITHUB_OUTPUT
 
-      # Install dependencies (only once at root)
+          # for debugging: print final flags
+          echo "::notice ::Flags: gateway=$build_gateway payment=$build_payment property=$build_property user=$build_user"
+
       - name: Install dependencies (root + workspaces)
         run: npm ci --no-audit --no-fund
 
-      # Write .env files (only needed for services that will be built / started)
-      - name: Write env files
+      - name: Write env files (only for changed services)
         run: |
+          set -e
           if [ "${{ steps.detect.outputs.build_gateway }}" = "true" ]; then
             printf "%s" "${PRPPENU_GATEWAY_ENV}" > backend/gateway/.env
             echo "✅ gateway .env created"
@@ -83,7 +98,6 @@ jobs:
             echo "✅ user .env created"
           fi
 
-      # Build only the changed services
       - name: Build gateway
         if: ${{ steps.detect.outputs.build_gateway == 'true' }}
         working-directory: backend/gateway
@@ -104,7 +118,6 @@ jobs:
         working-directory: backend/services/user-service
         run: npm run build
 
-      # Verify outputs only for built services (optional)
       - name: Verify build outputs (selective)
         run: |
           set -e
@@ -113,39 +126,42 @@ jobs:
           if [ "${{ steps.detect.outputs.build_property }}" = "true" ]; then ls -la backend/services/property-service/dist/server.js; fi
           if [ "${{ steps.detect.outputs.build_payment }}" = "true" ]; then ls -la backend/services/payment-service/dist/server.js; fi
 
-      # PM2: start/reload only changed services using --only <name>
       - name: Reload PM2 for changed services
         working-directory: backend
         run: |
+          set -e
           if ! command -v pm2 >/dev/null; then
+            echo "PM2 not found. Installing..."
             npm i -g pm2
           fi
-          # Ensure ecosystem exists
+
           if [ ! -f ecosystem.config.cjs ]; then
             echo "❌ Missing backend/ecosystem.config.cjs"
             exit 1
           fi
 
-          # For each changed service, start if needed then reload
           if [ "${{ steps.detect.outputs.build_gateway }}" = "true" ]; then
             pm2 start ecosystem.config.cjs --only gateway --update-env || true
-            pm2 reload ecosystem.config.cjs --only gateway --update-env
+            pm2 reload ecosystem.config.cjs --only gateway --update-env || true
           fi
+
           if [ "${{ steps.detect.outputs.build_payment }}" = "true" ]; then
             pm2 start ecosystem.config.cjs --only payment-service --update-env || true
-            pm2 reload ecosystem.config.cjs --only payment-service --update-env
+            pm2 reload ecosystem.config.cjs --only payment-service --update-env || true
           fi
+
           if [ "${{ steps.detect.outputs.build_property }}" = "true" ]; then
             pm2 start ecosystem.config.cjs --only property-service --update-env || true
-            pm2 reload ecosystem.config.cjs --only property-service --update-env
+            pm2 reload ecosystem.config.cjs --only property-service --update-env || true
           fi
+
           if [ "${{ steps.detect.outputs.build_user }}" = "true" ]; then
             pm2 start ecosystem.config.cjs --only user-service --update-env || true
-            pm2 reload ecosystem.config.cjs --only user-service --update-env
+            pm2 reload ecosystem.config.cjs --only user-service --update-env || true
           fi
 
           pm2 save
-          pm2 status
+          pm2 status || true
 
       - name: Tail PM2 logs if failure
         if: ${{ failure() }}
