@@ -1,4 +1,4 @@
-name: Backend CD
+name: Backend CD (smart)
 
 on:
   push:
@@ -11,7 +11,6 @@ on:
 jobs:
   deploy:
     runs-on: self-hosted
-
     env:
       PRPPENU_GATEWAY_ENV: ${{ secrets.PRPPENU_GATEWAY_ENV }}
       PRPPENU_PAYMENT_ENV: ${{ secrets.PRPPENU_PAYMENT_ENV }}
@@ -19,8 +18,10 @@ jobs:
       PRPPENU_USER_ENV: ${{ secrets.PRPPENU_USER_ENV }}
 
     steps:
-      - name: Checkout
+      - name: Checkout (fetch full history for reliable git diff)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Use Node.js 18.x
         uses: actions/setup-node@v4
@@ -28,59 +29,124 @@ jobs:
           node-version: 18.x
           cache: 'npm'
 
-      # Install once at the monorepo root (will install all workspaces)
+      # Detect which backend packages changed
+      - name: Detect changed backend services
+        id: detect
+        run: |
+          set -e
+          # fallback for first commit on branch
+          if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            CHANGED=$(git ls-tree -r --name-only HEAD)
+          else
+            CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }})
+          fi
+          echo "Changed files:"
+          echo "$CHANGED"
+
+          # defaults
+          build_gateway=false
+          build_payment=false
+          build_property=false
+          build_user=false
+
+          echo "$CHANGED" | grep -qE "^backend/gateway/" && build_gateway=true || true
+          echo "$CHANGED" | grep -qE "^backend/services/payment-service/" && build_payment=true || true
+          echo "$CHANGED" | grep -qE "^backend/services/property-service/" && build_property=true || true
+          echo "$CHANGED" | grep -qE "^backend/services/user-service/" && build_user=true || true
+
+          echo "build_gateway=$build_gateway" >> $GITHUB_OUTPUT
+          echo "build_payment=$build_payment" >> $GITHUB_OUTPUT
+          echo "build_property=$build_property" >> $GITHUB_OUTPUT
+          echo "build_user=$build_user" >> $GITHUB_OUTPUT
+
+      # Install dependencies (only once at root)
       - name: Install dependencies (root + workspaces)
         run: npm ci --no-audit --no-fund
 
-      # Write env files
-      - name: Write gateway .env
+      # Write .env files (only needed for services that will be built / started)
+      - name: Write env files
+        run: |
+          if [ "${{ steps.detect.outputs.build_gateway }}" = "true" ]; then
+            printf "%s" "${PRPPENU_GATEWAY_ENV}" > backend/gateway/.env
+            echo "✅ gateway .env created"
+          fi
+          if [ "${{ steps.detect.outputs.build_payment }}" = "true" ]; then
+            printf "%s" "${PRPPENU_PAYMENT_ENV}" > backend/services/payment-service/.env
+            echo "✅ payment .env created"
+          fi
+          if [ "${{ steps.detect.outputs.build_property }}" = "true" ]; then
+            printf "%s" "${PRPPENU_PROPERTY_ENV}" > backend/services/property-service/.env
+            echo "✅ property .env created"
+          fi
+          if [ "${{ steps.detect.outputs.build_user }}" = "true" ]; then
+            printf "%s" "${PRPPENU_USER_ENV}" > backend/services/user-service/.env
+            echo "✅ user .env created"
+          fi
+
+      # Build only the changed services
+      - name: Build gateway
+        if: ${{ steps.detect.outputs.build_gateway == 'true' }}
         working-directory: backend/gateway
+        run: npm run build
+
+      - name: Build payment-service
+        if: ${{ steps.detect.outputs.build_payment == 'true' }}
+        working-directory: backend/services/payment-service
+        run: npm run build
+
+      - name: Build property-service
+        if: ${{ steps.detect.outputs.build_property == 'true' }}
+        working-directory: backend/services/property-service
+        run: npm run build
+
+      - name: Build user-service
+        if: ${{ steps.detect.outputs.build_user == 'true' }}
+        working-directory: backend/services/user-service
+        run: npm run build
+
+      # Verify outputs only for built services (optional)
+      - name: Verify build outputs (selective)
         run: |
-          printf "%s" "${PRPPENU_GATEWAY_ENV}" > .env
-          echo "✅ gateway .env created"
+          set -e
+          if [ "${{ steps.detect.outputs.build_gateway }}" = "true" ]; then ls -la backend/gateway/dist/server.js; fi
+          if [ "${{ steps.detect.outputs.build_user }}" = "true" ]; then ls -la backend/services/user-service/dist/server.js; fi
+          if [ "${{ steps.detect.outputs.build_property }}" = "true" ]; then ls -la backend/services/property-service/dist/server.js; fi
+          if [ "${{ steps.detect.outputs.build_payment }}" = "true" ]; then ls -la backend/services/payment-service/dist/server.js; fi
 
-      - name: Write service .env files
-        run: |
-          printf "%s" "${PRPPENU_PAYMENT_ENV}"  > backend/services/payment-service/.env
-          printf "%s" "${PRPPENU_PROPERTY_ENV}" > backend/services/property-service/.env
-          printf "%s" "${PRPPENU_USER_ENV}"     > backend/services/user-service/.env
-          echo "✅ service .env files created"
-
-      # Build all backend packages using your root script
-      - name: Build backend (all services)
-        run: npm run build:backend
-
-      # Sanity check: make sure the compiled entry files exist
-      - name: Verify build outputs
-        run: |
-          ls -la backend/gateway/dist/server.js
-          ls -la backend/services/user-service/dist/server.js
-          ls -la backend/services/property-service/dist/server.js
-          ls -la backend/services/payment-service/dist/server.js
-
-      # Start/Reload PM2 from backend/ so relative paths resolve cleanly
-      - name: Reload PM2
+      # PM2: start/reload only changed services using --only <name>
+      - name: Reload PM2 for changed services
         working-directory: backend
         run: |
           if ! command -v pm2 >/dev/null; then
-            echo "PM2 not found. Installing..."
             npm i -g pm2
           fi
-
+          # Ensure ecosystem exists
           if [ ! -f ecosystem.config.cjs ]; then
-            echo "❌ Missing backend/ecosystem.config.cjs"; exit 1
+            echo "❌ Missing backend/ecosystem.config.cjs"
+            exit 1
           fi
 
-          echo "🚀 Reloading PM2"
-          # Start missing apps without failing the job on first run,
-          # then reload to apply changes
-          pm2 start ecosystem.config.cjs --update-env || true
-          pm2 reload ecosystem.config.cjs --update-env
+          # For each changed service, start if needed then reload
+          if [ "${{ steps.detect.outputs.build_gateway }}" = "true" ]; then
+            pm2 start ecosystem.config.cjs --only gateway --update-env || true
+            pm2 reload ecosystem.config.cjs --only gateway --update-env
+          fi
+          if [ "${{ steps.detect.outputs.build_payment }}" = "true" ]; then
+            pm2 start ecosystem.config.cjs --only payment-service --update-env || true
+            pm2 reload ecosystem.config.cjs --only payment-service --update-env
+          fi
+          if [ "${{ steps.detect.outputs.build_property }}" = "true" ]; then
+            pm2 start ecosystem.config.cjs --only property-service --update-env || true
+            pm2 reload ecosystem.config.cjs --only property-service --update-env
+          fi
+          if [ "${{ steps.detect.outputs.build_user }}" = "true" ]; then
+            pm2 start ecosystem.config.cjs --only user-service --update-env || true
+            pm2 reload ecosystem.config.cjs --only user-service --update-env
+          fi
+
           pm2 save
           pm2 status
 
-      # Optional: show last 100 lines if something failed earlier
-      - name: Tail PM2 logs (optional)
+      - name: Tail PM2 logs if failure
         if: ${{ failure() }}
-        run: |
-          pm2 logs --lines 100 || true
+        run: pm2 logs --lines 100 || true
