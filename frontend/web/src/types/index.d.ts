@@ -1,6 +1,7 @@
 
 export interface FeaturedProject {
   // basic
+  _id:string;
   title: string;
   slug: string;
   logo:{

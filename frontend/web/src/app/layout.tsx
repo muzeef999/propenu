@@ -3,7 +3,6 @@ import { Poppins } from "next/font/google";
 import "./global.css";
 
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import ClientProviders from "@/app/clientLayout"; // client component – used inside <body>
 
 const poppins = Poppins({
@@ -26,9 +25,13 @@ export const metadata: Metadata = {
   ],
 };
 
+
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+
+
   return (
     <html lang="en">
       <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -39,7 +42,7 @@ export default function RootLayout({
         <ClientProviders>
           <Navbar />
           {children}
-          <Footer />
+          
         </ClientProviders>
       </body>
     </html>

@@ -1,17 +1,13 @@
-// src/controller/featurePropertiesController.ts
 import { Request, Response } from "express";
 import { CreateFeaturePropertyDTO, UpdateFeaturePropertyDTO, CreateFeaturePropertySchema, UpdateFeaturePropertySchema } from "../zod/validation";
 import { FeaturePropertyService } from "../services/featurePropertiesServices";
 import { ZodError } from "zod";
 
-/**
- * Helper: parse JSON fields coming from multipart/form-data
- * If field is a JSON string, parse it, otherwise return original.
- */
+
 function parseMaybeJSON<T = any>(value: any): T | undefined {
   if (value === undefined || value === null || value === "") return undefined;
   if (typeof value !== "string") return value as T;
-  try {
+  try { 
     return JSON.parse(value) as T;
   } catch {
     // not JSON — return as string

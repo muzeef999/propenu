@@ -5,6 +5,8 @@ import Link from "next/link";
 import { FeaturedProject } from "@/types";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import { useCity } from "@/hooks/useCity";
+import Image from "next/image";
+import formatINR from "@/utilies/PriceFormat";
 
 interface Props {
   items?: FeaturedProject[];
@@ -51,7 +53,7 @@ export default function FeaturedProjectsClient({ items = [] }: Props) {
       {/* Scrollable Row */}
       <div
         ref={sliderRef}
-        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-10 py-4 snap-x snap-mandatory"
+        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-1 py-4 snap-x snap-mandatory"
       >
         {items.map((project) => (
           <div
@@ -69,17 +71,45 @@ export default function FeaturedProjectsClient({ items = [] }: Props) {
               />
             </Link>
 
-            <div className="p-3 flex justify-between">
-              <div>logo</div>
-              <div>
-              <h2 className="text-md font-medium text-left">{project.title}</h2>
-              {project.address && (
-                <p className="text-gray-600 text-sm">
-                  {project.address}
-                </p>
-              )}
+            <div className="p-3 flex justify-between items-center gap-4">
+              {/* Logo */}
+              <div className="flex-shrink-0">
+                <Image
+                  src={project?.logo?.url}
+                  alt={project.title}
+                  width={80}
+                  height={80}
+                  className="object-cover rounded-md"
+                />
               </div>
-              <p>80,000</p>
+
+              {/* Title + Address */}
+              <div className="flex flex-col justify-center">
+                <h2 className="text-2xl font-medium text-left">
+                  {project.title}
+                </h2>
+
+                {project.address && (
+                  <p className="text-[#676666] text-base mt-1">
+                    {project.address}
+                  </p>
+                )}
+              </div>
+
+              {/* BHK, Price, Button */}
+              <div className="text-right flex flex-col items-end gap-1">
+                <p className="text-[#676666] font-light text-base">
+                  2,3 BHK Flats
+                </p>
+
+                <p className="text-[#000] text-base">
+                  {formatINR(project?.priceFrom)}
+                  <span className="text-[#676666] font-light text-sm">
+                    {" "}
+                    onwards
+                  </span>
+                </p>
+              </div>
             </div>
           </div>
         ))}

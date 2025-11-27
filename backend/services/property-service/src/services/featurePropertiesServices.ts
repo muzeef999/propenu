@@ -818,7 +818,7 @@ if (logoFiles && logoFiles.length > 0) {
           await deleteS3ObjectIfExists((g as any).key);
         }
       }
-    }
+    } 
 
     const deleted = await FeaturedProject.findByIdAndDelete(id).exec();
     return deleted;

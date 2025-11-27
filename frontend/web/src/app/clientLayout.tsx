@@ -6,6 +6,8 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Provider } from "react-redux";
 import { store } from "@/Redux/store";
 import { Toaster } from "sonner";
+import { usePathname } from "next/navigation";
+import Footer from "@/components/Footer";
 
 
 export default function ClientProviders({
@@ -16,6 +18,10 @@ export default function ClientProviders({
   // Create the client once per browser session
   const [queryClient] = React.useState(() => new QueryClient());
 
+     const pathname = usePathname(); // 👈 get current path
+
+  const hideFooter = pathname?.startsWith("/featured"); 
+
   return (
      <Provider store={store}>
     <QueryClientProvider client={queryClient}>
@@ -25,6 +31,7 @@ export default function ClientProviders({
         richColors
         expand={true}
         duration={3000} />
+         {!hideFooter && <Footer />}
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
     </Provider>
