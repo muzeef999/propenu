@@ -1,4 +1,4 @@
-name: Simple Backend CI/CD (No Docker)
+name:  Backend CI/CD
 
 on:
   push:
