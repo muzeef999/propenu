@@ -5,7 +5,7 @@ import { parseJsonFields } from "../middlewares/parseJsonFields";
 import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
 import { validateBody } from "../middlewares/validate";
 import { AgriculturalCreateSchema, AgriculturalUpdateSchema } from "../zod/agriculturalZod";
-import { createAgricultural, deleteAgricultural, editAgricultural, getAgriculturalBySlug, getAgriculturalDetail, getAllAgricultural } from "../controller/agriculturalcontroller";
+import { createAgricultural, deleteAgricultural, editAgricultural, getAgriculturalBySlug, getAgriculturalDetail, getAllAgricultural } from "../controller/agriculturalController";
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
