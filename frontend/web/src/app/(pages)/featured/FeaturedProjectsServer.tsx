@@ -1,5 +1,5 @@
 // app/components/FeaturedProjects.tsx
-import { getFeaturedProjects } from "@/serverSideData/serverData";
+import { getFeaturedProjects } from "@/data/serverData";
 import { FeaturedProject } from "@/types";
 import { JSX } from "react";
 import FeaturedProjectsClient from "./FeaturedProjectsClient";

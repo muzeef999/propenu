@@ -287,3 +287,30 @@ export type PropertyFormValues = {
   agent?: string | null;
   seller?: string | null;
 };
+
+
+export type PropertyTypeOption = "Residential" | "Commercial" | "Land" | "Agricultural";
+
+export type ListingOption = "Buy" | "Rent" | "Lease";
+
+
+export type SearchItem = {
+  id?: string;
+  type?: string;
+  title?: string;
+  price?: number;
+  currency?: string;
+  city?: string;
+  location?: any;
+  [key: string]: any;
+};
+
+export type SearchFilters = {
+  propertyType?: string;
+  q?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  city?: string;
+  sort?: string;
+  // add other fields as needed
+};

@@ -1,56 +1,36 @@
-// src/routes/featurePropertiesRoute.ts
-import express, { Request, Response } from "express";
+import express from "express";
 import multer from "multer";
-import {
-  createFeatureProperties,
-  deleteFeatureProperties,
-  editFeatureProperties,
-  getAllFeatureProperties,
-  getFeatureBySlug,
-  getIndetailFeatureProperties,
-} from "../controller/featurePropertiesController";
-import { CreateFeaturePropertySchema, UpdateFeaturePropertySchema } from "../zod/validation";
-import { validateBody } from "../middlewares/validate";
 import { parseJsonFields } from "../middlewares/parseJsonFields";
 import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
+import { validateBody } from "../middlewares/validate";
+// import { CommercialCreateSchema, CommercialUpdateSchema } from "../zod/commercialZod"; // optional
 
 const router = express.Router();
-
 const upload = multer({ storage: multer.memoryStorage() });
 
 const cpUpload = upload.fields([
-  { name: "heroImage", maxCount: 1 },
-  { name: "heroVideo", maxCount: 1 },
-  { name: "galleryFiles", maxCount: 12 },
-  { name: "bhkPlanFiles", maxCount: 12 }, 
-  { name: "aboutImage", maxCount: 1 }, 
-    { name: "logo", maxCount: 1 }, // <- add this
-
+  { name: "galleryFiles", maxCount: 20 },
+  { name: "leaseDocuments", maxCount: 20 },
+  { name: "fireNOCFile", maxCount: 1 },
+  { name: "occupancyCertificateFile", maxCount: 1 },
 ]);
 
 const jsonKeys = [
-  "bhkSummary",
-  "specifications",
-  "amenities",
-  "nearbyPlaces",
-  "gallerySummary",
-  "sqftRange",
-  "leads",
-  "banksApproved",
   "location",
-  "city",
-  "aboutSummary"
+  "gallery",
+  "leaseDocuments",
+  "tenantInfo",
+  "buildingManagement",
 ];
 
+import {  createCommercial,  editCommercial,  getAllCommercial,  getCommercialBySlug,  getCommercialDetail,  deleteCommercial,} from "../controller/commercialController";
 
-router.post("/", cpUpload, parseJsonFields(jsonKeys), fallbackCoerceDefault, validateBody(CreateFeaturePropertySchema), createFeatureProperties);
-
-router.patch("/:id", cpUpload, parseJsonFields(jsonKeys), fallbackCoerceDefault, validateBody(UpdateFeaturePropertySchema), editFeatureProperties);
-router.get("/", getAllFeatureProperties);
-router.get("/slug/:slug", getFeatureBySlug); 
-router.get("/:id", getIndetailFeatureProperties); 
-router.delete("/:id", deleteFeatureProperties);
-
-
+/** POST */
+router.post("/", cpUpload,  parseJsonFields(jsonKeys), fallbackCoerceDefault, createCommercial);
+router.patch("/:id",cpUpload, parseJsonFields(jsonKeys), fallbackCoerceDefault, editCommercial);
+router.get("/", getAllCommercial);
+router.get("/slug/:slug", getCommercialBySlug);
+router.get("/:id", getCommercialDetail);
+router.delete("/:id", deleteCommercial);
 
 export default router;

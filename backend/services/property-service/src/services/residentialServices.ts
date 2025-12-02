@@ -4,6 +4,8 @@ import { randomUUID } from "crypto";
 import s3 from "../config/s3"; // your AWS.S3 v2 client
 import dotenv from "dotenv";
 import Residential from "../models/residentialModel";
+import { buildCommonMatch } from "../utils/filterBuilder";
+import { SearchFilters } from "../types/searchResultItem";
 
 dotenv.config();
 
@@ -122,12 +124,39 @@ async function mapAndUploadGallery({
   return summary;
 }
 
+/* -------------------- Search pipeline -------------------- */
+
+export function getResidentialPipeline(filters: SearchFilters) {
+  const match = buildCommonMatch(filters);
+  return [
+    { $match: match },
+    {
+      $project: {
+        _id: 0,
+        id: "$_id",
+        type: { $literal: "Residential" },
+        gallery:1,
+        title: 1,
+        city:1,
+        constructionStatus:1,
+        slug: 1,
+        superBuiltUpArea: 1,
+        furnishing:1,
+        parkingType: 1,
+        price: 1,
+        pricePerSqft: 1,
+        location: 1,
+        createdAt: 1
+      }
+    }
+  ];
+}
+
+
 /* -------------------- Service API -------------------- */
 
 export const ResidentialPropertyService = {
-  /**
-   * create
-   */
+
   async create(payload: any, files?: MulterFiles) {
     // generate slug
     const slugSource = (payload.slug && String(payload.slug).trim()) || payload.title;
@@ -168,9 +197,6 @@ export const ResidentialPropertyService = {
     return createdDoc.toObject ? createdDoc.toObject() : createdDoc;
   },
 
-  /**
-   * update
-   */
   async update(id: string, payload: any, files?: MulterFiles) {
     if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
     const existingRaw = await Residential.findById(id);
@@ -292,9 +318,6 @@ export const ResidentialPropertyService = {
     return existing.toObject ? existing.toObject() : existing;
   },
 
-  /**
-   * pushFilesToListing
-   */
   async pushFilesToListing(id: string, pushMap: Record<string, any[]>) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
     const pushObj: any = {};
@@ -318,7 +341,6 @@ export const ResidentialPropertyService = {
     return this.getById(id);
   },
 
-  /* read helpers */
   async getById(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
     return Residential.findById(id).lean().exec();
@@ -413,6 +435,10 @@ export const ResidentialPropertyService = {
     await Residential.findByIdAndUpdate(id, { $inc: { "meta.views": 1 } }).exec();
     return null;
   },
+
+  model: Residential,
+  getPipeline: getResidentialPipeline
 };
+
 
 export default ResidentialPropertyService;

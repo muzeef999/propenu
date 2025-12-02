@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getFeaturedSlugProjects } from "@/serverSideData/serverData";
+import { getFeaturedSlugProjects } from "@/data/serverData";
 import { FeaturedProject } from "@/types";
 import Image from "next/image";
 import MicroSiteNavbar from "./MicroSiteNavbar";

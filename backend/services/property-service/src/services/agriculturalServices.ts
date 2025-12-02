@@ -4,6 +4,8 @@ import { randomUUID } from "crypto";
 import s3 from "../config/s3";
 import dotenv from "dotenv";
 import Agricultural from "../models/agriculturalModel";
+import { buildCommonMatch } from "../utils/filterBuilder";
+import { SearchFilters } from "../types/searchResultItem";
 
 dotenv.config();
 
@@ -94,10 +96,37 @@ async function mapAndUploadGallery({
   return summary;
 }
 
-/* --------------------
-   Service API
-   -------------------- */
+
+/* --------------------  Search API  -------------------- */
+
+export function getAgriculturalPipeline(filters: SearchFilters) {
+  const match = buildCommonMatch(filters);
+
+  return [
+    { $match: match },
+    {
+      $project: {
+        _id: 0,
+        id: "$_id",
+        type: { $literal: "Agricultural" },
+        title: 1,
+         gallery:1,
+        price:1,
+        slug:1,
+        soilType:1,
+        waterSource:1,
+        accessRoadType:1,
+        createdAt: 1
+      }
+    }
+  ];
+}
+
+
+/* --------------------  Service API  -------------------- */
+
 export const AgriculturalService = {
+
   async create(payload: any, files?: MulterFiles) {
     // build slug and ensure uniqueness
     const slugSource = (payload.slug && String(payload.slug).trim()) || payload.title;
@@ -368,6 +397,10 @@ if (firstSoil) {
     await Agricultural.findByIdAndUpdate(id, { $inc: { "meta.views": 1 } }).exec();
     return null;
   },
+
+  
+     model: Agricultural,
+     getPipeline: getAgriculturalPipeline
 };
 
 export default AgriculturalService;

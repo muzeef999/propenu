@@ -1,4 +1,4 @@
-import { getOwnerProperties } from "@/serverSideData/serverData";
+import { getOwnerProperties } from "@/data/serverData";
 import { JSX } from "react";
 import PopularOwnerPropertiesClient from "./PopularOwnerPropertiesClient";
 

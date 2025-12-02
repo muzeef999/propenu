@@ -1,56 +1,61 @@
-// src/routes/featurePropertiesRoute.ts
-import express, { Request, Response } from "express";
+import express from "express";
 import multer from "multer";
-import {
-  createFeatureProperties,
-  deleteFeatureProperties,
-  editFeatureProperties,
-  getAllFeatureProperties,
-  getFeatureBySlug,
-  getIndetailFeatureProperties,
-} from "../controller/featurePropertiesController";
-import { CreateFeaturePropertySchema, UpdateFeaturePropertySchema } from "../zod/validation";
-import { validateBody } from "../middlewares/validate";
 import { parseJsonFields } from "../middlewares/parseJsonFields";
 import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
+import { validateBody } from "../middlewares/validate";
+import {
+  createLand,
+  deleteLand,
+  editLand,
+  getLandBySlug,
+  getLandDetail,
+  getAllLands,
+} from "../controller/landController";
+import { CreateLandSchema, UpdateLandSchema } from "../zod/landZod";
 
 const router = express.Router();
-
 const upload = multer({ storage: multer.memoryStorage() });
 
 const cpUpload = upload.fields([
-  { name: "heroImage", maxCount: 1 },
-  { name: "heroVideo", maxCount: 1 },
-  { name: "galleryFiles", maxCount: 12 },
-  { name: "bhkPlanFiles", maxCount: 12 }, 
-  { name: "aboutImage", maxCount: 1 }, 
-    { name: "logo", maxCount: 1 }, // <- add this
-
+  { name: "galleryFiles", maxCount: 20 },
+  { name: "documents", maxCount: 20 },
+  { name: "soilTestReport", maxCount: 1 },
+  { name: "conversionCertificateFile", maxCount: 1 },
+  { name: "encumbranceCertificateFile", maxCount: 1 },
 ]);
 
 const jsonKeys = [
-  "bhkSummary",
   "specifications",
   "amenities",
   "nearbyPlaces",
-  "gallerySummary",
-  "sqftRange",
+  "documents",
+  "gallery",
   "leads",
-  "banksApproved",
+  "approvedByAuthority",
   "location",
-  "city",
-  "aboutSummary"
 ];
 
+router.post(
+  "/",
+  cpUpload,
+  parseJsonFields(jsonKeys),
+  fallbackCoerceDefault,
+  validateBody(CreateLandSchema),
+  createLand
+);
 
-router.post("/", cpUpload, parseJsonFields(jsonKeys), fallbackCoerceDefault, validateBody(CreateFeaturePropertySchema), createFeatureProperties);
+router.patch(
+  "/:id",
+  cpUpload,
+  parseJsonFields(jsonKeys),
+  fallbackCoerceDefault,
+  validateBody(UpdateLandSchema),
+  editLand
+);
 
-router.patch("/:id", cpUpload, parseJsonFields(jsonKeys), fallbackCoerceDefault, validateBody(UpdateFeaturePropertySchema), editFeatureProperties);
-router.get("/", getAllFeatureProperties);
-router.get("/slug/:slug", getFeatureBySlug); 
-router.get("/:id", getIndetailFeatureProperties); 
-router.delete("/:id", deleteFeatureProperties);
-
-
+router.get("/", getAllLands);
+router.get("/slug/:slug", getLandBySlug);
+router.get("/:id", getLandDetail);
+router.delete("/:id", deleteLand);
 
 export default router;

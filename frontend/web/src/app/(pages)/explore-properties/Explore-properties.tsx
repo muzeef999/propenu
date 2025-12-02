@@ -4,42 +4,47 @@ import Farm_house from "@/asserts/Farm_house.png";
 import Ind_one from "@/asserts/Ind_one.png";
 import Res from "@/asserts/Res.png";
 
+
+
+
+
 const CATEGORIES = [
   {
-    id: "residential-apartment",
+    id: "residential",
     title: "Residential Apartment",
     image:ap_one,
     imageAlt: "Modern apartment tower at dusk",
     countText: "13,000+ Properties",
     color:"#FFF0E5",
-    href: "/properties/residential-apartment",
+    href: "/properties?type=residential",
   },
   {
-    id: "residential-land",
-    title: "Residential Land",
+    id: "commercial",
+    title: "Commercial Land",
      color:"#FFF0E5",
     image:Farm_house,
     imageAlt: "Wide green land plots and dirt road",
     countText: "9,500+ Properties",
-    href: "/properties/residential-land",
+    href: "/properties?type=commercial",
   },
   {
-    id: "farm-house",
-    title: "Farm House",
+    id: "agricultural",
+    title: "Agricultural",
      color:"#FFF0E5",
     image:Ind_one,
     imageAlt: "Cozy farm house with porch and lawn",
     countText: "3,200+ Properties",
-    href: "/properties/farm-house",
+    href: "/properties?type=agricultural",
   },
   {
-    id: "villa",
-    title: "Independent House / Villa",
+    id: "Land /plotes",
+    title: "Land /plotes",
     color:"#FFF0E5",
     image:Res,
     imageAlt: "Mediterranean villa with palm trees",
     countText: "5,800+ Properties",
-    href: "/properties/independent-house-villa",
+     href: "/properties?type=land",
+   
   },
 ];
 

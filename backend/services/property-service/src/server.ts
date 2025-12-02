@@ -5,9 +5,10 @@ import featurePropertiesRoute from "./routes/featurePropertiesRoute";
 import popularOwnerPropertiesRoute from "./routes/popularOwnerPropertiesRoute";
 import topPropertiesRoute from "./routes/topPropertiesRoute";
 import  residentialRoutes from "./routes/residentialRoute";
-// import commercialRoutes from "./routes/commercialRoute";
-// import landRoutes from "./routes/landRoute";
-import agriculturalRoutes from "./routes/agriculturalRoute"
+import commercialRoutes from "./routes/commercialRoute";
+import landRoutes from "./routes/landRoute";
+import agriculturalRoutes from "./routes/agriculturalRoute";
+import searchRoute from "./routes/searchRoute";
 
 dotenv.config();
 const app = express();
@@ -27,11 +28,11 @@ async function start() {
         app.use('/api/properties/owners-properties', popularOwnerPropertiesRoute);
         app.use('/api/properties/top-project', topPropertiesRoute);
         app.use('/api/properties/residential', residentialRoutes);
-        // app.use('/api/properties/commercial', commercialRoutes);
-        // app.use('/api/properties/land', landRoutes);
+        app.use('/api/properties/commercial', commercialRoutes);
+        app.use('/api/properties/land', landRoutes);
         app.use('/api/properties/agricultural', agriculturalRoutes);
+        app.use('/api/properties/search', searchRoute)
         
-
          
 app.listen(Number(port), "0.0.0.0", () => {
   console.log(`proportey running on 0.0.0.0:${port}`);
