@@ -74,11 +74,7 @@ const ResidentialCard: React.FC<{ p: Property }> = ({ p }) => {
             {p?.title},{p.city}
           </h3>
           <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
-            <HiOutlineLocationMarker className="w-4 h-4" />
-            <span className="capitalize">
-              {(p as any)?.city ?? ""}
-              {(p as any)?.slug ? ` • ${(p as any).slug}` : ""}
-            </span>
+              {(p as any)?.buildingName}
           </p>
         </div>
 

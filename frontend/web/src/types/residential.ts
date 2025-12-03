@@ -1,15 +1,24 @@
 import mongoose from "mongoose";
 
+export type GalleryItem = {
+  url: string;
+  key: string;
+  filename: string;
+  order: number;
+};
+
 export interface IResidential {
   listingType?: 'sale' | 'rent' | 'lease';
   developer?: mongoose.Types.ObjectId | null;
   // base fields...
   address: string;
+    gallery?: GalleryItem[];
+
   city?: string;
-  // residential-specific
+  title?:string;
   bhk?: number;
   bedrooms?: number;
-  
+  price?:number;
   bathrooms?: number;
   balconies?: number;
   carpetArea?: number;

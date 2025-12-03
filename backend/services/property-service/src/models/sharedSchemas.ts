@@ -128,6 +128,7 @@ export const BaseFields = {
   listingType: { type: String, enum: ['sale', 'rent', 'lease'], default: 'sale', index: true },
   developer: { type: Schema.Types.ObjectId, ref: 'builders' },
   address: { type: String, required: true },
+  description : {type: String, required: true},
   city: { type: String, index: true },
   state: String,
   pincode: String,

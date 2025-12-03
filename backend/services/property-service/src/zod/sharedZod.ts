@@ -105,7 +105,7 @@ export const BaseCreateSchema = z.object({
   listingType: z.enum(['sale', 'rent', 'lease']).optional().default('sale'),
   developer: z.string().optional().nullable(),
   logo: FileRefSchema.optional().nullable(),
-
+  description: z.string().min(1), 
   address: z.string().min(1),
   city: z.string().optional(),
   state: z.string().optional(),

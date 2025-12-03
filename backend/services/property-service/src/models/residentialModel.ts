@@ -1,23 +1,31 @@
 // src/models/property/residential.model.ts
 import mongoose, { Schema, Document, Model } from 'mongoose';
-import { IResidential } from '../types/residentialTypes';
+import { FLOORING_TYPES, IResidential, KITCHEN_TYPES, PROPERTY_AGE_BUCKETS } from '../types/residentialTypes';
 import { BaseFields, FileRefSchema } from './sharedSchemas';
 import { IBaseListing, TEXT_INDEX_FIELDS } from '../types/sharedTypes';
-
 
 
 /* Schema */
 const ResidentialSchema = new Schema<IResidential>(
   {
     ...BaseFields,
-    // residential-specific
     bhk: Number,
     bedrooms: Number,
+    buildingName:String,
     bathrooms: Number,
     balconies: Number,
     carpetArea: Number,
     builtUpArea: Number,
     superBuiltUpArea: Number,
+
+     // 🔥 NEW FIELDS USING ENUMS
+    flooringType: { type: String, enum: FLOORING_TYPES },
+    kitchenType: { type: String, enum: KITCHEN_TYPES },
+    propertyAge: { type: String, enum: PROPERTY_AGE_BUCKETS },
+    constructionYear: Number,
+    isModularKitchen: { type: Boolean, default: false },
+
+
     furnishing: { type: String, enum: ['unfurnished', 'semi-furnished', 'fully-furnished'] },
     parkingType: String,
     parkingCount: Number,

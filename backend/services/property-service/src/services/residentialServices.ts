@@ -138,6 +138,7 @@ export function getResidentialPipeline(filters: SearchFilters) {
         gallery:1,
         title: 1,
         city:1,
+        buildingName:1,
         constructionStatus:1,
         slug: 1,
         superBuiltUpArea: 1,

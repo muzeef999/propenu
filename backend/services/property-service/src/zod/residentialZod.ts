@@ -1,6 +1,42 @@
 // src/zod/residentialValidation.ts
 import { z } from "zod";
 
+
+/* ----------------------
+   Enums for residential
+   ---------------------- */
+
+const FLOORING_TYPES = [
+  "vitrified",
+  "marble",
+  "granite",
+  "wooden",
+  "ceramic-tiles",
+  "mosaic",
+  "normal-tiles",
+  "cement",
+  "other",
+] as const;
+
+const KITCHEN_TYPES = [
+  "open",
+  "closed",
+  "semi-open",
+  "island",
+  "parallel",
+  "u-shaped",
+  "l-shaped",
+] as const;
+
+const PROPERTY_AGE_BUCKETS = [
+  "under-construction",
+  "0-1-year",
+  "1-5-years",
+  "5-10-years",
+  "10-20-years",
+  "20-plus-years",
+] as const;
+
 /* ----------------------
    Helpers & shared subs
    ---------------------- */
@@ -48,8 +84,10 @@ const coerceBoolean = (schema: z.ZodTypeAny) =>
  * - Trims whitespace and lowercases the value before enum check
  * - Returns original value if not a string/array (so Zod will later error)
  */
-function enumPreprocess<T extends [string, ...string[]]>(choices: T) {
-  const enumSchema = z.enum(choices);
+function enumPreprocess<T extends readonly [string, ...string[]]>(choices: T) {
+  // spread into a mutable tuple for z.enum typing
+  const enumSchema = z.enum([...choices] as [string, ...string[]]);
+
   return z.preprocess((v) => {
     if (Array.isArray(v) && v.length > 0) v = v[0];
     if (typeof v === "string") {
@@ -58,6 +96,19 @@ function enumPreprocess<T extends [string, ...string[]]>(choices: T) {
     return v;
   }, enumSchema);
 }
+
+/**
+ * For PATCH: if frontend sends [] for arrays we don't want to wipe existing data.
+ * This converts [] -> undefined, so Mongo won't overwrite the field.
+ */
+const optionalNonEmptyArray = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess(
+    (v) => {
+      if (Array.isArray(v) && v.length === 0) return undefined;
+      return v;
+    },
+    z.array(schema).optional()
+  );
 
 /* ----------------------
    Sub-schemas (reused)
@@ -116,6 +167,7 @@ const LeadSchema = z.object({
 /* ----------------------
    Base-like fields (common)
    ---------------------- */
+
 const BaseResidentialCreate = z.object({
   title: z.string().min(1),
   slug: z.string().optional(),
@@ -161,12 +213,14 @@ const BaseResidentialCreate = z.object({
    Residential Create Schema
    (POST)
    ---------------------- */
+
 export const ResidentialCreateSchema = BaseResidentialCreate.extend({
   // residential-specific numeric / counts
   bhk: coerceInt(z.number().int()).optional(),
   bedrooms: coerceInt(z.number().int()).optional(),
   bathrooms: coerceInt(z.number().int()).optional(),
   balconies: coerceInt(z.number().int()).optional(),
+  buildingName: z.string().optional(),
 
   // areas & sizes
   carpetArea: coerceNumber(z.number()).optional(),
@@ -179,6 +233,13 @@ export const ResidentialCreateSchema = BaseResidentialCreate.extend({
       max: coerceNumber(z.number()).optional(),
     })
     .optional(),
+
+  // NEW: flooring / kitchen / age
+  flooringType: enumPreprocess(FLOORING_TYPES).optional(),
+  kitchenType: enumPreprocess(KITCHEN_TYPES).optional(),
+  propertyAge: enumPreprocess(PROPERTY_AGE_BUCKETS).optional(),
+  constructionYear: coerceInt(z.number().int()).optional(),
+  isModularKitchen: coerceBoolean(z.boolean()).optional(),
 
   // furnishing: normalize and accept case/space/array issues
   furnishing: enumPreprocess(["unfurnished", "semi-furnished", "fully-furnished"]).optional(),
@@ -194,7 +255,10 @@ export const ResidentialCreateSchema = BaseResidentialCreate.extend({
   // constructionStatus: normalized
   constructionStatus: enumPreprocess(["ready-to-move", "under-construction"]).optional(),
 
-  possessionDate: z.preprocess((v) => (v ? new Date(v as string) : undefined), z.date().optional()),
+  possessionDate: z.preprocess(
+    (v) => (v ? new Date(v as string) : undefined),
+    z.date().optional()
+  ),
   maintenanceCharges: coerceNumber(z.number()).optional(),
   possessionVerified: coerceBoolean(z.boolean()).optional(),
 
@@ -238,8 +302,12 @@ export const ResidentialCreateSchema = BaseResidentialCreate.extend({
 
 /* ----------------------
    Residential Update Schema
-   (PATCH) — every field optional, arrays do NOT default
+   (PATCH)
+   - every field optional
+   - arrays do NOT default
+   - empty arrays are treated as "no change"
    ---------------------- */
+
 export const ResidentialUpdateSchema = z
   .object({
     title: z.string().min(1).optional(),
@@ -248,6 +316,7 @@ export const ResidentialUpdateSchema = z
     listingType: enumPreprocess(["sale", "rent", "lease"]).optional(),
     developer: z.string().optional(),
     address: z.string().optional(),
+    buildingName: z.string().optional(),
     city: z.string().optional(),
     state: z.string().optional(),
     pincode: z.string().optional(),
@@ -262,12 +331,13 @@ export const ResidentialUpdateSchema = z
     price: coerceNumber(z.number()).optional(),
     pricePerSqft: coerceNumber(z.number()).optional(),
 
-    gallery: z.array(GallerySummarySchema).optional(),
-    documents: z.array(FileMetaZ).optional(),
-    specifications: z.array(SpecificationSchema).optional(),
-    amenities: z.array(AmenitySchema).optional(),
-    nearbyPlaces: z.array(NearbyPlaceSchema).optional(),
-    leads: z.array(LeadSchema).optional(),
+    // IMPORTANT: arrays — do NOT overwrite with []
+    gallery: optionalNonEmptyArray(GallerySummarySchema),
+    documents: optionalNonEmptyArray(FileMetaZ),
+    specifications: optionalNonEmptyArray(SpecificationSchema),
+    amenities: optionalNonEmptyArray(AmenitySchema),
+    nearbyPlaces: optionalNonEmptyArray(NearbyPlaceSchema),
+    leads: optionalNonEmptyArray(LeadSchema),
 
     bhk: coerceInt(z.number().int()).optional(),
     bedrooms: coerceInt(z.number().int()).optional(),
@@ -285,6 +355,13 @@ export const ResidentialUpdateSchema = z
       })
       .optional(),
 
+    // NEW: flooring / kitchen / age
+    flooringType: enumPreprocess(FLOORING_TYPES).optional(),
+    kitchenType: enumPreprocess(KITCHEN_TYPES).optional(),
+    propertyAge: enumPreprocess(PROPERTY_AGE_BUCKETS).optional(),
+    constructionYear: coerceInt(z.number().int()).optional(),
+    isModularKitchen: coerceBoolean(z.boolean()).optional(),
+
     furnishing: enumPreprocess(["unfurnished", "semi-furnished", "fully-furnished"]).optional(),
     parkingType: z.string().optional(),
     parkingCount: coerceInt(z.number().int()).optional(),
@@ -294,7 +371,10 @@ export const ResidentialUpdateSchema = z
 
     facing: z.string().optional(),
     constructionStatus: enumPreprocess(["ready-to-move", "under-construction"]).optional(),
-    possessionDate: z.preprocess((v) => (v ? new Date(v as string) : undefined), z.date().optional()),
+    possessionDate: z.preprocess(
+      (v) => (v ? new Date(v as string) : undefined),
+      z.date().optional()
+    ),
     maintenanceCharges: coerceNumber(z.number()).optional(),
     possessionVerified: coerceBoolean(z.boolean()).optional(),
 
@@ -324,7 +404,7 @@ export const ResidentialUpdateSchema = z
       })
       .optional(),
 
-    smartHomeFeatures: z.array(z.string()).optional(),
+    smartHomeFeatures: optionalNonEmptyArray(z.string()),
 
     parkingDetails: z
       .object({
