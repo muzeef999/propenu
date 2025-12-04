@@ -1,13 +1,14 @@
-// src/controller/featurePropertiesController.ts
 import { Request, Response } from "express";
 import { CreateFeaturePropertyDTO, UpdateFeaturePropertyDTO, CreateFeaturePropertySchema, UpdateFeaturePropertySchema } from "../zod/validation";
 import { FeaturePropertyService } from "../services/topPropertiesServices";
 import { ZodError } from "zod";
+import { AuthRequest } from "../middlewares/authMiddleware";
+import Agricultural from "../models/agriculturalModel";
+import Residential from "../models/residentialModel";
+import Commercial from "../models/commercialModel";
+import LandPlot from "../models/landModel";
+import FeaturedProject from "../models/featurePropertiesModel";
 
-/**
- * Helper: parse JSON fields coming from multipart/form-data
- * If field is a JSON string, parse it, otherwise return original.
- */
 function parseMaybeJSON<T = any>(value: any): T | undefined {
   if (value === undefined || value === null || value === "") return undefined;
   if (typeof value !== "string") return value as T;
@@ -78,7 +79,6 @@ export const getAllFeatureProperties = async (req: Request, res: Response) => {
     return res.status(500).json({ error: err.message || "Internal server error" });
   }
 };
-
 
 export const getFeatureBySlug = async (req: Request, res: Response) => {
   try {
@@ -158,3 +158,56 @@ export const deleteFeatureProperties = async (req: Request, res: Response) => {
     return res.status(400).json({ error: err.message || "Bad request" });
   }
 };
+
+
+export const myProperties = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const userId = req.user.sub;
+
+    const [
+      residential,
+      commercial,
+      land,
+      agricultural,
+      featured,
+    ] = await Promise.all([
+      Residential.find({ createdBy: userId }),
+      Commercial.find({ createdBy: userId }),
+      LandPlot.find({ createdBy: userId }),
+      Agricultural.find({ createdBy: userId }),
+      FeaturedProject.find({ createdBy: userId }),
+    ]);
+
+    const all = [
+      ...residential,
+      ...commercial,
+      ...land,
+      ...agricultural,
+      ...featured,
+    ];
+
+    return res.json({
+      totalCount: all.length,
+      byType: {
+        residentialCount: residential.length,
+        commercialCount: commercial.length,
+        landCount: land.length,
+        agriculturalCount: agricultural.length,
+        featuredCount: featured.length,
+      },
+      residential,
+      commercial,
+      land,
+      agricultural,
+      featured,
+    });
+  } catch (err) {
+    console.error("Error in myProperties:", err);
+    res.status(500).json({ message: "Failed to load properties" });
+  }
+};
+

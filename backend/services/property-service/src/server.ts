@@ -32,6 +32,7 @@ async function start() {
     app.use("/api/properties/land", landRoutes);
     app.use("/api/properties/agricultural", agriculturalRoutes);
     app.use("/api/properties/search", searchRoute);
+    app.use('/api/properties', searchRoute)
 
     app.listen(Number(port), "0.0.0.0", () => {
       console.log(`proportey running on 0.0.0.0:${port}`);

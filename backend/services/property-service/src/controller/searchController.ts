@@ -1,18 +1,8 @@
-// src/controller/search.controller.ts
 import { Request } from "express";
 import createStreamingHandler from "../factory/streamingFactory";
 import buildSearchCursor from "../services/searchService";
 import { SearchFilters } from "../types/searchResultItem";
 
-/**
- * Parse and sanitize query params into SearchFilters.
- * Adjust defaults here (propertyType default = "Residential", default sort = "newest").
- *
- * Note: SearchFilters should allow optional fields (q?: string, minPrice?: number, ...).
- * If your SearchFilters expects non-optional fields, either:
- *  - change the type to make fields optional, or
- *  - provide defaults instead of `undefined` below.
- */
 function sanitizeFilters(req: Request): SearchFilters {
   const raw = req.query;
 
@@ -37,11 +27,6 @@ function sanitizeFilters(req: Request): SearchFilters {
   } as SearchFilters;
 }
 
-/**
- * Create the streaming handler by calling the factory with:
- * - a cursorBuilder (buildSearchCursor)
- * - options (including the sanitizeFilters function)
- */
 const streamSearchHandler = createStreamingHandler<SearchFilters>(
   // cursorBuilder: receives sanitized filters and returns a cursor
   async (filters, batchSize) => buildSearchCursor(filters, batchSize),
@@ -54,5 +39,8 @@ const streamSearchHandler = createStreamingHandler<SearchFilters>(
     onError: (err) => console.error("streamSearch error:", err)
   }
 );
+
+
+ 
 
 export default streamSearchHandler;

@@ -12,7 +12,6 @@ authRoute.post("/verify-otp",  verifyOtp);
 authRoute.get("/me", authMiddleware, me);
 
 authRoute.get("/search", authMiddleware, searchUsers);
-
  
 authRoute.get('/all-users', authMiddleware,  (req : AuthRequest, res, next) => {
     if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){
@@ -20,7 +19,6 @@ authRoute.get('/all-users', authMiddleware,  (req : AuthRequest, res, next) => {
     }
     next();
 },  getAllUsers);
-
 
 authRoute.patch("/:id/role", authMiddleware,  (req: AuthRequest, res, next) => {
     if (!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")) {
