@@ -173,12 +173,37 @@ export const updateUserRole = async (req: Request, res: Response) => {
   }
 };
 
-
 export const getAllUsers = async (_req: Request, res: Response) => {
   try {
     const users = await User.find().select("-token");
     res.json(users);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch users" });
+  }
+};
+
+export const searchUsers = async (req: Request, res: Response) => {
+  try {
+    const query = req.query.q?.toString().trim();
+
+    if (!query) {
+      return res.status(400).json({ message: "Search query 'q' is required" });
+    }
+
+    // Text search + fallback regex
+    const users = await User.find({
+      $or: [
+        { name: { $regex: query, $options: "i" } },
+        { email: { $regex: query, $options: "i" } },
+        { phone: { $regex: query, $options: "i" } }
+      ]
+    })
+      .populate("roleId")
+      .select("name email phone roleId");
+
+    return res.json({ results: users, count: users.length });
+  } catch (err) {
+    console.error("Search error:", err);
+    res.status(500).json({ message:" Search failed" });
   }
 };

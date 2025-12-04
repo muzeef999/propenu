@@ -8,6 +8,7 @@ const UserSchema = new mongoose.Schema(
       trim: true,
       minlength: 3,
       maxlength: 30,
+      index:true,
     },
     email: {
       type: String,
@@ -16,6 +17,7 @@ const UserSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
       sparse: true,
+      index:true,
       match: [/^\S+@\S+\.\S+$/, "Invalid email"],
     },
     phone: {
@@ -23,6 +25,7 @@ const UserSchema = new mongoose.Schema(
       trim: true,
       unique: true,
       sparse: true,
+      index:true,
       match: [/^\+?[1-9]\d{6,14}$/, "Invalid phone number"],
     },
 
