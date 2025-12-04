@@ -5,6 +5,7 @@ import { saveOtpToRedis, verifyAndConsumeOtp } from "../utils/saveOtpRedis";
 import { sendOtpEmail, sendWelcomeEmail } from "../utils/email";
 import { generateToken } from "../utils/jwt";
 import { Request, Response } from "express";
+import { AuthRequest } from "../middlewares/authMiddleware";
 
 export const requestOTP = async (req: Request, res: Response) => {
   try {
@@ -42,15 +43,18 @@ export const verifyOtp = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid or expired OTP" });
 
     let createdNewUser = false;
+
     let user = await User.findOne({ email });
 
     if (!user) {
       // 1️⃣ find default "user" role
       const defaultRole = await Role.findOne({ name: "user" });
+
+
       if (!defaultRole) {
         return res
           .status(500)
-          .json({ message: "Default role 'user' not found. Please seed roles." });
+          .json({ message: "Default role 'user' not found. Seed roles first." });
       }
 
       // 2️⃣ create user with roleId pointing to Role document
@@ -62,8 +66,9 @@ export const verifyOtp = async (req: Request, res: Response) => {
 
       createdNewUser = true;
     } else {
-      if (!user.name && name) user.name = name;
-      // user.roleId may already exist (from before)
+      if (!user.name && name){ user.name = name; }
+ 
+      
     }
 
     // 3️⃣ populate roleId so we get the role document
@@ -90,10 +95,47 @@ export const verifyOtp = async (req: Request, res: Response) => {
 
     return res
       .status(200)
-      .json({ message: "OTP verified successfully", token, user });
+      .json({ message: "OTP verified successfully", token });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to verify OTP" });
+  }
+};
+
+export const me = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(" ")[1] || null;
+
+
+    const user = await User.findById(req.user.sub).populate("roleId");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const role: any = user.roleId;
+
+    return res.json({
+      message: "Authenticated user",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        roleId: role ? String(role._id) : null,
+        roleName: role ? role.name : null,
+        permissions: role ? role.permissions : [],
+      },
+    });
+  } catch (err: any) {
+    console.error("Error in /me:", err);
+    return res.status(500).json({ message: "Failed to load user profile" });
   }
 };
 

@@ -1,8 +1,7 @@
 // routes/auth.js
 import express from "express";
-import {  getAllUsers, requestOTP, updateUserRole, verifyOtp } from "../controller/authController";
+import {  getAllUsers, me, requestOTP, updateUserRole, verifyOtp } from "../controller/authController";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
-import { requireRole } from "../middlewares/requireRole";
 
 const authRoute = express.Router();
 
@@ -11,13 +10,11 @@ authRoute.post("/request-otp",  requestOTP);
 authRoute.post("/verify-otp",  verifyOtp);
 
 
-authRoute.get('/', authMiddleware, getAllUsers)
+authRoute.get('/all-users', authMiddleware, getAllUsers)
 
+authRoute.get("/me", authMiddleware, me);
 
-authRoute.patch("/:id/role",
-  authMiddleware,
-  (req: AuthRequest, res, next) => {
-    // simple check: only super_admin or admin can change roles
+authRoute.patch("/:id/role", authMiddleware,  (req: AuthRequest, res, next) => {
     if (!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")) {
       return res.status(403).json({ message: "Forbidden: only admin/super_admin can change roles" });
     }

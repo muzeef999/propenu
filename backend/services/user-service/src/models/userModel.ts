@@ -39,12 +39,7 @@ const UserSchema = new mongoose.Schema(
       ref: "Role",
       required: false,
     },
-
-     
-
-
     isActive: { type: Boolean, default: true },
-    isSuperAdmin: { type: Boolean, default: false }, // optional shortcut
     lastLoginAt: { type: Date },
     loginCount: { type: Number, default: 0 },
 
