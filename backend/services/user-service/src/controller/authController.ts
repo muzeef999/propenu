@@ -1,33 +1,34 @@
-
 import User from "../models/userModel";
+import Role from "../models/roleModel";           
 import { genOtp } from "../utils/genOtp";
 import { saveOtpToRedis, verifyAndConsumeOtp } from "../utils/saveOtpRedis";
 import { sendOtpEmail, sendWelcomeEmail } from "../utils/email";
 import { generateToken } from "../utils/jwt";
 import { Request, Response } from "express";
 
-export const  requestOTP = async(req:Request, res:Response) => {
-     try {
+export const requestOTP = async (req: Request, res: Response) => {
+  try {
     const name = req.body.name;
     if (!name) return res.status(400).json({ message: "name is required" });
+
     const email = req.body.email?.trim()?.toLowerCase();
     if (!email) return res.status(400).json({ message: "Email is required" });
 
     const otp = genOtp();
 
     await saveOtpToRedis(email, otp);
-
     await sendOtpEmail(email, otp, name);
+
     res.status(200).json({ message: "OTP sent successfully" });
   } catch (error: any) {
     res
       .status(500)
       .json({ message: "Failed to send OTP", error: error.message });
   }
-}
+};
 
-export const verifyOtp = async (req :Request, res:Response) => {
-     try {
+export const verifyOtp = async (req: Request, res: Response) => {
+  try {
     const email = req.body.email?.trim()?.toLowerCase();
     const otp = req.body.otp?.trim();
     const name = req.body.name;
@@ -37,31 +38,51 @@ export const verifyOtp = async (req :Request, res:Response) => {
     if (!name) return res.status(400).json({ message: "Name is required" });
 
     const isValid = await verifyAndConsumeOtp(email, otp);
-
     if (!isValid)
       return res.status(400).json({ message: "Invalid or expired OTP" });
 
     let createdNewUser = false;
     let user = await User.findOne({ email });
 
-    const token = generateToken({
-      sub: user ? String(user._id) : email, // fallback to email for first-time users
-      email,
-      name,
-      role: "user",
-    });
-
     if (!user) {
-      user = await User.create({ name, email, token } as any);
+      // 1️⃣ find default "user" role
+      const defaultRole = await Role.findOne({ name: "user" });
+      if (!defaultRole) {
+        return res
+          .status(500)
+          .json({ message: "Default role 'user' not found. Please seed roles." });
+      }
+
+      // 2️⃣ create user with roleId pointing to Role document
+      user = await User.create({
+        name,
+        email,
+        roleId: defaultRole._id,
+      } as any);
+
       createdNewUser = true;
     } else {
       if (!user.name && name) user.name = name;
-      (user as any).token = token;
-      await user.save();
+      // user.roleId may already exist (from before)
     }
 
+    // 3️⃣ populate roleId so we get the role document
+    await user.populate("roleId");
+    const role: any = user.roleId;
+
+    // 4️⃣ build JWT payload with role + permissions
+    const token = generateToken({
+      sub: String(user._id),
+      email,
+      name: user.name, 
+      roleId: role ? String(role._id) : undefined,
+      roleName: role ? role.name : undefined,
+      permissions: role ? role.permissions : [],
+    });
+
+    await user.save();
+
     if (createdNewUser) {
-      // Fire-and-forget is fine; or await if you want to ensure it’s sent
       sendWelcomeEmail(email, name).catch((err) =>
         console.error("Welcome email failed:", err?.message || err)
       );
@@ -71,6 +92,51 @@ export const verifyOtp = async (req :Request, res:Response) => {
       .status(200)
       .json({ message: "OTP verified successfully", token, user });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Failed to verify OTP" });
   }
-}
+};
+
+export const updateUserRole = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.id;
+    const { roleName } = req.body; // e.g. "admin", "sales_manager"
+
+    if (!roleName) {
+      return res.status(400).json({ message: "roleName is required" });
+    }
+
+    const role = await Role.findOne({ name: roleName });
+    if (!role) {
+      return res.status(400).json({ message: `Role '${roleName}' not found` });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { roleId: role._id },
+      { new: true }
+    ).populate("roleId");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({
+      message: "User role updated",
+      user,
+    });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to update user role", error: err.message });
+  }
+};
+
+
+export const getAllUsers = async (_req: Request, res: Response) => {
+  try {
+    const users = await User.find().select("-token");
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch users" });
+  }
+};

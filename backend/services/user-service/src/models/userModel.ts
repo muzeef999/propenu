@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 
 const UserSchema = new mongoose.Schema(
   {
-    name: {      type: String,
+    name: {  
+      type: String,
       required: true,
       trim: true,
       minlength: 3,
@@ -38,6 +39,9 @@ const UserSchema = new mongoose.Schema(
       ref: "Role",
       required: false,
     },
+
+     
+
 
     isActive: { type: Boolean, default: true },
     isSuperAdmin: { type: Boolean, default: false }, // optional shortcut

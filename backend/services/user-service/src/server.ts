@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { connectDB } from './config/db';
 import agentRoute from './routes/agentRoute';
 import nominatimRoute from './routes/nominatimRoute';
+import  seedRolesRoute from './routes/seedRolesRoute';
 
 
 dotenv.config();
@@ -29,6 +30,10 @@ async function start() {
         app.use("/api/users/agent", agentRoute);
         // app.use("/api/users/builder", builderRouter);
         app.use("/api/users/locations", nominatimRoute);
+
+
+        app.use("/api/users/seeds", seedRolesRoute);
+
 
         app.listen(Number(port), "0.0.0.0", () => {
           console.log(`user service running on 0.0.0.0:${port}`);
