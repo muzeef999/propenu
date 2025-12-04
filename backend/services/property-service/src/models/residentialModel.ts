@@ -18,6 +18,10 @@ const ResidentialSchema = new Schema<IResidential>(
     builtUpArea: Number,
     superBuiltUpArea: Number,
 
+    transactionType: {
+      type: String,
+      enum: ["new-sale", "resale", "pre-leased", "rent", "lease"],
+    },
      // 🔥 NEW FIELDS USING ENUMS
     flooringType: { type: String, enum: FLOORING_TYPES },
     kitchenType: { type: String, enum: KITCHEN_TYPES },

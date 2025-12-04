@@ -55,6 +55,8 @@ export interface IResidential {
   carpetArea?: number;
   builtUpArea?: number;
   superBuiltUpArea?: number;
+  transactionType?: "new-sale" | "resale" |"pre-leased" | "rent" | "lease" ;
+
   furnishing?: 'unfurnished' | 'semi-furnished' | 'fully-furnished';
   parkingType?: string;
   parkingCount?: number;

@@ -1,5 +1,12 @@
 import mongoose from "mongoose";
 
+
+export type AmenitiesItems = {
+   key:string,
+   title:string
+}
+
+
 export type GalleryItem = {
   url: string;
   key: string;
@@ -14,9 +21,12 @@ export interface IResidential {
   address: string;
     gallery?: GalleryItem[];
 
+    amenities?:AmenitiesItems[]
+ pricePerSqft? :number;
   city?: string;
   title?:string;
   bhk?: number;
+  description?:string;
   bedrooms?: number;
   price?:number;
   bathrooms?: number;
@@ -30,6 +40,7 @@ export interface IResidential {
   floorNumber?: number;
   totalFloors?: number;
   facing?: string;
+  transactionType?:string;
   constructionStatus?: 'ready-to-move' | 'under-construction';
   possessionDate?: Date;
   maintenanceCharges?: number;

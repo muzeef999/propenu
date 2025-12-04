@@ -21,6 +21,10 @@ const jsonKeys = [
   "leaseDocuments",
   "tenantInfo",
   "buildingManagement",
+  "pantry",
+  "amenities",
+  "specifications",
+  "nearbyPlaces"
 ];
 
 import {  createCommercial,  editCommercial,  getAllCommercial,  getCommercialBySlug,  getCommercialDetail,  deleteCommercial,} from "../controller/commercialController";

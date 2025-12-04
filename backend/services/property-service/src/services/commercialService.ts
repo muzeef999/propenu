@@ -139,6 +139,8 @@ export function  getCommercialPipeline(filters: SearchFilters) {
             title: 1,
             slug:1,
              gallery:1,
+             propertySubType: 1,
+          superBuiltUpArea:  1,
             furnishedStatus:1,
             floorNumber:1,
             totalFloors:1,

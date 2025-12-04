@@ -24,9 +24,9 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [] }) => {
   const activeImage = gallery[activeIndex];
 
   return (
-    <div className="rounded-3xl bg-white p-3 shadow-sm h-[302px]">
+    <div className="rounded-3x p-3  h-[250px]">
       {/* MAIN IMAGE */}
-      <div className="relative h-[260px] w-full overflow-hidden rounded-3xl sm:h-[360px]">
+      <div className="relative h-[210px] w-full overflow-hidden rounded-3xl sm:h-[360px]">
         <Image
           src={activeImage.url}
           alt={activeImage.filename}

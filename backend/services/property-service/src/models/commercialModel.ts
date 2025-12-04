@@ -4,9 +4,21 @@ import {
   BaseFields,
   FileRefSchema,
 } from './sharedSchemas';
-import { ICommercial } from '../types/commercialTypes';
+import { COMMERCIAL_PROPERTY_SUBTYPES, COMMERCIAL_PROPERTY_TYPES, ICommercial, PANTRY_TYPES } from '../types/commercialTypes';
 import { TEXT_INDEX_FIELDS } from '../types/sharedTypes';
 
+
+const PantrySchema = new Schema(
+  {
+    type: {
+      type: String,
+      enum: PANTRY_TYPES, 
+    },
+    insidePremises: { type: Boolean }, 
+    shared: { type: Boolean },         
+  },
+  { _id: false }
+);
 
 
 const CommercialSchema = new Schema<ICommercial>(
@@ -19,9 +31,10 @@ const CommercialSchema = new Schema<ICommercial>(
     powerCapacityKw: Number,
     lift: Boolean,
     washrooms: Number,
-    ceilingHeightFt: Number,
+    ceilingHeightFt: Number, 
     builtYear: Number,
     maintenanceCharges: Number,
+    constructionStatus: { type: String, enum: ['ready-to-move', 'under-construction'] },
     fireSafety: Boolean,
     fireNOCFile: FileRefSchema,
     loadingDock: Boolean,
@@ -32,6 +45,28 @@ const CommercialSchema = new Schema<ICommercial>(
     occupancyCertificateFile: FileRefSchema,
     leaseDocuments: { type: [FileRefSchema], default: [] },
     buildingManagement: { security: Boolean, managedBy: String, contact: String },
+
+    propertyType: {
+      type: String,
+      enum: COMMERCIAL_PROPERTY_TYPES,
+    },
+    propertySubType: {
+      type: String,
+      enum: COMMERCIAL_PROPERTY_SUBTYPES,
+    },
+
+    superBuiltUpArea: Number,
+    carpetArea: Number,
+    officeRooms: Number,
+    cabins: Number,
+    meetingRooms: Number,
+    conferenceRooms: Number,
+    seats: Number,
+    transactionType: {
+      type: String,
+      enum: ["new-sale", "resale", "pre-leased", "rent", "lease"],
+    },
+    pantry: PantrySchema,
   },
   { timestamps: true }
 );

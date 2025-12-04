@@ -110,7 +110,7 @@ const CommercialCard: React.FC<{ p: Property }> = ({ p }) => {
               PROPERTY TYPE
             </div>
             <div className="font-medium">
-              {(p as any)?.constructionStatus ?? "—"}
+              {(p as any)?.propertySubType ?? "—"}
             </div>
           </div>
 

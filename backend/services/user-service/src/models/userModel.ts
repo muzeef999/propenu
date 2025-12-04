@@ -2,8 +2,7 @@ import mongoose from 'mongoose';
 
 const UserSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
+    name: {      type: String,
       required: true,
       trim: true,
       minlength: 3,
@@ -26,8 +25,6 @@ const UserSchema = new mongoose.Schema(
       match: [/^\+?[1-9]\d{6,14}$/, "Invalid phone number"],
     },
 
-    //New: tenant/builder/company reference ---
-
     builderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Builder",
@@ -35,7 +32,6 @@ const UserSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ---NEW : reference to Role Document (flexible) ---
 
     roleId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -45,7 +41,6 @@ const UserSchema = new mongoose.Schema(
 
     isActive: { type: Boolean, default: true },
     isSuperAdmin: { type: Boolean, default: false }, // optional shortcut
-
     lastLoginAt: { type: Date },
     loginCount: { type: Number, default: 0 },
 

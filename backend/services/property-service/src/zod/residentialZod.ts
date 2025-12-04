@@ -41,6 +41,15 @@ const PROPERTY_AGE_BUCKETS = [
    Helpers & shared subs
    ---------------------- */
 
+   const coerceEnum = <T extends readonly [string, ...string[]]>(values: T) =>
+     z.preprocess(
+       (v) => {
+         if (typeof v === "string") return v.trim();
+         return v;
+       },
+       z.enum([...values] as [string, ...string[]])
+     );
+
 /** coerce "string number" => number; returns undefined for empty/null */
 const coerceNumber = (schema: z.ZodNumber) =>
   z.preprocess((v) => {
@@ -175,6 +184,7 @@ const BaseResidentialCreate = z.object({
   listingType: enumPreprocess(["sale", "rent", "lease"]).optional().default("sale"),
   developer: z.string().optional(),
   address: z.string().min(1),
+  description: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
   pincode: z.string().optional(),
@@ -221,6 +231,10 @@ export const ResidentialCreateSchema = BaseResidentialCreate.extend({
   bathrooms: coerceInt(z.number().int()).optional(),
   balconies: coerceInt(z.number().int()).optional(),
   buildingName: z.string().optional(),
+
+  transactionType: coerceEnum(
+    ["new-sale", "resale", "pre-leased", "rent", "lease"] as const
+  ).optional(),
 
   // areas & sizes
   carpetArea: coerceNumber(z.number()).optional(),
@@ -315,9 +329,14 @@ export const ResidentialUpdateSchema = z
     // normalized listingType
     listingType: enumPreprocess(["sale", "rent", "lease"]).optional(),
     developer: z.string().optional(),
+    description: z.string().optional(),
     address: z.string().optional(),
     buildingName: z.string().optional(),
     city: z.string().optional(),
+    transactionType: coerceEnum(
+    ["new-sale", "resale", "pre-leased", "rent", "lease"] as const
+  ).optional(),
+
     state: z.string().optional(),
     pincode: z.string().optional(),
     location: z

@@ -2,7 +2,7 @@ import express, { Request, Response } from "express";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import morgan from "morgan";
 import dotenv from "dotenv";
-import cors, { CorsOptions } from "cors";
+import cors from "cors";
 
 dotenv.config();
 
@@ -49,8 +49,6 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(morgan("dev"));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 function makeProxy(target: string) {
   return createProxyMiddleware({
