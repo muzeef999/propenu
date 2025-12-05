@@ -1,16 +1,14 @@
-// src/server.ts
 import express, { Request, Response } from "express";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import morgan from "morgan";
 import dotenv from "dotenv";
-import cors, { CorsOptions } from "cors";
+import cors from "cors";
 
 dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 4000);
 
-// Base-only URLs (no trailing slash, no /api/... in these)
 const PAYMENT_SERVICE_URL  = process.env.PAYMENT_SERVICE_URL  || "";
 const PROPERTY_SERVICE_URL = process.env.PROPERTY_SERVICE_URL || "";
 const USER_SERVICE_URL     = process.env.USER_SERVICE_URL     || "";
@@ -25,38 +23,33 @@ if (!PAYMENT_SERVICE_URL || !PROPERTY_SERVICE_URL || !USER_SERVICE_URL) {
   process.exit(1);
 }
 
-// Helpful when running behind a proxy/load balancer
 app.set("trust proxy", true);
 
-// CORS
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
+
+const allowed = (process.env.ALLOWED_ORIGINS || "http://localhost:3000,http://localhost:3001")
   .split(",")
-  .map(s => s.trim())
+  .map(s => s.trim().replace(/\/+$/, ""))
   .filter(Boolean);
 
-const corsOptions: CorsOptions = {
-  origin(origin, cb) {
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    return cb(new Error(`Blocked by CORS: ${origin}`));
+const corsOptions = {
+  origin(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    // allow requests with no origin (e.g. curl, server-to-server)
+    if (!origin) return callback(null, true);
+    const norm = origin.replace(/\/+$/, "");
+    if (allowed.includes(norm)) return callback(null, true);
+    return callback(new Error(`CORS blocked: ${origin}`));
   },
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  exposedHeaders: ["Content-Length", "X-Request-Id"],
   credentials: true,
   maxAge: 600,
 };
 
+
+
 app.use(cors(corsOptions));
 app.use(morgan("dev"));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-/**
- * Proxy that forwards the EXACT original URL seen at the gateway.
- * This guarantees:
- *   http://localhost:4000/api/properties/featuredProject
- *   → forwards as "/api/properties/featuredProject" to the service.
- */
 function makeProxy(target: string) {
   return createProxyMiddleware({
     target,
@@ -94,7 +87,7 @@ function makeProxy(target: string) {
 }
 
 // Mount once per service. No stripPrefix argument.
-app.use("/api/payments",   makeProxy(PAYMENT_SERVICE_URL));
+app.use("/api/payment",   makeProxy(PAYMENT_SERVICE_URL));
 app.use("/api/properties", makeProxy(PROPERTY_SERVICE_URL));
 app.use("/api/users",      makeProxy(USER_SERVICE_URL));
 
@@ -114,10 +107,15 @@ app.get("/health", (_req: Request, res: Response) => {
 // 404 for anything else
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 
+
+
 // Start server
-app.listen(PORT, () => {
+app.listen(Number(PORT), "0.0.0.0", () => {
   console.log(`✅ Gateway running on : ${PORT}`);
-  console.log("Allowed origins:", allowedOrigins.length ? allowedOrigins : "(none)");
+  console.log(
+    "Allowed origins:",
+    allowed.length ? allowed : "(none)"
+  );
   console.log("Service URLs:", {
     PAYMENT_SERVICE_URL,
     PROPERTY_SERVICE_URL,

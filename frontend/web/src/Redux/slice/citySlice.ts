@@ -1,12 +1,12 @@
-// store/slices/citySlice.ts
+// src/Redux/slice/citySlice.ts
+
 import { LocationItem } from "@/types";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export interface CityState {
   selected: LocationItem | null;
-  // optional lists for navbar
   popularCities: LocationItem[];
-  normalCities: LocationItem[]; // e.g. Guntur, Vijayawada, Tenali
+  normalCities: LocationItem[];
 }
 
 const initialState: CityState = {
@@ -56,13 +56,13 @@ const citySlice = createSlice({
   name: "city",
   initialState,
   reducers: {
+    // ✅ Action **with payload**
     setCity(state, action: PayloadAction<LocationItem | null>) {
       state.selected = action.payload;
     },
     clearCity(state) {
       state.selected = null;
     },
-    // optional: update lists (if you want dynamic lists)
     setPopularCities(state, action: PayloadAction<LocationItem[]>) {
       state.popularCities = action.payload;
     },
@@ -74,4 +74,5 @@ const citySlice = createSlice({
 
 export const { setCity, clearCity, setPopularCities, setNormalCities } =
   citySlice.actions;
+
 export default citySlice.reducer;

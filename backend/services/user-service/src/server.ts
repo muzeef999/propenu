@@ -3,20 +3,22 @@ import authRoute from './routes/authRoute';
 import dotenv from 'dotenv';
 import { connectDB } from './config/db';
 import agentRoute from './routes/agentRoute';
-import builderRouter from './routes/builderRoute';
-import NodeCache from "node-cache";
 import nominatimRoute from './routes/nominatimRoute';
+import  seedRolesRoute from './routes/seedRolesRoute';
 
 
 dotenv.config();
 
+
+dotenv.config();
 const app = express();
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 
 const port = process.env.PORT ?? 4004;
         
-
-async function start() {
+async function start() { 
     try {
         await connectDB();
 
@@ -26,13 +28,18 @@ async function start() {
 
         app.use('/api/users/auth', authRoute);
         app.use("/api/users/agent", agentRoute);
-        app.use("/api/users/builder", builderRouter);
+        // app.use("/api/users/builder", builderRouter);
         app.use("/api/users/locations", nominatimRoute);
-         
 
-        app.listen(port, () => {
-            console.log(`user service is running on port ${port}`); 
+
+        app.use("/api/users/seeds", seedRolesRoute);
+
+
+        app.listen(Number(port), "0.0.0.0", () => {
+          console.log(`user service running on 0.0.0.0:${port}`);
         });
+
+        
     } catch (err) {
         console.error('Failed to start server', err);
         process.exit(1);

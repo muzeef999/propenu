@@ -1,5 +1,5 @@
 // app/components/FeaturedProjects.tsx
-import { getFeaturedProjects } from "@/serverSideData/serverData";
+import { getFeaturedProjects } from "@/data/serverData";
 import { FeaturedProject } from "@/types";
 import { JSX } from "react";
 import FeaturedProjectsClient from "./FeaturedProjectsClient";
@@ -11,10 +11,11 @@ export interface FeaturedProjectsResponse {
 
 export default async function FeaturedProjectsServer(): Promise<JSX.Element> {
   try {
+
     const data = await getFeaturedProjects();
     const typedData = data as FeaturedProjectsResponse | undefined;
     const items = typedData?.items ?? [];
-
+     
     if (!items.length) {
       return (
         <div>
@@ -22,7 +23,6 @@ export default async function FeaturedProjectsServer(): Promise<JSX.Element> {
         </div>
       );
     }
-
     return <FeaturedProjectsClient items={items} />
   } catch (err: any) {
     return (

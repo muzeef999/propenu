@@ -1,4 +1,3 @@
-// app/components/Footer.tsx
 "use client";
 
 import Logo from "@/animations/Logo";
@@ -7,6 +6,7 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
+    <div>
     <footer className="bg-[#F4FBF6] text-gray-800">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
@@ -132,6 +132,7 @@ export default function Footer() {
         </div>
       </div>
     </footer>
+    </div>
   );
 }
 

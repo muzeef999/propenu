@@ -1,16 +1,56 @@
+// src/routes/featurePropertiesRoute.ts
 import express, { Request, Response } from "express";
-import { createFeatureProperties, deleteFeatureProperties, editFeatureProperties, getAllFeatureProperties, getFeatureBySlug, getIndetailFeatureProperties } from "../controller/featurePropertiesController";
+import multer from "multer";
+import {
+  createFeatureProperties,
+  deleteFeatureProperties,
+  editFeatureProperties,
+  getAllFeatureProperties,
+  getFeatureBySlug,
+  getIndetailFeatureProperties,
+} from "../controller/featurePropertiesController";
 import { CreateFeaturePropertySchema, UpdateFeaturePropertySchema } from "../zod/validation";
 import { validateBody } from "../middlewares/validate";
+import { parseJsonFields } from "../middlewares/parseJsonFields";
+import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
 
-const featurePropertiesRoute = express.Router();
+const router = express.Router();
 
-featurePropertiesRoute.post("/", validateBody(CreateFeaturePropertySchema),  createFeatureProperties);
-featurePropertiesRoute.get("/",  getAllFeatureProperties);
-featurePropertiesRoute.get("/:id", getIndetailFeatureProperties);
-featurePropertiesRoute.patch("/:id", validateBody(UpdateFeaturePropertySchema),  editFeatureProperties);
-featurePropertiesRoute.delete("/:id", deleteFeatureProperties);
-featurePropertiesRoute.get("/slug/:slug", getFeatureBySlug); // NEW: get by slug
+const upload = multer({ storage: multer.memoryStorage() });
+
+const cpUpload = upload.fields([
+  { name: "heroImage", maxCount: 1 },
+  { name: "heroVideo", maxCount: 1 },
+  { name: "galleryFiles", maxCount: 12 },
+  { name: "bhkPlanFiles", maxCount: 12 }, 
+  { name: "aboutImage", maxCount: 1 }, 
+    { name: "logo", maxCount: 1 }, // <- add this
+
+]);
+
+const jsonKeys = [
+  "bhkSummary",
+  "specifications",
+  "amenities",
+  "nearbyPlaces",
+  "gallerySummary",
+  "sqftRange",
+  "leads",
+  "banksApproved",
+  "location",
+  "city",
+  "aboutSummary"
+];
 
 
-export default featurePropertiesRoute;
+router.post("/", cpUpload, parseJsonFields(jsonKeys), fallbackCoerceDefault, validateBody(CreateFeaturePropertySchema), createFeatureProperties);
+
+router.patch("/:id", cpUpload, parseJsonFields(jsonKeys), fallbackCoerceDefault, validateBody(UpdateFeaturePropertySchema), editFeatureProperties);
+router.get("/", getAllFeatureProperties);
+router.get("/slug/:slug", getFeatureBySlug); 
+router.get("/:id", getIndetailFeatureProperties); 
+router.delete("/:id", deleteFeatureProperties);
+
+
+
+export default router;

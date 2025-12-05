@@ -1,72 +1,130 @@
+
 export interface FeaturedProject {
-  _id: string; 
+  // basic
+  _id:string;
   title: string;
   slug: string;
-  developer: string; // likely an ObjectId reference (string)
-  about: string;
-  featuredTagline: string;
-  address: string;
-  city: string;
+  logo:{
+      url:string
+  }
+  // relations
+  developer?: Types.ObjectId | string;
 
-  location: {
-    type: 'Point';
-    coordinates: [number, number]; // [longitude, latitude]
-  };
-
-  mapEmbedUrl: string;
-  currency: string;
-  priceFrom: number;
-  priceTo: number;
-
-  bhkSummary: BHKSummary[];
-  sqftRange: SqftRange;
-
-  possessionDate: string;
-  totalTowers: number;
-  totalFloors: string;
-  projectArea: number;
-  totalUnits: number;
-  availableUnits: number;
-
-  reraNumber: string;
-  banksApproved: string[];
-
-  heroImage: string;
+  // hero section
+  heroImage?: string;
   heroVideo?: string;
+  heroTagline?: string;
+  heroSubTagline?: string;
+  heroDescription?: string;
 
-  gallery: string[]; // likely IDs of gallery assets
-  gallerySummary: GalleryItem[];
+  // SEO / branding
+  color?: string;             // hex e.g. '#000'
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
 
-  brochureUrl: string;
-  brochureFileName: string;
 
-  specifications: SpecificationCategory[];
-  amenities: Amenity[];
-  nearbyPlaces: NearbyPlace[];
+  
+  // address & geo
+  address: string;
+  city?: string;
+  location?: {
+    type: 'Point';
+    // [lng, lat]
+    coordinates: [number, number] | number[];
+  };
+  mapEmbedUrl?: string;
 
-  isFeatured: boolean;
-  rank: number;
 
-  meta: {
-    views: number;
-    inquiries: number;
-    clicks: number;
+  // pricing / bhk
+  currency?: string;  // default: 'INR'
+  priceFrom?: number; // computed
+  priceTo?: number;   // computed
+  bhkSummary: IBhkSummary[];
+  sqftRange?: { min?: number; max?: number };
+
+  // timeline & counts
+  possessionDate?: string;
+  totalTowers?: number;
+  totalFloors?: string;
+  projectArea?: number;
+  totalUnits?: number;
+  availableUnits?: number;
+
+   aboutSummary?:AboutItem[]
+  
+  // legal / banks
+  reraNumber?: string;
+  banksApproved?: string[];
+
+  // media & gallery
+  gallerySummary: IGalleryItem[];
+  brochureUrl?: string;
+  brochureFileName?: string;
+
+  // specifications & amenities
+  specifications: ISpecification[];
+  amenities: IAmenity[];
+
+  // nearby places
+  nearbyPlaces: INearbyPlace[];
+
+  // leads (embedded) — small volume only; each entry follows ILead
+  leads?: ILead[];
+
+  // flags & meta
+  isFeatured?: boolean;
+  rank?: number;
+  meta?: {
+    views?: number;
+    inquiries?: number;
+    clicks?: number;
   };
 
-  status: 'active' | 'inactive' | 'draft';
-  createdBy: string;
-  updatedBy: string;
+
+  // status & audit
+  status?: 'active' | 'inactive' | 'archived';
+  createdBy?: Types.ObjectId | string;
+  updatedBy?: Types.ObjectId | string;
+  relatedProjects?: Array<Types.ObjectId | string>;
 }
 
-export interface BHKSummary {
-  bhk: number;
-  bhkLabel: string;
-  minSqft: number;
-  maxSqft: number;
-  minPrice: number;
-  maxPrice: number;
-  availableCount: number;
+export interface IBhkPlan {
+  url?: string;
+  key?: string;
+  filename?: string;
+  mimetype?: string;
 }
+
+
+export interface IBhkUnit {      
+  minSqft?: number;                  
+  price?: number;          
+  maxPrice?: number;        
+  availableCount?: number;  
+  plan?: IBhkPlan;          
+}
+
+// types/feature.ts
+export interface AboutItem {
+  aboutDescription?: string;
+  rightContent?: string; // newline separated bullets or lines starting with •
+  url?: string;          // S3 url, optional (server may not provide)
+  key?: string;
+  filename?: string;
+  mimetype?: string;
+}
+
+
+
+export interface BhkSummary {
+  bhk: number;
+  bhkLabel?: string;
+  units?: IBhkUnit[];
+
+}
+
+
 
 export interface SqftRange {
   min: number;
@@ -91,17 +149,20 @@ export interface SpecificationItem {
   description: string;
 }
 
-export interface Amenity {
-  key: string;
-  title: string;
-  icon: string;
+export interface IAmenity {
+  key?: string;
+  title?: string;
+  description?: string;
 }
 
-export interface NearbyPlace {
-  name: string;
-  type: string;
-  distanceText: string;
-  coordinates: [number, number];
+
+
+export interface INearbyPlace {
+  name?: string;
+  type?: string;
+  distanceText?: string;
+  coordinates?: [number, number] | number[]; // [lng, lat]
+  order?: number;
 }
 
 
@@ -225,4 +286,31 @@ export type PropertyFormValues = {
   builder?: string | null;
   agent?: string | null;
   seller?: string | null;
+};
+
+
+export type PropertyTypeOption = "Residential" | "Commercial" | "Land" | "Agricultural";
+
+export type ListingOption = "Buy" | "Rent" | "Lease";
+
+
+export type SearchItem = {
+  id?: string;
+  type?: string;
+  title?: string;
+  price?: number;
+  currency?: string;
+  city?: string;
+  location?: any;
+  [key: string]: any;
+};
+
+export type SearchFilters = {
+  propertyType?: string;
+  q?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  city?: string;
+  sort?: string;
+  // add other fields as needed
 };

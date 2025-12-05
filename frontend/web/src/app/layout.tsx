@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
-import "./globals.css";
+import "./global.css";
 
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import ClientProviders from "@/app/clientLayout"; // client component – used inside <body>
 
 const poppins = Poppins({
@@ -13,7 +12,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "EstatePro | Property Management Made Simple",
+  title: "Property Management Made Simple",
   description:
     "Manage properties, tenants, leases, rent collection, and maintenance requests — all in one smart platform.",
   keywords: [
@@ -26,18 +25,24 @@ export const metadata: Metadata = {
   ],
 };
 
+
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+
+
   return (
     <html lang="en">
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+
       {/* Only head & body may be direct children of html */}
       <body className={`${poppins.variable} antialiased`}>
         {/* Providers must be inside <body>, not wrapping it */}
         <ClientProviders>
           <Navbar />
           {children}
-          <Footer />
+          
         </ClientProviders>
       </body>
     </html>
