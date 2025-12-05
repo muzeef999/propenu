@@ -1,9 +1,4 @@
-// ../types/sharedTypes.ts
-import type { IndexDefinition } from 'mongoose';
 
-/* -------------------------
-   COMMON ENUMS / TYPES
-   ------------------------- */
 export type ListingType = 'sale' | 'rent' | 'lease';
 export type AreaUnit = 'sqft' | 'sqmt' | 'acre' | 'guntha' | 'kanal' | 'hectare';
 export type FurnishingStatus = 'unfurnished' | 'semi-furnished' | 'fully-furnished';
@@ -12,11 +7,6 @@ export type PropertyStatus = 'active' | 'inactive' | 'archived';
 
 
 
-export const TEXT_INDEX_FIELDS: IndexDefinition = {
-  title: 'text',
-  address: 'text',
-  city: 'text',
-};
 
 
 export interface IBaseListing {
