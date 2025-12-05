@@ -80,7 +80,7 @@ export default function PropertyForm({
       videos: videoFiles,
     });
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/properties`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URLc}/api/properties`, {
         method: "POST",
         body: fd,
       });

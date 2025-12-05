@@ -1,14 +1,7 @@
-
 import type { NextConfig } from "next";
-import path from "path";
 
 const nextConfig: NextConfig = {
-  // Tell Turbopack where your monorepo root is
-  turbopack: {
-    root: path.join(__dirname, "../"), // single levels up 
-  },
 
-  // keep your existing flags
   reactCompiler: true,
 
   images: {
@@ -21,7 +14,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-
 };
 
 export default nextConfig;
