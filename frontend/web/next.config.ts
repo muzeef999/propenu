@@ -1,4 +1,5 @@
 // frontend/web/next.config.ts
+// frontend/web/next.config.ts
 import path from "path";
 import type { NextConfig } from "next";
 
