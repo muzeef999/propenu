@@ -1,8 +1,0 @@
-{
-  "projects": [
-    {
-      "src": "./propenu/frontend/web/package.json",
-      "use": "@vercel/next"
-    }
-  ]
-}
