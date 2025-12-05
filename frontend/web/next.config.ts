@@ -1,7 +1,6 @@
-// frontend/web/next.config.ts
-// frontend/web/next.config.ts
-import path from "path";
+
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   // Tell Turbopack where your monorepo root is

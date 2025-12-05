@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+  "build:analyze": "next build --webpack" 
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.0",
