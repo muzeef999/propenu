@@ -77,6 +77,16 @@ router.post("/seed-roles", async (_req, res) => {
           "project:create",
         ],
       },
+       {
+    name: "agent",
+    label: "Agent",
+    permissions: [
+      "project:view",
+      "lead:view",
+      "lead:edit",
+      "agent:view"
+    ],
+  },
     ];
 
     // 3️⃣ Upsert roles (create if not exist, update if exist)

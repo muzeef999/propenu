@@ -11,13 +11,12 @@ const ResidentialSchema = new Schema<IResidential>(
     ...BaseFields,
     bhk: Number,
     bedrooms: Number,
-    buildingName:String,
+    buildingName:String, 
     bathrooms: Number,
     balconies: Number,
     carpetArea: Number,
     builtUpArea: Number,
     superBuiltUpArea: Number,
-
     transactionType: {
       type: String,
       enum: ["new-sale", "resale", "pre-leased", "rent", "lease"],
@@ -28,8 +27,6 @@ const ResidentialSchema = new Schema<IResidential>(
     propertyAge: { type: String, enum: PROPERTY_AGE_BUCKETS },
     constructionYear: Number,
     isModularKitchen: { type: Boolean, default: false },
-
-
     furnishing: { type: String, enum: ['unfurnished', 'semi-furnished', 'fully-furnished'] },
     parkingType: String,
     parkingCount: Number,
