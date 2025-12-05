@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 
 
 export type AmenitiesItems = {
@@ -16,7 +15,7 @@ export type GalleryItem = {
 
 export interface IResidential {
   listingType?: 'sale' | 'rent' | 'lease';
-  developer?: mongoose.Types.ObjectId | null;
+  developer?:  string;
   // base fields...
   address: string;
     gallery?: GalleryItem[];
