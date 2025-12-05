@@ -38,5 +38,9 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.16",
     "typescript": "^5"
-  }
+  },
+  "resolutions": {
+  "zod-validation-error": "4.0.1"
+}
+
 }
