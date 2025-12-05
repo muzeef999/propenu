@@ -1,4 +1,5 @@
-import HeroBannerSVG from "@/svg/HeroBannerSVG";
+export const dynamic = "force-dynamic";
+
 import TestomianalHome from "./(pages)/reviews/TestomianalHome";
 import ExploreMorePropertiesPage from "./(pages)/explore-properties/Explore-properties";
 import SearchBox from "@/components/SearchBox";
