@@ -53,3 +53,8 @@ export interface VerifyOtpPayload {
   email: string;
   otp: string;
 };
+
+export interface VerifyOtpResponse {
+  message: string;
+  token: string;
+}

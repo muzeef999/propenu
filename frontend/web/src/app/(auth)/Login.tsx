@@ -1,26 +1,41 @@
 "use client";
 
 import { requestOtp, verifyOtp } from "@/data/ClientData";
-import { useState } from "react";
-import  { toast } from "sonner"
+import { useState, useRef } from "react";
+import { toast } from "sonner";
+import Cookies from "js-cookie";
+import { VerifyOtpResponse } from "@/types/property";
+import { LuPencilLine } from "react-icons/lu";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+interface LoginDialogProps {
+  open: boolean;
+  onClose: () => void;
+}
 
+const OTP_LENGTH = 4;
 
-
-const Login = () => {
+const LoginDialog = ({ open, onClose }: LoginDialogProps) => {
   const [step, setStep] = useState<"request" | "verify">("request");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
+  const [otpDigits, setOtpDigits] = useState<string[]>(
+    Array(OTP_LENGTH).fill("")
+  );
+
+  const otp = otpDigits.join(""); // final OTP string
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
+  const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+
   const canRequestOtp = name.trim().length > 1 && emailRegex.test(email);
-  const canVerifyOtp = otp.trim().length > 0;
+  const canVerifyOtp = otp.length === OTP_LENGTH;
+
+  if (!open) return null; // don't render when closed
 
   async function handleRequestOtp() {
     if (!canRequestOtp) {
@@ -33,15 +48,8 @@ const Login = () => {
     setInfo(null);
 
     try {
-      const res = await requestOtp({ name: name.trim(), email: email.trim() });
-
-    //   if (!res.success) {
-    //     setError(res.message ?? "Failed to send OTP. Please try again.");
-    //     return;
-    //   }
-
-    toast.success("OTP sent to your email. Please check your inbox.");
-       setInfo("OTP sent to your email. Please check your inbox.");
+      await requestOtp({ name: name.trim(), email: email.trim() });
+      toast.success("OTP sent to your email. Please check your inbox.");
       setStep("verify");
     } catch (err) {
       setError("Something went wrong while requesting OTP.");
@@ -52,7 +60,7 @@ const Login = () => {
 
   async function handleVerifyOtp() {
     if (!canVerifyOtp) {
-      setError("Please enter the OTP you received.");
+      setError("Please enter the 6-digit OTP you received.");
       return;
     }
 
@@ -61,15 +69,23 @@ const Login = () => {
     setInfo(null);
 
     try {
-      const res = await verifyOtp({
+      const res: VerifyOtpResponse = await verifyOtp({
         name: name.trim(),
         email: email.trim(),
-        otp: otp.trim(),
+        otp, // from otpDigits.join("")
       });
 
-       
+      Cookies.set("token", res.token, {
+        secure: true,
+        sameSite: "Strict",
+      });
 
-      setInfo("Logged in successfully! 🎉");
+      toast.success("Logged in successfully!");
+      setTimeout(() => {
+        handleClose();
+      }, 800);
+
+      window.location.reload();
     } catch (err) {
       setError("Something went wrong while verifying OTP.");
     } finally {
@@ -77,14 +93,91 @@ const Login = () => {
     }
   }
 
+  function handleOtpChange(value: string, index: number) {
+    const digit = value.replace(/\D/g, "").slice(0, 1); // only one number
+
+    const newOtp = [...otpDigits];
+    newOtp[index] = digit;
+    setOtpDigits(newOtp);
+
+    if (digit && index < OTP_LENGTH - 1) {
+      inputsRef.current[index + 1]?.focus();
+    }
+  }
+
+  function handleOtpKeyDown(
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number
+  ) {
+    if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
+      inputsRef.current[index - 1]?.focus();
+    }
+
+    if (e.key === "ArrowLeft" && index > 0) {
+      inputsRef.current[index - 1]?.focus();
+    }
+
+    if (e.key === "ArrowRight" && index < OTP_LENGTH - 1) {
+      inputsRef.current[index + 1]?.focus();
+    }
+  }
+
+  function handleOtpPaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    e.preventDefault();
+    const paste = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, OTP_LENGTH);
+
+    if (!paste) return;
+
+    const newOtp = [...otpDigits];
+    for (let i = 0; i < OTP_LENGTH; i++) {
+      newOtp[i] = paste[i] ?? "";
+    }
+    setOtpDigits(newOtp);
+
+    const lastIndex = Math.min(paste.length - 1, OTP_LENGTH - 1);
+    inputsRef.current[lastIndex]?.focus();
+  }
+
+  function handleClose() {
+    setStep("request");
+    setName("");
+    setEmail("");
+    setOtpDigits(Array(OTP_LENGTH).fill(""));
+    setError(null);
+    setInfo(null);
+    onClose();
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg border border-gray-100">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-1">
-          Login with OTP
-        </h1>
-        <p className="text-sm text-gray-500 mb-6">
-          Enter your details to receive a one-time password.
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      {/* backdrop */}
+      <div
+        className="absolute inset-0"
+        onClick={handleClose}
+        aria-hidden="true"
+      />
+
+      <div className="relative z-50 w-full max-w-md rounded-lg bg-white p-6 shadow-2xl">
+        {/* Close button */}
+        <button
+          onClick={handleClose}
+          className="absolute right-4 top-4 p-2 text-xl text-gray-400 hover:text-gray-600"
+          aria-label="Close"
+        >
+          ×
+        </button>
+
+        <h1 className="text-2xl font-semibold text-gray-900">Login</h1>
+        <div className="mt-3 mb-6 h-px w-full bg-gray-200" />
+
+        <h2 className="mb-1 text-center text-xl font-semibold text-gray-900">
+          Welcome Back
+        </h2>
+        <p className="mb-6 text-center text-sm text-gray-500">
+          Enter your details to sign in
         </p>
 
         {step === "request" && (
@@ -118,47 +211,67 @@ const Login = () => {
             <button
               disabled={!canRequestOtp || loading}
               onClick={handleRequestOtp}
-              className="mt-2 w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+              className="btn-primary w-full cursor-pointer"
             >
               {loading ? "Sending OTP..." : "Send OTP"}
             </button>
+
+            <div className="flex justify-center">
+              <p className="cursor-pointer text-primary">
+                New to Propenu? Create an account
+              </p>
+            </div>
           </div>
         )}
 
         {step === "verify" && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
-              We have sent an OTP to{" "}
-              <span className="font-semibold">{email}</span>. Enter it below to
-              continue.
-            </p>
+            <p className="inline-flex items-center text-sm text-gray-600 gap-1">
+  We have sent an OTP to
+  <LuPencilLine className="text-gray-500" />
+  <span
+    className="font-semibold cursor-pointer"
+    onClick={() => setStep("request")}
+  >
+    {email}
+  </span>
+  . Enter it below to continue.
+</p>
+
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
                 OTP
               </label>
-              <input
-                type="text"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm tracking-[0.4em] text-center focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                placeholder="----"
-                maxLength={6}
-              />
+              <div className="flex justify-between gap-2">
+                {otpDigits.map((digit, index) => (
+                  <input
+                    key={index}
+                    ref={(el) => {
+                      inputsRef.current[index] = el;
+                    }}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleOtpChange(e.target.value, index)}
+                    onKeyDown={(e) => handleOtpKeyDown(e, index)}
+                    onPaste={index === 0 ? handleOtpPaste : undefined}
+                    className="h-11 w-11 rounded-lg border border-gray-300 bg-white text-center text-xl font-semibold text-gray-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                  />
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-gray-400">
+                Enter the 4-digit code sent to your email.
+              </p>
             </div>
 
             <div className="flex gap-2">
               <button
-                type="button"
-                onClick={() => setStep("request")}
-                className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-              >
-                Edit email
-              </button>
-              <button
                 disabled={!canVerifyOtp || loading}
                 onClick={handleVerifyOtp}
-                className="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                className="btn-primary w-full cursor-pointer"
               >
                 {loading ? "Verifying..." : "Verify OTP"}
               </button>
@@ -166,20 +279,14 @@ const Login = () => {
           </div>
         )}
 
-        {error && (
-          <p className="mt-4 text-sm text-red-600">
-            {error}
-          </p>
-        )}
+        {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
 
         {info && !error && (
-          <p className="mt-4 text-sm text-emerald-600">
-            {info}
-          </p>
+          <p className="mt-4 text-sm text-emerald-600">{info}</p>
         )}
       </div>
     </div>
   );
 };
 
-export default Login;
+export default LoginDialog;
