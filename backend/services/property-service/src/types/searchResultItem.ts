@@ -2,6 +2,7 @@ export type PropertyType = "Residential" | "Commercial" | "Land" | "Agricultural
 
 export type SearchFilters = {
   propertyType?: string; // comma separated list like "Residential,Land"
+    listingType?: string;
   q?: string;
   minPrice?: number;
   maxPrice?: number;
@@ -9,6 +10,7 @@ export type SearchFilters = {
    bedrooms?: number; 
   city?: string;
   sort?: "newest" | "price_asc" | "price_desc";
+
 };
 
 export type SearchResultItem = {

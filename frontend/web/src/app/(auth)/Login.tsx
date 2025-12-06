@@ -227,17 +227,16 @@ const LoginDialog = ({ open, onClose }: LoginDialogProps) => {
         {step === "verify" && (
           <div className="space-y-4">
             <p className="inline-flex items-center text-sm text-gray-600 gap-1">
-  We have sent an OTP to
-  <LuPencilLine className="text-gray-500" />
-  <span
-    className="font-semibold cursor-pointer"
-    onClick={() => setStep("request")}
-  >
-    {email}
-  </span>
-  . Enter it below to continue.
-</p>
-
+              We have sent an OTP to
+              <LuPencilLine className="text-gray-500" />
+              <span
+                className="font-semibold cursor-pointer"
+                onClick={() => setStep("request")}
+              >
+                {email}
+              </span>
+              . Enter it below to continue.
+            </p>
 
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">

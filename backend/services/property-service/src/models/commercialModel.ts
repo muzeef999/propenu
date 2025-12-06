@@ -34,7 +34,7 @@ const CommercialSchema = new Schema<ICommercial>(
     ceilingHeightFt: Number, 
     builtYear: Number,
     maintenanceCharges: Number,
-    constructionStatus: { type: String, enum: ['ready-to-move', 'under-construction'] },
+    constructionStatus: { type: String, enum: ['ready-to-move', 'under-construction', 'new-lanch'] },
     fireSafety: Boolean,
     fireNOCFile: FileRefSchema,
     loadingDock: Boolean,

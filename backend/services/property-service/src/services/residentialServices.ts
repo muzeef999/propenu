@@ -128,6 +128,7 @@ async function mapAndUploadGallery({
 
 export function getResidentialPipeline(filters: SearchFilters) {
   const match = buildCommonMatch(filters);
+
   return [
     { $match: match },
     {
