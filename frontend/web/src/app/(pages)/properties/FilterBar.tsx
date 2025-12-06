@@ -16,7 +16,7 @@ import { useDispatch } from "react-redux";
 import { useAppSelector } from "@/Redux/store";
 
 const FilterBar: React.FC = () => {
-  const bgColor = hexToRGBA("#27AE60", 0.1);
+  const bgColor = hexToRGBA("#27AE60", 0.1); 
 
   const listingOptions: ListingOption[] = ["Buy", "Rent", "Lease"];
   const propertyTypeOptions: PropertyTypeOption[] = [

@@ -90,26 +90,13 @@ const Navbar = () => {
                 align="right"
               />
 
-              <Dropdown
-                buttonContent={({ isOpen }) => (
-                  <span className="flex text-gray-700 items-center gap-2 text-sm py-1 px-0">
+                   <span className="flex text-gray-700 items-center gap-2 text-sm py-1 px-0">
                     <span>Login</span>
                     <ArrowDropdownIcon
                       size={14}
                       color={"#374151"}
-                      className={`w-4 h-4 transition-transform duration-200 ${
-                        isOpen ? "rotate-180" : "rotate-0"
-                      }`}
                     />
                   </span>
-                )}
-                items={loginItems.map((it) => ({
-                  ...it,
-                  onClick: () =>
-                    it.href ? (window.location.href = it.href) : undefined,
-                }))}
-                align="right"
-              />
 
               {/* CTA - secondary outlined */}
               <Link href="/postproperty" className="btn btn-secondary">
