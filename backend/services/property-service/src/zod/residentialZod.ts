@@ -1,10 +1,7 @@
 // src/zod/residentialValidation.ts
 import { z } from "zod";
+import { RESIDENTIAL_PROPERTY_SUBTYPES, RESIDENTIAL_PROPERTY_TYPES } from "../types/residentialTypes";
 
-
-/* ----------------------
-   Enums for residential
-   ---------------------- */
 
 const FLOORING_TYPES = [
   "vitrified",
@@ -18,8 +15,7 @@ const FLOORING_TYPES = [
   "other",
 ] as const;
 
-const KITCHEN_TYPES = [
-  "open",
+const KITCHEN_TYPES = ["open",
   "closed",
   "semi-open",
   "island",
@@ -37,9 +33,6 @@ const PROPERTY_AGE_BUCKETS = [
   "20-plus-years",
 ] as const;
 
-/* ----------------------
-   Helpers & shared subs
-   ---------------------- */
 
    const coerceEnum = <T extends readonly [string, ...string[]]>(values: T) =>
      z.preprocess(
@@ -87,12 +80,6 @@ const coerceBoolean = (schema: z.ZodTypeAny) =>
     return v;
   }, schema);
 
-/**
- * Preprocess for enums:
- * - Accepts string or array-of-string
- * - Trims whitespace and lowercases the value before enum check
- * - Returns original value if not a string/array (so Zod will later error)
- */
 function enumPreprocess<T extends readonly [string, ...string[]]>(choices: T) {
   // spread into a mutable tuple for z.enum typing
   const enumSchema = z.enum([...choices] as [string, ...string[]]);
@@ -241,6 +228,14 @@ export const ResidentialCreateSchema = BaseResidentialCreate.extend({
   builtUpArea: coerceNumber(z.number()).optional(),
   superBuiltUpArea: coerceNumber(z.number()).optional(),
 
+   propertyType: enumPreprocess(
+    RESIDENTIAL_PROPERTY_TYPES as readonly [string, ...string[]]
+  ).optional(),
+
+  propertySubType: enumPreprocess(
+    RESIDENTIAL_PROPERTY_SUBTYPES as readonly [string, ...string[]]
+  ).optional(),
+
   sqftRange: z
     .object({
       min: coerceNumber(z.number()).optional(),
@@ -336,6 +331,14 @@ export const ResidentialUpdateSchema = z
     transactionType: coerceEnum(
     ["new-sale", "resale", "pre-leased", "rent", "lease"] as const
   ).optional(),
+
+   propertyType: enumPreprocess(
+      RESIDENTIAL_PROPERTY_TYPES as readonly [string, ...string[]]
+    ).optional(),
+
+    propertySubType: enumPreprocess(
+      RESIDENTIAL_PROPERTY_SUBTYPES as readonly [string, ...string[]]
+    ).optional(),
 
     state: z.string().optional(),
     pincode: z.string().optional(),
