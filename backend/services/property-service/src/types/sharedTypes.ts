@@ -1,5 +1,7 @@
 // ../types/sharedTypes.ts
 import type { IndexDefinition } from 'mongoose';
+import { Types } from 'mongoose';
+
 
 /* -------------------------
    COMMON ENUMS / TYPES
@@ -24,8 +26,14 @@ export interface IBaseListing {
   slug?: string;         // optional because you generate it in pre('validate')
   address?: string;
   city?: string;
-  // add other truly-shared listing props here
+  listingType: 'sale' | 'rent' | 'lease';
+  listingSource?: 'owner' | 'agent' | 'builder' | 'admin';
+  pincode?: string;
+  state?: string;
+ createdBy?: Types.ObjectId;
 }
+
+
 
 
 /* -------------------------

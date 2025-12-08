@@ -56,8 +56,7 @@ export default function ExploreOurServices() {
               <div className="flex items-start card p-4">
                 {/* Icon badge */}
                   <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center
-                                 bg-indigo-50 ring-1 ring-indigo-100"
+                    className="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-50 ring-1 ring-indigo-100"
                     aria-hidden
                   >
                     {c.icon}

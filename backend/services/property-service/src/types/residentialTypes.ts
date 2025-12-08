@@ -1,6 +1,37 @@
 // src/types/residentialTypes.ts
 import mongoose from 'mongoose';
 
+
+
+
+export const RESIDENTIAL_PROPERTY_TYPES = [
+  'apartment',
+  'independent-house',
+  'villa',
+  'penthouse',
+  'plot',
+  'row-house',
+  'studio',
+] as const;
+
+export type ResidentialPropertyType = typeof RESIDENTIAL_PROPERTY_TYPES[number];
+
+export const RESIDENTIAL_PROPERTY_SUBTYPES = [
+  '1bhk',
+  '2bhk',
+  '3bhk',
+  '4bhk',
+  '5bhk',
+  'duplex',
+  'triplex',
+  'farmhouse',
+] as const;
+
+export type ResidentialPropertySubType = typeof RESIDENTIAL_PROPERTY_SUBTYPES[number];
+
+
+
+
 export const FLOORING_TYPES = [
   'vitrified',
   'marble',
@@ -45,6 +76,9 @@ export interface IResidential {
   // base fields...
   address: string;
   city?: string;
+
+  propertyType?: ResidentialPropertyType;
+  propertySubType?: ResidentialPropertySubType;
 
   // residential-specific
   bhk?: number;

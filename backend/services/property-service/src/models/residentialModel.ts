@@ -1,6 +1,6 @@
 // src/models/property/residential.model.ts
 import mongoose, { Schema, Document, Model } from 'mongoose';
-import { FLOORING_TYPES, IResidential, KITCHEN_TYPES, PROPERTY_AGE_BUCKETS } from '../types/residentialTypes';
+import { FLOORING_TYPES, IResidential, KITCHEN_TYPES, PROPERTY_AGE_BUCKETS, RESIDENTIAL_PROPERTY_SUBTYPES, RESIDENTIAL_PROPERTY_TYPES } from '../types/residentialTypes';
 import { BaseFields, FileRefSchema } from './sharedSchemas';
 import { IBaseListing, TEXT_INDEX_FIELDS } from '../types/sharedTypes';
 
@@ -21,7 +21,6 @@ const ResidentialSchema = new Schema<IResidential>(
       type: String,
       enum: ["new-sale", "resale", "pre-leased", "rent", "lease"],
     },
-     // 🔥 NEW FIELDS USING ENUMS
     flooringType: { type: String, enum: FLOORING_TYPES },
     kitchenType: { type: String, enum: KITCHEN_TYPES },
     propertyAge: { type: String, enum: PROPERTY_AGE_BUCKETS },
@@ -42,6 +41,15 @@ const ResidentialSchema = new Schema<IResidential>(
     smartHomeFeatures: { type: [String], default: [] },
     parkingDetails: { visitorParking: Boolean, twoWheeler: Number, fourWheeler: Number },
     possessionVerified: { type: Boolean, default: false },
+
+    propertyType: {
+          type: String,
+          enum: RESIDENTIAL_PROPERTY_TYPES,
+        },
+        propertySubType: {
+          type: String,
+          enum: RESIDENTIAL_PROPERTY_SUBTYPES,
+        },
   },
   { timestamps: true }
 );
@@ -57,6 +65,22 @@ ResidentialSchema.pre<IBaseListing>('validate', function (next) {
   next();
 });
 
+
+ResidentialSchema.pre<IBaseListing>('validate', async function (next) {
+  try {
+    if (!this.listingSource && this.createdBy) {
+      const User = mongoose.model('User');
+      const user: any = await User.findById(this.createdBy).select('role');
+
+      if (user && user.role) {
+        this.listingSource = user.role; // 'owner' | 'agent' | 'builder' | 'admin'
+      }
+    }
+    next();
+  } catch (err) {
+    next(err as any);
+  }
+});
 
 export const Residential: Model<IResidential> =
   (mongoose.models && (mongoose.models as any)['Residential']) || mongoose.model<IResidential>('Residential', ResidentialSchema);

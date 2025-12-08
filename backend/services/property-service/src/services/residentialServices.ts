@@ -128,6 +128,7 @@ async function mapAndUploadGallery({
 
 export function getResidentialPipeline(filters: SearchFilters) {
   const match = buildCommonMatch(filters);
+
   return [
     { $match: match },
     {
@@ -344,12 +345,12 @@ export const ResidentialPropertyService = {
 
   async getById(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    return Residential.findById(id).lean().exec();
+    return Residential.findById(id).populate("createdBy", "name email phone role").lean().exec();
   },
 
   async getBySlug(slug: string) {
     if (!slug || typeof slug !== "string") throw new Error("Invalid slug");
-    return Residential.findOne({ slug }).lean().exec();
+    return Residential.findOne({ slug }).populate("createdBy", "name email phone role").lean().exec();
   },
 
   async list(options?: {

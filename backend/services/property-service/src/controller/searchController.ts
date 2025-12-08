@@ -10,7 +10,8 @@ function sanitizeFilters(req: Request): SearchFilters {
     ? raw.propertyType
     : "Residential"; // default
 
-  const q = typeof raw.q === "string" ? raw.q : undefined;
+
+   const q =  typeof raw.search === "string" ? raw.search   : typeof raw.q === "string"   ? raw.q  : undefined;
   const minPrice = raw.minPrice ? Number(raw.minPrice) : undefined;
   const maxPrice = raw.maxPrice ? Number(raw.maxPrice) : undefined;
   const city = typeof raw.city === "string" ? raw.city : undefined;

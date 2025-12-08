@@ -85,6 +85,12 @@ html, body {
   .btn-primary {
     background-color: var(--color-primary);
     color: var(--color-white);
+    border-radius:  6px;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+    padding-top: 6px;
+    padding-bottom: 6px;
   }
   .btn-primary:hover {
     background-color: #1f8f50;

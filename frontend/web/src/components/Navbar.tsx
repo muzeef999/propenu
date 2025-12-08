@@ -1,12 +1,15 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Logo from "@/animations/Logo";
-import { useCity } from "@/hooks/useCity";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import type { DropdownProps } from "@/ui/SingleDropDown";
 import dynamic from "next/dynamic";
 import CityDropdown from "./CityDropdown";
 import Link from "next/link";
+import LoginDialog from "@/app/(auth)/Login";
+import Cookies from "js-cookie";
+import { me } from "@/data/ClientData";
+import UserGreeting from "@/app/(auth)/UserGreeting";
 
 const Dropdown = dynamic<DropdownProps>(() => import("@/ui/SingleDropDown"), {
   ssr: false,
@@ -16,6 +19,19 @@ const BRAND_GREEN = "#27AE60"; // use your logo color
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+
+  const [user, setUser] = useState<any>(null);
+
+
+
+  useEffect(() => {
+    async function fetchUser() {
+      const data = await me();
+      setUser(data);
+    }
+    fetchUser();
+  }, []);
 
   const pPrimeItems = [
     { id: "pp-1", label: "Dashboard", href: "/prime/dashboard" },
@@ -74,7 +90,7 @@ const Navbar = () => {
                   <span className="flex text-gray-700 items-center gap-2 text-sm py-1 px-0">
                     <span>p prime</span>
                     <ArrowDropdownIcon
-                      size={14}
+                      size={4}
                       color={"#374151"}
                       className={`w-4 h-4 transition-transform duration-200 ${
                         isOpen ? "rotate-180" : "rotate-0"
@@ -90,26 +106,18 @@ const Navbar = () => {
                 align="right"
               />
 
-              <Dropdown
-                buttonContent={({ isOpen }) => (
-                  <span className="flex text-gray-700 items-center gap-2 text-sm py-1 px-0">
-                    <span>Login</span>
-                    <ArrowDropdownIcon
-                      size={14}
-                      color={"#374151"}
-                      className={`w-4 h-4 transition-transform duration-200 ${
-                        isOpen ? "rotate-180" : "rotate-0"
-                      }`}
-                    />
+              <>
+                {!user ? (
+                  <span
+                    onClick={() => setIsLoginOpen(true)}
+                    className="cursor-pointer text-sm text-gray-700"
+                  >
+                    Login
                   </span>
+                ) : (
+                  <UserGreeting user={user} />
                 )}
-                items={loginItems.map((it) => ({
-                  ...it,
-                  onClick: () =>
-                    it.href ? (window.location.href = it.href) : undefined,
-                }))}
-                align="right"
-              />
+              </>
 
               {/* CTA - secondary outlined */}
               <Link href="/postproperty" className="btn btn-secondary">
@@ -230,6 +238,9 @@ const Navbar = () => {
           </div>
         </div>
       </nav>
+      {isLoginOpen && (
+        <LoginDialog open={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+      )}
     </header>
   );
 };

@@ -41,3 +41,20 @@ export interface ApiResponse {
   properties?: Property[];      // preferred: when API returns array
   property?: Property | null;   // some endpoints may return a single object
 }
+
+
+export interface RequestOtpPayload  {
+  name: string;
+  email: string;
+};
+
+export interface VerifyOtpPayload {
+  name: string;
+  email: string;
+  otp: string;
+};
+
+export interface VerifyOtpResponse {
+  message: string;
+  token: string;
+}

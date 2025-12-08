@@ -125,8 +125,8 @@ export const LegalChecksSchema = new Schema<ILegalChecks>(
 export const BaseFields = {
   title: { type: String, required: true, trim: true },
   slug: { type: String, required: true, unique: true, trim: true },
-  listingType: { type: String, enum: ['sale', 'rent', 'lease'], default: 'sale', index: true },
-  developer: { type: Schema.Types.ObjectId, ref: 'builders' },
+  listingType: { type: String, enum: ['sale', 'rent', 'lease'], default: 'sale', index: true, required: true },
+  listingSource: {  type: String, enum: ['owner', 'agent', 'builder', 'admin'],index: true, required: true},
   address: { type: String, required: true },
   description : {type: String, required: true},
   city: { type: String, index: true },
@@ -152,7 +152,7 @@ export const BaseFields = {
     clicks: { type: Number, default: 0 },
   },
   status: { type: String, enum: ['active', 'inactive', 'archived'], default: 'active', index: true },
-  createdBy: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+  createdBy: { type: Schema.Types.ObjectId, ref: 'User', index: true, require, required: true },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   relatedProjects: { type: [Schema.Types.ObjectId], ref: 'featuredProject', default: [] },
 
