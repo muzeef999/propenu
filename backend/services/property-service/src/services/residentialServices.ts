@@ -6,12 +6,35 @@ import dotenv from "dotenv";
 import Residential from "../models/residentialModel";
 import { buildCommonMatch } from "../utils/filterBuilder";
 import { SearchFilters } from "../types/searchResultItem";
+import "../models/userModel";
+import User from "../models/userModel";
+import Role from "../models/roleModel";
 
 dotenv.config();
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
 
 /* -------------------- Helpers -------------------- */
+
+async function resolveListingSourceFromUser(createdBy?: string | mongoose.Types.ObjectId) {
+  if (!createdBy) return undefined;
+  const idStr = String(createdBy);
+  if (!mongoose.Types.ObjectId.isValid(idStr)) return undefined;
+
+  // get user with roleId (or possibly cached role string)
+  const user: any = await User.findById(idStr).select("role roleId").lean();
+  if (!user) return undefined;
+
+  if (user.role && typeof user.role === "string") return user.role; // prefer cached role string
+
+  if (user.roleId) {
+    const role: any = await Role.findById(user.roleId).select("name").lean();
+    return role?.name;
+  }
+
+  return undefined;
+}
+
 
 function slugifyTitle(title: string) {
   return String(title)
@@ -20,6 +43,20 @@ function slugifyTitle(title: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
+
+
+function normalizePayload(obj: any) {
+  if (!obj) return obj;
+  if (typeof obj.title === "string") obj.title = obj.title.trim();
+  if (obj.price === "") obj.price = undefined;
+  // ensure arrays
+  obj.gallery = Array.isArray(obj.gallery) ? obj.gallery : [];
+  obj.documents = Array.isArray(obj.documents) ? obj.documents : [];
+  // enforce createdBy is ObjectId string
+  if (obj.createdBy) obj.createdBy = String(obj.createdBy);
+  return obj;
+}
+
 
 async function generateUniqueSlug(desiredTitleOrSlug: string, excludeId?: string) {
   const slug = slugifyTitle(desiredTitleOrSlug);
@@ -155,6 +192,9 @@ export function getResidentialPipeline(filters: SearchFilters) {
 }
 
 
+
+
+
 /* -------------------- Service API -------------------- */
 
 export const ResidentialPropertyService = {
@@ -164,10 +204,22 @@ export const ResidentialPropertyService = {
     const slugSource = (payload.slug && String(payload.slug).trim()) || payload.title;
     const slug = await generateUniqueSlug(slugSource);
 
-    const toCreate: any = {
+    let toCreate: any = {
       ...payload,
       slug,
     };
+
+    toCreate = normalizePayload(toCreate)
+
+
+    if (!toCreate.listingSource && toCreate.createdBy) {
+    try {
+      const listingSource = await resolveListingSourceFromUser(toCreate.createdBy);
+      if (listingSource) toCreate.listingSource = listingSource;
+    } catch (err) {
+      console.warn("resolveListingSource failed:", (err as Error).message);
+    }
+  }
 
     // preliminary instance for _id (S3 key naming)
     const preliminary = new Residential(toCreate);
@@ -196,7 +248,9 @@ export const ResidentialPropertyService = {
     }
 
     const createdDoc = await Residential.create(toCreate);
-    return createdDoc.toObject ? createdDoc.toObject() : createdDoc;
+    const populated = await Residential.findById(createdDoc._id).populate("createdBy", "name email phone role roleId").lean().exec();
+     return populated ?? (createdDoc.toObject ? createdDoc.toObject() : createdDoc);
+
   },
 
   async update(id: string, payload: any, files?: MulterFiles) {
@@ -345,12 +399,12 @@ export const ResidentialPropertyService = {
 
   async getById(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    return Residential.findById(id).populate("createdBy", "name email phone role").lean().exec();
+    return Residential.findById(id).populate("createdBy", "name email phone roleId").lean().exec();
   },
 
   async getBySlug(slug: string) {
     if (!slug || typeof slug !== "string") throw new Error("Invalid slug");
-    return Residential.findOne({ slug }).populate("createdBy", "name email phone role").lean().exec();
+    return Residential.findOne({ slug }).populate("createdBy", "name email phone roleId").lean().exec();
   },
 
   async list(options?: {

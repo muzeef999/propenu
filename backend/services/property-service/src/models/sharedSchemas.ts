@@ -1,7 +1,7 @@
 // src/models/property/sharedSchemas.ts
 import mongoose, { Schema, Types } from 'mongoose';
 import { IFileRef, IImage, TEXT_INDEX_FIELDS } from '../types/sharedTypes';
-
+import "./userModel"
 
 export const FileRefSchema = new Schema<IFileRef>(
   {

@@ -12,7 +12,6 @@ import {
   ISpecification,
   ISpecItem,
 } from '../types/featurePropertiesTypes';
-import { title } from 'process';
 
 export interface IFeaturedProjectDocument extends IFeaturedProject, Document {}
 export interface ILeadDocument extends ILead, Document {
