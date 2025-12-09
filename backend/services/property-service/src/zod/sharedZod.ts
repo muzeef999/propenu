@@ -102,6 +102,7 @@ export type LegalChecks = z.infer<typeof LegalChecksSchema>;
 export const BaseCreateSchema = z.object({
   title: z.string().min(1),
   slug: z.string().min(1).optional(),
+   listingSource : z.string().optional(),
   listingType: z.enum(['sale', 'rent', 'lease']).optional().default('sale'),
   developer: z.string().optional().nullable(),
   logo: FileRefSchema.optional().nullable(),
@@ -167,6 +168,7 @@ export const PropertyListQuerySchema = z.object({
   limit: z.coerce.number().int().positive().optional().default(20),
   q: z.string().optional(),
   city: z.string().optional(),
+  listingSource : z.string().optional(),
   listingType: z.enum(['sale', 'rent', 'lease']).optional(),
   sort: z.string().optional(),
   near: z.string().optional(),

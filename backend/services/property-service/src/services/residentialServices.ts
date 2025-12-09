@@ -17,24 +17,33 @@ type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
 /* -------------------- Helpers -------------------- */
 
 async function resolveListingSourceFromUser(createdBy?: string | mongoose.Types.ObjectId) {
-  if (!createdBy) return undefined;
+  console.log("[DEBUG] resolveListingSourceFromUser called with:", createdBy);
+
+  if (!createdBy) {
+    return undefined;
+  }
   const idStr = String(createdBy);
-  if (!mongoose.Types.ObjectId.isValid(idStr)) return undefined;
+  if (!mongoose.Types.ObjectId.isValid(idStr)) {
+    return undefined;
+  }
 
-  // get user with roleId (or possibly cached role string)
   const user: any = await User.findById(idStr).select("role roleId").lean();
-  if (!user) return undefined;
 
-  if (user.role && typeof user.role === "string") return user.role; // prefer cached role string
+  if (!user) {
+    return undefined;
+  }
+
+  if (user.role && typeof user.role === "string") {
+    return user.role;
+  }
 
   if (user.roleId) {
-    const role: any = await Role.findById(user.roleId).select("name").lean();
-    return role?.name;
+    const role: any = await Role.findById(user.roleId).select("label").lean();
+    return role?.label;
   }
 
   return undefined;
 }
-
 
 function slugifyTitle(title: string) {
   return String(title)
@@ -43,7 +52,6 @@ function slugifyTitle(title: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
-
 
 function normalizePayload(obj: any) {
   if (!obj) return obj;
@@ -57,8 +65,10 @@ function normalizePayload(obj: any) {
   return obj;
 }
 
-
-async function generateUniqueSlug(desiredTitleOrSlug: string, excludeId?: string) {
+async function generateUniqueSlug(
+  desiredTitleOrSlug: string,
+  excludeId?: string
+) {
   const slug = slugifyTitle(desiredTitleOrSlug);
   const existing = await Residential.findOne({ slug }).select("_id").lean();
   if (existing) {
@@ -77,18 +87,29 @@ async function uploadBufferToS3Local(opts: {
   propertyId: string;
   folder?: string;
 }): Promise<{ key: string; url: string }> {
-  const { buffer, originalname, mimetype, propertyId, folder = "residential" } = opts;
+  const {
+    buffer,
+    originalname,
+    mimetype,
+    propertyId,
+    folder = "residential",
+  } = opts;
   const bucket = process.env.AWS_S3_BUCKET;
   const region = process.env.AWS_REGION;
-  if (!bucket || !region) throw new Error("Missing S3 bucket or region env var");
+  if (!bucket || !region)
+    throw new Error("Missing S3 bucket or region env var");
 
   const ext = originalname.includes(".") ? originalname.split(".").pop() : "";
   const uniqueName = `${Date.now()}-${randomUUID()}${ext ? "." + ext : ""}`;
   const safeFolder = folder.replace(/^\/+|\/+$/g, "");
   const key = `${safeFolder}/${propertyId}/${uniqueName}`;
 
-  await s3.upload({ Bucket: bucket, Key: key, Body: buffer, ContentType: mimetype }).promise();
-  const url = `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key)}`;
+  await s3
+    .upload({ Bucket: bucket, Key: key, Body: buffer, ContentType: mimetype })
+    .promise();
+  const url = `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(
+    key
+  )}`;
   return { key, url };
 }
 
@@ -99,7 +120,11 @@ async function deleteS3ObjectIfExists(key?: string) {
   try {
     await s3.deleteObject({ Bucket: bucket, Key: key }).promise();
   } catch (e: any) {
-    console.error("deleteS3ObjectIfExists failed for key:", key, e?.message || e);
+    console.error(
+      "deleteS3ObjectIfExists failed for key:",
+      key,
+      e?.message || e
+    );
   }
 }
 
@@ -132,7 +157,8 @@ async function mapAndUploadGallery({
     // match by declared filename if available
     let matchedIndex = -1;
     for (let j = 0; j < summary.length; j++) {
-      const declaredName = summary[j]?.filename ?? summary[j]?.fileName ?? summary[j]?.file;
+      const declaredName =
+        summary[j]?.filename ?? summary[j]?.fileName ?? summary[j]?.file;
       if (declaredName && declaredName === file.originalname) {
         matchedIndex = j;
         break;
@@ -153,9 +179,12 @@ async function mapAndUploadGallery({
     summary[matchedIndex].url = up.url;
     summary[matchedIndex].key = up.key;
     summary[matchedIndex].filename = file.originalname;
-    if (!summary[matchedIndex].title) summary[matchedIndex].title = file.originalname;
-    if (!summary[matchedIndex].category) summary[matchedIndex].category = "image";
-    if (!summary[matchedIndex].order) summary[matchedIndex].order = matchedIndex + 1;
+    if (!summary[matchedIndex].title)
+      summary[matchedIndex].title = file.originalname;
+    if (!summary[matchedIndex].category)
+      summary[matchedIndex].category = "image";
+    if (!summary[matchedIndex].order)
+      summary[matchedIndex].order = matchedIndex + 1;
   }
 
   return summary;
@@ -173,35 +202,31 @@ export function getResidentialPipeline(filters: SearchFilters) {
         _id: 0,
         id: "$_id",
         type: { $literal: "Residential" },
-        gallery:1,
+        gallery: 1,
         title: 1,
-        city:1,
-        buildingName:1,
-        constructionStatus:1,
+        city: 1,
+        buildingName: 1,
+        constructionStatus: 1,
         slug: 1,
         superBuiltUpArea: 1,
-        furnishing:1,
+        furnishing: 1,
         parkingType: 1,
         price: 1,
         pricePerSqft: 1,
         location: 1,
-        createdAt: 1
-      }
-    }
+        createdAt: 1,
+      },
+    },
   ];
 }
-
-
-
-
 
 /* -------------------- Service API -------------------- */
 
 export const ResidentialPropertyService = {
-
   async create(payload: any, files?: MulterFiles) {
     // generate slug
-    const slugSource = (payload.slug && String(payload.slug).trim()) || payload.title;
+    const slugSource =
+      (payload.slug && String(payload.slug).trim()) || payload.title;
     const slug = await generateUniqueSlug(slugSource);
 
     let toCreate: any = {
@@ -209,31 +234,40 @@ export const ResidentialPropertyService = {
       slug,
     };
 
-    toCreate = normalizePayload(toCreate)
-
+    toCreate = normalizePayload(toCreate);
 
     if (!toCreate.listingSource && toCreate.createdBy) {
-    try {
-      const listingSource = await resolveListingSourceFromUser(toCreate.createdBy);
-      if (listingSource) toCreate.listingSource = listingSource;
-    } catch (err) {
-      console.warn("resolveListingSource failed:", (err as Error).message);
+      try {
+        const listingSource = await resolveListingSourceFromUser(
+          toCreate.createdBy
+        );
+        if (listingSource) toCreate.listingSource = listingSource;
+      } catch (err) {
+        console.warn("resolveListingSource failed:", (err as Error).message);
+      }
     }
-  }
 
     // preliminary instance for _id (S3 key naming)
     const preliminary = new Residential(toCreate);
-    const propId = preliminary._id ? preliminary._id.toString() : String(Date.now());
+    const propId = preliminary._id
+      ? preliminary._id.toString()
+      : String(Date.now());
 
     // gallery mapping & upload (stored under "residential")
     const galleryFiles = files?.galleryFiles ?? [];
-    const mappedGallery = await mapAndUploadGallery({ incomingGallery: toCreate.gallery, galleryFiles, propertyId: propId });
+    const mappedGallery = await mapAndUploadGallery({
+      incomingGallery: toCreate.gallery,
+      galleryFiles,
+      propertyId: propId,
+    });
     toCreate.gallery = Array.isArray(mappedGallery) ? mappedGallery : [];
 
     // documents -> upload into "residential"
     const documentsFiles = files?.documents ?? [];
     if (documentsFiles.length > 0) {
-      const docRefs: any[] = Array.isArray(toCreate.documents) ? toCreate.documents.slice() : [];
+      const docRefs: any[] = Array.isArray(toCreate.documents)
+        ? toCreate.documents.slice()
+        : [];
       for (const f of documentsFiles) {
         const up = await uploadBufferToS3Local({
           buffer: f.buffer,
@@ -242,15 +276,26 @@ export const ResidentialPropertyService = {
           propertyId: propId,
           folder: "residential",
         });
-        docRefs.push({ title: f.originalname, url: up.url, key: up.key, filename: f.originalname, mimetype: f.mimetype });
+        docRefs.push({
+          title: f.originalname,
+          url: up.url,
+          key: up.key,
+          filename: f.originalname,
+          mimetype: f.mimetype,
+        });
       }
       toCreate.documents = docRefs;
     }
 
     const createdDoc = await Residential.create(toCreate);
-    const populated = await Residential.findById(createdDoc._id).populate("createdBy", "name email phone role roleId").lean().exec();
-     return populated ?? (createdDoc.toObject ? createdDoc.toObject() : createdDoc);
 
+    const populated = await Residential.findById(createdDoc._id)
+      .populate("createdBy", "name email phone role roleId")
+      .lean()
+      .exec();
+    return (
+      populated ?? (createdDoc.toObject ? createdDoc.toObject() : createdDoc)
+    );
   },
 
   async update(id: string, payload: any, files?: MulterFiles) {
@@ -262,8 +307,13 @@ export const ResidentialPropertyService = {
     const existing: any = existingRaw;
 
     // slug/title change
-    if ((payload.slug && payload.slug !== existing.slug) || (payload.title && payload.title !== existing.title)) {
-      const slugSource = (payload.slug && String(payload.slug).trim()) || (payload.title as string);
+    if (
+      (payload.slug && payload.slug !== existing.slug) ||
+      (payload.title && payload.title !== existing.title)
+    ) {
+      const slugSource =
+        (payload.slug && String(payload.slug).trim()) ||
+        (payload.title as string);
       existing.slug = await generateUniqueSlug(slugSource, id);
     }
 
@@ -281,7 +331,8 @@ export const ResidentialPropertyService = {
     if (Array.isArray(incomingGallery)) {
       for (let i = 0; i < incomingGallery.length; i++) {
         const inc = incomingGallery[i];
-        if (i < existing.gallery.length) existing.gallery[i] = { ...existing.gallery[i], ...inc };
+        if (i < existing.gallery.length)
+          existing.gallery[i] = { ...existing.gallery[i], ...inc };
         else existing.gallery.push({ ...inc });
       }
     }
@@ -291,7 +342,11 @@ export const ResidentialPropertyService = {
       for (const f of galleryFiles) filesByName.set(f.originalname, f);
 
       // match-by-declared-filename
-      for (let i = 0; i < existing.gallery.length && filesByName.size > 0; i++) {
+      for (
+        let i = 0;
+        i < existing.gallery.length && filesByName.size > 0;
+        i++
+      ) {
         const entry = existing.gallery[i] as any;
         const declared = entry?.filename ?? entry?.fileName ?? entry?.file;
         if (declared && filesByName.has(declared)) {
@@ -357,7 +412,9 @@ export const ResidentialPropertyService = {
     // documents -> upload into "residential"
     const documentsFiles = files?.documents ?? [];
     if (documentsFiles.length > 0) {
-      existing.documents = Array.isArray(existing.documents) ? existing.documents : [];
+      existing.documents = Array.isArray(existing.documents)
+        ? existing.documents
+        : [];
       for (const f of documentsFiles) {
         const up = await uploadBufferToS3Local({
           buffer: f.buffer,
@@ -366,7 +423,13 @@ export const ResidentialPropertyService = {
           propertyId: propId,
           folder: "residential",
         });
-        existing.documents.push({ title: f.originalname, url: up.url, key: up.key, filename: f.originalname, mimetype: f.mimetype });
+        existing.documents.push({
+          title: f.originalname,
+          url: up.url,
+          key: up.key,
+          filename: f.originalname,
+          mimetype: f.mimetype,
+        });
       }
     }
 
@@ -399,12 +462,18 @@ export const ResidentialPropertyService = {
 
   async getById(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    return Residential.findById(id).populate("createdBy", "name email phone roleId").lean().exec();
+    return Residential.findById(id)
+      .populate("createdBy", "name email phone roleId")
+      .lean()
+      .exec();
   },
 
   async getBySlug(slug: string) {
     if (!slug || typeof slug !== "string") throw new Error("Invalid slug");
-    return Residential.findOne({ slug }).populate("createdBy", "name email phone roleId").lean().exec();
+    return Residential.findOne({ slug })
+      .populate("createdBy", "name email phone roleId")
+      .lean()
+      .exec();
   },
 
   async list(options?: {
@@ -429,13 +498,20 @@ export const ResidentialPropertyService = {
     if (options?.q) filter.$text = { $search: options.q };
     if (options?.status) filter.status = options.status;
     if (typeof options?.city === "string") filter.city = options.city;
-    if (typeof options?.minPrice === "number" || typeof options?.maxPrice === "number") {
+    if (
+      typeof options?.minPrice === "number" ||
+      typeof options?.maxPrice === "number"
+    ) {
       filter.price = {};
-      if (typeof options?.minPrice === "number") filter.price.$gte = options!.minPrice;
-      if (typeof options?.maxPrice === "number") filter.price.$lte = options!.maxPrice;
+      if (typeof options?.minPrice === "number")
+        filter.price.$gte = options!.minPrice;
+      if (typeof options?.maxPrice === "number")
+        filter.price.$lte = options!.maxPrice;
     }
-    if (typeof options?.bedrooms === "number") filter.bedrooms = options!.bedrooms;
-    if (typeof options?.bathrooms === "number") filter.bathrooms = options!.bathrooms;
+    if (typeof options?.bedrooms === "number")
+      filter.bedrooms = options!.bedrooms;
+    if (typeof options?.bathrooms === "number")
+      filter.bathrooms = options!.bathrooms;
 
     if (options?.near) {
       const [lngStr, latStr] = String(options.near).split(",");
@@ -452,13 +528,17 @@ export const ResidentialPropertyService = {
     }
 
     const sort: any = {};
-    if (options?.sortBy) sort[options.sortBy] = options.sortOrder === "asc" ? 1 : -1;
+    if (options?.sortBy)
+      sort[options.sortBy] = options.sortOrder === "asc" ? 1 : -1;
     else sort.createdAt = -1;
     const [items, total] = await Promise.all([
       Residential.find(filter).sort(sort).skip(skip).limit(limit).lean().exec(),
       Residential.countDocuments(filter).exec(),
     ]);
-    return { items: items as any[], meta: { total, page, limit, pages: Math.ceil(total / limit) } };
+    return {
+      items: items as any[],
+      meta: { total, page, limit, pages: Math.ceil(total / limit) },
+    };
   },
 
   async delete(id: string) {
@@ -488,13 +568,14 @@ export const ResidentialPropertyService = {
 
   async incrementViews(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    await Residential.findByIdAndUpdate(id, { $inc: { "meta.views": 1 } }).exec();
+    await Residential.findByIdAndUpdate(id, {
+      $inc: { "meta.views": 1 },
+    }).exec();
     return null;
   },
 
   model: Residential,
-  getPipeline: getResidentialPipeline
+  getPipeline: getResidentialPipeline,
 };
-
 
 export default ResidentialPropertyService;

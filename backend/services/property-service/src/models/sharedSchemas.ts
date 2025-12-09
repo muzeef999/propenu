@@ -126,7 +126,7 @@ export const BaseFields = {
   title: { type: String, required: true, trim: true },
   slug: { type: String, required: true, unique: true, trim: true },
   listingType: { type: String, enum: ['sale', 'rent', 'lease'], default: 'sale', index: true, required: true },
-  listingSource: {  type: String, enum: ['owner', 'agent', 'builder', 'admin'],index: true, required: true},
+  listingSource: {  type: String, required: true, trim: true},
   address: { type: String, required: true },
   description : {type: String, required: true},
   city: { type: String, index: true },

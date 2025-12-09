@@ -27,8 +27,8 @@ export interface IBaseListing {
   address?: string;
   city?: string;
   listingType: 'sale' | 'rent' | 'lease';
-  listingSource?: 'owner' | 'agent' | 'builder' | 'admin';
-  pincode?: string;
+  listingSource?: string;
+  pincode?: string;  
   state?: string;
  createdBy?: Types.ObjectId;
 }
