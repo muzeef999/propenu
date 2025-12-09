@@ -306,11 +306,11 @@ export type SearchItem = {
 };
 
 export type SearchFilters = {
+  filter?: any;
   propertyType?: string;
-  q?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  city?: string;
   sort?: string;
-  // add other fields as needed
+  batchSize?: number;
+  page?: number;
+  skip?: number;
+  options?: any;
 };

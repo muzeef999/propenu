@@ -575,7 +575,15 @@ export const ResidentialPropertyService = {
   },
 
   model: Residential,
-  getPipeline: getResidentialPipeline,
+  
+   getPipeline(filters: SearchFilters) {
+    const matchObj: any = (filters as any).filter ?? filters ?? {};
+
+    return [
+      { $match: matchObj }
+    ];
+  }
+
 };
 
 export default ResidentialPropertyService;
