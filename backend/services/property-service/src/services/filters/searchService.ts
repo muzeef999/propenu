@@ -1,9 +1,9 @@
 // src/services/search.service.ts
-import { PropertyType, SearchFilters } from "../types/searchResultItem";
-import AgriculturalService from "./agriculturalServices";
-import CommercialService from "./commercialService";
-import LandService from "./landService";
-import ResidentialPropertyService from "./residentialServices";
+import { PropertyType, SearchFilters } from "../../types/searchResultItem";
+import AgriculturalService from "../agriculturalServices";
+import CommercialService from "../commercialService";
+import LandService from "../landService";
+import ResidentialPropertyService from "../residentialServices";
 
 type ServiceObj = { model: any; getPipeline: (filters: SearchFilters) => any[] };
 
