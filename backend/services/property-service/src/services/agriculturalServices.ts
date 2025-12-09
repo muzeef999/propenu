@@ -7,7 +7,8 @@ import Agricultural from "../models/agriculturalModel";
 import { buildCommonMatch } from "../utils/filterBuilder";
 import { SearchFilters } from "../types/searchResultItem";
 
-dotenv.config();
+dotenv.config({ quiet: true });
+
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
 

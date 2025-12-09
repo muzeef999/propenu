@@ -6,8 +6,8 @@ import Commercial from "../models/commercialModel";
 import { SearchFilters } from "../types/searchResultItem";
 import { buildCommonMatch } from "../utils/filterBuilder";
 import { title } from "process";
+dotenv.config({ quiet: true });
 
-dotenv.config();
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
 

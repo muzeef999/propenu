@@ -6,7 +6,8 @@ import LandPlot from "../models/landModel";
 import { SearchFilters } from "../types/searchResultItem";
 import { buildCommonMatch } from "../utils/filterBuilder";
 
-dotenv.config();
+dotenv.config({ quiet: true });
+
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
 

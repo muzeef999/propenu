@@ -1,13 +1,8 @@
 import express from "express";
 import dotenv from "dotenv";
-import { seedPlans } from "./routes/seedsRoute";
-import { connectDB } from "./config/db";
-import { json, raw } from "express";
-import { subscribe } from "./controller/subscribeController";
-import { razorpayWebhook } from "./controller/webhookController";
 
+dotenv.config({ quiet: true });
 
-dotenv.config();
 
 const app = express();
 app.use(express.json());
@@ -16,12 +11,6 @@ const PORT = process.env.PORT ?? 4002;
 
 async function start() {
   try {
-    await connectDB();
-
-    app.use("/api/payment", subscribe);
-
-    app.use("/api/payment/webhook", express.raw({ type: "application/json" }));
-    app.use("/api/payment/webhook", razorpayWebhook);
 
 
     app.get("/", (req, res) => {
@@ -29,7 +18,6 @@ async function start() {
     });
 
 
-    app.use("/api/payment/seeds", seedPlans);
 
 
     app.listen(Number(PORT), "0.0.0.0", () => {

@@ -41,15 +41,8 @@ const ResidentialSchema = new Schema<IResidential>(
     smartHomeFeatures: { type: [String], default: [] },
     parkingDetails: { visitorParking: Boolean, twoWheeler: Number, fourWheeler: Number },
     possessionVerified: { type: Boolean, default: false },
-
-    propertyType: {
-          type: String,
-          enum: RESIDENTIAL_PROPERTY_TYPES,
-        },
-        propertySubType: {
-          type: String,
-          enum: RESIDENTIAL_PROPERTY_SUBTYPES,
-        },
+    propertyType: { type: String, enum: RESIDENTIAL_PROPERTY_TYPES},
+    propertySubType: { type: String, enum: RESIDENTIAL_PROPERTY_SUBTYPES},
   },
   { timestamps: true }
 );

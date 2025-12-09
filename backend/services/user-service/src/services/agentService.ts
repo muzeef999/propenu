@@ -5,7 +5,8 @@ import s3 from "../config/s3";
 import Agent from "../models/agentModel";
 import { CreateAgentDTO, UpdateAgentDTO } from "../zod/validation";
 
-dotenv.config();
+dotenv.config({ quiet: true });
+
 
 type MulterFiles = {  avatar?: Express.Multer.File[];  coverImage?: Express.Multer.File[];} | undefined;
 

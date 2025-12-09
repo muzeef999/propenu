@@ -4,7 +4,8 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import cors from "cors";
 
-dotenv.config();
+dotenv.config({ quiet: true });
+
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 4000);

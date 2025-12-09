@@ -10,7 +10,8 @@ import landRoutes from "./routes/landRoute";
 import agriculturalRoutes from "./routes/agriculturalRoute";
 import searchRoute from "./routes/searchRoute";
 
-dotenv.config();
+dotenv.config({ quiet: true });
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

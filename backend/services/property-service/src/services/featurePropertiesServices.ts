@@ -6,7 +6,7 @@ import FeaturedProject from "../models/featurePropertiesModel";
 import { CreateFeaturePropertyDTO, UpdateFeaturePropertyDTO } from "../zod/validation";
 import dotenv from "dotenv";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 /**
  * Utility types for Multer files

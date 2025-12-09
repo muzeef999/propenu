@@ -6,11 +6,9 @@ import agentRoute from './routes/agentRoute';
 import nominatimRoute from './routes/nominatimRoute';
 import  seedRolesRoute from './routes/seedRolesRoute';
 
+dotenv.config({ quiet: true });
 
-dotenv.config();
 
-
-dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

@@ -120,7 +120,7 @@ const OwnerPropertySchema = new Schema<IOwnerPropertyDoc>(
     interiorDetails: Schema.Types.Mixed,
     nearby: Schema.Types.Mixed,
 
-    amenities: [{ type: String, index: true }],
+    amenities: [{ type: String }],
 
     legalCertification: [LegalSchema],
 
@@ -152,7 +152,6 @@ OwnerPropertySchema.index({ category: 1, subcategory: 1, price: 1 });
 OwnerPropertySchema.index({ availabilityStatus: 1, price: 1 });
 OwnerPropertySchema.index({ bedrooms: 1, price: 1 });
 OwnerPropertySchema.index({ amenities: 1 });
-OwnerPropertySchema.index({ "ownerDetails.ownerId": 1 });
 
 /* ----------------------------------------
    Model Export

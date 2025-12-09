@@ -49,8 +49,6 @@ export function sanitizeSearchFilters(req: RequestQuery<ResidentialQuery>): Sear
     ...(options ? { options } : {}),
   };
 
-  // debug log: pipeline & filters
-  // console.debug("sanitizeSearchFilters -> SearchFilters:", JSON.stringify(sf, null, 2));
 
   return sf;
 }

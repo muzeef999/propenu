@@ -2,7 +2,8 @@ import AWS from 'aws-sdk';
 import dotenv from "dotenv";
 
 
-dotenv.config();
+dotenv.config({ quiet: true });
+
 
 const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION } = process.env;
 
