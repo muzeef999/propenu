@@ -34,6 +34,9 @@ export interface IGalleryItem {
   url: string;
   category?: string;
   order?: number;
+  fileName:string,
+  key: String,           
+  mimetype: String , 
 }
 
 export interface IAmenity {

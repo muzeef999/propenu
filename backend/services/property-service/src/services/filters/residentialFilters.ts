@@ -29,15 +29,23 @@ export function extendResidentialFilters(
   const maxPricePerSqft = parseNumber(q.maxPricePerSqft);
 
   // exact numeric fields
-  if (bhk !== undefined) f.bhk = bhk;
-  if (bedrooms !== undefined) f.bedrooms = bedrooms;
+  if (bhk !== undefined) {
+    f.bhk = bhk;
+    if (typeof f.bedrooms === "undefined") f.bedrooms = bhk;
+  }
+  if (bedrooms !== undefined) {
+    f.bedrooms = bedrooms;
+    if (typeof f.bhk === "undefined") f.bhk = bedrooms;
+  }
   if (bathrooms !== undefined) f.bathrooms = bathrooms;
 
-  // bedrooms range (min/maxBedrooms) -> store as bedrooms.$gte / $lte if you want
+  // bedrooms range (min/maxBedrooms) -> store as bedrooms.$gte / $lte
   if (minBedrooms !== undefined || maxBedrooms !== undefined) {
     f.bedrooms = f.bedrooms ?? {};
     if (minBedrooms !== undefined) f.bedrooms.$gte = minBedrooms;
     if (maxBedrooms !== undefined) f.bedrooms.$lte = maxBedrooms;
+    // mirror the shape to bhk as well for compatibility
+    if (typeof f.bhk === "undefined") f.bhk = f.bedrooms;
   }
 
   // carpet area -> carpetArea.$gte / $lte
@@ -47,7 +55,7 @@ export function extendResidentialFilters(
     if (maxCarpet !== undefined) f.carpetArea.$lte = maxCarpet;
   }
 
-  // price -> price.$gte / $lte (important: use the actual DB field name)
+  // price -> price.$gte / $lte
   if (minPrice !== undefined || maxPrice !== undefined) {
     f.price = f.price ?? {};
     if (minPrice !== undefined) f.price.$gte = minPrice;
@@ -64,7 +72,6 @@ export function extendResidentialFilters(
   if (furnishing) f.furnishing = furnishing;
   if (parkingCount !== undefined) f.parkingCount = parkingCount;
   if (propertyTypeRaw) {
-    // leave propertyType as raw string here — the pipeline will decide $in vs equality
     f.propertyType = propertyTypeRaw;
   }
 

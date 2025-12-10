@@ -14,13 +14,7 @@ import {
 } from '../types/featurePropertiesTypes';
 
 export interface IFeaturedProjectDocument extends IFeaturedProject, Document {}
-export interface ILeadDocument extends ILead, Document {
-  projectId: Types.ObjectId;
-}
-
-/* ------------------------
-   Sub-schemas
-   ------------------------ */
+export interface ILeadDocument extends ILead, Document {  projectId: Types.ObjectId;}
 
    const UnitSchema = new Schema(
   {
@@ -53,7 +47,10 @@ const GallerySummarySchema = new Schema<IGalleryItem>(
     title: { type: String },
     url: { type: String, required: true },
     category: { type: String },
+    fileName:{type:String},
     order: { type: Number, default: 0 },
+     key: { type: String },          
+    mimetype: { type: String }, 
   },
   { _id: false }
 );
@@ -143,22 +140,19 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     slug: { type: String, required: true, unique: true, trim: true },
     logo: {type:LogoSchema},
     
-    developer: { type: Schema.Types.ObjectId, ref: 'builders' },
-
-    // hero
     heroImage: { type: String },
     heroVideo: { type: String },
     heroTagline: { type: String },
     heroSubTagline: { type: String },
     heroDescription: { type: String },
 
-    // SEO / branding
+    
     color: { type: String },
     metaTitle: { type: String },
     metaDescription: { type: String },
     metaKeywords: { type: String },
 
-    // address & geo
+    
     address: { type: String, required: true },
     city: { type: String, index: true },
     location: {
@@ -167,7 +161,7 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     },
     mapEmbedUrl: { type: String },
 
-    // pricing / bhk
+    
     currency: { type: String, default: 'INR' },
     priceFrom: { type: Number, index: true },
     priceTo: { type: Number, index: true },
@@ -178,85 +172,53 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
       max: { type: Number },
     },
 
-    // timeline & counts
+  
     possessionDate: { type: String },
     totalTowers: { type: Number },
     totalFloors: { type: String },
     projectArea: { type: Number },
     totalUnits: { type: Number },
     availableUnits: { type: Number },
-
-    // legal / banks
     reraNumber: { type: String },
     banksApproved: { type: [String] },
-
-    // media & gallery
     gallerySummary: { type: [GallerySummarySchema] },
-
     aboutSummary : {type: [AboutSummarySchema]},
-
     brochureUrl: { type: String },
     brochureFileName: { type: String },
-
-    // specifications & amenities
     specifications: { type: [SpecificationSchema] },
     amenities: { type: [AmenitySchema] },
-
-    // nearby places
     nearbyPlaces: { type: [NearbyPlaceSchema] },
-
-    // embedded leads (small volume)
     leads: { type: [LeadSchema] },
-
-    // flags & meta
     isFeatured: { type: Boolean, default: false, index: true },
     rank: { type: Number, default: 1, index: true },
-
     meta: {
       views: { type: Number, default: 0 },
       inquiries: { type: Number, default: 0 },
       clicks: { type: Number, default: 0 },
     },
-
     status: { type: String, enum: ['active', 'inactive', 'archived'], default: 'active', index: true },
-
-    // audit
-    createdBy: { type: Schema.Types.ObjectId, ref: 'User', index: true },
-    updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
-
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required:true, index: true },
+    updatedBy: { type: Schema.Types.ObjectId, ref: 'User',  },
     relatedProjects: { type: [Schema.Types.ObjectId], ref: 'featuredProject', },
   },
   { timestamps: true }
 );
 
-/* -------------------------
-   Indexes (recommended)
-   ------------------------- */
-
-// text index for search across title/address/city
 FeaturePropertySchema.index({ title: 'text', address: 'text', city: 'text' }, { name: 'Idx_Text_Search' });
 
-// single-field index for boolean featured flag (fast filter)
 FeaturePropertySchema.index({ isFeatured: 1 }, { name: 'Idx_IsFeatured' });
 
-// compound index: filter by isFeatured + status, then sort by rank desc and createdAt desc
 FeaturePropertySchema.index(
   { isFeatured: 1, status: 1, rank: -1, createdAt: -1 },
   { name: 'Idx_Featured_Status_Rank_CreatedAt' }
 );
 
-// compound index: featured by city + rank (use when filtering by city)
 FeaturePropertySchema.index({ isFeatured: 1, city: 1, rank: -1 }, { name: 'Idx_Featured_City_Rank' });
 
-// price range index to help range queries (min/max price)
 FeaturePropertySchema.index({ priceFrom: 1, priceTo: 1 }, { name: 'Idx_PriceRange' });
 
-// geospatial index (ensure coordinates exist as [lng, lat])
 FeaturePropertySchema.index({ 'location.coordinates': '2dsphere' }, { name: 'Idx_Location_2dsphere' });
 
-/* -------------------------
-   Hooks
-   -------------------------*/
 FeaturePropertySchema.pre<IFeaturedProjectDocument>('validate', function (next) {
   if (!this.slug && this.title) {
     this.slug = String(this.title)
@@ -311,8 +273,6 @@ FeaturePropertySchema.pre<IFeaturedProjectDocument>('save', function (next) {
       this.priceTo = undefined;
     }
   } catch (e) {
-    // if anything goes wrong, don't block save — log and continue
-    // eslint-disable-next-line no-console
     console.warn('Error computing priceFrom/priceTo:', e);
   }
   next();
