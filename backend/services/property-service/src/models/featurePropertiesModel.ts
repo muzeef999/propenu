@@ -7,7 +7,7 @@ import {
   IFeaturedProject,
   IGalleryItem,
   ILead,
-  ILogo,
+  ILogo, 
   INearbyPlace,
   ISpecification,
   ISpecItem,
