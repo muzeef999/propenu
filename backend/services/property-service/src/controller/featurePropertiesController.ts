@@ -69,6 +69,34 @@ export const getAllFeatureProperties = async (req: Request, res: Response) => {
   }
 };
 
+export const getCityFeatureProperties = async(req: Request, res: Response) => {
+  try {
+  const city = req.query.city as string;
+
+    if (!city) {
+      return res.status(400).json({ error: "city query param is required" });
+    }
+
+    const result = await FeaturePropertyService.getFeaturesByCity(city);
+    return res.json(result);
+  
+  }catch(err:any) {
+     console.error("getAllFeatureProperties:", err);
+    return res.status(500).json({ error: err.message || "Internal server error" });
+  }
+}
+
+
+
+export const getSearchFeatureProperties = async(req: Request, res: Response) => {
+  try {
+
+  }catch(err:any) {
+     console.error("getAllFeatureProperties:", err);
+    return res.status(500).json({ error: err.message || "Internal server error" });
+  }
+}
+
 export const getFeatureBySlug = async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;

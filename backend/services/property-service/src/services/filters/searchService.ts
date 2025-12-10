@@ -5,7 +5,7 @@ import CommercialService from "../commercialService";
 import LandService from "../landService";
 import ResidentialPropertyService from "../residentialServices";
 
-type ServiceObj = { model: any; getPipeline: (filters: SearchFilters) => any[] };
+type ServiceObj = { model: any; getPipeline: (filters: SearchFilters | any) => any[] };
 
 const TYPE_MAP: Record<PropertyType, ServiceObj> = {
   Residential: ResidentialPropertyService as unknown as ServiceObj,
@@ -24,11 +24,15 @@ function normalizeTypes(propertyTypeQuery?: string): PropertyType[] {
  * This handles differences between Mongoose versions & driver cursors.
  */
 export default async function buildSearchCursor(
-  filters: SearchFilters,
+  filters: SearchFilters | any,
   batchSize = 50,
   useEstimatePrimary = false
 ): Promise<AsyncIterableIterator<any>> {
-  const selected = normalizeTypes(filters.propertyType);
+  // Defensive unwrap: whether caller passes { filter: {...}, ... } or a raw filter object
+  const inner = (filters as any)?.filter ?? filters ?? {};
+
+  // normalize property type list from either wrapper or inner
+  const selected = normalizeTypes((filters as any)?.propertyType ?? (inner as any)?.propertyType);
   if (selected.length === 0) throw new Error("No property types selected");
 
   const primaryType = selected[0]!; // safe after check
@@ -37,7 +41,7 @@ export default async function buildSearchCursor(
 
   // Build pipeline: primary pipeline + $unionWith others
   const pipeline: any[] = [];
-  pipeline.push(...primaryService.getPipeline(filters));
+  pipeline.push(...primaryService.getPipeline(inner));
 
   for (const t of selected) {
     if (t === primaryType) continue;
@@ -46,20 +50,22 @@ export default async function buildSearchCursor(
     pipeline.push({
       $unionWith: {
         coll: svc.model.collection.name,
-        pipeline: svc.getPipeline(filters),
+        pipeline: svc.getPipeline(inner),
       },
     });
   }
 
   // Global sort
   let sortStage: any = { createdAt: -1 };
-  if (filters.sort === "price_asc") sortStage = { price: 1 };
-  else if (filters.sort === "price_desc") sortStage = { price: -1 };
+  if ((filters as any)?.sort === "price_asc" || (inner as any)?.sort === "price_asc") sortStage = { price: 1 };
+  else if ((filters as any)?.sort === "price_desc" || (inner as any)?.sort === "price_desc") sortStage = { price: -1 };
   pipeline.push({ $sort: sortStage });
 
-  // Debug logs — helpful during development. Remove or lower-level in prod.
-  // console.log("searchService.buildSearchCursor - selected:", selected);
-  // console.log("searchService.buildSearchCursor - pipeline:", JSON.stringify(pipeline, null, 2));
+  // Dev log: show final pipeline (remove in prod)
+  if (process.env.NODE_ENV !== "production") {
+    console.log("DEBUG searchService.buildSearchCursor - selected:", selected);
+    console.log("DEBUG searchService.buildSearchCursor - pipeline:", JSON.stringify(pipeline, null, 2));
+  }
 
   // --- Create cursor robustly ---
   try {
@@ -113,10 +119,7 @@ export default async function buildSearchCursor(
 
     throw new Error("Unable to create an async iterable cursor from aggregate()");
   } catch (err) {
-  console.error("buildSearchCursor error creating cursor:", (err as any)?.stack ?? (err as any)?.message ?? err);
-  throw err;
+    console.error("buildSearchCursor error creating cursor:", (err as any)?.stack ?? (err as any)?.message ?? err);
+    throw err;
+  }
 }
-
-}
-
-
