@@ -27,9 +27,7 @@ async function start() {
         app.use('/api/users/auth', authRoute);
         app.use("/api/users/agent", agentRoute);
         // app.use("/api/users/builder", builderRouter);
-        app.use("/api/users/locations", nominatimRoute);
-
-
+        app.use("/api/users/location", nominatimRoute);
         app.use("/api/users/seeds", seedRolesRoute);
 
 
