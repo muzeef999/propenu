@@ -133,7 +133,7 @@ const SearchBox = () => {
             <ul className="absolute top-full mt-2 left-0 w-full bg-white border rounded-xl shadow-lg max-h-64 overflow-y-auto text-sm z-[9999]">
               {results.map((item) => (
                 <li
-                  key={item.id}
+                  key={item._id}
                   onClick={() => handleSelect(item)}
                   className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                 >

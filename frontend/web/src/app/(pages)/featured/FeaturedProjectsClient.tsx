@@ -15,7 +15,7 @@ interface Props {
 export default function FeaturedProjectsClient({ items = [] }: Props) {
   const sliderRef = useRef<HTMLDivElement | null>(null);
 
-  const { city, popular, normal, setCity } = useCity();
+  const { city } = useCity();
 
   const scrollLeft = () =>
     sliderRef.current?.scrollBy({
