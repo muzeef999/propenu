@@ -72,6 +72,10 @@ const Navbar = () => {
     };
   }, []);
 
+  const popularCities = locations.filter(
+    (loc) => loc.category?.toLowerCase() === "popular"
+  );
+
   // Group cities by state
   const groupedByState = locations.reduce(
     (acc: Record<string, LocationItem[]>, loc) => {
@@ -118,12 +122,21 @@ const Navbar = () => {
                 {/* CityDropdown is your existing component */}
                 <div className="relative w-full md:w-auto">
                   <FilterDropdown
+                    open={open}
+                    onOpenChange={(next) => setOpen(next)}
                     triggerLabel={
-                      <div className="flex bg-primary">
-                        <LocationIcon size={18} />
-                        <span className="min-w-[90px] text-left">
+                      <div className="flex gap-1 items-center justify-center">
+                        <LocationIcon size={18} color="#27AE60" />
+                        <span className="min-w-[90px] text-primary text-left">
                           {city?.name ?? "Hyderabad"}
                         </span>
+                        <ArrowDropdownIcon
+                          size={12} 
+                          color="#27AE60"
+                          className={`transition-transform duration-200 ${
+                            open ? "rotate-180" : "rotate-0"
+                          }`}
+                        />
                       </div>
                     }
                     width="w-[800px]"
@@ -131,10 +144,21 @@ const Navbar = () => {
                     openOnHover={true}
                     renderContent={(close) => (
                       <div>
-                        <h4 className="text-sm font-semibold mb-2">
+                        <h3 className="text-xl font-semibold text-black mb-1 mt-3  tracking-wide">
                           Popular cities
-                        </h4>
-                        <div className="flex gap-2 flex-wrap text-primary">
+                        </h3>
+                        <div className="flex flex-wrap text-primary">
+                          {popularCities.map((i) => (
+                            <div
+                              onClick={() => {
+                                onSelect(i);
+                                close?.();
+                              }}
+                              className="flex flex-col text-gray-600 cursor-pointer px-3 py-2  items-center justify-between"
+                            >
+                              <div className="font-regular">{i.name}</div>
+                            </div>
+                          ))}
                           {Object.entries(groupedByState).map(
                             ([stateName, cities]) => (
                               <div key={stateName} className="w-full">
