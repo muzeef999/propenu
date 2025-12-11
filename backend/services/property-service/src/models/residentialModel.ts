@@ -32,6 +32,7 @@ const ResidentialSchema = new Schema<IResidential>(
     floorNumber: Number,
     totalFloors: Number,
     facing: String,
+    
     constructionStatus: { type: String, enum: ['ready-to-move', 'under-construction'] },
     possessionDate: Date,
     maintenanceCharges: Number,

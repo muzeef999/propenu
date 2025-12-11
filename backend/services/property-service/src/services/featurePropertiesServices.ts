@@ -814,6 +814,7 @@ export const FeaturePropertyService = {
 
     const filter = {
       city: { $regex: `^${cleanCity}$`, $options: "i" },
+      isFeatured: false,
     };
 
     const items = await FeaturedProject.find(filter)
@@ -865,6 +866,32 @@ export const FeaturePropertyService = {
     };
   },
 
+
+  async getHighlightByCity(city: string) {
+
+    const cleanCity = city.trim();
+
+    const filter = {
+      city: { $regex: `^${cleanCity}$`, $options: "i" },
+      isFeatured: true,
+    };
+
+    const items = await FeaturedProject.find(filter)
+      .select({
+        title: 1,
+        heroImage: 1,
+        priceFrom: 1,
+        priceTo: 1,
+        slug: 1, // optional → useful for FE navigation
+      })
+      .lean();
+
+    return {
+      city: cleanCity,
+      total: items.length,
+      items,
+    };
+  },
   
 
   

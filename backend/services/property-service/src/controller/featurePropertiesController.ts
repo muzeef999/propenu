@@ -87,6 +87,23 @@ export const getAllHighlightProjects = async (req: Request, res: Response) => {
   }
 };
 
+export const getCityHighlightProperties = async(req: Request, res: Response) => {
+  try {
+  const city = req.query.city as string;
+
+    if (!city) {
+      return res.status(400).json({ error: "city query param is required" });
+    }
+
+    const result = await FeaturePropertyService.getHighlightByCity(city);
+    return res.json(result);
+  
+  }catch(err:any) {
+     console.error("getAllFeatureProperties:", err);
+    return res.status(500).json({ error: err.message || "Internal server error" });
+  }
+}
+
 
 export const getCityFeatureProperties = async(req: Request, res: Response) => {
   try {

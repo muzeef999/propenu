@@ -146,6 +146,8 @@ export const BaseFields = {
   legalChecks: { type: LegalChecksSchema },
   isFeatured: { type: Boolean, default: false, index: true },
   rank: { type: Number, default: 1, index: true },
+  banksApproved: {  type: [String],default: [],},
+
   meta: {
     views: { type: Number, default: 0 },
     inquiries: { type: Number, default: 0 },
