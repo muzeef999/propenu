@@ -480,6 +480,35 @@ export const FeaturePropertyService = {
     return { items, meta: { total, page, limit, pages: Math.ceil(total / limit) } };
   },
 
+
+  async getAllHightProjects(options?: {
+    page?: number;
+    limit?: number;
+    q?: string;
+    status?: string;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+  }) {
+    const page = Math.max(1, options?.page ?? 1);
+    const limit = Math.min(100, options?.limit ?? 20);
+    const skip = (page - 1) * limit;
+    const filter: any = {};
+    if (options?.q) filter.$text = { $search: options.q };
+    if (options?.status) filter.status = options.status;
+          filter.isFeatured = true;   // <-- THIS IS WHERE YOU ADDED IT
+
+    const sort: any = {};
+    if (options?.sortBy) sort[options.sortBy] = options.sortOrder === "asc" ? 1 : -1;
+    else sort.createdAt = -1;
+    const [items, total] = await Promise.all([
+      FeaturedProject.find(filter).sort(sort).skip(skip).limit(limit).exec(),
+      FeaturedProject.countDocuments(filter).exec(),
+    ]);
+    return { items, meta: { total, page, limit, pages: Math.ceil(total / limit) } };
+  },
+
+
+
   async deleteFeatureProperty(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
     // fetch existing doc so we can remove stored S3 objects (plans, optional hero/gallery keys)

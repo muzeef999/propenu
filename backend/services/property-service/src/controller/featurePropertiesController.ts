@@ -69,6 +69,25 @@ export const getAllFeatureProperties = async (req: Request, res: Response) => {
   }
 };
 
+export const getAllHighlightProjects = async (req: Request, res: Response) => {
+  try {
+    const { page, limit, q, status, sortBy, sortOrder } = req.query;
+    const options: any = {};
+    if (typeof page === "string") options.page = Number(page);
+    if (typeof limit === "string") options.limit = Number(limit);
+    if (typeof q === "string") options.q = q;
+    if (typeof status === "string") options.status = status;
+    if (typeof sortBy === "string") options.sortBy = sortBy;
+    options.sortOrder = sortOrder === "asc" ? "asc" : "desc";
+    const result = await FeaturePropertyService.getAllHighlightProjects(options);
+    return res.json(result);
+  } catch (err: any) {
+    console.error("getAllFeatureProperties:", err);
+    return res.status(500).json({ error: err.message || "Internal server error" });
+  }
+};
+
+
 export const getCityFeatureProperties = async(req: Request, res: Response) => {
   try {
   const city = req.query.city as string;
