@@ -352,6 +352,49 @@ export const FeaturePropertyService = {
       // toCreate.heroVideoKey = up.key;
     }
 
+    // BROCHURE (single PDF)  <-- PASTE STARTS HERE
+    const brochureFiles = files?.brochure;
+    if (brochureFiles && brochureFiles.length > 0) {
+      const bf = brochureFiles[0] as Express.Multer.File;
+
+      // 1) Basic validations (adjust as needed)
+      const allowedMimeTypes = ["application/pdf"];
+      const maxSizeBytes = 5 * 1024 * 1024; // 5 MB
+
+      if (!allowedMimeTypes.includes(bf.mimetype)) {
+        throw new Error("Brochure must be a PDF (application/pdf)");
+      }
+      if (bf.size && bf.size > maxSizeBytes) {
+        throw new Error("Brochure file too large (max 8MB)");
+      }
+
+      // 2) Upload to S3 (using your existing uploadFile util)
+      const up = await uploadFile({
+        buffer: bf.buffer,
+        originalName: bf.originalname,
+        mimetype: bf.mimetype,
+        folder: "brochures", // folder/key prefix you want
+        propertyId: propId, // optional, your upload util accepts it elsewhere
+      });
+
+      // 3) Save metadata into create payload
+      toCreate.brochure = {
+        url: up.url, // publicly accessible URL returned by uploadFile
+        key: up.key, // S3 key (used for deletions later)
+        filename: bf.originalname,
+        mimetype: bf.mimetype,
+      };
+    } else if ((payload as any).brochureUrl) {
+      // optional: client sent an external URL instead of uploading file
+      toCreate.brochure = {
+        url: (payload as any).brochureUrl,
+        key: undefined,
+        filename: undefined,
+        mimetype: undefined,
+      };
+    }
+    // BROCHURE block <-- PASTE ENDS HERE
+
     // GALLERY FILES (multiple)
     const galleryFiles = files?.galleryFiles ?? [];
     // incoming gallerySummary might be provided in payload (metadata)
@@ -767,27 +810,27 @@ export const FeaturePropertyService = {
   },
 
   async getFeaturesByCity(city: string) {
-  const cleanCity = city.trim();
+    const cleanCity = city.trim();
 
-  const filter = {
-    city: { $regex: `^${cleanCity}$`, $options: "i" }, 
-  };
+    const filter = {
+      city: { $regex: `^${cleanCity}$`, $options: "i" },
+    };
 
-const items = await FeaturedProject.find(filter)
-    .select({
-      title: 1,
-      heroImage: 1,
-      priceFrom: 1,
-      priceTo: 1,
-      slug: 1,         // optional → useful for FE navigation
-    })
-    .lean();
+    const items = await FeaturedProject.find(filter)
+      .select({
+        title: 1,
+        heroImage: 1,
+        priceFrom: 1,
+        priceTo: 1,
+        slug: 1, // optional → useful for FE navigation
+      })
+      .lean();
 
-     return {
-    city: cleanCity,
-    total: items.length,
-    items,
-  };
+    return {
+      city: cleanCity,
+      total: items.length,
+      items,
+    };
   },
 
   // async getFeaturesBySearch(q) {

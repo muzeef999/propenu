@@ -1,4 +1,4 @@
-import mongoose, { Document, Model, Types } from 'mongoose';
+import mongoose, { Document, Model, Types } from "mongoose";
 
 export interface IBhkPlan {
   url?: string;
@@ -14,19 +14,18 @@ export interface ILogo {
   mimetype?: string;
 }
 
-export interface IBhkUnit {      
-  minSqft?: number;                  
-  price?: number;          
-  maxPrice?: number;        
-  availableCount?: number;  
-  plan?: IBhkPlan;          
+export interface IBhkUnit {
+  minSqft?: number;
+  price?: number;
+  maxPrice?: number;
+  availableCount?: number;
+  plan?: IBhkPlan;
 }
 
 export interface IBhkSummary {
   bhk: number;
   bhkLabel?: string;
   units?: IBhkUnit[];
-
 }
 
 export interface IGalleryItem {
@@ -34,9 +33,9 @@ export interface IGalleryItem {
   url: string;
   category?: string;
   order?: number;
-  fileName:string,
-  key: String,           
-  mimetype: String , 
+  fileName: string;
+  key: String;
+  mimetype: String;
 }
 
 export interface IAmenity {
@@ -45,15 +44,21 @@ export interface IAmenity {
   description?: string;
 }
 
-export interface IAboutSummary {
-  aboutDescription?: string;
-  url?: string;          
-  rightContent?: string;  
-  key?: string;          
-  filename?: string;     
-  mimetype?: string;     
+export interface Ibrochure {
+  key?: string;
+  url?: string;
+  filename?: String,
+  mimetype?: String,
 }
 
+export interface IAboutSummary {
+  aboutDescription?: string;
+  url?: string;
+  rightContent?: string;
+  key?: string;
+  filename?: string;
+  mimetype?: string;
+}
 
 export interface ISpecItem {
   title?: string;
@@ -82,7 +87,6 @@ export interface ILead {
   createdAt?: Date;
 }
 
-
 export interface IFeaturedProject {
   // basic
   title: string;
@@ -100,28 +104,27 @@ export interface IFeaturedProject {
   heroDescription?: string;
 
   // SEO / branding
-  color?: string;             // hex e.g. '#000'
+  color?: string; // hex e.g. '#000'
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string;
-
 
   // address & geo
   address: string;
   city?: string;
   location?: {
-    type: 'Point';
+    type: "Point";
     // [lng, lat]
     coordinates: [number, number] | number[];
   };
   mapEmbedUrl?: string;
 
-    aboutSummary?: IAboutSummary;
+  aboutSummary?: IAboutSummary;
 
   // pricing / bhk
-  currency?: string;  // default: 'INR'
+  currency?: string; // default: 'INR'
   priceFrom?: number; // computed
-  priceTo?: number;   // computed
+  priceTo?: number; // computed
   bhkSummary: IBhkSummary[];
   sqftRange?: { min?: number; max?: number };
 
@@ -139,9 +142,7 @@ export interface IFeaturedProject {
 
   // media & gallery
   gallerySummary: IGalleryItem[];
-  brochureUrl?: string;
-  brochureFileName?: string;
-
+  brochure: Ibrochure;
   // specifications & amenities
   specifications: ISpecification[];
   amenities: IAmenity[];
@@ -162,9 +163,8 @@ export interface IFeaturedProject {
   };
 
   // status & audit
-  status?: 'active' | 'inactive' | 'archived';
+  status?: "active" | "inactive" | "archived";
   createdBy?: Types.ObjectId | string;
   updatedBy?: Types.ObjectId | string;
   relatedProjects?: Array<Types.ObjectId | string>;
 }
-

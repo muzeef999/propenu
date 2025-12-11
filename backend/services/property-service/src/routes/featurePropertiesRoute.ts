@@ -31,6 +31,7 @@ const cpUpload = upload.fields([
   { name: "bhkPlanFiles", maxCount: 12 },
   { name: "aboutImage", maxCount: 1 },
   { name: "logo", maxCount: 1 },
+    { name: "brochure", maxCount: 1 }, 
 ]);
 
 const jsonKeys = [

@@ -4,6 +4,7 @@ import {
   IAboutSummary,
   IAmenity,
   IBhkSummary,
+  Ibrochure,
   IFeaturedProject,
   IGalleryItem,
   ILead,
@@ -65,6 +66,15 @@ const AboutSummarySchema = new Schema<IAboutSummary>(
     mimetype: { type: String },
   },
   { _id: false }
+);
+
+const brochureSchema = new Schema<Ibrochure>(
+  {
+  key: {type : String},
+  url: {type : String},
+  filename: { type: String },
+  mimetype: { type: String },
+  }, { _id: false }
 );
 
 const AmenitySchema = new Schema<IAmenity>(
@@ -183,8 +193,7 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     banksApproved: { type: [String] },
     gallerySummary: { type: [GallerySummarySchema] },
     aboutSummary : {type: [AboutSummarySchema]},
-    brochureUrl: { type: String },
-    brochureFileName: { type: String },
+    brochure: { type:  brochureSchema,default: null },
     specifications: { type: [SpecificationSchema] },
     amenities: { type: [AmenitySchema] },
     nearbyPlaces: { type: [NearbyPlaceSchema] },

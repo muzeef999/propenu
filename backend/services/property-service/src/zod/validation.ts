@@ -22,6 +22,14 @@ export const BhkSummarySchemaZ = z.object({
   units: z.array(UnitZ).optional(),
 });
 
+export const BrochureSchema = z.object({
+  key: z.string().optional(),
+  url: z.string().url().optional(),
+  filename: z.string().optional(),
+  mimetype: z.string().optional()
+}).optional();
+
+
 export const AboutSummaryZ = z.object({
   aboutDescription: z.string().optional(),
   url: z.string().url("Invalid URL format").optional(),
@@ -124,8 +132,7 @@ export const CreateFeaturePropertySchema = z.object({
   metaDescription: z.string().optional(),
   metaKeywords: z.string().optional(),
   gallerySummary: z.array(GallerySummarySchema).optional().default([]),
-  brochureUrl: z.string().url().optional(),
-  brochureFileName: z.string().optional(),
+  brochure: z.object(BrochureSchema).optional(),
   specifications: z.array(SpecificationSchema).optional(),
   amenities: z.array(AmenitySchema).optional(),
   nearbyPlaces: z.array(NearbyPlaceSchema).optional(),
@@ -189,8 +196,7 @@ export const UpdateFeaturePropertySchema = z.object({
   metaDescription: z.string().optional(),
   metaKeywords: z.string().optional(),
   gallerySummary: z.array(GallerySummarySchema).optional(),
-  brochureUrl: z.string().url().optional(),
-  brochureFileName: z.string().optional(),
+  brochure: z.object(BrochureSchema).optional(),
   specifications: z.array(SpecificationSchema).optional(),
   amenities: z.array(AmenitySchema).optional(),
   nearbyPlaces: z.array(NearbyPlaceSchema).optional(),
