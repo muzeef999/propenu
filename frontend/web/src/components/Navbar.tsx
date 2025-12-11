@@ -1,15 +1,17 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Logo from "@/animations/Logo";
-import { ArrowDropdownIcon } from "@/icons/icons";
+import { ArrowDropdownIcon, LocationIcon } from "@/icons/icons";
 import type { DropdownProps } from "@/ui/SingleDropDown";
 import dynamic from "next/dynamic";
-import CityDropdown from "./CityDropdown";
 import Link from "next/link";
 import LoginDialog from "@/app/(auth)/Login";
 import Cookies from "js-cookie";
 import { me } from "@/data/ClientData";
 import UserGreeting from "@/app/(auth)/UserGreeting";
+import FilterDropdown from "@/ui/FilterDropdown";
+import { useCity } from "@/hooks/useCity";
+import { LocationItem } from "@/types";
 
 const Dropdown = dynamic<DropdownProps>(() => import("@/ui/SingleDropDown"), {
   ssr: false,
@@ -20,10 +22,11 @@ const BRAND_GREEN = "#27AE60"; // use your logo color
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
 
   const [user, setUser] = useState<any>(null);
-
-
 
   useEffect(() => {
     async function fetchUser() {
@@ -32,6 +35,8 @@ const Navbar = () => {
     }
     fetchUser();
   }, []);
+
+  const { city, locations, setCity } = useCity();
 
   const pPrimeItems = [
     { id: "pp-1", label: "Dashboard", href: "/prime/dashboard" },
@@ -44,6 +49,38 @@ const Navbar = () => {
     { id: "lg-2", label: "Sign up", href: "/auth/signup" },
     { id: "lg-3", label: "Forgot password", href: "/auth/forgot" },
   ];
+
+  function onSelect(item: LocationItem) {
+    setCity(item);
+    setOpen(false);
+    btnRef.current?.focus();
+  }
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (!rootRef.current) return;
+      if (!rootRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("click", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("click", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, []);
+
+  // Group cities by state
+  const groupedByState = locations.reduce(
+    (acc: Record<string, LocationItem[]>, loc) => {
+      if (!acc[loc.state]) acc[loc.state] = [];
+      acc[loc.state].push(loc);
+      return acc;
+    },
+    {}
+  );
 
   return (
     <header className="sticky top-0 z-50">
@@ -79,7 +116,58 @@ const Navbar = () => {
                 className="hidden md:flex items-center ml-2"
               >
                 {/* CityDropdown is your existing component */}
-                <CityDropdown />
+                <div className="relative w-full md:w-auto">
+                  <FilterDropdown
+                    triggerLabel={
+                      <div className="flex bg-primary">
+                        <LocationIcon size={18} />
+                        <span className="min-w-[90px] text-left">
+                          {city?.name ?? "Hyderabad"}
+                        </span>
+                      </div>
+                    }
+                    width="w-[800px]"
+                    align="left"
+                    openOnHover={true}
+                    renderContent={(close) => (
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2">
+                          Popular cities
+                        </h4>
+                        <div className="flex gap-2 flex-wrap text-primary">
+                          {Object.entries(groupedByState).map(
+                            ([stateName, cities]) => (
+                              <div key={stateName} className="w-full">
+                                {/* State heading */}
+                                <h3 className="text-xl font-semibold text-black mb-1 mt-3  tracking-wide">
+                                  {stateName}
+                                </h3>
+
+                                {/* Cities under this state */}
+                                {cities.map((c) => (
+                                  <button
+                                    key={c._id}
+                                    onClick={() => {
+                                      onSelect(c);
+                                      close?.();
+                                    }}
+                                    role="menuitem"
+                                  >
+                                    <div className="flex flex-col text-gray-600 cursor-pointer px-3 py-2  items-center justify-between">
+                                      <div className="font-regular">
+                                        {c.name}
+                                      </div>
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  />
+                </div>
               </div>
             </div>
 
@@ -136,7 +224,7 @@ const Navbar = () => {
                   aria-hidden="true"
                   className="px-2 py-1 rounded-md text-sm font-medium"
                 >
-                  <CityDropdown />
+                  Hyderabadio
                 </div>
               </div>
 

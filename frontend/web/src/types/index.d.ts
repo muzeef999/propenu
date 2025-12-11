@@ -235,15 +235,17 @@ export interface PopularOwnerProperty {
 
 
 export type LocationItem = {
-  id: number | string;
+ _id: string;
   name: string;
-  lat?: number;
-  lon?: number;
-  type?: string | null;
-  city?: string | null;
-  state?: string | null;
-  country?: string | null;
-  postcode?: string | null;
+  state: string;
+  category?: string | null; 
+  location?: {
+    type: "Point";
+    coordinates: [number, number]; // [lng, lat]
+  };
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;  
 };
 
 

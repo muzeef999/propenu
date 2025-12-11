@@ -5,15 +5,17 @@ import { RootState, useAppDispatch } from "@/Redux/store";
 import {
   setCity as setCityAction,
   clearCity,
+  fetchLocations,
 } from "@/Redux/slice/citySlice";
 import { LocationItem } from "@/types";
+import { useEffect } from "react";
 
 export function useCity() {
   const dispatch = useAppDispatch();
 
   const city = useSelector((s: RootState) => s.city.selected);
-  const popular = useSelector((s: RootState) => s.city.popularCities);
-  const normal = useSelector((s: RootState) => s.city.normalCities);
+
+  const locations = useSelector((state: RootState) => state.city.locations);
 
   function setCity(cityItem: LocationItem | null) {
     dispatch(setCityAction(cityItem));
@@ -33,11 +35,16 @@ export function useCity() {
     dispatch(clearCity());
   }
 
+
+   useEffect(() => {
+    dispatch(fetchLocations());
+  }, [dispatch]);
+
+
   return {
     city,
     setCity,
     clearSelectedCity,
-    popular,
-    normal,
+    locations
   };
 }

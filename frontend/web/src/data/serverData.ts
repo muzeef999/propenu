@@ -8,7 +8,6 @@ import "server-only";
 const url = process.env.NEXT_PUBLIC_API_URL
 
 
-//Featured projects
 
 export async function getFeaturedProjects() {
     const res = await  fetch(`${url}/api/properties/featured-project`, { next : { revalidate: 10 } });
