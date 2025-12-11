@@ -57,9 +57,9 @@ export default async function Page({ params }: PageProps) {
               <GalleryFile gallery={project?.gallery} />
             </div>
             <div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-16">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-16 mt-5 ml-5">
                 <div>
-                  <p className="text-gray-500 font-mono">SUPER BUILT UP AREA</p>
+                  <p className="text-gray-500 font-poppins">SUPER BUILT UP AREA</p>
                   <p>
                     {project?.superBuiltUpArea} sqft (₹ {project?.pricePerSqft}
                     /sqft)
@@ -67,33 +67,33 @@ export default async function Page({ params }: PageProps) {
                 </div>
 
                 <div>
-                  <p className="text-gray-500 font-mono">CARPET AREA</p>
+                  <p className="text-gray-500">CARPET AREA</p>
                   <p>{project?.carpetArea}</p>
                 </div>
 
                 <div>
-                  <p className="text-red-600 font-mono">TRANSACTION TYPE</p>
+                  <p className="text-[#ed6115]">TRANSACTION TYPE</p>
                   <p>{project?.transactionType}</p>
                 </div>
 
                 <div>
-                  <p className="text-gray-500 font-mono">AVAILABILITY STATUS</p>
+                  <p className="text-gray-500">AVAILABILITY STATUS</p>
                   <p>{project?.constructionStatus}</p>
                 </div>
 
                 <div>
-                  <p className="text-gray-500 font-mono">FURNISHED STATUS</p>
+                  <p className="text-gray-500">FURNISHED STATUS</p>
                   <p>{project?.furnishing}</p>
                 </div>
 
                 <div>
-                  <p className="text-gray-500 font-mono">FLOORS</p>
+                  <p className="text-gray-500">FLOORS</p>
                   <p>
                     {project?.floorNumber}/{project.totalFloors}
                   </p>
                 </div>
               </div>
-              <div className="flex gap-x-8 mt-6">
+              <div className="flex gap-x-8 mt-6 ml-5">
                 <span className="text-gray-500 text-md font-medium flex">
                   <Bhk color="#6B7280" />
                   &nbsp; {project.bhk} BHK
@@ -113,26 +113,74 @@ export default async function Page({ params }: PageProps) {
           <br />
 
           {/* Main two-column layout */}
-          <div className="grid gap-4 lg:grid-cols-[2fr,1.2fr]">
+          <div className="grid gap-4 lg:grid-cols-[2fr,1.2fr] mt-55">
             {/* Left: Gallery + basic info */}
-            <section className="space-y-4">
+            <section className="space-y-4 ml-3">
               {/* More details section */}
-              <section className="rounded-lg p-4 shadow-sm">
-                <h2 className="mb-3 text-base font-semibold text-gray-900">
+              <section className="rounded-lg p-6 shadow-sm ">
+                <h2 className="mb-6 text-xl font-semibold text-gray-900">
                   More Details
                 </h2>
-                 <div>
-                  one
-                 </div>
-                 <div>
-                  <p>Address</p>
-                  <p>{project.address}</p>
-                 </div>
-                 <div>
-                  <p>Description</p>
-                  <p>{project.description}</p>
-                 </div>
-                {/* Address & description */}
+
+                {/* Changed to 4 columns to match the wide layout in the image */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+
+                  <div className="flex flex-col gap-1">
+                    <p className="font-medium text-gray-900">Price Breakup</p>
+                    <p className="text-gray-500">₹{project?.price}</p>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <p className="font-medium text-gray-900">Property Ownership</p>
+                    <p className="text-gray-500">{project?.listingSource}</p>
+                  </div>
+
+
+                  <div className="hidden md:block"></div>
+                  <div className="hidden md:block"></div>
+
+                  <div className="flex flex-col gap-1">
+                    <p className="font-medium text-gray-900">Facing</p>
+                    <p className="text-gray-500">East</p>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <p className="font-medium text-gray-900">Flooring</p>
+                    <p className="text-gray-500">{project?.flooringType}</p>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <p className="font-medium text-gray-900">Kitchen Type</p>
+                    <p className="text-gray-500">{project?.kitchenType}</p>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <p className="font-medium text-gray-900">No of parkings</p>
+                    <p className="text-gray-500">{project?.parkingCount}</p>
+                  </div>
+                </div>
+
+                {/* ADDRESS */}
+                <div className="mt-8">
+                  <p className="font-medium text-gray-900">Address</p>
+                  <p className="text-gray-500 mt-1 leading-relaxed">
+                    {project.address}
+                  </p>
+                </div>
+
+                {/* DESCRIPTION */}
+                <div className="mt-6">
+                  <p className="font-medium text-gray-900">Description:</p>
+                  <p className="text-gray-500 mt-1 leading-relaxed">
+                    {project.description}
+                  </p>
+                </div>
+
+                <div className="mt-8">
+                  <button className="rounded bg-[#27AE60] px-6 py-2 font-medium text-white hover:bg-green-700">
+                    Contact Owner
+                  </button>
+                </div>
               </section>
 
               {/* Amenities */}
@@ -162,9 +210,7 @@ export default async function Page({ params }: PageProps) {
 
           </div>
         </div>
-        <div className="w-[20%]">
-          <h1>contact owner</h1>
-        </div>
+
       </div>
     </div>
   );

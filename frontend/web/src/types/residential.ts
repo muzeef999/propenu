@@ -49,4 +49,8 @@ export interface IResidential {
   smartHomeFeatures?: string[];
   parkingDetails?: { visitorParking?: boolean; twoWheeler?: number; fourWheeler?: number };
   possessionVerified?: boolean;
+  flooringType?: string;
+  kitchenType?: string;
+  listingSource?: string;
+  nearbyPlaces?: string[];
 }
