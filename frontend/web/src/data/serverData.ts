@@ -56,6 +56,14 @@ export async function getOwnerProperties() {
 }
 
 
+export async function getAgentConnect(){
+  const res = await fetch(`${url}/api/users/agent`, {next : { revalidate: 10}});
+  if(!res.ok) {
+      throw new Error('Failed to fetch Agent Connect data');
+  }
+  return res.json();
+}
+
 
 //top projects properties
 export async function  getTopProjects() {

@@ -89,6 +89,26 @@ export interface FeaturedProject {
   relatedProjects?: Array<Types.ObjectId | string>;
 }
 
+export interface AgentConnect {
+  name: string;
+  slug: string;
+  bio: string;
+  agencyName: string;
+  licenseValidTill: string;
+  areasServed: string[];
+  city: string;
+  experienceYears: number;
+  dealsClosed: number;
+  languages: string[];
+  verificationStatus: string;
+  verificationDocuments: any[];
+  avatar: Avatar;
+  coverImage: CoverImage;
+  rera: ReraInfo;
+  stats: Stats;
+  _id: string;
+}
+
 export interface IBhkPlan {
   url?: string;
   key?: string;

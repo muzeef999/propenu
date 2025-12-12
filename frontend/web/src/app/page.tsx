@@ -7,6 +7,7 @@ import FeaturedProjectsServer from "./(pages)/featured/FeaturedProjectsServer";
 import GetOwnerProperties from "./(pages)/owner-listed/PopularOwnerPropertiesServer";
 import ExploreOurServices from "@/app/(pages)/explore-properties/ExploreOurServices";
 import HighlightProjectsServer from "./(pages)/highlight-projects/HighlightProjectServer";
+import AgentServer from "./(pages)/agent-connect/AgentServer";
 
 export default function Home() {
   return (
@@ -17,6 +18,7 @@ export default function Home() {
         <FeaturedProjectsServer />
         <HighlightProjectsServer />
         <GetOwnerProperties />
+        <AgentServer />
         <ExploreOurServices />
         {/* Apartments, villas and more  */}
         <div>

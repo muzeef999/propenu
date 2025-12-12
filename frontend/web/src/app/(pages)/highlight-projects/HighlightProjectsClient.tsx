@@ -80,7 +80,7 @@ export default function HighlightProjectsClient({ items = [] }: Props) {
                             className="
                                 absolute 
                                 left-2 right-2 
-                                top-[160px] 
+                                top-40 
                                 bg-white 
                                 rounded-xl 
                                 shadow-lg 
