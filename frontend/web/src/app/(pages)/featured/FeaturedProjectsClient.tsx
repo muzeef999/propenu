@@ -73,7 +73,7 @@ export default function FeaturedProjectsClient({ items = [] }: Props) {
 
             <div className="p-3 flex justify-between items-center gap-4">
               {/* Logo */}
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <Image
                   src={project?.logo?.url}
                   alt={project.title}
@@ -102,7 +102,7 @@ export default function FeaturedProjectsClient({ items = [] }: Props) {
                   2,3 BHK Flats
                 </p>
 
-                <p className="text-[#000] text-base">
+                <p className="text-black text-base">
                   {formatINR(project?.priceFrom)}
                   <span className="text-[#676666] font-light text-sm">
                     {" "}

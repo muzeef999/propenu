@@ -34,6 +34,16 @@ export async function getFeaturedSlugProjects({ slug }: { slug: string }) {
 }
 
 
+//highlight projects
+export async function getHighlightProjects() {
+    const res = await fetch(`${url}/api/properties/highlight-projects`, {next : { revalidate: 10}});
+    if(!res.ok) {
+        throw new Error('Failed to fetch highlight projects');
+    }
+    return res.json();
+}
+
+
 
 
 //owner listed properties
