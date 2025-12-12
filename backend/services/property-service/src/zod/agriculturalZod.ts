@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AGRICULTURAL_PROPERTY_SUBTYPES, AGRICULTURAL_PROPERTY_TYPES } from "../types/agriculturalTypes";
 
 /* ----------------------
    Helpers
@@ -13,6 +14,21 @@ const coerceNumber = (schema: z.ZodNumber) =>
     }
     return v;
   }, schema);
+
+
+  function enumPreprocess<T extends readonly [string, ...string[]]>(choices: T) {
+  // spread into a mutable tuple for z.enum typing
+  const enumSchema = z.enum([...choices] as [string, ...string[]]);
+
+  return z.preprocess((v) => {
+    if (Array.isArray(v) && v.length > 0) v = v[0];
+    if (typeof v === "string") {
+      return v.trim().toLowerCase();
+    }
+    return v;
+  }, enumSchema);
+}
+
 
 const coerceInt = (schema: z.ZodNumber) =>
   z.preprocess((v) => {
@@ -143,6 +159,9 @@ export const AgriculturalCreateSchema = BaseCreate.extend({
   plantationAge: coerceNumber(z.number()).optional(),
   numberOfBorewells: coerceInt(z.number().int()).optional(),
 
+  totalArea: z.object().optional(),
+  roadWidth: z.object().optional(),
+
   borewellDetails: z
     .preprocess((v) => tryParseJson(v), // allow JSON string for entire object
       z
@@ -167,6 +186,15 @@ export const AgriculturalCreateSchema = BaseCreate.extend({
 
   // agriculturalUseCertificate: accept JSON string -> FileMetaZ OR null
   agriculturalUseCertificate: preprocessObjJsonOrValue(FileMetaZ).optional().nullable(),
+
+  
+     propertyType: enumPreprocess(
+      AGRICULTURAL_PROPERTY_TYPES as readonly [string, ...string[]]
+    ).optional(),
+  
+    propertySubType: enumPreprocess(
+      AGRICULTURAL_PROPERTY_SUBTYPES as readonly [string, ...string[]]
+    ).optional(),
 });
 
 /* ----------------------

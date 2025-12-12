@@ -130,7 +130,7 @@ const SearchBox = () => {
 
           {/* Dropdown List */}
           {results.length > 0 && (
-            <ul className="absolute top-full mt-2 left-0 w-full bg-white border rounded-xl shadow-lg max-h-64 overflow-y-auto text-sm z-[9999]">
+            <ul className="absolute top-full mt-2 left-0 w-full bg-white border rounded-xl shadow-lg max-h-64 overflow-y-auto text-sm">
               {results.map((item) => (
                 <li
                   key={item._id}

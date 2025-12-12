@@ -75,7 +75,7 @@ export interface IResidential {
 
   // base fields...
   address: string;
-  city?: string;
+  city?: string; 
 
   propertyType?: ResidentialPropertyType;
   propertySubType?: ResidentialPropertySubType;

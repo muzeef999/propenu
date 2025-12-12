@@ -5,7 +5,7 @@ import {
   FileRefSchema,
 } from './sharedSchemas';
 import { COMMERCIAL_PROPERTY_SUBTYPES, COMMERCIAL_PROPERTY_TYPES, ICommercial, PANTRY_TYPES } from '../types/commercialTypes';
-import { TEXT_INDEX_FIELDS } from '../types/sharedTypes';
+import { IBaseListing, TEXT_INDEX_FIELDS } from '../types/sharedTypes';
 
 
 const PantrySchema = new Schema(
@@ -79,6 +79,22 @@ CommercialSchema.pre<ICommercial>('validate', function (next) {
   }
   next();
 });
+
+CommercialSchema.pre<IBaseListing>('validate', async function (next) {
+  try {
+    if (!this.listingSource && this.createdBy) {
+      const User = mongoose.model('User');
+      const user: any = await User.findById(this.createdBy).select('role');
+      if (user && user.role) {
+        this.listingSource = user.role; // 'owner' | 'agent' | 'builder' | 'admin'
+      }
+    }
+    next();
+  } catch (err) {
+    next(err as any);
+  }
+});
+
 
 export const Commercial: Model<ICommercial> =
   (mongoose.models && (mongoose.models as any)['Commercial']) || mongoose.model<ICommercial>('Commercial', CommercialSchema);

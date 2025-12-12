@@ -1,5 +1,5 @@
 // src/validation/property/shared.ts
-import { z } from 'zod';
+import { z } from "zod";
 
 /* ---------- FileRef, Image, Unit, BhkSummary, Nearby, Lead ---------- */
 export const FileRefSchema = z.object({
@@ -8,7 +8,10 @@ export const FileRefSchema = z.object({
   key: z.string().optional(),
   filename: z.string().optional(),
   mimetype: z.string().optional(),
-  uploadedAt: z.preprocess((v) => (v ? new Date(v as string) : undefined), z.date().optional()),
+  uploadedAt: z.preprocess(
+    (v) => (v ? new Date(v as string) : undefined),
+    z.date().optional()
+  ),
 });
 export type FileRef = z.infer<typeof FileRefSchema>;
 
@@ -50,20 +53,30 @@ export const NearbyPlaceSchema = z.object({
 });
 export type NearbyPlace = z.infer<typeof NearbyPlaceSchema>;
 
-export const SpecItemSchema = z.object({ title: z.string().optional(), description: z.string().optional() });
+export const SpecItemSchema = z.object({
+  title: z.string().optional(),
+  description: z.string().optional(),
+});
 export const SpecificationSchema = z.object({
   category: z.string().optional(),
   items: z.array(SpecItemSchema).optional().default([]),
   order: z.number().int().optional().default(0),
 });
-export const AmenitySchema = z.object({ key: z.string().optional(), title: z.string().optional(), description: z.string().optional() });
+export const AmenitySchema = z.object({
+  key: z.string().optional(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+});
 
 export const LeadSchema = z.object({
   name: z.string().min(1),
   phone: z.string().min(5),
   location: z.string().optional(),
   message: z.string().optional(),
-  createdAt: z.preprocess((v) => (v ? new Date(v as string) : new Date()), z.date()),
+  createdAt: z.preprocess(
+    (v) => (v ? new Date(v as string) : new Date()),
+    z.date()
+  ),
 });
 export type Lead = z.infer<typeof LeadSchema>;
 
@@ -90,7 +103,10 @@ export const LegalChecksSchema = z.object({
   verifiedBy: z
     .object({
       verifierId: z.string().optional(),
-      verifiedAt: z.preprocess((v) => (v ? new Date(v as string) : undefined), z.date().optional()),
+      verifiedAt: z.preprocess(
+        (v) => (v ? new Date(v as string) : undefined),
+        z.date().optional()
+      ),
       notes: z.string().optional(),
     })
     .optional()
@@ -102,24 +118,24 @@ export type LegalChecks = z.infer<typeof LegalChecksSchema>;
 export const BaseCreateSchema = z.object({
   title: z.string().min(1),
   slug: z.string().min(1).optional(),
-   listingSource : z.string().optional(),
-  listingType: z.enum(['sale', 'rent', 'lease']).optional().default('sale'),
+  listingSource: z.string().optional(),
+  listingType: z.enum(["sale", "rent", "lease"]).optional().default("sale"),
   developer: z.string().optional().nullable(),
   logo: FileRefSchema.optional().nullable(),
-  description: z.string().min(1), 
+  description: z.string().min(1),
   address: z.string().min(1),
   city: z.string().optional(),
   state: z.string().optional(),
   pincode: z.string().optional(),
   location: z
     .object({
-      type: z.literal('Point'),
+      type: z.literal("Point"),
       coordinates: z.array(z.number()).length(2),
     })
     .optional(),
   mapEmbedUrl: z.string().optional(),
 
-  currency: z.string().optional().default('INR'),
+  currency: z.string().optional().default("INR"),
   price: z.number().positive().optional(),
   pricePerSqft: z.number().positive().optional(),
 
@@ -135,7 +151,7 @@ export const BaseCreateSchema = z.object({
   nearbyPlaces: z.array(NearbyPlaceSchema).optional().default([]),
   leads: z.array(LeadSchema).optional().default([]),
 
-legalChecks: LegalChecksSchema.optional().default({
+  legalChecks: LegalChecksSchema.optional().default({
     approvals: [],
     approvalsFiles: [],
     taxReceipts: [],
@@ -154,7 +170,10 @@ legalChecks: LegalChecksSchema.optional().default({
     .optional()
     .default({ views: 0, inquiries: 0, clicks: 0 }),
 
-  status: z.enum(['active', 'inactive', 'archived']).optional().default('active'),
+  status: z
+    .enum(["active", "inactive", "archived"])
+    .optional()
+    .default("active"),
 
   createdBy: z.string().optional(),
   updatedBy: z.string().optional(),
@@ -168,8 +187,8 @@ export const PropertyListQuerySchema = z.object({
   limit: z.coerce.number().int().positive().optional().default(20),
   q: z.string().optional(),
   city: z.string().optional(),
-  listingSource : z.string().optional(),
-  listingType: z.enum(['sale', 'rent', 'lease']).optional(),
+  listingSource: z.string().optional(),
+  listingType: z.enum(["sale", "rent", "lease"]).optional(),
   sort: z.string().optional(),
   near: z.string().optional(),
   maxDistance: z.coerce.number().optional(),

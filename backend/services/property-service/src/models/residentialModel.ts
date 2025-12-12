@@ -32,7 +32,6 @@ const ResidentialSchema = new Schema<IResidential>(
     floorNumber: Number,
     totalFloors: Number,
     facing: String,
-    
     constructionStatus: { type: String, enum: ['ready-to-move', 'under-construction'] },
     possessionDate: Date,
     maintenanceCharges: Number,
@@ -65,7 +64,6 @@ ResidentialSchema.pre<IBaseListing>('validate', async function (next) {
     if (!this.listingSource && this.createdBy) {
       const User = mongoose.model('User');
       const user: any = await User.findById(this.createdBy).select('role');
-
       if (user && user.role) {
         this.listingSource = user.role; // 'owner' | 'agent' | 'builder' | 'admin'
       }

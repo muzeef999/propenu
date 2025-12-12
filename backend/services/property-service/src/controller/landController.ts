@@ -17,7 +17,6 @@ function parseMaybeJSON<T = any>(value: any): T | undefined {
 /** CREATE */
 export const createLand = async (req: Request, res: Response) => {
   try {
-    // raw body may include JSON strings for arrays/objects — parse the important ones
     const raw = { ...(req.body || {}) };
     const parsed = {
       ...raw,
@@ -38,6 +37,8 @@ export const createLand = async (req: Request, res: Response) => {
     // validate (throws ZodError)
     const payload = CreateLandSchema.parse(parsed);
 
+
+    console.log(payload);
     const files = req.files as { [field: string]: Express.Multer.File[] } | undefined;
 
     const created = await LandService.create(payload as any, files);

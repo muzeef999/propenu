@@ -11,6 +11,20 @@ export const PANTRY_TYPES = [
 
 export type PantryType = (typeof PANTRY_TYPES)[number];
 
+export const COMMERCIAL_PROPERTY_TYPES = [
+  "office",
+  "retail",
+  "shop",
+  "showroom",
+  "warehouse",
+  "industrial",
+  "coworking",
+  "restaurant",
+  "clinic",
+  "land",
+  "other",
+] as const;
+
 export const COMMERCIAL_PROPERTY_SUBTYPES = [
   // retail / shop
   "high-street-shop",
@@ -42,19 +56,7 @@ export const COMMERCIAL_PROPERTY_SUBTYPES = [
 export type CommercialPropertyType =
   (typeof COMMERCIAL_PROPERTY_TYPES)[number];
   
-export const COMMERCIAL_PROPERTY_TYPES = [
-  "office",
-  "retail",
-  "shop",
-  "showroom",
-  "warehouse",
-  "industrial",
-  "coworking",
-  "restaurant",
-  "clinic",
-  "land",
-  "other",
-] as const;
+
 
 export type CommercialPropertySubType =
   (typeof COMMERCIAL_PROPERTY_SUBTYPES)[number];

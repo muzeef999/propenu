@@ -33,17 +33,6 @@ const PROPERTY_AGE_BUCKETS = [
   "20-plus-years",
 ] as const;
 
-
-   const coerceEnum = <T extends readonly [string, ...string[]]>(values: T) =>
-     z.preprocess(
-       (v) => {
-         if (typeof v === "string") return v.trim();
-         return v;
-       },
-       z.enum([...values] as [string, ...string[]])
-     );
-
-/** coerce "string number" => number; returns undefined for empty/null */
 const coerceNumber = (schema: z.ZodNumber) =>
   z.preprocess((v) => {
     if (v === "" || v === null || typeof v === "undefined") return undefined;
@@ -55,8 +44,8 @@ const coerceNumber = (schema: z.ZodNumber) =>
     return v;
   }, schema);
 
-/** coerce integer-like values */
-const coerceInt = (schema: z.ZodNumber) =>
+
+  const coerceInt = (schema: z.ZodNumber) =>
   z.preprocess((v) => {
     if (v === "" || v === null || typeof v === "undefined") return undefined;
     if (typeof v === "number") return Math.trunc(v);
@@ -66,6 +55,19 @@ const coerceInt = (schema: z.ZodNumber) =>
     }
     return v;
   }, schema);
+
+
+
+   const coerceEnum = <T extends readonly [string, ...string[]]>(values: T) =>
+     z.preprocess(
+       (v) => {
+         if (typeof v === "string") return v.trim();
+         return v;
+       },
+       z.enum([...values] as [string, ...string[]])
+     );
+
+
 
 /** coerce booleans ("true"/"false") */
 const coerceBoolean = (schema: z.ZodTypeAny) =>
@@ -180,7 +182,7 @@ const BaseResidentialCreate = z.object({
       type: z.literal("Point").optional().default("Point"),
       coordinates: z.tuple([z.number(), z.number()]).optional(),
     })
-    .optional(),
+    .optional(), 
   mapEmbedUrl: z.string().url().optional(),
   currency: z.string().optional().default("INR"),
   price: coerceNumber(z.number()).optional(),

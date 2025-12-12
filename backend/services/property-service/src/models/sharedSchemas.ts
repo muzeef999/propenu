@@ -157,7 +157,6 @@ export const BaseFields = {
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', index: true, require, required: true },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   relatedProjects: { type: [Schema.Types.ObjectId], ref: 'featuredProject', default: [] },
-
 } as const;
 
 

@@ -59,7 +59,7 @@ function slugifyTitle(title: string) {
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/^-+|-+$/g, "");  
 }
 
 function normalizePayload(obj: any) {
@@ -157,7 +157,7 @@ async function mapAndUploadGallery({
     if (!summary[matchedIndex].order)
       summary[matchedIndex].order = matchedIndex + 1;
   }
-
+  
   return summary;
 }
 
@@ -204,7 +204,7 @@ export const ResidentialPropertyService = {
     let toCreate: any = {
       ...payload,
       slug,
-    };
+    }; 
 
     toCreate = normalizePayload(toCreate);
 
@@ -251,7 +251,7 @@ export const ResidentialPropertyService = {
         docRefs.push({
           title: f.originalname,
           url: up.url,
-          key: up.key,
+          key: up.key,  
           filename: f.originalname,
           mimetype: f.mimetype,
         });

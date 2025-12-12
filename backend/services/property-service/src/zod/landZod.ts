@@ -1,8 +1,7 @@
 import { z } from "zod";
+import { LAND_PROPERTY_SUBTYPES, LAND_PROPERTY_TYPES } from "../types/landTypes";
+ 
 
-/* ----------------------
-   helpers: coercers & enum preprocess
-   ---------------------- */
 const coerceNumber = (schema: z.ZodNumber) =>
   z.preprocess((v) => {
     if (v === "" || v === null || typeof v === "undefined") return undefined;
@@ -58,13 +57,15 @@ export const FileMetaZ = z.object({
   title: z.string().optional(),
 });
 
-const GalleryItem = z.object({
+const GallerySummarySchema = z.object({
   title: z.string().optional(),
   url: z.string().url().optional(),
-  filename: z.string().optional(),
+  category: z.string().optional(),
   order: coerceInt(z.number().int()).optional(),
+  filename: z.string().optional(),
   caption: z.string().optional(),
 });
+
 
 const BorewellFiles = z.array(FileMetaZ).optional().default([]);
 const BorewellDetails = z.object({
@@ -74,6 +75,12 @@ const BorewellDetails = z.object({
   files: BorewellFiles,
 }).optional();
 
+export const DimensionsSchema = z.object({
+  length: z.string().optional(),
+  width: z.string().optional(),
+});
+
+
 /* ----------------------
    base fields (match BaseFields used in model)
    ---------------------- */
@@ -81,11 +88,13 @@ const BaseCreate = z.object({
   title: z.string().min(1),
   slug: z.string().optional(),
   listingType: preprocessEnum(["sale", "rent", "lease"] as const).optional().default("sale"),
-  developer: z.string().optional(),
   address: z.string().min(1),
   city: z.string().optional(),
   state: z.string().optional(),
   pincode: z.string().optional(),
+  description: z.string().optional(),
+  
+
   location: z
     .object({
       type: z.literal("Point").optional().default("Point"),
@@ -96,8 +105,9 @@ const BaseCreate = z.object({
   currency: z.string().optional().default("INR"),
   price: coerceNumber(z.number()).optional(),
   pricePerSqft: coerceNumber(z.number()).optional(),
-  gallery: z.array(GalleryItem).optional().default([]),
+  gallery: z.array(GallerySummarySchema).optional().default([]),
   documents: z.array(FileMetaZ).optional().default([]),
+  dimensions: DimensionsSchema,
   specifications: z.array(z.any()).optional().default([]),
   amenities: z.array(z.any()).optional().default([]),
   nearbyPlaces: z.array(z.any()).optional().default([]),
@@ -130,6 +140,8 @@ export const CreateLandSchema = BaseCreate.extend({
   electricityConnection: coerceBoolean(z.boolean()).optional(),
   approvedByAuthority: z.array(z.string()).optional().default([]),
   facing: z.string().optional(),
+    dimensions: DimensionsSchema,
+
   cornerPlot: coerceBoolean(z.boolean()).optional(),
   fencing: coerceBoolean(z.boolean()).optional(),
   landUseZone: z.string().optional(),
@@ -138,6 +150,8 @@ export const CreateLandSchema = BaseCreate.extend({
   soilTestReport: FileMetaZ.optional().nullable(),
   surveyNumber: z.string().optional(),
   layoutType: z.string().optional(),
+  propertyType: preprocessEnum(LAND_PROPERTY_TYPES).optional(),
+  propertySubType: preprocessEnum( LAND_PROPERTY_SUBTYPES).optional(),
 });
 
 export const UpdateLandSchema = CreateLandSchema.partial();

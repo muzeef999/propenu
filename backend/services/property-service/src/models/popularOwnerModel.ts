@@ -112,9 +112,7 @@ const OwnerPropertySchema = new Schema<IOwnerPropertyDoc>(
     },
 
     ownerProperties: { type: OwnerExtraSchema, default: {} },
-
     location: LocationSchema,
-
     media: { type: [MediaItemSchema], default: [] },
 
     interiorDetails: Schema.Types.Mixed,

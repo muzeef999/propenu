@@ -6,33 +6,14 @@ import dotenv from "dotenv";
 import Agricultural from "../models/agriculturalModel";
 import { buildCommonMatch } from "../utils/filterBuilder";
 import { SearchFilters } from "../types/searchResultItem";
+import User from "../models/userModel";
+import Role from "../models/roleModel";
+import { uploadFile } from "../utils/uploadFile";
 
 dotenv.config({ quiet: true });
 
-
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
 
-async function uploadBufferToS3Local(opts: {
-  buffer: Buffer;
-  originalname: string;
-  mimetype: string;
-  propertyId: string;
-  folder?: string;
-}): Promise<{ key: string; url: string }> {
-  const { buffer, originalname, mimetype, propertyId, folder = "agricultural" } = opts;
-  const bucket = process.env.AWS_S3_BUCKET;
-  const region = process.env.AWS_REGION;
-  if (!bucket || !region) throw new Error("Missing S3 bucket or region env var");
-
-  const ext = originalname.includes(".") ? originalname.split(".").pop() : "";
-  const uniqueName = `${Date.now()}-${randomUUID()}${ext ? "." + ext : ""}`;
-  const safeFolder = folder.replace(/^\/+|\/+$/g, "");
-  const key = `${safeFolder}/${propertyId}/${uniqueName}`;
-
-  await s3.upload({ Bucket: bucket, Key: key, Body: buffer, ContentType: mimetype }).promise();
-  const url = `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key)}`;
-  return { key, url };
-}
 
 async function deleteS3ObjectIfExists(key?: string) {
   if (!key) return;
@@ -41,7 +22,11 @@ async function deleteS3ObjectIfExists(key?: string) {
   try {
     await s3.deleteObject({ Bucket: bucket, Key: key }).promise();
   } catch (e: any) {
-    console.error("deleteS3ObjectIfExists failed for key:", key, e?.message || e);
+    console.error(
+      "deleteS3ObjectIfExists failed for key:",
+      key,
+      e?.message || e
+    );
   }
 }
 
@@ -71,7 +56,8 @@ async function mapAndUploadGallery({
 
     let matchedIndex = -1;
     for (let j = 0; j < summary.length; j++) {
-      const declaredName = summary[j]?.filename ?? summary[j]?.fileName ?? summary[j]?.file;
+      const declaredName =
+        summary[j]?.filename ?? summary[j]?.fileName ?? summary[j]?.file;
       if (declaredName && declaredName === file.originalname) {
         matchedIndex = j;
         break;
@@ -79,9 +65,9 @@ async function mapAndUploadGallery({
     }
     if (matchedIndex === -1) matchedIndex = i;
 
-    const up = await uploadBufferToS3Local({
+    const up = await uploadFile({
       buffer: file.buffer,
-      originalname: file.originalname,
+      originalName: file.originalname,
       mimetype: file.mimetype,
       propertyId,
       folder: "agricultural/gallery",
@@ -90,13 +76,14 @@ async function mapAndUploadGallery({
     if (!summary[matchedIndex]) summary[matchedIndex] = {};
     summary[matchedIndex].url = up.url;
     summary[matchedIndex].filename = file.originalname;
-    if (!summary[matchedIndex].title) summary[matchedIndex].title = file.originalname;
-    if (!summary[matchedIndex].order) summary[matchedIndex].order = matchedIndex + 1;
+    if (!summary[matchedIndex].title)
+      summary[matchedIndex].title = file.originalname;
+    if (!summary[matchedIndex].order)
+      summary[matchedIndex].order = matchedIndex + 1;
   }
 
   return summary;
 }
-
 
 /* --------------------  Search API  -------------------- */
 
@@ -111,27 +98,71 @@ export function getAgriculturalPipeline(filters: SearchFilters) {
         id: "$_id",
         type: { $literal: "Agricultural" },
         title: 1,
-         gallery:1,
-        price:1,
-        slug:1,
-        soilType:1,
-        waterSource:1,
-        accessRoadType:1,
-        createdAt: 1
-      }
-    }
+        gallery: 1,
+        price: 1,
+        slug: 1,
+        soilType: 1,
+        waterSource: 1,
+        accessRoadType: 1,
+        createdAt: 1,
+      },
+    },
   ];
 }
 
+function normalizePayload(obj: any) {
+  if (!obj) return obj;
+  if (typeof obj.title === "string") obj.title = obj.title.trim();
+  if (obj.price === "") obj.price = undefined;
+  if (obj.createdBy) obj.createdBy = String(obj.createdBy);
+  return obj;
+}
+
+async function resolveListingSourceFromUser(
+  createdBy?: string | mongoose.Types.ObjectId
+) {
+  console.log("[DEBUG] resolveListingSourceFromUser called with:", createdBy);
+
+  if (!createdBy) {
+    return undefined;
+  }
+  const idStr = String(createdBy);
+  if (!mongoose.Types.ObjectId.isValid(idStr)) {
+    return undefined;
+  }
+
+  const user: any = await User.findById(idStr).select("role roleId").lean();
+
+  if (!user) {
+    return undefined;
+  }
+
+  if (user.role && typeof user.role === "string") {
+    return user.role;
+  }
+
+  if (user.roleId) {
+    const role: any = await Role.findById(user.roleId).select("label").lean();
+    return role?.label;
+  }
+
+  return undefined;
+}
 
 /* --------------------  Service API  -------------------- */
 
 export const AgriculturalService = {
-
   async create(payload: any, files?: MulterFiles) {
     // build slug and ensure uniqueness
-    const slugSource = (payload.slug && String(payload.slug).trim()) || payload.title;
-    let slug = slugSource ? slugSource.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") : String(Date.now());
+    const slugSource =
+      (payload.slug && String(payload.slug).trim()) || payload.title;
+    let slug = slugSource
+      ? slugSource
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+      : String(Date.now());
     const exists = await Agricultural.findOne({ slug }).select("_id").lean();
     if (exists) {
       const err: any = new Error("Slug already in use");
@@ -141,53 +172,86 @@ export const AgriculturalService = {
 
     // derive an id for S3 keys (preliminary instance)
     const preliminary = new Agricultural({ ...payload, slug });
-    const propId = preliminary._id ? preliminary._id.toString() : String(Date.now());
+    const propId = preliminary._id
+      ? preliminary._id.toString()
+      : String(Date.now());
 
-    const toCreate: any = { ...payload, slug };
+    let toCreate: any = { ...payload, slug };
+
+    toCreate = normalizePayload(toCreate);
+
+    if (!toCreate.listingSource && toCreate.createdBy) {
+      try {
+        const listingSource = await resolveListingSourceFromUser(
+          toCreate.createdBy
+        );
+        if (listingSource) toCreate.listingSource = listingSource;
+      } catch (err) {
+        console.warn("resolveListingSource failed:", (err as Error).message);
+      }
+    }
 
     // gallery: map & upload
     const galleryFiles = files?.galleryFiles ?? [];
-    toCreate.gallery = await mapAndUploadGallery({ incomingGallery: toCreate.gallery, galleryFiles, propertyId: propId });
+    toCreate.gallery = await mapAndUploadGallery({
+      incomingGallery: toCreate.gallery,
+      galleryFiles,
+      propertyId: propId,
+    });
 
     // documents upload
     const documentFiles = files?.documents ?? [];
     if (documentFiles.length > 0) {
-      toCreate.documents = Array.isArray(toCreate.documents) ? toCreate.documents.slice() : [];
+      toCreate.documents = Array.isArray(toCreate.documents)
+        ? toCreate.documents.slice()
+        : [];
       for (const f of documentFiles) {
-        const up = await uploadBufferToS3Local({
+        const up = await uploadFile({
           buffer: f.buffer,
-          originalname: f.originalname,
+          originalName: f.originalname,
           mimetype: f.mimetype,
           propertyId: propId,
           folder: "agricultural/documents",
         });
-        toCreate.documents.push({ title: f.originalname, url: up.url, key: up.key, filename: f.originalname, mimetype: f.mimetype });
+        toCreate.documents.push({
+          title: f.originalname,
+          url: up.url,
+          key: up.key,
+          filename: f.originalname,
+          mimetype: f.mimetype,
+        });
       }
     }
 
     // soilTestReport single file
     const soilFiles = files?.soilTestReport ?? [];
-if (soilFiles && soilFiles.length > 0) {
-  const f = soilFiles[0]!;
-  const up = await uploadBufferToS3Local({
-    buffer: f.buffer,
-    originalname: f.originalname,
-    mimetype: f.mimetype,
-    propertyId: propId,
-    folder: "agricultural/soil",
-  });
+    if (soilFiles && soilFiles.length > 0) {
+      const f = soilFiles[0]!;
+      const up = await uploadFile({
+        buffer: f.buffer,
+        originalName: f.originalname,
+        mimetype: f.mimetype,
+        propertyId: propId,
+        folder: "agricultural/soil",
+      });
 
-  toCreate.soilTestReport = {
-    url: up.url,
-    key: up.key,
-    filename: f.originalname,
-    mimetype: f.mimetype,
-  };
-}
+      toCreate.soilTestReport = {
+        url: up.url,
+        key: up.key,
+        filename: f.originalname,
+        mimetype: f.mimetype,
+      };
+    }
 
+    const createdDoc = await Agricultural.create(toCreate);
 
-    const created = await Agricultural.create(toCreate);
-    return created.toObject ? created.toObject() : created;
+    const populated = await Agricultural.findById(createdDoc._id)
+      .populate("createdBy", "name email phone role roleId")
+      .lean()
+      .exec();
+    return (
+      populated ?? (createdDoc.toObject ? createdDoc.toObject() : createdDoc)
+    );
   },
 
   async update(id: string, payload: any, files?: MulterFiles) {
@@ -196,26 +260,27 @@ if (soilFiles && soilFiles.length > 0) {
     if (!existing) return null;
 
     // slug/title change handling
-   // inside your update function in agricultural.service.ts
-if (
-  (payload.slug && payload.slug !== (existing as any).slug) ||
-  (payload.title && payload.title !== (existing as any).title)
-) {
-  const slugSource = (payload.slug && String(payload.slug).trim()) || (payload.title as string);
-  const slug = slugSource
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  const found = await Agricultural.findOne({ slug }).select("_id").lean();
-  if (found && found._id.toString() !== id) {
-    const err: any = new Error("Slug already in use");
-    err.code = "SLUG_TAKEN";
-    throw err;
-  }
-  (existing as any).slug = slug;
-}
-
+    // inside your update function in agricultural.service.ts
+    if (
+      (payload.slug && payload.slug !== (existing as any).slug) ||
+      (payload.title && payload.title !== (existing as any).title)
+    ) {
+      const slugSource =
+        (payload.slug && String(payload.slug).trim()) ||
+        (payload.title as string);
+      const slug = slugSource
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      const found = await Agricultural.findOne({ slug }).select("_id").lean();
+      if (found && found._id.toString() !== id) {
+        const err: any = new Error("Slug already in use");
+        err.code = "SLUG_TAKEN";
+        throw err;
+      }
+      (existing as any).slug = slug;
+    }
 
     // shallow merge payload
     Object.keys(payload || {}).forEach((k) => {
@@ -227,11 +292,17 @@ if (
     // gallery merge & upload
     const galleryFiles = files?.galleryFiles ?? [];
     const incomingGallery = (payload as any).gallery;
-    (existing as any).gallery = Array.isArray((existing as any).gallery) ? (existing as any).gallery : [];
+    (existing as any).gallery = Array.isArray((existing as any).gallery)
+      ? (existing as any).gallery
+      : [];
     if (Array.isArray(incomingGallery)) {
       for (let i = 0; i < incomingGallery.length; i++) {
         const inc = incomingGallery[i];
-        if (i < (existing as any).gallery.length) (existing as any).gallery[i] = { ...(existing as any).gallery[i], ...inc };
+        if (i < (existing as any).gallery.length)
+          (existing as any).gallery[i] = {
+            ...(existing as any).gallery[i],
+            ...inc,
+          };
         else (existing as any).gallery.push({ ...inc });
       }
     }
@@ -240,15 +311,19 @@ if (
       const filesByName = new Map<string, Express.Multer.File>();
       for (const f of galleryFiles) filesByName.set(f.originalname, f);
 
-      for (let i = 0; i < (existing as any).gallery.length && filesByName.size > 0; i++) {
+      for (
+        let i = 0;
+        i < (existing as any).gallery.length && filesByName.size > 0;
+        i++
+      ) {
         const entry = (existing as any).gallery[i] as any;
         const declared = entry?.filename ?? entry?.fileName ?? entry?.file;
         if (declared && filesByName.has(declared)) {
           const f = filesByName.get(declared);
           if (!f) continue;
-          const up = await uploadBufferToS3Local({
+          const up = await uploadFile({
             buffer: f.buffer,
-            originalname: f.originalname,
+            originalName: f.originalname,
             mimetype: f.mimetype,
             propertyId: propId,
             folder: "agricultural/gallery",
@@ -260,59 +335,70 @@ if (
       }
 
       for (const file of Array.from(filesByName.values())) {
-        const up = await uploadBufferToS3Local({
+        const up = await uploadFile({
           buffer: file.buffer,
-          originalname: file.originalname,
+          originalName: file.originalname,
           mimetype: file.mimetype,
           propertyId: propId,
           folder: "agricultural/gallery",
         });
-        (existing as any).gallery.push({ title: file.originalname, url: up.url, filename: file.originalname });
+        (existing as any).gallery.push({
+          title: file.originalname,
+          url: up.url,
+          filename: file.originalname,
+        });
       }
     }
 
     // documents -> append
     const documentFiles = files?.documents ?? [];
     if (documentFiles.length > 0) {
-      (existing as any).documents = Array.isArray((existing as any).documents) ? (existing as any).documents : [];
+      (existing as any).documents = Array.isArray((existing as any).documents)
+        ? (existing as any).documents
+        : [];
       for (const f of documentFiles) {
-        const up = await uploadBufferToS3Local({
+        const up = await uploadFile({
           buffer: f.buffer,
-          originalname: f.originalname,
+          originalName: f.originalname,
           mimetype: f.mimetype,
           propertyId: propId,
           folder: "agricultural/documents",
         });
-        (existing as any).documents.push({ title: f.originalname, url: up.url, key: up.key, filename: f.originalname, mimetype: f.mimetype });
+        (existing as any).documents.push({
+          title: f.originalname,
+          url: up.url,
+          key: up.key,
+          filename: f.originalname,
+          mimetype: f.mimetype,
+        });
       }
     }
 
     // soilTestReport replacement (single file)
     const soilFiles = files?.soilTestReport;
-const firstSoil = soilFiles?.[0];
+    const firstSoil = soilFiles?.[0];
 
-if (firstSoil) {
-  const up = await uploadBufferToS3Local({
-    buffer: firstSoil.buffer,
-    originalname: firstSoil.originalname,
-    mimetype: firstSoil.mimetype,
-    propertyId: propId,
-    folder: "agricultural/soil",
-  });
+    if (firstSoil) {
+      const up = await uploadFile({
+        buffer: firstSoil.buffer,
+        originalName: firstSoil.originalname,
+        mimetype: firstSoil.mimetype,
+        propertyId: propId,
+        folder: "agricultural/soil",
+      });
 
-  const oldKey = (existing as any).soilTestReport?.key;
-  if (oldKey) {
-    await deleteS3ObjectIfExists(oldKey);
-  }
+      const oldKey = (existing as any).soilTestReport?.key;
+      if (oldKey) {
+        await deleteS3ObjectIfExists(oldKey);
+      }
 
-  (existing as any).soilTestReport = {
-    url: up.url,
-    key: up.key,
-    filename: firstSoil.originalname,
-    mimetype: firstSoil.mimetype,
-  };
-}
-
+      (existing as any).soilTestReport = {
+        url: up.url,
+        key: up.key,
+        filename: firstSoil.originalname,
+        mimetype: firstSoil.mimetype,
+      };
+    }
 
     await existing.save();
     return existing.toObject ? existing.toObject() : existing;
@@ -350,7 +436,13 @@ if (firstSoil) {
     return Agricultural.findOne({ slug }).lean().exec();
   },
 
-  async list(options?: { page?: number; limit?: number; q?: string; city?: string; status?: string }) {
+  async list(options?: {
+    page?: number;
+    limit?: number;
+    q?: string;
+    city?: string;
+    status?: string;
+  }) {
     const page = Math.max(1, options?.page ?? 1);
     const limit = Math.min(100, options?.limit ?? 20);
     const skip = (page - 1) * limit;
@@ -364,11 +456,19 @@ if (firstSoil) {
     else sort.createdAt = -1;
 
     const [items, total] = await Promise.all([
-      Agricultural.find(filter).sort(sort).skip(skip).limit(limit).lean().exec(),
+      Agricultural.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec(),
       Agricultural.countDocuments(filter).exec(),
     ]);
 
-    return { items, meta: { total, page, limit, pages: Math.ceil(total / limit) } };
+    return {
+      items,
+      meta: { total, page, limit, pages: Math.ceil(total / limit) },
+    };
   },
 
   async delete(id: string) {
@@ -387,7 +487,8 @@ if (firstSoil) {
         if ((d as any)?.key) await deleteS3ObjectIfExists((d as any).key);
       }
     }
-    if ((existing as any).soilTestReport?.key) await deleteS3ObjectIfExists((existing as any).soilTestReport.key);
+    if ((existing as any).soilTestReport?.key)
+      await deleteS3ObjectIfExists((existing as any).soilTestReport.key);
 
     const deleted = await Agricultural.findByIdAndDelete(id).exec();
     return deleted;
@@ -395,13 +496,15 @@ if (firstSoil) {
 
   async incrementViews(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    await Agricultural.findByIdAndUpdate(id, { $inc: { "meta.views": 1 } }).exec();
+    await Agricultural.findByIdAndUpdate(id, {
+      $inc: { "meta.views": 1 },
+    }).exec();
     return null;
   },
 
   
-     model: Agricultural,
-     getPipeline: getAgriculturalPipeline
+  model: Agricultural,
+  getPipeline: getAgriculturalPipeline,
 };
 
 export default AgriculturalService;
