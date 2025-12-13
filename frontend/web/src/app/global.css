@@ -126,7 +126,7 @@ html, body {
   .card {
     margin-top: 26px;
     background: #fff;
-    border-radius: 10px;
+    border-radius: 12px;
     display: flex;
     flex-direction: column;
     cursor: pointer;

@@ -1,12 +1,10 @@
 "use client"
 
-import PropertyForm from "@/components/PropertyForm/PropertyForm"
-
 const page = () => {
     return (
       <div className="container">
-        <PropertyForm />
-      </div>
+              <h1>Post Porety</h1>
+       </div>
     );
 }
 

@@ -75,15 +75,13 @@ export default function AgentsList({ Agent = [] }: Props) {
 // Agent Card Component
 function AgentCard({ data }: { data: AgentConnect }) {
   return (
-    <div className="w-[300px] bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.08)] 
-overflow-hidden border border-gray-200 font-sans flex flex-col 
-hover:shadow-lg transition-all duration-300 relative card">
+    <div className="w-[300px] card">
       {/* Banner */}
       <div className="h-28 relative">
         <img
           src={data.coverImage?.url}
           alt="Banner"
-          className="w-full h-full object-cover brightness-95"
+          className="w-full h-full object-cover brightness-95 rounded-t-sm"
         />
         <div aria-label="primary" className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-[#26ad5f] text-white px-4 py-1 rounded-md shadow-sm">
           <MdVerifiedUser size={16} />

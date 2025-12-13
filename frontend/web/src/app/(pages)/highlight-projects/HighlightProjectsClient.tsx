@@ -76,17 +76,7 @@ export default function HighlightProjectsClient({ items = [] }: Props) {
                         </div>
 
                         {/* INFO CARD FLOATING UNDER IMAGE */}
-                        <div
-                            className="
-                                absolute 
-                                left-2 right-2 
-                                top-40 
-                                bg-white 
-                                rounded-xl 
-                                shadow-lg 
-                                p-4
-                            "
-                        >
+                        <div    className="absolute left-2 right-2 top-40  bg-white  rounded-xl  shadow-lg p-4">
                             {/* Row 1 */}
                             <div className="flex justify-between items-center mb-1">
                                 <h2 className="text-base font-medium text-gray-900 truncate">

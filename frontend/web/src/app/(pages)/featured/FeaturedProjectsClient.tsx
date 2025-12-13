@@ -75,7 +75,7 @@ export default function FeaturedProjectsClient({ items = [] }: Props) {
               {/* Logo */}
               <div className="shrink-0">
                 <Image
-                  src={project?.logo?.url}
+                  src={project?.logo?.url ?? "/images/placeholder.svg"}
                   alt={project.title}
                   width={80}
                   height={80}
