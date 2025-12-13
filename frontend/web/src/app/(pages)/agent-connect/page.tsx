@@ -84,14 +84,15 @@ export default async function Page() {
                         </div>
 
                         {/* RIGHT SIDE BUTTONS */}
-                        <div className="flex flex-col gap-3 w-[150px] text-right ">
-                            <button className="bg-green-600 text-white py-1 rounded-lg shadow">
+                        <div className="flex flex-col gap-3 w-[150px] bg-[#27AE60]/10 p-3 rounded-xl h-[120px] justify-center">
+                            <button className="bg-green-600 text-white py-2 rounded-lg shadow w-full text-sm font-medium">
                                 Contact Agent
                             </button>
-                            <button className="border border-green-600 text-green-600 py-1 rounded-lg">
+                            <button className="border border-green-600 text-green-600 py-2 rounded-lg w-full text-sm font-medium">
                                 View Details
                             </button>
                         </div>
+
                     </div>
                 ))}
             </div>
