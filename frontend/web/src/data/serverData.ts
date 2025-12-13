@@ -62,6 +62,7 @@ export async function getAgentConnect(){
       throw new Error('Failed to fetch Agent Connect data');
   }
   return res.json();
+
 }
 
 
