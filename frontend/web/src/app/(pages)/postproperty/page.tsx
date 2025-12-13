@@ -3,7 +3,7 @@
 const page = () => {
     return (
       <div className="container">
-              <h1>Post Porety</h1>
+              <h1>Post Porety working</h1>
        </div>
     );
 }
