@@ -23,19 +23,37 @@ export async function getPopularOwnerPropertiesByCity(city: string, page = 1, li
     status: "active"
   };
 
-  const projection = {
-    title: 1, slug: 1, gallery: 1, price: 1, currency: 1,
+  const resprojection = {
+    title: 1, slug: 1, gallery: 1, price: 1, currency: 1, superBuiltUpArea:1, constructionStatus:1,furnishing:1,parkingType:1,
     "meta.views": 1, "meta.inquiries": 1, "meta.clicks": 1,
     createdAt: 1, updatedAt: 1, status: 1, rank: 1, propertyType: 1, propertySubType: 1, listingSource: 1, city: 1
   };
 
+  
+  const comprojection = {
+    title: 1, slug: 1, gallery: 1, price: 1, currency: 1, superBuiltUpArea:1, furnishing:1, floorNumber:1, totalFloors:1,
+    "meta.views": 1, "meta.inquiries": 1, "meta.clicks": 1,
+    createdAt: 1, updatedAt: 1, status: 1, rank: 1, propertyType: 1, propertySubType: 1, listingSource: 1, city: 1
+  };
+
+  const landprojection = {
+    title: 1, slug: 1, gallery: 1, price: 1, currency: 1, dimensions:1, furnishing:1, roadWidthFt:1,
+    "meta.views": 1, "meta.inquiries": 1, "meta.clicks": 1,
+    createdAt: 1, updatedAt: 1, status: 1, rank: 1, propertyType: 1, propertySubType: 1, listingSource: 1, city: 1
+  };
+
+  const agrprojection = {
+    title: 1, slug: 1, gallery: 1, price: 1, currency: 1, superBuiltUpArea:1, soilType:1,accessRoadType:1,waterSource:1,
+    "meta.views": 1, "meta.inquiries": 1, "meta.clicks": 1,
+    createdAt: 1, updatedAt: 1, status: 1, rank: 1, propertyType: 1, propertySubType: 1, listingSource: 1, city: 1
+  };
   const perCollectionLimit = 2000; // safety ceiling — tune for your app
 
   const [resList, landList, comList, agrList] = await Promise.all([
-    Residential.find(baseFilter).select(projection).limit(perCollectionLimit).lean().exec(),
-    LandPlot.find(baseFilter).select(projection).limit(perCollectionLimit).lean().exec(),
-    Commercial.find(baseFilter).select(projection).limit(perCollectionLimit).lean().exec(),
-    Agricultural.find(baseFilter).select(projection).limit(perCollectionLimit).lean().exec()
+    Residential.find(baseFilter).select(resprojection).limit(perCollectionLimit).lean().exec(),
+    LandPlot.find(baseFilter).select(landprojection).limit(perCollectionLimit).lean().exec(),
+    Commercial.find(baseFilter).select(comprojection).limit(perCollectionLimit).lean().exec(),
+    Agricultural.find(baseFilter).select(agrprojection).limit(perCollectionLimit).lean().exec()
   ]);
 
   const normalized: any[] = [];
