@@ -142,7 +142,6 @@ export const BaseFields = {
   specifications: { type: [SpecificationSchema], default: [] },
   amenities: { type: [AmenitySchema], default: [] },
   nearbyPlaces: { type: [NearbyPlaceSchema], default: [] },
-  leads: { type: [new Schema({ name: String, phone: String, location: String, message: String, createdAt: Date }, { _id: false })], default: [] },
   legalChecks: { type: LegalChecksSchema },
   isFeatured: { type: Boolean, default: false, index: true },
   rank: { type: Number, default: 1, index: true },

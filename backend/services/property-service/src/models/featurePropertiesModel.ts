@@ -120,16 +120,6 @@ const NearbyPlaceSchema = new Schema<INearbyPlace>(
   { _id: false }
 );
 
-const LeadSchema = new Schema<ILead>(
-  {
-    name: { type: String, required: true, trim: true },
-    phone: { type: String, required: true, trim: true },
-    location: { type: String, trim: true },
-    message: { type: String, trim: true },
-    createdAt: { type: Date, default: () => new Date() },
-  },
-  { _id: false }
-);
 
 const LogoSchema =  new Schema<ILogo>(
   {
@@ -197,7 +187,6 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     specifications: { type: [SpecificationSchema] },
     amenities: { type: [AmenitySchema] },
     nearbyPlaces: { type: [NearbyPlaceSchema] },
-    leads: { type: [LeadSchema] },
     isFeatured: { type: Boolean, default: false, index: true },
     rank: { type: Number, default: 1, index: true },
     meta: {
