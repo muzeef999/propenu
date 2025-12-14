@@ -23,6 +23,7 @@ export const LandCard: React.FC<{ p: Property }> = ({ p }) => {
     (p as any)?.pricePerSqft ??
     Math.round((p?.price ?? 0) / (p as any)?.superBuiltUpArea || 0);
 
+
   return (
     <Link href={`/properties/land/${p.slug}`}  className="card p-2 h-[220px] flex flex-row overflow-hidden">
       {/* Left: image */}
@@ -109,7 +110,7 @@ export const LandCard: React.FC<{ p: Property }> = ({ p }) => {
               DIMENSIONS
             </div>
             <div className="font-medium">
-              {(p as any)?.constructionStatus ?? "—"}
+              {(p as any)?.dimension ?? "—"}
             </div>
           </div>
 

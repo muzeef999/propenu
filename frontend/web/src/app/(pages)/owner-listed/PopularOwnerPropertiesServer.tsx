@@ -1,15 +1,21 @@
 import { getOwnerProperties } from "@/data/serverData";
 import { JSX } from "react";
 import PopularOwnerPropertiesClient from "./PopularOwnerPropertiesClient";
+import { PopularOwnerProperty } from "@/types";
+
+export interface OwnerPropertiesResponse {
+  properties?: PopularOwnerProperty[];
+  [key: string]: any;
+}
+
 
 export default async function GetOwnerProperties(): Promise<JSX.Element> {
 
   try {
     const data = await getOwnerProperties();
-    const typedData = data as any as { properties?: any[] } | undefined;
-    const items = typedData?.properties ?? [];
 
-    console.log("Owner properties items length:", items.length); // server log
+    const items = Array.isArray(data) ? data : (data as any)?.items ?? [];
+    console.log("Fetched Owner Properties Data:", items);
 
     if (!items.length)
       return <h3 className="text-slate-700">No Owner Properties</h3>;
