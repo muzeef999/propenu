@@ -1,23 +1,15 @@
 import { Types } from 'mongoose';
 import { Lead } from '../models/LeadModel';
 
-/**
- * CREATE LEAD
- */
-export const createLead = async (data: any, userId?: string) => {
-  if (!data.propertyId || !data.propertyModel) {
-    throw new Error('Property reference is required');
-  }
-
+/** CREATE LEAD **/
+export const createLead = async (data: any,) => {
+ 
   return Lead.create({
     ...data,
-    createdBy: userId,
   });
 };
 
-/**
- * ASSIGN LEAD TO SALES
- */
+/**  ASSIGN LEAD TO SALES **/
 export const assignLead = async (leadId: string, assignedTo: string) => {
   if (!Types.ObjectId.isValid(leadId)) {
     throw new Error('Invalid lead ID');
@@ -38,9 +30,7 @@ export const assignLead = async (leadId: string, assignedTo: string) => {
   return lead;
 };
 
-/**
- * UPDATE LEAD STATUS
- */
+/**   UPDATE LEAD STATUS **/
 export const updateLeadStatus = async (
   leadId: string,
   status: string,
@@ -69,9 +59,7 @@ export const updateLeadStatus = async (
   return lead;
 };
 
-/**
- * GET LEADS (ROLE BASED)
- */
+/** GET LEADS (ROLE BASED) **/
 export const getLeads = async (query: any, user?: any) => {
   const filter: any = {};
 
@@ -96,9 +84,7 @@ export const getLeads = async (query: any, user?: any) => {
     .sort({ createdAt: -1 });
 };
 
-/**
- * GET SINGLE LEAD
- */
+/*** GET SINGLE LEAD **/
 export const getLeadById = async (id: string) => {
   if (!Types.ObjectId.isValid(id)) {
     throw new Error('Invalid lead ID');
