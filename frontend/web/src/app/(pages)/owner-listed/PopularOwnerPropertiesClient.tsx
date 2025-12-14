@@ -2,21 +2,25 @@
 
 import { useRef } from "react";
 import Link from "next/link";
-import { LuBed, LuRuler } from "react-icons/lu";
-import { TbBath } from "react-icons/tb";
 import { RiArrowRightSLine } from "react-icons/ri";
-
 import { useCity } from "@/hooks/useCity";
-import { ArrowDropdownIcon, LocationIcon } from "@/icons/icons";
-import formatINR from "@/utilies/PriceFormat";
+import { ArrowDropdownIcon } from "@/icons/icons";
+import { PopularOwnerProperty } from "@/types";
+import ResidentialCard from "../properties/cards/ResidentialCard";
+import CommercialCard from "../properties/cards/CommercialCard";
+import { LandCard } from "../properties/cards/LandCard";
+import AgriculturalCard from "../properties/cards/AgriculturalCard";
 
 interface Props {
-  items?: any[];
+  items?: PopularOwnerProperty[];
+  
 }
 
 const PopularOwnerPropertiesClient = ({ items = [] }: Props) => {
   const sliderRef = useRef<HTMLDivElement | null>(null);
   const { city } = useCity();
+
+  console.log("Popular Owner Properties Items:", items);
 
   // scroll by half of the visible slider width for a more predictable jump
   const scrollBy = (dir: "left" | "right") => {
@@ -64,73 +68,39 @@ const PopularOwnerPropertiesClient = ({ items = [] }: Props) => {
         className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-2 py-2 snap-x snap-mandatory"
         role="list"
       >
-        {items.map((project: any) => (
-          <article
-            key={project._id}
-            role="listitem"
-            className={"min-w-[92%] sm:min-w-[48%] md:min-w-[31%] lg:min-w-[22%] xl:min-w-[18%] card rounded-md bg-white shadow-sm snap-start"}
-          >
-            <Link
-              href={`/owner-listed/${project.slug}`}
-              className="block group"
-              aria-label={project?.title ?? "Property details"}
-            >
-              <div className="h-[200px] w-full overflow-hidden rounded-t-md">
-                <img
-                  src={project?.images?.[0]?.url ?? "/images/placeholder.svg"}
-                  alt={project?.title ?? "Property image"}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                />
+        {items.map((item: any) => {
+          const wrapperClass ="min-w-[100%] lg:min-w-[31%] xl:min-w-[18%] snap-start";
+
+          if (item.type === "residential") {
+            return (
+              <div key={item._id} className={wrapperClass}>
+                <ResidentialCard p={item}/>
               </div>
-
-              <div className="p-4 space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <h3
-                    className="text-[18px] font-semibold leading-tight text-slate-900 truncate"
-                    title={project?.title}
-                  >
-                    {project?.title ?? "Untitled Property"}
-                  </h3>
-
-                  <div className="ml-auto flex items-end whitespace-nowrap">
-                    <span className="text-[16px] font-semibold text-green-700">
-                      {formatINR(project?.price)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* LOCATION */}
-                <div className="flex items-center gap-1.5 text-[13px] text-slate-600">
-                  <LocationIcon size={16} color={"#374151"} />
-                  <span className="line-clamp-1">
-                    {project?.address?.addressLine ?? "Location not specified"}
-                  </span>
-                </div>
-
-                <div className="h-px w-full bg-slate-100" />
-
-                {/* SPECS */}
-                <div className="grid grid-cols-3 text-[14px] font-medium text-slate-800">
-                  <div className="flex items-center justify-center gap-1.5 px-1">
-                    <LuBed className="text-[18px]" />
-                    <span>{project?.details?.bhk ?? "-"}</span>
-                  </div>
-
-                  <div className="flex items-center justify-center gap-1.5 border-x border-slate-100 px-1">
-                    <TbBath className="text-[18px]" />
-                    <span>{project?.details?.bathrooms ?? "-"}</span>
-                  </div>
-
-                  <div className="flex items-center justify-center gap-1.5 px-1">
-                    <LuRuler className="text-[18px]" />
-                    <span>{project?.area ?? "-"}</span>
-                  </div>
-                </div>
+            );
+          }
+          if (item.type === "commercial") {
+            return (
+              <div key={item._id} className={wrapperClass}>
+                <CommercialCard p={item} />
               </div>
-            </Link>
-          </article>
-        ))}
+            );
+          }
+          if (item.type === "land") {
+            return (
+              <div key={item._id} className={wrapperClass}>
+                <LandCard p={item} />
+              </div>
+            );
+          }
+          if (item.type === "agricultural") {
+            return (
+              <div key={item._id} className={wrapperClass}>
+                <AgriculturalCard p={item} />
+              </div>
+            );
+          }
+          return null;
+        })}
       </div>
 
       {/* Right arrow */}

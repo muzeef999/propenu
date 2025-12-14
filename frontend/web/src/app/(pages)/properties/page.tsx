@@ -45,12 +45,12 @@ const Page: React.FC = () => {
 
         {/* Responsive Grid */}
 
-        <div className="flex w-full">
-          <div className="w-[80%]">
+        <div className="flex flex-col lg:flex-row w-full">
+          <div className="w-full lg:w-[80%]">
             {items.map((p) => renderPropertyCard(propertyType, p))}
           </div>
 
-          <div className="w-[20%]">
+          <div className="w-full lg:w-[20%]">
             <Image
               src={ad}
               alt="advertisement banner"

@@ -3,10 +3,6 @@
 import React from "react";
 import { Property } from "@/types/property";
 import { hexToRGBA } from "@/ui/hexToRGBA";
-import { HiOutlineLocationMarker } from "react-icons/hi";
-import { BiBed } from "react-icons/bi";
-import { TbRuler2 } from "react-icons/tb";
-import { FaCarSide } from "react-icons/fa";
 import { AiOutlineHeart } from "react-icons/ai";
 import {
   Furnishing,
@@ -28,9 +24,9 @@ const ResidentialCard: React.FC<{ p: Property }> = ({ p }) => {
     Math.round((p?.price ?? 0) / (p as any)?.superBuiltUpArea || 0);
 
   return (
-    <Link href={`/properties/residential/${p.slug}`} className="card p-2 h-[220px] flex flex-row overflow-hidden">
+    <Link href={`/properties/residential/${p.slug}`} className="card p-2 h-auto md:h-[220px] flex flex-col md:flex-row overflow-hidden">
       {/* Left: image */}
-      <div className="w-40 rounded-xl md:w-56 lg:w-72 relative shrink-0">
+      <div className="w-full h-48 md:h-auto md:w-56 lg:w-65 rounded-xl relative shrink-0">
         <img
           src={img}
           alt={p?.title ?? "property image"}
@@ -68,18 +64,18 @@ const ResidentialCard: React.FC<{ p: Property }> = ({ p }) => {
       </div>
 
       {/* Middle: content */}
-      <div className="flex-1 p-4 md:p-6 flex flex-col justify-between h-full">
+      <div className="flex-1 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
         <div>
           <h3 className="text-lg md:text-xl font-semibold line-clamp-2">
-            {p?.title},{p.city}
+            {p?.title}
           </h3>
           <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
-              {(p as any)?.buildingName}
+            {(p as any)?.buildingName}, {p?.city}
           </p>
         </div>
 
         {/* badges */}
-        <div className="flex flex-wrap gap-2 mt-3">
+        <div className="hidden md:flex flex-wrap gap-2 mt-3">
           <span className="text-xs font-normal px-2 py-1 text-primary">
             RERA Approved
           </span>
@@ -92,11 +88,11 @@ const ResidentialCard: React.FC<{ p: Property }> = ({ p }) => {
         </div>
 
         {/* meta icons row */}
-        <div className="flex items-center gap-6 mt-4 text-sm text-gray-600">
+        <div className="grid grid-cols-2 gap-4 md:flex md:items-center md:gap-6 mt-4 text-sm text-gray-600">
           <div className="items-center gap-2">
             <SuperBuiitupAraea size={24} color={bgPriceColoricon} />
             <div className="text-xs text-gray-500 tracking-wide">
-              SUPER BUILT UP AREA
+              Super Built-up Area
             </div>
             <div className="tex-black font-medium">
               {(p as any)?.superBuiltUpArea ?? "—"} sqft
@@ -106,7 +102,7 @@ const ResidentialCard: React.FC<{ p: Property }> = ({ p }) => {
           <div className="items-center gap-2">
             <UnderConstruction size={24} color={bgPriceColoricon} />
             <div className="text-xs text-gray-500 tracking-wide">
-              UNDER CONSTRUCTION
+              Under Construction
             </div>
             <div className="font-medium">
               {(p as any)?.constructionStatus ?? "—"}
@@ -116,7 +112,7 @@ const ResidentialCard: React.FC<{ p: Property }> = ({ p }) => {
           <div className="items-center gap-2">
             <Furnishing size={24} color={bgPriceColoricon} />
             <div className="text-xs text-gray-500 tracking-wide">
-              FURNISHING
+              Furnishing
             </div>
             <div className="font-medium">
               {(p as any)?.furnishing?.trim() ?? "—"}
@@ -125,7 +121,7 @@ const ResidentialCard: React.FC<{ p: Property }> = ({ p }) => {
 
           <div className="items-center gap-2">
             <Parking size={24} color={bgPriceColoricon} />
-            <div className="text-xs">PARKING</div>
+            <div className="text-xs">Parking</div>
             <div className="font-medium">
               {(p as any)?.parkingType?.trim() ?? "—"}
             </div>
@@ -135,25 +131,25 @@ const ResidentialCard: React.FC<{ p: Property }> = ({ p }) => {
 
       {/* Right: price card */}
       <aside
-        className="w-44 md:w-52 p-4 flex flex-col rounded-sm relative"
+        className="w-full md:w-52 p-3 md:p-4 flex flex-row md:flex-col justify-between items-center md:justify-center rounded-b-xl md:rounded-l-none md:rounded-r-xl shrink-0"
         style={{ backgroundColor: bgPriceColor }}
       >
-        {/* Middle: Price Section (centered vertically + horizontally) */}
-        <div className="flex-1 flex flex-col justify-center items-center text-center">
-          <div className="text-green-600 font-semibold text-2xl ">
+        <div className="flex flex-col md:items-center md:text-center">
+          <div className="text-green-700 font-bold text-xl md:text-2xl">
             {formatINR(p?.price)}
           </div>
-
-          <div className="text-lg text-gray-700 mt-1">
-            ₹ {pricePerSqft} per sqft
+          <div className="text-xs md:text-sm text-gray-600">
+            ₹ {pricePerSqft}/sqft
           </div>
         </div>
 
-        {/* Bottom: Button */}
-        <div className="w-full mt-4">
+        <div className="w-auto md:w-full md:mt-4">
           <button
-            className="w-full bg-green-600 text-white py-2 rounded-md shadow-sm hover:bg-green-700 transition"
-            onClick={() => window.alert(`Contact owner for ${p?.title}`)}
+            className="px-4 md:px-0 w-full bg-green-600 text-white text-sm md:text-base py-2 md:py-2 rounded-md shadow-sm hover:bg-green-700 transition font-medium whitespace-nowrap"
+            onClick={(e) => {
+              e.preventDefault(); // Prevent Link navigation when clicking button
+              window.alert(`Contact owner for ${p?.title}`);
+            }}
           >
             Contact Owner
           </button>

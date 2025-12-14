@@ -14,7 +14,6 @@ export default async function AgentServer(): Promise<JSX.Element> {
     const data = await getAgentConnect();
     const typedData = data as AgentResponse | undefined;
     const items = typedData?.items ?? [];
-    console.log(items);
      
     if (!items.length) {
       return (
