@@ -39,7 +39,7 @@ async function start() {
       console.log(`proportey running on 0.0.0.0:${port}`);
     });
   } catch (err) {
-    console.error("Failed to start server", err);
+    console.error("Failed to start proportey server", err);
     process.exit(1);
   }
 }
