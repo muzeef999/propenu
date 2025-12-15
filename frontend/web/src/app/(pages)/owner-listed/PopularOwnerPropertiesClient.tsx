@@ -19,10 +19,6 @@ interface Props {
 const PopularOwnerPropertiesClient = ({ items = [] }: Props) => {
   const sliderRef = useRef<HTMLDivElement | null>(null);
   const { city } = useCity();
-
-  console.log("Popular Owner Properties Items:", items);
-
-  // scroll by half of the visible slider width for a more predictable jump
   const scrollBy = (dir: "left" | "right") => {
     const el = sliderRef.current;
     if (!el) return;
@@ -69,19 +65,19 @@ const PopularOwnerPropertiesClient = ({ items = [] }: Props) => {
         role="list"
       >
         {items.map((item: any) => {
-          const wrapperClass ="min-w-[100%] lg:min-w-[31%] xl:min-w-[18%] snap-start";
+          const wrapperClass ="min-w-[70%] lg:min-w-[31%] xl:min-w-[25%] snap-start";
 
           if (item.type === "residential") {
             return (
               <div key={item._id} className={wrapperClass}>
-                <ResidentialCard p={item}/>
+                <ResidentialCard p={item} vertical={true} />
               </div>
             );
           }
           if (item.type === "commercial") {
             return (
               <div key={item._id} className={wrapperClass}>
-                <CommercialCard p={item} />
+                <CommercialCard p={item} vertical={true} />
               </div>
             );
           }

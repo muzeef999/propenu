@@ -155,7 +155,7 @@ export default function HeroSection({ hero }: Props) {
                 </div>
 
                 <div
-                  className="w-12 h-[2px] mx-auto mt-2"
+                  className="w-12 h-0.5 mx-auto mt-2"
                   style={{ backgroundColor: hero.color }}
                 />
               </div>
