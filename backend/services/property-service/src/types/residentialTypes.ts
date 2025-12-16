@@ -14,6 +14,7 @@ export const RESIDENTIAL_PROPERTY_TYPES = [
   'studio',
 ] as const;
 
+
 export type ResidentialPropertyType = typeof RESIDENTIAL_PROPERTY_TYPES[number];
 
 export const RESIDENTIAL_PROPERTY_SUBTYPES = [

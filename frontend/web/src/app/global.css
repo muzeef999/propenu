@@ -158,3 +158,9 @@ html, body {
   }
 
 }
+
+
+
+.leaflet-container {
+  outline: none;
+}
