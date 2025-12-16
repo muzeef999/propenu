@@ -8,9 +8,7 @@ import { useDispatch } from "react-redux";
     return (
         <>
         <h1>ResidentialProfile</h1>
-
-
-        
+  
       <input
         placeholder="BHK"
         onChange={(e) =>

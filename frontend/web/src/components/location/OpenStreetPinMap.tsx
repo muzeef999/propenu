@@ -4,7 +4,10 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useDispatch } from "react-redux";
-import { setLocationField } from "@/Redux/slice/postPropertySlice";
+import {
+  setBaseField,
+  setLocationField,
+} from "@/Redux/slice/postPropertySlice";
 import { useState } from "react";
 
 // Fix default marker icon
@@ -28,11 +31,11 @@ const DraggableMarker = () => {
       setPosition([lat, lng]);
 
       dispatch(
-        setLocationField({
+        setBaseField({
           key: "location",
           value: {
             type: "Point",
-            coordinates: [lng, lat], // GeoJSON format
+            coordinates: [lng, lat],
           },
         })
       );
@@ -61,9 +64,6 @@ const OpenStreetPinMap = () => {
           <DraggableMarker />
         </MapContainer>
       </div>
-      <p className="text-xs text-gray-500">
-        Click on the map to mark the exact location of your property.
-      </p>
     </div>
   );
 };

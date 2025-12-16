@@ -11,8 +11,9 @@ import { useState } from "react";
 import { validateBasicDetails } from "@/zod/basicDetailsZod";
 
 export default function BasicDetailsStep() {
-
-  const { propertyType, base } = useSelector((state: any) => state.postProperty);
+  const { propertyType, base } = useSelector(
+    (state: any) => state.postProperty
+  );
   const [files, setFiles] = useState<UploadedFile[]>([]);
 
   const listingOptions = [
@@ -23,16 +24,13 @@ export default function BasicDetailsStep() {
 
   const dispatch = useDispatch();
 
-
-  const validationResult = validateBasicDetails(base,propertyType,files);
+  const validationResult = validateBasicDetails(base, propertyType, files);
 
   const isFormValid = validationResult.success;
-  
+
   const fieldErrors = !validationResult.success
-  ? validationResult.error.flatten().fieldErrors
-  : {};
-
-
+    ? validationResult.error.flatten().fieldErrors
+    : {};
 
   const handleContinue = () => {
     if (!propertyType) return;
@@ -134,8 +132,7 @@ export default function BasicDetailsStep() {
           }
           placeholder="Auto calculated"
           onChange={(value) => dispatch(setBaseField({ key: "area", value }))}
-            error={fieldErrors?.title?.[0]}
-
+          error={fieldErrors?.title?.[0]}
         />
       </div>
 
@@ -147,8 +144,7 @@ export default function BasicDetailsStep() {
         onChange={(value) =>
           dispatch(setBaseField({ key: "description", value }))
         }
-          error={fieldErrors?.description?.[0]}
-
+        error={fieldErrors?.description?.[0]}
       />
 
       <FileUpload
@@ -158,8 +154,7 @@ export default function BasicDetailsStep() {
         accept="image/*"
         maxFiles={5}
         maxSizeMB={5}
-          error={fieldErrors?.images?.[0]}
-
+        error={fieldErrors?.images?.[0]}
       />
 
       <br />

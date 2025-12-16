@@ -1,5 +1,4 @@
 import { useDispatch, useSelector } from "react-redux";
-import PropertyProfileStep from "../steps/PropertyProfileStep";
 import StepRenderer from "./StepRenderer";
 import { useAppSelector } from "@/Redux/store";
 

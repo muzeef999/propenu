@@ -19,7 +19,7 @@ interface PostPropertyState {
 
 
 const initialState: PostPropertyState = {
-  currentStep: 2,
+  currentStep: 1,
   propertyType: null,
   base: {},
   location: {},
