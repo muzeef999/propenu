@@ -15,7 +15,6 @@ export default async function GetOwnerProperties(): Promise<JSX.Element> {
     const data = await getOwnerProperties();
 
     const items = Array.isArray(data) ? data : (data as any)?.items ?? [];
-    console.log("Fetched Owner Properties Data:", items);
 
     if (!items.length)
       return <h3 className="text-slate-700">No Owner Properties</h3>;

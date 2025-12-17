@@ -139,7 +139,7 @@ const Navbar = () => {
                         />
                       </div>
                     }
-                    width="w-[800px]"
+                    width="w-[90vw] max-w-[800px]"
                     align="left"
                     openOnHover={true}
                     renderContent={(close) => (
@@ -243,13 +243,11 @@ const Navbar = () => {
             {/* mobile controls */}
             <div className="flex items-center md:hidden gap-3">
               {/* mobile city pill (compact) */}
-              <div className="flex items-center">
-                <div
-                  aria-hidden="true"
-                  className="px-2 py-1 rounded-md text-sm font-medium"
-                >
-                  Hyderabadio
-                </div>
+              <div className="flex items-center gap-1 rounded-full bg-gray-50 px-3 py-1.5 border border-gray-100">
+                <LocationIcon size={14} color="#27AE60" />
+                <span className="text-sm font-medium text-gray-700">
+                  {city?.name ?? "Hyderabad"}
+                </span>
               </div>
 
               <button
@@ -314,16 +312,30 @@ const Navbar = () => {
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   Account
                 </span>
-                {loginItems.map((it) => (
-                  <Link
-                    key={it.id}
-                    href={it.href ?? "#"}
-                    onClick={() => setMobileOpen(false)}
-                    className="py-2 px-2 rounded-md text-sm font-medium hover:bg-gray-50"
-                  >
-                    {it.label}
-                  </Link>
-                ))}
+                {user ? (
+                  <div className="flex items-center gap-3 rounded-md bg-gray-50 p-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-700">
+                      {user.name?.[0]?.toUpperCase() ?? "U"}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-gray-900">
+                        {user.name}
+                      </span>
+                      <span className="text-xs text-gray-500">{user.email}</span>
+                    </div>
+                  </div>
+                ) : (
+                  loginItems.map((it) => (
+                    <Link
+                      key={it.id}
+                      href={it.href ?? "#"}
+                      onClick={() => setMobileOpen(false)}
+                      className="py-2 px-2 rounded-md text-sm font-medium hover:bg-gray-50"
+                    >
+                      {it.label}
+                    </Link>
+                  ))
+                )}
               </div>
 
               {/* post property CTA */}

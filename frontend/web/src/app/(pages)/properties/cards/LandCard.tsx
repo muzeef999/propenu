@@ -75,7 +75,7 @@ export const LandCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
             <HiOutlineLocationMarker className="w-4 h-4" />
             <span className="capitalize">
               {(p as any)?.city ?? ""}
-              {(p as any)?.slug ? ` • ${vertical ? `${(p as any).slug?.slice(0, 18)}...` : (p as any).slug}` : ""}
+              {(p as any)?.slug ? ` • ${vertical ? `${(p as any).slug?.slice(0, 12)}...` : (p as any).slug}` : ""}
             </span>
           </p>
         </div>
