@@ -1,5 +1,4 @@
-import { createSlice } from "@reduxjs/toolkit"
-
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 type PropertyType =
   | "residential"
@@ -8,57 +7,81 @@ type PropertyType =
   | "agricultural"
   | null;
 
+interface SetFieldPayload {
+  key: string;
+  value: any;
+}
+
+interface SetProfileFieldPayload extends SetFieldPayload {
+  propertyType: Exclude<PropertyType, null>;
+}
+
 interface PostPropertyState {
   currentStep: number;
   propertyType: PropertyType;
   base: Record<string, any>;
-  location: Record<string, any>;
-  profile: Record<string, any>;
+  residential: Record<string, any>;
+  commercial: Record<string, any>;
+  land: Record<string, any>;
+  agricultural: Record<string, any>;
 }
-
-
 
 const initialState: PostPropertyState = {
   currentStep: 1,
   propertyType: null,
-  base: {},
-  location: {},
-  profile: {},
+  base: {
+        nearbyPlaces: [],
+  },
+  residential: {},
+  commercial: {},
+  land: {},
+  agricultural: {},
 };
-
-
 
 const postPropertySlice = createSlice({
   name: "postProperty",
   initialState,
   reducers: {
-    setPropertyType(state, action) {
-  state.propertyType = action.payload;
-},
+    /* -------- Step control -------- */
+    nextStep(state) {
+      state.currentStep += 1;
+    },
 
-setBaseField(state, action) {
-  state.base[action.payload.key] = action.payload.value;
-},
+    prevStep(state) {
+      state.currentStep -= 1;
+    },
 
-setLocationField(state, action) {
-  state.location[action.payload.key] = action.payload.value;
-},
+    /* -------- Property type -------- */
+    setPropertyType(state, action: PayloadAction<PropertyType>) {
+      state.propertyType = action.payload;
+    },
 
-setProfileField(state, action) {
-  state.profile[action.payload.key] = action.payload.value;
-},
+    /* -------- Base fields -------- */
+    setBaseField(state, action: PayloadAction<SetFieldPayload>) {
+      const { key, value } = action.payload;
+      state.base[key] = value;
+    },
 
-nextStep(state) {
-  state.currentStep += 1;
-},
+    /* -------- Profile fields (dynamic) -------- */
+    setProfileField(
+      state,
+      action: PayloadAction<SetProfileFieldPayload>
+    ) {
+      const { propertyType, key, value } = action.payload;
 
-prevStep(state) {
-  state.currentStep -= 1;
-},
+      if (!propertyType) return;
+
+      state[propertyType][key] = value;
+    },
   },
-})
+});
 
-export const { setPropertyType, setBaseField, setLocationField,setProfileField, nextStep, prevStep } =
-  postPropertySlice.actions
+export const {
+  setPropertyType,
+  setBaseField,
+  setProfileField,
+  nextStep,
+  prevStep,
+} = postPropertySlice.actions;
 
-export default postPropertySlice.reducer
+export default postPropertySlice.reducer;

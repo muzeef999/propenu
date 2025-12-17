@@ -2,7 +2,7 @@
 
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect, useState } from "react";
-import { setLocationField } from "@/Redux/slice/postPropertySlice";
+import { setBaseField } from "@/Redux/slice/postPropertySlice";
 
 type SearchResult = {
   display_name: string;
@@ -14,7 +14,7 @@ const NearbyLocationSearch = () => {
   const dispatch = useDispatch();
 
   const nearbyPlaces =
-    useSelector((state: any) => state.postProperty.location.nearbyPlaces) || [];
+    useSelector((state: any) => state.postProperty) || [];
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -61,10 +61,11 @@ const NearbyLocationSearch = () => {
     return () => controller.abort();
   }, [query]);
 
+
   // ➕ Add nearby place
   const addPlace = (place: SearchResult) => {
     dispatch(
-      setLocationField({
+      setBaseField({
         key: "nearbyPlaces",
         value: [
           ...nearbyPlaces,

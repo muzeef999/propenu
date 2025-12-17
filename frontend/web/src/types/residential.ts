@@ -35,7 +35,6 @@ export interface IResidential {
   superBuiltUpArea?: number;
   furnishing?: 'unfurnished' | 'semi-furnished' | 'fully-furnished';
   parkingType?: string;
-  parkingCount?: number;
   floorNumber?: number;
   totalFloors?: number;
   facing?: string;
@@ -53,4 +52,12 @@ export interface IResidential {
   kitchenType?: string;
   listingSource?: string;
   nearbyPlaces?: string[];
+}
+
+
+
+export interface IAmenity {
+  key: string;          // unique identifier (used in DB)
+  title: string;        // UI label
+  description?: string; // optional (future use)
 }

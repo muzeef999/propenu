@@ -156,7 +156,6 @@ export default async function Page({ params }: PageProps) {
 
                   <div className="flex flex-col gap-1">
                     <p className="font-medium text-gray-900">No of parkings</p>
-                    <p className="text-gray-500">{project?.parkingCount}</p>
                   </div>
                 </div>
 

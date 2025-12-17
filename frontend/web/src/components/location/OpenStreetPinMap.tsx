@@ -6,7 +6,6 @@ import "leaflet/dist/leaflet.css";
 import { useDispatch } from "react-redux";
 import {
   setBaseField,
-  setLocationField,
 } from "@/Redux/slice/postPropertySlice";
 import { useState } from "react";
 

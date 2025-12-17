@@ -162,7 +162,7 @@ export default function BasicDetailsStep() {
       <button
         onClick={() => dispatch(nextStep())}
         disabled={!isFormValid}
-        className="px-4 py-2 btn-primary text-white rounded disabled:opacity-50"
+        className="px-4 py-2 btn-primary cursor-pointer text-white rounded disabled:opacity-50"
       >
         Continue
       </button>

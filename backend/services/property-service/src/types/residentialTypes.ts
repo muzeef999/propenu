@@ -12,24 +12,13 @@ export const RESIDENTIAL_PROPERTY_TYPES = [
   'plot',
   'row-house',
   'studio',
-] as const;
-
-
-export type ResidentialPropertyType = typeof RESIDENTIAL_PROPERTY_TYPES[number];
-
-export const RESIDENTIAL_PROPERTY_SUBTYPES = [
-  '1bhk',
-  '2bhk',
-  '3bhk',
-  '4bhk',
-  '5bhk',
   'duplex',
   'triplex',
   'farmhouse',
 ] as const;
 
-export type ResidentialPropertySubType = typeof RESIDENTIAL_PROPERTY_SUBTYPES[number];
 
+export type ResidentialPropertyType = typeof RESIDENTIAL_PROPERTY_TYPES[number];
 
 
 
@@ -79,7 +68,6 @@ export interface IResidential {
   city?: string; 
 
   propertyType?: ResidentialPropertyType;
-  propertySubType?: ResidentialPropertySubType;
 
   // residential-specific
   bhk?: number;
@@ -94,7 +82,6 @@ export interface IResidential {
 
   furnishing?: 'unfurnished' | 'semi-furnished' | 'fully-furnished';
   parkingType?: string;
-  parkingCount?: number;
   floorNumber?: number;
   totalFloors?: number;
   facing?: string;

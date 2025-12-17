@@ -1,11 +1,23 @@
 import NearbyLocationSearch from "@/components/location/NearbyLocationSearch";
-import OpenStreetPinMap from "@/components/location/OpenStreetPinMap";
+import dynamic from "next/dynamic";
+const OpenStreetPinMap = dynamic(
+  () => import("@/components/location/OpenStreetPinMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-52 flex items-center justify-center border rounded">
+        Loading map…
+      </div>
+    ),
+  }
+);
+
 import { setBaseField } from "@/Redux/slice/postPropertySlice";
 import InputField from "@/ui/InputFiled";
 import TextArea from "@/ui/TextArae";
 import { useDispatch, useSelector } from "react-redux";
 import { validateLocationDetails } from "@/zod/locationDetailsZod";
-import { nextStep, setLocationField } from "@/Redux/slice/postPropertySlice";
+import { nextStep } from "@/Redux/slice/postPropertySlice";
 
 const LocationDetailsStep = () => {
   const { propertyType, base } = useSelector(
