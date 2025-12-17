@@ -32,14 +32,12 @@ export default function BasicDetailsStep() {
     ? validationResult.error.flatten().fieldErrors
     : {};
 
-  const handleContinue = () => {
-    if (!propertyType) return;
-    dispatch(nextStep());
-  };
 
-  const handleSelect = (type: string) => {
-    dispatch(setPropertyType(type));
-  };
+  const handleSelect = (type: any) => {
+  dispatch(setPropertyType(type));
+};
+
+
   return (
     <div className="space-y-4">
       <p className="text-sm font-medium text-gray-700">Listing type</p>
