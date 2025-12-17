@@ -53,4 +53,5 @@ export interface IResidential {
   kitchenType?: string;
   listingSource?: string;
   nearbyPlaces?: string[];
+  createdBy?: { name?: string; contact?: string; email?: string };
 }

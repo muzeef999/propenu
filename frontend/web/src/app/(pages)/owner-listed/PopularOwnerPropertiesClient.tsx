@@ -13,7 +13,7 @@ import AgriculturalCard from "../properties/cards/AgriculturalCard";
 
 interface Props {
   items?: PopularOwnerProperty[];
-  
+
 }
 
 const PopularOwnerPropertiesClient = ({ items = [] }: Props) => {
@@ -61,11 +61,10 @@ const PopularOwnerPropertiesClient = ({ items = [] }: Props) => {
       {/* Carousel */}
       <div
         ref={sliderRef}
-        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-2 py-2 snap-x snap-mandatory"
-        role="list"
+        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-6 py-2 snap-x snap-mandatory scroll-px-1"
       >
         {items.map((item: any) => {
-          const wrapperClass ="min-w-[70%] lg:min-w-[31%] xl:min-w-[25%] snap-start";
+          const wrapperClass = "min-w-[70%] lg:min-w-[31%] xl:min-w-[25%] snap-start";
 
           if (item.type === "residential") {
             return (
@@ -84,14 +83,14 @@ const PopularOwnerPropertiesClient = ({ items = [] }: Props) => {
           if (item.type === "land") {
             return (
               <div key={item._id} className={wrapperClass}>
-                <LandCard p={item} />
+                <LandCard p={item} vertical={true} />
               </div>
             );
           }
           if (item.type === "agricultural") {
             return (
               <div key={item._id} className={wrapperClass}>
-                <AgriculturalCard p={item} />
+                <AgriculturalCard p={item} vertical={true} />
               </div>
             );
           }

@@ -3,13 +3,22 @@
 import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import { gsap } from "gsap";
-import { ServiceHomeLoan } from "@/icons/icons";
+// Importing from react-icons
+import { 
+  BiErrorCircle, 
+  BiBadgeCheck, 
+  BiMoney, 
+  BiSupport, 
+  BiShieldQuarter, 
+  BiGift, 
+  BiTask 
+} from "react-icons/bi";
 
 /** -----------------------------
  * Types
  * ----------------------------- */
 type Item = {
-  color?: string; // hex string like "#27AE60"
+  color?: string;
   icon: React.ReactNode;
   link: string;
   title: string;
@@ -17,69 +26,63 @@ type Item = {
 };
 
 /** -----------------------------
- * Sample data (can be passed as props)
+ * Data with React Icons
  * ----------------------------- */
 const DEFAULT_DATA: Item[] = [
   {
-    color: "#FFA406",
-    icon: <ServiceHomeLoan />,
-    link: "/blogs",
+    color: "#F59E0B", // Yellow/Orange
+    icon: <BiErrorCircle className="w-full h-full" />,
+    link: "#",
     title: "Zero Spam",
     desc: "Only genuine updates — no clutter, no noise.",
   },
   {
-    color: "#27AE60",
-    icon: <ServiceHomeLoan />,
-    link: "/blogs",
+    color: "#22C55E", // Green
+    icon: <BiBadgeCheck className="w-full h-full" />,
+    link: "#",
     title: "Verified Properties",
     desc: "Every listing is thoroughly verified",
   },
   {
-    color: "#15A2EE",
-    icon: <ServiceHomeLoan />,
-    link: "/blogs",
+    color: "#3B82F6", // Blue
+    icon: <BiMoney className="w-full h-full" />,
+    link: "#",
     title: "Transparent Transaction",
     desc: "Clear, honest, and hassle-free processes",
   },
   {
-    color: "#9A3247",
-    icon: <ServiceHomeLoan />,
-    link: "/blogs",
+    color: "#BE123C", // Red/Rose
+    icon: <BiSupport className="w-full h-full" />,
+    link: "#",
     title: "Expert Support",
     desc: "Estate experts whenever you need help.",
   },
+  // Extra items to fill loop
   {
-    color: "#BC57F0",
-    icon: <ServiceHomeLoan />,
-    link: "/blogs",
+    color: "#A855F7", // Purple
+    icon: <BiGift className="w-full h-full" />,
+    link: "#",
     title: "Extra Benefit",
     desc: "Special offers & priority support.",
   },
   {
-    color: "#EE6115",
-    icon: <ServiceHomeLoan />,
-    link: "/blogs",
+    color: "#F97316", // Orange
+    icon: <BiShieldQuarter className="w-full h-full" />,
+    link: "#",
     title: "Secure Documentation",
-    desc: "top-tier security.",
+    desc: "Top-tier security for your data.",
   },
   {
-    color: "#01828E",
-    icon: <ServiceHomeLoan />,
-    link: "/blogs",
+    color: "#0E7490", // Cyan
+    icon: <BiTask className="w-full h-full" />,
+    link: "#",
     title: "End-to-End Assistance",
     desc: "From search to possession, we support.",
   },
 ];
 
-/** -----------------------------
- * Visible count (how many are shown)
- * ----------------------------- */
 const VISIBLE = 4;
 
-
-/** -----------------------------
- * Component
- * ----------------------------- */
 export default function TestimonialCardsMarquee({
   items = DEFAULT_DATA,
 }: {
@@ -98,6 +101,7 @@ export default function TestimonialCardsMarquee({
     if (!wrap || !slider) return;
     if (typeof window === "undefined") return;
 
+    // Handle reduced motion
     const prefersReduced = window.matchMedia?.(
       "(prefers-reduced-motion: reduce)"
     ).matches;
@@ -106,108 +110,122 @@ export default function TestimonialCardsMarquee({
       return;
     }
 
+    // Measure card height
     const firstCard = slider.querySelector<HTMLElement>("[data-card]");
     if (!firstCard) return;
     const cardRect = firstCard.getBoundingClientRect();
-    const marginBottom = parseFloat(
-      getComputedStyle(firstCard).marginBottom || "0"
-    );
-    const cardHeight = Math.ceil(cardRect.height + marginBottom);
-    const visibleCount = Math.min(VISIBLE, items.length);
-    const totalScrollHeight = cardHeight * items.length;
+    
+    // Calculate total height including margins
+    const style = window.getComputedStyle(firstCard);
+    const marginTop = parseFloat(style.marginTop);
+    const marginBottom = parseFloat(style.marginBottom);
+    const fullCardHeight = cardRect.height + marginTop + marginBottom;
+    
+    // Set container height based on visible items
+    wrap.style.height = `${fullCardHeight * VISIBLE}px`;
 
-    wrap.style.height = `${cardHeight * visibleCount}px`;
+    const totalScrollHeight = fullCardHeight * items.length;
 
+    // Reset previous GSAP instance
     if (tlRef.current) {
       tlRef.current.kill();
       tlRef.current = null;
       gsap.set(slider, { clearProps: "transform" });
     }
 
-    const duration = Math.max(10, (totalScrollHeight / 100) * 1.5);
+    // Create Animation
+    const duration = items.length * 3.5; 
+    
     const tl = gsap.timeline({ repeat: -1, paused: false });
     tl.to(slider, {
       y: -totalScrollHeight,
       ease: "none",
-      duration,
+      duration: duration,
       modifiers: {
-        y: (y) => `${parseFloat(y).toFixed(2)}px`,
+        y: (y) => {
+            return `${parseFloat(y).toFixed(2)}px`; 
+        },
       },
     });
 
     tlRef.current = tl;
 
+    // Interaction handlers
     const onEnter = () => tl.pause();
     const onLeave = () => tl.play();
+    
     wrap.addEventListener("mouseenter", onEnter);
-    wrap.addEventListener("focusin", onEnter);
     wrap.addEventListener("mouseleave", onLeave);
-    wrap.addEventListener("focusout", onLeave);
+    wrap.addEventListener("touchstart", onEnter);
+    wrap.addEventListener("touchend", onLeave);
 
     return () => {
       tl.kill();
       tlRef.current = null;
       wrap.removeEventListener("mouseenter", onEnter);
-      wrap.removeEventListener("focusin", onEnter);
       wrap.removeEventListener("mouseleave", onLeave);
-      wrap.removeEventListener("focusout", onLeave);
+      wrap.removeEventListener("touchstart", onEnter);
+      wrap.removeEventListener("touchend", onLeave);
       gsap.set(slider, { clearProps: "transform" });
     };
   }, [items]);
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
+    <div className="w-[80%] p-2">
       <div
         ref={wrapRef}
-        className="relative overflow-hidden"
-        aria-label="Benefits carousel"
+        className="relative overflow-hidden py-4"
+        aria-label="Features carousel"
       >
-        <div ref={sliderRef} className="flex flex-col will-change-transform">
+        <div ref={sliderRef} className="flex flex-col w-full will-change-transform">
           {doubled.map((item, idx) => {
             const hex = item.color ?? "#0ea5a4";
-            const textColor = hex; // icon/text color
+            
+            // Alternating tilt: Even left, Odd right
+            const rotateDeg = idx % 2 === 0 ? -2.5 : 2.5;
+            const translateX = idx % 2 === 0 ? -5 : 5;
 
-            // subtle alternating tilt: -2, 1, -1, 2, ...
-            const tiltAmt = ((idx % 5) - 2) * 1.2;
-
-            // Slight stagger for overlap feel: odd indexes lift slightly
-            const translateY = idx % 2 === 0 ? 0 : 2;
-
-            const key = `${item.title
-              .replace(/\s+/g, "-")
-              .toLowerCase()}-${idx}`;
+            const key = `${item.title.replace(/\s+/g, "-")}-${idx}`;
 
             return (
-              <Link key={key} href={item.link} className="block">
+              <Link key={key} href={item.link} className="block group">
                 <article
                   data-card
-                  className="relative flex items-center gap-4 rounded-lg p-4 mb-4 bg-white shadow-sm hover:shadow-md transition-shadow transform-gpu"
+                  className="relative flex items-center gap-5 rounded-2xl p-3 mb-4 shadow-sm border border-slate-100 transition-transform duration-300 ease-out group-hover:scale-[1.02]"
                   style={{
-                    transform: `rotate(${tiltAmt}deg) translateY(${translateY}px)`,
-                    transformOrigin: "left center",
+                    transform: `rotate(${rotateDeg}deg) translateX(${translateX}px)`,
+                    transformOrigin: "center center",
                   }}
                 >
-                  {/* Icon badge */}
-                     
-                    <div style={{ color: textColor }} className="w-6 h-6">
-                      {item.icon}
-                    </div>
-                  
-                  {/* Text */}
-                  <div className="min-w-0">
+                  {/* Icon Container */}
+                  <div 
+                    style={{ color: hex }} 
+                    className="shrink-0 w-7 h-7 flex items-center justify-center"
+                  >
+                    {item.icon}
+                  </div>
+
+                  {/* Text Content */}
+                  <div className="flex-1">
                     <h4
-                      style={{ color: textColor }}
-                      className="text-sm font-semibold  leading-tight"
+                      style={{ color: hex }}
+                      className="text-[14px] font-semibold leading-tight mb-1"
                     >
                       {item.title}
                     </h4>
-                    <p className="mt-1 text-xs text-slate-500">{item.desc}</p>
+                    <p className="text-[13px] font-medium text-slate-500 leading-snug">
+                      {item.desc}
+                    </p>
                   </div>
                 </article>
               </Link>
             );
           })}
         </div>
+        
+        {/* Gradients */}
+        <div className="absolute top-0 left-0 w-full h-8 bg-linear-to-b from-white to-transparent pointer-events-none z-10" />
+        <div className="absolute bottom-0 left-0 w-full h-8 bg-linear-to-t from-white to-transparent pointer-events-none z-10" />
       </div>
     </div>
   );

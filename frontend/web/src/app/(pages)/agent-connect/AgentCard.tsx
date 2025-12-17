@@ -2,6 +2,7 @@
 
 import React, { useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import { MdLocationPin, MdVerifiedUser } from "react-icons/md"; // Added MdVerified import
 import { AgentConnect } from "@/types";
@@ -43,7 +44,7 @@ export default function AgentsList({ Agent = [] }: Props) {
         type="button"
         onClick={scrollLeft}
         aria-label="Scroll left"
-        className="absolute left-[-1.2%] top-1/2 -translate-y-1/2 z-20 bg-white p-2 rounded-full shadow-md hover:shadow-xl cursor-pointer transition-all duration-300"
+        className="absolute left-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex bg-white p-2 rounded-full shadow-md hover:shadow-xl cursor-pointer transition-all duration-300"
       >
         <ArrowDropdownIcon size={16} className="rotate-90" />
       </button>
@@ -52,7 +53,7 @@ export default function AgentsList({ Agent = [] }: Props) {
         type="button"
         onClick={scrollRight}
         aria-label="Scroll right"
-        className="absolute right-[-1.2%] top-1/2 -translate-y-1/2 z-20 bg-white p-2 rounded-full shadow-md hover:shadow-xl cursor-pointer transition-all duration-300"
+        className="absolute right-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex bg-white p-2 rounded-full shadow-md hover:shadow-xl cursor-pointer transition-all duration-300"
       >
         <ArrowDropdownIcon size={16} className="-rotate-90" />
       </button>
@@ -75,13 +76,14 @@ export default function AgentsList({ Agent = [] }: Props) {
 // Agent Card Component
 function AgentCard({ data }: { data: AgentConnect }) {
   return (
-    <div className="w-[300px] card">
+    <div className="card">
       {/* Banner */}
       <div className="h-28 relative">
-        <img
-          src={data.coverImage?.url}
+        <Image
+          src={data.coverImage?.url || "/placeholder.jpg"}
           alt="Banner"
-          className="w-full h-full object-cover brightness-95 rounded-t-sm"
+          fill
+          className="object-cover brightness-95"
         />
         <div aria-label="primary" className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-[#26ad5f] text-white px-4 py-1 rounded-md shadow-sm">
           <MdVerifiedUser size={16} />
@@ -89,26 +91,28 @@ function AgentCard({ data }: { data: AgentConnect }) {
         </div>
 
         {/* Profile Picture */}
-        <div className="absolute left-5 -bottom-10">
-          <img
-            src={data.avatar?.url}
+        <div className="absolute left-5 -bottom-10 h-20 w-20 rounded-full border-4 border-white shadow-md overflow-hidden bg-gray-100">
+          <Image
+            src={data.avatar?.url || "/placeholder.jpg"}
             alt={data.name}
-            className="w-20 h-20 rounded-full shadow-md object-cover"
+            fill
+            className="object-cover"
           />
         </div>
       </div>
 
       {/* Content */}
-      <div className="pt-14 pb-5 px-6 flex flex-col justify-between min-h-[210px]">
+      <div className="pt-12 pb-5 px-5 flex flex-col justify-between min-h-[210px]">
         {/* Title + Headline */}
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 leading-tight">{data.agencyName}</h2>
+          <h2 className="text-lg font-bold text-gray-900 leading-tight">{data.name}</h2>
+          <p className="text-sm font-medium text-green-600">{data.agencyName}</p>
 
-          <p className="text-sm text-gray-700 mt-1 leading-snug line-clamp-2">{data.bio}</p>
+          <p className="text-sm text-gray-500 mt-2 leading-snug line-clamp-2">{data.bio}</p>
 
           <p className="text-sm text-gray-500 mt-2 truncate flex items-center">
             <MdLocationPin className="mr-1 text-gray-400" size={18} />
-            {data.areasServed.join(", ")}
+            {data.areasServed?.join(", ")}
           </p>
         </div>
 

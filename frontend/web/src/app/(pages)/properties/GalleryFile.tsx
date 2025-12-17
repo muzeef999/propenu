@@ -1,89 +1,190 @@
-// components/GalleryFile.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
+import { FiHeart, FiImage, FiShare2, FiX, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
 type GalleryItem = {
   url: string;
   key: string;
   filename: string;
-  order: number;
 };
 
 type GalleryFileProps = {
   gallery?: GalleryItem[];
+  title?: string;
 };
 
-const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [] }) => {
-  if (!gallery.length) {
-    return <p>No images available</p>;
+const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
+  const openLightbox = () => {
+    setIsOpen(true);
+  };
+
+  const closeLightbox = () => {
+    setIsOpen(false);
+    setPreviewIndex(null);
+  };
+
+  if (gallery.length < 4) {
+    return <p>Not enough images</p>;
   }
 
-  const [activeIndex, setActiveIndex] = useState(0);
-  const activeImage = gallery[activeIndex];
-
   return (
-    <div className="rounded-3x p-3  h-[250px]">
-      {/* MAIN IMAGE */}
-      <div className="relative h-[210px] w-full overflow-hidden rounded-3xl sm:h-[360px]">
-        <Image
-          src={activeImage.url}
-          alt={activeImage.filename}
-          fill
-          className="object-cover"
-          sizes="(min-width: 1024px) 800px, 100vw"
-          priority
-        />
+    <>
+      <div className="relative grid h-[270px] grid-cols-[7fr_5fr] grid-rows-2 gap-3 rounded-3xl p-3 sm:h-80">
 
-        {/* top-left count like “15” */}
-        <div className="absolute left-4 top-4 flex items-center gap-1 text-sm font-medium text-white">
-          <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-white/60 bg-black/30">
-            {/* simple icon placeholder */}
-            ⬛
-          </span>
-          <span>{gallery.length}</span>
+        {/* LEFT TOP (70%) */}
+        <div
+          className="relative cursor-pointer overflow-hidden rounded-2xl"
+          onClick={openLightbox}
+        >
+          <Image
+            src={gallery[0].url}
+            alt={gallery[0].filename}
+            fill
+            className="object-cover transition-transform duration-300 hover:scale-105"
+            priority
+          />
         </div>
 
-        {/* top-right fav/share icons (dummy for now) */}
-        <div className="absolute right-4 top-4 flex gap-2">
-          <button className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow">
-            ♥
+        {/* RIGHT TALL (30%) */}
+        <div
+          className="relative row-span-2 cursor-pointer overflow-hidden rounded-2xl"
+          onClick={openLightbox}
+        >
+          <Image
+            src={gallery[1].url}
+            alt={gallery[1].filename}
+            fill
+            className="object-cover transition-transform duration-300 hover:scale-105"
+          />
+        </div>
+
+        {/* LEFT BOTTOM (70%) */}
+        <div
+          className="relative cursor-pointer overflow-hidden rounded-2xl"
+          onClick={openLightbox}
+        >
+          <Image
+            src={gallery[2].url}
+            alt={gallery[2].filename}
+            fill
+            className="object-cover transition-transform duration-300 hover:scale-105"
+          />
+        </div>
+
+        {/* IMAGE COUNT */}
+        <div className="absolute left-6 top-6 flex items-center gap-1 rounded-md bg-white/90 px-2 py-1 text-sm">
+          <FiImage className="h-4 w-4" />
+          {gallery.length}
+        </div>
+
+        {/* ACTION ICONS */}
+        <div className="absolute right-6 top-6 flex gap-2">
+          <button className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow">
+            <FiHeart className="h-4 w-4" />
           </button>
-          <button className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow">
-            ↗
+          <button className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow">
+            <FiShare2 className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      {/* THUMBNAILS ROW */}
-      <div className="mt-4 flex gap-3 overflow-x-auto px-1 pb-1">
-        {gallery.map((img, index) => {
-          const isActive = index === activeIndex;
-          return (
+
+      {/* Lightbox */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-sm"
+        >
+          <div className="flex items-center gap-4 p-3 bg-[#1fab60]">
             <button
-              key={img.key}
-              type="button"
-              onClick={() => setActiveIndex(index)}
-              className={`relative h-20 w-28 shrink-0 overflow-hidden rounded-2xl border-2 transition
-              ${
-                isActive
-                  ? "border-emerald-500 shadow-md"
-                  : "border-transparent opacity-80 hover:opacity-100"
-              }`}
+              className="rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20"
+              onClick={closeLightbox}
             >
-              <Image
-                src={img.url}
-                alt={img.filename}
-                fill
-                className="object-cover"
-                sizes="112px"
-              />
+              <FiChevronLeft className="h-6 w-6" />
             </button>
-          );
-        })}
-      </div>
-    </div>
+            <h2 className="text-xl font-semibold text-white">{title}</h2>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="mx-auto max-w-7xl columns-1 gap-4 sm:columns-2 md:columns-3 lg:columns-4">
+              {gallery.map((item, index) => (
+                <div
+                  key={item.key}
+                  className="relative mb-4 break-inside-avoid cursor-pointer overflow-hidden rounded-lg bg-gray-800"
+                  onClick={() => setPreviewIndex(index)}
+                >
+                  <Image
+                    src={item.url}
+                    alt={item.filename}
+                    width={600}
+                    height={800}
+                    className="h-auto w-full object-cover transition-transform duration-300 hover:scale-110"
+                  />
+                </div>
+
+              ))}
+            </div>
+          </div>
+
+          {/* Single Image Preview Overlay */}
+          {previewIndex !== null && (
+            <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/95">
+              <button
+                className="absolute right-6 top-6 z-50 rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20"
+                onClick={() => setPreviewIndex(null)}
+              >
+                <FiX className="h-6 w-6" />
+              </button>
+
+              <button
+                className="absolute left-6 z-50 rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPreviewIndex((prev) => (prev !== null ? (prev + gallery.length - 1) % gallery.length : null));
+                }}
+              >
+                <FiChevronLeft className="h-8 w-8" />
+              </button>
+
+              <div className="relative h-[85vh] w-[85vw]">
+                <Image
+                  src={gallery[previewIndex].url}
+                  alt={gallery[previewIndex].filename}
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+
+              <button
+                className="absolute right-6 z-50 rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPreviewIndex((prev) => (prev !== null ? (prev + 1) % gallery.length : null));
+                }}
+              >
+                <FiChevronRight className="h-8 w-8" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </>
   );
 };
 
