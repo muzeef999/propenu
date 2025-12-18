@@ -256,7 +256,6 @@ export const ResidentialCreateSchema = BaseResidentialCreate.extend({
   furnishing: enumPreprocess(["unfurnished", "semi-furnished", "fully-furnished"]).optional(),
 
   parkingType: z.string().optional(),
-  parkingCount: coerceInt(z.number().int()).optional(),
 
   // floor info
   floorNumber: coerceInt(z.number().int()).optional(),
@@ -388,7 +387,6 @@ export const ResidentialUpdateSchema = z
 
     furnishing: enumPreprocess(["unfurnished", "semi-furnished", "fully-furnished"]).optional(),
     parkingType: z.string().optional(),
-    parkingCount: coerceInt(z.number().int()).optional(),
 
     floorNumber: coerceInt(z.number().int()).optional(),
     totalFloors: coerceInt(z.number().int()).optional(),

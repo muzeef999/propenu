@@ -14,8 +14,8 @@ const MainContent = () => {
   4: "Verify & Publish",
 };
   return (
-    <div className="bg-white p-2">
-      <div className="rounded-xl border p-4  border-[#EBECF0] space-y-6">
+    <div className="bg-white p-2 h-full overflow-hidden" >
+      <div className="rounded-xl border p-4   overflow-y-auto  border-[#EBECF0] space-y-6">
         <div className="flex items-center justify-between py-4">
           <div className="flex items-center gap-3">
             <div className="flex -space-x-2">

@@ -49,7 +49,6 @@ export interface ResidentialQuery extends ParsedQs {
   minCarpetArea?: string;
   maxCarpetArea?: string;
   furnishing?: string;
-  parkingCount?: string;
   propertyType?: string;
   bedrooms?: string;
   bathrooms?: string;

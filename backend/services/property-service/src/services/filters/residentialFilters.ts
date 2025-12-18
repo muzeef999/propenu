@@ -21,7 +21,6 @@ export function extendResidentialFilters(
   const minCarpet = parseNumber(q.minCarpetArea);
   const maxCarpet = parseNumber(q.maxCarpetArea);
   const furnishing = (q.furnishing as string | undefined)?.trim();
-  const parkingCount = parseNumber(q.parkingCount);
   const propertyTypeRaw = (q.propertyType as string | undefined)?.trim();
   const bedrooms = parseNumber(q.bedrooms);
   const bathrooms = parseNumber(q.bathrooms);
@@ -70,7 +69,6 @@ export function extendResidentialFilters(
   }
 
   if (furnishing) f.furnishing = furnishing;
-  if (parkingCount !== undefined) f.parkingCount = parkingCount;
   if (propertyTypeRaw) {
     f.propertyType = propertyTypeRaw;
   }

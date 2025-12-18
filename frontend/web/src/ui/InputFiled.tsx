@@ -5,7 +5,7 @@ type InputFieldProps = {
   value: string | number;
   onChange: (value: string) => void;
   placeholder?: string;
-  type?: "text" | "number" | "email";
+  type?: "text" | "number" | "email"| "date";
   required?: boolean;
   disabled?: boolean;
   error?: string;
@@ -24,7 +24,7 @@ const InputField = ({
   return (
     <div className="space-y-1">
       {/* Label */}
-      <label className="inline-block text-sm font-normal  m-0 p-1 bg-gray-400 text-white rounded-t-sm">{label}</label>
+      <label className="inline-block text-sm font-normal  m-0 p-1 pl-4 pr-4  bg-gray-400 text-white rounded-t-sm">{label}</label>
       {/* Input */}
       <input  type={type} value={value} disabled={disabled}  placeholder={placeholder}  onChange={(e) => onChange(e.target.value)}
         className={`w-full  border px-3 py-2 text-sm rounded-b-sm rounded-r-sm focus:outline-none focus:ring-2 focus:ring-green-500 ${error ? "border-red-500" : "border-gray-300"} ${disabled ? "bg-gray-100 cursor-not-allowed" : ""}`}
