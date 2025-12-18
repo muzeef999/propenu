@@ -78,12 +78,12 @@ function AgentCard({ data }: { data: AgentConnect }) {
   return (
     <div className="card">
       {/* Banner */}
-      <div className="h-28 relative">
+      <div className="h-28 relative ">
         <Image
           src={data.coverImage?.url || "/placeholder.jpg"}
           alt="Banner"
           fill
-          className="object-cover brightness-95"
+          className="object-cover brightness-95 rounded-t-xl"
         />
         <div aria-label="primary" className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-[#26ad5f] text-white px-4 py-1 rounded-md shadow-sm">
           <MdVerifiedUser size={16} />

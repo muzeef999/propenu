@@ -162,7 +162,7 @@ export default async function Page({ params }: PageProps) {
 
                   <div className="flex flex-col gap-1">
                     <p className="font-medium text-gray-900">Facing</p>
-                    <p className="text-gray-500">East</p>
+                    <p className="text-gray-500">{project?.facing}</p>
                   </div>
 
                   <div className="flex flex-col gap-1">
