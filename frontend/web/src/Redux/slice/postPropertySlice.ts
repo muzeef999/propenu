@@ -27,10 +27,10 @@ interface PostPropertyState {
 }
 
 const initialState: PostPropertyState = {
-  currentStep: 1,
+  currentStep: 3,
   propertyType: null,
   base: {
-        nearbyPlaces: [],
+    nearbyPlaces: [],
   },
   residential: {},
   commercial: {},
@@ -63,15 +63,16 @@ const postPropertySlice = createSlice({
     },
 
     /* -------- Profile fields (dynamic) -------- */
-    setProfileField(
-      state,
-      action: PayloadAction<SetProfileFieldPayload>
-    ) {
+    setProfileField(state, action: PayloadAction<SetProfileFieldPayload>) {
       const { propertyType, key, value } = action.payload;
-
       if (!propertyType) return;
 
+      console.log("Profile type:", propertyType);
+      console.log("Before update:", state[propertyType]);
+
       state[propertyType][key] = value;
+
+      console.log("After update:", state[propertyType]);
     },
   },
 });
