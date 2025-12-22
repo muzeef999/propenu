@@ -14,8 +14,8 @@ export default async function Page() {
 
 
     return (
-        <div className="p-6">
-            <div className="w-[80%] space-y-6">
+        <div className="container mx-auto px-4 py-8">
+            <div className=" w-[80%] space-y-6">
 
                 {agents.map((agent: AgentConnect) => (
                     <div

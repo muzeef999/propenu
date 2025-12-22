@@ -7,6 +7,7 @@ import {
 import InputField from "@/ui/InputFiled";
 import TextArea from "@/ui/TextArae";
 import FileUpload, { UploadedFile } from "@/ui/FileUpload";
+import { setFiles as setFileStoreFiles } from "@/lib/fileStore";
 import { useState } from "react";
 import { validateBasicDetails } from "@/zod/basicDetailsZod";
 
@@ -15,9 +16,8 @@ export default function BasicDetailsStep() {
     (state: any) => state.postProperty
   );
   const [files, setFiles] = useState<UploadedFile[]>([]);
-
   const listingOptions = [
-    { label: "Sell", value: "sell" },
+    { label: "Sale", value: "sale" },
     { label: "Rent / Lease", value: "rent" },
     { label: "Buy", value: "buy" },
   ];
@@ -107,29 +107,30 @@ export default function BasicDetailsStep() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <InputField
           label="Total Price"
-          value={base.totalPrice || ""}
+          value={base.price || ""}
           placeholder="e.g. 75,00,000"
           onChange={(value) =>
-            dispatch(setBaseField({ key: "totalPrice", value }))
+            dispatch(setBaseField({ key: "price", value }))
           }
         />
 
         <InputField
           label="Area (sq ft)"
-          value={base.area || ""}
+          value={base.carpetArea || ""}
           placeholder="e.g. 1200"
-          onChange={(value) => dispatch(setBaseField({ key: "area", value }))}
+          onChange={(value) => dispatch(setBaseField({ key: "carpetArea", value }))}
         />
 
         <InputField
           label="Price / sq ft"
           value={
-            base.totalPrice && base.area
-              ? Math.round(Number(base.totalPrice) / Number(base.area))
+            base.price && base.carpetArea
+              ? Math.round(Number(base.price) / Number(base.carpetArea))
               : ""
           }
           placeholder="Auto calculated"
-          onChange={(value) => dispatch(setBaseField({ key: "area", value }))}
+          disabled
+          onChange={() => {}}
           error={fieldErrors?.title?.[0]}
         />
       </div>
@@ -148,7 +149,18 @@ export default function BasicDetailsStep() {
       <FileUpload
         label="Property Images"
         value={files}
-        onChange={setFiles}
+        onChange={(newFiles) => {
+          setFiles(newFiles);
+          // persist only metadata in Redux (serializable)
+          dispatch(
+            setBaseField({
+              key: "galleryFiles",
+              value: newFiles.map((f) => ({ filename: f.file.name })),
+            })
+          );
+          // store actual File objects in in-memory file store
+          setFileStoreFiles("postProperty", newFiles.map((f) => f.file));
+        }}
         accept="image/*"
         maxFiles={5}
         maxSizeMB={5}
@@ -158,7 +170,10 @@ export default function BasicDetailsStep() {
       <br />
 
       <button
-        onClick={() => dispatch(nextStep())}
+        onClick={() => {
+          console.log("BasicDetailsStep Data:", { base, propertyType, files });
+          dispatch(nextStep());
+        }}
         disabled={!isFormValid}
         className="px-4 py-2 btn-primary cursor-pointer text-white rounded disabled:opacity-50"
       >

@@ -110,7 +110,7 @@ const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
           <div className="items-center gap-2">
             <UnderConstruction size={24} color={bgPriceColoricon} />
             <div className="text-xs text-gray-500 tracking-wide">
-              Under Construction
+              Availability Status
             </div>
             <div className="font-medium">
               {(p as any)?.constructionStatus ?? "—"}
@@ -123,7 +123,7 @@ const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
               Furnishing
             </div>
             <div className="font-medium">
-              {(p as any)?.furnishing?.trim() ?? "—"}
+              {(p as any)?.furnishedStatus?.trim() ?? "—"}
             </div>
           </div>
 

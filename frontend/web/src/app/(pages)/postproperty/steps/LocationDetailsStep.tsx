@@ -95,7 +95,10 @@ const LocationDetailsStep = () => {
       <button
         type="button"
         disabled={!isFormValid}
-        onClick={() => dispatch(nextStep())}
+        onClick={() => {
+          console.log("LocationDetailsStep Data:", { base, propertyType });
+          dispatch(nextStep());
+        }}
         className="px-4 py-2 btn-primary text-white rounded disabled:opacity-50"
       >
         Continue

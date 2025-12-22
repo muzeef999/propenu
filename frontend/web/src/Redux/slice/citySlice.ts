@@ -53,7 +53,6 @@ const citySlice = createSlice({
         state.locations = action.payload || [];
       })
       .addCase(fetchLocations.rejected, (_, action) => {
-        console.log("Fetch Error:", action.payload);
       });
   },
 });

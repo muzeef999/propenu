@@ -5,7 +5,7 @@ import InputField from "@/ui/InputFiled";
 import AmenitiesSelect from "./AmenitiesSelect";
 import { AMENITIES } from "../constants/amenities";
 import IconCardSelect from "./IconCardSelect";
-import { RESIDENTIAL_SUB_TYPES } from "../constants/residentialSubTypes";
+import { RESIDENTIAL_SUB_TYPES } from "../constants/subTypes";
 import TextArea from "@/ui/TextArae";
 import { submitPropertyThunk } from "@/Redux/thunks/submitPropertyApi";
 import { useAppDispatch } from "@/Redux/store";
@@ -302,13 +302,13 @@ const ResidentialProfile = () => {
 
       <IconCardSelect
         label="Property Type"
-        value={residential.propertySubType}
+        value={residential.propertyType}
         options={RESIDENTIAL_SUB_TYPES}
         onChange={(value) =>
           dispatch(
             setProfileField({
               propertyType: "residential",
-              key: "propertySubType",
+              key: "propertyType",
               value,
             })
           )

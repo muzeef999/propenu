@@ -61,24 +61,24 @@ const AmenitiesSelect = ({
           </span>
         ) : (
           <div className="flex flex-wrap gap-2">
-            {value.map((amenity) => (
-              <span
-                key={amenity.key}
-                className="flex items-center gap-1 text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full"
-              >
-                {amenity.title}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleAmenity(amenity);
-                  }}
-                  className="text-green-700 hover:text-red-500"
-                >
-                  ✕
-                </button>
-              </span>
-            ))}
+            {value.map((amenity, idx) => (
+                  <span
+                    key={amenity.key ?? amenity.title ?? `selected-${idx}`}
+                    className="flex items-center gap-1 text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full"
+                  >
+                    {amenity.title}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleAmenity(amenity);
+                      }}
+                      className="text-green-700 hover:text-red-500"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
           </div>
         )}
       </div>
@@ -86,14 +86,14 @@ const AmenitiesSelect = ({
       {/* Dropdown */}
       {open && (
         <div className="border rounded-md bg-white p-3 grid grid-cols-2 md:grid-cols-3 gap-3 shadow-sm">
-          {options.map((amenity) => {
+          {options.map((amenity, idx) => {
             const checked = value.some(
               (a) => a.key === amenity.key
             );
 
             return (
               <label
-                key={amenity.key}
+                key={amenity.key ?? amenity.title ?? `opt-${idx}`}
                 className={`flex items-center gap-2 text-sm cursor-pointer border rounded px-2 py-1
                   ${
                     checked

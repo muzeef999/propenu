@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const basicDetailsSchema = z.object({
-  listingType: z.enum(["sell", "rent", "buy"], {
+  listingType: z.enum(["sale", "rent", "buy"], {
     message: "Listing type is required",
   }),
 
@@ -14,7 +14,7 @@ export const basicDetailsSchema = z.object({
     .trim()
     .min(10, "Property title must be at least 10 characters"),
 
-  totalPrice: z.coerce.number().positive("Total price must be greater than 0"),
+  price: z.coerce.number().positive("Total price must be greater than 0"),
 
   areaSqft: z.coerce.number().positive("Area must be greater than 0"),
 
@@ -40,8 +40,8 @@ export const validateBasicDetails = (
     listingType: base.listingType,
     propertyType,
     title: base.title,
-    totalPrice: base.totalPrice,
-    areaSqft: base.area,
+    price: base.price,
+    areaSqft: base.carpetArea,
     description: base.description,
     images: files.map((f) => f.file),
   });
