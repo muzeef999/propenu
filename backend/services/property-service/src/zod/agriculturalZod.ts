@@ -118,6 +118,9 @@ const BaseCreate = z.object({
 
   // listingType: normalize input then validate enum
   listingType: preprocessEnumString(["sale", "rent", "lease"]).optional().default("sale"),
+  description: z.string().optional(),
+  createdBy: z.string().optional(),
+  listingSource: z.string().optional(),
 
   developer: z.string().optional(),
   address: z.string().min(1),
@@ -159,8 +162,19 @@ export const AgriculturalCreateSchema = BaseCreate.extend({
   plantationAge: coerceNumber(z.number()).optional(),
   numberOfBorewells: coerceInt(z.number().int()).optional(),
 
-  totalArea: z.object().optional(),
-  roadWidth: z.object().optional(),
+  totalArea:preprocessObjJsonOrValue(
+    z.object({
+      value: coerceNumber(z.number()),
+      unit: z.string(),
+    })
+  ).optional(),
+
+  roadWidth: preprocessObjJsonOrValue(
+    z.object({
+      value: coerceNumber(z.number()),
+      unit: z.string(),
+    })
+  ).optional(),
 
   borewellDetails: z
     .preprocess((v) => tryParseJson(v), // allow JSON string for entire object

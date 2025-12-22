@@ -179,6 +179,8 @@ export const AgriculturalService = {
       propertyId: propId,
     });
 
+    toCreate.gallery = Array.isArray(toCreate.gallery) ? toCreate.gallery.filter((g: any) => g.url) : [];
+
     // documents upload
     const documentFiles = files?.documents ?? [];
     if (documentFiles.length > 0) {

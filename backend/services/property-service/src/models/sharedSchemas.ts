@@ -121,7 +121,7 @@ export const LegalChecksSchema = new Schema<ILegalChecks>(
 
 /* -------------------------
    BASE FIELDS (reused in each model)
-   ------------------------- */
+------------------------- */
 export const BaseFields = {
   title: { type: String, required: true, trim: true },
   slug: { type: String, required: true, unique: true, trim: true },
