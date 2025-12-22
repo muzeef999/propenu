@@ -1,17 +1,18 @@
-import type { Request } from "express";
 import { BaseFilters, CommercialQuery } from "../../types/filterTypes";
 import parseNumber from "../../utils/parseNumber";
 
-
-type TypedRequestQuery<Q> = Request & { query: Q };
-
 export function extendCommercialFilters(
-    req: TypedRequestQuery<CommercialQuery>,
+    query: CommercialQuery = {},  
     baseFilter: Partial<BaseFilters> = {}
   ): Partial<BaseFilters> {
     const f: any = { ...baseFilter };
 
-    const q = req.query;
+ 
+  const q = query ?? {};         
+
+   if(query.search){
+    f.title = { $regex: query.search, $options: "i" }
+   }
 
   const minArea = parseNumber(q.minCarpetArea);
   const maxArea = parseNumber(q.maxCarpetArea);

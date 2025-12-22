@@ -13,11 +13,11 @@ import ad from "@/asserts/ad.png";
 import Image from "next/image";
 
 const Page: React.FC = () => {
-  const { listingType, propertyType, searchText } = useAppSelector(
+  const { listingType, category, searchText } = useAppSelector(
     (s) => s.filters
   );
 
-  const url = `${process.env.NEXT_PUBLIC_API_URL}/api/properties/search?propertyType=${propertyType}`;
+  const url = `${process.env.NEXT_PUBLIC_API_URL}/api/properties/search?category=${category}`;
 
   const { items, meta, loading } = useStreamProperties(url);
 
@@ -47,7 +47,7 @@ const Page: React.FC = () => {
 
         <div className="flex flex-col lg:flex-row w-full">
           <div className="w-full lg:w-[80%]">
-            {items.map((p) => renderPropertyCard(propertyType, p))}
+            {items.map((p) => renderPropertyCard(category, p))}
           </div>
 
           <div className="w-full lg:w-[20%]">

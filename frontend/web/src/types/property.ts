@@ -2,7 +2,7 @@
 export interface Meta {
   startedAt?: string;
   defaultsApplied?: {
-    propertyType?: string;
+    category?: string;
   };
 }
 

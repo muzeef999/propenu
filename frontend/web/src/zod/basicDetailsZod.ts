@@ -5,8 +5,8 @@ export const basicDetailsSchema = z.object({
     message: "Listing type is required",
   }),
 
-  propertyType: z.enum(["residential", "commercial", "land", "agricultural"], {
-    message: "Listing type is required",
+  category: z.enum(["residential", "commercial", "land", "agricultural"], {
+    message: "Category is required",
   }),
 
   title: z
@@ -33,12 +33,12 @@ export type BasicDetailsForm = z.infer<typeof basicDetailsSchema>;
 
 export const validateBasicDetails = (
   base: any,
-  propertyType: string,
+  category: string,
   files: { file: File }[]
 ) => {
   return basicDetailsSchema.safeParse({
     listingType: base.listingType,
-    propertyType,
+    category,
     title: base.title,
     price: base.price,
     areaSqft: base.carpetArea,

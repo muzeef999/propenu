@@ -2,15 +2,19 @@ import { BaseFilters, ResidentialQuery } from "../../types/filterTypes";
 import parseNumber from "../../utils/parseNumber";
 
 export function extendResidentialFilters(
-  query: ResidentialQuery = {},   // ✅ plain object
+  query: ResidentialQuery = {},  
   baseFilter: Partial<BaseFilters> = {}
 ): Partial<BaseFilters> { 
   const f: any = { ...baseFilter };
-  const q = query ?? {};           // ✅ safety guard
+
+
+  const q = query ?? {};         
+
+   if(query.search){
+    f.title = { $regex: query.search, $options: "i" }
+   }
 
   const bhk = parseNumber(q.bhk);
-  const minBedrooms = parseNumber(q.minBedrooms);
-  const maxBedrooms = parseNumber(q.maxBedrooms);
   const minPrice = parseNumber(q.minPrice);
   const maxPrice = parseNumber(q.maxPrice);
   const bedrooms = parseNumber(q.bedrooms);

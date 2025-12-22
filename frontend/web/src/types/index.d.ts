@@ -311,7 +311,7 @@ export type PropertyFormValues = {
 };
 
 
-export type PropertyTypeOption = "Residential" | "Commercial" | "Land" | "Agricultural";
+export type categoryOption = "Residential" | "Commercial" | "Land" | "Agricultural";
 
 export type ListingOption = "Buy" | "Rent" | "Lease";
 

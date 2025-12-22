@@ -9,6 +9,7 @@ import { uploadFile } from "../utils/uploadFile";
 import { uploadMedia } from "../middlewares/multer";
 import User from "../models/userModel";
 import Role from "../models/roleModel";
+import { extendLandFilters } from "./filters/landFilters";
 
 dotenv.config({ quiet: true });
 
@@ -96,28 +97,6 @@ async function deleteS3ObjectIfExists(key?: string) {
   }
 }
 
-/* -------------------- Service API -------------------- */
-export function getLandPipeline(filters: SearchFilters) {
-  const match = buildCommonMatch(filters);
-
-  return [
-    { $match: match },
-    {
-      $project: {
-        _id: 0,
-        id: "$_id",
-        type: { $literal: "Land" },
-        title: 1,
-        gallery: 1,
-        slug: 1,
-        roadWidthFt: 1,
-        facing: 1,
-        price: 1,
-        createdAt: 1,
-      },
-    },
-  ];
-}
 
 export const LandService = {
   async create(payload: any, files?: MulterFiles) {
@@ -530,7 +509,29 @@ export const LandService = {
   },
 
   model: LandPlot,
-  getPipeline: getLandPipeline,
+
+  getPipeline: (filters:any)  => { 
+  
+  const match = extendLandFilters(filters, {});
+
+  return [
+    { $match: match },
+    {
+      $project: {
+        _id: 0,
+        id: "$_id",
+        type: { $literal: "Land" },
+        title: 1,
+        gallery: 1,
+        slug: 1,
+        roadWidthFt: 1,
+        facing: 1,
+        price: 1,
+        createdAt: 1,
+      },
+    },
+  ]; }
+  ,
 };
 
 export default LandService;

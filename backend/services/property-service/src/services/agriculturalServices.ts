@@ -9,6 +9,7 @@ import { SearchFilters } from "../types/searchResultItem";
 import User from "../models/userModel";
 import Role from "../models/roleModel";
 import { uploadFile } from "../utils/uploadFile";
+import { extendAgriculturalFilters } from "./filters/agriculturalFilters";
 
 dotenv.config({ quiet: true });
 
@@ -87,28 +88,7 @@ async function mapAndUploadGallery({
 
 /* --------------------  Search API  -------------------- */
 
-export function getAgriculturalPipeline(filters: SearchFilters) {
-  const match = buildCommonMatch(filters);
 
-  return [
-    { $match: match },
-    {
-      $project: {
-        _id: 0,
-        id: "$_id",
-        type: { $literal: "Agricultural" },
-        title: 1,
-        gallery: 1,
-        price: 1,
-        slug: 1,
-        soilType: 1,
-        waterSource: 1,
-        accessRoadType: 1,
-        createdAt: 1,
-      },
-    },
-  ];
-}
 
 function normalizePayload(obj: any) {
   if (!obj) return obj;
@@ -504,7 +484,28 @@ export const AgriculturalService = {
 
   
   model: Agricultural,
-  getPipeline: getAgriculturalPipeline,
+  getPipeline: (filters: any) => {
+     const match = extendAgriculturalFilters(filters, {});
+
+  return [
+    { $match: match },
+    {
+      $project: {
+        _id: 0,
+        id: "$_id",
+        type: { $literal: "Agricultural" },
+        title: 1,
+        gallery: 1,
+        price: 1,
+        slug: 1,
+        soilType: 1,
+        waterSource: 1,
+        accessRoadType: 1,
+        createdAt: 1,
+      },
+    },
+  ];
+},
 };
 
 export default AgriculturalService;

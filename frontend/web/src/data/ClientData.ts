@@ -8,18 +8,22 @@ import Cookies from "js-cookie";
 const url = process.env.NEXT_PUBLIC_API_URL
 
 
-export const searchFilter = async ({  propertyType,  listingType, searchText,}: { propertyType?: string;listingType?: string; searchText?: string;}) => {
-  const res = await axiosInstance.get<ApiResponse>(
-    `${url}/api/properties/search`,
+export const searchFilter = async ({category, search,bhk,}: {category?: "Residential" | "Commercial" | "Land" | "Agricultural"; search?: string; bhk?: number;}) => {
+  const res = await axiosInstance.get<ApiResponse>(`${url}/api/properties/search`,
     {
       params: {
-        category: propertyType,
+        category,
+        search,
+        bhk,
       },
     }
   );
 
   return res.data;
 };
+
+
+
 
 
 export const requestOtp = async(payload:RequestOtpPayload) => {

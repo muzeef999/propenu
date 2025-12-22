@@ -3,14 +3,20 @@ import { AgriculturalQuery, BaseFilters } from "../../types/filterTypes";
 import parseNumber from "../../utils/parseNumber";
 
 
-type TypedRequestQuery<Q> = Request & { query: Q };
 
 
-export function extendAgriculturalFilters(req: TypedRequestQuery<AgriculturalQuery>,
+export function extendAgriculturalFilters(
+  query: AgriculturalQuery = {},
   baseFilter: Partial<BaseFilters> = {}
 ): Partial<BaseFilters> {
   const f: any = { ...baseFilter };
-  const q = req.query; 
+
+    const q = query ?? {};         
+
+   if(query.search){
+    f.title = { $regex: query.search, $options: "i" }
+   }
+
 
   const minArea = parseNumber(q.minArea);
   const maxArea = parseNumber(q.maxArea);

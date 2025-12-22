@@ -172,37 +172,6 @@ async function mapAndUploadGallery({
   return summary;
 }
 
-/* -------------------- Search pipeline -------------------- */
-
-// export function getResidentialPipeline(filters: any) {
-//   // Accept either SearchFilters wrapper or raw filter
-//   const inner = (filters as any)?.filter ?? filters ?? {};
-//   const match = buildCommonMatch(inner);
-
-//   return [
-//     { $match: match },
-//     {
-//       $project: {
-//         _id: 0,
-//         id: "$_id",
-//         type: { $literal: "Residential" },
-//         gallery: 1,
-//         title: 1,
-//         city: 1,
-//         buildingName: 1,
-//         constructionStatus: 1,
-//         slug: 1,
-//         superBuiltUpArea: 1,
-//         furnishing: 1,
-//         parkingType: 1,
-//         price: 1,
-//         pricePerSqft: 1,
-//         location: 1,
-//         createdAt: 1,
-//       },
-//     },
-//   ];
-// }
 /* -------------------- Service API -------------------- */
 
 export const ResidentialPropertyService = {
@@ -577,14 +546,11 @@ export const ResidentialPropertyService = {
 
  getPipeline(filters: any) {
   const match = extendResidentialFilters(filters, {});
-
-  console.log("🏠 [ResidentialService] Final match:", match);
-
   return [
     { $match: match },
     {
       $project: {
-        _id: 0,
+        _id: 0, 
         id: "$_id",
         type: { $literal: "Residential" },
         title: 1,
