@@ -3,7 +3,9 @@ import { hexToRGBA } from "@/ui/hexToRGBA";
 import formatINR from "@/utilies/PriceFormat";
 import { notFound } from "next/navigation";
 import GalleryFile from "../../../GalleryFile";
-import { Balconies, Bath, Bhk } from "@/icons/icons";
+import { MdWaterDrop } from "react-icons/md";
+import { GiGroundSprout } from "react-icons/gi";
+import { FaRoad } from "react-icons/fa";
 import { IAgricultural } from "@/types/agricultural";
 
 type PageProps = {
@@ -32,6 +34,8 @@ export default async function Page({ params }: PageProps) {
     notFound();
   }
   const priceLabel = formatINR(project.price);
+  console.log("Agricultural project data:", project);
+
 
   return (
     <div style={{ background: bgcolor }} className="min-h-screen py-6">
@@ -60,7 +64,7 @@ export default async function Page({ params }: PageProps) {
                 <div className="flex-1">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-7 gap-x-7 p-2">
                     <div>
-                      <p className="text-gray-500 font-semibold">Super Built Up Area</p>
+                      <p className="text-gray-500 font-semibold">Plot Area</p>
                       <p>
                         {project?.superBuiltUpArea} sqft (₹ {project?.pricePerSqft}
                         /sqft)
@@ -68,7 +72,7 @@ export default async function Page({ params }: PageProps) {
                     </div>
 
                     <div>
-                      <p className="text-gray-500 font-semibold">Carpet Area</p>
+                      <p className="text-gray-500 font-semibold">Boundary Wall</p>
                       <p>{project?.carpetArea}</p>
                     </div>
 
@@ -83,29 +87,29 @@ export default async function Page({ params }: PageProps) {
                     </div>
 
                     <div>
-                      <p className="text-gray-500 font-semibold">Frunishing Status</p>
+                      <p className="text-gray-500 font-semibold">Ownership</p>
                       <p>{project?.furnishing}</p>
                     </div>
 
                     <div>
-                      <p className="text-gray-500 font-semibold">Floors</p>
+                      <p className="text-gray-500 font-semibold">Any Construction</p>
                       <p>
-                        {project?.floorNumber}/{project.totalFloors}
+                        {project?.kitchenType}
                       </p>
                     </div>
                   </div>
                   <div className="flex gap-x-8 mt-11">
                     <span className="text-gray-500 text-md font-medium flex">
-                      <Bhk color="#6B7280" />
-                      &nbsp; {project.bhk} BHK
+                      <MdWaterDrop color="#6B7280" size={22} />
+                      &nbsp; {project.numberOfBorewells} Borewell 
                     </span>
                     <span className="text-gray-500  font-medium flex">
-                      <Bath color="#6B7280" />
-                      &nbsp;{project.bathrooms} Bath
+                      <GiGroundSprout color="#6B7280" size={22} />
+                      &nbsp;{project.soilType}
                     </span>
                     <span className="text-gray-500  font-medium flex">
-                      <Balconies color="#6B7280" />
-                      &nbsp; {project.balconies} Balconies
+                      <FaRoad color="#6B7280" size={22} />
+                      &nbsp; {project.roadWidth?.value} {project.roadWidth?.unit}
                     </span>
                   </div>
                 </div>
@@ -143,7 +147,7 @@ export default async function Page({ params }: PageProps) {
                 </h2>
 
                 {/* Changed to 4 columns to match the wide layout in the image */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-sm">
 
                   <div className="flex flex-col gap-1">
                     <p className="font-medium text-gray-900">Price Breakup</p>
@@ -155,28 +159,40 @@ export default async function Page({ params }: PageProps) {
                     <p className="text-gray-500">{project?.listingSource}</p>
                   </div>
 
-
-                  <div className="hidden md:block"></div>
-                  <div className="hidden md:block"></div>
-
                   <div className="flex flex-col gap-1">
-                    <p className="font-medium text-gray-900">Facing</p>
-                    <p className="text-gray-500">East</p>
+                    <p className="font-medium text-gray-900">Total Area</p>
+                    <p className="text-gray-500">
+                      {project?.totalArea?.value} {project?.totalArea?.unit}
+                    </p>
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <p className="font-medium text-gray-900">Flooring</p>
-                    <p className="text-gray-500">{project?.flooringType}</p>
+                    <p className="font-medium text-gray-900">Land Shape</p>
+                    <p className="text-gray-500">{project?.landShape}</p>
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <p className="font-medium text-gray-900">Kitchen Type</p>
-                    <p className="text-gray-500">{project?.kitchenType}</p>
+                    <p className="font-medium text-gray-900">Road Width</p>
+                    <p className="text-gray-500">
+                      {project?.roadWidth?.value} {project?.roadWidth?.unit}
+                    </p>
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <p className="font-medium text-gray-900">No of parkings</p>
-                    <p className="text-gray-500">{project?.parkingCount}</p>
+                    <p className="font-medium text-gray-900">Soil Type</p>
+                    <p className="text-gray-500">{project?.soilType}</p>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <p className="font-medium text-gray-900">Irrigation</p>
+                    <p className="text-gray-500">{project?.irrigationType}</p>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <p className="font-medium text-gray-900">Electricity</p>
+                    <p className="text-gray-500">
+                      {project?.electricityConnection ? "Available" : "No"}
+                    </p>
                   </div>
                 </div>
 

@@ -104,8 +104,8 @@ const Navbar = () => {
                 <div className="w-7 h-7">
                   <Logo />
                 </div>
-                <div className="hidden sm:block">
-                  <span className="text-xl font-semibold text-primary tracking-tight">
+                <div>
+                  <span className="text-lg sm:text-xl font-semibold text-primary tracking-tight">
                     PROPENU
                     <sup className="ml-1 text-[10px] font-normal align-super text-[#646464]">
                       TM

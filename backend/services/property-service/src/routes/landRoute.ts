@@ -30,6 +30,7 @@ const jsonKeys = [
   "nearbyPlaces",
   "documents",
   "gallery",
+  "dimensions",
   "leads",
   "approvedByAuthority",
   "location",

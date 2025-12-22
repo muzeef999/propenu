@@ -67,9 +67,6 @@ const postPropertySlice = createSlice({
       const { propertyType, key, value } = action.payload;
       if (!propertyType) return;
 
-      console.log("Profile type:", propertyType);
-      console.log("Before update:", state[propertyType]);
-
       state[propertyType][key] = value;
 
       console.log("After update:", state[propertyType]);
