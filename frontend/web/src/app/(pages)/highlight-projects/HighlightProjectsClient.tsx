@@ -64,19 +64,19 @@ export default function HighlightProjectsClient({ items = [] }: Props) {
                     <Link
                         key={project._id}
                         href={`/featured/${project.slug}`}
-                        className="relative shrink-0 w-[320px] h-[260px] snap-start cursor-pointer"
+                        className="relative shrink-0 w-[320px] h-[260px] snap-start cursor-pointer group transition-all duration-300 hover:-translate-y-[7px]"
                     >
                         {/* IMAGE box */}
-                        <div className="w-full h-[180px] rounded-2xl overflow-hidden shadow-lg mt-5">
+                        <div className="w-full h-[180px] rounded-2xl overflow-hidden shadow-sm mt-5 transition-shadow duration-300 group-hover:shadow-2xl">
                             <img
                                 src={project.heroImage ?? "/images/placeholder.svg"}
                                 alt={project.title}
-                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                className="w-full h-full object-cover"
                             />
                         </div>
 
                         {/* INFO CARD FLOATING UNDER IMAGE */}
-                        <div    className="absolute left-2 right-2 top-40  bg-white  rounded-xl  shadow-lg p-4">
+                        <div className="absolute left-3 right-3 top-40 bg-white rounded-[15px] shadow-sm p-3 transition-shadow duration-300 group-hover:shadow-md">
                             {/* Row 1 */}
                             <div className="flex justify-between items-center mb-1">
                                 <h2 className="text-base font-medium text-gray-900 truncate">

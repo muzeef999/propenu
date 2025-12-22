@@ -1,36 +1,19 @@
 // src/types/residentialTypes.ts
 import mongoose from 'mongoose';
 
-
-
-
 export const RESIDENTIAL_PROPERTY_TYPES = [
   'apartment',
   'independent-house',
   'villa',
   'penthouse',
-  'plot',
-  'row-house',
   'studio',
-] as const;
-
-export type ResidentialPropertyType = typeof RESIDENTIAL_PROPERTY_TYPES[number];
-
-export const RESIDENTIAL_PROPERTY_SUBTYPES = [
-  '1bhk',
-  '2bhk',
-  '3bhk',
-  '4bhk',
-  '5bhk',
   'duplex',
   'triplex',
   'farmhouse',
+  'independent-builder-floor'
 ] as const;
 
-export type ResidentialPropertySubType = typeof RESIDENTIAL_PROPERTY_SUBTYPES[number];
-
-
-
+export type ResidentialPropertyType = typeof RESIDENTIAL_PROPERTY_TYPES[number];
 
 export const FLOORING_TYPES = [
   'vitrified',
@@ -72,14 +55,10 @@ export type PropertyAge = (typeof PROPERTY_AGE_BUCKETS)[number];
 export interface IResidential {
   listingType?: 'sale' | 'rent' | 'lease';
   developer?: mongoose.Types.ObjectId | null;
-
   // base fields...
   address: string;
   city?: string; 
-
   propertyType?: ResidentialPropertyType;
-  propertySubType?: ResidentialPropertySubType;
-
   // residential-specific
   bhk?: number;
   bedrooms?: number;
@@ -90,10 +69,8 @@ export interface IResidential {
   builtUpArea?: number;
   superBuiltUpArea?: number;
   transactionType?: "new-sale" | "resale" |"pre-leased" | "rent" | "lease" ;
-
   furnishing?: 'unfurnished' | 'semi-furnished' | 'fully-furnished';
   parkingType?: string;
-  parkingCount?: number;
   floorNumber?: number;
   totalFloors?: number;
   facing?: string;

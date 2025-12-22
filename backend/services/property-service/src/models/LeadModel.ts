@@ -1,61 +1,36 @@
-import { Schema, model, Types } from 'mongoose';
+import mongoose, { Schema, Model } from "mongoose";
+import { ILead } from "../types/leadTypes";
+import { LEAD_PROPERTY_TYPES, LEAD_STATUSES } from "../zod/leadZod";
 
-const LeadSchema = new Schema(
+const LeadSchema = new Schema<ILead>(
   {
-    // Contact Info
     name: { type: String, required: true, trim: true },
     phone: { type: String, required: true, trim: true, index: true },
     email: { type: String, trim: true },
 
-    // 🔑 Polymorphic Property Reference
-    propertyId: {
-      type: Types.ObjectId,
+    projectId: {
+      type: Schema.Types.ObjectId,
       required: true,
-      refPath: 'propertyModel',
       index: true,
     },
 
-    // 👇 Tells Mongoose WHICH model to use
-    propertyModel: {
-      type: String,
-      required: true,
-      enum: [
-        'FeaturedProject',
-        'ResidentialProperty',
-        'CommercialProperty',
-        'AgriculturalProperty',
-        'LandProperty',
-      ],
-      index: true,
-    },
-
-    // Optional: business-friendly type
     propertyType: {
       type: String,
-      enum: ['residential', 'commercial', 'agricultural', 'land'],
+      enum: [...LEAD_PROPERTY_TYPES],
       required: true,
       index: true,
     },
 
-    // CRM Status
     status: {
       type: String,
-      enum: [
-        'new',
-        'contacted',
-        'follow_up',
-        'approved',
-        'rejected',
-        'closed',
-      ],
-      default: 'new',
+      enum: [...LEAD_STATUSES],
+      default: "new",
       index: true,
     },
 
-    // Assignment
     assignedTo: {
-      type: Types.ObjectId,
-      ref: 'User',
+      type: Schema.Types.ObjectId,
+      ref: "User",
       index: true,
     },
 
@@ -64,20 +39,18 @@ const LeadSchema = new Schema(
       default: false,
     },
 
-    source: {
-      type: String, // website, whatsapp, walk-in
-    },
-
     remarks: {
       type: String,
-    },
-
-    createdBy: {
-      type: Types.ObjectId,
-      ref: 'User',
+      trim: true,
+      maxlength: 2000,
     },
   },
   { timestamps: true }
 );
 
-export const Lead = model('Lead', LeadSchema);
+/* ✅ SAFE MODEL EXPORT (FINAL) */
+export const Lead: Model<ILead> =
+  mongoose.models.Lead ??
+  mongoose.model<ILead>("Lead", LeadSchema);
+
+export default Lead;

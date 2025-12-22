@@ -8,7 +8,6 @@ export type PropertyStatus = 'active' | 'inactive' | 'archived';
 
 
 
-
 export interface IBaseListing {
   title: string;
   slug?: string;         // optional because you generate it in pre('validate')

@@ -32,7 +32,6 @@ export const COMMERCIAL_PROPERTY_SUBTYPES = [
   "shutter-shop",
   "kiosk",
   "food-court-unit",
-
   // office
   "bare-shell",
   "warm-shell",
@@ -46,7 +45,6 @@ export const COMMERCIAL_PROPERTY_SUBTYPES = [
   "logistics-hub",
   "cold-storage",
   "industrial-shed",
-
   // general
   "bank-branch",
   "clinic-space",

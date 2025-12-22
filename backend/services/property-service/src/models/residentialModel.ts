@@ -1,6 +1,6 @@
 // src/models/property/residential.model.ts
 import mongoose, { Schema, Document, Model } from 'mongoose';
-import { FLOORING_TYPES, IResidential, KITCHEN_TYPES, PROPERTY_AGE_BUCKETS, RESIDENTIAL_PROPERTY_SUBTYPES, RESIDENTIAL_PROPERTY_TYPES } from '../types/residentialTypes';
+import { FLOORING_TYPES, IResidential, KITCHEN_TYPES, PROPERTY_AGE_BUCKETS, RESIDENTIAL_PROPERTY_TYPES } from '../types/residentialTypes';
 import { BaseFields, FileRefSchema } from './sharedSchemas';
 import { IBaseListing, TEXT_INDEX_FIELDS } from '../types/sharedTypes';
 
@@ -16,10 +16,9 @@ const ResidentialSchema = new Schema<IResidential>(
     balconies: Number,
     carpetArea: Number,
     builtUpArea: Number,
-    superBuiltUpArea: Number,
     transactionType: {
       type: String,
-      enum: ["new-sale", "resale", "pre-leased", "rent", "lease"],
+      enum: ["new-sale", "resale"],
     },
     flooringType: { type: String, enum: FLOORING_TYPES },
     kitchenType: { type: String, enum: KITCHEN_TYPES },
@@ -28,13 +27,11 @@ const ResidentialSchema = new Schema<IResidential>(
     isModularKitchen: { type: Boolean, default: false },
     furnishing: { type: String, enum: ['unfurnished', 'semi-furnished', 'fully-furnished'] },
     parkingType: String,
-    parkingCount: Number,
     floorNumber: Number,
     totalFloors: Number,
     facing: String,
     constructionStatus: { type: String, enum: ['ready-to-move', 'under-construction'] },
     possessionDate: Date,
-    maintenanceCharges: Number,
     security: { gated: Boolean, cctv: Boolean, guard: Boolean, details: String },
     fireSafetyDetails: { hasFireSafety: Boolean, fireNOCFile: FileRefSchema, details: String },
     greenCertification: { leed: Boolean, igbc: Boolean, details: String, file: FileRefSchema },
@@ -42,7 +39,6 @@ const ResidentialSchema = new Schema<IResidential>(
     parkingDetails: { visitorParking: Boolean, twoWheeler: Number, fourWheeler: Number },
     possessionVerified: { type: Boolean, default: false },
     propertyType: { type: String, enum: RESIDENTIAL_PROPERTY_TYPES},
-    propertySubType: { type: String, enum: RESIDENTIAL_PROPERTY_SUBTYPES},
   },
   { timestamps: true }
 );

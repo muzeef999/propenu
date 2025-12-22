@@ -134,8 +134,8 @@ html, body {
     filter: drop-shadow(0 2px 6px rgba(0,0,0,0.12));
   }
   .card:hover {
-    transform: translateY(-4px);
-    filter: drop-shadow(0 6px 12px rgba(0,0,0,0.18));
+    transform: translateY(-7px);
+    filter: drop-shadow(0 0 2px rgba(0,0,0,0.18));
   }
 
 
@@ -157,4 +157,10 @@ html, body {
     box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.4);
   }
 
+}
+
+
+
+.leaflet-container {
+  outline: none;
 }

@@ -76,8 +76,18 @@ const BorewellDetails = z.object({
 }).optional();
 
 export const DimensionsSchema = z.object({
-  length: z.string().optional(),
-  width: z.string().optional(),
+  length: z.preprocess((v) => {
+    if (v === null || typeof v === "undefined") return undefined;
+    if (typeof v === "number") return String(v);
+    if (typeof v === "string") return v.trim();
+    return v;
+  }, z.string().optional()),
+  width: z.preprocess((v) => {
+    if (v === null || typeof v === "undefined") return undefined;
+    if (typeof v === "number") return String(v);
+    if (typeof v === "string") return v.trim();
+    return v;
+  }, z.string().optional()),
 });
 
 

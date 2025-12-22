@@ -3,10 +3,6 @@
 import React from "react";
 import { Property } from "@/types/property";
 import { hexToRGBA } from "@/ui/hexToRGBA";
-import { HiOutlineLocationMarker } from "react-icons/hi";
-import { BiBed } from "react-icons/bi";
-import { TbRuler2 } from "react-icons/tb";
-import { FaCarSide } from "react-icons/fa";
 import { AiOutlineHeart } from "react-icons/ai";
 import {
   Furnishing,
@@ -16,21 +12,25 @@ import {
 } from "@/icons/icons";
 import formatINR from "@/utilies/PriceFormat";
 import Link from "next/link";
+import { HiOutlineLocationMarker } from "react-icons/hi";
 
-const ResidentialCard: React.FC<{ p: Property }> = ({ p }) => {
+const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, vertical = false }) => {
   const bgPriceColor = hexToRGBA("#27AE60", 0.1);
 
   const bgPriceColoricon = hexToRGBA("#27AE60", 0.4);
 
-  const img = p?.gallery?.[0]?.url ?? "/placeholder-property.jpg";
+  const img = p?.gallery?.[0]?.url ?? "/placeholder.jpg";
   const pricePerSqft =
     (p as any)?.pricePerSqft ??
     Math.round((p?.price ?? 0) / (p as any)?.superBuiltUpArea || 0);
 
   return (
-    <Link href={`/properties/residential/${p.slug}`} className="card p-2 h-[220px] flex flex-row overflow-hidden">
+    <Link
+      href={`/properties/residential/${p.slug}`}
+      className={`card p-2 h-auto flex overflow-hidden ${vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"}`}
+    >
       {/* Left: image */}
-      <div className="w-40 rounded-xl md:w-56 lg:w-72 relative shrink-0">
+      <div className={`rounded-xl relative shrink-0 ${vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"}`}>
         <img
           src={img}
           alt={p?.title ?? "property image"}
@@ -68,18 +68,22 @@ const ResidentialCard: React.FC<{ p: Property }> = ({ p }) => {
       </div>
 
       {/* Middle: content */}
-      <div className="flex-1 p-4 md:p-6 flex flex-col justify-between h-full">
+      <div className="flex-1 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
+        {/* <div className=""> */}
+
         <div>
           <h3 className="text-lg md:text-xl font-semibold line-clamp-2">
-            {p?.title},{p.city}
+            {vertical ? `${p?.title?.slice(0, 18)}...` : p?.title}
           </h3>
           <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
-              {(p as any)?.buildingName}
+            <HiOutlineLocationMarker className="w-4 h-4" />
+
+            {vertical ? (p as any)?.buildingName?.slice(0, 18)?.concat("...") : (p as any)?.buildingName}, {p?.city}
           </p>
         </div>
 
         {/* badges */}
-        <div className="flex flex-wrap gap-2 mt-3">
+        <div className={`hidden ${vertical ? "" : "md:flex"} flex-wrap gap-2 mt-3`}>
           <span className="text-xs font-normal px-2 py-1 text-primary">
             RERA Approved
           </span>
@@ -92,11 +96,11 @@ const ResidentialCard: React.FC<{ p: Property }> = ({ p }) => {
         </div>
 
         {/* meta icons row */}
-        <div className="flex items-center gap-6 mt-4 text-sm text-gray-600">
+        <div className={`grid grid-cols-2 gap-4 mt-4 text-sm text-gray-600 ${vertical ? "" : "md:flex md:items-center md:gap-6"}`}>
           <div className="items-center gap-2">
             <SuperBuiitupAraea size={24} color={bgPriceColoricon} />
             <div className="text-xs text-gray-500 tracking-wide">
-              SUPER BUILT UP AREA
+              Super Built-up Area
             </div>
             <div className="tex-black font-medium">
               {(p as any)?.superBuiltUpArea ?? "—"} sqft
@@ -106,7 +110,7 @@ const ResidentialCard: React.FC<{ p: Property }> = ({ p }) => {
           <div className="items-center gap-2">
             <UnderConstruction size={24} color={bgPriceColoricon} />
             <div className="text-xs text-gray-500 tracking-wide">
-              UNDER CONSTRUCTION
+              Availability Status
             </div>
             <div className="font-medium">
               {(p as any)?.constructionStatus ?? "—"}
@@ -116,16 +120,16 @@ const ResidentialCard: React.FC<{ p: Property }> = ({ p }) => {
           <div className="items-center gap-2">
             <Furnishing size={24} color={bgPriceColoricon} />
             <div className="text-xs text-gray-500 tracking-wide">
-              FURNISHING
+              Furnishing
             </div>
             <div className="font-medium">
-              {(p as any)?.furnishing?.trim() ?? "—"}
+              {(p as any)?.furnishedStatus?.trim() ?? "—"}
             </div>
           </div>
 
           <div className="items-center gap-2">
             <Parking size={24} color={bgPriceColoricon} />
-            <div className="text-xs">PARKING</div>
+            <div className="text-xs">Parking</div>
             <div className="font-medium">
               {(p as any)?.parkingType?.trim() ?? "—"}
             </div>
@@ -135,30 +139,43 @@ const ResidentialCard: React.FC<{ p: Property }> = ({ p }) => {
 
       {/* Right: price card */}
       <aside
-        className="w-44 md:w-52 p-4 flex flex-col rounded-sm relative"
+        className={`rounded-xl ${vertical
+          ? "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3"
+          : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:mt-0"
+          }`}
         style={{ backgroundColor: bgPriceColor }}
       >
-        {/* Middle: Price Section (centered vertically + horizontally) */}
-        <div className="flex-1 flex flex-col justify-center items-center text-center">
-          <div className="text-green-600 font-semibold text-2xl ">
+        {/* PRICE */}
+        <div className={`${vertical ? "flex flex-col" : "flex flex-col md:items-center md:text-center"}`}>
+          <div
+            className={`text-green-700 font-semibold ${vertical ? "text-lg leading-tight" : "text-lg leading-tight md:text-2xl"
+              }`}
+          >
             {formatINR(p?.price)}
           </div>
 
-          <div className="text-lg text-gray-700 mt-1">
-            ₹ {pricePerSqft} per sqft
+          <div className="text-xs text-gray-600">
+            ₹ {pricePerSqft}/sqft
           </div>
         </div>
 
-        {/* Bottom: Button */}
-        <div className="w-full mt-4">
+        {/* BUTTON */}
+        <div className={`${vertical ? "shrink-0" : "shrink-0 md:w-full md:mt-4 flex justify-center"}`}>
           <button
-            className="w-full bg-green-600 text-white py-2 rounded-md shadow-sm hover:bg-green-700 transition"
-            onClick={() => window.alert(`Contact owner for ${p?.title}`)}
+            className={`bg-green-600 text-white rounded-md shadow-sm hover:bg-green-700 transition font-medium whitespace-nowrap ${vertical
+              ? "px-4 py-1.5 text-sm"
+              : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base "
+              }`}
+            onClick={(e) => {
+              e.preventDefault();
+              window.alert(`Contact owner for ${p?.title}`);
+            }}
           >
             Contact Owner
           </button>
         </div>
       </aside>
+
     </Link>
   );
 };

@@ -4,17 +4,27 @@ import { randomUUID } from "crypto";
 import s3 from "../config/s3"; // your AWS.S3 v2 client
 import dotenv from "dotenv";
 import Residential from "../models/residentialModel";
-import { buildCommonMatch } from "../utils/filterBuilder";
 import { SearchFilters } from "../types/searchResultItem";
 import "../models/userModel";
 import User from "../models/userModel";
 import Role from "../models/roleModel";
 import { uploadFile } from "../utils/uploadFile";
 import { UpdateFeaturePropertySchema } from "../zod/validation";
+import { extendResidentialFilters } from "./filters/residentialFilters";
+import { ResidentialQuery } from "../types/filterTypes";
+import { Request } from "express";
 
+type RequestWithResidentialQuery = Request<
+  {},               // req.params
+  any,              // res body
+  any,              // req body
+  ResidentialQuery  // ✅ req.query
+>;
 dotenv.config();
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
+
+
 
 /* -------------------- Helpers -------------------- */
 
@@ -50,16 +60,17 @@ async function resolveListingSourceFromUser(
 }
 
 function pickDefined<T extends Record<string, any>>(obj: T) {
-  return Object.fromEntries(Object.entries(obj).filter(([_, v]) => typeof v !== "undefined"));
+  return Object.fromEntries(
+    Object.entries(obj).filter(([_, v]) => typeof v !== "undefined")
+  );
 }
-
 
 function slugifyTitle(title: string) {
   return String(title)
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");  
+    .replace(/^-+|-+$/g, "");
 }
 
 function normalizePayload(obj: any) {
@@ -157,41 +168,41 @@ async function mapAndUploadGallery({
     if (!summary[matchedIndex].order)
       summary[matchedIndex].order = matchedIndex + 1;
   }
-  
+
   return summary;
 }
 
 /* -------------------- Search pipeline -------------------- */
 
-export function getResidentialPipeline(filters: any) {
-  // Accept either SearchFilters wrapper or raw filter
-  const inner = (filters as any)?.filter ?? filters ?? {};
-  const match = buildCommonMatch(inner);
+// export function getResidentialPipeline(filters: any) {
+//   // Accept either SearchFilters wrapper or raw filter
+//   const inner = (filters as any)?.filter ?? filters ?? {};
+//   const match = buildCommonMatch(inner);
 
-  return [
-    { $match: match },
-    {
-      $project: {
-        _id: 0,
-        id: "$_id",
-        type: { $literal: "Residential" },
-        gallery: 1,
-        title: 1,
-        city: 1,
-        buildingName: 1,
-        constructionStatus: 1,
-        slug: 1,
-        superBuiltUpArea: 1,
-        furnishing: 1,
-        parkingType: 1,
-        price: 1,
-        pricePerSqft: 1,
-        location: 1,
-        createdAt: 1,
-      },
-    },
-  ];
-}
+//   return [
+//     { $match: match },
+//     {
+//       $project: {
+//         _id: 0,
+//         id: "$_id",
+//         type: { $literal: "Residential" },
+//         gallery: 1,
+//         title: 1,
+//         city: 1,
+//         buildingName: 1,
+//         constructionStatus: 1,
+//         slug: 1,
+//         superBuiltUpArea: 1,
+//         furnishing: 1,
+//         parkingType: 1,
+//         price: 1,
+//         pricePerSqft: 1,
+//         location: 1,
+//         createdAt: 1,
+//       },
+//     },
+//   ];
+// }
 /* -------------------- Service API -------------------- */
 
 export const ResidentialPropertyService = {
@@ -204,7 +215,7 @@ export const ResidentialPropertyService = {
     let toCreate: any = {
       ...payload,
       slug,
-    }; 
+    };
 
     toCreate = normalizePayload(toCreate);
 
@@ -251,7 +262,7 @@ export const ResidentialPropertyService = {
         docRefs.push({
           title: f.originalname,
           url: up.url,
-          key: up.key,  
+          key: up.key,
           filename: f.originalname,
           mimetype: f.mimetype,
         });
@@ -270,122 +281,159 @@ export const ResidentialPropertyService = {
     );
   },
 
- async update(id: string, payload: any, files?: MulterFiles) {
-  if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
-  const existingRaw = await Residential.findById(id);
-  if (!existingRaw) return null;
-  const existing: any = existingRaw;
+  async update(id: string, payload: any, files?: MulterFiles) {
+    if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
+    const existingRaw = await Residential.findById(id);
+    if (!existingRaw) return null;
+    const existing: any = existingRaw;
 
-  // Validate using your UpdateFeaturePropertySchema (assumes you exported it)
-  const parsed = UpdateFeaturePropertySchema.safeParse(payload);
-  if (!parsed.success) {
-    // handle validation error (return or throw)
-    throw new Error("Validation failed: " + JSON.stringify(parsed.error.issues));
-  }
-
-  const data = parsed.data; // the typed/parsed payload
-
-  // slug/title change — use parsed data (if present)
-  if ((data.slug && data.slug !== existing.slug) || (data.title && data.title !== existing.title)) {
-    const slugSource = (data.slug && String(data.slug).trim()) || (data.title as string);
-    existing.slug = await generateUniqueSlug(slugSource, id);
-  }
-
-  // Build update object only with defined keys (this avoids unintentionally overwriting)
-  const safeUpdate = pickDefined(data);
-
-  // Remove gallerySummary from safeUpdate — we handle gallery separately
-  const incomingGallery = safeUpdate.gallerySummary;
-  delete safeUpdate.gallerySummary;
-
-  // Apply safeUpdate using $set semantics (only top-level fields)
-  Object.assign(existing, safeUpdate); // or prefer findByIdAndUpdate with $set later
-
-  const propId = existing._id ? existing._id.toString() : String(Date.now());
-
-  // ---------- Gallery merge & upload (use gallerySummary consistently) ----------
-  existing.gallerySummary = Array.isArray(existing.gallerySummary) ? existing.gallerySummary : [];
-
-  // 1) Merge incomingGallery array items (if client provided an array to replace/merge)
-  if (Array.isArray(incomingGallery)) {
-    // Decide policy: replace entire array OR merge per-index.
-    // Here: we'll merge per-index (update existing items by index or append new ones).
-    for (let i = 0; i < incomingGallery.length; i++) {
-      const inc = incomingGallery[i];
-      if (i < existing.gallerySummary.length) {
-        existing.gallerySummary[i] = { ...existing.gallerySummary[i], ...inc };
-      } else {
-        existing.gallerySummary.push({ ...inc });
-      }
+    // Validate using your UpdateFeaturePropertySchema (assumes you exported it)
+    const parsed = UpdateFeaturePropertySchema.safeParse(payload);
+    if (!parsed.success) {
+      // handle validation error (return or throw)
+      throw new Error(
+        "Validation failed: " + JSON.stringify(parsed.error.issues)
+      );
     }
-  }
 
-  // 2) Handle uploaded files (files.galleryFiles) -> map into gallerySummary
-  const galleryFiles = files?.galleryFiles ?? [];
-  if (galleryFiles.length > 0) {
-    const filesByName = new Map<string, Express.Multer.File>();
-    for (const f of galleryFiles) filesByName.set(f.originalname, f);
+    const data = parsed.data; // the typed/parsed payload
 
-    // First try to match by declared filename in existing items
-    for (let i = 0; i < existing.gallerySummary.length && filesByName.size > 0; i++) {
-      const entry = existing.gallerySummary[i] as any;
-      const declared = entry?.filename ?? entry?.fileName ?? entry?.file;
-      if (declared && filesByName.has(declared)) {
-        const f = filesByName.get(declared)!;
-        const up = await uploadFile({ buffer: f.buffer, originalName: f.originalname, mimetype: f.mimetype, folder: "featured/gallery", entityId: propId });
-        entry.url = up.url;
-        entry.key = up.key;
-        entry.filename = f.originalname;
-        filesByName.delete(declared);
+    // slug/title change — use parsed data (if present)
+    if (
+      (data.slug && data.slug !== existing.slug) ||
+      (data.title && data.title !== existing.title)
+    ) {
+      const slugSource =
+        (data.slug && String(data.slug).trim()) || (data.title as string);
+      existing.slug = await generateUniqueSlug(slugSource, id);
+    }
+
+    // Build update object only with defined keys (this avoids unintentionally overwriting)
+    const safeUpdate = pickDefined(data);
+
+    // Remove gallerySummary from safeUpdate — we handle gallery separately
+    const incomingGallery = safeUpdate.gallerySummary;
+    delete safeUpdate.gallerySummary;
+
+    // Apply safeUpdate using $set semantics (only top-level fields)
+    Object.assign(existing, safeUpdate); // or prefer findByIdAndUpdate with $set later
+
+    const propId = existing._id ? existing._id.toString() : String(Date.now());
+
+    // ---------- Gallery merge & upload (use gallerySummary consistently) ----------
+    existing.gallerySummary = Array.isArray(existing.gallerySummary)
+      ? existing.gallerySummary
+      : [];
+
+    // 1) Merge incomingGallery array items (if client provided an array to replace/merge)
+    if (Array.isArray(incomingGallery)) {
+      // Decide policy: replace entire array OR merge per-index.
+      // Here: we'll merge per-index (update existing items by index or append new ones).
+      for (let i = 0; i < incomingGallery.length; i++) {
+        const inc = incomingGallery[i];
+        if (i < existing.gallerySummary.length) {
+          existing.gallerySummary[i] = {
+            ...existing.gallerySummary[i],
+            ...inc,
+          };
+        } else {
+          existing.gallerySummary.push({ ...inc });
+        }
       }
     }
 
-    // Remaining files -> append or fill empty slots
-    const remainingFiles = Array.from(filesByName.values());
-    for (const file of remainingFiles) {
-      const up = await uploadFile({ buffer: file.buffer, originalName: file.originalname, mimetype: file.mimetype, folder: "featured/gallery", entityId: propId });
-      const emptySlotIndex = existing.gallerySummary.findIndex((e: any) => !e?.url);
-      if (emptySlotIndex >= 0) {
-        const slot = existing.gallerySummary[emptySlotIndex] as any;
-        slot.url = up.url;
-        slot.key = up.key;
-        slot.filename = file.originalname;
-        if (!slot.title) slot.title = file.originalname;
-        if (!slot.category) slot.category = "image";
-        if (!slot.order) slot.order = emptySlotIndex + 1;
-      } else {
-        existing.gallerySummary.push({
-          title: file.originalname,
+    // 2) Handle uploaded files (files.galleryFiles) -> map into gallerySummary
+    const galleryFiles = files?.galleryFiles ?? [];
+    if (galleryFiles.length > 0) {
+      const filesByName = new Map<string, Express.Multer.File>();
+      for (const f of galleryFiles) filesByName.set(f.originalname, f);
+
+      // First try to match by declared filename in existing items
+      for (
+        let i = 0;
+        i < existing.gallerySummary.length && filesByName.size > 0;
+        i++
+      ) {
+        const entry = existing.gallerySummary[i] as any;
+        const declared = entry?.filename ?? entry?.fileName ?? entry?.file;
+        if (declared && filesByName.has(declared)) {
+          const f = filesByName.get(declared)!;
+          const up = await uploadFile({
+            buffer: f.buffer,
+            originalName: f.originalname,
+            mimetype: f.mimetype,
+            folder: "featured/gallery",
+            entityId: propId,
+          });
+          entry.url = up.url;
+          entry.key = up.key;
+          entry.filename = f.originalname;
+          filesByName.delete(declared);
+        }
+      }
+
+      // Remaining files -> append or fill empty slots
+      const remainingFiles = Array.from(filesByName.values());
+      for (const file of remainingFiles) {
+        const up = await uploadFile({
+          buffer: file.buffer,
+          originalName: file.originalname,
+          mimetype: file.mimetype,
+          folder: "featured/gallery",
+          entityId: propId,
+        });
+        const emptySlotIndex = existing.gallerySummary.findIndex(
+          (e: any) => !e?.url
+        );
+        if (emptySlotIndex >= 0) {
+          const slot = existing.gallerySummary[emptySlotIndex] as any;
+          slot.url = up.url;
+          slot.key = up.key;
+          slot.filename = file.originalname;
+          if (!slot.title) slot.title = file.originalname;
+          if (!slot.category) slot.category = "image";
+          if (!slot.order) slot.order = emptySlotIndex + 1;
+        } else {
+          existing.gallerySummary.push({
+            title: file.originalname,
+            url: up.url,
+            key: up.key,
+            filename: file.originalname,
+            category: "image",
+            order: existing.gallerySummary.length + 1,
+          });
+        }
+      }
+    }
+
+    // documents -> upload
+    const documentsFiles = files?.documents ?? [];
+    if (documentsFiles.length > 0) {
+      existing.documents = Array.isArray(existing.documents)
+        ? existing.documents
+        : [];
+      for (const f of documentsFiles) {
+        const up = await uploadFile({
+          buffer: f.buffer,
+          originalName: f.originalname,
+          mimetype: f.mimetype,
+          folder: "featured/documents",
+          entityId: propId,
+        });
+        existing.documents.push({
+          title: f.originalname,
           url: up.url,
           key: up.key,
-          filename: file.originalname,
-          category: "image",
-          order: existing.gallerySummary.length + 1,
+          filename: f.originalname,
+          mimetype: f.mimetype,
         });
       }
     }
-  }
 
-  // documents -> upload
-  const documentsFiles = files?.documents ?? [];
-  if (documentsFiles.length > 0) {
-    existing.documents = Array.isArray(existing.documents) ? existing.documents : [];
-    for (const f of documentsFiles) {
-      const up = await uploadFile({ buffer: f.buffer, originalName: f.originalname, mimetype: f.mimetype, folder: "featured/documents", entityId: propId });
-      existing.documents.push({
-        title: f.originalname,
-        url: up.url,
-        key: up.key,
-        filename: f.originalname,
-        mimetype: f.mimetype,
-      });
-    }
-  }
-
-  // Final save
-  await existing.save();
-  return existing.toObject ? existing.toObject() : existing;
-},
+    // Final save
+    await existing.save();
+    return existing.toObject ? existing.toObject() : existing;
+  },
 
   async pushFilesToListing(id: string, pushMap: Record<string, any[]>) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
@@ -526,11 +574,33 @@ export const ResidentialPropertyService = {
 
   model: Residential,
 
-  getPipeline(filters: any) {
-    const inner = (filters as any)?.filter ?? filters ?? {};
-    const match = buildCommonMatch(inner);
-    return [{ $match: match }];
-  },
+
+ getPipeline(filters: any) {
+  const match = extendResidentialFilters(filters, {});
+
+  console.log("🏠 [ResidentialService] Final match:", match);
+
+  return [
+    { $match: match },
+    {
+      $project: {
+        _id: 0,
+        id: "$_id",
+        type: { $literal: "Residential" },
+        title: 1,
+        city: 1,
+        buildingName: 1,
+        price: 1,
+        bhk: 1,
+        bedrooms: 1,
+        bathrooms: 1,
+        slug: 1,
+        createdAt: 1,
+      },
+    },
+  ];
+},
+
 };
 
 export default ResidentialPropertyService;

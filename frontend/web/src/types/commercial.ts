@@ -35,30 +35,30 @@ export type PantryType = (typeof PANTRY_TYPES)[number];
 
 
 export type AmenitiesItems = {
-   key:string,
-   title:string
+  key: string,
+  title: string
 }
 
-export interface ICommercial  {
+export interface ICommercial {
   title: string;
   slug: string;
   floorNumber?: number;
   totalFloors?: number;
-  price?:number;
+  price?: number;
   city?: string;
   furnishedStatus?: 'unfurnished' | 'semi-furnished' | 'fully-furnished';
   powerBackup?: string;
   powerCapacityKw?: number;
   lift?: boolean;
-  superBuiltUpArea?:string;
+  superBuiltUpArea?: string;
   gallery?: GalleryItem[];
-  constructionStatus?:string
-  transactionType?:string
+  constructionStatus?: string
+  transactionType?: string
   carpetArea?: number;
-  pricePerSqft?:number;
-  furnishing?:string;
-  seats?:number;
-  officeRooms?:number;
+  pricePerSqft?: number;
+  furnishing?: string;
+  seats?: number;
+  officeRooms?: number;
   washrooms?: number;
   amenities: AmenitiesItems[];
   ceilingHeightFt?: number;
@@ -73,16 +73,17 @@ export interface ICommercial  {
   zoning?: string;
   occupancyCertificateFile?: IFileRef | null;
   leaseDocuments?: IFileRef[];
-  address?:string;
-   pantry?: {
+  address?: string;
+  pantry?: {
     type?: PantryType;
     insidePremises?: boolean;
     shared?: boolean;
   };
-  description?:string;
+  description?: string;
   buildingManagement?: { security?: boolean; managedBy?: string; contact?: string };
-   cabins:number, 
-   meetingRooms :number,
-   conferenceRooms:number,
-   specifications: SpecificationItem[],
+  cabins: number,
+  meetingRooms: number,
+  conferenceRooms: number,
+  specifications: SpecificationItem[],
+  createdBy?: { name?: string; contact?: string; email?: string };
 }

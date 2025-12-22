@@ -32,17 +32,18 @@ export default async function Page({ params }: PageProps) {
     notFound();
   }
 
+
   const priceLabel = formatINR(project.price);
 
   return (
     <div style={{ background: bgcolor }} className="min-h-screen py-6">
       <div className="container">
-        <div className="w-[80%]">
+        <div className="w-full">
           {/* Top: Price + Title + CTA */}
-          <header className="mb-4 flex flex-col justify-between gap-4  p-4">
-            <div className="space-y-1">
+          <header className="flex flex-col justify-between gap-2 p-2">
+            <div className="">
               <div className="flex flex-wrap items-baseline gap-3">
-                <span className="rounded-full  px-3 py-1 text-2xl font-semibold text-primary">
+                <span className="rounded-full px-1 text-2xl font-semibold text-primary">
                   {priceLabel}
                 </span>
                 <h1 className="text-2xl font-semibold text-gray-900 sm:text-xl">
@@ -52,60 +53,83 @@ export default async function Page({ params }: PageProps) {
             </div>
           </header>
 
-          <div className="flex">
-            <div className="w-[50%]">
-              <GalleryFile gallery={project?.gallery} />
+          <div className="flex gap-2">
+            <div className="w-[45%]">
+              <GalleryFile gallery={project?.gallery} title={project?.title} />
             </div>
-            <div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-16 mt-5 ml-5">
-                <div>
-                  <p className="text-gray-500 font-poppins">SUPER BUILT UP AREA</p>
-                  <p>
-                    {project?.superBuiltUpArea} sqft (₹ {project?.pricePerSqft}
-                    /sqft)
+            <div className="flex-1">
+              <div className="flex items-start gap-6">
+                <div className="flex-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-7 gap-x-7 p-2">
+                    <div>
+                      <p className="text-gray-500 font-semibold">Super Built Up Area</p>
+                      <p>
+                        {project?.superBuiltUpArea} sqft (₹ {project?.pricePerSqft}
+                        /sqft)
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-gray-500 font-semibold">Carpet Area</p>
+                      <p>{project?.carpetArea}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-[#ed6115] font-semibold">Sale Type</p>
+                      <p>{project?.transactionType}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-gray-500 font-semibold">Availability Status</p>
+                      <p>{project?.constructionStatus}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-gray-500 font-semibold">Frunishing Status</p>
+                      <p>{project?.furnishing}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-gray-500 font-semibold">Floors</p>
+                      <p>
+                        {project?.floorNumber}/{project.totalFloors}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-x-8 mt-11">
+                    <span className="text-gray-500 text-md font-medium flex">
+                      <Bhk color="#6B7280" />
+                      &nbsp; {project.bhk} BHK
+                    </span>
+                    <span className="text-gray-500  font-medium flex">
+                      <Bath color="#6B7280" />
+                      &nbsp;{project.bathrooms} Bath
+                    </span>
+                    <span className="text-gray-500  font-medium flex">
+                      <Balconies color="#6B7280" />
+                      &nbsp; {project.balconies} Balconies
+                    </span>
+                  </div>
+                </div>
+
+                {/* Contact card here */}
+                <div className="w-[260px] shrink-0 rounded-xl bg-white/30 p-5 shadow-sm border border-gray-100">
+                  <p className="text-lg font-semibold text-green-600 mb-3">
+                    Contact Owner
                   </p>
-                </div>
 
-                <div>
-                  <p className="text-gray-500">CARPET AREA</p>
-                  <p>{project?.carpetArea}</p>
-                </div>
-
-                <div>
-                  <p className="text-[#ed6115]">TRANSACTION TYPE</p>
-                  <p>{project?.transactionType}</p>
-                </div>
-
-                <div>
-                  <p className="text-gray-500">AVAILABILITY STATUS</p>
-                  <p>{project?.constructionStatus}</p>
-                </div>
-
-                <div>
-                  <p className="text-gray-500">FURNISHED STATUS</p>
-                  <p>{project?.furnishing}</p>
-                </div>
-
-                <div>
-                  <p className="text-gray-500">FLOORS</p>
-                  <p>
-                    {project?.floorNumber}/{project.totalFloors}
+                  <p className="text-sm font-medium text-gray-900">
+                    {project?.createdBy?.name}
                   </p>
+
+                  <p className="text-xs text-gray-500 mt-1">
+                    {project?.createdBy?.email}
+                  </p>
+
+                  <button className="mt-4 w-full rounded-lg bg-green-600 py-2 text-sm font-medium text-white hover:bg-green-700 transition">
+                    Get Phone No.
+                  </button>
                 </div>
-              </div>
-              <div className="flex gap-x-8 mt-6 ml-5">
-                <span className="text-gray-500 text-md font-medium flex">
-                  <Bhk color="#6B7280" />
-                  &nbsp; {project.bhk} BHK
-                </span>
-                <span className="text-gray-500  font-medium flex">
-                  <Bath color="#6B7280" />
-                  &nbsp;{project.bathrooms} Bath
-                </span>
-                <span className="text-gray-500  font-medium flex">
-                  <Balconies color="#6B7280" />
-                  &nbsp; {project.balconies} Balconies
-                </span>
               </div>
             </div>
           </div>
@@ -113,10 +137,8 @@ export default async function Page({ params }: PageProps) {
           <br />
 
           {/* Main two-column layout */}
-          <div className="grid gap-4 lg:grid-cols-[2fr,1.2fr] mt-55">
-            {/* Left: Gallery + basic info */}
+          <div className="grid gap-4 lg:grid-cols-[2fr,1.2fr]">
             <section className="space-y-4 ml-3">
-              {/* More details section */}
               <section className="rounded-lg p-6 shadow-sm ">
                 <h2 className="mb-6 text-xl font-semibold text-gray-900">
                   More Details
@@ -141,7 +163,7 @@ export default async function Page({ params }: PageProps) {
 
                   <div className="flex flex-col gap-1">
                     <p className="font-medium text-gray-900">Facing</p>
-                    <p className="text-gray-500">East</p>
+                    <p className="text-gray-500">{project?.facing}</p>
                   </div>
 
                   <div className="flex flex-col gap-1">
@@ -156,7 +178,6 @@ export default async function Page({ params }: PageProps) {
 
                   <div className="flex flex-col gap-1">
                     <p className="font-medium text-gray-900">No of parkings</p>
-                    <p className="text-gray-500">{project?.parkingCount}</p>
                   </div>
                 </div>
 
@@ -215,5 +236,3 @@ export default async function Page({ params }: PageProps) {
     </div>
   );
 }
-
-

@@ -1,6 +1,6 @@
 // src/zod/residentialValidation.ts
 import { z } from "zod";
-import { RESIDENTIAL_PROPERTY_SUBTYPES, RESIDENTIAL_PROPERTY_TYPES } from "../types/residentialTypes";
+import { RESIDENTIAL_PROPERTY_TYPES } from "../types/residentialTypes";
 
 
 const FLOORING_TYPES = [
@@ -234,9 +234,6 @@ export const ResidentialCreateSchema = BaseResidentialCreate.extend({
     RESIDENTIAL_PROPERTY_TYPES as readonly [string, ...string[]]
   ).optional(),
 
-  propertySubType: enumPreprocess(
-    RESIDENTIAL_PROPERTY_SUBTYPES as readonly [string, ...string[]]
-  ).optional(),
 
   sqftRange: z
     .object({
@@ -256,7 +253,6 @@ export const ResidentialCreateSchema = BaseResidentialCreate.extend({
   furnishing: enumPreprocess(["unfurnished", "semi-furnished", "fully-furnished"]).optional(),
 
   parkingType: z.string().optional(),
-  parkingCount: coerceInt(z.number().int()).optional(),
 
   // floor info
   floorNumber: coerceInt(z.number().int()).optional(),
@@ -338,9 +334,6 @@ export const ResidentialUpdateSchema = z
       RESIDENTIAL_PROPERTY_TYPES as readonly [string, ...string[]]
     ).optional(),
 
-    propertySubType: enumPreprocess(
-      RESIDENTIAL_PROPERTY_SUBTYPES as readonly [string, ...string[]]
-    ).optional(),
 
     state: z.string().optional(),
     pincode: z.string().optional(),
@@ -388,7 +381,6 @@ export const ResidentialUpdateSchema = z
 
     furnishing: enumPreprocess(["unfurnished", "semi-furnished", "fully-furnished"]).optional(),
     parkingType: z.string().optional(),
-    parkingCount: coerceInt(z.number().int()).optional(),
 
     floorNumber: coerceInt(z.number().int()).optional(),
     totalFloors: coerceInt(z.number().int()).optional(),

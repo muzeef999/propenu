@@ -32,6 +32,10 @@ export interface Property {
   floorNumber?:number | string;
   totalFloors?:number | string;
   type: "Residential" | "Commercial" | "Land" | "Agricultural";
+  dimensions?: {
+    length?: number;
+    width?: number;
+  }
 }
 
 
