@@ -1,7 +1,6 @@
 // src/types/filterTypes.ts
 import { Request } from "express";
 import type { ParsedQs } from "qs";
-import { FilterOptions } from "../services/filters/propertyFilterBuilder";
 
 export type RequestQuery<Q> = Request<Record<string, any>, any, any, Q>;
 
@@ -10,7 +9,6 @@ export interface SearchFilters {
   sort?: string | undefined;
   propertyType?: string | undefined;
   batchSize?: number | undefined;
-  options?: FilterOptions | undefined;
 
   [k: string]: any;
 }

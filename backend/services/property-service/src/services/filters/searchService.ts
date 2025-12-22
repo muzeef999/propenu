@@ -1,125 +1,41 @@
-// src/services/search.service.ts
-import { PropertyType, SearchFilters } from "../../types/searchResultItem";
 import AgriculturalService from "../agriculturalServices";
 import CommercialService from "../commercialService";
 import LandService from "../landService";
 import ResidentialPropertyService from "../residentialServices";
 
-type ServiceObj = { model: any; getPipeline: (filters: SearchFilters | any) => any[] };
-
-const TYPE_MAP: Record<PropertyType, ServiceObj> = {
-  Residential: ResidentialPropertyService as unknown as ServiceObj,
-  Commercial: CommercialService as unknown as ServiceObj,
-  Land: LandService as unknown as ServiceObj,
-  Agricultural: AgriculturalService as unknown as ServiceObj,
+const CATEGORY_SERVICE_MAP: Record<string, any> = {
+  Residential: ResidentialPropertyService,
+  Commercial: CommercialService,
+  Land: LandService,
+  Agricultural: AgriculturalService,
 };
 
-function normalizeTypes(propertyTypeQuery?: string): PropertyType[] {
-  if (!propertyTypeQuery) return Object.keys(TYPE_MAP) as PropertyType[];
-  return propertyTypeQuery.split(",").map((s) => s.trim()).filter(Boolean) as PropertyType[];
-}
+export default async function buildSearchCursor(filters: any) {
+    console.log("🔥 STEP 3: buildSearchCursor filters =", filters);
 
-/**
- * Build a robust AsyncIterableIterator cursor for the combined search pipeline.
- * This handles differences between Mongoose versions & driver cursors.
- */
-export default async function buildSearchCursor(
-  filters: SearchFilters | any,
-  batchSize = 50,
-  useEstimatePrimary = false
-): Promise<AsyncIterableIterator<any>> {
-  // Defensive unwrap: whether caller passes { filter: {...}, ... } or a raw filter object
-  const inner = (filters as any)?.filter ?? filters ?? {};
+  const { category, batchSize = 50 } = filters;
 
-  // normalize property type list from either wrapper or inner
-  const selected = normalizeTypes((filters as any)?.propertyType ?? (inner as any)?.propertyType);
-  if (selected.length === 0) throw new Error("No property types selected");
-
-  const primaryType = selected[0]!; // safe after check
-  const primaryService = TYPE_MAP[primaryType];
-  if (!primaryService) throw new Error("Invalid primary type");
-
-  // Build pipeline: primary pipeline + $unionWith others
-  const pipeline: any[] = [];
-  pipeline.push(...primaryService.getPipeline(inner));
-
-  for (const t of selected) {
-    if (t === primaryType) continue;
-    const svc = TYPE_MAP[t];
-    if (!svc) continue;
-    pipeline.push({
-      $unionWith: {
-        coll: svc.model.collection.name,
-        pipeline: svc.getPipeline(inner),
-      },
-    });
+  if (!category) {
+    throw new Error("category is required");
   }
 
-  // Global sort
-  let sortStage: any = { createdAt: -1 };
-  if ((filters as any)?.sort === "price_asc" || (inner as any)?.sort === "price_asc") sortStage = { price: 1 };
-  else if ((filters as any)?.sort === "price_desc" || (inner as any)?.sort === "price_desc") sortStage = { price: -1 };
-  pipeline.push({ $sort: sortStage });
+  const service = CATEGORY_SERVICE_MAP[category];
 
-  // Dev log: show final pipeline (remove in prod)
-  if (process.env.NODE_ENV !== "production") {
-    console.log("DEBUG searchService.buildSearchCursor - selected:", selected);
-    console.log("DEBUG searchService.buildSearchCursor - pipeline:", JSON.stringify(pipeline, null, 2));
+
+  console.log("🔥 STEP 4: CATEGORY =", category);
+console.log("🔥 STEP 4: SERVICE FOUND =", !!service);
+  if (!service) {
+    throw new Error(`Invalid category: ${category}`);
   }
 
-  // --- Create cursor robustly ---
-  try {
-    const agg = primaryService.model.aggregate(pipeline as any);
+  // 🔥 THIS IS THE MOST IMPORTANT LINE
+  // Only ONE service is called
+  const pipeline = service.getPipeline(filters);
 
-    // 1) Preferred: agg.cursor({ batchSize }) may return a cursor or an object exposing exec()
-    const hasCursorFn = typeof (agg as any).cursor === "function";
-    if (hasCursorFn) {
-      const maybeCursor = (agg as any).cursor({ batchSize });
+  console.log("🔥 STEP 5: PIPELINE =", JSON.stringify(pipeline, null, 2));
 
-      // If exec exists (older Mongoose patterns), call it
-      if (maybeCursor && typeof maybeCursor.exec === "function") {
-        const executed = (maybeCursor as any).exec();
-        if (executed && typeof executed[Symbol.asyncIterator] === "function") {
-          return executed as AsyncIterableIterator<any>;
-        }
-      }
+  pipeline.push({ $sort: { createdAt: -1 } });
 
-      // If the returned object is already async-iterable, return it
-      if (maybeCursor && typeof (maybeCursor as any)[Symbol.asyncIterator] === "function") {
-        return maybeCursor as AsyncIterableIterator<any>;
-      }
 
-      // If it exposes stream(), convert stream to async iterator if possible
-      if (maybeCursor && typeof (maybeCursor as any).stream === "function") {
-        const stream = (maybeCursor as any).stream();
-        if (stream && typeof (stream as any)[Symbol.asyncIterator] === "function") {
-          return (stream as any)[Symbol.asyncIterator]() as AsyncIterableIterator<any>;
-        }
-      }
-    }
-
-    // 2) Fallback: use native collection.aggregate with cursor option (driver-level cursor)
-    if (primaryService.model && primaryService.model.collection && typeof primaryService.model.collection.aggregate === "function") {
-      // Node driver: collection.aggregate(pipeline, { cursor: { batchSize } })
-      // This returns a Cursor which in modern drivers is async-iterable.
-      const nativeCursor = primaryService.model.collection.aggregate(pipeline, { cursor: { batchSize } } as any);
-
-      if (nativeCursor && typeof (nativeCursor as any)[Symbol.asyncIterator] === "function") {
-        return nativeCursor as AsyncIterableIterator<any>;
-      }
-
-      // If nativeCursor exposes stream() which is async iterable
-      if (nativeCursor && typeof (nativeCursor as any).stream === "function") {
-        const stream = (nativeCursor as any).stream();
-        if (stream && typeof (stream as any)[Symbol.asyncIterator] === "function") {
-          return (stream as any)[Symbol.asyncIterator]() as AsyncIterableIterator<any>;
-        }
-      }
-    }
-
-    throw new Error("Unable to create an async iterable cursor from aggregate()");
-  } catch (err) {
-    console.error("buildSearchCursor error creating cursor:", (err as any)?.stack ?? (err as any)?.message ?? err);
-    throw err;
-  }
+  return service.model.aggregate(pipeline).cursor({ batchSize });
 }

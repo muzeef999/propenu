@@ -1,26 +1,19 @@
 // src/types/residentialTypes.ts
 import mongoose from 'mongoose';
 
-
-
-
 export const RESIDENTIAL_PROPERTY_TYPES = [
   'apartment',
   'independent-house',
   'villa',
   'penthouse',
-  'plot',
-  'row-house',
   'studio',
   'duplex',
   'triplex',
   'farmhouse',
+  'independent-builder-floor'
 ] as const;
 
-
 export type ResidentialPropertyType = typeof RESIDENTIAL_PROPERTY_TYPES[number];
-
-
 
 export const FLOORING_TYPES = [
   'vitrified',
@@ -62,13 +55,10 @@ export type PropertyAge = (typeof PROPERTY_AGE_BUCKETS)[number];
 export interface IResidential {
   listingType?: 'sale' | 'rent' | 'lease';
   developer?: mongoose.Types.ObjectId | null;
-
   // base fields...
   address: string;
   city?: string; 
-
   propertyType?: ResidentialPropertyType;
-
   // residential-specific
   bhk?: number;
   bedrooms?: number;
@@ -79,7 +69,6 @@ export interface IResidential {
   builtUpArea?: number;
   superBuiltUpArea?: number;
   transactionType?: "new-sale" | "resale" |"pre-leased" | "rent" | "lease" ;
-
   furnishing?: 'unfurnished' | 'semi-furnished' | 'fully-furnished';
   parkingType?: string;
   floorNumber?: number;

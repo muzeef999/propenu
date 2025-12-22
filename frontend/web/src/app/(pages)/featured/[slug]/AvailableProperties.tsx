@@ -27,7 +27,7 @@ type Props = {
 };
 
 // fallback image — replace with a public asset or import if available
-const DEV_PLAN_URL = "/images/placeholder-plan.jpg";
+const DEV_PLAN_URL = "/images/placeholder.jpg";
 
 /** small helper to format INR numbers */
 function formatINR(v?: number) {

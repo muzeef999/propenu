@@ -27,7 +27,7 @@ if (!PAYMENT_SERVICE_URL || !PROPERTY_SERVICE_URL || !USER_SERVICE_URL) {
 app.set("trust proxy", true);
 
 
-const allowed = (process.env.ALLOWED_ORIGINS || "http://localhost:3000, http://localhost:3001, https://propenu.vercel.app, https://propenu.netlify.app")
+const allowed = (process.env.ALLOWED_ORIGINS || "http://localhost:3000, http://localhost:3001, https://propenu.vercel.app, https://propenu.netlify.app, http://localhost:8081, http://localhost:8082")
   .split(",")
   .map(s => s.trim().replace(/\/+$/, ""))
   .filter(Boolean);
