@@ -25,7 +25,7 @@ const PropertyProfileStep = () => {
       return <AgriculturalProfile />;
 
     default:
-      return <CommercialProfile />;
+      return null;
   }
 };
 

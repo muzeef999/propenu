@@ -16,6 +16,7 @@ export default function BasicDetailsStep() {
     (state: any) => state.postProperty
   );
   const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [showErrors, setShowErrors] = useState(false);
   const listingOptions = [
     { label: "Sale", value: "sale" },
     { label: "Rent / Lease", value: "rent" },
@@ -24,11 +25,21 @@ export default function BasicDetailsStep() {
 
   const dispatch = useDispatch();
 
-  const validationResult = validateBasicDetails(base, propertyType, files);
+  const validationResult = validateBasicDetails(
+    {
+      ...base,
+      title: base.title || "",
+      price: base.price || "",
+      carpetArea: base.carpetArea || "",
+      description: base.description || "",
+    },
+    propertyType,
+    files
+  );
 
   const isFormValid = validationResult.success;
 
-  const fieldErrors = !validationResult.success
+  const fieldErrors = showErrors && !validationResult.success
     ? validationResult.error.flatten().fieldErrors
     : {};
 
@@ -102,6 +113,7 @@ export default function BasicDetailsStep() {
         required
         placeholder="e.g. 3 BHK Apartment in Whitefield"
         onChange={(value) => dispatch(setBaseField({ key: "title", value }))}
+        error={fieldErrors?.title?.[0]}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -110,15 +122,17 @@ export default function BasicDetailsStep() {
           value={base.price || ""}
           placeholder="e.g. 75,00,000"
           onChange={(value) =>
-            dispatch(setBaseField({ key: "price", value }))
+            dispatch(setBaseField({ key: "price", value: value.replace(/\D/g, "") }))
           }
+          error={fieldErrors?.price?.[0]}
         />
 
         <InputField
           label="Area (sq ft)"
           value={base.carpetArea || ""}
           placeholder="e.g. 1200"
-          onChange={(value) => dispatch(setBaseField({ key: "carpetArea", value }))}
+          onChange={(value) => dispatch(setBaseField({ key: "carpetArea", value: value.replace(/\D/g, "") }))}
+          error={fieldErrors?.areaSqft?.[0]}
         />
 
         <InputField
@@ -131,7 +145,6 @@ export default function BasicDetailsStep() {
           placeholder="Auto calculated"
           disabled
           onChange={() => {}}
-          error={fieldErrors?.title?.[0]}
         />
       </div>
 
@@ -171,10 +184,12 @@ export default function BasicDetailsStep() {
 
       <button
         onClick={() => {
-          console.log("BasicDetailsStep Data:", { base, propertyType, files });
-          dispatch(nextStep());
+          setShowErrors(true);
+          if (isFormValid) {
+            console.log("BasicDetailsStep Data:", { base, propertyType, files });
+            dispatch(nextStep());
+          }
         }}
-        disabled={!isFormValid}
         className="px-4 py-2 btn-primary cursor-pointer text-white rounded disabled:opacity-50"
       >
         Continue

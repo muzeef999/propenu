@@ -4,18 +4,20 @@ import { useAppSelector } from "@/Redux/store";
 
 const MainContent = () => {
   const currentStep = useAppSelector(
-  (state) => state.postProperty.currentStep
-);
+    (state) => state.postProperty.currentStep
+  );
 
- const STEP_TITLES: Record<number, string> = {
-  1: "Add Basic Details",
-  2: "Add Location Details",
-  3: "Add Property Details",
-  4: "Verify & Publish",
-};
+  const STEP_TITLES: Record<number, string> = {
+    1: "Add Basic Details",
+    2: "Add Location Details",
+    3: "Add Property Details",
+    4: "Verify & Publish",
+  };
+
   return (
-    <div className="bg-white p-2 h-full overflow-hidden" >
-      <div className="rounded-xl border p-4   overflow-y-auto  border-[#EBECF0] space-y-6">
+    <div className="bg-white p-3 h-full overflow-y-auto">
+      
+      <div className="rounded-xl border p-4 border-[#EBECF0] space-y-6">        
         <div className="flex items-center justify-between py-4">
           <div className="flex items-center gap-3">
             <div className="flex -space-x-2">

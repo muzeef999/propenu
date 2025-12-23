@@ -17,7 +17,7 @@
     "dev:backend": "concurrently \"npm run dev:gateway\"  \"npm run dev:user\" \"npm run dev:property\" \"npm run dev:payment\"",
     "dev:all": "concurrently \"npm run dev:backend\"",
     "build:backend": "npm -w backend/gateway run build && npm -w backend/services/user-service run build && npm -w backend/services/property-service run build && npm -w backend/services/payment-service run build",
-    "build:frontend":"npm run build --workspace=frontend/web",
+    "build:frontend": "npm run build --workspace=frontend/web",
     "start:pm2": "pm2 start backend/ecosystem.config.cjs --update-env",
     "reload:pm2": "pm2 startOrReload backend/ecosystem.config.cjs --update-env"
   },

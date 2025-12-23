@@ -40,6 +40,9 @@ export interface ILand {
   createdBy?: { name?: string; contact?: string; email?: string };
   pricePerSqft?: number;
   listingSource?: string;
+  listingType?: 'sale' | 'rent' | 'lease';
+  propertyType?: string;
+  amenities?: string[];
 
 }
 

@@ -17,6 +17,10 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
+    "typeRoots": [
+      "./src/types",
+      "./node_modules/@types"
+    ],
     "plugins": [
       {
         "name": "next"
@@ -36,7 +40,6 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  
   "exclude": [
     "node_modules"
   ]

@@ -21,17 +21,15 @@ const TextArea = ({
   required = false,
   disabled = false,
   error,
-  rows = 5,
+  rows = 2,
   maxLength,
 }: TextAreaProps) => {
   return (
-    <div className="space-y-1">
-      {/* Label */}
-      <label className="inline-block text-sm font-normal m-0 p-1 bg-gray-400 text-white rounded-t-sm">
-        {label} {required && "*"}
+    <div className="w-full">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
       </label>
-
-      {/* Textarea */}
       <textarea
         value={value}
         rows={rows}
@@ -39,22 +37,12 @@ const TextArea = ({
         disabled={disabled}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full border px-3 py-2 text-sm rounded-b-sm rounded-r-sm focus:outline-none focus:ring-2 focus:ring-green-500
-          ${error ? "border-red-500" : "border-gray-300"}
-          ${disabled ? "bg-gray-100 cursor-not-allowed" : ""}
-        `}
+        className={`w-full px-3 py-2 border rounded-md text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors ${error ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-gray-300"} ${disabled ? "bg-gray-100 cursor-not-allowed text-gray-500" : "bg-white"}`}
       />
-
-      {/* Footer: Error + Counter */}
-      <div className="flex justify-between items-center text-xs">
-        {error ? (
-          <p className="text-red-500">{error}</p>
-        ) : (
-          <span />
-        )}
-
+      <div className="flex justify-between items-start mt-1">
+        <div className="flex-1">{error && <p className="text-xs text-red-500">{error}</p>}</div>
         {maxLength && (
-          <span className="text-gray-500">
+          <span className="text-xs text-gray-400 ml-2">
             {String(value).length}/{maxLength}
           </span>
         )}

@@ -11,30 +11,30 @@ import { submitPropertyThunk } from "@/Redux/thunks/submitPropertyApi";
 const AREA_UNITS = ["sqft", "sqmt", "acre", "guntha", "kanal", "hectare"] as const;
 
 const PLOT_TYPES = [
-  "plot",
-  "residential-plot",
-  "commercial-plot",
-  "industrial-plot",
-  "investment-plot",
-  "corner-plot",
-  "na-plot",
+    "plot",
+    "residential-plot",
+    "commercial-plot",
+    "industrial-plot",
+    "investment-plot",
+    "corner-plot",
+    "na-plot",
 ] as const;
 
 const FACING_OPTIONS = [
-  "East",
-  "West",
-  "North",
-  "South",
-  "North-East",
-  "North-West",
-  "South-East",
-  "South-West",
+    "East",
+    "West",
+    "North",
+    "South",
+    "North-East",
+    "North-West",
+    "South-East",
+    "South-West",
 ];
 
 const PLOT_SUBTYPES = [
-  "east-facing", "west-facing", "north-facing", "south-facing", 
-  "gated-community", "non-gated", "corner", "road-facing", 
-  "two-side-open", "three-side-open", "resale", "new-plot"
+    "east-facing", "west-facing", "north-facing", "south-facing",
+    "gated-community", "non-gated", "corner", "road-facing",
+    "two-side-open", "three-side-open", "resale", "new-plot"
 ];
 
 // use shared `AMENITIES` constant for options
@@ -63,7 +63,7 @@ const LandProfile = () => {
             {/* 1. PLOT DIMENSIONS & AREA */}
             <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-800">Plot Dimensions & Area</h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InputField
                         label="Plot Area"
@@ -180,7 +180,7 @@ const LandProfile = () => {
             {/* 2. INFRASTRUCTURE & LEGAL */}
             <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-800">Infrastructure & Legal</h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex items-center gap-2">
                         <input
@@ -279,7 +279,7 @@ const LandProfile = () => {
             {/* 3. MEDIA & AMENITIES */}
             <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-800">Media & Amenities</h3>
-                
+
                 {/* Common Amenities */}
                 <AmenitiesSelect
                     label="Common Amenities"
@@ -301,8 +301,13 @@ const LandProfile = () => {
 
             <button
                 type="button"
-                onClick={() => console.log(land) ||
-                    dispatch(submitPropertyThunk())}
+                onClick={() => {
+                    console.log("Submitting Land...");
+                    dispatch(submitPropertyThunk("land"))
+                        .unwrap()
+                        .then((res) => console.log("Success:", res))
+                        .catch((err) => console.error("Error:", err));
+                }}
                 className="px-6 py-3 bg-green-600 text-white rounded-md cursor-pointer"
             >
                 Submit Property
