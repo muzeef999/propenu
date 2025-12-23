@@ -21,7 +21,7 @@ const AgriculturalCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ve
   const bgPriceColor = hexToRGBA("#27AE60", 0.1);
   const bgPriceColoricon = hexToRGBA("#27AE60", 0.4);
 
-  const img = p?.gallery?.[0]?.url ?? "/placeholder-property.jpg";
+  const img = p?.gallery?.[0]?.url ?? "/placeholder.jpg";
   const pricePerSqft =
     (p as any)?.pricePerSqft ??
     Math.round((p?.price ?? 0) / (p as any)?.superBuiltUpArea || 0);

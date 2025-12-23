@@ -1,4 +1,4 @@
-import { IFileRef } from "./sharedTypes";
+import { BaseSearchParams, IFileRef } from "./sharedTypes";
 
 export interface IAgricultural  {
 
@@ -19,3 +19,10 @@ export interface IAgricultural  {
   statePurchaseRestrictions?: string;
   agriculturalUseCertificate?: IFileRef | null;
 }
+
+
+export type AgriculturalSearchParams = BaseSearchParams & {
+  category: "Agricultural";
+  soilType?: string;
+};
+

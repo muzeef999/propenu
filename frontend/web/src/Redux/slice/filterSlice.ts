@@ -1,4 +1,6 @@
+import { FilterState } from "@/types/sharedTypes";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { set } from "zod";
 
 /* ---------------- Types ---------------- */
 
@@ -10,32 +12,7 @@ export type categoryOption =
   | "Land"
   | "Agricultural";
 
-interface FilterState {
-  /* -------- Core (DO NOT REMOVE) -------- */
-  listingType: ListingOption;
-  category: categoryOption;
-  searchText: string;
-
-  /* -------- Shared -------- */
-  minArea?: number;
-  maxArea?: number;
-
-  /* -------- Residential -------- */
-  bhk?: number;
-  bedrooms?: number;
-  bathrooms?: number;
-
-  /* -------- Commercial -------- */
-  commercialType?: string;
-  parking?: string;
-
-  /* -------- Land -------- */
-  facing?: string;
-  roadFacing?: string;
-
-  /* -------- Agricultural -------- */
-  soilType?: string;     // ✅ NEW
-}
+/* ---------------- State ---------------- */
 
 /* ---------------- Initial State ---------------- */
 
@@ -43,6 +20,10 @@ const initialState: FilterState = {
   listingType: "Buy",
   category: "Residential",
   searchText: "",
+
+  /* ✅ Budget defaults (5 Lac → 50 Cr) */
+  minBudget: 5,
+  maxBudget: 5000,
 };
 
 /* ---------------- Slice ---------------- */
@@ -51,7 +32,7 @@ const filterSlice = createSlice({
   name: "filters",
   initialState,
   reducers: {
-    /* -------- Core (existing) -------- */
+    /* -------- Core -------- */
 
     setListingType(state, action: PayloadAction<ListingOption>) {
       state.listingType = action.payload;
@@ -60,10 +41,11 @@ const filterSlice = createSlice({
     setCategory(state, action: PayloadAction<categoryOption>) {
       state.category = action.payload;
 
-      // 🔥 Reset category-specific filters ONLY
+      // 🔥 Reset category-specific filters
       state.bhk = undefined;
       state.bedrooms = undefined;
       state.bathrooms = undefined;
+      state.postedBy = undefined;
 
       state.commercialType = undefined;
       state.parking = undefined;
@@ -81,6 +63,13 @@ const filterSlice = createSlice({
       state.searchText = action.payload;
     },
 
+    /* -------- Budget -------- */
+
+    setBudget(state, action: PayloadAction<{ min: number; max: number }>) {
+      state.minBudget = action.payload.min;
+      state.maxBudget = action.payload.max;
+    },
+
     /* -------- Shared -------- */
 
     setMinArea(state, action: PayloadAction<number | undefined>) {
@@ -95,6 +84,10 @@ const filterSlice = createSlice({
 
     setBhk(state, action: PayloadAction<number | undefined>) {
       state.bhk = action.payload;
+    },
+
+    setPostedBy(state, action: PayloadAction<string | undefined>) {
+      state.postedBy = action.payload;
     },
 
     setBedrooms(state, action: PayloadAction<number | undefined>) {
@@ -114,6 +107,7 @@ const filterSlice = createSlice({
     setParking(state, action: PayloadAction<string | undefined>) {
       state.parking = action.payload;
     },
+    
 
     /* -------- Land -------- */
 
@@ -140,20 +134,22 @@ export const {
   setCategory,
   setSearchText,
 
+  setBudget,
+
   setMinArea,
   setMaxArea,
 
   setBhk,
   setBedrooms,
   setBathrooms,
-
+  setPostedBy,
   setCommercialType,
   setParking,
 
   setFacing,
   setRoadFacing,
 
-  setSoilType, // ✅ NEW
+  setSoilType,
 } = filterSlice.actions;
 
 export default filterSlice.reducer;

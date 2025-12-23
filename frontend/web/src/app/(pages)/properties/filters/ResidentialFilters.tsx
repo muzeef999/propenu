@@ -1,30 +1,222 @@
 "use client";
-import { useDispatch } from "react-redux";
-import { setBhk, setBedrooms } from "@/Redux/slice/filterSlice";
+
+import React, { useEffect, useState } from "react";
+import { Range } from "react-range";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/Redux/store";
+import { setBhk, setBudget, setPostedBy } from "@/Redux/slice/filterSlice";
+import FilterDropdown from "@/ui/FilterDropdown";
+import { BHKOption, PostedByOption } from "@/types/residential";
+
+/* -------------------- BUDGET CONSTANTS -------------------- */
+
+const BUDGET_MIN = 5; // 5 Lac
+const BUDGET_MAX = 5000; // 50 Cr (in Lac)
+const BUDGET_STEP = 5;
+
+const budgetOptions = [
+  5, 10, 20, 30, 50, 75, 100, 150, 200, 300, 400, 500, 750, 1000, 2000, 3000,
+  4000, 5000,
+];
+
+const formatBudget = (value: number) => {
+  if (value >= 100) return `₹${value / 100}${value === 5000 ? "+" : ""} Cr`;
+  return `₹${value} Lac`;
+};
+
+/* -------------------- COMPONENT -------------------- */
 
 const ResidentialFilters = () => {
   const dispatch = useDispatch();
 
+  const { bhk, minBudget, maxBudget, postedBy } = useSelector(
+    (state: RootState) => state.filters
+  );
+
+
+
+  /* -------------------- BHK -------------------- */
+
+  const bhkOptions: BHKOption[] = [
+    "1 BHK",
+    "2 BHK",
+    "3 BHK",
+    "4 BHK",
+    "5 BHK",
+    "6 BHK",
+    "6+ BHK",
+  ];
+
+  const getBhkNumber = (bhk: BHKOption): number =>
+    bhk === "6+ BHK" ? 6 : Number(bhk.split(" ")[0]);
+
+  const bhkLabel = bhk ? `${bhk}${bhk === 6 ? "+" : ""} BHK` : "BHK";
+
+  /* -------------------- BUDGET -------------------- */
+
+  const [values, setValues] = useState<[number, number]>([
+    minBudget,
+    maxBudget,
+  ]);
+
+  const budgetLabel =
+    minBudget === BUDGET_MIN && maxBudget === BUDGET_MAX
+      ? "Budget"
+      : `${formatBudget(minBudget)} - ${formatBudget(maxBudget)}`;
+
+  const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
+
   return (
     <div className="flex gap-4">
-      <select
-        onChange={(e) => dispatch(setBhk(Number(e.target.value)))}
-        className="border p-2 rounded"
-      >
-        <option value="">BHK</option>
-        <option value="1">1 BHK</option>
-        <option value="2">2 BHK</option>
-        <option value="3">3 BHK</option>
-      </select>
 
-      <select
-        onChange={(e) => dispatch(setBedrooms(Number(e.target.value)))}
-        className="border p-2 rounded"
-      >
-        <option value="">Bedrooms</option>
-        <option value="1">1</option>
-        <option value="2">2</option>
-      </select>
+      {/* ==================== Top Localities ==================== */}
+
+      <h1>Locality</h1>
+      
+      {/* ==================== BHK FILTER ==================== */}
+      <FilterDropdown
+        triggerLabel={
+          <span className="px-4 text-primary font-medium">{bhkLabel}</span>
+        }
+        width="w-86"
+        align="left"
+        openOnHover
+        renderContent={(close?: () => void) => (
+          <div>
+            <h4 className="text-sm font-semibold mb-2">BHK Type</h4>
+
+            <div className="flex gap-2 flex-wrap">
+              {bhkOptions.map((option) => {
+                const value = getBhkNumber(option);
+
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => {
+                      dispatch(setBhk(value));
+                      close?.();
+                    }}
+                    className={`px-2 py-1 rounded hover:bg-gray-100 ${
+                      bhk === value ? "font-semibold bg-gray-100" : ""
+                    }`}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      />
+
+      {/* ==================== BUDGET FILTER ==================== */}
+      <FilterDropdown
+        triggerLabel={
+          <span className="px-4 font-medium text-primary">{budgetLabel}</span>
+        }
+        width="w-[420px]"
+        align="left"
+        renderContent={(close?: () => void) => (
+          <div className="p-4 space-y-5">
+            {/* MIN / MAX SELECT */}
+            <div className="flex gap-3">
+              {/* MIN */}
+              <select
+                value={values[0]}
+                onChange={(e) => {
+                  const min = Number(e.target.value);
+                  setValues([min, Math.max(min, values[1])]);
+                }}
+                className="w-1/2 border rounded px-3 py-2 text-sm"
+              >
+                {budgetOptions
+                  .filter((v) => v <= 400)
+                  .map((v) => (
+                    <option key={v} value={v}>
+                      {formatBudget(v)}
+                    </option>
+                  ))}
+              </select>
+
+              {/* MAX */}
+              <select
+                value={values[1]}
+                onChange={(e) => {
+                  const max = Number(e.target.value);
+                  setValues([Math.min(values[0], max), max]);
+                }}
+                className="w-1/2 border rounded px-3 py-2 text-sm"
+              >
+                {budgetOptions.map((v) => (
+                  <option key={v} value={v}>
+                    {formatBudget(v)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* SLIDER */}
+            <Range
+              values={values}
+              step={BUDGET_STEP}
+              min={BUDGET_MIN}
+              max={BUDGET_MAX}
+              onChange={(vals) => setValues(vals as [number, number])}
+              renderTrack={({ props, children }) => (
+                <div {...props} className="h-1 w-full bg-gray-200 rounded">
+                  {children}
+                </div>
+              )}
+              renderThumb={({ props }) => (
+                <div
+                  {...props}
+                  className="h-5 w-5 bg-white border-2 border-primary rounded-full shadow"
+                />
+              )}
+            />
+
+            {/* SCALE */}
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>{formatBudget(BUDGET_MIN)}</span>
+              <span>{formatBudget(BUDGET_MAX)}</span>
+            </div>
+          </div>
+        )}
+      />
+
+      {/* ==================== Posted By ==================== */}
+      <FilterDropdown
+        triggerLabel={
+          <span className="px-4 font-medium text-primary">Posted By</span>
+        }
+        width="w-56"
+        align="left"
+        openOnHover
+        renderContent={(close?: () => void) => (
+          <div>
+            <h4 className="text-sm font-semibold mb-2">Posted By</h4>
+            <div className="flex flex-col gap-2">
+              {postedByOptions.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => {
+                    dispatch(setPostedBy(option));
+                    close?.();
+                  }}
+                  className={`px-2 py-1 rounded hover:bg-gray-100 ${
+                    postedBy === option ? "font-semibold bg-gray-100" : ""
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      />
+
     </div>
   );
 };

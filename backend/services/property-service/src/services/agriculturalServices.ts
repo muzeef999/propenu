@@ -4,7 +4,6 @@ import { randomUUID } from "crypto";
 import s3 from "../config/s3";
 import dotenv from "dotenv";
 import Agricultural from "../models/agriculturalModel";
-import { buildCommonMatch } from "../utils/filterBuilder";
 import { SearchFilters } from "../types/searchResultItem";
 import User from "../models/userModel";
 import Role from "../models/roleModel";

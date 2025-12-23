@@ -4,7 +4,6 @@ import s3 from "../config/s3";
 import dotenv from "dotenv";
 import Commercial from "../models/commercialModel";
 import { SearchFilters } from "../types/searchResultItem";
-import { buildCommonMatch } from "../utils/filterBuilder";
 import User from "../models/userModel";
 import Role from "../models/roleModel";
 import Residential from "../models/residentialModel";
@@ -35,7 +34,6 @@ function normalizePayload(obj: any) {
 async function resolveListingSourceFromUser(
   createdBy?: string | mongoose.Types.ObjectId
 ) {
-
   if (!createdBy) {
     return undefined;
   }
@@ -76,7 +74,6 @@ async function generateUniqueSlug(
   }
   return slug;
 }
-
 
 async function deleteS3ObjectIfExists(key?: string) {
   if (!key) return;
@@ -149,8 +146,6 @@ async function mapAndUploadGallery({
 
   return summary;
 }
-
-
 
 /* -------------------- Service API -------------------- */
 
@@ -275,8 +270,6 @@ export const CommercialService = {
         filename: firstOcc.originalname,
         mimetype: firstOcc.mimetype,
       };
-
-      
     }
 
     const createdDoc = await Commercial.create(toCreate);
@@ -600,29 +593,29 @@ export const CommercialService = {
 
   model: Commercial,
 
-  getPipeline(filters:any) {
+  getPipeline(filters: any) {
     const match = extendCommercialFilters(filters, {});
-  return [
-    { $match: match },
-    {
-      $project: {
-        _id: 0,
-        id: "$_id",
-        type: { $literal: "Commercial" },
-        title: 1,
-        slug: 1,
-        gallery: 1,
-        propertySubType: 1,
-        superBuiltUpArea: 1,
-        furnishedStatus: 1,
-        floorNumber: 1,
-        totalFloors: 1,
-        price: 1,
-        location: 1,
-        createdAt: 1,
+    return [
+      { $match: match },
+      {
+        $project: {
+          _id: 0,
+          id: "$_id",
+          type: { $literal: "Commercial" },
+          title: 1,
+          slug: 1,
+          gallery: 1,
+          propertySubType: 1,
+          superBuiltUpArea: 1,
+          furnishedStatus: 1,
+          floorNumber: 1,
+          totalFloors: 1,
+          price: 1,
+          location: 1,
+          createdAt: 1,
+        },
       },
-    },
-  ];
+    ];
   },
 };
 

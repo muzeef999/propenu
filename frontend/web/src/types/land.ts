@@ -1,4 +1,4 @@
-import { IFileRef } from "./sharedTypes";
+import { BaseSearchParams, IFileRef } from "./sharedTypes";
 
 export type GalleryItem = {
   url: string;
@@ -42,3 +42,10 @@ export interface ILand {
   listingSource?: string;
 
 }
+
+
+
+export type LandSearchParams = BaseSearchParams & {
+  category: "Land";
+  facing?: string;
+};

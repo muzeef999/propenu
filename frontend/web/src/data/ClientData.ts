@@ -1,6 +1,7 @@
 // services/property.service.ts
 
 import { ApiResponse, RequestOtpPayload, VerifyOtpPayload, VerifyOtpResponse } from "@/types/property";
+import { SearchFilterParams } from "@/types/sharedTypes";
 import axiosInstance from "@/utilies/axiosInstance";
 import Cookies from "js-cookie";
 
@@ -8,14 +9,10 @@ import Cookies from "js-cookie";
 const url = process.env.NEXT_PUBLIC_API_URL
 
 
-export const searchFilter = async ({category, search,bhk,}: {category?: "Residential" | "Commercial" | "Land" | "Agricultural"; search?: string; bhk?: number;}) => {
+export const searchFilter = async (params: SearchFilterParams) => {
   const res = await axiosInstance.get<ApiResponse>(`${url}/api/properties/search`,
     {
-      params: {
-        category,
-        search,
-        bhk,
-      },
+      params,
     }
   );
 

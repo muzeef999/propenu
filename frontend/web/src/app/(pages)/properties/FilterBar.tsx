@@ -66,7 +66,7 @@ const FilterBar: React.FC = () => {
             <select
               value={category}
               onChange={(e) => dispatch(setCategory(e.target.value as categoryOption))}
-              className="w-full max-w-xs rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full max-w-lg rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >
               {categoryOptions.map((type) => (
                 <option key={type} value={type}>

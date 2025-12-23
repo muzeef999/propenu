@@ -30,7 +30,7 @@ const LandSchema = new Schema<ILand>(
     encumbranceCertificateFile: FileRefSchema,
     soilTestReport: FileRefSchema,
     surveyNumber: String,
-    layoutType: String,
+    layoutType: String, 
     dimensions: {
     length: { type: Number, required: true },
     width: { type: Number, required: true },

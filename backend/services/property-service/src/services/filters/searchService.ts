@@ -3,7 +3,7 @@ import CommercialService from "../commercialService";
 import LandService from "../landService";
 import ResidentialPropertyService from "../residentialServices";
 
-const CATEGORY_SERVICE_MAP: Record<string, any> = {
+export const CATEGORY_SERVICE_MAP: Record<string, any> = {
   Residential: ResidentialPropertyService,
   Commercial: CommercialService,
   Land: LandService,

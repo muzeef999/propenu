@@ -4,7 +4,6 @@ import s3 from "../config/s3";
 import dotenv from "dotenv";
 import LandPlot from "../models/landModel";
 import { SearchFilters } from "../types/searchResultItem";
-import { buildCommonMatch } from "../utils/filterBuilder";
 import { uploadFile } from "../utils/uploadFile";
 import { uploadMedia } from "../middlewares/multer";
 import User from "../models/userModel";

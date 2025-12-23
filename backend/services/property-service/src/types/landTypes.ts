@@ -13,10 +13,6 @@ export const LAND_PROPERTY_TYPES = [
 export type LandPropertyType = (typeof LAND_PROPERTY_TYPES)[number];
 
 export const LAND_PROPERTY_SUBTYPES = [
-  "east-facing",
-  "west-facing",
-  "north-facing",
-  "south-facing",
 
   "gated-community",
   "non-gated",

@@ -19,7 +19,7 @@ export const LandCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
 
   const bgPriceColoricon = hexToRGBA("#27AE60", 0.4);
 
-  const img = p?.gallery?.[0]?.url ?? "/placeholder-property.jpg";
+  const img = p?.gallery?.[0]?.url ?? "/placeholder.jpg";
   const area = (p as any)?.superBuiltUpArea;
   const pricePerSqft =
     (p as any)?.pricePerSqft ??

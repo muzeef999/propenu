@@ -1,4 +1,4 @@
-import { IFileRef } from "./sharedTypes";
+import { BaseSearchParams, IFileRef } from "./sharedTypes";
 
 
 export type GalleryItem = {
@@ -87,3 +87,10 @@ export interface ICommercial {
   specifications: SpecificationItem[],
   createdBy?: { name?: string; contact?: string; email?: string };
 }
+
+
+
+export type CommercialSearchParams = BaseSearchParams & {
+  category: "Commercial";
+  commercialType?: string;
+};

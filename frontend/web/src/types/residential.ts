@@ -1,9 +1,11 @@
+import { BaseSearchParams } from "./sharedTypes";
 
 
 export type AmenitiesItems = {
    key:string,
    title:string
 }
+
 
 
 export type GalleryItem = {
@@ -61,3 +63,31 @@ export interface IAmenity {
   title: string;        // UI label
   description?: string; // optional (future use)
 }
+
+
+
+
+//search 
+
+
+
+export type BHKOption =
+  | "1 BHK"
+  | "2 BHK"
+  | "3 BHK"
+  | "4 BHK"
+  | "5 BHK"
+  | "6 BHK"
+  | "6+ BHK";
+
+
+  export type PostedByOption =
+  | "Owners"
+  | "Agents"
+  | "Builders";
+
+
+  export type ResidentialSearchParams = BaseSearchParams & {
+  category: "Residential";
+  bhk?: number;
+};
