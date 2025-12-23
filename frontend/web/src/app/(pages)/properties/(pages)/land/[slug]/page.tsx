@@ -33,8 +33,7 @@ export default async function Page({ params }: PageProps) {
   if (!project) {
     notFound();
   }
-  console.log("Project data:", project);
-
+  console.log("Project Data:", project);
   const priceLabel = formatINR(project?.price);
 
   return (
@@ -72,13 +71,13 @@ export default async function Page({ params }: PageProps) {
                     </div>
 
                     <div>
-                      <p className="text-gray-500 font-semibold">Electricity Connection</p>
-                      <p>{project?.boundryWall}</p>
+                      <p className="text-gray-500 font-semibold">Water Connection</p>
+                      <p>{project?.waterConnection ? "Available" : "Unavailable"}</p>
                     </div>
 
                     <div>
                       <p className="text-[#ed6115] font-semibold">Sale Type</p>
-                      <p>{project?.saleType}</p>
+                      <p>{project?.listingType}</p>
                     </div>
 
                     <div>
@@ -87,8 +86,8 @@ export default async function Page({ params }: PageProps) {
                     </div>
 
                     <div>
-                      <p className="text-gray-500 font-semibold">Frunishing Status</p>
-                      <p>{project?.furnishing}</p>
+                      <p className="text-gray-500 font-semibold">Property Type</p>
+                      <p>{project?.propertyType}</p>
                     </div>
 
                     <div>
@@ -105,7 +104,7 @@ export default async function Page({ params }: PageProps) {
                     </span>
                     <span className="text-gray-500 text-md font-medium flex items-center gap-2">
                       <FaRoad size={18} />
-                      {project.roadWidthFt} Road ft 
+                      {project.roadWidthFt} ft
                     </span>
                     <span className="text-gray-500 text-md font-medium flex items-center gap-2">
                       <BiShapeSquare size={18} />
@@ -201,13 +200,13 @@ export default async function Page({ params }: PageProps) {
                 </h2>
                 {project.amenities && project.amenities.length > 0 ? (
                   <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 sm:grid-cols-3">
-                    {project.amenities.map((i) => (
+                    {project.amenities.map((amenity: any, index) => (
                       <div
-                        key={i.key}
+                        key={amenity.key || index}
                         className="flex items-center gap-2 rounded-md border border-gray-100 px-2 py-1"
                       >
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                        <span>{i.title}</span>
+                        <span>{amenity.title}</span>
                       </div>
                     ))}
                   </div>

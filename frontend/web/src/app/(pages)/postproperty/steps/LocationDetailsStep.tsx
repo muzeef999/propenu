@@ -1,5 +1,17 @@
+"use client";
+
 import NearbyLocationSearch from "@/components/location/NearbyLocationSearch";
 import dynamic from "next/dynamic";
+import { useDispatch, useSelector } from "react-redux";
+import { useState } from "react";
+
+import { setBaseField, nextStep } from "@/Redux/slice/postPropertySlice";
+import { validateLocationDetails } from "@/zod/locationDetailsZod";
+import InputField from "@/ui/InputFiled";
+import TextArea from "@/ui/TextArae";
+
+import { search } from "india-pincode-search";
+
 const OpenStreetPinMap = dynamic(
   () => import("@/components/location/OpenStreetPinMap"),
   {
@@ -12,94 +24,144 @@ const OpenStreetPinMap = dynamic(
   }
 );
 
-import { setBaseField } from "@/Redux/slice/postPropertySlice";
-import InputField from "@/ui/InputFiled";
-import TextArea from "@/ui/TextArae";
-import { useDispatch, useSelector } from "react-redux";
-import { validateLocationDetails } from "@/zod/locationDetailsZod";
-import { nextStep } from "@/Redux/slice/postPropertySlice";
+type PincodeResult = {
+  city: string;
+  district: string;
+  office: string;
+  pincode: string;
+  state: string;
+  village: string;
+};
 
 const LocationDetailsStep = () => {
   const { propertyType, base } = useSelector(
     (state: any) => state.postProperty
   );
+
   const dispatch = useDispatch();
+  const [showErrors, setShowErrors] = useState(false);
 
   const validationResult = validateLocationDetails(base);
-
   const isFormValid = validationResult.success;
 
-  const fieldErrors = !validationResult.success
-    ? validationResult.error.flatten().fieldErrors
-    : {};
+  const fieldErrors =
+    showErrors && !validationResult.success
+      ? validationResult.error.flatten().fieldErrors
+      : {};
+
+  const getCustomError = (key: string, msg: string) => {
+    const error = (fieldErrors as any)?.[key]?.[0];
+    if (!error) return undefined;
+    if (error.includes("expected string") || error === "Required") {
+      return msg;
+    }
+    return error;
+  };
+
+  // ✅ Handle pincode lookup safely
+  const handlePincodeChange = (value: string) => {
+    dispatch(setBaseField({ key: "pincode", value }));
+
+    if (value.length !== 6) return;
+
+    const data = search(value) as PincodeResult[];
+
+    if (!data || data.length === 0) return;
+
+    const pin = data[0];
+
+    dispatch(setBaseField({ key: "state", value: pin.state }));
+    dispatch(setBaseField({ key: "city", value: pin.city }));
+    dispatch(setBaseField({ key: "locality", value: pin.village }));
+  };
+
   return (
     <div className="space-y-4">
+      {/* Address */}
       <TextArea
-        label="Property address"
+        label="Property Line"
         value={base.address || ""}
-        placeholder="e.g. Flat 302, Green Residency, Near Whitefield Metro Station."
+        placeholder="e.g. Flat 302, Green Residency, Near Metro Station"
         maxLength={500}
-        onChange={(value) => dispatch(setBaseField({ key: "address", value }))}
-        error={fieldErrors?.address?.[0]}
+        onChange={(value) =>
+          dispatch(setBaseField({ key: "address", value }))
+        }
+        error={getCustomError("address", "Enter property address")}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-[60%_1fr] gap-4 space-y-4">
+        <InputField
+          label="Appartment / Society"
+          value={base.Appartment || ""}
+          placeholder="Enter building or Society Name"
+          onChange={(value) =>
+            dispatch(setBaseField({ key: "Appartment", value }))
+          }
+          error={getCustomError("Appartment", "Enter Appartment / Society name")}
+        />
+
+        <InputField
+          label="Pincode"
+          value={base.pincode || ""}
+          placeholder="e.g. 560001"
+          onChange={(value) => handlePincodeChange(value)}
+          error={getCustomError("pincode", "Enter valid pincode")}
+        />
+      </div>
+
+      {/* locality, state, city*/}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 space-y-4 mt-2">
+        <InputField
+          label="Locality"
+          value={base.locality || ""}
+          placeholder="Enter locality"
+          onChange={(value) =>
+            dispatch(setBaseField({ key: "locality", value }))
+          }
+          error={getCustomError("locality", "Enter locality")}
+        />
+
         <InputField
           label="City"
           value={base.city || ""}
-          placeholder="Hyderabad"
+          placeholder="Enter city"
           onChange={(value) => dispatch(setBaseField({ key: "city", value }))}
-          error={fieldErrors?.city?.[0]}
+          error={getCustomError("city", "Enter city")}
         />
-
         <InputField
-          label="state"
+          label="State"
           value={base.state || ""}
-          placeholder="telangana"
+          placeholder="Enter state"
           onChange={(value) => dispatch(setBaseField({ key: "state", value }))}
-          error={fieldErrors?.state?.[0]}
-        />
-
-        <InputField
-          label="pincode"
-          value={base.pincode || ""}
-          placeholder="Pincode"
-          onChange={(value) =>
-            dispatch(setBaseField({ key: "pincode", value }))
-          }
-          error={fieldErrors?.pincode?.[0]}
+          error={getCustomError("state", "Enter state")}
         />
       </div>
 
+      {/* Map */}
       <div>
         <OpenStreetPinMap />
-        {/* Map helper / error text */}
-        {fieldErrors.location ? (
-          <p className="text-xs text-red-500">
-            Please pin the property location on the map
-          </p>
-        ) : (
-          <p className="text-xs text-gray-500">
-            Click on the map to mark the exact location of your property.
-          </p>
-        )}
+        <p className="text-xs text-gray-500">
+          Click on the map to mark the exact location of your property.
+        </p>
       </div>
 
-      <div>
-        <NearbyLocationSearch />
-        {fieldErrors.nearbyPlaces?.[0] && (
-          <p className="text-xs text-red-500">{fieldErrors.nearbyPlaces[0]}</p>
-        )}
-      </div>
+      {/* Nearby locations */}
+      <NearbyLocationSearch />
 
+      {/* Continue */}
       <button
         type="button"
-        disabled={!isFormValid}
         onClick={() => {
-          console.log("LocationDetailsStep Data:", { base, propertyType });
-          dispatch(nextStep());
+          setShowErrors(true);
+          if (isFormValid) {
+            console.log("LocationDetailsStep Data:", {
+              base,
+              propertyType,
+            });
+            dispatch(nextStep());
+          }
         }}
-        className="px-4 py-2 btn-primary text-white rounded disabled:opacity-50"
+        className="px-4 py-2 btn-primary text-white rounded"
       >
         Continue
       </button>

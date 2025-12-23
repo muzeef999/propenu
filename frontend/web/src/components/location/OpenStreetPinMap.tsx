@@ -47,7 +47,7 @@ const DraggableMarker = () => {
 const OpenStreetPinMap = () => {
   return (
     <div className="space-y-2">
-      <label className="inline-block text-sm font-normal  m-0 p-1 bg-gray-400 text-white rounded-t-sm">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
         Pin property location
       </label>
       <div className="h-52 rounded-b-sm rounded-r-sm overflow-hidden border border-gray-500">

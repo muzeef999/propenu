@@ -11,14 +11,15 @@ import { getFiles as getFileStoreFiles, clearFiles as clearFileStoreFiles } from
 
 export const submitPropertyThunk = createAsyncThunk<
   any,                // return type (API response)
-  void,               // argument type (no args)
+  string | undefined, // argument type (optional property type)
   { state: RootState } // 👈 THIS FIXES getState()
 >(
   "postProperty/submit",
-  async (_, { getState, rejectWithValue }) => {
+  async (argPropertyType, { getState, rejectWithValue }) => {
     try {
       const state = getState().postProperty;
-      const { base, propertyType } = state;
+      const { base } = state;
+      const propertyType = argPropertyType || state.propertyType;
 
       if (!propertyType) {
         throw new Error("Property type not selected");
@@ -64,21 +65,15 @@ export const submitPropertyThunk = createAsyncThunk<
         listingSource: user.roleName || 'user', // 'user', 'agent', 'builder', 'admin'
       };
 
-      // galleryFiles in Redux contains only metadata (filename). Actual File objects
-      // are stored in-memory in fileStore (to avoid putting File into Redux state).
+
       const galleryMeta = (payload.galleryFiles || []) as any[];
       const actualFiles = getFileStoreFiles("postProperty");
 
-      // If there are actual File objects to upload, do NOT send filename-only
-      // metadata (which lacks `url`) to the backend. The backend will create
-      // gallery entries for uploaded files. Only merge gallery items that
-      // already include a `url` (i.e., previously uploaded images).
       if (Array.isArray(galleryMeta) && galleryMeta.length > 0) {
         const existingGallery = Array.isArray(payload.gallery) ? payload.gallery : [];
         const urlEntries = galleryMeta.filter((g) => g && (g.url || g.filename && g.url));
 
-        // If there are actual files to upload, prefer sending files and any
-        // pre-existing gallery entries that already have a url. Skip filename-only metadata.
+
         if (Array.isArray(actualFiles) && actualFiles.length > 0) {
           if (urlEntries.length > 0) {
             payload.gallery = [...existingGallery, ...urlEntries];
