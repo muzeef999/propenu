@@ -31,7 +31,6 @@ interface PostPropertyState {
 
 const initialState: PostPropertyState = {
   currentStep: 1,
-  currentStep: 2,
   propertyType: null,
   base: {
     nearbyPlaces: [],
