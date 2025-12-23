@@ -7,6 +7,8 @@ import { RootState } from "@/Redux/store";
 import { setBhk, setBudget, setPostedBy } from "@/Redux/slice/filterSlice";
 import FilterDropdown from "@/ui/FilterDropdown";
 import { BHKOption, PostedByOption } from "@/types/residential";
+import { buildSearchParams } from "./buildSearchParams";
+import { searchFilter } from "@/data/ClientData";
 
 /* -------------------- BUDGET CONSTANTS -------------------- */
 
@@ -29,11 +31,9 @@ const formatBudget = (value: number) => {
 const ResidentialFilters = () => {
   const dispatch = useDispatch();
 
-  const { bhk, minBudget, maxBudget, postedBy } = useSelector(
-    (state: RootState) => state.filters
-  );
+  const filters = useSelector((state: RootState) => state.filters);
 
-
+  const { bhk, minBudget, maxBudget, postedBy } = filters;
 
   /* -------------------- BHK -------------------- */
 
@@ -66,13 +66,17 @@ const ResidentialFilters = () => {
 
   const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
 
+  useEffect(() => {
+    const params = buildSearchParams(filters);
+    searchFilter(params);
+  }, [filters]);
+
   return (
     <div className="flex gap-4">
-
       {/* ==================== Top Localities ==================== */}
 
       <h1>Locality</h1>
-      
+
       {/* ==================== BHK FILTER ==================== */}
       <FilterDropdown
         triggerLabel={
@@ -216,7 +220,6 @@ const ResidentialFilters = () => {
           </div>
         )}
       />
-
     </div>
   );
 };

@@ -1,7 +1,8 @@
+import { categoryOption } from "@/types";
 import { FilterState } from "@/types/sharedTypes";
 
 export type SearchFilterParams = {
-  category: string;
+  category: categoryOption;
   listingType: string;
   search?: string;
   minBudget?: number;
@@ -29,7 +30,6 @@ export function buildSearchParams(filters: FilterState): SearchFilterParams {
 
   // 🏠 Residential only
   if (filters.category === "Residential") {
-    console.log("filter testing 11", filters.bhk);
 
     if (filters.bhk !== undefined) {
       params.bhk = filters.bhk;
