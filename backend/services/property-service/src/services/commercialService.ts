@@ -9,6 +9,7 @@ import User from "../models/userModel";
 import Role from "../models/roleModel";
 import Residential from "../models/residentialModel";
 import { uploadFile } from "../utils/uploadFile";
+import { extendCommercialFilters } from "./filters/commercialFilters";
 dotenv.config({ quiet: true });
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
@@ -149,33 +150,7 @@ async function mapAndUploadGallery({
   return summary;
 }
 
-/* -------------------- Search Implement -------------------- */
 
-export function getCommercialPipeline(filters: SearchFilters) {
-  const match = buildCommonMatch(filters);
-
-  return [
-    { $match: match },
-    {
-      $project: {
-        _id: 0,
-        id: "$_id",
-        type: { $literal: "Commercial" },
-        title: 1,
-        slug: 1,
-        gallery: 1,
-        propertySubType: 1,
-        superBuiltUpArea: 1,
-        furnishedStatus: 1,
-        floorNumber: 1,
-        totalFloors: 1,
-        price: 1,
-        location: 1,
-        createdAt: 1,
-      },
-    },
-  ];
-}
 
 /* -------------------- Service API -------------------- */
 
@@ -624,7 +599,31 @@ export const CommercialService = {
   },
 
   model: Commercial,
-  getPipeline: getCommercialPipeline,
+
+  getPipeline(filters:any) {
+    const match = extendCommercialFilters(filters, {});
+  return [
+    { $match: match },
+    {
+      $project: {
+        _id: 0,
+        id: "$_id",
+        type: { $literal: "Commercial" },
+        title: 1,
+        slug: 1,
+        gallery: 1,
+        propertySubType: 1,
+        superBuiltUpArea: 1,
+        furnishedStatus: 1,
+        floorNumber: 1,
+        totalFloors: 1,
+        price: 1,
+        location: 1,
+        createdAt: 1,
+      },
+    },
+  ];
+  },
 };
 
 export default CommercialService;

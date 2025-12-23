@@ -19,7 +19,7 @@ const bgPriceColoricon = hexToRGBA("#27AE60", 0.4);
 
 const CommercialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, vertical = false }) => {
 
-  const img = p?.gallery?.[0]?.url ?? "/placeholder-property.jpg";
+  const img = p?.gallery?.[0]?.url ?? "/placeholder.jpg";
 
   const pricePerSqft =
     (p as any)?.pricePerSqft ??

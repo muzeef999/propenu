@@ -7,6 +7,9 @@ type PropertyType =
   | "agricultural"
   | null;
 
+
+  
+
 interface SetFieldPayload {
   key: string;
   value: any;
@@ -27,6 +30,7 @@ interface PostPropertyState {
 }
 
 const initialState: PostPropertyState = {
+  currentStep: 1,
   currentStep: 2,
   propertyType: null,
   base: {

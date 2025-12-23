@@ -7,19 +7,20 @@ import { IoIosSearch } from "react-icons/io";
 
 import {
   setListingType,
-  setPropertyType,
+  setCategory,
   setSearchText,
   ListingOption,
-  PropertyTypeOption,
+  categoryOption,
 } from "@/Redux/slice/filterSlice";
 import { useDispatch } from "react-redux";
 import { useAppSelector } from "@/Redux/store";
+import CategoryFilters from "./CategoryFilters";
 
 const FilterBar: React.FC = () => {
   const bgColor = hexToRGBA("#27AE60", 0.1); 
 
   const listingOptions: ListingOption[] = ["Buy", "Rent", "Lease"];
-  const propertyTypeOptions: PropertyTypeOption[] = [
+  const categoryOptions: categoryOption[] = [
     "Residential",
     "Commercial",
     "Land",
@@ -27,7 +28,7 @@ const FilterBar: React.FC = () => {
   ];
 
   const dispatch = useDispatch();
-  const { listingType, propertyType, searchText } = useAppSelector((s) => s.filters);
+  const { listingType, category, searchText } = useAppSelector((s) => s.filters);
 
   return (
     <div className="w-full h-[60px] flex items-center" style={{ backgroundColor: bgColor }}>
@@ -63,11 +64,11 @@ const FilterBar: React.FC = () => {
 
           <div>
             <select
-              value={propertyType}
-              onChange={(e) => dispatch(setPropertyType(e.target.value as PropertyTypeOption))}
+              value={category}
+              onChange={(e) => dispatch(setCategory(e.target.value as categoryOption))}
               className="w-full max-w-xs rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >
-              {propertyTypeOptions.map((type) => (
+              {categoryOptions.map((type) => (
                 <option key={type} value={type}>
                   {type}
                 </option>
@@ -86,10 +87,9 @@ const FilterBar: React.FC = () => {
             />
           </div>
         </div>
-
-        <div>Top Locations</div>
-        <div>posted {listingType}</div>
-        <div>Budget</div>
+          <div>
+             <CategoryFilters />
+          </div>
       </div>
     </div>
   );

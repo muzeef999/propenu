@@ -11,7 +11,6 @@ import { IBaseListing, TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 const AgriculturalSchema = new Schema<IAgricultural>(
   {
     ...BaseFields,
-
     boundaryWall: Boolean,
     areaUnit: String,
     landShape: String,

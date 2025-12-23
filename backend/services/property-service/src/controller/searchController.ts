@@ -12,10 +12,9 @@ const streamSearchHandler: RequestHandler = createStreamingHandler(
     if (process.env.NODE_ENV !== "production") {
       console.log("DEBUG streamSearchHandler -> received filters param:", JSON.stringify(filters, null, 2));
       console.log("DEBUG streamSearchHandler -> using actualFilters:", JSON.stringify(actualFilters, null, 2));
-      console.log("DEBUG streamSearchHandler -> batchSize:", batchSize);
     }
 
-    return buildSearchCursor(actualFilters as any, batchSize);
+    return buildSearchCursor(actualFilters as any);
   },
   {
     batchSize: 100,

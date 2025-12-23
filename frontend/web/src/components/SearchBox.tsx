@@ -1,12 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useCity } from "@/hooks/useCity";
-import { ListingOption, LocationItem, PropertyTypeOption } from "@/types";
+import { ListingOption, LocationItem, categoryOption } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 import heroBanner from "@/asserts/heroBanner.png";
 import FilterDropdown from "@/ui/FilterDropdown";
-import { setListingType, setPropertyType } from "@/Redux/slice/filterSlice";
+import { setCategory, setListingType,  } from "@/Redux/slice/filterSlice";
 import { useDispatch } from "react-redux";
 import { useAppSelector } from "@/Redux/store";
 import { CiSearch } from "react-icons/ci";
@@ -25,11 +25,11 @@ const SearchBox = () => {
   const [results, setResults] = useState<LocationItem[]>([]);
   const { setCity } = useCity();
 
-  const { listingType, propertyType, searchText } = useAppSelector(
+  const { listingType, category, searchText } = useAppSelector(
     (s) => s.filters
   );
 
-  const propertyTypeOptions: PropertyTypeOption[] = [
+  const categoryOptions: categoryOption[] = [
     "Residential",
     "Commercial",
     "Land",
@@ -94,13 +94,13 @@ const SearchBox = () => {
             </div>
 
             <select
-              value={propertyType}
+              value={category}
               onChange={(e) =>
-                dispatch(setPropertyType(e.target.value as PropertyTypeOption))
+                dispatch(setCategory(e.target.value as categoryOption))
               }
               className="rounded-lg focus:ring-2  focus:outline-none"
             >
-              {propertyTypeOptions.map((type) => (
+              {categoryOptions.map((type) => (
                 <option key={type} value={type}>
                   {type}
                 </option>
