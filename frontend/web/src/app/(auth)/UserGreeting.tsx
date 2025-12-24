@@ -13,11 +13,11 @@ interface UserGreetingProps {
 }
 
 const GreetingOptions = [
-  { label: "My Profile", link: "/profile" },
   { label: "My Properties", link: "/my-properties" },
-  { label: "Shortlisted Properties", link: "/shortlisted" },
-  { label: "Contacted Properties", link: "/contacted" },
-  { label: "Manage Subscription", link: "/subscription" },
+  { label: "Shortlisted Properties", link: "/shortlisted-properties" },
+  { label: "Contacted Properties", link: "/contacted-properties" },
+  { label: "Manage Subscription", link: "/membership" },
+  { label: "Account & Settings", link: "/settings" },
   { label: "Logout", action: "logout" },
 ];
 
