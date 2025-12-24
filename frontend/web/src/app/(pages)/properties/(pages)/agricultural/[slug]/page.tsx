@@ -33,7 +33,7 @@ export default async function Page({ params }: PageProps) {
   if (!project) {
     notFound();
   }
-  const priceLabel = formatINR(project.price);
+  const priceLabel = formatINR(project?.price);
   console.log("Agricultural project data:", project);
 
 

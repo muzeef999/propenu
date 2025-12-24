@@ -18,7 +18,7 @@ interface Props {
 
 const PopularOwnerPropertiesClient = ({ items = [] }: Props) => {
   const sliderRef = useRef<HTMLDivElement | null>(null);
-  const { city } = useCity();
+  const { selectedCity } = useCity();
   const scrollBy = (dir: "left" | "right") => {
     const el = sliderRef.current;
     if (!el) return;
@@ -34,7 +34,7 @@ const PopularOwnerPropertiesClient = ({ items = [] }: Props) => {
           <div className="headingSideBar">
             <h1 className="text-2xl font-bold">Popular Owner Properties</h1>
             <p className="headingDesc">
-              Building excellence in {city?.name ?? "Hyderabad"}
+              Building excellence in {selectedCity?.city ?? "Hyderabad"}
             </p>
           </div>
         </div>

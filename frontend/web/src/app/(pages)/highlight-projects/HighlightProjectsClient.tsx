@@ -13,7 +13,7 @@ interface Props {
 
 export default function HighlightProjectsClient({ items = [] }: Props) {
     const sliderRef = useRef<HTMLDivElement | null>(null);
-    const { city } = useCity();
+    const { selectedCity } = useCity();
 
     const scrollLeft = () =>
         sliderRef.current?.scrollBy({

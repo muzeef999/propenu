@@ -15,7 +15,7 @@ interface Props {
 export default function FeaturedProjectsClient({ items = [] }: Props) {
   const sliderRef = useRef<HTMLDivElement | null>(null);
 
-  const { city } = useCity();
+  const { selectedCity } = useCity();
 
   const scrollLeft = () =>
     sliderRef.current?.scrollBy({
@@ -37,7 +37,7 @@ export default function FeaturedProjectsClient({ items = [] }: Props) {
         <div className="headingSideBar">
           <h1 className="text-2xl font-bold">Prime Properties</h1>
           <p className="headingDesc">
-            Exceptional  properties {city?.name ?? "Hyderabad"}
+            Exceptional  properties {selectedCity?.city ?? "Hyderabad"}
           </p>
         </div>
       </div>
