@@ -333,3 +333,14 @@ export type SearchFilters = {
   skip?: number;
   options?: any;
 };
+
+
+
+type RESFilterKey =
+  | "furnishing"
+  | "amenities"
+  | "photos"
+  | "facing"
+  | "floor"
+  | "bathroom"
+  | "localities";
