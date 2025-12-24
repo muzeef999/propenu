@@ -4,6 +4,12 @@ import React from 'react';
 import { MdOutlineCameraAlt, MdOutlineVerified } from "react-icons/md";
 import { HiOutlinePencilAlt } from "react-icons/hi";
 
+type InfoFieldProps = {
+  label: string;
+  value: string | number;
+};
+
+
 const SettingsPage = () => {
   const user = {
     name: "Narahari Sharma",
@@ -98,7 +104,7 @@ const SettingsPage = () => {
   );
 };
 
-const InfoField = ({ label, value }) => (
+const InfoField = ({ label, value }:InfoFieldProps) => (
   <div className="flex flex-col gap-1">
     <p className="text-[12px] tracking-wider text-gray-400 font-normal">{label}</p>
     <p className="text-gray-800 font-medium text-sm">{value}</p>
