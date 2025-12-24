@@ -13,6 +13,7 @@ import { UpdateFeaturePropertySchema } from "../zod/validation";
 import { extendResidentialFilters } from "./filters/residentialFilters";
 import { ResidentialQuery } from "../types/filterTypes";
 import { Request } from "express";
+import { generateUniqueSlug } from "../utils/generateUniqueSlug";
 
 type RequestWithResidentialQuery = Request<
   {},               // req.params
@@ -81,20 +82,7 @@ function normalizePayload(obj: any) {
   return obj;
 }
 
-async function generateUniqueSlug(
-  desiredTitleOrSlug: string,
-  excludeId?: string
-) {
-  const slug = slugifyTitle(desiredTitleOrSlug);
-  const existing = await Residential.findOne({ slug }).select("_id").lean();
-  if (existing) {
-    if (excludeId && existing._id.toString() === excludeId) return slug;
-    const err: any = new Error("Slug already in use");
-    err.code = "SLUG_TAKEN";
-    throw err;
-  }
-  return slug;
-}
+
 
 async function deleteS3ObjectIfExists(key?: string) {
   if (!key) return;
@@ -177,27 +165,12 @@ async function mapAndUploadGallery({
 export const ResidentialPropertyService = {
   async create(payload: any, files?: MulterFiles) {
     // generate slug
-    const slugSource =
-      (payload.slug && String(payload.slug).trim()) || payload.title;
-    const slug = await generateUniqueSlug(slugSource);
+   
 
-    let toCreate: any = {
-      ...payload,
-      slug,
-    };
+    let toCreate = normalizePayload({ ...payload });
 
-    toCreate = normalizePayload(toCreate);
 
-    if (!toCreate.listingSource && toCreate.createdBy) {
-      try {
-        const listingSource = await resolveListingSourceFromUser(
-          toCreate.createdBy
-        );
-        if (listingSource) toCreate.listingSource = listingSource;
-      } catch (err) {
-        console.warn("resolveListingSource failed:", (err as Error).message);
-      }
-    }
+   
 
     // preliminary instance for _id (S3 key naming)
     const preliminary = new Residential(toCreate);
@@ -267,15 +240,6 @@ export const ResidentialPropertyService = {
 
     const data = parsed.data; // the typed/parsed payload
 
-    // slug/title change — use parsed data (if present)
-    if (
-      (data.slug && data.slug !== existing.slug) ||
-      (data.title && data.title !== existing.title)
-    ) {
-      const slugSource =
-        (data.slug && String(data.slug).trim()) || (data.title as string);
-      existing.slug = await generateUniqueSlug(slugSource, id);
-    }
 
     // Build update object only with defined keys (this avoids unintentionally overwriting)
     const safeUpdate = pickDefined(data);

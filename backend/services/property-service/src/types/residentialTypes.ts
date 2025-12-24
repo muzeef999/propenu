@@ -1,5 +1,7 @@
 // src/types/residentialTypes.ts
 import mongoose from 'mongoose';
+import { Types } from "mongoose";
+
 
 export const RESIDENTIAL_PROPERTY_TYPES = [
   'apartment',
@@ -52,8 +54,13 @@ export const PROPERTY_AGE_BUCKETS = [
 
 export type PropertyAge = (typeof PROPERTY_AGE_BUCKETS)[number];
 
+
+
 export interface IResidential {
    title?: string;
+   slug: string;
+     listingSource?: string;
+
   listingType?: 'sale' | 'rent' | 'lease';
   developer?: mongoose.Types.ObjectId | null;
   // base fields...
@@ -84,7 +91,7 @@ export interface IResidential {
   smartHomeFeatures?: string[];
   parkingDetails?: { visitorParking?: boolean; twoWheeler?: number; fourWheeler?: number };
   possessionVerified?: boolean;
-
+  createdBy?: Types.ObjectId;
   // 🔥 NEW FIELDS wired to enums/types
   flooringType?: FlooringType;
   kitchenType?: KitchenType;

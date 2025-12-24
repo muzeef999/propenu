@@ -1,5 +1,5 @@
 // src/models/property/residential.model.ts
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Schema, Document, Model, Types  } from "mongoose";
 import {
   FLOORING_TYPES,
   IResidential,
@@ -8,8 +8,13 @@ import {
   RESIDENTIAL_PROPERTY_TYPES,
 } from "../types/residentialTypes";
 import { BaseFields, FileRefSchema } from "./sharedSchemas";
-import { IBaseListing, TEXT_INDEX_FIELDS } from "../types/sharedTypes";
+import {  TEXT_INDEX_FIELDS } from "../types/sharedTypes";
+import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
 
+
+export interface ResidentialDocument extends Document, IResidential {
+  _id: Types.ObjectId;
+}
 /* Schema */
 const ResidentialSchema = new Schema<IResidential>(
   {
@@ -21,7 +26,6 @@ const ResidentialSchema = new Schema<IResidential>(
     balconies: Number,
     carpetArea: Number,
     builtUpArea: Number,
-    title: { type: String, required: true, trim: true },
     transactionType: {
       type: String,
       enum: ["new-sale", "resale"],
@@ -61,40 +65,66 @@ const ResidentialSchema = new Schema<IResidential>(
 /* Indexes */
 ResidentialSchema.index(TEXT_INDEX_FIELDS, { name: "Res_Text" });
 
-ResidentialSchema.pre<IBaseListing>("validate", function (next) {
-  // Auto-generate title ONLY if not provided
-  if (!this.title) {
-    this.title = buildResidentialTitle(this);
-  }
-  next();
-});
 
-/* Hooks */
-ResidentialSchema.pre<IBaseListing>("validate", function (next) {
-  if (!this.slug && this.title) {
-    this.slug = String(this.title)
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-  }
-  next();
-});
-
-ResidentialSchema.pre<IBaseListing>("validate", async function (next) {
-  try {
-    if (!this.listingSource && this.createdBy) {
-      const User = mongoose.model("User");
-      const user: any = await User.findById(this.createdBy).select("role");
-      if (user && user.role) {
-        this.listingSource = user.role; // 'owner' | 'agent' | 'builder' | 'admin'
+ResidentialSchema.pre(
+  "validate",
+  async function (this: ResidentialDocument, next) {
+    try {
+      /* -------- TITLE -------- */
+      if (!this.title) {
+        this.title = buildResidentialTitle(this);
       }
+
+      /* -------- SLUG -------- */
+      if (!this.slug && this.title) {
+        const baseSlug = slugify(this.title);
+        this.slug = await generateUniqueSlug(
+          mongoose.model("Residential"),
+          baseSlug,
+          this._id
+        );
+      }
+
+      /* -------- LISTING SOURCE (CORRECTED) -------- */
+      if (!this.listingSource && this.createdBy) {
+        const User = mongoose.model("User");
+        const Role = mongoose.model("Role");
+
+        const user: any = await User.findById(this.createdBy)
+          .select("role roleId")
+          .lean();
+
+        // 1️⃣ Direct role string on user (if exists)
+        if (user?.role && typeof user.role === "string") {
+          this.listingSource = user.role;
+        }
+
+        // 2️⃣ Role reference → Role.label
+        else if (user?.roleId) {
+          const roleDoc: any = await Role.findById(user.roleId)
+            .select("label")
+            .lean();
+
+          if (roleDoc?.label) {
+            this.listingSource = roleDoc.label;
+          }
+        }
+      }
+
+      /* -------- FINAL FALLBACK -------- */
+      if (!this.listingSource) {
+        this.listingSource = "owner"; // only if EVERYTHING fails
+      }
+
+      next();
+    } catch (err) {
+      next(err as any);
     }
-    next();
-  } catch (err) {
-    next(err as any);
   }
-});
+);
+
+
+
 
 export const Residential: Model<IResidential> =
   (mongoose.models && (mongoose.models as any)["Residential"]) ||
