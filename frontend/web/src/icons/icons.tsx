@@ -393,58 +393,31 @@ export const RoadAccessIcon = ({ size = 24, color = "#ADADAD" }) => (
 export const SoilTypeIcon = ({ size = 24, color = "#ADADAD" }) => {
 
   return (
-
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ color }}
-    >
-      <path
-        d="M3 14.5C4.3 13.3 6 12.7 7.7 12.9C9 13.1 10.1 13.7 11.2 14 C12.3 14.3 13.4 14.3 14.5 14C16 13.6 17.5 13 19 13.2C20 13.3 21 13.7 22 14.3V17 C22 19.2 20.2 21 18 21H6C3.8 21 2 19.2 2 17V15.5C2.3 15.2 2.6 14.8 3 14.5Z"
-        fill={color}
-      />
-      <path
-        d="M12 14V8"
-        stroke={color}
-        strokeWidth={1.6}
-        strokeLinecap="round"
-      />
-      <path
-        d="M12 9
-         C10.5 9 9.3 8.4 8.4 7.5
-         C7.7 6.8 7.3 6 7.1 5.2
-         C7.9 5 8.7 5 9.5 5.3
-         C10.6 5.7 11.6 6.5 12.1 7.6
-         C12.3 8.1 12.3 8.6 12 9Z"
-        fill={color}
-      />
-      <path
-        d="M12 9
-         C13.5 9 14.7 8.4 15.6 7.5
-         C16.3 6.8 16.7 6 16.9 5.2
-         C16.1 5 15.3 5 14.5 5.3
-         C13.4 5.7 12.4 6.5 11.9 7.6
-         C11.7 8.1 11.7 8.6 12 9Z"
-        fill={color}
-      />
-    </svg>
-  )
-
-}
-
-
-export const WaterTypeIcon = ({ size = 24, color = "#ADADAD" }) => {
-  return (
-
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
+    
+<svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{ color }}
+  >
+    <path
+      d="M3 14.5C4.3 13.3 6 12.7 7.7 12.9C9 13.1 10.1 13.7 11.2 14 C12.3 14.3 13.4 14.3 14.5 14C16 13.6 17.5 13 19 13.2C20 13.3 21 13.7 22 14.3V17 C22 19.2 20.2 21 18 21H6C3.8 21 2 19.2 2 17V15.5C2.3 15.2 2.6 14.8 3 14.5Z"
       fill={color}
-    >
+    />
+    <path
+      d="M12 14V8"
+      stroke={color}
+      strokeWidth={1.6}
+      strokeLinecap="round"
+    />
+    <path
+      d="M12 9 C10.5 9 9.3 8.4 8.4 7.5 C7.7 6.8 7.3 6 7.1 5.2 C7.9 5 8.7 5 9.5 5.3 C10.6 5.7 11.6 6.5 12.1 7.6 C12.3 8.1 12.3 8.6 12 9Z" fill={color}
+    />
+    <path
+      d="M12 9 C13.5 9 14.7 8.4 15.6 7.5 C16.3 6.8 16.7 6 16.9 5.2  C16.1 5 15.3 5 14.5 5.3 C13.4 5.7 12.4 6.5 11.9 7.6 C11.7 8.1 11.7 8.6 12 9Z"
+      fill={color}
+    />
       <path d="M12 2C12 2 6 8 6 12.5C6 16.6 8.9 20 12 20C15.1 20 18 16.6 18 12.5C18 8 12 2 12 2Z" />
     </svg>
   )

@@ -2,70 +2,65 @@
 
 import { useEffect, useState } from "react";
 import { Property } from "@/types/property";
+import { SearchFilterParams } from "@/types/sharedTypes";
 
-export function useStreamProperties(url: string) {
+export function useStreamProperties(params: SearchFilterParams) {
   const [items, setItems] = useState<Property[]>([]);
-  const [meta, setMeta] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!url) return;
-
-    // 🔹 Reset state every time URL (filters / propertyType) changes
-    setItems([]);
-    setMeta(null);
-    setLoading(true);
-
     let cancelled = false;
 
     async function start() {
-      try {
-        const res = await fetch(url);
+      setLoading(true);
+      setItems([]);
 
-        if (!res.body) {
-          throw new Error("ReadableStream is not supported or body is null");
-        }
+      // 🔥 build query string from params
+      const query = new URLSearchParams(
+        Object.entries(params)
+          .filter(([_, v]) => v !== undefined)
+          .map(([k, v]) => [k, String(v)])
+      ).toString();
 
-        const reader = res.body
-          .pipeThrough(new TextDecoderStream())
-          .getReader();
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/properties/search?${query}`
+      );
 
-        let buffer = "";
-        const nextItems: Property[] = []; // ⬅️ local array for THIS request
+      if (!res.body) {
+        console.error("Streaming not supported");
+        setLoading(false);
+        return;
+      }
 
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done || cancelled) break;
+      const reader = res.body
+        .pipeThrough(new TextDecoderStream())
+        .getReader();
 
-          buffer += value;
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || ""; // keep last partial chunk
+      let buffer = "";
 
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed) continue;
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done || cancelled) break;
 
-            const obj = JSON.parse(trimmed);
+        buffer += value;
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
 
-            if (obj.__meta) {
-              setMeta(obj.__meta);
-              continue;
-            }
+        for (const line of lines) {
+          if (!line.trim()) continue;
 
-            // ⬅️ collect in local array instead of appending to state
-            nextItems.push(obj as Property);
+          try {
+            const property = JSON.parse(line) as Property;
+
+            // ✅ append one property at a time
+            setItems(prev => [...prev, property]);
+          } catch (err) {
+            console.error("Invalid JSON chunk", line);
           }
         }
-
-        // ⬅️ set final list ONCE when stream ends
-        if (!cancelled) {
-          setItems(nextItems);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
       }
+
+      if (!cancelled) setLoading(false);
     }
 
     start();
@@ -73,7 +68,7 @@ export function useStreamProperties(url: string) {
     return () => {
       cancelled = true;
     };
-  }, [url]);
+  }, [params]);
 
-  return { items, meta, loading };
+  return { items, loading };
 }
