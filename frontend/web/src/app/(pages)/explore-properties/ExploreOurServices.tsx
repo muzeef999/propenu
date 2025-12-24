@@ -37,14 +37,14 @@ import {
 ];
 
 export default function ExploreOurServices() {
-  const { city } = useCity();
+  const { selectedCity  } = useCity();
   return (
     <>
       <div className="flex justify-between items-center">
         <div className="headingSideBar">
           <h1 className="text-2xl font-bold">Explore Our Services</h1>
           <p className="headingDesc">
-            Building excellence in {city?.name ?? "Hyderabad"}
+            Building excellence in {selectedCity?.city ?? "Hyderabad"}
           </p>
         </div>
       </div>
