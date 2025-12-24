@@ -123,12 +123,13 @@ export const LegalChecksSchema = new Schema<ILegalChecks>(
    BASE FIELDS (reused in each model)
 ------------------------- */
 export const BaseFields = {
-  title: { type: String, required: true, trim: true },
+  
   slug: { type: String, required: true, unique: true, trim: true },
   listingType: { type: String, enum: ['sale', 'rent', 'lease'], default: 'sale', index: true, required: true },
   listingSource: {  type: String, required: true, trim: true},
   address: { type: String, required: true },
   description : {type: String, required: true},
+  locality :{type: String, required:true},
   city: { type: String, index: true },
   state: String,
   pincode: String,
@@ -146,7 +147,6 @@ export const BaseFields = {
   isFeatured: { type: Boolean, default: false, index: true },
   rank: { type: Number, default: 1, index: true },
   banksApproved: {  type: [String],default: [],},
-
   meta: {
     views: { type: Number, default: 0 },
     inquiries: { type: Number, default: 0 },

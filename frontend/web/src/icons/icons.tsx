@@ -30,6 +30,22 @@ export const ArrowDropdownIcon = ({
 };
 
 
+export const WaterTypeIcon = ({ size = 24, color = "#ADADAD" }) => {
+  return (
+
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill={color}
+    >
+      <path d="M12 2C12 2 6 8 6 12.5C6 16.6 8.9 20 12 20C15.1 20 18 16.6 18 12.5C18 8 12 2 12 2Z" />
+    </svg>
+  )
+}
+
+
 export const FacebookSVG = () => {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor">

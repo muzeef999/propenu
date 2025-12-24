@@ -25,6 +25,7 @@ export interface IBaseListing {
   title: string;
   slug?: string;         // optional because you generate it in pre('validate')
   address?: string;
+  locality?:string;
   city?: string;
   listingType: 'sale' | 'rent' | 'lease';
   listingSource?: string;

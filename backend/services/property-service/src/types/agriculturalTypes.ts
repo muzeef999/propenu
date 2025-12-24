@@ -49,6 +49,7 @@ export interface IRoadWidth {
   unit?: "ft" | "meter";
 }
 export interface IAgricultural  {
+   title?: string;
    totalArea?: IArea;
   roadWidth?: IRoadWidth;
   boundaryWall?: boolean;

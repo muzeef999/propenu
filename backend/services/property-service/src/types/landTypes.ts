@@ -28,6 +28,7 @@ export const LAND_PROPERTY_SUBTYPES = [
 export type LandPropertySubType = (typeof LAND_PROPERTY_SUBTYPES)[number];
 
 export interface ILand {
+   title?: string;
   dimensions: {
     length: { type: Number; required: true }; // e.g., 40
     width: { type: Number; required: true }; // e.g., 60

@@ -53,6 +53,7 @@ export const PROPERTY_AGE_BUCKETS = [
 export type PropertyAge = (typeof PROPERTY_AGE_BUCKETS)[number];
 
 export interface IResidential {
+   title?: string;
   listingType?: 'sale' | 'rent' | 'lease';
   developer?: mongoose.Types.ObjectId | null;
   // base fields...

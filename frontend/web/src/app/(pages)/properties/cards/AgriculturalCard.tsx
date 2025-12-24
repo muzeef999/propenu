@@ -2,12 +2,9 @@
 
 import React from "react";
 import {
-  Furnishing,
-  Parking,
   RoadAccessIcon,
   SoilTypeIcon,
   SuperBuiitupAraea,
-  UnderConstruction,
   WaterTypeIcon,
 } from "@/icons/icons";
 import { Property } from "@/types/property";

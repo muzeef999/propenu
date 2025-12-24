@@ -3,7 +3,6 @@ import { z } from "zod";
 
 /* ---------- FileRef, Image, Unit, BhkSummary, Nearby, Lead ---------- */
 export const FileRefSchema = z.object({
-  title: z.string().optional(),
   url: z.string().url().optional(),
   key: z.string().optional(),
   filename: z.string().optional(),
@@ -116,7 +115,6 @@ export type LegalChecks = z.infer<typeof LegalChecksSchema>;
 
 /* ---------- Base create used by all ---------- */
 export const BaseCreateSchema = z.object({
-  title: z.string().min(1),
   slug: z.string().min(1).optional(),
   listingSource: z.string().optional(),
   listingType: z.enum(["sale", "rent", "lease"]).optional().default("sale"),
