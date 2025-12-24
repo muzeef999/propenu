@@ -30,6 +30,8 @@ const ResidentialSchema = new Schema<IResidential>(
       type: String,
       enum: ["new-sale", "resale"],
     },
+      title: { type: String, required: true, trim: true },
+
     flooringType: { type: String, enum: FLOORING_TYPES },
     kitchenType: { type: String, enum: KITCHEN_TYPES },
     propertyAge: { type: String, enum: PROPERTY_AGE_BUCKETS },
