@@ -4,11 +4,21 @@ import React, { useEffect, useState } from "react";
 import { Range } from "react-range";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/Redux/store";
-import { setBhk, setBudget, setPostedBy } from "@/Redux/slice/filterSlice";
+import {
+  setBhk,
+  setBudget,
+  setLocality,
+  setPostedBy,
+} from "@/Redux/slice/filterSlice";
 import FilterDropdown from "@/ui/FilterDropdown";
 import { BHKOption, PostedByOption } from "@/types/residential";
 import { buildSearchParams } from "./buildSearchParams";
 import { searchFilter } from "@/data/ClientData";
+import {
+  selectCityWithLocalities,
+  selectLocalitiesByCity,
+} from "@/Redux/slice/citySlice";
+import { setCity } from "@/components/CityHydrator";
 
 /* -------------------- BUDGET CONSTANTS -------------------- */
 
@@ -31,9 +41,17 @@ const formatBudget = (value: number) => {
 const ResidentialFilters = () => {
   const dispatch = useDispatch();
 
+  const cityData = useSelector(selectCityWithLocalities);
+
+  // 🔥 Only localities
+  const localities = useSelector(selectLocalitiesByCity);
+
+  console.log("Derived selected city:", cityData);
+  console.log("📍 Derived localities:", localities);
+
   const filters = useSelector((state: RootState) => state.filters);
 
-  const { bhk, minBudget, maxBudget, postedBy } = filters;
+  const { locality, bhk, minBudget, maxBudget, postedBy } = filters;
 
   /* -------------------- BHK -------------------- */
 
@@ -75,7 +93,54 @@ const ResidentialFilters = () => {
     <div className="flex gap-4">
       {/* ==================== Top Localities ==================== */}
 
-      <h1>Locality</h1>
+      <FilterDropdown
+        triggerLabel={
+          <span className="px-4 text-primary font-medium">
+            {locality || "Select Locality"}
+          </span>
+        }
+        width="w-86"
+        align="left"
+        openOnHover
+        renderContent={(close) => (
+          <div className="p-2">
+            {/* Header */}
+            <h4 className="text-sm font-semibold mb-2">
+              {cityData
+                ? `Localities in ${cityData.city}`
+                : "Select city first"}
+            </h4>
+
+            {/* No city selected */}
+            {!cityData && (
+              <p className="text-sm text-gray-400">
+                Please select a city to see localities
+              </p>
+            )}
+
+            {/* Localities list */}
+            {cityData && (
+              <div className="flex gap-2 flex-wrap">
+                {localities.map((loc) => (
+                  <button
+                    key={loc.name}
+                    type="button"
+                    onClick={() => {
+                      // dispatch(setLocality(loc.name));
+                      close?.();
+                    }}
+                    className={`px-2 py-1 rounded text-sm hover:bg-gray-100 ${
+                      locality === loc.name ? "font-semibold bg-gray-100" : ""
+                    }`}
+                  >
+                    {loc.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      />
 
       {/* ==================== BHK FILTER ==================== */}
       <FilterDropdown
@@ -92,7 +157,6 @@ const ResidentialFilters = () => {
             <div className="flex gap-2 flex-wrap">
               {bhkOptions.map((option) => {
                 const value = getBhkNumber(option);
-
                 return (
                   <button
                     key={option}
@@ -167,17 +231,30 @@ const ResidentialFilters = () => {
               min={BUDGET_MIN}
               max={BUDGET_MAX}
               onChange={(vals) => setValues(vals as [number, number])}
-              renderTrack={({ props, children }) => (
-                <div {...props} className="h-1 w-full bg-gray-200 rounded">
-                  {children}
-                </div>
-              )}
-              renderThumb={({ props }) => (
-                <div
-                  {...props}
-                  className="h-5 w-5 bg-white border-2 border-primary rounded-full shadow"
-                />
-              )}
+              renderTrack={({ props, children }) => {
+                const { key, ...restProps } = props as any;
+
+                return (
+                  <div
+                    key={key}
+                    {...restProps}
+                    className="h-1 w-full bg-gray-200 rounded"
+                  >
+                    {children}
+                  </div>
+                );
+              }}
+              renderThumb={({ props }) => {
+                const { key, ...restProps } = props as any;
+
+                return (
+                  <div
+                    key={key}
+                    {...restProps}
+                    className="h-5 w-5 bg-white border-2 border-primary rounded-full shadow"
+                  />
+                );
+              }}
             />
 
             {/* SCALE */}

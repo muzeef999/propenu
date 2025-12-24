@@ -1,5 +1,5 @@
 // src/models/property/residential.model.ts
-import mongoose, { Schema, Document, Model, Types  } from "mongoose";
+import mongoose, { Schema, Document, Model, Types } from "mongoose";
 import {
   FLOORING_TYPES,
   IResidential,
@@ -8,9 +8,8 @@ import {
   RESIDENTIAL_PROPERTY_TYPES,
 } from "../types/residentialTypes";
 import { BaseFields, FileRefSchema } from "./sharedSchemas";
-import {  TEXT_INDEX_FIELDS } from "../types/sharedTypes";
+import { TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
-
 
 export interface ResidentialDocument extends Document, IResidential {
   _id: Types.ObjectId;
@@ -30,8 +29,7 @@ const ResidentialSchema = new Schema<IResidential>(
       type: String,
       enum: ["new-sale", "resale"],
     },
-      title: { type: String, required: true, trim: true },
-
+    title: { type: String, required: true, trim: true },
     flooringType: { type: String, enum: FLOORING_TYPES },
     kitchenType: { type: String, enum: KITCHEN_TYPES },
     propertyAge: { type: String, enum: PROPERTY_AGE_BUCKETS },
@@ -66,7 +64,6 @@ const ResidentialSchema = new Schema<IResidential>(
 
 /* Indexes */
 ResidentialSchema.index(TEXT_INDEX_FIELDS, { name: "Res_Text" });
-
 
 ResidentialSchema.pre(
   "validate",
@@ -124,9 +121,6 @@ ResidentialSchema.pre(
     }
   }
 );
-
-
-
 
 export const Residential: Model<IResidential> =
   (mongoose.models && (mongoose.models as any)["Residential"]) ||

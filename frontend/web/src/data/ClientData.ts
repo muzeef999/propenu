@@ -10,9 +10,7 @@ const url = process.env.NEXT_PUBLIC_API_URL
 
 
 export const searchFilter = async (params: SearchFilterParams) => {
-console.log("🔍 searchFilter params →", params);
 const res = await axiosInstance.get<ApiResponse>(`${url}/api/properties/search`, { params, });
-console.log("response data", res.data);
 return res.data;
 };
 

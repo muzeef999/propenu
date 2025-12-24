@@ -13,19 +13,17 @@ import { UpdateFeaturePropertySchema } from "../zod/validation";
 import { extendResidentialFilters } from "./filters/residentialFilters";
 import { ResidentialQuery } from "../types/filterTypes";
 import { Request } from "express";
-import { generateUniqueSlug } from "../utils/generateUniqueSlug";
+import { upsertCityAndLocality } from "./locationServices";
 
 type RequestWithResidentialQuery = Request<
-  {},               // req.params
-  any,              // res body
-  any,              // req body
-  ResidentialQuery  // ✅ req.query
+  {}, // req.params
+  any, // res body
+  any, // req body
+  ResidentialQuery // ✅ req.query
 >;
 dotenv.config();
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
-
-
 
 /* -------------------- Helpers -------------------- */
 
@@ -81,8 +79,6 @@ function normalizePayload(obj: any) {
   if (obj.createdBy) obj.createdBy = String(obj.createdBy);
   return obj;
 }
-
-
 
 async function deleteS3ObjectIfExists(key?: string) {
   if (!key) return;
@@ -165,12 +161,8 @@ async function mapAndUploadGallery({
 export const ResidentialPropertyService = {
   async create(payload: any, files?: MulterFiles) {
     // generate slug
-   
 
     let toCreate = normalizePayload({ ...payload });
-
-
-   
 
     // preliminary instance for _id (S3 key naming)
     const preliminary = new Residential(toCreate);
@@ -214,6 +206,18 @@ export const ResidentialPropertyService = {
 
     const createdDoc = await Residential.create(toCreate);
 
+if (createdDoc.city && createdDoc.locality) {
+  await upsertCityAndLocality({
+    city: createdDoc.city,
+    locality: createdDoc.locality,
+    ...(createdDoc.state && { state: createdDoc.state }),
+    ...(createdDoc.location?.coordinates && {
+      coordinates: createdDoc.location.coordinates,
+    }),
+  });
+}
+
+
     const populated = await Residential.findById(createdDoc._id)
       .populate("createdBy", "name email phone role roleId")
       .lean()
@@ -239,7 +243,6 @@ export const ResidentialPropertyService = {
     }
 
     const data = parsed.data; // the typed/parsed payload
-
 
     // Build update object only with defined keys (this avoids unintentionally overwriting)
     const safeUpdate = pickDefined(data);
@@ -507,30 +510,28 @@ export const ResidentialPropertyService = {
 
   model: Residential,
 
-
- getPipeline(filters: any) {
-  const match = extendResidentialFilters(filters, {});
-  return [
-    { $match: match },
-    {
-      $project: {
-        _id: 0, 
-        id: "$_id",
-        type: { $literal: "Residential" },
-        title: 1,
-        city: 1,
-        buildingName: 1,
-        price: 1,
-        bhk: 1,
-        bedrooms: 1,
-        bathrooms: 1,
-        slug: 1,
-        createdAt: 1,
+  getPipeline(filters: any) {
+    const match = extendResidentialFilters(filters, {});
+    return [
+      { $match: match },
+      {
+        $project: {
+          _id: 0,
+          id: "$_id",
+          type: { $literal: "Residential" },
+          title: 1,
+          city: 1,
+          buildingName: 1,
+          price: 1,
+          bhk: 1,
+          bedrooms: 1,
+          bathrooms: 1,
+          slug: 1,
+          createdAt: 1,
+        },
       },
-    },
-  ];
-},
-
+    ];
+  },
 };
 
 export default ResidentialPropertyService;

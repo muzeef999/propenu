@@ -253,20 +253,17 @@ export interface PopularOwnerProperty {
   updatedAt: string;
 }
 
-
-export type LocationItem = {
- _id: string;
+export interface Locality {
   name: string;
+}
+
+export interface LocationItem {
+  _id: string;
+  city: string;
   state: string;
-  category?: string | null; 
-  location?: {
-    type: "Point";
-    coordinates: [number, number]; // [lng, lat]
-  };
-  createdAt?: string;
-  updatedAt?: string;
-  __v?: number;  
-};
+  category: string;
+  localities: Locality[];
+}
 
 
 

@@ -81,6 +81,7 @@ export interface LocationItem {
   name: string;
   lat: number;
   lon: number;
+  category: string;  
   type: string | null;
   city: string | null;
   state: string | null;

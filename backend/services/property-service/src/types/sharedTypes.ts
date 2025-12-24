@@ -27,10 +27,15 @@ export interface IBaseListing {
   address?: string;
   locality?:string;
   city?: string;
+   state?: string;
+  pincode?: string;
+
+  location?: {
+    type: "Point";
+    coordinates: [number, number];
+  };
   listingType: 'sale' | 'rent' | 'lease';
   listingSource?: string;
-  pincode?: string;  
-  state?: string;
  createdBy?: Types.ObjectId;
 }
 

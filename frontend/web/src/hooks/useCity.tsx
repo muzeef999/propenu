@@ -1,50 +1,44 @@
 // hooks/useCity.ts
+"use client";
 
+import { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { RootState, useAppDispatch } from "@/Redux/store";
 import {
-  setCity as setCityAction,
-  clearCity,
   fetchLocations,
+  setCityId,
+  clearCity,
+  selectSelectedCity,
+  selectLocalitiesByCity,
 } from "@/Redux/slice/citySlice";
 import { LocationItem } from "@/types";
-import { useEffect } from "react";
 
 export function useCity() {
   const dispatch = useAppDispatch();
 
-  const city = useSelector((s: RootState) => s.city.selected);
+  const selectedCity = useSelector(selectSelectedCity);
+  const localities = useSelector(selectLocalitiesByCity);
+  const locations = useSelector((s: RootState) => s.city.locations);
 
-  const locations = useSelector((state: RootState) => state.city.locations);
-
-  function setCity(cityItem: LocationItem | null) {
-    dispatch(setCityAction(cityItem));
-
-    try {
-      if (cityItem) {
-        localStorage.setItem("selectedCity", JSON.stringify(cityItem));
-      } else {
-        localStorage.removeItem("selectedCity");
-      }
-    } catch (e) {
-      // ignore localStorage errors in SSR-safe way
-    }
+  function selectCity(city: LocationItem) {
+    dispatch(setCityId(city._id));
+    localStorage.setItem("selectedCityId", city._id);
   }
 
   function clearSelectedCity() {
     dispatch(clearCity());
+    localStorage.removeItem("selectedCityId");
   }
 
-
-   useEffect(() => {
+  useEffect(() => {
     dispatch(fetchLocations());
   }, [dispatch]);
 
-
   return {
-    city,
-    setCity,
+    selectedCity,   // { city, state, localities }
+    localities,     // derived localities
+    locations,      // all cities
+    selectCity,     // ✅ USE THIS
     clearSelectedCity,
-    locations
   };
 }

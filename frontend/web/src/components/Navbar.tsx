@@ -6,7 +6,6 @@ import type { DropdownProps } from "@/ui/SingleDropDown";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import LoginDialog from "@/app/(auth)/Login";
-import Cookies from "js-cookie";
 import { me } from "@/data/ClientData";
 import UserGreeting from "@/app/(auth)/UserGreeting";
 import FilterDropdown from "@/ui/FilterDropdown";
@@ -36,7 +35,12 @@ const Navbar = () => {
     fetchUser();
   }, []);
 
-  const { city, locations, setCity } = useCity();
+const {
+  selectedCity,
+  locations,
+  selectCity
+} = useCity();
+
 
   const pPrimeItems = [
     { id: "pp-1", label: "Dashboard", href: "/prime/dashboard" },
@@ -51,7 +55,7 @@ const Navbar = () => {
   ];
 
   function onSelect(item: LocationItem) {
-    setCity(item);
+    selectCity(item);
     setOpen(false);
     btnRef.current?.focus();
   }
@@ -75,6 +79,8 @@ const Navbar = () => {
   const popularCities = locations.filter(
     (loc) => loc.category?.toLowerCase() === "popular"
   );
+
+
 
   // Group cities by state
   const groupedByState = locations.reduce(
@@ -128,7 +134,7 @@ const Navbar = () => {
                       <div className="flex gap-1 items-center justify-center">
                         <LocationIcon size={18} color="#27AE60" />
                         <span className="min-w-[90px] text-primary text-left">
-                          {city?.name ?? "Hyderabad"}
+                            {selectedCity?.city ?? "Select City"}
                         </span>
                         <ArrowDropdownIcon
                           size={12} 
@@ -156,7 +162,7 @@ const Navbar = () => {
                               }}
                               className="flex flex-col text-gray-600 cursor-pointer px-3 py-2  items-center justify-between"
                             >
-                              <div className="font-regular">{i.name}</div>
+                              <div className="font-regular">{i.city}</div>
                             </div>
                           ))}
                           {Object.entries(groupedByState).map(
@@ -179,7 +185,7 @@ const Navbar = () => {
                                   >
                                     <div className="flex flex-col text-gray-600 cursor-pointer px-3 py-2  items-center justify-between">
                                       <div className="font-regular">
-                                        {c.name}
+                                        {c.city}
                                       </div>
                                     </div>
                                   </button>
@@ -246,7 +252,7 @@ const Navbar = () => {
               <div className="flex items-center gap-1 rounded-full bg-gray-50 px-3 py-1.5 border border-gray-100">
                 <LocationIcon size={14} color="#27AE60" />
                 <span className="text-sm font-medium text-gray-700">
-                  {city?.name ?? "Hyderabad"}
+                    {selectedCity?.city ?? "Select City"}
                 </span>
               </div>
 

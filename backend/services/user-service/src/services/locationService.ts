@@ -2,120 +2,186 @@ import mongoose from "mongoose";
 import Location from "../models/locationModel";
 import { geocode } from "../utils/geocode";
 
-export interface LocationItem {
-  _id: string; // MongoDB ObjectId
-  name: string;
-  state: string;
+/* ------------------------------------
+   TYPES
+------------------------------------ */
+
+export interface CreateLocationPayload {
+  city: string;
+  state?: string | null;
   category: string;
-  location: {
-    type: "Point";
-    coordinates: [number, number]; // [longitude, latitude]
+  locality: {
+    name: string;
+    location?: {
+      type: "Point";
+      coordinates: [number, number];
+    };
   };
-  createdAt: string;
-  updatedAt: string;
-  __v: number;
 }
 
+export interface UpdateLocationPayload {
+  city?: string;
+  state?: string | null;
+  category?: string;
+  locality?: {
+    name: string;
+    location?: {
+      coordinates: [number, number];
+    };
+  };
+}
 
-export async function createLocation(payload: LocationItem) {
-  let data = { ...payload };
+/* ------------------------------------
+   CREATE / UPSERT CITY + LOCALITY
+------------------------------------ */
+export async function createLocation(payload: CreateLocationPayload) {
+  const cityName = payload.city.trim();
+  const stateName: string | null = payload.state ?? null;
+  const localityName = payload.locality.name.trim();
 
-  // ⭐ Auto-geocode ONLY if coordinates not provided
-  if (!data.location || !data.location.coordinates) {
-    const geo = await geocode(data.name);
+  let coordinates = payload.locality.location?.coordinates;
 
+  // 🌍 Auto-geocode locality if coordinates missing
+  if (!coordinates) {
+    const geo = await geocode(`${localityName}, ${cityName}`);
     if (!geo) {
       throw new Error("Unable to auto-detect coordinates");
     }
-
-    data.location = {
-      type: "Point",
-      coordinates: [geo.lng, geo.lat]
-    };
-  } else {
-    // ensure numeric
-    const [lng, lat] = data.location.coordinates;
-    data.location.coordinates = [Number(lng), Number(lat)];
+    coordinates = [geo.lng, geo.lat];
   }
 
-  const doc = new Location(data);
-  return doc.save();
+  // ensure numeric
+  coordinates = [Number(coordinates[0]), Number(coordinates[1])];
+
+  return Location.findOneAndUpdate(
+    {
+      city: cityName,
+      state: stateName,
+    },
+    {
+      $setOnInsert: {
+        city: cityName,
+        state: stateName,
+        category: payload.category,
+      },
+      $addToSet: {
+        localities: {
+          name: localityName,
+          location: {
+            type: "Point",
+            coordinates,
+          },
+        },
+      },
+    },
+    {
+      upsert: true,
+      new: true,
+    }
+  );
 }
 
-
+/* ------------------------------------
+   GET ALL CITIES + METADATA
+------------------------------------ */
 export async function getAllLocationsDetails() {
-  const locations = await Location.find().sort({ name: 1 }).lean();
+  const locations = await Location.find()
+    .sort({ city: 1 })
+    .lean();
 
   const states = await Location.aggregate([
     { $group: { _id: "$state", count: { $sum: 1 } } },
     { $project: { state: "$_id", count: 1, _id: 0 } },
-    { $sort: { state: 1 } }
+    { $sort: { state: 1 } },
   ]);
 
   const categories = await Location.aggregate([
     { $group: { _id: "$category", count: { $sum: 1 } } },
     { $project: { category: "$_id", count: 1, _id: 0 } },
-    { $sort: { category: 1 } }
+    { $sort: { category: 1 } },
   ]);
 
   return {
     locations,
     states,
-    categories
+    categories,
   };
 }
 
-export async function updateLocation(id: string, payload: LocationItem) {
+/* ------------------------------------
+   UPDATE CITY / LOCALITY
+------------------------------------ */
+export async function updateLocation(
+  id: string,
+  payload: UpdateLocationPayload
+) {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error("Invalid id");
   }
+
   const doc = await Location.findById(id);
   if (!doc) return null;
 
-  const nameChanged = payload.name && payload.name !== doc.name;
+  // ---- top-level fields ----
+  if (payload.city !== undefined) {
+    doc.city = payload.city;
+  }
 
-  if (payload.location?.coordinates) {
-    const coords = payload.location.coordinates;
-    if (!Array.isArray(coords) || coords.length !== 2) {
-      throw new Error("coordinates must be [lng, lat]");
+if (payload.state !== undefined) {
+  doc.set("state", payload.state);
+}
+  if (payload.category !== undefined) {
+    doc.category = payload.category;
+  }
+
+  // ---- locality update ----
+  if (payload.locality) {
+    const localityName = payload.locality.name.trim();
+    let coordinates = payload.locality.location?.coordinates;
+
+    // auto-geocode if missing
+    if (!coordinates) {
+      const geo = await geocode(`${localityName}, ${doc.city}`);
+      if (geo) {
+        coordinates = [geo.lng, geo.lat];
+      }
     }
-    if (isNaN(Number(coords[0])) || isNaN(Number(coords[1]))) {
-      throw new Error("coordinates must be valid numbers");
+
+    if (coordinates) {
+      coordinates = [Number(coordinates[0]), Number(coordinates[1])];
     }
-    doc.location = {
-      type: "Point",
-      coordinates: [Number(coords[0]), Number(coords[1])],
-    };
-  } else if (nameChanged && !payload.location) {
-  
-    const geo = await geocode(payload.name as string);
-    if (geo) {
-      doc.location = {
+
+    const index = doc.localities.findIndex(
+      (l: any) => l.name === localityName
+    );
+
+    if (index >= 0 && coordinates && doc.localities[index]) {
+      doc.localities[index].location = {
         type: "Point",
-        coordinates: [geo.lng, geo.lat],
+        coordinates,
       };
     }
-}
-
-  if (payload.name !== undefined) doc.name = payload.name;
-  if (payload.state !== undefined) doc.state = payload.state ?? null;
-  if (payload.category !== undefined) doc.category = payload.category;
+  }
 
   return doc.save();
 }
 
+/* ------------------------------------
+   DELETE CITY
+------------------------------------ */
 export async function removeLocation(id: string) {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error("Invalid id");
   }
-  const doc = await Location.findByIdAndDelete(id);
-  return doc;
+  return Location.findByIdAndDelete(id);
 }
 
-
+/* ------------------------------------
+   GET CITY BY ID
+------------------------------------ */
 export async function getLocationByIdService(id: string) {
-  if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new Error("Invalid id");
+  }
   return Location.findById(id).lean();
 }
-
-

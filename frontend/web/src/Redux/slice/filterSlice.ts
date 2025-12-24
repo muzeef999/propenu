@@ -1,6 +1,5 @@
 import { FilterState } from "@/types/sharedTypes";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { set } from "zod";
 
 /* ---------------- Types ---------------- */
 
@@ -42,6 +41,7 @@ const filterSlice = createSlice({
       state.category = action.payload;
 
       // 🔥 Reset category-specific filters
+      state.locality = undefined;
       state.bhk = undefined;
       state.bedrooms = undefined;
       state.bathrooms = undefined;
@@ -83,6 +83,10 @@ const filterSlice = createSlice({
     /* -------- Residential -------- */
 
     setBhk(state, action: PayloadAction<number | undefined>) {
+      state.bhk = action.payload;
+    },
+
+    setLocality(state, action: PayloadAction<number | undefined>) {
       state.bhk = action.payload;
     },
 
@@ -143,6 +147,7 @@ export const {
   setBedrooms,
   setBathrooms,
   setPostedBy,
+  setLocality,
   setCommercialType,
   setParking,
 

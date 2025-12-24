@@ -78,6 +78,7 @@ export type BaseSearchParams = {
 
   /* -------- Residential -------- */
   bhk?: number;
+  locality?:string
   bedrooms?: number;
   bathrooms?: number;
 

@@ -21,6 +21,7 @@ html, body {
   padding: 0;
   height: 100%;
   scroll-behavior: smooth;
+  background-color: #FBFFFD;
 }
 
 /* Hide scrollbars */

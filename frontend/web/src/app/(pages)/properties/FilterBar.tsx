@@ -17,7 +17,7 @@ import { useAppSelector } from "@/Redux/store";
 import CategoryFilters from "./CategoryFilters";
 
 const FilterBar: React.FC = () => {
-  const bgColor = hexToRGBA("#27AE60", 0.1); 
+  const bgColor = hexToRGBA("#27AE60", 0.2); 
 
   const listingOptions: ListingOption[] = ["Buy", "Rent", "Lease"];
   const categoryOptions: categoryOption[] = [

@@ -65,7 +65,19 @@ export interface IResidential {
   developer?: mongoose.Types.ObjectId | null;
   // base fields...
   address: string;
-  city?: string; 
+  
+  
+  locality: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+
+  location?: {
+    type: "Point";
+    coordinates: [number, number];
+  };
+  
+
   propertyType?: ResidentialPropertyType;
   // residential-specific
   bhk?: number;

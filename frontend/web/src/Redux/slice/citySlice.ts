@@ -1,62 +1,74 @@
-// src/Redux/slice/citySlice.ts
-
-import { LocationItem } from "@/types";
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { RootState } from "../store";
+import { LocationItem } from "@/types";
+
 
 const url = process.env.NEXT_PUBLIC_API_URL;
 
-export const fetchLocations = createAsyncThunk(
+export const fetchLocations = createAsyncThunk<LocationItem[]>(
   "city/fetchLocations",
-  async (_, { rejectWithValue }) => {
-    try {
-      const res = await fetch(`${url}/api/users/location`);
-      if (!res.ok) {
-        return rejectWithValue("Failed to fetch locations");
-      }
-      const data = await res.json();
-      return data.locations;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
-    }
+  async () => {
+    const res = await fetch(`${url}/api/users/location`);
+    const data = await res.json();
+    return data.locations || [];
   }
 );
 
-export interface CityState {
-  selected: LocationItem | null;
+interface CityState {
   locations: LocationItem[];
+  selectedCityId: string | null;
 }
 
 const initialState: CityState = {
-  selected: null,
   locations: [],
+  selectedCityId: null,
 };
 
+/* ---------------- SLICE ---------------- */
 const citySlice = createSlice({
   name: "city",
   initialState,
   reducers: {
-    // ✅ Action **with payload**
-    setCity(state, action: PayloadAction<LocationItem | null>) {
-      state.selected = action.payload;
+    setCityId(state, action: PayloadAction<string | null>) {
+      state.selectedCityId = action.payload;
     },
     clearCity(state) {
-      state.selected = null;
-    },
-    setLocations(state, action: PayloadAction<LocationItem[]>) {
-      state.locations = action.payload;
+      state.selectedCityId = null;
     },
   },
   extraReducers: (builder) => {
-    builder
-      .addCase(fetchLocations.pending, () => {})
-      .addCase(fetchLocations.fulfilled, (state, action) => {
-        state.locations = action.payload || [];
-      })
-      .addCase(fetchLocations.rejected, (_, action) => {
-      });
+    builder.addCase(fetchLocations.fulfilled, (state, action) => {
+      state.locations = action.payload;
+    });
   },
 });
 
-export const { setCity, clearCity, setLocations } = citySlice.actions;
+/* ---------------- SELECTORS ---------------- */
 
+// Selected city object
+export const selectSelectedCity = (state: RootState) => {
+  const { locations, selectedCityId } = state.city;
+  return locations.find(c => c._id === selectedCityId) || null;
+};
+
+const EMPTY_ARRAY: any[] = [];
+
+
+export const selectLocalitiesByCity = (state: RootState) =>
+  selectSelectedCity(state)?.localities ?? EMPTY_ARRAY;
+
+
+// Combined helper
+export const selectCityWithLocalities = (state: RootState) => {
+  const city = selectSelectedCity(state);
+  if (!city) return null;
+
+  return {
+    city: city.city,
+    state: city.state,
+    localities: city.localities,
+  };
+};
+
+export const { setCityId, clearCity } = citySlice.actions;
 export default citySlice.reducer;
