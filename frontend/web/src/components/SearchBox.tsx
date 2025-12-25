@@ -23,7 +23,7 @@ const CATEGORY_OPTIONS = [
 const SearchBox = () => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<LocationItem[]>([]);
-  const { setCity } = useCity();
+  const { selectCity  } = useCity();
 
   const { listingType, category, searchText } = useAppSelector(
     (s) => s.filters
@@ -39,8 +39,8 @@ const SearchBox = () => {
   const dispatch = useDispatch();
 
   function handleSelect(item: LocationItem) {
-    setCity(item);
-    setQuery(item.name);
+    selectCity(item);
+    setQuery(item?.city);
     setResults([]);
   }
 
@@ -137,7 +137,7 @@ const SearchBox = () => {
                   onClick={() => handleSelect(item)}
                   className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                 >
-                  <div className="text-gray-700">{item.name}</div>
+                  <div className="text-gray-700">{item?.city}</div>
                 </li>
               ))}
             </ul>

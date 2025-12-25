@@ -8,6 +8,13 @@ export type AmenitiesItems = {
 
 
 
+export interface IUserMini {
+  _id: string;
+  name?: string;
+  email?: string;
+}
+
+
 export type GalleryItem = {
   url: string;
   key: string;
@@ -54,6 +61,7 @@ export interface IResidential {
   kitchenType?: string;
   listingSource?: string;
   nearbyPlaces?: string[];
+  createdBy? :IUserMini;
 }
 
 

@@ -46,6 +46,7 @@ export interface ICommercial {
   totalFloors?: number;
   price?: number;
   city?: string;
+  listingSource?:string;
   furnishedStatus?: 'unfurnished' | 'semi-furnished' | 'fully-furnished';
   powerBackup?: string;
   powerCapacityKw?: number;

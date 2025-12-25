@@ -3,12 +3,9 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { FiHeart, FiImage, FiShare2, FiX, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { GalleryItem } from "@/types/agricultural";
 
-type GalleryItem = {
-  url: string;
-  key: string;
-  filename: string;
-};
+
 
 type GalleryFileProps = {
   gallery?: GalleryItem[];
@@ -54,7 +51,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
         >
           <Image
             src={gallery[0].url}
-            alt={gallery[0].filename}
+            alt={gallery[0].filename ?? title ?? "Property image"}
             fill
             className="object-cover transition-transform duration-300 hover:scale-105"
             priority
@@ -68,7 +65,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
         >
           <Image
             src={gallery[1].url}
-            alt={gallery[1].filename}
+              alt={gallery[1].filename ?? title ?? "Preview image"}
             fill
             className="object-cover transition-transform duration-300 hover:scale-105"
           />
@@ -81,7 +78,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
         >
           <Image
             src={gallery[2].url}
-            alt={gallery[2].filename}
+              alt={gallery[2].filename ?? title ?? "Preview image"}
             fill
             className="object-cover transition-transform duration-300 hover:scale-105"
           />
@@ -130,7 +127,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
                 >
                   <Image
                     src={item.url}
-                    alt={item.filename}
+                      alt={gallery[3].filename ?? title ?? "Preview image"}
                     width={600}
                     height={800}
                     className="h-auto w-full object-cover transition-transform duration-300 hover:scale-110"
@@ -164,7 +161,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
               <div className="relative h-[85vh] w-[85vw]">
                 <Image
                   src={gallery[previewIndex].url}
-                  alt={gallery[previewIndex].filename}
+                    alt={gallery[previewIndex].filename ?? title ?? "Preview image"}
                   fill
                   className="object-contain"
                   priority
