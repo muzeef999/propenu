@@ -1,13 +1,18 @@
-// src/constants/residentialSubTypes.ts
 import type { ReactNode } from "react";
 
-export type ResidentialSubTypeOption = {
+/* ======================================================
+   UI OPTION TYPE (used only by UI)
+====================================================== */
+export type PropertyTypeOption = {
   key: string;
   label: string;
   icon: ReactNode;
 };
 
-export const RESIDENTIAL_SUB_TYPES: ResidentialSubTypeOption[] = [
+/* ======================================================
+   RESIDENTIAL UI OPTIONS (buttons, icons)
+====================================================== */
+export const RESIDENTIAL_PROPERTY_OPTIONS: PropertyTypeOption[] = [
   { key: "apartment", label: "Apartment", icon: "🏠" },
   { key: "independent-house", label: "Independent House", icon: "🏠" },
   { key: "duplex", label: "Duplex", icon: "🏘️" },
@@ -20,7 +25,10 @@ export const RESIDENTIAL_SUB_TYPES: ResidentialSubTypeOption[] = [
   { key: "farmhouse", label: "Farmhouse", icon: "🌾" },
 ];
 
-export const COMMERCIAL_SUB_TYPES: ResidentialSubTypeOption[] = [
+/* ======================================================
+   COMMERCIAL UI OPTIONS
+====================================================== */
+export const COMMERCIAL_PROPERTY_OPTIONS: PropertyTypeOption[] = [
   { key: "office", label: "Office", icon: "🏢" },
   { key: "retail", label: "Retail", icon: "🏬" },
   { key: "warehouse", label: "Warehouse", icon: "🏭" },
@@ -28,3 +36,34 @@ export const COMMERCIAL_SUB_TYPES: ResidentialSubTypeOption[] = [
   { key: "showroom", label: "Showroom", icon: "🏪" },
   { key: "coworking", label: "Co-Working", icon: "🏢" },
 ];
+
+/* ======================================================
+   🔐 VALIDATION-SAFE STRING ARRAYS (Zod + backend)
+====================================================== */
+export const RESIDENTIAL_PROPERTY_KEYS = [
+  "apartment",
+  "independent-house",
+  "duplex",
+  "row-house",
+  "villa",
+  "penthouse",
+  "studio",
+  "triplex",
+  "plot",
+  "farmhouse",
+] as const;
+
+export const COMMERCIAL_PROPERTY_KEYS = [
+  "office",
+  "retail",
+  "warehouse",
+  "industrial",
+  "showroom",
+  "coworking",
+] as const;
+
+export type ResidentialPropertyKey =
+  (typeof RESIDENTIAL_PROPERTY_KEYS)[number];
+
+export type CommercialPropertyKey =
+  (typeof COMMERCIAL_PROPERTY_KEYS)[number];

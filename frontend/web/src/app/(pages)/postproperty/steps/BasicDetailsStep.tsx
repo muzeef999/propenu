@@ -3,16 +3,17 @@ import {
   setPropertyType,
   nextStep,
   setBaseField,
+  setProfileField,
 } from "@/Redux/slice/postPropertySlice";
-import InputField from "@/ui/InputFiled";
-import TextArea from "@/ui/TextArae";
+
 import FileUpload, { UploadedFile } from "@/ui/FileUpload";
 import { setFiles as setFileStoreFiles } from "@/lib/fileStore";
 import { useState } from "react";
 import { validateBasicDetails } from "@/zod/basicDetailsZod";
+import { RESIDENTIAL_PROPERTY_OPTIONS, COMMERCIAL_PROPERTY_OPTIONS } from "@/app/(pages)/postproperty/constants/subTypes";
 
 export default function BasicDetailsStep() {
-  const { propertyType, base } = useSelector(
+  const { propertyType, base, residential, commercial, land, agricultural } = useSelector(
     (state: any) => state.postProperty
   );
   const [files, setFiles] = useState<UploadedFile[]>([]);
@@ -20,14 +21,17 @@ export default function BasicDetailsStep() {
   const listingOptions = [
     { label: "Sale", value: "sale" },
     { label: "Rent / Lease", value: "rent" },
-    { label: "Buy", value: "buy" },
   ];
 
   const dispatch = useDispatch();
 
+  // Get the current category state
+  const categoryState = propertyType === "residential" ? residential : propertyType === "commercial" ? commercial : propertyType === "land" ? land : agricultural;
+
   const validationResult = validateBasicDetails(
     {
       ...base,
+      propertyType: categoryState?.propertyType || base.propertyType,
       title: base.title || "",
       price: base.price || "",
       carpetArea: base.carpetArea || "",
@@ -48,6 +52,12 @@ export default function BasicDetailsStep() {
   dispatch(setPropertyType(type));
 };
 
+  const subTypes =
+    propertyType === "residential"
+      ? RESIDENTIAL_PROPERTY_OPTIONS
+      : propertyType === "commercial"
+      ? COMMERCIAL_PROPERTY_OPTIONS
+      : [];
 
   return (
     <div className="space-y-4">
@@ -69,15 +79,7 @@ export default function BasicDetailsStep() {
                   })
                 )
               }
-              className={`
-          px-5 py-2 rounded-full border
-          text-sm font-medium transition
-          ${
-            isActive
-              ? "border-green-500 bg-green-50 text-green-600"
-              : "border-gray-300 text-gray-600 hover:border-gray-400"
-          }
-        `}
+              className={`px-5 py-2 rounded-md border text-sm font-medium transition${isActive? "border-green-200 bg-green-50 text-green-600" : "border-gray-300 bg-white text-gray-600 hover:border-gray-400"}`}
             >
               {option.label}
             </button>
@@ -107,57 +109,36 @@ export default function BasicDetailsStep() {
         ))}
       </div>
 
-      <InputField
-        label="Property Title"
-        value={base.title || ""}
-        required
-        placeholder="e.g. 3 BHK Apartment in Whitefield"
-        onChange={(value) => dispatch(setBaseField({ key: "title", value }))}
-        error={fieldErrors?.title?.[0]}
-      />
+      {subTypes.length > 0 && (
+        <div className="mb-6">
+          <p className="mb-3 text-sm font-medium text-gray-700">Property Sub-Type</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {subTypes.map((sub) => {
+              const isSelected = categoryState?.propertyType === sub.key;
+              return (
+                <button
+                  key={sub.key}
+                  type="button"
+                  onClick={() => {
+                    if (propertyType) {
+                      dispatch(setProfileField({ propertyType: propertyType as any, key: "propertyType", value: sub.key }))
+                    }
+                  }}
+                  className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition-all ${
+                    isSelected
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500"
+                      : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  <span className="text-2xl">{sub.icon}</span>
+                  <span className="text-xs font-medium">{sub.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <InputField
-          label="Total Price"
-          value={base.price || ""}
-          placeholder="e.g. 75,00,000"
-          onChange={(value) =>
-            dispatch(setBaseField({ key: "price", value: value.replace(/\D/g, "") }))
-          }
-          error={fieldErrors?.price?.[0]}
-        />
-
-        <InputField
-          label="Area (sq ft)"
-          value={base.carpetArea || ""}
-          placeholder="e.g. 1200"
-          onChange={(value) => dispatch(setBaseField({ key: "carpetArea", value: value.replace(/\D/g, "") }))}
-          error={fieldErrors?.areaSqft?.[0]}
-        />
-
-        <InputField
-          label="Price / sq ft"
-          value={
-            base.price && base.carpetArea
-              ? Math.round(Number(base.price) / Number(base.carpetArea))
-              : ""
-          }
-          placeholder="Auto calculated"
-          disabled
-          onChange={() => {}}
-        />
-      </div>
-
-      <TextArea
-        label="Property Description"
-        value={base.description || ""}
-        placeholder="e.g. Spacious 3 BHK apartment with east-facing balcony, covered parking, power backup, and close to IT parks."
-        maxLength={500}
-        onChange={(value) =>
-          dispatch(setBaseField({ key: "description", value }))
-        }
-        error={fieldErrors?.description?.[0]}
-      />
 
       <FileUpload
         label="Property Images"

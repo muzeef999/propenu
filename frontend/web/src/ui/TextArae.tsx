@@ -21,7 +21,7 @@ const TextArea = ({
   required = false,
   disabled = false,
   error,
-  rows = 2,
+  rows = 3,
   maxLength,
 }: TextAreaProps) => {
   return (
@@ -30,23 +30,23 @@ const TextArea = ({
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>
-      <textarea
-        value={value}
-        rows={rows}
-        maxLength={maxLength}
-        disabled={disabled}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        className={`w-full px-3 py-2 border rounded-md text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors ${error ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-gray-300"} ${disabled ? "bg-gray-100 cursor-not-allowed text-gray-500" : "bg-white"}`}
-      />
-      <div className="flex justify-between items-start mt-1">
-        <div className="flex-1">{error && <p className="text-xs text-red-500">{error}</p>}</div>
+      <div className="relative w-full">
+        <textarea
+          value={value}
+          rows={rows}
+          maxLength={maxLength}
+          disabled={disabled}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          className={`w-full px-3 py-2 border rounded-md text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors ${error ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-gray-300"} ${disabled ? "bg-gray-100 cursor-not-allowed text-gray-500" : "bg-white"} ${maxLength ? "pb-6" : ""}`}
+        />
         {maxLength && (
-          <span className="text-xs text-gray-400 ml-2">
+          <span className="absolute bottom-2 right-3 text-xs text-gray-400">
             {String(value).length}/{maxLength}
           </span>
         )}
       </div>
+      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
     </div>
   );
 };

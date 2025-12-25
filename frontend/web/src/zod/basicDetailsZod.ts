@@ -1,35 +1,67 @@
 import { z } from "zod";
+import {
+  RESIDENTIAL_PROPERTY_KEYS,
+  COMMERCIAL_PROPERTY_KEYS,
+} from "@/app/(pages)/postproperty/constants/subTypes";
 
-export const basicDetailsSchema = z.object({
-  listingType: z.enum(["sale", "rent", "buy"], {
-    message: "Listing type is required",
-  }),
+export const basicDetailsSchema = z
+  .object({
+    listingType: z.enum(["sale", "rent", "lease"], {
+      message: "Listing type is required",
+    }),
 
-  category: z.enum(["residential", "commercial", "land", "agricultural"], {
-    message: "Category is required",
-  }),
+    category: z.enum(["residential", "commercial", "land", "agricultural"], {
+      message: "Category is required",
+    }),
 
-  title: z
-    .string()
-    .trim()
-    .min(10, "Property title must be at least 10 characters"),
+    propertyType: z.string().min(1, "Property type is required").optional(),
 
-  price: z.coerce.number().positive("Total price must be greater than 0"),
+    images: z.array(z.instanceof(File)).min(5, "Upload at least 5 images"),
+  })
+  .superRefine((data, ctx) => {
+    const { category, propertyType } = data;
 
-  areaSqft: z.coerce.number().positive("Area must be greater than 0"),
+    // For residential and commercial, propertyType is REQUIRED
+    if ((category === "residential" || category === "commercial") && !propertyType) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Please select a valid ${category} property type`,
+        path: ["propertyType"],
+      });
+      return;
+    }
 
-  description: z
-    .string()
-    .trim()
-    .min(50, "Description must be at least 50 characters")
-    .max(500, "Description cannot exceed 500 characters"),
+    if (category === "residential") {
+      if (
+        !RESIDENTIAL_PROPERTY_KEYS.includes(
+          propertyType as (typeof RESIDENTIAL_PROPERTY_KEYS)[number]
+        )
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Please select a valid residential property type",
+          path: ["propertyType"],
+        });
+      }
+    }
 
-  images: z.array(z.instanceof(File)).min(5, "Upload at least 5 images"),
-});
+    if (category === "commercial") {
+      if (
+        !COMMERCIAL_PROPERTY_KEYS.includes(
+          propertyType as (typeof COMMERCIAL_PROPERTY_KEYS)[number]
+        )
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Please select a valid commercial property type",
+          path: ["propertyType"],
+        });
+      }
+    }
+  });
 
 
 export type BasicDetailsForm = z.infer<typeof basicDetailsSchema>;
-
 
 export const validateBasicDetails = (
   base: any,
@@ -39,10 +71,8 @@ export const validateBasicDetails = (
   return basicDetailsSchema.safeParse({
     listingType: base.listingType,
     category,
-    title: base.title,
-    price: base.price,
-    areaSqft: base.carpetArea,
-    description: base.description,
+    propertyType: base.propertyType, // ✔ correct
     images: files.map((f) => f.file),
   });
 };
+

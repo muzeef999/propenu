@@ -5,7 +5,7 @@ import InputField from "@/ui/InputFiled";
 import AmenitiesSelect from "./AmenitiesSelect";
 import { AMENITIES } from "../constants/amenities";
 import IconCardSelect from "./IconCardSelect";
-import { COMMERCIAL_SUB_TYPES } from "../constants/subTypes";
+import { COMMERCIAL_PROPERTY_OPTIONS } from "../constants/subTypes";
 import TextArea from "@/ui/TextArae";
 import { submitPropertyThunk } from "@/Redux/thunks/submitPropertyApi";
 import { useAppDispatch } from "@/Redux/store";
@@ -329,7 +329,7 @@ const CommercialProfile = () => {
       <IconCardSelect
         label="Property Type"
         value={commercial.propertyType}
-        options={COMMERCIAL_SUB_TYPES}
+        options={COMMERCIAL_PROPERTY_OPTIONS}
         onChange={(value) =>
           dispatch(
             setProfileField({

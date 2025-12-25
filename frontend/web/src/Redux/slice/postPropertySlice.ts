@@ -68,11 +68,14 @@ const postPropertySlice = createSlice({
     /* -------- Profile fields (dynamic) -------- */
     setProfileField(state, action: PayloadAction<SetProfileFieldPayload>) {
       const { propertyType, key, value } = action.payload;
-      if (!propertyType) return;
+      if (!propertyType) {
+        console.warn("setProfileField: propertyType is required but got:", propertyType);
+        return;
+      }
 
       state[propertyType][key] = value;
 
-      console.log("After update:", state[propertyType]);
+      console.log(`setProfileField: Set ${propertyType}.${key} = ${value}`, state[propertyType]);
     },
   },
 });

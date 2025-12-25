@@ -44,7 +44,7 @@ const AmenitiesSelect = ({
   return (
     <div ref={ref} className="space-y-1">
       {/* Label */}
-      <label className="inline-block text-sm font-normal m-0 p-1 bg-gray-400 text-white rounded-t-sm">
+      <label className="block text-md font-medium text-gray-700 mb-2">
         {label}
       </label>
 

@@ -14,12 +14,10 @@ const page = () => {
       <div className="w-full max-w-5xl h-full card bg-white shadow-xl rounded-xl overflow-hidden">
         <div className="grid grid-cols-[280px_1fr] h-full">
 
-            {/* Sidebar (fixed height, no scroll) */}
             <div className="h-full">
               <Sidebar />
             </div>
 
-            {/* Main Content (scrolls) */}
             <div className="h-full overflow-y-auto">
               <MainContent />
             </div>
