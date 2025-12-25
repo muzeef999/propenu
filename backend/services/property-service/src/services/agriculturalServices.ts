@@ -494,11 +494,13 @@ export const AgriculturalService = {
       $project: {
         _id: 0,
         id: "$_id",
+        totalArea:1,
         type: { $literal: "Agricultural" },
         title: 1,
         gallery: 1,
         price: 1,
         slug: 1,
+        pricePerSqft:1,
         soilType: 1,
         waterSource: 1,
         accessRoadType: 1,

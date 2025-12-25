@@ -99,7 +99,7 @@ const {
         aria-label="Main navigation"
       >
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-18 md:h-18 py-3">
+          <div className="flex items-center justify-between h-16 ">
             {/* LEFT */}
             <div className="flex items-center gap-4">
               <Link
@@ -147,7 +147,6 @@ const {
                     }
                     width="w-[90vw] max-w-[800px]"
                     align="left"
-                    openOnHover={true}
                     renderContent={(close) => (
                       <div>
                         <h3 className="text-xl font-semibold text-black mb-1 mt-3  tracking-wide">

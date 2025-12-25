@@ -3,10 +3,8 @@ import { IFileRef } from "./sharedTypes";
 
 export const PANTRY_TYPES = [
   "none",
-  "dry",
-  "wet",
   "shared",
-  "cafeteria-access",
+  "no-shared",
 ] as const;
 
 export type PantryType = (typeof PANTRY_TYPES)[number];
@@ -95,7 +93,8 @@ export interface ICommercial  {
   occupancyCertificateFile?: IFileRef | null;
   leaseDocuments?: IFileRef[];
   buildingManagement?: { security?: boolean; managedBy?: string; contact?: string };
-
+  parkingDetails?: { visitorParking?: boolean; twoWheeler?: number; fourWheeler?: number };
+  builtUpArea?:number;
   pantry?: {
     type?: PantryType;
     insidePremises?: boolean;

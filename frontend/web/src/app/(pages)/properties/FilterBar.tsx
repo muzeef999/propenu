@@ -17,7 +17,7 @@ import { useAppSelector } from "@/Redux/store";
 import CategoryFilters from "./CategoryFilters";
 
 const FilterBar: React.FC = () => {
-  const bgColor = hexToRGBA("#27AE60", 0.2); 
+  const bgColor = hexToRGBA("#27AE60", 0.2);
 
   const listingOptions: ListingOption[] = ["Buy", "Rent", "Lease"];
   const categoryOptions: categoryOption[] = [
@@ -28,17 +28,25 @@ const FilterBar: React.FC = () => {
   ];
 
   const dispatch = useDispatch();
-  const { listingType, category, searchText } = useAppSelector((s) => s.filters);
+  const { listingType, category, searchText } = useAppSelector(
+    (s) => s.filters
+  );
 
   return (
-    <div className="w-full h-[60px] flex items-center" style={{ backgroundColor: bgColor }}>
-      <div className="container bg-[#FFF] flex gap-6 p-2 items-center border-none rounded-xl">
+    <div
+      className="sticky top-0 w-full h-14 px-3 flex items-center   z-60 shadow-sm"
+      style={{ backgroundColor: bgColor }}
+    >
+      <div className="max-w-8xl mx-auto bg-white flex gap-5  items-center border-none rounded-xl px-3 py-1">
         <div className="flex items-center gap-4">
           <FilterDropdown
-            triggerLabel={<span className="px-4 text-primary font-medium">{listingType}</span>}
+            triggerLabel={
+              <span className="px-3 py-1.5 text-sm text-primary font-medium">
+                {listingType}
+              </span>
+            }
             width="w-56"
             align="left"
-            openOnHover={true}
             renderContent={(close) => (
               <div>
                 <h4 className="text-sm font-semibold mb-2">Listing Type</h4>
@@ -65,7 +73,9 @@ const FilterBar: React.FC = () => {
           <div>
             <select
               value={category}
-              onChange={(e) => dispatch(setCategory(e.target.value as categoryOption))}
+              onChange={(e) =>
+                dispatch(setCategory(e.target.value as categoryOption))
+              }
               className="w-full max-w-lg rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >
               {categoryOptions.map((type) => (
@@ -86,10 +96,9 @@ const FilterBar: React.FC = () => {
               className="bg-transparent outline-none px-2 py-1"
             />
           </div>
+
+          <CategoryFilters />
         </div>
-          <div>
-             <CategoryFilters />
-          </div>
       </div>
     </div>
   );

@@ -337,10 +337,23 @@ export type SearchFilters = {
 
 
 type RESFilterKey =
-  | "furnishing"
-  | "amenities"
-  | "photos"
-  | "facing"
-  | "floor"
-  | "bathroom"
-  | "localities";
+  | "Sub Property Type"
+  | "Sales Type"
+  | "Possession Status"
+  | "Covered Area"
+  | "Bathroom"
+  | "Balcony"
+  | "Parking"
+  | "Furnishing"
+  | "Amenities"
+  | "Facing"
+  | "Verified Properties"
+  | "Posted Since"
+  | "Posted By"
+
+
+ export  interface MoreFilterSection {
+  key: RESFilterKey;
+  label: string;
+  options?: string[];
+}

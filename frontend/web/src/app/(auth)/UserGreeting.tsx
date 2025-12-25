@@ -34,7 +34,6 @@ const UserGreeting = ({ user }: UserGreetingProps) => {
         }
         width="w-56"
         align="left"
-        openOnHover={true}
         renderContent={(close) => (
           <div className="py-2">
             {GreetingOptions.map((item) => {

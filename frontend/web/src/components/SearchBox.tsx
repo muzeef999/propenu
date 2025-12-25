@@ -68,7 +68,6 @@ const SearchBox = () => {
                 }
                 width="w-56"
                 align="left"
-                openOnHover={true}
                 renderContent={(close) => (
                   <div>
                     <h4 className="text-sm font-semibold mb-2">Listing Type</h4>
