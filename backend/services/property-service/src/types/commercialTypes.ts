@@ -20,29 +20,24 @@ export const COMMERCIAL_PROPERTY_TYPES = [
 ] as const;
 
 export const COMMERCIAL_PROPERTY_SUBTYPES = [
-  // retail / shop
-  "high-street-shop",
-  "mall-shop",
-  "shutter-shop",
-  "kiosk",
-  "food-court-unit",
   // office
-  "bare-shell",
-  "warm-shell",
-  "fully-furnished",
-  "business-center",
-  "coworking-dedicated-desk",
-  "coworking-hot-desk",
-
-  // warehouse / industrial
-  "warehouse-godown",
-  "logistics-hub",
-  "cold-storage",
-  "industrial-shed",
-  // general
-  "bank-branch",
-  "clinic-space",
-  "salon-spa",
+  "bare-shell", "warm-shell", "business-center",
+  //  retail
+  "high-street-shop", "mall-shop", "kiosk", "food-court-unit",
+  //shop
+  "high-street-shop", "shutter-shop", "mall-shop",
+  //showroom
+  "high-street-shop","showroom-space",
+   //warehouse
+   "warehouse-godown", "logistics-hub", "cold-storage",
+  //industrial
+   "industrial-shed",
+  // coworking
+   "coworking-dedicated-desk", "coworking-hot-desk",
+  // restaurant
+   "food-court-unit",
+  //clinic
+   "clinic-space",
 ] as const;
 
 export type CommercialPropertyType = (typeof COMMERCIAL_PROPERTY_TYPES)[number];
