@@ -4,11 +4,16 @@ import {
   COMMERCIAL_PROPERTY_TYPES,
   COMMERCIAL_PROPERTY_SUBTYPES,
   PANTRY_TYPES,
+  FLOORING_TYPES,
+  WALL_FINISH_STATUS,
 } from "../types/commercialTypes";
 
 /* ----------------------
    Coercion helpers
    ---------------------- */
+
+
+
 
 /** coerce "string number" => number; returns undefined for empty/null */
 const coerceNumber = (schema: z.ZodNumber) =>
@@ -174,6 +179,23 @@ const PantryZ = z.object({
   shared: coerceBoolean(z.boolean()).optional(),
 });
 
+
+   const FireSafetyZ = z.object({
+  fireExtinguisher: coerceBoolean(z.boolean()).optional(),
+  fireSprinklerSystem: coerceBoolean(z.boolean()).optional(),
+  fireHoseReel: coerceBoolean(z.boolean()).optional(),
+  fireHydrant: coerceBoolean(z.boolean()).optional(),
+  smokeDetector: coerceBoolean(z.boolean()).optional(),
+  fireAlarmSystem: coerceBoolean(z.boolean()).optional(),
+  fireControlPanel: coerceBoolean(z.boolean()).optional(),
+  emergencyExitSignage: coerceBoolean(z.boolean()).optional(),
+});
+
+
+const FlooringTypeZ = coerceEnum(FLOORING_TYPES);
+const WallFinishStatusZ = coerceEnum(WALL_FINISH_STATUS);
+
+
 function enumPreprocess<T extends readonly [string, ...string[]]>(choices: T) {
   // spread into a mutable tuple for z.enum typing
   const enumSchema = z.enum([...choices] as [string, ...string[]]);
@@ -256,6 +278,15 @@ export const CreateCommercialSchema = BaseCreate.extend({
     constructionStatus: enumPreprocess(["ready-to-move", "under-construction"]).optional(),
 
 
+
+wallFinishStatus: WallFinishStatusZ.optional(),
+flooringType: FlooringTypeZ.optional(),
+
+fireSafety: jsonObject(FireSafetyZ).optional(),
+
+
+
+
   // utilities & facilities
   powerBackup: z.string().optional(),
   powerCapacityKw: coerceNumber(z.number()).optional(),
@@ -266,7 +297,6 @@ export const CreateCommercialSchema = BaseCreate.extend({
   maintenanceCharges: coerceNumber(z.number()).optional(),
 
   // safety & docs
-  fireSafety: coerceBoolean(z.boolean()).optional(),
   fireNOCFile: FileMetaZ.optional().nullable(),
 
   // loading / parking

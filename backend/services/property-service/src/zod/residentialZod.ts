@@ -191,6 +191,8 @@ export const ResidentialCreateSchema = BaseResidentialCreate.extend({
   constructionYear: (z.coerce.number().int()).optional(),
   isModularKitchen: (z.coerce.boolean()).optional(),
 
+  isPriceNegotiable: z.boolean().optional(),
+
 
   // furnishing: normalize and accept case/space/array issues
   furnishing: z.enum(["unfurnished", "semi-furnished", "fully-furnished"]).optional(),
@@ -240,6 +242,7 @@ export const ResidentialUpdateSchema = z
     buildingName: z.string().optional(),
     locality: z.string().min(1, "Locality is required"),
     city: z.string().optional(),
+    isPriceNegotiable: z.boolean().optional(),
     transactionType: z.enum(
     ["new-sale", "resale", "pre-leased", "rent", "lease"] as const
   ).optional(),

@@ -1,27 +1,18 @@
 import mongoose from "mongoose";
-import { randomUUID } from "crypto";
 import s3 from "../config/s3";
 import dotenv from "dotenv";
 import Commercial from "../models/commercialModel";
-import { SearchFilters } from "../types/searchResultItem";
 import User from "../models/userModel";
 import Role from "../models/roleModel";
-import Residential from "../models/residentialModel";
 import { uploadFile } from "../utils/uploadFile";
 import { extendCommercialFilters } from "./filters/commercialFilters";
+import { upsertCityAndLocality } from "./locationServices";
 dotenv.config({ quiet: true });
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
 
 /* -------------------- Helpers -------------------- */
 
-function slugifyTitle(title: string) {
-  return String(title)
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 function normalizePayload(obj: any) {
   if (!obj) return obj;
@@ -59,21 +50,7 @@ async function resolveListingSourceFromUser(
 
   return undefined;
 }
-
-async function generateUniqueSlug(
-  desiredTitleOrSlug: string,
-  excludeId?: string
-) {
-  const slug = slugifyTitle(desiredTitleOrSlug);
-  const existing = await Commercial.findOne({ slug }).select("_id").lean();
-  if (existing) {
-    if (excludeId && existing._id.toString() === excludeId) return slug;
-    const err: any = new Error("Slug already in use");
-    err.code = "SLUG_TAKEN";
-    throw err;
-  }
-  return slug;
-}
+ 
 
 async function deleteS3ObjectIfExists(key?: string) {
   if (!key) return;
@@ -151,24 +128,8 @@ async function mapAndUploadGallery({
 
 export const CommercialService = {
   async create(payload: any, files?: MulterFiles) {
-    const slugSource =
-      (payload.slug && String(payload.slug).trim()) || payload.title;
-    const slug = await generateUniqueSlug(slugSource);
 
-    let toCreate: any = { ...payload, slug };
-
-    toCreate = normalizePayload(toCreate);
-
-    if (!toCreate.listingSource && toCreate.createdBy) {
-      try {
-        const listingSource = await resolveListingSourceFromUser(
-          toCreate.createdBy
-        );
-        if (listingSource) toCreate.listingSource = listingSource;
-      } catch (err) {
-        console.warn("resolveListingSource failed:", (err as Error).message);
-      }
-    }
+    let toCreate = normalizePayload({ ...payload });
 
     // preliminary instance for id
     const preliminary = new Commercial(toCreate);
@@ -273,6 +234,17 @@ export const CommercialService = {
     }
 
     const createdDoc = await Commercial.create(toCreate);
+
+    if (createdDoc.city && createdDoc.locality) {
+         await upsertCityAndLocality({
+ city: createdDoc.city,
+    locality: createdDoc.locality,
+    ...(createdDoc.state && { state: createdDoc.state }),
+    ...(createdDoc.location?.coordinates && {
+      coordinates: createdDoc.location.coordinates,
+         }),
+    });
+  }
     const populated = await Commercial.findById(createdDoc._id)
       .populate("createdBy", "name email phone role roleId")
       .lean()

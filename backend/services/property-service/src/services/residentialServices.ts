@@ -64,13 +64,7 @@ function pickDefined<T extends Record<string, any>>(obj: T) {
   );
 }
 
-function slugifyTitle(title: string) {
-  return String(title)
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
+
 
 function normalizePayload(obj: any) {
   if (!obj) return obj;
