@@ -12,7 +12,7 @@ import { hexToRGBA } from "@/ui/hexToRGBA";
 import formatINR from "@/utilies/PriceFormat";
 import Link from "next/link";
 import { AiOutlineHeart } from "react-icons/ai";
-import { HiOutlineLocationMarker } from "react-icons/hi";
+import { BiBuildingHouse } from "react-icons/bi";
 
 const AgriculturalCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, vertical = false }) => {
   const bgPriceColor = hexToRGBA("#27AE60", 0.1);
@@ -66,14 +66,13 @@ const AgriculturalCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ve
       {/* Middle: content */}
       <div className="flex-1 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
         <div>
-          <h3 className="text-lg md:text-xl font-semibold line-clamp-2">
+          <h3 className="text-lg md:text-md font-semibold line-clamp-2">
             {vertical ? `${p?.title?.slice(0, 18)}...` : p?.title}
           </h3>
           <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
-            <HiOutlineLocationMarker className="w-4 h-4" />
+            <BiBuildingHouse className="w-4 h-4" />
             <span className="capitalize">
-              {(p as any)?.city ?? ""}
-              {(p as any)?.slug ? ` • ${vertical ? `${(p as any).slug?.slice(0, 12)}...` : (p as any).slug}` : ""}
+              {vertical ? (p as any)?.buildingName?.slice(0, 18)?.concat("...") : (p as any)?.buildingName}
             </span>
           </p>
         </div>
@@ -92,42 +91,40 @@ const AgriculturalCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ve
         </div>
 
         {/* meta icons row */}
-        <div className={`grid grid-cols-2 gap-4 mt-4 text-sm text-gray-600 ${vertical ? "" : "md:flex md:items-center md:gap-6"}`}>
-          <div className="items-center gap-2">
+        <div className={`mt-4 text-xs text-gray-600 ${
+          vertical
+          ? "grid grid-cols-2 gap-4"
+          : "md:flex md:items-center md:gap-6"
+          }`}>
+          <div className="items-center gap-2 flex">
             <SuperBuiitupAraea size={24} color={bgPriceColoricon} />
-            <div className="text-xs text-gray-500 tracking-wide">
-              Total Area&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            </div>
-            <div className="font-medium">
-              {(p as any)?.superBuiltUpArea ?? "—"} sqft
+            <div className="flex flex-col">
+              <div className="text-xs text-gray-500 tracking-wide">Total Area</div>
+              <div className="font-medium">{(p as any)?.superBuiltUpArea ?? "—"} sqft</div>
             </div>
           </div>
 
-          <div className="items-center gap-2">
+          <div className="items-center gap-2 flex">
             <WaterTypeIcon size={24} color={bgPriceColoricon} />
-            <div className="text-xs text-gray-500 tracking-wide">
-              Water Source&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            </div>
-            <div className="font-medium">
-              {(p as any)?.waterSource ?? "—"}
+            <div className="flex flex-col">
+              <div className="text-xs text-gray-500 tracking-wide">Water Source</div>
+              <div className="font-medium">{(p as any)?.waterSource ?? "—"}</div>
             </div>
           </div>
 
-          <div className="items-center gap-2">
+          <div className="items-center gap-2 flex">
             <SoilTypeIcon size={24} color={bgPriceColoricon} />
-            <div className="text-xs text-gray-500 tracking-wide">
-              Soil Type&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            </div>
-            <div className="font-medium">
-              {(p as any)?.soilType?.trim() ?? "—"}
+            <div className="flex flex-col">
+              <div className="text-xs text-gray-500 tracking-wide">Soil Type</div>
+              <div className="font-medium">{(p as any)?.soilType?.trim() ?? "—"}</div>
             </div>
           </div>
 
-          <div className="items-center gap-2">
+          <div className="items-center gap-2 flex">
             <RoadAccessIcon size={24} color={bgPriceColoricon} />
-            <div className="text-xs">Road Access</div>
-            <div className="font-medium">
-              {(p as any)?.accessRoadType?.trim() ?? "—"}
+            <div className="flex flex-col">
+              <div className="text-xs text-gray-500 tracking-wide">Road Access</div>
+              <div className="font-medium">{(p as any)?.accessRoadType?.trim() ?? "—"}</div>
             </div>
           </div>
         </div>

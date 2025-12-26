@@ -49,6 +49,16 @@ const LocationDetailsStep = () => {
       ? validationResult.error.flatten().fieldErrors
       : {};
 
+  // ✅ Convert CAPS / lowercase → Title Case
+  const formatToTitleCase = (str: string) => {
+    if (!str) return "";
+    return str
+      .toLowerCase()
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
   const getCustomError = (key: string, msg: string) => {
     const error = (fieldErrors as any)?.[key]?.[0];
     if (!error) return undefined;
@@ -58,21 +68,38 @@ const LocationDetailsStep = () => {
     return error;
   };
 
-  // ✅ Handle pincode lookup safely
+  // ✅ FIXED PINCODE HANDLER (NO CAPS)
   const handlePincodeChange = (value: string) => {
-    dispatch(setBaseField({ key: "pincode", value }));
+    const numericValue = value.replace(/\D/g, "");
+    dispatch(setBaseField({ key: "pincode", value: numericValue }));
 
-    if (value.length !== 6) return;
+    if (numericValue.length !== 6) return;
 
-    const data = search(value) as PincodeResult[];
-
+    const data = search(numericValue) as PincodeResult[];
     if (!data || data.length === 0) return;
 
     const pin = data[0];
 
-    dispatch(setBaseField({ key: "state", value: pin.state }));
-    dispatch(setBaseField({ key: "city", value: pin.city }));
-    dispatch(setBaseField({ key: "locality", value: pin.village }));
+    dispatch(
+      setBaseField({
+        key: "state",
+        value: formatToTitleCase(pin.state),
+      })
+    );
+
+    dispatch(
+      setBaseField({
+        key: "city",
+        value: formatToTitleCase(pin.city),
+      })
+    );
+
+    dispatch(
+      setBaseField({
+        key: "locality",
+        value: formatToTitleCase(pin.village || pin.office),
+      })
+    );
   };
 
   return (
@@ -84,39 +111,57 @@ const LocationDetailsStep = () => {
         placeholder="e.g. Flat 302, Green Residency, Near Metro Station"
         maxLength={500}
         onChange={(value) =>
-          dispatch(setBaseField({ key: "address", value }))
+          dispatch(
+            setBaseField({
+              key: "address",
+              value: formatToTitleCase(value),
+            })
+          )
         }
         error={getCustomError("address", "Enter property address")}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-[60%_1fr] gap-4 space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-[60%_1fr] gap-4">
         <InputField
-          label="Appartment / Society"
-          value={base.Appartment || ""}
-          placeholder="Enter building or Society Name"
+          label="BuildingName / Society"
+          value={base.buildingName || ""}
+          placeholder="Enter building or society name"
           onChange={(value) =>
-            dispatch(setBaseField({ key: "Appartment", value }))
+            dispatch(
+              setBaseField({
+                key: "buildingName",
+                value: formatToTitleCase(value),
+              })
+            )
           }
-          error={getCustomError("Appartment", "Enter Appartment / Society name")}
+          error={getCustomError(
+            "buildingName",
+            "Enter Building / Society name"
+          )}
         />
 
         <InputField
           label="Pincode"
           value={base.pincode || ""}
-          placeholder="e.g. 560001"
-          onChange={(value) => handlePincodeChange(value)}
+          placeholder="e.g. 500033"
+          onChange={handlePincodeChange}
           error={getCustomError("pincode", "Enter valid pincode")}
         />
       </div>
 
-      {/* locality, state, city*/}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 space-y-4 mt-2">
+      {/* Locality / City / State */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
         <InputField
           label="Locality"
           value={base.locality || ""}
           placeholder="Enter locality"
           onChange={(value) =>
-            dispatch(setBaseField({ key: "locality", value }))
+            dispatch(
+              setBaseField({
+                key: "locality",
+                value: formatToTitleCase(value),
+              })
+            )
           }
           error={getCustomError("locality", "Enter locality")}
         />
@@ -125,14 +170,29 @@ const LocationDetailsStep = () => {
           label="City"
           value={base.city || ""}
           placeholder="Enter city"
-          onChange={(value) => dispatch(setBaseField({ key: "city", value }))}
+          onChange={(value) =>
+            dispatch(
+              setBaseField({
+                key: "city",
+                value: formatToTitleCase(value),
+              })
+            )
+          }
           error={getCustomError("city", "Enter city")}
         />
+
         <InputField
           label="State"
           value={base.state || ""}
           placeholder="Enter state"
-          onChange={(value) => dispatch(setBaseField({ key: "state", value }))}
+          onChange={(value) =>
+            dispatch(
+              setBaseField({
+                key: "state",
+                value: formatToTitleCase(value),
+              })
+            )
+          }
           error={getCustomError("state", "Enter state")}
         />
       </div>

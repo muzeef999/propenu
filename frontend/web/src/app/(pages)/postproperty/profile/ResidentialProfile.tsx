@@ -1,14 +1,11 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import Switch from "react-switch";
 import { setProfileField } from "@/Redux/slice/postPropertySlice";
 import Dropdownui from "@/ui/DropDownUI";
 import CounterField from "@/ui/CounterField";
 import InputField from "@/ui/InputFiled";
 import AmenitiesSelect from "./AmenitiesSelect";
 import { AMENITIES } from "../constants/amenities";
-import IconCardSelect from "./IconCardSelect";
-import { RESIDENTIAL_SUB_TYPES } from "../constants/subTypes";
 import TextArea from "@/ui/TextArae";
 import { submitPropertyThunk } from "@/Redux/thunks/submitPropertyApi";
 import { useAppDispatch } from "@/Redux/store";
@@ -48,61 +45,35 @@ export const ParkingTypes = ["open", "closed", "both"] as const;
 const ResidentialProfile = () => {
   const { residential } = useSelector((state: any) => state.postProperty);
   const dispatch = useAppDispatch();
+  // Compute price per sqft from either `price` or `expectedPrice` and write
+  // the result to `residential.pricePerSqft` (consistent key used across app).
   useEffect(() => {
-    const price = Number(residential.expectedPrice);
+    const price = Number(residential.price) || Number(residential.expectedPrice);
     const area = Number(residential.carpetArea);
 
     if (price > 0 && area > 0) {
-      const pricePerSqFt = Math.round(price / area);
-      if (String(pricePerSqFt) !== residential.pricePerSqFt) {
+      const pricePerSqft = String(Math.round(price / area));
+      if (pricePerSqft !== residential.pricePerSqft) {
         dispatch(
           setProfileField({
             propertyType: "residential",
-            key: "pricePerSqFt",
-            value: String(pricePerSqFt),
+            key: "pricePerSqft",
+            value: pricePerSqft,
           })
         );
       }
     } else {
-      if (residential.pricePerSqFt) {
+      if (residential.pricePerSqft) {
         dispatch(
           setProfileField({
             propertyType: "residential",
-            key: "pricePerSqFt",
+            key: "pricePerSqft",
             value: "",
           })
         );
       }
     }
-  }, [residential.expectedPrice, residential.carpetArea, residential.pricePerSqFt, dispatch]);
-
-  useEffect(() => {
-    const price = Number(residential.expectedPrice);
-    const area = Number(residential.carpetArea);
-
-    if (price > 0 && area > 0) {
-      const pricePerSqFt = Math.round(price / area);
-      if (String(pricePerSqFt) !== residential.pricePerSqFt) {
-        dispatch(
-          setProfileField({
-            propertyType: "residential",
-            key: "pricePerSqFt",
-            value: String(pricePerSqFt),
-          })
-        );
-      }
-    } else {
-      if (residential.pricePerSqFt) {
-        dispatch(
-          setProfileField({
-            propertyType: "residential",
-            key: "pricePerSqFt",
-            value: "",
-          })
-        );
-      }
-    }
-  }, [residential.expectedPrice, residential.carpetArea, residential.pricePerSqFt, dispatch]);
+  }, [residential.price, residential.expectedPrice, residential.carpetArea, residential.pricePerSqft, dispatch]);
 
 
   return (
@@ -594,13 +565,13 @@ const ResidentialProfile = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
           <InputField
             label="Total Price"
-            value={residential.expectedPrice || ""}
+            value={residential.price || ""}
             placeholder="e.g. 75,00,000"
             onChange={(value) =>
               dispatch(
                 setProfileField({
                   propertyType: "residential",
-                  key: "expectedPrice",
+                  key: "price",
                   value: value.replace(/\D/g, ""),
                 })
               )
@@ -624,7 +595,7 @@ const ResidentialProfile = () => {
 
           <InputField
             label="Price / sq ft"
-            value={residential.pricePerSqFt || ""}
+            value={residential.pricePerSqft || ""}
             placeholder="Auto calculated"
             disabled
             onChange={() => { }}

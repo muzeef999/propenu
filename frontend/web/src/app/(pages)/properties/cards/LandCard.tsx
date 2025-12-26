@@ -12,7 +12,7 @@ import { hexToRGBA } from "@/ui/hexToRGBA";
 import formatINR from "@/utilies/PriceFormat";
 import Link from "next/link";
 import { AiOutlineHeart } from "react-icons/ai";
-import { HiOutlineLocationMarker } from "react-icons/hi";
+import { BiBuildingHouse } from "react-icons/bi";
 
 export const LandCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, vertical = false }) => {
   const bgPriceColor = hexToRGBA("#27AE60", 0.1);
@@ -68,15 +68,12 @@ export const LandCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
       {/* Middle: content */}
       <div className="flex-1 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
         <div>
-          <h3 className="text-lg md:text-xl font-semibold line-clamp-2">
+          <h3 className="text-lg md:text-md font-semibold line-clamp-2">
             {vertical ? `${p?.title?.slice(0, 18)}...` : p?.title}
           </h3>
           <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
-            <HiOutlineLocationMarker className="w-4 h-4" />
-            <span className="capitalize">
-              {(p as any)?.city ?? ""}
-              {(p as any)?.slug ? ` • ${vertical ? `${(p as any).slug?.slice(0, 12)}...` : (p as any).slug}` : ""}
-            </span>
+            <BiBuildingHouse className="w-4 h-4" />
+            {vertical ? (p as any)?.buildingName?.slice(0, 18)?.concat("...") : (p as any)?.buildingName}
           </p>
         </div>
 
@@ -94,42 +91,39 @@ export const LandCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
         </div>
 
         {/* meta icons row */}
-        <div className={`grid grid-cols-2 gap-4 mt-4 text-sm text-gray-600 ${vertical ? "" : "md:flex md:items-center md:gap-6"}`}>
-          <div className="items-center gap-2">
+        <div className={`mt-4 text-xs text-gray-600 ${vertical
+          ? "grid grid-cols-2 gap-4"
+          : "md:flex md:items-center md:gap-6"
+          }`}>
+          <div className="items-center gap-2 flex">
             <SuperBuiitupAraea size={24} color={bgPriceColoricon} />
-            <div className="text-xs text-gray-500 tracking-wide">
-              Total Area&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            </div>
-            <div className="font-medium">
-              {(p as any)?.superBuiltUpArea ?? "—"} sqft
+            <div className="flex flex-col">
+              <div className="text-xs text-gray-500 tracking-wide">Total Area</div>
+              <div className="font-medium">{(p as any)?.superBuiltUpArea ?? "—"} sqft</div>
             </div>
           </div>
 
-          <div className="items-center gap-2">
+          <div className="items-center gap-2 flex">
             <UnderConstruction size={24} color={bgPriceColoricon} />
-            <div className="text-xs text-gray-500 tracking-wide">
-              Dimensions&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            </div>
-            <div className="font-medium">
-              {(p as any)?.dimension?.length ?? "—"} x {(p as any)?.dimension?.width ?? "—"}
+            <div className="flex flex-col">
+              <div className="text-xs text-gray-500 tracking-wide">Dimensions</div>
+              <div className="font-medium">{(p as any)?.dimension?.length ?? "—"} x {(p as any)?.dimension?.width ?? "—"}</div>
             </div>
           </div>
 
-          <div className="items-center gap-2">
+          <div className="items-center gap-2 flex">
             <Facing size={24} color={bgPriceColoricon} />
-            <div className="text-xs text-gray-500 tracking-wide">
-              Facing&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            </div>
-            <div className="font-medium">
-              {(p as any)?.facing?.trim() ?? "—"}
+            <div className="flex flex-col">
+              <div className="text-xs text-gray-500 tracking-wide">Facing</div>
+              <div className="font-medium">{(p as any)?.facing?.trim() ?? "—"}</div>
             </div>
           </div>
 
-          <div className="items-center gap-2">
+          <div className="items-center gap-2 flex">
             <RoadAccessIcon size={24} color={bgPriceColoricon} />
-            <div className="text-xs">Road Width</div>
-            <div className="font-medium">
-              {(p as any)?.roadWidthFt ? `${(p as any)?.roadWidthFt} Feet` : "—"}
+            <div className="flex flex-col">
+              <div className="text-xs text-gray-500 tracking-wide">Road Width</div>
+              <div className="font-medium">{(p as any)?.roadWidthFt ? `${(p as any)?.roadWidthFt} Feet` : "—"}</div>
             </div>
           </div>
         </div>
@@ -138,7 +132,7 @@ export const LandCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
       {/* Right: price card */}
       <aside
         className={`rounded-xl ${vertical
-          ? "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3"
+          ? "w-full px-3 py-2 flex items-center justify-between gap-3"
           : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:mt-0"
           }`}
         style={{ backgroundColor: bgPriceColor }}

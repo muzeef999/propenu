@@ -12,7 +12,7 @@ import {
 } from "@/icons/icons";
 import formatINR from "@/utilies/PriceFormat";
 import Link from "next/link";
-import { HiOutlineLocationMarker } from "react-icons/hi";
+import { BiBuildingHouse } from "react-icons/bi";
 
 const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, vertical = false }) => {
   const bgPriceColor = hexToRGBA("#27AE60", 0.1);
@@ -22,7 +22,8 @@ const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
   const img = p?.gallery?.[0]?.url ?? "/placeholder.jpg";
   const pricePerSqft =
     (p as any)?.pricePerSqft ??
-    Math.round((p?.price ?? 0) / (p as any)?.superBuiltUpArea || 0);
+    Math.round((p?.price ?? 0) / (p as any)?.builtUpArea || 0);
+  console.log("Rendering ResidentialCard for:", p);
 
   return (
     <Link
@@ -72,13 +73,13 @@ const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
         {/* <div className=""> */}
 
         <div>
-          <h3 className="text-lg md:text-xl font-semibold line-clamp-2">
-            {vertical ? `${p?.title?.slice(0, 18)}...` : p?.title}
+          <h3 className="text-lg md:text-md font-semibold line-clamp-2">
+            {vertical ? `${p?.title?.slice(0, 18)}...` : `${p?.title?.slice(0, 48)}...`}
           </h3>
           <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
-            <HiOutlineLocationMarker className="w-4 h-4" />
+            <BiBuildingHouse className="w-4 h-4" />
 
-            {vertical ? (p as any)?.buildingName?.slice(0, 18)?.concat("...") : (p as any)?.buildingName}, {p?.city}
+            {vertical ? (p as any)?.buildingName?.slice(0, 18)?.concat("...") : (p as any)?.buildingName}
           </p>
         </div>
 
@@ -96,42 +97,54 @@ const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
         </div>
 
         {/* meta icons row */}
-        <div className={`grid grid-cols-2 gap-4 mt-4 text-sm text-gray-600 ${vertical ? "" : "md:flex md:items-center md:gap-6"}`}>
-          <div className="items-center gap-2">
+        <div className={`mt-4 text-xs text-gray-600 ${vertical
+          ? "grid grid-cols-2 gap-4"
+          : "md:flex md:items-center md:gap-6"
+          }`}>
+          <div className="items-center gap-2 flex">
             <SuperBuiitupAraea size={24} color={bgPriceColoricon} />
-            <div className="text-xs text-gray-500 tracking-wide">
-              Super Built-up Area
-            </div>
-            <div className="tex-black font-medium">
-              {(p as any)?.superBuiltUpArea ?? "—"} sqft
+            <div className="flex flex-col">
+              <div className="text-xs text-gray-500 tracking-wide">Built-up Area</div>
+              <div className="font-medium">{(p as any)?.builtUpArea ?? "—"} sqft</div>
             </div>
           </div>
-
-          <div className="items-center gap-2">
+          <div className="items-center gap-2 flex">
             <UnderConstruction size={24} color={bgPriceColoricon} />
-            <div className="text-xs text-gray-500 tracking-wide">
-              Availability Status
-            </div>
-            <div className="font-medium">
-              {(p as any)?.constructionStatus ?? "—"}
+            <div className="flex flex-col">
+              <div className="text-xs text-gray-500 tracking-wide">
+                Availability
+              </div>
+              <div className="font-medium">
+                {(p as any)?.constructionStatus ? "Available" : "Under Construction"}
+              </div>
             </div>
           </div>
-
-          <div className="items-center gap-2">
+          <div className="items-center gap-2 flex">
             <Furnishing size={24} color={bgPriceColoricon} />
-            <div className="text-xs text-gray-500 tracking-wide">
-              Furnishing
-            </div>
-            <div className="font-medium">
-              {(p as any)?.furnishedStatus?.trim() ?? "—"}
+            <div className="flex flex-col">
+              <div className="text-xs text-gray-500 tracking-wide">
+                Furnishing
+              </div>
+              <div className="font-medium">
+                {(() => {
+                  const furnishing = (p as any)?.furnishing;
+
+                  if (furnishing === "fully-furnished") return "Furnished";
+                  if (furnishing === "semi-furnished") return "Semi";
+                  return "Unfurnished";
+                })()}
+              </div>
             </div>
           </div>
-
-          <div className="items-center gap-2">
+          <div className="items-center gap-2 flex">
             <Parking size={24} color={bgPriceColoricon} />
-            <div className="text-xs">Parking</div>
-            <div className="font-medium">
-              {(p as any)?.parkingType?.trim() ?? "—"}
+            <div className="flex flex-col">
+              <div className="text-xs text-gray-500 tracking-wide">Parking</div>
+              <div className="font-medium">
+                {(p as any)?.parkingDetails?.twoWheeler ?? 0}
+                {" + "}
+                {(p as any)?.parkingDetails?.fourWheeler ?? 0}
+              </div>
             </div>
           </div>
         </div>
@@ -140,7 +153,7 @@ const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
       {/* Right: price card */}
       <aside
         className={`rounded-xl ${vertical
-          ? "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3"
+          ? "w-full px-3 py-2 flex items-center justify-between gap-3"
           : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:mt-0"
           }`}
         style={{ backgroundColor: bgPriceColor }}

@@ -51,10 +51,6 @@ export const submitPropertyThunk = createAsyncThunk<
           ? state.land.propertyType || state.land.propertySubType
           : state.agricultural.propertyType || state.agricultural.propertySubType;
 
-      console.log("Submit - propertyType:", propertyType);
-      console.log("Submit - profile state:", profile);
-      console.log("Submit - apiPropertyType:", apiPropertyType);
-
       // Validate that apiPropertyType exists before proceeding
       if (!apiPropertyType) {
         throw new Error(`Property sub-type is required for ${propertyType}`);

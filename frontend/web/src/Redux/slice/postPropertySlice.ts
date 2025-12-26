@@ -74,8 +74,6 @@ const postPropertySlice = createSlice({
       }
 
       state[propertyType][key] = value;
-
-      console.log(`setProfileField: Set ${propertyType}.${key} = ${value}`, state[propertyType]);
     },
   },
 });

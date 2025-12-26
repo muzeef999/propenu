@@ -34,6 +34,8 @@ export default async function Page({ params }: PageProps) {
 
 
   const priceLabel = formatINR(project.price);
+  console.log(project);
+
 
   return (
     <div style={{ background: bgcolor }} className="min-h-screen py-6">
@@ -47,7 +49,7 @@ export default async function Page({ params }: PageProps) {
                   {priceLabel}
                 </span>
                 <h1 className="text-2xl font-semibold text-gray-900 sm:text-xl">
-                  {project.title},{project.city}
+                  {project.title}
                 </h1>
               </div>
             </div>

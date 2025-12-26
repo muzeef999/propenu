@@ -27,7 +27,11 @@ export interface Property {
   superBuiltUpArea?: number; // sqft
   bedrooms?: number;
   furnishing?: "furnished" | "unfurnished" | "semi-furnished" | string;
-  parkingType?: "covered" | "open" | string;
+  parkingDetails?:{
+    visitorParking?: boolean;
+    twoWheeler?: number;
+    fourWheeler?: number;
+  }
   createdAt?: string;
   floorNumber?:number | string;
   totalFloors?:number | string;
