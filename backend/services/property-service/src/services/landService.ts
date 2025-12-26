@@ -1,27 +1,17 @@
 import mongoose from "mongoose";
-import { randomUUID } from "crypto";
 import s3 from "../config/s3";
 import dotenv from "dotenv";
 import LandPlot from "../models/landModel";
-import { SearchFilters } from "../types/searchResultItem";
 import { uploadFile } from "../utils/uploadFile";
-import { uploadMedia } from "../middlewares/multer";
 import User from "../models/userModel";
 import Role from "../models/roleModel";
 import { extendLandFilters } from "./filters/landFilters";
+import { upsertCityAndLocality } from "./locationServices";
 
 dotenv.config({ quiet: true });
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
 
-/** slug helper */
-function slugifyTitle(title: string) {
-  return String(title)
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
  
 
 function normalizePayload(obj: any) {
@@ -64,21 +54,6 @@ async function resolveListingSourceFromUser(
   return undefined;
 }
 
-/** ensure slug uniqueness */
-async function generateUniqueSlug(
-  desiredTitleOrSlug: string,
-  excludeId?: string
-) {
-  const slug = slugifyTitle(desiredTitleOrSlug);
-  const existing = await LandPlot.findOne({ slug }).select("_id").lean();
-  if (existing) {
-    if (excludeId && existing._id.toString() === excludeId) return slug;
-    const err: any = new Error("Slug already in use");
-    err.code = "SLUG_TAKEN";
-    throw err;
-  }
-  return slug;
-}
 
 /** delete S3 object best-effort */
 async function deleteS3ObjectIfExists(key?: string) {
@@ -99,25 +74,12 @@ async function deleteS3ObjectIfExists(key?: string) {
 
 export const LandService = {
   async create(payload: any, files?: MulterFiles) {
-    // generate slug
-    const slugSource =
-      (payload.slug && String(payload.slug).trim()) || payload.title;
-    const slug = await generateUniqueSlug(slugSource);
 
-    let toCreate: any = { ...payload, slug };
+
+    let toCreate: any = { ...payload };
 
       toCreate = normalizePayload(toCreate);
 
-      if (!toCreate.listingSource && toCreate.createdBy) {
-      try {
-        const listingSource = await resolveListingSourceFromUser(
-          toCreate.createdBy
-        );
-        if (listingSource) toCreate.listingSource = listingSource;
-      } catch (err) {
-        console.warn("resolveListingSource failed:", (err as Error).message);
-      }
-    }
 
 
     // preliminary instance to get _id for S3 keys
@@ -238,6 +200,18 @@ export const LandService = {
 
     const createdDoc = await LandPlot.create(toCreate);
      
+
+    if (createdDoc.city && createdDoc.locality) {
+                 await upsertCityAndLocality({
+         city: createdDoc.city,
+            locality: createdDoc.locality,
+            ...(createdDoc.state && { state: createdDoc.state }),
+            ...(createdDoc.location?.coordinates && {
+              coordinates: createdDoc.location.coordinates,
+                 }),
+            });
+          }
+
     const  populated = await LandPlot.findById(createdDoc._id)
      .populate("createdBy", "name email phone role roleId")
       .lean()
@@ -252,16 +226,6 @@ export const LandService = {
     const existing = await LandPlot.findById(id);
     if (!existing) return null;
 
-    // slug/title update
-    if (
-      (payload.slug && payload.slug !== (existing as any).slug) ||
-      (payload.title && payload.title !== (existing as any).title)
-    ) {
-      const slugSource =
-        (payload.slug && String(payload.slug).trim()) ||
-        (payload.title as string);
-      (existing as any).slug = await generateUniqueSlug(slugSource, id);
-    }
 
     // shallow copy incoming fields
     Object.keys(payload || {}).forEach((k) => {

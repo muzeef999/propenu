@@ -61,35 +61,52 @@ export type BaseSearchParams = {
 
 
 
- export interface FilterState {
+ export interface ResidentialFilters {
+  bhk?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  postedBy?: string;
+  locality?: string;
+}
+
+export interface CommercialFilters {
+  commercialType?: string;
+  parking?: string;
+  minArea?: number;
+  maxArea?: number;
+    postedBy?: string;
+  locality?: string;
+}
+
+export interface LandFilters {
+  facing?: string;
+  roadFacing?: string;
+  minArea?: number;
+  maxArea?: number;
+}
+
+export interface AgriculturalFilters {
+  soilType?: string;
+  minArea?: number;
+  maxArea?: number;
+}
+
+export interface FilterState {
   /* -------- Core -------- */
   listingType: ListingOption;
   category: categoryOption;
   searchText: string;
 
   /* -------- Shared -------- */
-  minArea?: number;
-  maxArea?: number;
-
-  /* ✅ Budget (FIXED) */
   minBudget: number;
   maxBudget: number;
-  postedBy?: string;
 
-  /* -------- Residential -------- */
-  bhk?: number;
-  locality?:string
-  bedrooms?: number;
-  bathrooms?: number;
-
-  /* -------- Commercial -------- */
-  commercialType?: string;
-  parking?: string;
-
-  /* -------- Land -------- */
-  facing?: string;
-  roadFacing?: string;
-
-  /* -------- Agricultural -------- */
-  soilType?: string;
+  /* -------- Category Buckets -------- */
+  residential: ResidentialFilters;
+  commercial: CommercialFilters;
+  land: LandFilters;
+  agricultural: AgriculturalFilters;
 }
+
+
+

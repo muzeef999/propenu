@@ -103,7 +103,8 @@ const BaseCreate = z.object({
   state: z.string().optional(),
   pincode: z.string().optional(),
   description: z.string().optional(),
-  
+    landName: z.string().trim().optional(),
+
 
   location: z
     .object({

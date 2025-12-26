@@ -12,9 +12,6 @@ import {
    Coercion helpers
    ---------------------- */
 
-
-
-
 /** coerce "string number" => number; returns undefined for empty/null */
 const coerceNumber = (schema: z.ZodNumber) =>
   z.preprocess((v) => {
@@ -58,13 +55,10 @@ const coerceBoolean = (schema: z.ZodTypeAny) =>
 
 /** helper to coerce + trim string before enum validation */
 const coerceEnum = <T extends readonly [string, ...string[]]>(values: T) =>
-  z.preprocess(
-    (v) => {
-      if (typeof v === "string") return v.trim();
-      return v;
-    },
-    z.enum([...values] as [string, ...string[]])
-  );
+  z.preprocess((v) => {
+    if (typeof v === "string") return v.trim();
+    return v;
+  }, z.enum([...values] as [string, ...string[]]));
 
 /** parse JSON string -> value, or passthrough if already object/array */
 const parseJsonIfString = (v: unknown) => {
@@ -94,14 +88,11 @@ const jsonArray = <T extends z.ZodTypeAny>(schema: T) =>
  * - non-empty array / JSON string array -> validate normally
  */
 const optionalNonEmptyJsonArray = <T extends z.ZodTypeAny>(schema: T) =>
-  z.preprocess(
-    (v) => {
-      v = parseJsonIfString(v);
-      if (Array.isArray(v) && v.length === 0) return undefined;
-      return v;
-    },
-    z.array(schema).optional()
-  );
+  z.preprocess((v) => {
+    v = parseJsonIfString(v);
+    if (Array.isArray(v) && v.length === 0) return undefined;
+    return v;
+  }, z.array(schema).optional());
 
 /** Same idea for plain objects (like pantry) */
 const jsonObject = <T extends z.ZodTypeAny>(schema: T) =>
@@ -145,7 +136,6 @@ const TenantInfoItem = z.object({
 });
 
 /** Amenities / Specifications / Nearby */
-
 const AmenitySchema = z.object({
   key: z.string().optional(),
   title: z.string().optional(),
@@ -179,8 +169,7 @@ const PantryZ = z.object({
   shared: coerceBoolean(z.boolean()).optional(),
 });
 
-
-   const FireSafetyZ = z.object({
+const FireSafetyZ = z.object({
   fireExtinguisher: coerceBoolean(z.boolean()).optional(),
   fireSprinklerSystem: coerceBoolean(z.boolean()).optional(),
   fireHoseReel: coerceBoolean(z.boolean()).optional(),
@@ -191,10 +180,8 @@ const PantryZ = z.object({
   emergencyExitSignage: coerceBoolean(z.boolean()).optional(),
 });
 
-
 const FlooringTypeZ = coerceEnum(FLOORING_TYPES);
 const WallFinishStatusZ = coerceEnum(WALL_FINISH_STATUS);
-
 
 function enumPreprocess<T extends readonly [string, ...string[]]>(choices: T) {
   // spread into a mutable tuple for z.enum typing
@@ -209,7 +196,6 @@ function enumPreprocess<T extends readonly [string, ...string[]]>(choices: T) {
   }, enumSchema);
 }
 
-
 /* ----------------------
    Base fields (common)
    ---------------------- */
@@ -221,6 +207,7 @@ const BaseCreate = z.object({
     .optional()
     .default("sale"),
   developer: z.string().optional(),
+  buildingName: z.string().optional(),
   address: z.string().min(1),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -272,20 +259,20 @@ export const CreateCommercialSchema = BaseCreate.extend({
   totalFloors: coerceInt(z.number().int()).optional(),
 
   // furnishing
-  furnishedStatus: coerceEnum(
-    ["unfurnished", "semi-furnished", "fully-furnished"] as const
-  ).optional(),
-    constructionStatus: enumPreprocess(["ready-to-move", "under-construction"]).optional(),
+  furnishedStatus: coerceEnum([
+    "unfurnished",
+    "semi-furnished",
+    "fully-furnished",
+  ] as const).optional(),
+  constructionStatus: enumPreprocess([
+    "ready-to-move",
+    "under-construction",
+  ]).optional(),
 
+  wallFinishStatus: WallFinishStatusZ.optional(),
+  flooringType: FlooringTypeZ.optional(),
 
-
-wallFinishStatus: WallFinishStatusZ.optional(),
-flooringType: FlooringTypeZ.optional(),
-
-fireSafety: jsonObject(FireSafetyZ).optional(),
-
-
-
+  fireSafety: jsonObject(FireSafetyZ).optional(),
 
   // utilities & facilities
   powerBackup: z.string().optional(),
@@ -339,9 +326,13 @@ fireSafety: jsonObject(FireSafetyZ).optional(),
   seats: coerceInt(z.number().int()).optional(),
 
   // transaction type
-  transactionType: coerceEnum(
-    ["new-sale", "resale", "pre-leased", "rent", "lease"] as const
-  ).optional(),
+  transactionType: coerceEnum([
+    "new-sale",
+    "resale",
+    "pre-leased",
+    "rent",
+    "lease",
+  ] as const).optional(),
 
   // pantry object − also may come as JSON string
   pantry: jsonObject(PantryZ).optional(),
@@ -360,6 +351,7 @@ export const UpdateCommercialSchema = z
     address: z.string().optional(),
     city: z.string().optional(),
     state: z.string().optional(),
+    buildingName: z.string().optional(),
     pincode: z.string().optional(),
     location: z
       .object({
@@ -382,12 +374,16 @@ export const UpdateCommercialSchema = z
     floorNumber: coerceInt(z.number().int()).optional(),
     totalFloors: coerceInt(z.number().int()).optional(),
 
-    furnishedStatus: coerceEnum(
-      ["unfurnished", "semi-furnished", "fully-furnished"] as const
-    ).optional(),
+    furnishedStatus: coerceEnum([
+      "unfurnished",
+      "semi-furnished",
+      "fully-furnished",
+    ] as const).optional(),
 
-      constructionStatus: enumPreprocess(["ready-to-move", "under-construction"]).optional(),
-
+    constructionStatus: enumPreprocess([
+      "ready-to-move",
+      "under-construction",
+    ]).optional(),
 
     powerBackup: z.string().optional(),
     powerCapacityKw: coerceNumber(z.number()).optional(),
@@ -431,9 +427,13 @@ export const UpdateCommercialSchema = z
     conferenceRooms: coerceInt(z.number().int()).optional(),
     seats: coerceInt(z.number().int()).optional(),
 
-    transactionType: coerceEnum(
-      ["new-sale", "resale", "pre-leased", "rent", "lease"] as const
-    ).optional(),
+    transactionType: coerceEnum([
+      "new-sale",
+      "resale",
+      "pre-leased",
+      "rent",
+      "lease",
+    ] as const).optional(),
 
     pantry: jsonObject(PantryZ).optional(),
 

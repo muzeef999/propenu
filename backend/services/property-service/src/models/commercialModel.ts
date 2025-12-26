@@ -12,11 +12,9 @@ import {
 import { IBaseListing, TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
 
-
 export interface CommercialDocument extends Document, ICommercial {
   _id: Types.ObjectId;
 }
-
 
 const PantrySchema = new Schema(
   {
@@ -41,9 +39,10 @@ const CommercialSchema = new Schema<ICommercial>(
     },
     powerCapacityKw: Number,
     maintenanceCharges: Number,
+    buildingName: String,
     flooringType: { type: String, enum: FLOORING_TYPES },
     wallFinishStatus: { type: String, enum: WALL_FINISH_STATUS },
-     title: { type: String, required: true, trim: true },
+    title: { type: String, required: true, trim: true },
     fireSafety: {
       fireExtinguisher: { type: Boolean },
       fireSprinklerSystem: { type: Boolean },
@@ -104,7 +103,6 @@ const CommercialSchema = new Schema<ICommercial>(
 
 CommercialSchema.index(TEXT_INDEX_FIELDS, { name: "Com_Text" });
 
-
 CommercialSchema.pre(
   "validate",
   async function (this: CommercialDocument, next) {
@@ -162,23 +160,17 @@ CommercialSchema.pre(
   }
 );
 
-
-
-
 export const Commercial: Model<ICommercial> =
   (mongoose.models && (mongoose.models as any)["Commercial"]) ||
   mongoose.model<ICommercial>("Commercial", CommercialSchema);
 
 export default Commercial;
 
-
-
 export function buildCommercialTitle(doc: any) {
   // Property type (Office, Shop, Warehouse…)
-  const propertyType =
-    doc.propertyType
-      ? doc.propertyType.replace(/-/g, " ")
-      : "Commercial Property";
+  const propertyType = doc.propertyType
+    ? doc.propertyType.replace(/-/g, " ")
+    : "Commercial Property";
 
   // Subtype (optional, more specific)
   const propertySubType = doc.propertySubType
@@ -196,12 +188,11 @@ export function buildCommercialTitle(doc: any) {
       : "for Sale";
 
   // Area (prefer carpetArea, fallback to superBuiltUpArea)
-  const area =
-    doc.carpetArea
-      ? `${doc.carpetArea} Sq Ft`
-      : doc.builtUpArea
-      ? `${doc.builtUpArea} Sq Ft`
-      : "";
+  const area = doc.carpetArea
+    ? `${doc.carpetArea} Sq Ft`
+    : doc.builtUpArea
+    ? `${doc.builtUpArea} Sq Ft`
+    : "";
 
   const city = doc.city ?? "";
   const locality = doc.locality ?? "";

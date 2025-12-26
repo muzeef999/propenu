@@ -1,5 +1,11 @@
-import { FilterState } from "@/types/sharedTypes";
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, Draft, PayloadAction } from "@reduxjs/toolkit";
+import {
+  FilterState,
+  ResidentialFilters,
+  CommercialFilters,
+  LandFilters,
+  AgriculturalFilters,
+} from "@/types/sharedTypes";
 
 /* ---------------- Types ---------------- */
 
@@ -11,8 +17,6 @@ export type categoryOption =
   | "Land"
   | "Agricultural";
 
-/* ---------------- State ---------------- */
-
 /* ---------------- Initial State ---------------- */
 
 const initialState: FilterState = {
@@ -20,9 +24,15 @@ const initialState: FilterState = {
   category: "Residential",
   searchText: "",
 
-  /* ✅ Budget defaults (5 Lac → 50 Cr) */
+  /* Budget (shared) */
   minBudget: 5,
   maxBudget: 5000,
+
+  /* Category buckets */
+  residential: {},
+  commercial: {},
+  land: {},
+  agricultural: {},
 };
 
 /* ---------------- Slice ---------------- */
@@ -39,24 +49,6 @@ const filterSlice = createSlice({
 
     setCategory(state, action: PayloadAction<categoryOption>) {
       state.category = action.payload;
-
-      // 🔥 Reset category-specific filters
-      state.locality = undefined;
-      state.bhk = undefined;
-      state.bedrooms = undefined;
-      state.bathrooms = undefined;
-      state.postedBy = undefined;
-
-      state.commercialType = undefined;
-      state.parking = undefined;
-
-      state.facing = undefined;
-      state.roadFacing = undefined;
-
-      state.soilType = undefined;
-
-      state.minArea = undefined;
-      state.maxArea = undefined;
     },
 
     setSearchText(state, action: PayloadAction<string>) {
@@ -65,68 +57,67 @@ const filterSlice = createSlice({
 
     /* -------- Budget -------- */
 
-    setBudget(state, action: PayloadAction<{ min: number; max: number }>) {
+    setBudget(
+      state,
+      action: PayloadAction<{ min: number; max: number }>
+    ) {
       state.minBudget = action.payload.min;
       state.maxBudget = action.payload.max;
     },
 
-    /* -------- Shared -------- */
-
-    setMinArea(state, action: PayloadAction<number | undefined>) {
-      state.minArea = action.payload;
-    },
-
-    setMaxArea(state, action: PayloadAction<number | undefined>) {
-      state.maxArea = action.payload;
-    },
-
     /* -------- Residential -------- */
 
-    setBhk(state, action: PayloadAction<number | undefined>) {
-      state.bhk = action.payload;
-    },
+   setResidentialFilter<K extends keyof ResidentialFilters>(
+  state: Draft<FilterState>,
+  action: PayloadAction<{ key: K; value: ResidentialFilters[K] }>
+) {
+  state.residential[action.payload.key] = action.payload.value;
+},
 
-    setLocality(state, action: PayloadAction<number | undefined>) {
-      state.bhk = action.payload;
-    },
-
-    setPostedBy(state, action: PayloadAction<string | undefined>) {
-      state.postedBy = action.payload;
-    },
-
-    setBedrooms(state, action: PayloadAction<number | undefined>) {
-      state.bedrooms = action.payload;
-    },
-
-    setBathrooms(state, action: PayloadAction<number | undefined>) {
-      state.bathrooms = action.payload;
-    },
 
     /* -------- Commercial -------- */
 
-    setCommercialType(state, action: PayloadAction<string | undefined>) {
-      state.commercialType = action.payload;
+    setCommercialFilter<K extends keyof CommercialFilters>(
+      state: Draft<FilterState>,
+      action: PayloadAction<{ key: K; value: CommercialFilters[K] }>
+    ) {
+      state.commercial[action.payload.key] = action.payload.value;
     },
-
-    setParking(state, action: PayloadAction<string | undefined>) {
-      state.parking = action.payload;
-    },
-    
 
     /* -------- Land -------- */
 
-    setFacing(state, action: PayloadAction<string | undefined>) {
-      state.facing = action.payload;
-    },
-
-    setRoadFacing(state, action: PayloadAction<string | undefined>) {
-      state.roadFacing = action.payload;
+    setLandFilter<K extends keyof LandFilters >(
+      state : Draft<FilterState>,
+      action: PayloadAction<{ key: K; value: LandFilters[K] }>
+    ) {
+      state.land[action.payload.key] = action.payload.value;
     },
 
     /* -------- Agricultural -------- */
 
-    setSoilType(state, action: PayloadAction<string | undefined>) {
-      state.soilType = action.payload;
+    setAgriculturalFilter<K extends keyof AgriculturalFilters >(
+      state : Draft<FilterState>,
+      action: PayloadAction<{ key: K; value: AgriculturalFilters[K] }>
+    ) {
+      state.agricultural[action.payload.key] = action.payload.value;
+    },
+
+    /* -------- Optional Reset Helpers -------- */
+
+    resetResidentialFilters(state) {
+      state.residential = {};
+    },
+
+    resetCommercialFilters(state) {
+      state.commercial = {};
+    },
+
+    resetLandFilters(state) {
+      state.land = {};
+    },
+
+    resetAgriculturalFilters(state) {
+      state.agricultural = {};
     },
   },
 });
@@ -137,24 +128,17 @@ export const {
   setListingType,
   setCategory,
   setSearchText,
-
   setBudget,
 
-  setMinArea,
-  setMaxArea,
+  setResidentialFilter,
+  setCommercialFilter,
+  setLandFilter,
+  setAgriculturalFilter,
 
-  setBhk,
-  setBedrooms,
-  setBathrooms,
-  setPostedBy,
-  setLocality,
-  setCommercialType,
-  setParking,
-
-  setFacing,
-  setRoadFacing,
-
-  setSoilType,
+  resetResidentialFilters,
+  resetCommercialFilters,
+  resetLandFilters,
+  resetAgriculturalFilters,
 } = filterSlice.actions;
 
 export default filterSlice.reducer;

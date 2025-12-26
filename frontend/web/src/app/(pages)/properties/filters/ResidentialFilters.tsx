@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Range } from "react-range";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/Redux/store";
-import { setBhk, setLocality, setPostedBy } from "@/Redux/slice/filterSlice";
+import { setResidentialFilter } from "@/Redux/slice/filterSlice";
 import FilterDropdown from "@/ui/FilterDropdown";
 import { BHKOption, PostedByOption } from "@/types/residential";
 import { buildSearchParams } from "./buildSearchParams";
@@ -51,7 +51,9 @@ const ResidentialFilters = () => {
   const localities = useSelector(selectLocalitiesByCity);
   const filtersState = useSelector((state: RootState) => state.filters);
 
-  const { locality, bhk, minBudget, maxBudget, postedBy } = filtersState;
+  const { minBudget, maxBudget, residential } = filtersState;
+
+  const { locality, bhk, postedBy } = residential;
 
   const [isOpen, setIsOpen] = useState(false);
   const [activeFilter, setActiveFilter] =
@@ -62,7 +64,7 @@ const ResidentialFilters = () => {
   const [carpetRange, setCarpetRange] = useState<[number, number]>([
     CARPET_MIN,
     CARPET_MAX,
-  ]);
+  ]); 
 
   /* -------------------- BHK -------------------- */
 
@@ -219,7 +221,13 @@ const ResidentialFilters = () => {
                     <button
                       key={loc.name}
                       onClick={() => {
-                        dispatch(setLocality(loc.name));
+                        dispatch(
+                          setResidentialFilter({
+                            key: "locality",
+                            value: loc.name,
+                          })
+                        );
+
                         close?.();
                       }}
                       className={`px-2 py-1 rounded text-sm hover:bg-gray-100 ${
@@ -311,6 +319,7 @@ const ResidentialFilters = () => {
 
         {/* ---------- BHK ---------- */}
         <FilterDropdown
+         key={bhk}
           triggerLabel={
             <span className="px-4 text-primary font-medium cursor-pointer">
               {bhkLabel}
@@ -327,7 +336,12 @@ const ResidentialFilters = () => {
                     <button
                       key={opt}
                       onClick={() => {
-                        dispatch(setBhk(value));
+                        dispatch(
+                          setResidentialFilter({
+                            key: "bhk",
+                            value,
+                          })
+                        );
                         close?.();
                       }}
                       className={`px-2 py-1 rounded hover:bg-gray-100 ${
@@ -358,7 +372,12 @@ const ResidentialFilters = () => {
                 <button
                   key={opt}
                   onClick={() => {
-                    dispatch(setPostedBy(opt));
+                    dispatch(
+                      setResidentialFilter({
+                        key: "postedBy",
+                        value: opt,
+                      })
+                    );
                     close?.();
                   }}
                   className={`px-2 py-1 rounded block w-full text-left hover:bg-gray-100 ${

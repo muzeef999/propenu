@@ -9,6 +9,7 @@ import User from "../models/userModel";
 import Role from "../models/roleModel";
 import { uploadFile } from "../utils/uploadFile";
 import { extendAgriculturalFilters } from "./filters/agriculturalFilters";
+import { upsertCityAndLocality } from "./locationServices";
 
 dotenv.config({ quiet: true });
 
@@ -126,83 +127,58 @@ async function resolveListingSourceFromUser(
   }
 
   return undefined;
-}
+}  
 
 /* --------------------  Service API  -------------------- */
 
 export const AgriculturalService = {
   async create(payload: any, files?: MulterFiles) {
     // build slug and ensure uniqueness
-    const slugSource =
-      (payload.slug && String(payload.slug).trim()) || payload.title;
-    let slug = slugSource
-      ? slugSource
-          .toLowerCase()
-          .trim()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-+|-+$/g, "")
-      : String(Date.now());
-    const exists = await Agricultural.findOne({ slug }).select("_id").lean();
-    if (exists) {
-      const err: any = new Error("Slug already in use");
-      err.code = "SLUG_TAKEN";
-      throw err;
-    }
 
-    // derive an id for S3 keys (preliminary instance)
-    const preliminary = new Agricultural({ ...payload, slug });
-    const propId = preliminary._id
-      ? preliminary._id.toString()
-      : String(Date.now());
-
-    let toCreate: any = { ...payload, slug };
+    let toCreate: any = { ...payload};
 
     toCreate = normalizePayload(toCreate);
 
-    if (!toCreate.listingSource && toCreate.createdBy) {
-      try {
-        const listingSource = await resolveListingSourceFromUser(
-          toCreate.createdBy
-        );
-        if (listingSource) toCreate.listingSource = listingSource;
-      } catch (err) {
-        console.warn("resolveListingSource failed:", (err as Error).message);
-      }
-    }
 
-    // gallery: map & upload
-    const galleryFiles = files?.galleryFiles ?? [];
-    toCreate.gallery = await mapAndUploadGallery({
-      incomingGallery: toCreate.gallery,
-      galleryFiles,
-      propertyId: propId,
-    });
-
-    toCreate.gallery = Array.isArray(toCreate.gallery) ? toCreate.gallery.filter((g: any) => g.url) : [];
-
-    // documents upload
-    const documentFiles = files?.documents ?? [];
-    if (documentFiles.length > 0) {
-      toCreate.documents = Array.isArray(toCreate.documents)
-        ? toCreate.documents.slice()
-        : [];
-      for (const f of documentFiles) {
-        const up = await uploadFile({
-          buffer: f.buffer,
-          originalName: f.originalname,
-          mimetype: f.mimetype,
+    const preliminary = new Agricultural(toCreate);
+        const propId = preliminary._id
+          ? preliminary._id.toString()
+          : String(Date.now());
+    
+        // gallery
+        const galleryFiles = files?.galleryFiles ?? [];
+        const mappedGallery = await mapAndUploadGallery({
+          incomingGallery: toCreate.gallery,
+          galleryFiles,
           propertyId: propId,
-          folder: "agricultural/documents",
         });
-        toCreate.documents.push({
-          title: f.originalname,
-          url: up.url,
-          key: up.key,
-          filename: f.originalname,
-          mimetype: f.mimetype,
-        });
-      }
-    }
+        toCreate.gallery = Array.isArray(mappedGallery) ? mappedGallery : [];
+    
+
+
+    const documentsFiles = files?.documents ?? [];
+        if (documentsFiles.length > 0) {
+          const docRefs: any[] = Array.isArray(toCreate.documents)
+            ? toCreate.documents.slice()
+            : [];
+          for (const f of documentsFiles) {
+            const up = await uploadFile({
+              buffer: f.buffer,
+              originalName: f.originalname,
+              mimetype: f.mimetype,
+              propertyId: propId,
+              folder: "agricultural/documents",
+            });
+            docRefs.push({
+              title: f.originalname,
+              url: up.url,
+              key: up.key,
+              filename: f.originalname,
+              mimetype: f.mimetype,
+            });
+          }
+          toCreate.documents = docRefs;
+        }
 
     // soilTestReport single file
     const soilFiles = files?.soilTestReport ?? [];
@@ -225,6 +201,17 @@ export const AgriculturalService = {
     }
 
     const createdDoc = await Agricultural.create(toCreate);
+
+     if (createdDoc.city && createdDoc.locality) {
+             await upsertCityAndLocality({
+     city: createdDoc.city,
+        locality: createdDoc.locality,
+        ...(createdDoc.state && { state: createdDoc.state }),
+        ...(createdDoc.location?.coordinates && {
+          coordinates: createdDoc.location.coordinates,
+             }),
+        });
+      }
 
     const populated = await Agricultural.findById(createdDoc._id)
       .populate("createdBy", "name email phone role roleId")

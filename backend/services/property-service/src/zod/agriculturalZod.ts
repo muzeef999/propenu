@@ -113,7 +113,7 @@ const preprocessObjJsonOrValue = <T extends z.ZodTypeAny>(schema: T) =>
 /* BaseCreate with enum preprocess on listingType & status,
    and JSON-string-accepting documents & gallery */
 const BaseCreate = z.object({
-  title: z.string().min(1),
+  
   slug: z.string().optional(),
 
   // listingType: normalize input then validate enum
@@ -157,10 +157,12 @@ export const AgriculturalCreateSchema = BaseCreate.extend({
   landShape: z.string().optional(),
   soilType: z.string().optional(),
   irrigationType: z.string().optional(),
+    locality: z.string().min(1), // ✅ ADD THIS
   currentCrop: z.string().optional(),
   suitableFor: z.string().optional(),
   plantationAge: coerceNumber(z.number()).optional(),
   numberOfBorewells: coerceInt(z.number().int()).optional(),
+  landName: z.string().trim().optional(),
 
   totalArea:preprocessObjJsonOrValue(
     z.object({

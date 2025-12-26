@@ -1,4 +1,5 @@
 import { IFileRef } from "./sharedTypes";
+import mongoose, { Types } from "mongoose";
 
 export const LAND_PROPERTY_TYPES = [
   "plot",
@@ -54,4 +55,18 @@ export interface ILand {
   soilTestReport?: IFileRef | null;
   surveyNumber?: string;
   layoutType?: string;
+  landName: String,
+  slug?:string;
+listingSource?:string;
+createdBy?: Types.ObjectId;
+  locality: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+
+  location?: {
+    type: "Point";
+    coordinates: [number, number];
+  };
+
 }

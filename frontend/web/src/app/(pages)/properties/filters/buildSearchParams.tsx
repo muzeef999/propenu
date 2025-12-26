@@ -1,59 +1,40 @@
-import { categoryOption } from "@/types";
 import { FilterState } from "@/types/sharedTypes";
 
-export type SearchFilterParams = {
-  category: categoryOption;
-  listingType: string;
-  search?: string;
-  minBudget?: number;
-  maxBudget?: number;
-  bhk?: number;
-  bedrooms?: number;
-  bathrooms?: number;
-  postedBy?: string;
-};
-
-export function buildSearchParams(filters: FilterState): SearchFilterParams {
-  const params: SearchFilterParams = {
+export function buildSearchParams(filters: FilterState) {
+  const base = {
     category: filters.category,
     listingType: filters.listingType,
+    search: filters.searchText?.trim() || undefined,
+    minBudget: filters.minBudget,
+    maxBudget: filters.maxBudget,
   };
 
-  // 🔍 search
-  if (filters.searchText.trim()) {
-    params.search = filters.searchText.trim();
+  switch (filters.category) {
+    case "Residential":
+      return {
+        ...base,
+        ...filters.residential,
+      };
+
+    case "Commercial":
+      return {
+        ...base,
+        ...filters.commercial,
+      };
+
+    case "Land":
+      return {
+        ...base,
+        ...filters.land,
+      };
+
+    case "Agricultural":
+      return {
+        ...base,
+        ...filters.agricultural,
+      };
+
+    default:
+      return base;
   }
-
-  // 💰 budget
-  if (filters.minBudget) params.minBudget = filters.minBudget;
-  if (filters.maxBudget) params.maxBudget = filters.maxBudget;
-
-  // 🏠 Residential only
-  if (filters.category === "Residential") {
-
-    if (filters.bhk !== undefined) {
-      params.bhk = filters.bhk;
-    }
-
-    if (filters.bedrooms) params.bedrooms = filters.bedrooms;
-    if (filters.bathrooms) params.bathrooms = filters.bathrooms;
-    if (filters.postedBy) params.postedBy = filters.postedBy;
-  }
-
-  // 🏢 Commercial
-  if (filters.category === "Commercial") {
-    console;
-  }
-
-  // 🌾 Land
-  if (filters.category === "Land") {
-    console.log("Land filters to be implemented");
-  }
-
-  // 🌱 Agricultural
-  if (filters.category === "Agricultural") {
-    console.log("Agricultural filters to be implemented");
-  }
-
-  return params;
 }

@@ -70,7 +70,7 @@ export interface ICommercial {
   title: string;
   slug: string;
   floorNumber?: number;
-
+  buildingName?: String,
   propertyType?: CommercialPropertyType;
   propertySubType?: CommercialPropertySubType;
 
@@ -138,7 +138,7 @@ export interface ICommercial {
   };
   createdBy?: Types.ObjectId;
 
-    locality: string;
+  locality: string;
   city?: string;
   state?: string;
   pincode?: string;
