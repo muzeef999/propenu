@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+
+
 import Image from "next/image";
 import {  MdLocationOn } from "react-icons/md";
 import { FaRegHeart } from "react-icons/fa";
@@ -11,7 +14,6 @@ export default async function Page() {
 
     // Normalize
     const agents = (data as any)?.items || [];
-
 
     return (
         <div className="container mx-auto px-4 py-8">
