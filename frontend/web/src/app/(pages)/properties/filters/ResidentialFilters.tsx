@@ -64,7 +64,7 @@ const ResidentialFilters = () => {
   const [carpetRange, setCarpetRange] = useState<[number, number]>([
     CARPET_MIN,
     CARPET_MAX,
-  ]); 
+  ]);
 
   /* -------------------- BHK -------------------- */
 
@@ -319,7 +319,7 @@ const ResidentialFilters = () => {
 
         {/* ---------- BHK ---------- */}
         <FilterDropdown
-         key={bhk}
+          key={bhk}
           triggerLabel={
             <span className="px-4 text-primary font-medium cursor-pointer">
               {bhkLabel}

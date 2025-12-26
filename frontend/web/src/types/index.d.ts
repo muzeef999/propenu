@@ -352,8 +352,34 @@ type RESFilterKey =
   | "Posted By"
 
 
+  
+type COMFilterKey =
+  | "Sub Property Type"
+  | "Sales Type"
+  | "Possession Status"
+  | "Covered Area"
+  | "Bathroom"
+  | "Balcony"
+  | "Parking"
+  | "Furnishing"
+  | "Amenities"
+  | "Facing"
+  | "Verified Properties"
+  | "Posted Since"
+  | "Posted By"
+  
+
+
+  
  export  interface MoreFilterSection {
   key: RESFilterKey;
+  label: string;
+  options?: string[];
+}
+
+
+ export  interface MoreFilterSectionCom {
+  key: COMFilterKey;
   label: string;
   options?: string[];
 }

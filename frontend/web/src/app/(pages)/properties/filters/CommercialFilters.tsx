@@ -7,11 +7,11 @@ import {
   selectLocalitiesByCity,
 } from "@/Redux/slice/citySlice";
 import { setCommercialFilter } from "@/Redux/slice/filterSlice";
-import { useState } from "react";
+import React, { useRef, useState } from "react";
 import { formatBudget } from "../constants/budget";
 import { Range } from "react-range";
 import { PostedByOption } from "@/types/residential";
-
+import { COMFilterKey, MoreFilterSection } from "@/types";
 
 const BUDGET_MIN = 5;
 const BUDGET_MAX = 5000;
@@ -24,6 +24,16 @@ const budgetOptions = [
 
 const CommercialFilters = () => {
   const dispatch = useDispatch();
+
+
+    const rightPanelRef = useRef<HTMLDivElement | null>(null);
+      const sectionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+    
+
+      const [activeFilter, setActiveFilter] =
+        useState<COMFilterKey>("Sub Property Type");
+    
+  
 
   const cityData = useSelector(selectCityWithLocalities);
   const localities = useSelector(selectLocalitiesByCity);
@@ -38,13 +48,96 @@ const CommercialFilters = () => {
     maxBudget || BUDGET_MAX,
   ]);
 
-    const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
-  
+  const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
 
   const budgetLabel =
     minBudget === BUDGET_MIN && maxBudget === BUDGET_MAX
       ? "Budget"
       : `${formatBudget(minBudget)} - ${formatBudget(maxBudget)}`;
+
+
+      const handleSectionClick = (key: COMFilterKey) => {
+          const container = rightPanelRef.current;
+          const target = sectionRefs.current[key];
+      
+          if (!container || !target) return;
+      
+          const top = target.offsetTop - container.offsetTop - 12;
+      
+          container.scrollTo({
+            top,
+            behavior: "smooth",
+          });
+      
+          setActiveFilter(key);
+        };
+
+  const moreFilterSections: MoreFilterSection[] = [
+    {
+      key: "Sub Property Type",
+      label: "Sub Property Type",
+      options: [
+        "Apartment",
+        "Independent house",
+        "Villa",
+        "Penthouse",
+        "Studio",
+        "Duplex",
+        "Triplex",
+        "Farmhouse",
+        "independent-builder-floor",
+      ],
+    },
+    { key: "Sales Type", label: "Sales Type", options: ["new-sale", "resale"] },
+    {
+      key: "Possession Status",
+      label: "Possession Status",
+      options: ["ready-to-move", "under-construction"],
+    },
+    { key: "Covered Area", label: "Covered Area" },
+    { key: "Bathroom", label: "Bathroom", options: ["1+", "2+", "3+", "4+"] },
+    { key: "Balcony", label: "Balcony", options: ["1+", "2+", "3+"] },
+    {
+      key: "Parking",
+      label: "Parking",
+      options: ["No Parking", "1 Car", "2 Cars"],
+    },
+    {
+      key: "Furnishing",
+      label: "Furnishing",
+      options: ["Unfurnished", "Semi-Furnished", "Fully Furnished"],
+    },
+    {
+      key: "Amenities",
+      label: "Amenities",
+      options: ["Lift", "Power Backup", "Gym", "Swimming Pool", "Security"],
+    },
+    {
+      key: "Facing",
+      label: "Facing",
+      options: ["East", "West", "North", "South"],
+    },
+    { key: "Verified Properties", label: "Verified Properties" },
+    {
+      key: "Posted Since",
+      label: "Posted Since",
+      options: [
+        "All",
+        "Yesterday",
+        "Last Week",
+        "Last 2 Weeks",
+        "Last 3 Weeks",
+        "Last Month",
+        "Last 2 Months",
+        "Last 4 Months",
+      ],
+    },
+    {
+      key: "Posted By",
+      label: "Posted By",
+      options: ["owners", "Agents", "Builders"],
+    },
+  ];
 
   return (
     <div className="flex gap-4 items-center">
@@ -171,40 +264,81 @@ const CommercialFilters = () => {
         )}
       />
 
-      
-              {/* ---------- Posted By ---------- */}
-              <FilterDropdown
-                triggerLabel={
-                  <span className="px-4 font-medium text-primary cursor-pointer">
-                    Posted By
-                  </span>
-                }
-                width="w-56"
-                renderContent={(close) => (
-                  <div>
-                    <h4 className="text-sm font-semibold mb-2">Posted By</h4>
-                    {postedByOptions.map((opt) => (
-                      <button
-                        key={opt}
-                        onClick={() => {
-                          dispatch(
-                            setCommercialFilter({
-                              key: "postedBy",
-                              value: opt,
-                            })
-                          );
-                          close?.();
-                        }}
-                        className={`px-2 py-1 rounded block w-full text-left hover:bg-gray-100 ${
-                          postedBy === opt ? "font-semibold bg-gray-100" : ""
-                        }`}
-                      >
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              />
+      {/* ---------- Posted By ---------- */}
+      <FilterDropdown
+        triggerLabel={
+          <span className="px-4 font-medium text-primary cursor-pointer">
+            Posted By
+          </span>
+        }
+        width="w-56"
+        renderContent={(close) => (
+          <div>
+            <h4 className="text-sm font-semibold mb-2">Posted By</h4>
+            {postedByOptions.map((opt) => (
+              <button
+                key={opt}
+                onClick={() => {
+                  dispatch(
+                    setCommercialFilter({
+                      key: "postedBy",
+                      value: opt,
+                    })
+                  );
+                  close?.();
+                }}
+                className={`px-2 py-1 rounded block w-full text-left hover:bg-gray-100 ${
+                  postedBy === opt ? "font-semibold bg-gray-100" : ""
+                }`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        )}
+      />
+
+      <FilterDropdown
+        triggerLabel={
+          <div className="flex text-primary items-center gap-2 px-2 py-2 rounded-full bg-white cursor-pointer">
+            <span className="text-sm font-semibold text-primary">
+              More Filters
+            </span>
+            <span className="btn-primary text-white text-xs px-2 py-0.5 rounded-full">
+              {moreFilterSections.length}
+            </span>
+          </div>
+        }
+        width="w-[700px]"
+        align="right"
+        renderContent={() => (
+          <div className="flex h-[420px]">
+            {/* Left panel */}
+            <div className="w-1/3 border-r border-gray-200 overflow-y-auto">
+              {moreFilterSections?.map((section) => (
+                <button
+                  key={section.key}
+                  onClick={() => {
+                    handleSectionClick(section.key);
+                    setActiveFilter(section.key);
+                  }}
+                  className={`w-full text-left px-4 py-3 border-b border-gray-200   ${
+                    activeFilter === section.key
+                      ? " font-semibold text-primary"
+                      : "hover:bg-gray-50"
+                  }`}
+                >
+                  {section.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Right panel */}
+            {/* Right panel */}
+    
+          </div>
+        )}
+      />
     </div>
   );
 };
