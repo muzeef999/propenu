@@ -23,7 +23,7 @@ export type GalleryItem = {
 };
 
 export interface IResidential {
-  listingType?: 'sale' | 'rent' | 'lease';
+  listingType?: 'buy' | 'rent' | 'lease';
   developer?:  string;
   // base fields...
   address: string;

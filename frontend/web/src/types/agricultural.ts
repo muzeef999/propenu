@@ -36,7 +36,7 @@ export interface IAgricultural {
 
   carpetArea?: number;
   roadWidth?: IUnitValue;
-  transactionType?: "sale" | "lease";
+  transactionType?: "buy" | "lease" ;
   constructionStatus?: "ready" | "under_construction";
   furnishing?: "furnished" | "semi_furnished" | "unfurnished";
   kitchenType?: "open" | "closed";

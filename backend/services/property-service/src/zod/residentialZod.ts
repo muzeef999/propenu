@@ -112,7 +112,7 @@ const BaseResidentialCreate = z.object({
   title: z.string().min(1).optional(),
   slug: z.string().optional(),
   // listingType normalized via z.enum — default 'sale'
-  listingType: z.enum(["sale", "rent", "lease"]).optional().default("sale"),
+  listingType: z.enum(["buy", "rent", "lease"]).optional().default("buy"),
   developer: z.string().optional(),
   address: z.string().min(1),
   description: z.string().optional(),

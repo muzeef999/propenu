@@ -4,7 +4,7 @@ import { CommercialSearchParams } from "./commercial";
 import { LandSearchParams } from "./land";
 import { ResidentialSearchParams } from "./residential";
 
-export type ListingType = 'sale' | 'rent' | 'lease';
+export type ListingType = 'buy' | 'rent' | 'lease';
 export type AreaUnit = 'sqft' | 'sqmt' | 'acre' | 'guntha' | 'kanal' | 'hectare';
 export type FurnishingStatus = 'unfurnished' | 'semi-furnished' | 'fully-furnished';
 export type ConstructionStatus = 'ready-to-move' | 'under-construction';
