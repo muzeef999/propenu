@@ -102,6 +102,8 @@ const LocationDetailsStep = () => {
     );
   };
 
+  const isLandOrAgri = propertyType === "land" || propertyType === "agricultural";
+
   return (
     <div className="space-y-4">
       {/* Address */}
@@ -123,9 +125,13 @@ const LocationDetailsStep = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-[60%_1fr] gap-4">
         <InputField
-          label="BuildingName / Society"
+          label={
+            isLandOrAgri ? "Land Name / Layout Name" : "BuildingName / Society"
+          }
           value={base.buildingName || ""}
-          placeholder="Enter building or society name"
+          placeholder={
+            isLandOrAgri ? "E.g. Green Valley Project / Green Valley Layout" : "Enter building or society name"
+          }
           onChange={(value) =>
             dispatch(
               setBaseField({
@@ -136,7 +142,9 @@ const LocationDetailsStep = () => {
           }
           error={getCustomError(
             "buildingName",
-            "Enter Building / Society name"
+            isLandOrAgri
+              ? "Enter Project / Layout name"
+              : "Enter Building / Society name"
           )}
         />
 

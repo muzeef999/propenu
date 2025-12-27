@@ -10,7 +10,7 @@ import FileUpload, { UploadedFile } from "@/ui/FileUpload";
 import { setFiles as setFileStoreFiles } from "@/lib/fileStore";
 import { useState } from "react";
 import { validateBasicDetails } from "@/zod/basicDetailsZod";
-import { RESIDENTIAL_PROPERTY_OPTIONS, COMMERCIAL_PROPERTY_OPTIONS } from "@/app/(pages)/postproperty/constants/subTypes";
+import { RESIDENTIAL_PROPERTY_OPTIONS, COMMERCIAL_PROPERTY_OPTIONS, COMMERCIAL_SUBTYPE_MAP, LAND_PROPERTY_KEYS, LAND_PROPERTY_OPTIONS, LAND_PROPERTY_SUBTYPES } from "@/app/(pages)/postproperty/constants/subTypes";
 
 export default function BasicDetailsStep() {
   const { propertyType, base, residential, commercial, land, agricultural } = useSelector(
@@ -18,12 +18,13 @@ export default function BasicDetailsStep() {
   );
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [showErrors, setShowErrors] = useState(false);
+  const dispatch = useDispatch();
   const listingOptions = [
-    { label: "Sale", value: "sale" },
-    { label: "Rent / Lease", value: "rent" },
+    { label: "Buy", value: "buy" },
+    { label: "Rent", value: "rent" },
+    { label: "Lease", value: "lease" },
   ];
 
-  const dispatch = useDispatch();
 
   // Get the current category state
   const categoryState = propertyType === "residential" ? residential : propertyType === "commercial" ? commercial : propertyType === "land" ? land : agricultural;
@@ -57,7 +58,18 @@ export default function BasicDetailsStep() {
       ? RESIDENTIAL_PROPERTY_OPTIONS
       : propertyType === "commercial"
       ? COMMERCIAL_PROPERTY_OPTIONS
+      : propertyType === "land"
+      ? LAND_PROPERTY_OPTIONS
       : [];
+
+  const selectedCommercialType = commercial.propertyType;
+  const commercialSubTypes =
+    propertyType === "commercial" && selectedCommercialType && COMMERCIAL_SUBTYPE_MAP[selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP]
+      ? (COMMERCIAL_SUBTYPE_MAP[selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP] as readonly string[])
+      : [];
+
+  const landSubTypes = propertyType === "land" ? (LAND_PROPERTY_SUBTYPES as readonly string[]) : [];
+
 
   return (
     <div className="space-y-4">
@@ -79,7 +91,12 @@ export default function BasicDetailsStep() {
                   })
                 )
               }
-              className={`px-5 py-2 rounded-md border text-sm font-medium transition${isActive? "border-green-200 bg-green-50 text-green-600" : "border-gray-300 bg-white text-gray-600 hover:border-gray-400"}`}
+              className={`px-6 py-2 border rounded-md text-sm shadow-sm focus:outline-none  transition-colors
+              ${isActive
+                    ? "border-green-500 bg-green-50 text-green-600"
+                    : "border-gray-300 text-gray-700"
+                  }
+            `}
             >
               {option.label}
             </button>
@@ -103,7 +120,7 @@ export default function BasicDetailsStep() {
               onChange={() => handleSelect(type)}
             />
             <span className="capitalize text-sm font-normak text-gray-700">
-              {type}
+              {type === "land" ? "Plot / Land" : type}
             </span>
           </label>
         ))}
@@ -132,6 +149,63 @@ export default function BasicDetailsStep() {
                 >
                   <span className="text-2xl">{sub.icon}</span>
                   <span className="text-xs font-medium">{sub.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {commercialSubTypes.length > 0 && (
+        <div className="mb-6">
+          <p className="mb-3 text-sm font-medium text-gray-700">
+            Specific Type for{" "}
+            <span className="capitalize">
+              {selectedCommercialType?.replace("-", " ")}
+            </span>
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {commercialSubTypes.map((subType: string) => {
+              const isSelected = (commercial as any).commercialSubType === subType;
+              return (
+                <button
+                  key={subType}
+                  type="button"
+                  onClick={() => {
+                    dispatch(setProfileField({ propertyType: "commercial", key: "commercialSubType", value: subType }))
+                  }}
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
+                      ? "border-green-500 bg-green-50 text-green-600"
+                      : "border-gray-300 text-gray-700"
+                    }`}
+                >
+                  {subType.replace("-", " ").toUpperCase()}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {landSubTypes.length > 0 && (
+        <div className="mb-6">
+          <p className="mb-3 text-sm font-medium text-gray-700">Land Characteristics</p>
+          <div className="flex flex-wrap gap-3">
+            {landSubTypes.map((subType: string) => {
+              const isSelected = (land as any).landSubType === subType;
+              return (
+                <button
+                  key={subType}
+                  type="button"
+                  onClick={() => {
+                    dispatch(setProfileField({ propertyType: "land", key: "landSubType", value: subType }));
+                  }}
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
+                      ? "border-green-500 bg-green-50 text-green-600"
+                      : "border-gray-300 text-gray-700"
+                    }`}
+                >
+                  {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
               );
             })}

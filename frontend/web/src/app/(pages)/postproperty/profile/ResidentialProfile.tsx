@@ -78,24 +78,6 @@ const ResidentialProfile = () => {
 
   return (
     <div className="space-y-8">
-      {/* ========== PROPERTY BASICS ========== */}
-      {/* <div className="space-y-8">
-        <InputField
-          label="Building / Property Name"
-          value={residential.buildingName || ""}
-          placeholder="e.g. Green Residency"
-          onChange={(value) =>
-            dispatch(
-              setProfileField({
-                propertyType: "residential",
-                key: "buildingName",
-                value,  
-              })
-            )
-          }
-        />
-      </div> */}
-
       {/* ========== CONFIGURATION ========== */}
       <div className="space-y-6">
 

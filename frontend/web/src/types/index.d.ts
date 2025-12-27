@@ -200,7 +200,7 @@ export interface PopularOwnerProperty {
   description: string;
   userId: string;
 
-  listingType: string;          // Rent / Sale etc.
+  listingType: string;          // Rent / buy etc.
   category: string;             // Residential, Commercial, etc.
   price: number;
   facing?: string | null;
