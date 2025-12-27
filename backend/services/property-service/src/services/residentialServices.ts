@@ -505,7 +505,8 @@ if (createdDoc.city && createdDoc.locality) {
   model: Residential,
 
   getPipeline(filters: any) {
-    const match = extendResidentialFilters(filters, {});
+    const match = extendResidentialFilters(filters as any, {});
+    
     return [
       { $match: match },
       {
@@ -515,6 +516,8 @@ if (createdDoc.city && createdDoc.locality) {
           type: { $literal: "Residential" },
           title: 1,
           city: 1,
+          listingType:1,
+          transactionType:1,
           builtUpArea:1,
           constructionStatus:1,
           furnishing:1,

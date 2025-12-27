@@ -10,32 +10,23 @@ export const CATEGORY_SERVICE_MAP: Record<string, any> = {
   Agricultural: AgriculturalService,
 };
 
-export default async function buildSearchCursor(filters: any) {
-    console.log("🔥 STEP 3: buildSearchCursor filters =", filters);
 
-  const { category, batchSize = 50 } = filters;
+export default async function buildSearchCursor(payload: any) {
+  const { filter, batchSize = 50 } = payload;
 
-  if (!category) {
+  if (!filter?.category) {
     throw new Error("category is required");
   }
 
-  const service = CATEGORY_SERVICE_MAP[category];
+  const service = CATEGORY_SERVICE_MAP[filter.category];
 
-
-  console.log("🔥 STEP 4: CATEGORY =", category);
-console.log("🔥 STEP 4: SERVICE FOUND =", !!service);
   if (!service) {
-    throw new Error(`Invalid category: ${category}`);
+    throw new Error(`Invalid category: ${filter.category}`);
   }
 
-  // 🔥 THIS IS THE MOST IMPORTANT LINE
-  // Only ONE service is called
-  const pipeline = service.getPipeline(filters);
-
-  console.log("🔥 STEP 5: PIPELINE =", JSON.stringify(pipeline, null, 2));
+  const pipeline = service.getPipeline(filter);
 
   pipeline.push({ $sort: { createdAt: -1 } });
-
 
   return service.model.aggregate(pipeline).cursor({ batchSize });
 }

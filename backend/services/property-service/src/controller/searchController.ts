@@ -4,7 +4,7 @@ import type { RequestHandler } from "express";
 import createStreamingHandler from "../factory/streamingFactory";
 import buildSearchCursor from "../services/filters/searchService";
 import { sanitizeSearchFilters } from "../services/filters/sanitizeFilters";
-import { CATEGORY_SERVICE_MAP} from "../services/filters/searchService";
+import { CATEGORY_SERVICE_MAP } from "../services/filters/searchService";
 
 /**
  * Count applied filters safely
@@ -17,7 +17,6 @@ function countAppliedFilters(filters: Record<string, any>): number {
   for (const value of Object.values(filters)) {
     if (value === undefined || value === null) continue;
 
-    // nested object (price, area, etc.)
     if (typeof value === "object" && !Array.isArray(value)) {
       count += Object.keys(value).length;
     } else {
@@ -28,50 +27,55 @@ function countAppliedFilters(filters: Record<string, any>): number {
   return count;
 }
 
+/**
+ * STREAM SEARCH HANDLER (DO NOT RENAME / DO NOT REMOVE)
+ */
 const streamSearchHandler: RequestHandler = createStreamingHandler(
+  // 🔹 STEP 3: Build cursor
   async (filters) => {
-    const actualFilters = (filters as any)?.filter ?? filters ?? {};
-
-    if (process.env.NODE_ENV !== "production") {
-      console.log("🔥 STEP 3: buildSearchCursor filters =", actualFilters);
-    }
-
-    return buildSearchCursor(actualFilters);
+    return buildSearchCursor(filters);
   },
   {
     batchSize: 100,
 
+    // 🔹 STEP 1 & 2: Sanitize filters
     sanitizeFilters: (req) => {
-      console.log("🔥 STEP 1: RAW QUERY =", req.query);
+      
+
+
       const sanitized = sanitizeSearchFilters(req);
-      console.log("🔥 STEP 2: SANITIZED FILTERS =", sanitized);
+
+      if (process.env.NODE_ENV !== "production") {
+        console.log("🔥 STEP 2: SANITIZED FILTERS =", sanitized);
+      }
+
       return sanitized;
     },
 
+    // 🔹 Meta info (filter count, category validation)
     initialMeta: (filters) => {
       const actual = (filters as any)?.filter ?? filters ?? {};
-     const category =  actual.category;
+      const category = actual.category;
 
-     if(!category){
-      throw new Error("Category filter is required for search");
-     }
+      if (!category) {
+        throw new Error("Category filter is required for search");
+      }
 
-       const filterBuilder = CATEGORY_SERVICE_MAP[category];
+      const filterBuilder = CATEGORY_SERVICE_MAP[category];
 
-       if (!filterBuilder) {
-    return { filtersApplied: 0 };
-  }
+      if (!filterBuilder) {
+        return { filtersApplied: 0 };
+      }
 
+      const match = filterBuilder(actual, {});
+      const filtersApplied = countAppliedFilters(match);
 
-  const match = filterBuilder(actual, {});
+      if (process.env.NODE_ENV !== "production") {
+        console.log("🔥 CATEGORY:", category);
+        console.log("🔥 MATCH OBJECT:", match);
+        console.log("🔥 FILTERS APPLIED:", filtersApplied);
+      }
 
-  const filtersApplied = countAppliedFilters(match);
-
-  console.log("🔥 CATEGORY:", category);
-  console.log("🔥 MATCH OBJECT:", match);
-  console.log("🔥 FILTERS APPLIED:", filtersApplied);
-
-   
       return {
         filtersApplied,
       };
@@ -79,4 +83,5 @@ const streamSearchHandler: RequestHandler = createStreamingHandler(
   }
 );
 
+// ✅ DEFAULT EXPORT (THIS FIXES YOUR TS ERROR)
 export default streamSearchHandler;

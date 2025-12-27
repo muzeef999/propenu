@@ -34,7 +34,7 @@ export interface IBaseListing {
     type: "Point";
     coordinates: [number, number];
   };
-  listingType: 'sale' | 'rent' | 'lease';
+  listingType: 'buy' | 'rent' | 'lease';
   listingSource?: string;
  createdBy?: Types.ObjectId;
 }
