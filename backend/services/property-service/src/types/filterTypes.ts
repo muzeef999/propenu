@@ -40,6 +40,8 @@ export interface BaseFilters {
  */
 export interface ResidentialQuery extends ParsedQs {
   bhk?: string;
+  listingType?:string;
+  transactionType?: "new-sale" | "resale"; 
   minBedrooms?: string;
   maxBedrooms?: string;
   minPrice?: string;

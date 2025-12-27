@@ -1,34 +1,61 @@
-import type { Request } from "express";
+// src/services/filters/sanitizeFilters.ts
 
-/**
- * sanitizeSearchFilters
- * ---------------------
- * This function ONLY:
- * - reads req.query
- * - converts types
- * - passes data forward
- *
- * It does NOT:
- * - apply category logic
- * - apply filters
- */
-export function sanitizeSearchFilters(req: Request) {
+const ALLOWED_FILTERS = [
+  "category",
+  "search",
+  "listingType",
+  "listingSource",
+  "transactionType",
+  "city",
+  "furnishing",
+  "constructionStatus",
+  "propertyType",
 
-    console.log("🔥 STEP 1: RAW QUERY =", req.query);
+  // numeric filters
+  "bhk",
+  "minPrice",
+  "maxPrice",
 
-  const q = req.query;
+  // infra
+  "batchSize",
+];
 
-  const filters = {
-    // category decides which service runs
-    category: q.category as string | undefined,
+const NUMERIC_FILTERS = new Set([
+  "bhk",
+  "minPrice",
+  "maxPrice",
+  "batchSize",
+]);
 
-    bhk: q.bhk ? Number(q.bhk) : undefined,
-    batchSize: Math.max(1, Math.min(100, Number(q.batchSize ?? 50))),
-  
+export function sanitizeSearchFilters(req: any) {
+  const filter: any = {};
+  let batchSize = 50;
+
+  for (const key of ALLOWED_FILTERS) {
+    const value = req.query[key];
+
+    if (value === undefined || value === null || value === "") continue;
+
+    if (NUMERIC_FILTERS.has(key)) {
+      const num = Number(value);
+      if (!Number.isNaN(num)) {
+        filter[key] = num;
+      }
+    } else {
+      filter[key] = String(value);
+    }
+  }
+
+  if (req.query.batchSize) {
+    const num = Number(req.query.batchSize);
+    if (!Number.isNaN(num)) {
+      batchSize = num;
+    }
+  }
+
+  // ✅ THIS SHAPE IS REQUIRED
+  return {
+    filter,
+    batchSize,
   };
-
-  console.log("🔥 STEP 2: SANITIZED FILTERS =", filters);
-
-
-  return filters;
 }

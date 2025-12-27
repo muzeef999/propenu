@@ -2,23 +2,30 @@ import { BaseFilters, ResidentialQuery } from "../../types/filterTypes";
 import parseNumber from "../../utils/parseNumber";
 
 export function extendResidentialFilters(
-  query: ResidentialQuery = {},  
+  query: ResidentialQuery = {},
   baseFilter: Partial<BaseFilters> = {}
-): Partial<BaseFilters> { 
+): Partial<BaseFilters> {
   const f: any = { ...baseFilter };
 
-  const q = query ?? {};   
-  
-  
-  if(q.listingType){
-    f.listingType = f.listingType;
+  const q = query ?? {};
+
+  if (q.listingType) {
+      f.listingType = q.listingType;
   }
 
-   if(query.search){
-    f.title = { $regex: query.search, $options: "i" }
-   }
 
-  
+ if (typeof q.search === "string" && q.search.trim().length > 0) {
+  const words = q.search
+    .split(/\s+/) // handles multiple spaces safely
+    .map((word: string) => word.trim())
+    .filter(Boolean);
+
+  f.$and = words.map((word: string) => ({
+    title: { $regex: word, $options: "i" },
+  }));
+}
+
+
   if (q.city) {
     f.city = q.city;
   }
@@ -30,59 +37,56 @@ export function extendResidentialFilters(
   const minPrice = parseNumber(q.minPrice);
   const maxPrice = parseNumber(q.maxPrice);
 
-    if (minPrice !== undefined || maxPrice !== undefined) {
+  if (minPrice !== undefined || maxPrice !== undefined) {
     f.price = {};
     if (minPrice !== undefined) f.price.$gte = minPrice;
     if (maxPrice !== undefined) f.price.$lte = maxPrice;
   }
 
-  
   const bhk = parseNumber(q.bhk);
 
-  if(bhk !== undefined){
+  if (bhk !== undefined) {
     f.bhk = bhk;
   }
 
 
-   if(q.listingSource) {
-    f.listingSource = q.listingSource;
-   }
-   
-  if(q.furnishing){
+  if (q.transactionType) {
+  f.transactionType = q.transactionType;
+}
+
+  if (q.furnishing) {
     f.furnishing = q.furnishing;
   }
 
-  if(q.propertyType){
-    f.propertyType = q.propertyType;
-  }
 
-  if(q.facing){
+  if (q.facing) {
     f.facing = q.facing;
   }
 
-  if(q.constructionStatus){
-        f.constructionStatus = q.constructionStatus;
-
+  if (q.constructionStatus) {
+    f.constructionStatus = q.constructionStatus;
   }
 
   if (q.transactionType) {
     f.transactionType = q.transactionType;
   }
 
-
   if (q.propertyType) {
     f.propertyType = q.propertyType;
   }
 
-  if(typeof q.amenities === "string"){
-    const amenityTitle = q.amenities.split(",").map((a) => a.trim()).filter((Boolean));
+  if (typeof q.amenities === "string") {
+    const amenityTitle = q.amenities
+      .split(",")
+      .map((a) => a.trim())
+      .filter(Boolean);
 
-    if(amenityTitle.length > 0){
-     f["amenities.title"] = { $all: amenityTitle };
+    if (amenityTitle.length > 0) {
+      f["amenities.title"] = { $all: amenityTitle };
     }
-}
-  
-console.log("🏠 FINAL RESIDENTIAL MATCH:", f);
+  }
+
+  console.log("🏠 FINAL RESIDENTIAL MATCH:", f);
 
   return f;
 }
