@@ -337,7 +337,7 @@ export type SearchFilters = {
 
 
 type RESFilterKey =
-  | "Sub Property Type"
+  | "Property Type"
   | "Sales Type"
   | "Possession Status"
   | "Covered Area"

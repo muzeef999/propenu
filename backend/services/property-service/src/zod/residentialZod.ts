@@ -191,7 +191,7 @@ export const ResidentialCreateSchema = BaseResidentialCreate.extend({
   constructionYear: (z.coerce.number().int()).optional(),
   isModularKitchen: (z.coerce.boolean()).optional(),
 
-  isPriceNegotiable: z.boolean().optional(),
+  isPriceNegotiable: (z.coerce.boolean()).optional(),
 
 
   // furnishing: normalize and accept case/space/array issues

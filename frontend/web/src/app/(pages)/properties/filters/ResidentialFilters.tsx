@@ -57,7 +57,7 @@ const ResidentialFilters = () => {
 
   const [isOpen, setIsOpen] = useState(false);
   const [activeFilter, setActiveFilter] =
-    useState<RESFilterKey>("Sub Property Type");
+    useState<RESFilterKey>("Property Type");
 
   const sectionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -123,8 +123,8 @@ const ResidentialFilters = () => {
 
   const moreFilterSections: MoreFilterSection[] = [
     {
-      key: "Sub Property Type",
-      label: "Sub Property Type",
+      key: "Property Type",
+      label: "Property Type",
       options: [
         "Apartment",
         "Independent house",

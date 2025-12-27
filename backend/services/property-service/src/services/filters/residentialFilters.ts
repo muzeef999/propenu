@@ -7,7 +7,12 @@ export function extendResidentialFilters(
 ): Partial<BaseFilters> { 
   const f: any = { ...baseFilter };
 
-  const q = query ?? {};         
+  const q = query ?? {};   
+  
+  
+  if(q.listingType){
+    f.listingType = f.listingType;
+  }
 
    if(query.search){
     f.title = { $regex: query.search, $options: "i" }
@@ -17,8 +22,6 @@ export function extendResidentialFilters(
   if (q.city) {
     f.city = q.city;
   }
-
-
 
   if (q.listingSource) {
     f.listingSource = q.listingSource;
