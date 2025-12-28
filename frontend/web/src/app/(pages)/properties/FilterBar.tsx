@@ -9,7 +9,6 @@ import {
   setListingType,
   setCategory,
   setSearchText,
-  ListingOption,
   categoryOption,
 } from "@/Redux/slice/filterSlice";
 import { useDispatch } from "react-redux";
@@ -19,7 +18,12 @@ import CategoryFilters from "./CategoryFilters";
 const FilterBar: React.FC = () => {
   const bgColor = hexToRGBA("#27AE60", 0.2);
 
-  const listingOptions: ListingOption[] = ["Buy", "Rent", "Lease"];
+  const listingOptions = [
+    { label: "Buy", value: "buy" },
+    { label: "Rent", value: "rent" },
+    { label: "Lease", value: "lease" },
+  ] as const;
+
   const categoryOptions: categoryOption[] = [
     "Residential",
     "Commercial",
@@ -28,7 +32,7 @@ const FilterBar: React.FC = () => {
   ];
 
   const dispatch = useDispatch();
-  const { listingType, category, searchText } = useAppSelector(
+  const { listingTypeLabel, category, searchText } = useAppSelector(
     (s) => s.filters
   );
 
@@ -42,7 +46,7 @@ const FilterBar: React.FC = () => {
           <FilterDropdown
             triggerLabel={
               <span className="px-3 py-1.5 text-sm text-primary font-medium">
-                {listingType}
+                {listingTypeLabel}
               </span>
             }
             width="w-56"
@@ -53,16 +57,18 @@ const FilterBar: React.FC = () => {
                 <div className="flex gap-2 flex-wrap text-primary">
                   {listingOptions.map((l) => (
                     <button
-                      key={l}
+                      key={l.value}
                       onClick={() => {
-                        dispatch(setListingType(l));
+                        dispatch(
+                          setListingType({ label: l.label, value: l.value })
+                        );
                         close?.();
                       }}
                       className={`px-2 py-1 rounded hover:bg-gray-100 ${
-                        listingType === l ? "font-semibold" : ""
+                        listingTypeLabel === l.label ? "font-semibold" : ""
                       }`}
                     >
-                      {l}
+                      {l.label}
                     </button>
                   ))}
                 </div>

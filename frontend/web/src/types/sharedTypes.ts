@@ -1,4 +1,4 @@
-import { categoryOption, ListingOption } from "@/Redux/slice/filterSlice";
+import { categoryOption, ListingAPIValue,  ListingUILabel } from "@/Redux/slice/filterSlice";
 import { AgriculturalSearchParams } from "./agricultural";
 import { CommercialSearchParams } from "./commercial";
 import { LandSearchParams } from "./land";
@@ -93,7 +93,9 @@ export interface AgriculturalFilters {
 
 export interface FilterState {
   /* -------- Core -------- */
-  listingType: ListingOption;
+    listingTypeLabel: ListingUILabel;
+  listingTypeValue: ListingAPIValue;
+
   category: categoryOption;
   searchText: string;
 
