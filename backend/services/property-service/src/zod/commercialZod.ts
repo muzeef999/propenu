@@ -203,12 +203,13 @@ function enumPreprocess<T extends readonly [string, ...string[]]>(choices: T) {
 const BaseCreate = z.object({
   title: z.string().min(1),
   slug: z.string().optional(),
-  listingType: coerceEnum(["sale", "rent", "lease"] as const)
+  listingType: coerceEnum(["buy", "rent", "lease"] as const)
     .optional()
-    .default("sale"),
+    .default("buy"),
   developer: z.string().optional(),
   buildingName: z.string().optional(),
   address: z.string().min(1),
+  locality: z.string().min(1, "Locality is required"),
   city: z.string().optional(),
   state: z.string().optional(),
   pincode: z.string().optional(),

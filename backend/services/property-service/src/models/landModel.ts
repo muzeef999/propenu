@@ -22,7 +22,6 @@ const LandSchema = new Schema<ILand>(
       enum: ["sqft"],
     },
     roadWidthFt: Number,
-    negotiable: { type: Boolean, default: false },
     readyToConstruct: Boolean,
     title: { type: String, required: true, trim: true },
     waterConnection: Boolean,
@@ -40,8 +39,9 @@ const LandSchema = new Schema<ILand>(
     dimensions: {
     length: { type: Number, required: true },
     width: { type: Number, required: true },
-    landName: String,
+ 
   },
+     landName: String,
     propertyType: { type: String, enum: LAND_PROPERTY_TYPES },
     propertySubType: { type: String, enum: LAND_PROPERTY_SUBTYPES },
   },

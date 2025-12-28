@@ -1,6 +1,8 @@
 import { z } from "zod";
-import { LAND_PROPERTY_SUBTYPES, LAND_PROPERTY_TYPES } from "../types/landTypes";
- 
+import {
+  LAND_PROPERTY_SUBTYPES,
+  LAND_PROPERTY_TYPES,
+} from "../types/landTypes";
 
 const coerceNumber = (schema: z.ZodNumber) =>
   z.preprocess((v) => {
@@ -58,7 +60,7 @@ export const FileMetaZ = z.object({
 });
 
 const GallerySummarySchema = z.object({
-  title: z.string().optional(),
+  title: z.string().optional(), 
   url: z.string().url().optional(),
   category: z.string().optional(),
   order: coerceInt(z.number().int()).optional(),
@@ -66,14 +68,15 @@ const GallerySummarySchema = z.object({
   caption: z.string().optional(),
 });
 
-
 const BorewellFiles = z.array(FileMetaZ).optional().default([]);
-const BorewellDetails = z.object({
-  depthMeters: coerceNumber(z.number()).optional(),
-  yieldLpm: coerceNumber(z.number()).optional(),
-  drilledYear: coerceInt(z.number().int()).optional(),
-  files: BorewellFiles,
-}).optional();
+const BorewellDetails = z
+  .object({
+    depthMeters: coerceNumber(z.number()).optional(),
+    yieldLpm: coerceNumber(z.number()).optional(),
+    drilledYear: coerceInt(z.number().int()).optional(),
+    files: BorewellFiles,
+  })
+  .optional();
 
 export const DimensionsSchema = z.object({
   length: z.preprocess((v) => {
@@ -90,21 +93,22 @@ export const DimensionsSchema = z.object({
   }, z.string().optional()),
 });
 
-
 /* ----------------------
    base fields (match BaseFields used in model)
    ---------------------- */
 const BaseCreate = z.object({
-  title: z.string().min(1),
+  title: z.string().min(1).optional(),
   slug: z.string().optional(),
-  listingType: preprocessEnum(["sale", "rent", "lease"] as const).optional().default("sale"),
+  listingType: preprocessEnum(["buy", "rent", "lease"] as const)
+    .optional()
+    .default("buy"),
   address: z.string().min(1),
   city: z.string().optional(),
   state: z.string().optional(),
+  locality: z.string().min(1, "Locality is required"),
   pincode: z.string().optional(),
   description: z.string().optional(),
-    landName: z.string().trim().optional(),
-
+  landName: z.string().trim().optional(),
 
   location: z
     .object({
@@ -133,7 +137,9 @@ const BaseCreate = z.object({
     })
     .optional()
     .default(() => ({ views: 0, inquiries: 0, clicks: 0 } as const)),
-  status: preprocessEnum(["active", "inactive", "archived"] as const).optional().default("active"),
+  status: preprocessEnum(["active", "inactive", "archived"] as const)
+    .optional()
+    .default("active"),
   createdBy: z.string().optional(),
   updatedBy: z.string().optional(),
 });
@@ -143,7 +149,14 @@ const BaseCreate = z.object({
    ---------------------- */
 export const CreateLandSchema = BaseCreate.extend({
   plotArea: coerceNumber(z.number()).optional(),
-  plotAreaUnit: preprocessEnum(["sqft", "sqmt", "acre", "guntha", "kanal", "hectare"] as const).optional(),
+  plotAreaUnit: preprocessEnum([
+    "sqft",
+    "sqmt",
+    "acre",
+    "guntha",
+    "kanal",
+    "hectare",
+  ] as const).optional(),
   roadWidthFt: coerceNumber(z.number()).optional(),
   negotiable: coerceBoolean(z.boolean()).optional().default(false),
   readyToConstruct: coerceBoolean(z.boolean()).optional(),
@@ -151,7 +164,7 @@ export const CreateLandSchema = BaseCreate.extend({
   electricityConnection: coerceBoolean(z.boolean()).optional(),
   approvedByAuthority: z.array(z.string()).optional().default([]),
   facing: z.string().optional(),
-    dimensions: DimensionsSchema,
+  dimensions: DimensionsSchema,
 
   cornerPlot: coerceBoolean(z.boolean()).optional(),
   fencing: coerceBoolean(z.boolean()).optional(),
@@ -162,7 +175,7 @@ export const CreateLandSchema = BaseCreate.extend({
   surveyNumber: z.string().optional(),
   layoutType: z.string().optional(),
   propertyType: preprocessEnum(LAND_PROPERTY_TYPES).optional(),
-  propertySubType: preprocessEnum( LAND_PROPERTY_SUBTYPES).optional(),
+  propertySubType: preprocessEnum(LAND_PROPERTY_SUBTYPES).optional(),
 });
 
 export const UpdateLandSchema = CreateLandSchema.partial();
