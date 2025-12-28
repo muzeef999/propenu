@@ -30,8 +30,10 @@ export function authMiddleware(
       token,
       process.env.JWT_SECRET as string
     ) as unknown as JwtUserPayload;
-
-    req.user = decoded;
+  
+    
+    req.user = { ...decoded, _id : decoded.sub }
+    
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid token" });

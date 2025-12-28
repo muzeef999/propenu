@@ -44,8 +44,7 @@ const UserSchema = new mongoose.Schema(
     },
     isActive: { type: Boolean, default: true },
     lastLoginAt: { type: Date },
-    loginCount: { type: Number, default: 0 },
-
+    loginCount: { type: Number, default: 0 }
     
   },
   {

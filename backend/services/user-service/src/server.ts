@@ -5,6 +5,7 @@ import { connectDB } from './config/db';
 import agentRoute from './routes/agentRoute';
 import nominatimRoute from './routes/nominatimRoute';
 import  seedRolesRoute from './routes/seedRolesRoute';
+import shortlistRoutes from "./routes/shortlistRoute";
 
 dotenv.config({ quiet: true });
 
@@ -26,9 +27,9 @@ async function start() {
 
         app.use('/api/users/auth', authRoute);
         app.use("/api/users/agent", agentRoute);
-        // app.use("/api/users/builder", builderRouter);
         app.use("/api/users/location", nominatimRoute);
         app.use("/api/users/seeds", seedRolesRoute);
+        app.use("/api/users/shortlist", shortlistRoutes);
 
 
         app.listen(Number(port), "0.0.0.0", () => {

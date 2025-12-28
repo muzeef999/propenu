@@ -18,8 +18,7 @@ export function authMiddleware(
     return res.status(401).json({ message: "No token provided" });
   }
 
-  const parts = authHeader.split(" ");
-  const token = parts[1];
+  const token = authHeader.split(" ")[1];
 
   if (!token) {
     return res.status(401).json({ message: "Token missing" });
@@ -31,6 +30,7 @@ export function authMiddleware(
       process.env.JWT_SECRET as string
     ) as unknown as JwtUserPayload;
 
+   
     req.user = decoded;
     next();
   } catch (err) {
