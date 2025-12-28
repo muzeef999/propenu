@@ -3,16 +3,12 @@ import s3 from "../config/s3";
 import dotenv from "dotenv";
 import LandPlot from "../models/landModel";
 import { uploadFile } from "../utils/uploadFile";
-import User from "../models/userModel";
-import Role from "../models/roleModel";
 import { extendLandFilters } from "./filters/landFilters";
 import { upsertCityAndLocality } from "./locationServices";
 
 dotenv.config({ quiet: true });
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
-
- 
 
 function normalizePayload(obj: any) {
   if (!obj) return obj;
@@ -23,35 +19,63 @@ function normalizePayload(obj: any) {
 }
 
 
-async function resolveListingSourceFromUser(
-  createdBy?: string | mongoose.Types.ObjectId
-) {
-  console.log("[DEBUG] resolveListingSourceFromUser called with:", createdBy);
+async function mapAndUploadGallery({
+  incomingGallery,
+  galleryFiles,
+  propertyId,
+}: {
+  incomingGallery?: any[];
+  galleryFiles?: Express.Multer.File[];
+  propertyId: string;
+}): Promise<any[]> {
+  const files = galleryFiles ?? [];
+  const summary = Array.isArray(incomingGallery) ? incomingGallery.slice() : [];
 
-  if (!createdBy) {
-    return undefined;
-  }
-  const idStr = String(createdBy);
-  if (!mongoose.Types.ObjectId.isValid(idStr)) {
-    return undefined;
-  }
+  const filesByName = new Map<string, Express.Multer.File>();
+  for (const f of files) filesByName.set(f.originalname, f);
 
-  const user: any = await User.findById(idStr).select("role roleId").lean();
-
-  if (!user) {
-    return undefined;
-  }
-
-  if (user.role && typeof user.role === "string") {
-    return user.role;
+  // ensure summary length for index mapping
+  for (let i = 0; i < files.length; i++) {
+    if (i >= summary.length) summary.push({});
   }
 
-  if (user.roleId) {
-    const role: any = await Role.findById(user.roleId).select("label").lean();
-    return role?.label;
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (!file) continue;
+
+    // match by declared filename if available
+    let matchedIndex = -1;
+    for (let j = 0; j < summary.length; j++) {
+      const declaredName =
+        summary[j]?.filename ?? summary[j]?.fileName ?? summary[j]?.file;
+      if (declaredName && declaredName === file.originalname) {
+        matchedIndex = j;
+        break;
+      }
+    }
+    if (matchedIndex === -1) matchedIndex = i;
+
+    // upload into residential folder
+    const up = await await uploadFile({
+      buffer: file?.buffer,
+      originalName: file.originalname,
+      mimetype: file.mimetype,
+      folder: "featured/gallery",
+    });
+
+    if (!summary[matchedIndex]) summary[matchedIndex] = {};
+    summary[matchedIndex].url = up.url;
+    summary[matchedIndex].key = up.key;
+    summary[matchedIndex].filename = file.originalname;
+    if (!summary[matchedIndex].title)
+      summary[matchedIndex].title = file.originalname;
+    if (!summary[matchedIndex].category)
+      summary[matchedIndex].category = "image";
+    if (!summary[matchedIndex].order)
+      summary[matchedIndex].order = matchedIndex + 1;
   }
 
-  return undefined;
+  return summary;
 }
 
 
@@ -71,16 +95,10 @@ async function deleteS3ObjectIfExists(key?: string) {
   }
 }
 
-
 export const LandService = {
   async create(payload: any, files?: MulterFiles) {
 
-
-    let toCreate: any = { ...payload };
-
-      toCreate = normalizePayload(toCreate);
-
-
+    let toCreate = normalizePayload({ ...payload });
 
     // preliminary instance to get _id for S3 keys
     const preliminary = new LandPlot(toCreate);
@@ -89,27 +107,14 @@ export const LandService = {
       : String(Date.now());
 
     // gallery files
-    const galleryFiles = files?.galleryFiles ?? [];
-    if (galleryFiles.length > 0) {
-      toCreate.gallery = Array.isArray(toCreate.gallery)
-        ? toCreate.gallery.slice()
-        : [];
-      for (const f of galleryFiles) {
-        const up = await uploadFile({
-          buffer: f.buffer,
-          originalName: f.originalname,
-          mimetype: f.mimetype,
-          propertyId: propId,
-          folder: "land/gallery",
-        });
-        toCreate.gallery.push({
-          title: f.originalname,
-          url: up.url,
-          filename: f.originalname,
-          mimetype: f.mimetype,
-        });
-      }
-    }
+        const galleryFiles = files?.galleryFiles ?? [];
+    const mappedGallery = await mapAndUploadGallery({
+      incomingGallery: toCreate.gallery,
+      galleryFiles,
+      propertyId: propId,
+    });
+    toCreate.gallery = Array.isArray(mappedGallery) ? mappedGallery : [];
+
 
     // documents
     const documentsFiles = files?.documents ?? [];
@@ -199,33 +204,31 @@ export const LandService = {
     }
 
     const createdDoc = await LandPlot.create(toCreate);
-     
 
     if (createdDoc.city && createdDoc.locality) {
-                 await upsertCityAndLocality({
-         city: createdDoc.city,
-            locality: createdDoc.locality,
-            ...(createdDoc.state && { state: createdDoc.state }),
-            ...(createdDoc.location?.coordinates && {
-              coordinates: createdDoc.location.coordinates,
-                 }),
-            });
-          }
+      await upsertCityAndLocality({
+        city: createdDoc.city,
+        locality: createdDoc.locality,
+        ...(createdDoc.state && { state: createdDoc.state }),
+        ...(createdDoc.location?.coordinates && {
+          coordinates: createdDoc.location.coordinates,
+        }),
+      });
+    }
 
-    const  populated = await LandPlot.findById(createdDoc._id)
-     .populate("createdBy", "name email phone role roleId")
+    const populated = await LandPlot.findById(createdDoc._id)
+      .populate("createdBy", "name email phone role roleId")
       .lean()
       .exec();
-   return (
+    return (
       populated ?? (createdDoc.toObject ? createdDoc.toObject() : createdDoc)
     );
-    },
+  },
 
   async update(id: string, payload: any, files?: MulterFiles) {
     if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
     const existing = await LandPlot.findById(id);
     if (!existing) return null;
-
 
     // shallow copy incoming fields
     Object.keys(payload || {}).forEach((k) => {
@@ -473,31 +476,30 @@ export const LandService = {
 
   model: LandPlot,
 
-  getPipeline: (filters:any)  => { 
-  
-  const match = extendLandFilters(filters, {});
+  getPipeline: (filters: any) => {
+    const match = extendLandFilters(filters, {});
 
-  return [
-    { $match: match },
-    {
-      $project: {
-        _id: 0,
-        id: "$_id",
-        type: { $literal: "Land" },
-        title: 1,
-        dimensions:1,
-        gallery: 1,
-        plotArea: 1,
-        pricePerSqft:1,
-        slug: 1,
-        roadWidthFt: 1,
-        facing: 1,
-        price: 1,
-        createdAt: 1,
+    return [
+      { $match: match },
+      {
+        $project: {
+          _id: 0,
+          id: "$_id",
+          type: { $literal: "Land" },
+          title: 1,
+          dimensions: 1,
+          gallery: 1,
+          plotArea: 1,
+          pricePerSqft: 1,
+          slug: 1,
+          roadWidthFt: 1,
+          facing: 1,
+          price: 1,
+          createdAt: 1,
+        },
       },
-    },
-  ]; }
-  ,
+    ];
+  },
 };
 
 export default LandService;
