@@ -121,3 +121,4 @@ export const residentialKeyMapping: Record<
   "Posted Since": "postedSince",
   "Posted By": "postedBy",
 };
+

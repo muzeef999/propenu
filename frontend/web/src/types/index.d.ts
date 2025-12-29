@@ -352,6 +352,7 @@ export type CommercialFilterKey =
   | "Wall Finish"
   | "Tenant Available"
   | "Banks Approved"
+  | "Verified Properties" 
   | "Price Negotiable"
   | "Posted Since"
   | "Posted By";
@@ -414,17 +415,23 @@ export interface MoreFilterSectionCom {
   key: CommercialFilterKey;
   label: string;
   options?: string[];
+  filterKey?: keyof CommercialFilters;
+  selectionType?: SelectionType;
 }
 
 export interface MoreFilterSectionLand {
   key: LandFilterKey;
   label: string;
   options?: string[];
+  filterKey?: keyof LandFilters;
+  selectionType?: SelectionType;
 }
 
 export interface MoreFilterSectionAGR {
   key: AgriculturalFilterKey;
   label: string;
   options?: string[];
+  filterKey?: keyof AgriculturalFilters;
+  selectionType?: SelectionType;
 }
 

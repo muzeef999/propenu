@@ -10,10 +10,18 @@ import { useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Range } from "react-range";
 import { PostedByOption } from "@/types/residential";
-import { LandFilterKey, MoreFilterSection, MoreFilterSectionLand } from "@/types";
+import {
+  LandFilterKey,
+  MoreFilterSection,
+  MoreFilterSectionLand,
+} from "@/types";
 import Toggle from "@/ui/ToggleSwitch";
 import { toast } from "sonner";
 import { landMoreFilterSections } from "../constants/constants";
+import { getSelectedMoreFiltersCount } from "../count-helper/ResSelectedMoreFiltersCount";
+import { landKeyMapping } from "@/types/land";
+import { ArrowDropdownIcon } from "@/icons/icons";
+import SelectableButton from "@/ui/SelectableButton";
 
 /* -------------------- BUDGET CONSTANTS -------------------- */
 const BUDGET_MIN = 5;
@@ -35,8 +43,7 @@ const LandFilters = () => {
 
   const rightPanelRef = useRef<HTMLDivElement | null>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
-   const [activeFilter, setActiveFilter] =
-    useState<LandFilterKey>("Land Type");
+  const [activeFilter, setActiveFilter] = useState<LandFilterKey>("Land Type");
 
   const cityData = useSelector(selectCityWithLocalities);
   const localities = useSelector(selectLocalitiesByCity);
@@ -45,7 +52,6 @@ const LandFilters = () => {
   const { minBudget, maxBudget, land } = filtersState;
 
   const { locality, postedBy } = land;
-
 
   /* -------------------- BUDGET -------------------- */
 
@@ -60,6 +66,8 @@ const LandFilters = () => {
       : `${formatBudget(minBudget)} - ${formatBudget(maxBudget)}`;
 
   const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
+
+  const [open, setOpen] = useState(false);
 
   const [verifiedOnly, setVerifiedOnly] = useState(false);
 
@@ -79,23 +87,33 @@ const LandFilters = () => {
     setActiveFilter(key);
   };
 
+
+    const toggleArrayValue = (arr: string[] = [], value: string) => {
+    return arr.includes(value)
+      ? arr.filter((v) => v !== value)
+      : [...arr, value];
+  };
+
+
   /* -------------------- MORE FILTER CONFIG -------------------- */
 
+  const selectedMoreFiltersCount = getSelectedMoreFiltersCount(
+    land,
+    landKeyMapping
+  );
 
+  const CARPET_MIN = 300;
+  const CARPET_MAX = 10000;
 
-  
-const CARPET_MIN = 300;
-const CARPET_MAX = 10000;
+  const carpetOptions = [
+    300, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500, 10000,
+  ];
 
-const carpetOptions = [
-  300, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500, 10000,
-];
-
- const [carpetRange, setCarpetRange] = useState<[number, number]>([
+  const [carpetRange, setCarpetRange] = useState<[number, number]>([
     CARPET_MIN,
     CARPET_MAX,
   ]);
-  
+
   return (
     <div className="flex gap-4  items-center">
       {/* ---------- Localities ---------- */}
@@ -221,8 +239,6 @@ const carpetOptions = [
         )}
       />
 
-
-
       {/* ---------- Plot Area ---------- */}
       <FilterDropdown
         triggerLabel={
@@ -317,7 +333,7 @@ const carpetOptions = [
                   close?.();
                 }}
                 className={`px-2 py-1 rounded block w-full text-left hover:bg-gray-100 ${
-                  postedBy === opt ? "font-semibold bg-gray-100" : ""
+                  postedBy?.includes(opt) ? "font-semibold bg-gray-100" : ""
                 }`}
               >
                 {opt}
@@ -327,160 +343,201 @@ const carpetOptions = [
         )}
       />
 
-      {/* ---------- Posted By ---------- */}
+      {/* ---------- MORE FILTER MODAL ---------- */}
       <FilterDropdown
-        triggerLabel={
-          <div className="flex text-primary items-center gap-2 px-2 py-2 rounded-full bg-white cursor-pointer">
-            <span className="text-sm font-semibold text-primary">
-              More Filters
-            </span>
-            <span className="btn-primary text-white text-xs px-2 py-0.5 rounded-full">
-              {landMoreFilterSections.length}
-            </span>
-          </div>
-        }
-        width="w-[700px]"
-        align="right"
-        renderContent={() => (
-          <div className="flex h-[420px]">
-            {/* Left panel */}
-            <div className="w-1/3 border-r border-gray-200 overflow-y-auto">
-              {landMoreFilterSections?.map((section) => (
-                <button
-                  key={section.key}
-                  onClick={() => {
-                    handleSectionClick(section.key);
-                    setActiveFilter(section.key);
-                  }}
-                  className={`w-full text-left px-4 py-3 border-b border-gray-200   ${
-                    activeFilter === section.key
-                      ? " font-semibold text-primary"
-                      : "hover:bg-gray-50"
-                  }`}
-                >
-                  {section.label}
-                </button>
-              ))}
-            </div>
+  open={open}
+  onOpenChange={(next) => setOpen(next)}
+  triggerLabel={
+    <div className="flex text-primary items-center gap-2 px-2 py-2 rounded-xl border bg-white cursor-pointer">
+      <span className="btn-primary text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+        {selectedMoreFiltersCount}
+      </span>
 
-            {/* Right panel */}
-            {/* Right panel */}
-            <div
-              ref={rightPanelRef}
-              className="flex-1 p-6 overflow-y-auto space-y-10"
-            >
-              {landMoreFilterSections.map((section) => (
-                <div
-                  key={section.key}
-                  ref={(el) => {
-                    sectionRefs.current[section.key] = el;
-                  }}
-                  className="space-y-4"
-                >
-                  {/* SECTION HEADING */}
-                  <h3 className="text-sm font-semibold text-gray-900">
-                    {section.label}
-                  </h3>
+      <span className="text-sm font-semibold text-primary">
+        More Filters
+      </span>
 
-                  {/* SECTION CONTENT */}
-                  {section.key === "Verified Properties" ? (
-                    <Toggle
-                      enabled={verifiedOnly}
-                      onChange={(val) => {
-                        setVerifiedOnly(val);
-                        toast.success(
-                          val
-                            ? "Verified properties enabled"
-                            : "Verified properties disabled"
-                        );
-                      }}
-                    />
-                  ) : section.key === "Plot Area" ? (
-                    <div className="space-y-4">
-                      {/* Min / Max dropdowns */}
-                      <div className="flex gap-3">
-                        <select
-                          value={carpetRange[0]}
-                          onChange={(e) =>
-                            setCarpetRange([
-                              Number(e.target.value),
-                              carpetRange[1],
-                            ])
-                          }
-                          className="w-1/2 border rounded-md px-3 py-2 text-sm"
-                        >
-                          {carpetOptions.map((v) => (
-                            <option key={v} value={v}>
-                              Min {v} sqft
-                            </option>
-                          ))}
-                        </select>
-
-                        <select
-                          value={carpetRange[1]}
-                          onChange={(e) =>
-                            setCarpetRange([
-                              carpetRange[0],
-                              Number(e.target.value),
-                            ])
-                          }
-                          className="w-1/2 border rounded-md px-3 py-2 text-sm"
-                        >
-                          {carpetOptions.map((v) => (
-                            <option key={v} value={v}>
-                              Max {v} sqft
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Range Slider */}
-                      <Range
-                        step={50}
-                        min={CARPET_MIN}
-                        max={CARPET_MAX}
-                        values={carpetRange}
-                        onChange={(values) =>
-                          setCarpetRange(values as [number, number])
-                        }
-                        renderTrack={({ props, children }) => (
-                          <div
-                            {...props}
-                            className="h-1 w-full bg-gray-200 rounded"
-                          >
-                            {children}
-                          </div>
-                        )}
-                        renderThumb={({ props }) => (
-                          <div
-                            {...props}
-                            className="h-4 w-4 bg-green-600 rounded-full shadow"
-                          />
-                        )}
-                      />
-
-                      <div className="text-xs text-gray-500">
-                        {carpetRange[0]} – {carpetRange[1]} sqft
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-3">
-                      {section.options?.map((opt) => (
-                        <button
-                          key={opt}
-                          className="px-3 py-1.5 rounded-full border text-sm hover:bg-gray-100"
-                        >
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+      <ArrowDropdownIcon
+        size={12}
+        color="#27AE60"
+        className={`transition-transform duration-200 ${
+          open ? "rotate-180" : "rotate-0"
+        }`}
       />
+    </div>
+  }
+  width="w-[700px]"
+  align="right"
+  renderContent={() => (
+    <div className="flex h-[420px]">
+      {/* ================= LEFT PANEL ================= */}
+      <div className="w-1/3 border-r border-gray-200 overflow-y-auto">
+        {landMoreFilterSections.map((section) => (
+          <button
+            key={section.key}
+            onClick={() => handleSectionClick(section.key)}
+            className={`w-full text-left px-4 py-3 border-b border-gray-200 ${
+              activeFilter === section.key
+                ? "font-semibold text-primary"
+                : "hover:bg-gray-50"
+            }`}
+          >
+            {section.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ================= RIGHT PANEL ================= */}
+      <div
+        ref={rightPanelRef}
+        className="flex-1 p-6 overflow-y-auto space-y-10"
+      >
+        {landMoreFilterSections.map((section) => {
+          const mappedKey = landKeyMapping[section.key];
+          const currentValue = land[mappedKey];
+
+          return (
+            <div
+              key={section.key}
+              ref={(el) => {
+                sectionRefs.current[section.key] = el;
+              }}
+              className="space-y-4"
+            >
+              {/* SECTION TITLE */}
+              <h3 className="text-sm font-semibold text-gray-900">
+                {section.label}
+              </h3>
+
+              {/* ========== VERIFIED PROPERTIES ========== */}
+              {section.key === "Verified Properties" ? (
+                <Toggle
+                  enabled={!!land.verifiedProperties}
+                  onChange={(val) => {
+                    setVerifiedOnly(val);
+                    dispatch(
+                      setLandFilter({
+                        key: "verifiedProperties",
+                        value: val,
+                      })
+                    );
+                    toast.success(
+                      val
+                        ? "Verified properties enabled"
+                        : "Verified properties disabled"
+                    );
+                  }}
+                />
+              ) : section.key === "Plot Area" ? (
+                /* ========== PLOT AREA ========== */
+                <div className="space-y-4">
+                  <div className="flex gap-3">
+                    <select
+                      value={carpetRange[0]}
+                      onChange={(e) =>
+                        setCarpetRange([
+                          Number(e.target.value),
+                          carpetRange[1],
+                        ])
+                      }
+                      className="w-1/2 border rounded-md px-3 py-2 text-sm"
+                    >
+                      {carpetOptions.map((v) => (
+                        <option key={v} value={v}>
+                          Min {v} sqft
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={carpetRange[1]}
+                      onChange={(e) =>
+                        setCarpetRange([
+                          carpetRange[0],
+                          Number(e.target.value),
+                        ])
+                      }
+                      className="w-1/2 border rounded-md px-3 py-2 text-sm"
+                    >
+                      {carpetOptions.map((v) => (
+                        <option key={v} value={v}>
+                          Max {v} sqft
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <Range
+                    step={50}
+                    min={CARPET_MIN}
+                    max={CARPET_MAX}
+                    values={carpetRange}
+                    onChange={(values) =>
+                      setCarpetRange(values as [number, number])
+                    }
+                    renderTrack={({ props, children }) => (
+                      <div
+                        {...props}
+                        className="h-1 w-full bg-gray-200 rounded"
+                      >
+                        {children}
+                      </div>
+                    )}
+                    renderThumb={({ props }) => (
+                      <div
+                        {...props}
+                        className="h-4 w-4 bg-green-600 rounded-full shadow"
+                      />
+                    )}
+                  />
+
+                  <div className="text-xs text-gray-500">
+                    {carpetRange[0]} – {carpetRange[1]} sqft
+                  </div>
+                </div>
+              ) : (
+                /* ========== OPTIONS (SINGLE / MULTIPLE) ========== */
+                <div className="flex flex-wrap gap-3">
+                  {section.options?.map((opt) => {
+                    const isActive =
+                      section.selectionType === "multiple"
+                        ? Array.isArray(currentValue) &&
+                          currentValue.includes(opt)
+                        : currentValue === opt;
+
+                    return (
+                      <SelectableButton
+                        key={opt}
+                        label={opt}
+                        active={isActive}
+                        selectionType={section.selectionType ?? "single"}
+                        onClick={() => {
+                          dispatch(
+                            setLandFilter({
+                              key: mappedKey,
+                              value:
+                                section.selectionType === "multiple"
+                                  ? toggleArrayValue(
+                                      (currentValue as string[]) || [],
+                                      opt
+                                    )
+                                  : opt,
+                            })
+                          );
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  )}
+/>
+
     </div>
   );
 };

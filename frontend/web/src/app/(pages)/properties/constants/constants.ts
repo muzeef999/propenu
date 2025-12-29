@@ -44,7 +44,7 @@ export const moreFilterSections: MoreFilterSection[] = [
         "Farmhouse",
         "independent-builder-floor",
       ],
-      selectionType: "single",
+      selectionType: "multiple",
     },
     {
       key: "Sales Type",
@@ -135,6 +135,7 @@ export const moreFilterSections: MoreFilterSection[] = [
         "IT Park",
         "Co-working Space",
       ],
+       selectionType: "multiple",
     },
     {
       key: "Commercial Sub Type",
@@ -146,16 +147,19 @@ export const moreFilterSections: MoreFilterSection[] = [
         "High Street Shop",
         "SEZ Office",
       ],
+       selectionType: "multiple",
     },
     {
       key: "Transaction Type",
       label: "Transaction Type",
       options: ["new-sale", "resale"],
+       selectionType: "single",
     },
     {
       key: "Construction Status",
       label: "Construction Status",
       options: ["ready-to-move", "under-construction"],
+       selectionType: "single",
     },
     {
       key: "Built-up Area",
@@ -169,31 +173,37 @@ export const moreFilterSections: MoreFilterSection[] = [
       key: "Floor Number",
       label: "Floor Number",
       options: ["Ground", "1+", "5+", "10+"],
+      selectionType: "multiple",
     },
     {
       key: "Total Floors",
       label: "Total Floors",
       options: ["1+", "5+", "10+", "20+"],
+      selectionType: "multiple",
     },
     {
       key: "Furnishing Status",
       label: "Furnishing Status",
       options: ["unfurnished", "semi-furnished", "fully-furnished"],
+      selectionType: "single",
     },
     {
       key: "Pantry",
       label: "Pantry",
       options: ["Inside Premises", "Shared"],
+      selectionType: "single",
     },
     {
       key: "Power Capacity",
       label: "Power Capacity (KW)",
       options: ["10+", "25+", "50+", "100+"],
+      selectionType: "multiple",
     },
     {
       key: "Parking",
       label: "Parking",
       options: ["Visitor Parking", "2 Wheeler", "4 Wheeler"],
+      selectionType: "single",
     },
     {
       key: "Fire Safety",
@@ -205,16 +215,19 @@ export const moreFilterSections: MoreFilterSection[] = [
         "Fire Alarm",
         "Emergency Exit",
       ],
+      selectionType: "multiple",
     },
     {
       key: "Flooring Type",
       label: "Flooring Type",
       options: ["Vitrified", "Granite", "Marble", "Concrete"],
+      selectionType: "multiple",
     },
     {
       key: "Wall Finish",
       label: "Wall Finish",
       options: ["Bare", "Painted", "Finished"],
+      selectionType: "multiple",
     },
     {
       key: "Tenant Available",
@@ -235,11 +248,13 @@ export const moreFilterSections: MoreFilterSection[] = [
       key: "Posted Since",
       label: "Posted Since",
       options: ["All", "Yesterday", "Last Week", "Last Month", "Last 3 Months"],
+      selectionType: "single",
     },
     {
       key: "Posted By",
       label: "Posted By",
       options: ["Owners", "Agents", "Builders"],
+      selectionType: "multiple",
     },
   ];
 

@@ -1,4 +1,5 @@
-import { BaseSearchParams, IFileRef } from "./sharedTypes";
+import { AgriculturalFilterKey } from ".";
+import { AgriculturalFilters, BaseSearchParams, IFileRef } from "./sharedTypes";
 
 export interface Amenity {
   key: string;
@@ -70,4 +71,40 @@ export interface IAgricultural {
 export type AgriculturalSearchParams = BaseSearchParams & {
   category: "Agricultural";
   soilType?: string;
+};
+
+
+
+export const agriculturalKeyMapping: Record<
+  AgriculturalFilterKey,
+  keyof AgriculturalFilters
+> = {
+  "Agricultural Type": "agriculturalType",
+  "Agricultural Sub Type": "agriculturalSubType",
+
+  "Total Area": "totalArea",
+  "Area Unit": "areaUnit",
+
+  "Soil Type": "soilType",
+  "Irrigation Type": "irrigationType",
+  "Water Source": "waterSource",
+
+  "Number of Borewells": "borewellCount",
+  "Electricity Connection": "electricityConnection",
+
+  "Current Crop": "currentCrop",
+  "Plantation Age": "plantationAge",
+
+  "Road Width": "roadWidth",
+  "Access Road Type": "accessRoadType",
+  "Boundary Wall": "boundaryWall",
+
+  "State Restrictions": "stateRestrictions",
+
+  "Price Negotiable": "priceNegotiable",
+  "Verified Properties": "verifiedProperties",
+
+  "Posted Since": "postedSince",
+  "Posted By": "postedBy",
+
 };

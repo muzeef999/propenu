@@ -6,17 +6,17 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/Redux/store";
 import { setResidentialFilter } from "@/Redux/slice/filterSlice";
 import FilterDropdown from "@/ui/FilterDropdown";
-import { BHKOption, PostedByOption } from "@/types/residential";
+import { BHKOption, PostedByOption, residentialKeyMapping } from "@/types/residential";
 import { buildSearchParams } from "./buildSearchParams";
 import { searchFilter } from "@/data/ClientData";
 import {
   selectCityWithLocalities,
   selectLocalitiesByCity,
 } from "@/Redux/slice/citySlice";
-import { MoreFilterSection, RESFilterKey } from "@/types";
+import {  RESFilterKey } from "@/types";
 import Toggle from "@/ui/ToggleSwitch";
 import { toast } from "sonner";
-import {
+import { 
   BUDGET_MAX,
   BUDGET_MIN,
   BUDGET_STEP,
@@ -53,12 +53,12 @@ const ResidentialFilters = () => {
     "Sales Type": "salesType",
     "Possession Status": "possessionStatus",
     "Covered Area": "coveredArea",
-    "Bathroom": "bathroom",
-    "Balcony": "balcony",
-    "Parking": "parking",
-    "Furnishing": "furnishing",
-    "Amenities": "amenities",
-    "Facing": "facing",
+    Bathroom: "bathroom",
+    Balcony: "balcony",
+    Parking: "parking",
+    Furnishing: "furnishing",
+    Amenities: "amenities",
+    Facing: "facing",
     "Verified Properties": "verifiedProperties",
     "Posted Since": "postedSince",
     "Posted By": "postedBy",
@@ -128,12 +128,11 @@ const ResidentialFilters = () => {
       : [...arr, value];
   };
 
-  const selectedMoreFiltersCount = getSelectedMoreFiltersCount(residential);
-
-
+const selectedMoreFiltersCount = getSelectedMoreFiltersCount(
+  residential,
+  residentialKeyMapping
+);
   /* -------------------- MORE FILTER CONFIG -------------------- */
-
-  
 
   return (
     <>
@@ -360,7 +359,7 @@ const ResidentialFilters = () => {
           triggerLabel={
             <div className="flex text-primary items-center gap-2 px-2 py-2 rounded-xl border bg-white cursor-pointer">
               <span className="btn-primary text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                    {selectedMoreFiltersCount}
+                {selectedMoreFiltersCount}
               </span>
 
               <span className="text-sm font-semibold text-primary">
@@ -510,11 +509,10 @@ const ResidentialFilters = () => {
                         </div>
                       </div>
                     ) : (
-                              <div className="flex flex-wrap gap-3">
+                      <div className="flex flex-wrap gap-3"> 
                         {section.options?.map((opt) => {
                           const mappedKey = keyMapping[section.key];
-                          const currentValue =
-                            residential[mappedKey];
+                          const currentValue = residential[mappedKey];
 
                           const isActive =
                             section.selectionType === "multiple"
@@ -559,3 +557,4 @@ const ResidentialFilters = () => {
 };
 
 export default ResidentialFilters;
+ 

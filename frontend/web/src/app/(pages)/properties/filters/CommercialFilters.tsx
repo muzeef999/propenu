@@ -8,18 +8,34 @@ import {
 } from "@/Redux/slice/citySlice";
 import { setCommercialFilter } from "@/Redux/slice/filterSlice";
 import React, { useRef, useState } from "react";
-import { commercialMoreFilterSections, formatBudget } from "../constants/constants";
+import {
+  commercialMoreFilterSections,
+  formatBudget,
+} from "../constants/constants";
 import { Range } from "react-range";
 import { PostedByOption } from "@/types/residential";
 import { CommercialFilterKey, MoreFilterSectionCom } from "@/types";
+import { ArrowDropdownIcon } from "@/icons/icons";
+import { getSelectedMoreFiltersCount } from "../count-helper/ResSelectedMoreFiltersCount";
+import { commercialKeyMapping } from "@/types/commercial";
+import Toggle from "@/ui/ToggleSwitch";
+import { toast } from "sonner";
+import SelectableButton from "@/ui/SelectableButton";
 
 const BUDGET_MIN = 5;
 const BUDGET_MAX = 5000;
 const BUDGET_STEP = 5;
 
+const CARPET_MIN = 100;
+const CARPET_MAX = 10000;
+
 const budgetOptions = [
   5, 10, 20, 30, 50, 75, 100, 150, 200, 300, 400, 500, 750, 1000, 2000, 3000,
   4000, 5000,
+];
+
+const carpetOptions = [
+  100, 250, 500, 750, 1000, 1500, 2000, 3000, 4000, 5000, 7500, 10000,
 ];
 
 const CommercialFilters = () => {
@@ -27,7 +43,7 @@ const CommercialFilters = () => {
 
   const rightPanelRef = useRef<HTMLDivElement | null>(null);
   const sectionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
-
+  const [open, setOpen] = useState(false);
   const [activeFilter, setActiveFilter] =
     useState<CommercialFilterKey>("Commercial Type");
 
@@ -44,12 +60,19 @@ const CommercialFilters = () => {
     maxBudget || BUDGET_MAX,
   ]);
 
+  const [carpetRange, setCarpetRange] = useState<[number, number]>([
+    CARPET_MIN,
+    CARPET_MAX,
+  ]);
+
   const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
 
   const budgetLabel =
     minBudget === BUDGET_MIN && maxBudget === BUDGET_MAX
       ? "Budget"
       : `${formatBudget(minBudget)} - ${formatBudget(maxBudget)}`;
+
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
 
   const handleSectionClick = (key: CommercialFilterKey) => {
     const container = rightPanelRef.current;
@@ -67,8 +90,16 @@ const CommercialFilters = () => {
     setActiveFilter(key);
   };
 
-  
+  const toggleArrayValue = (arr: string[] = [], value: string) => {
+    return arr.includes(value)
+      ? arr.filter((v) => v !== value)
+      : [...arr, value];
+  };
 
+  const selectedMoreFiltersCount = getSelectedMoreFiltersCount(
+    commercial,
+    commercialKeyMapping
+  );
   return (
     <div className="flex gap-4 items-center">
       {/* ---------- Localities ---------- */}
@@ -288,7 +319,7 @@ const CommercialFilters = () => {
                   close?.();
                 }}
                 className={`px-2 py-1 rounded block w-full text-left hover:bg-gray-100 ${
-                  postedBy === opt ? "font-semibold bg-gray-100" : ""
+                  Array.isArray(postedBy) ? postedBy.includes(opt) ? "font-semibold bg-gray-100" : "" : postedBy === opt ? "font-semibold bg-gray-100" : ""
                 }`}
               >
                 {opt}
@@ -298,15 +329,26 @@ const CommercialFilters = () => {
         )}
       />
 
+      {/* ---------- MORE FILTER MODAL ---------- */}
       <FilterDropdown
+        open={open}
+        onOpenChange={(next) => setOpen(next)}
         triggerLabel={
-          <div className="flex text-primary items-center gap-2 px-2 py-2 rounded-full bg-white cursor-pointer">
+          <div className="flex text-primary items-center gap-2 px-2 py-2 rounded-xl border bg-white cursor-pointer">
+            <span className="btn-primary text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+              {selectedMoreFiltersCount}
+            </span>
+
             <span className="text-sm font-semibold text-primary">
               More Filters
             </span>
-            <span className="btn-primary text-white text-xs px-2 py-0.5 rounded-full">
-              {commercialMoreFilterSections.length}
-            </span>
+            <ArrowDropdownIcon
+              size={12}
+              color="#27AE60"
+              className={`transition-transform duration-200  ${
+                open ? "rotate-180" : "rotate-0"
+              }`}
+            />
           </div>
         }
         width="w-[700px]"
@@ -335,6 +377,153 @@ const CommercialFilters = () => {
 
             {/* Right panel */}
             {/* Right panel */}
+<div
+  ref={rightPanelRef}
+  className="flex-1 p-6 overflow-y-auto space-y-10"
+>
+  {commercialMoreFilterSections.map((section) => {
+    const mappedKey = commercialKeyMapping[section.key];
+    const currentValue = commercial[mappedKey];
+
+    return (
+      <div
+        key={section.key}
+        ref={(el) => {
+          sectionRefs.current[section.key] = el;
+        }}
+        className="space-y-4"
+      >
+        {/* SECTION HEADING */}
+        <h3 className="text-sm font-semibold text-gray-900">
+          {section.label}
+        </h3>
+
+        {/* VERIFIED PROPERTIES (TOGGLE) */}
+        {section.key === "Verified Properties" ? (
+          <Toggle
+            enabled={Boolean(currentValue)}
+            onChange={(val) => {
+              dispatch(
+                setCommercialFilter({
+                  key: mappedKey,
+                  value: val,
+                })
+              );
+
+              toast.success(
+                val
+                  ? "Verified properties enabled"
+                  : "Verified properties disabled"
+              );
+            }}
+          />
+        ) : section.key === "Carpet Area" ? (
+          /* CARPET AREA */
+          <div className="space-y-4">
+            <div className="flex gap-3">
+              <select
+                value={carpetRange[0]}
+                onChange={(e) =>
+                  setCarpetRange([
+                    Number(e.target.value),
+                    carpetRange[1],
+                  ])
+                }
+                className="w-1/2 border rounded-md px-3 py-2 text-sm"
+              >
+                {carpetOptions.map((v) => (
+                  <option key={v} value={v}>
+                    Min {v} sqft
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={carpetRange[1]}
+                onChange={(e) =>
+                  setCarpetRange([
+                    carpetRange[0],
+                    Number(e.target.value),
+                  ])
+                }
+                className="w-1/2 border rounded-md px-3 py-2 text-sm"
+              >
+                {carpetOptions.map((v) => (
+                  <option key={v} value={v}>
+                    Max {v} sqft
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <Range
+              step={50}
+              min={CARPET_MIN}
+              max={CARPET_MAX}
+              values={carpetRange}
+              onChange={(values) =>
+                setCarpetRange(values as [number, number])
+              }
+              renderTrack={({ props, children }) => (
+                <div
+                  {...props}
+                  className="h-1 w-full bg-gray-200 rounded"
+                >
+                  {children}
+                </div>
+              )}
+              renderThumb={({ props }) => (
+                <div
+                  {...props}
+                  className="h-4 w-4 bg-green-600 rounded-full shadow"
+                />
+              )}
+            />
+
+            <div className="text-xs text-gray-500">
+              {carpetRange[0]} – {carpetRange[1]} sqft
+            </div>
+          </div>
+        ) : (
+          /* OPTIONS */
+          <div className="flex flex-wrap gap-3">
+            {section.options?.map((opt) => {
+              const isActive =
+                section.selectionType === "multiple"
+                  ? Array.isArray(currentValue) &&
+                    currentValue.includes(opt)
+                  : currentValue === opt;
+
+              return (
+                <SelectableButton
+                  key={opt}
+                  label={opt}
+                  active={isActive}
+                  selectionType={section.selectionType ?? "single"}
+                  onClick={() => {
+                    dispatch(
+                      setCommercialFilter({
+                        key: mappedKey,
+                        value:
+                          section.selectionType === "multiple"
+                            ? toggleArrayValue(
+                                (currentValue as string[]) || [],
+                                opt
+                              )
+                            : opt,
+                      })
+                    );
+                  }}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  })}
+</div>
+
           </div>
         )}
       />

@@ -1,13 +1,24 @@
-import { residentialKeyMapping } from "@/types/residential";
-import { ResidentialFilters } from "@/types/sharedTypes";
+export type CountableFilterValue =
+  | string
+  | string[]
+  | boolean
+  | number
+  | undefined
+  | null;
 
-export const getSelectedMoreFiltersCount = (
-  residential: ResidentialFilters
-) => {
+/**
+ * Generic helper for Residential / Commercial / Land / Agricultural
+ */
+export function getSelectedMoreFiltersCount<
+  T extends object
+>(
+  filters: T,
+  keyMapping: Record<string, keyof T>
+): number {
   let count = 0;
 
-  Object.values(residentialKeyMapping).forEach((key) => {
-    const value = residential[key as keyof ResidentialFilters];
+  Object.values(keyMapping).forEach((key) => {
+    const value = filters[key] as CountableFilterValue;
 
     if (Array.isArray(value)) {
       count += value.length;
@@ -19,4 +30,4 @@ export const getSelectedMoreFiltersCount = (
   });
 
   return count;
-};
+}

@@ -97,30 +97,98 @@ export interface ResidentialFilters {
 }
 
 export interface CommercialFilters {
-  commercialType?: string;
-  parking?: string;
-  minArea?: number;
-  maxArea?: number;
-  postedBy?: string;
+  /* Type & transaction */
+  commercialType?: string[];           // Office, Shop, Warehouse…
+  commercialSubType?: string[];         // Mall Shop, SEZ Office…
+  transactionType?: "new-sale" | "resale";
+  constructionStatus?: "ready-to-move" | "under-construction";
+
+  builtUpArea?: { min?: number; max?: number };
+  carpetArea?: { min?: number; max?: number };
+
+  floorNumber?: string[];
+  totalFloors?: string[];
+
+  furnishingStatus?: "unfurnished" | "semi-furnished" | "fully-furnished";
+  pantry?: "Inside Premises" | "Shared";
+  powerCapacity?: string[];
+
+  parking?: "Visitor Parking" | "2 Wheeler" | "4 Wheeler";
+
+  fireSafety?: string[];
+  flooringType?: string[];
+  wallFinish?: string[];
+
+  tenantAvailable?: boolean;
+  banksApproved?: string[];
+  priceNegotiable?: boolean;
+  verifiedProperties?: boolean;
+
+  postedSince?: string;
+  postedBy?: string[];
   locality?: string;
 }
 
+
 export interface LandFilters {
-  facing?: string;
-  roadFacing?: string;
-  minArea?: number;
-  maxArea?: number;
-  postedBy?: string;
+  landType?: string[];
+  landSubType?: string[];
+
+  plotArea?: { min?: number; max?: number };
+  dimensions?: {
+    length?: number;
+    width?: number;
+  };
+
+  roadWidth?: string[];
+  facing?: string[];
+  cornerPlot?: boolean;
+  readyToConstruct?: boolean;
+
+  waterConnection?: boolean;
+  electricityConnection?: boolean;
+
+  approvedBy?: string[];
+  landUseZone?: string[];
+  banksApproved?: string[];
+  priceNegotiable?: boolean;
+  verifiedProperties?: boolean;
+
+  postedSince?: string;
+  postedBy?: string[];
   locality?: string;
+  
 }
 
 export interface AgriculturalFilters {
-  soilType?: string;
-  minArea?: number;
-  maxArea?: number;
-  postedBy?: string;
+  agriculturalType?: string[];
+  agriculturalSubType?: string[];
+
+  totalArea?: { min?: number; max?: number };
+  areaUnit?: "Acre" | "Guntha" | "Cent" | "Hectare";
+
+  soilType?: string[];
+  irrigationType?: string[];
+  waterSource?: string[];
+
+  borewellCount?: string[];
+  electricityConnection?: boolean;
+  roadWidth?: string[];
+  accessRoadType?: string[];
+  boundaryWall?: boolean;
+ 
+  currentCrop?: string[];
+  plantationAge?: string[];
+
+  stateRestrictions?: boolean;
+  priceNegotiable?: boolean;
+  verifiedProperties?: boolean;
+
+  postedSince?: string;
+  postedBy?: string[];
   locality?: string;
 }
+
 
 export interface FilterState {
   /* -------- Core -------- */

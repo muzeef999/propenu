@@ -1,4 +1,4 @@
-import { BaseSearchParams, IFileRef } from "./sharedTypes";
+import { BaseSearchParams, CommercialFilters, IFileRef } from "./sharedTypes";
 
 
 export type GalleryItem = {
@@ -87,6 +87,7 @@ export interface ICommercial {
   conferenceRooms: number,
   specifications: SpecificationItem[],
   createdBy?: { name?: string; contact?: string; email?: string };
+  verifiedProperties?:Boolean;
 }
 
 
@@ -94,4 +95,31 @@ export interface ICommercial {
 export type CommercialSearchParams = BaseSearchParams & {
   category: "Commercial";
   commercialType?: string;
+};
+
+
+
+export const commercialKeyMapping: Record<string, keyof CommercialFilters> = {
+  "Commercial Type": "commercialType",
+  "Commercial Sub Type": "commercialSubType",
+  "Transaction Type": "transactionType",
+  "Construction Status": "constructionStatus",
+  "Built-up Area": "builtUpArea",
+  "Carpet Area": "carpetArea",
+  "Floor Number": "floorNumber",
+  "Total Floors": "totalFloors",
+  "Furnishing Status": "furnishingStatus",
+  "Pantry": "pantry",
+  "Power Capacity": "powerCapacity",
+  "Parking": "parking",
+  "Fire Safety": "fireSafety",
+  "Flooring Type": "flooringType",
+  "Wall Finish": "wallFinish",
+  "Tenant Available": "tenantAvailable",
+  "Banks Approved": "banksApproved",
+  "Price Negotiable": "priceNegotiable",
+  "Verified Properties": "verifiedProperties",
+  "Posted Since": "postedSince",
+  "Posted By": "postedBy",
+ 
 };

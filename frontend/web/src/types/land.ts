@@ -1,4 +1,5 @@
-import { BaseSearchParams, IFileRef } from "./sharedTypes";
+import { LandFilterKey } from ".";
+import { BaseSearchParams, IFileRef, LandFilters } from "./sharedTypes";
 
 export type GalleryItem = {
   url: string;
@@ -43,7 +44,7 @@ export interface ILand {
   listingType?: 'buy' | 'rent' | 'lease';
   propertyType?: string;
   amenities?: string[];
-
+verifiedProperties?:Boolean;
 }
 
 
@@ -51,4 +52,36 @@ export interface ILand {
 export type LandSearchParams = BaseSearchParams & {
   category: "Land";
   facing?: string;
+};
+
+
+
+export const landKeyMapping: Record<
+  LandFilterKey,
+  keyof LandFilters
+> = {
+  "Land Type": "landType",
+  "Land Sub Type": "landSubType",
+  "Plot Area": "plotArea",
+  "Dimensions": "dimensions",
+
+  "Road Width": "roadWidth",
+  "Facing": "facing",
+
+  "Corner Plot": "cornerPlot",
+  "Ready To Construct": "readyToConstruct",
+
+  "Water Connection": "waterConnection",
+  "Electricity Connection": "electricityConnection",
+
+  "Approved By": "approvedBy",
+  "Land Use Zone": "landUseZone",
+
+  "Banks Approved": "banksApproved",
+  "Price Negotiable": "priceNegotiable",
+  "Verified Properties": "verifiedProperties",
+
+  "Posted Since": "postedSince",
+  "Posted By": "postedBy",
+
 };
