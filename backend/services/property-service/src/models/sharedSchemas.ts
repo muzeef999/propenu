@@ -123,10 +123,9 @@ export const LegalChecksSchema = new Schema<ILegalChecks>(
    BASE FIELDS (reused in each model)
 ------------------------- */
 export const BaseFields = {
-  
   slug: { type: String, required: true, unique: true, trim: true },
-  listingType: { type: String, enum: ['buy', 'rent', 'lease'], default: 'sale', index: true, required: true },
-  listingSource: {  type: String, required: true, trim: true},
+  listingType: { type: String, enum: ['buy', 'rent', 'lease'], default: 'buy', index: true },
+  listingSource: {  type: String, trim: true},
   address: { type: String, required: true },
   description : {type: String, required: true},
   locality :{type: String, required:true},
@@ -136,8 +135,8 @@ export const BaseFields = {
   location: { type: { type: String, enum: ['Point'], default: 'Point' }, coordinates: { type: [Number], index: '2dsphere' } },
   mapEmbedUrl: String,
   currency: { type: String, default: 'INR' },
-  price: { type: Number, index: true },
-  pricePerSqft: { type: Number, index: true },
+  price: { type: Number, min: 0, index: true },
+  pricePerSqft: { type: Number, min: 0, index: true },
   gallery: { type: [ImageSchema], default: [] },
   documents: { type: [FileRefSchema], default: [] },
   specifications: { type: [SpecificationSchema], default: [] },
@@ -153,12 +152,9 @@ export const BaseFields = {
     clicks: { type: Number, default: 0 },
   },
   status: { type: String, enum: ['active', 'inactive', 'archived'], default: 'active', index: true },
-  createdBy: { type: Schema.Types.ObjectId, ref: 'User', index: true, require, required: true },
+  createdBy: { type: Schema.Types.ObjectId, ref: 'User', index: true, required: true },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
-  relatedProjects: { type: [Schema.Types.ObjectId], ref: 'featuredProject', default: [] },
 } as const;
-
-
 export default {
   FileRefSchema,
   ImageSchema,

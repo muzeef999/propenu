@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { ZodError } from "zod";
 import { CreateLandSchema, UpdateLandSchema } from "../zod/landZod";
-import LandService from "../services/landService";
+import LandService, { findRelatedLand } from "../services/landService";
 
 /** helper to parse JSON-like values already handled by middleware; keep for safety */
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -10,7 +10,7 @@ function parseMaybeJSON<T = any>(value: any): T | undefined {
   try {
     return JSON.parse(value) as T;
   } catch {
-    return (value as unknown) as T;
+    return value as unknown as T;
   }
 }
 
@@ -31,15 +31,18 @@ export const createLand = async (req: Request, res: Response) => {
       // soilTestReport / conversionCertificateFile / encumbranceCertificateFile
       soilTestReport: parseMaybeJSON(raw.soilTestReport),
       conversionCertificateFile: parseMaybeJSON(raw.conversionCertificateFile),
-      encumbranceCertificateFile: parseMaybeJSON(raw.encumbranceCertificateFile),
+      encumbranceCertificateFile: parseMaybeJSON(
+        raw.encumbranceCertificateFile
+      ),
     };
 
     // validate (throws ZodError)
     const payload = CreateLandSchema.parse(parsed);
 
-
     console.log(payload);
-    const files = req.files as { [field: string]: Express.Multer.File[] } | undefined;
+    const files = req.files as
+      | { [field: string]: Express.Multer.File[] }
+      | undefined;
 
     const created = await LandService.create(payload as any, files);
 
@@ -53,7 +56,9 @@ export const createLand = async (req: Request, res: Response) => {
       return res.status(409).json({ error: "Slug already in use" });
     }
     console.error("createLand:", err);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+    return res
+      .status(500)
+      .json({ error: err.message || "Internal server error" });
   }
 };
 
@@ -73,7 +78,9 @@ export const getAllLands = async (req: Request, res: Response) => {
     return res.json(result);
   } catch (err: any) {
     console.error("getAllLands:", err);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+    return res
+      .status(500)
+      .json({ error: err.message || "Internal server error" });
   }
 };
 
@@ -81,24 +88,37 @@ export const getAllLands = async (req: Request, res: Response) => {
 export const getLandBySlug = async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
-    if (!slug) return res.status(400).json({ error: "Missing slug" });
-    const doc = await LandService.getBySlug(slug);
-    if (!doc) return res.status(404).json({ error: "Not found" });
+    if (!slug) {
+      return res.status(400).json({ error: "Missing slug" });
+    }
 
-    // increment views async
-    (async () => {
-      try {
-        const id = (doc as any)._id?.toString?.();
-        if (id) await LandService.incrementViews(id);
-      } catch (e) {
-        console.error("incrementViews error:", e);
-      }
-    })();
+    // 1️⃣ Fetch property
+    const property = await LandService.getBySlug(slug);
+    if (!property) {
+      return res.status(404).json({ error: "Not found" });
+    }
 
-    return res.json({ data: doc });
+    // 2️⃣ Increment views (fire-and-forget)
+    const id = (property as any)._id?.toString?.();
+    if (id) {
+      LandService.incrementViews(id).catch((e: any) =>
+        console.error("incrementViews error:", e)
+      );
+    }
+
+    // 3️⃣ Find related land properties
+    const relatedProjects = await findRelatedLand(property);
+
+    // 4️⃣ Response
+    return res.json({
+      data: property,
+      relatedProjects,
+    });
   } catch (err: any) {
     console.error("getLandBySlug:", err);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+    return res.status(500).json({
+      error: err.message || "Internal server error",
+    });
   }
 };
 
@@ -110,7 +130,9 @@ export const getLandDetail = async (req: Request, res: Response) => {
     const doc = await LandService.getById(id);
     if (!doc) return res.status(404).json({ error: "Not found" });
 
-    LandService.incrementViews(id).catch((e) => console.error("incrementViews error:", e));
+    LandService.incrementViews(id).catch((e) =>
+      console.error("incrementViews error:", e)
+    );
 
     return res.json({ data: doc });
   } catch (err: any) {
@@ -138,12 +160,16 @@ export const editLand = async (req: Request, res: Response) => {
       approvedByAuthority: parseMaybeJSON(raw.approvedByAuthority),
       soilTestReport: parseMaybeJSON(raw.soilTestReport),
       conversionCertificateFile: parseMaybeJSON(raw.conversionCertificateFile),
-      encumbranceCertificateFile: parseMaybeJSON(raw.encumbranceCertificateFile),
+      encumbranceCertificateFile: parseMaybeJSON(
+        raw.encumbranceCertificateFile
+      ),
     };
 
     const payload = UpdateLandSchema.parse(parsed);
 
-    const files = req.files as { [field: string]: Express.Multer.File[] } | undefined;
+    const files = req.files as
+      | { [field: string]: Express.Multer.File[] }
+      | undefined;
 
     const updated = await LandService.update(id, payload as any, files);
     if (!updated) return res.status(404).json({ error: "Not found" });

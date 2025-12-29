@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { ZodError } from "zod";
-import CommercialService from "../services/commercialService";
+import CommercialService, { findRelatedCommercial } from "../services/commercialService";
 // import { CommercialCreateDTO, CommercialUpdateDTO } from "../zod/commercialZod"; // if you have zod
 
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -11,7 +11,7 @@ function parseMaybeJSON<T = any>(value: any): T | undefined {
   } catch {
     return (value as unknown) as T;
   }
-}
+} 
 
 export const createCommercial = async (req: Request, res: Response) => {
   try {
@@ -70,26 +70,40 @@ export const getAllCommercial = async (req: Request, res: Response) => {
 export const getCommercialBySlug = async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
-    if (!slug) return res.status(400).json({ error: "Missing slug" });
+    if (!slug) {
+      return res.status(400).json({ error: "Missing slug" });
+    }
 
-    const doc = await CommercialService.getBySlug(slug);
-    if (!doc) return res.status(404).json({ error: "Property not found" });
+    // 1️⃣ Fetch property
+    const property = await CommercialService.getBySlug(slug);
+    if (!property) {
+      return res.status(404).json({ error: "Property not found" });
+    }
 
-    (async () => {
-      try {
-        const id = (doc as any)._id?.toString?.();
-        if (id) await CommercialService.incrementViews(id);
-      } catch (e) {
-        console.error("incrementViews error:", e);
-      }
-    })();
+    // 2️⃣ Increment views (fire-and-forget)
+    const id = (property as any)._id?.toString?.();
+    if (id) {
+      CommercialService.incrementViews(id).catch((e: any) =>
+        console.error("incrementViews error:", e)
+      );
+    }
 
-    return res.json({ data: doc });
+    // 3️⃣ Find related commercial properties
+    const relatedProjects = await findRelatedCommercial(property);
+
+    // 4️⃣ Response
+    return res.json({
+      data: property,
+      relatedProjects,
+    });
   } catch (err: any) {
     console.error("getCommercialBySlug:", err);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+    return res.status(500).json({
+      error: err.message || "Internal server error",
+    });
   }
 };
+
 
 export const getCommercialDetail = async (req: Request, res: Response) => {
   try {

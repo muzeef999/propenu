@@ -5,6 +5,7 @@ import LandPlot from "../models/landModel";
 import { uploadFile } from "../utils/uploadFile";
 import { extendLandFilters } from "./filters/landFilters";
 import { upsertCityAndLocality } from "./locationServices";
+import { findRelatedProperties } from "./findRelatedProperties";
 
 dotenv.config({ quiet: true });
 
@@ -17,6 +18,7 @@ function normalizePayload(obj: any) {
   if (obj.createdBy) obj.createdBy = String(obj.createdBy);
   return obj;
 }
+
 
 
 async function mapAndUploadGallery({
@@ -76,6 +78,21 @@ async function mapAndUploadGallery({
   }
 
   return summary;
+}
+
+export function findRelatedLand(property: any) {
+  return findRelatedProperties(property, {
+    modelName: "Land",
+    extraFilters: (p) => ({
+      ...(p.plotArea && {
+        plotArea: {
+          $gte: p.plotArea * 0.8,
+          $lte: p.plotArea * 1.2,
+        },
+      }),
+      landUseZone: p.landUseZone,
+    }),
+  });
 }
 
 

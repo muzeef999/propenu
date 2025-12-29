@@ -2,7 +2,7 @@
 import { Request, Response } from "express";
 import { ZodError } from "zod";
 import { ResidentialCreateSchema, ResidentialUpdateSchema } from "../zod/residentialZod";
-import ResidentialPropertyService from "../services/residentialServices";
+import ResidentialPropertyService, { findRelatedResidential } from "../services/residentialServices";
 
 /** Helper: parse values that might be JSON strings (multipart sends arrays/objects as strings). */
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -16,9 +16,7 @@ function parseMaybeJSON<T = any>(value: any): T | undefined {
   }
 }
 
-/**
- * CREATE
- */
+/*** CREATE*/
 export const createResidential = async (req: Request, res: Response) => {
   try {
     const raw = { ...(req.body || {}) };
@@ -67,9 +65,7 @@ export const createResidential = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * LIST
- */
+/*** LIST **/
 export const getAllResidential = async (req: Request, res: Response) => {
   try {
     const options: any = {};
@@ -109,39 +105,45 @@ export const getAllResidential = async (req: Request, res: Response) => {
     console.error("getAllResidential:", err);
     return res.status(500).json({ error: err.message || "Internal server error" });
   }
-};
+}; 
 
-/**
- * GET BY SLUG
- */
+/*** GET BY SLUG **/
 export const getResidentialBySlug = async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
-    if (!slug) return res.status(400).json({ error: "Missing slug" });
+    if (!slug) {
+      return res.status(400).json({ error: "Missing slug" });
+    }
 
-    const doc = await ResidentialPropertyService.getBySlug(slug);
-    if (!doc) return res.status(404).json({ error: "Property not found" });
+    // 1️⃣ Fetch property
+    const property = await ResidentialPropertyService.getBySlug(slug);
+    if (!property) {
+      return res.status(404).json({ error: "Property not found" });
+    }
 
-    // increment views (non-blocking)
-    (async () => {
-      try {
-        const id = (doc as any)._id?.toString?.();
-        if (id) await ResidentialPropertyService.incrementViews(id);
-      } catch (e) {
-        console.error("incrementViews error:", e);
-      }
-    })();
+    const id = (property as any)._id?.toString?.();
+    if (id) {
+      ResidentialPropertyService.incrementViews(id).catch((e: any) =>
+        console.error("incrementViews error:", e)
+      );
+    }
 
-    return res.json({ data: doc });
+    const relatedProjects = await findRelatedResidential(property);
+
+    return res.json({
+      data: property,
+      relatedProjects,
+    });
   } catch (err: any) {
     console.error("getResidentialBySlug:", err);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+    return res.status(500).json({
+      error: err.message || "Internal server error",
+    });
   }
 };
 
-/**
- * GET DETAIL BY ID
- */
+
+/*** GET DETAIL BY ID **/
 export const getResidentialDetail = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -160,9 +162,7 @@ export const getResidentialDetail = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * UPDATE
- */
+/***  UPDATE  **/
 export const editResidential = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -209,9 +209,7 @@ export const editResidential = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * DELETE
- */
+/*** DELETE **/
 export const deleteResidential = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

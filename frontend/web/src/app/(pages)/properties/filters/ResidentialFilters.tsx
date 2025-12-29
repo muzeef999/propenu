@@ -26,6 +26,7 @@ import {
   carpetOptions,
   formatBudget,
 } from "../constants/constants";
+import { ArrowDropdownIcon } from "@/icons/icons";
 
 const ResidentialFilters = () => {
   const dispatch = useDispatch();
@@ -37,7 +38,7 @@ const ResidentialFilters = () => {
   const filtersState = useSelector((state: RootState) => state.filters);
   const { minBudget, maxBudget, residential } = filtersState;
   const { locality, bhk, postedBy } = residential;
-  const [isOpen, setIsOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const [activeFilter, setActiveFilter] =
     useState<RESFilterKey>("Property Type");
 
@@ -177,9 +178,11 @@ const ResidentialFilters = () => {
         {/* ---------- Localities ---------- */}
         <FilterDropdown
           triggerLabel={
-            <span className="px-4 text-primary font-medium cursor-pointer">
-              {locality || "Select Locality"}
-            </span>
+            <div className="flex justify-center items-center">
+              <span className="px-4 text-primary font-medium cursor-pointer">
+                {locality || "Select Locality"}
+              </span>
+            </div>
           }
           width="w-86"
           align="left"
@@ -278,17 +281,30 @@ const ResidentialFilters = () => {
                 onChange={(values) =>
                   setBudgetRange(values as [number, number])
                 }
-                renderTrack={({ props, children }) => (
-                  <div {...props} className="h-1 w-full bg-gray-200 rounded">
-                    {children}
-                  </div>
-                )}
-                renderThumb={({ props }) => (
-                  <div
-                    {...props}
-                    className="h-4 w-4 bg-green-600 rounded-full shadow"
-                  />
-                )}
+                renderTrack={({ props, children }) => {
+                  const { key, ...restProps } = props as any;
+
+                  return (
+                    <div
+                      key={key}
+                      {...restProps}
+                      className="h-1 w-full bg-gray-200 rounded"
+                    >
+                      {children}
+                    </div>
+                  );
+                }}
+                renderThumb={({ props }) => {
+                  const { key, ...restProps } = props;
+
+                  return (
+                    <div
+                      key={key}
+                      {...restProps}
+                      className="h-4 w-4 bg-green-600 rounded-full shadow"
+                    />
+                  );
+                }}
               />
 
               {/* Label */}
@@ -375,14 +391,24 @@ const ResidentialFilters = () => {
 
         {/* ---------- MORE FILTER MODAL ---------- */}
         <FilterDropdown
+          open={open}
+          onOpenChange={(next) => setOpen(next)}
           triggerLabel={
-            <div className="flex text-primary items-center gap-2 px-2 py-2 rounded-full bg-white cursor-pointer">
+            <div className="flex text-primary items-center gap-2 px-2 py-2 rounded-xl border bg-white cursor-pointer">
+              <span className="btn-primary text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                {moreFilterSections.length}
+              </span>
+
               <span className="text-sm font-semibold text-primary">
                 More Filters
               </span>
-              <span className="btn-primary text-white text-xs px-2 py-0.5 rounded-full">
-                {moreFilterSections.length}
-              </span>
+              <ArrowDropdownIcon
+                size={12}
+                color="#27AE60"
+                className={`transition-transform duration-200  ${
+                  open ? "rotate-180" : "rotate-0"
+                }`}
+              />
             </div>
           }
           width="w-[700px]"
@@ -489,20 +515,30 @@ const ResidentialFilters = () => {
                           onChange={(values) =>
                             setCarpetRange(values as [number, number])
                           }
-                          renderTrack={({ props, children }) => (
-                            <div
-                              {...props}
-                              className="h-1 w-full bg-gray-200 rounded"
-                            >
-                              {children}
-                            </div>
-                          )}
-                          renderThumb={({ props }) => (
-                            <div
-                              {...props}
-                              className="h-4 w-4 bg-green-600 rounded-full shadow"
-                            />
-                          )}
+                          renderTrack={({ props, children }) => {
+                            const { key, ...restProps } = props as any;
+
+                            return (
+                              <div
+                                key={key}
+                                {...restProps}
+                                className="h-1 w-full bg-gray-200 rounded"
+                              >
+                                {children}
+                              </div>
+                            );
+                          }}
+                          renderThumb={({ props }) => {
+                            const { key, ...restProps } = props as any;
+
+                            return (
+                              <div
+                                key={key}
+                                {...restProps}
+                                className="h-4 w-4 bg-green-600 rounded-full shadow"
+                              />
+                            );
+                          }}
                         />
 
                         <div className="text-xs text-gray-500">

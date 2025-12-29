@@ -138,7 +138,7 @@ const Navbar = () => {
                         />
                       </div>
                     }
-                    width="w-[90vw] max-w-[800px]"
+                    width="w-[90vw] max-w-[800px] z-90"
                     align="left"
                     renderContent={(close) => (
                       <div>

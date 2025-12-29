@@ -10,6 +10,7 @@ import Role from "../models/roleModel";
 import { uploadFile } from "../utils/uploadFile";
 import { extendAgriculturalFilters } from "./filters/agriculturalFilters";
 import { upsertCityAndLocality } from "./locationServices";
+import { findRelatedProperties } from "./findRelatedProperties";
 
 dotenv.config({ quiet: true });
 
@@ -89,6 +90,20 @@ async function mapAndUploadGallery({
 /* --------------------  Search API  -------------------- */
 
 
+export function findRelatedAgriculture(property: any) {
+  return findRelatedProperties(property, {
+    modelName: "Agriculture",
+    extraFilters: (p) => ({
+      ...(p.landArea && {
+        landArea: {
+          $gte: p.landArea * 0.8,
+          $lte: p.landArea * 1.2,
+        },
+      }),
+      cropType: p.cropType,
+    }),
+  });
+}
 
 function normalizePayload(obj: any) {
   if (!obj) return obj;

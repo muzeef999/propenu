@@ -7,6 +7,7 @@ import Role from "../models/roleModel";
 import { uploadFile } from "../utils/uploadFile";
 import { extendCommercialFilters } from "./filters/commercialFilters";
 import { upsertCityAndLocality } from "./locationServices";
+import { findRelatedProperties } from "./findRelatedProperties";
 dotenv.config({ quiet: true });
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
@@ -22,34 +23,21 @@ function normalizePayload(obj: any) {
   return obj;
 }
 
-async function resolveListingSourceFromUser(
-  createdBy?: string | mongoose.Types.ObjectId
-) {
-  if (!createdBy) {
-    return undefined;
-  }
-  const idStr = String(createdBy);
-  if (!mongoose.Types.ObjectId.isValid(idStr)) {
-    return undefined;
-  }
-
-  const user: any = await User.findById(idStr).select("role roleId").lean();
-
-  if (!user) {
-    return undefined;
-  }
-
-  if (user.role && typeof user.role === "string") {
-    return user.role;
-  }
-
-  if (user.roleId) {
-    const role: any = await Role.findById(user.roleId).select("label").lean();
-    return role?.label;
-  }
-
-  return undefined;
+export function findRelatedCommercial(property: any) {
+  return findRelatedProperties(property, {
+    modelName: "Commercial",
+    extraFilters: (p) => ({
+      ...(p.builtUpArea && {
+        builtUpArea: {
+          $gte: p.builtUpArea * 0.8,
+          $lte: p.builtUpArea * 1.2,
+        },
+      }),
+      propertyType: p.propertyType,
+    }),
+  });
 }
+
  
 
 async function deleteS3ObjectIfExists(key?: string) {

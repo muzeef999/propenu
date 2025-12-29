@@ -2,7 +2,8 @@
 import { Request, Response } from "express";
 import { ZodError } from "zod";
 import { AgriculturalCreateSchema, AgriculturalUpdateSchema } from "../zod/agriculturalZod";
-import AgriculturalService from "../services/agriculturalServices";
+import AgriculturalService, { findRelatedAgriculture } from "../services/agriculturalServices";
+import { findRelatedResidential } from "../services/residentialServices";
 
 /** safety: parse JSON-like values that may be strings (multipart/form-data) */
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -12,7 +13,7 @@ function parseMaybeJSON<T = any>(value: any): T | undefined {
     return JSON.parse(value) as T;
   } catch {
     return value as T;
-  }
+  } 
 }
 
 /** CREATE */
@@ -73,25 +74,33 @@ export const getAllAgricultural = async (req: Request, res: Response) => {
 export const getAgriculturalBySlug = async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
-    if (!slug) return res.status(400).json({ error: "Missing slug" });
+    if (!slug) {
+      return res.status(400).json({ error: "Missing slug" });
+    }
 
-    const doc = await AgriculturalService.getBySlug(slug);
-    if (!doc) return res.status(404).json({ error: "Not found" });
+    const property = await AgriculturalService.getBySlug(slug);
+    if (!property) {
+      return res.status(404).json({ error: "Not found" });
+    }
 
-    // increment views async (best-effort)
-    (async () => {
-      try {
-        const id = (doc as any)?._id?.toString?.();
-        if (id) await AgriculturalService.incrementViews(id);
-      } catch (e) {
-        console.error("incrementViews:", e);
-      }
-    })();
+    const id = (property as any)?._id?.toString?.();
+    if (id) {
+      AgriculturalService.incrementViews(id).catch((e: any) =>
+        console.error("incrementViews:", e)
+      );
+    }
 
-    return res.json({ data: doc });
+    const relatedProjects = await findRelatedAgriculture(property);
+
+    return res.json({
+      data: property,
+      relatedProjects,
+    });
   } catch (err: any) {
     console.error("getAgriculturalBySlug:", err);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+    return res.status(500).json({
+      error: err.message || "Internal server error",
+    });
   }
 };
 

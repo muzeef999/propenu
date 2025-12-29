@@ -14,6 +14,7 @@ import { extendResidentialFilters } from "./filters/residentialFilters";
 import { ResidentialQuery } from "../types/filterTypes";
 import { Request } from "express";
 import { upsertCityAndLocality } from "./locationServices";
+import { findRelatedProperties } from "./findRelatedProperties";
 
 type RequestWithResidentialQuery = Request<
   {}, // req.params
@@ -27,44 +28,11 @@ type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
 
 /* -------------------- Helpers -------------------- */
 
-async function resolveListingSourceFromUser(
-  createdBy?: string | mongoose.Types.ObjectId
-) {
-  console.log("[DEBUG] resolveListingSourceFromUser called with:", createdBy);
-
-  if (!createdBy) {
-    return undefined;
-  }
-  const idStr = String(createdBy);
-  if (!mongoose.Types.ObjectId.isValid(idStr)) {
-    return undefined;
-  }
-
-  const user: any = await User.findById(idStr).select("role roleId").lean();
-
-  if (!user) {
-    return undefined;
-  }
-
-  if (user.role && typeof user.role === "string") {
-    return user.role;
-  }
-
-  if (user.roleId) {
-    const role: any = await Role.findById(user.roleId).select("label").lean();
-    return role?.label;
-  }
-
-  return undefined;
-}
-
 function pickDefined<T extends Record<string, any>>(obj: T) {
   return Object.fromEntries(
     Object.entries(obj).filter(([_, v]) => typeof v !== "undefined")
   );
 }
-
-
 
 function normalizePayload(obj: any) {
   if (!obj) return obj;
@@ -150,6 +118,17 @@ async function mapAndUploadGallery({
   return summary;
 }
 
+export function findRelatedResidential(property: any) {
+  return findRelatedProperties(property, {
+    modelName: "Residential",
+    extraFilters: (p) => ({
+      ...(p.bhk && {
+        bhk: { $in: [p.bhk - 1, p.bhk, p.bhk + 1] },
+      }),
+      propertyType: p.propertyType,
+    }),
+  });
+}
 /* -------------------- Service API -------------------- */
 
 export const ResidentialPropertyService = {
@@ -200,17 +179,16 @@ export const ResidentialPropertyService = {
 
     const createdDoc = await Residential.create(toCreate);
 
-if (createdDoc.city && createdDoc.locality) {
-  await upsertCityAndLocality({
-    city: createdDoc.city,
-    locality: createdDoc.locality,
-    ...(createdDoc.state && { state: createdDoc.state }),
-    ...(createdDoc.location?.coordinates && {
-      coordinates: createdDoc.location.coordinates,
-    }),
-  });
-}
-
+    if (createdDoc.city && createdDoc.locality) {
+      await upsertCityAndLocality({
+        city: createdDoc.city,
+        locality: createdDoc.locality,
+        ...(createdDoc.state && { state: createdDoc.state }),
+        ...(createdDoc.location?.coordinates && {
+          coordinates: createdDoc.location.coordinates,
+        }),
+      });
+    }
 
     const populated = await Residential.findById(createdDoc._id)
       .populate("createdBy", "name email phone role roleId")
@@ -236,29 +214,19 @@ if (createdDoc.city && createdDoc.locality) {
       );
     }
 
-    const data = parsed.data; // the typed/parsed payload
-
-    // Build update object only with defined keys (this avoids unintentionally overwriting)
+    const data = parsed.data;
     const safeUpdate = pickDefined(data);
-
-    // Remove gallerySummary from safeUpdate — we handle gallery separately
     const incomingGallery = safeUpdate.gallerySummary;
     delete safeUpdate.gallerySummary;
-
-    // Apply safeUpdate using $set semantics (only top-level fields)
-    Object.assign(existing, safeUpdate); // or prefer findByIdAndUpdate with $set later
+    Object.assign(existing, safeUpdate);
 
     const propId = existing._id ? existing._id.toString() : String(Date.now());
 
-    // ---------- Gallery merge & upload (use gallerySummary consistently) ----------
     existing.gallerySummary = Array.isArray(existing.gallerySummary)
       ? existing.gallerySummary
       : [];
 
-    // 1) Merge incomingGallery array items (if client provided an array to replace/merge)
     if (Array.isArray(incomingGallery)) {
-      // Decide policy: replace entire array OR merge per-index.
-      // Here: we'll merge per-index (update existing items by index or append new ones).
       for (let i = 0; i < incomingGallery.length; i++) {
         const inc = incomingGallery[i];
         if (i < existing.gallerySummary.length) {
@@ -278,7 +246,6 @@ if (createdDoc.city && createdDoc.locality) {
       const filesByName = new Map<string, Express.Multer.File>();
       for (const f of galleryFiles) filesByName.set(f.originalname, f);
 
-      // First try to match by declared filename in existing items
       for (
         let i = 0;
         i < existing.gallerySummary.length && filesByName.size > 0;
@@ -506,7 +473,7 @@ if (createdDoc.city && createdDoc.locality) {
 
   getPipeline(filters: any) {
     const match = extendResidentialFilters(filters as any, {});
-    
+
     return [
       { $match: match },
       {
@@ -516,14 +483,14 @@ if (createdDoc.city && createdDoc.locality) {
           type: { $literal: "Residential" },
           title: 1,
           city: 1,
-          listingType:1,
-          transactionType:1,
-          builtUpArea:1,
-          constructionStatus:1,
-          furnishing:1,
-          parkingDetails:1,
-          pricePerSqft:1,
-          gallery:1,
+          listingType: 1,
+          transactionType: 1,
+          builtUpArea: 1,
+          constructionStatus: 1,
+          furnishing: 1,
+          parkingDetails: 1,
+          pricePerSqft: 1,
+          gallery: 1,
           buildingName: 1,
           price: 1,
           bhk: 1,

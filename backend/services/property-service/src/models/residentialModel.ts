@@ -18,17 +18,37 @@ export interface ResidentialDocument extends Document, IResidential {
 const ResidentialSchema = new Schema<IResidential>(
   {
     ...BaseFields,
-    bhk: Number,
-    bedrooms: Number,
-    buildingName: String,
-    bathrooms: Number,
-    balconies: Number,
-    carpetArea: Number,
-    builtUpArea: Number,
-    transactionType: {
+    bhk: { type: Number, min: 0 },
+    bedrooms: { type: Number, min: 0 },
+    bathrooms: { type: Number, min: 0 },
+    balconies: { type: Number, min: 0 },
+    floorNumber: { type: Number, min: 0 },
+    totalFloors: { type: Number, min: 0 },
+    buildingName: {
       type: String,
-      enum: ["new-sale", "resale"],
+      trim: true,
+      maxlength: 120,
+      index: true,
     },
+
+    carpetArea: {
+      type: Number,
+      min: 0,
+      validate: {
+        validator: function (this: any, value: number) {
+          if (!value) return true;
+          return !this.builtUpArea || value <= this.builtUpArea;
+        },
+        message: "Carpet area cannot be greater than built-up area",
+      },
+    },
+
+    builtUpArea: {
+      type: Number,
+      min: 0,
+    },
+
+    transactionType: { type: String, enum: ["new-sale", "resale"] },
     title: { type: String, required: true, trim: true },
     flooringType: { type: String, enum: FLOORING_TYPES },
     kitchenType: { type: String, enum: KITCHEN_TYPES },
@@ -39,8 +59,6 @@ const ResidentialSchema = new Schema<IResidential>(
       enum: ["unfurnished", "semi-furnished", "fully-furnished"],
     },
     parkingType: String,
-    floorNumber: Number,
-    totalFloors: Number,
     facing: {
       type: String,
       enum: ["east", "west", "north", "south"],
