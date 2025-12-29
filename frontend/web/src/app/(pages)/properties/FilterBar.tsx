@@ -2,7 +2,6 @@
 "use client";
 import React from "react";
 import FilterDropdown from "@/ui/FilterDropdown";
-import { hexToRGBA } from "@/ui/hexToRGBA";
 import { IoIosSearch } from "react-icons/io";
 
 import {
@@ -16,7 +15,6 @@ import { useAppSelector } from "@/Redux/store";
 import CategoryFilters from "./CategoryFilters";
 
 const FilterBar: React.FC = () => {
-  const bgColor = hexToRGBA("#27AE60", 0.2);
 
   const listingOptions = [
     { label: "Buy", value: "buy" },
@@ -38,8 +36,7 @@ const FilterBar: React.FC = () => {
 
   return (
     <div
-      className="sticky top-0 w-full h-14 px-3 flex items-center   z-60 shadow-sm"
-      style={{ backgroundColor: bgColor }}
+      className="sticky top-0 w-full h-14 px-3 flex items-center z-60 shadow-sm bg-[#D1EFDD]"
     >
       <div className="max-w-8xl mx-auto bg-white flex gap-5  items-center border-none rounded-xl px-3 py-1">
         <div className="flex items-center gap-4">

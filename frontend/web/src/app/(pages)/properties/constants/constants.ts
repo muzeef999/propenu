@@ -14,3 +14,13 @@ export const formatBudget = (value: number) => {
     return `₹${value / 100}${value === 5000 ? "+" : ""} Cr`;
   return `₹${value} Lac`;
 };
+
+
+
+
+export const CARPET_MIN = 300;
+export const CARPET_MAX = 10000;
+
+export const carpetOptions = [
+  300, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500, 10000,
+];

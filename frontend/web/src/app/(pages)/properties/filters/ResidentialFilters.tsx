@@ -16,31 +16,16 @@ import {
 import { MoreFilterSection, RESFilterKey } from "@/types";
 import Toggle from "@/ui/ToggleSwitch";
 import { toast } from "sonner";
-
-/* -------------------- BUDGET CONSTANTS -------------------- */
-
-const BUDGET_MIN = 5;
-const BUDGET_MAX = 5000;
-const BUDGET_STEP = 5;
-
-const budgetOptions = [
-  5, 10, 20, 30, 50, 75, 100, 150, 200, 300, 400, 500, 750, 1000, 2000, 3000,
-  4000, 5000,
-];
-
-const formatBudget = (value: number) =>
-  value >= 100
-    ? `₹${value / 100}${value === 5000 ? "+" : ""} Cr`
-    : `₹${value} Lac`;
-
-/* -------------------- COMPONENT -------------------- */
-
-const CARPET_MIN = 300;
-const CARPET_MAX = 10000;
-
-const carpetOptions = [
-  300, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500, 10000,
-];
+import {
+  BUDGET_MAX,
+  BUDGET_MIN,
+  BUDGET_STEP,
+  budgetOptions,
+  CARPET_MAX,
+  CARPET_MIN,
+  carpetOptions,
+  formatBudget,
+} from "../constants/constants";
 
 const ResidentialFilters = () => {
   const dispatch = useDispatch();
@@ -50,11 +35,8 @@ const ResidentialFilters = () => {
   const cityData = useSelector(selectCityWithLocalities);
   const localities = useSelector(selectLocalitiesByCity);
   const filtersState = useSelector((state: RootState) => state.filters);
-
   const { minBudget, maxBudget, residential } = filtersState;
-
   const { locality, bhk, postedBy } = residential;
-
   const [isOpen, setIsOpen] = useState(false);
   const [activeFilter, setActiveFilter] =
     useState<RESFilterKey>("Property Type");
@@ -391,7 +373,7 @@ const ResidentialFilters = () => {
           )}
         />
 
-        {/* ==================== MORE FILTER MODAL ==================== */}
+        {/* ---------- MORE FILTER MODAL ---------- */}
         <FilterDropdown
           triggerLabel={
             <div className="flex text-primary items-center gap-2 px-2 py-2 rounded-full bg-white cursor-pointer">

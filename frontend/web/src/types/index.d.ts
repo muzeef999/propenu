@@ -353,24 +353,72 @@ type RESFilterKey =
 
 
   
-type COMFilterKey =
-  | "Sub Property Type"
-  | "Sales Type"
-  | "Possession Status"
-  | "Covered Area"
-  | "Bathroom"
-  | "Balcony"
+export type CommercialFilterKey =
+  | "Commercial Type"
+  | "Commercial Sub Type"
+  | "Transaction Type"
+  | "Construction Status"
+  | "Built-up Area"
+  | "Carpet Area"
+  | "Floor Number"
+  | "Total Floors"
+  | "Furnishing Status"
+  | "Pantry"
+  | "Power Capacity"
   | "Parking"
-  | "Furnishing"
-  | "Amenities"
+  | "Fire Safety"
+  | "Flooring Type"
+  | "Wall Finish"
+  | "Tenant Available"
+  | "Banks Approved"
+  | "Price Negotiable"
+  | "Posted Since"
+  | "Posted By";
+
+
+  export type LandFilterKey =
+  | "Land Type"
+  | "Land Sub Type"
+  | "Plot Area"
+  | "Dimensions"
+  | "Road Width"
   | "Facing"
+  | "Corner Plot"
+  | "Ready To Construct"
+  | "Water Connection"
+  | "Electricity Connection"
+  | "Approved By"
+  | "Land Use Zone"
+  | "Banks Approved"
+  | "Price Negotiable"
   | "Verified Properties"
   | "Posted Since"
-  | "Posted By"
-  
+  | "Posted By";
 
 
-  
+  export type AgriculturalFilterKey =
+  | "Agricultural Type"
+  | "Agricultural Sub Type"
+  | "Total Area"
+  | "Area Unit"
+  | "Soil Type"
+  | "Irrigation Type"
+  | "Number of Borewells"
+  | "Water Source"
+  | "Electricity Connection"
+  | "Current Crop"
+  | "Plantation Age"
+  | "Road Width"
+  | "Access Road Type"
+  | "Boundary Wall"
+  | "State Restrictions"
+  | "Price Negotiable"
+  | "Verified Properties"
+  | "Posted Since"
+  | "Posted By";
+
+
+
  export  interface MoreFilterSection {
   key: RESFilterKey;
   label: string;
@@ -379,7 +427,20 @@ type COMFilterKey =
 
 
  export  interface MoreFilterSectionCom {
-  key: COMFilterKey;
+  key: CommercialFilterKey;
+  label: string;
+  options?: string[];
+}
+
+ export  interface MoreFilterSectionLand {
+  key: LandFilterKey;
+  label: string;
+  options?: string[];
+}
+
+
+ export  interface MoreFilterSectionAGR {
+  key: AgriculturalFilterKey;
   label: string;
   options?: string[];
 }

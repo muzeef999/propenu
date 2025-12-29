@@ -119,6 +119,8 @@ export const getUserShortlistService = async (userId: Types.ObjectId) => {
         property: {
           _id: "$all.property._id",
           title: "$all.property.title",
+          gallery: "$all.property.gallery",
+          address: "$all.property.address",
           price: "$all.property.price",
           city: "$all.property.city",
           slug: "$all.property.slug",

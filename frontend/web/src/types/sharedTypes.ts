@@ -1,26 +1,35 @@
-import { categoryOption, ListingAPIValue,  ListingUILabel } from "@/Redux/slice/filterSlice";
+import {
+  categoryOption,
+  ListingAPIValue,
+  ListingUILabel,
+} from "@/Redux/slice/filterSlice";
 import { AgriculturalSearchParams } from "./agricultural";
 import { CommercialSearchParams } from "./commercial";
 import { LandSearchParams } from "./land";
 import { ResidentialSearchParams } from "./residential";
 
-export type ListingType = 'buy' | 'rent' | 'lease';
-export type AreaUnit = 'sqft' | 'sqmt' | 'acre' | 'guntha' | 'kanal' | 'hectare';
-export type FurnishingStatus = 'unfurnished' | 'semi-furnished' | 'fully-furnished';
-export type ConstructionStatus = 'ready-to-move' | 'under-construction';
-export type PropertyStatus = 'active' | 'inactive' | 'archived';
-
-
-
+export type ListingType = "buy" | "rent" | "lease";
+export type AreaUnit =
+  | "sqft"
+  | "sqmt"
+  | "acre"
+  | "guntha"
+  | "kanal"
+  | "hectare";
+export type FurnishingStatus =
+  | "unfurnished"
+  | "semi-furnished"
+  | "fully-furnished";
+export type ConstructionStatus = "ready-to-move" | "under-construction";
+export type PropertyStatus = "active" | "inactive" | "archived";
 
 export interface IBaseListing {
   title: string;
-  slug?: string;         // optional because you generate it in pre('validate')
+  slug?: string; // optional because you generate it in pre('validate')
   address?: string;
   city?: string;
   // add other truly-shared listing props here
 }
-
 
 /* -------------------------
    FILE / MEDIA SCHEMAS
@@ -34,8 +43,6 @@ export interface IFileRef {
   uploadedAt?: Date;
 }
 
-
-
 export interface IImage {
   url: string;
   key?: string;
@@ -45,23 +52,18 @@ export interface IImage {
   caption?: string;
 }
 
-
-
 export type SearchFilterParams =
   | ResidentialSearchParams
   | CommercialSearchParams
   | LandSearchParams
   | AgriculturalSearchParams;
 
-
 // src/types/searchFilter.ts
 export type BaseSearchParams = {
   search?: string;
 };
 
-
-
- export interface ResidentialFilters {
+export interface ResidentialFilters {
   bhk?: number;
   bedrooms?: number;
   bathrooms?: number;
@@ -74,7 +76,7 @@ export interface CommercialFilters {
   parking?: string;
   minArea?: number;
   maxArea?: number;
-    postedBy?: string;
+  postedBy?: string;
   locality?: string;
 }
 
@@ -83,17 +85,21 @@ export interface LandFilters {
   roadFacing?: string;
   minArea?: number;
   maxArea?: number;
+  postedBy?: string;
+  locality?: string;
 }
 
 export interface AgriculturalFilters {
   soilType?: string;
   minArea?: number;
   maxArea?: number;
+  postedBy?: string;
+  locality?: string;
 }
 
 export interface FilterState {
   /* -------- Core -------- */
-    listingTypeLabel: ListingUILabel;
+  listingTypeLabel: ListingUILabel;
   listingTypeValue: ListingAPIValue;
 
   category: categoryOption;
@@ -109,6 +115,3 @@ export interface FilterState {
   land: LandFilters;
   agricultural: AgriculturalFilters;
 }
-
-
-

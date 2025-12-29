@@ -35,12 +35,7 @@ const Navbar = () => {
     fetchUser();
   }, []);
 
-const {
-  selectedCity,
-  locations,
-  selectCity
-} = useCity();
-
+  const { selectedCity, locations, selectCity } = useCity();
 
   const pPrimeItems = [
     { id: "pp-1", label: "Dashboard", href: "/prime/dashboard" },
@@ -80,8 +75,6 @@ const {
     (loc) => loc.category?.toLowerCase() === "popular"
   );
 
-
-
   // Group cities by state
   const groupedByState = locations.reduce(
     (acc: Record<string, LocationItem[]>, loc) => {
@@ -93,7 +86,7 @@ const {
   );
 
   return (
-    <header className="sticky top-0 z-50">
+    <header className="z-50">
       <nav
         className="w-full bg-white/80 backdrop-blur-md border-b border-gray-200"
         aria-label="Main navigation"
@@ -134,10 +127,10 @@ const {
                       <div className="flex gap-1 items-center justify-center">
                         <LocationIcon size={18} color="#27AE60" />
                         <span className="min-w-[90px] text-primary text-left">
-                            {selectedCity?.city ?? "Select City"}
+                          {selectedCity?.city ?? "Select City"}
                         </span>
                         <ArrowDropdownIcon
-                          size={12} 
+                          size={12}
                           color="#27AE60"
                           className={`transition-transform duration-200 ${
                             open ? "rotate-180" : "rotate-0"
@@ -251,7 +244,7 @@ const {
               <div className="flex items-center gap-1 rounded-full bg-gray-50 px-3 py-1.5 border border-gray-100">
                 <LocationIcon size={14} color="#27AE60" />
                 <span className="text-sm font-medium text-gray-700">
-                    {selectedCity?.city ?? "Select City"}
+                  {selectedCity?.city ?? "Select City"}
                 </span>
               </div>
 
@@ -326,7 +319,9 @@ const {
                       <span className="text-sm font-medium text-gray-900">
                         {user.name}
                       </span>
-                      <span className="text-xs text-gray-500">{user.email}</span>
+                      <span className="text-xs text-gray-500">
+                        {user.email}
+                      </span>
                     </div>
                   </div>
                 ) : (
