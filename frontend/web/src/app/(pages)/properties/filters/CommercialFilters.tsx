@@ -8,7 +8,7 @@ import {
 } from "@/Redux/slice/citySlice";
 import { setCommercialFilter } from "@/Redux/slice/filterSlice";
 import React, { useRef, useState } from "react";
-import { formatBudget } from "../constants/constants";
+import { commercialMoreFilterSections, formatBudget } from "../constants/constants";
 import { Range } from "react-range";
 import { PostedByOption } from "@/types/residential";
 import { CommercialFilterKey, MoreFilterSectionCom } from "@/types";
@@ -67,126 +67,7 @@ const CommercialFilters = () => {
     setActiveFilter(key);
   };
 
-  const commercialMoreFilterSections: MoreFilterSectionCom[] = [
-    {
-      key: "Commercial Type",
-      label: "Commercial Type",
-      options: [
-        "Office Space",
-        "Shop",
-        "Showroom",
-        "Warehouse",
-        "Industrial Shed",
-        "IT Park",
-        "Co-working Space",
-      ],
-    },
-    {
-      key: "Commercial Sub Type",
-      label: "Commercial Sub Type",
-      options: [
-        "Independent Building",
-        "Business Park",
-        "Mall Shop",
-        "High Street Shop",
-        "SEZ Office",
-      ],
-    },
-    {
-      key: "Transaction Type",
-      label: "Transaction Type",
-      options: ["new-sale", "resale"],
-    },
-    {
-      key: "Construction Status",
-      label: "Construction Status",
-      options: ["ready-to-move", "under-construction"],
-    },
-    {
-      key: "Built-up Area",
-      label: "Built-up Area",
-    },
-    {
-      key: "Carpet Area",
-      label: "Carpet Area",
-    },
-    {
-      key: "Floor Number",
-      label: "Floor Number",
-      options: ["Ground", "1+", "5+", "10+"],
-    },
-    {
-      key: "Total Floors",
-      label: "Total Floors",
-      options: ["1+", "5+", "10+", "20+"],
-    },
-    {
-      key: "Furnishing Status",
-      label: "Furnishing Status",
-      options: ["unfurnished", "semi-furnished", "fully-furnished"],
-    },
-    {
-      key: "Pantry",
-      label: "Pantry",
-      options: ["Inside Premises", "Shared"],
-    },
-    {
-      key: "Power Capacity",
-      label: "Power Capacity (KW)",
-      options: ["10+", "25+", "50+", "100+"],
-    },
-    {
-      key: "Parking",
-      label: "Parking",
-      options: ["Visitor Parking", "2 Wheeler", "4 Wheeler"],
-    },
-    {
-      key: "Fire Safety",
-      label: "Fire Safety",
-      options: [
-        "Fire Extinguisher",
-        "Fire Sprinkler",
-        "Smoke Detector",
-        "Fire Alarm",
-        "Emergency Exit",
-      ],
-    },
-    {
-      key: "Flooring Type",
-      label: "Flooring Type",
-      options: ["Vitrified", "Granite", "Marble", "Concrete"],
-    },
-    {
-      key: "Wall Finish",
-      label: "Wall Finish",
-      options: ["Bare", "Painted", "Finished"],
-    },
-    {
-      key: "Tenant Available",
-      label: "Tenant Available",
-      options: ["Yes"],
-    },
-    {
-      key: "Banks Approved",
-      label: "Banks Approved",
-      options: ["SBI", "HDFC", "ICICI", "Axis"],
-    },
-    {
-      key: "Price Negotiable",
-      label: "Price Negotiable",
-      options: ["Yes"],
-    },
-    {
-      key: "Posted Since",
-      label: "Posted Since",
-      options: ["All", "Yesterday", "Last Week", "Last Month", "Last 3 Months"],
-    },
-    {
-      key: "Posted By",
-      label: "Posted By",
-      options: ["Owners", "Agents", "Builders"],
-    },
-  ];
+  
 
   return (
     <div className="flex gap-4 items-center">

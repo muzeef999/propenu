@@ -25,9 +25,11 @@ import {
   CARPET_MIN,
   carpetOptions,
   formatBudget,
+  moreFilterSections,
 } from "../constants/constants";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import SelectableButton from "@/ui/SelectableButton";
+import { getSelectedMoreFiltersCount } from "../count-helper/ResSelectedMoreFiltersCount";
 
 const ResidentialFilters = () => {
   const dispatch = useDispatch();
@@ -126,97 +128,12 @@ const ResidentialFilters = () => {
       : [...arr, value];
   };
 
+  const selectedMoreFiltersCount = getSelectedMoreFiltersCount(residential);
+
+
   /* -------------------- MORE FILTER CONFIG -------------------- */
 
-  const moreFilterSections: MoreFilterSection[] = [
-    {
-      key: "Property Type",
-      label: "Property Type",
-      options: [
-        "Apartment",
-        "Independent house",
-        "Villa",
-        "Penthouse",
-        "Studio",
-        "Duplex",
-        "Triplex",
-        "Farmhouse",
-        "independent-builder-floor",
-      ],
-      selectionType: "single",
-    },
-    {
-      key: "Sales Type",
-      label: "Sales Type",
-      options: ["new-sale", "resale"],
-      selectionType: "single",
-    },
-    {
-      key: "Possession Status",
-      label: "Possession Status",
-      options: ["ready-to-move", "under-construction"],
-      selectionType: "single",
-    },
-    { key: "Covered Area", label: "Covered Area" },
-    {
-      key: "Bathroom",
-      label: "Bathroom",
-      options: ["1+", "2+", "3+", "4+"],
-      selectionType: "multiple",
-    },
-    {
-      key: "Balcony",
-      label: "Balcony",
-      options: ["1+", "2+", "3+"],
-      selectionType: "multiple",
-    },
-    {
-      key: "Parking",
-      label: "Parking",
-      options: ["No Parking", "1 Car", "2 Cars"],
-      selectionType: "multiple",
-    },
-    {
-      key: "Furnishing",
-      label: "Furnishing",
-      options: ["Unfurnished", "Semi-Furnished", "Fully Furnished"],
-      selectionType: "single",
-    },
-    {
-      key: "Amenities",
-      label: "Amenities",
-      options: ["Lift", "Power Backup", "Gym", "Swimming Pool", "Security"],
-      selectionType: "multiple",
-    },
-    {
-      key: "Facing",
-      label: "Facing",
-      options: ["East", "West", "North", "South"],
-      selectionType: "multiple",
-    },
-    { key: "Verified Properties", label: "Verified Properties" },
-    {
-      key: "Posted Since",
-      label: "Posted Since",
-      options: [
-        "All",
-        "Yesterday",
-        "Last Week",
-        "Last 2 Weeks",
-        "Last 3 Weeks",
-        "Last Month",
-        "Last 2 Months",
-        "Last 4 Months",
-      ],
-      selectionType: "single",
-    },
-    {
-      key: "Posted By",
-      label: "Posted By",
-      options: ["owners", "Agents", "Builders"],
-      selectionType: "multiple",
-    },
-  ];
+  
 
   return (
     <>
@@ -443,7 +360,7 @@ const ResidentialFilters = () => {
           triggerLabel={
             <div className="flex text-primary items-center gap-2 px-2 py-2 rounded-xl border bg-white cursor-pointer">
               <span className="btn-primary text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                {moreFilterSections.length}
+                    {selectedMoreFiltersCount}
               </span>
 
               <span className="text-sm font-semibold text-primary">

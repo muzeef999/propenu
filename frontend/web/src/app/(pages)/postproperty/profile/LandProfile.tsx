@@ -417,7 +417,7 @@ const LandProfile = () => {
             <InputWithUnit
               label="Plot Area"
               value={land.plotArea}
-              unitValue={land.areaUnit}
+                unit={land.areaUnit}   // ✅ CORRECT
               units={[{ label: "SQ.FT", value: "sqft" }]}
               placeholder="1200"
               onValueChange={(value) =>

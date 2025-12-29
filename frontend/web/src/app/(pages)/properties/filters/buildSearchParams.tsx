@@ -3,7 +3,7 @@ import { FilterState } from "@/types/sharedTypes";
 export function buildSearchParams(filters: FilterState) {
   const base = {
     category: filters.category,
-    listingType: filters.listingType,
+    listingType: filters.listingTypeValue,
     search: filters.searchText?.trim() || undefined,
     minBudget: filters.minBudget,
     maxBudget: filters.maxBudget,

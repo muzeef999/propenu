@@ -13,6 +13,9 @@ import {
 } from "@/Redux/slice/citySlice";
 import { LocationItem } from "@/types";
 
+const DEFAULT_CITY_NAME = "Hyderabad";
+
+
 export function useCity() {
   const dispatch = useAppDispatch();
 
@@ -33,6 +36,27 @@ export function useCity() {
   useEffect(() => {
     dispatch(fetchLocations());
   }, [dispatch]);
+
+  useEffect(() => {
+    const savedCityId = localStorage.getItem("selectedCityId");
+    if (savedCityId && !selectedCity) {
+      dispatch(setCityId(savedCityId));
+    }
+  }, [dispatch, selectedCity]);
+
+   useEffect(() => {
+    if (selectedCity) return;           // already selected
+    if (!locations.length) return;      // locations not loaded yet
+
+    const defaultCity = locations.find(
+      (c) => c.city.toLowerCase() === DEFAULT_CITY_NAME.toLowerCase()
+    );
+
+    if (defaultCity) {
+      dispatch(setCityId(defaultCity._id));
+      localStorage.setItem("selectedCityId", defaultCity._id);
+    }
+  }, [locations, selectedCity, dispatch]);
 
   return {
     selectedCity,   // { city, state, localities }

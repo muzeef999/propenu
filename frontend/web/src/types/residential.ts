@@ -1,4 +1,5 @@
-import { BaseSearchParams } from "./sharedTypes";
+import { RESFilterKey } from ".";
+import { BaseSearchParams, ResidentialFilters } from "./sharedTypes";
 
 
 export type AmenitiesItems = {
@@ -98,4 +99,25 @@ export type BHKOption =
   export type ResidentialSearchParams = BaseSearchParams & {
   category: "Residential";
   bhk?: number;
+};
+
+
+
+export const residentialKeyMapping: Record<
+  RESFilterKey,
+  keyof ResidentialFilters
+> = {
+  "Property Type": "propertyType",
+  "Sales Type": "salesType",
+  "Possession Status": "possessionStatus",
+  "Covered Area": "coveredArea",
+  "Bathroom": "bathroom",
+  "Balcony": "balcony",
+  "Parking": "parking",
+  "Furnishing": "furnishing",
+  "Amenities": "amenities",
+  "Facing": "facing",
+  "Verified Properties": "verifiedProperties",
+  "Posted Since": "postedSince",
+  "Posted By": "postedBy",
 };

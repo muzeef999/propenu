@@ -9,6 +9,7 @@ import { RootState } from "@/Redux/store";
 import FilterDropdown from "@/ui/FilterDropdown";
 import { useDispatch, useSelector } from "react-redux";
 import {
+  agriculturalMoreFilterSections,
   BUDGET_MAX,
   BUDGET_MIN,
   BUDGET_STEP,
@@ -82,110 +83,6 @@ const AgriculturalFilters = () => {
     setActiveFilter(key);
   };
 
-  const agriculturalMoreFilterSections: MoreFilterSectionAGR[] = [
-    {
-      key: "Agricultural Type",
-      label: "Agricultural Type",
-      options: [
-        "Dry Land",
-        "Wet Land",
-        "Farm Land",
-        "Plantation Land",
-        "Horticulture Land",
-      ],
-    },
-    {
-      key: "Agricultural Sub Type",
-      label: "Agricultural Sub Type",
-      options: [
-        "Paddy Field",
-        "Coconut Garden",
-        "Mango Orchard",
-        "Palm Plantation",
-        "Mixed Crop Land",
-      ],
-    },
-    {
-      key: "Total Area",
-      label: "Total Area",
-    },
-    {
-      key: "Area Unit",
-      label: "Area Unit",
-      options: ["Acre", "Guntha", "Cent", "Hectare"],
-    },
-    { key: "Verified Properties", label: "Verified Properties" },
-    {
-      key: "Soil Type",
-      label: "Soil Type",
-      options: ["Red Soil", "Black Soil", "Alluvial Soil", "Sandy Soil"],
-    },
-    {
-      key: "Irrigation Type",
-      label: "Irrigation Type",
-      options: ["Canal", "Borewell", "Drip", "Rain-fed"],
-    },
-    {
-      key: "Number of Borewells",
-      label: "Number of Borewells",
-      options: ["1+", "2+", "3+", "4+"],
-    },
-    {
-      key: "Water Source",
-      label: "Water Source",
-      options: ["River", "Canal", "Borewell", "Tank"],
-    },
-    {
-      key: "Electricity Connection",
-      label: "Electricity Connection",
-      options: ["Available"],
-    },
-    {
-      key: "Current Crop",
-      label: "Current Crop",
-      options: ["Paddy", "Cotton", "Sugarcane", "Groundnut", "Vegetables"],
-    },
-    {
-      key: "Plantation Age",
-      label: "Plantation Age (Years)",
-      options: ["1+", "3+", "5+", "10+"],
-    },
-    {
-      key: "Road Width",
-      label: "Road Width",
-      options: ["20+", "30+", "40+"],
-    },
-    {
-      key: "Access Road Type",
-      label: "Access Road Type",
-      options: ["Mud Road", "BT Road", "CC Road"],
-    },
-    {
-      key: "Boundary Wall",
-      label: "Boundary Wall",
-      options: ["Yes"],
-    },
-    {
-      key: "State Restrictions",
-      label: "State Purchase Restrictions",
-      options: ["Applicable", "Not Applicable"],
-    },
-    {
-      key: "Price Negotiable",
-      label: "Price Negotiable",
-      options: ["Yes"],
-    },
-    {
-      key: "Posted Since",
-      label: "Posted Since",
-      options: ["All", "Yesterday", "Last Week", "Last Month", "Last 3 Months"],
-    },
-    {
-      key: "Posted By",
-      label: "Posted By",
-      options: ["Owners", "Agents"],
-    },
-  ];
 
   return (
     <div className="flex gap-4 items-center">

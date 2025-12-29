@@ -25,7 +25,7 @@ const SearchBox = () => {
   const [results, setResults] = useState<LocationItem[]>([]);
   const { selectCity  } = useCity();
 
-  const { listingType, category, searchText } = useAppSelector(
+  const { listingTypeLabel, category, searchText } = useAppSelector(
     (s) => s.filters
   );
 
@@ -63,7 +63,7 @@ const SearchBox = () => {
               <FilterDropdown
                 triggerLabel={
                   <span className="px-4 text-primary font-medium">
-                    {listingType}
+                    {listingTypeLabel}
                   </span>
                 }
                 width="w-56"
@@ -76,11 +76,11 @@ const SearchBox = () => {
                         <button
                           key={l}
                           onClick={() => {
-                            dispatch(setListingType(l));
+                           dispatch(setListingType({ label: "Buy", value: "buy" }));
                             close?.();
                           }}
                           className={`px-2 py-1 rounded hover:bg-gray-100 ${
-                            listingType === l ? "font-semibold" : ""
+                            listingTypeLabel === l ? "font-semibold" : ""
                           }`}
                         >
                           {l}

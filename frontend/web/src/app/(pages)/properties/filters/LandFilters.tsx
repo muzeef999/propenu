@@ -13,6 +13,7 @@ import { PostedByOption } from "@/types/residential";
 import { LandFilterKey, MoreFilterSection, MoreFilterSectionLand } from "@/types";
 import Toggle from "@/ui/ToggleSwitch";
 import { toast } from "sonner";
+import { landMoreFilterSections } from "../constants/constants";
 
 /* -------------------- BUDGET CONSTANTS -------------------- */
 const BUDGET_MIN = 5;
@@ -80,106 +81,6 @@ const LandFilters = () => {
 
   /* -------------------- MORE FILTER CONFIG -------------------- */
 
-  const landMoreFilterSections: MoreFilterSectionLand[] = [
-  {
-    key: "Land Type",
-    label: "Land Type",
-    options: [
-      "Residential Land",
-      "Commercial Land",
-      "Agricultural Land",
-      "Industrial Land",
-      "Farm Land",
-    ],
-  },
-  {
-    key: "Land Sub Type",
-    label: "Land Sub Type",
-    options: [
-      "Open Plot",
-      "Layout Plot",
-      "Corner Plot",
-      "DTCP Approved Plot",
-      "HMDA Approved Plot",
-    ],
-  },
-  {
-    key: "Plot Area",
-    label: "Plot Area",
-  },
-  {
-    key: "Dimensions",
-    label: "Dimensions",
-  },
-  {
-    key: "Road Width",
-    label: "Road Width (ft)",
-    options: ["20+", "30+", "40+", "60+"],
-  },
-  {
-    key: "Facing",
-    label: "Facing",
-    options: ["East", "West", "North", "South", "North-East", "North-West"],
-  },
-  {
-    key: "Corner Plot",
-    label: "Corner Plot",
-    options: ["Yes"],
-  },
-  {
-    key: "Ready To Construct",
-    label: "Ready To Construct",
-    options: ["Yes"],
-  },
-  {
-    key: "Water Connection",
-    label: "Water Connection",
-    options: ["Available"],
-  },
-  {
-    key: "Electricity Connection",
-    label: "Electricity Connection",
-    options: ["Available"],
-  },
-  {
-    key: "Approved By",
-    label: "Approved By Authority",
-    options: ["DTCP", "HMDA", "BDA", "RERA"],
-  },
-  {
-    key: "Land Use Zone",
-    label: "Land Use Zone",
-    options: ["Residential", "Commercial", "Industrial", "Agricultural"],
-  },
-  {
-    key: "Banks Approved",
-    label: "Banks Approved",
-    options: ["SBI", "HDFC", "ICICI", "Axis"],
-  },
-  { key: "Verified Properties", label: "Verified Properties" },
-  {
-    key: "Price Negotiable",
-    label: "Price Negotiable",
-    options: ["Yes"],
-  },
-  {
-    key: "Posted Since",
-    label: "Posted Since",
-    options: [
-      "All",
-      "Yesterday",
-      "Last Week",
-      "Last 2 Weeks",
-      "Last Month",
-      "Last 3 Months",
-    ],
-  },
-  {
-    key: "Posted By",
-    label: "Posted By",
-    options: ["Owners", "Agents", "Builders"],
-  },
-];
 
 
   

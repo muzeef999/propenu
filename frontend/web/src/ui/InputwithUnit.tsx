@@ -10,7 +10,7 @@ interface InputWithUnitProps {
   label: string;
   value: string | number;
   unit: string | null;
-  units: UnitOption[];
+    units: { label: string; value: string }[];
   placeholder?: string;
   onValueChange: (value: string) => void;
   onUnitChange: (unit: string) => void;
