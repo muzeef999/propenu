@@ -27,7 +27,7 @@ const ActiveTabs = ({
 
           {/* Active underline */}
           {activeTab === cat && (
-            <span className="absolute -bottom-[1px] left-0 w-full h-[2px] bg-emerald-500 rounded-full" />
+            <span className="absolute -bottom-px left-0 w-full h-0.5 bg-emerald-500 rounded-full" />
           )}
         </button>
       ))}

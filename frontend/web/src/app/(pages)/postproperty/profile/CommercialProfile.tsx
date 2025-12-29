@@ -123,7 +123,7 @@ const CommercialProfile = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-[1.2fr_145px] gap-1 items-start">
           {/* Furnishing */}
-          
+
           <div className="space-y-2">
             <p className="text-sm font-medium text-gray-700">Furnishing</p>
 
@@ -386,9 +386,10 @@ const CommercialProfile = () => {
               const active = commercial.constructionStatus === item.value;
 
               return (
-                <button
+                <SelectableButton
                   key={item.value}
-                  type="button"
+                  label={item.label}
+                  active={active}
                   onClick={() =>
                     dispatch(
                       setProfileField({
@@ -398,22 +399,14 @@ const CommercialProfile = () => {
                       })
                     )
                   }
-                  className={`px-6 py-2 border rounded-md text-sm shadow-sm focus:outline-none  transition-colors
-                      ${
-                        active
-                          ? "border-green-500 bg-green-50 text-green-600"
-                          : "border-gray-300 text-gray-700"
-                      }
-                    `}
-                >
-                  {item.label}
-                </button>
+                />
               );
             })}
           </div>
         </div>
         <div className="space-y-2">
           <p className="text-sm font-medium text-gray-700">Transaction Type</p>
+
           <div className="flex gap-5">
             {[
               { label: "New Sale", value: "new-sale" },
@@ -422,9 +415,10 @@ const CommercialProfile = () => {
               const active = commercial.transactionType === item.value;
 
               return (
-                <button
+                <SelectableButton
                   key={item.value}
-                  type="button"
+                  label={item.label}
+                  active={active}
                   onClick={() =>
                     dispatch(
                       setProfileField({
@@ -434,16 +428,7 @@ const CommercialProfile = () => {
                       })
                     )
                   }
-                  className={`px-6 py-2 border rounded-md text-sm shadow-sm focus:outline-none  transition-colors
-                      ${
-                        active
-                          ? "border-green-500 bg-green-50 text-green-600"
-                          : "border-gray-300 text-gray-700"
-                      }
-                    `}
-                >
-                  {item.label}
-                </button>
+                />
               );
             })}
           </div>
@@ -451,6 +436,7 @@ const CommercialProfile = () => {
         {commercial.constructionStatus === "ready-to-move" && (
           <div className="space-y-2">
             <p className="text-sm font-medium text-gray-700">Property Age</p>
+
             <div className="flex flex-wrap gap-3">
               {[
                 { value: "0-1-year", label: "0-1 Year" },
@@ -459,10 +445,12 @@ const CommercialProfile = () => {
                 { value: "10-plus-years", label: "10+ Years" },
               ].map((item) => {
                 const active = commercial.propertyAge === item.value;
+
                 return (
-                  <button
+                  <SelectableButton
                     key={item.value}
-                    type="button"
+                    label={item.label}
+                    active={active}
                     onClick={() =>
                       dispatch(
                         setProfileField({
@@ -472,16 +460,7 @@ const CommercialProfile = () => {
                         })
                       )
                     }
-                    className={`px-6 py-2 border rounded-md text-sm shadow-sm focus:outline-none  transition-colors
-                ${
-                  active
-                    ? "border-green-500 bg-green-50 text-green-600"
-                    : "border-gray-300 text-gray-700"
-                }
-              `}
-                  >
-                    {item.label}
-                  </button>
+                  />
                 );
               })}
             </div>
@@ -835,7 +814,11 @@ const CommercialProfile = () => {
         </div>
       </div>
 
-      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+      <div
+        className={`flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300 ${
+          commercial.isPriceNegotiable ? "border-green-500 bg-green-50 shadow-sm" : ""
+        }`}
+      >
         <div>
           <p className="text-sm font-semibold text-gray-800">
             Is the price negotiable?

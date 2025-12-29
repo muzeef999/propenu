@@ -57,11 +57,11 @@ export const getShortlistedProperties = async () => {
   return res.data;
 };
 
-export const postShortlistProperty = async (propertyId: string) => {
+export const postShortlistProperty = async (payload: { propertyId: string; propertyType: string }) => {
   const token = Cookies.get("token");
   if (!token) return null;
 
-  const res = await axiosInstance.post(`${url}/api/users/shortlist`, { propertyId }, {
+  const res = await axiosInstance.post(`${url}/api/users/shortlist`, payload, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

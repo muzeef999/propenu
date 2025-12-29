@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useState } from "react";
 import { Property } from "@/types/property";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import { AiOutlineHeart } from "react-icons/ai";
@@ -10,11 +11,18 @@ import {
   SuperBuiitupAraea,
   UnderConstruction,
 } from "@/icons/icons";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { GoHeart, GoHeartFill } from "react-icons/go";
 import formatINR from "@/utilies/PriceFormat";
 import Link from "next/link";
 import { BiBuildingHouse } from "react-icons/bi";
+import { postShortlistProperty } from "@/data/ClientData";
 
-const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, vertical = false }) => {
+const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({
+  p,
+  vertical = false,
+}) => {
   const bgPriceColor = hexToRGBA("#27AE60", 0.1);
 
   const bgPriceColoricon = hexToRGBA("#27AE60", 0.4);
@@ -23,15 +31,37 @@ const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
   const pricePerSqft =
     (p as any)?.pricePerSqft ??
     Math.round((p?.price ?? 0) / (p as any)?.builtUpArea || 0);
-  console.log("Rendering ResidentialCard for:", p);
+  const [isShortlisted, setIsShortlisted] = useState<boolean>(
+    Boolean((p as any)?.isShortlisted)
+  );
+
+  const { mutate: shortlistProperty, isPending: isShortlisting } = useMutation({
+    mutationFn: postShortlistProperty,
+    onSuccess: () => {
+      toast.success(
+        isShortlisted ? "Removed from shortlist" : "Property shortlisted!"
+      );
+    },
+    onError: () => {
+      // rollback UI
+      setIsShortlisted((prev) => !prev);
+      toast.error("Failed to update shortlist");
+    },
+  });
 
   return (
     <Link
       href={`/properties/residential/${p.slug}`}
-      className={`card p-2 h-auto flex overflow-hidden ${vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"}`}
+      className={`card p-2 h-auto flex overflow-hidden ${
+        vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"
+      }`}
     >
       {/* Left: image */}
-      <div className={`rounded-xl relative shrink-0 ${vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"}`}>
+      <div
+        className={`rounded-xl relative shrink-0 ${
+          vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"
+        }`}
+      >
         <img
           src={img}
           alt={p?.title ?? "property image"}
@@ -57,14 +87,30 @@ const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
             <span>{p?.gallery?.length ?? 1}</span>
           </div>
         </div>
-
         {/* favourite icon */}
         <button
-          aria-label="favorite"
-          className="absolute right-2 top-2 bg-white/90 p-1 rounded-full shadow-sm"
-          title="Save"
+          onClick={(e) => {
+            e.preventDefault();
+
+            // Optimistic UI toggle
+            setIsShortlisted((prev) => !prev);
+
+            shortlistProperty({
+              propertyId: p._id,
+              propertyType: "Residential",
+            });
+          }}
+          className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow
+             transition-all duration-200 hover:scale-110 active:scale-95"
+          title={isShortlisted ? "Remove from shortlist" : "Shortlist"}
         >
-          <AiOutlineHeart className="w-5 h-5 text-gray-700" />
+          {isShortlisting ? (
+            <span className="w-5 h-5 block animate-pulse bg-gray-300 rounded-full" />
+          ) : isShortlisted ? (
+            <GoHeartFill className="w-5 h-5 text-red-500" />
+          ) : (
+            <GoHeart className="w-5 h-5 text-gray-600 hover:text-red-500" />
+          )}
         </button>
       </div>
 
@@ -74,17 +120,23 @@ const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
 
         <div>
           <h3 className="text-lg md:text-md font-semibold line-clamp-2">
-            {vertical ? `${p?.title?.slice(0, 18)}...` : `${p?.title?.slice(0, 48)}...`}
+            {vertical
+              ? `${p?.title?.slice(0, 18)}...`
+              : `${p?.title?.slice(0, 48)}...`}
           </h3>
           <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
             <BiBuildingHouse className="w-4 h-4" />
 
-            {vertical ? (p as any)?.buildingName?.slice(0, 18)?.concat("...") : (p as any)?.buildingName}
+            {vertical
+              ? (p as any)?.buildingName?.slice(0, 18)?.concat("...")
+              : (p as any)?.buildingName}
           </p>
         </div>
 
         {/* badges */}
-        <div className={`hidden ${vertical ? "" : "md:flex"} flex-wrap gap-2 mt-3`}>
+        <div
+          className={`hidden ${vertical ? "" : "md:flex"} flex-wrap gap-2 mt-3`}
+        >
           <span className="text-xs font-normal px-2 py-1 text-primary">
             RERA Approved
           </span>
@@ -97,15 +149,22 @@ const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
         </div>
 
         {/* meta icons row */}
-        <div className={`mt-4 text-xs text-gray-600 ${vertical
-          ? "grid grid-cols-2 gap-4"
-          : "md:flex md:items-center md:gap-6"
-          }`}>
+        <div
+          className={`mt-4 text-xs text-gray-600 ${
+            vertical
+              ? "grid grid-cols-2 gap-4"
+              : "md:flex md:items-center md:gap-6"
+          }`}
+        >
           <div className="items-center gap-2 flex">
             <SuperBuiitupAraea size={24} color={bgPriceColoricon} />
             <div className="flex flex-col">
-              <div className="text-xs text-gray-500 tracking-wide">Built-up Area</div>
-              <div className="font-medium">{(p as any)?.builtUpArea ?? "—"} sqft</div>
+              <div className="text-xs text-gray-500 tracking-wide">
+                Built-up Area
+              </div>
+              <div className="font-medium">
+                {(p as any)?.builtUpArea ?? "—"} sqft
+              </div>
             </div>
           </div>
           <div className="items-center gap-2 flex">
@@ -115,7 +174,9 @@ const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
                 Availability
               </div>
               <div className="font-medium">
-                {(p as any)?.constructionStatus ? "Available" : "Under Construction"}
+                {(p as any)?.constructionStatus
+                  ? "Available"
+                  : "Under Construction"}
               </div>
             </div>
           </div>
@@ -152,33 +213,48 @@ const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
 
       {/* Right: price card */}
       <aside
-        className={`rounded-xl ${vertical
-          ? "w-full px-3 py-2 flex items-center justify-between gap-3"
-          : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:mt-0"
-          }`}
+        className={`rounded-xl ${
+          vertical
+            ? "w-full px-3 py-2 flex items-center justify-between gap-3"
+            : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:mt-0"
+        }`}
         style={{ backgroundColor: bgPriceColor }}
       >
         {/* PRICE */}
-        <div className={`${vertical ? "flex flex-col" : "flex flex-col md:items-center md:text-center"}`}>
+        <div
+          className={`${
+            vertical
+              ? "flex flex-col"
+              : "flex flex-col md:items-center md:text-center"
+          }`}
+        >
           <div
-            className={`text-green-700 font-semibold ${vertical ? "text-lg leading-tight" : "text-lg leading-tight md:text-2xl"
-              }`}
+            className={`text-green-700 font-semibold ${
+              vertical
+                ? "text-lg leading-tight"
+                : "text-lg leading-tight md:text-2xl"
+            }`}
           >
             {formatINR(p?.price)}
           </div>
 
-          <div className="text-xs text-gray-600">
-            ₹ {pricePerSqft}/sqft
-          </div>
+          <div className="text-xs text-gray-600">₹ {pricePerSqft}/sqft</div>
         </div>
 
         {/* BUTTON */}
-        <div className={`${vertical ? "shrink-0" : "shrink-0 md:w-full md:mt-4 flex justify-center"}`}>
+        <div
+          className={`${
+            vertical
+              ? "shrink-0"
+              : "shrink-0 md:w-full md:mt-4 flex justify-center"
+          }`}
+        >
           <button
-            className={`bg-green-600 text-white rounded-md shadow-sm hover:bg-green-700 transition font-medium whitespace-nowrap ${vertical
-              ? "px-4 py-1.5 text-sm"
-              : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base "
-              }`}
+            className={`bg-green-600 text-white rounded-md shadow-sm hover:bg-green-700 transition font-medium whitespace-nowrap ${
+              vertical
+                ? "px-4 py-1.5 text-sm"
+                : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base "
+            }`}
             onClick={(e) => {
               e.preventDefault();
               window.alert(`Contact owner for ${p?.title}`);
@@ -188,7 +264,6 @@ const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
           </button>
         </div>
       </aside>
-
     </Link>
   );
 };
