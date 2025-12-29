@@ -36,7 +36,7 @@ const FilterBar: React.FC = () => {
 
   return (
     <div
-      className="sticky top-0 w-full h-14 px-3 flex items-center z-60 shadow-sm bg-[#D1EFDD]"
+      className="sticky top-0 w-full h-14 px-3 flex items-center z-40 shadow-sm bg-[#D1EFDD]"
     >
       <div className="max-w-8xl mx-auto bg-white flex gap-5  items-center border-none rounded-xl px-3 py-1">
         <div className="flex items-center gap-4">

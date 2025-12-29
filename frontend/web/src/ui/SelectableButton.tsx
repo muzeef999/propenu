@@ -1,5 +1,8 @@
 "use client";
-import React from "react";
+
+import { FiPlus, FiCheck } from "react-icons/fi";
+
+type SelectionType = "single" | "multiple";
 
 type SelectableButtonProps = {
   label: string;
@@ -7,6 +10,7 @@ type SelectableButtonProps = {
   onClick?: () => void;
   disabled?: boolean;
   error?: boolean;
+  selectionType?: SelectionType; // 👈 NEW
   className?: string;
 };
 
@@ -16,37 +20,50 @@ const SelectableButton = ({
   onClick,
   disabled = false,
   error = false,
+  selectionType = "single", // 👈 default SINGLE
   className = "",
 }: SelectableButtonProps) => {
+  const isMultiple = selectionType === "multiple";
+
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
       className={`
-        px-6 py-2
-        border rounded-md
+        inline-flex items-center gap-2
+        px-4 py-2
+        rounded-md border
         text-sm
-        shadow-sm
-        transition-colors duration-200
+        transition-all duration-200
 
         ${
           error
-            ? "border-red-500 focus:ring-red-500 text-red-600"
+            ? "border-red-500 text-red-600"
             : active
-            ? "border-green-500 bg-green-50 text-green-600 "
+            ? "border-green-600 bg-green-50 text-green-700"
             : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
         }
 
-        ${
-          disabled
-            ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-            : ""
-        }
-
+        ${disabled ? "opacity-50 cursor-not-allowed" : ""}
         ${className}
       `}
     >
+      {/* ICON — ONLY FOR MULTIPLE */}
+      {isMultiple && (
+        <span
+          className={`flex items-center justify-center w-4 h-4 rounded-full border
+            ${
+              active
+                ? "bg-green-600 border-green-600 text-white"
+                : "border-gray-400 text-gray-400"
+            }
+          `}
+        >
+          {active ? <FiCheck size={12} /> : <FiPlus size={12} />}
+        </span>
+      )}
+
       {label}
     </button>
   );

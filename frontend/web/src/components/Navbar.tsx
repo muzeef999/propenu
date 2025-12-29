@@ -86,9 +86,9 @@ const Navbar = () => {
   );
 
   return (
-    <header className="z-50">
+    <header >
       <nav
-        className="w-full bg-white/80 backdrop-blur-md border-b border-gray-200"
+        className="w-full bg-white/80 backdrop-blur-md border-b relative z-60 border-gray-200"
         aria-label="Main navigation"
       >
         <div className="container mx-auto px-4">

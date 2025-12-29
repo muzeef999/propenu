@@ -1,12 +1,11 @@
-
 export interface FeaturedProject {
   // basic
-  _id:string;
+  _id: string;
   title: string;
   slug: string;
-  logo:{
-      url:string
-  }
+  logo: {
+    url: string;
+  };
   // relations
   developer?: Types.ObjectId | string;
 
@@ -18,28 +17,25 @@ export interface FeaturedProject {
   heroDescription?: string;
 
   // SEO / branding
-  color?: string;             // hex e.g. '#000'
+  color?: string; // hex e.g. '#000'
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string;
 
-
-  
   // address & geo
   address: string;
   city?: string;
   location?: {
-    type: 'Point';
+    type: "Point";
     // [lng, lat]
     coordinates: [number, number] | number[];
   };
   mapEmbedUrl?: string;
 
-
   // pricing / bhk
-  currency?: string;  // default: 'INR'
+  currency?: string; // default: 'INR'
   priceFrom?: number; // computed
-  priceTo?: number;   // computed
+  priceTo?: number; // computed
   bhkSummary: IBhkSummary[];
   sqftRange?: { min?: number; max?: number };
 
@@ -51,8 +47,8 @@ export interface FeaturedProject {
   totalUnits?: number;
   availableUnits?: number;
 
-   aboutSummary?:AboutItem[]
-  
+  aboutSummary?: AboutItem[];
+
   // legal / banks
   reraNumber?: string;
   banksApproved?: string[];
@@ -81,9 +77,8 @@ export interface FeaturedProject {
     clicks?: number;
   };
 
-
   // status & audit
-  status?: 'active' | 'inactive' | 'archived';
+  status?: "active" | "inactive" | "archived";
   createdBy?: Types.ObjectId | string;
   updatedBy?: Types.ObjectId | string;
   relatedProjects?: Array<Types.ObjectId | string>;
@@ -116,35 +111,29 @@ export interface IBhkPlan {
   mimetype?: string;
 }
 
-
-export interface IBhkUnit {      
-  minSqft?: number;                  
-  price?: number;          
-  maxPrice?: number;        
-  availableCount?: number;  
-  plan?: IBhkPlan;          
+export interface IBhkUnit {
+  minSqft?: number;
+  price?: number;
+  maxPrice?: number;
+  availableCount?: number;
+  plan?: IBhkPlan;
 }
 
 // types/feature.ts
 export interface AboutItem {
   aboutDescription?: string;
   rightContent?: string; // newline separated bullets or lines starting with •
-  url?: string;          // S3 url, optional (server may not provide)
+  url?: string; // S3 url, optional (server may not provide)
   key?: string;
   filename?: string;
   mimetype?: string;
 }
 
-
-
 export interface BhkSummary {
   bhk: number;
   bhkLabel?: string;
   units?: IBhkUnit[];
-
 }
-
-
 
 export interface SqftRange {
   min: number;
@@ -175,8 +164,6 @@ export interface IAmenity {
   description?: string;
 }
 
-
-
 export interface INearbyPlace {
   name?: string;
   type?: string;
@@ -185,7 +172,6 @@ export interface INearbyPlace {
   order?: number;
 }
 
-
 export interface PopularOwnerPropertiesResponse {
   success: boolean;
   message: string;
@@ -193,15 +179,14 @@ export interface PopularOwnerPropertiesResponse {
   properties: PopularOwnerProperty[];
 }
 
-
 export interface PopularOwnerProperty {
   _id: string;
   title: string;
   description: string;
   userId: string;
 
-  listingType: string;          // Rent / buy etc.
-  category: string;             // Residential, Commercial, etc.
+  listingType: string; // Rent / buy etc.
+  category: string; // Residential, Commercial, etc.
   price: number;
   facing?: string | null;
   area?: number;
@@ -265,8 +250,6 @@ export interface LocationItem {
   localities: Locality[];
 }
 
-
-
 export type PropertyFormValues = {
   title: string;
   description?: string;
@@ -307,11 +290,13 @@ export type PropertyFormValues = {
   seller?: string | null;
 };
 
-
-export type categoryOption = "Residential" | "Commercial" | "Land" | "Agricultural";
+export type categoryOption =
+  | "Residential"
+  | "Commercial"
+  | "Land"
+  | "Agricultural";
 
 export type ListingOption = "Buy" | "Rent" | "Lease";
-
 
 export type SearchItem = {
   id?: string;
@@ -334,8 +319,6 @@ export type SearchFilters = {
   options?: any;
 };
 
-
-
 type RESFilterKey =
   | "Property Type"
   | "Sales Type"
@@ -349,10 +332,8 @@ type RESFilterKey =
   | "Facing"
   | "Verified Properties"
   | "Posted Since"
-  | "Posted By"
+  | "Posted By";
 
-
-  
 export type CommercialFilterKey =
   | "Commercial Type"
   | "Commercial Sub Type"
@@ -375,8 +356,7 @@ export type CommercialFilterKey =
   | "Posted Since"
   | "Posted By";
 
-
-  export type LandFilterKey =
+export type LandFilterKey =
   | "Land Type"
   | "Land Sub Type"
   | "Plot Area"
@@ -395,8 +375,7 @@ export type CommercialFilterKey =
   | "Posted Since"
   | "Posted By";
 
-
-  export type AgriculturalFilterKey =
+export type AgriculturalFilterKey =
   | "Agricultural Type"
   | "Agricultural Sub Type"
   | "Total Area"
@@ -417,29 +396,33 @@ export type CommercialFilterKey =
   | "Posted Since"
   | "Posted By";
 
+export type SelectionType = "single" | "multiple";
 
+type SelectableButtonProps = {
+  selectionType?: SelectionType;
+};
 
- export  interface MoreFilterSection {
+export interface MoreFilterSection {
   key: RESFilterKey;
   label: string;
+  filterKey?: keyof ResidentialFilters;
   options?: string[];
+  selectionType?: SelectionType;
 }
 
-
- export  interface MoreFilterSectionCom {
+export interface MoreFilterSectionCom {
   key: CommercialFilterKey;
   label: string;
   options?: string[];
 }
 
- export  interface MoreFilterSectionLand {
+export interface MoreFilterSectionLand {
   key: LandFilterKey;
   label: string;
   options?: string[];
 }
 
-
- export  interface MoreFilterSectionAGR {
+export interface MoreFilterSectionAGR {
   key: AgriculturalFilterKey;
   label: string;
   options?: string[];

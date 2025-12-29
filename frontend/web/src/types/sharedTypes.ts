@@ -64,10 +64,35 @@ export type BaseSearchParams = {
 };
 
 export interface ResidentialFilters {
-  bhk?: number;
-  bedrooms?: number;
-  bathrooms?: number;
+  // ---------- SINGLE ----------
+  propertyType?: string;
+  salesType?: string;
+  possessionStatus?: string;
+  furnishing?: string;
+  postedSince?: string;
   postedBy?: string;
+
+   coveredArea?: {
+    min?: number;
+    max?: number;
+  };
+
+
+  // ---------- MULTIPLE ----------
+  bathroom?: string[];
+  balcony?: string[];
+  parking?: string[];
+  amenities?: string[];
+  facing?: string[];
+
+    verifiedProperties?: boolean;
+
+
+  // ---------- SWITCH ----------
+  verifiedOnly?: boolean;
+
+  // ---------- OTHERS ----------
+  bhk?: number;
   locality?: string;
 }
 

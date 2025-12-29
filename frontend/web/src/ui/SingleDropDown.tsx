@@ -12,14 +12,11 @@ export type DropdownItem = {
 
 export type DropdownProps = {
   buttonClass?: string;
-  // Accept either static ReactNode or render-prop that receives { isOpen }
   buttonContent?: React.ReactNode | ((opts: { isOpen: boolean }) => React.ReactNode);
   items?: DropdownItem[];
   align?: "left" | "right";
-  // Controlled props
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
-  // optional: width of panel (Tailwind classes)
   panelWidthClass?: string;
 };
 
@@ -32,7 +29,6 @@ export default function SingleDropDown({
   onOpenChange,
   panelWidthClass = "w-48",
 }: DropdownProps) {
-  // internal state for uncontrolled usage
   const [internalOpen, setInternalOpen] = useState(false);
 
   // determine controlled vs uncontrolled

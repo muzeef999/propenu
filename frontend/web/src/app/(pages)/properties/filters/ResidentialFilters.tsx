@@ -27,6 +27,7 @@ import {
   formatBudget,
 } from "../constants/constants";
 import { ArrowDropdownIcon } from "@/icons/icons";
+import SelectableButton from "@/ui/SelectableButton";
 
 const ResidentialFilters = () => {
   const dispatch = useDispatch();
@@ -43,6 +44,23 @@ const ResidentialFilters = () => {
     useState<RESFilterKey>("Property Type");
 
   const sectionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Map display labels to camelCase property names
+  const keyMapping: Record<RESFilterKey, keyof typeof residential> = {
+    "Property Type": "propertyType",
+    "Sales Type": "salesType",
+    "Possession Status": "possessionStatus",
+    "Covered Area": "coveredArea",
+    "Bathroom": "bathroom",
+    "Balcony": "balcony",
+    "Parking": "parking",
+    "Furnishing": "furnishing",
+    "Amenities": "amenities",
+    "Facing": "facing",
+    "Verified Properties": "verifiedProperties",
+    "Posted Since": "postedSince",
+    "Posted By": "postedBy",
+  };
 
   const [carpetRange, setCarpetRange] = useState<[number, number]>([
     CARPET_MIN,
@@ -102,6 +120,12 @@ const ResidentialFilters = () => {
     setActiveFilter(key);
   };
 
+  const toggleArrayValue = (arr: string[] = [], value: string) => {
+    return arr.includes(value)
+      ? arr.filter((v) => v !== value)
+      : [...arr, value];
+  };
+
   /* -------------------- MORE FILTER CONFIG -------------------- */
 
   const moreFilterSections: MoreFilterSection[] = [
@@ -119,35 +143,56 @@ const ResidentialFilters = () => {
         "Farmhouse",
         "independent-builder-floor",
       ],
+      selectionType: "single",
     },
-    { key: "Sales Type", label: "Sales Type", options: ["new-sale", "resale"] },
+    {
+      key: "Sales Type",
+      label: "Sales Type",
+      options: ["new-sale", "resale"],
+      selectionType: "single",
+    },
     {
       key: "Possession Status",
       label: "Possession Status",
       options: ["ready-to-move", "under-construction"],
+      selectionType: "single",
     },
     { key: "Covered Area", label: "Covered Area" },
-    { key: "Bathroom", label: "Bathroom", options: ["1+", "2+", "3+", "4+"] },
-    { key: "Balcony", label: "Balcony", options: ["1+", "2+", "3+"] },
+    {
+      key: "Bathroom",
+      label: "Bathroom",
+      options: ["1+", "2+", "3+", "4+"],
+      selectionType: "multiple",
+    },
+    {
+      key: "Balcony",
+      label: "Balcony",
+      options: ["1+", "2+", "3+"],
+      selectionType: "multiple",
+    },
     {
       key: "Parking",
       label: "Parking",
       options: ["No Parking", "1 Car", "2 Cars"],
+      selectionType: "multiple",
     },
     {
       key: "Furnishing",
       label: "Furnishing",
       options: ["Unfurnished", "Semi-Furnished", "Fully Furnished"],
+      selectionType: "single",
     },
     {
       key: "Amenities",
       label: "Amenities",
       options: ["Lift", "Power Backup", "Gym", "Swimming Pool", "Security"],
+      selectionType: "multiple",
     },
     {
       key: "Facing",
       label: "Facing",
       options: ["East", "West", "North", "South"],
+      selectionType: "multiple",
     },
     { key: "Verified Properties", label: "Verified Properties" },
     {
@@ -163,11 +208,13 @@ const ResidentialFilters = () => {
         "Last 2 Months",
         "Last 4 Months",
       ],
+      selectionType: "single",
     },
     {
       key: "Posted By",
       label: "Posted By",
       options: ["owners", "Agents", "Builders"],
+      selectionType: "multiple",
     },
   ];
 
@@ -546,15 +593,41 @@ const ResidentialFilters = () => {
                         </div>
                       </div>
                     ) : (
-                      <div className="flex flex-wrap gap-3">
-                        {section.options?.map((opt) => (
-                          <button
-                            key={opt}
-                            className="px-3 py-1.5 rounded-full border text-sm hover:bg-gray-100"
-                          >
-                            {opt}
-                          </button>
-                        ))}
+                              <div className="flex flex-wrap gap-3">
+                        {section.options?.map((opt) => {
+                          const mappedKey = keyMapping[section.key];
+                          const currentValue =
+                            residential[mappedKey];
+
+                          const isActive =
+                            section.selectionType === "multiple"
+                              ? Array.isArray(currentValue) &&
+                                currentValue.includes(opt)
+                              : currentValue === opt;
+
+                          return (
+                            <SelectableButton
+                              key={opt}
+                              label={opt}
+                              active={isActive}
+                              selectionType={section.selectionType ?? "single"} // 👈 THIS is the switch
+                              onClick={() => {
+                                dispatch(
+                                  setResidentialFilter({
+                                    key: mappedKey,
+                                    value:
+                                      section.selectionType === "multiple"
+                                        ? toggleArrayValue(
+                                            (currentValue as string[]) || [],
+                                            opt
+                                          )
+                                        : opt,
+                                  })
+                                );
+                              }}
+                            />
+                          );
+                        })}
                       </div>
                     )}
                   </div>
