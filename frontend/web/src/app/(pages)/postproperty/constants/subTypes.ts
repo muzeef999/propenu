@@ -129,4 +129,47 @@ export const LAND_PROPERTY_SUBTYPES = [
 ] as const;
 
 export type LandPropertySubtype = (typeof LAND_PROPERTY_SUBTYPES)[number];
+
+export const AGRICULTURAL_PROPERTY_OPTIONS: PropertyTypeOption[] = [
+  { key: "agricultural-land", label: "Agricultural Land", icon: "🌾" },
+  { key: "farm-land", label: "Farm Land", icon: "🚜" },
+  { key: "orchard-land", label: "Orchard Land", icon: "🍎" },
+  { key: "plantation", label: "Plantation", icon: "🌴" },
+  { key: "wet-land", label: "Wet Land", icon: "💧" },
+  { key: "dry-land", label: "Dry Land", icon: "☀️" },
+  { key: "ranch", label: "Ranch", icon: "🐄" },
+  { key: "dairy-farm", label: "Dairy Farm", icon: "🥛" },
+];
+
+export const AGRICULTURAL_PROPERTY_KEYS = [
+  "agricultural-land",
+  "farm-land",
+  "orchard-land",
+  "plantation",
+  "wet-land",
+  "dry-land",
+  "ranch",
+  "dairy-farm",
+] as const;
+
+export type AgriculturalPropertyKey =
+  (typeof AGRICULTURAL_PROPERTY_KEYS)[number];
+
+
+  export const AGRICULTURAL_PROPERTY_SUBTYPES = [
+  "irrigated",
+  "non-irrigated",
+  "fenced",
+  "unfenced",
+  "with-well",
+  "with-borewell",
+  "with-electricity",
+  "near-road",
+  "inside-village",
+  "farmhouse-permission",
+] as const;
+
+export type AgriculturalPropertySubType =
+  (typeof AGRICULTURAL_PROPERTY_SUBTYPES)[number];
+
   

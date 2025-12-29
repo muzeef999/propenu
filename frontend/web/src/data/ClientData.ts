@@ -44,3 +44,27 @@ export const me = async() => {
   });
   return res.data;
 }
+
+export const getShortlistedProperties = async () => {
+  const token = Cookies.get("token");
+  if (!token) return null;
+
+  const res = await axiosInstance.get(`${url}/api/users/shortlist`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return res.data;
+};
+
+export const postShortlistProperty = async (propertyId: string) => {
+  const token = Cookies.get("token");
+  if (!token) return null;
+
+  const res = await axiosInstance.post(`${url}/api/users/shortlist`, { propertyId }, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return res.data;
+};

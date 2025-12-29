@@ -95,7 +95,7 @@ const Sidebar = () => {
                     {/* Action Button */}
                     <Link
                         href="/post-property"
-                        className="flex items-center justify-center w-full rounded-xl bg-[#27A361] text-white text-sm font-semibold py-3 hover:bg-[#1f8a50] transition-all active:scale-[0.98] shadow-md shadow-green-100"
+                        className="flex btn-primary items-center justify-center w-full rounded-xl text-white text-sm font-semibold py-3 transition-all active:scale-[0.98] shadow-md shadow-green-100"
                     >
                         Post Property
                     </Link>

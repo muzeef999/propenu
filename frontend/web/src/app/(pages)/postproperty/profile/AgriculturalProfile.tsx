@@ -5,8 +5,18 @@ import InputField from "@/ui/InputFiled";
 import TextArea from "@/ui/TextArae";
 import { useAppDispatch } from "@/Redux/store";
 import { submitPropertyThunk } from "@/Redux/thunks/submitPropertyApi";
+import InputWithUnit from "@/ui/InputwithUnit";
+import Dropdownui from "@/ui/DropDownUI";
+import ToggleSwitch from "@/ui/ToggleSwitch";
 
-const AREA_UNITS = ["sqft", "sqmt", "acre", "guntha", "cent", "hectare"] as const;
+const AREA_UNITS = [
+  "sqft",
+  "sqmt",
+  "acre",
+  "guntha",
+  "cent",
+  "hectare",
+] as const;
 
 const ROAD_WIDTH_UNITS = ["ft", "meter"] as const;
 
@@ -79,279 +89,271 @@ const AgriculturalProfile = () => {
     <div className="space-y-10">
       {/* ========== PROPERTY BASICS ========== */}
       <div className="space-y-8">
-        <InputField
-          label="Property / Farm Name"
-          value={agricultural.title || ""}
-          placeholder="e.g. Green Valley Farm"
-          onChange={(value) =>
-            dispatch(
-              setProfileField({
-                propertyType: "agricultural",
-                key: "title",
-                value,
-              })
-            )
-          }
-        />
-      </div>
-
-      {/* ========== LAND DETAILS ========== */}
-      <div className="space-y-6">
-        <p className="text-sm font-medium text-gray-700">Agriculture Land Details</p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InputField
+        <div>
+          <p className="text-sm font-semibold text-gray-900">Property Basics</p>
+          <p className="text-xs text-gray-500">
+            Enter the size, road access, and plantation age of the land
+          </p>
+        </div>
+        <div className=" grid grid-cols-1 md:grid-cols-3 gap-4">
+          <InputWithUnit
             label="Total Area"
-            type="number"
-            value={agricultural.totalArea?.value || ""}
-            placeholder="e.g. 5.5"
-            onChange={(value) =>
+            value={agricultural.totalArea?.value ?? ""}
+            unit={agricultural.totalArea?.unit ?? null}
+            units={[
+              { label: "SQ.FT", value: "sqft" },
+              { label: "SQ.MT", value: "sqmt" },
+              { label: "ACRE", value: "acre" },
+              { label: "GUNTHA", value: "guntha" },
+              { label: "CENT", value: "cent" },
+              { label: "HECTARE", value: "hectare" },
+            ]}
+            placeholder="1200"
+            onValueChange={(value) =>
               dispatch(
                 setProfileField({
                   propertyType: "agricultural",
                   key: "totalArea",
                   value: {
-                    value: Number(value) || 0,
-                    unit: agricultural.totalArea?.unit,
+                    value,
+                    unit: agricultural.totalArea?.unit || "acre",
+                  },
+                })
+              )
+            }
+            onUnitChange={(unit) =>
+              dispatch(
+                setProfileField({
+                  propertyType: "agricultural",
+                  key: "totalArea",
+                  value: {
+                    value: agricultural.totalArea?.value || "",
+                    unit,
                   },
                 })
               )
             }
           />
-
-          <div>
-            <label className="inline-block text-sm font-normal p-1 bg-gray-400 text-white rounded-t-sm">
-              Area Unit
-            </label>
-            <select
-              value={agricultural.totalArea?.unit || ""}
-              onChange={(e) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "agricultural",
-                    key: "totalArea",
-                    value: {
-                      value: agricultural.totalArea?.value || 0,
-                      unit: e.target.value,
-                    },
-                  })
-                )
-              }
-              className="w-full border px-3 py-2 rounded-b-sm rounded-r-sm"
-            >
-              <option value="">Select unit</option>
-              {AREA_UNITS.map((u) => (
-                <option key={u} value={u}>
-                  {u.toUpperCase()}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InputField
+          <InputWithUnit
             label="Road Width"
-            type="number"
-            value={agricultural.roadWidth?.value || ""}
-            placeholder="e.g. 40"
-            onChange={(value) =>
+            value={agricultural.roadWidth?.value ?? ""}
+            unit={agricultural.roadWidth?.unit ?? null}
+            units={[
+              { label: "FT", value: "ft" },
+              { label: "METER", value: "meter" },
+            ]}
+            placeholder="40"
+            onValueChange={(value) =>
               dispatch(
                 setProfileField({
                   propertyType: "agricultural",
                   key: "roadWidth",
                   value: {
-                    value: Number(value) || 0,
+                    value,
                     unit: agricultural.roadWidth?.unit || "ft",
                   },
                 })
               )
             }
+            onUnitChange={(unit) =>
+              dispatch(
+                setProfileField({
+                  propertyType: "agricultural",
+                  key: "roadWidth",
+                  value: {
+                    value: agricultural.roadWidth?.value || "",
+                    unit,
+                  },
+                })
+              )
+            }
           />
-
-          <div>
-            <label className="inline-block text-sm font-normal p-1 bg-gray-400 text-white rounded-t-sm">
-              Road Width Unit
-            </label>
-            <select
-              value={agricultural.roadWidth?.unit || ""}
-              onChange={(e) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "agricultural",
-                    key: "roadWidth",
-                    value: {
-                      value: agricultural.roadWidth?.value || 0,
-                      unit: e.target.value,
-                    },
-                  })
-                )
-              }
-              className="w-full border px-3 py-2 rounded-b-sm rounded-r-sm"
-            >
-              <option value="">Select unit</option>
-              <option value="ft">FT</option>
-              <option value="meter">METER</option>
-            </select>
-          </div>
+          <CounterField
+            label="Plantation Age (years)"
+            value={agricultural.plantationAge || 0}
+            min={0}
+            onChange={(value) =>
+              dispatch(
+                setProfileField({
+                  propertyType: "agricultural",
+                  key: "plantationAge",
+                  value,
+                })
+              )
+            }
+          />
         </div>
       </div>
 
       {/* ========== SOIL & IRRIGATION ========== */}
       <div className="space-y-6">
-        <p className="text-sm font-medium text-gray-700">Soil & Irrigation</p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="inline-block text-sm font-normal p-1 bg-gray-400 text-white rounded-t-sm">
-              Soil Type
-            </label>
-            <select
-              value={agricultural.soilType || ""}
-              onChange={(e) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "agricultural",
-                    key: "soilType",
-                    value: e.target.value,
-                  })
-                )
-              }
-              className="w-full border px-3 py-2 rounded-b-sm rounded-r-sm"
-            >
-              <option value="">Select</option>
-              {SOIL_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t.replace("-", " ").toUpperCase()}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="inline-block text-sm font-normal p-1 bg-gray-400 text-white rounded-t-sm">
-              Irrigation Type
-            </label>
-            <select
-              value={agricultural.irrigationType || ""}
-              onChange={(e) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "agricultural",
-                    key: "irrigationType",
-                    value: e.target.value,
-                  })
-                )
-              }
-              className="w-full border px-3 py-2 rounded-b-sm rounded-r-sm"
-            >
-              <option value="">Select</option>
-              {IRRIGATION_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t.replace("-", " ").toUpperCase()}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="inline-block text-sm font-normal p-1 bg-gray-400 text-white rounded-t-sm">
-              Water Source
-            </label>
-            <select
-              value={agricultural.waterSource || ""}
-              onChange={(e) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "agricultural",
-                    key: "waterSource",
-                    value: e.target.value,
-                  })
-                )
-              }
-              className="w-full border px-3 py-2 rounded-b-sm rounded-r-sm"
-            >
-              <option value="">Select</option>
-              {WATER_SOURCES.map((t) => (
-                <option key={t} value={t}>
-                  {t.replace("-", " ").toUpperCase()}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="inline-block text-sm font-normal p-1 bg-gray-400 text-white rounded-t-sm">
-              Access Road Type
-            </label>
-            <select
-              value={agricultural.accessRoadType || ""}
-              onChange={(e) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "agricultural",
-                    key: "accessRoadType",
-                    value: e.target.value,
-                  })
-                )
-              }
-              className="w-full border px-3 py-2 rounded-b-sm rounded-r-sm"
-            >
-              <option value="">Select</option>
-              {ACCESS_ROAD_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t.replace("-", " ").toUpperCase()}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div>
+          <p className="text-sm font-semibold text-gray-900">
+            Soil & Irrigation
+          </p>
+          <p className="text-xs text-gray-500">
+            Select soil type, irrigation method, and available water sources
+          </p>
         </div>
 
         {/* Checkboxes */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={agricultural.boundaryWall || false}
-              onChange={(e) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "agricultural",
-                    key: "boundaryWall",
-                    value: e.target.checked,
-                  })
-                )
-              }
-              className="w-4 h-4 accent-green-600"
-            />
-            <span className="text-sm text-gray-700">Boundary Wall</span>
-          </div>
+          <Dropdownui
+            label="Soil Type"
+            value={agricultural.soilType || null}
+            onChange={(value) =>
+              dispatch(
+                setProfileField({
+                  propertyType: "agricultural",
+                  key: "soilType",
+                  value,
+                })
+              )
+            }
+            options={SOIL_TYPES.map((t) => ({
+              value: t,
+              label: t.replace("-", " ").toUpperCase(),
+            }))}
+            placeholder="Select"
+          />
 
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={agricultural.electricityConnection || false}
-              onChange={(e) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "agricultural",
-                    key: "electricityConnection",
-                    value: e.target.checked,
-                  })
-                )
-              }
-              className="w-4 h-4 accent-green-600"
-            />
-            <span className="text-sm text-gray-700">Electricity Connection</span>
-          </div>
+          <Dropdownui
+            label="Irrigation Type"
+            value={agricultural.irrigationType || null}
+            onChange={(value) =>
+              dispatch(
+                setProfileField({
+                  propertyType: "agricultural",
+                  key: "irrigationType",
+                  value,
+                })
+              )
+            }
+            options={IRRIGATION_TYPES.map((t) => ({
+              value: t,
+              label: t.replace("-", " ").toUpperCase(),
+            }))}
+            placeholder="Select"
+          />
+
+          <Dropdownui
+            label="Water Source"
+            value={agricultural.waterSource || null}
+            onChange={(value) =>
+              dispatch(
+                setProfileField({
+                  propertyType: "agricultural",
+                  key: "waterSource",
+                  value,
+                })
+              )
+            }
+            options={WATER_SOURCES.map((t) => ({
+              value: t,
+              label: t.replace("-", " ").toUpperCase(),
+            }))}
+            placeholder="Select"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        <div>
+          <p className="text-sm font-semibold text-gray-900">
+            Borewell Details
+          </p>
+          <p className="text-xs text-gray-500">
+            Provide borewell count, depth, yield, and drilling year
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <CounterField
+            label="Number of Borewells"
+            value={agricultural.numberOfBorewells || 0}
+            min={0}
+            onChange={(value) =>
+              dispatch(
+                setProfileField({
+                  propertyType: "agricultural",
+                  key: "numberOfBorewells",
+                  value,
+                })
+              )
+            }
+          />
+
+          {agricultural.numberOfBorewells > 0 && (
+            <>
+              <InputField
+                label="Borewell Depth (meters)"
+                type="number"
+                value={agricultural.borewellDetails?.depthMeters || ""}
+                placeholder="e.g. 100"
+                onChange={(value) =>
+                  dispatch(
+                    setProfileField({
+                      propertyType: "agricultural",
+                      key: "borewellDetails",
+                      value: {
+                        ...agricultural.borewellDetails,
+                        depthMeters: Number(value) || 0,
+                      },
+                    })
+                  )
+                }
+              />
+
+              <InputField
+                label="Yield (LPM)"
+                type="number"
+                value={agricultural.borewellDetails?.yieldLpm || ""}
+                placeholder="e.g. 5000"
+                onChange={(value) =>
+                  dispatch(
+                    setProfileField({
+                      propertyType: "agricultural",
+                      key: "borewellDetails",
+                      value: {
+                        ...agricultural.borewellDetails,
+                        yieldLpm: Number(value) || 0,
+                      },
+                    })
+                  )
+                }
+              />
+
+              <InputField
+                label="Drilled Year"
+                type="number"
+                value={agricultural.borewellDetails?.drilledYear || ""}
+                placeholder="e.g. 2020"
+                onChange={(value) =>
+                  dispatch(
+                    setProfileField({
+                      propertyType: "agricultural",
+                      key: "borewellDetails",
+                      value: {
+                        ...agricultural.borewellDetails,
+                        drilledYear: Number(value) || 0,
+                      },
+                    })
+                  )
+                }
+              />
+            </>
+          )}
         </div>
       </div>
 
       {/* ========== CROP DETAILS ========== */}
       <div className="space-y-6">
-        <p className="text-sm font-medium text-gray-700">Crop Details</p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p className="text-sm font-semibold text-gray-900">Crop Details</p>
+          <p className="text-xs text-gray-500">
+            Mention current crops, land usage, and suitable cultivation types
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <InputField
             label="Current Crop"
             value={agricultural.currentCrop || ""}
@@ -382,21 +384,6 @@ const AgriculturalProfile = () => {
             }
           />
 
-          <CounterField
-            label="Plantation Age (years)"
-            value={agricultural.plantationAge || 0}
-            min={0}
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "agricultural",
-                  key: "plantationAge",
-                  value,
-                })
-              )
-            }
-          />
-
           <InputField
             label="Land Shape"
             value={agricultural.landShape || ""}
@@ -414,90 +401,16 @@ const AgriculturalProfile = () => {
         </div>
       </div>
 
-      {/* ========== BOREWELL DETAILS ========== */}
-      <div className="space-y-6">
-        <p className="text-sm font-medium text-gray-700">Borewell Details</p>
-
-        <CounterField
-          label="Number of Borewells"
-          value={agricultural.numberOfBorewells || 0}
-          min={0}
-          onChange={(value) =>
-            dispatch(
-              setProfileField({
-                propertyType: "agricultural",
-                key: "numberOfBorewells",
-                value,
-              })
-            )
-          }
-        />
-
-        {agricultural.numberOfBorewells > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <InputField
-              label="Borewell Depth (meters)"
-              type="number"
-              value={agricultural.borewellDetails?.depthMeters || ""}
-              placeholder="e.g. 100"
-              onChange={(value) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "agricultural",
-                    key: "borewellDetails",
-                    value: {
-                      ...agricultural.borewellDetails,
-                      depthMeters: Number(value) || 0,
-                    },
-                  })
-                )
-              }
-            />
-
-            <InputField
-              label="Yield (LPM)"
-              type="number"
-              value={agricultural.borewellDetails?.yieldLpm || ""}
-              placeholder="e.g. 5000"
-              onChange={(value) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "agricultural",
-                    key: "borewellDetails",
-                    value: {
-                      ...agricultural.borewellDetails,
-                      yieldLpm: Number(value) || 0,
-                    },
-                  })
-                )
-              }
-            />
-
-            <InputField
-              label="Drilled Year"
-              type="number"
-              value={agricultural.borewellDetails?.drilledYear || ""}
-              placeholder="e.g. 2020"
-              onChange={(value) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "agricultural",
-                    key: "borewellDetails",
-                    value: {
-                      ...agricultural.borewellDetails,
-                      drilledYear: Number(value) || 0,
-                    },
-                  })
-                )
-              }
-            />
-          </div>
-        )}
-      </div>
-
       {/* ========== LEGAL DOCUMENTS ========== */}
       <div className="space-y-6">
-        <p className="text-sm font-medium text-gray-700">Legal Documents</p>
+        <div>
+          <p className="text-sm font-semibold text-gray-900">
+            Legal & Accessibility
+          </p>
+          <p className="text-xs text-gray-500">
+            Provide information about purchase restrictions and access road type
+          </p>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InputField
@@ -514,65 +427,132 @@ const AgriculturalProfile = () => {
               )
             }
           />
+          <InputField
+            label="Access Road Type"
+            value={agricultural.accessRoadType || ""}
+            placeholder="e.g. Paved, Unpaved"
+            onChange={(value) =>
+              dispatch(
+                setProfileField({
+                  propertyType: "agricultural",
+                  key: "accessRoadType",
+                  value,
+                })
+              )
+            }
+          />
         </div>
       </div>
 
-      {/* ========== PROPERTY TYPE ========== */}
       <div className="space-y-6">
-        <p className="text-sm font-medium text-gray-700">Property Type</p>
-
+        <div>
+          <p className="text-sm font-semibold text-gray-900">Site Features</p>
+          <p className="text-xs text-gray-500">
+            Specify available infrastructure and on-site facilities
+          </p>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="inline-block text-sm font-normal p-1 bg-gray-400 text-white rounded-t-sm">
-              Property Type
-            </label>
-            <select
-              value={agricultural.propertyType || ""}
-              onChange={(e) =>
+          {/* Boundary Wall */}
+          <div
+            className={`flex items-center justify-between rounded-md border p-3 transition-colors ${
+              agricultural.boundaryWall
+                ? "border-green-500 bg-green-50 shadow-sm"
+                : "border-gray-300 bg-white hover:border-gray-400"
+            }`}
+          >
+            <span
+              className={`text-sm font-medium ${
+                agricultural.boundaryWall ? "text-green-800" : "text-gray-700"
+              }`}
+            >
+              Boundary Wall
+            </span>
+
+            <ToggleSwitch
+              enabled={agricultural.boundaryWall || false}
+              onChange={(value) =>
                 dispatch(
                   setProfileField({
                     propertyType: "agricultural",
-                    key: "propertyType",
-                    value: e.target.value,
+                    key: "boundaryWall",
+                    value,
                   })
                 )
               }
-              className="w-full border px-3 py-2 rounded-b-sm rounded-r-sm"
-            >
-              <option value="">Select property type</option>
-              {PROPERTY_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t.replace("-", " ").toUpperCase()}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
-          <div>
-            <label className="inline-block text-sm font-normal p-1 bg-gray-400 text-white rounded-t-sm">
-              Property Sub Type
-            </label>
-            <select
-              value={agricultural.propertySubType || ""}
-              onChange={(e) =>
+          {/* Electricity Connection */}
+          <div
+            className={`flex items-center justify-between rounded-md border p-3 transition-colors ${
+              agricultural.electricityConnection
+                ? "border-green-500 bg-green-50 shadow-sm"
+                : "border-gray-300 bg-white hover:border-gray-400"
+            }`}
+          >
+            <span
+              className={`text-sm font-medium ${
+                agricultural.electricityConnection
+                  ? "text-green-800"
+                  : "text-gray-700"
+              }`}
+            >
+              Electricity Connection
+            </span>
+
+            <ToggleSwitch
+              enabled={agricultural.electricityConnection || false}
+              onChange={(value) =>
                 dispatch(
                   setProfileField({
                     propertyType: "agricultural",
-                    key: "propertySubType",
-                    value: e.target.value,
+                    key: "electricityConnection",
+                    value,
                   })
                 )
               }
-              className="w-full border px-3 py-2 rounded-b-sm rounded-r-sm"
-            >
-              <option value="">Select sub type</option>
-              {PROPERTY_SUB_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t.replace("-", " ").toUpperCase()}
-                </option>
-              ))}
-            </select>
+            />
           </div>
+        </div>
+      </div>
+
+      <div
+        className={`flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300 ${
+          agricultural.isPriceNegotiable
+            ? "border-green-500 bg-green-50 shadow-sm"
+            : ""
+        }`}
+      >
+        <div>
+          <p className="text-sm font-semibold text-gray-800">
+            Is the price negotiable?
+          </p>
+          <p className="text-xs text-gray-500">
+            Enable this if you are open to offers from buyers
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span
+            className={`text-xs font-medium ${
+              agricultural.isPriceNegotiable
+                ? "text-green-600"
+                : "text-gray-400"
+            }`}
+          >
+            {agricultural.isPriceNegotiable ? "YES" : "NO"}
+          </span>
+          <ToggleSwitch
+            enabled={agricultural.isPriceNegotiable || false}
+            onChange={(val) =>
+              dispatch(
+                setProfileField({
+                  propertyType: "agricultural",
+                  key: "isPriceNegotiable",
+                  value: val,
+                })
+              )
+            }
+          />
         </div>
       </div>
 
@@ -582,6 +562,7 @@ const AgriculturalProfile = () => {
           label="Additional Description"
           value={agricultural.description || ""}
           maxLength={500}
+          placeholder="e.g. The land has a gentle slope and is ideal for cultivating a variety of crops. It is well-connected to the main road and has access to electricity and water supply."
           onChange={(value) =>
             dispatch(
               setProfileField({

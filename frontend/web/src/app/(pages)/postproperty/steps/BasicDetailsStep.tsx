@@ -5,17 +5,25 @@ import {
   setBaseField,
   setProfileField,
 } from "@/Redux/slice/postPropertySlice";
+import SelectableButton from "@/ui/SelectableButton";
 
 import FileUpload, { UploadedFile } from "@/ui/FileUpload";
 import { setFiles as setFileStoreFiles } from "@/lib/fileStore";
 import { useState } from "react";
 import { validateBasicDetails } from "@/zod/basicDetailsZod";
-import { RESIDENTIAL_PROPERTY_OPTIONS, COMMERCIAL_PROPERTY_OPTIONS, COMMERCIAL_SUBTYPE_MAP, LAND_PROPERTY_KEYS, LAND_PROPERTY_OPTIONS, LAND_PROPERTY_SUBTYPES } from "@/app/(pages)/postproperty/constants/subTypes";
+import {
+  RESIDENTIAL_PROPERTY_OPTIONS,
+  COMMERCIAL_PROPERTY_OPTIONS,
+  COMMERCIAL_SUBTYPE_MAP,
+  LAND_PROPERTY_OPTIONS,
+  LAND_PROPERTY_SUBTYPES,
+  AGRICULTURAL_PROPERTY_OPTIONS,
+  AGRICULTURAL_PROPERTY_SUBTYPES,
+} from "@/app/(pages)/postproperty/constants/subTypes";
 
 export default function BasicDetailsStep() {
-  const { propertyType, base, residential, commercial, land, agricultural } = useSelector(
-    (state: any) => state.postProperty
-  );
+  const { propertyType, base, residential, commercial, land, agricultural } =
+    useSelector((state: any) => state.postProperty);
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [showErrors, setShowErrors] = useState(false);
   const dispatch = useDispatch();
@@ -25,9 +33,15 @@ export default function BasicDetailsStep() {
     { label: "Lease", value: "lease" },
   ];
 
-
   // Get the current category state
-  const categoryState = propertyType === "residential" ? residential : propertyType === "commercial" ? commercial : propertyType === "land" ? land : agricultural;
+  const categoryState =
+    propertyType === "residential"
+      ? residential
+      : propertyType === "commercial"
+      ? commercial
+      : propertyType === "land"
+      ? land
+      : agricultural;
 
   const validationResult = validateBasicDetails(
     {
@@ -44,14 +58,14 @@ export default function BasicDetailsStep() {
 
   const isFormValid = validationResult.success;
 
-  const fieldErrors = showErrors && !validationResult.success
-    ? validationResult.error.flatten().fieldErrors
-    : {};
-
+  const fieldErrors =
+    showErrors && !validationResult.success
+      ? validationResult.error.flatten().fieldErrors
+      : {};
 
   const handleSelect = (type: any) => {
-  dispatch(setPropertyType(type));
-};
+    dispatch(setPropertyType(type));
+  };
 
   const subTypes =
     propertyType === "residential"
@@ -60,16 +74,31 @@ export default function BasicDetailsStep() {
       ? COMMERCIAL_PROPERTY_OPTIONS
       : propertyType === "land"
       ? LAND_PROPERTY_OPTIONS
+      : propertyType === "agricultural"
+      ? AGRICULTURAL_PROPERTY_OPTIONS
       : [];
 
   const selectedCommercialType = commercial.propertyType;
   const commercialSubTypes =
-    propertyType === "commercial" && selectedCommercialType && COMMERCIAL_SUBTYPE_MAP[selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP]
-      ? (COMMERCIAL_SUBTYPE_MAP[selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP] as readonly string[])
+    propertyType === "commercial" &&
+    selectedCommercialType &&
+    COMMERCIAL_SUBTYPE_MAP[
+      selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
+    ]
+      ? (COMMERCIAL_SUBTYPE_MAP[
+          selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
+        ] as readonly string[])
       : [];
 
-  const landSubTypes = propertyType === "land" ? (LAND_PROPERTY_SUBTYPES as readonly string[]) : [];
+  const landSubTypes =
+    propertyType === "land"
+      ? (LAND_PROPERTY_SUBTYPES as readonly string[])
+      : [];
 
+  const agriculturalSubTypes =
+    propertyType === "agricultural"
+      ? (AGRICULTURAL_PROPERTY_SUBTYPES as readonly string[])
+      : [];
 
   return (
     <div className="space-y-4">
@@ -80,9 +109,10 @@ export default function BasicDetailsStep() {
           const isActive = base.listingType === option.value;
 
           return (
-            <button
+            <SelectableButton
               key={option.value}
-              type="button"
+              label={option.label}
+              active={isActive}
               onClick={() =>
                 dispatch(
                   setBaseField({
@@ -91,15 +121,7 @@ export default function BasicDetailsStep() {
                   })
                 )
               }
-              className={`px-6 py-2 border rounded-md text-sm shadow-sm focus:outline-none  transition-colors
-              ${isActive
-                    ? "border-green-500 bg-green-50 text-green-600"
-                    : "border-gray-300 text-gray-700"
-                  }
-            `}
-            >
-              {option.label}
-            </button>
+            />
           );
         })}
       </div>
@@ -128,7 +150,9 @@ export default function BasicDetailsStep() {
 
       {subTypes.length > 0 && (
         <div className="mb-6">
-          <p className="mb-3 text-sm font-medium text-gray-700">Property Sub-Type</p>
+          <p className="mb-3 text-sm font-medium text-gray-700">
+            Property Sub-Type
+          </p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {subTypes.map((sub) => {
               const isSelected = categoryState?.propertyType === sub.key;
@@ -138,7 +162,13 @@ export default function BasicDetailsStep() {
                   type="button"
                   onClick={() => {
                     if (propertyType) {
-                      dispatch(setProfileField({ propertyType: propertyType as any, key: "propertyType", value: sub.key }))
+                      dispatch(
+                        setProfileField({
+                          propertyType: propertyType as any,
+                          key: "propertyType",
+                          value: sub.key,
+                        })
+                      );
                     }
                   }}
                   className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition-all ${
@@ -166,18 +196,26 @@ export default function BasicDetailsStep() {
           </p>
           <div className="flex flex-wrap gap-3">
             {commercialSubTypes.map((subType: string) => {
-              const isSelected = (commercial as any).commercialSubType === subType;
+              const isSelected =
+                (commercial as any).commercialSubType === subType;
               return (
                 <button
                   key={subType}
                   type="button"
                   onClick={() => {
-                    dispatch(setProfileField({ propertyType: "commercial", key: "commercialSubType", value: subType }))
+                    dispatch(
+                      setProfileField({
+                        propertyType: "commercial",
+                        key: "commercialSubType",
+                        value: subType,
+                      })
+                    );
                   }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
+                    isSelected
                       ? "border-green-500 bg-green-50 text-green-600"
                       : "border-gray-300 text-gray-700"
-                    }`}
+                  }`}
                 >
                   {subType.replace("-", " ").toUpperCase()}
                 </button>
@@ -189,7 +227,9 @@ export default function BasicDetailsStep() {
 
       {landSubTypes.length > 0 && (
         <div className="mb-6">
-          <p className="mb-3 text-sm font-medium text-gray-700">Land Characteristics</p>
+          <p className="mb-3 text-sm font-medium text-gray-700">
+            Land Characteristics
+          </p>
           <div className="flex flex-wrap gap-3">
             {landSubTypes.map((subType: string) => {
               const isSelected = (land as any).landSubType === subType;
@@ -198,12 +238,19 @@ export default function BasicDetailsStep() {
                   key={subType}
                   type="button"
                   onClick={() => {
-                    dispatch(setProfileField({ propertyType: "land", key: "landSubType", value: subType }));
+                    dispatch(
+                      setProfileField({
+                        propertyType: "land",
+                        key: "landSubType",
+                        value: subType,
+                      })
+                    );
                   }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
+                    isSelected
                       ? "border-green-500 bg-green-50 text-green-600"
                       : "border-gray-300 text-gray-700"
-                    }`}
+                  }`}
                 >
                   {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
@@ -213,6 +260,41 @@ export default function BasicDetailsStep() {
         </div>
       )}
 
+      {agriculturalSubTypes.length > 0 && (
+        <div className="mb-6">
+          <p className="mb-3 text-sm font-medium text-gray-700">
+            Agricultural Land Characteristics
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {agriculturalSubTypes.map((subType: string) => {
+              const isSelected =
+                (agricultural as any).agriculturalSubType === subType;
+              return (
+                <button
+                  key={subType}
+                  type="button"
+                  onClick={() => {
+                    dispatch(
+                      setProfileField({
+                        propertyType: "agricultural",
+                        key: "agriculturalSubType",
+                        value: subType,
+                      })
+                    );
+                  }}
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
+                    isSelected
+                      ? "border-green-500 bg-green-50 text-green-600"
+                      : "border-gray-300 text-gray-700"
+                  }`}
+                >
+                  {subType.replace(/-/g, " ").toUpperCase()}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <FileUpload
         label="Property Images"
@@ -227,7 +309,10 @@ export default function BasicDetailsStep() {
             })
           );
           // store actual File objects in in-memory file store
-          setFileStoreFiles("postProperty", newFiles.map((f) => f.file));
+          setFileStoreFiles(
+            "postProperty",
+            newFiles.map((f) => f.file)
+          );
         }}
         accept="image/*"
         maxFiles={5}
@@ -241,7 +326,11 @@ export default function BasicDetailsStep() {
         onClick={() => {
           setShowErrors(true);
           if (isFormValid) {
-            console.log("BasicDetailsStep Data:", { base, propertyType, files });
+            console.log("BasicDetailsStep Data:", {
+              base,
+              propertyType,
+              files,
+            });
             dispatch(nextStep());
           }
         }}

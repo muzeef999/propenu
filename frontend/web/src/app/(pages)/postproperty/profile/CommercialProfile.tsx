@@ -13,7 +13,7 @@ import { FACING_TYPES } from "./ResidentialProfile";
 import Dropdownui from "@/ui/DropDownUI";
 import Toggle from "@/ui/ToggleSwitch";
 import { useEffect } from "react";
-
+import SelectableButton from "@/ui/SelectableButton";
 
 export const TRANSACTION_TYPES = [
   "new-sale",
@@ -29,9 +29,7 @@ export const CONSTRUCTION_STATUS = [
   "new-lanch",
 ] as const;
 
-
-export const PANTRY_TYPES = [
-  "none", "shared", "no-shared",] as const;
+export const PANTRY_TYPES = ["none", "shared", "no-shared"] as const;
 
 export const WALL_FINISH_STATUS = [
   "no-partitions",
@@ -55,32 +53,38 @@ const CommercialProfile = () => {
   const { commercial } = useSelector((state: any) => state.postProperty);
   const dispatch = useAppDispatch();
   useEffect(() => {
-      const price = Number(commercial.price) || Number(commercial.expectedPrice);
-      const area = Number(commercial.carpetArea);
+    const price = Number(commercial.price) || Number(commercial.expectedPrice);
+    const area = Number(commercial.carpetArea);
 
-      if (price > 0 && area > 0) {
-        const pricePerSqft = String(Math.round(price / area));
-        if (pricePerSqft !== commercial.pricePerSqft) {
-          dispatch(
-            setProfileField({
-              propertyType: "commercial",
-              key: "pricePerSqft",
-              value: pricePerSqft,
-            })
-          );
-        }
-      } else {
-        if (commercial.pricePerSqft) {
-          dispatch(
-            setProfileField({
-              propertyType: "commercial",
-              key: "pricePerSqft",
-              value: "",
-            })
-          );
-        }
+    if (price > 0 && area > 0) {
+      const pricePerSqft = String(Math.round(price / area));
+      if (pricePerSqft !== commercial.pricePerSqft) {
+        dispatch(
+          setProfileField({
+            propertyType: "commercial",
+            key: "pricePerSqft",
+            value: pricePerSqft,
+          })
+        );
       }
-    }, [commercial.price, commercial.expectedPrice, commercial.carpetArea, commercial.pricePerSqft, dispatch]);
+    } else {
+      if (commercial.pricePerSqft) {
+        dispatch(
+          setProfileField({
+            propertyType: "commercial",
+            key: "pricePerSqft",
+            value: "",
+          })
+        );
+      }
+    }
+  }, [
+    commercial.price,
+    commercial.expectedPrice,
+    commercial.carpetArea,
+    commercial.pricePerSqft,
+    dispatch,
+  ]);
 
   return (
     <div className="space-y-8">
@@ -119,6 +123,7 @@ const CommercialProfile = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-[1.2fr_145px] gap-1 items-start">
           {/* Furnishing */}
+          
           <div className="space-y-2">
             <p className="text-sm font-medium text-gray-700">Furnishing</p>
 
@@ -131,9 +136,10 @@ const CommercialProfile = () => {
                 const active = commercial.furnishing === item.value;
 
                 return (
-                  <button
+                  <SelectableButton
                     key={item.value}
-                    type="button"
+                    label={item.label}
+                    active={active}
                     onClick={() =>
                       dispatch(
                         setProfileField({
@@ -143,20 +149,11 @@ const CommercialProfile = () => {
                         })
                       )
                     }
-                    className={`px-6 py-2 border rounded-md text-sm shadow-sm focus:outline-none  transition-colors
-              ${active
-                        ? "border-green-500 bg-green-50 text-green-600"
-                        : "border-gray-300 text-gray-700"
-                      }
-            `}
-                  >
-                    {item.label}
-                  </button>
+                  />
                 );
               })}
             </div>
           </div>
-
           {/* Wall Finish */}
           <Dropdownui
             label="Wall Finish"
@@ -170,7 +167,10 @@ const CommercialProfile = () => {
                 })
               )
             }
-            options={WALL_FINISH_STATUS.map((t) => ({ value: t, label: t.replace(/-/g, " ") }))}
+            options={WALL_FINISH_STATUS.map((t) => ({
+              value: t,
+              label: t.replace(/-/g, " "),
+            }))}
             placeholder="Select"
           />
         </div>
@@ -198,7 +198,6 @@ const CommercialProfile = () => {
 
           {/* Fields */}
           <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 md:grid-cols-3">
-
             {/* Two Wheeler */}
             <CounterField
               label="Two-Wheeler Parking"
@@ -240,13 +239,10 @@ const CommercialProfile = () => {
         </div>
         <div className="space-y-3">
           {/* Section Title */}
-          <p className="text-sm font-medium text-gray-800">
-            Floor Details
-          </p>
+          <p className="text-sm font-medium text-gray-800">Floor Details</p>
 
           {/* Fields */}
           <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 md:grid-cols-3 items-start">
-
             {/* Flooring Type */}
             <Dropdownui
               label="Flooring Type"
@@ -354,13 +350,23 @@ const CommercialProfile = () => {
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">Shared Pantry</label>
+            <label className="text-sm font-medium text-gray-700">
+              Shared Pantry
+            </label>
             <div className="flex py-2 items-center justify-between rounded-md border border-gray-300 bg-white px-4 shadow-sm transition hover:border-gray-400 mt-2">
               <span className="text-sm text-gray-700">Available</span>
               <input
                 type="checkbox"
                 checked={commercial.pantry?.shared || false}
-                onChange={(e) => dispatch(setProfileField({ propertyType: "commercial", key: "pantry", value: { ...commercial.pantry, shared: e.target.checked } }))}
+                onChange={(e) =>
+                  dispatch(
+                    setProfileField({
+                      propertyType: "commercial",
+                      key: "pantry",
+                      value: { ...commercial.pantry, shared: e.target.checked },
+                    })
+                  )
+                }
                 className="h-5 w-5 accent-green-600 cursor-pointer"
               />
             </div>
@@ -368,7 +374,9 @@ const CommercialProfile = () => {
         </div>
 
         <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">Availability Status</p>
+          <p className="text-sm font-medium text-gray-700">
+            Availability Status
+          </p>
 
           <div className="flex gap-5">
             {[
@@ -391,10 +399,11 @@ const CommercialProfile = () => {
                     )
                   }
                   className={`px-6 py-2 border rounded-md text-sm shadow-sm focus:outline-none  transition-colors
-                      ${active
-                      ? "border-green-500 bg-green-50 text-green-600"
-                      : "border-gray-300 text-gray-700"
-                    }
+                      ${
+                        active
+                          ? "border-green-500 bg-green-50 text-green-600"
+                          : "border-gray-300 text-gray-700"
+                      }
                     `}
                 >
                   {item.label}
@@ -426,10 +435,11 @@ const CommercialProfile = () => {
                     )
                   }
                   className={`px-6 py-2 border rounded-md text-sm shadow-sm focus:outline-none  transition-colors
-                      ${active
-                      ? "border-green-500 bg-green-50 text-green-600"
-                      : "border-gray-300 text-gray-700"
-                    }
+                      ${
+                        active
+                          ? "border-green-500 bg-green-50 text-green-600"
+                          : "border-gray-300 text-gray-700"
+                      }
                     `}
                 >
                   {item.label}
@@ -463,10 +473,11 @@ const CommercialProfile = () => {
                       )
                     }
                     className={`px-6 py-2 border rounded-md text-sm shadow-sm focus:outline-none  transition-colors
-                ${active
-                        ? "border-green-500 bg-green-50 text-green-600"
-                        : "border-gray-300 text-gray-700"
-                      }
+                ${
+                  active
+                    ? "border-green-500 bg-green-50 text-green-600"
+                    : "border-gray-300 text-gray-700"
+                }
               `}
                   >
                     {item.label}
@@ -493,7 +504,6 @@ const CommercialProfile = () => {
             }
           />
         )}
-
       </div>
 
       {/* ========== BUILDING MANAGEMENT ========== */}
@@ -508,8 +518,6 @@ const CommercialProfile = () => {
         </div>
 
         <div className="space-y-3 grid grid-cols-1 md:grid-cols-2 gap-7">
-
-
           <InputField
             label="Building Management Company"
             value={commercial.buildingManagement?.managedBy || ""}
@@ -566,7 +574,6 @@ const CommercialProfile = () => {
         />
       </div>
 
-
       {/* ========== TENANT INFORMATION ========== */}
       <div className="space-y-4">
         <div>
@@ -579,13 +586,21 @@ const CommercialProfile = () => {
         </div>
 
         {(commercial.tenantInfo || []).map((tenant: any, index: number) => (
-          <div key={index} className="border rounded-lg p-4 border-gray-300 px-4 shadow-sm transition hover:border-gray-400 mt-2">
+          <div
+            key={index}
+            className="border rounded-lg p-4 border-gray-300 px-4 shadow-sm transition hover:border-gray-400 mt-2"
+          >
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-gray-700">Tenant #{index + 1}</p>
+              <p className="text-sm font-medium text-gray-700">
+                Tenant #{index + 1}
+              </p>
               <button
                 type="button"
                 onClick={() => {
-                  const updatedTenants = commercial.tenantInfo?.filter((_: any, i: number) => i !== index) || [];
+                  const updatedTenants =
+                    commercial.tenantInfo?.filter(
+                      (_: any, i: number) => i !== index
+                    ) || [];
                   dispatch(
                     setProfileField({
                       propertyType: "commercial",
@@ -624,7 +639,10 @@ const CommercialProfile = () => {
                 placeholder="e.g. 50,000"
                 onChange={(value) => {
                   const updatedTenants = [...(commercial.tenantInfo || [])];
-                  updatedTenants[index] = { ...tenant, rent: value.replace(/\D/g, "") };
+                  updatedTenants[index] = {
+                    ...tenant,
+                    rent: value.replace(/\D/g, ""),
+                  };
                   dispatch(
                     setProfileField({
                       propertyType: "commercial",
@@ -638,7 +656,7 @@ const CommercialProfile = () => {
               <InputField
                 label="Lease Start Date"
                 type="date"
-                value={tenant.leaseStart ? tenant.leaseStart.split('T')[0] : ""}
+                value={tenant.leaseStart ? tenant.leaseStart.split("T")[0] : ""}
                 onChange={(value) => {
                   const updatedTenants = [...(commercial.tenantInfo || [])];
                   updatedTenants[index] = { ...tenant, leaseStart: value };
@@ -655,7 +673,7 @@ const CommercialProfile = () => {
               <InputField
                 label="Lease End Date"
                 type="date"
-                value={tenant.leaseEnd ? tenant.leaseEnd.split('T')[0] : ""}
+                value={tenant.leaseEnd ? tenant.leaseEnd.split("T")[0] : ""}
                 onChange={(value) => {
                   const updatedTenants = [...(commercial.tenantInfo || [])];
                   updatedTenants[index] = { ...tenant, leaseEnd: value };
@@ -668,8 +686,6 @@ const CommercialProfile = () => {
                   );
                 }}
               />
-
-              
             </div>
           </div>
         ))}
@@ -677,7 +693,12 @@ const CommercialProfile = () => {
         <button
           type="button"
           onClick={() => {
-            const newTenant = { currentTenant: "", leaseStart: "", leaseEnd: "", rent: "" };
+            const newTenant = {
+              currentTenant: "",
+              leaseStart: "",
+              leaseEnd: "",
+              rent: "",
+            };
             dispatch(
               setProfileField({
                 propertyType: "commercial",
@@ -704,7 +725,7 @@ const CommercialProfile = () => {
         </div>
 
         {/* Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {[
             { key: "fireExtinguisher", label: "Fire Extinguisher" },
             { key: "fireSprinklerSystem", label: "Sprinkler System" },
@@ -718,45 +739,36 @@ const CommercialProfile = () => {
             const enabled = commercial.fireSafety?.[item.key] || false;
 
             return (
-              <button
+              <div
                 key={item.key}
-                type="button"
-                onClick={() =>
-                  dispatch(
-                    setProfileField({
-                      propertyType: "commercial",
-                      key: "fireSafety",
-                      value: {
-                        ...commercial.fireSafety,
-                        [item.key]: !enabled,
-                      },
-                    })
-                  )
-                }
-                className={`flex items-center gap-3 rounded-md py-3 text-left transition-allrounded-md border border-gray-300 px-4 shadow-sm transition hover:border-gray-400 mt-2
-            ${enabled
-                    ? "border-green-500 bg-green-50 shadow-sm"
-                    : "border-gray-300 bg-white hover:border-gray-400"
-                  }`}
+                className={`flex items-center justify-between rounded-md border p-3 shadow-sm transition
+            ${
+              enabled
+                ? "border-green-500 bg-green-50 shadow-sm"
+                : "border-gray-300 bg-white"
+            }`}
               >
                 <span
-                  className={`flex-1 text-sm font-medium ${enabled ? "text-green-700" : "text-gray-700"
-                    }`}
+                  className={`text-sm font-medium ${
+                    enabled ? "text-green-700" : "text-gray-700"
+                  }`}
                 >
                   {item.label}
                 </span>
 
-                {/* Toggle */}
-                <span
-                  className={`h-5 w-9 shrink-0 flex items-center rounded-full p-0.5 transition
-              ${enabled ? "bg-green-600" : "bg-gray-300"}`}
-                >
-                  <span
-                    className={`h-4 w-4 rounded-full bg-white shadow transform transition
-                ${enabled ? "translate-x-4" : "translate-x-0"}`}
-                  />
-                </span>
-              </button>
+                <Toggle
+                  enabled={enabled}
+                  onChange={(val) =>
+                    dispatch(
+                      setProfileField({
+                        propertyType: "commercial",
+                        key: "fireSafety",
+                        value: { ...commercial.fireSafety, [item.key]: val },
+                      })
+                    )
+                  }
+                />
+              </div>
             );
           })}
         </div>
@@ -802,7 +814,7 @@ const CommercialProfile = () => {
             value={commercial.pricePerSqft || ""}
             placeholder="Auto calculated"
             disabled
-            onChange={() => { }}
+            onChange={() => {}}
           />
 
           <InputField
@@ -825,20 +837,32 @@ const CommercialProfile = () => {
 
       <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
         <div>
-          <p className="text-sm font-semibold text-gray-800">Is the price negotiable?</p>
-          <p className="text-xs text-gray-500">Enable this if you are open to offers from buyers</p>
+          <p className="text-sm font-semibold text-gray-800">
+            Is the price negotiable?
+          </p>
+          <p className="text-xs text-gray-500">
+            Enable this if you are open to offers from buyers
+          </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className={`text-xs font-medium ${commercial.isPriceNegotiable ? 'text-green-600' : 'text-gray-400'}`}>
+          <span
+            className={`text-xs font-medium ${
+              commercial.isPriceNegotiable ? "text-green-600" : "text-gray-400"
+            }`}
+          >
             {commercial.isPriceNegotiable ? "YES" : "NO"}
           </span>
           <Toggle
             enabled={commercial.isPriceNegotiable || false}
-            onChange={(val) => dispatch(setProfileField({
-              propertyType: "commercial",
-              key: "isPriceNegotiable",
-              value: val,
-            }))}
+            onChange={(val) =>
+              dispatch(
+                setProfileField({
+                  propertyType: "commercial",
+                  key: "isPriceNegotiable",
+                  value: val,
+                })
+              )
+            }
           />
         </div>
       </div>
@@ -857,7 +881,6 @@ const CommercialProfile = () => {
           )
         }
       />
-
 
       <button
         type="button"
