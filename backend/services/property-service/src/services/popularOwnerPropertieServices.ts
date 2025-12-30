@@ -24,26 +24,26 @@ export async function getPopularOwnerPropertiesByCity(city: string, page = 1, li
   };
 
   const resprojection = {
-    title: 1, slug: 1, gallery: 1, price: 1, currency: 1, superBuiltUpArea:1, constructionStatus:1,furnishing:1,parkingType:1,
+    title: 1, slug: 1, gallery: 1, price: 1, currency: 1, builtUpArea:1, constructionStatus:1, furnishing:1, parkingDetails:1, buildingName:1, pricePerSqft:1,
     "meta.views": 1, "meta.inquiries": 1, "meta.clicks": 1,
     createdAt: 1, updatedAt: 1, status: 1, rank: 1, propertyType: 1, propertySubType: 1, listingSource: 1, city: 1
   };
 
   
   const comprojection = {
-    title: 1, slug: 1, gallery: 1, price: 1, currency: 1, superBuiltUpArea:1, furnishing:1, floorNumber:1, totalFloors:1,
+    title: 1, slug: 1, gallery: 1, price: 1, currency: 1, builtUpArea:1, furnishing:1, floorNumber:1, totalFloors:1, parkingDetails:1, buildingName:1, pricePerSqft:1,
     "meta.views": 1, "meta.inquiries": 1, "meta.clicks": 1,
     createdAt: 1, updatedAt: 1, status: 1, rank: 1, propertyType: 1, propertySubType: 1, listingSource: 1, city: 1
   };
 
   const landprojection = {
-    title: 1, slug: 1, gallery: 1, price: 1, currency: 1, dimensions:1, furnishing:1, roadWidthFt:1,
+    title: 1, slug: 1, gallery: 1, price: 1, currency: 1, dimensions:1, furnishing:1, roadWidthFt:1, plotArea:1, pricePerSqft:1, facing:1,  landName:1,
     "meta.views": 1, "meta.inquiries": 1, "meta.clicks": 1,
     createdAt: 1, updatedAt: 1, status: 1, rank: 1, propertyType: 1, propertySubType: 1, listingSource: 1, city: 1
   };
 
   const agrprojection = {
-    title: 1, slug: 1, gallery: 1, price: 1, currency: 1, superBuiltUpArea:1, soilType:1,accessRoadType:1,waterSource:1,
+    title: 1, slug: 1, gallery: 1, price: 1, currency: 1, superBuiltUpArea:1, soilType:1,accessRoadType:1,waterSource:1, landName:1, totalArea:1,
     "meta.views": 1, "meta.inquiries": 1, "meta.clicks": 1,
     createdAt: 1, updatedAt: 1, status: 1, rank: 1, propertyType: 1, propertySubType: 1, listingSource: 1, city: 1
   };
