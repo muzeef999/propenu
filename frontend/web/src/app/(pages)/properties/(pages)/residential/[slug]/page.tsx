@@ -139,7 +139,7 @@ export default async function Page({ params }: PageProps) {
           {/* Main two-column layout */}
           <div className="grid gap-4 lg:grid-cols-[2fr,1.2fr]">
             <section className="space-y-4 ml-3">
-              <section className="p-6 card">
+              <section className="rounded-lg p-6 shadow-sm bg-[#f3f6f4]">
                 <h2 className="mb-6 text-xl font-semibold text-gray-900">
                   More Details
                 </h2>
