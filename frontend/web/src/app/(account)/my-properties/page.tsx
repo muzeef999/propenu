@@ -7,6 +7,7 @@ import { HiOutlineMapPin } from "react-icons/hi2";
 
 import ActiveTabs from "@/ui/ActiveTabs";
 import { getMyProperties } from "@/data/ClientData";
+import NopropertiesSvg from "@/svg/NopropertiesSvg";
 
 /* -------------------- TYPES -------------------- */
 
@@ -54,11 +55,10 @@ const Page = () => {
 
   const categories = ["Residential", "Commercial", "Plot", "Agriculture"];
 
-  const { data, isLoading, isError, error } =
-    useQuery<MyPropertiesResponse>({
-      queryKey: ["myProperties"],
-      queryFn: getMyProperties,
-    });
+  const { data, isLoading, isError, error } = useQuery<MyPropertiesResponse>({
+    queryKey: ["myProperties"],
+    queryFn: getMyProperties,
+  });
 
   /* -------------------- FILTERED DATA -------------------- */
 
@@ -101,21 +101,19 @@ const Page = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProperties.length ? (
           filteredProperties.map((property) => {
-            const image =
-              property.gallery?.[0]?.url || "/placeholder.jpg";
+            const image = property.gallery?.[0]?.url || "/placeholder.jpg";
 
-            const area =
-              property.carpetArea || property.builtUpArea;
+            const area = property.carpetArea || property.builtUpArea;
 
             const pricePerSqft =
-              property.price && area
-                ? Math.round(property.price / area)
-                : null;
+              property.price && area ? Math.round(property.price / area) : null;
 
             return (
               <Link
                 key={property._id}
-                href={`/properties/${property.propertyType ?? "residential"}/${property.slug}`}
+                href={`/properties/${property.propertyType ?? "residential"}/${
+                  property.slug
+                }`}
                 className="bg-white rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md transition"
               >
                 {/* IMAGE */}
@@ -161,11 +159,7 @@ const Page = () => {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      alert(
-                        `Edit property: ${
-                          property.title ?? "Property"
-                        }`
-                      );
+                      alert(`Edit property: ${property.title ?? "Property"}`);
                     }}
                   >
                     Edit
@@ -176,6 +170,9 @@ const Page = () => {
           })
         ) : (
           <div className="col-span-full text-center py-12 text-gray-500">
+            <div className="flex justify-center">
+              <NopropertiesSvg />
+            </div>
             No properties found in "{activeTab}"
           </div>
         )}

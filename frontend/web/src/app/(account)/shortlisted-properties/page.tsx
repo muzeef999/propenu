@@ -9,6 +9,7 @@ import { IoLocationOutline } from "react-icons/io5";
 
 import ActiveTabs from "@/ui/ActiveTabs";
 import { getShortlistedProperties } from "@/data/ClientData";
+import NopropertiesSvg from "@/svg/NopropertiesSvg";
 
 /* ================= TYPES ================= */
 
@@ -163,7 +164,10 @@ const Page = () => {
           })
         ) : (
           <div className="col-span-full text-center py-12 text-gray-500">
-            No properties found in "{activeTab}" category
+            <div className="flex justify-center">
+              <NopropertiesSvg />
+            </div>
+            No properties found in "{activeTab}"
           </div>
         )}
       </div>
