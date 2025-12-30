@@ -90,20 +90,51 @@ async function mapAndUploadGallery({
 /* --------------------  Search API  -------------------- */
 
 
-export function findRelatedAgriculture(property: any) {
-  return findRelatedProperties(property, {
-    modelName: "Agriculture",
-    extraFilters: (p) => ({
-      ...(p.landArea && {
-        landArea: {
-          $gte: p.landArea * 0.8,
-          $lte: p.landArea * 1.2,
-        },
-      }),
-      cropType: p.cropType,
-    }),
-  });
+export async function findRelatedAgriculture(property: any) {
+  if (!property?._id) return [];
+
+  const query: any = {
+    _id: { $ne: property._id },
+    status: "active",
+
+    // CORE similarity
+    listingType: property.listingType,       // sale / lease
+    propertyType: property.propertyType,     // agricultural
+    city: property.city,
+  };
+
+  // Optional land area similarity (±25%)
+  if (property.landArea) {
+    query.landArea = {
+      $gte: property.landArea * 0.75,
+      $lte: property.landArea * 1.25,
+    };
+  }
+
+  // Optional crop type similarity
+  if (property.cropType) {
+    query.cropType = property.cropType;
+  }
+
+  // Optional price band (±30%)
+  if (property.price) {
+    query.price = {
+      $gte: property.price * 0.7,
+      $lte: property.price * 1.3,
+    };
+  }
+
+  const related = await Agricultural.find(query)
+    .sort({ createdAt: -1 })
+    .limit(6)
+    .select(
+      "title slug price city locality landArea cropType gallery propertyType listingType"
+    )
+    .lean();
+
+  return related;
 }
+
 
 function normalizePayload(obj: any) {
   if (!obj) return obj;

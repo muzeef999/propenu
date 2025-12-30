@@ -17,7 +17,7 @@ function normalizePayload(obj: any) {
   if (obj.price === "") obj.price = undefined;
   if (obj.createdBy) obj.createdBy = String(obj.createdBy);
   return obj;
-}
+} 
 
 
 
@@ -80,20 +80,51 @@ async function mapAndUploadGallery({
   return summary;
 }
 
-export function findRelatedLand(property: any) {
-  return findRelatedProperties(property, {
-    modelName: "Land",
-    extraFilters: (p) => ({
-      ...(p.plotArea && {
-        plotArea: {
-          $gte: p.plotArea * 0.8,
-          $lte: p.plotArea * 1.2,
-        },
-      }),
-      landUseZone: p.landUseZone,
-    }),
-  });
+export async function findRelatedLand(property: any) {
+  if (!property?._id) return [];
+
+  const query: any = {
+    _id: { $ne: property._id },
+    status: "active",
+
+    // CORE similarity
+    listingType: property.listingType,     // sale
+    propertyType: property.propertyType,   // land
+    city: property.city,
+  };
+
+  // Optional plot area similarity (±25%)
+  if (property.plotArea) {
+    query.plotArea = {
+      $gte: property.plotArea * 0.75,
+      $lte: property.plotArea * 1.25,
+    };
+  }
+
+  // Optional land-use zone similarity
+  if (property.landUseZone) {
+    query.landUseZone = property.landUseZone;
+  }
+
+  // Optional price band (±30%)
+  if (property.price) {
+    query.price = {
+      $gte: property.price * 0.7,
+      $lte: property.price * 1.3,
+    };
+  }
+
+  const related = await LandPlot.find(query)
+    .sort({ createdAt: -1 })
+    .limit(6)
+    .select(
+      "title slug price city locality plotArea landUseZone gallery propertyType listingType"
+    )
+    .lean();
+
+  return related;
 }
+
 
 
 /** delete S3 object best-effort */
