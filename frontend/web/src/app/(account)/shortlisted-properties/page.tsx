@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { HiOutlineMapPin } from "react-icons/hi2";
 import { HiHeart } from "react-icons/hi";
+import { IoLocationOutline } from "react-icons/io5";
+
 
 import ActiveTabs from "@/ui/ActiveTabs";
 import { getShortlistedProperties } from "@/data/ClientData";
@@ -16,14 +17,14 @@ interface PropertyDetails {
   title?: string;
   address?: string;
   price?: number;
-  area?: number;
+  pricePerSqft?: number;
   slug?: string;
   gallery?: { url: string }[];
 }
-
+type PropertyType = "Residential" | "Commercial" | "Plot" | "Agriculture";
 interface ShortlistedItem {
   _id: string;
-  propertyType?: string;
+  propertyType: PropertyType;
   property: PropertyDetails;
 }
 
@@ -65,6 +66,7 @@ const Page = () => {
     (item) =>
       item.propertyType?.toLowerCase() === activeTab.toLowerCase()
   );
+  console.log("Filtered Shortlisted Properties:", filteredProperties);
 
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-6">
@@ -83,8 +85,8 @@ const Page = () => {
               item.property?.gallery?.[0]?.url
 
             const pricePerSqft =
-              item.property?.price && item.property?.area
-                ? Math.round(item.property.price / item.property.area)
+              item.property?.price && item.property?.pricePerSqft
+                ? Math.round(item.property.price / item.property.pricePerSqft)
                 : null;
 
             return (
@@ -112,8 +114,8 @@ const Page = () => {
                     {item.property?.title || "Untitled Property"}
                   </h3>
 
-                  <div className="flex items-center gap-1 text-sm text-gray-500">
-                    <HiOutlineMapPin className="w-4 h-4 text-green-500" />
+                  <div className="flex items-center gap-1 text-sm text-gray-500 truncate">
+                    <IoLocationOutline  className="w-4 h-4 text-green-500" />
                     {item.property?.address || "Location not specified"}
                   </div>
                 </div>

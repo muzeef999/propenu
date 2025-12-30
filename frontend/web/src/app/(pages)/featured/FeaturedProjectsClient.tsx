@@ -85,7 +85,7 @@ export default function FeaturedProjectsClient({ items = [] }: Props) {
 
               {/* Title + Address */}
               <div className="flex flex-col justify-center">
-                <h2 className="text-2xl font-medium text-left">
+                <h2 className="text-2xl font-medium text-left truncate max-w-[320px]">
                   {project.title}
                 </h2>
 
