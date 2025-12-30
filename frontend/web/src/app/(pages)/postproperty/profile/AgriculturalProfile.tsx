@@ -515,6 +515,37 @@ const AgriculturalProfile = () => {
           </div>
         </div>
       </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4 items-end">
+            <InputField
+              label="Total Price"
+              value={agricultural.price || ""}
+              placeholder="e.g. 75,00,000"
+              onChange={(value) =>
+                dispatch(
+                  setProfileField({
+                    propertyType: "agricultural",
+                    key: "price",
+                    value: value.replace(/\D/g, ""),
+                  })
+                )
+              }
+            />
+
+            <InputField
+              label="Price Per Sqft"
+              value={agricultural.pricePerSqft || ""}
+              placeholder="e.g. 6250"
+              onChange={(value) =>
+                dispatch(
+                  setProfileField({
+                    propertyType: "agricultural",
+                    key: "pricePerSqft",
+                    value: value.replace(/\D/g, ""),
+                  })
+                )
+              }
+            />
+          </div>
 
       <div
         className={`flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300 ${

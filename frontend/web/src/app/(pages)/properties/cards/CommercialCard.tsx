@@ -33,7 +33,7 @@ const CommercialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, vert
         <img
           src={img}
           alt={p?.title ?? "property image"}
-          className="h-full w-full object-cover  rounded-xl"
+          className="h-full w-full object-cover  rounded-md"
           loading="lazy"
         />
         {/* overlay: image count & date */}
@@ -69,12 +69,18 @@ const CommercialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, vert
       {/* Middle: content */}
       <div className="flex-1 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
         <div>
-          <h3 className="text-lg md:text-md font-semibold line-clamp-2">
+          {/* <h3 className="text-lg md:text-md font-semibold line-clamp-2">
             {vertical ? `${p?.title?.slice(0, 18)}...` : `${p?.title?.slice(0, 48)}...`}
+          </h3> */}
+          <h3 className="text-lg md:text-md font-semibold truncate">
+            {
+              p.title
+            }
           </h3>
-          <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
+          <p className="text-sm text-gray-500 mt-1 flex items-center gap-2 truncate">
             <BiBuildingHouse className="w-4 h-4" />
-            {vertical ? (p as any)?.buildingName?.slice(0, 18)?.concat("...") : (p as any)?.buildingName}
+            {/* {vertical ? (p as any)?.buildingName?.slice(0, 18)?.concat("...") : (p as any)?.buildingName} */}
+            {(p as any)?.buildingName}
           </p>
         </div>
 
@@ -109,7 +115,7 @@ const CommercialCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, vert
             <UnderConstruction size={24} color={bgPriceColoricon} />
             <div className="flex flex-col">
               <div className="text-xs text-gray-500 tracking-wide">Availability</div>
-              <div className="font-medium">{(p as any)?.constructionStatus ? "Available" : "Under Construction"}</div>
+              <div className="font-medium">{(p as any)?.constructionStatus ? "Available" : " Construction"}</div>
             </div>
           </div>
 

@@ -14,19 +14,32 @@ import Link from "next/link";
 import { AiOutlineHeart } from "react-icons/ai";
 import { BiBuildingHouse } from "react-icons/bi";
 
-const AgriculturalCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, vertical = false }) => {
+const AgriculturalCard: React.FC<{ p: Property; vertical?: boolean }> = ({
+  p,
+  vertical = false,
+}) => {
   const bgPriceColor = hexToRGBA("#27AE60", 0.1);
   const bgPriceColoricon = hexToRGBA("#27AE60", 0.4);
 
   const img = p?.gallery?.[0]?.url ?? "/placeholder.jpg";
   const pricePerSqft =
     (p as any)?.pricePerSqft ??
-    Math.round((p?.price ?? 0) / (p as any)?.superBuiltUpArea || 0);
+    Math.round((p?.price ?? 0) / (p as any)?.builtUpArea || 0);
+  console.log("Rendering AgriculturalCard for property:", p);
 
   return (
-    <Link href={`/properties/agricultural/${p.slug}`} className={`card p-2 h-auto flex overflow-hidden ${vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"}`}>
+    <Link
+      href={`/properties/agricultural/${p.slug}`}
+      className={`card p-2 h-auto flex overflow-hidden ${
+        vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"
+      }`}
+    >
       {/* Left: image */}
-      <div className={`rounded-xl relative shrink-0 ${vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"}`}>
+      <div
+        className={`rounded-xl relative shrink-0 ${
+          vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"
+        }`}
+      >
         <img
           src={img}
           alt={p?.title ?? "property image"}
@@ -66,19 +79,28 @@ const AgriculturalCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ve
       {/* Middle: content */}
       <div className="flex-1 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
         <div>
-          <h3 className="text-lg md:text-md font-semibold line-clamp-2">
+          {/* <h3 className="text-lg md:text-md font-semibold line-clamp-2">
             {vertical ? `${p?.title?.slice(0, 18)}...` : p?.title}
+          </h3> */}
+          <h3 className="text-lg md:text-md font-semibold truncate">
+            {
+              p.title
+            }
           </h3>
           <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
             <BiBuildingHouse className="w-4 h-4" />
             <span className="capitalize">
-              {vertical ? (p as any)?.buildingName?.slice(0, 18)?.concat("...") : (p as any)?.buildingName}
+              {vertical
+                ? (p as any)?.landName?.slice(0, 18)?.concat("...")
+                : (p as any)?.landName}
             </span>
           </p>
         </div>
 
         {/* badges */}
-        <div className={`hidden ${vertical ? "" : "md:flex"} flex-wrap gap-2 mt-3`}>
+        <div
+          className={`hidden ${vertical ? "" : "md:flex"} flex-wrap gap-2 mt-3`}
+        >
           <span className="text-xs font-normal px-2 py-1 text-primary">
             RERA Approved
           </span>
@@ -91,40 +113,61 @@ const AgriculturalCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ve
         </div>
 
         {/* meta icons row */}
-        <div className={`mt-4 text-xs text-gray-600 ${
-          vertical
-          ? "grid grid-cols-2 gap-4"
-          : "md:flex md:items-center md:gap-6"
-          }`}>
+        <div
+          className={`mt-4 text-xs text-gray-600 ${
+            vertical
+              ? "grid grid-cols-2 gap-4"
+              : "md:flex md:items-center md:gap-6"
+          }`}
+        >
           <div className="items-center gap-2 flex">
             <SuperBuiitupAraea size={24} color={bgPriceColoricon} />
             <div className="flex flex-col">
-              <div className="text-xs text-gray-500 tracking-wide">Total Area</div>
-              <div className="font-medium">{(p as any)?.superBuiltUpArea ?? "—"} sqft</div>
+              <div className="text-xs text-gray-500 tracking-wide">
+                Total Area
+              </div>
+
+              <div className="font-medium">
+                {(p as any)?.totalArea?.value
+                  ? `${(p as any).totalArea.value} ${(p as any).totalArea.unit}`
+                  : "—"}
+              </div>
             </div>
           </div>
 
           <div className="items-center gap-2 flex">
             <WaterTypeIcon size={24} color={bgPriceColoricon} />
             <div className="flex flex-col">
-              <div className="text-xs text-gray-500 tracking-wide">Water Source</div>
-              <div className="font-medium">{(p as any)?.waterSource ?? "—"}</div>
+              <div className="text-xs text-gray-500 tracking-wide">
+                Water Source
+              </div>
+              <div className="font-medium">
+                {(p as any)?.waterSource ?? "—"}
+              </div>
             </div>
           </div>
 
           <div className="items-center gap-2 flex">
             <SoilTypeIcon size={24} color={bgPriceColoricon} />
             <div className="flex flex-col">
-              <div className="text-xs text-gray-500 tracking-wide">Soil Type</div>
-              <div className="font-medium">{(p as any)?.soilType?.trim() ?? "—"}</div>
+              <div className="text-xs text-gray-500 tracking-wide">
+                Soil Type
+              </div>
+              <div className="font-medium">
+                {(p as any)?.soilType?.trim() ?? "—"}
+              </div>
             </div>
           </div>
 
           <div className="items-center gap-2 flex">
             <RoadAccessIcon size={24} color={bgPriceColoricon} />
             <div className="flex flex-col">
-              <div className="text-xs text-gray-500 tracking-wide">Road Access</div>
-              <div className="font-medium">{(p as any)?.accessRoadType?.trim() ?? "—"}</div>
+              <div className="text-xs text-gray-500 tracking-wide">
+                Road Access
+              </div>
+              <div className="font-medium">
+                {(p as any)?.accessRoadType?.trim() ?? "—"}
+              </div>
             </div>
           </div>
         </div>
@@ -132,33 +175,50 @@ const AgriculturalCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ve
 
       {/* Right: price card */}
       <aside
-        className={`rounded-xl ${vertical
-          ? "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3"
-          : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:mt-0"
-          }`}
+        className={`rounded-xl ${
+          vertical
+            ? "w-full px-3 py-2 flex items-center justify-between gap-3"
+            : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:mt-0"
+        }`}
         style={{ backgroundColor: bgPriceColor }}
       >
         {/* PRICE */}
-        <div className={`${vertical ? "flex flex-col" : "flex flex-col md:items-center md:text-center"}`}>
+        <div
+          className={`${
+            vertical
+              ? "flex flex-col"
+              : "flex flex-col md:items-center md:text-center"
+          }`}
+        >
           <div
-            className={`text-green-700 font-semibold ${vertical ? "text-lg leading-tight" : "text-lg leading-tight md:text-2xl"
-              }`}
+            className={`text-green-700 font-semibold ${
+              vertical
+                ? "text-lg leading-tight"
+                : "text-lg leading-tight md:text-2xl"
+            }`}
           >
             {formatINR(p?.price)}
           </div>
 
           <div className="text-xs text-gray-600">
-            ₹ {pricePerSqft}/sqft
+            ₹ {(p as any)?.pricePerSqft}/sqft
           </div>
         </div>
 
         {/* BUTTON */}
-        <div className={`${vertical ? "shrink-0" : "shrink-0 md:w-full md:mt-4 flex justify-center"}`}>
+        <div
+          className={`${
+            vertical
+              ? "shrink-0"
+              : "shrink-0 md:w-full md:mt-4 flex justify-center"
+          }`}
+        >
           <button
-            className={`bg-green-600 text-white rounded-md shadow-sm hover:bg-green-700 transition font-medium whitespace-nowrap ${vertical
-              ? "px-4 py-1.5 text-sm"
-              : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base"
-              }`}
+            className={`bg-green-600 text-white rounded-md shadow-sm hover:bg-green-700 transition font-medium whitespace-nowrap ${
+              vertical
+                ? "px-4 py-1.5 text-sm"
+                : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base"
+            }`}
             onClick={(e) => {
               e.preventDefault();
               window.alert(`Contact owner for ${p?.title}`);

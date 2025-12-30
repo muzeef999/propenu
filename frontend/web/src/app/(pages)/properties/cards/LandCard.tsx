@@ -14,7 +14,10 @@ import Link from "next/link";
 import { AiOutlineHeart } from "react-icons/ai";
 import { BiBuildingHouse } from "react-icons/bi";
 
-export const LandCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, vertical = false }) => {
+export const LandCard: React.FC<{ p: Property; vertical?: boolean }> = ({
+  p,
+  vertical = false,
+}) => {
   const bgPriceColor = hexToRGBA("#27AE60", 0.1);
 
   const bgPriceColoricon = hexToRGBA("#27AE60", 0.4);
@@ -22,17 +25,25 @@ export const LandCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
   const img = p?.gallery?.[0]?.url ?? "/placeholder.jpg";
   const area = (p as any)?.superBuiltUpArea;
   const pricePerSqft =
-    (p as any)?.pricePerSqft ??
-    (area ? Math.round((p?.price ?? 0) / area) : 0);
+    (p as any)?.pricePerSqft ?? (area ? Math.round((p?.price ?? 0) / area) : 0);
 
   return (
-    <Link href={`/properties/land/${p.slug}`} className={`card p-2 h-auto flex overflow-hidden ${vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"}`}>
+    <Link
+      href={`/properties/land/${p.slug}`}
+      className={`card p-2 h-auto flex overflow-hidden ${
+        vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"
+      }`}
+    >
       {/* Left: image */}
-      <div className={`rounded-xl relative shrink-0 ${vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"}`}>
+      <div
+        className={`rounded-xl relative shrink-0 ${
+          vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"
+        }`}
+      >
         <img
           src={img}
           alt={p?.title ?? "property image"}
-          className="h-full w-full object-cover  rounded-xl"
+          className="h-full w-full object-cover  rounded-md"
           loading="lazy"
         />
         {/* overlay: image count & date */}
@@ -68,17 +79,26 @@ export const LandCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
       {/* Middle: content */}
       <div className="flex-1 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
         <div>
-          <h3 className="text-lg md:text-md font-semibold line-clamp-2">
+          {/* <h3 className="text-lg md:text-md font-semibold line-clamp-2">
             {vertical ? `${p?.title?.slice(0, 18)}...` : p?.title}
+          </h3> */}
+          <h3 className="text-lg md:text-md font-semibold truncate max-w-[460px]">
+            {
+              p.title
+            }
           </h3>
           <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
             <BiBuildingHouse className="w-4 h-4" />
-            {vertical ? (p as any)?.buildingName?.slice(0, 18)?.concat("...") : (p as any)?.buildingName}
+            {vertical
+              ? (p as any)?.buildingName?.slice(0, 18)?.concat("...")
+              : (p as any)?.buildingName}
           </p>
         </div>
 
         {/* badges */}
-        <div className={`hidden ${vertical ? "" : "md:flex"} flex-wrap gap-2 mt-3`}>
+        <div
+          className={`hidden ${vertical ? "" : "md:flex"} flex-wrap gap-2 mt-3`}
+        >
           <span className="text-xs font-normal px-2 py-1 text-primary">
             RERA Approved
           </span>
@@ -91,23 +111,39 @@ export const LandCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
         </div>
 
         {/* meta icons row */}
-        <div className={`mt-4 text-xs text-gray-600 ${vertical
-          ? "grid grid-cols-2 gap-4"
-          : "md:flex md:items-center md:gap-6"
-          }`}>
+        <div
+          className={`mt-4 text-xs text-gray-600 ${
+            vertical
+              ? "grid grid-cols-2 gap-4"
+              : "md:flex md:items-center md:gap-6"
+          }`}
+        >
           <div className="items-center gap-2 flex">
             <SuperBuiitupAraea size={24} color={bgPriceColoricon} />
             <div className="flex flex-col">
-              <div className="text-xs text-gray-500 tracking-wide">Total Area</div>
-              <div className="font-medium">{(p as any)?.superBuiltUpArea ?? "—"} sqft</div>
+              <div className="text-xs text-gray-500 tracking-wide">
+                Plot Area
+              </div>
+              <div className="font-medium">
+                {(p as any)?.plotArea ?? "—"} sqft
+              </div>
             </div>
           </div>
 
           <div className="items-center gap-2 flex">
             <UnderConstruction size={24} color={bgPriceColoricon} />
             <div className="flex flex-col">
-              <div className="text-xs text-gray-500 tracking-wide">Dimensions</div>
-              <div className="font-medium">{(p as any)?.dimension?.length ?? "—"} x {(p as any)?.dimension?.width ?? "—"}</div>
+              <div className="text-xs text-gray-500 tracking-wide">
+                Dimensions
+              </div>
+
+              <div className="font-medium">
+                {(p as any)?.dimensions?.length && (p as any)?.dimensions?.width
+                  ? `${(p as any).dimensions.length} x ${
+                      (p as any).dimensions.width
+                    }`
+                  : "—"}
+              </div>
             </div>
           </div>
 
@@ -115,15 +151,23 @@ export const LandCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
             <Facing size={24} color={bgPriceColoricon} />
             <div className="flex flex-col">
               <div className="text-xs text-gray-500 tracking-wide">Facing</div>
-              <div className="font-medium">{(p as any)?.facing?.trim() ?? "—"}</div>
+              <div className="font-medium">
+                {(p as any)?.facing?.trim() ?? "—"}
+              </div>
             </div>
           </div>
 
           <div className="items-center gap-2 flex">
             <RoadAccessIcon size={24} color={bgPriceColoricon} />
             <div className="flex flex-col">
-              <div className="text-xs text-gray-500 tracking-wide">Road Width</div>
-              <div className="font-medium">{(p as any)?.roadWidthFt ? `${(p as any)?.roadWidthFt} Feet` : "—"}</div>
+              <div className="text-xs text-gray-500 tracking-wide">
+                Road Width
+              </div>
+              <div className="font-medium">
+                {(p as any)?.roadWidthFt
+                  ? `${(p as any)?.roadWidthFt} Feet`
+                  : "—"}
+              </div>
             </div>
           </div>
         </div>
@@ -131,33 +175,48 @@ export const LandCard: React.FC<{ p: Property; vertical?: boolean }> = ({ p, ver
 
       {/* Right: price card */}
       <aside
-        className={`rounded-xl ${vertical
-          ? "w-full px-3 py-2 flex items-center justify-between gap-3"
-          : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:mt-0"
-          }`}
+        className={`rounded-xl ${
+          vertical
+            ? "w-full px-3 py-2 flex items-center justify-between gap-3"
+            : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:mt-0"
+        }`}
         style={{ backgroundColor: bgPriceColor }}
       >
         {/* PRICE */}
-        <div className={`${vertical ? "flex flex-col" : "flex flex-col md:items-center md:text-center"}`}>
+        <div
+          className={`${
+            vertical
+              ? "flex flex-col"
+              : "flex flex-col md:items-center md:text-center"
+          }`}
+        >
           <div
-            className={`text-green-700 font-semibold ${vertical ? "text-lg leading-tight" : "text-lg leading-tight md:text-2xl"
-              }`}
+            className={`text-green-700 font-semibold ${
+              vertical
+                ? "text-lg leading-tight"
+                : "text-lg leading-tight md:text-2xl"
+            }`}
           >
             {formatINR(p?.price)}
           </div>
 
-          <div className="text-xs text-gray-600">
-            ₹ {pricePerSqft}/sqft
-          </div>
+          <div className="text-xs text-gray-600">₹ {pricePerSqft}/sqft</div>
         </div>
 
         {/* BUTTON */}
-        <div className={`${vertical ? "shrink-0" : "shrink-0 md:w-full md:mt-4 justify-center flex"}`}>
+        <div
+          className={`${
+            vertical
+              ? "shrink-0"
+              : "shrink-0 md:w-full md:mt-4 justify-center flex"
+          }`}
+        >
           <div
-            className={`bg-green-600 text-white rounded-md shadow-sm hover:bg-green-700 transition font-medium whitespace-nowrap cursor-pointer text-center ${vertical
-              ? "px-4 py-1.5 text-sm"
-              : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base"
-              }`}
+            className={`bg-green-600 text-white rounded-md shadow-sm hover:bg-green-700 transition font-medium whitespace-nowrap cursor-pointer text-center ${
+              vertical
+                ? "px-4 py-1.5 text-sm"
+                : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base"
+            }`}
             onClick={(e) => {
               e.preventDefault();
               window.alert(`Contact owner for ${p?.title}`);

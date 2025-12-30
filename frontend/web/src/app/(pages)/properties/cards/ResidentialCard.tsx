@@ -48,7 +48,7 @@ const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({
       toast.error("Failed to update shortlist");
     },
   });
-
+  console.log("Rendering ResidentialCard for property:", p)
   return (
     <Link
       href={`/properties/residential/${p.slug}`}
@@ -65,7 +65,7 @@ const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({
         <img
           src={img}
           alt={p?.title ?? "property image"}
-          className="h-full w-full object-cover  rounded-xl"
+          className="h-full w-full object-cover rounded-md"
           loading="lazy"
         />
         {/* overlay: image count & date */}
@@ -96,7 +96,7 @@ const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({
             setIsShortlisted((prev) => !prev);
 
             shortlistProperty({
-              propertyId: p._id,
+              propertyId: p.id,
               propertyType: "Residential",
             });
           }}
@@ -119,10 +119,15 @@ const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({
         {/* <div className=""> */}
 
         <div>
-          <h3 className="text-lg md:text-md font-semibold line-clamp-2">
+          {/* <h3 className="text-lg md:text-md font-semibold line-clamp-2">
             {vertical
               ? `${p?.title?.slice(0, 18)}...`
               : `${p?.title?.slice(0, 48)}...`}
+          </h3> */}
+          <h3 className="text-lg md:text-md font-semibold truncate">
+            {
+              p.title
+            }
           </h3>
           <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
             <BiBuildingHouse className="w-4 h-4" />

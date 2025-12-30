@@ -80,8 +80,7 @@ const Page = () => {
         {filteredProperties.length ? (
           filteredProperties.map((item) => {
             const image =
-              item.property?.gallery?.[0]?.url ||
-              "https://via.placeholder.com/400x300?text=No+Image";
+              item.property?.gallery?.[0]?.url
 
             const pricePerSqft =
               item.property?.price && item.property?.area
@@ -91,7 +90,7 @@ const Page = () => {
             return (
               <Link
                 key={item._id}
-                href={`/properties/residential/${item.property.slug}`}
+                href={`/properties/${item.propertyType?.toLowerCase()}/${item.property?.slug}`}
                 className="card bg-white rounded-xl overflow-hidden flex flex-col"
               >
                 {/* IMAGE */}

@@ -95,7 +95,7 @@ const Sidebar = () => {
                     {/* Action Button */}
                     <Link
                         href="/post-property"
-                        className="flex btn-primary  shadow-green-100"
+                        className=" flex btn-primary "
                     >
                         Post Property
                     </Link>
