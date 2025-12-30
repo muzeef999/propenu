@@ -96,7 +96,7 @@ const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({
             setIsShortlisted((prev) => !prev);
 
             shortlistProperty({
-              propertyId: p.id,
+              propertyId: p._id,
               propertyType: "Residential",
             });
           }}

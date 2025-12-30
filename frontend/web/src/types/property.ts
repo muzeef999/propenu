@@ -9,6 +9,7 @@ export interface Meta {
 
 export interface Property {
   id: string;
+  _id: string;
   title: string;
   slug?: string;
   city?: string;
