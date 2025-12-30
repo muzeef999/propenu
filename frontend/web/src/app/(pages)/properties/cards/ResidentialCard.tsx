@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useState } from "react";
-import { Property } from "@/types/property";
+import { IResidential } from "@/types/residential";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import { AiOutlineHeart } from "react-icons/ai";
 import {
@@ -19,7 +19,7 @@ import Link from "next/link";
 import { BiBuildingHouse } from "react-icons/bi";
 import { postShortlistProperty } from "@/data/ClientData";
 
-const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({
+const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
   p,
   vertical = false,
 }) => {
@@ -129,12 +129,9 @@ const ResidentialCard: React.FC<{ p: Property; vertical?: boolean }> = ({
               p.title
             }
           </h3>
-          <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
+          <p className="text-sm text-gray-500 mt-1 flex items-center gap-2 truncate">
             <BiBuildingHouse className="w-4 h-4" />
-
-            {vertical
-              ? (p as any)?.buildingName?.slice(0, 18)?.concat("...")
-              : (p as any)?.buildingName}
+            {p?.buildingName}
           </p>
         </div>
 

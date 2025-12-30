@@ -41,6 +41,7 @@ export interface Property {
     length?: number;
     width?: number;
   }
+  buildingName?: string;
 }
 
 

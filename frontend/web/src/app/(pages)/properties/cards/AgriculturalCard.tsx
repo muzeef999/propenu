@@ -87,12 +87,10 @@ const AgriculturalCard: React.FC<{ p: Property; vertical?: boolean }> = ({
               p.title
             }
           </h3>
-          <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
+          <p className="text-sm text-gray-500 mt-1 flex items-center gap-2 truncate">
             <BiBuildingHouse className="w-4 h-4" />
             <span className="capitalize">
-              {vertical
-                ? (p as any)?.landName?.slice(0, 18)?.concat("...")
-                : (p as any)?.landName}
+              {(p as any)?.landName}
             </span>
           </p>
         </div>

@@ -95,7 +95,7 @@ const Page = () => {
                     {property?.title || "Untitled Property"}
                   </h3>
 
-                  <div className="flex items-center gap-1 text-sm text-gray-500">
+                  <div className="flex items-center gap-1 text-sm text-gray-500 truncate">
                     <HiOutlineMapPin className="w-4 h-4 text-green-500" />
                     {property?.address || "Location not specified"}
                   </div>

@@ -87,12 +87,7 @@ export const LandCard: React.FC<{ p: Property; vertical?: boolean }> = ({
               p.title
             }
           </h3>
-          <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
-            <BiBuildingHouse className="w-4 h-4" />
-            {vertical
-              ? (p as any)?.buildingName?.slice(0, 18)?.concat("...")
-              : (p as any)?.buildingName}
-          </p>
+        
         </div>
 
         {/* badges */}

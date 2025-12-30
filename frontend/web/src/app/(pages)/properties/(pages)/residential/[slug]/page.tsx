@@ -5,6 +5,7 @@ import formatINR from "@/utilies/PriceFormat";
 import { notFound } from "next/navigation";
 import GalleryFile from "../../../GalleryFile";
 import { Balconies, Bath, Bhk } from "@/icons/icons";
+import ResidentialCard from "../../../cards/ResidentialCard";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -33,6 +34,7 @@ export default async function Page({ params }: PageProps) {
   }
 
   const priceLabel = formatINR(project.price);
+  console.log("Rendering Residential Property Page for project:", project);
 
   return (
     <div style={{ background: bgcolor }} className="min-h-screen py-6">
@@ -146,7 +148,7 @@ export default async function Page({ params }: PageProps) {
           <div className=" w-full lg:max-w-[75%]">
             <div className="grid gap-4 lg:grid-cols-[1.2fr]">
               <section className="space-y-4 ml-3 ">
-                <section className="rounded-lg p-6 shadow-sm bg-[#f7f9fa] ">
+                <section className="rounded-lg p-6 shadow-sm bg-[#f7f9fa]">
                   <h2 className="mb-6 text-xl font-semibold text-gray-900">
                     More Details
                   </h2>
@@ -214,7 +216,7 @@ export default async function Page({ params }: PageProps) {
                 </section>
 
                 {/* Amenities */}
-                <section className="rounded-lg p-4 shadow-sm">
+                <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa]">
                   <h2 className="mb-3 text-xl font-semibold text-gray-900">
                     Amenities
                   </h2>
@@ -233,6 +235,28 @@ export default async function Page({ params }: PageProps) {
                   ) : (
                     <p className="text-sm text-gray-500">
                       Amenities information not available.
+                    </p>
+                  )}
+                </section>
+                <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa]">
+                  <h2 className="mb-3 text-xl font-semibold text-gray-900">
+                    Popular Landmarks Nearby
+                  </h2>
+                  <p className="text-sm justify-center flex mt-10">No Landmarks Nearby Available</p>
+                </section>
+                <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa]">
+                  <h2 className="mb-3 text-xl font-semibold text-gray-900">
+                    More Similar Properties for you
+                  </h2>
+                  {project.relatedProjects && project.relatedProjects.length > 0 ? (
+                  <div className="flex gap-4 overflow-x-auto py-2">
+                    {project.relatedProjects.map((relatedProject) => (
+                      <ResidentialCard p={relatedProject} vertical={true} />
+                    ))}
+                  </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      No similar properties available.
                     </p>
                   )}
                 </section>

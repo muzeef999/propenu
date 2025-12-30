@@ -26,6 +26,8 @@ export type GalleryItem = {
 export interface IResidential {
   listingType?: 'buy' | 'rent' | 'lease';
   developer?:  string;
+  _id: string;
+  id: string;
   // base fields...
   address: string;
     gallery?: GalleryItem[];
@@ -63,6 +65,9 @@ export interface IResidential {
   listingSource?: string;
   nearbyPlaces?: string[];
   createdBy? :IUserMini;
+  relatedProjects?: IResidential[];
+  slug?: string;
+  buildingName?: string;
 }
 
 
