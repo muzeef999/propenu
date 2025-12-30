@@ -149,7 +149,7 @@ export async function findRelatedResidential(property: any) {
     .sort({ createdAt: -1 })
     .limit(6)
     .select(
-      "title slug price city locality bhk gallery propertyType listingType"
+      "title slug price city locality bhk gallery propertyType listingType builtUpArea furnishing parkingDetails constructionStatus"
     )
     .lean();
 

@@ -131,7 +131,7 @@ export const getResidentialBySlug = async (req: Request, res: Response) => {
     const relatedProjects = await findRelatedResidential(property);
 
     return res.json({
-      data: property,
+      data: property, 
       relatedProjects,
     });
   } catch (err: any) {

@@ -23,22 +23,48 @@ function normalizePayload(obj: any) {
   return obj;
 }
 
-export function findRelatedCommercial(property: any) {
-  return findRelatedProperties(property, {
-    modelName: "Commercial",
-    extraFilters: (p) => ({
-      ...(p.builtUpArea && {
-        builtUpArea: {
-          $gte: p.builtUpArea * 0.8,
-          $lte: p.builtUpArea * 1.2,
-        },
-      }),
-      propertyType: p.propertyType,
-    }),
-  });
+export async function findRelatedCommercial(property: any) {
+  if (!property?._id) return [];
+
+  const query: any = {
+    _id: { $ne: property._id },
+    status: "active",
+
+    // CORE similarity
+    listingType: property.listingType,      // sale / lease
+    propertyType: property.propertyType,    // office / shop
+    city: property.city,
+  };
+
+  // Optional built-up area similarity (±25%)
+  if (property.builtUpArea) {
+    query.builtUpArea = {
+      $gte: property.builtUpArea * 0.75,
+      $lte: property.builtUpArea * 1.25,
+    };
+  }
+
+  // Optional price band (±30%)
+  if (property.price) {
+    query.price = {
+      $gte: property.price * 0.7,
+      $lte: property.price * 1.3,
+    };
+  }
+
+  const related = await Commercial.find(query)
+    .sort({ createdAt: -1 })
+    .limit(6)
+    .select(
+      "title slug price city locality builtUpArea gallery propertyType listingType"
+    )
+    .lean();
+
+  return related;
 }
 
- 
+
+  
 
 async function deleteS3ObjectIfExists(key?: string) {
   if (!key) return;
