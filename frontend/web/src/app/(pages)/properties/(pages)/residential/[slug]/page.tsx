@@ -32,7 +32,6 @@ export default async function Page({ params }: PageProps) {
     notFound();
   }
 
-
   const priceLabel = formatINR(project.price);
 
   return (
@@ -62,9 +61,12 @@ export default async function Page({ params }: PageProps) {
                 <div className="flex-1">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-7 gap-x-7 p-2">
                     <div>
-                      <p className="text-gray-500 font-semibold">Super Built Up Area</p>
+                      <p className="text-gray-500 font-semibold">
+                        Super Built Up Area
+                      </p>
                       <p>
-                        {project?.superBuiltUpArea} sqft (₹ {project?.pricePerSqft}
+                        {project?.superBuiltUpArea} sqft (₹{" "}
+                        {project?.pricePerSqft}
                         /sqft)
                       </p>
                     </div>
@@ -80,12 +82,16 @@ export default async function Page({ params }: PageProps) {
                     </div>
 
                     <div>
-                      <p className="text-gray-500 font-semibold">Availability Status</p>
+                      <p className="text-gray-500 font-semibold">
+                        Availability Status
+                      </p>
                       <p>{project?.constructionStatus}</p>
                     </div>
 
                     <div>
-                      <p className="text-gray-500 font-semibold">Frunishing Status</p>
+                      <p className="text-gray-500 font-semibold">
+                        Frunishing Status
+                      </p>
                       <p>{project?.furnishing}</p>
                     </div>
 
@@ -113,7 +119,7 @@ export default async function Page({ params }: PageProps) {
                 </div>
 
                 {/* Contact card here */}
-                <div className="w-[260px] shrink-0 rounded-xl bg-white/30 p-5 shadow-sm border border-gray-100">
+                <div className="w-[260px] shrink-0 rounded-xl bg-[#f7f9fa] p-5 shadow-sm border border-gray-100">
                   <p className="text-lg font-semibold text-green-600 mb-3">
                     Contact Owner
                   </p>
@@ -137,101 +143,103 @@ export default async function Page({ params }: PageProps) {
           <br />
 
           {/* Main two-column layout */}
-          <div className="grid gap-4 lg:grid-cols-[2fr,1.2fr]">
-            <section className="space-y-4 ml-3">
-              <section className="rounded-lg p-6 shadow-sm bg-[#f3f6f4]">
-                <h2 className="mb-6 text-xl font-semibold text-gray-900">
-                  More Details
-                </h2>
+          <div className=" w-full lg:max-w-[75%]">
+            <div className="grid gap-4 lg:grid-cols-[1.2fr]">
+              <section className="space-y-4 ml-3 ">
+                <section className="rounded-lg p-6 shadow-sm bg-[#f7f9fa] ">
+                  <h2 className="mb-6 text-xl font-semibold text-gray-900">
+                    More Details
+                  </h2>
 
-                {/* Changed to 4 columns to match the wide layout in the image */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+                  {/* Changed to 4 columns to match the wide layout in the image */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+                    <div className="flex flex-col gap-1">
+                      <p className="font-medium text-gray-900">Price Breakup</p>
+                      <p className="text-gray-500">₹{project?.price}</p>
+                    </div>
 
-                  <div className="flex flex-col gap-1">
-                    <p className="font-medium text-gray-900">Price Breakup</p>
-                    <p className="text-gray-500">₹{project?.price}</p>
+                    <div className="flex flex-col gap-1">
+                      <p className="font-medium text-gray-900">
+                        Property Ownership
+                      </p>
+                      <p className="text-gray-500">{project?.listingSource}</p>
+                    </div>
+
+                    <div className="hidden md:block"></div>
+                    <div className="hidden md:block"></div>
+
+                    <div className="flex flex-col gap-1">
+                      <p className="font-medium text-gray-900">Facing</p>
+                      <p className="text-gray-500">{project?.facing}</p>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <p className="font-medium text-gray-900">Flooring</p>
+                      <p className="text-gray-500">{project?.flooringType}</p>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <p className="font-medium text-gray-900">Kitchen Type</p>
+                      <p className="text-gray-500">{project?.kitchenType}</p>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <p className="font-medium text-gray-900">
+                        No of parkings
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <p className="font-medium text-gray-900">Property Ownership</p>
-                    <p className="text-gray-500">{project?.listingSource}</p>
+                  {/* ADDRESS */}
+                  <div className="mt-8">
+                    <p className="font-medium text-gray-900">Address</p>
+                    <p className="text-gray-500 mt-1 leading-relaxed">
+                      {project.address}
+                    </p>
                   </div>
 
-
-                  <div className="hidden md:block"></div>
-                  <div className="hidden md:block"></div>
-
-                  <div className="flex flex-col gap-1">
-                    <p className="font-medium text-gray-900">Facing</p>
-                    <p className="text-gray-500">{project?.facing}</p>
+                  {/* DESCRIPTION */}
+                  <div className="mt-6">
+                    <p className="font-medium text-gray-900">Description:</p>
+                    <p className="text-gray-500 mt-1 leading-relaxed">
+                      {project.description}
+                    </p>
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <p className="font-medium text-gray-900">Flooring</p>
-                    <p className="text-gray-500">{project?.flooringType}</p>
+                  <div className="mt-8">
+                    <button className="rounded bg-[#27AE60] px-6 py-2 font-medium text-white hover:bg-green-700">
+                      Contact Owner
+                    </button>
                   </div>
+                </section>
 
-                  <div className="flex flex-col gap-1">
-                    <p className="font-medium text-gray-900">Kitchen Type</p>
-                    <p className="text-gray-500">{project?.kitchenType}</p>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <p className="font-medium text-gray-900">No of parkings</p>
-                  </div>
-                </div>
-
-                {/* ADDRESS */}
-                <div className="mt-8">
-                  <p className="font-medium text-gray-900">Address</p>
-                  <p className="text-gray-500 mt-1 leading-relaxed">
-                    {project.address}
-                  </p>
-                </div>
-
-                {/* DESCRIPTION */}
-                <div className="mt-6">
-                  <p className="font-medium text-gray-900">Description:</p>
-                  <p className="text-gray-500 mt-1 leading-relaxed">
-                    {project.description}
-                  </p>
-                </div>
-
-                <div className="mt-8">
-                  <button className="rounded bg-[#27AE60] px-6 py-2 font-medium text-white hover:bg-green-700">
-                    Contact Owner
-                  </button>
-                </div>
+                {/* Amenities */}
+                <section className="rounded-lg p-4 shadow-sm">
+                  <h2 className="mb-3 text-xl font-semibold text-gray-900">
+                    Amenities
+                  </h2>
+                  {project.amenities && project.amenities.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 sm:grid-cols-3">
+                      {project.amenities.map((i) => (
+                        <div
+                          key={i.key}
+                          className="flex items-center gap-2 rounded-md border border-gray-100 px-2 py-1"
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                          <span>{i.title}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      Amenities information not available.
+                    </p>
+                  )}
+                </section>
               </section>
-
-              {/* Amenities */}
-              <section className="rounded-lg p-4 shadow-sm">
-                <h2 className="mb-3 text-xl font-semibold text-gray-900">
-                  Amenities
-                </h2>
-                {project.amenities && project.amenities.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 sm:grid-cols-3">
-                    {project.amenities.map((i) => (
-                      <div
-                        key={i.key}
-                        className="flex items-center gap-2 rounded-md border border-gray-100 px-2 py-1"
-                      >
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                        <span>{i.title}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500">
-                    Amenities information not available.
-                  </p>
-                )}
-              </section>
-            </section>
-
+            </div>
           </div>
         </div>
-
       </div>
     </div>
   );
