@@ -118,17 +118,44 @@ async function mapAndUploadGallery({
   return summary;
 }
 
-export function findRelatedResidential(property: any) {
-  return findRelatedProperties(property, {
-    modelName: "Residential",
-    extraFilters: (p) => ({
-      ...(p.bhk && {
-        bhk: { $in: [p.bhk - 1, p.bhk, p.bhk + 1] },
-      }),
-      propertyType: p.propertyType,
-    }),
-  });
+export async function findRelatedResidential(property: any) {
+  if (!property?._id) return [];
+
+  const query: any = {
+    _id: { $ne: property._id },
+    status: "active",
+
+    // CORE similarity
+    listingType: property.listingType,     // buy
+    propertyType: property.propertyType,   // apartment
+    city: property.city,                   // Hyderabad
+  };
+
+  // Optional BHK similarity (SAFE version)
+  if (property.bhk) {
+    query.bhk = { $in: [property.bhk, property.bhk - 1, property.bhk + 1] };
+  }
+
+  // Optional price band (±30%)
+  if (property.price) {
+    query.price = {
+      $gte: property.price * 0.7,
+      $lte: property.price * 1.3,
+    };
+  }
+
+  const related = await Residential
+    .find(query)
+    .sort({ createdAt: -1 })
+    .limit(6)
+    .select(
+      "title slug price city locality bhk gallery propertyType listingType"
+    )
+    .lean();
+
+  return related;
 }
+
 /* -------------------- Service API -------------------- */
 
 export const ResidentialPropertyService = {
