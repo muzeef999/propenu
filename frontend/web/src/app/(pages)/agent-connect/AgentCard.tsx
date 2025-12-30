@@ -29,7 +29,7 @@ export default function AgentsList({ Agent = [] }: Props) {
   return (
     <div className="relative w-full py-1">
       {/* Header Section */}
-      <div className="flex justify-between items-center mb-4 px-1">
+      <div className="flex justify-between items-center  px-1">
         <div className="headingSideBar">
           <h1 className="text-2xl font-bold">Agent Connect</h1>
           <p className="headingDesc">Trusted professionals guiding your property journey</p>

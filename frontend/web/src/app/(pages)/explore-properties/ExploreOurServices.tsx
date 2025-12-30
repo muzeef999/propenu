@@ -40,7 +40,7 @@ export default function ExploreOurServices() {
   const { selectedCity  } = useCity();
   return (
     <>
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center m-0">
         <div className="headingSideBar">
           <h1 className="text-2xl font-bold">Explore Our Services</h1>
           <p className="headingDesc">

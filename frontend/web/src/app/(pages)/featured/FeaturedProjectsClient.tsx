@@ -45,7 +45,7 @@ export default function FeaturedProjectsClient({ items = [] }: Props) {
       <div
         onClick={scrollLeft}
         aria-label="Scroll left"
-        className="absolute left-[-1.2%] top-1/2 -translate-y-1/2 z-20 bg-white p-2 rounded-full shadow-md hover:shadow-2xl cursor-pointer transition-transform duration-300"
+        className="absolute left-[-1.2%] top-1/2 -translate-y-1/2 z-20 p-2 rounded-full shadow-md hover:shadow-2xl cursor-pointer transition-transform duration-300"
       >
         <ArrowDropdownIcon size={16} className="rotate-90" />
       </div>
@@ -53,7 +53,7 @@ export default function FeaturedProjectsClient({ items = [] }: Props) {
       {/* Scrollable Row */}
       <div
         ref={sliderRef}
-        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-1 py-4 snap-x snap-mandatory"
+        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar p-1 snap-x snap-mandatory"
       >
         {items.map((project) => (
           <div

@@ -14,6 +14,7 @@ export default function Home() {
     <div>
       <SearchBox />
       <br />
+      <br/>
       <div className="container mx-auto  space-y-12">
         <FeaturedProjectsServer />
         <HighlightProjectsServer />
