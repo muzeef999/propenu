@@ -10,6 +10,7 @@ import TextArea from "@/ui/TextArae";
 import { submitPropertyThunk } from "@/Redux/thunks/submitPropertyApi";
 import { useAppDispatch } from "@/Redux/store";
 import Toggle from "@/ui/ToggleSwitch";
+import { toast } from "sonner";
 
 export const FLOORING_TYPES = [
   "vitrified",
@@ -645,9 +646,11 @@ const ResidentialProfile = () => {
             .unwrap()
             .then((response) => {
               console.log("Property submission successful:", response);
+              toast.success("Property submitted successfully");
             })
             .catch((error) => {
               console.error("Property submission failed:", error);
+              toast.error("Failed to submit property. Please try again.");
             });
         }}
         className="py-2 btn-primary text-white rounded-md cursor-pointer w-full"

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./global.css";
 import "leaflet/dist/leaflet.css";
-import Navbar from "@/components/Navbar";
 import ClientProviders from "@/app/clientLayout"; // client component – used inside <body>
 
 const poppins = Poppins({
@@ -40,7 +39,6 @@ export default function RootLayout({
       <body className={`${poppins.variable} antialiased`}>
         {/* Providers must be inside <body>, not wrapping it */}
         <ClientProviders>
-          <Navbar />
           {children}
           
         </ClientProviders>

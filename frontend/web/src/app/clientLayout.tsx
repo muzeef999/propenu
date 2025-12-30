@@ -8,6 +8,7 @@ import { store } from "@/Redux/store";
 import { Toaster } from "sonner";
 import { usePathname } from "next/navigation";
 import Footer from "@/components/Footer";
+import Navbar from "@/components/Navbar";
 
 
 export default function ClientProviders({
@@ -21,10 +22,12 @@ export default function ClientProviders({
      const pathname = usePathname(); // 👈 get current path
 
   const hideFooter = pathname?.startsWith("/featured"); 
+  const hideNavbar = pathname?.startsWith("/postproperty");
 
   return (
      <Provider store={store}>
     <QueryClientProvider client={queryClient}>
+      {!hideNavbar && <Navbar />}
       {children}
       <Toaster
         position="top-right"
