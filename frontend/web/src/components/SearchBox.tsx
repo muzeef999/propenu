@@ -25,7 +25,7 @@ const SearchBox = () => {
   const [results, setResults] = useState<LocationItem[]>([]);
   const { selectCity  } = useCity();
 
-  const { listingTypeLabel, category, searchText } = useAppSelector(
+  const { listingTypeLabel, category } = useAppSelector(
     (s) => s.filters
   );
 
@@ -55,7 +55,7 @@ const SearchBox = () => {
       />
 
       {/* Search Box floating ABOVE banner */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2  w-[50%]">
+      <div className="absolute top-[70%] left-1/2 -translate-x-1/2  w-[50%]">
         <div className="bg-white shadow-md rounded-lg border border-gray-200 p-2">
           {/* Search Row */}
           <div className="flex items-center gap-3 relative">

@@ -197,12 +197,12 @@ const Navbar = () => {
             <div className="hidden md:flex items-center gap-6 text-[#1A1A1A]">
               <Dropdown
                 buttonContent={({ isOpen }) => (
-                  <span className="flex text-gray-700 items-center gap-2 text-sm py-1 px-0">
+                  <span className="flex items-center justify-center gap-2 text-gray-700 text-sm py-1 px-0">
                     <span>p prime</span>
                     <ArrowDropdownIcon
-                      size={4}
+                      size={12}
                       color={"#374151"}
-                      className={`w-4 h-4 transition-transform duration-200 ${
+                      className={`transition-transform duration-200 ${
                         isOpen ? "rotate-180" : "rotate-0"
                       }`}
                     />
