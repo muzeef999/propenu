@@ -92,8 +92,10 @@ export async function getResidentialSlugProjects ({ slug }: { slug: string }) {
     throw new Error("Failed to fetch featured project");
   }
   const json = await res.json();
-  return json.data as IResidential;
-
+ return {
+    ...json.data,
+    relatedProjects: json.relatedProjects ?? [],
+  } as IResidential;
 }
 
 

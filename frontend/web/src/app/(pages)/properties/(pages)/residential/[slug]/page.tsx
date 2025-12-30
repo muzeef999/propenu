@@ -29,12 +29,12 @@ export default async function Page({ params }: PageProps) {
     );
   }
 
+
   if (!project) {
     notFound();
   }
 
   const priceLabel = formatINR(project.price);
-  console.log("Rendering Residential Property Page for project:", project);
 
   return (
     <div style={{ background: bgcolor }} className="min-h-screen py-6">
@@ -238,6 +238,7 @@ export default async function Page({ params }: PageProps) {
                     </p>
                   )}
                 </section>
+                
                 <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa]">
                   <h2 className="mb-3 text-xl font-semibold text-gray-900">
                     Popular Landmarks Nearby
@@ -249,7 +250,7 @@ export default async function Page({ params }: PageProps) {
                     More Similar Properties for you
                   </h2>
                   {project.relatedProjects && project.relatedProjects.length > 0 ? (
-                  <div className="flex gap-4 overflow-x-auto py-2">
+                  <div className="flex w-[30%] gap-4 overflow-x-auto py-2">
                     {project.relatedProjects.map((relatedProject) => (
                       <ResidentialCard p={relatedProject} vertical={true} />
                     ))}

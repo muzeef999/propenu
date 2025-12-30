@@ -66,9 +66,8 @@ export default function HeroSection({ hero }: Props) {
             <h1 className="text-white text-2xl sm:text-3xl md:text-[64px] leading-tight">
               {hero.subTagline}
             </h1>
-
             <h2
-              className="text-2xl sm:text-3xl md:text-[64px]"
+              className="text-md sm:text-3xl  line-clamp-2 overflow-hidden"
               style={{ color: hero.color }}
             >
               {hero.description}
@@ -150,9 +149,7 @@ export default function HeroSection({ hero }: Props) {
                   {stat.value}
                 </div>
 
-                <div className="text-gray-200 text-sm mt-1">
-                  {stat.label}
-                </div>
+                <div className="text-gray-200 text-sm mt-1">{stat.label}</div>
 
                 <div
                   className="w-12 h-0.5 mx-auto mt-2"
