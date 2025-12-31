@@ -1,8 +1,9 @@
 import express from "express";
 import dotenv from "dotenv";
-import paymentRoutes  from "../src/routes/paymentRoutes"
-
-dotenv.config({ quiet: true });
+dotenv.config();
+import paymentRoutes from "../src/routes/paymentRoutes";
+import planSeedRoutes from "../src/routes/paymentRoutes"
+import { connectDB } from "./config/db";
 
 const app = express();
 app.use(express.json());
@@ -11,16 +12,16 @@ const PORT = process.env.PORT ?? 4002;
 
 async function start() {
   try {
-
-
+    await connectDB();
     app.get("/", (req, res) => {
       res.json({ message: "Payment Service is running" });
     });
 
-
     app.use("/payments", paymentRoutes);
+    app.use("/plans", planSeedRoutes);
 
 
+    
 
     app.listen(Number(PORT), "0.0.0.0", () => {
       console.log(`payment Service running on 0.0.0.0:${PORT}`);

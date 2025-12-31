@@ -1,7 +1,7 @@
 import axios from "axios";
-import { razorpay } from "../app";
 import { Payment } from "../models/paymentModel";
 import { verifyRazorpaySignature } from "../utils/signatureUtil";
+import { razorpay } from "../config/razorpay";
 
 export class PaymentService {
   static async createOrder({
