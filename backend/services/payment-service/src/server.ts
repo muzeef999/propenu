@@ -1,8 +1,8 @@
 import express from "express";
 import dotenv from "dotenv";
+import paymentRoutes  from "../src/routes/paymentRoutes"
 
 dotenv.config({ quiet: true });
-
 
 const app = express();
 app.use(express.json());
@@ -17,6 +17,8 @@ async function start() {
       res.json({ message: "Payment Service is running" });
     });
 
+
+    app.use("/payments", paymentRoutes);
 
 
 

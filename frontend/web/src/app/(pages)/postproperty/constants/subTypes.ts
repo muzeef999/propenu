@@ -11,13 +11,8 @@ export type PropertyTypeOption = {
 export const RESIDENTIAL_PROPERTY_OPTIONS: PropertyTypeOption[] = [
   { key: "apartment", label: "Apartment", icon: "🏠" },
   { key: "independent-house", label: "Independent House", icon: "🏠" },
-  { key: "duplex", label: "Duplex", icon: "🏘️" },
-  { key: "row-house", label: "Row House", icon: "🧱" },
   { key: "villa", label: "Villa", icon: "🏡" },
   { key: "penthouse", label: "Penthouse", icon: "🏙️" },
-  { key: "studio", label: "Studio", icon: "🎬" },
-  { key: "triplex", label: "Triplex", icon: "🏚️" },
-  { key: "plot", label: "Plot", icon: "📐" },
   { key: "farmhouse", label: "Farmhouse", icon: "🌾" },
 ];
 
@@ -83,13 +78,10 @@ export type CommercialSubType =
 
 
 export const LAND_PROPERTY_OPTIONS: PropertyTypeOption[] = [
-  { key: "plot", label: "Plot", icon: "📐" },
   { key: "residential-plot", label: "Residential Plot", icon: "🏠" },
   { key: "commercial-plot", label: "Commercial Plot", icon: "🏢" },
   { key: "industrial-plot", label: "Industrial Plot", icon: "🏭" },
-  { key: "investment-plot", label: "Investment Plot", icon: "💰" },
-  { key: "corner-plot", label: "Corner Plot", icon: "🔲" },
-  { key: "na-plot", label: "NA Plot", icon: "📝" },
+  { key: "na-plot", label: "NA Plot", icon: "📝" },//other
 ];
 
 export const LAND_PROPERTY_KEYS = [
@@ -131,13 +123,9 @@ export const LAND_PROPERTY_SUBTYPES = [
 export type LandPropertySubtype = (typeof LAND_PROPERTY_SUBTYPES)[number];
 
 export const AGRICULTURAL_PROPERTY_OPTIONS: PropertyTypeOption[] = [
-  { key: "agricultural-land", label: "Agricultural Land", icon: "🌾" },
   { key: "farm-land", label: "Farm Land", icon: "🚜" },
-  { key: "orchard-land", label: "Orchard Land", icon: "🍎" },
-  { key: "plantation", label: "Plantation", icon: "🌴" },
   { key: "wet-land", label: "Wet Land", icon: "💧" },
   { key: "dry-land", label: "Dry Land", icon: "☀️" },
-  { key: "ranch", label: "Ranch", icon: "🐄" },
   { key: "dairy-farm", label: "Dairy Farm", icon: "🥛" },
 ];
 
