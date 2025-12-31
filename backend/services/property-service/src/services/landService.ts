@@ -454,7 +454,10 @@ export const LandService = {
 
   async getBySlug(slug: string) {
     if (!slug || typeof slug !== "string") throw new Error("Invalid slug");
-    return LandPlot.findOne({ slug }).lean().exec();
+    return LandPlot.findOne({ slug })
+      .populate("createdBy", "name email phone roleId")
+      .lean()
+      .exec(); ;
   },
 
   async list(options?: {

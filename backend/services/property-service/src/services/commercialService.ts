@@ -489,7 +489,10 @@ export const CommercialService = {
 
   async getBySlug(slug: string) {
     if (!slug || typeof slug !== "string") throw new Error("Invalid slug");
-    return Commercial.findOne({ slug }).lean().exec();
+    return Commercial.findOne({ slug })
+      .populate("createdBy", "name email phone roleId")
+      .lean()
+      .exec(); 
   },
 
   async list(options?: {

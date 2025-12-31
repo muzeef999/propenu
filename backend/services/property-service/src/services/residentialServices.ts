@@ -393,7 +393,7 @@ export const ResidentialPropertyService = {
     return Residential.findOne({ slug })
       .populate("createdBy", "name email phone roleId")
       .lean()
-      .exec();
+      .exec(); 
   },
 
   async list(options?: {

@@ -144,36 +144,6 @@ function normalizePayload(obj: any) {
   return obj;
 }
 
-async function resolveListingSourceFromUser(
-  createdBy?: string | mongoose.Types.ObjectId
-) {
-  console.log("[DEBUG] resolveListingSourceFromUser called with:", createdBy);
-
-  if (!createdBy) {
-    return undefined;
-  }
-  const idStr = String(createdBy);
-  if (!mongoose.Types.ObjectId.isValid(idStr)) {
-    return undefined;
-  }
-
-  const user: any = await User.findById(idStr).select("role roleId").lean();
-
-  if (!user) {
-    return undefined;
-  }
-
-  if (user.role && typeof user.role === "string") {
-    return user.role;
-  }
-
-  if (user.roleId) {
-    const role: any = await Role.findById(user.roleId).select("label").lean();
-    return role?.label;
-  }
-
-  return undefined;
-}  
 
 /* --------------------  Service API  -------------------- */
 
@@ -447,7 +417,10 @@ export const AgriculturalService = {
 
   async getBySlug(slug: string) {
     if (!slug || typeof slug !== "string") throw new Error("Invalid slug");
-    return Agricultural.findOne({ slug }).lean().exec();
+    return Agricultural.findOne({ slug })
+      .populate("createdBy", "name email phone roleId")
+      .lean()
+      .exec(); ;
   },
 
   async list(options?: {
