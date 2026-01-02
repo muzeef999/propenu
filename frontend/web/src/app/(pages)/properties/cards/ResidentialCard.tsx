@@ -32,24 +32,26 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
   const pricePerSqft =
     (p as any)?.pricePerSqft ??
     Math.round((p?.price ?? 0) / (p as any)?.builtUpArea || 0);
-    const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isShortlisted, setIsShortlisted] = useState<boolean>(
     Boolean((p as any)?.isShortlisted)
   );
 
   const { mutate: shortlistProperty, isPending: isShortlisting } = useMutation({
     mutationFn: postShortlistProperty,
+
     onSuccess: () => {
       toast.success(
-        isShortlisted ? "Removed from shortlist" : "Property shortlisted!"
+        isShortlisted ? "Property shortlisted!" : "Removed from shortlist"
       );
     },
+
     onError: () => {
-      // rollback UI
-      setIsShortlisted((prev) => !prev);
+      setIsShortlisted((prev) => !prev); // rollback
       toast.error("Failed to update shortlist");
     },
   });
+
   console.log("Rendering ResidentialCard for property:", p);
   return (
     <Link
@@ -66,10 +68,21 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
       >
         <ImageAutoCarousel
           images={p?.gallery?.map((g) => g.url) ?? []}
-          alt={p?.title ?? "property image"}
-          className="rounded-md"
+          alt={p?.title}
           onIndexChange={setActiveImageIndex}
+          isShortlisted={isShortlisted}
+          isShortlistLoading={isShortlisting}
+          onToggleShortlist={() => {
+            // optimistic UI
+            setIsShortlisted((prev) => !prev);
+
+            shortlistProperty({
+              propertyId: p.id,
+              propertyType: "Residential",
+            });
+          }}
         />
+
         {/* overlay: image count & date */}
         <div className="absolute left-2 bottom-2 flex items-center gap-2 text-xs text-white">
           <div className="bg-black/60 px-2 py-1 rounded-md flex items-center gap-1">
@@ -91,31 +104,6 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
             </span>{" "}
           </div>
         </div>
-        {/* favourite icon */}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-
-            // Optimistic UI toggle
-            setIsShortlisted((prev) => !prev);
-
-            shortlistProperty({
-              propertyId: p._id,
-              propertyType: "Residential",
-            });
-          }}
-          className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow
-             transition-all duration-200 hover:scale-110 active:scale-95"
-          title={isShortlisted ? "Remove from shortlist" : "Shortlist"}
-        >
-          {isShortlisting ? (
-            <span className="w-5 h-5 block animate-pulse bg-gray-300 rounded-full" />
-          ) : isShortlisted ? (
-            <GoHeartFill className="w-5 h-5 text-red-500" />
-          ) : (
-            <GoHeart className="w-5 h-5 text-gray-600 hover:text-red-500" />
-          )}
-        </button>
       </div>
 
       {/* Middle: content */}
@@ -123,12 +111,7 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
         {/* <div className=""> */}
 
         <div>
-          {/* <h3 className="text-lg md:text-md font-semibold line-clamp-2">
-            {vertical
-              ? `${p?.title?.slice(0, 18)}...`
-              : `${p?.title?.slice(0, 48)}...`}
-          </h3> */}
-          <h3 className="text-lg md:text-md font-semibold truncate">
+          <h3 className="text-lg md:text-md font-semibold truncate max-w-[460px]">
             {p.title}
           </h3>
           <p className="text-sm text-gray-500 mt-1 flex items-center gap-2 truncate">

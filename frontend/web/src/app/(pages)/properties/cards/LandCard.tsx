@@ -15,6 +15,9 @@ import { AiOutlineHeart } from "react-icons/ai";
 import { BiBuildingHouse } from "react-icons/bi";
 import { ILand } from "@/types/land";
 import ImageAutoCarousel from "@/ui/ImageAutoCarousel";
+import { useMutation } from "@tanstack/react-query";
+import { postShortlistProperty } from "@/data/ClientData";
+import { toast } from "sonner";
 
 export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
   p,
@@ -30,6 +33,23 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
     (p as any)?.pricePerSqft ?? (area ? Math.round((p?.price ?? 0) / area) : 0);
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isShortlisted, setIsShortlisted] = useState<boolean>(
+    Boolean((p as any)?.isShortlisted)
+  )
+
+  const {mutate: shortlistProperty, isPending: isShortlisting}=useMutation({
+    mutationFn: postShortlistProperty,
+    onSuccess: () => {
+      toast.success(
+        isShortlisted? "Property shortlisted!": "Removed from shortlist"
+      );
+    },
+    onError: () => {
+      setIsShortlisted((prev) => !prev); // rollback
+      toast.error("Failed to update shortlist");
+    },
+  });
+  console.log("Rendering LandCard for property:", p);
 
   return (
     <Link
@@ -46,9 +66,18 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
       >
         <ImageAutoCarousel
           images={p?.gallery?.map((g) => g.url) ?? []}
-          alt={p?.title ?? "property image"}
-          className="rounded-md"
+          alt={p?.title}
           onIndexChange={setActiveImageIndex}
+          isShortlisted={isShortlisted}
+          isShortlistLoading={isShortlisting}
+          onToggleShortlist={() => {
+            setIsShortlisted((prev) => !prev);
+
+            shortlistProperty({
+              propertyId: p._id,
+              propertyType: "Land",
+            });
+          }}
         />
 
         {/* overlay: image count & date */}
@@ -72,15 +101,6 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
             </span>{" "}
           </div>
         </div>
-
-        {/* favourite icon */}
-        <button
-          aria-label="favorite"
-          className="absolute right-2 top-2 bg-white/90 p-1 rounded-full shadow-sm"
-          title="Save"
-        >
-          <AiOutlineHeart className="w-5 h-5 text-gray-700" />
-        </button>
       </div>
 
       {/* Middle: content */}

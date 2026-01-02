@@ -1,20 +1,21 @@
+"use client"
 import React, { useState } from "react";
 import {
   Furnishing,
-  Parking,
   Steps,
   SuperBuiitupAraea,
   UnderConstruction,
 } from "@/icons/icons";
-import { Property } from "@/types/property";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import formatINR from "@/utilies/PriceFormat";
 import Link from "next/link";
 import { AiOutlineHeart } from "react-icons/ai";
-import { HiOutlineLocationMarker } from "react-icons/hi";
 import { BiBuildingHouse } from "react-icons/bi";
 import { ICommercial } from "@/types/commercial";
 import ImageAutoCarousel from "@/ui/ImageAutoCarousel";
+import { useMutation } from "@tanstack/react-query";
+import { postShortlistProperty } from "@/data/ClientData";
+import { toast } from "sonner";
 
 const bgPriceColor = hexToRGBA("#27AE60", 0.1);
 
@@ -25,8 +26,23 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
   vertical = false,
 }) => {
   const img = p?.gallery?.[0]?.url ?? "/placeholder.jpg";
-    const [activeImageIndex, setActiveImageIndex] = useState(0);
-  
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isShortlisted, setIsShortlisted] = useState<boolean>(
+    Boolean((p as any)?.isShortlisted)
+  )
+
+  const { mutate: shortlistProperty, isPending: isShortlisting } = useMutation({
+    mutationFn: postShortlistProperty,
+    onSuccess: () => {
+      toast.success(
+        isShortlisted ? "Property shortlisted!" : "Removed from shortlist"
+      );
+    },
+    onError: () => {
+      setIsShortlisted((prev) => !prev); // rollback
+      toast.error("Failed to update shortlist");
+    },
+  });
 
   const pricePerSqft =
     (p as any)?.pricePerSqft ??
@@ -47,9 +63,19 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
       >
         <ImageAutoCarousel
           images={p?.gallery?.map((g) => g.url) ?? []}
-          alt={p?.title ?? "property image"}
-          className="rounded-md"
+          alt={p?.title}
           onIndexChange={setActiveImageIndex}
+          isShortlisted={isShortlisted}
+          isShortlistLoading={isShortlisting}
+          onToggleShortlist={() => {
+            // optimistic UI
+            setIsShortlisted((prev) => !prev);
+
+            shortlistProperty({
+              propertyId: p._id,
+              propertyType: "Commercial",
+            });
+          }}
         />
         {/* overlay: image count & date */}
         <div className="absolute left-2 bottom-2 flex items-center gap-2 text-xs text-white">
@@ -72,21 +98,12 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
             </span>{" "}
           </div>
         </div>
-
-        {/* favourite icon */}
-        <button
-          aria-label="favorite"
-          className="absolute right-2 top-2 bg-white/90 p-1 rounded-full shadow-sm"
-          title="Save"
-        >
-          <AiOutlineHeart className="w-5 h-5 text-gray-700" />
-        </button>
       </div>
 
       {/* Middle: content */}
       <div className="flex-1 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
         <div>
-          <h3 className="text-lg md:text-md font-semibold truncate">
+          <h3 className="text-lg md:text-md font-semibold truncate max-w-[460px]">
             {p.title}
           </h3>
           <p className="text-sm text-gray-500 mt-1 flex items-center gap-2 truncate">

@@ -44,6 +44,7 @@ export type AmenitiesItems = {
 export interface ICommercial {
   title: string;
   slug: string;
+  id?: string;
   _id: string;
   floorNumber?: number;
   totalFloors?: number;

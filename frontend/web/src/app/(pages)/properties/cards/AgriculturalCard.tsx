@@ -15,6 +15,9 @@ import { AiOutlineHeart } from "react-icons/ai";
 import { BiBuildingHouse } from "react-icons/bi";
 import { IAgricultural } from "@/types/agricultural";
 import ImageAutoCarousel from "@/ui/ImageAutoCarousel";
+import { toast } from "sonner";
+import { postShortlistProperty } from "@/data/ClientData";
+import { useMutation } from "@tanstack/react-query";
 
 const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
   p,
@@ -28,6 +31,21 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
     (p as any)?.pricePerSqft ??
     Math.round((p?.price ?? 0) / (p as any)?.builtUpArea || 0);
       const [activeImageIndex, setActiveImageIndex] = useState(0);
+    const [isShortlisted, setIsShortlisted] = useState<boolean>(
+      Boolean((p as any)?.isShortlisted)
+    );
+    const{ mutate: shortlistProperty, isPending: isShortlisting } = useMutation({
+      mutationFn: postShortlistProperty,
+      onSuccess: () => {
+        toast.success(
+          isShortlisted ? "Property shortlisted!" : "Removed from shortlist"
+        );
+      },
+      onError: () => {
+        setIsShortlisted((prev) => !prev); // rollback
+        toast.error("Failed to update shortlist");
+      },
+    })
     
 
   return (
@@ -45,9 +63,23 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
       >
         <ImageAutoCarousel
           images={p?.gallery?.map((g) => g.url) ?? []}
-          alt={p?.title ?? "property image"}
-          className="rounded-md"
+          alt={p?.title}
           onIndexChange={setActiveImageIndex}
+          isShortlisted={isShortlisted}
+          isShortlistLoading={isShortlisting}
+          onToggleShortlist={() => {
+            if (!p._id) {
+              toast.error("Property ID is missing, cannot update shortlist.");
+              return;
+            }
+            // optimistic UI
+            setIsShortlisted((prev) => !prev);
+
+            shortlistProperty({
+              propertyId: p._id,
+              propertyType: "Agricultural",
+            });
+          }}
         />
         {/* overlay: image count & date */}
         <div className="absolute left-2 bottom-2 flex items-center gap-2 text-xs text-white">
@@ -70,15 +102,6 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
             </span>{" "}
           </div>
         </div>
-
-        {/* favourite icon */}
-        <button
-          aria-label="favorite"
-          className="absolute right-2 top-2 bg-white/90 p-1 rounded-full shadow-sm"
-          title="Save"
-        >
-          <AiOutlineHeart className="w-5 h-5 text-gray-700" />
-        </button>
       </div>
 
       {/* Middle: content */}
@@ -87,7 +110,7 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
           {/* <h3 className="text-lg md:text-md font-semibold line-clamp-2">
             {vertical ? `${p?.title?.slice(0, 18)}...` : p?.title}
           </h3> */}
-          <h3 className="text-lg md:text-md font-semibold truncate">
+          <h3 className="text-lg md:text-md font-semibold truncate max-w-[460px]">
             {
               p.title
             }

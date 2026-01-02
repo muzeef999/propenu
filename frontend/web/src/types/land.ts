@@ -18,6 +18,7 @@ export interface NearbyPlace {
 
 export interface ILand {
   plotArea?: number;
+  id?: string;
   plotAreaUnit?: 'sqft' | 'sqmt' | 'acre' | 'guntha' | 'kanal' | 'hectare';
   roadWidthFt?: number;
   negotiable?: boolean;

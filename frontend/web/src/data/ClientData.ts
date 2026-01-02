@@ -18,6 +18,7 @@ return res.data;
 
 
 
+
 export const requestOtp = async(payload:RequestOtpPayload) => {
   const res = await axiosInstance.post<RequestOtpPayload>(`${url}/api/users/auth/request-otp`, payload)
   return  res.data
@@ -57,17 +58,26 @@ export const getShortlistedProperties = async () => {
   return res.data;
 };
 
-export const postShortlistProperty = async (payload: { propertyId: string; propertyType: string }) => {
+export const postShortlistProperty = async (payload: {
+  propertyId: string;
+  propertyType: string;
+}) => {
   const token = Cookies.get("token");
-  if (!token) return null;
+  if (!token) throw new Error("Not authenticated");
 
-  const res = await axiosInstance.post(`${url}/api/users/shortlist`, payload, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const res = await axiosInstance.post(
+    `${url}/api/users/shortlist`,
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
   return res.data;
 };
+
 
 export const getMyProperties = async () => {
   const token = Cookies.get("token");
