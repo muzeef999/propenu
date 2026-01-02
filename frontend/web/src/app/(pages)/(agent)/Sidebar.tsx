@@ -2,35 +2,30 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MdOutlinePhoneInTalk,} from "react-icons/md";
+import {
+    MdFavoriteBorder,
+    MdOutlinePhoneInTalk,
+    MdOutlinePersonOutline,
+    MdOutlineHomeWork
+} from "react-icons/md";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import { Building, profile, Shortlistedicons, Subscription } from "@/icons/icons";
 
 const menuItems = [
     {
         label: "Account & Settings",
-        link: "/settings",
+        link: "/dashboard",
         icon: profile,
     },
     {
         label: "My Properties",
-        link: "/my-properties",
+        link: "/leads",
         icon: Building,
     },
     {
         label: "Shortlisted Properties",
-        link: "/shortlisted-properties",
+        link: "/myPlan",
         icon: Shortlistedicons,
-    },
-    {
-        label: "Contacted Properties",
-        link: "/contacted-properties",
-        icon: MdOutlinePhoneInTalk,
-    },
-    {
-        label: "Membership",
-        link: "/membership",
-        icon: Subscription,
     },
 ];
 
@@ -58,11 +53,12 @@ const Sidebar = () => {
                                 }
               `}
                         >
-                            <Icon
-                                size={22}
-                                color="currentColor"
-                                className={`transition-colors ${isActive ? "text-[#27A361]" : "text-gray-400 group-hover:text-[#27A361]"}`}
-                            />
+                            <span className={`transition-colors ${isActive ? "text-[#27A361]" : "text-gray-400 group-hover:text-[#27A361]"}`}>
+                                <Icon
+                                    size={22}
+                                    color="currentColor"
+                                />
+                            </span>
                             <span className="flex-1">{item.label}</span>
 
                             {isActive && (

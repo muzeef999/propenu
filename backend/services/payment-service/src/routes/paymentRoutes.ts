@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { createOrder, verifyPayment } from "../controllers/paymentController"
+import { createPayment, verifyPayment } from "../controller/payment";
+import { authMiddleware } from "../middlewares/authMiddleware";
 
 const router = Router();
 
-router.post("/create-order", createOrder);
-router.post("/verify", verifyPayment);
+router.post("/create", authMiddleware, createPayment);
+router.post("/verify", authMiddleware, verifyPayment);
 
 export default router;

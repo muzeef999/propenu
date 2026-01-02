@@ -4,7 +4,7 @@ import { connectDB } from "./config/db";
 import featurePropertiesRoute from "./routes/featurePropertiesRoute";
 import popularOwnerPropertiesRoute from "./routes/popularOwnerPropertiesRoute";
 import highlightProjectsRoute from "./routes/highlightProjectsRoute";
-import residentialRoutes from "./routes/residentialRoute";
+import residentialRoute from "./routes/residentialRoute";
 import commercialRoutes from "./routes/commercialRoute";
 import landRoutes from "./routes/landRoute";
 import agriculturalRoutes from "./routes/agriculturalRoute";
@@ -29,12 +29,13 @@ async function start() {
     app.use("/api/properties/featured-project", featurePropertiesRoute);
     app.use("/api/properties/owners-properties", popularOwnerPropertiesRoute);
     app.use("/api/properties/highlight-projects", highlightProjectsRoute);
-    app.use("/api/properties/residential", residentialRoutes);
+    
+    app.use("/api/properties/residential", residentialRoute);
     app.use("/api/properties/commercial", commercialRoutes);
     app.use("/api/properties/land", landRoutes);
     app.use("/api/properties/agricultural", agriculturalRoutes);
+    
     app.use("/api/properties/search", searchRoute);
-    app.use('/api/properties', searchRoute);
     app.use('/api/properties/leads', leadRoute);
 
     app.listen(Number(port), "0.0.0.0", () => {

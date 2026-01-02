@@ -90,3 +90,22 @@ export const getMyProperties = async () => {
   });
   return res.data;
 };
+
+
+
+export const getPlans = async ({userType, category}: { userType: "buyer" | "owner" | "agent" | "builder"; category?: "rent" | "sell" | "both";
+}) => {
+  const res = await axiosInstance.get(
+    `${url}/api/payments/plans`,
+    {
+      params: {
+        userType,
+        category,
+      },
+    }
+  );
+
+  return res.data;
+};
+
+
