@@ -1,29 +1,26 @@
-import mongoose, { Schema, Document } from "mongoose";
-
-export interface PaymentDocument extends Document {
-  userId: string;
-  role: string;
-  planId: string;
-  orderId: string;
-  paymentId?: string;
-  amount: number;
-  status: "created" | "success" | "failed";
-}
+import mongoose, { Schema } from "mongoose";
 
 const PaymentSchema = new Schema(
   {
-    userId: { type: String, required: true },
-    role: { type: String, required: true },
-    planId: { type: String, required: true },
-    orderId: { type: String, required: true },
-    paymentId: String,
+    userId: Schema.Types.ObjectId,
+    userType: String,
+
+    planId: Schema.Types.ObjectId,
+
     amount: Number,
-    status: { type: String, default: "created" },
+    currency: { type: String, default: "INR" },
+
+    razorpayOrderId: String,
+    razorpayPaymentId: String,
+    razorpaySignature: String,
+
+    status: {
+      type: String,
+      enum: ["created", "paid", "failed"],
+      default: "created",
+    },
   },
   { timestamps: true }
 );
 
-export const Payment = mongoose.model<PaymentDocument>(
-  "Payment",
-  PaymentSchema
-);
+export const Payment = mongoose.model("Payment", PaymentSchema);

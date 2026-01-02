@@ -435,3 +435,12 @@ export interface MoreFilterSectionAGR {
   selectionType?: SelectionType;
 }
 
+
+
+type Plan = {
+  _id: string;
+  name: string;
+  tier: "free" | "tier1" | "tier2" | "tier3";
+  price: number;
+  features: Record<string, any>;
+};

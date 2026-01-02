@@ -54,7 +54,7 @@ router.patch(
   parseJsonFields(jsonKeys),
   fallbackCoerceDefault,
   validateBody(ResidentialUpdateSchema),
-  editResidential
+  editResidential 
 );
 
 router.get("/", getAllResidential);

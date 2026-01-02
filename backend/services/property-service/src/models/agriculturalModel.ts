@@ -6,7 +6,7 @@ import {
   IAgricultural,
 } from "../types/agriculturalTypes";
 import { BaseFields, FileRefSchema } from "./sharedSchemas";
-import { IBaseListing, TEXT_INDEX_FIELDS } from "../types/sharedTypes";
+import {  TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
 import "../models/roleModel";
 
