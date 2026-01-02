@@ -10,6 +10,7 @@ import {
 import { BaseFields, FileRefSchema } from "./sharedSchemas";
 import { TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
+import "../models/roleModel";
 
 export interface ResidentialDocument extends Document, IResidential {
   _id: Types.ObjectId;

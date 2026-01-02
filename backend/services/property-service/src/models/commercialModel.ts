@@ -9,8 +9,9 @@ import {
   PANTRY_TYPES,
   WALL_FINISH_STATUS,
 } from "../types/commercialTypes";
-import { IBaseListing, TEXT_INDEX_FIELDS } from "../types/sharedTypes";
+import {  TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
+import "../models/roleModel";
 
 export interface CommercialDocument extends Document, ICommercial {
   _id: Types.ObjectId;

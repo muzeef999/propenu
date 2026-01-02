@@ -6,8 +6,9 @@ import {
   LAND_PROPERTY_SUBTYPES,
   LAND_PROPERTY_TYPES,
 } from "../types/landTypes";
-import { IBaseListing, TEXT_INDEX_FIELDS } from "../types/sharedTypes";
+import { TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
+import "../models/roleModel";
 
 export interface LandDocument extends Document, ILand {
   _id: Types.ObjectId;
