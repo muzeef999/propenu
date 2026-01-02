@@ -2,11 +2,13 @@ import { getCommercialSlugProjects } from "@/data/serverData";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import formatINR from "@/utilies/PriceFormat";
 import { notFound } from "next/navigation";
-import { FaKitchenSet, FaRestroom } from "react-icons/fa6";
 import { MdEventSeat, MdMeetingRoom } from "react-icons/md";
 import { ICommercial } from "@/types/commercial";
 import GalleryFile from "../../../GalleryFile";
 import { FaParking } from "react-icons/fa";
+import CommercialCard from "../../../cards/CommercialCard";
+import NearByPlace from "../../NearByPlace";
+
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -32,9 +34,10 @@ export default async function Page({ params }: PageProps) {
 
   if (!project) {
     notFound();
-  } 
+  }
 
   const priceLabel = formatINR(project.price);
+  console.log("Rendering Commercial Property Page for:", project);
 
   return (
     <div style={{ background: bgcolor }} className="min-h-screen py-6">
@@ -54,172 +57,225 @@ export default async function Page({ params }: PageProps) {
             </div>
           </header>
 
-          <div className="flex gap-2">
-            <div className="w-[45%]">
-              <GalleryFile gallery={project?.gallery} title={project?.title} />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-start gap-6">
-                <div className="flex-1">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-7 gap-x-7 p-2">
-                    <div>
-                      <p className="text-gray-500 font-semibold">Super Built Up Area</p>
-                      <p>
-                        {project?.superBuiltUpArea} sqft (₹ {project?.pricePerSqft}
-                        /sqft)
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-gray-500 font-semibold">Carpet Area</p>
-                      <p>{project?.carpetArea}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-[#ed6115] font-semibold">Sale Type</p>
-                      <p>{project?.transactionType}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-gray-500 font-semibold">Availability Status</p>
-                      <p>{project?.constructionStatus}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-gray-500 font-semibold">Frunishing Status</p>
-                      <p>{project?.furnishedStatus}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-gray-500 font-semibold">Floors</p>
-                      <p>
-                        {project?.floorNumber}/{project.totalFloors}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-x-8 mt-11">
-                    <span className="text-gray-500 text-md font-medium flex items-center">
-                      <FaParking className="text-[#6B7280] h-5 w-5" />
-                      &nbsp;{project?.parkingCapacity} Parking
-                    </span>
-                    <span className="text-gray-500  font-medium flex items-center">
-                      <MdEventSeat className="text-[#6B7280] h-6 w-6" />
-                      &nbsp;{project.seats} Seats
-                    </span>
-                    <span className="text-gray-500  font-medium flex items-center">
-                      <MdMeetingRoom className="text-[#6B7280] h-6 w-6" />
-                      &nbsp;{project.officeRooms} Rooms
-                    </span>
-                  </div>
+          <div className="flex flex-col gap-8 lg:flex-row">
+            <main className="flex-1">
+              <div className="flex gap-2">
+                <div className="w-[62%]">
+                  <GalleryFile
+                    gallery={project?.gallery}
+                    title={project?.title}
+                  />
                 </div>
+                <div className="flex-1">
+                  <div className="flex items-start gap-6">
+                    <div className="flex-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-7 gap-x-7 p-2">
+                        <div>
+                          <p className="text-gray-500 font-semibold">
+                            Super Built Up Area
+                          </p>
+                          <p>
+                            {project?.superBuiltUpArea} sqft (₹{" "}
+                            {project?.pricePerSqft}
+                            /sqft)
+                          </p>
+                        </div>
 
-                {/* Contact card here */}
-                <div className="w-[260px] shrink-0 rounded-xl bg-white/30 p-5 shadow-sm border border-gray-100">
-                  <p className="text-lg font-semibold text-green-600 mb-3">
-                    Contact Owner
-                  </p>
+                        <div>
+                          <p className="text-gray-500 font-semibold">
+                            Carpet Area
+                          </p>
+                          <p>{project?.carpetArea}</p>
+                        </div>
 
-                  <p className="text-sm font-medium text-gray-900">
-                    {project?.createdBy?.name}
-                  </p>
+                        <div>
+                          <p className="text-[#ed6115] font-semibold">
+                            Sale Type
+                          </p>
+                          <p>{project?.transactionType}</p>
+                        </div>
 
-                  <p className="text-xs text-gray-500 mt-1">
-                    {project?.createdBy?.email}
-                  </p>
+                        <div>
+                          <p className="text-gray-500 font-semibold">
+                            Availability Status
+                          </p>
+                          <p>{project?.constructionStatus}</p>
+                        </div>
 
-                  <button className="mt-4 w-full rounded-lg bg-green-600 py-2 text-sm font-medium text-white hover:bg-green-700 transition">
-                    Get Phone No.
-                  </button>
+                        <div>
+                          <p className="text-gray-500 font-semibold">
+                            Frunishing Status
+                          </p>
+                          <p>{project?.furnishedStatus}</p>
+                        </div>
+
+                        <div>
+                          <p className="text-gray-500 font-semibold">Floors</p>
+                          <p>
+                            {project?.floorNumber}/{project.totalFloors}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-x-8 mt-11">
+                        <span className="text-gray-500 text-md font-medium flex items-center">
+                          <FaParking className="text-[#6B7280] h-5 w-5" />
+                          &nbsp;{project?.parkingCapacity} Parking
+                        </span>
+                        <span className="text-gray-500  font-medium flex items-center">
+                          <MdEventSeat className="text-[#6B7280] h-6 w-6" />
+                          &nbsp;{project.seats} Seats
+                        </span>
+                        <span className="text-gray-500  font-medium flex items-center">
+                          <MdMeetingRoom className="text-[#6B7280] h-6 w-6" />
+                          &nbsp;{project.officeRooms} Rooms
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          <br />
+              <br />
 
-          {/* Main two-column layout */}
-          <div className="grid gap-4 lg:grid-cols-[2fr,1.2fr]">
-            <section className="space-y-4 ml-3">
-              <section className="rounded-lg p-6 shadow-sm ">
-                <h2 className="mb-6 text-xl font-semibold text-gray-900">
-                  More Details
-                </h2>
+              <div className="space-y-4">
+                <section className="rounded-lg bg-[#f7f9fa] p-6 shadow-sm">
+                  <h2 className="mb-6 text-xl font-semibold text-gray-900">
+                    More Details
+                  </h2>
 
-                {/* Changed to 4 columns to match the wide layout in the image */}
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-2 text-sm">
+                  {/* Changed to 4 columns to match the wide layout in the image */}
+                  <div className="grid grid-cols-1 gap-2 text-sm md:grid-cols-5">
+                    <div className="flex flex-col gap-1">
+                      <p className="font-medium text-gray-900">Price Breakup</p>
+                      <p className="text-gray-500">₹{project?.price}</p>
+                    </div>
 
-                  <div className="flex flex-col gap-1">
-                    <p className="font-medium text-gray-900">Price Breakup</p>
-                    <p className="text-gray-500">₹{project?.price}</p>
+                    <div className="flex flex-col gap-1">
+                      <p className="font-medium text-gray-900">
+                        Property Ownership
+                      </p>
+                      <p className="text-gray-500">{project?.listingSource}</p>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <p className="font-medium text-gray-900">Lift</p>
+                      <p className="text-gray-500">
+                        {project?.lift ? "Available" : "Unavailable"}
+                      </p>
+                    </div>
+
+                    <div className="hidden md:block"></div>
+                    <div className="hidden md:block"></div>
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <p className="font-medium text-gray-900">Property Ownership</p>
-                    <p className="text-gray-500">{project?.listingSource}</p>
+                  {/* ADDRESS */}
+                  <div className="mt-8">
+                    <p className="font-medium text-gray-900">Address</p>
+                    <p className="mt-1 leading-relaxed text-gray-500">
+                      {project.address}
+                    </p>
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <p className="font-medium text-gray-900">Lift</p>
-                    <p className="text-gray-500">{project?.lift ? "Available" : "Unavailable"}</p>
+                  {/* DESCRIPTION */}
+                  <div className="mt-6">
+                    <p className="font-medium text-gray-900">Description:</p>
+                    <p className="mt-1 leading-relaxed text-gray-500">
+                      {project.description}
+                    </p>
                   </div>
 
-
-                  <div className="hidden md:block"></div>
-                  <div className="hidden md:block"></div>
-
-                </div>
-
-                {/* ADDRESS */}
-                <div className="mt-8">
-                  <p className="font-medium text-gray-900">Address</p>
-                  <p className="text-gray-500 mt-1 leading-relaxed">
-                    {project.address}
-                  </p>
-                </div>
-
-                {/* DESCRIPTION */}
-                <div className="mt-6">
-                  <p className="font-medium text-gray-900">Description:</p>
-                  <p className="text-gray-500 mt-1 leading-relaxed">
-                    {project.description}
-                  </p>
-                </div>
-
-                <div className="mt-8">
-                  <button className="rounded bg-[#27AE60] px-6 py-2 font-medium text-white hover:bg-green-700">
-                    Contact Owner
-                  </button>
-                </div>
-              </section>
-
-              {/* Amenities */}
-              <section className="rounded-lg p-4 shadow-sm">
-                <h2 className="mb-3 text-xl font-semibold text-gray-900">
-                  Amenities
-                </h2>
-                {project.amenities && project.amenities.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 sm:grid-cols-3">
-                    {project.amenities.map((i) => (
-                      <div
-                        key={i.key}
-                        className="flex items-center gap-2 rounded-md border border-gray-100 px-2 py-1"
-                      >
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                        <span>{i.title}</span>
-                      </div>
-                    ))}
+                  <div className="mt-8">
+                    <button className="rounded bg-[#27AE60] px-6 py-2 font-medium text-white hover:bg-green-700">
+                      Contact Owner
+                    </button>
                   </div>
-                ) : (
-                  <p className="text-sm text-gray-500">
-                    Amenities information not available.
-                  </p>
-                )}
-              </section>
-            </section>
+                </section>
 
+                {/* Amenities */}
+                <section className="rounded-lg bg-[#f7f9fa] p-4 shadow-sm">
+                  <h2 className="mb-3 text-xl font-semibold text-gray-900">
+                    Amenities
+                  </h2>
+                  {project.amenities && project.amenities.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 sm:grid-cols-3">
+                      {project.amenities.map((i) => (
+                        <div
+                          key={i.key}
+                          className="flex items-center gap-2 rounded-md border border-gray-100 px-2 py-1"
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                          <span>{i.title}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      Amenities information not available.
+                    </p>
+                  )}
+                </section>
+                <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa]">
+                  <h2 className="mb-3 text-xl font-semibold text-gray-900">
+                    Popular Landmarks Nearby
+                  </h2>
+
+                  {project.location ? (
+                    <NearByPlace
+                      projectLocation={project.location}
+                      projectName={project.title ?? "Property Location"}
+                      nearbyPlaces={project.nearbyPlaces ?? []}
+                    />
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      Location information not available.
+                    </p>
+                  )}
+                </section>
+                <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa] ">
+                  <h2 className="mb-1 text-xl font-semibold text-gray-900">
+                    More Similar Properties for you
+                  </h2>
+                  {project.relatedProjects &&
+                  project.relatedProjects.length > 0 ? (
+                    <div className="flex w-[30%] gap-4 h-[485px]">
+                      {project.relatedProjects.map((relatedProject) => (
+                        <CommercialCard
+                          key={relatedProject._id}
+                          p={relatedProject}
+                          vertical={true}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      No similar properties available.
+                    </p>
+                  )}
+                </section>
+              </div>
+            </main>
+            <aside className="w-full shrink-0 lg:w-[260px]">
+              {/* Contact card here */}
+              <div className="sticky top-20 h-fit rounded-xl border border-gray-100 bg-[#f7f9fa] p-5 shadow-sm">
+                <p className="mb-3 text-lg font-semibold text-green-600">
+                  Contact Owner
+                </p>
+
+                <p className="text-sm font-medium text-gray-900">
+                  {project?.createdBy?.name}
+                </p>
+
+                <p className="mt-1 text-xs text-gray-500">
+                  {project?.createdBy?.email}
+                </p>
+
+                <button className="mt-4 w-full rounded-lg bg-green-600 py-2 text-sm font-medium text-white transition hover:bg-green-700">
+                  Get Phone No.
+                </button>
+              </div>
+            </aside>
           </div>
         </div>
-
       </div>
     </div>
   );

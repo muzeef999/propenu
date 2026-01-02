@@ -13,9 +13,7 @@ export default function Sidebar() {
     (state: any) => state.postProperty.currentStep
   );
 
-  const progressPercent = Math.round(
-    (currentStep / TOTAL_STEPS) * 100
-  );
+  const progressPercent = Math.round((currentStep / TOTAL_STEPS) * 100);
 
   return (
     <aside className="p-2 h-full">
@@ -33,7 +31,7 @@ export default function Sidebar() {
           className={`flex items-center text-sm py-1.5 transition ${
             currentStep === 1
               ? "text-gray-300 cursor-not-allowed"
-              : "text-[#8F8F8F] hover:text-gray-700"
+              : "text-[#8F8F8F] hover:text-gray-700 cursor-pointer"
           }`}
         >
           <ArrowDropdownIcon
@@ -49,9 +47,7 @@ export default function Sidebar() {
           <h2 className="font-normal text-xl text-gray-900">
             Post your property
           </h2>
-          <p className="text-xs text-gray-500">
-            Sell or rent your property
-          </p>
+          <p className="text-xs text-gray-500">Sell or rent your property</p>
         </div>
 
         {/* Progress */}
@@ -62,9 +58,7 @@ export default function Sidebar() {
               style={{ width: `${progressPercent}%` }}
             />
           </div>
-          <p className="text-xs text-gray-400 mt-1">
-            {progressPercent}%
-          </p>
+          <p className="text-xs text-gray-400 mt-1">{progressPercent}%</p>
         </div>
 
         {/* Stepper */}

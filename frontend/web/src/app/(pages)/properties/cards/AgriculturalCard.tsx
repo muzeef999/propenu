@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   RoadAccessIcon,
   SoilTypeIcon,
@@ -13,8 +13,10 @@ import formatINR from "@/utilies/PriceFormat";
 import Link from "next/link";
 import { AiOutlineHeart } from "react-icons/ai";
 import { BiBuildingHouse } from "react-icons/bi";
+import { IAgricultural } from "@/types/agricultural";
+import ImageAutoCarousel from "@/ui/ImageAutoCarousel";
 
-const AgriculturalCard: React.FC<{ p: Property; vertical?: boolean }> = ({
+const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
   p,
   vertical = false,
 }) => {
@@ -25,7 +27,8 @@ const AgriculturalCard: React.FC<{ p: Property; vertical?: boolean }> = ({
   const pricePerSqft =
     (p as any)?.pricePerSqft ??
     Math.round((p?.price ?? 0) / (p as any)?.builtUpArea || 0);
-  console.log("Rendering AgriculturalCard for property:", p);
+      const [activeImageIndex, setActiveImageIndex] = useState(0);
+    
 
   return (
     <Link
@@ -40,11 +43,11 @@ const AgriculturalCard: React.FC<{ p: Property; vertical?: boolean }> = ({
           vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"
         }`}
       >
-        <img
-          src={img}
+        <ImageAutoCarousel
+          images={p?.gallery?.map((g) => g.url) ?? []}
           alt={p?.title ?? "property image"}
-          className="h-full w-full object-cover  rounded-xl"
-          loading="lazy"
+          className="rounded-md"
+          onIndexChange={setActiveImageIndex}
         />
         {/* overlay: image count & date */}
         <div className="absolute left-2 bottom-2 flex items-center gap-2 text-xs text-white">
@@ -62,7 +65,9 @@ const AgriculturalCard: React.FC<{ p: Property; vertical?: boolean }> = ({
                 strokeLinejoin="round"
               />
             </svg>
-            <span>{p?.gallery?.length ?? 1}</span>
+            <span>
+              {activeImageIndex + 1}/{p?.gallery?.length ?? 1}
+            </span>{" "}
           </div>
         </div>
 

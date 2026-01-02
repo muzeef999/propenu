@@ -9,11 +9,21 @@ export type AmenitiesItems = {
 
 
 
+
 export interface IUserMini {
   _id: string;
   name?: string;
   email?: string;
 }
+
+export interface NearbyPlace {
+  name?: string;
+  type?: string;
+  distanceText?: string;
+  coordinates?: [number, number]; // [lng, lat]
+  order?: number;
+}
+
 
 
 export type GalleryItem = {
@@ -63,11 +73,15 @@ export interface IResidential {
   flooringType?: string;
   kitchenType?: string;
   listingSource?: string;
-  nearbyPlaces?: string[];
+  nearbyPlaces?: NearbyPlace[];
   createdBy? :IUserMini;
   relatedProjects?: IResidential[];
   slug?: string;
   buildingName?: string;
+  location?: {
+    type: "Point";
+    coordinates: [number, number]; // [longitude, latitude]
+  };
 }
 
 

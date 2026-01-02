@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { setProfileField } from "@/Redux/slice/postPropertySlice";
+import { setProfileField, setStep } from "@/Redux/slice/postPropertySlice";
 import Dropdownui from "@/ui/DropDownUI";
 import CounterField from "@/ui/CounterField";
 import InputField from "@/ui/InputFiled";
@@ -11,6 +11,7 @@ import { submitPropertyThunk } from "@/Redux/thunks/submitPropertyApi";
 import { useAppDispatch } from "@/Redux/store";
 import Toggle from "@/ui/ToggleSwitch";
 import { toast } from "sonner";
+import { numberToWords } from "@/utilies/NumberToWord";
 
 export const FLOORING_TYPES = [
   "vitrified",
@@ -34,12 +35,7 @@ export const KITCHEN_TYPES = [
   "l-shaped",
 ] as const;
 
-export const FACING_TYPES = [
-  "North",
-  "South",
-  "East",
-  "West",
-] as const;
+export const FACING_TYPES = ["North", "South", "East", "West"] as const;
 
 export const ParkingTypes = ["open", "closed", "both"] as const;
 
@@ -49,7 +45,8 @@ const ResidentialProfile = () => {
   // Compute price per sqft from either `price` or `expectedPrice` and write
   // the result to `residential.pricePerSqft` (consistent key used across app).
   useEffect(() => {
-    const price = Number(residential.price) || Number(residential.expectedPrice);
+    const price =
+      Number(residential.price) || Number(residential.expectedPrice);
     const area = Number(residential.carpetArea);
 
     if (price > 0 && area > 0) {
@@ -74,14 +71,18 @@ const ResidentialProfile = () => {
         );
       }
     }
-  }, [residential.price, residential.expectedPrice, residential.carpetArea, residential.pricePerSqft, dispatch]);
-
+  }, [
+    residential.price,
+    residential.expectedPrice,
+    residential.carpetArea,
+    residential.pricePerSqft,
+    dispatch,
+  ]);
 
   return (
     <div className="space-y-8">
       {/* ========== CONFIGURATION ========== */}
       <div className="space-y-6">
-
         <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 md:grid-cols-4">
           <CounterField
             label="BHK"
@@ -139,7 +140,6 @@ const ResidentialProfile = () => {
               )
             }
           />
-
         </div>
         <div className="grid grid-cols-1 md:grid-cols-[1.2fr_145px] gap-1 items-start">
           {/* Furnishing */}
@@ -168,10 +168,11 @@ const ResidentialProfile = () => {
                       )
                     }
                     className={`px-6 py-2 border rounded-md text-sm shadow-sm focus:outline-none  transition-colors
-              ${active
-                        ? "border-green-500 bg-green-50 text-green-600"
-                        : "border-gray-300 text-gray-700"
-                      }
+              ${
+                active
+                  ? "border-green-500 bg-green-50 text-green-600"
+                  : "border-gray-300 text-gray-700"
+              }
             `}
                   >
                     {item.label}
@@ -198,7 +199,6 @@ const ResidentialProfile = () => {
             placeholder="Select"
           />
         </div>
-
       </div>
 
       <div>
@@ -286,17 +286,12 @@ const ResidentialProfile = () => {
         </div>
       </div>
 
-
-
       <div className="space-y-3">
         {/* Section Title */}
-        <p className="text-sm font-medium text-gray-800">
-          Floor Details
-        </p>
+        <p className="text-sm font-medium text-gray-800">Floor Details</p>
 
         {/* Fields */}
         <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 md:grid-cols-3 items-start">
-
           {/* Flooring Type */}
           <Dropdownui
             label="Flooring Type"
@@ -383,9 +378,7 @@ const ResidentialProfile = () => {
                shadow-sm transition
                hover:border-gray-400 mt-2"
           >
-            <span className="text-sm text-gray-700">
-              Available
-            </span>
+            <span className="text-sm text-gray-700">Available</span>
 
             <input
               type="checkbox"
@@ -403,7 +396,6 @@ const ResidentialProfile = () => {
             />
           </div>
         </div>
-
       </div>
       <div className="space-y-2">
         <p className="text-sm font-medium text-gray-700">Availability Status</p>
@@ -429,10 +421,11 @@ const ResidentialProfile = () => {
                   )
                 }
                 className={`px-6 py-2 border rounded-md text-sm shadow-sm focus:outline-none  transition-colors
-              ${active
-                    ? "border-green-500 bg-green-50 text-green-600"
-                    : "border-gray-300 text-gray-700"
-                  }
+              ${
+                active
+                  ? "border-green-500 bg-green-50 text-green-600"
+                  : "border-gray-300 text-gray-700"
+              }
             `}
               >
                 {item.label}
@@ -466,10 +459,11 @@ const ResidentialProfile = () => {
                   )
                 }
                 className={`px-6 py-2 border rounded-md text-sm shadow-sm focus:outline-none  transition-colors
-              ${active
-                    ? "border-green-500 bg-green-50 text-green-600"
-                    : "border-gray-300 text-gray-700"
-                  }
+              ${
+                active
+                  ? "border-green-500 bg-green-50 text-green-600"
+                  : "border-gray-300 text-gray-700"
+              }
             `}
               >
                 {item.label}
@@ -477,10 +471,7 @@ const ResidentialProfile = () => {
             );
           })}
         </div>
-
-
       </div>
-
 
       {/* Property Age */}
       {residential.constructionStatus === "ready-to-move" && (
@@ -508,10 +499,11 @@ const ResidentialProfile = () => {
                     )
                   }
                   className={`px-6 py-2 border rounded-md text-sm shadow-sm focus:outline-none  transition-colors
-                ${active
-                      ? "border-green-500 bg-green-50 text-green-600"
-                      : "border-gray-300 text-gray-700"
-                    }
+                ${
+                  active
+                    ? "border-green-500 bg-green-50 text-green-600"
+                    : "border-gray-300 text-gray-700"
+                }
               `}
                 >
                   {item.label}
@@ -521,7 +513,6 @@ const ResidentialProfile = () => {
           </div>
         </div>
       )}
-
 
       {/* Possession Date (only when under construction) */}
       {residential.constructionStatus === "under-construction" && (
@@ -545,81 +536,96 @@ const ResidentialProfile = () => {
         <p className="text-sm font-medium text-gray-800">Price Details</p>
 
         {/* Changed to grid-cols-4 for desktop, added items-end for alignment */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
-          <InputField
-            label="Total Price"
-            value={residential.price || ""}
-            placeholder="e.g. 75,00,000"
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "residential",
-                  key: "price",
-                  value: value.replace(/\D/g, ""),
-                })
-              )
-            }
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+          {/* TOTAL PRICE COLUMN */}
+          <div className="flex flex-col">
+            <InputField
+              label="Total Price"
+              value={residential.price || ""}
+              placeholder="e.g. 75,00,000"
+              onChange={(value) =>
+                dispatch(
+                  setProfileField({
+                    propertyType: "residential",
+                    key: "price",
+                    value: value.replace(/\D/g, ""),
+                  })
+                )
+              }
+            />
 
-          <InputField
-            label="Carpet Area (sq ft)"
-            value={residential.carpetArea || ""}
-            placeholder="e.g. 1200"
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "residential",
-                  key: "carpetArea",
-                  value: value.replace(/\D/g, ""),
-                })
-              )
-            }
-          />
+            {/* PRICE IN WORDS (UNDER TOTAL PRICE) */}
+            {residential.price && (
+              <p className="mt-1 text-xs text-gray-500 italic">
+                ₹ {numberToWords(Number(residential.price))}
+                {residential.pricePerSqft && (
+                  <>
+                    {" "}
+                    (₹ {residential.pricePerSqft.toLocaleString()} per sq.ft.)
+                  </>
+                )}
+              </p>
+            )}
+          </div>
 
-          <InputField
-            label="Price / sq ft"
-            value={residential.pricePerSqft || ""}
-            placeholder="Auto calculated"
-            disabled
-            onChange={() => { }}
-          />
+          {/* PRICE / SQ FT COLUMN */}
+          <div className="flex flex-col">
+            <InputField
+              label="Price / sq ft"
+              value={residential.pricePerSqft || ""}
+              placeholder="Auto calculated"
+              disabled
+              onChange={() => {}}
+            />
 
-          <InputField
-            label="Built-up (sq ft)"
-            type="number"
-            value={residential.builtUpArea || ""}
-            placeholder="Optional"
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "residential",
-                  key: "builtUpArea",
-                  value,
-                })
-              )
-            }
-          />
+            {/* BASED ON TEXT (UNDER PRICE / SQ FT) */}
+            <button
+              type="button"
+              onClick={() => dispatch(setStep(1))} // Basic Details
+              className="
+        mt-1 flex items-center gap-1
+        text-xs text-gray-400
+        hover:text-green-600
+        cursor-pointer
+        self-start
+      "
+            >
+              Based on
+              <span className="font-medium underline">Carpet Area</span>
+              <span className="text-[10px]">▼</span>
+            </button>
+          </div>
         </div>
-
-
       </div>
 
       <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
         <div>
-          <p className="text-sm font-semibold text-gray-800">Is the price negotiable?</p>
-          <p className="text-xs text-gray-500">Enable this if you are open to offers from buyers</p>
+          <p className="text-sm font-semibold text-gray-800">
+            Is the price negotiable?
+          </p>
+          <p className="text-xs text-gray-500">
+            Enable this if you are open to offers from buyers
+          </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className={`text-xs font-medium ${residential.isPriceNegotiable ? 'text-green-600' : 'text-gray-400'}`}>
+          <span
+            className={`text-xs font-medium ${
+              residential.isPriceNegotiable ? "text-green-600" : "text-gray-400"
+            }`}
+          >
             {residential.isPriceNegotiable ? "YES" : "NO"}
           </span>
           <Toggle
             enabled={residential.isPriceNegotiable || false}
-            onChange={(val) => dispatch(setProfileField({
-              propertyType: "residential",
-              key: "isPriceNegotiable",
-              value: val,
-            }))}
+            onChange={(val) =>
+              dispatch(
+                setProfileField({
+                  propertyType: "residential",
+                  key: "isPriceNegotiable",
+                  value: val,
+                })
+              )
+            }
           />
         </div>
       </div>
@@ -657,7 +663,7 @@ const ResidentialProfile = () => {
       >
         Submit Property
       </button>
-    </div >
+    </div>
   );
 };
 

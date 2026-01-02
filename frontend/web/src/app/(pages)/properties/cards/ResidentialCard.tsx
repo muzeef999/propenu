@@ -18,6 +18,7 @@ import formatINR from "@/utilies/PriceFormat";
 import Link from "next/link";
 import { BiBuildingHouse } from "react-icons/bi";
 import { postShortlistProperty } from "@/data/ClientData";
+import ImageAutoCarousel from "@/ui/ImageAutoCarousel";
 
 const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
   p,
@@ -31,6 +32,7 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
   const pricePerSqft =
     (p as any)?.pricePerSqft ??
     Math.round((p?.price ?? 0) / (p as any)?.builtUpArea || 0);
+    const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isShortlisted, setIsShortlisted] = useState<boolean>(
     Boolean((p as any)?.isShortlisted)
   );
@@ -48,7 +50,7 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
       toast.error("Failed to update shortlist");
     },
   });
-  console.log("Rendering ResidentialCard for property:", p)
+  console.log("Rendering ResidentialCard for property:", p);
   return (
     <Link
       href={`/properties/residential/${p.slug}`}
@@ -62,11 +64,11 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
           vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"
         }`}
       >
-        <img
-          src={img}
+        <ImageAutoCarousel
+          images={p?.gallery?.map((g) => g.url) ?? []}
           alt={p?.title ?? "property image"}
-          className="h-full w-full object-cover rounded-md"
-          loading="lazy"
+          className="rounded-md"
+          onIndexChange={setActiveImageIndex}
         />
         {/* overlay: image count & date */}
         <div className="absolute left-2 bottom-2 flex items-center gap-2 text-xs text-white">
@@ -84,7 +86,9 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
                 strokeLinejoin="round"
               />
             </svg>
-            <span>{p?.gallery?.length ?? 1}</span>
+            <span>
+              {activeImageIndex + 1}/{p?.gallery?.length ?? 1}
+            </span>{" "}
           </div>
         </div>
         {/* favourite icon */}
@@ -125,9 +129,7 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
               : `${p?.title?.slice(0, 48)}...`}
           </h3> */}
           <h3 className="text-lg md:text-md font-semibold truncate">
-            {
-              p.title
-            }
+            {p.title}
           </h3>
           <p className="text-sm text-gray-500 mt-1 flex items-center gap-2 truncate">
             <BiBuildingHouse className="w-4 h-4" />

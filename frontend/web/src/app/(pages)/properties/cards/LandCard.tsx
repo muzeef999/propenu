@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Facing,
   RoadAccessIcon,
@@ -13,8 +13,10 @@ import formatINR from "@/utilies/PriceFormat";
 import Link from "next/link";
 import { AiOutlineHeart } from "react-icons/ai";
 import { BiBuildingHouse } from "react-icons/bi";
+import { ILand } from "@/types/land";
+import ImageAutoCarousel from "@/ui/ImageAutoCarousel";
 
-export const LandCard: React.FC<{ p: Property; vertical?: boolean }> = ({
+export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
   p,
   vertical = false,
 }) => {
@@ -26,6 +28,8 @@ export const LandCard: React.FC<{ p: Property; vertical?: boolean }> = ({
   const area = (p as any)?.superBuiltUpArea;
   const pricePerSqft =
     (p as any)?.pricePerSqft ?? (area ? Math.round((p?.price ?? 0) / area) : 0);
+
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   return (
     <Link
@@ -40,12 +44,13 @@ export const LandCard: React.FC<{ p: Property; vertical?: boolean }> = ({
           vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"
         }`}
       >
-        <img
-          src={img}
+        <ImageAutoCarousel
+          images={p?.gallery?.map((g) => g.url) ?? []}
           alt={p?.title ?? "property image"}
-          className="h-full w-full object-cover  rounded-md"
-          loading="lazy"
+          className="rounded-md"
+          onIndexChange={setActiveImageIndex}
         />
+
         {/* overlay: image count & date */}
         <div className="absolute left-2 bottom-2 flex items-center gap-2 text-xs text-white">
           <div className="bg-black/60 px-2 py-1 rounded-md flex items-center gap-1">
@@ -62,7 +67,9 @@ export const LandCard: React.FC<{ p: Property; vertical?: boolean }> = ({
                 strokeLinejoin="round"
               />
             </svg>
-            <span>{p?.gallery?.length ?? 1}</span>
+            <span>
+              {activeImageIndex + 1}/{p?.gallery?.length ?? 1}
+            </span>{" "}
           </div>
         </div>
 
@@ -79,15 +86,14 @@ export const LandCard: React.FC<{ p: Property; vertical?: boolean }> = ({
       {/* Middle: content */}
       <div className="flex-1 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
         <div>
-          {/* <h3 className="text-lg md:text-md font-semibold line-clamp-2">
-            {vertical ? `${p?.title?.slice(0, 18)}...` : p?.title}
-          </h3> */}
           <h3 className="text-lg md:text-md font-semibold truncate max-w-[460px]">
-            {
-              p.title
-            }
+            {p.title}
           </h3>
-        
+          <p className="text-sm text-gray-500 mt-1 flex items-center gap-2 truncate">
+            <BiBuildingHouse className="w-4 h-4" />
+            {/* {vertical ? (p as any)?.buildingName?.slice(0, 18)?.concat("...") : (p as any)?.buildingName} */}
+            {(p as any)?.landName}
+          </p>
         </div>
 
         {/* badges */}

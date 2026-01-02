@@ -1,6 +1,5 @@
 import { BaseSearchParams, CommercialFilters, IFileRef } from "./sharedTypes";
 
-
 export type GalleryItem = {
   url: string;
   key: string;
@@ -8,6 +7,13 @@ export type GalleryItem = {
   order: number;
 };
 
+export interface NearbyPlace {
+  name?: string;
+  type?: string;
+  distanceText?: string;
+  coordinates?: [number, number]; // [lng, lat]
+  order?: number;
+}
 
 export type SpecificationItem = {
   title: string;
@@ -18,9 +24,7 @@ export type Specification = {
   category: string;
   items: SpecificationItem[];
   order?: number; // optional, default can be handled in code / DB
-}
-
-
+};
 
 export const PANTRY_TYPES = [
   "none",
@@ -32,29 +36,29 @@ export const PANTRY_TYPES = [
 
 export type PantryType = (typeof PANTRY_TYPES)[number];
 
-
-
 export type AmenitiesItems = {
-  key: string,
-  title: string
-}
+  key: string;
+  title: string;
+};
 
 export interface ICommercial {
   title: string;
   slug: string;
+  _id: string;
   floorNumber?: number;
   totalFloors?: number;
   price?: number;
   city?: string;
-  listingSource?:string;
-  furnishedStatus?: 'unfurnished' | 'semi-furnished' | 'fully-furnished';
+  listingSource?: string;
+  furnishedStatus?: "unfurnished" | "semi-furnished" | "fully-furnished";
   powerBackup?: string;
   powerCapacityKw?: number;
   lift?: boolean;
   superBuiltUpArea?: string;
   gallery?: GalleryItem[];
-  constructionStatus?: string
-  transactionType?: string
+  constructionStatus?: string;
+  transactionType?: string;
+  nearbyPlaces?: NearbyPlace[];
   carpetArea?: number;
   pricePerSqft?: number;
   furnishing?: string;
@@ -70,7 +74,12 @@ export interface ICommercial {
   loadingDock?: boolean;
   loadingDockDetails?: string;
   parkingCapacity?: number;
-  tenantInfo?: { currentTenant?: string; leaseStart?: Date; leaseEnd?: Date; rent?: number }[];
+  tenantInfo?: {
+    currentTenant?: string;
+    leaseStart?: Date;
+    leaseEnd?: Date;
+    rent?: number;
+  }[];
   zoning?: string;
   occupancyCertificateFile?: IFileRef | null;
   leaseDocuments?: IFileRef[];
@@ -81,23 +90,28 @@ export interface ICommercial {
     shared?: boolean;
   };
   description?: string;
-  buildingManagement?: { security?: boolean; managedBy?: string; contact?: string };
-  cabins: number,
-  meetingRooms: number,
-  conferenceRooms: number,
-  specifications: SpecificationItem[],
+  buildingManagement?: {
+    security?: boolean;
+    managedBy?: string;
+    contact?: string;
+  };
+  cabins: number;
+  meetingRooms: number;
+  conferenceRooms: number;
+  specifications: SpecificationItem[];
+  relatedProjects?: ICommercial[];
   createdBy?: { name?: string; contact?: string; email?: string };
-  verifiedProperties?:Boolean;
+  verifiedProperties?: Boolean;
+  location?: {
+    type: "Point";
+    coordinates: [number, number]; // [longitude, latitude]
+  };
 }
-
-
 
 export type CommercialSearchParams = BaseSearchParams & {
   category: "Commercial";
   commercialType?: string;
 };
-
-
 
 export const commercialKeyMapping: Record<string, keyof CommercialFilters> = {
   "Commercial Type": "commercialType",
@@ -109,9 +123,9 @@ export const commercialKeyMapping: Record<string, keyof CommercialFilters> = {
   "Floor Number": "floorNumber",
   "Total Floors": "totalFloors",
   "Furnishing Status": "furnishingStatus",
-  "Pantry": "pantry",
+  Pantry: "pantry",
   "Power Capacity": "powerCapacity",
-  "Parking": "parking",
+  Parking: "parking",
   "Fire Safety": "fireSafety",
   "Flooring Type": "flooringType",
   "Wall Finish": "wallFinish",
@@ -121,5 +135,4 @@ export const commercialKeyMapping: Record<string, keyof CommercialFilters> = {
   "Verified Properties": "verifiedProperties",
   "Posted Since": "postedSince",
   "Posted By": "postedBy",
- 
 };

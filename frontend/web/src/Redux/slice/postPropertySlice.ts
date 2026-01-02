@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { set } from "zod";
 
 type PropertyType =
   | "residential"
@@ -53,6 +54,9 @@ const postPropertySlice = createSlice({
     prevStep(state) {
       state.currentStep -= 1;
     },
+    setStep(state, action: PayloadAction<number>) {
+      state.currentStep = action.payload;
+    },
 
     /* -------- Property type -------- */
     setPropertyType(state, action: PayloadAction<PropertyType>) {
@@ -84,6 +88,7 @@ export const {
   setProfileField,
   nextStep,
   prevStep,
+  setStep,
 } = postPropertySlice.actions;
 
 export default postPropertySlice.reducer;

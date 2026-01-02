@@ -8,6 +8,14 @@ export type GalleryItem = {
   order: number;
 };
 
+export interface NearbyPlace {
+  name?: string;
+  type?: string;
+  distanceText?: string;
+  coordinates?: [number, number]; // [lng, lat]
+  order?: number;
+}
+
 export interface ILand {
   plotArea?: number;
   plotAreaUnit?: 'sqft' | 'sqmt' | 'acre' | 'guntha' | 'kanal' | 'hectare';
@@ -35,7 +43,11 @@ export interface ILand {
   slug?: string;
   address?: string;
   city?: string;
-  location?: string;
+  location?: {
+    type: "Point";
+    coordinates: [number, number]; // [longitude, latitude]
+  };
+  _id: string;
   description?: string;
   gallery?: GalleryItem[];
   createdBy?: { name?: string; contact?: string; email?: string };
@@ -45,6 +57,9 @@ export interface ILand {
   propertyType?: string;
   amenities?: string[];
 verifiedProperties?:Boolean;
+  nearbyPlaces?: NearbyPlace[];
+  relatedProjects?: ILand[];
+
 }
 
 

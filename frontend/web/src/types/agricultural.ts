@@ -9,6 +9,13 @@ export interface IUnitValue {
   value: number;
   unit: string; // sqft, acres, meters etc
 }
+export interface NearbyPlace {
+  name?: string;
+  type?: string;
+  distanceText?: string;
+  coordinates?: [number, number]; // [lng, lat]
+  order?: number;
+}
 
 export interface IUserMini {
   _id: string;
@@ -27,6 +34,8 @@ export interface IAgricultural {
   boundaryWall?: boolean;
   areaUnit?: "sqft" | "sqmt" | "acre" | "guntha" | "kanal" | "hectare" | string;
   landShape?: string;
+  _id?: string;
+  slug?:string
   soilType?: string;
   gallery?: GalleryItem[];
   listingSource: string;
@@ -66,6 +75,12 @@ export interface IAgricultural {
   soilTestReport?: IFileRef | null;
   statePurchaseRestrictions?: string;
   agriculturalUseCertificate?: IFileRef | null;
+  nearbyPlaces?: NearbyPlace[];
+  relatedProjects?: IAgricultural[];
+  location?: {
+    type: "Point";
+    coordinates: [number, number]; // [longitude, latitude]
+  };
 }
 
 export type AgriculturalSearchParams = BaseSearchParams & {

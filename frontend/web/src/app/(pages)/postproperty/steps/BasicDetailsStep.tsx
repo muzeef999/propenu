@@ -20,6 +20,7 @@ import {
   AGRICULTURAL_PROPERTY_OPTIONS,
   AGRICULTURAL_PROPERTY_SUBTYPES,
 } from "@/app/(pages)/postproperty/constants/subTypes";
+import InputField from "@/ui/InputFiled";
 
 export default function BasicDetailsStep() {
   const { propertyType, base, residential, commercial, land, agricultural } =
@@ -29,8 +30,8 @@ export default function BasicDetailsStep() {
   const dispatch = useDispatch();
   const listingOptions = [
     { label: "Buy", value: "buy" },
-    { label: "Rent", value: "rent" },
-    { label: "Lease", value: "lease" },
+    { label: "Rent / Lease", value: "rent / lease" },
+
   ];
 
   // Get the current category state
@@ -295,6 +296,46 @@ export default function BasicDetailsStep() {
           </div>
         </div>
       )}
+        <div className="space-y-3">
+        <p className="text-sm font-medium text-gray-800">Price Details</p>
+
+        {/* Changed to grid-cols-4 for desktop, added items-end for alignment */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4 items-end">
+
+          <InputField
+            label="Carpet Area (sq ft)"
+            value={residential.carpetArea || ""}
+            placeholder="e.g. 1200"
+            onChange={(value) =>
+              dispatch(
+                setProfileField({
+                  propertyType: "residential",
+                  key: "carpetArea",
+                  value: value.replace(/\D/g, ""),
+                })
+              )
+            }
+          />
+
+          <InputField
+            label="Built-up (sq ft)"
+            type="number"
+            value={residential.builtUpArea || ""}
+            placeholder="Optional"
+            onChange={(value) =>
+              dispatch(
+                setProfileField({
+                  propertyType: "residential",
+                  key: "builtUpArea",
+                  value,
+                })
+              )
+            }
+          />
+        </div>
+
+
+      </div>
 
       <FileUpload
         label="Property Images"
