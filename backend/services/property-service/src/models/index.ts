@@ -8,4 +8,3 @@ import "./landModel";
 import "./userModel";
 import "./LeadModel";
 
-// nothing to export

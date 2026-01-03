@@ -11,9 +11,7 @@ import { LeadCreateSchema } from "../zod/leadZod";
 /*** CREATE LEAD */
 export const createLeadController = async (req: Request, res: Response) => {
   try {
-
     const data = LeadCreateSchema.parse(req.body);
-
 
     const lead = await createLead(data);
     res.status(201).json({ success: true, data: lead });

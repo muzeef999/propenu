@@ -105,7 +105,6 @@ export const getLeads = async (query: any, user?: any) => {
 
   return Lead.find(filter)
     .populate("assignedTo", "name email")
-    .populate("projectId") // auto-uses refPath
     .sort({ createdAt: -1 })
     .lean();
 };

@@ -10,6 +10,7 @@ import landRoutes from "./routes/landRoute";
 import agriculturalRoutes from "./routes/agriculturalRoute";
 import searchRoute from "./routes/searchRoute";
 import leadRoute from "./routes/leadRoute";
+import "./models"; 
 
 dotenv.config({ quiet: true });
 
