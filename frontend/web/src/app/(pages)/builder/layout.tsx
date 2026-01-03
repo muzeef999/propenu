@@ -2,7 +2,6 @@
 
 import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
-import PromoBanner from "@/components/PromoBanner";
 
 export default function AccountLayout({
   children,
@@ -11,7 +10,6 @@ export default function AccountLayout({
 }) {
   const pathname = usePathname();
 
-  // ❌ Pages where PromoBanner should NOT appear
   const hidePromoOn = [""];
 
   const shouldShowPromo = !hidePromoOn.includes(pathname);
@@ -21,8 +19,6 @@ export default function AccountLayout({
       <Sidebar />
 
       <main className="flex-1 p-4 md:p-6">
-        {/* ✅ Promo is controlled here */}
-        {shouldShowPromo && <PromoBanner />}
 
         {children}
       </main>

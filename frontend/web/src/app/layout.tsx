@@ -3,6 +3,7 @@ import { Poppins } from "next/font/google";
 import "./global.css";
 import "leaflet/dist/leaflet.css";
 import ClientProviders from "@/app/clientLayout"; // client component – used inside <body>
+import Script from "next/script";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -24,24 +25,24 @@ export const metadata: Metadata = {
   ],
 };
 
-
-
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-
-
   return (
     <html lang="en">
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+        <Script
+          src="https://checkout.razorpay.com/v1/checkout.js"
+          strategy="afterInteractive"
+        />
+      </head>
 
       {/* Only head & body may be direct children of html */}
       <body className={`${poppins.variable} antialiased`}>
         {/* Providers must be inside <body>, not wrapping it */}
-        <ClientProviders>
-          {children}
-          
-        </ClientProviders>
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );

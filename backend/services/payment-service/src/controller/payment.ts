@@ -6,10 +6,15 @@ import { AuthRequest } from "../middlewares/authMiddleware";
 
 export async function createPayment(req: AuthRequest, res: Response) {
   try {
-    const { planId } = req.body;
-    const userId = req.user!.id;
-    const userType = req.user!.role;
+    const {planId } = req.body;
 
+     if (!planId) {
+      return res.status(400).json({ message: "planId is required" });
+    }
+    
+    const userType = req.user!.roleName;
+    const userId = req.user!.id;
+    
     const result = await createPaymentOrder(planId, userId, userType);
 
     if ("free" in result) {

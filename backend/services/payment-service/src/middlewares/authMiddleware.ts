@@ -1,15 +1,14 @@
-// src/middleware/authMiddleware.ts
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import { verifyToken } from "../utils/jwt";
 import { JwtUserPayload } from "../types/auth";
 
 export interface AuthRequest extends Request {
-  user?: JwtUserPayload;
+  user?: JwtUserPayload & { id: string };
 }
 
 export function authMiddleware(
   req: AuthRequest,
-  res: Response, 
+  res: Response,
   next: NextFunction
 ) {
   const authHeader = req.headers.authorization;
@@ -18,22 +17,21 @@ export function authMiddleware(
     return res.status(401).json({ message: "No token provided" });
   }
 
-  const parts = authHeader.split(" ");
-  const token = parts[1];
+  const token = authHeader.split(" ")[1];
 
+  // ✅ Guard: token is now guaranteed string
   if (!token) {
     return res.status(401).json({ message: "Token missing" });
   }
 
   try {
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET as string
-    ) as unknown as JwtUserPayload;
-  
-    
-    req.user = { ...decoded, _id : decoded.sub }
-    
+    const decoded = verifyToken(token);
+
+    req.user = {
+      ...decoded,
+      id: decoded.sub, // ✅ standardized user id
+    };
+
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid token" });

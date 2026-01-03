@@ -16,6 +16,8 @@ const PlanSchema = new Schema(
       required: true,
     },
 
+    
+
     tier: {
       type: String,
       enum: ["free", "tier1", "tier2", "tier3"],

@@ -26,6 +26,7 @@ export default function BuyerRentalPlansPage() {
       <PricingComparisonTable
         plans={plans}
         features={rentalBuyerFeatures}
+        userType="builder"
       />
     </div>
   );

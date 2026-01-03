@@ -17,22 +17,27 @@ const menuItems = [
   },
   {
     label: "Leads",
-    link: "/leads",
+    link: "/builder/leads",
     icon: Building,
   },
   {
     label: "Prime Proporeties",
-    link: "/Prime Proporeties",
+    link: "/builder/prime-Proporeties",
     icon: Subscription,
   },
   {
     label: "highlight projects",
-    link: "/myPlan",
+    link: "/builder/highlight-projects",
     icon: Subscription,
   },
   {
     label: "My Plan",
-    link: "/myPlan",
+    link: "/builder/my-plan",
+    icon: Subscription,
+  },
+  {
+    label: "Account Settings",
+    link: "/builder/account-settings",
     icon: Subscription,
   },
 ];

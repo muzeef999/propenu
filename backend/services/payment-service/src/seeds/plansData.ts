@@ -64,4 +64,63 @@ export const plans = [
       TEAM_MEMBERS: 5,
     },
   },
+
+
+
+  // ---------------- BUILDER SELL ----------------
+{
+  code: "BUILDER_SELL_BASE",
+  userType: "builder",
+  category: "sell",
+  tier: "tier1",
+  name: "Builder Base",
+  price: 2499,
+  features: {
+    TOP_LISTING_DAYS: 5,
+    LEAD_DASHBOARD: true,
+    NEW_LEADS: true,
+    ACTIVE_LEADS: true,
+  },
+},
+{
+  code: "BUILDER_SELL_GROWTH",
+  userType: "builder",
+  category: "sell",
+  tier: "tier2",
+  name: "Builder Growth",
+  price: 5999,
+  features: {
+    TOP_LISTING_DAYS: 10,
+    LEAD_DASHBOARD: true,
+    NEW_LEADS: true,
+    ACTIVE_LEADS: true,
+    FOLLOW_UPS: true,
+    TEAM_MEMBERS: 1,
+    PHOTOSHOOT: true,
+  },
+},
+{
+  code: "BUILDER_SELL_PRIME",
+  userType: "builder",
+  category: "sell",
+  tier: "tier3",
+  name: "Builder Prime",
+  price: 11999,
+  features: {
+    TOP_LISTING_DAYS: 20,
+    LEAD_DASHBOARD: true,
+    NEW_LEADS: true,
+    ACTIVE_LEADS: true,
+    FOLLOW_UPS: true,
+    CLOSED_DEALS: true,
+    PROJECT_WISE_LEADS: true,
+    TEAM_MEMBERS: 5,
+    PHOTOSHOOT: true,
+    WALKTHROUGH_3D: true,
+    BANNER: true,
+    BUYER_ACCESS: true,
+  },
+},
+
 ];
+

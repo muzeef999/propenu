@@ -1,18 +1,23 @@
-import mongoose, { Schema } from "mongoose";
+// models/payment.model.ts
+import { Schema, model, Types } from "mongoose";
 
 const PaymentSchema = new Schema(
   {
-    userId: Schema.Types.ObjectId,
-    userType: String,
+    userId: Types.ObjectId,
+    subscriptionId: Types.ObjectId,
+    userType: String,  
+    provider: { type: String, default: "razorpay" },
+    orderId: String,
+    paymentId: String,
 
-    planId: Schema.Types.ObjectId,
-
-    amount: Number,
-    currency: { type: String, default: "INR" },
+    planId: Types.ObjectId,
 
     razorpayOrderId: String,
     razorpayPaymentId: String,
     razorpaySignature: String,
+
+    amount: Number,
+    currency: { type: String, default: "INR" },
 
     status: {
       type: String,
@@ -23,4 +28,4 @@ const PaymentSchema = new Schema(
   { timestamps: true }
 );
 
-export const Payment = mongoose.model("Payment", PaymentSchema);
+export const Payment = model("Payment", PaymentSchema);
