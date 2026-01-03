@@ -12,7 +12,7 @@ import {
 const menuItems = [
   {
     label: "Dashboard",
-    link: "/dashboard",
+    link: "#",
     icon: profile,
   },
   {
