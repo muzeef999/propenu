@@ -22,7 +22,8 @@ interface PropertyDetails {
   slug?: string;
   gallery?: { url: string }[];
 }
-type PropertyType = "Residential" | "Commercial" | "Plot" | "Agriculture";
+// Use backend's naming convention for the raw data type for type safety
+type PropertyType = "Residential" | "Commercial" | "Land" | "Agricultural";
 interface ShortlistedItem {
   _id: string;
   propertyType: PropertyType;
@@ -41,10 +42,13 @@ const Page = () => {
     isLoading,
     isError,
     error,
-  } = useQuery<ShortlistedItem[]>({
+  } = useQuery<
+    { data: ShortlistedItem[] }, 
+    Error,
+    ShortlistedItem[] 
+  >({
     queryKey: ["shortlistedProperties"],
     queryFn: getShortlistedProperties,
-    select: (res) => res?.data ?? [],
   });
 
   if (isLoading) {
@@ -63,10 +67,19 @@ const Page = () => {
     );
   }
 
-  const filteredProperties = shortlisted.filter(
-    (item) =>
-      item.propertyType?.toLowerCase() === activeTab.toLowerCase()
-  );
+  // Normalizes backend property types (e.g., "Land") for matching with UI tabs (e.g., "Plot")
+  const normalizeType = (type?: string) => {
+    if (!type) return "";
+    const t = type.toLowerCase();
+    if (t === "land") return "plot";
+    if (t === "agricultural") return "agriculture";
+    return t;
+  };
+
+ const filteredProperties = shortlisted.filter(
+  (item) =>
+    normalizeType(item.propertyType) === activeTab.toLowerCase()
+);
   console.log("Filtered Shortlisted Properties:", filteredProperties);
 
   return (

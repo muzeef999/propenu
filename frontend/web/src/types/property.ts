@@ -68,3 +68,12 @@ export interface VerifyOtpResponse {
   message: string;
   token: string;
 }
+
+export interface Leads{
+  name: string;
+  phone: string;
+  email?: string;
+  projectId?: string;
+  propertyType?: string;
+  remarks?: string;
+}

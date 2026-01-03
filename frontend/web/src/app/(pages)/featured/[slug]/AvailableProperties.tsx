@@ -95,6 +95,14 @@ export default function AvailableProperties({ bhk }: Props) {
 
   const activeUnit = units[activeUnitIndex];
 
+  function scrollToHero() {
+    const el = document.querySelector('[aria-label="#hero-section"]') as HTMLElement | null;
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
      
@@ -206,6 +214,8 @@ export default function AvailableProperties({ bhk }: Props) {
                 </div>
                 <div className="ml-auto">
                   <button
+                    type="button"
+                    onClick={scrollToHero}
                     style={{ backgroundColor: color, color:'#FFF' }}
                     className="px-4 py-2 rounded-md  font-semibold"
                   >
@@ -267,6 +277,8 @@ export default function AvailableProperties({ bhk }: Props) {
 
               <div className="mt-6">
                 <button
+                  type="button"
+                  onClick={scrollToHero}
                   style={{ backgroundColor: color }}
                   className="w-full inline-flex justify-center items-center px-4 py-2 rounded-md text-white font-semibold hover:brightness-95 transition"
                 >

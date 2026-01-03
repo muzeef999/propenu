@@ -11,13 +11,12 @@ import {
   SuperBuiitupAraea,
   UnderConstruction,
 } from "@/icons/icons";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { GoHeart, GoHeartFill } from "react-icons/go";
 import formatINR from "@/utilies/PriceFormat";
 import Link from "next/link";
 import { BiBuildingHouse } from "react-icons/bi";
-import { postShortlistProperty } from "@/data/ClientData";
+import { postLeads, postShortlistProperty, me } from "@/data/ClientData";
 import ImageAutoCarousel from "@/ui/ImageAutoCarousel";
 
 const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
@@ -52,7 +51,21 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
     },
   });
 
-  console.log("Rendering ResidentialCard for property:", p);
+  const { data: userData, isLoading: isLoadingUser } = useQuery({
+    queryKey: ["user"],
+    queryFn: me,
+    retry: 1,
+  });
+  const user = userData?.user;
+  const { mutate: postLead, isPending: isLeadPosting } = useMutation({
+    mutationFn: postLeads,
+    onSuccess: () => {
+      toast.success("Owner will contact you shortly");
+    },
+    onError: () => {
+      toast.error("Failed to contact owner");
+    },
+  });
   return (
     <Link
       href={`/properties/residential/${p.slug}`}
@@ -237,17 +250,26 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
           }`}
         >
           <button
+            disabled={isLeadPosting}
             className={`bg-green-600 text-white rounded-md shadow-sm hover:bg-green-700 transition font-medium whitespace-nowrap ${
               vertical
                 ? "px-4 py-1.5 text-sm"
                 : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base "
             }`}
             onClick={(e) => {
-              e.preventDefault();
-              window.alert(`Contact owner for ${p?.title}`);
+              e.preventDefault(); // 🚫 stop navigation
+
+              postLead({
+                name: user?.name || "Guest User",
+                phone: user?.phone || "7993371356",
+                email: user?.email || "",
+                projectId: p.id,
+                propertyType: "residential", // backend enum
+                remarks: `Interested in ${p.title}`,
+              });
             }}
           >
-            Contact Owner
+            {isLeadPosting ? "Sending..." : "Contact Owner"}
           </button>
         </div>
       </aside>

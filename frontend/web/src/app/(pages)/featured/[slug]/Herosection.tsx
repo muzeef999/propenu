@@ -1,10 +1,14 @@
 // components/HeroSection.tsx
 "use client";
 
+import { postLeads } from "@/data/ClientData";
+import { Leads } from "@/types/property";
+import { useMutation } from "@tanstack/react-query";
 import React, { useState } from "react";
+import { toast } from "sonner";
 
 type Props = {
-  hero?: Hero | null;
+  hero?: Hero;
 };
 
 export type Stat = {
@@ -13,11 +17,13 @@ export type Stat = {
 };
 
 export type Hero = {
+  projectId: string;
   subTagline?: string;
   description?: string;
   color?: string;
   heroImage?: string;
   stats?: Stat[];
+  propertyType?: string;
 };
 
 export default function HeroSection({ hero }: Props) {
@@ -30,8 +36,21 @@ export default function HeroSection({ hero }: Props) {
     message: "",
   });
 
-  const [submitting, setSubmitting] = useState(false);
-  const [sent, setSent] = useState(false);
+  const leadsMutation = useMutation({
+    mutationFn: (payload: Leads) => postLeads(payload),
+    onSuccess: () => {
+      toast.success("Lead submitted successfully");
+      setForm({
+        name: "",
+        phone: "",
+        email: "",
+        message: "",
+      }); // Reset form
+    },
+    onError: () => {
+      toast.error("Failed to submit lead");
+    },
+  });
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -40,18 +59,39 @@ export default function HeroSection({ hero }: Props) {
     setForm((p) => ({ ...p, [name]: value }));
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setSubmitting(false);
-    setSent(true);
-    setForm({ name: "", phone: "", email: "", message: "" });
+
+    if (leadsMutation.isPending) return;
+
+    // Normalize propertyType to lowercase and trim whitespace (safe when undefined)
+    const normalizedPropertyType = hero.propertyType
+      ? hero.propertyType.toLowerCase().trim()
+      : "";
+    const validTypes = ['residential', 'commercial', 'agricultural', 'land'];
+
+    if (!normalizedPropertyType || !validTypes.includes(normalizedPropertyType)) {
+      const shown = normalizedPropertyType || hero.propertyType || "(missing)";
+      toast.error(`Invalid property type: ${shown}`);
+      console.error("Invalid propertyType:", shown);
+      return;
+    }
+
+    leadsMutation.mutate({
+      name: form.name,
+      phone: form.phone,
+      email: form.email,
+      remarks: form.message,
+      projectId: hero.projectId,
+      propertyType: normalizedPropertyType,
+    });
   }
+
+  console.log("hero", hero);
 
   return (
     <section
-      aria-label="Hero Section"
+      aria-label="#hero-section"
       className="relative min-h-[75vh] md:min-h-[85vh] bg-cover bg-center"
       style={{ backgroundImage: `url(${hero.heroImage})` }}
     >
@@ -121,18 +161,12 @@ export default function HeroSection({ hero }: Props) {
 
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={leadsMutation.isPending}
                   style={{ backgroundColor: hero.color }}
                   className="w-full text-white font-bold py-2 rounded-md hover:brightness-95 transition"
                 >
-                  {submitting ? "Submitting..." : "Submit"}
+                  {leadsMutation.isPending ? "Submitting..." : "Submit"}
                 </button>
-
-                {sent && (
-                  <p className="text-xs text-green-300">
-                    Thanks! Your enquiry was sent.
-                  </p>
-                )}
               </form>
             </div>
           </div>

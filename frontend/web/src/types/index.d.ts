@@ -47,6 +47,7 @@ export interface FeaturedProject {
   totalUnits?: number;
   availableUnits?: number;
 
+
   aboutSummary?: AboutItem[];
 
   // legal / banks
@@ -82,6 +83,7 @@ export interface FeaturedProject {
   createdBy?: Types.ObjectId | string;
   updatedBy?: Types.ObjectId | string;
   relatedProjects?: Array<Types.ObjectId | string>;
+  propertyType?: string;
 }
 
 export interface AgentConnect {

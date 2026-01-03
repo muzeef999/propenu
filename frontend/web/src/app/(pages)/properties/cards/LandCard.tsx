@@ -15,8 +15,8 @@ import { AiOutlineHeart } from "react-icons/ai";
 import { BiBuildingHouse } from "react-icons/bi";
 import { ILand } from "@/types/land";
 import ImageAutoCarousel from "@/ui/ImageAutoCarousel";
-import { useMutation } from "@tanstack/react-query";
-import { postShortlistProperty } from "@/data/ClientData";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { me, postLeads, postShortlistProperty } from "@/data/ClientData";
 import { toast } from "sonner";
 
 export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
@@ -35,13 +35,13 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isShortlisted, setIsShortlisted] = useState<boolean>(
     Boolean((p as any)?.isShortlisted)
-  )
+  );
 
-  const {mutate: shortlistProperty, isPending: isShortlisting}=useMutation({
+  const { mutate: shortlistProperty, isPending: isShortlisting } = useMutation({
     mutationFn: postShortlistProperty,
     onSuccess: () => {
       toast.success(
-        isShortlisted? "Property shortlisted!": "Removed from shortlist"
+        !isShortlisted ? "Property shortlisted!" : "Removed from shortlist"
       );
     },
     onError: () => {
@@ -49,7 +49,21 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
       toast.error("Failed to update shortlist");
     },
   });
-  console.log("Rendering LandCard for property:", p);
+  const {data: userData, isLoading: isLoadingUser } = useQuery({
+    queryKey: ["user"],
+    queryFn: me,
+    retry: 1,
+  });
+  const user = userData?.user;
+  const {mutate: postLead, isPending: isLeadPosting } = useMutation({
+    mutationFn: postLeads,
+    onSuccess: () => {
+      toast.success("Owner will contact you shortly");
+    },
+    onError: () => {
+      toast.error("Failed to contact owner");
+    },
+  });
 
   return (
     <Link
@@ -71,10 +85,16 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
           isShortlisted={isShortlisted}
           isShortlistLoading={isShortlisting}
           onToggleShortlist={() => {
+            if (!p.id) {
+              toast.error(
+                "Failed to update shortlist: Property ID is missing."
+              );
+              return;
+            }
             setIsShortlisted((prev) => !prev);
 
             shortlistProperty({
-              propertyId: p._id,
+              propertyId: p.id ?? p._id,
               propertyType: "Land",
             });
           }}
@@ -232,19 +252,28 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
               : "shrink-0 md:w-full md:mt-4 justify-center flex"
           }`}
         >
-          <div
-            className={`bg-green-600 text-white rounded-md shadow-sm hover:bg-green-700 transition font-medium whitespace-nowrap cursor-pointer text-center ${
+           <button
+            disabled={isLeadPosting}
+            className={`bg-green-600 text-white rounded-md shadow-sm hover:bg-green-700 transition font-medium whitespace-nowrap ${
               vertical
                 ? "px-4 py-1.5 text-sm"
-                : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base"
+                : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base "
             }`}
             onClick={(e) => {
-              e.preventDefault();
-              window.alert(`Contact owner for ${p?.title}`);
+              e.preventDefault(); // 🚫 stop navigation
+
+              postLead({
+                name: user?.name || "Guest User",
+                phone: user?.phone || "7993371356",
+                email: user?.email || "",
+                projectId: p.id,
+                propertyType: "residential", // backend enum
+                remarks: `Interested in ${p.title}`,
+              });
             }}
           >
-            Contact Owner
-          </div>
+            {isLeadPosting ? "Sending..." : "Contact Owner"}
+          </button>
         </div>
       </aside>
     </Link>

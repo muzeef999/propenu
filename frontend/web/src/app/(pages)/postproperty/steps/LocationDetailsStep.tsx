@@ -3,7 +3,7 @@
 import NearbyLocationSearch from "@/components/location/NearbyLocationSearch";
 import dynamic from "next/dynamic";
 import { useDispatch, useSelector } from "react-redux";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { setBaseField, nextStep } from "@/Redux/slice/postPropertySlice";
 import { validateLocationDetails } from "@/zod/locationDetailsZod";
@@ -40,6 +40,53 @@ const LocationDetailsStep = () => {
 
   const dispatch = useDispatch();
   const [showErrors, setShowErrors] = useState(false);
+
+  useEffect(() => {
+if (!base.locality || !base.city || !base.state) return;
+
+const controller = new AbortController();
+
+const fetchCoordinates = async () => {
+  try {
+    const query = `${base.locality}, ${base.city}, ${base.state}`;
+
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        query
+      )}&limit=1`,
+      {
+        signal: controller.signal,
+        headers: {
+          "Accept-Language": "en",
+        },
+      }
+    );
+
+    const data = await res.json();
+    if (!data || data.length === 0) return;
+
+    const { lat, lon } = data[0];
+
+    dispatch(
+      setBaseField({
+        key: "location",
+        value: {
+          type: "Point",
+          coordinates: [Number(lon), Number(lat)],
+        },
+      })
+    );
+  } catch (err) {
+    if ((err as any).name !== "AbortError") {
+      console.error("Geocoding error", err);
+    }
+  }
+};
+
+fetchCoordinates();
+
+return () => controller.abort();
+}, [base.locality, base.city, base.state]);
 
   const validationResult = validateLocationDetails(base);
   const isFormValid = validationResult.success;
@@ -217,7 +264,7 @@ const LocationDetailsStep = () => {
       </div>
 
       {/* Nearby locations */}
-      <NearbyLocationSearch />
+      <NearbyLocationSearch city={base.city} state={base.state} />
 
       {/* Continue */}
       <button

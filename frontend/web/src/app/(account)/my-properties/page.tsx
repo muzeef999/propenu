@@ -172,13 +172,13 @@ const Page = () => {
                 {/* Content */}
                 <div className="flex flex-1 flex-col">
                   <div className="flex items-start justify-between">
-                    <div className="min-w-0">
-                      <h3 className="truncate text-lg font-semibold text-gray-900">
+                    <div className="min-w-0 max-w-[380px]">
+                      <h3 className="truncate text-lg font-semibold text-gray-900 ">
                         {property.title ?? "Untitled Property"}
                       </h3>
 
                       <div className="mt-1 flex items-center gap-1 text-sm text-gray-500 truncate">
-                        <HiOutlineMapPin className="h-4 w-4 text-green-600 shrink-0" />
+                        <HiOutlineMapPin className="h-4 w-4 text-green-600 shrink-0 " />
                         {property.address ?? "Location not specified"}
                       </div>
                     </div>

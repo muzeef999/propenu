@@ -1,6 +1,6 @@
 // services/property.service.ts
 
-import { ApiResponse, RequestOtpPayload, VerifyOtpPayload, VerifyOtpResponse } from "@/types/property";
+import { ApiResponse, Leads, RequestOtpPayload, VerifyOtpPayload, VerifyOtpResponse } from "@/types/property";
 import { SearchFilterParams } from "@/types/sharedTypes";
 import axiosInstance from "@/utilies/axiosInstance";
 import Cookies from "js-cookie";
@@ -108,4 +108,23 @@ export const getPlans = async ({userType, category}: { userType: "buyer" | "owne
   return res.data;
 };
 
+export const postLeads = async (payload: {
+  name: string;
+  phone: string;
+  email?: string;
+  projectId?: string;
+  propertyType?: string;
+  remarks?: string;
+}) => {
+  const cookies = Cookies.get("token");
+  if (!cookies) return null;
+
+  const res = await axiosInstance.post(`${url}/api/properties/leads`, payload, {
+    headers: {
+      Authorization: `Bearer ${cookies}`,
+    },
+  });
+  return res.data;
+  
+}
 

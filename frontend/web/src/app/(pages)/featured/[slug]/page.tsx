@@ -43,8 +43,10 @@ export default async function Page({ params }: PageProps) {
   ];
 
   const hero = {
+    projectId: project._id,
     subTagline: project?.heroSubTagline,
     description: project?.heroDescription,
+    propertyType: project?.propertyType || "residential",
     color: project?.color?.trim(),
     heroImage: project.heroImage,
     stats: [
@@ -82,6 +84,7 @@ export default async function Page({ params }: PageProps) {
     aboutSummary: project?.aboutSummary,
     color: project?.color?.trim(),
   };
+  console.log(project);
 
   return (
     <div>

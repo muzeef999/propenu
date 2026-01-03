@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import React, { useState } from "react";
 import {
   Furnishing,
@@ -13,8 +13,12 @@ import { AiOutlineHeart } from "react-icons/ai";
 import { BiBuildingHouse } from "react-icons/bi";
 import { ICommercial } from "@/types/commercial";
 import ImageAutoCarousel from "@/ui/ImageAutoCarousel";
-import { useMutation } from "@tanstack/react-query";
-import { postShortlistProperty } from "@/data/ClientData";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  me,
+  postLeads,
+  postShortlistProperty,
+} from "@/data/ClientData";
 import { toast } from "sonner";
 
 const bgPriceColor = hexToRGBA("#27AE60", 0.1);
@@ -29,18 +33,33 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isShortlisted, setIsShortlisted] = useState<boolean>(
     Boolean((p as any)?.isShortlisted)
-  )
+  );
 
   const { mutate: shortlistProperty, isPending: isShortlisting } = useMutation({
     mutationFn: postShortlistProperty,
     onSuccess: () => {
       toast.success(
-        isShortlisted ? "Property shortlisted!" : "Removed from shortlist"
+        !isShortlisted ? "Property shortlisted!" : "Removed from shortlist"
       );
     },
     onError: () => {
       setIsShortlisted((prev) => !prev); // rollback
       toast.error("Failed to update shortlist");
+    },
+  });
+  const { data: userData, isLoading: isLoadingUser } = useQuery({
+    queryKey: ["user"],
+    queryFn: me,
+    retry: 1,
+  });
+  const user = userData?.user;
+  const { mutate: postLead, isPending: isLeadPosting } = useMutation({
+    mutationFn: postLeads,
+    onSuccess: () => {
+      toast.success("Owner will contact you shortly");
+    },
+    onError: () => {
+      toast.error("Failed to contact owner");
     },
   });
 
@@ -68,12 +87,13 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
           isShortlisted={isShortlisted}
           isShortlistLoading={isShortlisting}
           onToggleShortlist={() => {
+            if (!p.id) return;
             // optimistic UI
             setIsShortlisted((prev) => !prev);
 
             shortlistProperty({
-              propertyId: p._id,
-              propertyType: "Commercial",
+              propertyId: p.id ?? p._id,
+              propertyType: (p as any).type ?? "Commercial",
             });
           }}
         />
@@ -229,17 +249,26 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
           }`}
         >
           <button
+            disabled={isLeadPosting}
             className={`bg-green-600 text-white rounded-md shadow-sm hover:bg-green-700 transition font-medium whitespace-nowrap ${
               vertical
                 ? "px-4 py-1.5 text-sm"
-                : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base"
+                : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base "
             }`}
             onClick={(e) => {
               e.preventDefault();
-              window.alert(`Contact owner for ${p?.title}`);
+
+              postLead({
+                name: user?.name || "Guest User",
+                phone: user?.phone || "7993371356",
+                email: user?.email || "",
+                projectId: p.id,
+                propertyType: "residential", // backend enum
+                remarks: `Interested in ${p.title}`,
+              });
             }}
           >
-            Contact Owner
+            {isLeadPosting ? "Sending..." : "Contact Owner"}
           </button>
         </div>
       </aside>
