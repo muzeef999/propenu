@@ -1,22 +1,45 @@
-import { Types } from 'mongoose';
-import { Lead } from '../models/LeadModel';
+import { Types } from "mongoose";
+import Lead from "../models/LeadModel";
+
+const PROPERTY_MODEL_MAP: Record<string, string> = {
+  featuredprojects: "FeaturedProject",
+  residentials: "Residential",
+  commercials: "Commercial",
+  agriculturals: "Agricultural",
+  landplots: "LandPlot",
+};
 
 /** CREATE LEAD **/
-export const createLead = async (data: any,) => {
- 
-  return Lead.create({
+export const createLead = async (data: any) => {
+
+  const { propertyType, projectId } = data;
+
+  if (!Types.ObjectId.isValid(projectId)) {
+    throw new Error("Invalid project/property ID");
+  }
+
+  const propertyModel = PROPERTY_MODEL_MAP[propertyType];
+
+  if (!propertyModel) {
+    throw new Error(`Invalid propertyType: ${propertyType}`);
+  }
+
+  const leadPayload = {
     ...data,
-  });
+    propertyModel, // 🔥 REQUIRED
+  };
+
+  return await Lead.create(leadPayload);
 };
 
 /**  ASSIGN LEAD TO SALES **/
 export const assignLead = async (leadId: string, assignedTo: string) => {
   if (!Types.ObjectId.isValid(leadId)) {
-    throw new Error('Invalid lead ID');
+    throw new Error("Invalid lead ID");
   }
 
   if (!Types.ObjectId.isValid(assignedTo)) {
-    throw new Error('Invalid user ID');
+    throw new Error("Invalid user ID");
   }
 
   const lead = await Lead.findByIdAndUpdate(
@@ -25,7 +48,7 @@ export const assignLead = async (leadId: string, assignedTo: string) => {
     { new: true }
   );
 
-  if (!lead) throw new Error('Lead not found');
+  if (!lead) throw new Error("Lead not found");
 
   return lead;
 };
@@ -37,24 +60,24 @@ export const updateLeadStatus = async (
   user?: any
 ) => {
   if (!Types.ObjectId.isValid(leadId)) {
-    throw new Error('Invalid lead ID');
+    throw new Error("Invalid lead ID");
   }
 
   // Manager-only approval
-  if (status === 'approved' && user?.role !== 'manager') {
-    throw new Error('Only manager can approve leads');
+  if (status === "approved" && user?.role !== "manager") {
+    throw new Error("Only manager can approve leads");
   }
 
   const lead = await Lead.findByIdAndUpdate(
     leadId,
     {
       status,
-      approvedByManager: status === 'approved',
+      approvedByManager: status === "approved",
     },
     { new: true }
   );
 
-  if (!lead) throw new Error('Lead not found');
+  if (!lead) throw new Error("Lead not found");
 
   return lead;
 };
@@ -63,38 +86,41 @@ export const updateLeadStatus = async (
 export const getLeads = async (query: any, user?: any) => {
   const filter: any = {};
 
-  if (query.status) filter.status = query.status;
-  if (query.propertyType) filter.propertyType = query.propertyType;
+  /* ✅ Project-wise filter */
+  if (query.projectId) {
+    if (!Types.ObjectId.isValid(query.projectId)) {
+      throw new Error("Invalid projectId");
+    }
+    filter.projectId = query.projectId;
+  }
 
-  // SALES → only assigned leads
-  if (user?.role === 'sales') {
+  /* Optional filters */
+  if (query.propertyType) filter.propertyType = query.propertyType;
+  if (query.status) filter.status = query.status;
+
+  /* Role-based rules */
+  if (user?.role === "sales") {
     filter.assignedTo = user.id;
   }
 
-  // OWNER → leads for own properties
-  if (user?.role === 'owner') {
-    filter.propertyOwner = user.id;
-  }
-
-  // ADMIN / MANAGER → see all
-
   return Lead.find(filter)
-    .populate('assignedTo', 'name email')
-    .populate('propertyId')
-    .sort({ createdAt: -1 });
+    .populate("assignedTo", "name email")
+    .populate("projectId") // auto-uses refPath
+    .sort({ createdAt: -1 })
+    .lean();
 };
 
 /*** GET SINGLE LEAD **/
 export const getLeadById = async (id: string) => {
   if (!Types.ObjectId.isValid(id)) {
-    throw new Error('Invalid lead ID');
+    throw new Error("Invalid lead ID");
   }
 
   const lead = await Lead.findById(id)
-    .populate('assignedTo', 'name email')
-    .populate('propertyId');
+    .populate("assignedTo", "name email")
+    .populate("projectId");
 
-  if (!lead) throw new Error('Lead not found');
+  if (!lead) throw new Error("Lead not found");
 
   return lead;
 };

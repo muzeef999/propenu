@@ -11,7 +11,10 @@ import { LeadCreateSchema } from "../zod/leadZod";
 /*** CREATE LEAD */
 export const createLeadController = async (req: Request, res: Response) => {
   try {
+
     const data = LeadCreateSchema.parse(req.body);
+
+
     const lead = await createLead(data);
     res.status(201).json({ success: true, data: lead });
   } catch (error: any) {
@@ -52,7 +55,7 @@ export const updateLeadStatusController = async (
         message: "Lead ID is required",
       });
     }
-    const lead = await updateLeadStatus(id, req.body.status,);
+    const lead = await updateLeadStatus(id, req.body.status);
     res.json({ success: true, data: lead });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });

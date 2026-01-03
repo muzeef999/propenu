@@ -1,40 +1,46 @@
-import { Types } from 'mongoose';
+import { Types } from "mongoose";
 
+/* API values */
 export type LeadPropertyType =
-  | 'residential'
-  | 'commercial'
-  | 'agricultural'
-  | 'land';
+  | "featuredprojects"
+  | "residentials"
+  | "commercials"
+  | "agriculturals"
+  | "landplots";
 
 export type LeadStatus =
-  | 'new'
-  | 'contacted'
-  | 'follow_up'
-  | 'approved'
-  | 'rejected'
-  | 'closed';
+  | "new"
+  | "contacted"
+  | "follow_up"
+  | "approved"
+  | "rejected"
+  | "closed";
 
-export interface ICreateLead {
+/* ✅ FULL SCHEMA SHAPE (IMPORTANT) */
+export interface LeadSchemaShape {
   name: string;
   phone: string;
   email?: string;
-  projectId: string; 
+
   propertyType: LeadPropertyType;
-  remarks?: string;
-}
-
-export interface ILead {
-  _id: Types.ObjectId;
-  name: string;
-  phone: string;
-  email?: string;
+  propertyModel: string;
   projectId: Types.ObjectId;
-  propertyType: LeadPropertyType;
+
   status: LeadStatus;
   assignedTo?: Types.ObjectId;
   approvedByManager: boolean;
   remarks?: string;
+}
 
+/* ✅ CREATE INPUT (no defaults, no mongo fields) */
+export type LeadCreateInput = Omit<
+  LeadSchemaShape,
+  "status" | "assignedTo" | "approvedByManager"
+>;
+
+/* ✅ DB DOCUMENT */
+export interface LeadDocument extends LeadSchemaShape {
+  _id: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }

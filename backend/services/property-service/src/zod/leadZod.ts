@@ -5,14 +5,12 @@ import { Types } from "mongoose";
    COMMON HELPERS
 ---------------------------------- */
 
-// MongoDB ObjectId validator
 export const objectIdSchema = z
   .string()
   .refine((val) => Types.ObjectId.isValid(val), {
     message: "Invalid ObjectId",
   });
 
-// Optional string (handles empty string from UI)
 export const optionalString = () =>
   z
     .string()
@@ -21,14 +19,15 @@ export const optionalString = () =>
     .optional();
 
 /* ---------------------------------
-   ENUMS (Single Source of Truth)
+   ENUMS (API-FACING)
 ---------------------------------- */
 
 export const LEAD_PROPERTY_TYPES = [
-  "residential",
-  "commercial",
-  "agricultural",
-  "land",
+  "featuredprojects",
+  "residentials",
+  "commercials",
+  "agriculturals",
+  "landplots",
 ] as const;
 
 export const LEAD_STATUSES = [
@@ -41,17 +40,27 @@ export const LEAD_STATUSES = [
 ] as const;
 
 /* ---------------------------------
-   CREATE LEAD (POST)
+   INTERNAL DB ENUM (IMPORTANT)
+---------------------------------- */
+
+export const LEAD_PROPERTY_MODELS = [
+  "FeaturedProject",
+  "Residential",
+  "Commercial",
+  "Agricultural",
+  "LandPlot",
+] as const;
+
+/* ---------------------------------
+   CREATE LEAD (REQUEST BODY)
 ---------------------------------- */
 
 export const LeadCreateSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-
   phone: z.string().min(10, "Phone number must be at least 10 digits"),
-
   email: z.string().email("Invalid email").optional(),
 
-  projectId: objectIdSchema, 
+  projectId: objectIdSchema,
 
   propertyType: z.enum(LEAD_PROPERTY_TYPES),
 
@@ -65,7 +74,7 @@ export const LeadCreateSchema = z.object({
    UPDATE LEAD (PATCH)
 ---------------------------------- */
 
-export const LeadUpdateSchema = LeadCreateSchema.partial().extend({
+export const LeadUpdateSchema = z.object({
   status: z.enum(LEAD_STATUSES).optional(),
   assignedTo: objectIdSchema.optional(),
   approvedByManager: z.boolean().optional(),
@@ -75,19 +84,23 @@ export const LeadUpdateSchema = LeadCreateSchema.partial().extend({
    DB / RESPONSE SCHEMA
 ---------------------------------- */
 
-export const LeadSchema = LeadCreateSchema.extend({
+export const LeadDbSchema = LeadCreateSchema.extend({
   _id: objectIdSchema,
+
+  propertyModel: z.enum(LEAD_PROPERTY_MODELS),
+
   status: z.enum(LEAD_STATUSES),
-  assignedTo: objectIdSchema.optional(),
+  assignedTo: objectIdSchema.nullable(),
   approvedByManager: z.boolean(),
+
   createdAt: z.date(),
   updatedAt: z.date(),
 });
 
 /* ---------------------------------
-   TYPES (Auto-inferred)
+   TYPES
 ---------------------------------- */
 
 export type CreateLead = z.infer<typeof LeadCreateSchema>;
 export type UpdateLead = z.infer<typeof LeadUpdateSchema>;
-export type Lead = z.infer<typeof LeadSchema>;
+export type LeadDb = z.infer<typeof LeadDbSchema>;
