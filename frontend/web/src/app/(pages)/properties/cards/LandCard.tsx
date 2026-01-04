@@ -267,7 +267,7 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
                 phone: user?.phone || "7993371356",
                 email: user?.email || "",
                 projectId: p.id,
-                propertyType: "residential", // backend enum
+                propertyType: "landplots", // backend enum
                 remarks: `Interested in ${p.title}`,
               });
             }}

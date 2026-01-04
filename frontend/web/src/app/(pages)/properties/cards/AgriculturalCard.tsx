@@ -266,7 +266,7 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
                 phone: user?.phone || "7993371356",
                 email: user?.email || "",
                 projectId: p.id,
-                propertyType: "residential", // backend enum
+                propertyType: "agriculturals", // backend enum
                 remarks: `Interested in ${p.title}`,
               });
             }}

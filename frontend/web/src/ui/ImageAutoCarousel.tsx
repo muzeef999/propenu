@@ -116,15 +116,7 @@ const ImageAutoCarousel = ({
             e.preventDefault();
             prev();
           }}
-          className="
-            absolute left-2 top-1/2 -translate-y-1/2
-            flex h-8 w-8 items-center justify-center
-            rounded-full bg-black/30 text-white
-            opacity-0 -translate-x-2
-            transition-all duration-300 ease-out
-            group-hover:opacity-100 group-hover:translate-x-0
-            hover:bg-black/50
-          "
+          className="absolute left-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white opacity-0 -translate-x-2 transition-all duration-300 ease-out group-hover:opacity-100 group-hover:translate-x-0 hover:bg-black/50"
         >
           <HiChevronLeft className="h-5 w-5" />
         </button>
@@ -137,15 +129,7 @@ const ImageAutoCarousel = ({
             e.preventDefault();
             next();
           }}
-          className="
-            absolute right-2 top-1/2 -translate-y-1/2
-            flex h-8 w-8 items-center justify-center
-            rounded-full bg-black/30 text-white
-            opacity-0 translate-x-2
-            transition-all duration-300 ease-out
-            group-hover:opacity-100 group-hover:translate-x-0
-            hover:bg-black/50
-          "
+          className="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white opacity-0 translate-x-2 transition-all duration-300 ease-out group-hover:opacity-100 group-hover:translate-x-0 hover:bg-black/50"
         >
           <HiChevronRight className="h-5 w-5" />
         </button>

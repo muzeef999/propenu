@@ -82,6 +82,7 @@ export interface IResidential {
     type: "Point";
     coordinates: [number, number]; // [longitude, latitude]
   };
+  type?: string;
 }
 
 

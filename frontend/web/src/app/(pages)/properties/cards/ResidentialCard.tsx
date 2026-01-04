@@ -66,6 +66,7 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
       toast.error("Failed to contact owner");
     },
   });
+  console.log("Residential Card Rendered:", p);
   return (
     <Link
       href={`/properties/residential/${p.slug}`}
@@ -264,7 +265,7 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
                 phone: user?.phone || "7993371356",
                 email: user?.email || "",
                 projectId: p.id,
-                propertyType: "residential", // backend enum
+                propertyType: "residentials", // backend enum
                 remarks: `Interested in ${p.title}`,
               });
             }}

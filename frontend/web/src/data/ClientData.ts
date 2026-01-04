@@ -83,7 +83,7 @@ export const getMyProperties = async () => {
   const token = Cookies.get("token");
   if (!token) return null;
 
-  const res = await axiosInstance.get(`${url}/api/properties/my`, {
+  const res = await axiosInstance.get(`${url}/api/properties/search/my`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -128,3 +128,14 @@ export const postLeads = async (payload: {
   
 }
 
+export const getProjectLeads = async (projectId: string) => {
+  const token = Cookies.get("token");
+  if (!token) return null;
+
+  const res = await axiosInstance.get(`${url}/api/properties/leads?projectId=${projectId}`, {
+     headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return res.data;
+};

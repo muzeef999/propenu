@@ -29,6 +29,9 @@ export type Hero = {
 export default function HeroSection({ hero }: Props) {
   if (!hero) return null;
 
+  // Type guard: ensure hero is not undefined for the rest of the component
+  const h = hero as Hero;
+
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -65,13 +68,13 @@ export default function HeroSection({ hero }: Props) {
     if (leadsMutation.isPending) return;
 
     // Normalize propertyType to lowercase and trim whitespace (safe when undefined)
-    const normalizedPropertyType = hero.propertyType
-      ? hero.propertyType.toLowerCase().trim()
+    const normalizedPropertyType = h.propertyType
+      ? h.propertyType.toLowerCase().trim()
       : "";
     const validTypes = ['residential', 'commercial', 'agricultural', 'land'];
 
     if (!normalizedPropertyType || !validTypes.includes(normalizedPropertyType)) {
-      const shown = normalizedPropertyType || hero.propertyType || "(missing)";
+      const shown = normalizedPropertyType || h.propertyType || "(missing)";
       toast.error(`Invalid property type: ${shown}`);
       console.error("Invalid propertyType:", shown);
       return;
@@ -82,18 +85,18 @@ export default function HeroSection({ hero }: Props) {
       phone: form.phone,
       email: form.email,
       remarks: form.message,
-      projectId: hero.projectId,
+      projectId: h.projectId,
       propertyType: normalizedPropertyType,
     });
   }
 
-  console.log("hero", hero);
+  console.log("hero", h);
 
   return (
     <section
       aria-label="#hero-section"
       className="relative min-h-[75vh] md:min-h-[85vh] bg-cover bg-center"
-      style={{ backgroundImage: `url(${hero.heroImage})` }}
+      style={{ backgroundImage: `url(${h.heroImage})` }}
     >
       {/* DARK OVERLAY */}
       <div className="absolute inset-0 bg-linear-to-b from-white/0 to-black" />
@@ -104,13 +107,13 @@ export default function HeroSection({ hero }: Props) {
           {/* LEFT TEXT */}
           <div className="lg:col-span-7 space-y-6">
             <h1 className="text-white text-2xl sm:text-3xl md:text-[64px] leading-tight">
-              {hero.subTagline}
+              {h.subTagline}
             </h1>
             <h2
               className="text-md sm:text-3xl  line-clamp-2 overflow-hidden"
-              style={{ color: hero.color }}
+              style={{ color: h.color }}
             >
-              {hero.description}
+              {h.description}
             </h2>
           </div>
 
@@ -162,7 +165,7 @@ export default function HeroSection({ hero }: Props) {
                 <button
                   type="submit"
                   disabled={leadsMutation.isPending}
-                  style={{ backgroundColor: hero.color }}
+                  style={{ backgroundColor: h.color }}
                   className="w-full text-white font-bold py-2 rounded-md hover:brightness-95 transition"
                 >
                   {leadsMutation.isPending ? "Submitting..." : "Submit"}
@@ -177,7 +180,7 @@ export default function HeroSection({ hero }: Props) {
       <div className="absolute bottom-0 left-0 w-full lg:w-[65%] z-10">
         <div>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            {hero.stats?.map((stat, idx) => (
+            {h.stats?.map((stat, idx) => (
               <div key={idx}>
                 <div className="text-white text-xl md:text-2xl font-bold">
                   {stat.value}
@@ -187,7 +190,7 @@ export default function HeroSection({ hero }: Props) {
 
                 <div
                   className="w-12 h-0.5 mx-auto mt-2"
-                  style={{ backgroundColor: hero.color }}
+                  style={{ backgroundColor: h.color }}
                 />
               </div>
             ))}

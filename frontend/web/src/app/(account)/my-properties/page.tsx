@@ -11,6 +11,8 @@ import { getMyProperties } from "@/data/ClientData";
 import NopropertiesSvg from "@/svg/NopropertiesSvg";
 import SelectableButton from "@/ui/SelectableButton";
 import Dropdownui from "@/ui/DropDownUI";
+import ResponsesDrawer from "../ResponsesDrawer";
+import { useResponses } from "../ResponsesContext";
 
 /* ================= TYPES ================= */
 
@@ -54,11 +56,29 @@ const Page = () => {
   const [status, setStatus] = useState<
     "All" | "Active" | "Reported" | "Subscription Expired" | "Deactivate"
   >("All");
+const [openResponses, setOpenResponses] = useState(false);
 
   const { data, isLoading } = useQuery<any>({
     queryKey: ["myProperties"],
     queryFn: getMyProperties,
   });
+
+  function ResponsesButton({ propertyId }: { propertyId: string }) {
+    const { setActiveProjectId, setOpenResponses } = useResponses();
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          setActiveProjectId(propertyId);
+          setOpenResponses(true);
+        }}
+        className="text-xs text-green-600 hover:underline"
+      >
+        Responses
+      </button>
+    );
+  }
 
   /* ================= FILTER LOGIC ================= */
 
@@ -92,6 +112,7 @@ const Page = () => {
       </div>
     );
   }
+  console.log("Filtered Properties:", filteredProperties);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-1">
@@ -155,7 +176,7 @@ const Page = () => {
             return (
               <Link
                 key={property._id}
-                href={`/properties/${property.propertyType ?? "residential"}/${
+                href={`/properties/${TAB_KEY_MAP[activeTab] ?? "residential"}/${
                   property.slug
                 }`}
                 className="card group flex flex-row items-start gap-5 border border-gray-200 p-2"
@@ -183,8 +204,8 @@ const Page = () => {
                       </div>
                     </div>
 
-                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
-                      Active
+                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700 capitalize">
+                      {property.status}
                     </span>
                   </div>
 
@@ -257,6 +278,7 @@ const Page = () => {
                         {property.meta?.enquiries ?? 0}
                       </span>
                     </p>
+                    <ResponsesButton propertyId={property._id} />
                   </div>
                 </div>
               </Link>

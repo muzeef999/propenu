@@ -10,6 +10,7 @@ import { IoLocationOutline } from "react-icons/io5";
 import ActiveTabs from "@/ui/ActiveTabs";
 import { getShortlistedProperties } from "@/data/ClientData";
 import NopropertiesSvg from "@/svg/NopropertiesSvg";
+import { GoHeartFill } from "react-icons/go";
 
 /* ================= TYPES ================= */
 
@@ -49,6 +50,7 @@ const Page = () => {
   >({
     queryKey: ["shortlistedProperties"],
     queryFn: getShortlistedProperties,
+    select: (data) => data.data,
   });
 
   if (isLoading) {
@@ -118,7 +120,7 @@ const Page = () => {
                   />
 
                   <div className="absolute top-3 right-3 bg-white p-2 rounded-full shadow">
-                    <HiHeart className="w-5 h-5 text-red-500" />
+                    <GoHeartFill className="w-5 h-5 text-red-500" />
                   </div>
                 </div>
 
