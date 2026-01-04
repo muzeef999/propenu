@@ -66,7 +66,6 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
       toast.error("Failed to contact owner");
     },
   });
-  console.log("Residential Card Rendered:", p);
   return (
     <Link
       href={`/properties/residential/${p.slug}`}

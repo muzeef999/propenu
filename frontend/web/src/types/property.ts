@@ -54,12 +54,10 @@ export interface ApiResponse {
 
 
 export interface RequestOtpPayload  {
-  name: string;
   email: string;
 };
 
 export interface VerifyOtpPayload {
-  name: string;
   email: string;
   otp: string;
 };
@@ -69,11 +67,15 @@ export interface VerifyOtpResponse {
   token: string;
 }
 
-export interface Leads{
+export interface createRequestOtpPayload {
   name: string;
-  phone: string;
-  email?: string;
-  projectId?: string;
-  propertyType?: string;
-  remarks?: string;
+  email: string;
+  role: string;
+}
+
+export interface createVerifyOtpPayload {
+  email: string;
+  otp: string;
+  name: string;
+  role: string;
 }

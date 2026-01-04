@@ -1,6 +1,6 @@
 // services/property.service.ts
 
-import { ApiResponse, Leads, RequestOtpPayload, VerifyOtpPayload, VerifyOtpResponse } from "@/types/property";
+import { ApiResponse, createRequestOtpPayload, createVerifyOtpPayload, RequestOtpPayload, VerifyOtpPayload, VerifyOtpResponse } from "@/types/property";
 import { SearchFilterParams } from "@/types/sharedTypes";
 import axiosInstance from "@/utilies/axiosInstance";
 import Cookies from "js-cookie";
@@ -32,6 +32,19 @@ export const requestOtp = async(payload:RequestOtpPayload) => {
 
   return res.data; // this is now VerifyOtpResponse
 };
+
+export const createRequestOtp = async(payload:createRequestOtpPayload) => {
+  const res = await axiosInstance.post<createRequestOtpPayload>(`${url}/api/users/auth/request-otp/create`, payload)
+  return  res.data
+  }
+
+  export const createVerifyOtp = async (payload: createVerifyOtpPayload) => {
+    const res = await axiosInstance.post<createVerifyOtpPayload>(
+    `${url}/api/users/auth/verify-otp/create`,
+    payload
+  );
+  return res.data;
+}
 
 export const me = async() => {
 

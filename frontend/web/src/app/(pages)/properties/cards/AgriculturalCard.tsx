@@ -83,7 +83,6 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
           isShortlisted={isShortlisted}
           isShortlistLoading={isShortlisting}
           onToggleShortlist={() => {
-            console.log("Toggling shortlist for property:", p);
             if (!p.id) {
               toast.error("Property ID is missing, cannot update shortlist.");
               return;

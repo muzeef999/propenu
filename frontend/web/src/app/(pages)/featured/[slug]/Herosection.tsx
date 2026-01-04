@@ -90,7 +90,6 @@ export default function HeroSection({ hero }: Props) {
     });
   }
 
-  console.log("hero", h);
 
   return (
     <section

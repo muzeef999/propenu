@@ -14,13 +14,13 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 interface LoginDialogProps {
   open: boolean;
   onClose: () => void;
+  onSwitchToRegister: () => void;
 }
 
 const OTP_LENGTH = 4;
 
-const LoginDialog = ({ open, onClose }: LoginDialogProps) => {
+const LoginDialog = ({ open, onClose, onSwitchToRegister }: LoginDialogProps) => {
   const [step, setStep] = useState<"request" | "verify">("request");
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [otpDigits, setOtpDigits] = useState<string[]>(
     Array(OTP_LENGTH).fill("")
@@ -34,14 +34,14 @@ const LoginDialog = ({ open, onClose }: LoginDialogProps) => {
 
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
-  const canRequestOtp = name.trim().length > 1 && emailRegex.test(email);
+  const canRequestOtp =  emailRegex.test(email);
   const canVerifyOtp = otp.length === OTP_LENGTH;
 
   if (!open) return null; // don't render when closed
 
   async function handleRequestOtp() {
     if (!canRequestOtp) {
-      setError("Please enter a valid name and email.");
+      setError("Please enter a valid email.");
       return;
     }
 
@@ -50,7 +50,7 @@ const LoginDialog = ({ open, onClose }: LoginDialogProps) => {
     setInfo(null);
 
     try {
-      await requestOtp({ name: name.trim(), email: email.trim() });
+      await requestOtp({ email: email.trim() });
       toast.success("OTP sent to your email. Please check your inbox.");
       setStep("verify");
     } catch (err) {
@@ -74,7 +74,6 @@ const LoginDialog = ({ open, onClose }: LoginDialogProps) => {
 
     try {
       const res: VerifyOtpResponse = await verifyOtp({
-        name: name.trim(),
         email: email.trim(),
         otp: otpToSubmit,
       });
@@ -159,7 +158,6 @@ const LoginDialog = ({ open, onClose }: LoginDialogProps) => {
 
   function handleClose() {
     setStep("request");
-    setName("");
     setEmail("");
     setOtpDigits(Array(OTP_LENGTH).fill(""));
     setError(null);
@@ -200,12 +198,7 @@ const LoginDialog = ({ open, onClose }: LoginDialogProps) => {
 
           {step === "request" && (
             <div className="space-y-5">
-              <InputField
-                label="Full Name"
-                value={name}
-                onChange={setName}
-                placeholder="Enter your full name"
-              />
+              
               <InputField
                 label="Email Address"
                 type="email"
@@ -235,7 +228,14 @@ const LoginDialog = ({ open, onClose }: LoginDialogProps) => {
               <div className="text-center">
                 <p className="text-xs text-gray-500">
                   New to Propenu?{" "}
-                  <button className="font-medium text-emerald-600 hover:text-emerald-700 hover:underline">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onSwitchToRegister();
+                    }}
+                    className="font-medium text-emerald-600 hover:text-emerald-700 hover:underline"
+                  >
                     Create an account
                   </button>
                 </p>

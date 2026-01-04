@@ -6,11 +6,14 @@ import type { DropdownProps } from "@/ui/SingleDropDown";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import LoginDialog from "@/app/(auth)/Login";
+import RegisterDialog from "@/app/(auth)/Register";
 import { me } from "@/data/ClientData";
 import UserGreeting from "@/app/(auth)/UserGreeting";
 import FilterDropdown from "@/ui/FilterDropdown";
 import { useCity } from "@/hooks/useCity";
 import { LocationItem } from "@/types";
+
+type AuthMode = "login" | "register" | null;
 
 const Dropdown = dynamic<DropdownProps>(() => import("@/ui/SingleDropDown"), {
   ssr: false,
@@ -20,7 +23,7 @@ const BRAND_GREEN = "#27AE60"; // use your logo color
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthMode>(null);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
@@ -219,7 +222,7 @@ const Navbar = () => {
               <>
                 {!user ? (
                   <span
-                    onClick={() => setIsLoginOpen(true)}
+                    onClick={() => setAuthMode("login")}
                     className="cursor-pointer text-sm text-gray-700"
                   >
                     Login
@@ -362,8 +365,19 @@ const Navbar = () => {
           </div>
         </div>
       </nav>
-      {isLoginOpen && (
-        <LoginDialog open={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+      {authMode === "login" && (
+        <LoginDialog
+          open={true}
+          onClose={() => setAuthMode(null)}
+          onSwitchToRegister={() => setAuthMode("register")}
+        />
+      )}
+      {authMode === "register" && (
+        <RegisterDialog
+          open={true}
+          onClose={() => setAuthMode(null)}
+          onSwitchToLogin={() => setAuthMode("login")}
+        />
       )}
     </header>
   );
