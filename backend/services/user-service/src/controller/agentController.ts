@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { CreateAgentDTO, UpdateAgentDTO } from "../zod/validation";
 import AgentService from "../services/agentService";
 import { GetAgentsQuery } from "../types";
+import Agent from "../models/agentModel";
 
 type MulterFiles = {
   avatar?: Express.Multer.File[];
@@ -36,6 +37,36 @@ export const getIndetailAgent = async (req: Request, res: Response) => {
   const agent = await AgentService.getAgentById(id);
   return res.status(200).json({ agent });
 };
+
+
+export const getIndetailSlug = async (req: Request, res: Response) => {
+  try {
+    const { slug } = req.params;
+
+    if (!slug || typeof slug !== "string") {
+      return res.status(400).json({ message: "Invalid slug" });
+    }
+
+    const property = await Agent.findOne({ slug }).lean();
+
+    if (!property) {
+      return res.status(404).json({ message: "agent not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: property,
+    });
+  } catch (error: any) {
+    console.error("getIndetailSlug error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch property details",
+    });
+  }
+};
+
+
 
 export const editAgent = async (req: Request, res: Response) => {
   const id = req.params.id;

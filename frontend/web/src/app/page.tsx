@@ -6,7 +6,7 @@ import SearchBox from "@/components/SearchBox";
 import GetOwnerProperties from "./(pages)/owner-listed/PopularOwnerPropertiesServer";
 import ExploreOurServices from "@/app/(pages)/explore-properties/ExploreOurServices";
 import HighlightProjectsServer from "./(pages)/highlight-projects/HighlightProjectServer";
-import AgentServer from "./(pages)/(agent)/agent-connect/AgentServer";
+import AgentServer from "./(pages)/agent-connect/AgentServer";
 import FeaturedProjectsServer from "./(pages)/featured/FeaturedProjectsServer";
 
 export default function Home() {
