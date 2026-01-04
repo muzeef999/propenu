@@ -4,13 +4,7 @@ import React from "react";
 import { useState } from "react";
 import { IResidential } from "@/types/residential";
 import { hexToRGBA } from "@/ui/hexToRGBA";
-import { AiOutlineHeart } from "react-icons/ai";
-import {
-  Furnishing,
-  Parking,
-  SuperBuiitupAraea,
-  UnderConstruction,
-} from "@/icons/icons";
+import { Furnishing, Parking, SuperBuiitupAraea, UnderConstruction,} from "@/icons/icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import formatINR from "@/utilies/PriceFormat";
@@ -24,7 +18,6 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
   vertical = false,
 }) => {
   const bgPriceColor = hexToRGBA("#27AE60", 0.1);
-
   const bgPriceColoricon = hexToRGBA("#27AE60", 0.4);
 
   const img = p?.gallery?.[0]?.url ?? "/placeholder.jpg";
@@ -36,6 +29,7 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
     Boolean((p as any)?.isShortlisted)
   );
 
+
   const { mutate: shortlistProperty, isPending: isShortlisting } = useMutation({
     mutationFn: postShortlistProperty,
 
@@ -46,7 +40,7 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
     },
 
     onError: () => {
-      setIsShortlisted((prev) => !prev); // rollback
+      setIsShortlisted((prev) => !prev); 
       toast.error("Failed to update shortlist");
     },
   });
@@ -66,7 +60,6 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
       toast.error("Failed to contact owner");
     },
   });
-  console.log("Residential Card Rendered:", p);
   return (
     <Link
       href={`/properties/residential/${p.slug}`}
