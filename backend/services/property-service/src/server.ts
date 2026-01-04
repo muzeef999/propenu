@@ -30,7 +30,7 @@ async function start() {
     app.use("/api/properties/featured-project", featurePropertiesRoute);
     app.use("/api/properties/owners-properties", popularOwnerPropertiesRoute);
     app.use("/api/properties/highlight-projects", highlightProjectsRoute);
-    
+
     app.use("/api/properties/residential", residentialRoute);
     app.use("/api/properties/commercial", commercialRoutes);
     app.use("/api/properties/land", landRoutes);

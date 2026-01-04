@@ -799,14 +799,24 @@ export const FeaturePropertyService = {
     return existing;
   },
 
-  async getFeatureById(id: string) {
-    if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
-    return await FeaturedProject.findById(id).lean();
-  },
-
   async getFeatureBySlug(slug: string) {
-    if (!slug || typeof slug !== "string") throw new Error("Invalid slug");
-    return await FeaturedProject.findOne({ slug }).lean();
+  if (!slug || typeof slug !== "string") {
+    throw new Error("Invalid slug");
+  }
+
+  return await FeaturedProject.findOne({ slug })
+    .populate("createdBy", "name email")
+    .lean();
+},
+
+  async getFeatureById(id: string) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new Error("Invalid id");
+    }
+
+    return await FeaturedProject.findById(id)
+      .populate("createdBy", "name email")
+      .lean();
   },
 
   async getFeaturesByCity(city: string) {
@@ -833,7 +843,6 @@ export const FeaturePropertyService = {
       items,
     };
   },
-
 
   async getAllFeatures(options?: {
     page?: number;
@@ -866,9 +875,7 @@ export const FeaturePropertyService = {
     };
   },
 
-
   async getHighlightByCity(city: string) {
-
     const cleanCity = city.trim();
 
     const filter = {
@@ -892,10 +899,8 @@ export const FeaturePropertyService = {
       items,
     };
   },
-  
 
-  
-async getAllHighlightProjects(options?: {
+  async getAllHighlightProjects(options?: {
     page?: number;
     limit?: number;
     q?: string;
