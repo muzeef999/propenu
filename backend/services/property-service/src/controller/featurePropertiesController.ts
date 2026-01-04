@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { CreateFeaturePropertyDTO, UpdateFeaturePropertyDTO, CreateFeaturePropertySchema, UpdateFeaturePropertySchema } from "../zod/validation";
 import { FeaturePropertyService } from "../services/featurePropertiesServices";
 import { ZodError } from "zod";
+import { AuthRequest } from "../middlewares/authMiddleware";
 
 
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -48,6 +49,17 @@ export const createFeatureProperties = async (req: Request, res: Response) => {
     }
     console.error("createFeatureProperties:", err);
     return res.status(500).json({ error: err.message || "Internal server error" });
+  }
+};
+
+export const getMyFeaturedProjectsController = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id; 
+    console.log("..................", userId)
+    const projects = await FeaturePropertyService.getMyFeaturedProjects(userId);
+    res.status(200).json({success: true,data: projects});
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

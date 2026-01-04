@@ -1,6 +1,6 @@
 // routes/auth.js
 import express from "express";
-import {  getAllUsers, me, requestOTP, searchUsers, updateUserRole, verifyOtp } from "../controller/authController";
+import {  createRequestOtp, createVeifytOtp, getAllUsers, me, requestOTP, searchUsers, updateUserRole, verifyOtp } from "../controller/authController";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 
 const authRoute = express.Router();
@@ -8,6 +8,10 @@ const authRoute = express.Router();
 authRoute.post("/request-otp",  requestOTP);
 
 authRoute.post("/verify-otp",  verifyOtp);
+
+authRoute.post("/request-otp/create",  createRequestOtp);
+authRoute.post("/verify-otp/create",  createVeifytOtp);
+
 
 authRoute.get("/me", authMiddleware, me);
 

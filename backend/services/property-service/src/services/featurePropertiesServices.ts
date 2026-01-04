@@ -799,6 +799,12 @@ export const FeaturePropertyService = {
     return existing;
   },
 
+  async getMyFeaturedProjects(userId: string) {
+return await FeaturedProject.find({createdBy: userId})
+    .populate("createdBy", "name email")
+    .lean();
+  },
+
   async getFeatureBySlug(slug: string) {
   if (!slug || typeof slug !== "string") {
     throw new Error("Invalid slug");

@@ -1,5 +1,5 @@
 import User from "../models/userModel";
-import Role from "../models/roleModel";           
+import Role from "../models/roleModel";
 import { genOtp } from "../utils/genOtp";
 import { saveOtpToRedis, verifyAndConsumeOtp } from "../utils/saveOtpRedis";
 import { sendOtpEmail, sendWelcomeEmail } from "../utils/email";
@@ -9,11 +9,12 @@ import { AuthRequest } from "../middlewares/authMiddleware";
 
 export const requestOTP = async (req: Request, res: Response) => {
   try {
-    const name = req.body.name;
-    if (!name) return res.status(400).json({ message: "name is required" });
-
     const email = req.body.email?.trim()?.toLowerCase();
     if (!email) return res.status(400).json({ message: "Email is required" });
+
+    const existingUser = await User.findOne({ email }).select("name");
+
+    const name = existingUser?.name || "User";
 
     const otp = genOtp();
 
@@ -32,66 +33,35 @@ export const verifyOtp = async (req: Request, res: Response) => {
   try {
     const email = req.body.email?.trim()?.toLowerCase();
     const otp = req.body.otp?.trim();
-    const name = req.body.name;
 
     if (!email) return res.status(400).json({ message: "Email is required" });
     if (!otp) return res.status(400).json({ message: "OTP is required" });
-    if (!name) return res.status(400).json({ message: "Name is required" });
 
     const isValid = await verifyAndConsumeOtp(email, otp);
+
     if (!isValid)
       return res.status(400).json({ message: "Invalid or expired OTP" });
-
-    let createdNewUser = false;
 
     let user = await User.findOne({ email });
 
     if (!user) {
-      // 1️⃣ find default "user" role
-      const defaultRole = await Role.findOne({ name: "user" });
-
-
-      if (!defaultRole) {
-        return res
-          .status(500)
-          .json({ message: "Default role 'user' not found. Seed roles first." });
-      }
-
-      // 2️⃣ create user with roleId pointing to Role document
-      user = await User.create({
-        name,
-        email,
-        roleId: defaultRole._id,
-      } as any);
-
-      createdNewUser = true;
-    } else {
-      if (!user.name && name){ user.name = name; }
- 
-      
+      return res.status(403).json({
+        message: "Account not found. Please contact admin.",
+      });
     }
 
-    // 3️⃣ populate roleId so we get the role document
-    await user.populate("roleId");
     const role: any = user.roleId;
 
     // 4️⃣ build JWT payload with role + permissions
     const token = generateToken({
       sub: String(user._id),
       email,
-      name: user.name, 
+      name: user.name,
+
       roleId: role ? String(role._id) : undefined,
       roleName: role ? role.name : undefined,
       permissions: role ? role.permissions : [],
     });
-
-    await user.save();
-
-    if (createdNewUser) {
-      sendWelcomeEmail(email, name).catch((err) =>
-        console.error("Welcome email failed:", err?.message || err)
-      );
-    }
 
     return res
       .status(200)
@@ -110,7 +80,6 @@ export const me = async (req: AuthRequest, res: Response) => {
 
     const authHeader = req.headers.authorization;
     const token = authHeader?.split(" ")[1] || null;
-
 
     const user = await User.findById(req.user.sub).populate("roleId");
 
@@ -169,7 +138,9 @@ export const updateUserRole = async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error(err);
-    res.status(500).json({ message: "Failed to update user role", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Failed to update user role", error: err.message });
   }
 };
 
@@ -195,8 +166,8 @@ export const searchUsers = async (req: Request, res: Response) => {
       $or: [
         { name: { $regex: query, $options: "i" } },
         { email: { $regex: query, $options: "i" } },
-        { phone: { $regex: query, $options: "i" } }
-      ]
+        { phone: { $regex: query, $options: "i" } },
+      ],
     })
       .populate("roleId")
       .select("name email phone roleId");
@@ -204,6 +175,95 @@ export const searchUsers = async (req: Request, res: Response) => {
     return res.json({ results: users, count: users.length });
   } catch (err) {
     console.error("Search error:", err);
-    res.status(500).json({ message:" Search failed" });
+    res.status(500).json({ message: " Search failed" });
+  }
+};
+
+export const createRequestOtp = async (req: Request, res: Response) => {
+  try {
+    const { name, email, role } = req.body;
+
+    if (!name) return res.status(400).json({ message: "name is required" });
+
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    if (!role) return res.status(400).json({ message: "Role is required" });
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return res.status(409).json({
+        message: "Account already exists. Please login instead.",
+      });
+    }
+
+    const roleDoc = await Role.findOne({ name: role.toLowerCase() });
+    if (!roleDoc) {
+      return res.status(400).json({ message: "Invalid role" });
+    }
+
+    const otp = genOtp();
+
+    await saveOtpToRedis(normalizedEmail, otp);
+    await sendOtpEmail(normalizedEmail, otp, name);
+
+    res.status(200).json({ message: "OTP sent successfully" });
+  } catch (error: any) {
+    res
+      .status(500)
+      .json({ message: "Failed to send OTP", error: error.message });
+  }
+};
+
+export const createVeifytOtp = async (req: Request, res: Response) => {
+  try {
+    const { email, otp, name, role } = req.body;
+
+    if (!email) return res.status(400).json({ message: "Email is required" });
+    if (!otp) return res.status(400).json({ message: "OTP is required" });
+    if (!name) return res.status(400).json({ message: "Name is required" });
+    if (!role) return res.status(400).json({ message: "Role is required" });
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const isValid = await verifyAndConsumeOtp(normalizedEmail, otp);
+
+    if (!isValid)
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
+
+    if (existingUser) {
+      return res
+        .status(409)
+        .json({ message: "Account  already exists. please login." });
+    }
+
+    const roleDoc = await Role.findOne({ name: role.toLowerCase() });
+    if (!roleDoc) {
+      return res.status(400).json({ message: "Invalid role" });
+    }
+
+    const user = await User.create({
+      name,
+      email: normalizedEmail,
+      roleId: roleDoc._id,
+    });
+
+    const token = generateToken({
+      sub: String(user._id),
+      email,
+      name: user.name,
+      roleId: String(roleDoc._id),
+      roleName: roleDoc.name,
+      permissions: roleDoc.permissions,
+    });
+
+    sendWelcomeEmail(email, user.name).catch(() => {});
+
+    return res.status(201).json({ message: "Account created successfully", token });
+  } catch (error: any) {
+    res.status(500).json({ message: "Failed to send OTP", error: error.message });
   }
 };
