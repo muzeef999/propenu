@@ -12,6 +12,8 @@ import {
   getAllLands,
 } from "../controller/landController";
 import { CreateLandSchema, UpdateLandSchema } from "../zod/landZod";
+import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
+import { authMiddleware } from "../middlewares/authMiddleware";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -38,8 +40,11 @@ const jsonKeys = [
 
 router.post(
   "/",
+  authMiddleware,
   cpUpload,
   parseJsonFields(jsonKeys),
+
+  requireActiveSubscription,
   fallbackCoerceDefault,
   validateBody(CreateLandSchema),
   createLand

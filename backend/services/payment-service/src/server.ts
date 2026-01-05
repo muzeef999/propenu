@@ -4,6 +4,7 @@ dotenv.config();
 import paymentRoutes from "../src/routes/paymentRoutes";
 import { connectDB } from "./config/db";
 import planRoutes from "./routes/planRoute";
+import subscriptionRoutes from "./routes/subscriptionRoute"
 
 const app = express();
 app.use(express.json());
@@ -22,6 +23,7 @@ async function start() {
 
     app.use("/api/payments", paymentRoutes);
     app.use("/api/payments/plans", planRoutes);
+    app.use("/api/payments/subscriptions", subscriptionRoutes);
 
     app.listen(Number(PORT), "0.0.0.0", () => {
       console.log(`payment Service running on 0.0.0.0:${PORT}`);

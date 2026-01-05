@@ -52,6 +52,68 @@ export const plans = [
 
   // ---------------- AGENT BOTH ----------------
   {
+  code: "AGENT_RENT_STARTER",
+  userType: "agent",
+  category: "rent",
+  tier: "tier1",
+  name: "Starter Rent",
+  price: 999,
+  features: {
+    PROPERTY_LISTING_LIMIT: 20,
+    BUYER_REACH_PERCENT: 50,
+    BUYER_ACCESS: false,
+    LEAD_DASHBOARD: false,
+  },
+},
+
+
+{
+  code: "AGENT_RENT_PRO",
+  userType: "agent",
+  category: "rent",
+  tier: "tier2",
+  name: "Pro Rent",
+  price: 1999,
+  features: {
+    PROPERTY_LISTING_LIMIT: 40,
+    BUYER_REACH_PERCENT: 100,
+    BUYER_ACCESS: true,
+    LEAD_DASHBOARD: true,
+  },
+},
+  
+  // ---------------- AGENT SELL ----------------
+
+  {
+  code: "AGENT_SELL_STARTER",
+  userType: "agent",
+  category: "sell",
+  tier: "tier1",
+  name: "Starter Sell",
+  price: 2499,
+  features: {
+    PROPERTY_LISTING_LIMIT: 20,
+    BUYER_REACH_PERCENT: 50,
+    BUYER_ACCESS: false,
+    LEAD_DASHBOARD: false,
+  },
+},
+
+{
+  code: "AGENT_SELL_PRO",
+  userType: "agent",
+  category: "sell",
+  tier: "tier2",
+  name: "Pro Sell",
+  price: 3499,
+  features: {
+    PROPERTY_LISTING_LIMIT: 40,
+    BUYER_REACH_PERCENT: 100,
+    BUYER_ACCESS: true,
+    LEAD_DASHBOARD: true,
+  },
+},
+  {
     code: "AGENT_BOTH_ELITE",
     userType: "agent",
     category: "both",

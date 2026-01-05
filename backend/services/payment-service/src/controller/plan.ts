@@ -11,3 +11,4 @@ export async function getPlans(req: Request, res: Response) {
   const plans = await Plan.find(filter).sort({ price: 1 });
   res.json(plans);
 }
+

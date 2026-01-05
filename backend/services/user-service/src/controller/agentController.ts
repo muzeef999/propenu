@@ -3,6 +3,11 @@ import { CreateAgentDTO, UpdateAgentDTO } from "../zod/validation";
 import AgentService from "../services/agentService";
 import { GetAgentsQuery } from "../types";
 import Agent from "../models/agentModel";
+import { AuthRequest } from "../middlewares/authMiddleware";
+import Residential from "../models/residentialModel";
+import Commercial from "../models/commercialModel";
+import LandPlot from "../models/landModel";
+import Agricultural from "../models/agriculturalModel";
 
 type MulterFiles = {
   avatar?: Express.Multer.File[];
@@ -67,7 +72,6 @@ export const getIndetailSlug = async (req: Request, res: Response) => {
 };
 
 
-
 export const editAgent = async (req: Request, res: Response) => {
   const id = req.params.id;
   const payload = req.body as UpdateAgentDTO;
@@ -86,4 +90,60 @@ export const deleteAgent = async (req: Request, res: Response) => {
 
   await AgentService.deleteAgent(id);
   return res.status(200).json({ message: "Agent deleted" });
+};
+
+
+export const getMyPropertyStats = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const userId = req.user!.id;
+
+  const [
+    residentialActive,
+    residentialPending,
+    commercialActive,
+    commercialPending,
+    landActive,
+    landPending,
+    agriculturalActive,
+    agriculturalPending,
+  ] = await Promise.all([
+    Residential.countDocuments({ createdBy: userId, status: "active" }),
+    Residential.countDocuments({ createdBy: userId, status: "inactive" }),
+
+    Commercial.countDocuments({ createdBy: userId, status: "active" }),
+    Commercial.countDocuments({ createdBy: userId, status: "inactive" }),
+
+    LandPlot.countDocuments({ createdBy: userId, status: "active" }),
+    LandPlot.countDocuments({ createdBy: userId, status: "inactive" }),
+
+    Agricultural.countDocuments({ createdBy: userId, status: "active" }),
+    Agricultural.countDocuments({ createdBy: userId, status: "inactive" }),
+  ]);
+
+  res.json({
+    active: {
+      residential: residentialActive,
+      commercial: commercialActive,
+      land: landActive,
+      agricultural: agriculturalActive,
+      total:
+        residentialActive +
+        commercialActive +
+        landActive +
+        agriculturalActive,
+    },
+    pending: {
+      residential: residentialPending,
+      commercial: commercialPending,
+      land: landPending,
+      agricultural: agriculturalPending,
+      total:
+        residentialPending +
+        commercialPending +
+        landPending +
+        agriculturalPending,
+    },
+  });
 };

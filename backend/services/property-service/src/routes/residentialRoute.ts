@@ -6,16 +6,12 @@ import { parseJsonFields } from "../middlewares/parseJsonFields";
 import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
 import { ResidentialCreateSchema, ResidentialUpdateSchema } from "../zod/residentialZod";
 import { createResidential, deleteResidential, editResidential, getAllResidential, getResidentialBySlug, getResidentialDetail } from "../controller/residentialController";
+import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
+import { authMiddleware } from "../middlewares/authMiddleware";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-/**
- * FINAL upload fields for residential
- * - keep galleryFiles -> stored to `gallery` in schema
- * - keep documents -> stored to `documents`
- * NOTE: removed imagesFiles and floorPlan fields entirely
- */
 const cpUpload = upload.fields([
   { name: "galleryFiles", maxCount: 20 },
   { name: "documents", maxCount: 20 },
@@ -40,10 +36,7 @@ const jsonKeys = [
 ];
 
 router.post(
-  "/",
-  cpUpload,
-  parseJsonFields(jsonKeys),
-  fallbackCoerceDefault,
+  "/", authMiddleware,cpUpload,parseJsonFields(jsonKeys), fallbackCoerceDefault, requireActiveSubscription,
   validateBody(ResidentialCreateSchema),
   createResidential
 );

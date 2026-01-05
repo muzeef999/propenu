@@ -6,6 +6,8 @@ import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
 import { validateBody } from "../middlewares/validate";
 import { AgriculturalCreateSchema, AgriculturalUpdateSchema } from "../zod/agriculturalZod";
 import { createAgricultural, deleteAgricultural, editAgricultural, getAgriculturalBySlug, getAgriculturalDetail, getAllAgricultural } from "../controller/agriculturalController";
+import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
+import { authMiddleware } from "../middlewares/authMiddleware";
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -34,10 +36,12 @@ const jsonKeys = [
 
 router.post(
   "/",
+  authMiddleware,
   cpUpload,
   parseJsonFields(jsonKeys),
   fallbackCoerceDefault,
   validateBody(AgriculturalCreateSchema),
+  requireActiveSubscription,
   createAgricultural
 );
 

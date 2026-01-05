@@ -441,8 +441,33 @@ export interface MoreFilterSectionAGR {
 
 type Plan = {
   _id: string;
-  name: string;
+  code: string;
+
+  userType: "buyer" | "builder" | "agent";
+  category: "rent" | "sell" | "both";
+
   tier: "free" | "tier1" | "tier2" | "tier3";
+  name: string;
+
   price: number;
-  features: Record<string, any>;
+  durationDays?: number;
+
+  features?: {
+    PROPERTY_LISTING_LIMIT?: number;
+    BUYER_REACH_PERCENT?: number;
+    BUYER_ACCESS?: boolean;
+    LEAD_DASHBOARD?: boolean;
+    TEAM_MEMBERS?: number;
+
+    // builder extras (safe to keep)
+    TOP_LISTING_DAYS?: number;
+    NEW_LEADS?: boolean;
+    ACTIVE_LEADS?: boolean;
+    FOLLOW_UPS?: boolean;
+    CLOSED_DEALS?: boolean;
+    PROJECT_WISE_LEADS?: boolean;
+    PHOTOSHOOT?: boolean;
+    WALKTHROUGH_3D?: boolean;
+    BANNER?: boolean;
+  };
 };

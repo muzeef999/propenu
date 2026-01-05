@@ -128,10 +128,6 @@ export async function verifyPaymentAndActivate(
   razorpay_payment_id: string,
   razorpay_signature: string
 ) {
-  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-    throw new Error("Missing Razorpay parameters");
-  }
-
   const body = `${razorpay_order_id}|${razorpay_payment_id}`;
 
   const expectedSignature = crypto
@@ -143,6 +139,7 @@ export async function verifyPaymentAndActivate(
     throw new Error("Invalid payment signature");
   }
 
+  // ✅ 1. Get payment FIRST
   const payment = await Payment.findOne({
     razorpayOrderId: razorpay_order_id,
   });
@@ -152,23 +149,33 @@ export async function verifyPaymentAndActivate(
   }
 
   if (payment.status === "paid") {
-    return { success: true, message: "Payment already processed" };
+    return { success: true };
   }
 
+  // ✅ 2. Mark payment as paid
   payment.status = "paid";
   payment.razorpayPaymentId = razorpay_payment_id;
   payment.razorpaySignature = razorpay_signature;
   await payment.save();
 
+  // ✅ 3. Read planId FROM payment
   const plan = await Plan.findById(payment.planId);
   if (!plan) {
-    throw new Error("Plan not found for subscription");
+    throw new Error("Plan not found");
   }
 
+  // 🔥 Expire old subscriptions
+  await Subscription.updateMany(
+    { userId: payment.userId, status: "active" },
+    { status: "expired" }
+  );
+
+  // ✅ Activate new subscription
   await Subscription.create({
     userId: payment.userId,
     userType: payment.userType,
-    planId: plan._id,
+    planCode: plan.code,
+    tier: plan.tier,
     startDate: new Date(),
     endDate: new Date(
       Date.now() + plan.durationDays * 24 * 60 * 60 * 1000

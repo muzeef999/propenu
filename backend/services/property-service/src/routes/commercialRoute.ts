@@ -28,9 +28,11 @@ const jsonKeys = [
 ];
 
 import {  createCommercial,  editCommercial,  getAllCommercial,  getCommercialBySlug,  getCommercialDetail,  deleteCommercial,} from "../controller/commercialController";
+import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
+import { authMiddleware } from "../middlewares/authMiddleware";
 
 /** POST */
-router.post("/", cpUpload,  parseJsonFields(jsonKeys), fallbackCoerceDefault, createCommercial);
+router.post("/", authMiddleware, cpUpload,  parseJsonFields(jsonKeys), fallbackCoerceDefault, createCommercial,  requireActiveSubscription);
 router.patch("/:id",cpUpload, parseJsonFields(jsonKeys), fallbackCoerceDefault, editCommercial);
 router.get("/", getAllCommercial);
 router.get("/slug/:slug", getCommercialBySlug);

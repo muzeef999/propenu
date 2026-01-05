@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import { ZodError } from "zod";
 import { ResidentialCreateSchema, ResidentialUpdateSchema } from "../zod/residentialZod";
 import ResidentialPropertyService, { findRelatedResidential } from "../services/residentialServices";
+import { AuthRequest } from "../middlewares/authMiddleware";
 
 /** Helper: parse values that might be JSON strings (multipart sends arrays/objects as strings). */
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -11,17 +12,15 @@ function parseMaybeJSON<T = any>(value: any): T | undefined {
   try {
     return JSON.parse(value) as T;
   } catch {
-    // not JSON — return as-is
     return (value as unknown) as T;
   }
 }
 
 /*** CREATE*/
-export const createResidential = async (req: Request, res: Response) => {
+export const createResidential = async (req: AuthRequest, res: Response) => {
   try {
     const raw = { ...(req.body || {}) };
 
-    // parse only fields that exist in your model (no images, no bhkSummary)
     const parsed = {
       ...raw,
       specifications: parseMaybeJSON(raw.specifications),
@@ -40,16 +39,14 @@ export const createResidential = async (req: Request, res: Response) => {
       relatedProjects: parseMaybeJSON(raw.relatedProjects),
     };
 
-    // Validate payload (throws ZodError)
     const payload = ResidentialCreateSchema.parse(parsed);
 
-    // Multer files map (field -> Express.Multer.File[]), we expect galleryFiles and documents
     const files = req.files as { [field: string]: Express.Multer.File[] } | undefined;
 
-    // call service: create(...) returns created doc
-    const created = await ResidentialPropertyService.create(payload as any, files);
 
-    // return created resource (use lean getter if you prefer)
+    const created = await ResidentialPropertyService.create({ ...payload, createdBy: req.user!.id,    status: "active",},files);
+
+
     const fresh = created?._id ? await ResidentialPropertyService.getById(String(created._id)) : created;
 
     return res.status(201).json({ data: fresh });

@@ -29,18 +29,19 @@ export async function createPayment(req: AuthRequest, res: Response) {
 
 /* ---------------- VERIFY PAYMENT ---------------- */
 
-export async function verifyPayment(req: Request, res: Response) {
+export async function verifyPayment(req: AuthRequest, res: Response) {
   try {
     const {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
+          planId,
     } = req.body;
 
     await verifyPaymentAndActivate(
       razorpay_order_id,
       razorpay_payment_id,
-      razorpay_signature
+      razorpay_signature,
     );
 
     res.json({ message: "Payment verified & subscription activated" });
@@ -48,3 +49,5 @@ export async function verifyPayment(req: Request, res: Response) {
     res.status(400).json({ message: error.message });
   }
 }
+
+
