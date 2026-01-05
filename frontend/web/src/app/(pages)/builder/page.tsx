@@ -1,6 +1,6 @@
 const page = ( ) => {
     return (
-        <h1>builder dashboard</h1>
+        <h1>builder dashboards</h1>
     )
 }
 

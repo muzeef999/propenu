@@ -4,6 +4,10 @@ import React from "react";
 import FilterBar from "./FilterBar";
 import { useAppSelector } from "@/Redux/store";
 import { Property } from "@/types/property";
+import { IResidential } from "@/types/residential";
+import { ICommercial } from "@/types/commercial";
+import { ILand } from "@/types/land";
+import { IAgricultural } from "@/types/agricultural";
 import { useStreamProperties } from "@/hooks/useStreamProperties";
 import ResidentialCard from "./cards/ResidentialCard";
 import CommercialCard from "./cards/CommercialCard";
@@ -24,13 +28,13 @@ const Page: React.FC = () => {
   const renderPropertyCard = (type: string, p: Property) => {
     switch (type.toLowerCase()) {
       case "residential":
-        return <ResidentialCard key={p.id} p={p} />;
+        return <ResidentialCard key={p.id} p={p as unknown as IResidential} />;
       case "commercial":
-        return <CommercialCard key={p.id} p={p} />;
+        return <CommercialCard key={p.id} p={p as unknown as ICommercial} />;
       case "land":
-        return <LandCard key={p.id} p={p} />;
+        return <LandCard key={p.id} p={p as unknown as ILand} />;
       case "agricultural":
-        return <AgriculturalCard key={p.id} p={p} />;
+        return <AgriculturalCard key={p.id} p={p as unknown as IAgricultural} />;
       default:
         return <div>No card found for this category.</div>;
     }

@@ -21,6 +21,11 @@ const menuItems = [
     icon: Building,
   },
   {
+    label: "My Properties",
+    link: "/builder/my-Properties",
+    icon: Subscription,
+  },
+  {
     label: "Prime Proporeties",
     link: "/builder/prime-Proporeties",
     icon: Subscription,

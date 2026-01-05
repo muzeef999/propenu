@@ -9,6 +9,7 @@ import { FaRoad } from "react-icons/fa";
 import { BiShapeSquare } from "react-icons/bi";
 import NearByPlace from "@/app/(pages)/properties/(pages)/NearByPlace";
 import { LandCard } from "../../../cards/LandCard";
+import ContactOwnerButton from "@/components/ContactOwnerButton";
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
 };
@@ -131,7 +132,9 @@ export default async function Page({ params }: PageProps) {
                         </span>
                         <span className="text-gray-500 text-md font-medium flex items-center gap-2">
                           <BiShapeSquare size={18} />
-                          {project.cornerPlot ? "Corner Plot" : "Non-Corner Plot"}
+                          {project.cornerPlot
+                            ? "Corner Plot"
+                            : "Non-Corner Plot"}
                         </span>
                       </div>
                     </div>
@@ -196,9 +199,10 @@ export default async function Page({ params }: PageProps) {
                       </div>
 
                       <div className="mt-8">
-                        <button className="rounded bg-[#27AE60] px-6 py-2 font-medium text-white hover:bg-green-700">
-                          Contact Owner
-                        </button>
+                        <ContactOwnerButton
+                          projectId={project._id}
+                          propertyType="residentials"
+                        />
                       </div>
                     </section>
 

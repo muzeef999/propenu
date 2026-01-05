@@ -12,6 +12,7 @@ export interface Property {
   _id: string;
   title: string;
   slug?: string;
+  address: string;
   city?: string;
   location?: {
     type: "Point";
@@ -78,4 +79,13 @@ export interface createVerifyOtpPayload {
   otp: string;
   name: string;
   role: string;
+}
+
+export interface Leads {
+  name: string;
+  phone: string;
+  email: string;
+  projectId: string;
+  propertyType: "residentials" | "commercials" | "agriculturals" | "landplots" | "featuredprojects";
+  remarks?: string;
 }

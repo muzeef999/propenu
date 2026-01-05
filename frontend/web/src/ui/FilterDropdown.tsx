@@ -27,6 +27,7 @@ export default function FilterDropdown({
   className,
 }: FilterDropdownProps) {
   const [internalOpen, setInternalOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 
   const openState =
@@ -38,24 +39,32 @@ export default function FilterDropdown({
   };
 
   useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 0);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Close on click outside or Escape key
+  useEffect(() => {
     if (!openState) return;
 
-    const onDocClick = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) {
-        setOpen(false); // 👈 CLOSES DROPDOWN
+    const handleClickOutside = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false);
       }
     };
 
-    const onKey = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
-
-    document.addEventListener("mousedown", onDocClick);
-    document.addEventListener("keydown", onKey);
-
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("mousedown", onDocClick);
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [openState]);
 
@@ -99,7 +108,7 @@ export default function FilterDropdown({
       {openState && (
         <>
           {/* Backdrop (visual only) */}
-          <div className="fixed top-30 left-0 right-0 bottom-0 bg-black/45 z-40" onClick={() => setOpen(false)} />
+          <div className={`fixed ${scrolled ? "top-13.5" : "top-30"} left-0 right-0 bottom-0 bg-black/45 z-40 transition-all duration-100`} onClick={() => setOpen(false)} />
 
           {/* Dropdown Panel */}
           <div className={`absolute z-50 mt-2 ${alignClass}`}>

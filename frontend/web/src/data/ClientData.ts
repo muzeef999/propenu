@@ -152,3 +152,12 @@ export const getProjectLeads = async (projectId: string) => {
   });
   return res.data;
 };
+
+export const getHighlightProjectBuilders = async () => {
+  const res = await axiosInstance.get(`${url}/api/properties/highlight-projects/builder/me`, {
+      headers: {
+        Authorization: `Bearer ${Cookies.get("token")}`,
+      },
+  });
+  return res.data;
+}

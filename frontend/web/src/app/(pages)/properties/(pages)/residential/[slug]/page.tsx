@@ -7,6 +7,7 @@ import GalleryFile from "../../../GalleryFile";
 import { Balconies, Bath, Bhk } from "@/icons/icons";
 import ResidentialCard from "../../../cards/ResidentialCard";
 import NearByPlace from "@/app/(pages)/properties/(pages)/NearByPlace";
+import ContactOwnerButton from "@/components/ContactOwnerButton";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -210,9 +211,7 @@ export default async function Page({ params }: PageProps) {
                       </div>
 
                       <div className="mt-8">
-                        <button className="rounded bg-[#27AE60] px-6 py-2 font-medium text-white hover:bg-green-700">
-                          Contact Owner
-                        </button>
+                        <ContactOwnerButton projectId={project._id} propertyType="residentials" />
                       </div>
                     </section>
 

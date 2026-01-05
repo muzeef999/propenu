@@ -67,14 +67,36 @@ export default function HeroSection({ hero }: Props) {
 
     if (leadsMutation.isPending) return;
 
-    // Normalize propertyType to lowercase and trim whitespace (safe when undefined)
-    const normalizedPropertyType = h.propertyType
-      ? h.propertyType.toLowerCase().trim()
-      : "";
-    const validTypes = ['residential', 'commercial', 'agricultural', 'land'];
+    // Resolve to backend enum values expected by the API.
+    // Backend expects one of: "featuredprojects" | "residentials" | "commercials" | "agriculturals" | "landplots"
+    const rawType = h.propertyType ? h.propertyType.toLowerCase().trim() : "";
 
-    if (!normalizedPropertyType || !validTypes.includes(normalizedPropertyType)) {
-      const shown = normalizedPropertyType || h.propertyType || "(missing)";
+    const mapping: Record<string, Leads["propertyType"]> = {
+      residential: "residentials",
+      residentials: "residentials",
+      commercial: "commercials",
+      commercials: "commercials",
+      agricultural: "agriculturals",
+      agriculturals: "agriculturals",
+      land: "landplots",
+      landplots: "landplots",
+      featured: "featuredprojects",
+      featuredproject: "featuredprojects",
+      featuredprojects: "featuredprojects",
+    };
+
+    const resolvedType = mapping[rawType] as Leads["propertyType"] | undefined;
+
+    const allowed = [
+      "featuredprojects",
+      "residentials",
+      "commercials",
+      "agriculturals",
+      "landplots",
+    ];
+
+    if (!resolvedType || !allowed.includes(resolvedType)) {
+      const shown = rawType || h.propertyType || "(missing)";
       toast.error(`Invalid property type: ${shown}`);
       console.error("Invalid propertyType:", shown);
       return;
@@ -86,7 +108,7 @@ export default function HeroSection({ hero }: Props) {
       email: form.email,
       remarks: form.message,
       projectId: h.projectId,
-      propertyType: normalizedPropertyType,
+      propertyType: resolvedType,
     });
   }
 

@@ -9,6 +9,7 @@ import { FaRoad } from "react-icons/fa";
 import { IAgricultural } from "@/types/agricultural";
 import NearByPlace from "@/app/(pages)/properties/(pages)/NearByPlace";
 import AgriculturalCard from "../../../cards/AgriculturalCard";
+import ContactOwnerButton from "@/components/ContactOwnerButton";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -32,7 +33,7 @@ export default async function Page({ params }: PageProps) {
     );
   }
 
-  if (!project) {
+  if (!project || !project._id) {
     notFound();
   }
   const priceLabel = formatINR(project?.price);
@@ -50,7 +51,7 @@ export default async function Page({ params }: PageProps) {
                   {priceLabel}
                 </span>
                 <h1 className="text-2xl font-semibold text-gray-900 sm:text-xl">
-                  {project.title},{project.city}
+                  {project.title}
                 </h1>
               </div>
             </div>
@@ -236,9 +237,10 @@ export default async function Page({ params }: PageProps) {
                       </div>
 
                       <div className="mt-8">
-                        <button className="rounded bg-[#27AE60] px-6 py-2 font-medium text-white hover:bg-green-700">
-                          Contact Owner
-                        </button>
+                        <ContactOwnerButton
+                          projectId={project._id}
+                          propertyType="agriculturals"
+                        />
                       </div>
                     </section>
 

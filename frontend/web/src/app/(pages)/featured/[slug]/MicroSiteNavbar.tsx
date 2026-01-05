@@ -155,7 +155,7 @@ export default function MicroSiteNavbar({
                   <a
                     href={brochureUrl}
                     download
-                    className="block px-3 py-2 rounded-md hover:bg-slate-50 hover:text-sky-600 transition flex items-center"
+                    className=" px-3 py-2 rounded-md hover:bg-slate-50 hover:text-sky-600 transition flex items-center"
                   >
                     <Download size={18} color={iconColor} />
                     <span>Download Brochure</span>
