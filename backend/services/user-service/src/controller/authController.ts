@@ -11,16 +11,11 @@ export const requestOTP = async (req: Request, res: Response) => {
   try {
     const email = req.body.email?.trim()?.toLowerCase();
     if (!email) return res.status(400).json({ message: "Email is required" });
-
     const existingUser = await User.findOne({ email }).select("name");
-
     const name = existingUser?.name || "User";
-
     const otp = genOtp();
-
     await saveOtpToRedis(email, otp);
     await sendOtpEmail(email, otp, name);
-
     res.status(200).json({ message: "OTP sent successfully" });
   } catch (error: any) {
     res
@@ -42,7 +37,8 @@ export const verifyOtp = async (req: Request, res: Response) => {
     if (!isValid)
       return res.status(400).json({ message: "Invalid or expired OTP" });
 
-    let user = await User.findOne({ email });
+
+    let user = await User.findOne({ email }).populate("roleId");
 
     if (!user) {
       return res.status(403).json({
@@ -55,9 +51,8 @@ export const verifyOtp = async (req: Request, res: Response) => {
     // 4️⃣ build JWT payload with role + permissions
     const token = generateToken({
       sub: String(user._id),
-      email,
+      email: String(user.email),
       name: user.name,
-
       roleId: role ? String(role._id) : undefined,
       roleName: role ? role.name : undefined,
       permissions: role ? role.permissions : [],
