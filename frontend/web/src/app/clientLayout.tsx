@@ -1,6 +1,9 @@
 "use client";
 
 import React from "react";
+import { useEffect, useState } from "react";
+import { me } from "@/data/ClientData";
+import { getMyAgentProfile } from "@/app/(pages)/agent/data";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Provider } from "react-redux";
@@ -9,6 +12,7 @@ import { Toaster } from "sonner";
 import { usePathname } from "next/navigation";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import AgentRegistrationModal from "@/components/AgentRegistrationModal";
 
 
 export default function ClientProviders({
@@ -19,16 +23,52 @@ export default function ClientProviders({
   // Create the client once per browser session
   const [queryClient] = React.useState(() => new QueryClient());
 
-     const pathname = usePathname(); // 👈 get current path
+    const pathname = usePathname(); // 👈 get current path
+    const [user, setUser] = useState<any>(null);
+    const [showAgentModal, setShowAgentModal] = useState(false);
 
   const hideFooter = pathname?.startsWith("/featured"); 
   const hideNavbar = pathname?.startsWith("/postproperty");
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const data = await me();
+        setUser(data);
+        
+        // Check if user is an agent
+        const roleName = data?.user?.roleName || data?.user?.role;
+        if (roleName === "agent") {
+          // Fetch agent profile status
+          const agentProfile = await getMyAgentProfile();
+          if (agentProfile?.exists === false) {
+            setShowAgentModal(true);
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    fetchUser();
+  }, []);
 
   return (
      <Provider store={store}>
     <QueryClientProvider client={queryClient}>
       {!hideNavbar && <Navbar />}
       {children}
+      {/* Agent registration modal — blocks access until completed */}
+      {showAgentModal && (
+        <AgentRegistrationModal
+          userId={user?.user?.id}
+          open={true}
+          onCompleted={() => {
+            setShowAgentModal(false);
+            // refresh to pick up new profile
+            window.location.reload();
+          }}
+        />
+      )}
       <Toaster
         position="top-right"
         richColors

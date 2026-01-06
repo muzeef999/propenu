@@ -54,3 +54,51 @@ export const verifyPayment = async (payload: {
   });
   return res.data;
 };
+
+
+export const getMyAgentProfile = async () => {
+  const token = Cookies.get("token");
+  if (!token) return null;
+
+  const res = await axiosInstance.get(`${url}/api/users/agent/my`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return res.data;
+};
+
+export const registerAgency = async (payload: {
+  name: string;
+  bio: string;
+  agencyName: string;
+  licenseNumber: string;
+  licenseValidTill: string;
+  city: string;
+  experienceYears: number;
+  dealsClosed: number;
+  areasServed: string[];
+  languages: string[];
+  verificationStatus: "approved" | "pending" | "rejected";
+  coverImage: string;
+  avatar: string;
+  rera: {
+    reraAgentId: string;
+    isVerified: boolean;
+  };
+  stats: {
+    totalProperties: number;
+    publishedCount: number;
+  };
+  user: string;
+}) => {
+  const token = Cookies.get("token");
+  if (!token) return null;
+
+  const res = await axiosInstance.post(`${url}/api/users/agent`, payload, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return res.data;
+};

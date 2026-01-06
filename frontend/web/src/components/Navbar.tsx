@@ -40,11 +40,8 @@ const Navbar = () => {
 
   const { selectedCity, locations, selectCity } = useCity();
 
-  // const pPrimeItems = [
-  //   { id: "pp-1", label: "Dashboard", href: "/prime/dashboard" },
-  //   { id: "pp-2", label: "Analytics", href: "/prime/analytics" },
-  //   { id: "pp-3", label: "Settings", href: "/prime/settings" },
-  // ];
+  
+
 
   const loginItems = [
     { id: "lg-1", label: "Sign in", href: "/auth/signin" },
@@ -198,26 +195,6 @@ const Navbar = () => {
 
             {/* RIGHT - desktop */}
             <div className="hidden md:flex items-center gap-6 text-[#1A1A1A]">
-              {/* <Dropdown
-                buttonContent={({ isOpen }) => (
-                  <span className="flex items-center justify-center gap-2 text-gray-700 text-sm py-1 px-0">
-                    <span>p prime</span>
-                    <ArrowDropdownIcon
-                      size={12}
-                      color={"#374151"}
-                      className={`transition-transform duration-200 ${
-                        isOpen ? "rotate-180" : "rotate-0"
-                      }`}
-                    />
-                  </span>
-                )}
-                items={pPrimeItems.map((it) => ({
-                  ...it,
-                  onClick: () =>
-                    it.href ? (window.location.href = it.href) : undefined,
-                }))}
-                align="right"
-              /> */}
 
               <>
                 {!user ? (
@@ -291,22 +268,6 @@ const Navbar = () => {
         >
           <div className="px-4 pb-4 pt-2 border-t border-gray-100">
             <nav className="flex flex-col gap-2">
-              {/* p prime items (mobile as links) */}
-              {/* <div className="flex flex-col gap-1">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Prime
-                </span>
-                {pPrimeItems.map((it) => (
-                  <Link
-                    key={it.id}
-                    href={it.href ?? "#"}
-                    onClick={() => setMobileOpen(false)}
-                    className="py-2 px-2 rounded-md text-sm font-medium hover:bg-gray-50"
-                  >
-                    {it.label}
-                  </Link>
-                ))}
-              </div> */}
 
               {/* login */}
               <div className="flex flex-col gap-1 mt-2">

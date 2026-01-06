@@ -14,6 +14,7 @@ export interface FilterDropdownProps {
   className?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  showDoneButton?: boolean;
 }
 
 export default function FilterDropdown({
@@ -25,6 +26,7 @@ export default function FilterDropdown({
   onOpenChange,
   showArrow = true,
   className,
+  showDoneButton = true,
 }: FilterDropdownProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -108,7 +110,7 @@ export default function FilterDropdown({
       {openState && (
         <>
           {/* Backdrop (visual only) */}
-          <div className={`fixed ${scrolled ? "top-13.5" : "top-30"} left-0 right-0 bottom-0 bg-black/45 z-40 transition-all duration-100`} onClick={() => setOpen(false)} />
+          <div className={`fixed ${scrolled ? "top-[3.375rem]" : "top-[7.5rem]"} left-0 right-0 bottom-0 bg-black/45 z-40 transition-all duration-100`} onClick={() => setOpen(false)} />
 
           {/* Dropdown Panel */}
           <div className={`absolute z-50 mt-2 ${alignClass}`}>
@@ -125,14 +127,16 @@ export default function FilterDropdown({
 
               {renderContent(() => setOpen(false))}
 
-              <div className="flex justify-end pt-2">
-                <button
-                  onClick={() => setOpen(false)}
-                  className="text-primary font-medium text-md cursor-pointer"
-                >
-                  Done
-                </button>
-              </div>
+              {showDoneButton && (
+                <div className="flex justify-end pt-2">
+                  <button
+                    onClick={() => setOpen(false)}
+                    className="text-primary font-medium text-md cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </>

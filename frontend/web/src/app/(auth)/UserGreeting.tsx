@@ -8,6 +8,7 @@ interface UserGreetingProps {
   user?: {
     user?: {
       name?: string;
+      roleName?: string;
     };
   };
 }
@@ -21,9 +22,40 @@ const GreetingOptions = [
   { label: "Logout", action: "logout" },
 ];
 
+const AgentOptions=[
+  { label: "Dashboard", link: "/agent/dashboard" },
+  { label: "My Plans", link: "/agent/plans" },
+  { label: "My Property", link: "/agent/my-Properties" },
+  { label: "Account & Settings", link: "/agent/account-settings" },
+  { label: "Leads", link: "/agent/leads" },
+  { label: "Logout", action: "logout" },
+];
+
+const BuilderOptions = [
+  { label: "Dashboard", link: "/builder/dashboard" },
+  { label: "My Plans", link: "/builder/plans" },
+  { label: "Leads", link: "/builder/leads" },
+  { label: "My Property", link: "/builder/my-Properties" },
+  { label: "Account & Settings", link: "/builder/account-settings" },
+  { label: "Logout", action: "logout" },
+];
+
 const UserGreeting = ({ user }: UserGreetingProps) => {
   const router = useRouter();
 
+  const getOptionsForRole = (roleName?: string) => {
+    switch (roleName) {
+      case "agent":
+        return AgentOptions;
+      case "builder":
+        return BuilderOptions;
+      default:
+        return GreetingOptions;
+    }
+  };
+
+  const options = getOptionsForRole(user?.user?.roleName);
+  console.log("User Greeting Options:", user);
   return (
     <div className="text-sm text-gray-700">
       <FilterDropdown
@@ -34,9 +66,10 @@ const UserGreeting = ({ user }: UserGreetingProps) => {
         }
         width="w-56"
         align="left"
+        showDoneButton={false}
         renderContent={(close) => (
           <div className="py-2">
-            {GreetingOptions.map((item) => {
+            {options.map((item) => {
               const isLogout = item.action === "logout";
               const handleClick = () => {
                 if (isLogout) {
@@ -49,7 +82,7 @@ const UserGreeting = ({ user }: UserGreetingProps) => {
 
                 if (item.link) {
                   router.push(item.link);
-                  close?.();
+                  close();
                 }
               };
 
