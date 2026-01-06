@@ -91,58 +91,17 @@ export const deleteAgent = async (req: Request, res: Response) => {
 export const getMyPropertyStats = async (req: AuthRequest, res: Response) => {
   
   const userId = req.user!.sub;
-  
-  const agent = await Agent.findOne({ user: userId }).lean();
+  const range = (req.query.range as string) || "30d";
 
-  if (!agent) {
+  const data = await AgentService.getAgentDashboardAnalytics(userId, range);
+
+ if (!data.exists) {
     return res.json({
       exists: false,
       message: "Agent profile not created",
     });
   }
 
-  const [
-    residentialActive,
-    residentialPending,
-    commercialActive,
-    commercialPending,
-    landActive,
-    landPending,
-    agriculturalActive,
-    agriculturalPending,
-  ] = await Promise.all([
-    Residential.countDocuments({ createdBy: userId, status: "active" }),
-    Residential.countDocuments({ createdBy: userId, status: "inactive" }),
+  res.json(data);
 
-    Commercial.countDocuments({ createdBy: userId, status: "active" }),
-    Commercial.countDocuments({ createdBy: userId, status: "inactive" }),
-
-    LandPlot.countDocuments({ createdBy: userId, status: "active" }),
-    LandPlot.countDocuments({ createdBy: userId, status: "inactive" }),
-
-    Agricultural.countDocuments({ createdBy: userId, status: "active" }),
-    Agricultural.countDocuments({ createdBy: userId, status: "inactive" }),
-  ]);
-
-  res.json({
-    active: {
-      residential: residentialActive,
-      commercial: commercialActive,
-      land: landActive,
-      agricultural: agriculturalActive,
-      total:
-        residentialActive + commercialActive + landActive + agriculturalActive,
-    },
-    pending: {
-      residential: residentialPending,
-      commercial: commercialPending,
-      land: landPending,
-      agricultural: agriculturalPending,
-      total:
-        residentialPending +
-        commercialPending +
-        landPending +
-        agriculturalPending,
-    },
-  });
 };

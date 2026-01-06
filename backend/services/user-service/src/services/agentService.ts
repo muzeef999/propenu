@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Model } from "mongoose";
 import { randomUUID } from "crypto";
 import dotenv from "dotenv";
 import s3 from "../config/s3";
@@ -8,12 +8,17 @@ import Residential from "../models/residentialModel";
 import Commercial from "../models/commercialModel";
 import LandPlot from "../models/landModel";
 import Agricultural from "../models/agriculturalModel";
+import { getFromDate } from "../utils/dateRange";
+import { IResidential } from "../types/residentialTypes";
+import { ICommercial } from "../types/commercialTypes";
+import { ILand } from "../types/landTypes";
+import { IAgricultural } from "../types/agriculturalTypes";
 
 dotenv.config({ quiet: true });
 
-
-type MulterFiles = {  avatar?: Express.Multer.File[];  coverImage?: Express.Multer.File[];} | undefined;
-
+type MulterFiles =
+  | { avatar?: Express.Multer.File[]; coverImage?: Express.Multer.File[] }
+  | undefined;
 
 async function uploadBufferToS3Local(opts: {
   buffer: Buffer;
@@ -27,9 +32,7 @@ async function uploadBufferToS3Local(opts: {
   const bucket = process.env.AWS_S3_BUCKET!;
   const region = process.env.AWS_REGION!;
 
-  const ext = originalname.includes(".")
-    ? originalname.split(".").pop()
-    : "";
+  const ext = originalname.includes(".") ? originalname.split(".").pop() : "";
   const uniqueName = `${Date.now()}-${randomUUID()}${ext ? "." + ext : ""}`;
 
   const safeFolder = folder.replace(/^\/+|\/+$/g, "");
@@ -116,54 +119,42 @@ const AgentService = {
     return created.toObject();
   },
 
+  async getAgentBySlugWithProperties(slug: string) {
+    if (!slug) throw new Error("Invalid slug");
 
-async getAgentBySlugWithProperties(slug: string) {
-  if (!slug) throw new Error("Invalid slug");
+    const agent = await Agent.findOne({ slug })
+      .populate("user", "name email phone")
+      .lean();
 
-  const agent = await Agent.findOne({ slug })
-    .populate("user", "name email phone")
-    .lean();
+    if (!agent) throw new Error("Agent not found");
 
-  if (!agent) throw new Error("Agent not found");
+    const userId = typeof agent.user === "string" ? agent.user : agent.user._id;
 
-const userId =
-    typeof agent.user === "string"
-    ? agent.user
-    : agent.user._id;
+    const [residential, commercial, land, agricultural] = await Promise.all([
+      Residential.find({ createdBy: userId, status: "active" }).lean(),
+      Commercial.find({ createdBy: userId, status: "active" }).lean(),
+      LandPlot.find({ createdBy: userId, status: "active" }).lean(),
+      Agricultural.find({ createdBy: userId, status: "active" }).lean(),
+    ]);
 
-  const [
-    residential,
-    commercial,
-    land,
-    agricultural,
-  ] = await Promise.all([
-    Residential.find({ createdBy: userId, status: "active" }).lean(),
-    Commercial.find({ createdBy: userId, status: "active" }).lean(),
-    LandPlot.find({ createdBy: userId, status: "active" }).lean(),
-    Agricultural.find({ createdBy: userId, status: "active" }).lean(),
-  ]);
-
-  return {
-    agent,
-    properties: {
-      residential,
-      commercial,
-      land,
-      agricultural,
-      total:
-        residential.length +
-        commercial.length +
-        land.length +
-        agricultural.length,
-    },
-  };
-},
-
-
+    return {
+      agent,
+      properties: {
+        residential,
+        commercial,
+        land,
+        agricultural,
+        total:
+          residential.length +
+          commercial.length +
+          land.length +
+          agricultural.length,
+      },
+    };
+  },
 
   async editAgent(id: string, payload: UpdateAgentDTO, files?: MulterFiles) {
-    if (!mongoose.Types.ObjectId.isValid(id))
-      throw new Error("Invalid id");
+    if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
 
     const existing = await Agent.findById(id);
     if (!existing) throw new Error("Agent not found");
@@ -222,8 +213,7 @@ const userId =
   },
 
   async getAgentById(id: string) {
-    if (!mongoose.Types.ObjectId.isValid(id))
-      throw new Error("Invalid id");
+    if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
 
     const agent = await Agent.findById(id).populate("user", "name email");
     if (!agent) throw new Error("Agent not found");
@@ -240,10 +230,7 @@ const userId =
     }
 
     const [items, total] = await Promise.all([
-      Agent.find(filter)
-        .populate("user", "name email")
-        .skip(skip)
-        .limit(limit),
+      Agent.find(filter).populate("user", "name email").skip(skip).limit(limit),
       Agent.countDocuments(filter),
     ]);
 
@@ -251,8 +238,7 @@ const userId =
   },
 
   async deleteAgent(id: string) {
-    if (!mongoose.Types.ObjectId.isValid(id))
-      throw new Error("Invalid id");
+    if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
 
     const existing = await Agent.findById(id).lean();
     if (!existing) throw new Error("Agent not found");
@@ -263,7 +249,102 @@ const userId =
     await Agent.findByIdAndDelete(id);
     return true;
   },
-};
 
+  async getAgentDashboardAnalytics(
+  userId: string,
+  range: string
+) {
+  const agent = await Agent.findOne({ user: userId }).lean();
+
+  if (!agent) {
+    return {
+      exists: false,
+      message: "Agent profile not created",
+    };
+  }
+
+  const fromDate = getFromDate(range);
+
+  /* ✅ Normalize all models to one type */
+  const models: Model<any>[] = [
+    Residential as Model<IResidential>,
+    Commercial as Model<ICommercial>,
+    LandPlot as Model<ILand>,
+    Agricultural as Model<IAgricultural>,
+  ];
+
+  /* ✅ Fetch all properties */
+  const allProperties = (
+    await Promise.all(
+      models.map((m) =>
+        m
+          .find(
+            { createdBy: userId, createdAt: { $gte: fromDate } },
+            { title: 1, city: 1, gallery: 1, meta: 1, status: 1, createdAt: 1 }
+          )
+          .lean()
+      )
+    )
+  ).flat();
+
+  /* ------------------ KPI totals ------------------ */
+
+  let totalViews = 0;
+  let totalClicks = 0;
+  let totalInquiries = 0;
+  let active = 0;
+  let pending = 0;
+
+  for (const p of allProperties) {
+    totalViews += p.meta?.views || 0;
+    totalClicks += p.meta?.clicks || 0;
+    totalInquiries += p.meta?.inquiries || 0;
+
+    if (p.status === "active") active++;
+    else pending++;
+  }
+
+  /* ------------------ City distribution ------------------ */
+
+  const cityMap: Record<string, number> = {};
+  allProperties.forEach((p) => {
+    if (!p.city) return;
+    cityMap[p.city] = (cityMap[p.city] || 0) + 1;
+  });
+
+  /* ------------------ Top properties ------------------ */
+
+  const topProperties = [...allProperties]
+    .sort((a, b) => (b.meta?.views || 0) - (a.meta?.views || 0))
+    .slice(0, 5);
+
+  /* ------------------ Final payload ------------------ */
+
+  return {
+    exists: true,
+    agent,
+    range,
+    kpis: {
+      totalProperties: allProperties.length,
+      activeListings: active,
+      pendingListings: pending,
+      totalViews,
+      totalClicks,
+      totalInquiries,
+      conversionRate:
+        totalViews > 0
+          ? Number(((totalInquiries / totalViews) * 100).toFixed(2))
+          : 0,
+    },
+    charts: {
+      byCity: Object.entries(cityMap).map(([city, count]) => ({
+        city,
+        count,
+      })),
+    },
+    topProperties,
+  };
+}
+};
 
 export default AgentService;
