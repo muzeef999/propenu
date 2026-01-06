@@ -4,6 +4,10 @@ import dotenv from "dotenv";
 import s3 from "../config/s3";
 import Agent from "../models/agentModel";
 import { CreateAgentDTO, UpdateAgentDTO } from "../zod/validation";
+import Residential from "../models/residentialModel";
+import Commercial from "../models/commercialModel";
+import LandPlot from "../models/landModel";
+import Agricultural from "../models/agriculturalModel";
 
 dotenv.config({ quiet: true });
 
@@ -112,6 +116,51 @@ const AgentService = {
     return created.toObject();
   },
 
+
+async getAgentBySlugWithProperties(slug: string) {
+  if (!slug) throw new Error("Invalid slug");
+
+  const agent = await Agent.findOne({ slug })
+    .populate("user", "name email phone")
+    .lean();
+
+  if (!agent) throw new Error("Agent not found");
+
+const userId =
+    typeof agent.user === "string"
+    ? agent.user
+    : agent.user._id;
+
+  const [
+    residential,
+    commercial,
+    land,
+    agricultural,
+  ] = await Promise.all([
+    Residential.find({ createdBy: userId, status: "active" }).lean(),
+    Commercial.find({ createdBy: userId, status: "active" }).lean(),
+    LandPlot.find({ createdBy: userId, status: "active" }).lean(),
+    Agricultural.find({ createdBy: userId, status: "active" }).lean(),
+  ]);
+
+  return {
+    agent,
+    properties: {
+      residential,
+      commercial,
+      land,
+      agricultural,
+      total:
+        residential.length +
+        commercial.length +
+        land.length +
+        agricultural.length,
+    },
+  };
+},
+
+
+
   async editAgent(id: string, payload: UpdateAgentDTO, files?: MulterFiles) {
     if (!mongoose.Types.ObjectId.isValid(id))
       throw new Error("Invalid id");
@@ -215,5 +264,6 @@ const AgentService = {
     return true;
   },
 };
+
 
 export default AgentService;

@@ -9,10 +9,12 @@ import Commercial from "../models/commercialModel";
 import LandPlot from "../models/landModel";
 import Agricultural from "../models/agriculturalModel";
 
-type MulterFiles = {
-  avatar?: Express.Multer.File[];
-  coverImage?: Express.Multer.File[];
-} | undefined;
+type MulterFiles =
+  | {
+      avatar?: Express.Multer.File[];
+      coverImage?: Express.Multer.File[];
+    }
+  | undefined;
 
 export const createAgent = async (req: Request, res: Response) => {
   const payload = req.body as unknown as CreateAgentDTO;
@@ -43,7 +45,6 @@ export const getIndetailAgent = async (req: Request, res: Response) => {
   return res.status(200).json({ agent });
 };
 
-
 export const getIndetailSlug = async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
@@ -52,15 +53,11 @@ export const getIndetailSlug = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid slug" });
     }
 
-    const property = await Agent.findOne({ slug }).lean();
-
-    if (!property) {
-      return res.status(404).json({ message: "agent not found" });
-    }
+    const result = await AgentService.getAgentBySlugWithProperties(slug);
 
     return res.status(200).json({
       success: true,
-      data: property,
+      data: result,
     });
   } catch (error: any) {
     console.error("getIndetailSlug error:", error);
@@ -70,7 +67,6 @@ export const getIndetailSlug = async (req: Request, res: Response) => {
     });
   }
 };
-
 
 export const editAgent = async (req: Request, res: Response) => {
   const id = req.params.id;
@@ -92,12 +88,18 @@ export const deleteAgent = async (req: Request, res: Response) => {
   return res.status(200).json({ message: "Agent deleted" });
 };
 
+export const getMyPropertyStats = async (req: AuthRequest, res: Response) => {
+  
+  const userId = req.user!.sub;
+  
+  const agent = await Agent.findOne({ user: userId }).lean();
 
-export const getMyPropertyStats = async (
-  req: AuthRequest,
-  res: Response
-) => {
-  const userId = req.user!.id;
+  if (!agent) {
+    return res.json({
+      exists: false,
+      message: "Agent profile not created",
+    });
+  }
 
   const [
     residentialActive,
@@ -129,10 +131,7 @@ export const getMyPropertyStats = async (
       land: landActive,
       agricultural: agriculturalActive,
       total:
-        residentialActive +
-        commercialActive +
-        landActive +
-        agriculturalActive,
+        residentialActive + commercialActive + landActive + agriculturalActive,
     },
     pending: {
       residential: residentialPending,
