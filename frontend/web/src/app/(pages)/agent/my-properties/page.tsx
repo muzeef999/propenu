@@ -1,18 +1,16 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { HiOutlineMapPin } from "react-icons/hi2";
 import { FiEdit2 } from "react-icons/fi";
 
 import ActiveTabs from "@/ui/ActiveTabs";
-import { getMyProperties } from "@/data/ClientData";
-import NopropertiesSvg from "@/svg/NopropertiesSvg";
 import SelectableButton from "@/ui/SelectableButton";
 import Dropdownui from "@/ui/DropDownUI";
-import ResponsesDrawer from "../ResponsesDrawer";
-import { useResponses } from "../ResponsesContext";
+import NopropertiesSvg from "@/svg/NopropertiesSvg";
+import { getMyProperties } from "@/data/ClientData";
 
 /* ================= TYPES ================= */
 
@@ -28,7 +26,6 @@ interface Property {
   propertyType?: string;
   createdAt?: string;
   status?: "Active" | "Deactive" | "Reported";
-
   meta?: {
     views?: number;
     enquiries?: number;
@@ -44,41 +41,26 @@ const TAB_KEY_MAP: Record<string, string> = {
   Agriculture: "agricultural",
 };
 
+const categories = ["Residential", "Commercial", "Plot", "Agriculture"];
+
 const categoriesDropdown = [
   { label: "Buy", value: "buy" },
   { label: "Rent / Lease", value: "rent / lease" },
 ];
-const Page = () => {
-  const categories = ["Residential", "Commercial", "Plot", "Agriculture"];
 
+/* ================= PAGE ================= */
+
+const Page = () => {
   const [activeTab, setActiveTab] = useState("Residential");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<
     "All" | "Active" | "Reported" | "Subscription Expired" | "Deactivate"
   >("All");
-  const [openResponses, setOpenResponses] = useState(false);
 
   const { data, isLoading } = useQuery<any>({
     queryKey: ["myProperties"],
     queryFn: getMyProperties,
   });
-
-  function ResponsesButton({ propertyId }: { propertyId: string }) {
-    const { setActiveProjectId, setOpenResponses } = useResponses();
-    return (
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          setActiveProjectId(propertyId);
-          setOpenResponses(true);
-        }}
-        className="text-xs text-green-600 hover:underline mt-18"
-      >
-        Responses
-      </button>
-    );
-  }
 
   /* ================= FILTER LOGIC ================= */
 
@@ -110,42 +92,48 @@ const Page = () => {
       </div>
     );
   }
-  console.log("Filtered Properties:", filteredProperties);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-1">
-      {/* ================= TABS ================= */}
-      <div className="flex items-center justify-between">
-        {/* Tabs */}
-        <ActiveTabs
-          categories={categories}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-        />
+      {/* ================= HEADER ================= */}
+      <div className="items-start justify-between">
+        <div className="mb-4">
+          <h1 className="text-2xl font-semibold text-gray-900 mb-1">
+            My Properties
+          </h1>
+          <p className="text-gray-600">View and manage your properties</p>
+        </div>
 
-        {/* Filtered count */}
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">
-            {filteredProperties.length}
-          </span>
-          <span className="text-sm text-gray-600">properties found</span>
+        <div className="flex items-center justify-between">
+          {/* Tabs */}
+          <ActiveTabs
+            categories={categories}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
+
+          {/* Filtered count */}
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">
+              {filteredProperties.length}
+            </span>
+            <span className="text-sm text-gray-600">properties found</span>
+          </div>
         </div>
       </div>
 
       {/* ================= FILTER BAR ================= */}
       <div className="flex items-center gap-4">
-        {/* LEFT: Search */}
-        <div className="shrink-0">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Enter Locality"
-            className="h-9 w-48 rounded-md border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus:border-green-500"
-          />
-        </div>
+        {/* Search */}
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Enter locality"
+          className="h-9 w-48 rounded-md border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus:border-green-500"
+        />
 
-        {/* CENTER: Status Filters */}
-        <div className="flex flex-1 justify-end gap-2">
+        {/* Status Filters */}
+        <div className="ml-auto flex gap-2">
           {[
             "All",
             "Active",
@@ -164,8 +152,8 @@ const Page = () => {
           ))}
         </div>
 
-        {/* RIGHT: Category Dropdown */}
-        <div className="w-30 h-14 shrink-0">
+        {/* Category Dropdown */}
+        <div className="w-32">
           <Dropdownui
             label=""
             placeholder="Category"
@@ -180,42 +168,40 @@ const Page = () => {
       <div className="space-y-4">
         {filteredProperties.length ? (
           filteredProperties.map((property) => {
-            const image = property.gallery?.[0]?.url || "/placeholder.jpg";
+            const image = property.gallery?.[0]?.url ?? "/placeholder.jpg";
 
             return (
               <Link
                 key={property._id}
-                href={`/properties/${TAB_KEY_MAP[activeTab] ?? "residential"}/${
-                  property.slug
-                }`}
-                className="card group flex flex-row items-start gap-5 border border-gray-200 p-2"
+                href={`/properties/${TAB_KEY_MAP[activeTab]}/${property.slug}`}
+                className="group flex gap-5 rounded-md border border-gray-200 p-2 hover:shadow-sm transition"
               >
                 {/* Image */}
-                <div className="w-55 shrink-0 overflow-hidden rounded-lg bg-gray-100 aspect-4/3">
+                <div className="w-56 shrink-0 overflow-hidden rounded-md bg-gray-100 aspect-4/3">
                   <img
                     src={image}
                     alt={property.title}
-                    className="h-50  object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>
 
                 {/* Content */}
                 <div className="flex flex-1 flex-col">
-                  <div className="flex items-start justify-between">
-                    <div className="min-w-0 max-w-[380px]">
-                      <h3 className="truncate text-lg font-semibold text-gray-900 ">
+                  <div className="flex justify-between">
+                    <div className="max-w-[420px]">
+                      <h3 className="truncate text-lg font-semibold text-gray-900">
                         {property.title ?? "Untitled Property"}
                       </h3>
 
                       <div className="mt-1 flex items-center gap-1 text-sm text-gray-500 truncate">
-                        <HiOutlineMapPin className="h-4 w-4 text-green-600 shrink-0 " />
+                        <HiOutlineMapPin className="h-4 w-4 text-green-600 shrink-0" />
                         {property.address ?? "Location not specified"}
                       </div>
                     </div>
 
-                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700 capitalize">
+                    {/* <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
                       {property.status}
-                    </span>
+                    </span> */}
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-x-12 gap-y-3 text-sm text-gray-600">
@@ -287,7 +273,6 @@ const Page = () => {
                         {property.meta?.enquiries ?? 0}
                       </span>
                     </p>
-                    <ResponsesButton propertyId={property._id} />
                   </div>
                 </div>
               </Link>

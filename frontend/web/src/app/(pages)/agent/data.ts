@@ -56,11 +56,12 @@ export const verifyPayment = async (payload: {
 };
 
 
-export const getMyAgentProfile = async () => {
+export const getMyAgentProfile = async (dateRange: string = "30") => {
   const token = Cookies.get("token");
   if (!token) return null;
 
   const res = await axiosInstance.get(`${url}/api/users/agent/my`, {
+    params: { range: dateRange },
     headers: {
       Authorization: `Bearer ${token}`,
     },

@@ -12,12 +12,17 @@ import {
 const menuItems = [
   {
     label: "Dashboard",
-    link: "#",
+    link: "/agent",
     icon: profile,
   },
   {
     label: "Leads",
     link: "/agent/leads",
+    icon: Building,
+  },
+  {
+    label: "MyProperties",
+    link: "/agent/my-properties",
     icon: Building,
   },
   {

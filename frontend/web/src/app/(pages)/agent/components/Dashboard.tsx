@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   HiHome,
   HiCheckCircle,
@@ -9,27 +10,105 @@ import {
   HiCursorClick,
   HiChatAlt2,
 } from "react-icons/hi";
+
 import KpiCard from "../ui/KpiCard";
+import HorizontalBarChart from "../ui/HorizontalBarChart";
+import { getMyAgentProfile } from "../data";
+import Dropdownui from "@/ui/DropDownUI";
+import PieChartcard from "../ui/PieChart";
+import TopPropertiesTable from "../ui/TopPropertiesTable";
+
+/* ================= CONSTANTS ================= */
+
+const DATE_RANGE_OPTIONS = [
+  { label: "Last 7 days", value: "7" },
+  { label: "Last 30 days", value: "30" },
+  { label: "Last 6 months", value: "180" },
+];
+
+/* ================= COMPONENT ================= */
 
 const Dashboard = () => {
   const [dateRange, setDateRange] = useState("30");
 
-  // 🔹 Mock KPI data (replace with API response)
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["myAgentProfile", dateRange],
+    queryFn: () => getMyAgentProfile(dateRange),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  /* ================= SAFE LOGGING ================= */
+  useEffect(() => {
+    if (!data) return;
+    console.log("FINAL API DATA:", data);
+    console.log("CHARTS:", data.charts);
+    console.log("BYCITY:", data.charts?.bycity);
+  }, [data]);
+
+  /* ================= STATES ================= */
+
+  if (isLoading) {
+    return (
+      <div className="h-64 flex items-center justify-center text-gray-500">
+        Loading dashboard...
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="h-64 flex items-center justify-center text-red-500">
+        {(error as Error)?.message || "Failed to load dashboard"}
+      </div>
+    );
+  }
+
+  /* ================= KPI DATA ================= */
+
   const kpis = {
-    totalProperties: 12,
-    activeListings: 8,
-    pendingListings: 4,
-    totalViews: 2340,
-    totalClicks: 620,
-    totalInquiries: 47,
+    totalProperties: data?.kpis?.totalProperties ?? 0,
+    activeListings: data?.kpis?.activeListings ?? 0,
+    pendingListings: data?.kpis?.pendingListings ?? 0,
+    totalViews: data?.kpis?.totalViews ?? 0,
+    totalClicks: data?.kpis?.totalClicks ?? 0,
+    totalInquiries: data?.kpis?.totalInquiries ?? 0,
   };
 
+  const barChartData = useMemo(() => {
+    if (!Array.isArray(data?.charts?.byCity)) return [];
+    return data.charts.byCity.map((item: any) => ({
+      name: item.city,
+      value: item.count,
+    }));
+  }, [data]);
+  const propertyTypePie = useMemo(() => {
+    return [
+      { name: "Residential", value: data?.stats?.residential ?? 10 },
+      { name: "Commercial", value: data?.stats?.commercial ?? 5 },
+      { name: "Plot", value: data?.stats?.plot ?? 2 },
+      { name: "Agricultural", value: data?.stats?.agricultural ?? 1 },
+    ].filter((item) => item.value > 0); // remove zero values
+  }, [data]);
+
+  const topProperties = useMemo(() => {
+    return (
+      data?.topProperties?.map((p: any) => ({
+        _id: p._id,
+        title: p.title,
+        city: p.city,
+        image: p.gallery?.[0]?.url,
+        views: p.meta?.views ?? 0,
+        inquiries: p.meta?.inquiries ?? 0,
+      })) ?? []
+    );
+  }, [data]);
+
   return (
-    <div className="container mx-auto p-6">
+    <div className="mx-auto">
       {/* ================= HEADER ================= */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 mb-2">
+          <h1 className="text-2xl font-semibold text-gray-900 mb-1">
             Agent Analytics Dashboard
           </h1>
           <p className="text-gray-600">
@@ -38,16 +117,19 @@ const Dashboard = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-600">Date Range:</span>
-          <select
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
-            className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer shadow-sm"
-          >
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-            <option value="180">Last 6 months</option>
-          </select>
+          <span className="text-sm text-gray-600 whitespace-nowrap">
+            Date Range:
+          </span>
+
+          <div className="w-40">
+            <Dropdownui
+              label=""
+              value={dateRange}
+              onChange={setDateRange}
+              placeholder="Select range"
+              options={DATE_RANGE_OPTIONS}
+            />
+          </div>
         </div>
       </div>
 
@@ -100,6 +182,51 @@ const Dashboard = () => {
           bgColor="#FFF5F7"
           iconBgColor="#FFE4EC"
         />
+      </div>
+
+      {/* ================= ANALYTICS GRID ================= */}
+      <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* ================= PROPERTY TYPE PIE ================= */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">
+            Property Type Distribution
+          </h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Residential vs Commercial vs Plot vs Agricultural
+          </p>
+
+          {propertyTypePie.length > 0 ? (
+            <PieChartcard data={propertyTypePie} />
+          ) : (
+            <div className="h-40 flex items-center justify-center text-gray-400 text-sm">
+              No property type data available
+            </div>
+          )}
+        </div>
+
+        {/* ================= TOP CITIES BAR ================= */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Top Cities by Views
+            </h2>
+            <p className="text-sm text-gray-500">
+              Performance of your listings across different cities
+            </p>
+          </div>
+
+          {barChartData.length > 0 ? (
+            <HorizontalBarChart data={barChartData} />
+          ) : (
+            <div className="h-40 flex items-center justify-center text-gray-400 text-sm">
+              No city data available for selected range
+            </div>
+          )}
+        </div>
+      </div>
+      {/* ================= Top Properties Table ================= */}
+      <div className="mt-10">
+        <TopPropertiesTable properties={topProperties} />
       </div>
     </div>
   );
