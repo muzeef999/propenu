@@ -1,5 +1,12 @@
-const page = () => {
-  return <h1>agent dashboard</h1>;
-};
+import React from 'react'
+import Dashboard from './components/Dashboard'
 
-export default page;
+const page = () => {
+  return (
+    <div>
+      <Dashboard />
+    </div>
+  )
+}
+
+export default page

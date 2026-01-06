@@ -12,7 +12,7 @@ import { Toaster } from "sonner";
 import { usePathname } from "next/navigation";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
-import AgentRegistrationModal from "@/components/AgentRegistrationModal";
+import AgentRegistrationModal from "@/app/(pages)/agent/components/AgentRegistrationModal";
 
 
 export default function ClientProviders({

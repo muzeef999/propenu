@@ -22,7 +22,7 @@ const GreetingOptions = [
   { label: "Logout", action: "logout" },
 ];
 
-const AgentOptions=[
+const AgentOptions = [
   { label: "Dashboard", link: "/agent/dashboard" },
   { label: "My Plans", link: "/agent/plans" },
   { label: "My Property", link: "/agent/my-Properties" },
@@ -60,9 +60,15 @@ const UserGreeting = ({ user }: UserGreetingProps) => {
     <div className="text-sm text-gray-700">
       <FilterDropdown
         triggerLabel={
-          <span className="px-4 text-primary font-medium cursor-pointer">
-            Hi, {user?.user?.name}
-          </span>
+          <>
+            <span className="px-4 text-primary font-medium cursor-pointer items-end flex">
+              Hi, {user?.user?.name}
+              <br />
+            </span>
+            <span className="text-xs text-gray-500 items-end flex px-4 capitalize">
+              {user?.user?.roleName || "user"}
+            </span>
+          </>
         }
         width="w-56"
         align="left"
