@@ -1,5 +1,6 @@
 import axiosInstance from "@/utilies/axiosInstance";
 import Cookies from "js-cookie";
+import { sl } from "zod/v4/locales";
 
 const url = process.env.NEXT_PUBLIC_API_URL;
 
@@ -103,3 +104,4 @@ export const registerAgency = async (payload: {
   });
   return res.data;
 };
+
