@@ -6,18 +6,8 @@ import { toast } from "sonner";
 import { registerAgency } from "@/app/(pages)/agent/data";
 import InputFiled from "@/ui/InputFiled";
 
-// TODO: Replace this with your actual file upload logic (e.g., to a cloud storage service).
-// This mock function simulates an upload and returns a temporary blob URL for preview.
 async function uploadFile(file: File): Promise<string> {
   console.log(`Uploading ${file.name}...`);
-  // In a real app, you would upload the file to your backend/storage and get a permanent URL.
-  // Example using FormData:
-  // const formData = new FormData();
-  // formData.append("file", file);
-  // const response = await fetch('/api/upload', { method: 'POST', body: formData });
-  // if (!response.ok) throw new Error('Upload failed');
-  // const data = await response.json();
-  // return data.url;
 
   return new Promise((resolve) => {
     setTimeout(() => {

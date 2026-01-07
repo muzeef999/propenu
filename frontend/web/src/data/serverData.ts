@@ -154,3 +154,19 @@ export async function  getLandSlugProjects ({ slug }: { slug: string }) {
   const json = await res.json();
   return json.data as ILand;
 }
+
+export async function getAgentDetails({ slug }: { slug: string }) {
+  const res = await fetch(`${url}/api/users/agent/slug/${encodeURIComponent(slug)}`,
+    {
+      next: { revalidate: 10 }, // ISR – recommended by Next.js
+    }
+  );
+  if (res.status === 404) {
+    return null;
+  }
+  if (!res.ok) {
+    throw new Error("Failed to fetch agent details");
+  }
+  const json = await res.json();
+  return json.data;
+}

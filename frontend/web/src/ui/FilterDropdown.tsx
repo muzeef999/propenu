@@ -110,7 +110,7 @@ export default function FilterDropdown({
       {openState && (
         <>
           {/* Backdrop (visual only) */}
-          <div className={`fixed ${scrolled ? "top-[3.375rem]" : "top-[7.5rem]"} left-0 right-0 bottom-0 bg-black/45 z-40 transition-all duration-100`} onClick={() => setOpen(false)} />
+          <div className={`fixed ${scrolled ? "top-13.5" : "top-30"} left-0 right-0 bottom-0 bg-black/45 z-40 transition-all duration-100`} onClick={() => setOpen(false)} />
 
           {/* Dropdown Panel */}
           <div className={`absolute z-50 mt-2 ${alignClass}`}>

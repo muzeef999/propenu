@@ -160,4 +160,39 @@ export const getHighlightProjectBuilders = async () => {
       },
   });
   return res.data;
-}
+} ;
+
+export const getAgentProfile = async (agentId: string) => {
+  const res = await axiosInstance.get(
+    `${url}/api/users/agent/${agentId}`,
+  );
+
+  return res.data;
+};
+
+export const updateAgentProfile = async (
+  agentId: string,
+  payload: Partial<{
+    name: string;
+    bio: string;
+    agencyName: string;
+    city: string;
+    areasServed: string[];
+    languages: string[];
+    experienceYears: number;
+    licenseNumber: string;
+    licenseValidTill: string;
+  }>
+) => {
+  const res = await axiosInstance.patch(
+    `${url}/api/users/agent/${agentId}`,
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${Cookies.get("token")}`,
+      },
+    }
+  );
+
+  return res.data;
+};

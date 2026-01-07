@@ -40,9 +40,6 @@ const Dashboard = () => {
   /* ================= SAFE LOGGING ================= */
   useEffect(() => {
     if (!data) return;
-    console.log("FINAL API DATA:", data);
-    console.log("CHARTS:", data.charts);
-    console.log("BYCITY:", data.charts?.bycity);
   }, [data]);
 
   /* ================= STATES ================= */

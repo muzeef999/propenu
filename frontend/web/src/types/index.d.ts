@@ -1,3 +1,8 @@
+import { IAgricultural } from "./agricultural";
+import { ICommercial } from "./commercial";
+import { ILand } from "./land";
+import { IResidential } from "./residential";
+
 export interface FeaturedProject {
   // basic
   _id: string;
@@ -104,6 +109,16 @@ export interface AgentConnect {
   rera: ReraInfo;
   stats: Stats;
   _id: string;
+}
+
+export interface AgentDetailsResponse {
+  agent: AgentConnect;
+  properties:{
+     residential: IResidential[];
+     commercial: ICommercial[];
+     land: ILand[];
+     agricultural: IAgricultural[];
+  }
 }
 
 export interface IBhkPlan {
