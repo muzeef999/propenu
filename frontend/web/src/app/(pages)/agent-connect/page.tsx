@@ -66,7 +66,7 @@ export default async function Page() {
                   <span>{agent.city}</span>
                 </div>
 
-                <div className="flex gap-10 mt-3">
+                <div className="grid grid-cols-3 ap-10 mt-2">
                   <div className="text-center">
                     <p className="text-green-600 font-semibold">
                       {agent.stats?.totalProperties || 0}
@@ -86,11 +86,6 @@ export default async function Page() {
                       {agent.dealsClosed || 0}
                     </p>
                     <p className="text-xs text-gray-500">Deals Closed</p>
-                  </div>
-
-                  <div className="text-center">
-                    <p className="text-green-600 font-semibold">—</p>
-                    <p className="text-xs text-gray-500">Team Members</p>
                   </div>
                 </div>
               </div>

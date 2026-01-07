@@ -23,7 +23,7 @@ const GreetingOptions = [
 ];
 
 const AgentOptions = [
-  { label: "Dashboard", link: "/agent/dashboard" },
+  { label: "Dashboard", link: "/agent" },
   { label: "My Plans", link: "/agent/plans" },
   { label: "My Property", link: "/agent/my-Properties" },
   { label: "Account & Settings", link: "/agent/account-settings" },
@@ -55,7 +55,7 @@ const UserGreeting = ({ user }: UserGreetingProps) => {
   };
 
   const options = getOptionsForRole(user?.user?.roleName);
-  console.log("User Greeting Options:", user);
+ 
   return (
     <div className="text-sm text-gray-700">
       <FilterDropdown

@@ -31,8 +31,7 @@ export default async function Page({ params }: PageProps) {
 
     if (!data) notFound();
     const { agent, properties } = data;
-    console.log("Agent Data:", data);
-    console.log("Agent Properties:", properties);
+
 
     return (
         <div className="container mx-auto py-10">
