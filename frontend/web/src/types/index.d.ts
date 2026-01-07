@@ -459,6 +459,10 @@ type Plan = {
     LEAD_DASHBOARD?: boolean;
     TEAM_MEMBERS?: number;
 
+    CONTACT_OWNER_LIMIT?:number
+
+    PROPERTY_COMPARISON?:boolean
+
     // builder extras (safe to keep)
     TOP_LISTING_DAYS?: number;
     NEW_LEADS?: boolean;

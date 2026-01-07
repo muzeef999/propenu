@@ -69,7 +69,7 @@ export default function PricingComparisonTable({
                 key={plan.code}
                 className="border p-3 text-center font-semibold"
               >
-                <div>{plan.name.split(" ")[0]}</div>
+                <div>{plan.name}</div>
                 <div className="text-xs text-gray-500">
                   {plan.category === "both"
                     ? "Sell + Rent"

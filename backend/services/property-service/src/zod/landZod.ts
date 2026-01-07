@@ -99,9 +99,9 @@ export const DimensionsSchema = z.object({
 const BaseCreate = z.object({
   title: z.string().min(1).optional(),
   slug: z.string().optional(),
-  listingType: preprocessEnum(["buy", "rent", "lease"] as const)
+  listingType: preprocessEnum(["sale", "rent", "lease"] as const)
     .optional()
-    .default("buy"),
+    .default("sale"),
   address: z.string().min(1),
   city: z.string().optional(),
   state: z.string().optional(),
