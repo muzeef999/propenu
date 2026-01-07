@@ -1,7 +1,58 @@
 export const plans = [
-  // ---------------- BUYER RENT ----------------
+// ---------------- RENTAL subscription ----------------
+{
+    code: "RENTAL_FREE",
+    userType: "rental",
+    category: "rent",
+    tier: "free",
+    name: "Free",
+    price: 0,
+    features: {
+      CONTACT_OWNER_LIMIT: 2,
+    },
+  },
+
   {
-    code: "BUYER_RENT_FREE",
+    code: "RENTAL_TIER_1",
+    userType: "rental",
+    category: "rent",
+    tier: "tier1",
+    name: "Rental Assist",
+    price: 699,
+    features: {
+      CONTACT_OWNER_LIMIT: 4,
+    },
+  },
+  {
+    code: "RENTAL_TIER_2",
+    userType: "rental",
+    category: "rent",
+    tier: "tier2",
+    name: "Rental Guide",
+    price: 1499,
+    features: {
+      CONTACT_OWNER_LIMIT: 10,
+      PROPERTY_COMPARISON: true,
+      LEAD_DASHBOARD: true,
+    },
+  },
+  {
+    code: "RENTAL_TIER_3",
+    userType: "rental",
+    category: "rent",
+    tier: "tier3",
+    name: "Rental Assure",
+    price: 2999,
+    features: {
+      CONTACT_OWNER_LIMIT: 20,
+      PROPERTY_COMPARISON: true,
+      LEAD_DASHBOARD: true,
+    },
+  },
+
+  // ---------------- BUYER subscription ----------------
+  {
+    code: "BUYER_FREE",
     userType: "buyer",
     category: "rent",
     tier: "free",
@@ -11,6 +62,7 @@ export const plans = [
       CONTACT_OWNER_LIMIT: 2,
     },
   },
+
   {
     code: "BUYER_RENT_TIER_1",
     userType: "buyer",
@@ -35,8 +87,34 @@ export const plans = [
       LEAD_DASHBOARD: true,
     },
   },
+  {
+    code: "BUYER_RENT_TIER_3",
+    userType: "buyer",
+    category: "rent",
+    tier: "tier3",
+    name: "Buyer Advance",
+    price: 1999,
+    features: {
+      CONTACT_OWNER_LIMIT: 20,
+      PROPERTY_COMPARISON: true,
+      LEAD_DASHBOARD: true,
+    },
+  },
 
   // ---------------- OWNER SELL ----------------
+  {
+    code: "OWNER_SELL_TIER_0",
+    userType: "owner",
+    category: "sell",
+    tier: "tier0",
+    name: "Free",
+    price: 0,
+    features: {
+      ENQUIRY_LIMIT: 2,
+      TOP_LISTING_DAYS: 0,
+    },
+  },
+
   {
     code: "OWNER_SELL_TIER_1",
     userType: "owner",
@@ -49,6 +127,83 @@ export const plans = [
       TOP_LISTING_DAYS: 5,
     },
   },
+  {
+    code: "OWNER_SELL_TIER_2",
+    userType: "owner",
+    category: "sell",
+    tier: "tier2",
+    name: "Owner Advantage",
+    price: 499,
+    features: {
+      ENQUIRY_LIMIT: 15,
+      TOP_LISTING_DAYS: 10,
+    },
+  },
+
+  {
+    code: "OWNER_SELL_TIER_3",
+    userType: "owner",
+    category: "sell",
+    tier: "tier3",
+    name: "Owner Ultra",
+    price: 1999,
+    features: {
+      ENQUIRY_LIMIT: 20,
+      TOP_LISTING_DAYS: 5,
+    },
+  },
+
+
+  // ---------------- OWNER RENT ----------------
+  {
+    code: "OWNER_RENT_TIER_0",
+    userType: "owner",
+    category: "rent",
+    tier: "tier0",
+    name: "Free",
+    price: 0,
+    features: {
+      ENQUIRY_LIMIT: 2,
+      TOP_LISTING_DAYS: 0,
+    },
+  },
+  {
+    code: "OWNER_RENT_TIER_1",
+    userType: "owner",
+    category: "rent",
+    tier: "tier1",
+    name: "Owner Access",
+    price: 499,
+    features: {
+      ENQUIRY_LIMIT: 10,
+      TOP_LISTING_DAYS: 5,
+    },
+  },
+  {
+    code: "OWNER_RENT_TIER_2",
+    userType: "owner",
+    category: "rent",
+    tier: "tier2",
+    name: "Owner Access",
+    price: 499,
+    features: {
+      ENQUIRY_LIMIT: 15,
+      TOP_LISTING_DAYS: 10,
+    },
+  },
+  {
+    code: "OWNER_RENT_TIER_3",
+    userType: "owner",
+    category: "rent",
+    tier: "tier1",
+    name: "Owner Access",
+    price: 499,
+    features: {
+      ENQUIRY_LIMIT: 20,
+      TOP_LISTING_DAYS: 20,
+    },
+  },
+
 
   // ---------------- AGENT BOTH ----------------
   {
@@ -65,7 +220,6 @@ export const plans = [
     LEAD_DASHBOARD: false,
   },
 },
-
 
 {
   code: "AGENT_RENT_PRO",

@@ -117,7 +117,7 @@ const BaseCreate = z.object({
   slug: z.string().optional(),
 
   // listingType: normalize input then validate enum
-  listingType: preprocessEnumString(["buy", "rent", "lease"]).optional().default("buy"),
+  listingType: preprocessEnumString(["sale", "rent", "lease"]).optional().default("sale"),
   description: z.string().optional(),
   createdBy: z.string().optional(),
   listingSource: z.string().optional(),

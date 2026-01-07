@@ -124,7 +124,7 @@ export const LegalChecksSchema = new Schema<ILegalChecks>(
 ------------------------- */
 export const BaseFields = {
   slug: { type: String, required: true, unique: true, trim: true },
-  listingType: { type: String, enum: ['buy', 'rent', 'lease'], default: 'buy', index: true },
+  listingType: { type: String, enum: ['sale', 'rent', 'lease'], default: 'sale', index: true },
   listingSource: {  type: String, trim: true},
   address: { type: String, required: true },
   description : {type: String, required: true},
