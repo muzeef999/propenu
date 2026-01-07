@@ -40,7 +40,7 @@ export async function createPaymentOrder(
     // 🔒 Prevent duplicate active subscription
     const existing = await Subscription.findOne({
       userId,
-      userType,
+      userType: plan.userType,
       status: "active",
     });
 
@@ -55,15 +55,19 @@ export async function createPaymentOrder(
     }
 
     await Subscription.create({
-      userId,
-      userType,
-      planId: plan._id,
-      startDate: new Date(),
-      endDate: new Date(
-        Date.now() + plan.durationDays * 24 * 60 * 60 * 1000
-      ),
-      status: "active",
-    });
+  userId,
+  userType: plan.userType, // ✅ from plan
+  planCode: plan.code,
+  planId: plan._id,
+  tier: plan.tier,
+  category: plan.category,
+  startDate: new Date(),
+  endDate: new Date(
+    Date.now() + plan.durationDays * 24 * 60 * 60 * 1000
+  ),
+  status: "active",
+});
+
 
 
         console.log("✅ STEP 6 → FREE SUB CREATED");
@@ -91,7 +95,7 @@ try {
     notes: {
       planId: plan._id.toString(),
       userId,
-      userType,
+        userType: plan.userType,
     },
   });
 
@@ -173,7 +177,7 @@ export async function verifyPaymentAndActivate(
   // ✅ Activate new subscription
   await Subscription.create({
     userId: payment.userId,
-    userType: payment.userType,
+    userType: plan.userType,
     planCode: plan.code,
     tier: plan.tier,
     startDate: new Date(),

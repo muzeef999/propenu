@@ -1,7 +1,8 @@
 "use client";
 
-import { agentFeatures } from "@/config/agentFeatureConfig";
-import { buyerFeatures } from "@/config/ownerFeatures";
+import ActivePlanCard from "@/app/(pages)/agent/ActivePlanCard";
+import { useMySubscription } from "@/app/(pages)/agent/data";
+import { ownerSellerFeatures } from "@/config/ownerFeatures";
 import { getPlans } from "@/data/ClientData";
 import PricingComparisonTable from "@/ui/PricingComparisonTable";
 import { useQuery } from "@tanstack/react-query";
@@ -16,6 +17,16 @@ const page = () => {
       }),
   });
 
+
+    const { data: my_subscrpition } = useQuery({
+    queryKey:["my-subscrpition"],
+    queryFn: useMySubscription
+  });
+
+
+
+
+
   const { data: owner_rental = [] } = useQuery({
     queryKey: ["owner_rental"],
     queryFn: () =>
@@ -27,19 +38,21 @@ const page = () => {
 
   return (
     <div>
-      <h1>hello memebership</h1>
+
+     <ActivePlanCard my_subscription={my_subscrpition} />
+
 
       <h1>owner seller</h1>
       <PricingComparisonTable
         plans={owner_seller}
-        features={buyerFeatures}
+        features={ownerSellerFeatures}
         userType="buyer"
       />
 
       <h1>owner rental</h1>
       <PricingComparisonTable
         plans={owner_rental}
-        features={buyerFeatures}
+        features={ownerSellerFeatures}
         userType="buyer"
       />
     </div>

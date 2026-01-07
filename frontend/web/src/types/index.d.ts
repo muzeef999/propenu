@@ -462,7 +462,7 @@ type Plan = {
     CONTACT_OWNER_LIMIT?:number
 
     PROPERTY_COMPARISON?:boolean
-
+  ENQUIRY_LIMIT?:number;
     // builder extras (safe to keep)
     TOP_LISTING_DAYS?: number;
     NEW_LEADS?: boolean;

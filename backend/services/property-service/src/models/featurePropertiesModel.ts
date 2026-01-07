@@ -1,12 +1,6 @@
 // src/models/featurePropertiesModel.ts
 import mongoose, { Schema, Document, Model, Types } from 'mongoose';
-import {
-  IAboutSummary,
-  IAmenity,
-  IBhkSummary,
-  Ibrochure,
-  IFeaturedProject,
-  IGalleryItem,
+import { IAboutSummary, IAmenity, IBhkSummary, Ibrochure, IFeaturedProject, IGalleryItem,
   ILead,
   ILogo, 
   INearbyPlace,
@@ -139,20 +133,15 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     title: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, trim: true },
     logo: {type:LogoSchema},
-    
     heroImage: { type: String },
     heroVideo: { type: String },
     heroTagline: { type: String },
     heroSubTagline: { type: String },
     heroDescription: { type: String },
-
-    
     color: { type: String },
     metaTitle: { type: String },
     metaDescription: { type: String },
     metaKeywords: { type: String },
-
-    
     address: { type: String, required: true },
     city: { type: String, index: true },
     location: {
@@ -160,19 +149,14 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
       coordinates: { type: [Number], index: '2dsphere' },
     },
     mapEmbedUrl: { type: String },
-
-    
     currency: { type: String, default: 'INR' },
     priceFrom: { type: Number, index: true },
     priceTo: { type: Number, index: true },
     bhkSummary: { type: [BhkSummarySchema], },
-
     sqftRange: {
       min: { type: Number },
       max: { type: Number },
     },
-
-  
     possessionDate: { type: String },
     totalTowers: { type: Number },
     totalFloors: { type: String },

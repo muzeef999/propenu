@@ -110,6 +110,7 @@ export const plans = [
     name: "Free",
     price: 0,
     features: {
+      PROPERTY_LISTING_LIMIT: 2,
       ENQUIRY_LIMIT: 2,
       TOP_LISTING_DAYS: 0,
     },
@@ -123,6 +124,7 @@ export const plans = [
     name: "Owner Access",
     price: 499,
     features: {
+       PROPERTY_LISTING_LIMIT: 10,
       ENQUIRY_LIMIT: 10,
       TOP_LISTING_DAYS: 5,
     },
@@ -135,6 +137,7 @@ export const plans = [
     name: "Owner Advantage",
     price: 499,
     features: {
+       PROPERTY_LISTING_LIMIT: 15,
       ENQUIRY_LIMIT: 15,
       TOP_LISTING_DAYS: 10,
     },
@@ -148,6 +151,7 @@ export const plans = [
     name: "Owner Ultra",
     price: 1999,
     features: {
+       PROPERTY_LISTING_LIMIT: 20,
       ENQUIRY_LIMIT: 20,
       TOP_LISTING_DAYS: 5,
     },
@@ -163,6 +167,7 @@ export const plans = [
     name: "Free",
     price: 0,
     features: {
+       PROPERTY_LISTING_LIMIT: 2,
       ENQUIRY_LIMIT: 2,
       TOP_LISTING_DAYS: 0,
     },
@@ -175,6 +180,7 @@ export const plans = [
     name: "Owner Access",
     price: 499,
     features: {
+       PROPERTY_LISTING_LIMIT: 10,
       ENQUIRY_LIMIT: 10,
       TOP_LISTING_DAYS: 5,
     },
@@ -187,6 +193,7 @@ export const plans = [
     name: "Owner Access",
     price: 499,
     features: {
+       PROPERTY_LISTING_LIMIT: 15,
       ENQUIRY_LIMIT: 15,
       TOP_LISTING_DAYS: 10,
     },
@@ -199,6 +206,7 @@ export const plans = [
     name: "Owner Access",
     price: 499,
     features: {
+       PROPERTY_LISTING_LIMIT: 20,
       ENQUIRY_LIMIT: 20,
       TOP_LISTING_DAYS: 20,
     },

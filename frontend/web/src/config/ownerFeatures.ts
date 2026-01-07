@@ -1,6 +1,6 @@
 import { Plan } from "@/types";
 
-export const buyerFeatures = [
+export const ownerSellerFeatures = [
   {
     label: "Price",
     render: (plan: Plan) => `₹${plan.price}/month`,
@@ -8,27 +8,30 @@ export const buyerFeatures = [
 
   {
     label: "Property Category Access",
-    render: (plan: Plan) =>
-      plan.category === "rent" ? "Rent" : plan.category,
+    render: (plan: Plan) => plan.category,
   },
 
   {
-    label: "Owner Contact Limit",
+    label: "Property Listing Limit",
     render: (plan: Plan) =>
-      plan.features?.CONTACT_OWNER_LIMIT
-        ? `Up to ${plan.features.CONTACT_OWNER_LIMIT} owners`
+      plan.features?.PROPERTY_LISTING_LIMIT
+        ? `Up to ${plan.features.PROPERTY_LISTING_LIMIT} properties`
+        : "Unlimited",
+  },
+
+  {
+    label: "Buyer Enquiry Limit",
+    render: (plan: Plan) =>
+      plan.features?.ENQUIRY_LIMIT
+        ? `Up to ${plan.features.ENQUIRY_LIMIT} enquiries`
         : "—",
   },
 
   {
-    label: "Property Comparison",
+    label: "Top Listing Visibility",
     render: (plan: Plan) =>
-      plan.features?.PROPERTY_COMPARISON ? "✓" : "—",
-  },
-
-  {
-    label: "Lead Management Dashboard",
-    render: (plan: Plan) =>
-      plan.features?.LEAD_DASHBOARD ? "✓" : "—",
+      plan.features?.TOP_LISTING_DAYS
+        ? `${plan.features.TOP_LISTING_DAYS} days`
+        : "—",
   },
 ];

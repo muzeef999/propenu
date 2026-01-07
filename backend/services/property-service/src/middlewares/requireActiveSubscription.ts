@@ -14,6 +14,9 @@ export const requireActiveSubscription = async (
 ) => {
   const userId = req.user!.id;
 
+  const { listingType } = req.body; // "sale" | "rent" | "lease"
+
+
   // 1️⃣ Check active subscription
   const subscription = await Subscription.findOne({
     userId,
@@ -34,6 +37,19 @@ export const requireActiveSubscription = async (
   if (!plan) {
     return res.status(403).json({
       message: "Invalid subscription plan",
+    });
+  }
+
+    // 2.5️⃣ Check if plan allows this listing type (sale / rent)
+  const requiredCategory =
+    listingType === "sale" ? "sell" : "rent";
+
+  if (
+    plan.category !== "both" &&
+    plan.category !== requiredCategory
+  ) {
+    return res.status(403).json({
+      message: `Your current plan does not allow posting ${listingType} properties. Please upgrade your plan.`,
     });
   }
 

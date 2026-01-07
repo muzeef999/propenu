@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { ZodError } from "zod";
 import CommercialService, { findRelatedCommercial } from "../services/commercialService";
-// import { CommercialCreateDTO, CommercialUpdateDTO } from "../zod/commercialZod"; // if you have zod
 
 function parseMaybeJSON<T = any>(value: any): T | undefined {
   if (value === undefined || value === null || value === "") return undefined;
@@ -103,7 +102,6 @@ export const getCommercialBySlug = async (req: Request, res: Response) => {
     });
   }
 };
-
 
 export const getCommercialDetail = async (req: Request, res: Response) => {
   try {
