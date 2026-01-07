@@ -6,7 +6,7 @@ import {
 
 export const basicDetailsSchema = z
   .object({
-    listingType: z.enum(["buy", "rent", "lease"], {
+    listingType: z.enum(["sale", "rent", "lease"], {
       message: "Category is required",
     }),
 
