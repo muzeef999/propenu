@@ -10,9 +10,7 @@ export default function AccountLayout({
 }) {
   const pathname = usePathname();
 
-  const hidePromoOn = [""];
 
-  const shouldShowPromo = !hidePromoOn.includes(pathname);
 
   return (
     <div className="min-h-screen container mx-auto flex">

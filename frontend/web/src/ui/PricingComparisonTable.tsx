@@ -57,7 +57,10 @@ export default function PricingComparisonTable({
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-4 items-stretch max-w-7xl mx-auto p-4 font-sans">
+    <div
+      id="pricing-table"
+      className="flex flex-col md:flex-row gap-4 items-stretch max-w-7xl mx-auto p-4 font-sans"
+    >
       {/* ---------- LEFT SIDEBAR (Service Details) ---------- */}
       <div className="w-full md:w-50 relative mt-16 md:mt-12">
         {/* HEADER TEXT */}
@@ -98,11 +101,11 @@ export default function PricingComparisonTable({
           >
             {/* Plan Header */}
             <div className="p-5 bg-[#F4FBF7] rounded-t-2xl text-center">
-              <h3 className="text-[#27AE60] font-bold text-lg mb-1">
+              <h3 className="text-[#27AE60] font-semibold text-lg mb-1">
                 {plan.name}
               </h3>
               <div className="flex items-center justify-center gap-1">
-                <span className="text-2xl font-bold">
+                <span className="text-2xl font-semibold">
                   ₹{plan.price.toLocaleString()}
                 </span>
                 {plan.price > 0 && (
@@ -119,7 +122,7 @@ export default function PricingComparisonTable({
 
               <button
                 onClick={() => handleSubscribe(plan)}
-                className="mt-4 w-full bg-[#27AE60] hover:bg-[#219150] text-white font-bold py-2 rounded-lg transition-colors text-sm"
+                className="mt-4 w-full btn-primary font-medium cursor-pointer py-2"
               >
                 Buy Now
               </button>

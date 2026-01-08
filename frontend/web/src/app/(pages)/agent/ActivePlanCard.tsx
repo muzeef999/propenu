@@ -1,172 +1,202 @@
 "use client";
 
+import { MdCheckCircle, MdOutlineHomeWork, MdTrendingUp, MdOutlineWorkspacePremium, MdOutlineAccessTime } from "react-icons/md";
+import Link from "next/link";
+import PromoBanner from "@/components/PromoBanner";
+
 type ActivePlanCardProps = {
-  my_subscription: {
-    active: boolean;
-    plans: {
-      userType: string;
-      category: string | null;
-      code: string;
-      tier: string;
-      price: number;
-      startDate: string;
-      endDate: string;
-      features: {
-        PROPERTY_LISTING_LIMIT?: number;
-        ENQUIRY_LIMIT?: number;
-        TOP_LISTING_DAYS?: number;
-        CONTACT_OWNER_LIMIT?: number;
-        BUYER_REACH_PERCENT?: number;
-        BUYER_ACCESS?: boolean;
-        LEAD_DASHBOARD?: boolean;
-      };
-    }[];
-  } | undefined;
+  my_subscription:
+    | {
+        active: boolean;
+        plans: {
+          userType: string;
+          category: string | null;
+          code: string;
+          tier: string;
+          price: number;
+          startDate: string;
+          endDate: string;
+          features: {
+            PROPERTY_LISTING_LIMIT?: number;
+            ENQUIRY_LIMIT?: number;
+            TOP_LISTING_DAYS?: number;
+            CONTACT_OWNER_LIMIT?: number;
+            BUYER_REACH_PERCENT?: number;
+            BUYER_ACCESS?: boolean;
+            LEAD_DASHBOARD?: boolean;
+          };
+        }[];
+      }
+    | undefined;
 };
 
 const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
-  // ✅ No active plans
   if (!my_subscription?.active || !my_subscription.plans?.length) {
     return (
-      <div className="w-full p-6 rounded-xl border bg-white">
-        <h2 className="text-lg font-semibold">No Active Plan</h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Subscribe to unlock premium features.
-        </p>
+      <div >
+        <PromoBanner />
       </div>
     );
   }
 
-  const { plans } = my_subscription;
+  const plan = my_subscription.plans[0];
+
+  /* Dates */
+  const startDate = new Date(plan.startDate);
+  const endDate = new Date(plan.endDate);
+
+  /* PLAN PROGRESS */
+  const totalDays = Math.max(
+    (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+    1
+  );
+  const elapsedDays = Math.max(
+    (Date.now() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+    0
+  );
+  const planProgress = Math.min((elapsedDays / totalDays) * 100, 100);
+  const remainingDays = Math.max(
+    Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+    0
+  );
+
+  /* PROPERTY LISTING PROGRESS */
+  const propertyLimit = plan.features.PROPERTY_LISTING_LIMIT ?? 0;
+  const propertyUsed = 0; // 🔹 replace later with real usage
+  const propertyProgress = propertyLimit
+    ? Math.min((propertyUsed / propertyLimit) * 100, 100)
+    : 0;
+
+  /* ACTIVE FEATURES */
+  const activeFeatures = [
+    plan.features.PROPERTY_LISTING_LIMIT && {
+      label: "Listings",
+      value: plan.features.PROPERTY_LISTING_LIMIT,
+    },
+    plan.features.ENQUIRY_LIMIT && {
+      label: "Enquiries",
+      value: plan.features.ENQUIRY_LIMIT,
+    },
+    plan.features.TOP_LISTING_DAYS && {
+      label: "Top Listing Days",
+      value: `${plan.features.TOP_LISTING_DAYS} days`,
+    },
+    plan.features.BUYER_ACCESS && {
+      label: "Buyer Access",
+      value: "Enabled",
+    },
+    plan.features.LEAD_DASHBOARD && {
+      label: "Lead Dashboard",
+      value: "Enabled",
+    },
+  ].filter(Boolean) as { label: string; value: string | number }[];
 
   return (
-    <div className="space-y-6">
-      {plans.map((plan, index) => {
-        const startDate = new Date(plan.startDate);
-        const endDate = new Date(plan.endDate);
+    <div className="w-full rounded-2xl bg-[#e8f5e9] p-8 shadow-sm">
+      {/* increased padding = height */}
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        {/* LEFT — PLAN INFO */}
+        <div className="flex items-start gap-4 lg:w-1/4">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#c8e6c9] text-[#27AE60]">
+            <MdOutlineWorkspacePremium size={22} />
+          </div>
 
-        const remainingDays = Math.max(
-          Math.ceil(
-            (endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-          ),
-          0
-        );
+          <div>
+            <h3 className="text-lg font-semibold">
+              {plan.code.replaceAll("_", " ")}
+            </h3>
+            <p className="text-sm text-gray-500 capitalize">
+              {plan.userType}
+              {plan.category ? ` • ${plan.category}` : ""} •{" "}
+              <span className="font-medium">{plan.tier}</span>
+            </p>
+            <p className="mt-1 text-lg font-semibold">
+              ₹{plan.price}
+              <span className="text-sm text-gray-500"> / month</span>
+            </p>
+          </div>
+        </div>
 
-        return (
-          <div
-            key={plan.code + index}
-            className="w-full rounded-2xl border bg-white p-6 shadow-sm"
-          >
-            {/* HEADER */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  Active Subscription
-                </h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  {plan.userType.toUpperCase()}
-                  {plan.category ? ` • ${plan.category.toUpperCase()}` : ""}
-                </p>
-              </div>
-
-              <div className="px-4 py-2 rounded-full bg-green-50 text-green-700 text-sm font-semibold">
-                {remainingDays} days remaining
-              </div>
+        {/* MIDDLE — PROGRESS & FEATURES */}
+        <div className="flex flex-col gap-5 lg:w-2/4">
+          {/* PLAN PROGRESS */}
+          <div>
+            <div className="mb-1 flex justify-between text-sm text-gray-600">
+              <span className="flex items-center gap-1.5">
+                <MdOutlineAccessTime className="text-[#27AE60]" />
+                Plan Duration
+              </span>
+              <span>{remainingDays} days left</span>
             </div>
-
-            <hr className="my-5" />
-
-            {/* PLAN INFO */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <p className="text-xs text-gray-500">Plan</p>
-                <p className="font-semibold">
-                  {plan.code.replaceAll("_", " ")}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-gray-500">Tier</p>
-                <p className="font-semibold uppercase">{plan.tier}</p>
-              </div>
-
-              <div>
-                <p className="text-xs text-gray-500">Price</p>
-                <p className="font-semibold">₹{plan.price}/month</p>
-              </div>
-            </div>
-
-            {/* DATES */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <div>
-                <p className="text-xs text-gray-500">Start Date</p>
-                <p className="font-medium">
-                  {startDate.toDateString()}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-gray-500">End Date</p>
-                <p className="font-medium">
-                  {endDate.toDateString()}
-                </p>
-              </div>
-            </div>
-
-            <hr className="my-5" />
-
-            {/* FEATURES */}
-            <div>
-              <h3 className="font-semibold mb-3">Plan Features</h3>
-
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                <li className="flex justify-between">
-                  <span>Property Listings</span>
-                  <span className="font-medium">
-                    {plan.features.PROPERTY_LISTING_LIMIT
-                      ? `Up to ${plan.features.PROPERTY_LISTING_LIMIT}`
-                      : "—"}
-                  </span>
-                </li>
-
-                <li className="flex justify-between">
-                  <span>Enquiries</span>
-                  <span className="font-medium">
-                    {plan.features.ENQUIRY_LIMIT
-                      ? `Up to ${plan.features.ENQUIRY_LIMIT}`
-                      : "—"}
-                  </span>
-                </li>
-
-                <li className="flex justify-between">
-                  <span>Top Listing Visibility</span>
-                  <span className="font-medium">
-                    {plan.features.TOP_LISTING_DAYS
-                      ? `${plan.features.TOP_LISTING_DAYS} days`
-                      : "—"}
-                  </span>
-                </li>
-
-                <li className="flex justify-between">
-                  <span>Owner Contacts</span>
-                  <span className="font-medium">
-                    {plan.features.CONTACT_OWNER_LIMIT
-                      ? plan.features.CONTACT_OWNER_LIMIT
-                      : "—"}
-                  </span>
-                </li>
-              </ul>
-            </div>
-
-            {/* CTA */}
-            <div className="mt-6 flex justify-end">
-              <button className="px-5 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90">
-                Upgrade Plan
-              </button>
+            <div className="h-2.5 w-full rounded-full bg-gray-100">
+              <div
+                className="h-2.5 rounded-full bg-[#27AE60]"
+                style={{ width: `${planProgress}%` }}
+              />
             </div>
           </div>
-        );
-      })}
+
+          {/* PROPERTY LISTING PROGRESS */}
+          <div>
+            <div className="mb-1 flex justify-between text-sm text-gray-600">
+              <span className="flex items-center gap-1">
+                <MdOutlineHomeWork />
+                Property Listings
+              </span>
+              <span>
+                {propertyUsed}/{propertyLimit}
+              </span>
+            </div>
+            <div className="h-2.5 w-full rounded-full bg-gray-100">
+              <div
+                className="h-2.5 rounded-full bg-[#2ecc71]"
+                style={{ width: `${propertyProgress}%` }}
+              />
+            </div>
+          </div>
+
+          {/* FEATURES */}
+          <ul className="flex flex-wrap gap-2">
+            {activeFeatures.map((f, idx) => (
+              <li
+                key={idx}
+                className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs"
+              >
+                <MdCheckCircle className="text-[#27AE60]" />
+                <span className="font-medium">{f.label}</span>
+                <span className="text-gray-600">{f.value}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* RIGHT — STATUS & CTA */}
+        <div className="flex flex-col items-start gap-3 lg:w-1/4 lg:items-end">
+          <span className="rounded-full bg-[#c8e6c9] px-3 py-1 text-xs font-semibold text-[#27AE60]">
+            Active
+          </span>
+
+          <p className="text-xs text-gray-600">
+            Renews on{" "}
+            {endDate.toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
+          </p>
+
+          <button
+            onClick={() =>
+              document
+                .getElementById("pricing-table")
+                ?.scrollIntoView({ behavior: "smooth" })
+            }
+            className="btn-primary px-5 py-2 text-sm font-semibold text-white"
+          >
+            Upgrade
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

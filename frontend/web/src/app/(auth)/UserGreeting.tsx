@@ -32,7 +32,7 @@ const AgentOptions = [
 ];
 
 const BuilderOptions = [
-  { label: "Dashboard", link: "/builder/dashboard" },
+  { label: "Dashboard", link: "/builder" },
   { label: "My Plans", link: "/builder/plans" },
   { label: "Leads", link: "/builder/leads" },
   { label: "My Property", link: "/builder/my-Properties" },

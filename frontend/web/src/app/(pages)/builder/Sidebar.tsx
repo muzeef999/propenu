@@ -3,16 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { hexToRGBA } from "@/ui/hexToRGBA";
-import {
-  Building,
-  profile,
-  Subscription,
-} from "@/icons/icons";
+import { Building, profile, Subscription } from "@/icons/icons";
 
 const menuItems = [
   {
     label: "Dashboard",
-    link: "#",
+    link: "/builder",
     icon: profile,
   },
   {
@@ -23,6 +19,11 @@ const menuItems = [
   {
     label: "My Properties",
     link: "/builder/my-Properties",
+    icon: Subscription,
+  },
+  {
+    label: "Create Property",
+    link: "/builder/create-property",
     icon: Subscription,
   },
   {
@@ -53,11 +54,11 @@ const Sidebar = () => {
 
   return (
     <aside
-      className="sticky top-0 h-screen w-72 border-r border-gray-100 card"
+      className="sticky top-0 h-screen w-72 border-r border-gray-100 card flex flex-col overflow-hidden"
       style={{ backgroundColor: bgColor }}
     >
       {/* Menu Navigation */}
-      <nav className="px-4 space-y-1.5 mt-10">
+      <nav className="px-4 space-y-1.5 mt-10 flex-1 overflow-hidden">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.link;
@@ -81,10 +82,7 @@ const Sidebar = () => {
                     : "text-gray-400 group-hover:text-[#27A361]"
                 }`}
               >
-                <Icon
-                  size={22}
-                  color="currentColor"
-                />
+                <Icon size={22} color="currentColor" />
               </span>
               <span className="flex-1">{item.label}</span>
 
