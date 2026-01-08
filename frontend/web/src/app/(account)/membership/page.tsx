@@ -50,9 +50,10 @@ const page = () => {
       }),
   });
 
+
   return (
     <div>
-      <ActivePlanCard my_subscription={my_subscrpition} plans_link="/membership" />
+      <ActivePlanCard my_subscription={my_subscrpition} />
 
       <h1 className="text-center font-medium text-2xl p-6">Rent view</h1>
       <PricingComparisonTable
