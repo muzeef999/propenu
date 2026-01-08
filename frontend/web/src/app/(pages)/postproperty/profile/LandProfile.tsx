@@ -1,7 +1,7 @@
 import { useSelector } from "react-redux";
 import { useEffect } from "react";
 import { setProfileField } from "@/Redux/slice/postPropertySlice";
-import InputField from "@/ui/InputFiled";
+import InputField from "@/ui/InputField";
 import TextArea from "@/ui/TextArae";
 import AmenitiesSelect from "./AmenitiesSelect";
 import { AMENITIES } from "../constants/amenities";

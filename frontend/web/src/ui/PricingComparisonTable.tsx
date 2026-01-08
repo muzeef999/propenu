@@ -1,7 +1,7 @@
 "use client";
-
 import { createPaymentOrder, verifyPayment } from "@/app/(pages)/builder/data";
 import { Plan } from "@/types";
+import SubscriptionLady from "@/svg/SubscriptionLady";
 
 type FeatureRow = {
   label: string;
@@ -57,72 +57,103 @@ export default function PricingComparisonTable({
   };
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse border text-sm">
-        {/* ---------- HEADER ---------- */}
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="border p-3 text-left">Feature</th>
+    <div className="flex flex-col md:flex-row gap-4 items-stretch max-w-7xl mx-auto p-4 font-sans">
+      {/* ---------- LEFT SIDEBAR (Service Details) ---------- */}
+      <div className="w-full md:w-50 relative mt-16 md:mt-12">
+        {/* HEADER TEXT */}
+        <div className="mb-4 ml-20">
+          <p className="text-sm text-[#27AE60] font-medium">Get started</p>
+          <h2 className="text-xl font-semibold text-gray-900 leading-tight">
+            Service Details
+          </h2>
+        </div>
 
-            {plans.map((plan) => (
-              <th
-                key={plan.code}
-                className="border p-3 text-center font-semibold"
+        {/* GREEN CARD (RELATIVE) */}
+        <div className="relative bg-[#27AE60] rounded-2xl p-6 pt-14 flex flex-col">
+          {/* SVG SITTING ON CARD */}
+          <div className="absolute -top-22 left-4 scale-90 origin-top-left pointer-events-none">
+            <SubscriptionLady />
+          </div>
+
+          {/* FEATURES */}
+          <div className="flex flex-col text-white/90 text-sm">
+            {features.map((feature, idx) => (
+              <div
+                key={idx}
+                className="py-4 border-b border-white/20 last:border-0 font-medium"
               >
-                <div>{plan.name}</div>
-                <div className="text-xs text-gray-500">
-                  {plan.category === "both"
-                    ? "Sell + Rent"
-                    : plan.category === "rent"
-                    ? "Rent"
-                    : "Sell"}
+                {feature.label}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ---------- PLANS LIST ---------- */}
+      <div className="flex flex-1 gap-4 overflow-x-auto pb-4 items-stretch">
+        {plans.map((plan) => (
+          <div
+            key={plan.code}
+            className="min-w-[180px] flex-1 bg-white rounded-2xl shadow-lg border border-gray-100 flex flex-col transition-transform hover:scale-[1.02]"
+          >
+            {/* Plan Header */}
+            <div className="p-5 bg-[#F4FBF7] rounded-t-2xl text-center">
+              <h3 className="text-[#27AE60] font-bold text-lg mb-1">
+                {plan.name}
+              </h3>
+              <div className="flex items-center justify-center gap-1">
+                <span className="text-2xl font-bold">
+                  ₹{plan.price.toLocaleString()}
+                </span>
+                {plan.price > 0 && (
+                  <span className="text-xs text-gray-400">
+                    /{plan.validityDays || 30} Days
+                  </span>
+                )}
+              </div>
+
+              {/* Dummy "Was" price for Elite UI match */}
+              {plan.name === "Elite" && (
+                <p className="text-xs text-red-400 line-through">₹9,999</p>
+              )}
+
+              <button
+                onClick={() => handleSubscribe(plan)}
+                className="mt-4 w-full bg-[#27AE60] hover:bg-[#219150] text-white font-bold py-2 rounded-lg transition-colors text-sm"
+              >
+                Buy Now
+              </button>
+            </div>
+
+            {/* Feature Values */}
+            <div className="flex flex-col flex-1 justify-between py-4">
+              {features.map((feature, idx) => (
+                <div
+                  key={idx}
+                  className="py-4 text-center text-gray-700 text-sm border-b border-gray-50 last:border-0 flex items-center justify-center min-h-[60px]"
+                >
+                  {feature.render(plan)}
                 </div>
-              </th>
-            ))}
-          </tr>
-        </thead>
-
-        {/* ---------- BODY ---------- */}
-        <tbody>
-          {features.map((row) => (
-            <tr key={row.label}>
-              <td className="border p-3 font-medium">
-                {row.label}
-              </td>
-
-              {plans.map((plan) => (
-                <td
-                  key={plan.code}
-                  className="border p-3 text-center"
-                >
-                  {row.render(plan)}
-                </td>
               ))}
-            </tr>
-          ))}
-
-          {/* ---------- ACTION ROW ---------- */}
-          <tr className="bg-gray-50">
-            <td className="border p-3 font-semibold">
-              Action
-            </td>
-
-            {plans.map((plan) => (
-              <td
-                key={plan.code}
-                className="border p-3 text-center"
-              >
-                <button
-                  onClick={() => handleSubscribe(plan)}
-                  className="btn-primary cursor-pointer text-white px-4 py-2 rounded text-sm"
-                >
-                  {plan.price === 0 ? "Activate" : "Subscribe"}
-                </button>
-              </td>
-            ))}
-          </tr>
-        </tbody>
-      </table>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
+
+const features = [
+  { label: "No. of Property Listings", render: (p) => p.listingCount },
+  { label: "Buyer Reach", render: (p) => `${p.reach}%` },
+  { label: "No. of Enquiries", render: (p) => `Up to ${p.enquiryCount}` },
+  {
+    label: "Top Visibility",
+    render: (p) => (p.visibilityDays ? `${p.visibilityDays} Days` : "—"),
+  },
+  {
+    label: "Manage Account",
+    render: (p) =>
+      p.teamMembers > 1 ? `${p.teamMembers} Team Members` : "1 Team Member",
+  },
+];

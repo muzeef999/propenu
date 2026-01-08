@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { toast } from "sonner";
 
 import { registerAgency } from "@/app/(pages)/agent/data";
-import InputFiled from "@/ui/InputFiled";
+import InputFiled from "@/ui/InputField";
 
 async function uploadFile(file: File): Promise<string> {
   console.log(`Uploading ${file.name}...`);

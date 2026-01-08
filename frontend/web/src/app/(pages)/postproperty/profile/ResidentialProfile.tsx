@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { setProfileField, setStep } from "@/Redux/slice/postPropertySlice";
 import Dropdownui from "@/ui/DropDownUI";
 import CounterField from "@/ui/CounterField";
-import InputField from "@/ui/InputFiled";
+import InputField from "@/ui/InputField";
 import AmenitiesSelect from "./AmenitiesSelect";
 import { AMENITIES } from "../constants/amenities";
 import TextArea from "@/ui/TextArae";

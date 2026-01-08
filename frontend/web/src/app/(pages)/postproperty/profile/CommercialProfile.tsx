@@ -1,7 +1,7 @@
 import { useDispatch, useSelector } from "react-redux";
 import { setProfileField } from "@/Redux/slice/postPropertySlice";
 import CounterField from "@/ui/CounterField";
-import InputField from "@/ui/InputFiled";
+import InputField from "@/ui/InputField";
 import AmenitiesSelect from "./AmenitiesSelect";
 import { AMENITIES } from "../constants/amenities";
 import IconCardSelect from "./IconCardSelect";

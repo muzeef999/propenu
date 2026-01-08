@@ -7,7 +7,7 @@ import Cookies from "js-cookie";
 import { createVerifyOtpPayload, VerifyOtpResponse } from "@/types/property";
 import { LuPencilLine } from "react-icons/lu";
 import { MdClose } from "react-icons/md";
-import InputField from "@/ui/InputFiled";
+import InputField from "@/ui/InputField";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
