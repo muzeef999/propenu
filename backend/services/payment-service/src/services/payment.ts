@@ -170,10 +170,21 @@ export async function verifyPaymentAndActivate(
   }
 
   // 🔥 Expire old subscriptions
-  await Subscription.updateMany(
-    { userId: payment.userId, status: "active" },
-    { status: "expired" }
-  );
+  // 🔥 expire only SAME TYPE + SAME CATEGORY plan
+const expireFilter: any = {
+  userId: payment.userId,
+  userType: plan.userType,
+  status: "active",
+};
+
+if (plan.category) {
+  expireFilter.category = plan.category;
+}
+
+await Subscription.updateMany(expireFilter, {
+  status: "expired",
+});
+
 
   // ✅ Activate new subscription
   // ✅ Activate new subscription (FIXED)
