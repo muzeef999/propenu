@@ -47,7 +47,6 @@ export const createRequestOtp = async(payload:createRequestOtpPayload) => {
 }
 
 export const me = async() => {
-
    const token = Cookies.get("token");
    if (!token) return null;
 
@@ -58,6 +57,9 @@ export const me = async() => {
   });
   return res.data;
 }
+
+
+
 
 export const getShortlistedProperties = async () => {
   const token = Cookies.get("token");

@@ -6,7 +6,12 @@ import { toast } from "sonner";
 
 interface ContactOwnerButtonProps {
   projectId: string;
-  propertyType?: "residentials" | "commercials" | "agriculturals" | "landplots" | "featuredprojects";
+  propertyType?:
+    | "residentials"
+    | "commercials"
+    | "agriculturals"
+    | "landplots"
+    | "featuredprojects";
 }
 
 export default function ContactOwnerButton({
@@ -26,8 +31,13 @@ export default function ContactOwnerButton({
     onSuccess: () => {
       toast.success("Owner will contact you shortly");
     },
-    onError: () => {
-      toast.error("Failed to contact owner");
+    onError: (error: any) => {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to contact owner";
+
+      toast.error(message);
     },
   });
 
@@ -38,9 +48,9 @@ export default function ContactOwnerButton({
     }
 
     postLead({
-      name: user?.name || "Guest User",
-      phone: user?.phone || "7787777777",
-      email: user?.email || "",
+      name: user.name || "Guest User",
+      phone: user.phone || "9959456647",
+      email: user.email || "",
       projectId,
       propertyType,
       remarks: "Interested in this property",

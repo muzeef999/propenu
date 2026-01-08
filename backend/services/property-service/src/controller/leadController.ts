@@ -8,6 +8,7 @@ import {
 } from "../services/leadService";
 import { LeadCreateSchema } from "../zod/leadZod";
 import { AuthRequest } from "../middlewares/authMiddleware";
+import { Lead } from "../models/featurePropertiesModel";
 
 /*** CREATE LEAD */
 export const createLeadController: RequestHandler = async (req, res) => {
@@ -90,4 +91,22 @@ export const getLeadByIdController = async (req: Request, res: Response) => {
   } catch (error: any) {
     res.status(404).json({ success: false, message: error.message });
   }
+};
+
+
+// controller/leadController.ts
+export const checkLeadController = async (req: AuthRequest, res: Response) => {
+  const userId = req.user!.id;
+  const { projectId } = req.query;
+
+  if (!projectId) {
+    return res.status(400).json({ message: "projectId required" });
+  }
+
+  const exists = await Lead.exists({
+    projectId,
+    createdBy: userId,
+  });
+
+  res.json({ contacted: !!exists });
 };

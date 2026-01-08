@@ -82,10 +82,7 @@ const LeadSchema = new Schema<LeadSchemaShape>(
 );
 
 /* 🔒 HARD DATABASE PROTECTION AGAINST DUPLICATES */
-LeadSchema.index(
-  { projectId: 1, createdBy: 1 },
-  { unique: true }
-);
+LeadSchema.index({ projectId: 1, createdBy: 1 }, { unique: true });
 
 export const Lead = (mongoose.models.PropertyLead ??
   mongoose.model("PropertyLead", LeadSchema)) as Model<LeadDocument>;
