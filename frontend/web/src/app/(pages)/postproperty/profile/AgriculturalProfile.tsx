@@ -1,7 +1,7 @@
 import { useSelector } from "react-redux";
 import { setProfileField } from "@/Redux/slice/postPropertySlice";
 import CounterField from "@/ui/CounterField";
-import InputField from "@/ui/InputFiled";
+import InputField from "@/ui/InputField";
 import TextArea from "@/ui/TextArae";
 import { useAppDispatch } from "@/Redux/store";
 import { submitPropertyThunk } from "@/Redux/thunks/submitPropertyApi";

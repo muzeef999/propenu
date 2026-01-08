@@ -4,17 +4,317 @@ import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAgentProfile, updateAgentProfile } from "@/data/ClientData";
 import { Card, DetailRow, StatBox } from "@/ui/AgentPageComponents";
-import { MdEdit, MdVerifiedUser, MdClose, MdCheck } from "react-icons/md";
+import { MdEdit, MdVerifiedUser } from "react-icons/md";
 import { HiOutlineXMark } from "react-icons/hi2";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
+import InputField from "@/ui/InputField";
+import TextArea from "@/ui/TextArae";
 
-// TODO: This should be dynamic, e.g., from the user's session or a route parameter.
 const AGENT_ID = "693271916bb8771f528d0fa4";
+
+const ALLOWED_PROFILE_FIELDS: (keyof ProfileEdit)[] = [
+  "name",
+  "bio",
+  "agencyName",
+  "totalProperties",
+  "publishedCount",
+  "dealsClosed",
+  "experienceYears",
+  "areasServed",
+  "languages",
+  "verificationStatus",
+  "coverImage",
+  "avatar",
+  "licenseNumber",
+  "licenseValidTill",
+  "city",
+  "reraAgentId",
+];
+
+interface ProfileEdit {
+  name?: string;
+  bio?: string;
+  agencyName?: string;
+  totalProperties?: number;
+  publishedCount?: number;
+  dealsClosed?: number;
+  experienceYears?: number;
+  areasServed?: string[];
+  languages?: string[];
+  verificationStatus?: string;
+  coverImage?: File | string;
+  avatar?: File | string;
+  licenseNumber?: string;
+  licenseValidTill?: string;
+  city?: string;
+  reraAgentId?: string;
+}
+
+// Loading States
+const LoadingState = () => (
+  <div className="container mx-auto max-w-7xl py-8">
+    <div className="flex items-center justify-center h-96">Loading…</div>
+  </div>
+);
+
+const ErrorState = ({ message }: { message: string }) => (
+  <div className="container mx-auto max-w-7xl py-8">
+    <div className="flex items-center justify-center h-96 text-red-500">
+      {message}
+    </div>
+  </div>
+);
+
+const NotFoundState = () => (
+  <div className="container mx-auto max-w-7xl py-8">
+    <div className="flex items-center justify-center h-96 text-gray-500">
+      Agent profile not found.
+    </div>
+  </div>
+);
+
+// Image Preview Component
+interface ImagePreviewProps {
+  preview: string | null;
+  formImage: File | string | undefined;
+  agentImage: { url: string } | undefined;
+  placeholder: string;
+  type: "cover" | "avatar";
+  onImageSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+const ImagePreview = ({
+  preview,
+  formImage,
+  agentImage,
+  placeholder,
+  type,
+  onImageSelect,
+}: ImagePreviewProps) => {
+  const getImageSrc = () => {
+    if (preview) return preview;
+    if (formImage instanceof File) return preview || placeholder;
+    if (typeof formImage === "string") return formImage;
+    return agentImage?.url || placeholder;
+  };
+
+  const sizeClasses = type === "cover" ? "h-40 w-full" : "h-20 w-20";
+  const iconSize = type === "cover" ? "text-xl" : "text-sm";
+
+  return (
+    <div className={`relative ${sizeClasses} group`}>
+      <Image
+        src={getImageSrc()}
+        alt={`${type} image`}
+        fill
+        className="object-cover"
+      />
+      <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition">
+        <MdEdit className={`text-white ${iconSize}`} />
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={onImageSelect}
+        />
+      </label>
+    </div>
+  );
+};
+
+// Modal Edit Form Component
+interface EditModalProps {
+  editFormData: ProfileEdit;
+  isUpdating: boolean;
+  coverPreview: string | null;
+  avatarPreview: string | null;
+  agent: any;
+  onCancel: () => void;
+  onSave: () => void;
+  onImageSelect: (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "cover" | "avatar"
+  ) => void;
+  updateField: <K extends keyof ProfileEdit>(
+    key: K,
+    value: ProfileEdit[K]
+  ) => void;
+  updateArrayField: (key: "areasServed" | "languages", value: string) => void;
+}
+
+const EditModal = ({
+  editFormData,
+  isUpdating,
+  coverPreview,
+  avatarPreview,
+  agent,
+  onCancel,
+  onSave,
+  onImageSelect,
+  updateField,
+  updateArrayField,
+}: EditModalProps) => (
+  <div className="fixed inset-0 bg-black/60 z-90 flex items-center justify-center p-4">
+    <div className="bg-white rounded-md shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+      {/* Modal Header */}
+      <div className="px-8 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Edit Profile</h2>
+          <p className="text-sm text-gray-500">
+            Update your professional information and presence.
+          </p>
+        </div>
+        <button
+          onClick={onCancel}
+          className="p-2 hover:bg-white rounded-full transition-colors border border-gray-200 shadow-sm"
+        >
+          <HiOutlineXMark size={24} color="gray" />
+        </button>
+      </div>
+
+      {/* Modal Body */}
+      <div className="flex-1 overflow-y-auto p-8 space-y-8">
+        <section>
+          <h3 className="text-sm font-semibold text-green-600 uppercase tracking-wider mb-4">
+            Profile Images
+          </h3>
+
+          <div className="relative mb-20">
+            {/* COVER */}
+            <div className="relative h-40 w-full overflow-hidden rounded-xl border">
+              <ImagePreview
+                preview={coverPreview}
+                formImage={editFormData.coverImage}
+                agentImage={agent.coverImage}
+                placeholder="/cover-placeholder.jpg"
+                type="cover"
+                onImageSelect={(e) => onImageSelect(e, "cover")}
+              />
+            </div>
+
+            {/* AVATAR */}
+            <div className="absolute -bottom-10 left-6 z-10">
+              <div className="relative h-20 w-20 rounded-xl overflow-hidden ring-4 ring-white shadow-lg">
+                <ImagePreview
+                  preview={avatarPreview}
+                  formImage={editFormData.avatar}
+                  agentImage={agent.avatar}
+                  placeholder="/avatar-placeholder.jpg"
+                  type="avatar"
+                  onImageSelect={(e) => onImageSelect(e, "avatar")}
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-sm font-semibold text-green-600 uppercase tracking-wider mb-4">
+            Basic Information
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <InputField
+              label="Full Name"
+              value={editFormData.name || ""}
+              onChange={(v) => updateField("name", v)}
+            />
+            <InputField
+              label="Agency Name"
+              value={editFormData.agencyName || ""}
+              onChange={(v) => updateField("agencyName", v)}
+            />
+            <InputField
+              label="City"
+              value={editFormData.city || ""}
+              onChange={(v) => updateField("city", v)}
+            />
+            <InputField
+              label="Experience (Years)"
+              type="number"
+              value={editFormData.experienceYears ?? ""}
+              onChange={(v) => updateField("experienceYears", Number(v))}
+            />
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-sm font-semibold text-green-600 uppercase tracking-wider mb-4">
+            Regulatory Details
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <InputField
+              label="License Number"
+              value={editFormData.licenseNumber || ""}
+              onChange={(v) => updateField("licenseNumber", v)}
+            />
+            <InputField
+              label="License Valid Till"
+              type="date"
+              value={editFormData.licenseValidTill?.split("T")[0] || ""}
+              onChange={(v) => updateField("licenseValidTill", v)}
+            />
+            <InputField
+              label="RERA Agent ID"
+              value={editFormData.reraAgentId || ""}
+              onChange={(v) => updateField("reraAgentId", v)}
+            />
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-sm font-semibold text-green-600 uppercase tracking-wider mb-4">
+            Bio & Service Areas
+          </h3>
+          <div className="space-y-6">
+            <TextArea
+              label="Professional Bio"
+              value={editFormData.bio || ""}
+              onChange={(v) => updateField("bio", v)}
+              rows={4}
+              placeholder="Write a short summary about your expertise..."
+            />
+            <InputField
+              label="Areas Served (comma separated)"
+              value={(editFormData.areasServed || []).join(", ")}
+              onChange={(v) => updateArrayField("areasServed", v)}
+              placeholder="Gachibowli, Kondapur..."
+            />
+            <InputField
+              label="Languages Spoken (comma separated)"
+              value={(editFormData.languages || []).join(", ")}
+              onChange={(v) => updateArrayField("languages", v)}
+              placeholder="English, Hindi, Telugu..."
+            />
+          </div>
+        </section>
+      </div>
+
+      {/* Modal Footer */}
+      <div className="px-8 py-3 border-t border-gray-200 bg-gray-50 flex justify-end gap-4">
+        <button
+          onClick={onCancel}
+          className="px-6 py-2.5 rounded-xl font-semibold text-gray-600 hover:bg-gray-200 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onSave}
+          disabled={isUpdating}
+          className="px-4 py-2.5 btn btn-primary font-semibold"
+        >
+          {isUpdating ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
+    </div>
+  </div>
+);
 
 const AgentProfilePage = () => {
   const [editMode, setEditMode] = useState<string | null>(null);
-  const [editFormData, setEditFormData] = useState<any>({});
+  const [editFormData, setEditFormData] = useState<ProfileEdit>({});
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["agent-profile", AGENT_ID],
@@ -23,77 +323,138 @@ const AgentProfilePage = () => {
 
   const queryClient = useQueryClient();
 
-const { mutate: patchAgent, isPending: isUpdating } = useMutation({
-  mutationFn: (payload: any) => updateAgentProfile(AGENT_ID, payload),
-  onSuccess: () => {
-    toast.success("Profile updated successfully");
-    queryClient.invalidateQueries({
-      queryKey: ["agent-profile", AGENT_ID],
-    });
+  const { mutate: patchAgent, isPending: isUpdating } = useMutation<
+    void,
+    Error,
+    ProfileEdit
+  >({
+    mutationFn: (payload) => updateAgentProfile(AGENT_ID, payload),
+    onSuccess: () => {
+      toast.success("Profile updated successfully");
+      queryClient.invalidateQueries({
+        queryKey: ["agent-profile", AGENT_ID],
+      });
+      setEditMode(null);
+    },
+    onError: () => {
+      toast.error("Failed to update profile");
+    },
+  });
+
+  const handleEditStart = useCallback((section: string, data: ProfileEdit) => {
+    setEditMode(section);
+    setEditFormData(data);
+  }, []);
+
+  const handleEditCancel = useCallback(() => {
     setEditMode(null);
-  },
-  onError: () => {
-    toast.error("Failed to update profile");
-  },
-});
+    setEditFormData({});
+    setCoverPreview(null);
+    setAvatarPreview(null);
+  }, []);
 
-const handleEditStart = (section: string, data: any) => {
-  setEditMode(section);
-  setEditFormData(data);
-};
+  const handleImageSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>, type: "cover" | "avatar") => {
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-const handleEditCancel = () => {
-  setEditMode(null);
-  setEditFormData({});
-};
+      const preview = URL.createObjectURL(file);
 
-const handleEditSave = (section: string) => {
-  patchAgent(editFormData);
-};
+      if (type === "cover") {
+        setCoverPreview(preview);
+        setEditFormData((prev) => ({
+          ...prev,
+          coverImage: file,
+        }));
+      } else {
+        setAvatarPreview(preview);
+        setEditFormData((prev) => ({
+          ...prev,
+          avatar: file,
+        }));
+      }
+    },
+    []
+  );
 
+  const cleanPayload = useCallback((payload: ProfileEdit): ProfileEdit => {
+    return Object.keys(payload)
+      .filter((key) =>
+        ALLOWED_PROFILE_FIELDS.includes(key as keyof ProfileEdit)
+      )
+      .reduce((acc: ProfileEdit, key) => {
+        acc[key as keyof ProfileEdit] = payload[key as keyof ProfileEdit];
+        return acc;
+      }, {});
+  }, []);
 
-  if (isLoading)
-    return (
-      <div className="container mx-auto max-w-7xl py-8">
-        <div className="flex items-center justify-center h-96">Loading…</div>
-      </div>
-    );
+  const handleEditSave = useCallback(() => {
+    const payload = {
+      ...editFormData,
+      areasServed: editFormData.areasServed?.filter(Boolean),
+      languages: editFormData.languages?.filter(Boolean),
+    };
+    patchAgent(cleanPayload(payload));
+  }, [editFormData, cleanPayload, patchAgent]);
 
-  if (isError)
-    return (
-      <div className="container mx-auto max-w-7xl py-8">
-        <div className="flex items-center justify-center h-96 text-red-500">
-          Failed to load agent profile.
-        </div>
-      </div>
-    );
+  const updateField = useCallback(
+    <K extends keyof ProfileEdit>(key: K, value: ProfileEdit[K]) => {
+      setEditFormData((prev) => ({
+        ...prev,
+        [key]: value,
+      }));
+    },
+    []
+  );
+
+  const updateArrayField = useCallback(
+    (key: "areasServed" | "languages", value: string) => {
+      setEditFormData((prev) => ({
+        ...prev,
+        [key]: value.split(",").map((v) => v.trim()),
+      }));
+    },
+    []
+  );
+
+  if (isLoading) return <LoadingState />;
+  if (isError) return <ErrorState message="Failed to load agent profile." />;
 
   const agent = data?.agent;
-  console.log("Agent Profile Data:", agent);
+  if (!agent) return <NotFoundState />;
 
-  if (!agent)
-    return (
-      <div className="container mx-auto max-w-7xl py-8">
-        <div className="flex items-center justify-center h-96 text-gray-500">
-          Agent profile not found.
-        </div>
-      </div>
-    );
+  const handleEditButtonClick = useCallback(() => {
+    handleEditStart("header", {
+      name: agent.user?.name ?? "",
+      bio: agent.bio ?? "",
+      agencyName: agent.agencyName ?? "",
+      city: agent.city ?? "",
+      experienceYears: agent.experienceYears ?? 0,
+      licenseNumber: agent.licenseNumber ?? "",
+      licenseValidTill: agent.licenseValidTill ?? "",
+      verificationStatus: agent.verificationStatus ?? "",
+      areasServed: agent.areasServed ?? [],
+      languages: agent.languages ?? [],
+    });
+  }, [agent, handleEditStart]);
 
   return (
     <div className="container space-y-8 mx-auto max-w-7xl py-8">
-      {/* ================= COVER ================= */}
-      <div className="relative h-56 rounded-xl overflow-hidden">
-        <Image
-          src={agent.coverImage?.url || "/cover-placeholder.jpg"}
-          alt="Cover"
-          fill
-          className="object-cover"
-        />
+      {/* ================= COVER & AVATAR ================= */}
+      <div className="relative">
+        {/* Cover Image */}
+        <div className="relative h-56 w-full overflow-hidden rounded-xl">
+          <Image
+            src={agent.coverImage?.url || "/cover-placeholder.jpg"}
+            alt="Cover"
+            fill
+            className="object-cover"
+          />
+        </div>
 
-        {/* Avatar */}
-        <div className="absolute left-6 -bottom-6">
-          <div className="relative w-24 h-24 rounded-xl overflow-hidden ring-4 ring-white">
+        {/* Avatar - Positioned relative to the parent container */}
+        <div className="absolute -bottom-10 left-6 z-10">
+          <div className="relative h-24 w-24 overflow-hidden rounded-xl ring-4 ring-white">
             <Image
               src={agent.avatar?.url || "/avatar-placeholder.jpg"}
               alt={agent.user?.name || "Agent Avatar"}
@@ -106,45 +467,34 @@ const handleEditSave = (section: string) => {
 
       {/* ================= HEADER ================= */}
       <div className="bg-white rounded-xl p-6 pt-14 shadow-md flex justify-between items-start">
-        {editMode === 'header' ? (
-          <EditHeaderModal 
-            data={editFormData}
-            onSave={() => handleEditSave('header')}
-            onCancel={handleEditCancel}
-            onChange={setEditFormData}
-            isLoading={isUpdating}
-          />
-        ) : (
-          <>
-            <div className="flex-1">
-              <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold text-gray-900 capitalize">
-                  {agent.user?.name}
-                </h1>
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-gray-900 capitalize">
+              {agent.user?.name}
+            </h1>
 
-                {agent.rera?.isVerified && (
-                  <span className="inline-flex items-center gap-1 bg-[#26ad5f] text-white px-3 py-1 rounded-md text-xs font-semibold shadow-sm">
-                    <MdVerifiedUser size={14} />
-                    Verified
-                  </span>
-                )}
-              </div>
+            {agent.rera?.isVerified && (
+              <span className="inline-flex items-center gap-1 bg-[#26ad5f] text-white px-3 py-1 rounded-md text-xs font-semibold shadow-sm">
+                <MdVerifiedUser size={14} />
+                Verified
+              </span>
+            )}
+          </div>
 
-              <p className="text-gray-600 mt-1 font-medium">
-                {agent.agencyName} · {agent.city}
-              </p>
+          <p className="text-gray-600 mt-1 font-medium">
+            {agent.agencyName} · {agent.city}
+          </p>
 
-              <p className="italic text-gray-500 mt-2 text-sm">{agent.bio}</p>
-            </div>
+          <p className="italic text-gray-500 mt-2 text-sm">{agent.bio}</p>
+        </div>
 
-            <button 
-              onClick={() => handleEditStart('header', { name: agent.user?.name, bio: agent.bio, agencyName: agent.agencyName })}
-              className="ml-4 flex items-center gap-2 border border-green-600 text-green-600 px-4 py-2 rounded-lg text-sm hover:bg-green-50 font-medium transition">
-              <MdEdit size={16} />
-              Edit Profile
-            </button>
-          </>
-        )}
+        <button
+          onClick={handleEditButtonClick}
+          className="ml-4 flex items-center gap-2 border border-green-600 text-green-600 px-4 py-2 rounded-lg text-sm hover:bg-green-50 font-medium transition"
+        >
+          <MdEdit size={16} />
+          Edit Profile
+        </button>
       </div>
 
       {/* ================= STATS ================= */}
@@ -177,332 +527,51 @@ const handleEditSave = (section: string) => {
 
       {/* ================= DETAILS ================= */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          {editMode === 'professional' ? (
-            <EditProfessionalModal 
-              data={editFormData}
-              onSave={() => handleEditSave('professional')}
-              onCancel={handleEditCancel}
-              onChange={setEditFormData}
-              isLoading={isUpdating}
-            />
-          ) : (
-            <Card 
-              title="Professional Details"
-              onEdit={() => handleEditStart('professional', {
-                licenseNumber: agent.licenseNumber,
-                licenseValidTill: agent.licenseValidTill,
-                verificationStatus: agent.verificationStatus
-              })}
-            >
-              <DetailRow label="License No" value={agent.licenseNumber} />
-              <DetailRow
-                label="Valid Till"
-                value={new Date(agent.licenseValidTill).toLocaleDateString()}
-              />
-              <DetailRow label="Verification" value={agent.verificationStatus} />
-            </Card>
-          )}
-        </div>
+        <Card title="Professional Details">
+          <DetailRow label="License No" value={agent.licenseNumber} />
+          <DetailRow
+            label="Valid Till"
+            value={new Date(agent.licenseValidTill).toLocaleDateString()}
+          />
+          <DetailRow label="Verification" value={agent.verificationStatus} />
+        </Card>
 
-        <div>
-          {editMode === 'service' ? (
-            <EditServiceModal 
-              data={editFormData}
-              onSave={() => handleEditSave('service')}
-              onCancel={handleEditCancel}
-              onChange={setEditFormData}
-              isLoading={isUpdating}
-            />
-          ) : (
-            <Card 
-              title="Service Information"
-              onEdit={() => handleEditStart('service', {
-                areasServed: agent.areasServed,
-                languages: agent.languages
-              })}
-            >
-              <DetailRow
-                label="Areas Served"
-                value={agent.areasServed.join(", ")}
-              />
-              <DetailRow label="Languages" value={agent.languages.join(", ")} />
-            </Card>
-          )}
-        </div>
+        <Card title="Service Information">
+          <DetailRow
+            label="Areas Served"
+            value={agent.areasServed.join(", ")}
+          />
+          <DetailRow label="Languages" value={agent.languages.join(", ")} />
+        </Card>
       </div>
 
       {/* ================= BOTTOM ================= */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          {editMode === 'city' ? (
-            <EditCityModal 
-              data={editFormData}
-              onSave={() => handleEditSave('city')}
-              onCancel={handleEditCancel}
-              onChange={setEditFormData}
-              isLoading={isUpdating}
-            />
-          ) : (
-            <Card 
-              title="City"
-              onEdit={() => handleEditStart('city', { city: agent.city })}
-            >
-              <p className="text-lg font-medium">{agent.city}</p>
-            </Card>
-          )}
-        </div>
+        <Card title="City">
+          <p className="text-lg font-medium">{agent.city}</p>
+        </Card>
 
-        <div>
-          {editMode === 'experience' ? (
-            <EditExperienceModal 
-              data={editFormData}
-              onSave={() => handleEditSave('experience')}
-              onCancel={handleEditCancel}
-              onChange={setEditFormData}
-              isLoading={isUpdating}
-            />
-          ) : (
-            <Card 
-              title="Years of Experience"
-              onEdit={() => handleEditStart('experience', { experienceYears: agent.experienceYears })}
-            >
-              <p className="text-lg font-medium">{agent.experienceYears} Years</p>
-            </Card>
-          )}
-        </div>
+        <Card title="Years of Experience">
+          <p className="text-lg font-medium">{agent.experienceYears} Years</p>
+        </Card>
       </div>
+
+      {editMode === "header" && (
+        <EditModal
+          editFormData={editFormData}
+          isUpdating={isUpdating}
+          coverPreview={coverPreview}
+          avatarPreview={avatarPreview}
+          agent={agent}
+          onCancel={handleEditCancel}
+          onSave={handleEditSave}
+          onImageSelect={handleImageSelect}
+          updateField={updateField}
+          updateArrayField={updateArrayField}
+        />
+      )}
     </div>
   );
 };
-
-// ================= EDIT MODALS =================
-
-const EditHeaderModal = ({ data, onSave, onCancel, onChange, isLoading }: any) => (
-  <div className="w-full bg-white rounded-xl p-6 border-2 border-green-500">
-    <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Profile Information</h3>
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-        <input
-          type="text"
-          value={data.name || ''}
-          onChange={(e) => onChange({ ...data, name: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-green-600"
-          placeholder="Enter full name"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Agency Name</label>
-        <input
-          type="text"
-          value={data.agencyName || ''}
-          onChange={(e) => onChange({ ...data, agencyName: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-green-600"
-          placeholder="Enter agency name"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
-        <textarea
-          value={data.bio || ''}
-          onChange={(e) => onChange({ ...data, bio: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-green-600"
-          placeholder="Enter bio"
-          rows={4}
-        />
-      </div>
-    </div>
-    <div className="flex gap-3 mt-6">
-      <button
-        onClick={onSave}
-        disabled={isLoading}
-        className="flex-1 btn-primary px-4 py-2 font-semibold disabled:opacity-50"
-      >
-        <MdCheck className="inline mr-2" size={18} />
-        Save Changes
-      </button>
-      <button
-        onClick={onCancel}
-        className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition"
-      >
-        <HiOutlineXMark className="inline mr-2" size={18} />
-        Cancel
-      </button>
-    </div>
-  </div>
-);
-
-const EditProfessionalModal = ({ data, onSave, onCancel, onChange, isLoading }: any) => (
-  <div className="bg-white rounded-xl p-6 shadow-md border-2 border-green-500">
-    <h3 className="text-lg font-bold text-gray-900 mb-4">Edit Professional Details</h3>
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">License Number</label>
-        <input
-          type="text"
-          value={data.licenseNumber || ''}
-          onChange={(e) => onChange({ ...data, licenseNumber: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-green-600"
-          placeholder="Enter license number"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Valid Till</label>
-        <input
-          type="date"
-          value={data.licenseValidTill ? new Date(data.licenseValidTill).toISOString().split('T')[0] : ''}
-          onChange={(e) => onChange({ ...data, licenseValidTill: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-green-600"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Verification Status</label>
-        <select
-          value={data.verificationStatus || ''}
-          onChange={(e) => onChange({ ...data, verificationStatus: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-green-600"
-        >
-          <option value="Verified">Verified</option>
-          <option value="Pending">Pending</option>
-          <option value="Unverified">Unverified</option>
-        </select>
-      </div>
-    </div>
-    <div className="flex gap-3 mt-6">
-      <button
-        onClick={onSave}
-        disabled={isLoading}
-        className="flex-1 btn-primary px-4 py-2 font-semibold disabled:opacity-50"
-      >
-        <MdCheck className="inline mr-2" size={18} />
-        Save Changes
-      </button>
-      <button
-        onClick={onCancel}
-        className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition"
-      >
-        <HiOutlineXMark className="inline mr-2" size={18} />
-        Cancel
-      </button>
-    </div>
-  </div>
-);
-
-const EditServiceModal = ({ data, onSave, onCancel, onChange, isLoading }: any) => (
-  <div className="bg-white rounded-xl p-6 shadow-md border-2 border-green-500">
-    <h3 className="text-lg font-bold text-gray-900 mb-4">Edit Service Information</h3>
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Areas Served (comma-separated)</label>
-        <textarea
-          value={Array.isArray(data.areasServed) ? data.areasServed.join(', ') : ''}
-          onChange={(e) => onChange({ ...data, areasServed: e.target.value.split(',').map(s => s.trim()) })}
-          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-green-600"
-          placeholder="Enter areas served"
-          rows={3}
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Languages (comma-separated)</label>
-        <textarea
-          value={Array.isArray(data.languages) ? data.languages.join(', ') : ''}
-          onChange={(e) => onChange({ ...data, languages: e.target.value.split(',').map(s => s.trim()) })}
-          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-green-600"
-          placeholder="Enter languages"
-          rows={3}
-        />
-      </div>
-    </div>
-    <div className="flex gap-3 mt-6">
-      <button
-        onClick={onSave}
-        disabled={isLoading}
-        className="flex-1 btn-primary px-4 py-2 font-semibold disabled:opacity-50"
-      >
-        <MdCheck className="inline mr-2" size={18} />
-        Save Changes
-      </button>
-      <button
-        onClick={onCancel}
-        className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition"
-      >
-        <HiOutlineXMark className="inline mr-2" size={18} />
-        Cancel
-      </button>
-    </div>
-  </div>
-);
-
-const EditCityModal = ({ data, onSave, onCancel, onChange, isLoading }: any) => (
-  <div className="bg-white rounded-xl p-6 shadow-md border-2 border-green-500">
-    <h3 className="text-lg font-bold text-gray-900 mb-4">Edit City</h3>
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-        <input
-          type="text"
-          value={data.city || ''}
-          onChange={(e) => onChange({ ...data, city: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-green-600"
-          placeholder="Enter city"
-        />
-      </div>
-    </div>
-    <div className="flex gap-3 mt-6">
-      <button
-        onClick={onSave}
-        disabled={isLoading}
-        className="flex-1 btn-primary px-4 py-2 font-semibold disabled:opacity-50"
-      >
-        <MdCheck className="inline mr-2" size={18} />
-        Save Changes
-      </button>
-      <button
-        onClick={onCancel}
-        className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition"
-      >
-        <HiOutlineXMark className="inline mr-2" size={18} />
-        Cancel
-      </button>
-    </div>
-  </div>
-);
-
-const EditExperienceModal = ({ data, onSave, onCancel, onChange, isLoading }: any) => (
-  <div className="bg-white rounded-xl p-6 shadow-md border-2 border-green-500">
-    <h3 className="text-lg font-bold text-gray-900 mb-4">Edit Years of Experience</h3>
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Years</label>
-        <input
-          type="number"
-          value={data.experienceYears || ''}
-          onChange={(e) => onChange({ ...data, experienceYears: parseInt(e.target.value) })}
-          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-green-600"
-          placeholder="Enter years of experience"
-          min="0"
-        />
-      </div>
-    </div>
-    <div className="flex gap-3 mt-6">
-      <button
-        onClick={onSave}
-        disabled={isLoading}
-        className="flex-1 btn-primary px-4 py-2 font-semibold disabled:opacity-50"
-      >
-        <MdCheck className="inline mr-2" size={18} />
-        Save Changes
-      </button>
-      <button
-        onClick={onCancel}
-        className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition"
-      >
-        <HiOutlineXMark className="inline mr-2" size={18} />
-        Cancel
-      </button>
-    </div>
-  </div>
-);
 
 export default AgentProfilePage;

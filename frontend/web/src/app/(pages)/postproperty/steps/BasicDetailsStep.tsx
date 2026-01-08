@@ -20,7 +20,7 @@ import {
   AGRICULTURAL_PROPERTY_OPTIONS,
   AGRICULTURAL_PROPERTY_SUBTYPES,
 } from "@/app/(pages)/postproperty/constants/subTypes";
-import InputField from "@/ui/InputFiled";
+import InputField from "@/ui/InputField";
 
 export default function BasicDetailsStep() {
   const { propertyType, base, residential, commercial, land, agricultural } =

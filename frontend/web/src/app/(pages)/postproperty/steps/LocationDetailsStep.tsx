@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 
 import { setBaseField, nextStep } from "@/Redux/slice/postPropertySlice";
 import { validateLocationDetails } from "@/zod/locationDetailsZod";
-import InputField from "@/ui/InputFiled";
+import InputField from "@/ui/InputField";
 import TextArea from "@/ui/TextArae";
 
 import { search } from "india-pincode-search";
