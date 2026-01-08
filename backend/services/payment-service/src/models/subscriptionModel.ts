@@ -4,9 +4,23 @@ import { Schema, model, Types } from "mongoose";
 const SubscriptionSchema = new Schema(
   {
     userId: { type: Types.ObjectId, required: true, index: true },
-    userType: { type: String, enum: ["builder", "buyer", "agent", "owner",], required: true },
+    userType: {
+      type: String,
+      enum: ["builder", "buyer", "agent", "owner"],
+      required: true,
+    },
     planCode: { type: String, required: true },
     tier: { type: String, required: true },
+
+    category: {
+      type: String,
+      enum: ["rent", "sell", "both"],
+      index: true,
+     required: function (this: any): boolean {
+  return this.userType === "owner" || this.userType === "buyer";
+}
+
+    },
 
     status: {
       type: String,

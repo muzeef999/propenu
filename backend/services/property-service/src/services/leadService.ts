@@ -1,36 +1,140 @@
 import { Types } from "mongoose";
 import Lead from "../models/LeadModel";
+import { Subscription } from "../models/subscriptionModel";
+import { Plan } from "../models/planModel";
 
-const PROPERTY_MODEL_MAP: Record<string, string> = {
-  featuredprojects: "FeaturedProject",
-  residentials: "Residential",
-  commercials: "Commercial",
-  agriculturals: "Agricultural",
-  landplots: "LandPlot",
+import Residential from "../models/residentialModel";
+import Commercial from "../models/commercialModel";
+import Agricultural from "../models/agriculturalModel";
+import LandPlot from "../models/landModel";
+import FeaturedProject from "../models/featurePropertiesModel";
+
+const PROPERTY_MODEL_MAP: Record<string, any> = {
+  featuredprojects: FeaturedProject,
+  residentials: Residential,
+  commercials: Commercial,
+  agriculturals: Agricultural,
+  landplots: LandPlot,
 };
 
 /** CREATE LEAD **/
-export const createLead = async (data: any) => {
-
+export const createLead = async (data: any, userId: string) => {
   const { propertyType, projectId } = data;
 
+  // 1️⃣ Validate ID
   if (!Types.ObjectId.isValid(projectId)) {
     throw new Error("Invalid project/property ID");
   }
 
-  const propertyModel = PROPERTY_MODEL_MAP[propertyType];
-
-  if (!propertyModel) {
+  // 2️⃣ Get real mongoose model
+  const PropertyModel = PROPERTY_MODEL_MAP[propertyType];
+  if (!PropertyModel) {
     throw new Error(`Invalid propertyType: ${propertyType}`);
   }
 
-  const leadPayload = {
-    ...data,
-    propertyModel, // 🔥 REQUIRED
-  };
+  // 3️⃣ FEATURED PROJECTS → unlimited leads
+  if (propertyType === "featuredprojects") {
+    return await Lead.create({
+      ...data,
+      propertyModel: "FeaturedProject",
+      createdBy: userId,
+    });
+  }
 
-  return await Lead.create(leadPayload);
+  // 4️⃣ Block duplicate leads
+  const existingLead = await Lead.findOne({
+    projectId,
+    createdBy: userId,
+  });
+
+  if (existingLead) {
+    throw new Error("You have already contacted for this property");
+  }
+
+  // 5️⃣ Load property
+  const property = await PropertyModel.findById(projectId);
+  if (!property) {
+    throw new Error("Property not found");
+  }
+
+  // ✅ TRUST ONLY DB VALUE
+  const listingType = property.listingType; // sale | rent | lease
+  console.log("🏠 PROPERTY LISTING TYPE FROM DB →", listingType);
+
+  const ownerId = property.createdBy;
+
+  // 6️⃣ Load subscriptions
+  const viewerSub = await Subscription.findOne({ userId, status: "active" });
+  if (!viewerSub) throw new Error("Please subscribe to contact owners");
+
+  const ownerSub = await Subscription.findOne({ userId: ownerId, status: "active" });
+  if (!ownerSub) throw new Error("Owner is not accepting enquiries");
+
+  // 🔐 Ensure usage exists
+  if (!viewerSub.usage) viewerSub.usage = { contactUsed: 0, enquiryUsed: 0 };
+  if (!ownerSub.usage) ownerSub.usage = { contactUsed: 0, enquiryUsed: 0 };
+
+  // 7️⃣ Load plans
+  const viewerPlan = await Plan.findOne({ code: viewerSub.planCode });
+  const ownerPlan = await Plan.findOne({ code: ownerSub.planCode });
+  if (!viewerPlan || !ownerPlan) throw new Error("Invalid subscription setup");
+
+  // 8️⃣ BUYER / AGENT contact rules
+  if (viewerPlan.userType === "buyer" || viewerPlan.userType === "agent") {
+    if (listingType !== "rent") {
+      throw new Error("You can only contact rental properties");
+    }
+
+    const contactLimit =
+      typeof viewerPlan.features?.get("CONTACT_OWNER_LIMIT") === "number"
+        ? viewerPlan.features.get("CONTACT_OWNER_LIMIT")
+        : undefined;
+
+    if (typeof contactLimit === "number" && viewerSub.usage.contactUsed >= contactLimit) {
+      throw new Error("Your contact limit is over. Upgrade your plan.");
+    }
+  }
+
+  // 9️⃣ OWNER enquiry rules
+  const requiredCategory = listingType === "sale" ? "sell" : "rent";
+
+  if (ownerPlan.category !== requiredCategory) {
+    throw new Error("Owner plan does not allow enquiries for this property");
+  }
+
+  const enquiryLimit =
+    typeof ownerPlan.features?.get("ENQUIRY_LIMIT") === "number"
+      ? ownerPlan.features.get("ENQUIRY_LIMIT")
+      : undefined;
+
+  if (typeof enquiryLimit === "number" && ownerSub.usage.enquiryUsed >= enquiryLimit) {
+    throw new Error("Owner enquiry limit reached");
+  }
+
+  // 🔥 REMOVE listingType FROM FRONTEND DATA
+  const { listingType: _ignore, ...safeData } = data;
+
+  // 🔟 Create lead
+  const lead = await Lead.create({
+    ...safeData,
+    propertyModel: PropertyModel.modelName,
+    createdBy: userId,
+    ownerId,
+    listingType, // ✅ always from DB
+  });
+
+  // 1️⃣1️⃣ Update usage counters
+  viewerSub.usage.contactUsed += 1;
+  await viewerSub.save();
+
+  ownerSub.usage.enquiryUsed += 1;
+  await ownerSub.save();
+
+  return lead;
 };
+
+
+
 
 /**  ASSIGN LEAD TO SALES **/
 export const assignLead = async (leadId: string, assignedTo: string) => {

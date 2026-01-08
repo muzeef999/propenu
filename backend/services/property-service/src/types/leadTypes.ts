@@ -22,12 +22,21 @@ export interface LeadSchemaShape {
   phone: string;
   email?: string;
 
+  // 🔥 Who created the lead (buyer/agent)
+  createdBy: Types.ObjectId;
+
+  // 🔥 Who owns the property
+  ownerId: Types.ObjectId;
+
+  // 🔥 sale | rent | lease
+  listingType: "sale" | "rent" | "lease";
+
   propertyType: LeadPropertyType;
   propertyModel: string;
   projectId: Types.ObjectId;
 
   status: LeadStatus;
-  assignedTo?: Types.ObjectId;
+  assignedTo?: Types.ObjectId | null;
   approvedByManager: boolean;
   remarks?: string;
 }

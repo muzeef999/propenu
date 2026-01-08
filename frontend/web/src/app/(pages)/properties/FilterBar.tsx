@@ -17,9 +17,8 @@ import CategoryFilters from "./CategoryFilters";
 const FilterBar: React.FC = () => {
 
   const listingOptions = [
-    { label: "Buy", value: "buy" },
+    { label: "Buy", value: "sale" },
     { label: "Rent", value: "rent" },
-    { label: "Lease", value: "lease" },
   ] as const;
 
   const categoryOptions: categoryOption[] = [

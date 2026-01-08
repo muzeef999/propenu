@@ -12,30 +12,28 @@ export async function createPaymentOrder(
   userId: string,
   userType: "buyer" | "builder" | "agent"
 ) {
-
-   console.log("🔵 STEP 1 → INPUT");
+  console.log("🔵 STEP 1 → INPUT");
   console.log({ planId, userId, userType });
 
-   if (!Types.ObjectId.isValid(planId)) {
+  if (!Types.ObjectId.isValid(planId)) {
     console.error("❌ Invalid planId:", planId);
     throw new Error("Invalid planId");
   }
 
-    console.log("🟢 STEP 2 → planId is valid");
-
+  console.log("🟢 STEP 2 → planId is valid");
 
   const plan = await Plan.findById(planId).lean();
-    console.log("🟡 STEP 3 → PLAN:", plan);
+  console.log("🟡 STEP 3 → PLAN:", plan);
 
   if (!plan) {
-        console.error("❌ Plan not found in DB");
+    console.error("❌ Plan not found in DB");
 
     throw new Error("Plan not found");
   }
 
   /* ✅ FREE PLAN FLOW */
   if (plan.price === 0) {
-        console.log("🟢 STEP 4 → FREE PLAN");
+    console.log("🟢 STEP 4 → FREE PLAN");
 
     // 🔒 Prevent duplicate active subscription
     const existing = await Subscription.findOne({
@@ -44,8 +42,7 @@ export async function createPaymentOrder(
       status: "active",
     });
 
-        console.log("🟡 STEP 5 → EXISTING SUB:", existing);
-
+    console.log("🟡 STEP 5 → EXISTING SUB:", existing);
 
     if (existing) {
       return {
@@ -55,22 +52,26 @@ export async function createPaymentOrder(
     }
 
     await Subscription.create({
-  userId,
-  userType: plan.userType, // ✅ from plan
-  planCode: plan.code,
-  planId: plan._id,
-  tier: plan.tier,
-  category: plan.category,
-  startDate: new Date(),
-  endDate: new Date(
-    Date.now() + plan.durationDays * 24 * 60 * 60 * 1000
-  ),
-  status: "active",
-});
+      userId,
+      // 🔥 coming from PLAN
+      userType: plan.userType,
+      category: plan.category || "both",
+      planCode: plan.code,
+      tier: plan.tier,
 
+      startDate: new Date(),
+      endDate: new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000),
 
+      status: "active",
 
-        console.log("✅ STEP 6 → FREE SUB CREATED");
+      // ✅ very important for limits
+      usage: {
+        contactUsed: 0,
+        enquiryUsed: 0,
+      },
+    });
+
+    console.log("✅ STEP 6 → FREE SUB CREATED");
 
     return {
       free: true,
@@ -78,35 +79,35 @@ export async function createPaymentOrder(
     };
   }
 
-    console.log("🟢 STEP 7 → PAID PLAN");
+  console.log("🟢 STEP 7 → PAID PLAN");
 
-    console.log("🟡 Razorpay ENV:", {
+  console.log("🟡 Razorpay ENV:", {
     key: process.env.RAZORPAY_KEY_ID,
     secret: !!process.env.RAZORPAY_KEY_SECRET,
   });
 
-
-let order;
-try {
-  order = await razorpay.orders.create({
-    amount: plan.price * 100,
-    currency: "INR",
-    receipt: `pl_${plan._id.toString().slice(-10)}_${Date.now().toString().slice(-6)}`,
-    notes: {
-      planId: plan._id.toString(),
-      userId,
+  let order;
+  try {
+    order = await razorpay.orders.create({
+      amount: plan.price * 100,
+      currency: "INR",
+      receipt: `pl_${plan._id.toString().slice(-10)}_${Date.now()
+        .toString()
+        .slice(-6)}`,
+      notes: {
+        planId: plan._id.toString(),
+        userId,
         userType: plan.userType,
-    },
-  });
+      },
+    });
 
-  console.log("🟢 STEP 8 → RAZORPAY ORDER:", order);
+    console.log("🟢 STEP 8 → RAZORPAY ORDER:", order);
+  } catch (err: any) {
+    console.error("❌ RAZORPAY ERROR:", err);
+    throw new Error("Failed to create Razorpay order");
+  }
 
-} catch (err: any) {
-  console.error("❌ RAZORPAY ERROR:", err);
-  throw new Error("Failed to create Razorpay order");
-}
-
- const payment  =  await Payment.create({
+  const payment = await Payment.create({
     userId,
     userType,
     planId: plan._id,
@@ -115,7 +116,7 @@ try {
     status: "created",
   });
 
-    console.log("✅ STEP 9 → PAYMENT SAVED:", payment._id);
+  console.log("✅ STEP 9 → PAYMENT SAVED:", payment._id);
 
   return {
     orderId: order.id,
@@ -175,17 +176,31 @@ export async function verifyPaymentAndActivate(
   );
 
   // ✅ Activate new subscription
-  await Subscription.create({
-    userId: payment.userId,
-    userType: plan.userType,
-    planCode: plan.code,
-    tier: plan.tier,
-    startDate: new Date(),
-    endDate: new Date(
-      Date.now() + plan.durationDays * 24 * 60 * 60 * 1000
-    ),
-    status: "active",
-  });
+  // ✅ Activate new subscription (FIXED)
+await Subscription.create({
+  userId: payment.userId,
+
+  // from plan
+  userType: plan.userType,
+  category: plan.category || "both",
+
+  planCode: plan.code,
+  tier: plan.tier,
+
+  startDate: new Date(),
+  endDate: new Date(
+    Date.now() + plan.durationDays * 24 * 60 * 60 * 1000
+  ),
+
+  status: "active",
+
+  // important for limits
+  usage: {
+    contactUsed: 0,
+    enquiryUsed: 0,
+  },
+});
+
 
   return {
     success: true,

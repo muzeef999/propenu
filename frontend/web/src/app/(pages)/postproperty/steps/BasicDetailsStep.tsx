@@ -30,7 +30,7 @@ export default function BasicDetailsStep() {
   const dispatch = useDispatch();
   const listingOptions = [
     { label: "Sale", value: "sale" },
-    { label: "Rent / Lease", value: "rent / lease" },
+    { label: "Rent / Lease", value: "rent" },
 
   ];
 

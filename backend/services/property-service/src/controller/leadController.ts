@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Request, RequestHandler, Response } from "express";
 import {
   assignLead,
   createLead,
@@ -7,13 +7,16 @@ import {
   updateLeadStatus,
 } from "../services/leadService";
 import { LeadCreateSchema } from "../zod/leadZod";
+import { AuthRequest } from "../middlewares/authMiddleware";
 
 /*** CREATE LEAD */
-export const createLeadController = async (req: Request, res: Response) => {
+export const createLeadController: RequestHandler = async (req, res) => {
   try {
-    const data = LeadCreateSchema.parse(req.body);
+    const authReq = req as AuthRequest; // 👈 cast once
 
-    const lead = await createLead(data);
+    const data = LeadCreateSchema.parse(authReq.body);
+    const lead = await createLead(data, authReq.user!.id);
+
     res.status(201).json({ success: true, data: lead });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });

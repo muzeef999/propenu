@@ -15,6 +15,12 @@ const SubscriptionSchema = new Schema(
       default: "pending",
     },
 
+
+      usage: {
+    contactUsed: { type: Number, default: 0 },
+    enquiryUsed: { type: Number, default: 0 },
+  },
+
     startDate: Date,
     endDate: Date,
   },

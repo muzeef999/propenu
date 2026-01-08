@@ -106,7 +106,7 @@ export const getMyProperties = async () => {
 
 
 
-export const getPlans = async ({userType, category}: { userType: "buyer" | "owner" | "agent" | "builder"; category?: "rent" | "sell" | "both";
+export const getPlans = async ({userType, category}: { userType: "buyer" | "owner" | "agent" | "builder"; category?: "rent" | "sell" | "both" | "rent_view" | "buy";
 }) => {
   const res = await axiosInstance.get(
     `${url}/api/payments/plans`,

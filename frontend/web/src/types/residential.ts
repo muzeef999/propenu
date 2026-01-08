@@ -34,7 +34,7 @@ export type GalleryItem = {
 };
 
 export interface IResidential {
-  listingType?: 'buy' | 'rent' | 'lease';
+  listingType?: 'sale' | 'rent' | 'lease';
   developer?:  string;
   _id: string;
   id: string;

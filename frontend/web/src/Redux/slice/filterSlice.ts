@@ -10,7 +10,7 @@ import {
 /* ---------------- Types ---------------- */
 
 export type ListingUILabel = "Buy" | "Rent" | "Lease";
-export type ListingAPIValue = "buy" | "rent" | "lease";
+export type ListingAPIValue = "sale" | "rent" | "lease";
 
 export type categoryOption =
   | "Residential"
@@ -23,7 +23,7 @@ export type categoryOption =
 const initialState: FilterState = {
 
   listingTypeLabel: "Buy",
-  listingTypeValue: "buy",
+  listingTypeValue: "sale",
 
   category: "Residential",
   searchText: "",

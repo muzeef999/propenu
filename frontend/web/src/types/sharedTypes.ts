@@ -8,7 +8,7 @@ import { CommercialSearchParams } from "./commercial";
 import { LandSearchParams } from "./land";
 import { ResidentialSearchParams } from "./residential";
 
-export type ListingType = "buy" | "rent" | "lease";
+export type ListingType = "sale" | "rent" | "lease";
 export type AreaUnit =
   | "sqft"
   | "sqmt"

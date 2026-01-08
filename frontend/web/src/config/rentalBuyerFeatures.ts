@@ -22,9 +22,4 @@ export const rentalBuyerFeatures = [
     render: (plan: Plan) =>
       plan.features?.LEAD_DASHBOARD ? "✓" : "—",
   },
-  {
-    label: "Customer Relationship",
-    render: (plan: Plan) =>
-      plan.features?.CRM_ACCESS ? "✓" : "—",
-  },
 ];

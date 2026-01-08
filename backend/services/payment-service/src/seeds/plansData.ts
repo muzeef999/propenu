@@ -2,8 +2,8 @@ export const plans = [
 // ---------------- RENTAL subscription ----------------
 {
     code: "RENTAL_FREE",
-    userType: "rental",
-    category: "rent",
+    userType: "owner",
+    category: "rent_view",
     tier: "free",
     name: "Free",
     price: 0,
@@ -11,11 +11,10 @@ export const plans = [
       CONTACT_OWNER_LIMIT: 2,
     },
   },
-
   {
     code: "RENTAL_TIER_1",
-    userType: "rental",
-    category: "rent",
+    userType: "owner",
+    category: "rent_view",
     tier: "tier1",
     name: "Rental Assist",
     price: 699,
@@ -25,8 +24,8 @@ export const plans = [
   },
   {
     code: "RENTAL_TIER_2",
-    userType: "rental",
-    category: "rent",
+    userType: "owner",
+    category: "rent_view",
     tier: "tier2",
     name: "Rental Guide",
     price: 1499,
@@ -38,8 +37,8 @@ export const plans = [
   },
   {
     code: "RENTAL_TIER_3",
-    userType: "rental",
-    category: "rent",
+    userType: "owner",
+    category: "rent_view",
     tier: "tier3",
     name: "Rental Assure",
     price: 2999,
@@ -53,8 +52,8 @@ export const plans = [
   // ---------------- BUYER subscription ----------------
   {
     code: "BUYER_FREE",
-    userType: "buyer",
-    category: "rent",
+    userType: "owner",
+    category: "buy",
     tier: "free",
     name: "Buyer Free",
     price: 0,
@@ -65,8 +64,8 @@ export const plans = [
 
   {
     code: "BUYER_RENT_TIER_1",
-    userType: "buyer",
-    category: "rent",
+    userType: "owner",
+    category: "buy",
     tier: "tier1",
     name: "Buyer Easy",
     price: 499,
@@ -76,8 +75,8 @@ export const plans = [
   },
   {
     code: "BUYER_RENT_TIER_2",
-    userType: "buyer",
-    category: "rent",
+    userType: "owner",
+    category: "buy",
     tier: "tier2",
     name: "Buyer Core",
     price: 999,
@@ -89,8 +88,8 @@ export const plans = [
   },
   {
     code: "BUYER_RENT_TIER_3",
-    userType: "buyer",
-    category: "rent",
+    userType: "owner",
+    category: "buy",
     tier: "tier3",
     name: "Buyer Advance",
     price: 1999,

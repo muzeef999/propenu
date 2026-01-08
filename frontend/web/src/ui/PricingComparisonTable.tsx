@@ -11,7 +11,7 @@ type FeatureRow = {
 type Props = {
   plans: Plan[];
   features: FeatureRow[];
-  userType: "buyer" | "builder" | "agent";
+  userType: "buyer" | "builder" | "agent" | "owner";
 };
 
 export default function PricingComparisonTable({
