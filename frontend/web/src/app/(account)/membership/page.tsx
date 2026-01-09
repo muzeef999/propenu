@@ -69,6 +69,7 @@ const page = () => {
         features={rentalBuyerFeatures}
         userType="owner"
       />
+      
       <h1 className="text-center font-medium text-2xl p-6">owner seller</h1>
       <PricingComparisonTable
         plans={owner_seller}

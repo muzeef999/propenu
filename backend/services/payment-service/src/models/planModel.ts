@@ -12,12 +12,11 @@ const PlanSchema = new Schema(
 
     category: {
       type: String,
-      enum: ["sell", "rent", "both"],
+      enum: ["sell", "rent", "both", "buy", "rent_view"],
       required: true,
     },
 
-    
-
+  
     tier: {
       type: String,
       enum: ["free", "tier1", "tier2", "tier3"],
