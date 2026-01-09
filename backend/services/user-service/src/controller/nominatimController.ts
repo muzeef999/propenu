@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import { createLocation, getAllLocationsDetails, getLocationByIdService, removeLocation, updateLocation } from "../services/locationService";
-import { error } from "console";
 import mongoose from "mongoose";
 
 export const postLocation = async (req: Request, res: Response) => {

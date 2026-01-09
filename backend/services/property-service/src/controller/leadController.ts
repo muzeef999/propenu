@@ -8,7 +8,7 @@ import {
 } from "../services/leadService";
 import { LeadCreateSchema } from "../zod/leadZod";
 import { AuthRequest } from "../middlewares/authMiddleware";
-import { Lead } from "../models/featurePropertiesModel";
+import Lead from "../models/LeadModel";
 
 /*** CREATE LEAD */
 export const createLeadController: RequestHandler = async (req, res) => {
@@ -109,4 +109,71 @@ export const checkLeadController = async (req: AuthRequest, res: Response) => {
   });
 
   res.json({ contacted: !!exists });
+};
+
+export const getMyContactedProperties = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const userId = req.user!.id;
+
+    console.log("used id:", userId);
+
+
+    const leads = await Lead.find({ createdBy: userId })
+      .populate("projectId")                    // full property
+      .populate("ownerId", "name phone email")  // owner details
+      .sort({ createdAt: -1 })
+      .lean();
+
+          console.log("📦 FOUND LEADS:", leads.length);
+
+
+    const properties = leads.map((lead: any) => {
+      const property = lead.projectId;
+
+      return {
+        leadId: lead._id,
+        contactedAt: lead.createdAt,
+
+        // 🔥 lead info
+        propertyType: lead.propertyType,
+        listingType: lead.listingType,
+
+        // 🔥 property info
+        propertyId: property?._id,
+        title:
+          property?.title ||
+          property?.projectName ||
+          property?.buildingName ||
+          "Property",
+
+        city: property?.city || "",
+        locality: property?.locality || "",
+        price: property?.price || property?.expectedPrice || null,
+        gallery: property?.gallery?.[0]?.url || null,
+
+        // 🔥 owner info
+        owner: {
+          id: lead.ownerId?._id,
+          name: lead.ownerId?.name,
+          phone: lead.ownerId?.phone,
+          email: lead.ownerId?.email,
+        },
+      };
+    });
+
+    res.json({
+      success: true,
+      total: properties.length,
+      properties,
+    });
+  } catch (err) {
+    console.error("getMyContactedProperties error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load contacted properties",
+    });
+  }
 };
