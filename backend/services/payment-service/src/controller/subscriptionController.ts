@@ -60,7 +60,7 @@ export async function getMySubscription(req: AuthRequest, res: Response) {
     }
 
     // 👤 BUYER → CONTACT PLANS
-    if (typeof plan.features?.CONTACT_OWNER_LIMIT === "number") {
+    if (plan.features?.CONTACT_OWNER_LIMIT) {
       total = plan.features.CONTACT_OWNER_LIMIT;
       used = (sub as any).usage?.contactUsed || 0;
       unit = "contacts";

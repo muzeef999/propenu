@@ -11,10 +11,10 @@ export const postLocation = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid payload" });
     }
 
-    const { name, category, location } = payload;
+    const { city, category, location } = payload;
 
-    if (!name || !category) {
-      return res.status(400).json({ error: "name and category are required" });
+    if (!city || !category) {
+      return res.status(400).json({ error: "city and category are required" });
     }
 
     // If user manually sends coordinates, validate them

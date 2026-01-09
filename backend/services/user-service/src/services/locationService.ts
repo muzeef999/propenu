@@ -35,23 +35,23 @@ export interface UpdateLocationPayload {
    CREATE / UPSERT CITY + LOCALITY
 ------------------------------------ */
 export async function createLocation(payload: CreateLocationPayload) {
+  if (!payload.city) throw new Error("city is required");
+  if (!payload.category) throw new Error("category is required");
+
   const cityName = payload.city.trim();
-  const stateName: string | null = payload.state ?? null;
-  const localityName = payload.locality.name.trim();
+  const stateName: string | null = payload.state?.trim() || null;
+  const localityName = payload.locality?.name?.trim() || null;
 
-  let coordinates = payload.locality.location?.coordinates;
+  let coordinates = payload.locality?.location?.coordinates;
 
-  // 🌍 Auto-geocode locality if coordinates missing
-  if (!coordinates) {
+  // 🌍 Auto-geocode locality if coordinates exist
+  if (!coordinates && localityName) {
     const geo = await geocode(`${localityName}, ${cityName}`);
     if (!geo) {
       throw new Error("Unable to auto-detect coordinates");
     }
     coordinates = [geo.lng, geo.lat];
   }
-
-  // ensure numeric
-  coordinates = [Number(coordinates[0]), Number(coordinates[1])];
 
   return Location.findOneAndUpdate(
     {
@@ -64,15 +64,18 @@ export async function createLocation(payload: CreateLocationPayload) {
         state: stateName,
         category: payload.category,
       },
-      $addToSet: {
-        localities: {
-          name: localityName,
-          location: {
-            type: "Point",
-            coordinates,
-          },
-        },
-      },
+      ...(localityName
+        ? {
+            $addToSet: {
+              localities: {
+                name: localityName,
+                location: coordinates
+                  ? { type: "Point", coordinates }
+                  : undefined,
+              },
+            },
+          }
+        : {}),
     },
     {
       upsert: true,
