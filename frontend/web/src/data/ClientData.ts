@@ -1,5 +1,6 @@
 // services/property.service.ts
 
+import { IFeaturedProject } from "@/app/(pages)/builder/create-property/types";
 import { ApiResponse, createRequestOtpPayload, createVerifyOtpPayload, RequestOtpPayload, VerifyOtpPayload, VerifyOtpResponse } from "@/types/property";
 import { SearchFilterParams } from "@/types/sharedTypes";
 import axiosInstance from "@/utilies/axiosInstance";
@@ -239,4 +240,29 @@ export const updateAgentProfile = async (
 
     return res.data;
   }
+};
+
+export const createFeaturedProperty = async (
+  formData: FormData
+): Promise<IFeaturedProject> => {
+  const token = Cookies.get('token');
+
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${url}/api/properties/featured-project`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create featured property');
+  }
+
+  return response.json();
 };
