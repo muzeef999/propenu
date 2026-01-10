@@ -55,7 +55,6 @@ type ActivePlanCardProps = {
 /* ================= COMPONENT ================= */
 
 const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
-  /* ❌ No active subscription */
   if (!my_subscription?.active || !my_subscription.plans?.length) {
     return <PromoBanner />;
   }
@@ -82,7 +81,8 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
     );
 
     /* PROPERTY LISTING PROGRESS */
-    const propertyLimit = plan.features.PROPERTY_LISTING_LIMIT ?? 0;
+    const features = plan.features || {};
+    const propertyLimit = features.PROPERTY_LISTING_LIMIT ?? 0;
     const propertyUsed = 0; // 🔹 replace later
     const propertyProgress = propertyLimit
       ? Math.min((propertyUsed / propertyLimit) * 100, 100)
@@ -90,23 +90,23 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
 
     /* ACTIVE FEATURES */
     const activeFeatures = [
-      plan.features.PROPERTY_LISTING_LIMIT && {
+      features.PROPERTY_LISTING_LIMIT && {
         label: "Listings",
-        value: plan.features.PROPERTY_LISTING_LIMIT,
+        value: features.PROPERTY_LISTING_LIMIT,
       },
-      plan.features.ENQUIRY_LIMIT && {
+      features.ENQUIRY_LIMIT && {
         label: "Enquiries",
-        value: plan.features.ENQUIRY_LIMIT,
+        value: features.ENQUIRY_LIMIT,
       },
-      plan.features.TOP_LISTING_DAYS && {
+      features.TOP_LISTING_DAYS && {
         label: "Top Listing Days",
-        value: `${plan.features.TOP_LISTING_DAYS} days`,
+        value: `${features.TOP_LISTING_DAYS} days`,
       },
-      plan.features.BUYER_ACCESS && {
+      features.BUYER_ACCESS && {
         label: "Buyer Access",
         value: "Enabled",
       },
-      plan.features.LEAD_DASHBOARD && {
+      features.LEAD_DASHBOARD && {
         label: "Lead Dashboard",
         value: "Enabled",
       },

@@ -9,8 +9,8 @@ import PricingComparisonTable from "@/ui/PricingComparisonTable";
 import { useQuery } from "@tanstack/react-query";
 
 const page = () => {
-  const { data: my_subscrpition } = useQuery({
-    queryKey: ["my-subscrpition"],
+  const { data: my_subscription } = useQuery({
+    queryKey: ["my-subscription"],
     queryFn: useMySubscription,
   });
 
@@ -53,7 +53,7 @@ const page = () => {
 
   return (
     <div>
-      <ActivePlanCard my_subscription={my_subscrpition} />
+      <ActivePlanCard my_subscription={my_subscription} />
 
       <h1 className="text-center font-medium text-2xl p-6">Rent view</h1>
       <PricingComparisonTable
