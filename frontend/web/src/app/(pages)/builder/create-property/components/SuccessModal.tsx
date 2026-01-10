@@ -16,7 +16,7 @@ export const SuccessModal: React.FC<SuccessModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-90">
       <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 text-center">
         <div className="mb-4">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full">
@@ -58,7 +58,7 @@ export const SuccessModal: React.FC<SuccessModalProps> = ({
         <div className="space-y-2">
           <button
             onClick={onClose}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-medium"
+            className="w-full btn-primary text-white py-2 rounded-lg font-medium"
           >
             View Property
           </button>

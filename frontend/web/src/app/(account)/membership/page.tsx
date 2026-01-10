@@ -35,7 +35,7 @@ const page = () => {
 
 
   return (
-    <div>
+    <div className="">
       <ActivePlanCard my_subscription={my_subscription} />
 
       <h1 className="text-center font-medium text-2xl p-6">Rent view</h1>

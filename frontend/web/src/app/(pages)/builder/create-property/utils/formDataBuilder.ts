@@ -9,6 +9,7 @@ export const buildFormData = (data: IFeaturedProject): FormData => {
   if (data.city) formData.append("city", data.city);
   if (data.color) formData.append("color", data.color);
   if (data.currency) formData.append("currency", data.currency);
+  if (data.createdBy !== undefined && data.createdBy !== null) formData.append("createdBy", data.createdBy);
 
   // Hero Section
   if (data.heroImage) {
@@ -31,16 +32,25 @@ export const buildFormData = (data: IFeaturedProject): FormData => {
   // Logo
   if (data.logo) {
     if (data.logo.url instanceof File) {
-      formData.append("logoImage", data.logo.url);
-    } else if (typeof data.logo.url === "string") {
-      formData.append("logoUrl", data.logo.url);
+      formData.append("logo", data.logo.url);
+    } else if (typeof data.logo.url === "string" && !data.logo.url.includes("http")) {
+      formData.append("logo", data.logo.url);
     }
   }
 
   // BHK Details
   if (data.bhkSummary && data.bhkSummary.length > 0) {
-    formData.append("bhkSummary", JSON.stringify(data.bhkSummary));
-  }
+  const safeBhk = data.bhkSummary.map((b) => ({
+    ...b,
+    units: (b.units || []).map((u) => ({
+      ...u,
+      availableCount: Math.max(0, Number(u.availableCount || 0)),
+    })),
+  }));
+
+  formData.append("bhkSummary", JSON.stringify(safeBhk));
+}
+
 
   // Sqft Range
   if (data.sqftRange) {
@@ -70,43 +80,54 @@ export const buildFormData = (data: IFeaturedProject): FormData => {
     formData.append("amenities", JSON.stringify(data.amenities));
   }
 
-  // Media/Gallery
-if (data.gallerySummary && data.gallerySummary.length > 0) {
-  // 1️⃣ send files ONLY using galleryFiles
-  data.gallerySummary.forEach((item) => {
-    if (item.url instanceof File) {
-      formData.append("galleryFiles", item.url);
-    }
-  });
+  // MEDIA / GALLERY
+  if (data.gallerySummary && data.gallerySummary.length > 0) {
 
-  // 2️⃣ send metadata as JSON
-  formData.append(
-    "gallerySummary",
-    JSON.stringify(
-      data.gallerySummary.map((g, i) => ({
-        order: g.order ?? i + 1,
-        title: g.title,
-        category: g.category,
-      }))
-    )
-  );
-}
+    // 1️⃣ send images
+    data.gallerySummary.forEach((item) => {
+      if (item.url instanceof File) {
+        formData.append("galleryFiles", item.url);
+      }
+    });
+
+    // 2️⃣ send metadata
+    formData.append(
+      "gallerySummary",
+      JSON.stringify(
+        data.gallerySummary.map((g, i) => ({
+          order: g.order ?? i + 1,
+          title: g.title,
+          category: g.category,
+          url: typeof g.url === "string" ? g.url : undefined,
+        }))
+      )
+    );
+  }
 
 
-  // About Section
+
+  // ABOUT SECTION
   if (data.aboutSummary && data.aboutSummary.length > 0) {
-    data.aboutSummary.forEach((item, index) => {
+
+    // image
+    data.aboutSummary.forEach((item) => {
       if (item.url instanceof File) {
         formData.append("aboutImage", item.url);
-      } else if (typeof item.url === "string") {
-        formData.append(`aboutUrl[${index}]`, item.url);
       }
-      if (item.rightContent)
-        formData.append(`aboutContent[${index}]`, item.rightContent);
-      if (item.aboutDescription)
-        formData.append(`aboutDescription[${index}]`, item.aboutDescription);
     });
+
+    // metadata (REQUIRED)
+    formData.append(
+      "aboutSummary",
+      JSON.stringify(
+        data.aboutSummary.map((a) => ({
+          rightContent: a.rightContent,      // 🔥 REQUIRED
+          aboutDescription: a.aboutDescription,
+        }))
+      )
+    );
   }
+
 
   // Brochure
   if (data.brochure) {
@@ -130,9 +151,30 @@ if (data.gallerySummary && data.gallerySummary.length > 0) {
   if (data.mapEmbedUrl) formData.append("mapEmbedUrl", data.mapEmbedUrl);
 
   // Nearby Places
-  if (data.nearbyPlaces && data.nearbyPlaces.length > 0) {
-    formData.append("nearbyPlaces", JSON.stringify(data.nearbyPlaces));
+if (Array.isArray(data.nearbyPlaces) && data.nearbyPlaces.length > 0) {
+  const cleanedNearby = data.nearbyPlaces
+    .filter(
+      (p): p is typeof p & { coordinates: [number, number] } =>
+        Array.isArray(p.coordinates) &&
+        p.coordinates.length === 2 &&
+        p.coordinates.every((c) => typeof c === "number" && !isNaN(c))
+    )
+    .map((p) => ({
+      name: p.name,
+      type: p.type,
+      distanceText: p.distanceText,
+      coordinates: [
+        Number(p.coordinates[0]),
+        Number(p.coordinates[1]),
+      ] as [number, number],
+      order: p.order,
+    }));
+
+  if (cleanedNearby.length > 0) {
+    formData.append("nearbyPlaces", JSON.stringify(cleanedNearby));
   }
+}
+
 
   // Specifications
   if (data.specifications && data.specifications.length > 0) {

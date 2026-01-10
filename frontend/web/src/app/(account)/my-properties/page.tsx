@@ -185,9 +185,8 @@ const Page = () => {
             return (
               <Link
                 key={property._id}
-                href={`/properties/${TAB_KEY_MAP[activeTab] ?? "residential"}/${
-                  property.slug
-                }`}
+                href={`/properties/${TAB_KEY_MAP[activeTab] ?? "residential"}/${property.slug
+                  }`}
                 className="card group flex flex-row items-start gap-5 border border-gray-200 p-2"
               >
                 {/* Image */}
@@ -249,13 +248,13 @@ const Page = () => {
                       <span className="font-medium text-gray-800">
                         {property.createdAt
                           ? new Date(property.createdAt).toLocaleDateString(
-                              "en-IN",
-                              {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              }
-                            )
+                            "en-IN",
+                            {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            }
+                          )
                           : "—"}
                       </span>
                     </p>

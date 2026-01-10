@@ -22,15 +22,7 @@ export const Step1BasicDetails: React.FC<Step1BasicDetailsProps> = ({
     <div className="space-y-6">
       <h2 className="text-2xl font-semibold">Basic Details</h2>
 
-      {errors.length > 0 && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <ul className="list-disc list-inside text-red-700">
-            {errors.map((error, idx) => (
-              <li key={idx}>{error}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+    
 
       <div>
         <InputField

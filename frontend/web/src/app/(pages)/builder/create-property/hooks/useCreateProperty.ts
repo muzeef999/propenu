@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useCallback } from 'react';
-import { IFeaturedProject, ICreatePropertyFormState } from '../types';
-import { validateStep, buildFormData } from '../utils/formDataBuilder';
-import { createFeaturedProperty } from '@/data/ClientData';
+import { useState, useCallback } from "react";
+import { IFeaturedProject, ICreatePropertyFormState } from "../types";
+import { validateStep, buildFormData } from "../utils/formDataBuilder";
+import { createFeaturedProperty } from "@/data/ClientData";
 
 interface UseCreatePropertyOptions {
   onSuccess?: (property: IFeaturedProject) => void;
@@ -12,13 +12,17 @@ interface UseCreatePropertyOptions {
 
 const TOTAL_STEPS = 9;
 
-export const useCreateProperty = (options?: UseCreatePropertyOptions) => {
+export const useCreateProperty = (
+  userId: string,
+  options?: UseCreatePropertyOptions
+) => {
   const [formState, setFormState] = useState<ICreatePropertyFormState>({
-    title: '',
-    address: '',
-    city: '',
-    currency: 'INR',
-    status: 'active',
+    title: "",
+    address: "",
+    city: "",
+    currency: "INR",
+    status: "active",
+    createdBy: userId ?? "", 
     currentStep: 1,
   });
 
@@ -28,18 +32,27 @@ export const useCreateProperty = (options?: UseCreatePropertyOptions) => {
 
   // Update form field (FIXED typing)
   const updateField = useCallback(
-    <K extends keyof ICreatePropertyFormState>(
-      field: K,
-      value: ICreatePropertyFormState[K]
-    ) => {
-      setFormState((prev) => ({
-        ...prev,
-        [field]: value,
-      }));
-      setError(null);
-    },
-    []
-  );
+  <K extends keyof ICreatePropertyFormState>(
+    field: K,
+    value: ICreatePropertyFormState[K]
+  ) => {
+    setFormState((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+
+    // ✅ CLEAR ERRORS FOR CURRENT STEP ON CHANGE
+    setStepErrors((prev) => {
+      if (!prev[formState.currentStep]) return prev;
+      const copy = { ...prev };
+      delete copy[formState.currentStep];
+      return copy;
+    });
+
+    setError(null);
+  },
+  [formState.currentStep]
+);
 
   // Move to next step with validation
   const nextStep = useCallback((): boolean => {
@@ -51,7 +64,7 @@ export const useCreateProperty = (options?: UseCreatePropertyOptions) => {
         ...prev,
         [currentStep]: validation.errors,
       }));
-      setError(validation.errors[0] || 'Validation failed');
+      setError(validation.errors[0] || "Validation failed");
       return false;
     }
 
@@ -117,7 +130,7 @@ export const useCreateProperty = (options?: UseCreatePropertyOptions) => {
       options?.onSuccess?.(result);
       return result;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'An error occurred';
+      const message = err instanceof Error ? err.message : "An error occurred";
       setError(message);
       options?.onError?.(err instanceof Error ? err : new Error(message));
       return null;
@@ -128,17 +141,19 @@ export const useCreateProperty = (options?: UseCreatePropertyOptions) => {
 
   // Reset form
   const reset = useCallback(() => {
-    setFormState({
-      title: '',
-      address: '',
-      city: '',
-      currency: 'INR',
-      status: 'active',
-      currentStep: 1,
-    });
-    setError(null);
-    setStepErrors({});
-  }, []);
+  setFormState({
+    title: "",
+    address: "",
+    city: "",
+    currency: "INR",
+    status: "active",
+    createdBy: userId, // ✅ MUST KEEP
+    currentStep: 1,
+  });
+  setError(null);
+  setStepErrors({});
+}, [userId]);
+
 
   return {
     formState,

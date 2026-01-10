@@ -1,22 +1,30 @@
-'use client';
-import React, { useState, useEffect } from 'react';
-import { useCreateProperty } from './hooks/useCreateProperty';
-import { STEPS } from './types';
-import { StepNavigation } from './components/StepNavigation';
-import { StepActions } from './components/StepActions';
-import { SuccessModal } from './components/SuccessModal';
-import { Step1BasicDetails } from './components/Step1BasicDetails';
-import { Step2Hero } from './components/Step2Hero';
-import { Step3BHKDetails } from './components/Step3BHKDetails';
-import { Step4Amenities } from './components/Step4Amenities';
-import { Step5Media } from './components/Step5Media';
-import { Step6About } from './components/Step6About';
-import { Step7Location } from './components/Step7Location';
-import { Step8PropertyProfile } from './components/Step8PropertyProfile';
-import { Step9SEO } from './components/Step9SEO';
-
+"use client";
+import React, { useState, useEffect } from "react";
+import { useCreateProperty } from "./hooks/useCreateProperty";
+import { STEPS } from "./types";
+import { StepNavigation } from "./components/StepNavigation";
+import { StepActions } from "./components/StepActions";
+import { SuccessModal } from "./components/SuccessModal";
+import { Step1BasicDetails } from "./components/Step1BasicDetails";
+import { Step2Hero } from "./components/Step2Hero";
+import { Step3BHKDetails } from "./components/Step3BHKDetails";
+import { Step4Amenities } from "./components/Step4Amenities";
+import { Step5Media } from "./components/Step5Media";
+import { Step6About } from "./components/Step6About";
+import { Step7Location } from "./components/Step7Location";
+import { Step8PropertyProfile } from "./components/Step8PropertyProfile";
+import { Step9SEO } from "./components/Step9SEO";
+import { me } from "@/data/ClientData";
+import { useQuery } from "@tanstack/react-query";
 
 export default function CreatePropertyPage() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["me"],
+    queryFn: me,
+  });
+
+  const userId = data?.user?.id ?? null;
+
   const {
     formState,
     loading,
@@ -28,15 +36,26 @@ export default function CreatePropertyPage() {
     goToStep,
     submit,
     reset,
-  } = useCreateProperty({
+  } = useCreateProperty(userId || "", {
     onSuccess: (property) => {
       setShowSuccess(true);
       setSuccessProperty(property);
     },
     onError: (error) => {
-      console.error('Error creating property:', error);
+      console.error("Error creating property:", error);
     },
   });
+
+  // Update createdBy when userId changes
+  useEffect(() => {
+    if (userId) {
+      updateField("createdBy", userId);
+    }
+  }, [userId, updateField]);
+
+  const handleSubmit = () => {
+    submit();
+  };
 
   const [showSuccess, setShowSuccess] = useState(false);
   const [successProperty, setSuccessProperty] = useState<any>(null);
@@ -45,7 +64,7 @@ export default function CreatePropertyPage() {
   useEffect(() => {
     if (error) {
       setDisplayError(error);
-      const timer = setTimeout(() => setDisplayError(null), 5000);
+      const timer = setTimeout(() => setDisplayError(null), 1000);
       return () => clearTimeout(timer);
     }
   }, [error]);
@@ -104,14 +123,9 @@ export default function CreatePropertyPage() {
         isValid={isStepValid}
         onPrev={prevStep}
         onNext={nextStep}
-        onSubmit={submit}
+        onSubmit={handleSubmit}
       />
 
-      {displayError && (
-        <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg">
-          {displayError}
-        </div>
-      )}
 
       <SuccessModal
         isOpen={showSuccess}

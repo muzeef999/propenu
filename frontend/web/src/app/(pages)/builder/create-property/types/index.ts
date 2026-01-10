@@ -117,6 +117,7 @@ export interface IFeaturedProject {
   isFeatured?: boolean;
   rank?: number;
   status?: 'active' | 'inactive' | 'archived';
+  createdBy?: string;
 }
 
 export interface ICreatePropertyFormState extends IFeaturedProject {

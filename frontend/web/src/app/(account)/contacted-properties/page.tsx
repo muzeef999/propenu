@@ -16,20 +16,24 @@ const Page = () => {
   });
 
   const properties = data?.properties ?? [];
-  const categories = ["All", "sale", "rent"];
+  const categories = ["All", "Sale", "Rent"];
   const [activeTab, setActiveTab] = useState("All");
 
   const filteredProperties = useMemo(() => {
-    if (activeTab === "All") return properties;
-    return properties.filter((p: any) => p.listingType === activeTab);
-  }, [activeTab, properties]);
+  if (activeTab === "All") return properties;
+
+  return properties.filter(
+    (p: any) => p.listingType?.toLowerCase() === activeTab.toLowerCase()
+  );
+}, [activeTab, properties]);
+
 
   if (isLoading) {
     return <p className="p-6 text-sm text-gray-500">Loading...</p>;
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-2 space-y-6">
+    <div className="max-w-7xl mx-auto px-2 space-y-1">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -70,7 +74,7 @@ const Page = () => {
                 />
 
                 <span className="absolute top-2 left-2 text-xs px-2 py-0.5 rounded-md font-medium bg-emerald-600 text-white">
-                  {property.listingType}
+                  {property.listingType ? "Sale" : "Rent"}
                 </span>
               </div>
 
@@ -98,7 +102,7 @@ const Page = () => {
                 <div className="mt-4 flex items-center justify-between rounded-lg bg-emerald-50 px-4 py-3">
                   {/* Price */}
                   <div className="flex flex-col leading-tight">
-                    <p className="text-lg font-bold text-emerald-700">
+                    <p className=" font-bold text-[#27AE60] ">
                       ₹{property.price?.toLocaleString()}
                     </p>
                     <span className="text-xs text-emerald-600">
