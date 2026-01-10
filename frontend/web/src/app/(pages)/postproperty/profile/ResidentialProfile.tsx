@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { setProfileField, setStep } from "@/Redux/slice/postPropertySlice";
 import Dropdownui from "@/ui/DropDownUI";
 import CounterField from "@/ui/CounterField";
@@ -12,6 +12,8 @@ import { useAppDispatch } from "@/Redux/store";
 import Toggle from "@/ui/ToggleSwitch";
 import { toast } from "sonner";
 import { numberToWords } from "@/utilies/NumberToWord";
+import { useRouter } from "next/navigation";
+import confetti from "canvas-confetti";
 
 export const FLOORING_TYPES = [
   "vitrified",
@@ -42,6 +44,7 @@ export const ParkingTypes = ["open", "closed", "both"] as const;
 const ResidentialProfile = () => {
   const { residential } = useSelector((state: any) => state.postProperty);
   const dispatch = useAppDispatch();
+  const router = useRouter();
   // Compute price per sqft from either `price` or `expectedPrice` and write
   // the result to `residential.pricePerSqft` (consistent key used across app).
   useEffect(() => {
@@ -582,13 +585,7 @@ const ResidentialProfile = () => {
             <button
               type="button"
               onClick={() => dispatch(setStep(1))} // Basic Details
-              className="
-        mt-1 flex items-center gap-1
-        text-xs text-gray-400
-        hover:text-green-600
-        cursor-pointer
-        self-start
-      "
+              className="mt-1 flex items-center gap-1 text-xs text-gray-400 hover:text-green-600 cursor-pointer self-start"
             >
               Based on
               <span className="font-medium underline">Carpet Area</span>
@@ -653,10 +650,40 @@ const ResidentialProfile = () => {
             .then((response) => {
               console.log("Property submission successful:", response);
               toast.success("Property submitted successfully");
+
+              confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+              });
+              // optional success redirect
+              router.push("/my-properties");
             })
-            .catch((error) => {
-              console.error("Property submission failed:", error);
-              toast.error("Failed to submit property. Please try again.");
+            .catch((error: any) => {
+
+              const errObj = typeof error === "string" ? null : error;
+
+              toast.error(
+                errObj?.message || error || "Failed to submit property"
+              );
+
+              if (
+                errObj?.code === "NO_VALID_PLAN" ||
+                errObj?.code === "PLAN_LIMIT_REACHED"
+              ) {
+                const listingType = residential.listingType || "sale";
+
+                const redirectUrl =
+                  listingType === "sale"
+                    ? "/plans/pricing/owner-sell"
+                    : "/plans/pricing/owner-rent";
+
+                console.log("🚀 Redirecting to:", redirectUrl);
+
+                setTimeout(() => {
+                  router.push(redirectUrl);
+                }, 800);
+              }
             });
         }}
         className="py-2 btn-primary text-white rounded-md cursor-pointer w-full"

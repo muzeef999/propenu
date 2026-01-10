@@ -12,76 +12,78 @@ export const requireActiveSubscription = async (
   res: Response,
   next: NextFunction
 ) => {
-  const userId = req.user!.id;
+  try {
+    const userId = req.user!.id;
+    const { listingType } = req.body; // "sale" | "rent"
 
-  const { listingType } = req.body; // "sale" | "rent" | "lease"
+    if (!listingType) {
+      return res.status(400).json({ message: "listingType is required" });
+    }
 
+    // 🔥 STEP 1: Map listingType → plan category
+    const requiredCategory =
+      listingType === "sale" ? "sell" :
+      listingType === "rent" ? "rent" :
+      null;
 
-  // 1️⃣ Check active subscription
-  const subscription = await Subscription.findOne({
-    userId,
-    status: "active",
-  });
+    if (!requiredCategory) {
+      return res.status(400).json({ message: "Invalid listingType" });
+    }
 
-  if (!subscription) {
-    return res.status(403).json({
-      message: "Please subscribe to post properties",
+    // 🔥 STEP 2: Find ACTIVE subscription for THIS category
+    const subscription = await Subscription.findOne({
+      userId,
+      userType: "owner",
+      category: requiredCategory,
+      status: "active",
     });
+
+    if (!subscription) {
+      return res.status(403).json({
+        success: false,
+        code: "NO_VALID_PLAN",
+        message: `You don’t have an active ${requiredCategory} plan. Please subscribe.`,
+      });
+    }
+
+    // 🔥 STEP 3: Load plan
+    const plan = await Plan.findOne({ code: subscription.planCode });
+
+    if (!plan) {
+      return res.status(403).json({ message: "Invalid subscription plan" });
+    }
+
+    // 🔥 STEP 4: Check PROPERTY_LISTING_LIMIT
+    const limit =
+      typeof plan.features?.get("PROPERTY_LISTING_LIMIT") === "number"
+        ? plan.features.get("PROPERTY_LISTING_LIMIT")
+        : undefined;
+
+    if (typeof limit === "number") {
+      const [resCount, comCount, landCount, agriCount] = await Promise.all([
+        Residential.countDocuments({ createdBy: userId, status: "active", listingType }),
+        Commercial.countDocuments({ createdBy: userId, status: "active", listingType }),
+        LandPlot.countDocuments({ createdBy: userId, status: "active", listingType }),
+        Agricultural.countDocuments({ createdBy: userId, status: "active", listingType }),
+      ]);
+
+      const activeCount = resCount + comCount + landCount + agriCount;
+
+      if (activeCount >= limit) {
+        return res.status(403).json({
+          success: false,
+          code: "PLAN_LIMIT_REACHED",
+          action: "UPGRADE_REQUIRED",
+          feature: "PROPERTY_LISTING_LIMIT",
+          message: `Your ${requiredCategory} plan limit is reached (${limit}). Please upgrade.`,
+        });
+      }
+    }
+
+    // ✅ STEP 5: allow post
+    next();
+  } catch (err) {
+    console.error("requireActiveSubscription error:", err);
+    return res.status(500).json({ message: "Subscription validation failed" });
   }
-
-  // 2️⃣ Load plan
-  const plan = await Plan.findOne({
-    code: subscription.planCode,
-  });
-
-  if (!plan) {
-    return res.status(403).json({
-      message: "Invalid subscription plan",
-    });
-  }
-
-    // 2.5️⃣ Check if plan allows this listing type (sale / rent)
-  const requiredCategory =
-    listingType === "sale" ? "sell" : "rent";
-
-  if (
-    plan.category !== "both" &&
-    plan.category !== requiredCategory
-  ) {
-    return res.status(403).json({
-      message: `Your current plan does not allow posting ${listingType} properties. Please upgrade your plan.`,
-    });
-  }
-
-  // 3️⃣ Check property listing limit
-const limit =
-  typeof plan.features?.get("PROPERTY_LISTING_LIMIT") === "number"
-    ? plan.features.get("PROPERTY_LISTING_LIMIT")
-    : undefined;
-
-
-    const [residentialCount, commercialCount, landCount, agriculturalCount] =
-  await Promise.all([
-    Residential.countDocuments({ createdBy: userId, status: "active" }),
-    Commercial.countDocuments({ createdBy: userId, status: "active" }),
-    LandPlot.countDocuments({ createdBy: userId, status: "active" }),
-    Agricultural.countDocuments({ createdBy: userId, status: "active" }),
-  ]);
-
-const activeCount =
-  residentialCount +
-  commercialCount +
-  landCount +
-  agriculturalCount;
-
-
-
-   if (typeof limit === "number" && activeCount >= limit) {
-    return res.status(403).json({
-      message: `Property limit reached (${limit}). Upgrade your plan.`,
-    });
-  }
-
-  // ✅ All checks passed
-  next();
 };

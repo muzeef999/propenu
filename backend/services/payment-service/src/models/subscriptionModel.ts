@@ -14,12 +14,11 @@ const SubscriptionSchema = new Schema(
 
     category: {
       type: String,
-      enum: ["rent", "sell", "both"],
+      enum: ["rent", "sell", "both", "buy", "rent_view"],
       index: true,
-     required: function (this: any): boolean {
-  return this.userType === "owner" || this.userType === "buyer";
-}
-
+      required: function (this: any): boolean {
+        return this.userType === "owner" || this.userType === "buyer";
+      },
     },
 
     status: {

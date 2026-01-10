@@ -5,20 +5,16 @@ const PaymentSchema = new Schema(
   {
     userId: Types.ObjectId,
     subscriptionId: Types.ObjectId,
-    userType: String,  
+    userType: String,
     provider: { type: String, default: "razorpay" },
     orderId: String,
     paymentId: String,
-
     planId: Types.ObjectId,
-
     razorpayOrderId: String,
     razorpayPaymentId: String,
     razorpaySignature: String,
-
     amount: Number,
     currency: { type: String, default: "INR" },
-
     status: {
       type: String,
       enum: ["created", "paid", "failed"],
