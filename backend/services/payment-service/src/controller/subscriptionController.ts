@@ -71,12 +71,11 @@ export async function getMySubscription(req: AuthRequest, res: Response) {
       category: sub.category,
       code: sub.planCode,
       tier: sub.tier,
-
+      planName: plan.name || plan.title || sub.planCode,
       total,
       used,
       remaining: Math.max(total - used, 0),
       unit,
-
       startDate: sub.startDate,
       endDate: sub.endDate,
     };
