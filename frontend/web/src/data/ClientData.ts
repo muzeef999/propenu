@@ -266,3 +266,16 @@ export const createFeaturedProperty = async (
 
   return response.json();
 };
+
+
+export const getMyContactedProperties = async () => {
+  const token = Cookies.get("token");
+  if (!token) return null;
+
+  const res = await axiosInstance.get(`${url}/api/properties/leads/my-contacts`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return res.data;
+};
