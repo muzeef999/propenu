@@ -81,6 +81,7 @@ const LoginDialog = ({ open, onClose, onSwitchToRegister }: LoginDialogProps) =>
       Cookies.set("token", res.token, {
         secure: true,
         sameSite: "Strict",
+        expires: 30,
       });
 
       toast.success("Logged in successfully!");

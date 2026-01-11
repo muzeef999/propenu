@@ -4,6 +4,7 @@ import { IFeaturedProject } from "@/app/(pages)/builder/create-property/types";
 import { ApiResponse, createRequestOtpPayload, createVerifyOtpPayload, RequestOtpPayload, VerifyOtpPayload, VerifyOtpResponse } from "@/types/property";
 import { SearchFilterParams } from "@/types/sharedTypes";
 import axiosInstance from "@/utilies/axiosInstance";
+import { promises } from "dns";
 import Cookies from "js-cookie";
 
 
@@ -35,7 +36,7 @@ export const requestOtp = async(payload:RequestOtpPayload) => {
 };
 
 export const createRequestOtp = async(payload:createRequestOtpPayload) => {
-  const res = await axiosInstance.post<createRequestOtpPayload>(`${url}/api/users/auth/request-otp/create`, payload)
+  const res = await axiosInstance.post<createRequestOtpPayload>(`${url}/api/users/auth/request-otp/create`, payload);
   return  res.data
   }
 

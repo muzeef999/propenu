@@ -14,6 +14,7 @@ function parseMaybeJSON<T = any>(value: any): T | undefined {
   }
 }
 
+
 export const createAgricultural = async (req: Request, res: Response) => {
   try {
     const raw = { ...(req.body || {}) };

@@ -4,7 +4,7 @@ import { createRequestOtp, createVerifyOtp } from "@/data/ClientData"; // Assumi
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
-import { createVerifyOtpPayload, VerifyOtpResponse } from "@/types/property";
+import { VerifyOtpResponse } from "@/types/property";
 import { LuPencilLine } from "react-icons/lu";
 import { MdClose } from "react-icons/md";
 import InputField from "@/ui/InputField";
@@ -94,14 +94,14 @@ const RegisterDialog = ({
     setError(null);
 
     try {
-      const res: createVerifyOtpPayload = await createVerifyOtp({
+      const res = await createVerifyOtp({
         email: formData.email.trim(),
         otp: otpToSubmit,
         name: formData.name.trim(),
         role: formData.role,
       });
 
-      Cookies.set("token", res.token, { secure: true, sameSite: "Strict" });
+      // Cookies.set("token", res.token, { secure: true, sameSite: "Strict" });
 
       toast.success("Account created successfully!");
       setTimeout(() => {
@@ -215,7 +215,9 @@ const RegisterDialog = ({
                 placeholder="Enter your email address"
               />
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Role
+                </label>
                 <select
                   value={formData.role}
                   onChange={(e) => handleInputChange("role")(e.target.value)}
@@ -255,11 +257,16 @@ const RegisterDialog = ({
 
           {step === "verify" && (
             <div className="space-y-6">
-              <div className="flex justify-center gap-3" onPaste={handleOtpPaste}>
+              <div
+                className="flex justify-center gap-3"
+                onPaste={handleOtpPaste}
+              >
                 {otpDigits.map((digit, index) => (
                   <input
                     key={index}
-                    ref={(el) => (inputsRef.current[index] = el)}
+                    ref={(el) => {
+                      inputsRef.current[index] = el;
+                    }}
                     type="text"
                     inputMode="numeric"
                     autoComplete="one-time-code"

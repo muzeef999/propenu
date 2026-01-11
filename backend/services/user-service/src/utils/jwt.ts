@@ -4,7 +4,7 @@ import { JwtUserPayload } from '../types/auth';
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 
 export function generateToken(payload : JwtUserPayload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
 }
 
 export function verifyToken(token: string) {

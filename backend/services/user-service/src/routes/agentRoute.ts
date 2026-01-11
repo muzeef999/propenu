@@ -17,4 +17,5 @@ agentRoute.get("/slug/:slug", getIndetailSlug);
 agentRoute.patch("/:id",upload.fields([ { name: "avatar", maxCount: 1 },{ name: "coverImage", maxCount: 1 },]), validateBody(updateAgentSchema),editAgent);
 agentRoute.delete("/:id", deleteAgent);
 
+
 export default agentRoute;

@@ -1,15 +1,7 @@
 // src/routes/featurePropertiesRoute.ts
 import express, { Request, Response } from "express";
 import multer from "multer";
-import {
-  createFeatureProperties,
-  deleteFeatureProperties,
-  editFeatureProperties,
-  getAllFeatureProperties,
-  getCityFeatureProperties,
-  getFeatureBySlug,
-  getIndetailFeatureProperties,
-  getSearchFeatureProperties,
+import { createFeatureProperties, deleteFeatureProperties, editFeatureProperties, getAllFeatureProperties, getCityFeatureProperties, getFeatureBySlug,getIndetailFeatureProperties, getSearchFeatureProperties,
 } from "../controller/featurePropertiesController";
 import {
   CreateFeaturePropertySchema,

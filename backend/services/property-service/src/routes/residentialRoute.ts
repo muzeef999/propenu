@@ -35,20 +35,9 @@ const jsonKeys = [
   "relatedProjects",
 ];
 
-router.post(
-  "/", authMiddleware,cpUpload,parseJsonFields(jsonKeys), fallbackCoerceDefault, requireActiveSubscription,
-  validateBody(ResidentialCreateSchema),
-  createResidential
-);
+router.post("/", authMiddleware,cpUpload,parseJsonFields(jsonKeys), fallbackCoerceDefault, requireActiveSubscription, validateBody(ResidentialCreateSchema), createResidential);
 
-router.patch(
-  "/:id",
-  cpUpload,
-  parseJsonFields(jsonKeys),
-  fallbackCoerceDefault,
-  validateBody(ResidentialUpdateSchema),
-  editResidential 
-);
+router.patch("/:id", cpUpload, parseJsonFields(jsonKeys), fallbackCoerceDefault, validateBody(ResidentialUpdateSchema), editResidential );
 
 router.get("/", getAllResidential);
 router.get("/slug/:slug", getResidentialBySlug);

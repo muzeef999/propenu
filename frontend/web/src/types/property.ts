@@ -68,6 +68,10 @@ export interface VerifyOtpResponse {
   token: string;
 }
 
+export interface RequestOtpResponse {
+  message: string;
+}
+
 export interface createRequestOtpPayload {
   name: string;
   email: string;
