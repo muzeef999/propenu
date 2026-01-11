@@ -30,7 +30,7 @@ jobs:
 
       # 4) Install root dependencies (monorepo)
       - name: Install dependencies
-        run: npm ci
+        run: npm ci 
 
       # 5) Build all backend services (from your root package.json)
       - name: Build all services
