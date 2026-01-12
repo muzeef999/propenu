@@ -466,6 +466,7 @@ type Plan = {
 
   price: number;
   durationDays?: number;
+  validityDays?: number; // ✅ ADD THIS
 
   features?: {
     PROPERTY_LISTING_LIMIT?: number;

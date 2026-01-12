@@ -185,7 +185,6 @@ export const Step3BHKDetails: React.FC<Step3BHKDetailsProps> = ({
                     <InputField
                       label="Available Units"
                       type="number"
-                      min={0}
                       value={unit.availableCount ?? ""}
                       onChange={(v) =>
                         updateUnit(

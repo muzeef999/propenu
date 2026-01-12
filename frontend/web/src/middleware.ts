@@ -21,15 +21,15 @@ export function middleware(req: NextRequest) {
 
   // 3. Role rules
   if (pathname.startsWith("/agent") && role !== "agent") {
-    return NextResponse.redirect(new URL("/not-authorized", req.url));
+     return new NextResponse(null, { status: 403 });
   }
 
   if (pathname.startsWith("/builder") && role !== "builder") {
-    return NextResponse.redirect(new URL("/not-authorized", req.url));
+     return new NextResponse(null, { status: 403 });
   }
 
   if (pathname.startsWith("/user") && role !== "user") {
-    return NextResponse.redirect(new URL("/not-authorized", req.url));
+      return new NextResponse(null, { status: 403 });
   }
 
   return NextResponse.next();

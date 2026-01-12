@@ -1,6 +1,9 @@
-import React from 'react'
 
-const PostPropertiesHouse = () => {
+interface PostPropertiesHouseProps {
+  className?: string;
+}
+
+const PostPropertiesHouse = ({ className }: PostPropertiesHouseProps) => {
   return (
     <svg width="218" height="103" viewBox="0 0 218 103" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M108.058 103C167.736 103 216.115 99.7955 216.115 95.8427C216.115 91.8899 167.736 88.6855 108.058 88.6855C48.379 88.6855 0 91.8899 0 95.8427C0 99.7955 48.379 103 108.058 103Z" fill="#EBEBEB"/>

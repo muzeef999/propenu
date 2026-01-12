@@ -146,17 +146,3 @@ export default function PricingComparisonTable({
   );
 }
 
-const features = [
-  { label: "No. of Property Listings", render: (p) => p.listingCount },
-  { label: "Buyer Reach", render: (p) => `${p.reach}%` },
-  { label: "No. of Enquiries", render: (p) => `Up to ${p.enquiryCount}` },
-  {
-    label: "Top Visibility",
-    render: (p) => (p.visibilityDays ? `${p.visibilityDays} Days` : "—"),
-  },
-  {
-    label: "Manage Account",
-    render: (p) =>
-      p.teamMembers > 1 ? `${p.teamMembers} Team Members` : "1 Team Member",
-  },
-];

@@ -13,6 +13,11 @@ import TextArea from "@/ui/TextArae";
 
 const AGENT_ID = "693271916bb8771f528d0fa4";
 
+type UpdateAgentPayload = Omit<ProfileEdit, "avatar" | "coverImage"> & {
+  avatar?: File;
+  coverImage?: File;
+};
+
 const ALLOWED_PROFILE_FIELDS: (keyof ProfileEdit)[] = [
   "name",
   "bio",
@@ -328,14 +333,24 @@ const AgentProfilePage = () => {
     Error,
     ProfileEdit
   >({
-    mutationFn: (payload) => updateAgentProfile(AGENT_ID, payload),
-    onSuccess: () => {
-      toast.success("Profile updated successfully");
-      queryClient.invalidateQueries({
-        queryKey: ["agent-profile", AGENT_ID],
-      });
-      setEditMode(null);
-    },
+    mutationFn: (payload) => {
+    const cleanedPayload: UpdateAgentPayload = {
+      ...payload,
+      avatar: payload.avatar instanceof File ? payload.avatar : undefined,
+      coverImage:
+        payload.coverImage instanceof File ? payload.coverImage : undefined,
+    };
+
+    return updateAgentProfile(AGENT_ID, cleanedPayload);
+  },
+
+   onSuccess: () => {
+    toast.success("Profile updated successfully");
+    queryClient.invalidateQueries({
+      queryKey: ["agent-profile", AGENT_ID],
+    });
+    setEditMode(null);
+  },
     onError: () => {
       toast.error("Failed to update profile");
     },
@@ -377,16 +392,17 @@ const AgentProfilePage = () => {
     []
   );
 
-  const cleanPayload = useCallback((payload: ProfileEdit): ProfileEdit => {
-    return Object.keys(payload)
-      .filter((key) =>
-        ALLOWED_PROFILE_FIELDS.includes(key as keyof ProfileEdit)
-      )
-      .reduce((acc: ProfileEdit, key) => {
-        acc[key as keyof ProfileEdit] = payload[key as keyof ProfileEdit];
-        return acc;
-      }, {});
-  }, []);
+ const cleanPayload = useCallback((payload: ProfileEdit): ProfileEdit => {
+  return Object.keys(payload)
+    .filter((key) =>
+      ALLOWED_PROFILE_FIELDS.includes(key as keyof ProfileEdit)
+    )
+    .reduce((acc, key) => {
+      (acc as Record<string, any>)[key] = payload[key as keyof ProfileEdit];
+      return acc;
+    }, {} as ProfileEdit);
+}, []);
+
 
   const handleEditSave = useCallback(() => {
     const payload = {

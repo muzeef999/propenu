@@ -76,7 +76,7 @@ const SearchBox = () => {
                         <button
                           key={l}
                           onClick={() => {
-                           dispatch(setListingType({ label: "Buy", value: "buy" }));
+                           dispatch(setListingType({ label: l, value: l.toLowerCase() as any }));
                             close?.();
                           }}
                           className={`px-2 py-1 rounded hover:bg-gray-100 ${
