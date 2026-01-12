@@ -146,12 +146,19 @@ export const BaseFields = {
   rank: { type: Number, default: 1, index: true },
   banksApproved: {  type: [String],default: [],},
   isPriceNegotiable:{ type: Boolean, default: false, index: true },
+  isPublished: { type: Boolean,default: false, index: true},
   meta: {
     views: { type: Number, default: 0 },
     inquiries: { type: Number, default: 0 },
     clicks: { type: Number, default: 0 },
   },
-  status: { type: String, enum: ['active', 'inactive', 'archived'], default: 'active', index: true },
+  completion: {
+  percent: { type: Number, default: 0, min: 0, max: 100 },
+  step: { type: Number, default: 1 }, // for stepper UI
+  lastSection: { type: String }, // "basic", "location", "gallery", etc.
+},
+
+  status: { type: String, enum: ['draft','active', 'inactive', 'archived'], default: 'draft', index: true },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', index: true, required: true },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
 } as const;

@@ -9,10 +9,7 @@ import FilterDropdown from "@/ui/FilterDropdown";
 import { BHKOption, PostedByOption, residentialKeyMapping } from "@/types/residential";
 import { buildSearchParams } from "./buildSearchParams";
 import { searchFilter } from "@/data/ClientData";
-import {
-  selectCityWithLocalities,
-  selectLocalitiesByCity,
-} from "@/Redux/slice/citySlice";
+import { selectCityWithLocalities, selectLocalitiesByCity, } from "@/Redux/slice/citySlice";
 import {  RESFilterKey } from "@/types";
 import Toggle from "@/ui/ToggleSwitch";
 import { toast } from "sonner";

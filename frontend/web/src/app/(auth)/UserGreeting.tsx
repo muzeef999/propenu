@@ -24,18 +24,19 @@ const GreetingOptions = [
 
 const AgentOptions = [
   { label: "Dashboard", link: "/agent" },
-  { label: "My Plans", link: "/agent/plans" },
-  { label: "My Property", link: "/agent/my-Properties" },
+  { label: "My Plans", link: "/agent/my-plan" },
+  { label: "My Property", link: "/agent/my-properties" },
   { label: "Account & Settings", link: "/agent/account-settings" },
   { label: "Leads", link: "/agent/leads" },
   { label: "Logout", action: "logout" },
 ];
 
+
 const BuilderOptions = [
   { label: "Dashboard", link: "/builder" },
   { label: "My Plans", link: "/builder/plans" },
   { label: "Leads", link: "/builder/leads" },
-  { label: "My Property", link: "/builder/my-Properties" },
+  { label: "My Property", link: "/builder/my-properties" },
   { label: "Account & Settings", link: "/builder/account-settings" },
   { label: "Logout", action: "logout" },
 ];

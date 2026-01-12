@@ -119,17 +119,34 @@ export const getCityHighlightProperties = async(req: Request, res: Response) => 
 
 export const getCityFeatureProperties = async(req: Request, res: Response) => {
   try {
-  const city = req.query.city as string;
 
-    if (!city) {
-      return res.status(400).json({ error: "city query param is required" });
+     let { locality, city, state } = req.query as {
+      locality?: string;
+      city?: string;
+      state?: string;
+    };
+
+      if (!locality && !city && !state) {
+      return res.status(400).json({
+        error: "At least one of locality, city, or state is required",
+      });
     }
 
-    const result = await FeaturePropertyService.getFeaturesByCity(city);
+    const clean = (v?: string) =>
+      v?.replace(/^['"]|['"]$/g, "").trim();
+
+    locality = clean(locality);
+    city = clean(city);
+    state = clean(state);
+
+    const result = await FeaturePropertyService.getFeaturesByCity({
+      ...(locality && { locality }),
+      ...(city && { city }),
+      ...(state && { state }),
+    });
     return res.json(result);
   
   }catch(err:any) {
-     console.error("getAllFeatureProperties:", err);
     return res.status(500).json({ error: err.message || "Internal server error" });
   }
 }

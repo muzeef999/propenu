@@ -7,10 +7,13 @@ import {
   agriculturalApi,
 } from "../apis";
 import { me } from "@/data/ClientData";
-import { getFiles as getFileStoreFiles, clearFiles as clearFileStoreFiles } from "@/lib/fileStore";
+import {
+  getFiles as getFileStoreFiles,
+  clearFiles as clearFileStoreFiles,
+} from "@/lib/fileStore";
 
 export const submitPropertyThunk = createAsyncThunk<
-  any,                // return type (API response)
+  any, // return type (API response)
   string | undefined, // argument type (optional property type)
   { state: RootState } // 👈 THIS FIXES getState()
 >(
@@ -32,7 +35,7 @@ export const submitPropertyThunk = createAsyncThunk<
       }
 
       const user = userData.user; // Extract nested user object
-      
+
       const profile =
         propertyType === "residential"
           ? state.residential
@@ -49,7 +52,8 @@ export const submitPropertyThunk = createAsyncThunk<
           ? state.commercial.propertyType || state.commercial.propertySubType
           : propertyType === "land"
           ? state.land.propertyType || state.land.propertySubType
-          : state.agricultural.propertyType || state.agricultural.propertySubType;
+          : state.agricultural.propertyType ||
+            state.agricultural.propertySubType;
 
       // Validate that apiPropertyType exists before proceeding
       if (!apiPropertyType) {
@@ -67,17 +71,19 @@ export const submitPropertyThunk = createAsyncThunk<
         ...profile,
         propertyType: apiPropertyType,
         createdBy: userId,
-        listingSource: user.roleName || 'user', // 'user', 'agent', 'builder', 'admin'
+        listingSource: user.roleName || "user", // 'user', 'agent', 'builder', 'admin'
       };
-
 
       const galleryMeta = (payload.galleryFiles || []) as any[];
       const actualFiles = getFileStoreFiles("postProperty");
 
       if (Array.isArray(galleryMeta) && galleryMeta.length > 0) {
-        const existingGallery = Array.isArray(payload.gallery) ? payload.gallery : [];
-        const urlEntries = galleryMeta.filter((g) => g && (g.url || g.filename && g.url));
-
+        const existingGallery = Array.isArray(payload.gallery)
+          ? payload.gallery
+          : [];
+        const urlEntries = galleryMeta.filter(
+          (g) => g && (g.url || (g.filename && g.url))
+        );
 
         if (Array.isArray(actualFiles) && actualFiles.length > 0) {
           if (urlEntries.length > 0) {
@@ -92,7 +98,6 @@ export const submitPropertyThunk = createAsyncThunk<
         delete payload.galleryFiles;
         delete payload.files;
       }
-
 
       const formData = new FormData();
 
@@ -132,7 +137,17 @@ export const submitPropertyThunk = createAsyncThunk<
           throw new Error("Invalid property type");
       }
     } catch (error: any) {
-      return rejectWithValue(error.message);
+      console.log("🔥 THUNK RAW ERROR:", error);
+
+      if (error?.response?.data) {
+        console.log("🔥 BACKEND ERROR DATA:", error.response.data);
+        return rejectWithValue(error.response.data);
+      }
+
+      return rejectWithValue({
+        code: "UNKNOWN_ERROR",
+        message: error.message || "Something went wrong",
+      });
     }
   }
 );

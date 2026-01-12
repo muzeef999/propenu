@@ -660,12 +660,14 @@ const ResidentialProfile = () => {
               router.push("/my-properties");
             })
             .catch((error: any) => {
+              console.log("🔥 FULL ERROR FROM API:", error);
 
-              const errObj = typeof error === "string" ? null : error;
+              const errObj =
+                typeof error === "string"
+                  ? { message: error }
+                  : error?.response?.data || error;
 
-              toast.error(
-                errObj?.message || error || "Failed to submit property"
-              );
+              toast.error(errObj?.message || "Failed to submit property");
 
               if (
                 errObj?.code === "NO_VALID_PLAN" ||

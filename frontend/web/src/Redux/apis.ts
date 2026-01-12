@@ -3,7 +3,6 @@ import Cookies from "js-cookie";
 
 export const residentialApi = async (formData: FormData) => {
   const token = Cookies.get("token");
-
   if (!token) {
     throw new Error("Not authenticated");
   }
@@ -23,9 +22,9 @@ export const residentialApi = async (formData: FormData) => {
     e.feature = error.feature;
     throw e;
   }
-
   return res.json();
 };
+
 
 export const commercialApi = async (formData: FormData) => {
   const token = Cookies.get("token");

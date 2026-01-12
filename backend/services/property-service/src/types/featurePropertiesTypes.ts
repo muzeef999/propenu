@@ -88,40 +88,28 @@ export interface ILead {
 }
 
 export interface IFeaturedProject {
-  // basic
   title: string;
   slug: string;
   logo?: ILogo | null;
-
-  // relations
   developer?: Types.ObjectId | string;
-
-  // hero section
   heroImage?: string;
   heroVideo?: string;
   heroTagline?: string;
   heroSubTagline?: string;
   heroDescription?: string;
-
-  // SEO / branding
-  color?: string; // hex e.g. '#000'
+  color?: string; 
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string;
-
-  // address & geo
   address: string;
   city?: string;
   location?: {
     type: "Point";
-    // [lng, lat]
     coordinates: [number, number] | number[];
   };
   mapEmbedUrl?: string;
-
+  state?:string;
   aboutSummary?: IAboutSummary;
-
-  // pricing / bhk
   currency?: string; // default: 'INR'
   priceFrom?: number; // computed
   priceTo?: number; // computed
@@ -135,7 +123,8 @@ export interface IFeaturedProject {
   projectArea?: number;
   totalUnits?: number;
   availableUnits?: number;
-
+ 
+  locality?:string;
   // legal / banks
   reraNumber?: string;
   banksApproved?: string[];

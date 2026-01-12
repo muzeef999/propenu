@@ -1,20 +1,16 @@
 // src/services/residential.service.ts
 import mongoose from "mongoose";
-import { randomUUID } from "crypto";
 import s3 from "../config/s3"; // your AWS.S3 v2 client
 import dotenv from "dotenv";
 import Residential from "../models/residentialModel";
-import { SearchFilters } from "../types/searchResultItem";
 import "../models/userModel";
-import User from "../models/userModel";
-import Role from "../models/roleModel";
 import { uploadFile } from "../utils/uploadFile";
 import { UpdateFeaturePropertySchema } from "../zod/validation";
 import { extendResidentialFilters } from "./filters/residentialFilters";
 import { ResidentialQuery } from "../types/filterTypes";
 import { Request } from "express";
 import { upsertCityAndLocality } from "./locationServices";
-import { findRelatedProperties } from "./findRelatedProperties";
+import { createWatermarkedBuffer } from "../utils/imageProcessing";
 
 type RequestWithResidentialQuery = Request<
   {}, // req.params
@@ -95,9 +91,11 @@ async function mapAndUploadGallery({
     }
     if (matchedIndex === -1) matchedIndex = i;
 
+    const watermarkedBuffer = await createWatermarkedBuffer(file.buffer);
+
     // upload into residential folder
     const up = await await uploadFile({
-      buffer: file?.buffer,
+      buffer: watermarkedBuffer,
       originalName: file.originalname,
       mimetype: file.mimetype,
       folder: "featured/gallery",

@@ -13,6 +13,28 @@ dotenv.config({ quiet: true });
 
 type MulterFiles = { [fieldname: string]: Express.Multer.File[] } | undefined;
 
+type LocationParams = {
+  locality?: string;
+  city?: string;
+  state?: string;
+};
+
+
+async function findFeatured(filter: any) {
+  return FeaturedProject.find(filter)
+    .select({
+      title: 1,
+      heroImage: 1,
+      priceFrom: 1,
+      priceTo: 1,
+      slug: 1,
+      city: 1,
+      locality: 1,
+      state: 1,
+    })
+    .lean();
+}
+
 function slugifyTitle(title: string) {
   return String(title)
     .toLowerCase()
@@ -825,28 +847,63 @@ return await FeaturedProject.find({createdBy: userId})
       .lean();
   },
 
-  async getFeaturesByCity(city: string) {
-    const cleanCity = city.trim();
+   async getFeaturesByCity({ locality, city, state }: LocationParams) {
 
-    const filter = {
-      city: { $regex: `^${cleanCity}$`, $options: "i" },
-      isFeatured: false,
-    };
+    // 🥇 1. Try LOCALITY
+    if (locality) {
+      const items = await findFeatured({
+        locality: { $regex: `^${locality}$`, $options: "i" },
+        isFeatured: true,
+      });
 
-    const items = await FeaturedProject.find(filter)
-      .select({
-        title: 1,
-        heroImage: 1,
-        priceFrom: 1,
-        priceTo: 1,
-        slug: 1, // optional → useful for FE navigation
-      })
-      .lean();
+      if (items.length > 0) {
+        return {
+          level: "locality",
+          value: locality,
+          total: items.length,
+          items,
+        };
+      }
+    }
+
+    // 🥈 2. Try CITY
+    if (city) {
+      const items = await findFeatured({
+        city: { $regex: `^${city}$`, $options: "i" },
+        isFeatured: true,
+      });
+
+      if (items.length > 0) {
+        return {
+          level: "city",
+          value: city,
+          total: items.length,
+          items,
+        };
+      }
+    }
+
+    // 🥉 3. Try STATE
+    if (state) {
+      const items = await findFeatured({
+        state: { $regex: `^${state}$`, $options: "i" },
+        isFeatured: true,
+      });
+
+      if (items.length > 0) {
+        return {
+          level: "state",
+          value: state,
+          total: items.length,
+          items,
+        };
+      }
+    }
 
     return {
-      city: cleanCity,
-      total: items.length,
-      items,
+      level: "none",
+      total: 0,
+      items: [],
     };
   },
 

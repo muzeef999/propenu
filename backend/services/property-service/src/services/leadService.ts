@@ -52,11 +52,21 @@ export const createLead = async (data: any, userId: string) => {
   const ownerId = property.createdBy;
 
   const requiredCategory = listingType === "sale" ? "sell" : "rent";
+  const requiredViewerCategory = listingType === "sale" ? "buy" : "rent_view";
 
-  // ✅ VIEWER subscription (buyer / rent_view)
-  const viewerSub = await Subscription.findOne({ userId, status: "active" });
-  if (!viewerSub) throw new Error("Please subscribe to contact owners");
+const viewerSub = await Subscription.findOne({
+  userId,
+  status: "active",
+  category: requiredViewerCategory,
+});
 
+if (!viewerSub) {
+  throw new Error(
+    listingType === "sale"
+      ? "Please purchase a Buyer plan to contact this property owner"
+      : "Please purchase a Rent View plan to contact this property owner"
+  );
+}
   // ✅ OWNER subscription (VERY IMPORTANT FIX)
   const ownerSub = await Subscription.findOne({
     userId: ownerId,

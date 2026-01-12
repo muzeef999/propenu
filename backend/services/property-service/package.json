@@ -16,7 +16,8 @@
     "aws-sdk": "^2.1692.0",
     "express": "^5.1.0",
     "mongoose": "^8.19.2",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@types/dotenv": "^6.1.1",
