@@ -6,7 +6,7 @@ export function middleware(req: NextRequest) {
 
   // 1. Not logged in → block protected routes
   if (!token && (pathname.startsWith("/user") || pathname.startsWith("/agent") || pathname.startsWith("/builder"))) {
-    return NextResponse.redirect(new URL("/login", req.url));
+    return new NextResponse(null, { status: 403 });
   }
 
   if (!token) return NextResponse.next();
