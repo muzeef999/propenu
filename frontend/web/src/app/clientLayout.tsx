@@ -14,6 +14,14 @@ import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import AgentRegistrationModal from "@/app/(pages)/agent/components/AgentRegistrationModal";
 
+const HIDE_LAYOUT_ROUTES = [
+  "/featured",
+  "/postproperty",
+  "/about",
+  "/terms",
+  "/privacy",
+];
+
 
 export default function ClientProviders({
   children,
@@ -23,12 +31,13 @@ export default function ClientProviders({
   // Create the client once per browser session
   const [queryClient] = React.useState(() => new QueryClient());
 
-    const pathname = usePathname(); // 👈 get current path
-    const [user, setUser] = useState<any>(null);
-    const [showAgentModal, setShowAgentModal] = useState(false);
+  const pathname = usePathname(); // 👈 get current path
+  const [user, setUser] = useState<any>(null);
+  const [showAgentModal, setShowAgentModal] = useState(false);
 
-  const hideFooter = pathname?.startsWith("/featured"); 
-  const hideNavbar = pathname?.startsWith("/postproperty");
+  const hideLayout = HIDE_LAYOUT_ROUTES.some((route) =>
+    pathname?.startsWith(route)
+  );
 
   useEffect(() => {
     async function fetchUser() {
@@ -55,7 +64,7 @@ export default function ClientProviders({
   return (
      <Provider store={store}>
     <QueryClientProvider client={queryClient}>
-      {!hideNavbar && <Navbar />}
+      {!hideLayout && <Navbar />}
       {children}
       {/* Agent registration modal — blocks access until completed */}
       {showAgentModal && (
@@ -74,7 +83,7 @@ export default function ClientProviders({
         richColors
         expand={true}
         duration={3000} />
-         {!hideFooter && <Footer />}
+         {!hideLayout && <Footer />}
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
     </Provider>

@@ -48,6 +48,10 @@ html, body {
 /* ------------------------------------ */
 @layer utilities {
   .text-primary { color: var(--color-primary); }
+  
+  .bg-footer-gradient {
+    background: linear-gradient(180deg, #27AE60 -337.72%, #FBFFFD 38.63%);
+  }
   .headingDesc { color: var(--color-heading-desc);}
   .headingSideBar { color: var(--color-primary); }
   .headingblack {color: var(--color-black);}   
