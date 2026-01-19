@@ -93,6 +93,8 @@ export const CreateFeaturePropertySchema = z.object({
   featuredTagline: z.string().optional(),
   address: z.string().min(1),
   city: z.string().optional(),
+  locality: z.string().optional(),
+  state: z.string().optional(),
   location: z
     .object({
       type: z.literal("Point").optional().default("Point"),
@@ -163,6 +165,8 @@ export const UpdateFeaturePropertySchema = z.object({
   featuredTagline: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
+  state: z.string().optional(),
+  locality: z.string().optional(),
   location: z
     .object({
       type: z.literal("Point").optional(),
