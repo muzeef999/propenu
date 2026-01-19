@@ -92,6 +92,10 @@ app.use("/api/payments",   makeProxy(PAYMENT_SERVICE_URL));
 app.use("/api/properties", makeProxy(PROPERTY_SERVICE_URL));
 app.use("/api/users",      makeProxy(USER_SERVICE_URL));
 
+    app.get("/", (req, res) => {
+      res.json({ message: "getway services  is running" });
+    });
+
 // Simple health endpoint
 app.get("/health", (_req: Request, res: Response) => {
   res.json({
