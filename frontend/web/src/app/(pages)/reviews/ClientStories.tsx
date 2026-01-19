@@ -55,7 +55,7 @@ const ReviewItem: React.FC<ReviewItemProps> = ({
 }) => (
     <div className="flex items-center gap-3">
         <div
-            className={`relative rounded-full border-2 border-[#3CB878] overflow-hidden bg-gray-100
+            className={`relative rounded-full border-2 border-[#3CB878] overflow-hidden
       ${highlight ? "w-20 h-20" : "w-14 h-14"} shadow`}
         >
             <Image

@@ -64,7 +64,7 @@ const PopularOwnerPropertiesClient = ({ items = [] }: Props) => {
         className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-6 py-2 snap-x snap-mandatory scroll-px-1"
       >
         {items.map((item: any) => {
-          const wrapperClass = "min-w-[70%] lg:min-w-[27%] xl:min-w-[25%] snap-start";
+          const wrapperClass = "max-w-[25%] w-full";
 
           if (item.type === "residential") {
             return (

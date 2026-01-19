@@ -105,7 +105,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
       {/* Lightbox */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-sm"
+          className="fixed inset-0 z-99 flex flex-col bg-black/95 backdrop-blur-sm"
         >
           <div className="flex items-center gap-4 p-3 bg-[#1fab60]">
             <button
