@@ -1,13 +1,17 @@
 import express from "express";
 import dotenv from "dotenv";
-dotenv.config();
 import paymentRoutes from "../src/routes/paymentRoutes";
 import { connectDB } from "./config/db";
 import planRoutes from "./routes/planRoute";
 import subscriptionRoutes from "./routes/subscriptionRoute"
+dotenv.config({ quiet: true });
+
 
 const app = express();
 app.use(express.json());
+
+
+
 
 const PORT = process.env.PORT ?? 4002;
 
