@@ -4,6 +4,7 @@ module.exports = {
       cwd: __dirname + '/gateway',
       script: 'dist/server.js',
       instances: 'max',
+      instances: 1,
       exec_mode: 'cluster'
     },
     { name: 'user-service',
