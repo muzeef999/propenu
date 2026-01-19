@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "propenu.s3.eu-north-1.amazonaws.com",
+        hostname: "propenu-uploads.s3.ap-south-1.amazonaws.com",
         port: "",
         pathname: "/**",
       },
