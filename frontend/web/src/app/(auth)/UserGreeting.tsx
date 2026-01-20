@@ -3,6 +3,8 @@ import FilterDropdown from "@/ui/FilterDropdown";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { HiChevronDown } from "react-icons/hi2";
+import { useState } from "react";
 
 interface UserGreetingProps {
   user?: {
@@ -43,6 +45,7 @@ const BuilderOptions = [
 
 const UserGreeting = ({ user }: UserGreetingProps) => {
   const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
 
   const getOptionsForRole = (roleName?: string) => {
     switch (roleName) {
@@ -54,22 +57,46 @@ const UserGreeting = ({ user }: UserGreetingProps) => {
         return GreetingOptions;
     }
   };
+  const getInitial = (name?: string) => {
+    if (!name) return "U";
+    return name.charAt(0).toUpperCase();
+  };
 
-  const options = getOptionsForRole(user?.user?.roleName);
+  const role = user?.user?.roleName;
+  const options = getOptionsForRole(role);
+  const showRole = role && role !== "user";
+
  
   return (
     <div className="text-sm text-gray-700">
       <FilterDropdown
         triggerLabel={
-          <>
-            <span className="px-4 text-primary font-medium cursor-pointer items-end flex">
-              Hi, {user?.user?.name}
-              <br />
-            </span>
-            <span className="text-xs text-gray-500 items-end flex px-4 capitalize">
-              {user?.user?.roleName || "user"}
-            </span>
-          </>
+          <div 
+            className="flex items-center gap-3 cursor-pointer px-4 py-1"
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            {/* Avatar */}
+            <div
+              className={`h-9 w-9 rounded-full border border-[#27AE60] text-[#26ad5f] flex items-center justify-center font-semibold text-sm shadow`}
+            >
+              {getInitial(user?.user?.name)}
+            </div>
+
+            {/* Name & Role */}
+            <div className="flex flex-col items-start">
+              <span className="text-sm  text-gray-800 capitalize">
+                Hi, {user?.user?.name || "User"}
+              </span>
+              {showRole && (
+                <span className="text-xs text-gray-500 capitalize">{role}</span>
+              )}
+            </div>
+
+            {/* Dropdown Icon */}
+            <div className={`text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : 'rotate-0'}`}>
+              <HiChevronDown className="w-4 h-4" />
+            </div>
+          </div>
         }
         width="w-56"
         align="left"
@@ -91,6 +118,7 @@ const UserGreeting = ({ user }: UserGreetingProps) => {
                   router.push(item.link);
                   close();
                 }
+                setIsOpen(false);
               };
 
               return (

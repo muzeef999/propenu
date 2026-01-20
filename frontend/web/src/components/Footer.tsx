@@ -21,11 +21,13 @@ export default function Footer() {
         background: "linear-gradient(180deg, #27AE60 -337.72%, #FBFFFD 38.63%)",
       }}
     >
-      <div className="mx-auto w-full max-w-7xl px-6 lg:px-8 pb-24 relative">
+      <div className="mx-auto w-full max-w-7xl px-6 lg:px-8 relative">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {/* 1. Company Column */}
           <div>
-            <h3 className="mb-6 text-base font-semibold text-gray-900">Company</h3>
+            <h3 className="mb-6 text-base font-semibold text-gray-900">
+              Company
+            </h3>
             <ul className="space-y-4 text-[14px] text-gray-700 font-medium">
               <li>
                 <Link href="/about" className="hover:text-primary">
@@ -113,53 +115,61 @@ export default function Footer() {
               Follow Us
             </h3>
             <div className="flex items-center gap-3 mb-8">
+              {/* LinkedIn */}
               <Link
                 href="#"
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm hover:shadow-md transition"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm transition hover:shadow-md hover:bg-[#0A66C2] group"
               >
-                <span className="text-gray-700 w-7 h-7">
+                <span className="w-7 h-7 text-[#0A66C2] group-hover:text-white transition">
                   <LinkedInSVG />
                 </span>
               </Link>
 
+              {/* Instagram */}
               <Link
                 href="#"
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm hover:shadow-md transition"
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm transition-all duration-300 
+             hover:shadow-md group 
+             hover:bg-[linear-gradient(45deg,#f09433_0%,#e6683c_25%,#dc2743_50%,#cc2366_75%,#bc1888_100%)]"
               >
-                <span className="text-gray-700 w-7 h-7">
+                <span className="w-6 h-6">
                   <InstagramSVG />
                 </span>
               </Link>
 
+              {/* Facebook */}
               <Link
                 href="#"
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm hover:shadow-md transition"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm transition hover:shadow-md hover:bg-[#1877F2] group"
               >
-                <span className="text-gray-700 w-7 h-7">
+                <span className="w-7 h-7 text-[#1877F2] group-hover:text-white transition">
                   <FacebookSVG />
                 </span>
               </Link>
 
+              {/* Twitter / X */}
               <Link
                 href="#"
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm hover:shadow-md transition"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm transition-all  
+             hover:shadow-md hover:bg-black group"
               >
-                <span className="text-gray-700 w-7 h-7">
+                <span className="w-5 h-5 text-black group-hover:text-white transition-colors">
                   <TwitterSVG />
                 </span>
               </Link>
 
+              {/* YouTube */}
               <Link
                 href="#"
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm hover:shadow-md transition"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm transition hover:shadow-md hover:bg-[#FF0000] group"
               >
-                <span className="text-gray-700 w-6 h-6">
+                <span className="w-6 h-6 text-[#FF0000] group-hover:text-white transition">
                   <YouTubeSVG />
                 </span>
               </Link>
             </div>
 
-            <p className="text-[12px] text-gray-500 mt-10">
+            <p className="text-[12px] text-gray-500">
               © Copyright 2026 Propenu Solutions Pvt. Ltd
             </p>
           </div>

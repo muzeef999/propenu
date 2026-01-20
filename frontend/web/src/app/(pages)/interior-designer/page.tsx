@@ -1,7 +1,11 @@
+import ComingSoonSvg from "@/svg/ComingSoonSvg";
+
 const page = () => {
   return (
     <>
-      <h1>Interior Design</h1>
+      <div className='flex justify-center'>
+      <ComingSoonSvg />
+    </div>
     </>
   );
 };

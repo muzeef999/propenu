@@ -3,6 +3,7 @@
 import { createRequestOtp, createVerifyOtp } from "@/data/ClientData"; // Assuming 'register' function exists to handle user creation and OTP sending
 import { useState, useRef } from "react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { VerifyOtpResponse } from "@/types/property";
 import { LuPencilLine } from "react-icons/lu";
@@ -24,6 +25,7 @@ const RegisterDialog = ({
   onClose,
   onSwitchToLogin,
 }: RegisterDialogProps) => {
+  const router = useRouter();
   const [step, setStep] = useState<"details" | "verify">("details");
   const [formData, setFormData] = useState({
     name: "",

@@ -26,15 +26,21 @@ export default function AgentsList({ Agent = [] }: Props) {
       behavior: "smooth",
     });
 
+
   return (
     <div className="relative w-full py-1">
       {/* Header Section */}
       <div className="flex justify-between items-center  px-1">
         <div className="headingSideBar">
           <h1 className="text-2xl font-bold">Agent Connect</h1>
-          <p className="headingDesc">Trusted professionals guiding your property journey</p>
+          <p className="headingDesc">
+            Trusted professionals guiding your property journey
+          </p>
         </div>
-        <Link href="/agent-connect" className="text-green-600 font-medium text-sm hover:underline">
+        <Link
+          href="/agent-connect"
+          className="text-green-600 font-medium text-sm hover:underline"
+        >
           View All
         </Link>
       </div>
@@ -76,64 +82,81 @@ export default function AgentsList({ Agent = [] }: Props) {
 // Agent Card Component
 function AgentCard({ data }: { data: AgentConnect }) {
   return (
-    <div className="card">
-      {/* Banner */}
-      <div className="h-28 relative ">
-        <Image
-          src={data.coverImage?.url || "/placeholder.jpg"}
-          alt="Banner"
-          fill
-          className="object-cover brightness-95 rounded-t-xl"
-        />
-        <div aria-label="primary" className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-[#26ad5f] text-white px-4 py-1 rounded-md shadow-sm">
-          <MdVerifiedUser size={16} />
-          <span className="text-xs font-bold">Verified</span>
-        </div>
-
-        {/* Profile Picture */}
-        <div className="absolute left-5 -bottom-10 h-20 w-20 rounded-full border-4 border-white shadow-md overflow-hidden bg-gray-100">
+    <Link href={`/agent-connect/${data.slug}`}>
+      <div className="card">
+        {/* Banner */}
+        <div className="h-28 relative ">
           <Image
-            src={data.avatar?.url || "/placeholder.jpg"}
-            alt={data.name}
+            src={data.coverImage?.url || "/placeholder.jpg"}
+            alt="Banner"
             fill
-            className="object-cover"
+            className="object-cover brightness-95 rounded-t-xl"
           />
+          <div
+            aria-label="primary"
+            className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-[#26ad5f] text-white px-4 py-1 rounded-md shadow-sm"
+          >
+            <MdVerifiedUser size={16} />
+            <span className="text-xs font-bold">Verified</span>
+          </div>
+
+          {/* Profile Picture */}
+          <div className="absolute left-5 -bottom-10 h-20 w-20 rounded-full border-4 border-white shadow-md overflow-hidden bg-gray-100">
+            <Image
+              src={data.avatar?.url || "/placeholder.jpg"}
+              alt={data.name}
+              fill
+              className="object-cover"
+            />
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="pt-12 pb-5 px-5 flex flex-col justify-between min-h-[210px]">
+          {/* Title + Headline */}
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 leading-tight">
+              {data.name}
+            </h2>
+            <p className="text-sm font-medium text-green-600">
+              {data.agencyName}
+            </p>
+
+            <p className="text-sm text-gray-500 mt-2 leading-snug line-clamp-2">
+              {data.bio}
+            </p>
+
+            <p className="text-sm text-gray-500 mt-2 truncate flex items-center">
+              <MdLocationPin className="mr-1 text-gray-400" size={18} />
+              {data.areasServed?.join(", ")}
+            </p>
+          </div>
+
+          {/* Stats */}
+          <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
+            <div className="text-center">
+              <p className="text-xl font-medium text-green-600 leading-none">
+                {data.stats?.publishedCount}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">For Sale</p>
+            </div>
+
+            <div className="text-center">
+              <p className="text-xl font-medium text-green-600 leading-none">
+                {data.stats?.totalProperties}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">Total properties</p>
+            </div>
+
+            <div className="text-center">
+              <p className="text-xl font-medium text-green-600 leading-none">
+                {data.dealsClosed}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">Deal Closed</p>
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Content */}
-      <div className="pt-12 pb-5 px-5 flex flex-col justify-between min-h-[210px]">
-        {/* Title + Headline */}
-        <div>
-          <h2 className="text-lg font-bold text-gray-900 leading-tight">{data.name}</h2>
-          <p className="text-sm font-medium text-green-600">{data.agencyName}</p>
-
-          <p className="text-sm text-gray-500 mt-2 leading-snug line-clamp-2">{data.bio}</p>
-
-          <p className="text-sm text-gray-500 mt-2 truncate flex items-center">
-            <MdLocationPin className="mr-1 text-gray-400" size={18} />
-            {data.areasServed?.join(", ")}
-          </p>
-        </div>
-
-        {/* Stats */}
-        <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
-          <div className="text-center">
-            <p className="text-xl font-medium text-green-600 leading-none">{data.stats?.publishedCount}</p>
-            <p className="text-sm text-gray-500 mt-1">For Sale</p>
-          </div>
-
-          <div className="text-center">
-            <p className="text-xl font-medium text-green-600 leading-none">{data.stats?.totalProperties}</p>
-            <p className="text-sm text-gray-500 mt-1">Total properties</p>
-          </div>
-
-          <div className="text-center">
-            <p className="text-xl font-medium text-green-600 leading-none">{data.dealsClosed}</p>
-            <p className="text-sm text-gray-500 mt-1">Deal Closed</p>
-          </div>
-        </div>
-      </div>
-    </div>
+    </Link>
   );
 }
