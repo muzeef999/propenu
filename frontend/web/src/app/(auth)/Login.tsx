@@ -211,7 +211,7 @@ const LoginDialog = ({ open, onClose, onSwitchToRegister }: LoginDialogProps) =>
               <button
                 disabled={!canRequestOtp || loading}
                 onClick={handleRequestOtp}
-                className="w-full rounded-xl bg-[#27AE60] py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-green-700/90 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:cursor-not-allowed"
+                className="w-full rounded-xl btn-primary py-3 text-sm font-semibold text-white shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">

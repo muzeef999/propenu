@@ -1,8 +1,10 @@
 "use client";
 
 import React from "react";
+import Cookies from "js-cookie";
+import { toast } from "sonner";
 import { MdOutlineCameraAlt, MdOutlineVerified } from "react-icons/md";
-import { HiOutlinePencilAlt } from "react-icons/hi";
+import { HiOutlineLogout, HiOutlinePencilAlt } from "react-icons/hi";
 
 type InfoFieldProps = {
   label: string;
@@ -16,6 +18,14 @@ const SettingsPage = () => {
     phone: "9876543219",
     city: "Hyderabad",
     pincode: "503702",
+  };
+
+  const handleLogout = () => {
+    Cookies.remove("token");
+    toast.success("Logout successful!");
+    setTimeout(() => {
+      window.location.reload();
+    }, 800);
   };
 
   return (
@@ -81,12 +91,18 @@ const SettingsPage = () => {
         </div>
 
         {/* Footer */}
-        <div className="pt-2">
+        <div className="pt-4 flex justify-between items-center border-t border-gray-200">
           <button className="text-[#D32F2F] underline text-sm font-medium hover:text-red-700">
             Deactivate Account
           </button>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors shadow-sm"
+          >
+            <HiOutlineLogout size={16} />
+            Logout
+          </button>
         </div>
-
       </div>
     </div>
   );

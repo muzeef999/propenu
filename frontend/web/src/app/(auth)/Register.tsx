@@ -25,7 +25,6 @@ const RegisterDialog = ({
   onClose,
   onSwitchToLogin,
 }: RegisterDialogProps) => {
-  const router = useRouter();
   const [step, setStep] = useState<"details" | "verify">("details");
   const [formData, setFormData] = useState({
     name: "",

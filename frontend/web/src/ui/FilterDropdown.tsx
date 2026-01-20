@@ -127,16 +127,7 @@ export default function FilterDropdown({
 
               {renderContent(() => setOpen(false))}
 
-              {showDoneButton && (
-                <div className="flex justify-end pt-2">
-                  <button
-                    onClick={() => setOpen(false)}
-                    className="text-primary font-medium text-md cursor-pointer"
-                  >
-                    Done
-                  </button>
-                </div>
-              )}
+              
             </div>
           </div>
         </>

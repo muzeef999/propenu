@@ -21,7 +21,7 @@ const GreetingOptions = [
   { label: "Contacted Properties", link: "/contacted-properties" },
   { label: "Manage Subscription", link: "/membership" },
   { label: "Account & Settings", link: "/settings" },
-  { label: "Logout", action: "logout" },
+
 ];
 
 const AgentOptions = [
@@ -30,7 +30,7 @@ const AgentOptions = [
   { label: "My Property", link: "/agent/my-properties" },
   { label: "Account & Settings", link: "/agent/account-settings" },
   { label: "Leads", link: "/agent/leads" },
-  { label: "Logout", action: "logout" },
+
 ];
 
 
@@ -40,7 +40,7 @@ const BuilderOptions = [
   { label: "Leads", link: "/builder/leads" },
   { label: "My Property", link: "/builder/my-properties" },
   { label: "Account & Settings", link: "/builder/account-settings" },
-  { label: "Logout", action: "logout" },
+
 ];
 
 const UserGreeting = ({ user }: UserGreetingProps) => {
@@ -104,15 +104,7 @@ const UserGreeting = ({ user }: UserGreetingProps) => {
         renderContent={(close) => (
           <div className="py-2">
             {options.map((item) => {
-              const isLogout = item.action === "logout";
               const handleClick = () => {
-                if (isLogout) {
-                  // remove token and refresh page
-                  Cookies.remove("token");
-                  toast.success("Logout successful!");
-                  window.location.reload();
-                  return;
-                }
 
                 if (item.link) {
                   router.push(item.link);
@@ -123,18 +115,11 @@ const UserGreeting = ({ user }: UserGreetingProps) => {
 
               return (
                 <div key={item.label}>
-                  {isLogout && (
-                    <div className="my-2 border-t border-gray-100" />
-                  )}
 
                   <button
                     type="button"
                     onClick={handleClick}
-                    className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition ${
-                      isLogout
-                        ? "text-red-600 hover:bg-red-50"
-                        : "text-gray-700 hover:bg-gray-50"
-                    }`}
+                    className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition`}
                   >
                     <span>{item.label}</span>
                   </button>

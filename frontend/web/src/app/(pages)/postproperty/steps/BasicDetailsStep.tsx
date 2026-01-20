@@ -9,8 +9,9 @@ import SelectableButton from "@/ui/SelectableButton";
 
 import FileUpload, { UploadedFile } from "@/ui/FileUpload";
 import { setFiles as setFileStoreFiles } from "@/lib/fileStore";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { validateBasicDetails } from "@/zod/basicDetailsZod";
+import Cookies from "js-cookie";
 import {
   RESIDENTIAL_PROPERTY_OPTIONS,
   COMMERCIAL_PROPERTY_OPTIONS,
@@ -21,17 +22,24 @@ import {
   AGRICULTURAL_PROPERTY_SUBTYPES,
 } from "@/app/(pages)/postproperty/constants/subTypes";
 import InputField from "@/ui/InputField";
+import LoginDialog from "@/app/(auth)/Login";
 
 export default function BasicDetailsStep() {
   const { propertyType, base, residential, commercial, land, agricultural } =
     useSelector((state: any) => state.postProperty);
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [showErrors, setShowErrors] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    const token = Cookies.get("token");
+    setIsLoggedIn(!!token);
+  }, []);
   const listingOptions = [
     { label: "Sale", value: "sale" },
     { label: "Rent / Lease", value: "rent" },
-
   ];
 
   // Get the current category state
@@ -39,10 +47,10 @@ export default function BasicDetailsStep() {
     propertyType === "residential"
       ? residential
       : propertyType === "commercial"
-      ? commercial
-      : propertyType === "land"
-      ? land
-      : agricultural;
+        ? commercial
+        : propertyType === "land"
+          ? land
+          : agricultural;
 
   const validationResult = validateBasicDetails(
     {
@@ -54,7 +62,7 @@ export default function BasicDetailsStep() {
       description: base.description || "",
     },
     propertyType,
-    files
+    files,
   );
 
   const isFormValid = validationResult.success;
@@ -72,24 +80,27 @@ export default function BasicDetailsStep() {
     propertyType === "residential"
       ? RESIDENTIAL_PROPERTY_OPTIONS
       : propertyType === "commercial"
-      ? COMMERCIAL_PROPERTY_OPTIONS
-      : propertyType === "land"
-      ? LAND_PROPERTY_OPTIONS
-      : propertyType === "agricultural"
-      ? AGRICULTURAL_PROPERTY_OPTIONS
-      : [];
+        ? COMMERCIAL_PROPERTY_OPTIONS
+        : propertyType === "land"
+          ? LAND_PROPERTY_OPTIONS
+          : propertyType === "agricultural"
+            ? AGRICULTURAL_PROPERTY_OPTIONS
+            : [];
 
   const selectedCommercialType = commercial.propertyType;
   const commercialSubTypes =
     propertyType === "commercial" &&
-    selectedCommercialType &&
-    COMMERCIAL_SUBTYPE_MAP[
+      selectedCommercialType &&
+      COMMERCIAL_SUBTYPE_MAP[
       selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
-    ]
+      ]
       ? (COMMERCIAL_SUBTYPE_MAP[
-          selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
-        ] as readonly string[])
+        selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
+      ] as readonly string[])
       : [];
+
+  const contactLabel = base.listingType === "sale" ? "Your contact details for buyers to reach you" : "Your contact details for tenants to reach you";
+
 
   const landSubTypes =
     propertyType === "land"
@@ -119,7 +130,7 @@ export default function BasicDetailsStep() {
                   setBaseField({
                     key: "listingType",
                     value: option.value,
-                  })
+                  }),
                 )
               }
             />
@@ -168,15 +179,14 @@ export default function BasicDetailsStep() {
                           propertyType: propertyType as any,
                           key: "propertyType",
                           value: sub.key,
-                        })
+                        }),
                       );
                     }
                   }}
-                  className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition-all ${
-                    isSelected
+                  className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition-all ${isSelected
                       ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500"
                       : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-                  }`}
+                    }`}
                 >
                   <span className="text-2xl">{sub.icon}</span>
                   <span className="text-xs font-medium">{sub.label}</span>
@@ -209,14 +219,13 @@ export default function BasicDetailsStep() {
                         propertyType: "commercial",
                         key: "commercialSubType",
                         value: subType,
-                      })
+                      }),
                     );
                   }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
-                    isSelected
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
                       ? "border-green-500 bg-green-50 text-green-600"
                       : "border-gray-300 text-gray-700"
-                  }`}
+                    }`}
                 >
                   {subType.replace("-", " ").toUpperCase()}
                 </button>
@@ -244,14 +253,13 @@ export default function BasicDetailsStep() {
                         propertyType: "land",
                         key: "landSubType",
                         value: subType,
-                      })
+                      }),
                     );
                   }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
-                    isSelected
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
                       ? "border-green-500 bg-green-50 text-green-600"
                       : "border-gray-300 text-gray-700"
-                  }`}
+                    }`}
                 >
                   {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
@@ -280,14 +288,13 @@ export default function BasicDetailsStep() {
                         propertyType: "agricultural",
                         key: "agriculturalSubType",
                         value: subType,
-                      })
+                      }),
                     );
                   }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
-                    isSelected
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
                       ? "border-green-500 bg-green-50 text-green-600"
                       : "border-gray-300 text-gray-700"
-                  }`}
+                    }`}
                 >
                   {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
@@ -296,12 +303,11 @@ export default function BasicDetailsStep() {
           </div>
         </div>
       )}
-        <div className="space-y-3">
+      <div className="space-y-3">
         <p className="text-sm font-medium text-gray-800">Price Details</p>
 
         {/* Changed to grid-cols-4 for desktop, added items-end for alignment */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4 items-end">
-
           <InputField
             label="Carpet Area (sq ft)"
             value={residential.carpetArea || ""}
@@ -312,7 +318,7 @@ export default function BasicDetailsStep() {
                   propertyType: "residential",
                   key: "carpetArea",
                   value: value.replace(/\D/g, ""),
-                })
+                }),
               )
             }
           />
@@ -328,38 +334,81 @@ export default function BasicDetailsStep() {
                   propertyType: "residential",
                   key: "builtUpArea",
                   value,
-                })
+                }),
               )
             }
           />
         </div>
-
-
       </div>
 
-      <FileUpload
-        label="Property Images"
-        value={files}
-        onChange={(newFiles) => {
-          setFiles(newFiles);
-          // persist only metadata in Redux (serializable)
-          dispatch(
-            setBaseField({
-              key: "galleryFiles",
-              value: newFiles.map((f) => ({ filename: f.file.name })),
-            })
-          );
-          // store actual File objects in in-memory file store
-          setFileStoreFiles(
-            "postProperty",
-            newFiles.map((f) => f.file)
-          );
-        }}
-        accept="image/*"
-        maxFiles={5}
-        maxSizeMB={5}
-        error={fieldErrors?.images?.[0]}
-      />
+      {isLoggedIn && (
+        <FileUpload
+          label="Property Images"
+          value={files}
+          onChange={(newFiles) => {
+            setFiles(newFiles);
+            // persist only metadata in Redux (serializable)
+            dispatch(
+              setBaseField({
+                key: "galleryFiles",
+                value: newFiles.map((f) => ({ filename: f.file.name })),
+              }),
+            );
+            // store actual File objects in in-memory file store
+            setFileStoreFiles(
+              "postProperty",
+              newFiles.map((f) => f.file),
+            );
+          }}
+          accept="image/*"
+          maxFiles={5}
+          maxSizeMB={5}
+          error={fieldErrors?.images?.[0]}
+        />
+      )}
+
+      {/* Contact Details – Logged Out UI */}
+      {!isLoggedIn && (
+        <>
+          <div
+            onClick={() => setShowLoginDialog(true)}
+            className="cursor-pointer"
+          >
+            {/* Label */}
+            <label className="mb-2 block text-sm font-semibold text-[#0F172A]">
+              {contactLabel}
+            </label>
+
+            {/* Fake Input */}
+            <div className="w-full rounded-md border border-gray-200 bg-white px-4 py-3 text-sm text-gray-400 transition hover:border-[#27AE60] focus-within:ring-2 focus-within:ring-[#27AE60]/20">
+              Phone Number
+            </div>
+            <div className="text-sm">
+              <p className="text-gray-700">
+                Are you a registered user?{" "}
+                <span
+                  className="font-medium text-[#27AE60] hover:underline cursor-pointer"
+                  onClick={() => setShowLoginDialog(true)}
+                >
+                  Login
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div className="z-50">
+            {showLoginDialog && (
+              <LoginDialog
+                open={showLoginDialog}
+                onClose={() => setShowLoginDialog(false)}
+                onSwitchToRegister={() => {
+                  setShowLoginDialog(false);
+                }}
+              />
+            )}
+          </div>
+        </>
+      )}
 
       <br />
 

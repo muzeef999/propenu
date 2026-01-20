@@ -128,10 +128,7 @@ export default function Footer() {
               {/* Instagram */}
               <Link
                 href="#"
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm transition-all duration-300 
-             hover:shadow-md group 
-             hover:bg-[linear-gradient(45deg,#f09433_0%,#e6683c_25%,#dc2743_50%,#cc2366_75%,#bc1888_100%)]"
-              >
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm transition-all duration-300 hover:shadow-md group hover:bg-[linear-gradient(45deg,#f09433_0%,#e6683c_25%,#dc2743_50%,#cc2366_75%,#bc1888_100%)]">
                 <span className="w-6 h-6">
                   <InstagramSVG />
                 </span>
@@ -150,8 +147,7 @@ export default function Footer() {
               {/* Twitter / X */}
               <Link
                 href="#"
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm transition-all  
-             hover:shadow-md hover:bg-black group"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm transition-all hover:shadow-md hover:bg-black group"
               >
                 <span className="w-5 h-5 text-black group-hover:text-white transition-colors">
                   <TwitterSVG />
