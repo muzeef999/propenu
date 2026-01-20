@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 import { ResidentialCreateSchema, ResidentialUpdateSchema } from "../zod/residentialZod";
 import ResidentialPropertyService, { findRelatedResidential } from "../services/residentialServices";
 import { AuthRequest } from "../middlewares/authMiddleware";
+import Residential from "../models/residentialModel";
 
 /** Helper: parse values that might be JSON strings (multipart sends arrays/objects as strings). */
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -221,3 +222,93 @@ export const deleteResidential = async (req: Request, res: Response) => {
     return res.status(400).json({ error: err.message || "Bad request" });
   }
 };
+
+
+export const createResidentialDraft = async (req: AuthRequest, res: Response) => {
+  const draft = await Residential.create({
+    createdBy: req.user!.id,
+    status: "draft",
+    completion: {
+      percent: 0,
+      step: 1,
+      lastSection: "basic",
+    },
+  });
+
+  res.status(201).json({ data: draft });
+};
+
+
+export const updateBasicStep = async (req: AuthRequest, res: Response) => {
+  const updated = await Residential.findByIdAndUpdate(
+    req.params.id,
+    {
+      ...req.body,
+      "completion.percent": 25,
+      "completion.step": 2,
+      "completion.lastSection": "basic",
+    },
+    { new: true }
+  );
+
+  res.json({ data: updated });
+};
+
+
+export const updateLocationStep = async (req: AuthRequest, res: Response) => {
+  const updated = await Residential.findByIdAndUpdate(
+    req.params.id,
+    {
+      address: req.body.address,
+      city: req.body.city,
+      state: req.body.state,
+      pincode: req.body.pincode,
+      locality: req.body.locality,
+      location: req.body.location,
+
+      "completion.percent": 45,
+      "completion.step": 3,
+      "completion.lastSection": "location",
+    },
+    { new: true }
+  );
+
+  res.json({ data: updated });
+};
+
+
+export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
+  const updated = await Residential.findByIdAndUpdate(
+    req.params.id,
+    {
+      ...req.body,
+      "completion.percent": 70,
+      "completion.step": 4,
+      "completion.lastSection": "details",
+    },
+    { new: true }
+  );
+
+  res.json({ data: updated });
+};
+
+
+export const finalizeResidential = async (req: AuthRequest, res: Response) => {
+  const updated = await Residential.findByIdAndUpdate(
+    req.params.id,
+    {
+      legalChecks: req.body.legalChecks,
+
+      status: "active",
+      isPublished: true,
+
+      "completion.percent": 100,
+      "completion.step": 5,
+      "completion.lastSection": "verification",
+    },
+    { new: true }
+  );
+
+  res.json({ data: updated });
+};
+

@@ -26,7 +26,12 @@ const CitySchema = new mongoose.Schema(
 
 // indexes
 CitySchema.index({ city: 1, state: 1 }, { unique: true });
-CitySchema.index({ "localities.name": 1 });
+CitySchema.index({ city: 1, "localities.name": 1 });
+CitySchema.index(
+  { city: 1, "localities.name": 1 },
+  { unique: true, sparse: true }
+);
+
 
 const Location = mongoose.model("Location", CitySchema);
 export default Location;

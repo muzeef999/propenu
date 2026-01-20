@@ -10,10 +10,19 @@ import Agricultural from "../models/agriculturalModel";
 export const requireActiveSubscription = async (
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
-    const userId = req.user!.id;
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { id: userId, roleName } = req.user;
+
+    if (roleName === "admin" || roleName === "super_admin") {
+      return next(); // 🚀 full access, no subscription needed
+    }
+
     const { listingType } = req.body; // "sale" | "rent"
 
     if (!listingType) {
@@ -22,9 +31,7 @@ export const requireActiveSubscription = async (
 
     // 🔥 STEP 1: Map listingType → plan category
     const requiredCategory =
-      listingType === "sale" ? "sell" :
-      listingType === "rent" ? "rent" :
-      null;
+      listingType === "sale" ? "sell" : listingType === "rent" ? "rent" : null;
 
     if (!requiredCategory) {
       return res.status(400).json({ message: "Invalid listingType" });
@@ -53,7 +60,7 @@ export const requireActiveSubscription = async (
       return res.status(403).json({ message: "Invalid subscription plan" });
     }
 
-    // 🔥 STEP 4: Check PROPERTY_LISTING_LIMIT
+    // 🔥 STEP 4: Check Property limit PROPERTY_LISTING_LIMIT
     const limit =
       typeof plan.features?.get("PROPERTY_LISTING_LIMIT") === "number"
         ? plan.features.get("PROPERTY_LISTING_LIMIT")
@@ -61,10 +68,26 @@ export const requireActiveSubscription = async (
 
     if (typeof limit === "number") {
       const [resCount, comCount, landCount, agriCount] = await Promise.all([
-        Residential.countDocuments({ createdBy: userId, status: "active", listingType }),
-        Commercial.countDocuments({ createdBy: userId, status: "active", listingType }),
-        LandPlot.countDocuments({ createdBy: userId, status: "active", listingType }),
-        Agricultural.countDocuments({ createdBy: userId, status: "active", listingType }),
+        Residential.countDocuments({
+          createdBy: userId,
+          status: "active",
+          listingType,
+        }),
+        Commercial.countDocuments({
+          createdBy: userId,
+          status: "active",
+          listingType,
+        }),
+        LandPlot.countDocuments({
+          createdBy: userId,
+          status: "active",
+          listingType,
+        }),
+        Agricultural.countDocuments({
+          createdBy: userId,
+          status: "active",
+          listingType,
+        }),
       ]);
 
       const activeCount = resCount + comCount + landCount + agriCount;

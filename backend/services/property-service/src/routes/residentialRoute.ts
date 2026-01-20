@@ -5,7 +5,7 @@ import { validateBody } from "../middlewares/validate";
 import { parseJsonFields } from "../middlewares/parseJsonFields";
 import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
 import { ResidentialCreateSchema, ResidentialUpdateSchema } from "../zod/residentialZod";
-import { createResidential, deleteResidential, editResidential, getAllResidential, getResidentialBySlug, getResidentialDetail } from "../controller/residentialController";
+import { createResidential, createResidentialDraft, deleteResidential, editResidential, finalizeResidential, getAllResidential, getResidentialBySlug, getResidentialDetail, updateBasicStep, updateDetailsStep, updateLocationStep } from "../controller/residentialController";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
 import { authMiddleware } from "../middlewares/authMiddleware";
 
@@ -34,6 +34,15 @@ const jsonKeys = [
   "smartHomeFeatures",
   "relatedProjects",
 ];
+
+
+router.post("/draft", authMiddleware, createResidentialDraft);
+router.patch("/:id/basic", authMiddleware, cpUpload, parseJsonFields(jsonKeys), updateBasicStep);
+router.patch("/:id/location", authMiddleware, parseJsonFields(jsonKeys), updateLocationStep);
+router.patch("/:id/details", authMiddleware, cpUpload, parseJsonFields(jsonKeys), updateDetailsStep);
+router.patch("/:id/verification", authMiddleware, cpUpload, parseJsonFields(jsonKeys), finalizeResidential);
+
+
 
 router.post("/", authMiddleware,cpUpload,parseJsonFields(jsonKeys), fallbackCoerceDefault, requireActiveSubscription, validateBody(ResidentialCreateSchema), createResidential);
 
