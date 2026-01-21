@@ -3,11 +3,13 @@ import { IResidential } from "@/types/residential";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import formatINR from "@/utilies/PriceFormat";
 import { notFound } from "next/navigation";
-import GalleryFile from "../../../GalleryFile";
+import GalleryFile from "../../../GalleryFile"; // Assuming this is client-side or handles SSR correctly
 import { Balconies, Bath, Bhk } from "@/icons/icons";
 import ResidentialCard from "../../../cards/ResidentialCard";
-import NearByPlace from "@/app/(pages)/properties/(pages)/NearByPlace";
+import NearByPlaceClient from "@/app/(pages)/properties/(pages)/NearByPlaceClient"; // Use the client-side dynamic import
 import ContactOwnerButton from "@/components/ContactOwnerButton";
+import Image from "next/image";
+import ad from "@/asserts/ad.png";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -30,6 +32,16 @@ export default async function Page({ params }: PageProps) {
       </main>
     );
   }
+  const maskEmail = (email?: string) => {
+    if (!email) return "";
+
+    const [username, domain] = email.split("@");
+
+    if (!username || !domain) return email;
+
+    const visibleChars = username.slice(0, 2);
+    return `${visibleChars}***@${domain}`;
+  };
 
   if (!project) {
     notFound();
@@ -211,7 +223,10 @@ export default async function Page({ params }: PageProps) {
                       </div>
 
                       <div className="mt-8">
-                        <ContactOwnerButton projectId={project._id} propertyType="residentials" />
+                        <ContactOwnerButton
+                          projectId={project._id}
+                          propertyType="residentials"
+                        />
                       </div>
                     </section>
 
@@ -222,9 +237,9 @@ export default async function Page({ params }: PageProps) {
                       </h2>
                       {project.amenities && project.amenities.length > 0 ? (
                         <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 sm:grid-cols-3">
-                          {project.amenities.map((i) => (
+                          {project.amenities.map((i, index) => (
                             <div
-                              key={i.key}
+                              key={i.key ?? `${i.title}-${index}`}
                               className="flex items-center gap-2 rounded-md border border-gray-100 px-2 py-1"
                             >
                               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -239,13 +254,13 @@ export default async function Page({ params }: PageProps) {
                       )}
                     </section>
 
-                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa]">
+                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa] rela">
                       <h2 className="mb-3 text-xl font-semibold text-gray-900">
                         Popular Landmarks Nearby
                       </h2>
 
                       {project.location ? (
-                        <NearByPlace
+                        <NearByPlaceClient
                           projectLocation={project.location}
                           projectName={project.title ?? "Property Location"}
                           nearbyPlaces={project.nearbyPlaces ?? []}
@@ -282,25 +297,12 @@ export default async function Page({ params }: PageProps) {
                 </div>
               </div>
             </main>
-            <aside className="w-full shrink-0 lg:w-[260px]">
-              {/* Contact card here */}
-              <div className="sticky top-20 h-fit rounded-xl border border-gray-100 bg-[#f7f9fa] p-5 shadow-sm">
-                <p className="mb-3 text-lg font-semibold text-green-600">
-                  Contact Owner
-                </p>
-
-                <p className="text-sm font-medium text-gray-900">
-                  {project?.createdBy?.name}
-                </p>
-
-                <p className="mt-1 text-xs text-gray-500">
-                  {project?.createdBy?.email}
-                </p>
-
-                <button className="mt-4 w-full rounded-lg bg-green-600 py-2 text-sm font-medium text-white transition hover:bg-green-700">
-                  Get Phone No.
-                </button>
-              </div>
+            <aside className="w-full shrink-0 lg:w-[260px] sticky top-20 self-start">
+              <Image
+                src={ad}
+                alt="advertisement banner"
+                className="w-full h-auto p-6"
+              />
             </aside>
           </div>
         </div>

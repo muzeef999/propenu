@@ -96,6 +96,7 @@ html, body {
     align-items: center;
     padding-top: 6px;
     padding-bottom: 6px;
+    cursor: pointer;
   }
   .btn-primary:hover {
     background-color: #27AE60;

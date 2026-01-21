@@ -42,7 +42,7 @@ export default function MicroSiteNavbar({
   const iconColor = typeof color === "string" && color.trim() !== "" ? color : "#FFAC1D";
 
   return (
-    <header className="bg-white/95 backdrop-blur-sm border-b">
+    <header className="bg-white/95 backdrop-blur-sm border-b sticky top-0 z-9999">
       <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="h-14 flex items-center justify-between">
           {/* logo */}

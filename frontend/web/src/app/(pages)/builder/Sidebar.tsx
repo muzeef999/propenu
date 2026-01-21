@@ -27,16 +27,6 @@ const menuItems = [
     icon: Subscription,
   },
   {
-    label: "Prime Proporeties",
-    link: "/builder/prime-Proporeties",
-    icon: Subscription,
-  },
-  {
-    label: "highlight projects",
-    link: "/builder/highlight-projects",
-    icon: Subscription,
-  },
-  {
     label: "My Plan",
     link: "/builder/my-plan",
     icon: Subscription,

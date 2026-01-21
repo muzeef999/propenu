@@ -16,9 +16,6 @@ import { ModalProvider, useModal } from "@/app/context/ModalContext";
 const HIDE_LAYOUT_ROUTES = [
   "/featured",
   "/postproperty",
-  "/about",
-  "/terms",
-  "/privacy",
 ];
 
 

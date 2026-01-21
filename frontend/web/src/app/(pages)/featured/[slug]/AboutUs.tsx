@@ -133,13 +133,13 @@ export default function AboutUS(props: Props) {
 
         {/* Right: bullet list */}
         
-        <aside className="lg:w-1/3 w-full flex-shrink-0">
+        <aside className="lg:w-1/3 w-full shrink-0">
           <div className="bg-white/0">
             <ul className="space-y-4">
               {bullets.length ? (
                 bullets.map((b, idx) => (
                   <li key={idx} className="flex items-start gap-3">
-                    <span className="flex-shrink-0 mt-1" aria-hidden>
+                    <span className="shrink-0 mt-1" aria-hidden>
                       <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="5" cy="5" r="5" fill={color} />
                       </svg>

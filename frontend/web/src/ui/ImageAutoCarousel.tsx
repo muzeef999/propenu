@@ -29,7 +29,11 @@ const ImageAutoCarousel = ({
   onToggleShortlist,
   isShortlistLoading,
 }: ImageAutoCarouselProps) => {
-  const safeImages = images.length ? images : ["/placeholder.jpg"];
+  // Filter out any null, undefined, or empty strings from the images array
+  const filteredImages = images.filter(
+    (src) => typeof src === 'string' && src.trim() !== ''
+  );
+  const safeImages = filteredImages.length ? filteredImages : ["/placeholder.jpg"];
   const [currentIndex, setCurrentIndex] = useState(0);
   const [paused, setPaused] = useState(false);
 

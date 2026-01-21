@@ -48,27 +48,7 @@ const Terms = () => {
 
   return (
     <div className="bg-linear-to-b from-white to-gray-50 min-h-screen">
-      {/* Top Brand Header */}
-      <div className="py-6 bg-white border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-4 flex justify-center">
-          <Link
-            href="/"
-            className="flex items-center gap-3 select-none"
-            aria-label="Go to homepage"
-          >
-            <div className="w-10 h-10">
-              <Logo />
-            </div>
-
-            <span className="text-xl sm:text-xl font-semibold text-primary tracking-tight">
-              PROPENU
-              <sup className="ml-1 text-[12px] font-normal align-super text-[#646464]">
-                TM
-              </sup>
-            </span>
-          </Link>
-        </div>
-      </div>
+      
 
       {/* Main Content Area */}
       <div className=" px-4 sm:px-6 lg:px-8 py-12">

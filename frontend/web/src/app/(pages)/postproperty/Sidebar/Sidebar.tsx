@@ -64,13 +64,13 @@ export default function Sidebar() {
         {/* Stepper */}
         <Stepper />
 
-        {/* Help Box */}
+        {/* Help Box
         <div className="bg-white/70 backdrop-blur-sm p-4 rounded-lg text-sm border border-[#EBECF0]">
           Need help? Now you can directly post property via{" "}
           <span className="text-green-600 font-medium cursor-pointer">
             WhatsApp
           </span>
-        </div>
+        </div> */}
       </div>
     </aside>
   );

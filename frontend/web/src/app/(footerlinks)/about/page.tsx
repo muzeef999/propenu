@@ -7,27 +7,6 @@ import React from "react";
 const About = () => {
   return (
     <div className="bg-linear-to-b from-white to-gray-50 min-h-screen">
-      {/* Top Brand Header */}
-      <div className="py-6 bg-white border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-4 flex justify-center">
-          <Link
-            href="/"
-            className="flex items-center gap-3 select-none"
-            aria-label="Go to homepage"
-          >
-            <div className="w-9 h-9">
-              <Logo />
-            </div>
-
-            <span className="text-lg sm:text-xl font-semibold text-primary tracking-tight">
-              PROPENU
-              <sup className="ml-1 text-[10px] font-normal align-super text-[#646464]">
-                TM
-              </sup>
-            </span>
-          </Link>
-        </div>
-      </div>
 
 
       {/* Content */}

@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -24,10 +23,20 @@ function createMarkerIcon(
   });
 }
 
+/** convert any coords value to [lng, lat] tuple or undefined */
+function normalizeCoords(coords?: [number, number] | number[] | undefined): [number, number] | undefined {
+  if (!coords || !Array.isArray(coords) || coords.length < 2) return undefined;
+  const lng = Number(coords[0]);
+  const lat = Number(coords[1]);
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return undefined;
+  return [lng, lat];
+}
+
 interface Location {
   type: "Point";
   coordinates: [number, number];
 }
+
 
 interface NearbyPlace {
   name?: string;
@@ -47,10 +56,20 @@ const NearByPlace: React.FC<Props> = ({
   projectName,
   nearbyPlaces,
 }) => {
-  const center: [number, number] = [
-    projectLocation.coordinates[1],
-    projectLocation.coordinates[0],
-  ];
+  const projectCoords = normalizeCoords(projectLocation.coordinates);
+
+  if (!projectCoords) {
+    return (
+      <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg text-gray-500">
+        Project location not available.
+      </div>
+    );
+  }
+
+  // Leaflet expects [latitude, longitude]
+  const center: [number, number] = [projectCoords[1], projectCoords[0]];
+
+  const filteredNearbyPlaces = nearbyPlaces.filter(place => normalizeCoords(place.coordinates));
 
   const projectIcon = createMarkerIcon(L, "#27AE60", 36);
   const nearbyIcon = createMarkerIcon(L, "#27AE60", 28);
@@ -63,14 +82,18 @@ const NearByPlace: React.FC<Props> = ({
         <Popup>{projectName}</Popup>
       </Marker>
 
-      {nearbyPlaces.map((place, index) => {
-        if (!place.coordinates) return null;
+      {filteredNearbyPlaces.map((place, index) => {
+        const placeCoords = normalizeCoords(place.coordinates);
+        if (!placeCoords) return null;
+
+        // Leaflet expects [lat, lng]
+        const position: [number, number] = [placeCoords[1], placeCoords[0]];
 
         return (
           <Marker
-            key={index}
+            key={`${place.name ?? "place"}-${index}`}
             icon={nearbyIcon}
-            position={[place.coordinates[1], place.coordinates[0]]}
+            position={position}
           >
             <Popup>
               <b>{place.name}</b>
@@ -82,6 +105,7 @@ const NearByPlace: React.FC<Props> = ({
           </Marker>
         );
       })}
+
     </MapContainer>
   );
 };

@@ -128,7 +128,7 @@ export default function Gallery(props: Props) {
               className="w-full h-64 md:h-[420px] object-cover transition-transform group-hover:scale-105"
             />
             {renderCategoryPill(items[0])}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent pointer-events-none" />
           </div>
         </div>
 
@@ -147,7 +147,7 @@ export default function Gallery(props: Props) {
                 className="w-full h-32 md:h-[200px] object-cover transition-transform group-hover:scale-105"
               />
               {renderCategoryPill(it)}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-linear-to-t from-black/10 to-transparent pointer-events-none" />
             </div>
           ))}
         </div>
@@ -239,7 +239,7 @@ export default function Gallery(props: Props) {
                 <button
                   key={idx}
                   onClick={() => setOpenIndex(idx)}
-                  className={`flex-shrink-0 rounded-md overflow-hidden border ${openIndex === idx ? "ring-2 ring-offset-2" : "border-transparent"}`}
+                  className={`shrink-0 rounded-md overflow-hidden border ${openIndex === idx ? "ring-2 ring-offset-2" : "border-transparent"}`}
                   style={{ width: 120 }}
                 >
                   <img src={it?.thumbUrl ?? it?.url ?? FALLBACK_IMG} alt={it?.title} className="w-full h-20 object-cover" />

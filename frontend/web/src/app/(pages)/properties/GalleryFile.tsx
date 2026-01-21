@@ -36,8 +36,16 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
     setPreviewIndex(null);
   };
 
-  if (gallery.length < 4) {
-    return <p>Not enough images</p>;
+  // Ensure gallery is an array and filter out any items that don't have a URL.
+  const safeGallery = (gallery || []).filter(item => item && item.url);
+
+  // The grid layout requires at least 3 images.
+  if (safeGallery.length < 3) {
+    return (
+      <div className="flex items-center justify-center h-[270px] sm:h-80 bg-gray-100 rounded-2xl text-gray-500 p-3">
+        Not enough images to display gallery
+      </div>
+    );
   }
 
   return (
@@ -50,8 +58,8 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
           onClick={openLightbox}
         >
           <Image
-            src={gallery[0].url}
-            alt={gallery[0].filename ?? title ?? "Property image"}
+            src={safeGallery[0].url}
+            alt={safeGallery[0].filename ?? title ?? "Property image"}
             fill
             className="object-cover transition-transform duration-300 hover:scale-105"
             priority
@@ -64,8 +72,8 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
           onClick={openLightbox}
         >
           <Image
-            src={gallery[1].url}
-              alt={gallery[1].filename ?? title ?? "Preview image"}
+            src={safeGallery[1].url}
+            alt={safeGallery[1].filename ?? title ?? "Preview image"}
             fill
             className="object-cover transition-transform duration-300 hover:scale-105"
           />
@@ -77,8 +85,8 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
           onClick={openLightbox}
         >
           <Image
-            src={gallery[2].url}
-              alt={gallery[2].filename ?? title ?? "Preview image"}
+            src={safeGallery[2].url}
+            alt={safeGallery[2].filename ?? title ?? "Preview image"}
             fill
             className="object-cover transition-transform duration-300 hover:scale-105"
           />
@@ -87,7 +95,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
         {/* IMAGE COUNT */}
         <div className="absolute left-6 top-6 flex items-center gap-1 rounded-md bg-white/90 px-2 py-1 text-sm">
           <FiImage className="h-4 w-4" />
-          {gallery.length}
+          {safeGallery.length}
         </div>
 
         {/* ACTION ICONS */}
@@ -109,7 +117,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
         >
           <div className="flex items-center gap-4 p-3 bg-[#1fab60]">
             <button
-              className="rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20"
+              className="rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20 border border-white/50"
               onClick={closeLightbox}
             >
               <FiChevronLeft className="h-6 w-6" />
@@ -119,7 +127,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
 
           <div className="flex-1 overflow-y-auto p-4">
             <div className="mx-auto max-w-7xl columns-1 gap-4 sm:columns-2 md:columns-3 lg:columns-4">
-              {gallery.map((item, index) => (
+              {safeGallery.map((item, index) => (
                 <div
                   key={item.key}
                   className="relative mb-4 break-inside-avoid cursor-pointer overflow-hidden rounded-lg bg-gray-800"
@@ -127,7 +135,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
                 >
                   <Image
                     src={item.url}
-                      alt={gallery[3].filename ?? title ?? "Preview image"}
+                    alt={item.filename ?? title ?? "Preview image"}
                     width={600}
                     height={800}
                     className="h-auto w-full object-cover transition-transform duration-300 hover:scale-110"
@@ -152,7 +160,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
                 className="absolute left-6 z-50 rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setPreviewIndex((prev) => (prev !== null ? (prev + gallery.length - 1) % gallery.length : null));
+                  setPreviewIndex((prev) => (prev !== null ? (prev + safeGallery.length - 1) % safeGallery.length : null));
                 }}
               >
                 <FiChevronLeft className="h-8 w-8" />
@@ -160,8 +168,8 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
 
               <div className="relative h-[85vh] w-[85vw]">
                 <Image
-                  src={gallery[previewIndex].url}
-                    alt={gallery[previewIndex].filename ?? title ?? "Preview image"}
+                  src={safeGallery[previewIndex].url}
+                  alt={safeGallery[previewIndex].filename ?? title ?? "Preview image"}
                   fill
                   className="object-contain"
                   priority
@@ -172,7 +180,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
                 className="absolute right-6 z-50 rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setPreviewIndex((prev) => (prev !== null ? (prev + 1) % gallery.length : null));
+                  setPreviewIndex((prev) => (prev !== null ? (prev + 1) % safeGallery.length : null));
                 }}
               >
                 <FiChevronRight className="h-8 w-8" />

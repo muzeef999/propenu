@@ -40,9 +40,6 @@ const Navbar = () => {
 
   const { selectedCity, locations, selectCity } = useCity();
 
-  
-
-
   const loginItems = [
     { id: "lg-1", label: "Sign in", href: "/auth/signin" },
     { id: "lg-2", label: "Sign up", href: "/auth/signup" },
@@ -72,7 +69,7 @@ const Navbar = () => {
   }, []);
 
   const popularCities = locations.filter(
-    (loc) => loc.category?.toLowerCase() === "popular"
+    (loc) => loc.category?.toLowerCase() === "popular",
   );
 
   // Group cities by state
@@ -82,11 +79,32 @@ const Navbar = () => {
       acc[loc.state].push(loc);
       return acc;
     },
-    {}
+    {},
   );
+  const sortedGroupedByState = Object.entries(groupedByState)
+    .sort(([stateA], [stateB]) => {
+      // Selected state should come first
+      if (stateA === selectedCity?.state) return -1;
+      if (stateB === selectedCity?.state) return 1;
+      return stateA.localeCompare(stateB);
+    })
+    .map(([stateName, cities]) => {
+      // If this is the selected state, move selected city to top
+      if (stateName === selectedCity?.state) {
+        const sortedCities = [...cities].sort((a, b) => {
+          if (a.city === selectedCity?.city) return -1;
+          if (b.city === selectedCity?.city) return 1;
+          return a.city.localeCompare(b.city);
+        });
+
+        return [stateName, sortedCities] as [string, LocationItem[]];
+      }
+
+      return [stateName, cities] as [string, LocationItem[]];
+    });
 
   return (
-    <header >
+    <header>
       <nav
         className="w-full bg-white/80 backdrop-blur-md border-b relative z-60 border-gray-200"
         aria-label="Main navigation"
@@ -138,11 +156,11 @@ const Navbar = () => {
                         />
                       </div>
                     }
-                    width="w-[90vw] max-w-[800px] z-90"
+                    width="w-[90vw] max-w-[600px] z-999"
                     align="left"
                     renderContent={(close) => (
-                      <div>
-                        <h3 className="text-xl font-semibold text-black mb-1 mt-3  tracking-wide">
+                      <div className="max-h-[80vh] overflow-y-auto">
+                        <h3 className="font-semibold text-black mt-1 tracking-wide">
                           Popular cities
                         </h3>
                         <div className="flex flex-wrap text-primary">
@@ -152,39 +170,33 @@ const Navbar = () => {
                                 onSelect(i);
                                 close?.();
                               }}
-                              className="flex flex-col text-gray-600 cursor-pointer px-3 py-2  items-center justify-between"
+                              className="flex flex-col text-gray-600 cursor-pointer px-2 items-center justify-between mt-1"
                             >
-                              <div className="font-regular">{i.city}</div>
+                              <div className="text-xs">{i.city}</div>
                             </div>
                           ))}
-                          {Object.entries(groupedByState).map(
-                            ([stateName, cities]) => (
-                              <div key={stateName} className="w-full">
-                                {/* State heading */}
-                                <h3 className="text-xl font-semibold text-black mb-1 mt-3  tracking-wide">
-                                  {stateName}
-                                </h3>
+                          {sortedGroupedByState.map(([stateName, cities]) => (
+                            <div key={stateName} className="w-full">
+                              <h3 className="font-semibold text-black mt-1 tracking-wide">
+                                {stateName}
+                              </h3>
 
-                                {/* Cities under this state */}
-                                {cities.map((c) => (
-                                  <button
-                                    key={c._id}
-                                    onClick={() => {
-                                      onSelect(c);
-                                      close?.();
-                                    }}
-                                    role="menuitem"
-                                  >
-                                    <div className="flex flex-col text-gray-600 cursor-pointer px-3 py-2  items-center justify-between">
-                                      <div className="font-regular">
-                                        {c.city}
-                                      </div>
-                                    </div>
-                                  </button>
-                                ))}
-                              </div>
-                            )
-                          )}
+                              {cities.map((c) => (
+                                <button
+                                  key={c._id}
+                                  onClick={() => {
+                                    onSelect(c);
+                                    close?.();
+                                  }}
+                                  role="menuitem"
+                                >
+                                  <div className="flex flex-col text-gray-600 cursor-pointer px-2 items-center justify-between -mt-1">
+                                    <div className="text-xs">{c.city}</div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
@@ -195,7 +207,6 @@ const Navbar = () => {
 
             {/* RIGHT - desktop */}
             <div className="hidden md:flex items-center gap-6 text-[#1A1A1A]">
-
               <>
                 {!user ? (
                   <span
@@ -268,7 +279,6 @@ const Navbar = () => {
         >
           <div className="px-4 pb-4 pt-2 border-t border-gray-100">
             <nav className="flex flex-col gap-2">
-
               {/* login */}
               <div className="flex flex-col gap-1 mt-2">
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
