@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import { ZodError } from "zod";
 import { CreateLandSchema, UpdateLandSchema } from "../zod/landZod";
 import LandService, { findRelatedLand } from "../services/landService";
+import { AuthRequest } from "../middlewares/authMiddleware";
+import LandPlot from "../models/landModel";
 
 /** helper to parse JSON-like values already handled by middleware; keep for safety */
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -201,5 +203,184 @@ export const deleteLand = async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error("deleteLand:", err);
     return res.status(400).json({ error: err.message || "Bad request" });
+  }
+};
+
+
+
+
+
+export const createLandDraft = async (req: AuthRequest, res: Response) => {
+  const draft = await LandPlot.create({
+    createdBy: req.user!.id,
+    status: "draft",
+    completion: {
+      percent: 0,
+      step: 1,
+      lastSection: "basic",
+    },
+  });
+
+  res.status(201).json({ data: draft });
+};
+
+
+export const updateLandBasicStep = async (req: AuthRequest, res: Response) => {
+  try {
+    const updated = await LandPlot.findByIdAndUpdate(
+      req.params.id,
+      {
+        ...req.body,
+        "completion.percent": 25,
+        "completion.step": 2,
+        "completion.lastSection": "basic",
+      },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: "Land draft not found" });
+    }
+
+    res.json({ data: updated });
+  } catch (err: any) {
+    console.error("updateLandBasicStep:", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
+  }
+};
+
+
+
+export const updateLandLocationStep = async (req: AuthRequest, res: Response) => {
+  try {
+    const updated = await LandPlot.findByIdAndUpdate(
+      req.params.id,
+      {
+        address: req.body.address,
+        city: req.body.city,
+        state: req.body.state,
+        pincode: req.body.pincode,
+        locality: req.body.locality,
+        location: req.body.location,
+
+        "completion.percent": 45,
+        "completion.step": 3,
+        "completion.lastSection": "location",
+      },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: "Land draft not found" });
+    }
+
+    res.json({ data: updated });
+  } catch (err: any) {
+    console.error("updateLandLocationStep:", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
+  }
+};
+
+
+export const updateLandDetailsStep = async (req: AuthRequest, res: Response) => {
+  try {
+    const files = req.files as { [field: string]: Express.Multer.File[] } | undefined;
+
+    const updated = await LandService.update(
+      req.params.id,
+      {
+        ...req.body,
+
+        "completion.percent": 70,
+        "completion.step": 4,
+        "completion.lastSection": "details",
+      },
+      files
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: "Land draft not found" });
+    }
+
+    res.json({ data: updated });
+  } catch (err: any) {
+    console.error("updateLandDetailsStep:", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
+  }
+};
+
+
+
+export const finalizeLand = async (req: AuthRequest, res: Response) => {
+  try {
+    const updated = await LandPlot.findByIdAndUpdate(
+      req.params.id,
+      {
+        legalChecks: req.body.legalChecks,
+
+        status: "active",
+        isPublished: true,
+
+        "completion.percent": 100,
+        "completion.step": 5,
+        "completion.lastSection": "verification",
+      },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: "Land draft not found" });
+    }
+
+    res.json({ data: updated });
+  } catch (err: any) {
+    console.error("finalizeLand:", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
+  }
+};
+
+
+export const getAllLandDraftsForAdmin = async (req: Request, res: Response) => {
+  try {
+    const { page = "1", limit = "20", q, city, userId } = req.query;
+
+    const filter: any = { status: "draft" };
+
+    if (city) filter.city = city;
+    if (userId) filter.createdBy = userId;
+
+    if (q) {
+      filter.$or = [
+        { title: new RegExp(q as string, "i") },
+        { locality: new RegExp(q as string, "i") },
+        { city: new RegExp(q as string, "i") },
+      ];
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [items, total] = await Promise.all([
+      LandPlot.find(filter)
+        .populate("createdBy", "name email phone")
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .lean(),
+
+      LandPlot.countDocuments(filter),
+    ]);
+
+    res.json({
+      items,
+      meta: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(total / Number(limit)),
+      },
+    });
+  } catch (err: any) {
+    console.error("getAllLandDraftsForAdmin:", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
   }
 };

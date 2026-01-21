@@ -9,6 +9,8 @@ export function extendLandFilters(
 ): Partial<BaseFilters> {
   const f: any = { ...baseFilter };
 
+  f.status = "active";
+  
     const q = query ?? {};         
 
    if(query.search){

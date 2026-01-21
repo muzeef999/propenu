@@ -103,3 +103,4 @@ export const agriculturalApi = async (formData: FormData) => {
 
   return res.json();
 };
+

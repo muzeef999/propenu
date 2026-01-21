@@ -7,6 +7,8 @@ export function extendResidentialFilters(
 ): Partial<BaseFilters> {
   const f: any = { ...baseFilter };
 
+  f.status = "active";
+
   const q = query ?? {};
 
   if (q.listingType) {

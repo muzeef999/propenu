@@ -10,6 +10,12 @@ import {
   getLandBySlug,
   getLandDetail,
   getAllLands,
+  createLandDraft,
+  updateLandBasicStep,
+  updateLandLocationStep,
+  updateLandDetailsStep,
+  finalizeLand,
+  getAllLandDraftsForAdmin,
 } from "../controller/landController";
 import { CreateLandSchema, UpdateLandSchema } from "../zod/landZod";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
@@ -36,6 +42,7 @@ const jsonKeys = [
   "leads",
   "approvedByAuthority",
   "location",
+  "legalChecks",
 ];
 
 router.post(
@@ -63,5 +70,14 @@ router.get("/", getAllLands);
 router.get("/slug/:slug", getLandBySlug);
 router.get("/:id", getLandDetail);
 router.delete("/:id", deleteLand);
+
+
+router.post("/draft", authMiddleware, createLandDraft);
+router.patch("/:id/basic",authMiddleware,cpUpload,parseJsonFields(jsonKeys),updateLandBasicStep);
+router.patch("/:id/location", authMiddleware, parseJsonFields(jsonKeys), updateLandLocationStep);
+router.patch("/:id/details", authMiddleware, cpUpload, parseJsonFields(jsonKeys), updateLandDetailsStep);
+router.patch("/:id/verification", authMiddleware, parseJsonFields(jsonKeys), finalizeLand);
+router.get("/draft/all", getAllLandDraftsForAdmin);
+
 
 export default router;

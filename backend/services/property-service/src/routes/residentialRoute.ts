@@ -5,7 +5,7 @@ import { validateBody } from "../middlewares/validate";
 import { parseJsonFields } from "../middlewares/parseJsonFields";
 import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
 import { ResidentialCreateSchema, ResidentialUpdateSchema } from "../zod/residentialZod";
-import { createResidential, createResidentialDraft, deleteResidential, editResidential, finalizeResidential, getAllResidential, getResidentialBySlug, getResidentialDetail, updateBasicStep, updateDetailsStep, updateLocationStep } from "../controller/residentialController";
+import { createResidential, createResidentialDraft, deleteResidential, editResidential, finalizeResidential, getAllResidential, getAllResidentialDraftsForAdmin, getResidentialBySlug, getResidentialDetail, updateBasicStep, updateDetailsStep, updateLocationStep } from "../controller/residentialController";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
 import { authMiddleware } from "../middlewares/authMiddleware";
 
@@ -36,6 +36,7 @@ const jsonKeys = [
 ];
 
 
+router.post("/draft/all", getAllResidentialDraftsForAdmin);
 router.post("/draft", authMiddleware, createResidentialDraft);
 router.patch("/:id/basic", authMiddleware, cpUpload, parseJsonFields(jsonKeys), updateBasicStep);
 router.patch("/:id/location", authMiddleware, parseJsonFields(jsonKeys), updateLocationStep);

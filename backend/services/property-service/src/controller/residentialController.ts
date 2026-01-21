@@ -278,6 +278,8 @@ export const updateLocationStep = async (req: AuthRequest, res: Response) => {
 
 
 export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
+  try{
+  const files = req.files as { [field: string]: Express.Multer.File[] } | undefined;
   const updated = await Residential.findByIdAndUpdate(
     req.params.id,
     {
@@ -286,10 +288,18 @@ export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
       "completion.step": 4,
       "completion.lastSection": "details",
     },
-    { new: true }
+    files
   );
 
+  if (!updated) {
+      return res.status(404).json({ error: "Commercial property not found" });
+    }
+
   res.json({ data: updated });
+} catch (err:any){
+    console.error("updateDetailsStep:", err);
+        res.status(500).json({ error: err.message || "Internal server error" });
+}
 };
 
 
@@ -312,3 +322,47 @@ export const finalizeResidential = async (req: AuthRequest, res: Response) => {
   res.json({ data: updated });
 };
 
+
+export const getAllResidentialDraftsForAdmin = async (req: Request, res: Response) => {
+  try {
+    const { page = "1", limit = "20", q, userId, city, status = "draft" } = req.query;
+
+    const filter: any = { status };
+
+    if (city) filter.city = city;
+    if (userId) filter.createdBy = userId;
+
+    if (q) {
+      filter.$or = [
+        { title: new RegExp(q as string, "i") },
+        { locality: new RegExp(q as string, "i") },
+        { city: new RegExp(q as string, "i") },
+      ];
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [items, total] = await Promise.all([
+      Residential.find(filter)
+        .populate("createdBy", "name email phone")
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .lean(),
+
+      Residential.countDocuments(filter),
+    ]);
+
+    res.json({
+      items,
+      meta: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(total / Number(limit)),
+      },
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+};

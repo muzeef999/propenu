@@ -24,10 +24,13 @@ const jsonKeys = [
   "pantry",
   "amenities",
   "specifications",
-  "nearbyPlaces"
+  "nearbyPlaces",
+  "legalChecks",
+   "parkingDetails",
+  "fireSafety",
 ];
 
-import {  createCommercial,  editCommercial,  getAllCommercial,  getCommercialBySlug,  getCommercialDetail,  deleteCommercial,} from "../controller/commercialController";
+import {  createCommercial,  editCommercial,  getAllCommercial,  getCommercialBySlug,  getCommercialDetail,  deleteCommercial, createCommercialDraft, updateCommercialBasicStep, updateCommercialLocationStep, updateCommercialDetailsStep, finalizeCommercial, getAllCommercialDraftsForAdmin,} from "../controller/commercialController";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
 import { authMiddleware } from "../middlewares/authMiddleware";
 
@@ -38,5 +41,13 @@ router.get("/", getAllCommercial);
 router.get("/slug/:slug", getCommercialBySlug);
 router.get("/:id", getCommercialDetail);
 router.delete("/:id", deleteCommercial);
+
+router.get("/draft/all", getAllCommercialDraftsForAdmin);
+router.post("/draft", authMiddleware, createCommercialDraft);
+router.patch("/:id/basic", authMiddleware, cpUpload, parseJsonFields(jsonKeys), updateCommercialBasicStep);
+router.patch("/:id/location", authMiddleware, parseJsonFields(jsonKeys), updateCommercialLocationStep);
+router.patch("/:id/details", authMiddleware, cpUpload, parseJsonFields(jsonKeys), updateCommercialDetailsStep);
+router.patch("/:id/verification", authMiddleware, cpUpload, parseJsonFields(jsonKeys), finalizeCommercial);
+
 
 export default router;

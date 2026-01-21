@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { ZodError } from "zod";
 import CommercialService, { findRelatedCommercial } from "../services/commercialService";
+import Commercial from "../models/commercialModel";
+import { AuthRequest } from "../middlewares/authMiddleware";
 
 function parseMaybeJSON<T = any>(value: any): T | undefined {
   if (value === undefined || value === null || value === "") return undefined;
@@ -166,4 +168,153 @@ export const deleteCommercial = async (req: Request, res: Response) => {
     console.error("deleteCommercial:", err);
     return res.status(400).json({ error: err.message || "Bad request" });
   }
+};
+
+
+
+
+
+
+export const createCommercialDraft = async (req: AuthRequest, res: Response) => {
+  const draft = await Commercial.create({
+    createdBy: req.user!.id,
+    status: "draft",
+    completion: {
+      percent: 0,
+      step: 1,
+      lastSection: "basic",
+    },
+  });
+
+  res.status(201).json({ data: draft });
+};
+
+
+
+export const updateCommercialBasicStep = async (req: AuthRequest, res: Response) => {
+  const updated = await Commercial.findByIdAndUpdate(
+    req.params.id,
+    {
+      ...req.body,
+      "completion.percent": 25,
+      "completion.step": 2,
+      "completion.lastSection": "basic",
+    },
+    { new: true }
+  );
+
+  res.json({ data: updated });
+};
+
+
+
+export const updateCommercialLocationStep = async (req: AuthRequest, res: Response) => {
+  
+  const updated = await Commercial.findByIdAndUpdate(
+    req.params.id,
+    {
+      address: req.body.address,
+      city: req.body.city,
+      state: req.body.state,
+      pincode: req.body.pincode,
+      locality: req.body.locality,
+      location: req.body.location,
+
+      "completion.percent": 45,
+      "completion.step": 3,
+      "completion.lastSection": "location",
+    },
+    { new: true }
+  );
+
+  res.json({ data: updated });
+};
+
+export const updateCommercialDetailsStep = async (req: AuthRequest, res: Response) => {
+  try {
+    const files = req.files as { [field: string]: Express.Multer.File[] } | undefined;
+
+    const updated = await CommercialService.update(
+      req.params.id,
+      {
+        ...req.body,
+
+        "completion.percent": 70,
+        "completion.step": 4,
+        "completion.lastSection": "details",
+      },
+      files
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: "Commercial property not found" });
+    }
+
+    res.json({ data: updated });
+  } catch (err: any) {
+    console.error("updateCommercialDetailsStep:", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
+  }
+};
+
+
+
+export const finalizeCommercial = async (req: AuthRequest, res: Response) => {
+const updated = await Commercial.findByIdAndUpdate(
+    req.params.id,
+    {
+      legalChecks: req.body.legalChecks,
+
+      status: "active",
+      isPublished: true,
+
+      "completion.percent": 100,
+      "completion.step": 5,
+      "completion.lastSection": "verification",
+    },
+    { new: true }
+  );
+
+  res.json({ data: updated });
+};
+
+
+export const getAllCommercialDraftsForAdmin = async (req: Request, res: Response) => {
+  const { page = "1", limit = "20", q, city, userId } = req.query;
+
+  const filter: any = { status: "draft" };
+
+  if (city) filter.city = city;
+  if (userId) filter.createdBy = userId;
+
+  if (q) {
+    filter.$or = [
+      { title: new RegExp(q as string, "i") },
+      { locality: new RegExp(q as string, "i") },
+      { city: new RegExp(q as string, "i") },
+    ];
+  }
+
+  const skip = (Number(page) - 1) * Number(limit);
+
+  const [items, total] = await Promise.all([
+    Commercial.find(filter)
+      .populate("createdBy", "name email phone")
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(Number(limit))
+      .lean(),
+
+    Commercial.countDocuments(filter),
+  ]);
+
+  res.json({
+    items,
+    meta: {
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      pages: Math.ceil(total / Number(limit)),
+    },
+  });
 };

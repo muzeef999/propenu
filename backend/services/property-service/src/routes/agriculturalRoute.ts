@@ -5,7 +5,7 @@ import { parseJsonFields } from "../middlewares/parseJsonFields";
 import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
 import { validateBody } from "../middlewares/validate";
 import { AgriculturalCreateSchema, AgriculturalUpdateSchema } from "../zod/agriculturalZod";
-import { createAgricultural, deleteAgricultural, editAgricultural, getAgriculturalBySlug, getAgriculturalDetail, getAllAgricultural } from "../controller/agriculturalController";
+import { createAgricultural, createAgriculturalDraft, deleteAgricultural, editAgricultural, finalizeAgricultural, getAgriculturalBySlug, getAgriculturalDetail, getAllAgricultural, getAllAgriculturalDraftsForAdmin, updateAgriculturalBasicStep, updateAgriculturalDetailsStep, updateAgriculturalLocationStep } from "../controller/agriculturalController";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
 import { authMiddleware } from "../middlewares/authMiddleware";
 const router = express.Router();
@@ -32,6 +32,7 @@ const jsonKeys = [
   "borewellDetails",
   "leads",
   "location",
+  "legalChecks",
 ];
 
 router.post(
@@ -58,5 +59,15 @@ router.get("/", getAllAgricultural);
 router.get("/slug/:slug", getAgriculturalBySlug);
 router.get("/:id", getAgriculturalDetail);
 router.delete("/:id", deleteAgricultural);
+
+
+router.get("/draft/all", getAllAgriculturalDraftsForAdmin);
+router.post("/draft", authMiddleware, createAgriculturalDraft);
+router.patch("/:id/basic", authMiddleware, updateAgriculturalBasicStep);
+router.patch("/:id/location", authMiddleware, updateAgriculturalLocationStep);
+router.patch("/:id/details", authMiddleware,cpUpload, parseJsonFields(jsonKeys),updateAgriculturalDetailsStep);
+router.patch("/:id/verification", authMiddleware, cpUpload,parseJsonFields(jsonKeys), finalizeAgricultural);
+
+
 
 export default router;
