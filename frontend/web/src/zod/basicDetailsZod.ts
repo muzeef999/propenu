@@ -31,9 +31,11 @@ export const basicDetailsSchema = z
       .max(5000, "Built-up area must be at most 5000 sqft")
       .optional(),
 
-    images: z
-      .array(z.instanceof(File))
-      .min(5, "Upload at least 5 images"),
+    // images: z
+    //   .array(z.instanceof(File))
+    //   .min(5, "Upload at least 5 images"),
+    images: z.array(z.instanceof(File)).optional(),
+
   })
   .superRefine((data, ctx) => {
     const { category, propertyType } = data;
@@ -86,13 +88,14 @@ export type BasicDetailsForm = z.infer<typeof basicDetailsSchema>;
 export const validateBasicDetails = (
   base: any,
   category: string,
-  files: { file: File }[]
 ) => {
   return basicDetailsSchema.safeParse({
     listingType: base.listingType,
     category,
-    propertyType: base.propertyType, // ✔ correct
-    images: files.map((f) => f.file),
+    propertyType: base.propertyType, // ✅ FIXED
   });
 };
+
+
+
 

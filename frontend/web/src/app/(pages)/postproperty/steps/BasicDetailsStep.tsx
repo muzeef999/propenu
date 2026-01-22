@@ -4,12 +4,12 @@ import {
   nextStep,
   setBaseField,
   setProfileField,
+  setStep,
 } from "@/Redux/slice/postPropertySlice";
 import SelectableButton from "@/ui/SelectableButton";
 
 import FileUpload, { UploadedFile } from "@/ui/FileUpload";
-import { setFiles as setFileStoreFiles } from "@/lib/fileStore";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { validateBasicDetails } from "@/zod/basicDetailsZod";
 import Cookies from "js-cookie";
 import {
@@ -25,23 +25,57 @@ import InputField from "@/ui/InputField";
 import LoginDialog from "@/app/(auth)/Login";
 import { submitBasicThunk } from "@/Redux/thunks/submitPropertyApi";
 import { AppDispatch } from "@/Redux/store";
+import CounterField from "@/ui/CounterField";
+import Dropdownui from "@/ui/DropDownUI";
+import { FACING_TYPES } from "../profile/ResidentialProfile";
+import { numberToWords } from "@/utilies/NumberToWord";
 
 export default function BasicDetailsStep() {
- 
-  const { propertyType, base, residential, commercial, land, agricultural, draftId } =
-    useSelector((state: any) => state.postProperty);
-
+  const {
+    propertyType,
+    base,
+    residential,
+    commercial,
+    land,
+    agricultural,
+    draftId,
+  } = useSelector((state: any) => state.postProperty);
 
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [showErrors, setShowErrors] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [showRoomDetails, setShowRoomDetails] = useState(false);
+  const [showFurnishingFacing, setShowFurnishingFacing] = useState(false);
+  const [showPricing, setShowPricing] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
     const token = Cookies.get("token");
     setIsLoggedIn(!!token);
   }, []);
+
+  useEffect(() => {
+    if (propertyType === "residential") {
+      if (residential.propertyType) setShowRoomDetails(true);
+      if (
+        (residential.bedrooms && residential.bedrooms > 1) ||
+        (residential.bathrooms && residential.bathrooms > 1) ||
+        (residential.balconies && residential.balconies > 0) ||
+        residential.furnishing ||
+        residential.facing
+      ) {
+        setShowFurnishingFacing(true);
+      }
+      if (residential.facing) setShowPricing(true);
+    } else {
+      // Reset when switching away from residential
+      setShowRoomDetails(false);
+      setShowFurnishingFacing(false);
+      setShowPricing(false);
+    }
+  }, [propertyType, residential]);
+
   const listingOptions = [
     { label: "Sale", value: "sale" },
     { label: "Rent / Lease", value: "rent" },
@@ -61,13 +95,18 @@ export default function BasicDetailsStep() {
     {
       ...base,
       propertyType: categoryState?.propertyType || base.propertyType,
-      title: base.title || "",
-      price: base.price || "",
-      carpetArea: base.carpetArea || "",
-      description: base.description || "",
+      price: residential.price || "",
+      carpetArea: residential.carpetArea || "",
+      builtUpArea: residential.builtUpArea || "",
+      constructionStatus: residential.constructionStatus || "",
+      transactionType: residential.transactionType || "",
+      bedrooms: residential.bedrooms || "",
+      bathrooms: residential.bathrooms || "",
+      balconies: residential.balconies || "",
+      furnishing: residential.furnishing || "",
+      facing: residential.facing || "",
     },
     propertyType,
-    files,
   );
 
   const isFormValid = validationResult.success;
@@ -95,13 +134,13 @@ export default function BasicDetailsStep() {
   const selectedCommercialType = commercial.propertyType;
   const commercialSubTypes =
     propertyType === "commercial" &&
-    selectedCommercialType &&
-    COMMERCIAL_SUBTYPE_MAP[
+      selectedCommercialType &&
+      COMMERCIAL_SUBTYPE_MAP[
       selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
-    ]
+      ]
       ? (COMMERCIAL_SUBTYPE_MAP[
-          selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
-        ] as readonly string[])
+        selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
+      ] as readonly string[])
       : [];
 
   const contactLabel =
@@ -118,6 +157,41 @@ export default function BasicDetailsStep() {
     propertyType === "agricultural"
       ? (AGRICULTURAL_PROPERTY_SUBTYPES as readonly string[])
       : [];
+
+  useEffect(() => {
+    const price =
+      Number(residential.price) || Number(residential.expectedPrice);
+    const area = Number(residential.carpetArea);
+
+    if (price > 0 && area > 0) {
+      const pricePerSqft = String(Math.round(price / area));
+      if (pricePerSqft !== residential.pricePerSqft) {
+        dispatch(
+          setProfileField({
+            propertyType: "residential",
+            key: "pricePerSqft",
+            value: pricePerSqft,
+          }),
+        );
+      }
+    } else {
+      if (residential.pricePerSqft) {
+        dispatch(
+          setProfileField({
+            propertyType: "residential",
+            key: "pricePerSqft",
+            value: "",
+          }),
+        );
+      }
+    }
+  }, [
+    residential.price,
+    residential.expectedPrice,
+    residential.carpetArea,
+    residential.pricePerSqft,
+    dispatch,
+  ]);
 
   return (
     <div className="space-y-4">
@@ -160,7 +234,7 @@ export default function BasicDetailsStep() {
               checked={propertyType === type}
               onChange={() => handleSelect(type)}
             />
-            <span className="capitalize text-sm font-normak text-gray-700">
+            <span className="capitalize text-sm font-normal text-gray-700">
               {type === "land" ? "Plot / Land" : type}
             </span>
           </label>
@@ -172,35 +246,165 @@ export default function BasicDetailsStep() {
           <p className="mb-3 text-sm font-medium text-gray-700">
             Property Sub-Type
           </p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {subTypes.map((sub) => {
-              const isSelected = categoryState?.propertyType === sub.key;
-              return (
-                <button
-                  key={sub.key}
-                  type="button"
-                  onClick={() => {
-                    if (propertyType) {
+          <div className="space-y-6">
+            {/* PROPERTY SUB TYPES */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              {subTypes.map((sub) => {
+                const isSelected = categoryState?.propertyType === sub.key;
+
+                return (
+                  <button
+                    key={sub.key}
+                    type="button"
+                    onClick={() => {
+                      if (propertyType) {
+                        dispatch(
+                          setProfileField({
+                            propertyType: propertyType as any,
+                            key: "propertyType",
+                            value: sub.key,
+                          }),
+                        );
+                        if (propertyType === "residential") {
+                          setShowRoomDetails(true);
+                        }
+                      }
+                    }}
+                    className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition-all
+            ${isSelected
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500"
+                        : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                      }
+          `}
+                  >
+                    <span className="text-2xl">{sub.icon}</span>
+                    <span className="text-xs font-medium">{sub.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* RESIDENTIAL DETAILS */}
+            {propertyType === "residential" && showRoomDetails && (
+              <div className="space-y-6">
+                {/* Counters */}
+                <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 md:grid-cols-4">
+                  <CounterField
+                    label="Bedrooms"
+                    value={residential.bedrooms || residential.bhk || 1}
+                    min={1}
+                    onChange={(value) => {
                       dispatch(
                         setProfileField({
-                          propertyType: propertyType as any,
-                          key: "propertyType",
-                          value: sub.key,
+                          propertyType: "residential",
+                          key: "bedrooms",
+                          value,
                         }),
                       );
-                    }
-                  }}
-                  className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition-all ${
-                    isSelected
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500"
-                      : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-                  }`}
-                >
-                  <span className="text-2xl">{sub.icon}</span>
-                  <span className="text-xs font-medium">{sub.label}</span>
-                </button>
-              );
-            })}
+                      setShowFurnishingFacing(true);
+                    }}
+                  />
+
+                  <CounterField
+                    label="Bathrooms"
+                    value={residential.bathrooms || 1}
+                    min={1}
+                    onChange={(value) => {
+                      dispatch(
+                        setProfileField({
+                          propertyType: "residential",
+                          key: "bathrooms",
+                          value,
+                        }),
+                      );
+                      setShowFurnishingFacing(true);
+                    }}
+                  />
+
+                  <CounterField
+                    label="Balconies"
+                    value={residential.balconies || 0}
+                    min={0}
+                    onChange={(value) => {
+                      dispatch(
+                        setProfileField({
+                          propertyType: "residential",
+                          key: "balconies",
+                          value,
+                        }),
+                      );
+                      setShowFurnishingFacing(true);
+                    }}
+                  />
+                </div>
+
+                {showFurnishingFacing && (
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_145px] items-start">
+                    {/* Furnishing */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-700">
+                        Furnishing
+                      </p>
+
+                      <div className="flex gap-3 flex-wrap">
+                        {[
+                          { label: "Furnished", value: "fully-furnished" },
+                          { label: "Semi furnished", value: "semi-furnished" },
+                          { label: "Un-furnished", value: "unfurnished" },
+                        ].map((item) => {
+                          const active = residential.furnishing === item.value;
+
+                          return (
+                            <button
+                              key={item.value}
+                              type="button"
+                              onClick={() =>
+                                dispatch(
+                                  setProfileField({
+                                    propertyType: "residential",
+                                    key: "furnishing",
+                                    value: item.value,
+                                  }),
+                                )
+                              }
+                              className={`px-5 py-2 rounded-md text-sm border transition
+                  ${active
+                                  ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                                  : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                                }
+                `}
+                            >
+                              {item.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Facing */}
+                    <Dropdownui
+                      label="Facing"
+                      value={residential.facing || null}
+                      onChange={(value) => {
+                        dispatch(
+                          setProfileField({
+                            propertyType: "residential",
+                            key: "facing",
+                            value,
+                          }),
+                        );
+                        setShowPricing(true);
+                      }}
+                      options={FACING_TYPES.map((t) => ({
+                        value: t,
+                        label: t,
+                      }))}
+                      placeholder="Select"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -230,11 +434,10 @@ export default function BasicDetailsStep() {
                       }),
                     );
                   }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
-                    isSelected
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
                       ? "border-green-500 bg-green-50 text-green-600"
                       : "border-gray-300 text-gray-700"
-                  }`}
+                    }`}
                 >
                   {subType.replace("-", " ").toUpperCase()}
                 </button>
@@ -265,11 +468,10 @@ export default function BasicDetailsStep() {
                       }),
                     );
                   }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
-                    isSelected
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
                       ? "border-green-500 bg-green-50 text-green-600"
                       : "border-gray-300 text-gray-700"
-                  }`}
+                    }`}
                 >
                   {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
@@ -301,11 +503,10 @@ export default function BasicDetailsStep() {
                       }),
                     );
                   }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
-                    isSelected
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
                       ? "border-green-500 bg-green-50 text-green-600"
                       : "border-gray-300 text-gray-700"
-                  }`}
+                    }`}
                 >
                   {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
@@ -314,68 +515,246 @@ export default function BasicDetailsStep() {
           </div>
         </div>
       )}
-      <div className="space-y-3">
-        <p className="text-sm font-medium text-gray-800">Price Details</p>
+      {propertyType === "residential" && showPricing && (
+        <div className="space-y-3">
+          {/* GRID */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+            {/* Total Price */}
+            <div className="flex flex-col">
+              <InputField
+                label="Total Price"
+                value={residential.price || ""}
+                placeholder="e.g. 75,00,000"
+                onChange={(value) =>
+                  dispatch(
+                    setProfileField({
+                      propertyType: "residential",
+                      key: "price",
+                      value: value.replace(/\D/g, ""),
+                    }),
+                  )
+                }
+              />
 
-        {/* Changed to grid-cols-4 for desktop, added items-end for alignment */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4 items-end">
-          <InputField
-            label="Carpet Area (sq ft)"
-            value={residential.carpetArea || ""}
-            placeholder="e.g. 1200"
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "residential",
-                  key: "carpetArea",
-                  value: value.replace(/\D/g, ""),
-                }),
-              )
-            }
-          />
+              {/* Price in words */}
+              {residential.price && (
+                <p className="mt-1 text-xs text-gray-500 italic">
+                  ₹ {numberToWords(Number(residential.price))}
+                  {residential.pricePerSqft && (
+                    <>
+                      {" "}
+                      (₹ {residential.pricePerSqft.toLocaleString()} per sq.ft.)
+                    </>
+                  )}
+                </p>
+              )}
+            </div>
 
-          <InputField
-            label="Built-up (sq ft)"
-            type="number"
-            value={residential.builtUpArea || ""}
-            placeholder="Optional"
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "residential",
-                  key: "builtUpArea",
-                  value,
-                }),
-              )
-            }
-          />
+            {/* Carpet Area */}
+            <InputField
+              label="Carpet Area (sq ft)"
+              value={residential.carpetArea || ""}
+              placeholder="e.g. 1200"
+              onChange={(value) =>
+                dispatch(
+                  setProfileField({
+                    propertyType: "residential",
+                    key: "carpetArea",
+                    value: value.replace(/\D/g, ""),
+                  }),
+                )
+              }
+            />
+            {/* Price / sq ft */}
+            <div className="flex flex-col">
+              <InputField
+                label="Price / sq ft"
+                value={residential.pricePerSqft || ""}
+                placeholder="Auto calculated"
+                disabled
+                onChange={() => { }}
+              />
+
+              <button
+                type="button"
+                onClick={() => dispatch(setStep(1))}
+                className="mt-1 flex items-center gap-1 text-xs text-gray-400 hover:text-green-600 self-start"
+              >
+                Based on
+                <span className="font-medium underline">Carpet Area</span>
+                <span className="text-[10px]">▼</span>
+              </button>
+            </div>
+
+            {/* Built-up Area */}
+            <InputField
+              label="Built-up Area (sq ft)"
+              value={residential.builtUpArea || ""}
+              placeholder="Optional"
+              onChange={(value) =>
+                dispatch(
+                  setProfileField({
+                    propertyType: "residential",
+                    key: "builtUpArea",
+                    value: value.replace(/\D/g, ""),
+                  }),
+                )
+              }
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {isLoggedIn && (
-        <FileUpload
-          label="Property Images"
-          value={files}
-          onChange={(newFiles) => {
-            setFiles(newFiles);
-            // persist only metadata in Redux (serializable)
-            dispatch(
-              setBaseField({
-                key: "galleryFiles",
-                value: newFiles.map((f) => ({ filename: f.file.name })),
-              }),
-            );
-            // store actual File objects in in-memory file store
-            setFileStoreFiles(
-              "postProperty",
-              newFiles.map((f) => f.file),
-            );
-          }}
-          accept="image/*"
-          maxFiles={5}
-          maxSizeMB={5}
-          error={fieldErrors?.images?.[0]}
-        />
+        <div className="space-y-6">
+          {/* Availability Status */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-gray-700">
+              Availability Status
+            </p>
+
+            <div className="flex gap-5">
+              {[
+                { label: "Ready to Move", value: "ready-to-move" },
+                { label: "Under Construction", value: "under-construction" },
+              ].map((item) => {
+                const active = residential.constructionStatus === item.value;
+
+                return (
+                  <button
+                    key={item.value}
+                    type="button"
+                    onClick={() => {
+                      dispatch(
+                        setProfileField({
+                          propertyType: "residential",
+                          key: "constructionStatus",
+                          value: item.value,
+                        }),
+                      );
+
+                      // 🔴 IMPORTANT: reset propertyAge if not ready-to-move
+                      if (item.value !== "ready-to-move") {
+                        dispatch(
+                          setProfileField({
+                            propertyType: "residential",
+                            key: "propertyAge",
+                            value: "",
+                          }),
+                        );
+                      }
+                    }}
+                    className={`px-6 py-2 rounded-md text-sm border transition
+            ${active
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                        : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                      }
+          `}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {residential.constructionStatus === "ready-to-move" && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-gray-700">Property Age</p>
+
+              <div className="flex flex-wrap gap-3">
+                {[
+                  { value: "0-1-year", label: "0-1 Year" },
+                  { value: "1-5-years", label: "1-5 Years" },
+                  { value: "5-10-years", label: "5-10 Years" },
+                  { value: "10-plus-years", label: "10+ Years" },
+                ].map((item) => {
+                  const active = residential.propertyAge === item.value;
+
+                  return (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() =>
+                        dispatch(
+                          setProfileField({
+                            propertyType: "residential",
+                            key: "propertyAge",
+                            value: item.value,
+                          }),
+                        )
+                      }
+                      className={`px-6 py-2 rounded-md text-sm border transition
+              ${active
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                          : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                        }
+            `}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {residential.constructionStatus === "under-construction" && (
+            <InputField
+              label="Expected Possession Date"
+              type="date"
+              value={residential.possessionDate || ""}
+              onChange={(value) =>
+                dispatch(
+                  setProfileField({
+                    propertyType: "residential",
+                    key: "possessionDate",
+                    value,
+                  }),
+                )
+              }
+            />
+          )}
+
+          {/* Transaction Type */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-gray-700">
+              Transaction Type
+            </p>
+
+            <div className="flex gap-5">
+              {[
+                { label: "New Sale", value: "new-sale" },
+                { label: "Resale", value: "resale" },
+              ].map((item) => {
+                const active = residential.transactionType === item.value;
+
+                return (
+                  <button
+                    key={item.value}
+                    type="button"
+                    onClick={() =>
+                      dispatch(
+                        setProfileField({
+                          propertyType: "residential",
+                          key: "transactionType",
+                          value: item.value,
+                        }),
+                      )
+                    }
+                    className={`px-6 py-2 rounded-md text-sm border transition
+                ${active
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                        : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                      }
+              `}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Contact Details – Logged Out UI */}
@@ -425,9 +804,13 @@ export default function BasicDetailsStep() {
 
       <button
         onClick={() => {
+          console.log("Debbug 1");
           setShowErrors(true);
+          console.log("Debbug 2");
+          console.log(isFormValid);
 
           if (!isFormValid || !draftId) return;
+          console.log("Debbug 3");
 
           const profileData =
             propertyType === "residential"
