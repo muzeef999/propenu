@@ -36,7 +36,7 @@ const jsonKeys = [
 ];
 
 
-router.post("/draft/all", getAllResidentialDraftsForAdmin);
+router.get("/draft/all", getAllResidentialDraftsForAdmin);
 router.post("/draft", authMiddleware, createResidentialDraft);
 router.patch("/:id/basic", authMiddleware, cpUpload, parseJsonFields(jsonKeys), updateBasicStep);
 router.patch("/:id/location", authMiddleware, parseJsonFields(jsonKeys), updateLocationStep);
