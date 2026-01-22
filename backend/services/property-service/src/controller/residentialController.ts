@@ -250,10 +250,8 @@ export const updateBasicStep = async (req: AuthRequest, res: Response) => {
     },
     { new: true }
   );
-
   res.json({ data: updated });
 };
-
 
 export const updateLocationStep = async (req: AuthRequest, res: Response) => {
   const updated = await Residential.findByIdAndUpdate(
@@ -275,7 +273,6 @@ export const updateLocationStep = async (req: AuthRequest, res: Response) => {
 
   res.json({ data: updated });
 };
-
 
 export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
   try{
@@ -302,7 +299,6 @@ export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
 }
 };
 
-
 export const finalizeResidential = async (req: AuthRequest, res: Response) => {
   const updated = await Residential.findByIdAndUpdate(
     req.params.id,
@@ -321,7 +317,6 @@ export const finalizeResidential = async (req: AuthRequest, res: Response) => {
 
   res.json({ data: updated });
 };
-
 
 export const getAllResidentialDraftsForAdmin = async (req: Request, res: Response) => {
   try {

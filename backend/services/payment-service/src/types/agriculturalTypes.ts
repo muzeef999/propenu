@@ -70,8 +70,6 @@ export interface IAgricultural {
   currentCrop?: string;
   propertyType?: AgriculturalPropertyType;
   propertySubType?: AgriculturalPropertySubType;
-  suitableFor?: string;
-  plantationAge?: number;
   numberOfBorewells?: number;
   borewellDetails?: {
     depthMeters?: number;

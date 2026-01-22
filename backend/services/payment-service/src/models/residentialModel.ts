@@ -17,7 +17,6 @@ export interface ResidentialDocument extends Document, IResidential {
 const ResidentialSchema = new Schema<IResidential>(
   {
     ...BaseFields,
-    bhk: { type: Number, min: 0 },
     bedrooms: { type: Number, min: 0 },
     bathrooms: { type: Number, min: 0 },
     balconies: { type: Number, min: 0 },
