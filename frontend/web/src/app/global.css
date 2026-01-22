@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @import "tailwindcss/theme" theme;
 
+@font-face {
+  font-family: "Waialua";
+  src: url("/fonts/FontsFree-Net-waialua-black.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ------------------------------------ */
 /* Base Theme Values                    */
 /* ------------------------------------ */
@@ -170,3 +178,37 @@ html, body {
 .leaflet-container {
   outline: none;
 }
+
+
+.sub-heading-handwriting {
+  font-family: "Waialua", cursive;
+  font-weight: 600;
+  font-size: 66px;
+  background: linear-gradient(90deg, #1f8f5f, #4fd1a5, #1f8f5f);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  background-size: 200% 200%;
+  animation: gradientMove 6s ease infinite;
+}
+
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+
+.heading-main-hero {
+  font-family: "Poppins", system-ui, sans-serif;
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: 0.02em;     /* modern hero look */
+  line-height: 1.05;
+
+  /* smooth rendering */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+

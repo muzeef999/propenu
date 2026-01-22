@@ -21,7 +21,6 @@ export default function Home() {
         <GetOwnerProperties />
         <AgentServer />
         <ExploreOurServices />
-        {/* Apartments, villas and more  */}
         <div>
           <div className="headingSideBar">
             <h1 className="text-2xl font-bold">
@@ -34,10 +33,7 @@ export default function Home() {
           </div>
           <ExploreMorePropertiesPage />
         </div>
-
-        <div>
           <TestomianalHome />
-        </div>
       </div>
     </div>
   );

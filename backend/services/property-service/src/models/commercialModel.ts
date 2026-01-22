@@ -1,6 +1,6 @@
 // src/models/property/commercial.model.ts
 import mongoose, { Schema, Document, Model, Types } from "mongoose";
-import { BaseFields, FileRefSchema } from "./sharedSchemas";
+import { BaseFields } from "./sharedSchemas";
 import {
   COMMERCIAL_PROPERTY_SUBTYPES,
   COMMERCIAL_PROPERTY_TYPES,

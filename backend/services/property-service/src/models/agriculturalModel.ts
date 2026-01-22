@@ -1,9 +1,5 @@
 import mongoose, { Schema, Document, Model, Types } from "mongoose";
-import {
-  AGRICULTURAL_PROPERTY_SUBTYPES,
-  AGRICULTURAL_PROPERTY_TYPES,
-  IAgricultural,
-} from "../types/agriculturalTypes";
+import {  AGRICULTURAL_PROPERTY_SUBTYPES, AGRICULTURAL_PROPERTY_TYPES, IAgricultural} from "../types/agriculturalTypes";
 import { BaseFields, FileRefSchema } from "./sharedSchemas";
 import {  TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
@@ -45,7 +41,6 @@ const AgriculturalSchema = new Schema<IAgricultural>(
     electricityConnection: Boolean,
     waterSource: String,
     accessRoadType: String,
-
     soilTestReport: FileRefSchema,
     statePurchaseRestrictions: String,
     agriculturalUseCertificate: FileRefSchema,

@@ -148,7 +148,7 @@ export const Residential: Model<IResidential> =
 export default Residential;
 
 function buildResidentialTitle(doc: any) {
-  const bhk = doc.bhk ? `${doc.bhk} BHK` : "";
+  const bhk = doc.bedrooms ? `${doc.bedrooms} BHK` : "";
   const propertyType = doc.propertyType ?? "Residential Property";
   const listingType =
     doc.listingType === "rent"
