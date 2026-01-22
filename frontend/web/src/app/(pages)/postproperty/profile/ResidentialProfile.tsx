@@ -333,79 +333,91 @@ const ResidentialProfile = () => {
         }
       />
 
-      <button
-        type="button"
-        onClick={() => {
-          setShowErrors(true);
+<button
+  type="button"
+  onClick={() => {
+    setShowErrors(true);
 
-          const payload = {
-            ...residential,
-            amenities: residential.amenities || [],
-          };
+    // ✅ FIX: convert amenities objects → string[] ONLY for validation
+    const payload = {
+      ...residential,
 
-          const result = validateResidentialProfile(
-            payload,
-            files.map((f) => f.file),
-          );
+      amenities: Array.isArray(residential.amenities)
+        ? residential.amenities.map((a: any) => a?.title).filter(Boolean)
+        : [],
+    };
 
-          if (!result.success) {
-            const flattened = result.error.flatten();
+    const result = validateResidentialProfile(
+      payload,
+      files.map((f) => f.file),
+    );
 
-            console.error("❌ Residential Profile Validation Failed");
-            console.table(flattened.fieldErrors);
-            console.log("Full Zod Error:", result.error);
+    if (!result.success) {
+      const flattened = result.error.flatten();
 
-            toast.error("Please fix the highlighted errors");
-            return;
-          }
+      console.error("❌ Residential Profile Validation Failed");
+      console.table(flattened.fieldErrors);
+      console.log("Full Zod Error:", result.error);
 
-          dispatch(submitDetailsThunk({ category: propertyType, id: draftId, payload }))
-            .unwrap()
-            .then((response) => {
-              console.log("Property submission successful:", response);
-              toast.success("Property submitted successfully");
+      toast.error("Please fix the highlighted errors");
+      return;
+    }
 
-              confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 },
-              });
-              // optional success redirect
-              router.push("/my-properties");
-            })
-            .catch((error: any) => {
-              console.log("🔥 FULL ERROR FROM API:", error);
+    // 🚀 IMPORTANT: send ORIGINAL residential object to backend
+    dispatch(
+      submitDetailsThunk({
+        category: propertyType,
+        id: draftId,
+        payload: residential, // backend/thunk will format this
+      }),
+    )
+      .unwrap()
+      .then((response) => {
+        console.log("Property submission successful:", response);
+        toast.success("Property submitted successfully");
 
-              const errObj =
-                typeof error === "string"
-                  ? { message: error }
-                  : error?.response?.data || error;
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+        });
 
-              toast.error(errObj?.message || "Failed to submit property");
+        router.push("/my-properties");
+      })
+      .catch((error: any) => {
+        console.log("🔥 FULL ERROR FROM API:", error);
 
-              if (
-                errObj?.code === "NO_VALID_PLAN" ||
-                errObj?.code === "PLAN_LIMIT_REACHED"
-              ) {
-                const listingType = residential.listingType || "sale";
+        const errObj =
+          typeof error === "string"
+            ? { message: error }
+            : error?.response?.data || error;
 
-                const redirectUrl =
-                  listingType === "sale"
-                    ? "/plans/pricing/owner-sell"
-                    : "/plans/pricing/owner-rent";
+        toast.error(errObj?.message || "Failed to submit property");
 
-                console.log("🚀 Redirecting to:", redirectUrl);
+        if (
+          errObj?.code === "NO_VALID_PLAN" ||
+          errObj?.code === "PLAN_LIMIT_REACHED"
+        ) {
+          const listingType = residential.listingType || "sale";
 
-                setTimeout(() => {
-                  router.push(redirectUrl);
-                }, 800);
-              }
-            });
-        }}
-        className="py-2 btn-primary text-white rounded-md cursor-pointer w-full"
-      >
-        Submit Property
-      </button>
+          const redirectUrl =
+            listingType === "sale"
+              ? "/plans/pricing/owner-sell"
+              : "/plans/pricing/owner-rent";
+
+          console.log("🚀 Redirecting to:", redirectUrl);
+
+          setTimeout(() => {
+            router.push(redirectUrl);
+          }, 800);
+        }
+      });
+  }}
+  className="py-2 btn-primary text-white rounded-md cursor-pointer w-full"
+>
+  Submit Property
+</button>
+
     </div>
   );
 };
