@@ -6,10 +6,10 @@ import TextArea from "@/ui/TextArae";
 import AmenitiesSelect from "./AmenitiesSelect";
 import { AMENITIES } from "../constants/amenities";
 import { useAppDispatch } from "@/Redux/store";
-import { submitPropertyThunk } from "@/Redux/thunks/submitPropertyApi";
 import Dropdownui from "@/ui/DropDownUI";
 import Toggle from "@/ui/ToggleSwitch";
 import InputWithUnit from "@/ui/InputwithUnit";
+import { submitDetailsThunk } from "@/Redux/thunks/submitPropertyApi";
 
 const AREA_UNITS = ["sqft"] as const;
 
@@ -516,7 +516,7 @@ const LandProfile = () => {
         type="button"
         onClick={() => {
           console.log("Submitting Land...");
-          dispatch(submitPropertyThunk("land"))
+          dispatch(submitDetailsThunk(land))
             .unwrap()
             .then((res) => console.log("Success:", res))
             .catch((err) => console.error("Error:", err));

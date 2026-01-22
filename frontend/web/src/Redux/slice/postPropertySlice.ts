@@ -23,6 +23,7 @@ interface SetProfileFieldPayload extends SetFieldPayload {
 interface PostPropertyState {
   currentStep: number;
   propertyType: PropertyType;
+  draftId: string | null;
   base: Record<string, any>;
   residential: Record<string, any>;
   commercial: Record<string, any>;
@@ -33,6 +34,7 @@ interface PostPropertyState {
 const initialState: PostPropertyState = {
   currentStep: 1,
   propertyType: null,
+  draftId: null, 
   base: {
     nearbyPlaces: [],
   },
@@ -47,6 +49,11 @@ const postPropertySlice = createSlice({
   initialState,
   reducers: {
     /* -------- Step control -------- */
+
+    setDraftId: (state, action) => {
+  state.draftId = action.payload;
+},
+
     nextStep(state) {
       state.currentStep += 1;
     },
@@ -89,6 +96,7 @@ export const {
   nextStep,
   prevStep,
   setStep,
+  setDraftId,
 } = postPropertySlice.actions;
 
 export default postPropertySlice.reducer;

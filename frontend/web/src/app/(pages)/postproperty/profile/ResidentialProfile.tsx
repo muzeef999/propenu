@@ -7,13 +7,13 @@ import InputField from "@/ui/InputField";
 import AmenitiesSelect from "./AmenitiesSelect";
 import { AMENITIES } from "../constants/amenities";
 import TextArea from "@/ui/TextArae";
-import { submitPropertyThunk } from "@/Redux/thunks/submitPropertyApi";
 import { useAppDispatch } from "@/Redux/store";
 import Toggle from "@/ui/ToggleSwitch";
 import { toast } from "sonner";
 import { numberToWords } from "@/utilies/NumberToWord";
 import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
+import { submitDetailsThunk } from "@/Redux/thunks/submitPropertyApi";
 
 export const FLOORING_TYPES = [
   "vitrified",
@@ -645,7 +645,7 @@ const ResidentialProfile = () => {
       <button
         type="button"
         onClick={() => {
-          dispatch(submitPropertyThunk())
+          dispatch(submitDetailsThunk(residential))
             .unwrap()
             .then((response) => {
               console.log("Property submission successful:", response);

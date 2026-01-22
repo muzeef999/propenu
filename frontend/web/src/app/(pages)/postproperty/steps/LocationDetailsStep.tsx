@@ -3,6 +3,7 @@
 import NearbyLocationSearch from "@/components/location/NearbyLocationSearch";
 import dynamic from "next/dynamic";
 import { useDispatch, useSelector } from "react-redux";
+import type { AppDispatch } from "@/Redux/store";
 import { useEffect, useState } from "react";
 
 import { setBaseField, nextStep } from "@/Redux/slice/postPropertySlice";
@@ -11,6 +12,7 @@ import InputField from "@/ui/InputField";
 import TextArea from "@/ui/TextArae";
 
 import { search } from "india-pincode-search";
+import { submitLocationThunk } from "@/Redux/thunks/submitPropertyApi";
 
 const OpenStreetPinMap = dynamic(
   () => import("@/components/location/OpenStreetPinMap"),
@@ -21,7 +23,7 @@ const OpenStreetPinMap = dynamic(
         Loading map…
       </div>
     ),
-  }
+  },
 );
 
 type PincodeResult = {
@@ -34,59 +36,59 @@ type PincodeResult = {
 };
 
 const LocationDetailsStep = () => {
-  const { propertyType, base } = useSelector(
-    (state: any) => state.postProperty
+  const { propertyType, base, draftId } = useSelector(
+    (state: any) => state.postProperty,
   );
 
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const [showErrors, setShowErrors] = useState(false);
 
   useEffect(() => {
-if (!base.locality || !base.city || !base.state) return;
+    if (!base.locality || !base.city || !base.state) return;
 
-const controller = new AbortController();
+    const controller = new AbortController();
 
-const fetchCoordinates = async () => {
-  try {
-    const query = `${base.locality}, ${base.city}, ${base.state}`;
+    const fetchCoordinates = async () => {
+      try {
+        const query = `${base.locality}, ${base.city}, ${base.state}`;
 
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-        query
-      )}&limit=1`,
-      {
-        signal: controller.signal,
-        headers: {
-          "Accept-Language": "en",
-        },
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+            query,
+          )}&limit=1`,
+          {
+            signal: controller.signal,
+            headers: {
+              "Accept-Language": "en",
+            },
+          },
+        );
+
+        const data = await res.json();
+        if (!data || data.length === 0) return;
+
+        const { lat, lon } = data[0];
+
+        dispatch(
+          setBaseField({
+            key: "location",
+            value: {
+              type: "Point",
+              coordinates: [Number(lon), Number(lat)],
+            },
+          }),
+        );
+      } catch (err) {
+        if ((err as any).name !== "AbortError") {
+          console.error("Geocoding error", err);
+        }
       }
-    );
+    };
 
-    const data = await res.json();
-    if (!data || data.length === 0) return;
+    fetchCoordinates();
 
-    const { lat, lon } = data[0];
-
-    dispatch(
-      setBaseField({
-        key: "location",
-        value: {
-          type: "Point",
-          coordinates: [Number(lon), Number(lat)],
-        },
-      })
-    );
-  } catch (err) {
-    if ((err as any).name !== "AbortError") {
-      console.error("Geocoding error", err);
-    }
-  }
-};
-
-fetchCoordinates();
-
-return () => controller.abort();
-}, [base.locality, base.city, base.state]);
+    return () => controller.abort();
+  }, [base.locality, base.city, base.state]);
 
   const validationResult = validateLocationDetails(base);
   const isFormValid = validationResult.success;
@@ -131,21 +133,21 @@ return () => controller.abort();
       setBaseField({
         key: "state",
         value: formatToTitleCase(pin.state),
-      })
+      }),
     );
 
     dispatch(
       setBaseField({
         key: "city",
         value: formatToTitleCase(pin.city),
-      })
+      }),
     );
 
     dispatch(
       setBaseField({
         key: "locality",
         value: formatToTitleCase(pin.village || pin.office),
-      })
+      }),
     );
   };
 
@@ -165,7 +167,7 @@ return () => controller.abort();
             setBaseField({
               key: "address",
               value: formatToTitleCase(value),
-            })
+            }),
           )
         }
         error={getCustomError("address", "Enter property address")}
@@ -187,14 +189,14 @@ return () => controller.abort();
               setBaseField({
                 key: isLandOrAgri ? "landName" : "buildingName",
                 value: formatToTitleCase(value),
-              })
+              }),
             )
           }
           error={getCustomError(
             isLandOrAgri ? "landName" : "buildingName",
             isLandOrAgri
               ? "Enter Project / Layout name"
-              : "Enter Building / Society name"
+              : "Enter Building / Society name",
           )}
         />
 
@@ -218,7 +220,7 @@ return () => controller.abort();
               setBaseField({
                 key: "locality",
                 value: formatToTitleCase(value),
-              })
+              }),
             )
           }
           error={getCustomError("locality", "Enter locality")}
@@ -233,7 +235,7 @@ return () => controller.abort();
               setBaseField({
                 key: "city",
                 value: formatToTitleCase(value),
-              })
+              }),
             )
           }
           error={getCustomError("city", "Enter city")}
@@ -248,7 +250,7 @@ return () => controller.abort();
               setBaseField({
                 key: "state",
                 value: formatToTitleCase(value),
-              })
+              }),
             )
           }
           error={getCustomError("state", "Enter state")}
@@ -271,13 +273,23 @@ return () => controller.abort();
         type="button"
         onClick={() => {
           setShowErrors(true);
-          if (isFormValid) {
-            console.log("LocationDetailsStep Data:", {
-              base,
-              propertyType,
+
+          if (!isFormValid || !draftId) return;
+
+          dispatch(
+            submitLocationThunk({
+              category: propertyType,
+              id: draftId,
+              data: base,
+            })
+          )
+            .unwrap()
+            .then(() => {
+              dispatch(nextStep());
+            })
+            .catch((err: unknown) => {
+              console.error("Location step failed", err);
             });
-            dispatch(nextStep());
-          }
         }}
         className="px-4 py-2 btn-primary text-white rounded"
       >

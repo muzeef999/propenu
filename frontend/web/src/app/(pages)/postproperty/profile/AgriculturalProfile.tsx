@@ -4,10 +4,11 @@ import CounterField from "@/ui/CounterField";
 import InputField from "@/ui/InputField";
 import TextArea from "@/ui/TextArae";
 import { useAppDispatch } from "@/Redux/store";
-import { submitPropertyThunk } from "@/Redux/thunks/submitPropertyApi";
 import InputWithUnit from "@/ui/InputwithUnit";
 import Dropdownui from "@/ui/DropDownUI";
 import ToggleSwitch from "@/ui/ToggleSwitch";
+import { submitDetailsThunk } from "@/Redux/thunks/submitPropertyApi";
+
 
 const AREA_UNITS = [
   "sqft",
@@ -609,7 +610,7 @@ const AgriculturalProfile = () => {
       {/* ========== SUBMIT BUTTON ========== */}
       <button
         type="button"
-        onClick={() => dispatch(submitPropertyThunk())}
+        onClick={() => dispatch(submitDetailsThunk(agricultural))}
         className="px-6 py-3 bg-green-600 text-white rounded-md cursor-pointer"
       >
         Submit Property

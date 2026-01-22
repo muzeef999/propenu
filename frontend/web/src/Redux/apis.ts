@@ -1,106 +1,82 @@
-const url = process.env.NEXT_PUBLIC_API_URL;
 import Cookies from "js-cookie";
+const url = process.env.NEXT_PUBLIC_API_URL;
 
-export const residentialApi = async (formData: FormData) => {
+function authHeader() {
   const token = Cookies.get("token");
-  if (!token) {
-    throw new Error("Not authenticated");
-  }
-  const res = await fetch(`${url}/api/properties/residential`, {
+  if (!token) throw new Error("Not authenticated");
+  return { Authorization: `Bearer ${token}` };
+}
+
+/* ---------------- DRAFT ---------------- */
+
+export const createDraftApi = async (category: string) => {
+  const res = await fetch(`${url}/api/properties/${category}/draft`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    body: formData,
+    headers: authHeader(),
   });
 
-  if (!res.ok) {
-    const error = await res.json();
-    const e: any = new Error(error.message || "Residential API failed");
-    e.code = error.code;
-    e.action = error.action;
-    e.feature = error.feature;
-    throw e;
-  }
+  if (!res.ok) throw await res.json();
   return res.json();
 };
 
+/* ---------------- BASIC ---------------- */
 
-export const commercialApi = async (formData: FormData) => {
-  const token = Cookies.get("token");
+export const updateBasicApi = async (category: string, id: string, data: any) => {
+  return stepPatch(category, id, "basic", data);
+};
 
-  if (!token) {
-    throw new Error("Not authenticated");
-  }
-  const res = await fetch(`${url}/api/properties/commercial`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    body: formData,
-  });
+/* ---------------- LOCATION ---------------- */
 
-  if (!res.ok) {
-    const error = await res.json();
-    const e: any = new Error(error.message || "Commercial API failed");
-    e.code = error.code;
-    e.action = error.action;
-    e.feature = error.feature;
-    throw e;
-  }
+export const updateLocationApi = async (category: string, id: string, data: any) => {
+  return stepPatch(category, id, "location", data);
+};
 
+/* ---------------- DETAILS ---------------- */
+
+export const updateDetailsApi = async (
+  category: string,
+  id: string,
+  formData: FormData
+) => {
+  const res = await fetch(
+    `${url}/api/properties/${category}/${id}/details`,
+    {
+      method: "PATCH",
+      headers: authHeader(), // ❌ don't set content-type
+      body: formData,
+    }
+  );
+
+  if (!res.ok) throw await res.json();
   return res.json();
 };
 
-export const landApi = async (formData: FormData) => {
-  const token = Cookies.get("token");
+/* ---------------- VERIFICATION ---------------- */
 
-  if (!token) {
-    throw new Error("Not authenticated");
-  }
-  const res = await fetch(`${url}/api/properties/land`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    body: formData,
-  });
-
-  if (!res.ok) {
-    const error = await res.json();
-    const e: any = new Error(error.message || "Land API failed");
-    e.code = error.code;
-    e.action = error.action;
-    e.feature = error.feature;
-    throw e;
-  }
-
-  return res.json();
+export const finalizeApi = async (category: string, id: string, data: any) => {
+  return stepPatch(category, id, "verification", data);
 };
 
-export const agriculturalApi = async (formData: FormData) => {
-  const token = Cookies.get("token");
+/* ---------------- helper ---------------- */
 
-  if (!token) {
-    throw new Error("Not authenticated");
-  }
-  const res = await fetch(`${url}/api/properties/agricultural`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    body: formData,
-  });
+async function stepPatch(
+  category: string,
+  id: string,
+  step: string,
+  data: any
+) {
+  const res = await fetch(
+    `${url}/api/properties/${category}/${id}/${step}`,
+    {
+      method: "PATCH",
+      headers: {
+        ...authHeader(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    }
+  );
 
-  if (!res.ok) {
-    const error = await res.json();
-    const e: any = new Error(error.message || "Agricultural API failed");
-    e.code = error.code;
-    e.action = error.action;
-    e.feature = error.feature;
-    throw e;
-  }
-
+  if (!res.ok) throw await res.json();
   return res.json();
-};
-
+}

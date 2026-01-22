@@ -7,13 +7,13 @@ import { AMENITIES } from "../constants/amenities";
 import IconCardSelect from "./IconCardSelect";
 import { COMMERCIAL_PROPERTY_OPTIONS } from "../constants/subTypes";
 import TextArea from "@/ui/TextArae";
-import { submitPropertyThunk } from "@/Redux/thunks/submitPropertyApi";
 import { useAppDispatch } from "@/Redux/store";
 import { FACING_TYPES } from "./ResidentialProfile";
 import Dropdownui from "@/ui/DropDownUI";
 import Toggle from "@/ui/ToggleSwitch";
 import { useEffect } from "react";
 import SelectableButton from "@/ui/SelectableButton";
+import { submitDetailsThunk } from "@/Redux/thunks/submitPropertyApi";
 
 export const TRANSACTION_TYPES = [
   "new-sale",
@@ -868,7 +868,7 @@ const CommercialProfile = () => {
       <button
         type="button"
         onClick={() => {
-          dispatch(submitPropertyThunk())
+          dispatch(submitDetailsThunk(commercial))
             .unwrap()
             .then((response) => {
               console.log("Property submission successful:", response);

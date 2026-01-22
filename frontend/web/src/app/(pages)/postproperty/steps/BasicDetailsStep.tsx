@@ -23,15 +23,20 @@ import {
 } from "@/app/(pages)/postproperty/constants/subTypes";
 import InputField from "@/ui/InputField";
 import LoginDialog from "@/app/(auth)/Login";
+import { submitBasicThunk } from "@/Redux/thunks/submitPropertyApi";
+import { AppDispatch } from "@/Redux/store";
 
 export default function BasicDetailsStep() {
-  const { propertyType, base, residential, commercial, land, agricultural } =
+ 
+  const { propertyType, base, residential, commercial, land, agricultural, draftId } =
     useSelector((state: any) => state.postProperty);
+
+
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [showErrors, setShowErrors] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
     const token = Cookies.get("token");
@@ -90,17 +95,19 @@ export default function BasicDetailsStep() {
   const selectedCommercialType = commercial.propertyType;
   const commercialSubTypes =
     propertyType === "commercial" &&
-      selectedCommercialType &&
-      COMMERCIAL_SUBTYPE_MAP[
+    selectedCommercialType &&
+    COMMERCIAL_SUBTYPE_MAP[
       selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
-      ]
+    ]
       ? (COMMERCIAL_SUBTYPE_MAP[
-        selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
-      ] as readonly string[])
+          selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
+        ] as readonly string[])
       : [];
 
-  const contactLabel = base.listingType === "sale" ? "Your contact details for buyers to reach you" : "Your contact details for tenants to reach you";
-
+  const contactLabel =
+    base.listingType === "sale"
+      ? "Your contact details for buyers to reach you"
+      : "Your contact details for tenants to reach you";
 
   const landSubTypes =
     propertyType === "land"
@@ -183,10 +190,11 @@ export default function BasicDetailsStep() {
                       );
                     }
                   }}
-                  className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition-all ${isSelected
+                  className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition-all ${
+                    isSelected
                       ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500"
                       : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-                    }`}
+                  }`}
                 >
                   <span className="text-2xl">{sub.icon}</span>
                   <span className="text-xs font-medium">{sub.label}</span>
@@ -222,10 +230,11 @@ export default function BasicDetailsStep() {
                       }),
                     );
                   }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
+                    isSelected
                       ? "border-green-500 bg-green-50 text-green-600"
                       : "border-gray-300 text-gray-700"
-                    }`}
+                  }`}
                 >
                   {subType.replace("-", " ").toUpperCase()}
                 </button>
@@ -256,10 +265,11 @@ export default function BasicDetailsStep() {
                       }),
                     );
                   }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
+                    isSelected
                       ? "border-green-500 bg-green-50 text-green-600"
                       : "border-gray-300 text-gray-700"
-                    }`}
+                  }`}
                 >
                   {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
@@ -291,10 +301,11 @@ export default function BasicDetailsStep() {
                       }),
                     );
                   }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
+                    isSelected
                       ? "border-green-500 bg-green-50 text-green-600"
                       : "border-gray-300 text-gray-700"
-                    }`}
+                  }`}
                 >
                   {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
@@ -415,14 +426,35 @@ export default function BasicDetailsStep() {
       <button
         onClick={() => {
           setShowErrors(true);
-          if (isFormValid) {
-            console.log("BasicDetailsStep Data:", {
-              base,
-              propertyType,
-              files,
+
+          if (!isFormValid || !draftId) return;
+
+          const profileData =
+            propertyType === "residential"
+              ? residential
+              : propertyType === "commercial"
+                ? commercial
+                : propertyType === "land"
+                  ? land
+                  : agricultural;
+
+          dispatch(
+            submitBasicThunk({
+              category: propertyType,
+              id: draftId,
+              data: {
+                ...base,
+                ...profileData,
+              },
+            }),
+          )
+            .unwrap()
+            .then(() => {
+              dispatch(nextStep());
+            })
+            .catch((err) => {
+              console.error("Basic step failed", err);
             });
-            dispatch(nextStep());
-          }
         }}
         className="px-4 py-2 btn-primary cursor-pointer text-white rounded disabled:opacity-50"
       >
