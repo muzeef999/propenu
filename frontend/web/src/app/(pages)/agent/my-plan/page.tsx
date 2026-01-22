@@ -26,17 +26,10 @@ export default function BuilderPlansPage() {
 
 
   return (
-    <div className="p-6 container">
+    <div className="max-w-4xl">
      
      <ActivePlanCard my_subscription={my_subscrpition} />
-
-     
-      <h1 className="text-2xl font-bold mb-4">Agent Subscription Plans</h1>
-      <PricingComparisonTable
-        plans={plans}
-        features={agentFeatures}
-        userType="agent"
-      />
+      
     </div>
   );
 }

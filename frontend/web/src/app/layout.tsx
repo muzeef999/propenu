@@ -40,8 +40,10 @@ export default function RootLayout({
       </head>
 
       {/* Only head & body may be direct children of html */}
-      <body className={`${poppins.variable} antialiased`}>
-        {/* Providers must be inside <body>, not wrapping it */}
+      <body
+        suppressHydrationWarning
+        className={`${poppins.variable} antialiased`}
+      >
         <ClientProviders>{children}</ClientProviders>
       </body>
     </html>

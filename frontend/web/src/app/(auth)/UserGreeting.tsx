@@ -26,22 +26,22 @@ const GreetingOptions = [
 
 const AgentOptions = [
   { label: "Dashboard", link: "/agent" },
-  { label: "My Plans", link: "/agent/my-plan" },
-  { label: "My Property", link: "/agent/my-properties" },
-  { label: "Account & Settings", link: "/agent/account-settings" },
+  { label: "My Properties", link: "/agent/my-properties" },
   { label: "Leads", link: "/agent/leads" },
-
+  { label: "My Plans", link: "/agent/my-plan" },
+  { label: "Account & Settings", link: "/agent/account-settings" },
 ];
+
 
 
 const BuilderOptions = [
   { label: "Dashboard", link: "/builder" },
-  { label: "My Plans", link: "/builder/plans" },
+  { label: "My Properties", link: "/builder/my-properties" },
   { label: "Leads", link: "/builder/leads" },
-  { label: "My Property", link: "/builder/my-properties" },
+  { label: "My Plans", link: "/builder/plans" },
   { label: "Account & Settings", link: "/builder/account-settings" },
-
 ];
+
 
 const UserGreeting = ({ user }: UserGreetingProps) => {
   const router = useRouter();

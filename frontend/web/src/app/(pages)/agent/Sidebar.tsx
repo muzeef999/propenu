@@ -16,13 +16,13 @@ const menuItems = [
     icon: profile,
   },
   {
-    label: "Leads",
-    link: "/agent/leads",
+    label: "My Properties",
+    link: "/agent/my-properties",
     icon: Building,
   },
   {
-    label: "MyProperties",
-    link: "/agent/my-properties",
+    label: "Leads",
+    link: "/agent/leads",
     icon: Building,
   },
   {
@@ -31,11 +31,12 @@ const menuItems = [
     icon: Subscription,
   },
   {
-    label: "Account Settings",
+    label: "Account & Settings",
     link: "/agent/account-settings",
     icon: Subscription,
   },
 ];
+
 
 const Sidebar = () => {
   const bgColor = hexToRGBA("#27AE60", 0.1);

@@ -467,7 +467,7 @@ const AgentProfilePage = () => {
   }, [agent, handleEditStart]);
 
   return (
-    <div className="container space-y-8 mx-auto max-w-7xl py-8">
+    <div className="space-y-8 mx-auto max-w-7xl py-1">
       {/* ================= COVER & AVATAR ================= */}
       <div className="relative">
         {/* Cover Image */}
