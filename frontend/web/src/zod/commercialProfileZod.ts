@@ -34,7 +34,7 @@ export const commercialProfileSchema = z.object({
 
   zoning: z.string().optional(),
 
-  fireSafety: z.record(z.boolean()).optional(),
+  fireSafety: z.boolean().optional(),
 
   description: z
     .string()
