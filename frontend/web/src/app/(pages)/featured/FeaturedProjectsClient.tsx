@@ -36,7 +36,7 @@ export default function FeaturedProjectsClient({ items = [] }: Props) {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="headingSideBar">
           <h1 className="text-base font-bold sm:text-2xl truncate">
-            Prime Properties
+            Prime Projects
           </h1>
 
           <p className="mt-1 text-sm text-gray-500 sm:text-base">
@@ -57,12 +57,12 @@ export default function FeaturedProjectsClient({ items = [] }: Props) {
       {/* Scrollable Row */}
       <div
         ref={sliderRef}
-        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar py-2 snap-x snap-mandatory"
+        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-1 py-2 snap-x snap-mandatory"
       >
         {items.map((project) => (
           <div
             key={project._id}
-            className="shrink-0 w-[90%] sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.33%-0.66rem)] card snap-start group"
+            className="shrink-0 w-[90%] sm:w-[calc(50%-0.5rem)] lg:w-[calc(50%-0.5rem)] card snap-start group"
           >
             <Link
               href={`/featured/${project.slug}`}
