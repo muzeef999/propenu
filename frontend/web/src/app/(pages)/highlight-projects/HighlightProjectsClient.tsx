@@ -6,6 +6,7 @@ import { FeaturedProject } from "@/types";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import { useCity } from "@/hooks/useCity";
 import formatINR from "@/utilies/PriceFormat";
+import { RiArrowRightSLine } from "react-icons/ri";
 
 interface Props {
   items?: FeaturedProject[];
@@ -30,7 +31,9 @@ export default function HighlightProjectsClient({ items = [] }: Props) {
   return (
     <div className="relative w-full">
       {/* Header Section */}
-      <div className="headingSideBar">
+      <div className="flex items-center justify-between gap-3">
+
+        <div className="headingSideBar">
           <h1 className="text-base font-bold sm:text-2xl truncate">
             Highlight Projects
           </h1>
@@ -39,6 +42,15 @@ export default function HighlightProjectsClient({ items = [] }: Props) {
             Popular projects in {selectedCity?.city ?? "Hyderabad"}
           </p>
         </div>
+        <Link
+          href="/featured"
+          aria-label="View all featured properties"
+          className="shrink-0 flex items-center gap-1 text-sm sm:text-base
+               text-green-600 hover:text-green-700 font-medium whitespace-nowrap"
+        >
+          View All <RiArrowRightSLine size={18} />
+        </Link>
+      </div>
 
       {/* Navigation Buttons */}
       {/* Left button */}
@@ -59,16 +71,12 @@ export default function HighlightProjectsClient({ items = [] }: Props) {
         <ArrowDropdownIcon size={16} className="rotate-270" />
       </button>
 
-      
+
 
       {/* Scrollable Container */}
       <div
         ref={sliderRef}
-        className="
-    flex gap-4 sm:gap-6
-    overflow-x-auto scroll-smooth no-scrollbar
-    pb-6 snap-x snap-mandatory px-1
-  "
+        className="flex gap-4 sm:gap-6 overflow-x-auto scroll-smooth no-scrollbar pb-6 snap-x snap-mandatory px-1"
       >
         {items.map((project) => (
           <Link

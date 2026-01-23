@@ -13,9 +13,7 @@ export default function Home() {
   return (
     <div>
       <SearchBox />
-      <br />
-      <br />
-      <div className="container mx-auto  space-y-5">
+      <div className="container mx-auto  space-y-10">
         <FeaturedProjectsServer />
         <HighlightProjectsServer />
         <GetOwnerProperties />
