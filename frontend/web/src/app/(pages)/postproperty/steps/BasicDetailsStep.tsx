@@ -29,6 +29,7 @@ import CounterField from "@/ui/CounterField";
 import Dropdownui from "@/ui/DropDownUI";
 import { FACING_TYPES } from "../profile/ResidentialProfile";
 import { numberToWords } from "@/utilies/NumberToWord";
+import { property } from "zod";
 
 export default function BasicDetailsStep() {
   const {
@@ -40,6 +41,12 @@ export default function BasicDetailsStep() {
     agricultural,
     draftId,
   } = useSelector((state: any) => state.postProperty);
+  const WALL_FINISH_STATUS = [
+    "no-partitions",
+    "brick-walls",
+    "cement-block-walls",
+    "plastered-walls",
+  ] as const;
 
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [showErrors, setShowErrors] = useState(false);
@@ -95,16 +102,18 @@ export default function BasicDetailsStep() {
     {
       ...base,
       propertyType: categoryState?.propertyType || base.propertyType,
-      price: residential.price || "",
-      carpetArea: residential.carpetArea || "",
-      builtUpArea: residential.builtUpArea || "",
-      constructionStatus: residential.constructionStatus || "",
-      transactionType: residential.transactionType || "",
-      bedrooms: residential.bedrooms || "",
-      bathrooms: residential.bathrooms || "",
-      balconies: residential.balconies || "",
-      furnishing: residential.furnishing || "",
-      facing: residential.facing || "",
+      price: residential.price,
+      carpetArea: residential.carpetArea,
+      builtUpArea: residential.builtUpArea,
+      constructionStatus: residential.constructionStatus,
+      transactionType: residential.transactionType,
+      bedrooms: residential.bedrooms,
+      bathrooms: residential.bathrooms,
+      balconies: residential.balconies,
+      furnishing: residential.furnishing,
+      facing: residential.facing,
+      propertyAge: residential.propertyAge,
+      possessionDate: residential.possessionDate,
     },
     propertyType,
   );
@@ -134,13 +143,13 @@ export default function BasicDetailsStep() {
   const selectedCommercialType = commercial.propertyType;
   const commercialSubTypes =
     propertyType === "commercial" &&
-      selectedCommercialType &&
-      COMMERCIAL_SUBTYPE_MAP[
+    selectedCommercialType &&
+    COMMERCIAL_SUBTYPE_MAP[
       selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
-      ]
+    ]
       ? (COMMERCIAL_SUBTYPE_MAP[
-        selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
-      ] as readonly string[])
+          selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
+        ] as readonly string[])
       : [];
 
   const contactLabel =
@@ -219,9 +228,14 @@ export default function BasicDetailsStep() {
         })}
       </div>
 
-      <h2 className="text-sm font-medium  text-gray-700">Property Type</h2>
+      {/* ✅ ERROR MESSAGE BELOW BUTTON GROUP */}
+      {showErrors && fieldErrors.listingType?.[0] && (
+        <p className="text-xs text-red-500">{fieldErrors.listingType[0]}</p>
+      )}
 
-      <div className="mb-6 flex  items-center gap-6">
+      <h2 className="text-sm font-medium text-gray-700">Property Type</h2>
+
+      <div className="mb-2 flex items-center gap-6">
         {["residential", "commercial", "land", "agricultural"].map((type) => (
           <label
             key={type}
@@ -241,6 +255,11 @@ export default function BasicDetailsStep() {
         ))}
       </div>
 
+      {/* ✅ ERROR MESSAGE */}
+      {showErrors && fieldErrors.category?.[0] && (
+        <p className="mt-1 text-xs text-red-500">{fieldErrors.category[0]}</p>
+      )}
+
       {subTypes.length > 0 && (
         <div className="mb-6">
           <p className="mb-3 text-sm font-medium text-gray-700">
@@ -248,40 +267,49 @@ export default function BasicDetailsStep() {
           </p>
           <div className="space-y-6">
             {/* PROPERTY SUB TYPES */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-              {subTypes.map((sub) => {
-                const isSelected = categoryState?.propertyType === sub.key;
+            <div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                {subTypes.map((sub) => {
+                  const isSelected = categoryState?.propertyType === sub.key;
 
-                return (
-                  <button
-                    key={sub.key}
-                    type="button"
-                    onClick={() => {
-                      if (propertyType) {
-                        dispatch(
-                          setProfileField({
-                            propertyType: propertyType as any,
-                            key: "propertyType",
-                            value: sub.key,
-                          }),
-                        );
-                        if (propertyType === "residential") {
-                          setShowRoomDetails(true);
+                  return (
+                    <button
+                      key={sub.key}
+                      type="button"
+                      onClick={() => {
+                        if (propertyType) {
+                          dispatch(
+                            setProfileField({
+                              propertyType: propertyType as any,
+                              key: "propertyType",
+                              value: sub.key,
+                            }),
+                          );
+                          if (propertyType === "residential") {
+                            setShowRoomDetails(true);
+                          }
                         }
-                      }
-                    }}
-                    className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition-all
-            ${isSelected
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500"
-                        : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-                      }
+                      }}
+                      className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition-all
+            ${
+              isSelected
+                ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500"
+                : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+            }
           `}
-                  >
-                    <span className="text-2xl">{sub.icon}</span>
-                    <span className="text-xs font-medium">{sub.label}</span>
-                  </button>
-                );
-              })}
+                    >
+                      <span className="text-2xl">{sub.icon}</span>
+                      <span className="text-xs font-medium">{sub.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {showErrors && fieldErrors.propertyType?.[0] && (
+                <p className="mt-2 text-xs text-red-500">
+                  {fieldErrors.propertyType[0]}
+                </p>
+              )}
             </div>
 
             {/* RESIDENTIAL DETAILS */}
@@ -303,6 +331,7 @@ export default function BasicDetailsStep() {
                       );
                       setShowFurnishingFacing(true);
                     }}
+                    error={fieldErrors.bedrooms?.[0]}
                   />
 
                   <CounterField
@@ -319,6 +348,7 @@ export default function BasicDetailsStep() {
                       );
                       setShowFurnishingFacing(true);
                     }}
+                    error={fieldErrors.bathrooms?.[0]}
                   />
 
                   <CounterField
@@ -368,10 +398,11 @@ export default function BasicDetailsStep() {
                                 )
                               }
                               className={`px-5 py-2 rounded-md text-sm border transition
-                  ${active
-                                  ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                                  : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                                }
+                  ${
+                    active
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }
                 `}
                             >
                               {item.label}
@@ -380,6 +411,11 @@ export default function BasicDetailsStep() {
                         })}
                       </div>
                     </div>
+                    {showErrors && fieldErrors.furnishing?.[0] && (
+                      <p className="text-xs text-red-500">
+                        {fieldErrors.furnishing[0]}
+                      </p>
+                    )}
 
                     {/* Facing */}
                     <Dropdownui
@@ -400,6 +436,7 @@ export default function BasicDetailsStep() {
                         label: t,
                       }))}
                       placeholder="Select"
+                      error={fieldErrors.facing?.[0]}
                     />
                   </div>
                 )}
@@ -410,41 +447,239 @@ export default function BasicDetailsStep() {
       )}
 
       {commercialSubTypes.length > 0 && (
-        <div className="mb-6">
-          <p className="mb-3 text-sm font-medium text-gray-700">
-            Specific Type for{" "}
-            <span className="capitalize">
-              {selectedCommercialType?.replace("-", " ")}
-            </span>
-          </p>
-          <div className="flex flex-wrap gap-3">
-            {commercialSubTypes.map((subType: string) => {
-              const isSelected =
-                (commercial as any).commercialSubType === subType;
-              return (
-                <button
-                  key={subType}
-                  type="button"
-                  onClick={() => {
+        <>
+          {/* Commercial Sub Types */}
+          <div className="mb-6">
+            <p className="mb-3 text-sm font-medium text-gray-700">
+              Specific Type for{" "}
+              <span className="capitalize">
+                {selectedCommercialType?.replace("-", " ")}
+              </span>
+            </p>
+
+            <div className="flex flex-wrap gap-3">
+              {commercialSubTypes.map((subType: string) => {
+                const isSelected =
+                  (commercial as any).commercialSubType === subType;
+
+                return (
+                  <button
+                    key={subType}
+                    type="button"
+                    onClick={() =>
+                      dispatch(
+                        setProfileField({
+                          propertyType: "commercial",
+                          key: "commercialSubType",
+                          value: subType,
+                        }),
+                      )
+                    }
+                    className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
+                      isSelected
+                        ? "border-green-500 bg-green-50 text-green-600"
+                        : "border-gray-300 text-gray-700"
+                    }`}
+                  >
+                    {subType.replace("-", " ").toUpperCase()}
+                  </button>
+                );
+              })}
+            </div>
+            {showErrors && fieldErrors.commercialSubType?.[0] && (
+              <p className="text-xs text-red-500 mt-2">
+                {fieldErrors.commercialSubType[0]}
+              </p>
+            )}
+          </div>
+
+          {/* Cabins & Seats - Show only if commercialSubType is selected */}
+          {commercial.commercialSubType && (
+            <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 md:grid-cols-4">
+              <CounterField
+                label="Cabins"
+                value={commercial.cabins || 0}
+                min={0}
+                onChange={(value) =>
+                  dispatch(
+                    setProfileField({
+                      propertyType: "commercial",
+                      key: "cabins",
+                      value,
+                    }),
+                  )
+                }
+                error={fieldErrors.cabins?.[0]}
+              />
+
+              <CounterField
+                label="Seats"
+                value={commercial.seats || 0}
+                min={0}
+                onChange={(value) =>
+                  dispatch(
+                    setProfileField({
+                      propertyType: "commercial",
+                      key: "seats",
+                      value,
+                    }),
+                  )
+                }
+                error={fieldErrors.seats?.[0]}
+              />
+            </div>
+          )}
+
+          {/* Furnishing & Wall Finish - Show only if Cabins or Seats has a value */}
+          {(commercial.cabins > 0 || commercial.seats > 0) && (
+            <div className="grid grid-cols-1 md:grid-cols-[1.2fr_145px] gap-1 items-start">
+              {/* Furnishing */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700">Furnishing</p>
+
+                <div className="flex gap-5">
+                  {[
+                    { label: "Furnished", value: "fully-furnished" },
+                    { label: "Semi furnished", value: "semi-furnished" },
+                    { label: "Un-furnished", value: "unfurnished" },
+                  ].map((item) => (
+                    <SelectableButton
+                      key={item.value}
+                      label={item.label}
+                      active={commercial.furnishing === item.value}
+                      onClick={() =>
+                        dispatch(
+                          setProfileField({
+                            propertyType: "commercial",
+                            key: "furnishing",
+                            value: item.value,
+                          }),
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Wall Finish */}
+              <Dropdownui
+                label="Wall Finish"
+                value={
+                  WALL_FINISH_STATUS.find(
+                    (t) => t === commercial.wallFinishStatus,
+                  ) || null
+                }
+                onChange={(value) =>
+                  dispatch(
+                    setProfileField({
+                      propertyType: "commercial",
+                      key: "wallFinishStatus",
+                      value,
+                    }),
+                  )
+                }
+                options={WALL_FINISH_STATUS.map((t) => ({
+                  value: t,
+                  label: t.replace(/-/g, " "),
+                }))}
+                placeholder="Select"
+                error={fieldErrors.wallFinishStatus?.[0]}
+              />
+            </div>
+          )}
+
+          {/* Price Details - Show only if Wall Finish is selected */}
+          {commercial.wallFinishStatus && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+              {/* Total Price */}
+              <div className="flex flex-col">
+                <InputField
+                  label="Total Price"
+                  value={residential.price || ""}
+                  placeholder="e.g. 75,00,000"
+                  error={fieldErrors.price?.[0]}
+                  onChange={(value) =>
                     dispatch(
                       setProfileField({
-                        propertyType: "commercial",
-                        key: "commercialSubType",
-                        value: subType,
+                        propertyType: "residential",
+                        key: "price",
+                        value: value.replace(/\D/g, ""),
                       }),
-                    );
-                  }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
-                      ? "border-green-500 bg-green-50 text-green-600"
-                      : "border-gray-300 text-gray-700"
-                    }`}
+                    )
+                  }
+                />
+
+                {/* Price in words */}
+                {commercial.price && (
+                  <p className="mt-1 text-xs text-gray-500 italic">
+                    ₹ {numberToWords(Number(commercial.price))}
+                    {commercial.pricePerSqft && (
+                      <>
+                        {" "}
+                        (₹ {commercial.pricePerSqft.toLocaleString()} per
+                        sq.ft.)
+                      </>
+                    )}
+                  </p>
+                )}
+              </div>
+
+              {/* Carpet Area */}
+              <InputField
+                label="Carpet Area (sq ft)"
+                value={commercial.carpetArea || ""}
+                placeholder="e.g. 1200"
+                error={fieldErrors.carpetArea?.[0]}
+                onChange={(value) =>
+                  dispatch(
+                    setProfileField({
+                      propertyType: "commercial",
+                      key: "carpetArea",
+                      value: value.replace(/\D/g, ""),
+                    }),
+                  )
+                }
+              />
+              {/* Price / sq ft */}
+              <div className="flex flex-col">
+                <InputField
+                  label="Price / sq ft"
+                  value={commercial.pricePerSqft || ""}
+                  placeholder="Auto calculated"
+                  disabled
+                  onChange={() => {}}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => dispatch(setStep(1))}
+                  className="mt-1 flex items-center gap-1 text-xs text-gray-400 hover:text-green-600 self-start"
                 >
-                  {subType.replace("-", " ").toUpperCase()}
+                  Based on
+                  <span className="font-medium underline">Carpet Area</span>
+                  <span className="text-[10px]">▼</span>
                 </button>
-              );
-            })}
-          </div>
-        </div>
+              </div>
+
+              {/* Built-up Area */}
+              <InputField
+                label="Built-up Area (sq ft)"
+                value={commercial.builtUpArea || ""}
+                placeholder="Optional"
+                error={fieldErrors.builtUpArea?.[0]}
+                onChange={(value) =>
+                  dispatch(
+                    setProfileField({
+                      propertyType: "commercial",
+                      key: "builtUpArea",
+                      value: value.replace(/\D/g, ""),
+                    }),
+                  )
+                }
+              />
+            </div>
+          )}
+        </>
       )}
 
       {landSubTypes.length > 0 && (
@@ -468,10 +703,11 @@ export default function BasicDetailsStep() {
                       }),
                     );
                   }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
+                    isSelected
                       ? "border-green-500 bg-green-50 text-green-600"
                       : "border-gray-300 text-gray-700"
-                    }`}
+                  }`}
                 >
                   {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
@@ -503,10 +739,11 @@ export default function BasicDetailsStep() {
                       }),
                     );
                   }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
+                    isSelected
                       ? "border-green-500 bg-green-50 text-green-600"
                       : "border-gray-300 text-gray-700"
-                    }`}
+                  }`}
                 >
                   {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
@@ -525,6 +762,7 @@ export default function BasicDetailsStep() {
                 label="Total Price"
                 value={residential.price || ""}
                 placeholder="e.g. 75,00,000"
+                error={fieldErrors.price?.[0]}
                 onChange={(value) =>
                   dispatch(
                     setProfileField({
@@ -555,6 +793,7 @@ export default function BasicDetailsStep() {
               label="Carpet Area (sq ft)"
               value={residential.carpetArea || ""}
               placeholder="e.g. 1200"
+              error={fieldErrors.carpetArea?.[0]}
               onChange={(value) =>
                 dispatch(
                   setProfileField({
@@ -572,7 +811,7 @@ export default function BasicDetailsStep() {
                 value={residential.pricePerSqft || ""}
                 placeholder="Auto calculated"
                 disabled
-                onChange={() => { }}
+                onChange={() => {}}
               />
 
               <button
@@ -591,6 +830,7 @@ export default function BasicDetailsStep() {
               label="Built-up Area (sq ft)"
               value={residential.builtUpArea || ""}
               placeholder="Optional"
+              error={fieldErrors.builtUpArea?.[0]}
               onChange={(value) =>
                 dispatch(
                   setProfileField({
@@ -633,7 +873,6 @@ export default function BasicDetailsStep() {
                         }),
                       );
 
-                      // 🔴 IMPORTANT: reset propertyAge if not ready-to-move
                       if (item.value !== "ready-to-move") {
                         dispatch(
                           setProfileField({
@@ -645,10 +884,11 @@ export default function BasicDetailsStep() {
                       }
                     }}
                     className={`px-6 py-2 rounded-md text-sm border transition
-            ${active
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                        : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                      }
+            ${
+              active
+                ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                : "border-gray-300 text-gray-700 hover:bg-gray-50"
+            }
           `}
                   >
                     {item.label}
@@ -656,7 +896,15 @@ export default function BasicDetailsStep() {
                 );
               })}
             </div>
+
+            {/* ✅ ERROR */}
+            {showErrors && fieldErrors.constructionStatus?.[0] && (
+              <p className="text-xs text-red-500 mt-1">
+                {fieldErrors.constructionStatus[0]}
+              </p>
+            )}
           </div>
+
           {residential.constructionStatus === "ready-to-move" && (
             <div className="space-y-2">
               <p className="text-sm font-medium text-gray-700">Property Age</p>
@@ -684,10 +932,11 @@ export default function BasicDetailsStep() {
                         )
                       }
                       className={`px-6 py-2 rounded-md text-sm border transition
-              ${active
-                          ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                          : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                        }
+              ${
+                active
+                  ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                  : "border-gray-300 text-gray-700 hover:bg-gray-50"
+              }
             `}
                     >
                       {item.label}
@@ -742,10 +991,11 @@ export default function BasicDetailsStep() {
                       )
                     }
                     className={`px-6 py-2 rounded-md text-sm border transition
-                ${active
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                        : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                      }
+                ${
+                  active
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                }
               `}
                   >
                     {item.label}
@@ -754,6 +1004,11 @@ export default function BasicDetailsStep() {
               })}
             </div>
           </div>
+          {showErrors && fieldErrors.transactionType?.[0] && (
+            <p className="text-xs text-red-500 mt-1">
+              {fieldErrors.transactionType[0]}
+            </p>
+          )}
         </div>
       )}
 
@@ -809,7 +1064,11 @@ export default function BasicDetailsStep() {
           console.log("Debbug 2");
           console.log(isFormValid);
 
-          if (!isFormValid || !draftId) return;
+          if (!isFormValid || !draftId) {
+            console.error("❌ Validation failed");
+            console.table(validationResult.error?.flatten().fieldErrors);
+            return;
+          }
           console.log("Debbug 3");
 
           const profileData =

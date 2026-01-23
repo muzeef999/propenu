@@ -7,7 +7,7 @@ import type { AppDispatch } from "@/Redux/store";
 import { useEffect, useState } from "react";
 
 import { setBaseField, nextStep } from "@/Redux/slice/postPropertySlice";
-import { validateLocationDetails } from "@/zod/locationDetailsZod";
+import { validateLocationDetails, getLocationFieldError } from "@/zod/locationDetailsZod";
 import InputField from "@/ui/InputField";
 import TextArea from "@/ui/TextArae";
 
@@ -108,14 +108,11 @@ const LocationDetailsStep = () => {
       .join(" ");
   };
 
-  const getCustomError = (key: string, msg: string) => {
-    const error = (fieldErrors as any)?.[key]?.[0];
-    if (!error) return undefined;
-    if (error.includes("expected string") || error === "Required") {
-      return msg;
-    }
-    return error;
+  const getError = (key: string) => {
+    if (!showErrors) return undefined;
+    return getLocationFieldError(fieldErrors, key);
   };
+
 
   // ✅ FIXED PINCODE HANDLER (NO CAPS)
   const handlePincodeChange = (value: string) => {
@@ -170,7 +167,7 @@ const LocationDetailsStep = () => {
             }),
           )
         }
-        error={getCustomError("address", "Enter property address")}
+        error={getError("address")}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-[60%_1fr] gap-4">
@@ -192,11 +189,8 @@ const LocationDetailsStep = () => {
               }),
             )
           }
-          error={getCustomError(
-            isLandOrAgri ? "landName" : "buildingName",
-            isLandOrAgri
-              ? "Enter Project / Layout name"
-              : "Enter Building / Society name",
+          error={getError(
+            isLandOrAgri ? "landName" : "buildingName"
           )}
         />
 
@@ -205,7 +199,7 @@ const LocationDetailsStep = () => {
           value={base.pincode || ""}
           placeholder="e.g. 500033"
           onChange={handlePincodeChange}
-          error={getCustomError("pincode", "Enter valid pincode")}
+          error={getError("pincode")}
         />
       </div>
 
@@ -223,7 +217,7 @@ const LocationDetailsStep = () => {
               }),
             )
           }
-          error={getCustomError("locality", "Enter locality")}
+          error={getError("locality")}
         />
 
         <InputField
@@ -238,7 +232,7 @@ const LocationDetailsStep = () => {
               }),
             )
           }
-          error={getCustomError("city", "Enter city")}
+          error={getError("city")}
         />
 
         <InputField
@@ -253,7 +247,7 @@ const LocationDetailsStep = () => {
               }),
             )
           }
-          error={getCustomError("state", "Enter state")}
+          error={getError("state")}
         />
       </div>
 

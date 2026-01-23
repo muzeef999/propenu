@@ -123,9 +123,14 @@ export const submitDetailsThunk = createAsyncThunk(
 
 export const submitVerificationThunk = createAsyncThunk(
   "postProperty/verification",
-  async ({ category, id, data }: any) => {
-    console.log("🚀 [FINAL] category:", category, "id:", id);
-    console.log("🚀 [FINAL] payload:", data);
-    return await finalizeApi(category, id, data);
+  async ({ category, id, payload }: any, { rejectWithValue }) => {
+    try {
+      console.log("🧪 Thunk payload:", payload); // sanity check
+
+      return await finalizeApi(category, id, payload);
+    } catch (err: any) {
+      return rejectWithValue(err.message || "Verification failed");
+    }
   }
 );
+

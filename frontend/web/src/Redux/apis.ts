@@ -53,9 +53,38 @@ export const updateDetailsApi = async (
 
 /* ---------------- VERIFICATION ---------------- */
 
-export const finalizeApi = async (category: string, id: string, data: any) => {
-  return stepPatch(category, id, "verification", data);
+export const finalizeApi = async (
+  category: string,
+  id: string,
+  payload: any
+) => {
+  const res = await fetch(
+    `${url}/api/properties/${category}/${id}/verification`,
+    {
+      method: "PATCH",
+      headers: {
+        ...authHeader(),
+        "Content-Type": "application/json", // ✅ REQUIRED
+      },
+      body: JSON.stringify({
+        reraRegistrationNumber: payload.reraRegistrationNumber,
+        approvals: payload.approvals,
+        litigation: payload.litigation,
+      }),
+    }
+  );
+
+  const text = await res.text();
+  console.log("🧾 Raw verification response:", text.slice(0, 200));
+
+  try {
+    if (!res.ok) throw JSON.parse(text);
+    return JSON.parse(text);
+  } catch {
+    throw new Error("Verification API returned invalid response");
+  }
 };
+
 
 /* ---------------- helper ---------------- */
 

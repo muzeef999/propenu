@@ -11,9 +11,13 @@ import { useAppDispatch } from "@/Redux/store";
 import { FACING_TYPES } from "./ResidentialProfile";
 import Dropdownui from "@/ui/DropDownUI";
 import Toggle from "@/ui/ToggleSwitch";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import SelectableButton from "@/ui/SelectableButton";
 import { submitDetailsThunk } from "@/Redux/thunks/submitPropertyApi";
+import { validateCommercialProfile } from "@/zod/commercialProfileZod";
+import { toast } from "sonner";
+import Router from "next/router";
+import confetti from "canvas-confetti";
 
 export const TRANSACTION_TYPES = [
   "new-sale",
@@ -31,13 +35,6 @@ export const CONSTRUCTION_STATUS = [
 
 export const PANTRY_TYPES = ["none", "shared", "no-shared"] as const;
 
-export const WALL_FINISH_STATUS = [
-  "no-partitions",
-  "brick-walls",
-  "cement-block-walls",
-  "plastered-walls",
-] as const;
-
 export const FLOORING_TYPES = [
   "bare-cement",
   "vitrified-tiles",
@@ -50,8 +47,10 @@ export const FLOORING_TYPES = [
 ] as const;
 
 const CommercialProfile = () => {
-  const { commercial } = useSelector((state: any) => state.postProperty);
+  const { commercial, draftId, propertyType } = useSelector((state: any) => state.postProperty);
   const dispatch = useAppDispatch();
+    const [showErrors, setShowErrors] = useState(false);
+  
   useEffect(() => {
     const price = Number(commercial.price) || Number(commercial.expectedPrice);
     const area = Number(commercial.carpetArea);
@@ -90,90 +89,7 @@ const CommercialProfile = () => {
     <div className="space-y-8">
       {/* ========== PROPERTY BASICS ========== */}
       <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 md:grid-cols-4">
-          <CounterField
-            label="Cabins"
-            value={commercial.cabins || 0}
-            min={0}
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "commercial",
-                  key: "cabins",
-                  value,
-                })
-              )
-            }
-          />
-          <CounterField
-            label="Seats"
-            value={commercial.seats || 0}
-            min={0}
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "commercial",
-                  key: "seats",
-                  value,
-                })
-              )
-            }
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-[1.2fr_145px] gap-1 items-start">
-          {/* Furnishing */}
-
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-700">Furnishing</p>
-
-            <div className="flex gap-5">
-              {[
-                { label: "Furnished", value: "fully-furnished" },
-                { label: "Semi furnished", value: "semi-furnished" },
-                { label: "Un-furnished", value: "unfurnished" },
-              ].map((item) => {
-                const active = commercial.furnishing === item.value;
-
-                return (
-                  <SelectableButton
-                    key={item.value}
-                    label={item.label}
-                    active={active}
-                    onClick={() =>
-                      dispatch(
-                        setProfileField({
-                          propertyType: "commercial",
-                          key: "furnishing",
-                          value: item.value,
-                        })
-                      )
-                    }
-                  />
-                );
-              })}
-            </div>
-          </div>
-          {/* Wall Finish */}
-          <Dropdownui
-            label="Wall Finish"
-            value={commercial.wallFinishStatus || null}
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "commercial",
-                  key: "wallFinishStatus",
-                  value,
-                })
-              )
-            }
-            options={WALL_FINISH_STATUS.map((t) => ({
-              value: t,
-              label: t.replace(/-/g, " "),
-            }))}
-            placeholder="Select"
-          />
-        </div>
+        
         <div>
           <AmenitiesSelect
             label="Amenities"
@@ -373,66 +289,8 @@ const CommercialProfile = () => {
           </div>
         </div>
 
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">
-            Availability Status
-          </p>
-
-          <div className="flex gap-5">
-            {[
-              { label: "Ready to Move", value: "ready-to-move" },
-              { label: "Under Construction", value: "under-construction" },
-            ].map((item) => {
-              const active = commercial.constructionStatus === item.value;
-
-              return (
-                <SelectableButton
-                  key={item.value}
-                  label={item.label}
-                  active={active}
-                  onClick={() =>
-                    dispatch(
-                      setProfileField({
-                        propertyType: "commercial",
-                        key: "constructionStatus",
-                        value: item.value,
-                      })
-                    )
-                  }
-                />
-              );
-            })}
-          </div>
-        </div>
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">Transaction Type</p>
-
-          <div className="flex gap-5">
-            {[
-              { label: "New Sale", value: "new-sale" },
-              { label: "Resale", value: "resale" },
-            ].map((item) => {
-              const active = commercial.transactionType === item.value;
-
-              return (
-                <SelectableButton
-                  key={item.value}
-                  label={item.label}
-                  active={active}
-                  onClick={() =>
-                    dispatch(
-                      setProfileField({
-                        propertyType: "commercial",
-                        key: "transactionType",
-                        value: item.value,
-                      })
-                    )
-                  }
-                />
-              );
-            })}
-          </div>
-        </div>
+       
+        
         {commercial.constructionStatus === "ready-to-move" && (
           <div className="space-y-2">
             <p className="text-sm font-medium text-gray-700">Property Age</p>
@@ -753,66 +611,6 @@ const CommercialProfile = () => {
         </div>
       </div>
 
-      <div className="space-y-3">
-        <p className="text-sm font-medium text-gray-800">Price Details</p>
-
-        {/* Changed to grid-cols-4 for desktop, added items-end for alignment */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
-          <InputField
-            label="Total Price"
-            value={commercial.price || ""}
-            placeholder="e.g. 75,00,000"
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "commercial",
-                  key: "price",
-                  value: value.replace(/\D/g, ""),
-                })
-              )
-            }
-          />
-
-          <InputField
-            label="Carpet Area (sq ft)"
-            value={commercial.carpetArea || ""}
-            placeholder="e.g. 1200"
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "commercial",
-                  key: "carpetArea",
-                  value: value.replace(/\D/g, ""),
-                })
-              )
-            }
-          />
-
-          <InputField
-            label="Price / sq ft"
-            value={commercial.pricePerSqft || ""}
-            placeholder="Auto calculated"
-            disabled
-            onChange={() => {}}
-          />
-
-          <InputField
-            label="Built-up (sq ft)"
-            type="number"
-            value={commercial.builtUpArea || ""}
-            placeholder="eg. 2000"
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "commercial",
-                  key: "builtUpArea",
-                  value,
-                })
-              )
-            }
-          />
-        </div>
-      </div>
 
       <div
         className={`flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300 ${
@@ -868,13 +666,78 @@ const CommercialProfile = () => {
       <button
         type="button"
         onClick={() => {
-          dispatch(submitDetailsThunk(commercial))
+          setShowErrors(true);
+      
+          // ✅ FIX: convert amenities objects → string[] ONLY for validation
+          const payload = {
+            ...commercial,
+
+            amenities: Array.isArray(commercial.amenities)
+              ? commercial.amenities.map((a: any) => a?.title).filter(Boolean)
+              : [],
+          };
+      
+          const result = validateCommercialProfile(payload);
+      
+          if (!result.success) {
+            const flattened = result.error.flatten();
+      
+            console.error("❌ Residential Profile Validation Failed");
+            console.table(flattened.fieldErrors);
+            console.log("Full Zod Error:", result.error);
+      
+            toast.error("Please fix the highlighted errors");
+            return;
+          }
+      
+          // 🚀 IMPORTANT: send ORIGINAL residential object to backend
+          dispatch(
+            submitDetailsThunk({
+              category: propertyType,
+              id: draftId,
+              payload: commercial, // backend/thunk will format this
+            }),
+          )
             .unwrap()
             .then((response) => {
               console.log("Property submission successful:", response);
+              toast.success("Property submitted successfully");
+      
+              confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+              });
+      
+              Router.push("/my-properties");
             })
-            .catch((error) => {
-              console.error("Property submission failed:", error);
+            .catch((error: any) => {
+              console.log("🔥 FULL ERROR FROM API:", error);
+      
+              const errObj =
+                typeof error === "string"
+                  ? { message: error }
+                  : error?.response?.data || error;
+      
+              toast.error(errObj?.message || "Failed to submit property");
+      
+              if (
+                errObj?.code === "NO_VALID_PLAN" ||
+                errObj?.code === "PLAN_LIMIT_REACHED"
+              ) {
+                const listingType = commercial.listingType || "sale";
+      
+                const redirectUrl =
+                  listingType === "sale"
+                    ? "/plans/pricing/owner-sell"
+                    : "/plans/pricing/owner-rent";
+      
+                console.log("🚀 Redirecting to:", redirectUrl);
+      
+                setTimeout(() => {
+                  Router.push(redirectUrl);
+                }, 800);
+              }
             });
         }}
         className="py-2 btn-primary text-white rounded-md cursor-pointer w-full"

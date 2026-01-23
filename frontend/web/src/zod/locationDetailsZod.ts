@@ -15,21 +15,41 @@ const nearbyPlaceSchema = z.object({
 /* ---------------- Location Schema ---------------- */
 
 export const locationDetailsSchema = z.object({
-address: z.string().min(10, "Address must be at least 10 characters"),
-  city: z.string().min(1, "City is required"),
-  state: z.string().min(1, "State is required"),
-  pincode: z.string() .regex(/^\d{6}$/, "Pincode must be 6 digits"),
+  address: z.string({
+    message: "Address must be at least 10 characters",
+  }),
+
+  locality: z.string({
+    message: "Locality is required",
+  }),
+
+  city: z.string({
+    message: "City is required",
+  }),
+
+  state: z.string({
+    message: "State is required",
+  }),
+
+  pincode: z
+  .string({ message: "Pincode is required" })
+  .regex(/^\d+$/, "Pincode must contain only numbers")
+  .length(6, "Pincode must be 6 digits"),
+
+
+  buildingName: z.string({
+    message: "Building name is required",
+  }),
+  landName: z.string().optional(),
 
   location: z.object({
     type: z.literal("Point"),
-    coordinates: z.tuple([
-      z.number(), 
-      z.number(), 
-    ]),
+    coordinates: z.tuple([z.number(), z.number()]),
   }),
 
   nearbyPlaces: z.array(nearbyPlaceSchema).optional(),
 });
+
 
 /* ---------------- Types ---------------- */
 
@@ -39,14 +59,21 @@ export type LocationDetailsForm = z.infer<
 
 /* ---------------- Validator ---------------- */
 
-export const validateLocationDetails = ( base: any,
-) => {
+export const validateLocationDetails = (base: any) => {
   return locationDetailsSchema.safeParse({
     address: base.address,
+    locality: base.locality,
     city: base.city,
     state: base.state,
     pincode: base.pincode,
+    buildingName: base.buildingName,
+    landName: base.landName,
     location: base.location,
-    nearbyPlaces :base.nearbyPlaces,
+    nearbyPlaces: base.nearbyPlaces,
   });
 };
+
+export const getLocationFieldError = (fieldErrors: any, fieldName: string): string | undefined => {
+  return fieldErrors?.[fieldName]?.[0];
+};
+

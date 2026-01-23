@@ -192,9 +192,9 @@ const RegisterDialog = ({
             <h2 className="text-2xl font-semibold text-gray-900">
               {step === "details" ? "Create an Account" : "Verify OTP"}
             </h2>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-1  text-sm text-gray-500">
               {step === "details"
-                ? "Join Propenu to find your perfect property."
+                ? "Trust begins with verified users. Get started now!"
                 : `Enter the code sent to ${formData.email}`}
             </p>
           </div>

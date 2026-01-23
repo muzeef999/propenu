@@ -3,27 +3,45 @@ import { z } from "zod";
 export const residentialProfileSchema = z.object({
   amenities: z.array(z.string()).optional(),
 
-  parkingType: z.string().optional(),
+  parkingType: z.enum(["open", "closed", "both"]).optional(),
 
   parkingDetails: z
     .object({
-      twoWheeler: z.number().min(0),
-      fourWheeler: z.number().min(0),
+      twoWheeler: z.number().min(0, "Cannot be negative"),
+      fourWheeler: z.number().min(0, "Cannot be negative"),
     })
     .optional(),
 
-  flooringType: z.string().optional(),
+  flooringType: z
+    .enum([
+      "vitrified",
+      "marble",
+      "granite",
+      "wooden",
+      "ceramic-tiles",
+      "mosaic",
+      "normal-tiles",
+      "cement",
+      "other",
+    ])
+    .optional(),
 
-  floorNumber: z.number().min(0).optional(),
-  totalFloors: z.number().min(0).optional(),
+  floorNumber: z.number().min(0, "Floor number cannot be negative").optional(),
+  totalFloors: z.number().min(0, "Total floors cannot be negative").optional(),
 
-  kitchenType: z.string().optional(),
+  kitchenType: z
+    .enum(["open", "closed", "semi-open", "island", "parallel", "u-shaped", "l-shaped"])
+    .optional(),
   isModularKitchen: z.boolean().optional(),
 
+  isPriceNegotiable: z.boolean().optional(),
+
+  listingType: z.enum(["sale", "rent"]).optional(),
+
   description: z
-    .string()
-    .min(20, "Description must be at least 20 characters")
-    .max(500, "Description too long"),
+    .string({
+      message: "Description is atleast 30 characters long",
+    }),
 
   images: z
     .array(z.instanceof(File))

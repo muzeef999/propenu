@@ -278,7 +278,7 @@ export default async function Page({ params }: PageProps) {
                       </h2>
                       {project.relatedProjects &&
                       project.relatedProjects.length > 0 ? (
-                        <div className="flex w-[30%] gap-4 h-[485px]">
+                        <div className="flex gap-4 h-[485px]">
                           {project.relatedProjects.map((relatedProject) => (
                             <ResidentialCard
                               key={relatedProject._id}

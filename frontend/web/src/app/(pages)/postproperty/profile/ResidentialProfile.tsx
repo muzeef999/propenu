@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { setBaseField, setProfileField, setStep } from "@/Redux/slice/postPropertySlice";
+import { nextStep, setBaseField, setProfileField, setStep } from "@/Redux/slice/postPropertySlice";
 import Dropdownui from "@/ui/DropDownUI";
 import CounterField from "@/ui/CounterField";
 import InputField from "@/ui/InputField";
@@ -79,6 +79,9 @@ const ResidentialProfile = () => {
             )
           }
         />
+        {fieldErrors?.amenities?.[0] && (
+          <p className="text-red-500 text-xs mt-1">{fieldErrors.amenities[0]}</p>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -90,62 +93,74 @@ const ResidentialProfile = () => {
         {/* Fields */}
         <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 md:grid-cols-3">
           {/* Parking Type */}
-          <Dropdownui
-            label="Parking Type"
-            value={residential.parkingType || null}
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "residential",
-                  key: "parkingType",
-                  value,
-                }),
-              )
-            }
-            options={ParkingTypes.map((t) => ({
-              value: t,
-              label: t.toUpperCase(),
-            }))}
-            placeholder="Select"
-          />
+          <div>
+            <Dropdownui
+              label="Parking Type"
+              value={residential.parkingType || null}
+              onChange={(value) =>
+                dispatch(
+                  setProfileField({
+                    propertyType: "residential",
+                    key: "parkingType",
+                    value,
+                  }),
+                )
+              }
+              options={ParkingTypes.map((t) => ({
+                value: t,
+                label: t.toUpperCase(),
+              }))}
+              placeholder="Select"
+            />
+            {fieldErrors?.parkingType?.[0] && (
+              <p className="text-red-500 text-xs mt-1">{fieldErrors.parkingType[0]}</p>
+            )}
+          </div>
 
           {/* Two Wheeler */}
-          <CounterField
-            label="Two-Wheeler Parking"
-            value={residential.parkingDetails?.twoWheeler || 0}
-            min={0}
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "residential",
-                  key: "parkingDetails",
-                  value: {
-                    ...residential.parkingDetails,
-                    twoWheeler: value,
-                  },
-                }),
-              )
-            }
-          />
+          <div>
+            <CounterField
+              label="Two-Wheeler Parking"
+              value={residential.parkingDetails?.twoWheeler || 0}
+              min={0}
+              onChange={(value) =>
+                dispatch(
+                  setProfileField({
+                    propertyType: "residential",
+                    key: "parkingDetails",
+                    value: {
+                      ...residential.parkingDetails,
+                      twoWheeler: value,
+                    },
+                  }),
+                )
+              }
+            />
+            {fieldErrors?.parkingDetails?.[0] && (
+              <p className="text-red-500 text-xs mt-1">{fieldErrors.parkingDetails[0]}</p>
+            )}
+          </div>
 
           {/* Four Wheeler */}
-          <CounterField
-            label="Four-Wheeler Parking"
-            value={residential.parkingDetails?.fourWheeler || 0}
-            min={0}
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "residential",
-                  key: "parkingDetails",
-                  value: {
-                    ...residential.parkingDetails,
-                    fourWheeler: value,
-                  },
-                }),
-              )
-            }
-          />
+          <div>
+            <CounterField
+              label="Four-Wheeler Parking"
+              value={residential.parkingDetails?.fourWheeler || 0}
+              min={0}
+              onChange={(value) =>
+                dispatch(
+                  setProfileField({
+                    propertyType: "residential",
+                    key: "parkingDetails",
+                    value: {
+                      ...residential.parkingDetails,
+                      fourWheeler: value,
+                    },
+                  }),
+                )
+              }
+            />
+          </div>
         </div>
       </div>
 
@@ -156,78 +171,98 @@ const ResidentialProfile = () => {
         {/* Fields */}
         <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 md:grid-cols-3 items-start">
           {/* Flooring Type */}
+          <div>
+            <Dropdownui
+              label="Flooring Type"
+              value={residential.flooringType || null}
+              onChange={(value) =>
+                dispatch(
+                  setProfileField({
+                    propertyType: "residential",
+                    key: "flooringType",
+                    value,
+                  }),
+                )
+              }
+              options={FLOORING_TYPES.map((t) => ({
+                value: t,
+                label: t.replace("-", " ").toUpperCase(),
+              }))}
+              placeholder="Select"
+            />
+            {fieldErrors?.flooringType?.[0] && (
+              <p className="text-red-500 text-xs mt-1">{fieldErrors.flooringType[0]}</p>
+            )}
+          </div>
+
+          {/* Floor Number */}
+          <div>
+            <CounterField
+              label="Floor Number"
+              min={0}
+              value={residential.floorNumber ?? 0}
+              onChange={(value) =>
+                dispatch(
+                  setProfileField({
+                    propertyType: "residential",
+                    key: "floorNumber",
+                    value,
+                  }),
+                )
+              }
+            />
+            {fieldErrors?.floorNumber?.[0] && (
+              <p className="text-red-500 text-xs mt-1">{fieldErrors.floorNumber[0]}</p>
+            )}
+          </div>
+
+          {/* Total Floors */}
+          <div>
+            <CounterField
+              label="Total Floors"
+              min={0}
+              value={residential.totalFloors ?? 0}
+              onChange={(value) =>
+                dispatch(
+                  setProfileField({
+                    propertyType: "residential",
+                    key: "totalFloors",
+                    value,
+                  }),
+                )
+              }
+            />
+            {fieldErrors?.totalFloors?.[0] && (
+              <p className="text-red-500 text-xs mt-1">{fieldErrors.totalFloors[0]}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-7 sm:grid-cols-3 items-end">
+        <div>
           <Dropdownui
-            label="Flooring Type"
-            value={residential.flooringType || null}
+            label="Kitchen Type"
+            value={residential.kitchenType || null}
             onChange={(value) =>
               dispatch(
                 setProfileField({
                   propertyType: "residential",
-                  key: "flooringType",
+                  key: "kitchenType",
                   value,
                 }),
               )
             }
-            options={FLOORING_TYPES.map((t) => ({
+            options={KITCHEN_TYPES.map((t) => ({
               value: t,
               label: t.replace("-", " ").toUpperCase(),
             }))}
             placeholder="Select"
           />
-
-          {/* Floor Number */}
-          <CounterField
-            label="Floor Number"
-            min={0}
-            value={residential.floorNumber ?? 0}
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "residential",
-                  key: "floorNumber",
-                  value,
-                }),
-              )
-            }
-          />
-
-          {/* Total Floors */}
-          <CounterField
-            label="Total Floors"
-            min={0}
-            value={residential.totalFloors ?? 0}
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "residential",
-                  key: "totalFloors",
-                  value,
-                }),
-              )
-            }
-          />
+          {fieldErrors?.kitchenType?.[0] && (
+            <p className="text-red-500 text-xs mt-1">{fieldErrors.kitchenType[0]}</p>
+          )}
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-7 sm:grid-cols-3 items-end">
-        <Dropdownui
-          label="Kitchen Type"
-          value={residential.kitchenType || null}
-          onChange={(value) =>
-            dispatch(
-              setProfileField({
-                propertyType: "residential",
-                key: "kitchenType",
-                value,
-              }),
-            )
-          }
-          options={KITCHEN_TYPES.map((t) => ({
-            value: t,
-            label: t.replace("-", " ").toUpperCase(),
-          }))}
-          placeholder="Select"
-        />
 
         {/* Modular Kitchen */}
         <div className="space-y-1">
@@ -258,6 +293,9 @@ const ResidentialProfile = () => {
               className="h-5 w-5 accent-green-600 cursor-pointer"
             />
           </div>
+          {fieldErrors?.isModularKitchen?.[0] && (
+            <p className="text-red-500 text-xs mt-1">{fieldErrors.isModularKitchen[0]}</p>
+          )}
         </div>
       </div>
       <div className="space-y-2">
@@ -317,6 +355,9 @@ const ResidentialProfile = () => {
           />
         </div>
       </div>
+      {fieldErrors?.isPriceNegotiable?.[0] && (
+        <p className="text-red-500 text-xs mt-1">{fieldErrors.isPriceNegotiable[0]}</p>
+      )}
       <TextArea
         label="Property Description"
         value={residential.description || ""}
@@ -332,6 +373,9 @@ const ResidentialProfile = () => {
           )
         }
       />
+      {fieldErrors?.description?.[0] && (
+        <p className="text-red-500 text-xs mt-1">{fieldErrors.description[0]}</p>
+      )}
 
 <button
   type="button"
@@ -372,17 +416,10 @@ const ResidentialProfile = () => {
       }),
     )
       .unwrap()
-      .then((response) => {
-        console.log("Property submission successful:", response);
-        toast.success("Property submitted successfully");
+      .then((resonse) => {
+        dispatch(nextStep()); // Move to next step on success
+        
 
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-        });
-
-        router.push("/my-properties");
       })
       .catch((error: any) => {
         console.log("🔥 FULL ERROR FROM API:", error);
