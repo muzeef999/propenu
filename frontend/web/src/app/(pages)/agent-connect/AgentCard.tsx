@@ -6,6 +6,7 @@ import Image from "next/image";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import { MdLocationPin, MdVerifiedUser } from "react-icons/md"; // Added MdVerified import
 import { AgentConnect } from "@/types";
+import { RiArrowRightSLine } from "react-icons/ri";
 
 interface Props {
   Agent?: AgentConnect[];
@@ -26,22 +27,31 @@ export default function AgentsList({ Agent = [] }: Props) {
       behavior: "smooth",
     });
 
-
   return (
     <div className="relative w-full py-1">
       {/* Header Section */}
-      <div className="flex justify-between items-center  px-1">
+      <div className="flex items-center justify-between gap-3">
+        {/* Left: Heading */}
         <div className="headingSideBar">
-          <h1 className="text-2xl font-bold">Agent Connect</h1>
-          <p className="headingDesc">
+          <h1 className="text-base font-bold sm:text-2xl truncate">
+            Agent Connect
+          </h1>
+
+          <p className="mt-1 text-xs text-gray-500 sm:text-base truncate">
             Trusted professionals guiding your property journey
+
+
           </p>
         </div>
+
+        {/* Right: View All */}
         <Link
           href="/agent-connect"
-          className="text-green-600 font-medium text-sm hover:underline"
+          aria-label="View all featured properties"
+          className="shrink-0 flex items-center gap-1 text-sm sm:text-base
+               text-green-600 hover:text-green-700 font-medium whitespace-nowrap"
         >
-          View All
+          View All <RiArrowRightSLine size={18} />
         </Link>
       </div>
 

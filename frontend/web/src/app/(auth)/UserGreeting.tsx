@@ -119,7 +119,7 @@ const UserGreeting = ({ user }: UserGreetingProps) => {
                   <button
                     type="button"
                     onClick={handleClick}
-                    className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition`}
+                    className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition cursor-pointer hover:bg-gray-100 focus:bg-gray-100`}
                   >
                     <span>{item.label}</span>
                   </button>

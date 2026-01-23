@@ -33,76 +33,82 @@ export default function FeaturedProjectsClient({ items = [] }: Props) {
     <div className="relative w-full">
       {/* Left Arrow */}
 
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="headingSideBar">
-          <h1 className="text-2xl font-bold">Prime Properties</h1>
-          <p className="headingDesc">
-            Exceptional  properties {selectedCity?.city ?? "Hyderabad"}
+          <h1 className="text-base font-bold sm:text-2xl truncate">
+            Prime Properties
+          </h1>
+
+          <p className="mt-1 text-sm text-gray-500 sm:text-base">
+            Exceptional properties in {selectedCity?.city ?? "Hyderabad"}
           </p>
         </div>
       </div>
 
-      <div
+
+      <button
         onClick={scrollLeft}
         aria-label="Scroll left"
-        className="absolute left-[-1.2%] top-1/2 -translate-y-1/2 z-20 p-2 rounded-full shadow-md hover:shadow-2xl cursor-pointer transition-transform duration-300"
+        className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-white rounded-full shadow-md hover:shadow-lg cursor-pointer transition-all duration-300 -translate-x-1/2 hidden md:flex items-center justify-center"
       >
-        <ArrowDropdownIcon size={16} className="rotate-90" />
-      </div>
+        <ArrowDropdownIcon size={20} className="rotate-90" />
+      </button>
 
       {/* Scrollable Row */}
       <div
         ref={sliderRef}
-        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar p-1 snap-x snap-mandatory"
+        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar py-2 snap-x snap-mandatory"
       >
         {items.map((project) => (
           <div
             key={project._id}
-            className="min-w-full sm:min-w-[48%] md:min-w-[48%] lg:min-w-[48%] xl:min-w-[48%] card snap-start"
+            className="shrink-0 w-[90%] sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.33%-0.66rem)] card snap-start group"
           >
             <Link
               href={`/featured/${project.slug}`}
-              className="block h-[200px] overflow-hidden rounded-t-md"
+              className="relative block overflow-hidden rounded-t-md h-40 sm:h-[50px] md:h-[200px] lg:h-[220px]"
             >
-              <img
+              <Image
                 src={project.heroImage ?? "/images/placeholder.svg"}
                 alt={project.title}
-                className="w-full h-full object-cover"
+                fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
               />
             </Link>
 
-            <div className="p-3 flex justify-between items-center gap-4">
+            <div className="p-3 flex justify-between items-center gap-3">
               {/* Logo */}
               <div className="shrink-0">
                 <Image
                   src={project?.logo?.url ?? "/images/placeholder.svg"}
-                  alt={project.title}
-                  width={80}
-                  height={80}
-                  className="object-cover rounded-md"
+                  alt={`${project.title} logo`}
+                  width={64}
+                  height={64}
+                  className="object-contain rounded-md w-16 h-16 sm:w-20 sm:h-20"
                 />
               </div>
 
               {/* Title + Address */}
-              <div className="flex flex-col justify-center">
-                <h2 className="text-2xl font-medium text-left truncate max-w-[320px]">
+              <div className="flex flex-col justify-center grow min-w-0">
+                <h2 className="text-lg md:text-xl font-medium text-left truncate">
                   {project.title}
                 </h2>
 
                 {project.address && (
-                  <p className="text-[#676666] text-base mt-1">
+                  <p className="text-gray-500 text-sm mt-1 truncate">
                     {project.address}
                   </p>
                 )}
               </div>
 
               {/* BHK, Price, Button */}
-              <div className="text-right flex flex-col items-end gap-1">
-                <p className="text-[#676666] font-light text-base">
+              <div className="text-right flex flex-col items-end gap-1 shrink-0">
+                <p className="text-gray-600 font-light text-sm md:text-base">
                   2,3 BHK Flats
                 </p>
 
-                <p className="text-black text-base">
+                <p className="text-black text-sm md:text-base font-medium">
                   {formatINR(project?.priceFrom)}
                   <span className="text-[#676666] font-light text-sm">
                     {" "}
@@ -116,13 +122,13 @@ export default function FeaturedProjectsClient({ items = [] }: Props) {
       </div>
 
       {/* Right Arrow */}
-      <div
+      <button
         onClick={scrollRight}
         aria-label="Scroll right"
-        className="absolute right-[-1.2%] top-1/2 -translate-y-1/2 z-20 bg-white p-2 rounded-full shadow-md hover:shadow-2xl cursor-pointer transition-transform duration-300"
+        className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white p-2 rounded-full shadow-md hover:shadow-lg cursor-pointer transition-all duration-300 translate-x-1/2 hidden md:flex items-center justify-center"
       >
-        <ArrowDropdownIcon size={16} className="rotate-270" />
-      </div>
+        <ArrowDropdownIcon size={20} className="-rotate-90" />
+      </button>
     </div>
   );
 }

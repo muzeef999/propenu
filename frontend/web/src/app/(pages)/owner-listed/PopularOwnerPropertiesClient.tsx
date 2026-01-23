@@ -13,7 +13,6 @@ import AgriculturalCard from "../properties/cards/AgriculturalCard";
 
 interface Props {
   items?: PopularOwnerProperty[];
-
 }
 
 const PopularOwnerPropertiesClient = ({ items = [] }: Props) => {
@@ -29,20 +28,24 @@ const PopularOwnerPropertiesClient = ({ items = [] }: Props) => {
   return (
     <section className="relative w-full">
       {/* Header */}
-      <div className="flex items-center justify-between ">
-        <div className="flex justify-between items-center">
-          <div className="headingSideBar">
-            <h1 className="text-2xl font-bold">Popular Owner Properties</h1>
-            <p className="headingDesc">
-              Building excellence in {selectedCity?.city ?? "Hyderabad"}
-            </p>
-          </div>
+      <div className="flex items-center justify-between gap-3">
+        {/* Left: Heading */}
+        <div className="headingSideBar">
+          <h1 className="text-base font-bold sm:text-2xl truncate">
+            Popular Owner Properties
+          </h1>
+
+          <p className="mt-1 text-xs text-gray-500 sm:text-base truncate">
+            Building excellence in {selectedCity?.city ?? "Hyderabad"}
+          </p>
         </div>
 
+        {/* Right: View All */}
         <Link
           href="/featured"
-          className="flex items-center gap-1 text-green-600 hover:text-green-700"
           aria-label="View all featured properties"
+          className="shrink-0 flex items-center gap-1 text-sm sm:text-base
+               text-green-600 hover:text-green-700 font-medium whitespace-nowrap"
         >
           View All <RiArrowRightSLine size={18} />
         </Link>
@@ -61,10 +64,10 @@ const PopularOwnerPropertiesClient = ({ items = [] }: Props) => {
       {/* Carousel */}
       <div
         ref={sliderRef}
-        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-6 py-2 snap-x snap-mandatory scroll-px-1"
+        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-1 py-2 snap-x snap-mandatory scroll-px-1"
       >
         {items.map((item: any) => {
-          const wrapperClass = "max-w-[25%] w-full";
+          const wrapperClass = " w-full";
 
           if (item.type === "residential") {
             return (

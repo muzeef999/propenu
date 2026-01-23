@@ -14,7 +14,7 @@ export default function Home() {
     <div>
       <SearchBox />
       <br />
-      <br/>
+      <br />
       <div className="container mx-auto  space-y-5">
         <FeaturedProjectsServer />
         <HighlightProjectsServer />
@@ -23,17 +23,17 @@ export default function Home() {
         <ExploreOurServices />
         <div>
           <div className="headingSideBar">
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-base font-bold sm:text-2xl truncate">
               Explore Properties in hyderabad
             </h1>
-            <p className="headingDesc">
+            <p className="mt-1 text-sm text-gray-500 sm:text-base">
               Find apartments, villas, farmhouses, and residential plots in top
               localities.
             </p>
           </div>
           <ExploreMorePropertiesPage />
         </div>
-          <TestomianalHome />
+        <TestomianalHome />
       </div>
     </div>
   );

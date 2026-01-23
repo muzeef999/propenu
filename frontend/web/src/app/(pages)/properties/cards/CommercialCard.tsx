@@ -122,14 +122,18 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
 
       {/* Middle: content */}
       <div className="flex-1 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
-        <div>
-          <h3 className="text-lg md:text-md font-semibold truncate max-w-[460px]">
+        <div className={`flex ${vertical ? "flex-col gap-1" : "flex-col"}`}>
+          <h3
+            className={`font-semibold truncate ${
+              vertical ? "text-base max-w-[300px]" : "text-lg md:text-md max-w-[400px]"
+            }`}
+          >
             {p.title}
           </h3>
-          <p className="text-sm text-gray-500 mt-1 flex items-center gap-2 truncate">
-            <BiBuildingHouse className="w-4 h-4" />
 
-            {(p as any)?.buildingName}
+          <p className="mt-1 flex items-center gap-2 truncate text-sm text-gray-500">
+            <BiBuildingHouse className="h-4 w-4 shrink-0" />
+            {p?.buildingName}
           </p>
         </div>
 

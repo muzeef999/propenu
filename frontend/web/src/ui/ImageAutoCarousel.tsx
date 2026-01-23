@@ -75,7 +75,7 @@ const ImageAutoCarousel = ({
         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
       >
         {safeImages.map((src, idx) => (
-          <div key={idx} className="relative h-full w-full shrink-0">
+          <div key={idx} className="relative h-full w-full shrink-0 ">
             <Image
               src={src}
               alt={alt}

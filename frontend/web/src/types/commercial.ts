@@ -96,6 +96,7 @@ export interface ICommercial {
     managedBy?: string;
     contact?: string;
   };
+  buildingName?: string;
   cabins: number;
   meetingRooms: number;
   conferenceRooms: number;
