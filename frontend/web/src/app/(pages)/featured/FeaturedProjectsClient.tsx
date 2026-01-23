@@ -35,7 +35,7 @@ export default function FeaturedProjectsClient({ items = [] }: Props) {
 
       <div className="flex justify-between items-center">
         <div className="headingSideBar">
-          <h1 className="text-2xl font-bold">Prime Properties</h1>
+          <h1 className="text-2xl font-bold">Prime Projects</h1>
           <p className="headingDesc">
             Exceptional  properties {selectedCity?.city ?? "Hyderabad"}
           </p>

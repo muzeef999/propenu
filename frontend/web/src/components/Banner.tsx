@@ -55,7 +55,7 @@ const Banner = () => {
       />
 
       {/* ---------- White gradient overlay ---------- */}
-      <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/75 to-white/0" />
+<div className="absolute inset-0 bg-gradient-to-r from-green-50/50 via-white/50 to-transparent" />
 
       {/* ---------- Content ---------- */}
       <div className="relative left-[4%] z-10 h-full pl-3">
