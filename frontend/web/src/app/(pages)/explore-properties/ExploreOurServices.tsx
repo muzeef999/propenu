@@ -40,13 +40,13 @@ export default function ExploreOurServices() {
   const { selectedCity } = useCity();
   return (
     <>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="headingSideBar">
           <h1 className="text-base font-bold sm:text-2xl truncate">
             Explore Our Services
           </h1>
 
-          <p className="mt-1 text-sm text-gray-500 sm:text-base">
+          <p className="mt-1 text-xs text-gray-500 sm:text-base truncate">
             Services tailored for {selectedCity?.city ?? "Hyderabad"} residents
           </p>
         </div>

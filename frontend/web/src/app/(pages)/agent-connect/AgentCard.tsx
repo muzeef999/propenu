@@ -28,7 +28,7 @@ export default function AgentsList({ Agent = [] }: Props) {
     });
 
   return (
-    <div className="relative w-full py-1">
+    <div className="relative w-full">
       {/* Header Section */}
       <div className="flex items-center justify-between gap-3">
         {/* Left: Heading */}
@@ -39,8 +39,6 @@ export default function AgentsList({ Agent = [] }: Props) {
 
           <p className="mt-1 text-xs text-gray-500 sm:text-base truncate">
             Trusted professionals guiding your property journey
-
-
           </p>
         </div>
 
