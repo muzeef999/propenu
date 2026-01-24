@@ -81,17 +81,11 @@ export default function HighlightProjectsClient({ items = [] }: Props) {
           <Link
             key={project._id}
             href={`/featured/${project.slug}`}
-            className="relative shrink-0 snap-start group cursor-pointer transition-all duration-300 hover:-translate-y-2 w-[260px] sm:w-[280px] md:w-[320px]
-      "
+            className="relative shrink-0 snap-start group cursor-pointer transition-all duration-300 hover:-translate-y-2 w-[260px] sm:w-[280px] md:w-[320px]"
           >
             {/* IMAGE box */}
             <div
-              className="
-          mt-5 w-full overflow-hidden rounded-2xl
-          h-[150px] sm:h-[170px] md:h-[180px]
-          shadow-sm transition-shadow duration-300
-          group-hover:shadow-2xl
-        "
+              className="mt-5 w-full overflow-hidden rounded-2xl h-[150px] sm:h-[170px] md:h-[180px] shadow-sm transition-shadow duration-300 group-hover:shadow-2xl"
             >
               <img
                 src={project.heroImage ?? "/images/placeholder.svg"}
@@ -102,14 +96,7 @@ export default function HighlightProjectsClient({ items = [] }: Props) {
 
             {/* INFO CARD FLOATING */}
             <div
-              className="
-          absolute left-3 right-3
-          top-[130px] sm:top-[140px] md:top-[150px]
-          bg-white rounded-xl p-3
-          shadow-sm transition-shadow duration-300
-          group-hover:shadow-md
-        "
-            >
+              className="absolute left-3 right-3 top-[130px] sm:top-[140px] md:top-[150px] bg-white rounded-xl p-3 shadow-sm transition-shadow duration-300 group-hover:shadow-md">
               {/* Row 1 */}
               <div className="mb-1 flex items-center justify-between gap-2">
                 <h2 className="text-sm sm:text-base font-medium text-gray-900 truncate">
