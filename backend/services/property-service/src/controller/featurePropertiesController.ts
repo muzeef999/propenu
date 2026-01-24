@@ -99,15 +99,27 @@ export const getAllHighlightProjects = async (req: Request, res: Response) => {
   }
 };
 
-export const getCityHighlightProperties = async(req: Request, res: Response) => {
+export const getHighlightProjectsByLocation = async(req: Request, res: Response) => {
   try {
-  const city = req.query.city as string;
+      
+    const { state, city, locality } = req.query as {
+      state?: string;
+      city?: string;
+      locality?: string;
+    };
 
-    if (!city) {
-      return res.status(400).json({ error: "city query param is required" });
+     if (!state && !city && !locality) {
+      return res.status(400).json({
+        error: "At least one of state, city, or locality is required",
+      });
     }
 
-    const result = await FeaturePropertyService.getHighlightByCity(city);
+    const result = await FeaturePropertyService.getHighlightByLocation({
+      ...(state && { state }),
+      ...(city && { city }),
+      ...(locality && { locality }),
+    });
+
     return res.json(result);
   
   }catch(err:any) {

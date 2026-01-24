@@ -7,14 +7,14 @@ import GetOwnerProperties from "./(pages)/owner-listed/PopularOwnerPropertiesSer
 import ExploreOurServices from "@/app/(pages)/explore-properties/ExploreOurServices";
 import HighlightProjectsServer from "./(pages)/highlight-projects/HighlightProjectServer";
 import AgentServer from "./(pages)/agent-connect/AgentServer";
-import FeaturedProjectsServer from "./(pages)/featured/FeaturedProjectsServer";
+import FeaturedProjectsClient from "./(pages)/featured/FeaturedProjectsClient";
 
 export default function Home() {
   return (
     <div>
       <SearchBox />
       <div className="container mx-auto  space-y-10">
-        <FeaturedProjectsServer />
+        <FeaturedProjectsClient />
         <HighlightProjectsServer />
         <GetOwnerProperties />
         <AgentServer />

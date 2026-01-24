@@ -19,7 +19,6 @@ type LocationParams = {
   state?: string;
 };
 
-
 async function findFeatured(filter: any) {
   return FeaturedProject.find(filter)
     .select({
@@ -45,7 +44,7 @@ function slugifyTitle(title: string) {
 
 async function generateUniqueSlug(
   desiredTitleOrSlug: string,
-  excludeId?: string
+  excludeId?: string,
 ) {
   const slug = slugifyTitle(desiredTitleOrSlug);
 
@@ -91,7 +90,7 @@ async function deleteS3ObjectIfExists(key?: string) {
     console.error(
       "deleteS3ObjectIfExists failed for key:",
       key,
-      e?.message || e
+      e?.message || e,
     );
     // don't rethrow — allow operation to continue
   }
@@ -99,7 +98,7 @@ async function deleteS3ObjectIfExists(key?: string) {
 
 function pickDefined<T extends Record<string, any>>(obj: T) {
   return Object.fromEntries(
-    Object.entries(obj).filter(([_, v]) => typeof v !== "undefined")
+    Object.entries(obj).filter(([_, v]) => typeof v !== "undefined"),
   ) as Partial<T>;
 }
 
@@ -302,7 +301,7 @@ async function mapAndUploadGallery({
 export const FeaturePropertyService = {
   async createFeatureProperty(
     payload: CreateFeaturePropertyDTO,
-    files?: MulterFiles
+    files?: MulterFiles,
   ) {
     // 1) slug
     const slugSource =
@@ -311,7 +310,7 @@ export const FeaturePropertyService = {
 
     // 2) compute prices
     const { priceFrom, priceTo } = computePriceRangeFromBhk(
-      payload.bhkSummary as any[] | undefined
+      payload.bhkSummary as any[] | undefined,
     );
 
     // 3) prepare base create payload
@@ -441,7 +440,7 @@ export const FeaturePropertyService = {
     if (bhkPlanFiles.length > toCreate.bhkSummary.length) {
       // not fatal but probably a client error — reject to avoid mismapping
       throw new Error(
-        "Too many bhkPlanFiles uploaded for provided bhkSummary entries"
+        "Too many bhkPlanFiles uploaded for provided bhkSummary entries",
       );
     }
     toCreate.bhkSummary = await processBhkPlanUpdates({
@@ -457,12 +456,12 @@ export const FeaturePropertyService = {
     {
       // normalize incoming about shapes into an array: prefer payload.aboutSummary, fallback to payload.about
       const incomingAboutArr: any[] = Array.isArray(
-        (toCreate as any).aboutSummary
+        (toCreate as any).aboutSummary,
       )
         ? (toCreate as any).aboutSummary.slice()
         : (toCreate as any).about
-        ? [{ ...(toCreate as any).about }]
-        : [];
+          ? [{ ...(toCreate as any).about }]
+          : [];
 
       const aboutFiles = files?.aboutImage;
       if (aboutFiles && aboutFiles.length > 0) {
@@ -514,7 +513,7 @@ export const FeaturePropertyService = {
   async updateFeatureProperty(
     id: string,
     payload: UpdateFeaturePropertyDTO,
-    files?: MulterFiles
+    files?: MulterFiles,
   ) {
     if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
     const existing = await FeaturedProject.findById(id);
@@ -537,7 +536,7 @@ export const FeaturePropertyService = {
     // ---------- PRICE RANGE (if client provided bhkSummary) ----------
     if ((payload as any).bhkSummary) {
       const { priceFrom, priceTo } = computePriceRangeFromBhk(
-        (payload as any).bhkSummary
+        (payload as any).bhkSummary,
       );
       if (priceFrom !== undefined) existing.priceFrom = priceFrom;
       if (priceTo !== undefined) existing.priceTo = priceTo;
@@ -562,13 +561,13 @@ export const FeaturePropertyService = {
     if (Array.isArray(bhkSummaryIncoming)) {
       if (bhkPlanFiles.length > bhkSummaryIncoming.length) {
         throw new Error(
-          "Too many bhkPlanFiles uploaded for provided bhkSummary entries"
+          "Too many bhkPlanFiles uploaded for provided bhkSummary entries",
         );
       }
 
       const mergedIncoming = mergeBhkSummary(
         existing.bhkSummary || [],
-        bhkSummaryIncoming
+        bhkSummaryIncoming,
       );
 
       const processed = await processBhkPlanUpdates({
@@ -719,7 +718,7 @@ export const FeaturePropertyService = {
             propertyId: propId,
           });
           const emptySlotIndex = (existing as any).gallerySummary.findIndex(
-            (e: any) => !e?.url
+            (e: any) => !e?.url,
           );
           if (emptySlotIndex >= 0) {
             const slot = (existing as any).gallerySummary[
@@ -748,15 +747,15 @@ export const FeaturePropertyService = {
     // ---------- ABOUT merge & aboutImage replacement ----------
     {
       const incomingAboutArr: any[] = Array.isArray(
-        (payload as any).aboutSummary
+        (payload as any).aboutSummary,
       )
         ? (payload as any).aboutSummary.slice()
         : (payload as any).about
-        ? [{ ...(payload as any).about }]
-        : [];
+          ? [{ ...(payload as any).about }]
+          : [];
 
       const existingAboutArr: any[] = Array.isArray(
-        (existing as any).aboutSummary
+        (existing as any).aboutSummary,
       )
         ? (existing as any).aboutSummary.slice()
         : [];
@@ -822,20 +821,20 @@ export const FeaturePropertyService = {
   },
 
   async getMyFeaturedProjects(userId: string) {
-return await FeaturedProject.find({createdBy: userId})
-    .populate("createdBy", "name email")
-    .lean();
+    return await FeaturedProject.find({ createdBy: userId })
+      .populate("createdBy", "name email")
+      .lean();
   },
 
   async getFeatureBySlug(slug: string) {
-  if (!slug || typeof slug !== "string") {
-    throw new Error("Invalid slug");
-  }
+    if (!slug || typeof slug !== "string") {
+      throw new Error("Invalid slug");
+    }
 
-  return await FeaturedProject.findOne({ slug })
-    .populate("createdBy", "name email")
-    .lean();
-},
+    return await FeaturedProject.findOne({ slug })
+      .populate("createdBy", "name email")
+      .lean();
+  },
 
   async getFeatureById(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -847,8 +846,7 @@ return await FeaturedProject.find({createdBy: userId})
       .lean();
   },
 
-   async getFeaturesByCity({ locality, city, state }: LocationParams) {
-
+  async getFeaturesByCity({ locality, city, state }: LocationParams) {
     // 🥇 1. Try LOCALITY
     if (locality) {
       const items = await findFeatured({
@@ -938,30 +936,89 @@ return await FeaturedProject.find({createdBy: userId})
     };
   },
 
-  async getHighlightByCity(city: string) {
-    const cleanCity = city.trim();
+ async getHighlightByLocation({
+  state,
+  city,
+  locality,
+}: {
+  state?: string;
+  city?: string;
+  locality?: string;
+}) {
+  const baseFilter: any = {
+    isFeatured: true,
+  };
 
-    const filter = {
-      city: { $regex: `^${cleanCity}$`, $options: "i" },
-      isFeatured: true,
+  const makeRegex = (value?: string) =>
+    value ? { $regex: `^${value.trim()}$`, $options: "i" } : undefined;
+
+  // 1️⃣ Locality level
+  if (state || city || locality) {
+    const localityFilter = {
+      ...baseFilter,
+      ...(state && { state: makeRegex(state) }),
+      ...(city && { city: makeRegex(city) }),
+      ...(locality && { locality: makeRegex(locality) }),
     };
 
-    const items = await FeaturedProject.find(filter)
-      .select({
-        title: 1,
-        heroImage: 1,
-        priceFrom: 1,
-        priceTo: 1,
-        slug: 1, // optional → useful for FE navigation
-      })
+    const localityItems = await FeaturedProject.find(localityFilter)
+      .select("title heroImage priceFrom priceTo slug city state locality")
+      .lean();
+
+    if (localityItems.length > 0) {
+      return {
+        level: "locality",
+        total: localityItems.length,
+        items: localityItems,
+      };
+    }
+  }
+
+  // 2️⃣ City level fallback
+  if (state || city) {
+    const cityFilter = {
+      ...baseFilter,
+      ...(state && { state: makeRegex(state) }),
+      ...(city && { city: makeRegex(city) }),
+    };
+
+    const cityItems = await FeaturedProject.find(cityFilter)
+      .select("title heroImage priceFrom priceTo slug city state locality")
+      .lean();
+
+    if (cityItems.length > 0) {
+      return {
+        level: "city",
+        total: cityItems.length,
+        items: cityItems,
+      };
+    }
+  }
+
+  // 3️⃣ State level fallback
+  if (state) {
+    const stateFilter = {
+      ...baseFilter,
+      state: makeRegex(state),
+    };
+
+    const stateItems = await FeaturedProject.find(stateFilter)
+      .select("title heroImage priceFrom priceTo slug city state locality")
       .lean();
 
     return {
-      city: cleanCity,
-      total: items.length,
-      items,
+      level: "state",
+      total: stateItems.length,
+      items: stateItems,
     };
-  },
+  }
+
+  return {
+    level: "none",
+    total: 0,
+    items: [],
+  };
+},
 
   async getAllHighlightProjects(options?: {
     page?: number;

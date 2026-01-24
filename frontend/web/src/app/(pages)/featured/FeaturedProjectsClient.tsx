@@ -1,21 +1,46 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { FeaturedProject } from "@/types";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import { useCity } from "@/hooks/useCity";
 import Image from "next/image";
 import formatINR from "@/utilies/PriceFormat";
+import { getFeaturedProjects } from "@/data/ClientData";
 
-interface Props {
-  items?: FeaturedProject[];
-}
 
-export default function FeaturedProjectsClient({ items = [] }: Props) {
+
+export default function FeaturedProjectsClient() {
   const sliderRef = useRef<HTMLDivElement | null>(null);
 
+  const [items, setItems] = useState<FeaturedProject[]>([]);
+  const [loading, setLoading] = useState(false);
   const { selectedCity } = useCity();
+
+
+  useEffect(() => {
+  if (!selectedCity) return;
+
+  setLoading(true);
+
+  console.log("📍 City from Redux:", selectedCity);
+
+  getFeaturedProjects({
+    state: selectedCity.state,
+    city: selectedCity.city,
+  })
+    .then((res) => {
+      console.log("✅ Featured API response:", res);
+      setItems(res.items || []);
+    })
+    .catch((err) => {
+      console.error("❌ Featured fetch failed:", err);
+    })
+    .finally(() => setLoading(false));
+
+}, [selectedCity]);
+
 
   const scrollLeft = () =>
     sliderRef.current?.scrollBy({
@@ -44,7 +69,6 @@ export default function FeaturedProjectsClient({ items = [] }: Props) {
           </p>
         </div>
       </div>
-
 
       <button
         onClick={scrollLeft}

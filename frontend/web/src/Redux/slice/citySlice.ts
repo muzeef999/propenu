@@ -2,7 +2,6 @@ import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "../store";
 import { LocationItem } from "@/types";
 
-
 const url = process.env.NEXT_PUBLIC_API_URL;
 
 export const fetchLocations = createAsyncThunk<LocationItem[]>(
@@ -53,10 +52,8 @@ export const selectSelectedCity = (state: RootState) => {
 
 const EMPTY_ARRAY: any[] = [];
 
-
 export const selectLocalitiesByCity = (state: RootState) =>
   selectSelectedCity(state)?.localities ?? EMPTY_ARRAY;
-
 
 // Combined helper
 export const selectCityWithLocalities = (state: RootState) => {

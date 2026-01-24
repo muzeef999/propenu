@@ -3,19 +3,9 @@ import { IAgricultural } from "@/types/agricultural";
 import { ICommercial } from "@/types/commercial";
 import { ILand } from "@/types/land";
 import { IResidential } from "@/types/residential";
-import "server-only";
 
 const url = process.env.NEXT_PUBLIC_API_URL
 
-
-
-export async function getFeaturedProjects() {
-    const res = await  fetch(`${url}/api/properties/featured-project`, { next : { revalidate: 10 } });
-    if(!res.ok) {
-        throw new Error('Failed to fetch featured projects');
-    }
-    return res.json();
-}
 
 export async function getFeaturedSlugProjects({ slug }: { slug: string }) {
   const res = await fetch(`${url}/api/properties/featured-project/slug/${encodeURIComponent( slug )}`,

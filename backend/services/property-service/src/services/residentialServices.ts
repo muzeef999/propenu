@@ -5,12 +5,12 @@ import dotenv from "dotenv";
 import Residential from "../models/residentialModel";
 import "../models/userModel";
 import { uploadFile } from "../utils/uploadFile";
-import { UpdateFeaturePropertySchema } from "../zod/validation";
 import { extendResidentialFilters } from "./filters/residentialFilters";
 import { ResidentialQuery } from "../types/filterTypes";
 import { Request } from "express";
 import { upsertCityAndLocality } from "./locationServices";
 import { createWatermarkedBuffer } from "../utils/imageProcessing";
+import { ResidentialUpdateSchema } from "../zod/residentialZod";
 
 type RequestWithResidentialQuery = Request<
   {}, // req.params
@@ -229,7 +229,7 @@ export const ResidentialPropertyService = {
     const existing: any = existingRaw;
 
     // Validate using your UpdateFeaturePropertySchema (assumes you exported it)
-    const parsed = UpdateFeaturePropertySchema.safeParse(payload);
+    const parsed = ResidentialUpdateSchema.safeParse(payload);
     if (!parsed.success) {
       // handle validation error (return or throw)
       throw new Error(

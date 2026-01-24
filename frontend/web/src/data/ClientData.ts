@@ -4,11 +4,35 @@ import { IFeaturedProject } from "@/app/(pages)/builder/create-property/types";
 import { ApiResponse, createRequestOtpPayload, createVerifyOtpPayload, RequestOtpPayload, VerifyOtpPayload, VerifyOtpResponse } from "@/types/property";
 import { SearchFilterParams } from "@/types/sharedTypes";
 import axiosInstance from "@/utilies/axiosInstance";
-import { promises } from "dns";
 import Cookies from "js-cookie";
 
 
 const url = process.env.NEXT_PUBLIC_API_URL
+
+
+export async function getFeaturedProjects(params?: {
+  state?: string;
+  city?: string;
+}) {
+  const query = new URLSearchParams();
+  
+
+  if (params?.state) query.append("state", params.state);
+  if (params?.city) query.append("city", params.city);
+
+  
+  const res = await fetch(
+    `${url}/api/properties/featured-project/city?${query.toString()}`,
+    { cache: "no-store" } // for dynamic search
+  );
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch featured projects");
+  }
+
+  return res.json();
+}
+
 
 
 export const searchFilter = async (params: SearchFilterParams) => {
