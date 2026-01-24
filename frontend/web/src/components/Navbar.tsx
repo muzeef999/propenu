@@ -36,6 +36,18 @@ const Navbar = () => {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
+    if (mobileOpen) {
+      document.body.classList.add("overflow-hidden");
+    } else {
+      document.body.classList.remove("overflow-hidden");
+    }
+
+    return () => {
+      document.body.classList.remove("overflow-hidden");
+    };
+  }, [mobileOpen]);
+
+  useEffect(() => {
     async function fetchUser() {
       const data = await me();
       setUser(data);
@@ -120,14 +132,42 @@ const Navbar = () => {
 
   return (
     <header>
-      <nav
-        className="w-full bg-white/80 backdrop-blur-md border-b relative z-60 border-gray-200"
+      <nav className="w-full bg-white/80 backdrop-blur-md border-b relative z-30 border-gray-200"
         aria-label="Main navigation"
       >
         <div className="container mx-auto px-3 sm:px-4">
           <div className="flex items-center justify-between h-14 sm:h-16">
             {/* LEFT */}
             <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+              {/* Hamburger for mobile */}
+              <button
+                aria-expanded={mobileOpen}
+                aria-label={mobileOpen ? "Close menu" : "Open menu"}
+                onClick={() => setMobileOpen((s) => !s)}
+                className="lg:hidden inline-flex items-center justify-center p-1.5 sm:p-2 rounded-md hover:bg-gray-100 shrink-0"
+              >
+                {/* simple hamburger/x */}
+                <svg
+                  className="w-5 sm:w-6 h-5 sm:h-6"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#111"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  {mobileOpen ? (
+                    <path d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <g>
+                      <path d="M3 7h18" />
+                      <path d="M3 12h18" />
+                      <path d="M3 17h18" />
+                    </g>
+                  )}
+                </svg>
+              </button>
+
               <Link
                 href="/"
                 className="flex items-center gap-2 sm:gap-3 select-none shrink-0"
@@ -334,45 +374,54 @@ const Navbar = () => {
                   )}
                 />
               </div>
-
-              <button
-                aria-expanded={mobileOpen}
-                aria-label={mobileOpen ? "Close menu" : "Open menu"}
-                onClick={() => setMobileOpen((s) => !s)}
-                className="inline-flex items-center justify-center p-1.5 sm:p-2 rounded-md hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shrink-0"
-              >
-                {/* simple hamburger/x */}
-                <svg
-                  className="w-5 sm:w-6 h-5 sm:h-6"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#111"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  {mobileOpen ? (
-                    <path d="M6 18L18 6M6 6l12 12" />
-                  ) : (
-                    <g>
-                      <path d="M3 7h18" />
-                      <path d="M3 12h18" />
-                      <path d="M3 17h18" />
-                    </g>
-                  )}
-                </svg>
-              </button>
             </div>
           </div>
         </div>
+      </nav>
 
-        {/* Mobile menu */}
+      {/* Mobile Menu (Sidebar) & Overlay */}
+      <>
+        {/* Overlay backdrop */}
+        {mobileOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-200"
+            onClick={() => setMobileOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Off-canvas menu */}
         <div
-          className={`lg:hidden transition-[max-height] duration-200 ease-in-out overflow-hidden ${mobileOpen ? "max-h-[500px]" : "max-h-0"
+          className={`fixed top-0 left-0 h-[120vh] w-80 max-w-[90vw] bg-white shadow-lg lg:hidden transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${mobileOpen ? "translate-x-0" : "-translate-x-full"
             }`}
           aria-hidden={!mobileOpen}
+          role="dialog"
+          aria-modal="true"
         >
-          <div className="px-3 sm:px-4 pb-4 pt-3 sm:pt-4 border-t border-gray-100">
+          <div className="px-3 sm:px-4 py-4 border-b border-gray-100 flex items-center justify-between">
+            <span className="text-sm font-semibold text-gray-900">Menu</span>
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="p-1 rounded-md hover:bg-gray-100 transition-colors"
+              aria-label="Close menu"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <div className="px-3 sm:px-4 pb-4 pt-3 sm:pt-4">
             <nav className="flex flex-col gap-3 sm:gap-4">
               {/* login section */}
               <div className="flex flex-col gap-2">
@@ -510,7 +559,8 @@ const Navbar = () => {
             </nav>
           </div>
         </div>
-      </nav>
+      </>
+
       {authMode === "login" && (
         <LoginDialog
           open={true}

@@ -11,6 +11,7 @@ interface UserGreetingProps {
       roleName?: string;
     };
   };
+  onClose?: () => void;
 }
 
 const GreetingOptions = [
@@ -41,7 +42,7 @@ const BuilderOptions = [
 ];
 
 
-const UserGreeting = ({ user }: UserGreetingProps) => {
+const UserGreeting = ({ user, onClose }: UserGreetingProps) => {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -103,10 +104,10 @@ const UserGreeting = ({ user }: UserGreetingProps) => {
           <div className="py-2">
             {options.map((item) => {
               const handleClick = () => {
-
                 if (item.link) {
                   router.push(item.link);
                   close();
+                  onClose?.();
                 }
                 setIsOpen(false);
               };

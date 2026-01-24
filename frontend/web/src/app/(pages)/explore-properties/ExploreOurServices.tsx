@@ -59,12 +59,8 @@ export default function ExploreOurServices() {
             <div className="card p-4 flex flex-col sm:flex-row items-start gap-3 sm:gap-0">
               {/* Icon badge */}
               <div
-                className="w-9 h-9 sm:w-10 sm:h-10
-               rounded-full flex items-center justify-center
-               bg-indigo-50 ring-1 ring-indigo-100
-               shrink-0"
-                aria-hidden
-              >
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-indigo-50 ring-1 ring-indigo-100 shrink-0"
+                aria-hidden>
                 {c.icon}
               </div>
 
