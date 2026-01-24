@@ -132,7 +132,7 @@ export default function FeaturedProjectsClient() {
                   2,3 BHK Flats
                 </p>
 
-                <p className="text-black text-sm md:text-base font-medium">
+                <p className="text-[#26ad5f] text-sm md:text-base font-medium">
                   {formatINR(project?.priceFrom)}
                   <span className="text-[#676666] font-light text-sm">
                     {" "}

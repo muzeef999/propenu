@@ -1,8 +1,6 @@
 "use client";
 import FilterDropdown from "@/ui/FilterDropdown";
-import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { HiChevronDown } from "react-icons/hi2";
 import { useState } from "react";
 

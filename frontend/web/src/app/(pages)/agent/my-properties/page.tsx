@@ -94,7 +94,7 @@ const Page = () => {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-1">
+    <div className="space-y-6">
       {/* ================= HEADER ================= */}
       <div className="items-start justify-between">
         <div className="mb-4">
