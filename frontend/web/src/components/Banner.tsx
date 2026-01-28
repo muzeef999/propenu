@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import heroBannerweb from "@/asserts/me.webp";
+import heroBannerMobile from "@/asserts/propenu-hero-banner-for-moblie.jpeg";
+import heroBannerwebp from "@/asserts/propenu-hero-web-banner.webp";
 
 import { useState, useEffect } from "react";
 import { useCity } from "@/hooks/useCity";
@@ -46,16 +47,26 @@ const Banner = () => {
   return (
     <section className="relative w-full h-[65vh] overflow-hidden">
       {/* ---------- Background Image ---------- */}
-      <Image
-        src={heroBannerweb}
-        alt="Propenu hero banner"
-        fill
-        priority
-        className="object-cover"
-      />
 
-      {/* ---------- White gradient overlay ---------- */}
-      <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/75 to-white/0" />
+      <div className="absolute inset-0">
+        {/* Desktop Image */}
+        <Image
+          src={heroBannerwebp}
+          alt="Propenu hero banner"
+          fill
+          priority
+          className="hidden md:block object-cover"
+        />
+
+        {/* Mobile Image */}
+        <Image
+          src={heroBannerMobile}
+          alt="Propenu hero banner mobile"
+          fill
+          priority
+          className="block md:hidden object-cover"
+        />
+      </div>
 
       {/* ---------- Content ---------- */}
       <div className="relative left-[4%] z-10 h-full pl-3">
@@ -68,9 +79,7 @@ const Banner = () => {
 
             {/* Main heading */}
             <h1>
-              <span className="heading-main-hero">
-                Everything you need
-              </span>
+              <span className="heading-main-hero">Everything you need</span>
 
               <span className="sub-heading-handwriting block">
                 Verified Listings
