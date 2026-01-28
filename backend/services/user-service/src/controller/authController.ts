@@ -6,16 +6,17 @@ import { sendOtpEmail, sendWelcomeEmail } from "../utils/email";
 import { generateToken } from "../utils/jwt";
 import { Request, Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware";
+import { sendOtpWhatsApp } from "../utils/whatsapp";
 
 export const requestOTP = async (req: Request, res: Response) => {
   try {
-    const email = req.body.email?.trim()?.toLowerCase();
-    if (!email) return res.status(400).json({ message: "Email is required" });
-    const existingUser = await User.findOne({ email }).select("name");
+    const phone = req.body.phone?.trim();
+    if (!phone) return res.status(400).json({ message: "phone is required" });
+    const existingUser = await User.findOne({ phone }).select("name");
     const name = existingUser?.name || "User";
     const otp = genOtp();
-    await saveOtpToRedis(email, otp);
-    await sendOtpEmail(email, otp, name);
+    await saveOtpToRedis(phone, otp);
+    await sendOtpWhatsApp(phone, otp);
     res.status(200).json({ message: "OTP sent successfully" });
   } catch (error: any) {
     res
@@ -26,19 +27,18 @@ export const requestOTP = async (req: Request, res: Response) => {
 
 export const verifyOtp = async (req: Request, res: Response) => {
   try {
-    const email = req.body.email?.trim()?.toLowerCase();
+    const phone = req.body.phone?.trim()?.toLowerCase();
     const otp = req.body.otp?.trim();
 
-    if (!email) return res.status(400).json({ message: "Email is required" });
+    if (!phone) return res.status(400).json({ message: "phone is required" });
     if (!otp) return res.status(400).json({ message: "OTP is required" });
 
-    const isValid = await verifyAndConsumeOtp(email, otp);
+    const isValid = await verifyAndConsumeOtp(phone, otp);
 
     if (!isValid)
       return res.status(400).json({ message: "Invalid or expired OTP" });
 
-
-    let user = await User.findOne({ email }).populate("roleId");
+    let user = await User.findOne({ phone }).populate("roleId");
 
     if (!user) {
       return res.status(403).json({
@@ -51,7 +51,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
     // 4️⃣ build JWT payload with role + permissions
     const token = generateToken({
       sub: String(user._id),
-      email: String(user.email),
+      phone: Number(user.phone),
       name: user.name,
       roleId: role ? String(role._id) : undefined,
       roleName: role ? role.name : undefined,
@@ -120,7 +120,7 @@ export const updateUserRole = async (req: Request, res: Response) => {
     const user = await User.findByIdAndUpdate(
       userId,
       { roleId: role._id },
-      { new: true }
+      { new: true },
     ).populate("roleId");
 
     if (!user) {
@@ -176,17 +176,15 @@ export const searchUsers = async (req: Request, res: Response) => {
 
 export const createRequestOtp = async (req: Request, res: Response) => {
   try {
-    const { name, email, role } = req.body;
+    const { name, phone, role } = req.body;
 
     if (!name) return res.status(400).json({ message: "name is required" });
-
-    if (!email) return res.status(400).json({ message: "Email is required" });
-
+    if (!phone) return res.status(400).json({ message: "Phone is required" });
     if (!role) return res.status(400).json({ message: "Role is required" });
+    
+    const normalizedEmail = phone.trim().toLowerCase();
 
-    const normalizedEmail = email.trim().toLowerCase();
-
-    const existingUser = await User.findOne({ email: normalizedEmail });
+    const existingUser = await User.findOne({ phone: normalizedEmail });
     if (existingUser) {
       return res.status(409).json({
         message: "Account already exists. Please login instead.",
@@ -200,8 +198,9 @@ export const createRequestOtp = async (req: Request, res: Response) => {
 
     const otp = genOtp();
 
+    
     await saveOtpToRedis(normalizedEmail, otp);
-    await sendOtpEmail(normalizedEmail, otp, name);
+    await sendOtpWhatsApp(normalizedEmail, otp);
 
     res.status(200).json({ message: "OTP sent successfully" });
   } catch (error: any) {
@@ -213,14 +212,14 @@ export const createRequestOtp = async (req: Request, res: Response) => {
 
 export const createVeifytOtp = async (req: Request, res: Response) => {
   try {
-    const { email, otp, name, role } = req.body;
+    const { phone, otp, name, role } = req.body;
 
-    if (!email) return res.status(400).json({ message: "Email is required" });
+    if (!phone) return res.status(400).json({ message: "Email is required" });
     if (!otp) return res.status(400).json({ message: "OTP is required" });
     if (!name) return res.status(400).json({ message: "Name is required" });
     if (!role) return res.status(400).json({ message: "Role is required" });
 
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = phone.trim().toLowerCase();
 
     const isValid = await verifyAndConsumeOtp(normalizedEmail, otp);
 
@@ -242,23 +241,27 @@ export const createVeifytOtp = async (req: Request, res: Response) => {
 
     const user = await User.create({
       name,
-      email: normalizedEmail,
+      phone: normalizedEmail,
       roleId: roleDoc._id,
     });
 
     const token = generateToken({
       sub: String(user._id),
-      email,
+      phone,
       name: user.name,
       roleId: String(roleDoc._id),
       roleName: roleDoc.name,
       permissions: roleDoc.permissions,
     });
 
-    sendWelcomeEmail(email, user.name).catch(() => {});
+    // sendWelcomeEmail(email, user.name).catch(() => {});
 
-    return res.status(201).json({ message: "Account created successfully", token });
+    return res
+      .status(201)
+      .json({ message: "Account created successfully", token });
   } catch (error: any) {
-    res.status(500).json({ message: "Failed to send OTP", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to send OTP", error: error.message });
   }
 };

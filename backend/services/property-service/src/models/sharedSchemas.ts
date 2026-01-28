@@ -17,7 +17,7 @@ export const FileRefSchema = new Schema<IFileRef>(
 
 export const ImageSchema = new Schema<IImage>(
   {
-    url: { type: String, required: true },
+    url: { type: String },
     key: String,
     filename: String,
     mimetype: String,

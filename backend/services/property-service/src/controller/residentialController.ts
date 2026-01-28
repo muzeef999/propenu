@@ -212,10 +212,8 @@ export const deleteResidential = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     if (!id) return res.status(400).json({ error: "Missing property ID" });
-
     const deleted = await ResidentialPropertyService.delete(id);
     if (!deleted) return res.status(404).json({ error: "Property not found" });
-
     return res.json({ data: deleted, message: "Deleted successfully" });
   } catch (err: any) {
     console.error("deleteResidential:", err);
@@ -275,28 +273,38 @@ export const updateLocationStep = async (req: AuthRequest, res: Response) => {
 };
 
 export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
-  try{
-  const files = req.files as { [field: string]: Express.Multer.File[] } | undefined;
-  const updated = await Residential.findByIdAndUpdate(
-    req.params.id,
-    {
-      ...req.body,
-      "completion.percent": 70,
-      "completion.step": 4,
-      "completion.lastSection": "details",
-    },
-    files
-  );
+  try {
 
-  if (!updated) {
-      return res.status(404).json({ error: "Commercial property not found" });
+    console.log("====== UPDATE DETAILS STEP HIT ======");
+    console.log("REQ.FILES:", req.files);
+    console.log("REQ.BODY.GALLERY:", req.body.gallery);
+
+    const files = req.files as { [field: string]: Express.Multer.File[] } | undefined;
+    
+    console.log("FILES RECEIVED:", files?.galleryFiles?.map(f => f.originalname));
+
+    const updated = await ResidentialPropertyService.update(
+      req.params.id,
+      {
+        ...req.body,
+        completion: {
+          percent: 70,
+          step: 4,
+          lastSection: "details",
+        },
+      },
+      files
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: "Residential property not found" });
     }
 
-  res.json({ data: updated });
-} catch (err:any){
+    res.json({ data: updated });
+  } catch (err: any) {
     console.error("updateDetailsStep:", err);
-        res.status(500).json({ error: err.message || "Internal server error" });
-}
+    res.status(500).json({ error: err.message || "Internal server error" });
+  }
 };
 
 export const finalizeResidential = async (req: AuthRequest, res: Response) => {

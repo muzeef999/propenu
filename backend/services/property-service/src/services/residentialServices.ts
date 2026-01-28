@@ -223,6 +223,10 @@ export const ResidentialPropertyService = {
   },
 
   async update(id: string, payload: any, files?: MulterFiles) {
+
+  console.log("====== SERVICE UPDATE HIT ======");
+  console.log("FILES IN SERVICE:", files?.galleryFiles?.map(f => f.originalname));
+
     if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
     const existingRaw = await Residential.findById(id);
     if (!existingRaw) return null;
@@ -241,6 +245,7 @@ export const ResidentialPropertyService = {
     const safeUpdate = pickDefined(data);
     const incomingGallery = safeUpdate.gallerySummary;
     delete safeUpdate.gallerySummary;
+    delete (safeUpdate as any).gallery;
     Object.assign(existing, safeUpdate);
 
     const propId = existing._id ? existing._id.toString() : String(Date.now());
