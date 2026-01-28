@@ -6,10 +6,10 @@ import { toast } from "sonner";
 import Cookies from "js-cookie";
 import { VerifyOtpResponse } from "@/types/property";
 import { LuPencilLine } from "react-icons/lu";
-import { MdClose } from "react-icons/md";
-import InputField from "@/ui/InputField";
-
-const phoneRegex = /^\+91[6-9]\d{9}$/;
+import { MdClose, MdOutlineWhatsapp } from "react-icons/md";
+import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
+import { z } from "zod";
+import "react-phone-number-input/style.css";
 
 interface LoginDialogProps {
   open: boolean;
@@ -18,24 +18,15 @@ interface LoginDialogProps {
 }
 
 const OTP_LENGTH = 4;
-const DEFAULT_COUNTRY_CODE = "+91";
 
-function normalizePhone(input: string) {
-  // remove everything except digits
-  const digits = input.replace(/\D/g, "");
+const phoneSchema = z.string().refine(isValidPhoneNumber, {
+  message: "Invalid or incomplete phone number.",
+});
 
-  // if already includes country code (91xxxxxxxxxx)
-  if (digits.length === 12 && digits.startsWith("91")) {
-    return `+${digits}`;
-  }
-
-  // local Indian number
-  if (digits.length === 10) {
-    return `${DEFAULT_COUNTRY_CODE}${digits}`;
-  }
-
-  return "";
-}
+const otpSchema = z
+  .string()
+  .min(1, { message: "Please enter the OTP." })
+  .length(OTP_LENGTH, { message: `OTP must be ${OTP_LENGTH} digits long.` });
 
 const LoginDialog = ({
   open,
@@ -55,56 +46,26 @@ const LoginDialog = ({
   const [phone, setPhone] = useState("");
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
-  const normalizedPhone = normalizePhone(phone);
-const canRequestOtp = phoneRegex.test(normalizedPhone);
-
-
-  const canVerifyOtp = otp.length === OTP_LENGTH;
-
   if (!open) return null; // don't render when closed
-
-  async function handleRequestOtp() {
-    if (!canRequestOtp) {
-      setError("Please enter a valid phone number.");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setInfo(null);
-
-    try {
-      await requestOtp({
-  phone: normalizedPhone,
-});
-      toast.success("OTP sent to your phone number.");
-
-      setStep("verify");
-    } catch (err) {
-      setError("Something went wrong while requesting OTP.");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function handleVerifyOtp(manualOtp?: string | React.MouseEvent) {
     const otpToSubmit = typeof manualOtp === "string" ? manualOtp : otp;
 
-    if (otpToSubmit.length !== OTP_LENGTH) {
-      setError(`Please enter the ${OTP_LENGTH}-digit OTP you received.`);
+    const validation = otpSchema.safeParse(otpToSubmit);
+
+    if (!validation.success) {
+      setError(validation.error.issues[0].message);
       return;
     }
 
     setLoading(true);
-    setError(null);
     setInfo(null);
 
     try {
       const res: VerifyOtpResponse = await verifyOtp({
-  phone: normalizedPhone,
-  otp: otpToSubmit,
-});
-
+        phone,
+        otp: otpToSubmit,
+      });
 
       Cookies.set("token", res.token, {
         secure: true,
@@ -113,20 +74,19 @@ const canRequestOtp = phoneRegex.test(normalizedPhone);
       });
 
       toast.success("Logged in successfully!");
-      setTimeout(() => {
-        handleClose();
-      }, 800);
-
+      setTimeout(handleClose, 800);
       window.location.reload();
     } catch (err) {
-      setError("Something went wrong while verifying OTP.");
+      setError("Invalid OTP or verification failed.");
+      setOtpDigits(Array(OTP_LENGTH).fill(""));
+      inputsRef.current[0]?.focus();
     } finally {
       setLoading(false);
     }
   }
-  
 
   function handleOtpChange(value: string, index: number) {
+    setError(null);
     const digit = value.replace(/\D/g, "").slice(0, 1); // only one number
 
     const newOtp = [...otpDigits];
@@ -195,6 +155,28 @@ const canRequestOtp = phoneRegex.test(normalizedPhone);
     onClose();
   }
 
+  async function handleRequestOtp() {
+    const validation = phoneSchema.safeParse(phone);
+
+    if (!validation.success) {
+      setError(validation.error.issues[0].message);
+      return;
+    }
+
+    setLoading(true);
+    setInfo(null);
+
+    try {
+      await requestOtp({ phone });
+      toast.success("OTP sent to your WhatsApp number");
+      setStep("verify");
+    } catch (err) {
+      setError("Something went wrong while requesting OTP.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       {/* backdrop */}
@@ -228,22 +210,32 @@ const canRequestOtp = phoneRegex.test(normalizedPhone);
 
           {step === "request" && (
             <div className="space-y-5">
-              <InputField
-                label="Enter your Phone Number"
-                type="tel"
-                value={phone}
-                onChange={(value) => {
-                  // allow + and digits only
-                  const cleaned = value.replace(/[^\d+]/g, "");
-                  setPhone(cleaned);
-                }}
-                placeholder="+91 9876543210"
-              />
+              <div className="relative mt-4">
+                <label className="text-sm font-medium text-[#374254]">
+                  Enter Whatsapp Number
+                </label>
+
+                <div className="phone-underline mt-1">
+                  <PhoneInput
+                    international
+                    defaultCountry="IN"
+                    value={phone}
+                    onChange={(value) => {
+                      setPhone(value || "");
+                      setError(null);
+                    }}
+                    placeholder=" "
+                    className="phone-material"
+                  />
+                </div>
+                {step === "request" && error && (
+                  <p className="mt-1 text-xs text-red-600">{error}</p>
+                )}
+              </div>
 
               <button
-                disabled={!canRequestOtp || loading}
                 onClick={handleRequestOtp}
-                className="w-full rounded-xl btn-primary py-3 text-sm font-semibold text-white shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
+                className="w-full rounded-md btn-primary py-3 text-sm font-semibold text-white shadow-lg transition-all focus:outline-none "
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -266,7 +258,10 @@ const canRequestOtp = phoneRegex.test(normalizedPhone);
                     Sending...
                   </span>
                 ) : (
-                  "Get OTP"
+                  <span className="flex items-center justify-center gap-2">
+                    <MdOutlineWhatsapp size={18} />
+                    Get WhatsApp OTP
+                  </span>
                 )}
               </button>
 
@@ -320,12 +315,14 @@ const canRequestOtp = phoneRegex.test(normalizedPhone);
                     className="h-14 w-14 rounded-xl border border-gray-200 bg-gray-50 text-center text-2xl font-bold text-gray-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"
                   />
                 ))}
+                {step === "verify" && error && (
+                  <p className="text-center text-sm text-red-600">{error}</p>
+                )}
               </div>
 
               <button
-                disabled={!canVerifyOtp || loading}
                 onClick={handleVerifyOtp}
-                className="w-full rounded-xl bg-[#27AE60] py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-green-700/90 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:cursor-not-allowed"
+                className="w-full rounded-xl bg-[#27AE60] py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-green-700/90 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -354,17 +351,8 @@ const canRequestOtp = phoneRegex.test(normalizedPhone);
             </div>
           )}
 
-          {error && (
-            <div className="mt-4 rounded-lg bg-red-50 p-3 text-center text-sm text-red-600">
-              {error}
-            </div>
-          )}
 
-          {info && !error && (
-            <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-center text-sm text-emerald-600">
-              {info}
-            </div>
-          )}
+        
         </div>
       </div>
     </div>

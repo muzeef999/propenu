@@ -3,31 +3,19 @@
 import { createRequestOtp, createVerifyOtp } from "@/data/ClientData"; // Assuming 'register' function exists to handle user creation and OTP sending
 import { useState, useRef } from "react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import Cookies from "js-cookie";
-import { VerifyOtpResponse } from "@/types/property";
-import { LuPencilLine } from "react-icons/lu";
-import { MdClose } from "react-icons/md";
+
+import {
+  MdClose,
+  MdOutlineBadge,
+  MdOutlineEngineering,
+  MdOutlineWhatsapp,
+} from "react-icons/md";
 import InputField from "@/ui/InputField";
-import { FaTools, FaUserAlt, FaUserTie } from "react-icons/fa";
+import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input"; // isValidPhoneNumber is crucial for Zod
+import { z } from "zod";
+import "react-phone-number-input/style.css";
 
-const DEFAULT_COUNTRY_CODE = "+91";
-
-function normalizePhone(input: string) {
-  const digits = input.replace(/\D/g, "");
-
-  if (digits.length === 12 && digits.startsWith("91")) {
-    return `+${digits}`;
-  }
-
-  if (digits.length === 10) {
-    return `${DEFAULT_COUNTRY_CODE}${digits}`;
-  }
-
-  return "";
-}
-
-const phoneRegex = /^\+91[6-9]\d{9}$/;
+import { AiOutlineTool, AiOutlineUser } from "react-icons/ai";
 
 interface RegisterDialogProps {
   open: boolean;
@@ -37,6 +25,25 @@ interface RegisterDialogProps {
 
 const OTP_LENGTH = 4;
 
+const registerSchema = z.object({
+  name: z.string().min(3, { message: "Name must be at least 3 characters." }),
+  phone: z.string().refine(isValidPhoneNumber, {
+    message: "Invalid or incomplete phone number.",
+  }),
+  role: z.enum(["user", "builder", "agent"]),
+});
+
+const otpSchema = z
+  .string()
+  .min(1, { message: "Please enter the OTP." })
+  .length(OTP_LENGTH, { message: `OTP must be ${OTP_LENGTH} digits long.` });
+
+type FormErrors = {
+  name?: string;
+  phone?: string;
+  role?: string;
+  otp?: string;
+};
 const RegisterDialog = ({
   open,
   onClose,
@@ -55,50 +62,45 @@ const RegisterDialog = ({
   const otp = otpDigits.join("");
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<FormErrors>({});
 
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
-  const normalizedPhone = normalizePhone(formData.phone);
-
-  const canRequestOtp =
-    formData.name.trim().length > 2 &&
-    phoneRegex.test(normalizedPhone) &&
-    Boolean(formData.role);
-
-  const canVerifyOtp = otp.length === OTP_LENGTH;
-
   if (!open) return null;
 
-  const handleInputChange =
-    (field: keyof typeof formData) => (value: string) => {
-      setFormData((prev) => ({ ...prev, [field]: value }));
-      setError(null);
-    };
+  function mapZodErrors(error: z.ZodError) {
+    const fieldErrors: FormErrors = {};
+
+    error.issues.forEach((issue) => {
+      const field = issue.path[0] as keyof FormErrors;
+      if (field) fieldErrors[field] = issue.message;
+    });
+
+    return fieldErrors;
+  }
 
   async function handleRegisterRequest() {
-    if (!canRequestOtp) {
-      setError("Please fill all fields correctly.");
+    const validation = registerSchema.safeParse(formData);
+
+    if (!validation.success) {
+      setErrors(mapZodErrors(validation.error));
       return;
     }
 
+    setErrors({});
     setLoading(true);
-    setError(null);
 
     try {
-      // NOTE: Assumes a `register` API function that handles user creation and sends an OTP.
       await createRequestOtp({
-        name: formData.name.trim(),
-        phone: normalizedPhone,
-        role: formData.role,
+        name: validation.data.name.trim(),
+        phone: validation.data.phone,
+        role: validation.data.role,
       });
 
-      toast.success("OTP sent to your email. Please check your inbox.");
+      toast.success("OTP sent to your WhatsApp number");
       setStep("verify");
-    } catch (err) {
-      setError(
-        "An account with this email may already exist, or an error occurred.",
-      );
+    } catch {
+      toast.error("Account already exists or something went wrong");
     } finally {
       setLoading(false);
     }
@@ -107,22 +109,22 @@ const RegisterDialog = ({
   async function handleVerifyOtp(manualOtp?: string | React.MouseEvent) {
     const otpToSubmit = typeof manualOtp === "string" ? manualOtp : otp;
 
-    if (otpToSubmit.length !== OTP_LENGTH) {
-      setError(`Please enter the ${OTP_LENGTH}-digit OTP.`);
+    const validation = otpSchema.safeParse(otpToSubmit);
+    if (!validation.success) {
+      setErrors({ otp: validation.error.issues[0].message });
       return;
     }
 
     setLoading(true);
-    setError(null);
+    setErrors({});
 
     try {
       await createVerifyOtp({
-        phone: normalizedPhone,
+        phone: formData.phone,
         otp: otpToSubmit,
         name: formData.name.trim(),
         role: formData.role,
       });
-
 
       // Cookies.set("token", res.token, { secure: true, sameSite: "Strict" });
 
@@ -132,7 +134,7 @@ const RegisterDialog = ({
         window.location.reload();
       }, 800);
     } catch (err) {
-      setError("Invalid OTP or an error occurred.");
+      setErrors({ otp: "Invalid OTP or an error occurred." });
       setOtpDigits(Array(OTP_LENGTH).fill("")); // Clear OTP fields on error
       inputsRef.current[0]?.focus();
     } finally {
@@ -141,6 +143,7 @@ const RegisterDialog = ({
   }
 
   function handleOtpChange(value: string, index: number) {
+    setErrors((p) => ({ ...p, otp: undefined }));
     const digit = value.replace(/\D/g, "").slice(0, 1);
     const newOtp = [...otpDigits];
     newOtp[index] = digit;
@@ -164,6 +167,14 @@ const RegisterDialog = ({
     if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
       inputsRef.current[index - 1]?.focus();
     }
+
+    if (e.key === "ArrowLeft" && index > 0) {
+      inputsRef.current[index - 1]?.focus();
+    }
+
+    if (e.key === "ArrowRight" && index < OTP_LENGTH - 1) {
+      inputsRef.current[index + 1]?.focus();
+    }
   }
 
   function handleOtpPaste(e: React.ClipboardEvent<HTMLInputElement>) {
@@ -174,13 +185,16 @@ const RegisterDialog = ({
       .slice(0, OTP_LENGTH);
     if (!paste) return;
 
-    const newOtp = Array.from(paste.padEnd(OTP_LENGTH, " "));
+    const newOtp = [...otpDigits];
+    for (let i = 0; i < OTP_LENGTH; i++) {
+      newOtp[i] = paste[i] ?? "";
+    }
     setOtpDigits(newOtp);
 
     if (paste.length === OTP_LENGTH) {
       handleVerifyOtp(paste);
     } else {
-      inputsRef.current[paste.length]?.focus();
+      inputsRef.current[paste.length - 1]?.focus();
     }
   }
 
@@ -188,7 +202,7 @@ const RegisterDialog = ({
     setStep("details");
     setFormData({ name: "", phone: "", role: "user" });
     setOtpDigits(Array(OTP_LENGTH).fill(""));
-    setError(null);
+    setErrors({});
     onClose();
   }
 
@@ -217,32 +231,56 @@ const RegisterDialog = ({
             <p className="mt-1  text-sm text-gray-500">
               {step === "details"
                 ? "Trust begins with verified users. Get started now!"
-                : `Enter the code sent to ${normalizedPhone}`}
-
+                : `Enter the code sent to ${formData.phone}`}
             </p>
           </div>
 
           {step === "details" && (
             <div className="space-y-5">
-              <InputField
-                label="Full Name"
-                type="text"
-                value={formData.name}
-                onChange={handleInputChange("name")}
-                placeholder="Enter your full name"
-              />
-              <InputField
-                label="Enter Whatsapp Number"
-                type="tel"
-                value={formData.phone}
-                onChange={(value) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    phone: value.replace(/[^\d+]/g, ""),
-                  }))
-                }
-                placeholder="+91 9876543210"
-              />
+              <div className="relative mt-4">
+                <label className="text-sm font-medium text-[#374254]">
+                  Full Name
+                </label>
+
+                <div className="mt-1 border-b-2 border-emerald-200 focus-within:border-emerald-500 transition-colors">
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => {
+                      setFormData((p) => ({ ...p, name: e.target.value }));
+                      setErrors((p) => ({ ...p, name: undefined }));
+                    }}
+                    placeholder="Enter your full name"
+                    className=" w-full border-none bg-transparent py-1 text-sm outline-none  placeholder-gray-400"
+                  />
+                </div>
+                {errors.name && (
+                  <p className="mt-1 text-xs text-red-600">{errors.name}</p>
+                )}
+              </div>
+
+              <div className="relative mt-4">
+                <label className="text-sm font-medium text-[#374254]">
+                  Enter Phone Number
+                </label>
+
+                <div className="phone-underline mt-1">
+                  <PhoneInput
+                    international
+                    defaultCountry="IN"
+                    value={formData.phone}
+                    onChange={(value) => {
+                      setFormData((p) => ({ ...p, phone: value || "" }));
+                      setErrors((p) => ({ ...p, phone: undefined }));
+                    }}
+                    placeholder=" "
+                    className="phone-material"
+                  />
+                </div>
+                {errors.phone && (
+                  <p className="mt-1 text-xs text-red-600">{errors.phone}</p>
+                )}
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -251,9 +289,13 @@ const RegisterDialog = ({
 
                 <div className="grid grid-cols-3 gap-4">
                   {[
-                    { value: "user", label: "User", icon: FaUserAlt },
-                    { value: "builder", label: "Builder", icon: FaTools },
-                    { value: "agent", label: "Agent", icon: FaUserTie },
+                    { value: "user", label: "User", icon: AiOutlineUser },
+                    {
+                      value: "builder",
+                      label: "Builder",
+                      icon: AiOutlineTool,
+                    },
+                    { value: "agent", label: "Agent", icon: MdOutlineBadge },
                   ].map(({ value, label, icon: Icon }) => {
                     const isActive = formData.role === value;
 
@@ -261,32 +303,37 @@ const RegisterDialog = ({
                       <button
                         key={value}
                         type="button"
-                        onClick={() =>
-                          setFormData((prev) => ({ ...prev, role: value }))
-                        }
-                        className={`flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-semibold transition-all
-            ${isActive
-                            ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-300"
-                            : "border-gray-200 bg-white text-gray-700 hover:border-emerald-400"
-                          }
-          `}
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, role: value }));
+                          setErrors((p) => ({ ...p, role: undefined }));
+                        }}
+                        className={`flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm f transition-all${isActive ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-300" : "border-gray-200 bg-white text-gray-700 hover:border-emerald-400"
+                          }`}
                       >
-                        <Icon size={18} />
+                        <Icon size={22} />
                         <span>{label}</span>
                       </button>
                     );
                   })}
                 </div>
+                {errors.role && (
+                  <p className="mt-2 text-xs text-red-600">{errors.role}</p>
+                )}
               </div>
 
-
-
               <button
-                disabled={!canRequestOtp || loading}
+                disabled={loading}
                 onClick={handleRegisterRequest}
-                className="w-full rounded-xl bg-[#27AE60] py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-green-700/90 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-md py-3 text-sm font-semibold text-white shadow-lg transition-all btn-primary"
               >
-                {loading ? "Sending..." : "Get OTP"}
+                {loading ? (
+                  "Sending..."
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <MdOutlineWhatsapp size={18} />
+                    Get WhatsApp OTP
+                  </span>
+                )}
               </button>
 
               <div className="text-center">
@@ -343,12 +390,6 @@ const RegisterDialog = ({
                   </button>
                 </p>
               </div>
-            </div>
-          )}
-
-          {error && (
-            <div className="mt-4 rounded-lg bg-red-50 p-3 text-center text-sm text-red-600">
-              {error}
             </div>
           )}
         </div>
