@@ -10,7 +10,23 @@ import { LuPencilLine } from "react-icons/lu";
 import { MdClose } from "react-icons/md";
 import InputField from "@/ui/InputField";
 
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const DEFAULT_COUNTRY_CODE = "+91";
+
+function normalizePhone(input: string) {
+  const digits = input.replace(/\D/g, "");
+
+  if (digits.length === 12 && digits.startsWith("91")) {
+    return `+${digits}`;
+  }
+
+  if (digits.length === 10) {
+    return `${DEFAULT_COUNTRY_CODE}${digits}`;
+  }
+
+  return "";
+}
+
+const phoneRegex = /^\+91[6-9]\d{9}$/;
 
 interface RegisterDialogProps {
   open: boolean;
@@ -28,11 +44,11 @@ const RegisterDialog = ({
   const [step, setStep] = useState<"details" | "verify">("details");
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
+    phone: "",
     role: "user",
   });
   const [otpDigits, setOtpDigits] = useState<string[]>(
-    Array(OTP_LENGTH).fill("")
+    Array(OTP_LENGTH).fill(""),
   );
 
   const otp = otpDigits.join("");
@@ -42,10 +58,13 @@ const RegisterDialog = ({
 
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
+  const normalizedPhone = normalizePhone(formData.phone);
+
   const canRequestOtp =
     formData.name.trim().length > 2 &&
-    emailRegex.test(formData.email) &&
-    Boolean(formData.role && formData.role.length > 0);
+    phoneRegex.test(normalizedPhone) &&
+    Boolean(formData.role);
+
   const canVerifyOtp = otp.length === OTP_LENGTH;
 
   if (!open) return null;
@@ -69,14 +88,15 @@ const RegisterDialog = ({
       // NOTE: Assumes a `register` API function that handles user creation and sends an OTP.
       await createRequestOtp({
         name: formData.name.trim(),
-        email: formData.email.trim(),
+        phone: normalizedPhone,
         role: formData.role,
       });
+
       toast.success("OTP sent to your email. Please check your inbox.");
       setStep("verify");
     } catch (err) {
       setError(
-        "An account with this email may already exist, or an error occurred."
+        "An account with this email may already exist, or an error occurred.",
       );
     } finally {
       setLoading(false);
@@ -95,12 +115,13 @@ const RegisterDialog = ({
     setError(null);
 
     try {
-      const res = await createVerifyOtp({
-        email: formData.email.trim(),
+      await createVerifyOtp({
+        phone: normalizedPhone,
         otp: otpToSubmit,
         name: formData.name.trim(),
         role: formData.role,
       });
+
 
       // Cookies.set("token", res.token, { secure: true, sameSite: "Strict" });
 
@@ -137,7 +158,7 @@ const RegisterDialog = ({
 
   function handleOtpKeyDown(
     e: React.KeyboardEvent<HTMLInputElement>,
-    index: number
+    index: number,
   ) {
     if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
       inputsRef.current[index - 1]?.focus();
@@ -164,7 +185,7 @@ const RegisterDialog = ({
 
   function handleClose() {
     setStep("details");
-    setFormData({ name: "", email: "", role: "user" });
+    setFormData({ name: "", phone: "", role: "user" });
     setOtpDigits(Array(OTP_LENGTH).fill(""));
     setError(null);
     onClose();
@@ -195,7 +216,8 @@ const RegisterDialog = ({
             <p className="mt-1  text-sm text-gray-500">
               {step === "details"
                 ? "Trust begins with verified users. Get started now!"
-                : `Enter the code sent to ${formData.email}`}
+                : `Enter the code sent to ${normalizedPhone}`}
+
             </p>
           </div>
 
@@ -209,26 +231,53 @@ const RegisterDialog = ({
                 placeholder="Enter your full name"
               />
               <InputField
-                label="Email Address"
-                type="email"
-                value={formData.email}
-                onChange={handleInputChange("email")}
-                placeholder="Enter your email address"
+                label="Enter Whatsapp Number"
+                type="tel"
+                value={formData.phone}
+                onChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    phone: value.replace(/[^\d+]/g, ""),
+                  }))
+                }
+                placeholder="+91 9876543210"
               />
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Role
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Select Role
                 </label>
-                <select
-                  value={formData.role}
-                  onChange={(e) => handleInputChange("role")(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-emerald-500"
-                >
-                  <option value="user">User</option>
-                  <option value="builder">Builder</option>
-                  <option value="agent">Agent</option>
-                </select>
+
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { value: "user", label: "User", icon: "👤" },
+                    { value: "builder", label: "Builder", icon: "🏗️" },
+                    { value: "agent", label: "Agent", icon: "🧑‍💼" },
+                  ].map((role) => {
+                    const isActive = formData.role === role.value;
+
+                    return (
+                      <button
+                        key={role.value}
+                        type="button"
+                        onClick={() =>
+                          setFormData((prev) => ({ ...prev, role: role.value }))
+                        }
+                        className={` items-center justify-center gap-2 rounded-md border p-1 text-sm font-medium transition-all
+            ${isActive
+                            ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-100"
+                            : "border-gray-200 bg-white text-gray-700 hover:border-emerald-400"
+                          }
+          `}
+                      >
+                        <span className="text-xl">{role.icon}</span>
+                        <span>{role.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+
 
               <button
                 disabled={!canRequestOtp || loading}

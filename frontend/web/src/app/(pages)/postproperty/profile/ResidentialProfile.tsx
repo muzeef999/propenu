@@ -335,9 +335,8 @@ const ResidentialProfile = () => {
         </div>
         <div className="flex items-center gap-3">
           <span
-            className={`text-xs font-medium ${
-              residential.isPriceNegotiable ? "text-green-600" : "text-gray-400"
-            }`}
+            className={`text-xs font-medium ${residential.isPriceNegotiable ? "text-green-600" : "text-gray-400"
+              }`}
           >
             {residential.isPriceNegotiable ? "YES" : "NO"}
           </span>
@@ -377,83 +376,83 @@ const ResidentialProfile = () => {
         <p className="text-red-500 text-xs mt-1">{fieldErrors.description[0]}</p>
       )}
 
-<button
-  type="button"
-  onClick={() => {
-    setShowErrors(true);
+      <button
+        type="button"
+        onClick={() => {
+          setShowErrors(true);
 
-    // ✅ FIX: convert amenities objects → string[] ONLY for validation
-    const payload = {
-      ...residential,
+          // ✅ FIX: convert amenities objects → string[] ONLY for validation
+          const payload = {
+            ...residential,
 
-      amenities: Array.isArray(residential.amenities)
-        ? residential.amenities.map((a: any) => a?.title).filter(Boolean)
-        : [],
-    };
+            amenities: Array.isArray(residential.amenities)
+              ? residential.amenities.map((a: any) => a?.title).filter(Boolean)
+              : [],
+          };
 
-    const result = validateResidentialProfile(
-      payload,
-      files.map((f) => f.file),
-    );
+          const result = validateResidentialProfile(
+            payload,
+            files.map((f) => f.file),
+          );
 
-    if (!result.success) {
-      const flattened = result.error.flatten();
+          if (!result.success) {
+            const flattened = result.error.flatten();
 
-      console.error("❌ Residential Profile Validation Failed");
-      console.table(flattened.fieldErrors);
-      console.log("Full Zod Error:", result.error);
+            console.error("❌ Residential Profile Validation Failed");
+            console.table(flattened.fieldErrors);
+            console.log("Full Zod Error:", result.error);
 
-      toast.error("Please fix the highlighted errors");
-      return;
-    }
+            toast.error("Please fix the highlighted errors");
+            return;
+          }
 
-    // 🚀 IMPORTANT: send ORIGINAL residential object to backend
-    dispatch(
-      submitDetailsThunk({
-        category: propertyType,
-        id: draftId,
-        payload: residential, // backend/thunk will format this
-      }),
-    )
-      .unwrap()
-      .then((resonse) => {
-        dispatch(nextStep()); // Move to next step on success
-        
+          // 🚀 IMPORTANT: send ORIGINAL residential object to backend
+          dispatch(
+            submitDetailsThunk({
+              category: propertyType,
+              id: draftId,
+              payload: residential, // backend/thunk will format this
+            }),
+          )
+            .unwrap()
+            .then((response) => {
+              dispatch(nextStep()); // Move to next step on success
 
-      })
-      .catch((error: any) => {
-        console.log("🔥 FULL ERROR FROM API:", error);
 
-        const errObj =
-          typeof error === "string"
-            ? { message: error }
-            : error?.response?.data || error;
+            })
+            .catch((error: any) => {
+              console.log("🔥 FULL ERROR FROM API:", error);
 
-        toast.error(errObj?.message || "Failed to submit property");
+              const errObj =
+                typeof error === "string"
+                  ? { message: error }
+                  : error?.response?.data || error;
 
-        if (
-          errObj?.code === "NO_VALID_PLAN" ||
-          errObj?.code === "PLAN_LIMIT_REACHED"
-        ) {
-          const listingType = residential.listingType || "sale";
+              toast.error(errObj?.message || "Failed to submit property");
 
-          const redirectUrl =
-            listingType === "sale"
-              ? "/plans/pricing/owner-sell"
-              : "/plans/pricing/owner-rent";
+              if (
+                errObj?.code === "NO_VALID_PLAN" ||
+                errObj?.code === "PLAN_LIMIT_REACHED"
+              ) {
+                const listingType = residential.listingType || "sale";
 
-          console.log("🚀 Redirecting to:", redirectUrl);
+                const redirectUrl =
+                  listingType === "sale"
+                    ? "/plans/pricing/owner-sell"
+                    : "/plans/pricing/owner-rent";
 
-          setTimeout(() => {
-            router.push(redirectUrl);
-          }, 800);
-        }
-      });
-  }}
-  className="py-2 btn-primary text-white rounded-md cursor-pointer w-full"
->
-  Submit Property
-</button>
+                console.log("🚀 Redirecting to:", redirectUrl);
+
+                setTimeout(() => {
+                  router.push(redirectUrl);
+                }, 800);
+              }
+            });
+        }}
+        className="py-2 btn-primary text-white rounded-md cursor-pointer w-full"
+      >
+        Continue
+      </button>
 
     </div>
   );

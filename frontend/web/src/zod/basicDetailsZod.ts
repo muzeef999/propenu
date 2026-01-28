@@ -28,8 +28,7 @@ export const basicDetailsSchema = z
 
     builtUpArea: z.union([z.string(), z.number()]).optional(),
 
-   price: z.union([z.string(), z.number()]).optional(),
-
+    price: z.union([z.string(), z.number()]).optional(),
 
     bedrooms: z.union([z.string(), z.number()]).optional(),
 
@@ -112,7 +111,13 @@ export const basicDetailsSchema = z
     }
 
     /* ---------------- AVAILABILITY STATUS ---------------- */
-    if (category === "residential" && !constructionStatus) {
+    const needsAvailabilityStatus =
+      category === "residential" || category === "commercial";
+
+    if (
+      needsAvailabilityStatus &&
+      (!constructionStatus || constructionStatus.trim() === "")
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["constructionStatus"],
@@ -133,7 +138,7 @@ export const basicDetailsSchema = z
     }
 
     /* ---------------- PRICING ---------------- */
-    if (category === "residential") {
+    if (category === "residential" || category === "commercial") {
       if (!price || Number(price) <= 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -182,4 +187,3 @@ export const validateBasicDetails = (data: any, category: string) => {
     category,
   });
 };
-

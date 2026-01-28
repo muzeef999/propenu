@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from "react-redux";
-import { setProfileField } from "@/Redux/slice/postPropertySlice";
+import { nextStep, setBaseField, setProfileField } from "@/Redux/slice/postPropertySlice";
 import CounterField from "@/ui/CounterField";
 import InputField from "@/ui/InputField";
 import AmenitiesSelect from "./AmenitiesSelect";
@@ -18,6 +18,9 @@ import { validateCommercialProfile } from "@/zod/commercialProfileZod";
 import { toast } from "sonner";
 import Router from "next/router";
 import confetti from "canvas-confetti";
+import FileUpload, { UploadedFile } from "@/ui/FileUpload";
+import { setFiles } from "@/lib/fileStore";
+import { setFileStoreFiles } from "@/utilies/fileStore";
 
 export const TRANSACTION_TYPES = [
   "new-sale",
@@ -47,49 +50,25 @@ export const FLOORING_TYPES = [
 ] as const;
 
 const CommercialProfile = () => {
-  const { commercial, draftId, propertyType } = useSelector((state: any) => state.postProperty);
+  const { commercial, draftId, propertyType } = useSelector(
+    (state: any) => state.postProperty,
+  );
   const dispatch = useAppDispatch();
-    const [showErrors, setShowErrors] = useState(false);
-  
-  useEffect(() => {
-    const price = Number(commercial.price) || Number(commercial.expectedPrice);
-    const area = Number(commercial.carpetArea);
+  const [files, setFiles] = useState<UploadedFile[]>([]);
 
-    if (price > 0 && area > 0) {
-      const pricePerSqft = String(Math.round(price / area));
-      if (pricePerSqft !== commercial.pricePerSqft) {
-        dispatch(
-          setProfileField({
-            propertyType: "commercial",
-            key: "pricePerSqft",
-            value: pricePerSqft,
-          })
-        );
-      }
-    } else {
-      if (commercial.pricePerSqft) {
-        dispatch(
-          setProfileField({
-            propertyType: "commercial",
-            key: "pricePerSqft",
-            value: "",
-          })
-        );
-      }
-    }
-  }, [
-    commercial.price,
-    commercial.expectedPrice,
-    commercial.carpetArea,
-    commercial.pricePerSqft,
-    dispatch,
-  ]);
+  const [showErrors, setShowErrors] = useState(false);
+
+  const validationResult = validateCommercialProfile(commercial);
+
+  const fieldErrors =
+    showErrors && !validationResult.success
+      ? validationResult.error.flatten().fieldErrors
+      : {};
 
   return (
     <div className="space-y-8">
       {/* ========== PROPERTY BASICS ========== */}
       <div className="space-y-6">
-        
         <div>
           <AmenitiesSelect
             label="Amenities"
@@ -101,7 +80,7 @@ const CommercialProfile = () => {
                   propertyType: "commercial",
                   key: "amenities",
                   value,
-                })
+                }),
               )
             }
           />
@@ -128,7 +107,7 @@ const CommercialProfile = () => {
                       ...commercial.parkingDetails,
                       twoWheeler: value,
                     },
-                  })
+                  }),
                 )
               }
             />
@@ -147,7 +126,7 @@ const CommercialProfile = () => {
                       ...commercial.parkingDetails,
                       fourWheeler: value,
                     },
-                  })
+                  }),
                 )
               }
             />
@@ -169,7 +148,7 @@ const CommercialProfile = () => {
                     propertyType: "commercial",
                     key: "flooringType",
                     value,
-                  })
+                  }),
                 )
               }
               options={FLOORING_TYPES.map((t) => ({
@@ -190,7 +169,7 @@ const CommercialProfile = () => {
                     propertyType: "commercial",
                     key: "floorNumber",
                     value,
-                  })
+                  }),
                 )
               }
             />
@@ -206,7 +185,7 @@ const CommercialProfile = () => {
                     propertyType: "commercial",
                     key: "totalFloors",
                     value,
-                  })
+                  }),
                 )
               }
             />
@@ -222,7 +201,7 @@ const CommercialProfile = () => {
                   propertyType: "commercial",
                   key: "pantry",
                   value: { ...commercial.pantry, type: value },
-                })
+                }),
               )
             }
             options={PANTRY_TYPES.map((t) => ({
@@ -257,7 +236,7 @@ const CommercialProfile = () => {
                         ...commercial.pantry,
                         insidePremises: e.target.checked,
                       },
-                    })
+                    }),
                   )
                 }
                 className="h-5 w-5 accent-green-600 cursor-pointer"
@@ -280,7 +259,7 @@ const CommercialProfile = () => {
                       propertyType: "commercial",
                       key: "pantry",
                       value: { ...commercial.pantry, shared: e.target.checked },
-                    })
+                    }),
                   )
                 }
                 className="h-5 w-5 accent-green-600 cursor-pointer"
@@ -288,59 +267,6 @@ const CommercialProfile = () => {
             </div>
           </div>
         </div>
-
-       
-        
-        {commercial.constructionStatus === "ready-to-move" && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-700">Property Age</p>
-
-            <div className="flex flex-wrap gap-3">
-              {[
-                { value: "0-1-year", label: "0-1 Year" },
-                { value: "1-5-years", label: "1-5 Years" },
-                { value: "5-10-years", label: "5-10 Years" },
-                { value: "10-plus-years", label: "10+ Years" },
-              ].map((item) => {
-                const active = commercial.propertyAge === item.value;
-
-                return (
-                  <SelectableButton
-                    key={item.value}
-                    label={item.label}
-                    active={active}
-                    onClick={() =>
-                      dispatch(
-                        setProfileField({
-                          propertyType: "commercial",
-                          key: "propertyAge",
-                          value: item.value,
-                        })
-                      )
-                    }
-                  />
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {commercial.constructionStatus === "under-construction" && (
-          <InputField
-            label="Expected Possession Date"
-            type="date"
-            value={commercial.possessionDate || ""}
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "commercial",
-                  key: "possessionDate",
-                  value,
-                })
-              )
-            }
-          />
-        )}
       </div>
 
       {/* ========== BUILDING MANAGEMENT ========== */}
@@ -368,7 +294,7 @@ const CommercialProfile = () => {
                     ...commercial.buildingManagement,
                     managedBy: value,
                   },
-                })
+                }),
               )
             }
           />
@@ -386,7 +312,7 @@ const CommercialProfile = () => {
                     ...commercial.buildingManagement,
                     contact: value,
                   },
-                })
+                }),
               )
             }
           />
@@ -405,7 +331,7 @@ const CommercialProfile = () => {
                 propertyType: "commercial",
                 key: "zoning",
                 value,
-              })
+              }),
             )
           }
         />
@@ -436,14 +362,14 @@ const CommercialProfile = () => {
                 onClick={() => {
                   const updatedTenants =
                     commercial.tenantInfo?.filter(
-                      (_: any, i: number) => i !== index
+                      (_: any, i: number) => i !== index,
                     ) || [];
                   dispatch(
                     setProfileField({
                       propertyType: "commercial",
                       key: "tenantInfo",
                       value: updatedTenants,
-                    })
+                    }),
                   );
                 }}
                 className="text-xs text-red-600 hover:text-red-700 font-medium"
@@ -465,7 +391,7 @@ const CommercialProfile = () => {
                       propertyType: "commercial",
                       key: "tenantInfo",
                       value: updatedTenants,
-                    })
+                    }),
                   );
                 }}
               />
@@ -485,7 +411,7 @@ const CommercialProfile = () => {
                       propertyType: "commercial",
                       key: "tenantInfo",
                       value: updatedTenants,
-                    })
+                    }),
                   );
                 }}
               />
@@ -502,7 +428,7 @@ const CommercialProfile = () => {
                       propertyType: "commercial",
                       key: "tenantInfo",
                       value: updatedTenants,
-                    })
+                    }),
                   );
                 }}
               />
@@ -519,7 +445,7 @@ const CommercialProfile = () => {
                       propertyType: "commercial",
                       key: "tenantInfo",
                       value: updatedTenants,
-                    })
+                    }),
                   );
                 }}
               />
@@ -541,7 +467,7 @@ const CommercialProfile = () => {
                 propertyType: "commercial",
                 key: "tenantInfo",
                 value: [...(commercial.tenantInfo || []), newTenant],
-              })
+              }),
             );
           }}
           className="w-full py-2 px-4 border border-dashed border-gray-300 rounded-md text-sm text-gray-600 hover:text-gray-700 hover:border-gray-400 transition"
@@ -601,7 +527,7 @@ const CommercialProfile = () => {
                         propertyType: "commercial",
                         key: "fireSafety",
                         value: { ...commercial.fireSafety, [item.key]: val },
-                      })
+                      }),
                     )
                   }
                 />
@@ -611,12 +537,33 @@ const CommercialProfile = () => {
         </div>
       </div>
 
+      <div className="space-y-2">
+        <FileUpload
+          label="Property Images"
+          value={files}
+          onChange={(newFiles) => {
+            setFiles(newFiles);
+            // persist only metadata in Redux (serializable)
+            dispatch(
+              setBaseField({
+                key: "galleryFiles",
+                value: newFiles.map((f) => ({ filename: f.file.name })),
+              }),
+            );
+            // store actual File objects in in-memory file store
+            setFileStoreFiles(
+              "postProperty",
+              newFiles.map((f) => f.file),
+            );
+          }}
+          accept="image/*"
+          maxFiles={5}
+          maxSizeMB={5}
+          error={fieldErrors?.images?.[0]}
+        />
+      </div>
 
-      <div
-        className={`flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300 ${
-          commercial.isPriceNegotiable ? "border-green-500 bg-green-50 shadow-sm" : ""
-        }`}
-      >
+      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
         <div>
           <p className="text-sm font-semibold text-gray-800">
             Is the price negotiable?
@@ -641,7 +588,7 @@ const CommercialProfile = () => {
                   propertyType: "commercial",
                   key: "isPriceNegotiable",
                   value: val,
-                })
+                }),
               )
             }
           />
@@ -658,7 +605,7 @@ const CommercialProfile = () => {
               propertyType: "commercial",
               key: "description",
               value,
-            })
+            }),
           )
         }
       />
@@ -667,7 +614,7 @@ const CommercialProfile = () => {
         type="button"
         onClick={() => {
           setShowErrors(true);
-      
+
           // ✅ FIX: convert amenities objects → string[] ONLY for validation
           const payload = {
             ...commercial,
@@ -675,21 +622,22 @@ const CommercialProfile = () => {
             amenities: Array.isArray(commercial.amenities)
               ? commercial.amenities.map((a: any) => a?.title).filter(Boolean)
               : [],
+            images:files.map((f) => f.file),
           };
-      
+
           const result = validateCommercialProfile(payload);
-      
+
           if (!result.success) {
             const flattened = result.error.flatten();
-      
-            console.error("❌ Residential Profile Validation Failed");
+
+            console.error("❌ Commercial Profile Validation Failed");
             console.table(flattened.fieldErrors);
             console.log("Full Zod Error:", result.error);
-      
+
             toast.error("Please fix the highlighted errors");
             return;
           }
-      
+
           // 🚀 IMPORTANT: send ORIGINAL residential object to backend
           dispatch(
             submitDetailsThunk({
@@ -700,40 +648,31 @@ const CommercialProfile = () => {
           )
             .unwrap()
             .then((response) => {
-              console.log("Property submission successful:", response);
-              toast.success("Property submitted successfully");
-      
-              confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 },
-              });
-      
-              Router.push("/my-properties");
-            })
+                    dispatch(nextStep());
+                  })
             .catch((error: any) => {
               console.log("🔥 FULL ERROR FROM API:", error);
-      
+
               const errObj =
                 typeof error === "string"
                   ? { message: error }
                   : error?.response?.data || error;
-      
+
               toast.error(errObj?.message || "Failed to submit property");
-      
+
               if (
                 errObj?.code === "NO_VALID_PLAN" ||
                 errObj?.code === "PLAN_LIMIT_REACHED"
               ) {
                 const listingType = commercial.listingType || "sale";
-      
+
                 const redirectUrl =
                   listingType === "sale"
                     ? "/plans/pricing/owner-sell"
                     : "/plans/pricing/owner-rent";
-      
+
                 console.log("🚀 Redirecting to:", redirectUrl);
-      
+
                 setTimeout(() => {
                   Router.push(redirectUrl);
                 }, 800);
@@ -742,7 +681,7 @@ const CommercialProfile = () => {
         }}
         className="py-2 btn-primary text-white rounded-md cursor-pointer w-full"
       >
-        Submit Property
+        Continue
       </button>
     </div>
   );

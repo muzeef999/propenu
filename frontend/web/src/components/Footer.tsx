@@ -44,6 +44,11 @@ export default function Footer() {
                   Privacy Policy
                 </Link>
               </li>
+              <li>
+                <Link href="/safety-guide" className="hover:text-primary">
+                  Safety Guide
+                </Link>
+              </li>
             </ul>
           </div>
 

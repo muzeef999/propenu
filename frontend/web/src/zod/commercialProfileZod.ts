@@ -34,14 +34,33 @@ export const commercialProfileSchema = z.object({
 
   zoning: z.string().optional(),
 
-  fireSafety: z.boolean().optional(),
+  fireSafety: z
+    .object({
+      fireExtinguisher: z.boolean().optional(),
+      fireSprinklerSystem: z.boolean().optional(),
+      fireHoseReel: z.boolean().optional(),
+      fireHydrant: z.boolean().optional(),
+      smokeDetector: z.boolean().optional(),
+      fireAlarmSystem: z.boolean().optional(),
+      fireControlPanel: z.boolean().optional(),
+      emergencyExitSignage: z.boolean().optional(),
+    })
+    .refine(
+      (obj) => Object.values(obj || {}).some(Boolean),
+      { message: "Select at least one fire safety measure" }
+    )
+    .optional(),
 
   description: z
     .string()
     .min(20, "Description must be at least 20 characters")
     .max(500, "Description too long")
     .optional(),
+  images: z
+    .array(z.instanceof(File))
+    .min(5, "Upload at least 5 images"),
 });
+
 
 export const validateCommercialProfile = (commercial: any) => {
   return commercialProfileSchema.safeParse(commercial);

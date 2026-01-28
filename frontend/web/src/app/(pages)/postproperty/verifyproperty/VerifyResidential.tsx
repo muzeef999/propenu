@@ -56,65 +56,63 @@ const VerifyResidential = () => {
 
       {/* Approvals */}
       <div className="space-y-3">
-  <div>
-    <p className="text-sm font-semibold text-gray-900">Approvals</p>
-    <p className="text-xs text-gray-500">
-      Select all applicable approvals
-    </p>
-  </div>
-
-  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-    {["RERA", "HMDA", "BDA", "RCC"].map((approval) => {
-      const approvals = residential.approvals || [];
-      const isSelected = approvals.includes(approval);
-
-      return (
-        <div
-          key={approval}
-          onClick={() =>
-            dispatch(
-              setProfileField({
-                propertyType: "residential",
-                key: "approvals",
-                value: isSelected
-                  ? approvals.filter((a: string) => a !== approval)
-                  : [...approvals, approval],
-              }),
-            )
-          }
-          className={`p-3 rounded-lg border cursor-pointer transition-all ${
-            isSelected
-              ? "border-green-500 bg-green-50"
-              : "border-gray-300 bg-white hover:border-gray-400"
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={isSelected}
-              disabled
-              className="h-4 w-4 accent-green-600"
-            />
-            <span
-              className={`text-sm font-medium ${
-                isSelected ? "text-green-700" : "text-gray-700"
-              }`}
-            >
-              {approval}
-            </span>
-          </div>
+        <div>
+          <p className="text-sm font-semibold text-gray-900">Approvals</p>
+          <p className="text-xs text-gray-500">
+            Select all applicable approvals
+          </p>
         </div>
-      );
-    })}
-  </div>
 
-  {/* ✅ Zod error message */}
-  {showErrors && fieldErrors.approvals?.[0] && (
-    <p className="text-xs text-red-500 mt-1">
-      {fieldErrors.approvals[0]}
-    </p>
-  )}
-</div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {["RERA", "HMDA", "GHMC", "RCC"].map((approval) => {
+            const approvals = residential.approvals || [];
+            const isSelected = approvals.includes(approval);
+
+            return (
+              <div
+                key={approval}
+                onClick={() =>
+                  dispatch(
+                    setProfileField({
+                      propertyType: "residential",
+                      key: "approvals",
+                      value: isSelected
+                        ? approvals.filter((a: string) => a !== approval)
+                        : [...approvals, approval],
+                    }),
+                  )
+                }
+                className={`p-3 rounded-lg border cursor-pointer transition-all ${isSelected
+                    ? "border-green-500 bg-green-50"
+                    : "border-gray-300 bg-white hover:border-gray-400"
+                  }`}
+              >
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    disabled
+                    className="h-4 w-4 accent-green-600"
+                  />
+                  <span
+                    className={`text-sm font-medium ${isSelected ? "text-green-700" : "text-gray-700"
+                      }`}
+                  >
+                    {approval}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ✅ Zod error message */}
+        {showErrors && fieldErrors.approvals?.[0] && (
+          <p className="text-xs text-red-500 mt-1">
+            {fieldErrors.approvals[0]}
+          </p>
+        )}
+      </div>
 
 
       {/* Litigation */}
@@ -147,16 +145,14 @@ const VerifyResidential = () => {
                     }),
                   )
                 }
-                className={`p-4 rounded-lg border-2 ${
-                  isSelected
+                className={`p-4 rounded-lg border-2 ${isSelected
                     ? "border-green-500 bg-green-50"
                     : "border-gray-300 hover:border-gray-400"
-                }`}
+                  }`}
               >
                 <p
-                  className={`text-sm font-medium ${
-                    isSelected ? "text-green-700" : "text-gray-700"
-                  }`}
+                  className={`text-sm font-medium ${isSelected ? "text-green-700" : "text-gray-700"
+                    }`}
                 >
                   {option.label}
                 </p>

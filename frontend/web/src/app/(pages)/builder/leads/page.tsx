@@ -1,7 +1,214 @@
-const page = () => {
-    return (
-        <h1>leads</h1>
-    )
-}
+"use client";
 
-export default page
+import { useState, useEffect, useMemo } from "react";
+import ActiveTabs from "@/ui/ActiveTabs";
+import { getMyProperties, getProjectLeads } from "@/data/ClientData";
+import { useQuery } from "@tanstack/react-query";
+
+const catregories = [
+  "Featured",
+  "Residential",
+  "Commercial",
+  "Plot",
+  "Agriculture",
+];
+
+const LEAD_STATUSES = [
+  "All",
+  "New",
+  "Contacted",
+  "Follow-up",
+  "Approved",
+  "Rejected",
+  "Closed",
+];
+const TAB_KEY_MAP: Record<string, string> = {
+  Featured: "featured",
+  Residential: "residential",
+  Commercial: "commercial",
+  Plot: "land",
+  Agriculture: "agricultural",
+};
+
+const formatPrice = (price?: number) =>
+  price ? `₹ ${(price / 10000000).toFixed(2)} Cr` : "—";
+
+const BuilderLeadsPage = () => {
+  const [activeTab, setActiveTab] = useState("Featured");
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(
+    null,
+  );
+  const [activeStatus, setActiveStatus] = useState("All");
+  const { data: propertiesData, isLoading: propertiesLoading } = useQuery({
+    queryKey: ["myProperties"],
+    queryFn: getMyProperties,
+  });
+  const properties = useMemo(() => {
+    if (!propertiesData) return [];
+    return propertiesData[TAB_KEY_MAP[activeTab]] ?? [];
+  }, [propertiesData, activeTab]);
+  useEffect(() => {
+    if (properties.length && !selectedPropertyId) {
+      setSelectedPropertyId(properties[0]._id);
+    }
+  }, [properties, selectedPropertyId]);
+
+  const { data: leadsData = [], isLoading: leadsLoading } = useQuery({
+    queryKey: ["projectLeads", selectedPropertyId],
+    queryFn: () => getProjectLeads(selectedPropertyId as string),
+    enabled: !!selectedPropertyId,
+  });
+
+  useEffect(() => {
+    setActiveStatus("All");
+  }, [selectedPropertyId]);
+
+  const filteredLeads = useMemo(() => {
+    const leads = Array.isArray(leadsData) ? leadsData : [];
+    if (activeStatus === "All") {
+      return leads;
+    }
+    return leads.filter(
+      (lead: any) => lead.status?.toLowerCase() === activeStatus.toLowerCase(),
+    );
+  }, [leadsData, activeStatus]);
+
+  if (propertiesLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center text-gray-500">
+        Loading properties…
+      </div>
+    );
+  }
+  console.log("properties", properties);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-gray-900 mb-1">My Leads</h1>
+        <p className="text-gray-600">
+          View enquiries received on your properties
+        </p>
+      </div>
+      <div className="flex items-center justify-between">
+        <ActiveTabs
+          categories={catregories}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+        />
+        <span className="text-sm text-gray-600">
+          Showing {properties.length} Properties
+        </span>
+      </div>
+      <div className="grid grid-cols-12 gap-4">
+        {/* LEFT – PROPERTY LIST */}
+        <div className="col-span-4 space-y-2">
+          {properties.map((property: any) => {
+            const image = property.gallery?.[0]?.url || "/placeholder.jpg";
+            const active = property._id === selectedPropertyId;
+
+            return (
+              <button
+                key={property._id}
+                onClick={() => setSelectedPropertyId(property._id)}
+                className={`w-full flex gap-3 rounded-lg border p-2 text-left transition
+                  ${
+                    active
+                      ? "border-green-500 bg-green-50"
+                      : "border-gray-200 bg-white hover:bg-gray-50"
+                  }`}
+              >
+                <div className="w-20 h-16 rounded-md overflow-hidden bg-gray-100">
+                  <img
+                    src={image}
+                    alt={property.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold truncate">
+                    {property.title}
+                  </h3>
+                  <p className="text-xs text-gray-500 truncate">
+                    {property.locality}, {property.city}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Carpet Area: {property.carpetArea} sq.ft.
+                  </p>
+                  <p className="text-sm font-semibold text-green-600">
+                    {formatPrice(property.price)}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* RIGHT – LEADS */}
+        <div className="col-span-8 bg-green-50/40 rounded-lg p-4">
+          {/* STATUS TABS */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {LEAD_STATUSES.map((status) => {
+              const active = activeStatus === status;
+
+              return (
+                <button
+                  key={status}
+                  onClick={() => setActiveStatus(status)}
+                  className={`px-3 py-1.5 rounded-md text-xs transition
+          ${
+            active
+              ? "bg-green-100 text-gray-600 font-medium"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }
+        `}
+                >
+                  {status}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* TABLE */}
+          {leadsLoading ? (
+            <div className="text-center py-20 text-gray-500">
+              Loading leads…
+            </div>
+          ) : filteredLeads.length ? (
+            <LeadsTable leads={filteredLeads} />
+          ) : (
+            <div className="text-center py-20 text-gray-500">
+              No <b>{activeStatus}</b> leads for this property
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const LeadsTable = ({ leads }: any) => (
+    <div className="bg-white rounded-lg overflow-hidden">
+        <div className="grid grid-cols-4 px-4 py-3 text-xs font-semibold text-gray-500 border-b">
+            <span>Name</span>
+            <span>Date</span>
+            <span>Contact Number</span>
+            <span>Lead Status</span>
+        </div>
+
+        {leads.map((lead: any, idx: number) => (
+            <div key={idx} className="grid grid-cols-4 px-4 py-3 text-sm border-b">
+                <span>{lead.name}</span>
+                <span className="text-gray-500">
+                    {new Date(lead.createdAt).toLocaleDateString("en-IN")}
+                </span>
+                <span>{lead.phone}</span>
+                <span>{lead.status}</span>
+            </div>
+        ))}
+    </div>
+);
+
+
+export default BuilderLeadsPage;

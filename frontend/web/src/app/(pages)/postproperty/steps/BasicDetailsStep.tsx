@@ -30,6 +30,7 @@ import Dropdownui from "@/ui/DropDownUI";
 import { FACING_TYPES } from "../profile/ResidentialProfile";
 import { numberToWords } from "@/utilies/NumberToWord";
 import { property } from "zod";
+import PricingDetails from "../components/PricingDetails";
 
 export default function BasicDetailsStep() {
   const {
@@ -98,26 +99,23 @@ export default function BasicDetailsStep() {
           ? land
           : agricultural;
 
+  const profileData =
+    propertyType === "residential"
+      ? residential
+      : propertyType === "commercial"
+        ? commercial
+        : propertyType === "land"
+          ? land
+          : agricultural;
+
   const validationResult = validateBasicDetails(
     {
       ...base,
-      propertyType: categoryState?.propertyType || base.propertyType,
-      price: residential.price,
-      carpetArea: residential.carpetArea,
-      builtUpArea: residential.builtUpArea,
-      constructionStatus: residential.constructionStatus,
-      transactionType: residential.transactionType,
-      bedrooms: residential.bedrooms,
-      bathrooms: residential.bathrooms,
-      balconies: residential.balconies,
-      furnishing: residential.furnishing,
-      facing: residential.facing,
-      propertyAge: residential.propertyAge,
-      possessionDate: residential.possessionDate,
+      ...profileData,
+      propertyType: profileData?.propertyType || base.propertyType,
     },
     propertyType,
   );
-
   const isFormValid = validationResult.success;
 
   const fieldErrors =
@@ -143,13 +141,13 @@ export default function BasicDetailsStep() {
   const selectedCommercialType = commercial.propertyType;
   const commercialSubTypes =
     propertyType === "commercial" &&
-    selectedCommercialType &&
-    COMMERCIAL_SUBTYPE_MAP[
+      selectedCommercialType &&
+      COMMERCIAL_SUBTYPE_MAP[
       selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
-    ]
+      ]
       ? (COMMERCIAL_SUBTYPE_MAP[
-          selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
-        ] as readonly string[])
+        selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
+      ] as readonly string[])
       : [];
 
   const contactLabel =
@@ -166,41 +164,6 @@ export default function BasicDetailsStep() {
     propertyType === "agricultural"
       ? (AGRICULTURAL_PROPERTY_SUBTYPES as readonly string[])
       : [];
-
-  useEffect(() => {
-    const price =
-      Number(residential.price) || Number(residential.expectedPrice);
-    const area = Number(residential.carpetArea);
-
-    if (price > 0 && area > 0) {
-      const pricePerSqft = String(Math.round(price / area));
-      if (pricePerSqft !== residential.pricePerSqft) {
-        dispatch(
-          setProfileField({
-            propertyType: "residential",
-            key: "pricePerSqft",
-            value: pricePerSqft,
-          }),
-        );
-      }
-    } else {
-      if (residential.pricePerSqft) {
-        dispatch(
-          setProfileField({
-            propertyType: "residential",
-            key: "pricePerSqft",
-            value: "",
-          }),
-        );
-      }
-    }
-  }, [
-    residential.price,
-    residential.expectedPrice,
-    residential.carpetArea,
-    residential.pricePerSqft,
-    dispatch,
-  ]);
 
   return (
     <div className="space-y-4">
@@ -291,11 +254,10 @@ export default function BasicDetailsStep() {
                         }
                       }}
                       className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition-all
-            ${
-              isSelected
-                ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500"
-                : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-            }
+            ${isSelected
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500"
+                          : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                        }
           `}
                     >
                       <span className="text-2xl">{sub.icon}</span>
@@ -398,11 +360,10 @@ export default function BasicDetailsStep() {
                                 )
                               }
                               className={`px-5 py-2 rounded-md text-sm border transition
-                  ${
-                    active
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                  }
+                  ${active
+                                  ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                                  : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                                }
                 `}
                             >
                               {item.label}
@@ -475,11 +436,10 @@ export default function BasicDetailsStep() {
                         }),
                       )
                     }
-                    className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
-                      isSelected
+                    className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
                         ? "border-green-500 bg-green-50 text-green-600"
                         : "border-gray-300 text-gray-700"
-                    }`}
+                      }`}
                   >
                     {subType.replace("-", " ").toUpperCase()}
                   </button>
@@ -590,94 +550,11 @@ export default function BasicDetailsStep() {
 
           {/* Price Details - Show only if Wall Finish is selected */}
           {commercial.wallFinishStatus && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
-              {/* Total Price */}
-              <div className="flex flex-col">
-                <InputField
-                  label="Total Price"
-                  value={residential.price || ""}
-                  placeholder="e.g. 75,00,000"
-                  error={fieldErrors.price?.[0]}
-                  onChange={(value) =>
-                    dispatch(
-                      setProfileField({
-                        propertyType: "residential",
-                        key: "price",
-                        value: value.replace(/\D/g, ""),
-                      }),
-                    )
-                  }
-                />
-
-                {/* Price in words */}
-                {commercial.price && (
-                  <p className="mt-1 text-xs text-gray-500 italic">
-                    ₹ {numberToWords(Number(commercial.price))}
-                    {commercial.pricePerSqft && (
-                      <>
-                        {" "}
-                        (₹ {commercial.pricePerSqft.toLocaleString()} per
-                        sq.ft.)
-                      </>
-                    )}
-                  </p>
-                )}
-              </div>
-
-              {/* Carpet Area */}
-              <InputField
-                label="Carpet Area (sq ft)"
-                value={commercial.carpetArea || ""}
-                placeholder="e.g. 1200"
-                error={fieldErrors.carpetArea?.[0]}
-                onChange={(value) =>
-                  dispatch(
-                    setProfileField({
-                      propertyType: "commercial",
-                      key: "carpetArea",
-                      value: value.replace(/\D/g, ""),
-                    }),
-                  )
-                }
-              />
-              {/* Price / sq ft */}
-              <div className="flex flex-col">
-                <InputField
-                  label="Price / sq ft"
-                  value={commercial.pricePerSqft || ""}
-                  placeholder="Auto calculated"
-                  disabled
-                  onChange={() => {}}
-                />
-
-                <button
-                  type="button"
-                  onClick={() => dispatch(setStep(1))}
-                  className="mt-1 flex items-center gap-1 text-xs text-gray-400 hover:text-green-600 self-start"
-                >
-                  Based on
-                  <span className="font-medium underline">Carpet Area</span>
-                  <span className="text-[10px]">▼</span>
-                </button>
-              </div>
-
-              {/* Built-up Area */}
-              <InputField
-                label="Built-up Area (sq ft)"
-                value={commercial.builtUpArea || ""}
-                placeholder="Optional"
-                error={fieldErrors.builtUpArea?.[0]}
-                onChange={(value) =>
-                  dispatch(
-                    setProfileField({
-                      propertyType: "commercial",
-                      key: "builtUpArea",
-                      value: value.replace(/\D/g, ""),
-                    }),
-                  )
-                }
-              />
-            </div>
+            <PricingDetails
+              propertyType="commercial"
+              data={commercial}
+              fieldErrors={fieldErrors}
+            />
           )}
         </>
       )}
@@ -703,11 +580,10 @@ export default function BasicDetailsStep() {
                       }),
                     );
                   }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
-                    isSelected
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
                       ? "border-green-500 bg-green-50 text-green-600"
                       : "border-gray-300 text-gray-700"
-                  }`}
+                    }`}
                 >
                   {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
@@ -739,11 +615,10 @@ export default function BasicDetailsStep() {
                       }),
                     );
                   }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
-                    isSelected
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
                       ? "border-green-500 bg-green-50 text-green-600"
                       : "border-gray-300 text-gray-700"
-                  }`}
+                    }`}
                 >
                   {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
@@ -753,96 +628,11 @@ export default function BasicDetailsStep() {
         </div>
       )}
       {propertyType === "residential" && showPricing && (
-        <div className="space-y-3">
-          {/* GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
-            {/* Total Price */}
-            <div className="flex flex-col">
-              <InputField
-                label="Total Price"
-                value={residential.price || ""}
-                placeholder="e.g. 75,00,000"
-                error={fieldErrors.price?.[0]}
-                onChange={(value) =>
-                  dispatch(
-                    setProfileField({
-                      propertyType: "residential",
-                      key: "price",
-                      value: value.replace(/\D/g, ""),
-                    }),
-                  )
-                }
-              />
-
-              {/* Price in words */}
-              {residential.price && (
-                <p className="mt-1 text-xs text-gray-500 italic">
-                  ₹ {numberToWords(Number(residential.price))}
-                  {residential.pricePerSqft && (
-                    <>
-                      {" "}
-                      (₹ {residential.pricePerSqft.toLocaleString()} per sq.ft.)
-                    </>
-                  )}
-                </p>
-              )}
-            </div>
-
-            {/* Carpet Area */}
-            <InputField
-              label="Carpet Area (sq ft)"
-              value={residential.carpetArea || ""}
-              placeholder="e.g. 1200"
-              error={fieldErrors.carpetArea?.[0]}
-              onChange={(value) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "residential",
-                    key: "carpetArea",
-                    value: value.replace(/\D/g, ""),
-                  }),
-                )
-              }
-            />
-            {/* Price / sq ft */}
-            <div className="flex flex-col">
-              <InputField
-                label="Price / sq ft"
-                value={residential.pricePerSqft || ""}
-                placeholder="Auto calculated"
-                disabled
-                onChange={() => {}}
-              />
-
-              <button
-                type="button"
-                onClick={() => dispatch(setStep(1))}
-                className="mt-1 flex items-center gap-1 text-xs text-gray-400 hover:text-green-600 self-start"
-              >
-                Based on
-                <span className="font-medium underline">Carpet Area</span>
-                <span className="text-[10px]">▼</span>
-              </button>
-            </div>
-
-            {/* Built-up Area */}
-            <InputField
-              label="Built-up Area (sq ft)"
-              value={residential.builtUpArea || ""}
-              placeholder="Optional"
-              error={fieldErrors.builtUpArea?.[0]}
-              onChange={(value) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "residential",
-                    key: "builtUpArea",
-                    value: value.replace(/\D/g, ""),
-                  }),
-                )
-              }
-            />
-          </div>
-        </div>
+        <PricingDetails
+          propertyType="residential"
+          data={residential}
+          fieldErrors={fieldErrors}
+        />
       )}
 
       {isLoggedIn && (
@@ -858,7 +648,7 @@ export default function BasicDetailsStep() {
                 { label: "Ready to Move", value: "ready-to-move" },
                 { label: "Under Construction", value: "under-construction" },
               ].map((item) => {
-                const active = residential.constructionStatus === item.value;
+                const active = profileData.constructionStatus === item.value;
 
                 return (
                   <button
@@ -867,16 +657,20 @@ export default function BasicDetailsStep() {
                     onClick={() => {
                       dispatch(
                         setProfileField({
-                          propertyType: "residential",
+                          propertyType, // ✅ dynamic
                           key: "constructionStatus",
                           value: item.value,
                         }),
                       );
 
-                      if (item.value !== "ready-to-move") {
+                      // propertyAge applies ONLY to residential
+                      if (
+                        propertyType === "residential" &&
+                        item.value !== "ready-to-move"
+                      ) {
                         dispatch(
                           setProfileField({
-                            propertyType: "residential",
+                            propertyType,
                             key: "propertyAge",
                             value: "",
                           }),
@@ -884,11 +678,10 @@ export default function BasicDetailsStep() {
                       }
                     }}
                     className={`px-6 py-2 rounded-md text-sm border transition
-            ${
-              active
-                ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                : "border-gray-300 text-gray-700 hover:bg-gray-50"
-            }
+            ${active
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                        : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                      }
           `}
                   >
                     {item.label}
@@ -897,7 +690,6 @@ export default function BasicDetailsStep() {
               })}
             </div>
 
-            {/* ✅ ERROR */}
             {showErrors && fieldErrors.constructionStatus?.[0] && (
               <p className="text-xs text-red-500 mt-1">
                 {fieldErrors.constructionStatus[0]}
@@ -905,64 +697,68 @@ export default function BasicDetailsStep() {
             )}
           </div>
 
-          {residential.constructionStatus === "ready-to-move" && (
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-gray-700">Property Age</p>
+          {["residential", "commercial"].includes(propertyType) &&
+            profileData.constructionStatus === "ready-to-move" && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700">
+                  Property Age
+                </p>
 
-              <div className="flex flex-wrap gap-3">
-                {[
-                  { value: "0-1-year", label: "0-1 Year" },
-                  { value: "1-5-years", label: "1-5 Years" },
-                  { value: "5-10-years", label: "5-10 Years" },
-                  { value: "10-plus-years", label: "10+ Years" },
-                ].map((item) => {
-                  const active = residential.propertyAge === item.value;
+                <div className="flex flex-wrap gap-3">
+                  {[
+                    { value: "0-1-year", label: "0-1 Year" },
+                    { value: "1-5-years", label: "1-5 Years" },
+                    { value: "5-10-years", label: "5-10 Years" },
+                    { value: "10-plus-years", label: "10+ Years" },
+                  ].map((item) => {
+                    const active = profileData.propertyAge === item.value;
 
-                  return (
-                    <button
-                      key={item.value}
-                      type="button"
-                      onClick={() =>
-                        dispatch(
-                          setProfileField({
-                            propertyType: "residential",
-                            key: "propertyAge",
-                            value: item.value,
-                          }),
-                        )
-                      }
-                      className={`px-6 py-2 rounded-md text-sm border transition
-              ${
-                active
-                  ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                  : "border-gray-300 text-gray-700 hover:bg-gray-50"
-              }
-            `}
-                    >
-                      {item.label}
-                    </button>
-                  );
-                })}
+                    return (
+                      <button
+                        key={item.value}
+                        type="button"
+                        onClick={() =>
+                          dispatch(
+                            setProfileField({
+                              propertyType, // ✅ dynamic
+                              key: "propertyAge",
+                              value: item.value,
+                            }),
+                          )
+                        }
+                        className={`px-6 py-2 rounded-md text-sm border transition
+                ${active
+                            ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                            : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                          }
+              `}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {residential.constructionStatus === "under-construction" && (
-            <InputField
-              label="Expected Possession Date"
-              type="date"
-              value={residential.possessionDate || ""}
-              onChange={(value) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "residential",
-                    key: "possessionDate",
-                    value,
-                  }),
-                )
-              }
-            />
-          )}
+          {["residential", "commercial"].includes(propertyType) &&
+            profileData.constructionStatus === "under-construction" && (
+              <InputField
+                label="Expected Possession Date"
+                type="date"
+                value={profileData.possessionDate || ""}
+                onChange={(value) =>
+                  dispatch(
+                    setProfileField({
+                      propertyType, // ✅ dynamic
+                      key: "possessionDate",
+                      value,
+                    }),
+                  )
+                }
+              />
+            )}
+
 
           {/* Transaction Type */}
           <div className="space-y-2">
@@ -975,7 +771,7 @@ export default function BasicDetailsStep() {
                 { label: "New Sale", value: "new-sale" },
                 { label: "Resale", value: "resale" },
               ].map((item) => {
-                const active = residential.transactionType === item.value;
+                const active = profileData.transactionType === item.value;
 
                 return (
                   <button
@@ -984,19 +780,18 @@ export default function BasicDetailsStep() {
                     onClick={() =>
                       dispatch(
                         setProfileField({
-                          propertyType: "residential",
+                          propertyType, // ✅ dynamic
                           key: "transactionType",
                           value: item.value,
                         }),
                       )
                     }
                     className={`px-6 py-2 rounded-md text-sm border transition
-                ${
-                  active
-                    ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                }
-              `}
+            ${active
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                        : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                      }
+          `}
                   >
                     {item.label}
                   </button>
@@ -1004,6 +799,7 @@ export default function BasicDetailsStep() {
               })}
             </div>
           </div>
+
           {showErrors && fieldErrors.transactionType?.[0] && (
             <p className="text-xs text-red-500 mt-1">
               {fieldErrors.transactionType[0]}

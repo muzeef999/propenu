@@ -9,7 +9,7 @@ import { LuPencilLine } from "react-icons/lu";
 import { MdClose } from "react-icons/md";
 import InputField from "@/ui/InputField";
 
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const phoneRegex = /^\+91[6-9]\d{9}$/;
 
 interface LoginDialogProps {
   open: boolean;
@@ -18,12 +18,33 @@ interface LoginDialogProps {
 }
 
 const OTP_LENGTH = 4;
+const DEFAULT_COUNTRY_CODE = "+91";
 
-const LoginDialog = ({ open, onClose, onSwitchToRegister }: LoginDialogProps) => {
+function normalizePhone(input: string) {
+  // remove everything except digits
+  const digits = input.replace(/\D/g, "");
+
+  // if already includes country code (91xxxxxxxxxx)
+  if (digits.length === 12 && digits.startsWith("91")) {
+    return `+${digits}`;
+  }
+
+  // local Indian number
+  if (digits.length === 10) {
+    return `${DEFAULT_COUNTRY_CODE}${digits}`;
+  }
+
+  return "";
+}
+
+const LoginDialog = ({
+  open,
+  onClose,
+  onSwitchToRegister,
+}: LoginDialogProps) => {
   const [step, setStep] = useState<"request" | "verify">("request");
-  const [email, setEmail] = useState("");
   const [otpDigits, setOtpDigits] = useState<string[]>(
-    Array(OTP_LENGTH).fill("")
+    Array(OTP_LENGTH).fill(""),
   );
 
   const otp = otpDigits.join(""); // final OTP string
@@ -31,17 +52,20 @@ const LoginDialog = ({ open, onClose, onSwitchToRegister }: LoginDialogProps) =>
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
-
+  const [phone, setPhone] = useState("");
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
-  const canRequestOtp =  emailRegex.test(email);
+  const normalizedPhone = normalizePhone(phone);
+const canRequestOtp = phoneRegex.test(normalizedPhone);
+
+
   const canVerifyOtp = otp.length === OTP_LENGTH;
 
   if (!open) return null; // don't render when closed
 
   async function handleRequestOtp() {
     if (!canRequestOtp) {
-      setError("Please enter a valid email.");
+      setError("Please enter a valid phone number.");
       return;
     }
 
@@ -50,8 +74,11 @@ const LoginDialog = ({ open, onClose, onSwitchToRegister }: LoginDialogProps) =>
     setInfo(null);
 
     try {
-      await requestOtp({ email: email.trim() });
-      toast.success("OTP sent to your email. Please check your inbox.");
+      await requestOtp({
+  phone: normalizedPhone,
+});
+      toast.success("OTP sent to your phone number.");
+
       setStep("verify");
     } catch (err) {
       setError("Something went wrong while requesting OTP.");
@@ -74,9 +101,10 @@ const LoginDialog = ({ open, onClose, onSwitchToRegister }: LoginDialogProps) =>
 
     try {
       const res: VerifyOtpResponse = await verifyOtp({
-        email: email.trim(),
-        otp: otpToSubmit,
-      });
+  phone: normalizedPhone,
+  otp: otpToSubmit,
+});
+
 
       Cookies.set("token", res.token, {
         secure: true,
@@ -96,6 +124,7 @@ const LoginDialog = ({ open, onClose, onSwitchToRegister }: LoginDialogProps) =>
       setLoading(false);
     }
   }
+  
 
   function handleOtpChange(value: string, index: number) {
     const digit = value.replace(/\D/g, "").slice(0, 1); // only one number
@@ -117,7 +146,7 @@ const LoginDialog = ({ open, onClose, onSwitchToRegister }: LoginDialogProps) =>
 
   function handleOtpKeyDown(
     e: React.KeyboardEvent<HTMLInputElement>,
-    index: number
+    index: number,
   ) {
     if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
       inputsRef.current[index - 1]?.focus();
@@ -159,7 +188,7 @@ const LoginDialog = ({ open, onClose, onSwitchToRegister }: LoginDialogProps) =>
 
   function handleClose() {
     setStep("request");
-    setEmail("");
+    setPhone("");
     setOtpDigits(Array(OTP_LENGTH).fill(""));
     setError(null);
     setInfo(null);
@@ -193,19 +222,22 @@ const LoginDialog = ({ open, onClose, onSwitchToRegister }: LoginDialogProps) =>
             <p className="mt-2 text-sm text-gray-500">
               {step === "request"
                 ? "Enter your details to access your account"
-                : "Please enter the verification code sent to your email"}
+                : "Please enter the verification code sent to your phone"}
             </p>
           </div>
 
           {step === "request" && (
             <div className="space-y-5">
-              
               <InputField
-                label="Email Address"
-                type="email"
-                value={email}
-                onChange={setEmail}
-                placeholder="Enter your email address"
+                label="Enter your Phone Number"
+                type="tel"
+                value={phone}
+                onChange={(value) => {
+                  // allow + and digits only
+                  const cleaned = value.replace(/[^\d+]/g, "");
+                  setPhone(cleaned);
+                }}
+                placeholder="+91 9876543210"
               />
 
               <button
@@ -216,8 +248,20 @@ const LoginDialog = ({ open, onClose, onSwitchToRegister }: LoginDialogProps) =>
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
                     <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
                     </svg>
                     Sending...
                   </span>
@@ -248,13 +292,13 @@ const LoginDialog = ({ open, onClose, onSwitchToRegister }: LoginDialogProps) =>
             <div className="space-y-6">
               <div className="rounded-xl bg-emerald-50 p-4 text-center">
                 <p className="text-sm text-emerald-800">
-                  Code sent to <span className="font-semibold">{email}</span>
+                  Code sent to <span className="font-semibold">{phone}</span>
                 </p>
                 <button
                   onClick={() => setStep("request")}
                   className="mt-1 flex w-full items-center justify-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700"
                 >
-                  <LuPencilLine /> Edit Email
+                  <LuPencilLine /> Edit Phone
                 </button>
               </div>
 
@@ -284,10 +328,22 @@ const LoginDialog = ({ open, onClose, onSwitchToRegister }: LoginDialogProps) =>
                 className="w-full rounded-xl bg-[#27AE60] py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-green-700/90 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:cursor-not-allowed"
               >
                 {loading ? (
-                   <span className="flex items-center justify-center gap-2">
+                  <span className="flex items-center justify-center gap-2">
                     <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
                     </svg>
                     Verifying...
                   </span>

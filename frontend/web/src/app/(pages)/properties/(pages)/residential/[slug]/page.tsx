@@ -46,7 +46,7 @@ export default async function Page({ params }: PageProps) {
   if (!project) {
     notFound();
   }
-
+  console.log("Project data:", project);
   const priceLabel = formatINR(project.price);
 
   return (
@@ -129,7 +129,7 @@ export default async function Page({ params }: PageProps) {
                       <div className="flex gap-x-8 mt-11">
                         <span className="text-gray-500 text-md font-medium flex">
                           <Bhk color="#6B7280" />
-                          &nbsp; {project.bhk} BHK
+                          &nbsp; {project.bedrooms} BHK
                         </span>
                         <span className="text-gray-500  font-medium flex">
                           <Bath color="#6B7280" />
