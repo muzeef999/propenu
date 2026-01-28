@@ -9,6 +9,7 @@ import { VerifyOtpResponse } from "@/types/property";
 import { LuPencilLine } from "react-icons/lu";
 import { MdClose } from "react-icons/md";
 import InputField from "@/ui/InputField";
+import { FaTools, FaUserAlt, FaUserTie } from "react-icons/fa";
 
 const DEFAULT_COUNTRY_CODE = "+91";
 
@@ -248,35 +249,36 @@ const RegisterDialog = ({
                   Select Role
                 </label>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-4">
                   {[
-                    { value: "user", label: "User", icon: "👤" },
-                    { value: "builder", label: "Builder", icon: "🏗️" },
-                    { value: "agent", label: "Agent", icon: "🧑‍💼" },
-                  ].map((role) => {
-                    const isActive = formData.role === role.value;
+                    { value: "user", label: "User", icon: FaUserAlt },
+                    { value: "builder", label: "Builder", icon: FaTools },
+                    { value: "agent", label: "Agent", icon: FaUserTie },
+                  ].map(({ value, label, icon: Icon }) => {
+                    const isActive = formData.role === value;
 
                     return (
                       <button
-                        key={role.value}
+                        key={value}
                         type="button"
                         onClick={() =>
-                          setFormData((prev) => ({ ...prev, role: role.value }))
+                          setFormData((prev) => ({ ...prev, role: value }))
                         }
-                        className={` items-center justify-center gap-2 rounded-md border p-1 text-sm font-medium transition-all
+                        className={`flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-semibold transition-all
             ${isActive
-                            ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-100"
+                            ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-300"
                             : "border-gray-200 bg-white text-gray-700 hover:border-emerald-400"
                           }
           `}
                       >
-                        <span className="text-xl">{role.icon}</span>
-                        <span>{role.label}</span>
+                        <Icon size={18} />
+                        <span>{label}</span>
                       </button>
                     );
                   })}
                 </div>
               </div>
+
 
 
               <button

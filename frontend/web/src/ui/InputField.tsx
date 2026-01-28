@@ -5,7 +5,7 @@ type InputFieldProps = {
   value: string | number;
   onChange: (value: string) => void;
   placeholder?: string;
-  type?: "text" | "number" | "email"| "date";
+  type?: "text" | "number" | "email"| "date" | "tel";
   required?: boolean;
   disabled?: boolean;
   error?: string;
