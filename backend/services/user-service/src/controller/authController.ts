@@ -12,8 +12,15 @@ export const requestOTP = async (req: Request, res: Response) => {
   try {
     const phone = req.body.phone?.trim();
     if (!phone) return res.status(400).json({ message: "phone is required" });
-    const existingUser = await User.findOne({ phone }).select("name");
-    const name = existingUser?.name || "User";
+
+    const existingUser = await User.findOne({ phone }).select("_id name");
+
+    if (!existingUser) {
+      return res.status(404).json({
+        message: "Phone number not registered. Please sign up first.",
+      });
+    }
+
     const otp = genOtp();
     await saveOtpToRedis(phone, otp);
     await sendOtpWhatsApp(phone, otp);
@@ -181,7 +188,7 @@ export const createRequestOtp = async (req: Request, res: Response) => {
     if (!name) return res.status(400).json({ message: "name is required" });
     if (!phone) return res.status(400).json({ message: "Phone is required" });
     if (!role) return res.status(400).json({ message: "Role is required" });
-    
+
     const normalizedEmail = phone.trim().toLowerCase();
 
     const existingUser = await User.findOne({ phone: normalizedEmail });
@@ -198,7 +205,6 @@ export const createRequestOtp = async (req: Request, res: Response) => {
 
     const otp = genOtp();
 
-    
     await saveOtpToRedis(normalizedEmail, otp);
     await sendOtpWhatsApp(normalizedEmail, otp);
 
