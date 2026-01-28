@@ -36,7 +36,11 @@ app.use(
       if (!origin) return callback(null, true); // Postman / curl
 
       const clean = origin.replace(/\/+$/, "");
-      if (allowed.includes(clean)) return callback(null, true);
+
+      // ✅ allow all if ALLOWED_ORIGINS not set
+      if (!allowed.length || allowed.includes(clean)) {
+        return callback(null, true);
+      }
 
       console.log("❌ Blocked by CORS:", origin);
       return callback(null, false);
@@ -47,7 +51,7 @@ app.use(
   })
 );
 
-// ❌ DO NOT add app.options("*") or app.options("/*")
+// ❌ DO NOT use app.options("*") or app.options("/*")
 
 app.use(morgan("dev"));
 
@@ -55,7 +59,7 @@ app.use(morgan("dev"));
 // PROXY HELPER
 // =====================
 
-function proxy(serviceName: string, target: string, prefix: string) {
+function proxy(serviceName: string, target: string) {
   return createProxyMiddleware({
     target,
     changeOrigin: true,
@@ -63,15 +67,16 @@ function proxy(serviceName: string, target: string, prefix: string) {
     proxyTimeout: 30000,
     timeout: 30000,
 
-    // ✅ strip gateway prefix
-    pathRewrite: (path) =>
-      path.replace(new RegExp(`^${prefix}`), ""),
+    // ✅ preserve full path like /api/users/location
+    pathRewrite: (_path, req) => (req as any).originalUrl,
 
     on: {
       error(err: Error, req, res: Response | Socket) {
         console.error(`❌ ${serviceName} service error:`, err.message);
         if (res instanceof Socket) return;
-        res.status(502).json({ error: `${serviceName} service down` });
+        if (!res.headersSent) {
+          res.status(502).json({ error: `${serviceName} service down` });
+        }
       },
     },
   });
@@ -81,9 +86,9 @@ function proxy(serviceName: string, target: string, prefix: string) {
 // MICROSERVICE ROUTES
 // =====================
 
-app.use("/api/payments", proxy("PAYMENT", PAYMENT_SERVICE_URL, "/api/payments"));
-app.use("/api/properties", proxy("PROPERTY", PROPERTY_SERVICE_URL, "/api/properties"));
-app.use("/api/users", proxy("USER", USER_SERVICE_URL, "/api/users"));
+app.use("/api/payments", proxy("PAYMENT", PAYMENT_SERVICE_URL));
+app.use("/api/properties", proxy("PROPERTY", PROPERTY_SERVICE_URL));
+app.use("/api/users", proxy("USER", USER_SERVICE_URL));
 
 // =====================
 // SYSTEM ROUTES
@@ -113,4 +118,9 @@ app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Gateway running on port ${PORT}`);
   console.log("Allowed origins:", allowed.length ? allowed : "(none)");
+  console.log("Services:", {
+    PAYMENT_SERVICE_URL,
+    PROPERTY_SERVICE_URL,
+    USER_SERVICE_URL,
+  });
 });
