@@ -345,7 +345,7 @@ const RegisterDialog = ({
                       e.preventDefault();
                       onSwitchToLogin();
                     }}
-                    className="font-medium text-emerald-600 hover:text-emerald-700 hover:underline"
+                    className="font-medium text-emerald-600 cursor-pointer hover:text-emerald-700 hover:underline"
                   >
                     Login
                   </button>

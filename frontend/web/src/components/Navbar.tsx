@@ -265,7 +265,7 @@ const Navbar = () => {
                 {!user ? (
                   <button
                     onClick={() => setAuthMode("login")}
-                    className="text-sm text-gray-700 hover:text-gray-900 transition-colors"
+                    className="text-sm text-gray-700 hover:text-gray-900 transition-colors cursor-pointer"
                   >
                     Login
                   </button>
@@ -519,7 +519,7 @@ const Navbar = () => {
                         setAuthMode("login");
                         setMobileOpen(false);
                       }}
-                      className="py-2 px-2 rounded-md text-sm font-medium text-primary hover:bg-gray-50 transition-colors text-center w-full"
+                      className="py-2 px-2 rounded-md text-sm font-medium text-primary hover:bg-gray-50 transition-colors text-center w-full cusrsor-pointer"
                     >
                       Login
                     </button>

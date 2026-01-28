@@ -274,7 +274,7 @@ const LoginDialog = ({
                       e.preventDefault();
                       onSwitchToRegister();
                     }}
-                    className="font-medium text-emerald-600 hover:text-emerald-700 hover:underline"
+                    className="font-medium text-emerald-600 cursor-pointer hover:text-emerald-700 hover:underline"
                   >
                     Create an account
                   </button>
