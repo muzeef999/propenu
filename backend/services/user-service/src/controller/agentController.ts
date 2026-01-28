@@ -2,12 +2,7 @@ import { Request, Response } from "express";
 import { CreateAgentDTO, UpdateAgentDTO } from "../zod/validation";
 import AgentService from "../services/agentService";
 import { GetAgentsQuery } from "../types";
-import Agent from "../models/agentModel";
 import { AuthRequest } from "../middlewares/authMiddleware";
-import Residential from "../models/residentialModel";
-import Commercial from "../models/commercialModel";
-import LandPlot from "../models/landModel";
-import Agricultural from "../models/agriculturalModel";
 
 type MulterFiles =
   | {
@@ -35,6 +30,30 @@ export const getAllAgents = async (
 
   const result = await AgentService.listAgents({ page, limit, search });
   return res.status(200).json(result);
+};
+
+export const getAgentsByCity = async (req: Request, res: Response) => {
+  try {
+    const city =
+      typeof req.query.city === "string" ? req.query.city.trim() : "";
+
+    const state =
+      typeof req.query.state === "string" ? req.query.state.trim() : "";
+
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 20);
+
+    const result = await AgentService.getAgentsByLocationService(
+      { city, state },
+      page,
+      limit
+    );
+
+    res.json(result);
+  } catch (err: any) {
+    console.error("getAgentsByCity:", err);
+    res.status(500).json({ message: "Failed to load agents" });
+  }
 };
 
 export const getIndetailAgent = async (req: Request, res: Response) => {

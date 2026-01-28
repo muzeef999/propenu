@@ -1,6 +1,5 @@
 // src/routes/popularOwnerPropertiesRoute.ts
 import express from "express";
-import multer from "multer";
 
 import {
   getPropertiesByOwner

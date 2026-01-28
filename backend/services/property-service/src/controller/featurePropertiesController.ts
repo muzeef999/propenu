@@ -98,7 +98,7 @@ export const getAllHighlightProjects = async (req: Request, res: Response) => {
     return res.status(500).json({ error: err.message || "Internal server error" });
   }
 };
-
+ 
 export const getHighlightProjectsByLocation = async(req: Request, res: Response) => {
   try {
       

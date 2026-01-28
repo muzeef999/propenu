@@ -6,13 +6,12 @@ import cors from "cors";
 
 dotenv.config({ quiet: true });
 
-
 const app = express();
 const PORT = Number(process.env.PORT ?? 4000);
 
-const PAYMENT_SERVICE_URL  = process.env.PAYMENT_SERVICE_URL  || "";
+const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL || "";
 const PROPERTY_SERVICE_URL = process.env.PROPERTY_SERVICE_URL || "";
-const USER_SERVICE_URL     = process.env.USER_SERVICE_URL     || "";
+const USER_SERVICE_URL = process.env.USER_SERVICE_URL || "";
 
 if (!PAYMENT_SERVICE_URL || !PROPERTY_SERVICE_URL || !USER_SERVICE_URL) {
   console.error("❌ Missing service URL(s). Check your .env:");
@@ -26,29 +25,36 @@ if (!PAYMENT_SERVICE_URL || !PROPERTY_SERVICE_URL || !USER_SERVICE_URL) {
 
 app.set("trust proxy", true);
 
+// ===== CORS (FIXED & SIMPLE) =====
 
-const allowed = (process.env.ALLOWED_ORIGINS || "http://localhost:3000, http://localhost:3001, https://propenu.vercel.app, https://propenu.netlify.app, http://localhost:8081, http://localhost:8082")
+const allowed = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
-  .map(s => s.trim().replace(/\/+$/, ""))
+  .map((s) => s.trim().replace(/\/+$/, ""))
   .filter(Boolean);
 
-const corsOptions = {
-  origin(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
-    // allow requests with no origin (e.g. curl, server-to-server)
-    if (!origin) return callback(null, true);
-    const norm = origin.replace(/\/+$/, "");
-    if (allowed.includes(norm)) return callback(null, true);
-    return callback(new Error(`CORS blocked: ${origin}`));
-  },
-  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  credentials: true,
-  maxAge: 600,
-};
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // Postman / curl
 
+      const cleanOrigin = origin.replace(/\/+$/, "");
 
+      if (allowed.includes(cleanOrigin)) {
+        return callback(null, true);
+      }
 
-app.use(cors(corsOptions));
+      console.log("❌ Blocked by CORS:", origin);
+      return callback(null, false); // ❗ do NOT throw error
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
+
+// 👇 very important for browser preflight
+app.use(cors());
+
 app.use(morgan("dev"));
 
 function makeProxy(target: string) {
@@ -64,21 +70,26 @@ function makeProxy(target: string) {
 
     // http-proxy-middleware v3 event API
     on: {
-      error(err: any, _req: any, res: any) {
-        // Keep this loosely typed to satisfy v3's types across Node versions
+      error(err: any, req: any, res: any) {
         try {
-          if (!res.headersSent && typeof res.writeHead === "function") {
+          res.setHeader(
+            "Access-Control-Allow-Origin",
+            req.headers.origin || "*",
+          );
+          res.setHeader("Access-Control-Allow-Credentials", "true");
+
+          if (!res.headersSent) {
             res.writeHead(502, { "Content-Type": "application/json" });
           }
-          if (typeof res.end === "function") {
-            res.end(JSON.stringify({ error: "Bad gateway", message: String(err?.message || err) }));
-          }
-        } catch (e) {
-          // swallow
-        }
-        // Log after responding to avoid broken pipe
-        console.error("Proxy error:", err?.message || err);
+
+          res.end(
+            JSON.stringify({ error: "Bad gateway", message: err.message }),
+          );
+        } catch {}
+
+        console.error("Proxy error:", err.message);
       },
+
       // Optional hook if you ever want to add headers to upstream requests:
       // proxyReq(proxyReq, _req, _res) {
       //   proxyReq.setHeader("x-gateway", "propenu");
@@ -88,13 +99,13 @@ function makeProxy(target: string) {
 }
 
 // Mount once per service. No stripPrefix argument.
-app.use("/api/payments",   makeProxy(PAYMENT_SERVICE_URL));
+app.use("/api/payments", makeProxy(PAYMENT_SERVICE_URL));
 app.use("/api/properties", makeProxy(PROPERTY_SERVICE_URL));
-app.use("/api/users",      makeProxy(USER_SERVICE_URL));
+app.use("/api/users", makeProxy(USER_SERVICE_URL));
 
-    app.get("/", (req, res) => {
-      res.json({ message: "getway services  is running" });
-    });
+app.get("/", (req, res) => {
+  res.json({ message: "getway services  is running" });
+});
 
 // Simple health endpoint
 app.get("/health", (_req: Request, res: Response) => {
@@ -112,15 +123,10 @@ app.get("/health", (_req: Request, res: Response) => {
 // 404 for anything else
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 
-
-
 // Start server
 app.listen(Number(PORT), "0.0.0.0", () => {
   console.log(`✅ Gateway running on : ${PORT}`);
-  console.log(
-    "Allowed origins:",
-    allowed.length ? allowed : "(none)"
-  );
+  console.log("Allowed origins:", allowed.length ? allowed : "(none)");
   console.log("Service URLs:", {
     PAYMENT_SERVICE_URL,
     PROPERTY_SERVICE_URL,

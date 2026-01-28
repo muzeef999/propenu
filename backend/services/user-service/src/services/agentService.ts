@@ -153,6 +153,48 @@ const AgentService = {
     };
   },
 
+
+
+async  getAgentsByLocationService(
+  location: { city?: string; state?: string },
+  page = 1,
+  limit = 20
+) {
+
+    const filter: any = {}; // ❌ removed status
+
+  if (location.city)
+    filter.city = new RegExp(`^${location.city}$`, "i");
+
+  if (location.state)
+    filter.state = new RegExp(`^${location.state}$`, "i");
+
+  const skip = (page - 1) * limit;
+
+  const [items, total] = await Promise.all([
+    Agent.find(filter)
+      .select(
+        "name slug avatar coverImage agencyName bio areasServed stats dealsClosed city state"
+      )
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .lean(),
+
+    Agent.countDocuments(filter),
+  ]);
+
+  return {
+    total,
+    page,
+    limit,
+    items,
+  };
+},
+
+
+  
+
   async editAgent(id: string, payload: UpdateAgentDTO, files?: MulterFiles) {
     if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
 

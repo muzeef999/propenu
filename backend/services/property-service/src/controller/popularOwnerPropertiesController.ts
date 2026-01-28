@@ -7,10 +7,12 @@ export const getPropertiesByOwner = async (req: Request, res: Response) => {
   try {
     const city = typeof req.query.city === "string" ? req.query.city.trim() : "";
 
+    const state = typeof req.query.state === "string" ? req.query.state.trim() : "";
+
     const page = req.query.page ? Number(req.query.page) : 1;
     const limit = req.query.limit ? Number(req.query.limit) : 20;
 
-    const result = await getPopularOwnerPropertiesByCity(city, page, limit);
+    const result = await getPopularOwnerPropertiesByCity({ city, state }, page, limit);
 
     return res.json(result);
   } catch (err: any) {

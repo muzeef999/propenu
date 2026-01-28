@@ -24,36 +24,7 @@ export async function getFeaturedSlugProjects({ slug }: { slug: string }) {
 }
 
 
-//highlight projects
-export async function getHighlightProjects() {
-    const res = await fetch(`${url}/api/properties/highlight-projects`, {next : { revalidate: 10}});
-    if(!res.ok) {
-        throw new Error('Failed to fetch highlight projects');
-    }
-    return res.json();
-}
 
-
-
-
-//owner listed properties
-export async function getOwnerProperties() {
-    const res = await fetch(`${url}/api/properties/owners-properties`, {next : { revalidate: 10}});
-    if(!res.ok) {
-        throw new Error('Failed to fetch popular Owner Properties');
-    }
-    return res.json();
-}
-
-
-export async function getAgentConnect(){
-  const res = await fetch(`${url}/api/users/agent`, {next : { revalidate: 10}});
-  if(!res.ok) {
-      throw new Error('Failed to fetch Agent Connect data');
-  }
-  return res.json();
-
-}
 
 
 //top projects properties

@@ -1,23 +1,45 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { RiArrowRightSLine } from "react-icons/ri";
-import { useCity } from "@/hooks/useCity";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import { PopularOwnerProperty } from "@/types";
 import ResidentialCard from "../properties/cards/ResidentialCard";
 import CommercialCard from "../properties/cards/CommercialCard";
 import { LandCard } from "../properties/cards/LandCard";
 import AgriculturalCard from "../properties/cards/AgriculturalCard";
+import { getOwnerProperties } from "@/data/ClientData";
+  import { useCity } from "@/hooks/useCity";
 
-interface Props {
-  items?: PopularOwnerProperty[];
-}
 
-const PopularOwnerPropertiesClient = ({ items = [] }: Props) => {
+const PopularOwnerPropertiesClient = () => {
   const sliderRef = useRef<HTMLDivElement | null>(null);
+  const [items, setItems] = useState<PopularOwnerProperty[]>([]);
+  const [loading, setLoading] = useState(false);
+
+
+
   const { selectedCity } = useCity();
+
+  useEffect(() => {
+    if (!selectedCity) return;
+
+    setLoading(true);
+
+    getOwnerProperties({
+      state: selectedCity.state,
+      city: selectedCity.city,
+    })
+      .then((res) => {
+        setItems(res.items || []);
+      })
+      .catch((err) => {
+        console.error("❌ Owner properties fetch failed:", err);
+      })
+      .finally(() => setLoading(false));
+  }, [selectedCity]);
+
   const scrollBy = (dir: "left" | "right") => {
     const el = sliderRef.current;
     if (!el) return;

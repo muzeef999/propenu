@@ -35,6 +35,68 @@ export async function getFeaturedProjects(params?: {
 
 
 
+
+//highlight projects
+export async function getHighlightProjects(params?: {
+  state?: string;
+  city?: string;
+}) {
+
+  const query = new URLSearchParams();
+  
+
+  if (params?.state) query.append("state", params.state);
+  if (params?.city) query.append("city", params.city);
+
+    const res = await fetch(`${url}/api/properties/highlight-projects/city?${query.toString()}`, { cache: "no-store" } );
+    if(!res.ok) {
+        throw new Error('Failed to fetch highlight projects');
+    }
+    return res.json();
+}
+
+
+//agent 
+
+export async function getOwnerProperties(
+  params?: {
+  state?: string;
+  city?: string;
+}
+) {
+
+   const query = new URLSearchParams();  
+
+  if (params?.state) query.append("state", params.state);
+  if (params?.city) query.append("city", params.city);
+
+    const res = await fetch(`${url}/api/properties/owners-properties?${query.toString()}`, { cache: "no-store" });
+    if(!res.ok) {
+        throw new Error('Failed to fetch popular Owner Properties');
+    }
+    return res.json();
+}
+
+
+
+export async function getAgentConnect( params?: {
+  city?: string;
+}){
+
+    const query = new URLSearchParams();  
+
+  if (params?.city) query.append("city", params.city);
+
+  const res = await fetch(`${url}/api/users/agent/city?${query.toString()}`, { cache: "no-store" });
+  if(!res.ok) {
+      throw new Error('Failed to fetch Agent Connect data');
+  }
+  return res.json();
+
+}
+
+
+
 export const searchFilter = async (params: SearchFilterParams) => {
 const res = await axiosInstance.get<ApiResponse>(`${url}/api/properties/search`, { params, });
 return res.data;

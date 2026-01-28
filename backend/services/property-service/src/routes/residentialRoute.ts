@@ -13,8 +13,8 @@ const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 const cpUpload = upload.fields([
-  { name: "galleryFiles", maxCount: 20 },
-  { name: "documents", maxCount: 20 },
+  { name: "galleryFiles", maxCount: 5 },
+  { name: "documents", maxCount: 5 },
 ]);
 
 /** json keys that arrive as JSON strings and need parsing */
@@ -46,9 +46,7 @@ router.patch("/:id/verification", authMiddleware, cpUpload, parseJsonFields(json
 
 
 router.post("/", authMiddleware,cpUpload,parseJsonFields(jsonKeys), fallbackCoerceDefault, requireActiveSubscription, validateBody(ResidentialCreateSchema), createResidential);
-
 router.patch("/:id", cpUpload, parseJsonFields(jsonKeys), fallbackCoerceDefault, validateBody(ResidentialUpdateSchema), editResidential );
-
 router.get("/", getAllResidential);
 router.get("/slug/:slug", getResidentialBySlug);
 router.get("/:id", getResidentialDetail);

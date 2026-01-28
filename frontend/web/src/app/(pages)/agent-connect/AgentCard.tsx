@@ -1,19 +1,39 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import { MdLocationPin, MdVerifiedUser } from "react-icons/md"; // Added MdVerified import
 import { AgentConnect } from "@/types";
 import { RiArrowRightSLine } from "react-icons/ri";
+import { useCity } from "@/hooks/useCity";
+import { getAgentConnect } from "@/data/ClientData";
 
-interface Props {
-  Agent?: AgentConnect[];
-}
-
-export default function AgentsList({ Agent = [] }: Props) {
+export default function AgentsList() {
   const sliderRef = useRef<HTMLDivElement | null>(null);
+
+  const [agents, setAgents] = useState<AgentConnect[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const { selectedCity } = useCity();
+
+  useEffect(() => {
+    if (!selectedCity) return;
+
+    setLoading(true);
+
+    getAgentConnect({
+      city: selectedCity.city,
+    })
+      .then((res) => {
+        setAgents(res.items || []);
+      })
+      .catch((err) => {
+        console.error("❌ Agent fetch failed:", err);
+      })
+      .finally(() => setLoading(false));
+  }, [selectedCity]);
 
   const scrollLeft = () =>
     sliderRef.current?.scrollBy({
@@ -76,7 +96,7 @@ export default function AgentsList({ Agent = [] }: Props) {
         ref={sliderRef}
         className="flex gap-6 overflow-x-auto scroll-smooth no-scrollbar pb-8 pt-2 snap-x snap-mandatory px-1"
       >
-        {Agent.map((agent) => (
+        {agents.map((agent) => (
           <div key={agent._id} className="snap-start shrink-0">
             <AgentCard data={agent} />
           </div>

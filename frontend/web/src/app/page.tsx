@@ -3,11 +3,11 @@ export const dynamic = "force-dynamic";
 import TestomianalHome from "./(pages)/reviews/TestomianalHome";
 import ExploreMorePropertiesPage from "./(pages)/explore-properties/Explore-properties";
 import SearchBox from "@/components/SearchBox";
-import GetOwnerProperties from "./(pages)/owner-listed/PopularOwnerPropertiesServer";
 import ExploreOurServices from "@/app/(pages)/explore-properties/ExploreOurServices";
-import HighlightProjectsServer from "./(pages)/highlight-projects/HighlightProjectServer";
-import AgentServer from "./(pages)/agent-connect/AgentServer";
 import FeaturedProjectsClient from "./(pages)/featured/FeaturedProjectsClient";
+import HighlightProjectsClient from "./(pages)/highlight-projects/HighlightProjectsClient";
+import AgentsList from "./(pages)/agent-connect/AgentCard";
+import PopularOwnerPropertiesClient from "./(pages)/owner-listed/PopularOwnerPropertiesClient";
 
 export default function Home() {
   return (
@@ -15,9 +15,9 @@ export default function Home() {
       <SearchBox />
       <div className="container mx-auto  space-y-10">
         <FeaturedProjectsClient />
-        <HighlightProjectsServer />
-        <GetOwnerProperties />
-        <AgentServer />
+        <HighlightProjectsClient />
+        <PopularOwnerPropertiesClient />
+        <AgentsList />
         <ExploreOurServices />
         <div>
           <div className="headingSideBar">
