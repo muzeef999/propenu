@@ -3,104 +3,99 @@ import { createProxyMiddleware } from "http-proxy-middleware";
 import morgan from "morgan";
 import dotenv from "dotenv";
 import cors from "cors";
+import { Socket } from "net";
 
 dotenv.config({ quiet: true });
-
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 4000);
 
-const PAYMENT_SERVICE_URL  = process.env.PAYMENT_SERVICE_URL  || "";
+const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL || "";
 const PROPERTY_SERVICE_URL = process.env.PROPERTY_SERVICE_URL || "";
-const USER_SERVICE_URL     = process.env.USER_SERVICE_URL     || "";
+const USER_SERVICE_URL = process.env.USER_SERVICE_URL || "";
 
 if (!PAYMENT_SERVICE_URL || !PROPERTY_SERVICE_URL || !USER_SERVICE_URL) {
-  console.error("❌ Missing service URL(s). Check your .env:");
-  console.error({
-    PAYMENT_SERVICE_URL,
-    PROPERTY_SERVICE_URL,
-    USER_SERVICE_URL,
-  });
+  console.error("❌ Missing service URL(s). Check your .env");
   process.exit(1);
 }
 
 app.set("trust proxy", true);
 
+// =====================
+// CORS CONFIG
+// =====================
 
-const allowed = (process.env.ALLOWED_ORIGINS || "http://localhost:3000, http://localhost:3001, https://propenu.vercel.app, https://propenu.netlify.app, http://localhost:8081, http://localhost:8082")
+const allowed = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
-  .map(s => s.trim().replace(/\/+$/, ""))
+  .map((s) => s.trim().replace(/\/+$/, ""))
   .filter(Boolean);
 
-const corsOptions = {
-  origin(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
-    // allow requests with no origin (e.g. curl, server-to-server)
-    if (!origin) return callback(null, true);
-    const norm = origin.replace(/\/+$/, "");
-    if (allowed.includes(norm)) return callback(null, true);
-    return callback(new Error(`CORS blocked: ${origin}`));
-  },
-  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  credentials: true,
-  maxAge: 600,
-};
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin) return callback(null, true); // Postman / curl
 
+      const clean = origin.replace(/\/+$/, "");
+      if (allowed.includes(clean)) return callback(null, true);
 
+      console.log("❌ Blocked by CORS:", origin);
+      return callback(null, false);
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
-app.use(cors(corsOptions));
+// ❌ DO NOT add app.options("*") or app.options("/*")
+
 app.use(morgan("dev"));
 
-function makeProxy(target: string) {
+// =====================
+// PROXY HELPER
+// =====================
+
+function proxy(serviceName: string, target: string, prefix: string) {
   return createProxyMiddleware({
     target,
     changeOrigin: true,
     xfwd: true,
-    proxyTimeout: 30_000,
-    timeout: 30_000,
+    proxyTimeout: 30000,
+    timeout: 30000,
 
-    // Preserve the full original path (includes the mount prefix)
-    pathRewrite: (_path, req) => (req as any).originalUrl,
+    // ✅ strip gateway prefix
+    pathRewrite: (path) =>
+      path.replace(new RegExp(`^${prefix}`), ""),
 
-    // http-proxy-middleware v3 event API
     on: {
-      error(err: any, _req: any, res: any) {
-        // Keep this loosely typed to satisfy v3's types across Node versions
-        try {
-          if (!res.headersSent && typeof res.writeHead === "function") {
-            res.writeHead(502, { "Content-Type": "application/json" });
-          }
-          if (typeof res.end === "function") {
-            res.end(JSON.stringify({ error: "Bad gateway", message: String(err?.message || err) }));
-          }
-        } catch (e) {
-          // swallow
-        }
-        // Log after responding to avoid broken pipe
-        console.error("Proxy error:", err?.message || err);
+      error(err: Error, req, res: Response | Socket) {
+        console.error(`❌ ${serviceName} service error:`, err.message);
+        if (res instanceof Socket) return;
+        res.status(502).json({ error: `${serviceName} service down` });
       },
-      // Optional hook if you ever want to add headers to upstream requests:
-      // proxyReq(proxyReq, _req, _res) {
-      //   proxyReq.setHeader("x-gateway", "propenu");
-      // },
     },
   });
 }
 
-// Mount once per service. No stripPrefix argument.
-app.use("/api/payments",   makeProxy(PAYMENT_SERVICE_URL));
-app.use("/api/properties", makeProxy(PROPERTY_SERVICE_URL));
-app.use("/api/users",      makeProxy(USER_SERVICE_URL));
+// =====================
+// MICROSERVICE ROUTES
+// =====================
 
-    app.get("/", (req, res) => {
-      res.json({ message: "getway services  is running" });
-    });
+app.use("/api/payments", proxy("PAYMENT", PAYMENT_SERVICE_URL, "/api/payments"));
+app.use("/api/properties", proxy("PROPERTY", PROPERTY_SERVICE_URL, "/api/properties"));
+app.use("/api/users", proxy("USER", USER_SERVICE_URL, "/api/users"));
 
-// Simple health endpoint
+// =====================
+// SYSTEM ROUTES
+// =====================
+
+app.get("/", (_req, res) => {
+  res.json({ message: "✅ Gateway running" });
+});
+
 app.get("/health", (_req: Request, res: Response) => {
   res.json({
     ok: true,
-    env: process.env.NODE_ENV,
     services: {
       payments: PAYMENT_SERVICE_URL,
       properties: PROPERTY_SERVICE_URL,
@@ -109,21 +104,13 @@ app.get("/health", (_req: Request, res: Response) => {
   });
 });
 
-// 404 for anything else
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 
+// =====================
+// START SERVER
+// =====================
 
-
-// Start server
-app.listen(Number(PORT), "0.0.0.0", () => {
-  console.log(`✅ Gateway running on : ${PORT}`);
-  console.log(
-    "Allowed origins:",
-    allowed.length ? allowed : "(none)"
-  );
-  console.log("Service URLs:", {
-    PAYMENT_SERVICE_URL,
-    PROPERTY_SERVICE_URL,
-    USER_SERVICE_URL,
-  });
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Gateway running on port ${PORT}`);
+  console.log("Allowed origins:", allowed.length ? allowed : "(none)");
 });
