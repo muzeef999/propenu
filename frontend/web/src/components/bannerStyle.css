@@ -12,3 +12,64 @@
 .animate-fadeSlide {
   animation: fadeSlide 0.6s ease-out;
 }
+
+.highlight-truly {
+  position: relative;
+  font-weight: 800;
+  color: #0f172a;
+  display: inline-block;
+  z-index: 1;
+}
+
+.highlight-truly::after {
+  content: "";
+  position: absolute;
+  left: -6%;
+  bottom: 6%;
+  width: 112%;
+  height: 0.55em;
+  background: linear-gradient(
+    90deg,
+    rgba(39,174,96,0.45),
+    rgba(39,174,96,0.18)
+  );
+  border-radius: 14px;
+  z-index: -1;
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: trulyUnderline 0.9s ease forwards;
+  animation-delay: 0.4s;
+}
+
+@keyframes trulyUnderline {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+
+.brand-line {
+  font-size: 1.05rem;
+  color: #475569;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  margin-top: -4px;
+  animation: fadeBrand 0.6s ease forwards;
+}
+
+.brand-line span {
+  color: #27AE60;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+@keyframes fadeBrand {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
