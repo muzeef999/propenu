@@ -16,12 +16,30 @@ export default function PricingDetails({
   fieldErrors,
 }: PricingDetailsProps) {
   const dispatch = useDispatch();
+  const isLandLike = propertyType === "land" || propertyType === "agricultural";
+
+  const areaKey =
+    propertyType === "agricultural"
+      ? "totalArea"
+      : propertyType === "land"
+        ? "plotArea"
+        : "carpetArea";
+  const areaLabel =
+    propertyType === "agricultural"
+      ? "Total Area (sq ft)"
+      : propertyType === "land"
+        ? "Plot Area (sq ft)"
+        : "Carpet Area (sq ft)";
+  const extraFieldKey = isLandLike ? "roadWidth" : "builtUpArea";
+  const extraFieldLabel = isLandLike
+    ? "Road Width (ft)"
+    : "Built-up Area (sq ft)";
 
   /* ✅ AUTO CALCULATE PRICE / SQ FT */
   useEffect(() => {
-    const price =
-      Number(data.price) || Number(data.expectedPrice);
-    const area = Number(data.carpetArea);
+    const price = Number(data.price) || Number(data.expectedPrice);
+
+    const area = Number(data[areaKey]);
 
     if (price > 0 && area > 0) {
       const pricePerSqft = String(Math.round(price / area));
@@ -47,8 +65,9 @@ export default function PricingDetails({
   }, [
     data.price,
     data.expectedPrice,
-    data.carpetArea,
     data.pricePerSqft,
+    data[areaKey],
+    areaKey,
     propertyType,
     dispatch,
   ]);
@@ -83,17 +102,16 @@ export default function PricingDetails({
         )}
       </div>
 
-      {/* Carpet Area */}
       <InputField
-        label="Carpet Area (sq ft)"
-        value={data.carpetArea || ""}
+        label={areaLabel}
+        value={data[areaKey] || ""}
         placeholder="e.g. 1200"
-        error={fieldErrors.carpetArea?.[0]}
+        error={fieldErrors[areaKey]?.[0]}
         onChange={(value) =>
           dispatch(
             setProfileField({
               propertyType,
-              key: "carpetArea",
+              key: areaKey,
               value: value.replace(/\D/g, ""),
             }),
           )
@@ -106,20 +124,20 @@ export default function PricingDetails({
         value={data.pricePerSqft || ""}
         placeholder="Auto calculated"
         disabled
-        onChange={() => {}}
+        onChange={() => { }}
       />
 
       {/* Built-up Area */}
       <InputField
-        label="Built-up Area (sq ft)"
-        value={data.builtUpArea || ""}
-        placeholder="Optional"
-        error={fieldErrors.builtUpArea?.[0]}
+        label={extraFieldLabel}
+        value={data[extraFieldKey] || ""}
+        placeholder={isLandLike ? "e.g. 40" : "Optional"}
+        error={fieldErrors[extraFieldKey]?.[0]}
         onChange={(value) =>
           dispatch(
             setProfileField({
               propertyType,
-              key: "builtUpArea",
+              key: extraFieldKey,
               value: value.replace(/\D/g, ""),
             }),
           )

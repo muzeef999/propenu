@@ -141,13 +141,13 @@ export default function BasicDetailsStep() {
   const selectedCommercialType = commercial.propertyType;
   const commercialSubTypes =
     propertyType === "commercial" &&
-      selectedCommercialType &&
-      COMMERCIAL_SUBTYPE_MAP[
+    selectedCommercialType &&
+    COMMERCIAL_SUBTYPE_MAP[
       selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
-      ]
+    ]
       ? (COMMERCIAL_SUBTYPE_MAP[
-        selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
-      ] as readonly string[])
+          selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
+        ] as readonly string[])
       : [];
 
   const contactLabel =
@@ -254,10 +254,11 @@ export default function BasicDetailsStep() {
                         }
                       }}
                       className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition-all
-            ${isSelected
-                          ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500"
-                          : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-                        }
+            ${
+              isSelected
+                ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500"
+                : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+            }
           `}
                     >
                       <span className="text-2xl">{sub.icon}</span>
@@ -360,10 +361,11 @@ export default function BasicDetailsStep() {
                                 )
                               }
                               className={`px-5 py-2 rounded-md text-sm border transition
-                  ${active
-                                  ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                                  : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                                }
+                  ${
+                    active
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }
                 `}
                             >
                               {item.label}
@@ -371,12 +373,12 @@ export default function BasicDetailsStep() {
                           );
                         })}
                       </div>
+                      {showErrors && fieldErrors.furnishing?.[0] && (
+                        <p className="text-xs text-red-500">
+                          {fieldErrors.furnishing[0]}
+                        </p>
+                      )}
                     </div>
-                    {showErrors && fieldErrors.furnishing?.[0] && (
-                      <p className="text-xs text-red-500">
-                        {fieldErrors.furnishing[0]}
-                      </p>
-                    )}
 
                     {/* Facing */}
                     <Dropdownui
@@ -436,10 +438,11 @@ export default function BasicDetailsStep() {
                         }),
                       )
                     }
-                    className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
+                    className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
+                      isSelected
                         ? "border-green-500 bg-green-50 text-green-600"
                         : "border-gray-300 text-gray-700"
-                      }`}
+                    }`}
                   >
                     {subType.replace("-", " ").toUpperCase()}
                   </button>
@@ -559,31 +562,35 @@ export default function BasicDetailsStep() {
         </>
       )}
 
-      {landSubTypes.length > 0 && (
+      {propertyType === "land" && land.propertyType && (
         <div className="mb-6">
           <p className="mb-3 text-sm font-medium text-gray-700">
             Land Characteristics
           </p>
+
           <div className="flex flex-wrap gap-3">
             {landSubTypes.map((subType: string) => {
-              const isSelected = (land as any).landSubType === subType;
+              const isSelected = land.landSubType === subType;
+
               return (
                 <button
                   key={subType}
                   type="button"
-                  onClick={() => {
+                  onClick={() =>
                     dispatch(
                       setProfileField({
                         propertyType: "land",
                         key: "landSubType",
                         value: subType,
                       }),
-                    );
-                  }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
-                      ? "border-green-500 bg-green-50 text-green-600"
-                      : "border-gray-300 text-gray-700"
-                    }`}
+                    )
+                  }
+                  className={`px-4 py-2 rounded-md border text-sm transition
+              ${
+                isSelected
+                  ? "border-green-500 bg-green-50 text-green-600"
+                  : "border-gray-300 text-gray-700 hover:bg-gray-50"
+              }`}
                 >
                   {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
@@ -615,10 +622,11 @@ export default function BasicDetailsStep() {
                       }),
                     );
                   }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
+                    isSelected
                       ? "border-green-500 bg-green-50 text-green-600"
                       : "border-gray-300 text-gray-700"
-                    }`}
+                  }`}
                 >
                   {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
@@ -634,8 +642,23 @@ export default function BasicDetailsStep() {
           fieldErrors={fieldErrors}
         />
       )}
+      {propertyType === "land" && land.landSubType && (
+        <PricingDetails
+          propertyType="land"
+          data={land}
+          fieldErrors={fieldErrors}
+        />
+      )}
 
-      {isLoggedIn && (
+      {propertyType === "agricultural" && agricultural.agriculturalSubType && (
+        <PricingDetails
+          propertyType="agricultural"
+          data={agricultural}
+          fieldErrors={fieldErrors}
+        />
+      )}
+
+      {isLoggedIn && ["residential", "commercial"].includes(propertyType) && (
         <div className="space-y-6">
           {/* Availability Status */}
           <div className="space-y-2">
@@ -657,13 +680,12 @@ export default function BasicDetailsStep() {
                     onClick={() => {
                       dispatch(
                         setProfileField({
-                          propertyType, // ✅ dynamic
+                          propertyType,
                           key: "constructionStatus",
                           value: item.value,
                         }),
                       );
 
-                      // propertyAge applies ONLY to residential
                       if (
                         propertyType === "residential" &&
                         item.value !== "ready-to-move"
@@ -678,18 +700,17 @@ export default function BasicDetailsStep() {
                       }
                     }}
                     className={`px-6 py-2 rounded-md text-sm border transition
-            ${active
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                        : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                      }
-          `}
+                ${
+                  active
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
                   >
                     {item.label}
                   </button>
                 );
               })}
             </div>
-
             {showErrors && fieldErrors.constructionStatus?.[0] && (
               <p className="text-xs text-red-500 mt-1">
                 {fieldErrors.constructionStatus[0]}
@@ -697,68 +718,63 @@ export default function BasicDetailsStep() {
             )}
           </div>
 
-          {["residential", "commercial"].includes(propertyType) &&
-            profileData.constructionStatus === "ready-to-move" && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700">
-                  Property Age
-                </p>
+          {/* Property Age / Possession */}
+          {profileData.constructionStatus === "ready-to-move" && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-gray-700">Property Age</p>
+              <div className="flex flex-wrap gap-3">
+                {[
+                  { value: "0-1-year", label: "0-1 Year" },
+                  { value: "1-5-years", label: "1-5 Years" },
+                  { value: "5-10-years", label: "5-10 Years" },
+                  { value: "10-plus-years", label: "10+ Years" },
+                ].map((item) => {
+                  const active = profileData.propertyAge === item.value;
 
-                <div className="flex flex-wrap gap-3">
-                  {[
-                    { value: "0-1-year", label: "0-1 Year" },
-                    { value: "1-5-years", label: "1-5 Years" },
-                    { value: "5-10-years", label: "5-10 Years" },
-                    { value: "10-plus-years", label: "10+ Years" },
-                  ].map((item) => {
-                    const active = profileData.propertyAge === item.value;
-
-                    return (
-                      <button
-                        key={item.value}
-                        type="button"
-                        onClick={() =>
-                          dispatch(
-                            setProfileField({
-                              propertyType, // ✅ dynamic
-                              key: "propertyAge",
-                              value: item.value,
-                            }),
-                          )
-                        }
-                        className={`px-6 py-2 rounded-md text-sm border transition
-                ${active
-                            ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                            : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                          }
-              `}
-                      >
-                        {item.label}
-                      </button>
-                    );
-                  })}
-                </div>
+                  return (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() =>
+                        dispatch(
+                          setProfileField({
+                            propertyType,
+                            key: "propertyAge",
+                            value: item.value,
+                          }),
+                        )
+                      }
+                      className={`px-6 py-2 rounded-md text-sm border transition
+                  ${
+                    active
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }`}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
               </div>
-            )}
+            </div>
+          )}
 
-          {["residential", "commercial"].includes(propertyType) &&
-            profileData.constructionStatus === "under-construction" && (
-              <InputField
-                label="Expected Possession Date"
-                type="date"
-                value={profileData.possessionDate || ""}
-                onChange={(value) =>
-                  dispatch(
-                    setProfileField({
-                      propertyType, // ✅ dynamic
-                      key: "possessionDate",
-                      value,
-                    }),
-                  )
-                }
-              />
-            )}
-
+          {profileData.constructionStatus === "under-construction" && (
+            <InputField
+              label="Expected Possession Date"
+              type="date"
+              value={profileData.possessionDate || ""}
+              onChange={(value) =>
+                dispatch(
+                  setProfileField({
+                    propertyType,
+                    key: "possessionDate",
+                    value,
+                  }),
+                )
+              }
+            />
+          )}
 
           {/* Transaction Type */}
           <div className="space-y-2">
@@ -780,31 +796,32 @@ export default function BasicDetailsStep() {
                     onClick={() =>
                       dispatch(
                         setProfileField({
-                          propertyType, // ✅ dynamic
+                          propertyType,
                           key: "transactionType",
                           value: item.value,
                         }),
                       )
                     }
                     className={`px-6 py-2 rounded-md text-sm border transition
-            ${active
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                        : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                      }
-          `}
+                ${
+                  active
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
                   >
                     {item.label}
                   </button>
                 );
               })}
             </div>
-          </div>
+            {showErrors && fieldErrors.transactionType?.[0] && (
+  <p className="text-xs text-red-500 mt-1">
+    {fieldErrors.transactionType[0]}
+  </p>
+)}
 
-          {showErrors && fieldErrors.transactionType?.[0] && (
-            <p className="text-xs text-red-500 mt-1">
-              {fieldErrors.transactionType[0]}
-            </p>
-          )}
+          </div>
+          
         </div>
       )}
 

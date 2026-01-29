@@ -3,6 +3,8 @@ import FilterDropdown from "@/ui/FilterDropdown";
 import { useRouter } from "next/navigation";
 import { HiChevronDown } from "react-icons/hi2";
 import { useState } from "react";
+import Cookies from "js-cookie";
+import { MdLogout } from "react-icons/md";
 
 interface UserGreetingProps {
   user?: {
@@ -20,7 +22,7 @@ const GreetingOptions = [
   { label: "Contacted Properties", link: "/contacted-properties" },
   { label: "Manage Subscription", link: "/membership" },
   { label: "Account & Settings", link: "/settings" },
-
+  { label: "Logout", link: "/logout" },
 ];
 
 const AgentOptions = [
@@ -29,6 +31,7 @@ const AgentOptions = [
   { label: "Leads", link: "/agent/leads" },
   { label: "My Plans", link: "/agent/my-plan" },
   { label: "Account & Settings", link: "/agent/account-settings" },
+  { label: "Logout", link: "/logout" },
 ];
 
 
@@ -37,8 +40,7 @@ const BuilderOptions = [
   { label: "Dashboard", link: "/builder" },
   { label: "My Properties", link: "/builder/my-properties" },
   { label: "Leads", link: "/builder/leads" },
-  { label: "My Plans", link: "/builder/plans" },
-  { label: "Account & Settings", link: "/builder/account-settings" },
+  { label: "Logout", link: "/logout" },
 ];
 
 
@@ -65,12 +67,12 @@ const UserGreeting = ({ user, onClose }: UserGreetingProps) => {
   const options = getOptionsForRole(role);
   const showRole = role && role !== "user";
 
- 
+
   return (
     <div className="text-sm text-gray-700">
       <FilterDropdown
         triggerLabel={
-          <div 
+          <div
             className="flex items-center gap-3 cursor-pointer px-4 py-1"
             onClick={() => setIsOpen(!isOpen)}
           >
@@ -103,28 +105,48 @@ const UserGreeting = ({ user, onClose }: UserGreetingProps) => {
         renderContent={(close) => (
           <div className="py-2">
             {options.map((item) => {
+              const isLogout = item.label === "Logout";
+
               const handleClick = () => {
+                if (isLogout) {
+                  Cookies.remove("token");
+
+                  close();
+                  onClose?.();
+                  setIsOpen(false);
+
+                  // 🔥 HARD RELOAD + REDIRECT
+                  window.location.href = "/";
+                  return;
+                }
+
                 if (item.link) {
                   router.push(item.link);
                   close();
                   onClose?.();
                 }
+
                 setIsOpen(false);
               };
 
+
               return (
                 <div key={item.label}>
-
                   <button
                     type="button"
                     onClick={handleClick}
-                    className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition cursor-pointer hover:bg-gray-100 focus:bg-gray-100`}
+                    className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition cursor-pointer ${isLogout ? "text-red-600 hover:bg-red-50 focus:bg-red-50" : "text-gray-700 hover:bg-gray-100 focus:bg-gray-100"}`}
                   >
                     <span>{item.label}</span>
+
+                    {isLogout && (
+                      <MdLogout className="h-4 w-4 text-red-500" />
+                    )}
                   </button>
                 </div>
               );
             })}
+
           </div>
         )}
       />

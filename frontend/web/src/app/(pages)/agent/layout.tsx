@@ -44,7 +44,7 @@ export default function AccountLayout({
 
 
   return (
-    <div className="min-h-screen container mx-auto flex">
+    <div className="min-h-screen container mx-auto flex mb-2">
       <Sidebar />
 
       <main className="flex-1 p-6">

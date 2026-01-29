@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
 import { submitDetailsThunk } from "@/Redux/thunks/submitPropertyApi";
 import FileUpload, { UploadedFile } from "@/ui/FileUpload";
-import { validateResidentialProfile } from "@/zod/residentialProfileZod";
+import { validateResidentialProfile } from "@/zod/profileZods/residentialProfileZod";
 import { setFileStoreFiles } from "@/utilies/fileStore";
 
 export const FLOORING_TYPES = [

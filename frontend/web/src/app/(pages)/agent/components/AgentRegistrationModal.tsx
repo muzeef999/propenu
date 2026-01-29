@@ -6,16 +6,11 @@ import { toast } from "sonner";
 import { registerAgency } from "@/app/(pages)/agent/data";
 import InputFiled from "@/ui/InputField";
 
-async function uploadFile(file: File): Promise<string> {
-  console.log(`Uploading ${file.name}...`);
+type UploadedFile = {
+  url: string;
+  key: string;
+};
 
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const url = URL.createObjectURL(file);
-      resolve(url);
-    }, 1000);
-  });
-}
 
 type Props = {
   open: boolean;
@@ -34,10 +29,11 @@ type AgentFormState = {
   dealsClosed: string;
   areasServed: string;
   languages: string;
-  coverImage: string;
-  avatar: string;
+  coverImage?: UploadedFile;
+  avatar?: UploadedFile;
   reraAgentId: string;
 };
+
 
 export default function AgentRegistrationModal({
   open,
@@ -45,10 +41,11 @@ export default function AgentRegistrationModal({
   userId,
 }: Props) {
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState({
-    avatar: false,
-    coverImage: false,
-  });
+
+  const [files, setFiles] = useState<{
+    avatar?: File;
+    coverImage?: File;
+  }>({});
 
   const [form, setForm] = useState<AgentFormState>({
     name: "",
@@ -61,38 +58,30 @@ export default function AgentRegistrationModal({
     dealsClosed: "0",
     areasServed: "",
     languages: "",
-    coverImage: "",
-    avatar: "",
+    coverImage: undefined,
+    avatar: undefined,
     reraAgentId: "",
   });
 
+
   if (!open) return null;
 
-  const update = (key: keyof AgentFormState, value: string) =>
+  const update = <K extends keyof AgentFormState>(
+    key: K,
+    value: AgentFormState[K]
+  ) => {
     setForm((s) => ({ ...s, [key]: value }));
+  };
 
-  const handleFileChange = async (
+
+  const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     field: "avatar" | "coverImage"
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading((s) => ({ ...s, [field]: true }));
-    try {
-      const url = await uploadFile(file);
-      update(field, url);
-      toast.success(
-        `${
-          field === "avatar" ? "Avatar" : "Cover image"
-        } uploaded successfully.`
-      );
-    } catch (err) {
-      console.error(err);
-      toast.error("File upload failed. Please try again.");
-    } finally {
-      setUploading((s) => ({ ...s, [field]: false }));
-    }
+    setFiles((s) => ({ ...s, [field]: file }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -100,36 +89,29 @@ export default function AgentRegistrationModal({
     setLoading(true);
 
     try {
-      await registerAgency({
-        name: form.name,
-        bio: form.bio,
-        agencyName: form.agencyName,
-        licenseNumber: form.licenseNumber,
-        licenseValidTill: form.licenseValidTill,
-        city: form.city,
-        experienceYears: Number(form.experienceYears),
-        dealsClosed: Number(form.dealsClosed),
-        areasServed: form.areasServed
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        languages: form.languages
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        verificationStatus: "pending",
-        coverImage: form.coverImage,
-        avatar: form.avatar,
-        rera: {
-          reraAgentId: form.reraAgentId,
-          isVerified: false,
+      await registerAgency(
+        {
+          name: form.name,
+          bio: form.bio,
+          agencyName: form.agencyName,
+          licenseNumber: form.licenseNumber,
+          licenseValidTill: form.licenseValidTill,
+          city: form.city,
+          experienceYears: Number(form.experienceYears),
+          dealsClosed: Number(form.dealsClosed),
+          areasServed: form.areasServed.split(","),
+          languages: form.languages.split(","),
+          verificationStatus: "pending",
+          rera: { reraAgentId: form.reraAgentId, isVerified: false },
+          stats: { totalProperties: 0, publishedCount: 0 },
+          user: userId,
         },
-        stats: {
-          totalProperties: 0,
-          publishedCount: 0,
-        },
-        user: userId,
-      });
+        {
+          avatar: files.avatar,
+          coverImage: files.coverImage,
+        }
+      );
+
 
       toast.success("Agent registration submitted");
       onCompleted?.();
@@ -222,16 +204,22 @@ export default function AgentRegistrationModal({
                 Avatar Image
               </label>
               <div className="flex items-center gap-2">
-                {form.avatar && <img src={form.avatar} alt="Avatar Preview" className="w-10 h-10 rounded-full object-cover" />}
+                {files.avatar && (
+                  <img
+                    src={URL.createObjectURL(files.avatar)}
+                    alt="Avatar Preview"
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                )}
+
+
                 <input
                   type="file"
                   accept="image/*"
                   className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
                   onChange={(e) => handleFileChange(e, "avatar")}
-                  disabled={uploading.avatar}
                 />
               </div>
-              {uploading.avatar && <p className="text-xs text-gray-500 mt-1">Uploading...</p>}
             </div>
             {/* Cover Image Upload */}
             <div>
@@ -239,16 +227,22 @@ export default function AgentRegistrationModal({
                 Cover Image
               </label>
               <div className="flex items-center gap-2">
-                {form.coverImage && <img src={form.coverImage} alt="Cover Preview" className="w-10 h-10 rounded-md object-cover" />}
+                {files.coverImage && (
+  <img
+    src={URL.createObjectURL(files.coverImage)}
+    alt="Cover Preview"
+    className="w-10 h-10 rounded-md object-cover"
+  />
+)}
+
+
                 <input
                   type="file"
                   accept="image/*"
                   className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
                   onChange={(e) => handleFileChange(e, "coverImage")}
-                  disabled={uploading.coverImage}
                 />
               </div>
-              {uploading.coverImage && <p className="text-xs text-gray-500 mt-1">Uploading...</p>}
             </div>
           </div>
 

@@ -7,12 +7,10 @@ import { getAgentProfile, updateAgentProfile } from "@/data/ClientData";
 import { Card, DetailRow, StatBox } from "@/ui/AgentPageComponents";
 import { MdEdit, MdVerifiedUser } from "react-icons/md";
 import {  HiOutlineXMark } from "react-icons/hi2";
-import { HiOutlineLogout } from "react-icons/hi";
 import { toast } from "sonner";
 import { useState, useCallback, useMemo } from "react";
 import InputField from "@/ui/InputField";
 import TextArea from "@/ui/TextArae";
-import Router from "next/router";
 
 const AGENT_ID = "696e28667c28c77e5672fb32";
 
@@ -436,14 +434,6 @@ const AgentProfilePage = () => {
     []
   );
 
-  const handleLogout = () => {
-    Cookies.remove("token");
-    toast.success("Logout successful!");
-    setTimeout(() => {
-      window.location.reload();
-    }, 800);
-    Router.push("/");
-  };
 
   if (isLoading) return <LoadingState />;
   if (isError) return <ErrorState message="Failed to load agent profile." />;
@@ -598,17 +588,6 @@ const AgentProfilePage = () => {
           updateArrayField={updateArrayField}
         />
       )}
-
-      {/* Logout Button */}
-      <div className="pt-6 flex justify-end">
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors shadow-sm"
-        >
-          <HiOutlineLogout size={16} />
-          Logout
-        </button>
-      </div>
     </div>
   );
 };

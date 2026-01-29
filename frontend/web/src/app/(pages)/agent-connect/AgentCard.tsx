@@ -94,10 +94,10 @@ export default function AgentsList() {
       {/* Scrollable Container */}
       <div
         ref={sliderRef}
-        className="flex gap-6 overflow-x-auto scroll-smooth no-scrollbar pb-8 pt-2 snap-x snap-mandatory px-1"
+        className="flex gap-3 overflow-x-auto scroll-smooth no-scrollbar pb-8 pt-2 snap-x snap-mandatory px-1"
       >
         {agents.map((agent) => (
-          <div key={agent._id} className="snap-start shrink-0">
+          <div key={agent._id} className="snap-start shrink-0 px-1 py-1">
             <AgentCard data={agent} />
           </div>
         ))}
@@ -110,7 +110,7 @@ export default function AgentsList() {
 function AgentCard({ data }: { data: AgentConnect }) {
   return (
     <Link href={`/agent-connect/${data.slug}`}>
-      <div className="card">
+      <div className="card w-[300px]">
         {/* Banner */}
         <div className="h-28 relative ">
           <Image
@@ -149,7 +149,7 @@ function AgentCard({ data }: { data: AgentConnect }) {
               {data.agencyName}
             </p>
 
-            <p className="text-sm text-gray-500 mt-2 leading-snug line-clamp-2">
+            <p className="text-sm text-gray-500 mt-2 leading-snug line-clamp-2 truncate">
               {data.bio}
             </p>
 

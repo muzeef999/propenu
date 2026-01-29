@@ -16,62 +16,76 @@ export default function Sidebar() {
   const progressPercent = Math.round((currentStep / TOTAL_STEPS) * 100);
 
   return (
-    <aside className="p-2 h-full">
-      <div
-        className="h-full rounded-xl border p-4 space-y-6 border-[#EBECF0]"
-        style={{
-          background:
-            "linear-gradient(175.36deg, #DDF2E7 2.5%, #F3FBF7 45%, #FFFFFF 85%)",
-        }}
-      >
-        {/* 🔙 Go Back */}
-        <button
-          disabled={currentStep === 1}
-          onClick={() => dispatch(prevStep())}
-          className={`flex items-center text-sm py-1.5 transition ${
-            currentStep === 1
-              ? "text-gray-300 cursor-not-allowed"
-              : "text-[#8F8F8F] hover:text-gray-700 cursor-pointer"
-          }`}
-        >
-          <ArrowDropdownIcon
-            size={12}
-            color="currentColor"
-            className="rotate-90 mr-1"
-          />
-          Go back
-        </button>
-
-        {/* Header */}
-        <div>
-          <h2 className="font-normal text-xl text-gray-900">
-            Post your property
-          </h2>
-          <p className="text-xs text-gray-500">Sell or rent your property</p>
-        </div>
-
-        {/* Progress */}
-        <div>
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="h-2 bg-green-500 rounded-full transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
-            />
+    <>
+      {/* Mobile and Tablet View: Shows only Progress Bar */}
+      <div className="block lg:hidden w-full p-4 bg-white border-b border-[#EBECF0]">
+        <div className="flex justify-between items-end mb-2">
+          <div>
+            <h2 className="font-medium text-base text-gray-900 leading-tight">
+              Post your property
+            </h2>
+            <p className="text-[10px] text-gray-500">Step {currentStep} of {TOTAL_STEPS}</p>
           </div>
-          <p className="text-xs text-gray-400 mt-1">{progressPercent}%</p>
+          <p className="text-xs font-semibold text-green-600">{progressPercent}%</p>
         </div>
-
-        {/* Stepper */}
-        <Stepper />
-
-        {/* Help Box
-        <div className="bg-white/70 backdrop-blur-sm p-4 rounded-lg text-sm border border-[#EBECF0]">
-          Need help? Now you can directly post property via{" "}
-          <span className="text-green-600 font-medium cursor-pointer">
-            WhatsApp
-          </span>
-        </div> */}
+        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-green-500 rounded-full transition-all duration-300"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
       </div>
-    </aside>
+
+      {/* Laptop View: Full Sidebar with Stepper */}
+      <aside className="hidden lg:block p-2 h-full">
+        <div
+          className="h-full rounded-xl border p-4 space-y-6 border-[#EBECF0]"
+          style={{
+            background:
+              "linear-gradient(175.36deg, #DDF2E7 2.5%, #F3FBF7 45%, #FFFFFF 85%)",
+          }}
+        >
+          {/* 🔙 Go Back */}
+          <button
+            disabled={currentStep === 1}
+            onClick={() => dispatch(prevStep())}
+            className={`flex items-center text-sm py-1.5 transition ${
+              currentStep === 1
+                ? "text-gray-300 cursor-not-allowed"
+                : "text-[#8F8F8F] hover:text-gray-700 cursor-pointer"
+            }`}
+          >
+            <ArrowDropdownIcon
+              size={12}
+              color="currentColor"
+              className="rotate-90 mr-1"
+            />
+            Go back
+          </button>
+
+          {/* Header */}
+          <div>
+            <h2 className="font-normal text-xl text-gray-900">
+              Post your property
+            </h2>
+            <p className="text-xs text-gray-500">Sell or rent your property</p>
+          </div>
+
+          {/* Progress */}
+          <div>
+            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="h-2 bg-green-500 rounded-full transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">{progressPercent}%</p>
+          </div>
+
+          {/* Stepper - Hidden on mobile/tab via the parent 'hidden lg:block' container */}
+          <Stepper />
+        </div>
+      </aside>
+    </>
   );
 }

@@ -6,7 +6,8 @@ import {
 
 export const basicDetailsSchema = z
   .object({
-    listingType: z.enum(["sale", "rent", "lease"], {
+    /* ---------------- BASE ---------------- */
+    listingType: z.enum(["sale", "rent"], {
       message: "Listing type is required",
     }),
 
@@ -14,47 +15,39 @@ export const basicDetailsSchema = z
       message: "Property type is required",
     }),
 
-    propertyType: z.string({
-      message: "Please select a property Sub-type",
-    }),
+    propertyType: z.string().optional(),
 
+    /* ---------------- COMMERCIAL ---------------- */
     commercialSubType: z.string().optional(),
     cabins: z.union([z.string(), z.number()]).optional(),
     seats: z.union([z.string(), z.number()]).optional(),
 
     wallFinishStatus: z.string().optional(),
 
-    carpetArea: z.union([z.string(), z.number()]).optional(),
-
-    builtUpArea: z.union([z.string(), z.number()]).optional(),
-
+    /* ---------------- PRICING ---------------- */
     price: z.union([z.string(), z.number()]).optional(),
 
+    carpetArea: z.union([z.string(), z.number()]).optional(),
+    builtUpArea: z.union([z.string(), z.number()]).optional(),
+
+    plotArea: z.union([z.string(), z.number()]).optional(),
+    totalArea: z.union([z.string(), z.number()]).optional(),
+
+    /* ---------------- RESIDENTIAL ---------------- */
     bedrooms: z.union([z.string(), z.number()]).optional(),
-
     bathrooms: z.union([z.string(), z.number()]).optional(),
-
     balconies: z.union([z.string(), z.number()]).optional(),
 
     furnishing: z.string().optional(),
-
     facing: z.string().optional(),
 
+    /* ---------------- STATUS ---------------- */
+    constructionStatus: z.string().optional(),
     propertyAge: z.union([z.string(), z.number()]).optional(),
-
     possessionDate: z.string().optional(),
 
-    constructionStatus: z.string({
-      message: "Availability status is required",
-    }),
+    transactionType: z.string().optional(),
 
-    transactionType: z.string({
-      message: "Transaction type is required",
-    }),
-
-    // images: z
-    //   .array(z.instanceof(File))
-    //   .min(5, "Upload at least 5 images"),
     images: z.array(z.instanceof(File)).optional(),
   })
   .superRefine((data, ctx) => {
@@ -65,12 +58,14 @@ export const basicDetailsSchema = z
       propertyAge,
       price,
       carpetArea,
+      plotArea,
+      totalArea,
       commercialSubType,
       cabins,
       seats,
     } = data;
 
-    /* ---------------- PROPERTY TYPE ---------------- */
+    /* ================= PROPERTY TYPE ================= */
     if (
       (category === "residential" || category === "commercial") &&
       !propertyType
@@ -78,7 +73,7 @@ export const basicDetailsSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["propertyType"],
-        message: `Please select a valid ${category} property type`,
+        message: "Please select a property sub-type",
       });
     }
 
@@ -92,7 +87,7 @@ export const basicDetailsSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["propertyType"],
-        message: "Please select a valid residential property type",
+        message: "Invalid residential property type",
       });
     }
 
@@ -106,38 +101,36 @@ export const basicDetailsSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["propertyType"],
-        message: "Please select a valid commercial property type",
+        message: "Invalid commercial property type",
       });
     }
 
-    /* ---------------- AVAILABILITY STATUS ---------------- */
-    const needsAvailabilityStatus =
-      category === "residential" || category === "commercial";
+    /* ================= FURNISHING ================= */
+    if (category === "residential") {
+      const needsFurnishing = data.bedrooms || data.bathrooms || data.balconies;
 
-    if (
-      needsAvailabilityStatus &&
-      (!constructionStatus || constructionStatus.trim() === "")
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["constructionStatus"],
-        message: "Please select availability status",
-      });
+      if (needsFurnishing && !data.furnishing) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["furnishing"],
+          message: "Please select furnishing",
+        });
+      }
     }
 
-    if (
-      category === "residential" &&
-      constructionStatus === "ready-to-move" &&
-      !propertyAge
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["propertyAge"],
-        message: "Please select property age",
-      });
+    if (category === "commercial") {
+      const needsFurnishing = Number(cabins) > 0 || Number(seats) > 0;
+
+      if (needsFurnishing && !data.furnishing) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["furnishing"],
+          message: "Please select furnishing",
+        });
+      }
     }
 
-    /* ---------------- PRICING ---------------- */
+    /* ================= PRICING ================= */
     if (category === "residential" || category === "commercial") {
       if (!price || Number(price) <= 0) {
         ctx.addIssue({
@@ -156,7 +149,82 @@ export const basicDetailsSchema = z
       }
     }
 
-    /* ---------------- COMMERCIAL ---------------- */
+    if (category === "land") {
+      if (!price || Number(price) <= 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["price"],
+          message: "Total price is required",
+        });
+      }
+
+      if (!plotArea || Number(plotArea) <= 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["plotArea"],
+          message: "Plot area is required",
+        });
+      }
+    }
+
+    if (category === "agricultural") {
+      if (!price || Number(price) <= 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["price"],
+          message: "Total price is required",
+        });
+      }
+
+      if (!totalArea || Number(totalArea) <= 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["totalArea"],
+          message: "Total area is required",
+        });
+      }
+    }
+
+    /* ================= AVAILABILITY ================= */
+    if (
+      (category === "residential" && data.facing) ||
+      (category === "commercial" && data.wallFinishStatus)
+    ) {
+      if (!constructionStatus) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["constructionStatus"],
+          message: "Please select availability status",
+        });
+      }
+    }
+
+    if (
+      category === "residential" &&
+      constructionStatus === "ready-to-move" &&
+      !propertyAge
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["propertyAge"],
+        message: "Please select property age",
+      });
+    }
+
+    /* ================= TRANSACTION TYPE ================= */
+    if (
+      (category === "residential" || category === "commercial") &&
+      constructionStatus &&
+      !data.transactionType
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["transactionType"],
+        message: "Please select transaction type",
+      });
+    }
+
+    /* ================= COMMERCIAL EXTRA ================= */
     if (category === "commercial") {
       if (!commercialSubType) {
         ctx.addIssue({
@@ -175,12 +243,20 @@ export const basicDetailsSchema = z
           path: ["cabins"],
           message: "Enter number of cabins or seats",
         });
+
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["seats"],
+          message: "Enter number of cabins or seats",
+        });
       }
     }
   });
 
+/* ================= TYPES ================= */
 export type BasicDetailsForm = z.infer<typeof basicDetailsSchema>;
 
+/* ================= VALIDATOR ================= */
 export const validateBasicDetails = (data: any, category: string) => {
   return basicDetailsSchema.safeParse({
     ...data,

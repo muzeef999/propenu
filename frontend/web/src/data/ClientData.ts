@@ -123,11 +123,14 @@ export const createRequestOtp = async (payload: createRequestOtpPayload) => {
   return res.data;
 };
 
-export const createVerifyOtp = async (payload: createVerifyOtpPayload) => {
-  const res = await axiosInstance.post<createVerifyOtpPayload>(
+export const createVerifyOtp = async (
+  payload: createVerifyOtpPayload,
+): Promise<VerifyOtpResponse> => {
+  const res = await axiosInstance.post<VerifyOtpResponse>(
     `${url}/api/users/auth/verify-otp/create`,
     payload,
   );
+
   return res.data;
 };
 
@@ -358,5 +361,17 @@ export const getMyContactedProperties = async () => {
       },
     },
   );
+  return res.data;
+};
+
+export const getBuilderDashboards = async () => {
+  const token = Cookies.get("token");
+  if (!token) return null;
+
+  const res = await axiosInstance.get(`${url}/api/users/builder/analytics`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
   return res.data;
 };
