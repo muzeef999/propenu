@@ -14,7 +14,7 @@ import Toggle from "@/ui/ToggleSwitch";
 import { useEffect, useState } from "react";
 import SelectableButton from "@/ui/SelectableButton";
 import { submitDetailsThunk } from "@/Redux/thunks/submitPropertyApi";
-import { validateCommercialProfile } from "@/zod/commercialProfileZod";
+import { validateCommercialProfile } from "@/zod/profileZods/commercialProfileZod";
 import { toast } from "sonner";
 import Router from "next/router";
 import confetti from "canvas-confetti";

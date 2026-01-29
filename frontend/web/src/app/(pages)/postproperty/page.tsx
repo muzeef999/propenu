@@ -12,50 +12,45 @@ import type { AppDispatch } from "@/Redux/store";
 import { createDraftThunk } from "@/Redux/thunks/submitPropertyApi";
 import { setDraftId } from "@/Redux/slice/postPropertySlice";
 
-
 const Page = () => {
   const bgPriceColor = hexToRGBA("#27AE60", 0.12);
+  const dispatch = useDispatch<AppDispatch>();
 
-    const dispatch = useDispatch<AppDispatch>();
-
-     const propertyType = useSelector(
-    (state: any) => state.postProperty.propertyType
+  const propertyType = useSelector(
+    (state: any) => state.postProperty.propertyType,
   );
 
-
   useEffect(() => {
-  if (!propertyType) return;
+    if (!propertyType) return;
 
-  dispatch(createDraftThunk(propertyType))
-    .unwrap()
-    .then((res: any) => {
-      dispatch(setDraftId(res.data._id));
-    })
-    .catch(console.error);
-}, [propertyType, dispatch]);
-
-
+    dispatch(createDraftThunk(propertyType))
+      .unwrap()
+      .then((res: any) => {
+        dispatch(setDraftId(res.data._id));
+      })
+      .catch(console.error);
+  }, [propertyType, dispatch]);
 
   return (
     <div
       style={{ background: bgPriceColor }}
-      className="relative min-h-[120vh] w-full"
+      className="relative min-h-screen w-full pb-10 lg:pb-0"
     >
-      <header className="mx-auto max-w-5xl px-4 pt-1 md:px-2">
+      <header className="mx-auto max-w-5xl px-4 py-3 md:px-6 lg:px-2 lg:pt-1">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link
             href="/"
-            className="flex select-none items-center gap-3"
+            className="flex select-none items-center gap-2 sm:gap-3"
             aria-label="Go to homepage"
           >
-            <div className="w-7 h-7">
+            <div className="w-6 h-6 sm:w-7 sm:h-7">
               <Logo />
             </div>
 
-            <span className="text-lg font-semibold tracking-tight text-primary sm:text-xl">
+            <span className="text-base font-semibold tracking-tight text-primary sm:text-lg lg:text-xl">
               PROPENU
-              <sup className="ml-1 align-super text-[10px] font-normal text-[#646464]">
+              <sup className="ml-0.5 align-super text-[8px] sm:text-[10px] font-normal text-[#646464]">
                 TM
               </sup>
             </span>
@@ -63,23 +58,24 @@ const Page = () => {
 
           {/* Decorative SVG */}
           <div className="hidden lg:block">
-            <PostPropertiesHouse className="w-[260px] h-auto" />
+            <PostPropertiesHouse className="w-[200px] xl:w-[260px] h-auto" />
           </div>
         </div>
       </header>
 
-      {/* 🔹 Main Card */}
-      <div className="relative z-20 mx-auto h-screen w-full max-w-5xl overflow-hidden rounded-xl bg-white shadow-xl">
-        <div className="grid grid-cols-[280px_1fr] h-full">
-          {/* Sidebar */}
+      {/* 🔹 Main Card Container */}
+      <main className="relative z-20 mx-auto w-full max-w-5xl overflow-hidden bg-white shadow-xl lg:rounded-xl lg:h-[calc(122vh-120px)]">
+       
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] h-full">
+          
           <Sidebar />
 
           {/* Main Content */}
-          <div className="h-full overflow-y-auto">
+          <div className="h-full overflow-y-auto p-4 lg:p-0">
             <MainContent />
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

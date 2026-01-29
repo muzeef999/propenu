@@ -31,6 +31,7 @@ export default async function Page({ params }: PageProps) {
 
     if (!data) notFound();
     const { agent, properties } = data;
+    console.log(agent);
 
 
     return (

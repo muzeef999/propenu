@@ -10,13 +10,14 @@ import {
   MdOutlineEngineering,
   MdOutlineWhatsapp,
 } from "react-icons/md";
-import InputField from "@/ui/InputField";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input"; // isValidPhoneNumber is crucial for Zod
 import { z } from "zod";
 import "react-phone-number-input/style.css";
+import Cookies from "js-cookie";
 
 import { AiOutlineTool, AiOutlineUser } from "react-icons/ai";
 
+import { VerifyOtpResponse } from "@/types/property";
 interface RegisterDialogProps {
   open: boolean;
   onClose: () => void;
@@ -106,41 +107,50 @@ const RegisterDialog = ({
     }
   }
 
-  async function handleVerifyOtp(manualOtp?: string | React.MouseEvent) {
-    const otpToSubmit = typeof manualOtp === "string" ? manualOtp : otp;
+ async function handleVerifyOtp(manualOtp?: string | React.MouseEvent) {
+  const otpToSubmit = typeof manualOtp === "string" ? manualOtp : otp;
 
-    const validation = otpSchema.safeParse(otpToSubmit);
-    if (!validation.success) {
-      setErrors({ otp: validation.error.issues[0].message });
-      return;
-    }
-
-    setLoading(true);
-    setErrors({});
-
-    try {
-      await createVerifyOtp({
-        phone: formData.phone,
-        otp: otpToSubmit,
-        name: formData.name.trim(),
-        role: formData.role,
-      });
-
-      // Cookies.set("token", res.token, { secure: true, sameSite: "Strict" });
-
-      toast.success("Account created successfully!");
-      setTimeout(() => {
-        handleClose();
-        window.location.reload();
-      }, 800);
-    } catch (err) {
-      setErrors({ otp: "Invalid OTP or an error occurred." });
-      setOtpDigits(Array(OTP_LENGTH).fill("")); // Clear OTP fields on error
-      inputsRef.current[0]?.focus();
-    } finally {
-      setLoading(false);
-    }
+  const validation = otpSchema.safeParse(otpToSubmit);
+  if (!validation.success) {
+    setErrors({ otp: validation.error.issues[0].message });
+    return;
   }
+
+  setLoading(true);
+  setErrors({});
+
+  try {
+    const res: VerifyOtpResponse = await createVerifyOtp({
+      phone: formData.phone,
+      otp: otpToSubmit,
+      name: formData.name.trim(),
+      role: formData.role,
+    });
+
+    console.log("VERIFY OTP RESPONSE:", res); // 🔍 TEMP
+
+    Cookies.set("token", res.token, {
+      expires: 7,
+      secure: true,
+      sameSite: "Strict",
+    });
+
+    toast.success("Account created successfully!");
+
+    setTimeout(() => {
+      handleClose();
+      window.location.href = "/";
+    }, 800);
+  } catch {
+    setErrors({ otp: "Invalid OTP or an error occurred." });
+    setOtpDigits(Array(OTP_LENGTH).fill(""));
+    inputsRef.current[0]?.focus();
+  } finally {
+    setLoading(false);
+  }
+}
+
+
 
   function handleOtpChange(value: string, index: number) {
     setErrors((p) => ({ ...p, otp: undefined }));
