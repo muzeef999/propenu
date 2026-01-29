@@ -40,7 +40,7 @@ const Banner = () => {
 
         {/* Overlay */}
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full md:w-[65%] bg-gradient-to-r from-white/95 via-white/80 to-transparent px-6 md:px-14 py-10 space-y-4">
+          <div className="w-full md:w-[65%]  px-6 md:px-14 py-10 space-y-4">
 
             {/* Badge */}
             <div className="flex items-center gap-2 px-4 py-2 bg-[#27AE60] backdrop-blur-md rounded-full w-fit shadow-sm">
@@ -51,7 +51,7 @@ const Banner = () => {
             </div>
 
             <h1 className="text-neutral-600 font-extrabold leading-tight text-2xl md:text-4xl lg:text-4xl">
-             Are you looking for a happy home like we were ?
+             Are you looking for a happy home ?
             </h1>
 
             <div className="h-[3.2rem] overflow-hidden">
@@ -79,13 +79,13 @@ const Banner = () => {
         />
 
         {/* Overlay */}
-        <div className="absolute inset-0 flex items-end">
-          <div className="w-full bg-gradient-to-t from-white/95 via-white/85 to-transparent px-5 py-8 space-y-3">
+        <div className="absolute inset-0 flex items-start">
+          <div className="w-full  px-5 py-8 space-y-3">
 
             {/* Badge */}
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-md rounded-full w-fit shadow">
-              <IoHomeOutline className="w-4 h-4 text-emerald-700" />
-              <span className="text-sm font-semibold text-emerald-800 tracking-wide">
+            <div className="flex items-center gap-2 px-4 py-2 bg-[#27AE60] backdrop-blur-md rounded-full w-fit shadow-sm">
+              <IoHomeOutline className="w-4 h-4 text-white" />
+              <span className="text-sm font-semibold text-white tracking-wide">
                 Trusted Real Estate Platform
               </span>
             </div>
