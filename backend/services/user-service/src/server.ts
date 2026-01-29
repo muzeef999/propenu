@@ -29,6 +29,7 @@ async function start() {
     app.use("/api/users/shortlist", shortlistRoutes);
     app.use("/api/users/builder", shortlistRoutes);
     app.use("/api/users/agent", agentRoute);
+    
 
     app.listen(Number(port), "0.0.0.0", () => {
       console.log(`user service running on 0.0.0.0:${port}`);

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { addToShortlistService, getShortlistStatusService, getUserShortlistService, removeFromShortlistService } from "../services/shortlistService";
+import { addToShortlistService, getAnalytics, getShortlistStatusService, getUserShortlistService, removeFromShortlistService } from "../services/shortlistService";
 import { AuthRequest } from "../middlewares/authMiddleware";
 
 
@@ -80,3 +80,15 @@ export const getShortlistStatus = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+
+export const getProjectAnalytics = async (req: Request, res: Response) => {
+  try {
+    const data = await getAnalytics();
+    res.json(data);
+  } catch (e: any) {
+    console.error("ANALYTICS_ERROR:", e);
+    res.status(500).json({ message: "Failed to load analytics" });
+  }
+};
+

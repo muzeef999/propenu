@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import Shortlist from "../models/shortlistModel";
+import FeaturedProject from "../models/featurePropertiesModel";
 
 
 export const addToShortlistService = async (
@@ -136,3 +137,79 @@ export const getShortlistStatusService = async (userId: string, propertyId: stri
   const exists = await Shortlist.exists({ userId, propertyId });
   return Boolean(exists);
 };
+
+
+export const  getAnalytics =  async() => {
+    const now = new Date();
+
+  const [
+    totalProjects,
+    statusCounts,
+    featuredCounts,
+    cityStats,
+    stateStats,
+    topViewed,
+  ] = await Promise.all([
+
+    // 1. Total projects
+    FeaturedProject.countDocuments(),
+
+    // 2. Status split
+    FeaturedProject.aggregate([
+      { $group: { _id: "$status", count: { $sum: 1 } } }
+    ]),
+
+    // 3. Featured vs non-featured
+    FeaturedProject.aggregate([
+      {
+        $group: {
+          _id: "$isFeatured",
+          count: { $sum: 1 }
+        }
+      }
+    ]),
+
+    // 4. Projects by city + featured split
+    FeaturedProject.aggregate([
+      {
+        $group: {
+          _id: { city: "$city", featured: "$isFeatured" },
+          count: { $sum: 1 }
+        }
+      }
+    ]),
+
+    // 5. Projects by state
+    FeaturedProject.aggregate([
+      {
+        $group: {
+          _id: "$state",
+          total: { $sum: 1 },
+          featured: {
+            $sum: { $cond: ["$isFeatured", 1, 0] }
+          }
+        }
+      }
+    ]),
+
+    // 6. Top 5 by views
+    FeaturedProject.find()
+      .sort({ "meta.views": -1 })
+      .limit(5)
+      .select("title city meta.views isFeatured")
+      .lean()
+  ]);
+
+  return {
+    totals: {
+      projects: totalProjects,
+    },
+    status: statusCounts,
+    featuredSplit: featuredCounts,
+    location: {
+      cities: cityStats,
+      states: stateStats,
+    },
+    topViewed,
+  };
+}
