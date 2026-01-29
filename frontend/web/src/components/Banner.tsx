@@ -3,198 +3,112 @@
 import Image from "next/image";
 import heroBannerMobile from "@/asserts/propenu-hero-banner-for-moblie.jpeg";
 import heroBannerwebp from "@/asserts/propenu-hero-web-banner.webp";
+import { useEffect, useState } from "react";
+import "./bannerStyle.css";
+import { IoHomeOutline } from "react-icons/io5";
+import SearchBox from "./SearchBox";
 
-import { useState, useEffect } from "react";
-import { useCity } from "@/hooks/useCity";
-import { ListingOption, LocationItem, categoryOption } from "@/types";
-import Link from "next/link";
-import FilterDropdown from "@/ui/FilterDropdown";
-import { setCategory, setListingType } from "@/Redux/slice/filterSlice";
-import { useDispatch } from "react-redux";
-import { useAppSelector } from "@/Redux/store";
-import { CiSearch } from "react-icons/ci";
-
-const listingOptions: ListingOption[] = ["Buy", "Rent", "Lease"];
-
-const CATEGORY_OPTIONS = [
-  "All Residential",
-  "All Agricultural",
-  "All Commercial",
-  "All Land/Plot",
+const TEXTS = [
+  "Tired of fake listings and spam calls?",
+  "That’s when we found Propenu.",
+  "Verified properties. Verified users. Zero spam. Secure transactions.",
 ];
+
 const Banner = () => {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<LocationItem[]>([]);
-  const { selectCity } = useCity();
+  const [index, setIndex] = useState(0);
 
-  const { listingTypeLabel, category } = useAppSelector((s) => s.filters);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIndex((prev) => (prev + 1) % TEXTS.length);
+    }, 3000);
 
-  const categoryOptions: categoryOption[] = [
-    "Residential",
-    "Commercial",
-    "Land",
-    "Agricultural",
-  ];
-
-  const dispatch = useDispatch();
-
-  function handleSelect(item: LocationItem) {
-    selectCity(item);
-    setQuery(item?.city);
-    setResults([]);
-  }
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <section className="relative w-full h-[65vh] overflow-hidden">
-      {/* ---------- Background Image ---------- */}
+    <section className="relative w-full overflow-hidden">
 
-      <div className="absolute inset-0">
-        {/* Desktop Image */}
+      {/* ================= DESKTOP ================= */}
+      <div className="hidden md:block w-full relative">
         <Image
           src={heroBannerwebp}
           alt="Propenu hero banner"
-          fill
           priority
-          className="hidden md:block object-cover"
+          sizes="100vw"
+          className="w-full h-auto object-cover"
         />
 
-        {/* Mobile Image */}
-        <Image
-          src={heroBannerMobile}
-          alt="Propenu hero banner mobile"
-          fill
-          priority
-          className="block md:hidden object-cover"
-        />
-      </div>
+        {/* Overlay */}
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full md:w-[65%] bg-gradient-to-r from-white/95 via-white/80 to-transparent px-6 md:px-14 py-10 space-y-4">
 
-      {/* ---------- Content ---------- */}
-      <div className="relative left-[4%] z-10 h-full pl-3">
-        <div className="max-w-[98rem] mx-auto px-6 h-full flex items-center">
-          <div className="w-full max-w-none space-y-5">
-            {/* Trust badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/30 text-primary text-sm font-semibold border">
-              🏡Verified Properties
+            {/* Badge */}
+            <div className="flex items-center gap-2 px-4 py-2 bg-[#27AE60] backdrop-blur-md rounded-full w-fit shadow-sm">
+              <IoHomeOutline className="w-4 h-4 text-white" />
+              <span className="text-sm font-semibold text-white tracking-wide">
+                Trusted Real Estate Platform
+              </span>
             </div>
 
-            {/* Main heading */}
-            <h1>
-              <span className="heading-main-hero">Everything you need</span>
-
-              <span className="sub-heading-handwriting block">
-                Verified Listings
-              </span>
-
-              <span className="block mt-3 text-lg sm:text-xl font-medium text-gray-600">
-                for a worry-free home journey
-              </span>
+            <h1 className="text-neutral-600 font-extrabold leading-tight text-2xl md:text-4xl lg:text-4xl">
+             Are you looking for a happy home like we were ?
             </h1>
 
-            {/* Support line */}
-            <p className="text-gray-500 text-base sm:text-lg max-w-none">
-              Direct path to your next home — trusted projects, real photos, and
-              zero pressure.
-            </p>
-
-            {/* Search Box floating ABOVE banner */}
-            <div className="w-full max-w-3xl">
-              <div className="bg-white shadow-md rounded-lg border border-gray-200 p-2">
-                {/* Search Row */}
-                <div className="flex items-center gap-3 relative">
-                  <div className="border-r border-r-[#EBEBEB] pr-3">
-                    <FilterDropdown
-                      triggerLabel={
-                        <span className="px-4 text-primary font-medium">
-                          {listingTypeLabel}
-                        </span>
-                      }
-                      width="w-56"
-                      align="left"
-                      renderContent={(close) => (
-                        <div>
-                          <h4 className="text-sm font-semibold mb-2">
-                            Listing Type
-                          </h4>
-                          <div className="flex gap-2 flex-wrap text-primary">
-                            {listingOptions.map((l) => (
-                              <button
-                                key={l}
-                                onClick={() => {
-                                  dispatch(
-                                    setListingType({
-                                      label: l,
-                                      value: l.toLowerCase() as any,
-                                    }),
-                                  );
-                                  close?.();
-                                }}
-                                className={`px-2 py-1 rounded hover:bg-gray-100 ${
-                                  listingTypeLabel === l ? "font-semibold" : ""
-                                }`}
-                              >
-                                {l}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    />
-                  </div>
-
-                  <select
-                    value={category}
-                    onChange={(e) =>
-                      dispatch(setCategory(e.target.value as categoryOption))
-                    }
-                    className="rounded-lg focus:ring-2  focus:outline-none"
-                  >
-                    {categoryOptions.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-
-                  <div className="relative w-full border-l border-l-[#EBEBEB] pl-3">
-                    <CiSearch
-                      className="absolute left-3 top-3 text-gray-500"
-                      size={18}
-                    />
-                    <input
-                      type="text"
-                      placeholder="project, or builder..."
-                      className="w-full rounded-lg pl-10 pr-4 py-2 text-sm outline-none"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                    />
-                    <Link
-                      href="/properties"
-                      className="absolute right-0 bg-[#27AE60] text-white px-4 py-2 rounded-lg"
-                    >
-                      Search
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Dropdown List */}
-                {results.length > 0 && (
-                  <ul className="absolute top-full mt-2 left-0 w-full bg-white border rounded-xl shadow-lg max-h-64 overflow-y-auto text-sm">
-                    {results.map((item) => (
-                      <li
-                        key={item._id}
-                        onClick={() => handleSelect(item)}
-                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                      >
-                        <div className="text-gray-700">{item?.city}</div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+            <div className="h-[3.2rem] overflow-hidden">
+              <p
+                key={index}
+                className="text-emerald-700 font-semibold tracking-wide text-lg md:text-2xl animate-fadeSlide"
+              >
+                {TEXTS[index]}
+              </p>
             </div>
+
+           <SearchBox />
           </div>
         </div>
       </div>
+
+      {/* ================= MOBILE ================= */}
+      <div className="block md:hidden w-full relative">
+        <Image
+          src={heroBannerMobile}
+          alt="Propenu hero banner mobile"
+          priority
+          sizes="100vw"
+          className="w-full h-auto object-cover"
+        />
+
+        {/* Overlay */}
+        <div className="absolute inset-0 flex items-end">
+          <div className="w-full bg-gradient-to-t from-white/95 via-white/85 to-transparent px-5 py-8 space-y-3">
+
+            {/* Badge */}
+            <div className="flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-md rounded-full w-fit shadow">
+              <IoHomeOutline className="w-4 h-4 text-emerald-700" />
+              <span className="text-sm font-semibold text-emerald-800 tracking-wide">
+                Trusted Real Estate Platform
+              </span>
+            </div>
+
+            <h1 className="text-neutral-900 font-extrabold leading-tight text-2xl">
+              Are you looking for a happy home?
+            </h1>
+
+            <div className="h-[3rem] overflow-hidden">
+              <p
+                key={index}
+                className="text-emerald-700 font-semibold text-base animate-fadeSlide"
+              >
+                {TEXTS[index]}
+              </p>
+            </div>
+
+            <SearchBox />
+
+          </div>
+        </div>
+      </div>
+
     </section>
   );
 };
