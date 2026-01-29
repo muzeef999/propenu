@@ -1,29 +1,32 @@
 // services/property.service.ts
 
 import { IFeaturedProject } from "@/app/(pages)/builder/create-property/types";
-import { ApiResponse, createRequestOtpPayload, createVerifyOtpPayload, RequestOtpPayload, VerifyOtpPayload, VerifyOtpResponse } from "@/types/property";
+import {
+  ApiResponse,
+  createRequestOtpPayload,
+  createVerifyOtpPayload,
+  RequestOtpPayload,
+  VerifyOtpPayload,
+  VerifyOtpResponse,
+} from "@/types/property";
 import { SearchFilterParams } from "@/types/sharedTypes";
 import axiosInstance from "@/utilies/axiosInstance";
 import Cookies from "js-cookie";
 
-
-const url = process.env.NEXT_PUBLIC_API_URL
-
+const url = process.env.NEXT_PUBLIC_API_URL;
 
 export async function getFeaturedProjects(params?: {
   state?: string;
   city?: string;
 }) {
   const query = new URLSearchParams();
-  
 
   if (params?.state) query.append("state", params.state);
   if (params?.city) query.append("city", params.city);
 
-  
   const res = await fetch(
     `${url}/api/properties/featured-project/city?${query.toString()}`,
-    { cache: "no-store" } // for dynamic search
+    { cache: "no-store" }, // for dynamic search
   );
 
   if (!res.ok) {
@@ -33,121 +36,112 @@ export async function getFeaturedProjects(params?: {
   return res.json();
 }
 
-
-
-
 //highlight projects
 export async function getHighlightProjects(params?: {
   state?: string;
   city?: string;
 }) {
-
   const query = new URLSearchParams();
-  
-
-  if (params?.state) query.append("state", params.state);
-  if (params?.city) query.append("city", params.city);
-
-    const res = await fetch(`${url}/api/properties/highlight-projects/city?${query.toString()}`, { cache: "no-store" } );
-    if(!res.ok) {
-        throw new Error('Failed to fetch highlight projects');
-    }
-    return res.json();
-}
-
-
-//agent 
-
-export async function getOwnerProperties(
-  params?: {
-  state?: string;
-  city?: string;
-}
-) {
-
-   const query = new URLSearchParams();  
-
-  if (params?.state) query.append("state", params.state);
-  if (params?.city) query.append("city", params.city);
-
-    const res = await fetch(`${url}/api/properties/owners-properties?${query.toString()}`, { cache: "no-store" });
-    if(!res.ok) {
-        throw new Error('Failed to fetch popular Owner Properties');
-    }
-    return res.json();
-}
-
-
-
-export async function getAgentConnect( params?: {
-  city?: string;
-}){
-
-    const query = new URLSearchParams();  
 
   if (params?.city) query.append("city", params.city);
 
-  const res = await fetch(`${url}/api/users/agent/city?${query.toString()}`, { cache: "no-store" });
-  if(!res.ok) {
-      throw new Error('Failed to fetch Agent Connect data');
+  const res = await fetch(
+    `${url}/api/properties/highlight-projects/city?${query.toString()}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) {
+    throw new Error("Failed to fetch highlight projects");
   }
   return res.json();
-
 }
 
+//agent
 
+export async function getOwnerProperties(params?: {
+  state?: string;
+  city?: string;
+}) {
+  const query = new URLSearchParams();
+
+  if (params?.state) query.append("state", params.state);
+  if (params?.city) query.append("city", params.city);
+
+  const res = await fetch(
+    `${url}/api/properties/owners-properties?${query.toString()}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) {
+    throw new Error("Failed to fetch popular Owner Properties");
+  }
+  return res.json();
+}
+
+export async function getAgentConnect(params?: { city?: string }) {
+  const query = new URLSearchParams();
+
+  if (params?.city) query.append("city", params.city);
+
+  const res = await fetch(`${url}/api/users/agent/city?${query.toString()}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error("Failed to fetch Agent Connect data");
+  }
+  return res.json();
+}
 
 export const searchFilter = async (params: SearchFilterParams) => {
-const res = await axiosInstance.get<ApiResponse>(`${url}/api/properties/search`, { params, });
-return res.data;
+  const res = await axiosInstance.get<ApiResponse>(
+    `${url}/api/properties/search`,
+    { params },
+  );
+  return res.data;
 };
 
+export const requestOtp = async (payload: RequestOtpPayload) => {
+  const res = await axiosInstance.post<RequestOtpPayload>(
+    `${url}/api/users/auth/request-otp`,
+    payload,
+  );
+  return res.data;
+};
 
-
-
-
-
-export const requestOtp = async(payload:RequestOtpPayload) => {
-  const res = await axiosInstance.post<RequestOtpPayload>(`${url}/api/users/auth/request-otp`, payload)
-  return  res.data
-  }
-
-  export const verifyOtp = async (payload: VerifyOtpPayload) => {
+export const verifyOtp = async (payload: VerifyOtpPayload) => {
   const res = await axiosInstance.post<VerifyOtpResponse>(
     `${url}/api/users/auth/verify-otp`,
-    payload
+    payload,
   );
 
   return res.data; // this is now VerifyOtpResponse
 };
 
-export const createRequestOtp = async(payload:createRequestOtpPayload) => {
-  const res = await axiosInstance.post<createRequestOtpPayload>(`${url}/api/users/auth/request-otp/create`, payload);
-  return  res.data
-  }
-
-  export const createVerifyOtp = async (payload: createVerifyOtpPayload) => {
-    const res = await axiosInstance.post<createVerifyOtpPayload>(
-    `${url}/api/users/auth/verify-otp/create`,
-    payload
+export const createRequestOtp = async (payload: createRequestOtpPayload) => {
+  const res = await axiosInstance.post<createRequestOtpPayload>(
+    `${url}/api/users/auth/request-otp/create`,
+    payload,
   );
   return res.data;
-}
+};
 
-export const me = async() => {
-   const token = Cookies.get("token");
-   if (!token) return null;
+export const createVerifyOtp = async (payload: createVerifyOtpPayload) => {
+  const res = await axiosInstance.post<createVerifyOtpPayload>(
+    `${url}/api/users/auth/verify-otp/create`,
+    payload,
+  );
+  return res.data;
+};
 
-    const res = await axiosInstance.get(`${url}/api/users/auth/me`, {
+export const me = async () => {
+  const token = Cookies.get("token");
+  if (!token) return null;
+
+  const res = await axiosInstance.get(`${url}/api/users/auth/me`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
   return res.data;
-}
-
-
-
+};
 
 export const getShortlistedProperties = async () => {
   const token = Cookies.get("token");
@@ -168,19 +162,14 @@ export const postShortlistProperty = async (payload: {
   const token = Cookies.get("token");
   if (!token) throw new Error("Not authenticated");
 
-  const res = await axiosInstance.post(
-    `${url}/api/users/shortlist`,
-    payload,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  const res = await axiosInstance.post(`${url}/api/users/shortlist`, payload, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 
   return res.data;
 };
-
 
 export const getMyProperties = async () => {
   const token = Cookies.get("token");
@@ -194,19 +183,19 @@ export const getMyProperties = async () => {
   return res.data;
 };
 
-
-
-export const getPlans = async ({userType, category}: { userType: "buyer" | "owner" | "agent" | "builder"; category?: "rent" | "sell" | "both" | "rent_view" | "buy";
+export const getPlans = async ({
+  userType,
+  category,
+}: {
+  userType: "buyer" | "owner" | "agent" | "builder";
+  category?: "rent" | "sell" | "both" | "rent_view" | "buy";
 }) => {
-  const res = await axiosInstance.get(
-    `${url}/api/payments/plans`,
-    {
-      params: {
-        userType,
-        category,
-      },
-    }
-  );
+  const res = await axiosInstance.get(`${url}/api/payments/plans`, {
+    params: {
+      userType,
+      category,
+    },
+  });
 
   return res.data;
 };
@@ -228,34 +217,37 @@ export const postLeads = async (payload: {
     },
   });
   return res.data;
-  
-}
+};
 
 export const getProjectLeads = async (projectId: string) => {
   const token = Cookies.get("token");
   if (!token) return null;
 
-  const res = await axiosInstance.get(`${url}/api/properties/leads?projectId=${projectId}`, {
-     headers: {
-      Authorization: `Bearer ${token}`,
+  const res = await axiosInstance.get(
+    `${url}/api/properties/leads?projectId=${projectId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     },
-  });
+  );
   return res.data;
 };
 
 export const getHighlightProjectBuilders = async () => {
-  const res = await axiosInstance.get(`${url}/api/properties/highlight-projects/builder/me`, {
+  const res = await axiosInstance.get(
+    `${url}/api/properties/highlight-projects/builder/me`,
+    {
       headers: {
         Authorization: `Bearer ${Cookies.get("token")}`,
       },
-  });
+    },
+  );
   return res.data;
-} ;
+};
 
 export const getAgentProfile = async (agentId: string) => {
-  const res = await axiosInstance.get(
-    `${url}/api/users/agent/${agentId}`,
-  );
+  const res = await axiosInstance.get(`${url}/api/users/agent/${agentId}`);
 
   return res.data;
 };
@@ -274,7 +266,7 @@ export const updateAgentProfile = async (
     licenseValidTill: string;
     avatar?: File;
     coverImage?: File;
-  }>
+  }>,
 ) => {
   // Check if we have files to upload
   const hasFiles = payload.avatar || payload.coverImage;
@@ -309,7 +301,7 @@ export const updateAgentProfile = async (
           Authorization: `Bearer ${Cookies.get("token")}`,
           "Content-Type": "multipart/form-data",
         },
-      }
+      },
     );
 
     return res.data;
@@ -322,7 +314,7 @@ export const updateAgentProfile = async (
         headers: {
           Authorization: `Bearer ${Cookies.get("token")}`,
         },
-      }
+      },
     );
 
     return res.data;
@@ -330,16 +322,16 @@ export const updateAgentProfile = async (
 };
 
 export const createFeaturedProperty = async (
-  formData: FormData
+  formData: FormData,
 ): Promise<IFeaturedProject> => {
-  const token = Cookies.get('token');
+  const token = Cookies.get("token");
 
   if (!token) {
-    throw new Error('Not authenticated');
+    throw new Error("Not authenticated");
   }
 
   const response = await fetch(`${url}/api/properties/featured-project`, {
-    method: 'POST',
+    method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -348,21 +340,23 @@ export const createFeaturedProperty = async (
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.message || 'Failed to create featured property');
+    throw new Error(error.message || "Failed to create featured property");
   }
 
   return response.json();
 };
 
-
 export const getMyContactedProperties = async () => {
   const token = Cookies.get("token");
   if (!token) return null;
 
-  const res = await axiosInstance.get(`${url}/api/properties/leads/my-contacts`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
+  const res = await axiosInstance.get(
+    `${url}/api/properties/leads/my-contacts`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     },
-  });
+  );
   return res.data;
 };

@@ -18,22 +18,7 @@ const menuItems = [
   },
   {
     label: "My Properties",
-    link: "/builder/my-properties",
-    icon: Subscription,
-  },
-  {
-    label: "Create Property",
-    link: "/builder/create-property",
-    icon: Subscription,
-  },
-  {
-    label: "My Plan",
-    link: "/builder/my-plan",
-    icon: Subscription,
-  },
-  {
-    label: "Account Settings",
-    link: "/builder/account-settings",
+    link: "/builder/my-Properties",
     icon: Subscription,
   },
 ];

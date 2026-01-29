@@ -19,6 +19,14 @@ type LocationParams = {
   state?: string;
 };
 
+
+function exactCaseInsensitive(value: string) {
+  return {
+    $regex: `^${value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+    $options: "i",
+  };
+}
+
 async function findFeatured(filter: any) {
   return FeaturedProject.find(filter)
     .select({
@@ -848,55 +856,41 @@ export const FeaturePropertyService = {
 
   async getFeaturesByCity({ locality, city, state }: LocationParams) {
     // 🥇 1. Try LOCALITY
+   const baseFilter = { isFeatured: true }; // ⭐ SINGLE SOURCE OF TRUTH
+
     if (locality) {
-      const items = await findFeatured({
-        locality: { $regex: `^${locality}$`, $options: "i" },
-        isFeatured: true,
-      });
+    const items = await findFeatured({
+      ...baseFilter,
+      locality: exactCaseInsensitive(locality),
+    });
 
-      if (items.length > 0) {
-        return {
-          level: "locality",
-          value: locality,
-          total: items.length,
-          items,
-        };
-      }
+    if (items.length > 0) {
+      return { level: "locality", value: locality, total: items.length, items };
     }
+  }
 
-    // 🥈 2. Try CITY
-    if (city) {
-      const items = await findFeatured({
-        city: { $regex: `^${city}$`, $options: "i" },
-        isFeatured: true,
-      });
+   if (city) {
+    const items = await findFeatured({
+      ...baseFilter,
+      city: exactCaseInsensitive(city),
+    });
 
-      if (items.length > 0) {
-        return {
-          level: "city",
-          value: city,
-          total: items.length,
-          items,
-        };
-      }
+    if (items.length > 0) {
+      return { level: "city", value: city, total: items.length, items };
     }
+  }
 
     // 🥉 3. Try STATE
     if (state) {
-      const items = await findFeatured({
-        state: { $regex: `^${state}$`, $options: "i" },
-        isFeatured: true,
-      });
+    const items = await findFeatured({
+      ...baseFilter,
+      state: exactCaseInsensitive(state),
+    });
 
-      if (items.length > 0) {
-        return {
-          level: "state",
-          value: state,
-          total: items.length,
-          items,
-        };
-      }
+    if (items.length > 0) {
+      return { level: "state", value: state, total: items.length, items };
     }
+  }
 
     return {
       level: "none",
@@ -946,7 +940,7 @@ export const FeaturePropertyService = {
   locality?: string;
 }) {
   const baseFilter: any = {
-    isFeatured: true,
+    isFeatured: false,
   };
 
   const makeRegex = (value?: string) =>
