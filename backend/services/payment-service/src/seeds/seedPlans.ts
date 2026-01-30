@@ -1,27 +1,27 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-dotenv.config();
-
+import { connectDB } from "../config/db";
 import { Plan } from "../models/planModel";
 import { plans } from "./plansData";
-import { connectDB } from "../config/db";
+
+dotenv.config();
 
 async function seedPlans() {
   try {
-   
+    console.log("🧹 Removing old plans...");
+
     await connectDB();
 
-    for (const plan of plans) {
-      await Plan.updateOne(
-        { code: plan.code },   // unique key
-        { $set: plan },        // update data
-        { upsert: true }       // insert if not exists
-      );
-    }
+    // 🚨 STEP 1: DELETE ALL OLD DATA
+    await Plan.deleteMany({});
+    console.log("✅ Old plans removed");
 
-    console.log("✅ Plans seeded successfully");
+    // 🌱 STEP 2: INSERT NEW DATA
+    await Plan.insertMany(plans);
+    console.log("✅ New plans inserted successfully");
+
   } catch (error) {
-    console.error("❌ Seeding failed", error);
+    console.error("❌ Seeding failed:", error);
   } finally {
     await mongoose.disconnect();
     process.exit(0);

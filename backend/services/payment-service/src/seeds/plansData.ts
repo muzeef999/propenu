@@ -1,6 +1,6 @@
 export const plans = [
-// ---------------- RENTAL subscription ----------------
-{
+  // ---------------- RENTAL subscription ----------------
+  {
     code: "RENTAL_FREE",
     userType: "owner",
     category: "rent_view",
@@ -61,7 +61,6 @@ export const plans = [
       CONTACT_OWNER_LIMIT: 2,
     },
   },
-
   {
     code: "BUYER_RENT_TIER_1",
     userType: "owner",
@@ -102,10 +101,10 @@ export const plans = [
 
   // ---------------- OWNER SELL ----------------
   {
-    code: "OWNER_SELL_TIER_0",
+    code: "OWNER_SELL_FREE",
     userType: "owner",
     category: "sell",
-    tier: "tier0",
+    tier: "free",
     name: "Free",
     price: 0,
     features: {
@@ -114,7 +113,6 @@ export const plans = [
       TOP_LISTING_DAYS: 0,
     },
   },
-
   {
     code: "OWNER_SELL_TIER_1",
     userType: "owner",
@@ -123,7 +121,7 @@ export const plans = [
     name: "Owner Access",
     price: 499,
     features: {
-       PROPERTY_LISTING_LIMIT: 10,
+      PROPERTY_LISTING_LIMIT: 10,
       ENQUIRY_LIMIT: 10,
       TOP_LISTING_DAYS: 5,
     },
@@ -134,14 +132,13 @@ export const plans = [
     category: "sell",
     tier: "tier2",
     name: "Owner Advantage",
-    price: 499,
+    price: 999,
     features: {
-       PROPERTY_LISTING_LIMIT: 15,
+      PROPERTY_LISTING_LIMIT: 15,
       ENQUIRY_LIMIT: 15,
       TOP_LISTING_DAYS: 10,
     },
   },
-
   {
     code: "OWNER_SELL_TIER_3",
     userType: "owner",
@@ -150,23 +147,22 @@ export const plans = [
     name: "Owner Ultra",
     price: 1999,
     features: {
-       PROPERTY_LISTING_LIMIT: 20,
+      PROPERTY_LISTING_LIMIT: 20,
       ENQUIRY_LIMIT: 20,
       TOP_LISTING_DAYS: 5,
     },
   },
 
-
   // ---------------- OWNER RENT ----------------
   {
-    code: "OWNER_RENT_TIER_0",
+    code: "OWNER_RENT_FREE",
     userType: "owner",
     category: "rent",
-    tier: "tier0",
+    tier: "free",
     name: "Free",
     price: 0,
     features: {
-       PROPERTY_LISTING_LIMIT: 2,
+      PROPERTY_LISTING_LIMIT: 2,
       ENQUIRY_LIMIT: 2,
       TOP_LISTING_DAYS: 0,
     },
@@ -179,7 +175,7 @@ export const plans = [
     name: "Owner Access",
     price: 499,
     features: {
-       PROPERTY_LISTING_LIMIT: 10,
+      PROPERTY_LISTING_LIMIT: 10,
       ENQUIRY_LIMIT: 10,
       TOP_LISTING_DAYS: 5,
     },
@@ -189,10 +185,10 @@ export const plans = [
     userType: "owner",
     category: "rent",
     tier: "tier2",
-    name: "Owner Access",
-    price: 499,
+    name: "Owner Advantage",
+    price: 999,
     features: {
-       PROPERTY_LISTING_LIMIT: 15,
+      PROPERTY_LISTING_LIMIT: 15,
       ENQUIRY_LIMIT: 15,
       TOP_LISTING_DAYS: 10,
     },
@@ -201,149 +197,79 @@ export const plans = [
     code: "OWNER_RENT_TIER_3",
     userType: "owner",
     category: "rent",
-    tier: "tier1",
-    name: "Owner Access",
-    price: 499,
+    tier: "tier3",
+    name: "Owner Ultra",
+    price: 1999,
     features: {
-       PROPERTY_LISTING_LIMIT: 20,
+      PROPERTY_LISTING_LIMIT: 20,
       ENQUIRY_LIMIT: 20,
       TOP_LISTING_DAYS: 20,
     },
   },
 
-
-  // ---------------- AGENT BOTH ----------------
+  // ---------------- AGENT PLANS ----------------
   {
-  code: "AGENT_RENT_STARTER",
-  userType: "agent",
-  category: "rent",
-  tier: "tier1",
-  name: "Starter Rent",
-  price: 999,
-  features: {
-    PROPERTY_LISTING_LIMIT: 20,
-    BUYER_REACH_PERCENT: 50,
-    BUYER_ACCESS: false,
-    LEAD_DASHBOARD: false,
+    code: "AGENT_FREE",
+    userType: "agent",
+    category: "both",
+    tier: "free",
+    name: "Free",
+    price: 0,
+    durationDays: 30,
+    features: {
+      PROPERTY_LISTING_LIMIT: 20,
+      BUYER_REACH_PERCENT: 50,
+      ENQUIRY_LIMIT: 30,
+      TOP_LISTING_DAYS: 0,
+      TEAM_MEMBERS: 0,
+    },
   },
-},
-
-{
-  code: "AGENT_RENT_PRO",
-  userType: "agent",
-  category: "rent",
-  tier: "tier2",
-  name: "Pro Rent",
-  price: 1999,
-  features: {
-    PROPERTY_LISTING_LIMIT: 40,
-    BUYER_REACH_PERCENT: 100,
-    BUYER_ACCESS: true,
-    LEAD_DASHBOARD: true,
-  },
-},
-  
-  // ---------------- AGENT SELL ----------------
-
   {
-  code: "AGENT_SELL_STARTER",
-  userType: "agent",
-  category: "sell",
-  tier: "tier1",
-  name: "Starter Sell",
-  price: 2499,
-  features: {
-    PROPERTY_LISTING_LIMIT: 20,
-    BUYER_REACH_PERCENT: 50,
-    BUYER_ACCESS: false,
-    LEAD_DASHBOARD: false,
+    code: "AGENT_PRO_RENT",
+    userType: "agent",
+    category: "both",
+    tier: "tier1",
+    name: "Pro Rent",
+    price: 1999,
+    durationDays: 30,
+    features: {
+      PROPERTY_LISTING_LIMIT: 40,
+      BUYER_REACH_PERCENT: 100,
+      ENQUIRY_LIMIT: 50,
+      TOP_LISTING_DAYS: 5,
+      TEAM_MEMBERS: 1,
+    },
   },
-},
-
-{
-  code: "AGENT_SELL_PRO",
-  userType: "agent",
-  category: "sell",
-  tier: "tier2",
-  name: "Pro Sell",
-  price: 3499,
-  features: {
-    PROPERTY_LISTING_LIMIT: 40,
-    BUYER_REACH_PERCENT: 100,
-    BUYER_ACCESS: true,
-    LEAD_DASHBOARD: true,
-  },
-},
   {
-    code: "AGENT_BOTH_ELITE",
+    code: "AGENT_PRO_SELL",
+    userType: "agent",
+    category: "both",
+    tier: "tier2",
+    name: "Pro Sell",
+    price: 2999,
+    durationDays: 40,
+    features: {
+      PROPERTY_LISTING_LIMIT: 40,
+      BUYER_REACH_PERCENT: 100,
+      ENQUIRY_LIMIT: 50,
+      TOP_LISTING_DAYS: 5,
+      TEAM_MEMBERS: 1,
+    },
+  },
+  {
+    code: "AGENT_ELITE",
     userType: "agent",
     category: "both",
     tier: "tier3",
-    name: "Agent Elite",
-    price: 4999,
+    name: "Elite",
+    price: 5999,
+    durationDays: 120,
     features: {
       PROPERTY_LISTING_LIMIT: 80,
       BUYER_REACH_PERCENT: 100,
+      ENQUIRY_LIMIT: 100,
+      TOP_LISTING_DAYS: 20,
       TEAM_MEMBERS: 5,
     },
   },
-
-
-
-  // ---------------- BUILDER SELL ----------------
-{
-  code: "BUILDER_SELL_BASE",
-  userType: "builder",
-  category: "sell",
-  tier: "tier1",
-  name: "Builder Base",
-  price: 2499,
-  features: {
-    TOP_LISTING_DAYS: 5,
-    LEAD_DASHBOARD: true,
-    NEW_LEADS: true,
-    ACTIVE_LEADS: true,
-  },
-},
-{
-  code: "BUILDER_SELL_GROWTH",
-  userType: "builder",
-  category: "sell",
-  tier: "tier2",
-  name: "Builder Growth",
-  price: 5999,
-  features: {
-    TOP_LISTING_DAYS: 10,
-    LEAD_DASHBOARD: true,
-    NEW_LEADS: true,
-    ACTIVE_LEADS: true,
-    FOLLOW_UPS: true,
-    TEAM_MEMBERS: 1,
-    PHOTOSHOOT: true,
-  },
-},
-{
-  code: "BUILDER_SELL_PRIME",
-  userType: "builder",
-  category: "sell",
-  tier: "tier3",
-  name: "Builder Prime",
-  price: 11999,
-  features: {
-    TOP_LISTING_DAYS: 20,
-    LEAD_DASHBOARD: true,
-    NEW_LEADS: true,
-    ACTIVE_LEADS: true,
-    FOLLOW_UPS: true,
-    CLOSED_DEALS: true,
-    PROJECT_WISE_LEADS: true,
-    TEAM_MEMBERS: 5,
-    PHOTOSHOOT: true,
-    WALKTHROUGH_3D: true,
-    BANNER: true,
-    BUYER_ACCESS: true,
-  },
-},
-
 ];
-

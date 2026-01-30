@@ -11,8 +11,6 @@ const app = express();
 app.use(express.json());
 
 
-
-
 const PORT = process.env.PORT ?? 4002;
 
 async function start() {
