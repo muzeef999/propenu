@@ -51,39 +51,37 @@ const Banner = () => {
             </div>
 
             <h1 className="text-neutral-600 font-bold text-4xl">
-              Looking for a <span className="highlight-truly">truly</span> happy
-              Home ?
+              Looking for a <span className="highlight-truly">better</span>{" "}
+              property experience?
             </h1>
             <h3 className="text-neutral-600 font-normal text-xl">
-              Tired of fake listings, spam calls, and wasted site visits ?
+              Tired of fake listings, spam calls, and wasted site visits?
             </h3>
 
-          <div className="h-[3.2rem] flex items-center gap-3 overflow-hidden">
+            <div className="h-[3.2rem] flex items-center gap-3 overflow-hidden">
+              {/* check icon */}
+              
 
-  {/* check icon */}
-  <IoMdCheckmarkCircleOutline
-    className="text-emerald-700 flex-shrink-0"
-    size={20}
-  />
-
-  {/* animated trust text */}
-  <p
-    key={index}
-    className="text-emerald-700 font-semibold tracking-wide text-lg 
+              <p className="text-slate-600 text-lg whitespace-nowrap">
+                That’s why we built{" "} 
+                <span className="highlight-name-logo">PROPENU</span>.
+              </p>
+              {/* animated trust text */}
+              <IoMdCheckmarkCircleOutline
+                className="text-emerald-700 flex-shrink-0"
+                size={20}
+              />
+              <p
+                key={index}
+                className="text-emerald-700 font-semibold tracking-wide text-lg 
                w-[230px] final-text-line animate-fadeSlide"
-  >
-    {TEXTS[index]}
-  </p>
+              >
+                {TEXTS[index]}
+              </p>
 
-  {/* brand conclusion */}
-  <p className="text-slate-600 text-lg whitespace-nowrap">
-    That’s why we built{" "}
-    <span className="highlight-name-logo">Propenu</span>.
-  </p>
+              {/* brand conclusion */}
+            </div>
 
-</div>
-
-            
             <SearchBox />
           </div>
         </div>
@@ -111,11 +109,12 @@ const Banner = () => {
             </div>
 
             <h1 className="text-neutral-600 font-bold  text-2xl">
-                Looking for a <span className="highlight-word">truly</span> happy Home ?
+              Looking for a <span className="highlight-truly">better</span>{" "}
+              property experience?
             </h1>
 
             <h3 className="text-neutral-600 font-normal text-xl">
-              Tired of fake listings, spam calls, and wasted site visits ?
+              Tired of fake listings, spam calls, and wasted site visits?
             </h3>
 
             <div className="h-[3.2rem] flex  overflow-hidden">
@@ -126,8 +125,9 @@ const Banner = () => {
                 {TEXTS[index]}
               </p>
               <p className="text-2xl">
-              That’s why we built <span className="highlight-name-logo">Propenu</span>.
-            </p>
+                That’s why we built{" "}
+                <span className="highlight-name-logo">Propenu</span>.
+              </p>
             </div>
 
             <SearchBox />
