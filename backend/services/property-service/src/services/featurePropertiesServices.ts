@@ -8,6 +8,7 @@ import {
 } from "../zod/validation";
 import dotenv from "dotenv";
 import { uploadFile } from "../utils/uploadFile";
+import { log } from "console";
 
 dotenv.config({ quiet: true });
 
@@ -38,6 +39,9 @@ async function findFeatured(filter: any) {
       city: 1,
       locality: 1,
       state: 1,
+      logo:1,
+      bhkSummary:1,
+      amenities:1,
     })
     .lean();
 }
@@ -956,7 +960,7 @@ export const FeaturePropertyService = {
     };
 
     const localityItems = await FeaturedProject.find(localityFilter)
-      .select("title heroImage priceFrom priceTo slug city state locality")
+      .select("title heroImage priceFrom priceTo slug city state locality logo amenities bhkSummary")
       .lean();
 
     if (localityItems.length > 0) {
