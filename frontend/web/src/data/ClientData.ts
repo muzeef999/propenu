@@ -55,8 +55,14 @@ export async function getHighlightProjects(params?: {
   return res.json();
 }
 
-//agent
+// export async function getAllAgentConnect(){
+//   const res = await fetch(`${url}/api/users/agent`, {next : { revalidate: 10}});
+//   if(!res.ok) {
+//       throw new Error('Failed to fetch Agent Connect data');
+//   }
+//   return res.json();
 
+// }
 export async function getOwnerProperties(params?: {
   state?: string;
   city?: string;

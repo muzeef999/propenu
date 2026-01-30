@@ -122,9 +122,6 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
       {/* Middle: content */}
       <div className="flex-1 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
         <div>
-          {/* <h3 className="text-lg md:text-md font-semibold line-clamp-2">
-            {vertical ? `${p?.title?.slice(0, 18)}...` : p?.title}
-          </h3> */}
           <h3 className="text-lg md:text-md font-semibold truncate max-w-[460px]">
             {p.title}
           </h3>
@@ -151,7 +148,7 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
 
         {/* meta icons row */}
         <div
-          className={`mt-4 text-xs text-gray-600 ${
+          className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200 ${
             vertical
               ? "grid grid-cols-2 gap-4"
               : "md:flex md:items-center md:gap-6"

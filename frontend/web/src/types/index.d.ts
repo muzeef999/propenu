@@ -36,6 +36,9 @@ export interface FeaturedProject {
     coordinates: [number, number] | number[];
   };
   mapEmbedUrl?: string;
+  locality?: string;
+  state?: string;
+
 
   // pricing / bhk
   currency?: string; // default: 'INR'

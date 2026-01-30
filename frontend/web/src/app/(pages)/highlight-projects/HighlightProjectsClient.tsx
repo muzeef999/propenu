@@ -53,6 +53,7 @@ export default function HighlightProjectsClient() {
       left: 320,
       behavior: "smooth",
     });
+    console.log("Highlighted Projects:", items);
 
   return (
     <div className="relative w-full">
@@ -69,7 +70,7 @@ export default function HighlightProjectsClient() {
           </p>
         </div>
         <Link
-          href="/featured"
+          href="/highlight-projects"
           aria-label="View all featured properties"
           className="shrink-0 flex items-center gap-1 text-sm sm:text-base text-green-600 hover:text-green-700 font-medium whitespace-nowrap"
         >
@@ -135,8 +136,8 @@ export default function HighlightProjectsClient() {
               </div>
 
               {/* Row 2 */}
-              <p className="text-xs text-gray-500 truncate font-medium">
-                {project.address ?? "—"}
+              <p className="text-xs text-gray-500 truncate font-medium capitalize">
+                2, 3, 4, BHK Appartment{project.locality ? ` • ${project.locality}` : ""}{project.state ? `, ${project.state}` : ""}
               </p>
             </div>
           </Link>

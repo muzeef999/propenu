@@ -40,7 +40,27 @@ export default async function Page({ params }: PageProps) {
     { title: "About Us", href: "#about-us" },
     { title: "Brochure", href: "#brochure" },
   ];
+ function formatCrRange(priceFrom?: number, priceTo?: number) {
+  if (!priceFrom && !priceTo) return "Price on Request";
 
+  const fromCr = priceFrom ? Math.floor(priceFrom / 1e7) : null;
+  const toCr = priceTo ? Math.ceil(priceTo / 1e7) : null;
+
+  if (fromCr && toCr) {
+    if (fromCr === toCr) return `${fromCr} Cr`;
+    return `${fromCr} Cr - ${toCr} Cr`;
+  }
+
+  if (fromCr) return `${fromCr} Cr+`;
+  if (toCr) return `Up to ${toCr} Cr`;
+
+  return "Price on Request";
+}
+
+const startingPrice = formatCrRange(
+  project?.priceFrom,
+  project?.priceTo
+);
   const hero = {
     projectId: project._id,
     subTagline: project?.heroSubTagline,
@@ -49,9 +69,9 @@ export default async function Page({ params }: PageProps) {
     color: project?.color?.trim(),
     heroImage: project.heroImage,
     stats: [
-      { value: "₹1,2Cr+", label: "Starting Price" },
+      { value: startingPrice, label: "Price Range" },
       { value: "3-4 BHK", label: "Configurations" },
-      { value: "50+", label: "Amenities" },
+      { value: (project?.amenities?.length || 0).toString(), label: "Amenities" },
       { value: "RERA", label: "Approved" },
     ],
     ctaPrimary: { text: "Explore", href: "/explore" },
@@ -83,6 +103,8 @@ export default async function Page({ params }: PageProps) {
     aboutSummary: project?.aboutSummary,
     color: project?.color?.trim(),
   };
+
+  console.log("Rendering Featured Project Page for:", project);
 
   return (
     <div>

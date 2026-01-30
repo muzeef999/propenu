@@ -47,6 +47,7 @@ export default function AgentsList() {
       behavior: "smooth",
     });
 
+
   return (
     <div className="relative w-full">
       {/* Header Section */}

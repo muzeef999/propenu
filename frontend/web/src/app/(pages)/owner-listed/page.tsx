@@ -41,6 +41,8 @@ const Page = () => {
     queryFn: () => getOwnerProperties({}),
   });
 
+  
+
   /* -------------------- Loading -------------------- */
   if (isLoading) {
     return (
@@ -73,7 +75,7 @@ const Page = () => {
     <div className="p-4 sm:p-6">
       
 
-      <div className="space-y-4 max-w-4xl ">
+      <div className="space-y-4 w-[80%] ">
         {properties.map((item) => (
           <div key={item._id}>
             {renderPropertyCard(item)}

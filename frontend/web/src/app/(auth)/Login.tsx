@@ -10,7 +10,7 @@ import { MdClose, MdOutlineWhatsapp } from "react-icons/md";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
 import { z } from "zod";
 import "react-phone-number-input/style.css";
-
+import { useRouter } from "next/navigation";
 interface LoginDialogProps {
   open: boolean;
   onClose: () => void;
@@ -45,6 +45,7 @@ const LoginDialog = ({
   const [info, setInfo] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const router = useRouter();
 
   if (!open) return null; // don't render when closed
 
@@ -68,14 +69,16 @@ const LoginDialog = ({
       });
 
       Cookies.set("token", res.token, {
+        path: "/",          // ✅ VERY IMPORTANT
         secure: true,
         sameSite: "Strict",
         expires: 30,
       });
 
+
       toast.success("Logged in successfully!");
       setTimeout(handleClose, 800);
-      window.location.reload();
+      router.refresh();
     } catch (err) {
       setError("Invalid OTP or verification failed.");
       setOtpDigits(Array(OTP_LENGTH).fill(""));
@@ -352,7 +355,7 @@ const LoginDialog = ({
           )}
 
 
-        
+
         </div>
       </div>
     </div>
