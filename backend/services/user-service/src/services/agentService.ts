@@ -174,7 +174,7 @@ async  getAgentsByLocationService(
   const [items, total] = await Promise.all([
     Agent.find(filter)
       .select(
-        "name slug avatar coverImage agencyName bio areasServed stats dealsClosed city state"
+        "name slug avatar coverImage agencyName bio areasServed stats dealsClosed city state rera experienceYears"
       )
       .skip(skip)
       .limit(limit)
