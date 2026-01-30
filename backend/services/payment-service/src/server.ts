@@ -1,6 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
-import paymentRoutes from "../src/routes/paymentRoutes";
+import paymentRoutes from "./routes/paymentRoutes";
 import { connectDB } from "./config/db";
 import planRoutes from "./routes/planRoute";
 import subscriptionRoutes from "./routes/subscriptionRoute"
