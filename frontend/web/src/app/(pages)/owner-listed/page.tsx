@@ -72,7 +72,7 @@ const Page = () => {
 
   /* -------------------- Success -------------------- */
   return (
-    <div className="p-4 sm:p-6">
+    <div className="container p-4 sm:p-6">
       
 
       <div className="space-y-4 w-[80%] ">
