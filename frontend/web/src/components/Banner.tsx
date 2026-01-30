@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import heroBannerMobile from "@/asserts/propenu-hero-banner-for-moblie.jpeg";
-import heroBannerwebp from "@/asserts/propenu-hero-web-banner.webp";
+import heroBannerwebp from "@/asserts/propenu-hero-web-banner.jpeg";
 import { useEffect, useState } from "react";
 import "./bannerStyle.css";
 import { IoHomeOutline } from "react-icons/io5";
@@ -22,7 +22,7 @@ const Banner = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setIndex((prev) => (prev + 1) % TEXTS.length);
-    }, 900);
+    }, 2500);
 
     return () => clearInterval(interval);
   }, []);
@@ -60,21 +60,19 @@ const Banner = () => {
 
             <div className="h-[3.2rem] flex items-center gap-3 overflow-hidden">
               {/* check icon */}
-              
 
               <p className="text-slate-600 text-lg whitespace-nowrap">
-                That’s why we built{" "} 
+                That’s why we built{" "}
                 <span className="highlight-name-logo">PROPENU</span>.
               </p>
               {/* animated trust text */}
               <IoMdCheckmarkCircleOutline
-                className="text-emerald-700 flex-shrink-0"
+                className="text-emerald-700 shrink-0"
                 size={20}
               />
               <p
                 key={index}
-                className="text-emerald-700 font-semibold tracking-wide text-lg 
-               w-[230px] final-text-line animate-fadeSlide"
+                className="text-emerald-700 font-semibold tracking-wide text-lg w-[230px] final-text-line animate-fadeSlide"
               >
                 {TEXTS[index]}
               </p>
@@ -100,14 +98,6 @@ const Banner = () => {
         {/* Overlay */}
         <div className="absolute inset-0 flex items-start">
           <div className="w-full  px-5 py-8 space-y-3">
-            {/* Badge */}
-            <div className="flex items-center gap-2 px-4 py-2 bg-[#27AE60] backdrop-blur-md rounded-full w-fit shadow-sm">
-              <IoHomeOutline className="w-4 h-4 text-white" />
-              <span className="text-sm font-semibold text-white tracking-wide">
-                Trusted Real Estate Platform
-              </span>
-            </div>
-
             <h1 className="text-neutral-600 font-bold  text-2xl">
               Looking for a <span className="highlight-truly">better</span>{" "}
               property experience?
@@ -117,17 +107,24 @@ const Banner = () => {
               Tired of fake listings, spam calls, and wasted site visits?
             </h3>
 
-            <div className="h-[3.2rem] flex  overflow-hidden">
-              <p
-                key={index}
-                className="text-emerald-700 font-semibold tracking-wide text-lg w-[190px] final-text-line animate-fadeSlide"
-              >
-                {TEXTS[index]}
-              </p>
+            <div className="h-[5.2rem] flex flex-col overflow-hidden">
               <p className="text-2xl">
                 That’s why we built{" "}
-                <span className="highlight-name-logo">Propenu</span>.
+                <span className="highlight-name-logo">PROPENU</span>.
               </p>
+              {/* animated trust text */}
+              <div className="flex items-center gap-2">
+                <IoMdCheckmarkCircleOutline
+                  className="text-emerald-700 shrink-0 animate-fadeSlide tracking-wide"
+                  size={20}
+                />
+                <p
+                  key={index}
+                  className="text-emerald-700 font-semibold tracking-wide text-lg w-[230px] final-text-line animate-fadeSlide"
+                >
+                  {TEXTS[index]}
+                </p>
+              </div>
             </div>
 
             <SearchBox />

@@ -42,7 +42,7 @@ const SearchBox = () => {
   }
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full max-sm:top-55">
       {/* Search Box floating ABOVE banner */}
       <div className="w-full max-w-3xl max-sm:relative  right-2 ">
         <div className="bg-white shadow-md rounded-lg border border-gray-200 p-2">
