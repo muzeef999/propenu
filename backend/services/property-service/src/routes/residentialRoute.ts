@@ -14,7 +14,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 const cpUpload = upload.fields([
   { name: "galleryFiles", maxCount: 5 },
-  { name: "documents", maxCount: 5 },
+    { name: "verificationDocuments", maxCount: 5 }, 
 ]);
 
 /** json keys that arrive as JSON strings and need parsing */

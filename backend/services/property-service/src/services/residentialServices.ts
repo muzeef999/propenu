@@ -26,7 +26,7 @@ type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
 
 function pickDefined<T extends Record<string, any>>(obj: T) {
   return Object.fromEntries(
-    Object.entries(obj).filter(([_, v]) => typeof v !== "undefined")
+    Object.entries(obj).filter(([_, v]) => typeof v !== "undefined"),
   );
 }
 
@@ -48,7 +48,7 @@ async function deleteS3ObjectIfExists(key?: string) {
     console.error(
       "deleteS3ObjectIfExists failed for key:",
       key,
-      e?.message || e
+      e?.message || e,
     );
   }
 }
@@ -124,9 +124,9 @@ export async function findRelatedResidential(property: any) {
     status: "active",
 
     // CORE similarity
-    listingType: property.listingType,     // buy
-    propertyType: property.propertyType,   // apartment
-    city: property.city,                   // Hyderabad
+    listingType: property.listingType, // buy
+    propertyType: property.propertyType, // apartment
+    city: property.city, // Hyderabad
   };
 
   // Optional BHK similarity (SAFE version)
@@ -142,11 +142,12 @@ export async function findRelatedResidential(property: any) {
     };
   }
 
-  const related = await Residential
-    .find(query)
+  const related = await Residential.find(query)
     .sort({ createdAt: -1 })
     .limit(6)
-    .select("title slug price city locality bhk gallery propertyType listingType builtUpArea furnishing parkingDetails constructionStatus")
+    .select(
+      "title slug price city locality bhk gallery propertyType listingType builtUpArea furnishing parkingDetails constructionStatus",
+    )
     .lean();
 
   return related;
@@ -156,17 +157,14 @@ export async function findRelatedResidential(property: any) {
 
 export const ResidentialPropertyService = {
   async create(payload: any, files?: MulterFiles) {
-    // generate slug
-
     let toCreate = normalizePayload({ ...payload });
 
-    // preliminary instance for _id (S3 key naming)
     const preliminary = new Residential(toCreate);
     const propId = preliminary._id
       ? preliminary._id.toString()
       : String(Date.now());
 
-    // gallery mapping & upload (stored under "residential")
+    /* Gallery */
     const galleryFiles = files?.galleryFiles ?? [];
     const mappedGallery = await mapAndUploadGallery({
       incomingGallery: toCreate.gallery,
@@ -175,29 +173,30 @@ export const ResidentialPropertyService = {
     });
     toCreate.gallery = Array.isArray(mappedGallery) ? mappedGallery : [];
 
-    // documents -> upload into "residential"
-    const documentsFiles = files?.documents ?? [];
-    if (documentsFiles.length > 0) {
-      const docRefs: any[] = Array.isArray(toCreate.documents)
-        ? toCreate.documents.slice()
-        : [];
-      for (const f of documentsFiles) {
-        const up = await await uploadFile({
-          buffer: f?.buffer,
-          originalName: f.originalname,
-          mimetype: f.mimetype,
-          folder: "featured/gallery",
-          entityId: propId, // optional
+    /* Verification Documents */
+    const verificationFiles = files?.verificationDocuments ?? [];
+    if (verificationFiles.length > 0) {
+      toCreate.verificationDocuments = [];
+
+      for (const file of verificationFiles) {
+        const up = await uploadFile({
+          buffer: file.buffer,
+          originalName: file.originalname,
+          mimetype: file.mimetype,
+          folder: "residential/verification",
+          entityId: propId,
         });
-        docRefs.push({
-          title: f.originalname,
+
+        toCreate.verificationDocuments.push({
+          type: payload.verificationType,
+          title: file.originalname,
           url: up.url,
           key: up.key,
-          filename: f.originalname,
-          mimetype: f.mimetype,
+          filename: file.originalname,
+          mimetype: file.mimetype,
+          status: "pending",
         });
       }
-      toCreate.documents = docRefs;
     }
 
     const createdDoc = await Residential.create(toCreate);
@@ -223,12 +222,9 @@ export const ResidentialPropertyService = {
   },
 
   async update(id: string, payload: any, files?: MulterFiles) {
-
-  console.log("====== SERVICE UPDATE HIT ======");
-  console.log("FILES IN SERVICE:", files?.galleryFiles?.map(f => f.originalname));
-
     if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
     const existingRaw = await Residential.findById(id);
+
     if (!existingRaw) return null;
     const existing: any = existingRaw;
 
@@ -237,120 +233,112 @@ export const ResidentialPropertyService = {
     if (!parsed.success) {
       // handle validation error (return or throw)
       throw new Error(
-        "Validation failed: " + JSON.stringify(parsed.error.issues)
+        "Validation failed: " + JSON.stringify(parsed.error.issues),
       );
     }
 
     const data = parsed.data;
     const safeUpdate = pickDefined(data);
-    const incomingGallery = safeUpdate.gallerySummary;
-    delete safeUpdate.gallerySummary;
-    delete (safeUpdate as any).gallery;
+    const incomingGallery = safeUpdate.gallery;
+    delete safeUpdate.gallery;
     Object.assign(existing, safeUpdate);
 
     const propId = existing._id ? existing._id.toString() : String(Date.now());
 
-    existing.gallerySummary = Array.isArray(existing.gallerySummary)
-      ? existing.gallerySummary
-      : [];
+    existing.gallery = Array.isArray(existing.gallery) ? existing.gallery : [];
 
     if (Array.isArray(incomingGallery)) {
       for (let i = 0; i < incomingGallery.length; i++) {
         const inc = incomingGallery[i];
-        if (i < existing.gallerySummary.length) {
-          existing.gallerySummary[i] = {
-            ...existing.gallerySummary[i],
+        if (i < existing.gallery.length) {
+          existing.gallery[i] = {
+            ...existing.gallery[i],
             ...inc,
           };
         } else {
-          existing.gallerySummary.push({ ...inc });
+          existing.gallery.push({ ...inc });
         }
       }
     }
 
-    // 2) Handle uploaded files (files.galleryFiles) -> map into gallerySummary
     const galleryFiles = files?.galleryFiles ?? [];
-    if (galleryFiles.length > 0) {
-      const filesByName = new Map<string, Express.Multer.File>();
-      for (const f of galleryFiles) filesByName.set(f.originalname, f);
 
-      for (
-        let i = 0;
-        i < existing.gallerySummary.length && filesByName.size > 0;
-        i++
-      ) {
-        const entry = existing.gallerySummary[i] as any;
-        const declared = entry?.filename ?? entry?.fileName ?? entry?.file;
-        if (declared && filesByName.has(declared)) {
-          const f = filesByName.get(declared)!;
-          const up = await uploadFile({
-            buffer: f.buffer,
-            originalName: f.originalname,
-            mimetype: f.mimetype,
-            folder: "featured/gallery",
-            entityId: propId,
-          });
-          entry.url = up.url;
-          entry.key = up.key;
-          entry.filename = f.originalname;
-          filesByName.delete(declared);
-        }
-      }
+// Ensure gallery array exists
+existing.gallery = Array.isArray(existing.gallery)
+  ? existing.gallery
+  : [];
 
-      // Remaining files -> append or fill empty slots
-      const remainingFiles = Array.from(filesByName.values());
-      for (const file of remainingFiles) {
+// Build filename → index map from existing gallery
+const galleryIndexByFilename = new Map<string, number>();
+
+existing.gallery.forEach((item: any, index: number) => {
+  if (item?.filename) {
+    galleryIndexByFilename.set(item.filename, index);
+  }
+});
+
+for (const file of galleryFiles) {
+  if (!file) continue;
+
+  const up = await uploadFile({
+    buffer: file.buffer,
+    originalName: file.originalname,
+    mimetype: file.mimetype,
+    folder: "featured/gallery",
+    entityId: propId,
+  });
+
+  // 1️⃣ Find matching gallery item by filename
+  const existingIndex = galleryIndexByFilename.get(file.originalname);
+
+  if (existingIndex !== undefined) {
+    // ✅ Update existing slot
+    existing.gallery[existingIndex] = {
+      ...existing.gallery[existingIndex],
+      url: up.url,
+      key: up.key,
+      filename: file.originalname,
+      category: "image",
+    };
+  } else {
+    // 2️⃣ Push as new gallery item
+    existing.gallery.push({
+      url: up.url,
+      key: up.key,
+      filename: file.originalname,
+      category: "image",
+      order: existing.gallery.length + 1,
+    });
+  }
+}
+
+
+    /* Verification Documents */
+    const verificationFiles = files?.verificationDocuments ?? [];
+    if (verificationFiles.length > 0) {
+      existing.verificationDocuments = Array.isArray(
+        existing.verificationDocuments,
+      )
+        ? existing.verificationDocuments
+        : [];
+
+      for (const file of verificationFiles) {
         const up = await uploadFile({
           buffer: file.buffer,
           originalName: file.originalname,
           mimetype: file.mimetype,
-          folder: "featured/gallery",
+          folder: "residential/verification",
           entityId: propId,
         });
-        const emptySlotIndex = existing.gallerySummary.findIndex(
-          (e: any) => !e?.url
-        );
-        if (emptySlotIndex >= 0) {
-          const slot = existing.gallerySummary[emptySlotIndex] as any;
-          slot.url = up.url;
-          slot.key = up.key;
-          slot.filename = file.originalname;
-          if (!slot.title) slot.title = file.originalname;
-          if (!slot.category) slot.category = "image";
-          if (!slot.order) slot.order = emptySlotIndex + 1;
-        } else {
-          existing.gallerySummary.push({
-            title: file.originalname,
-            url: up.url,
-            key: up.key,
-            filename: file.originalname,
-            category: "image",
-            order: existing.gallerySummary.length + 1,
-          });
-        }
-      }
-    }
 
-    // documents -> upload
-    const documentsFiles = files?.documents ?? [];
-    if (documentsFiles.length > 0) {
-      existing.documents = Array.isArray(existing.documents)
-        ? existing.documents
-        : [];
-      for (const f of documentsFiles) {
-        const up = await uploadFile({
-          buffer: f.buffer,
-          originalName: f.originalname,
-          mimetype: f.mimetype,
-          folder: "featured/documents",
-          entityId: propId,
-        });
-        existing.documents.push({
-          title: f.originalname,
+        existing.verificationDocuments.push({
+          type: payload.verificationType,
+          title: file.originalname,
           url: up.url,
           key: up.key,
-          filename: f.originalname,
-          mimetype: f.mimetype,
+          filename: file.originalname,
+          mimetype: file.mimetype,
+          status: "pending",
         });
       }
     }
@@ -396,7 +384,7 @@ export const ResidentialPropertyService = {
     return Residential.findOne({ slug })
       .populate("createdBy", "name email phone roleId")
       .lean()
-      .exec(); 
+      .exec();
   },
 
   async list(options?: {

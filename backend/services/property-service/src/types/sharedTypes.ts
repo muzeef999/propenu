@@ -12,6 +12,24 @@ export type FurnishingStatus = 'unfurnished' | 'semi-furnished' | 'fully-furnish
 export type ConstructionStatus = 'ready-to-move' | 'under-construction';
 export type PropertyStatus = 'active' | 'inactive' | 'archived';
 
+export type VerificationType =
+  | "ENCUMBRANCE_CERTIFICATE"
+  | "MUNICIPAL_TAX"
+  | "UTILITY_BILL"
+  | "SALE_DEED";
+
+
+export interface IVerificationDoc {
+  type?: string;        // EC / Sale Deed / Tax etc
+  title?: string;       // Display label
+  url?: string;
+  key?: string;
+  filename?: string;
+  mimetype?: string;
+    status?: "pending" | "verified" | "rejected";
+
+}
+
 
 
 export const TEXT_INDEX_FIELDS: IndexDefinition = {

@@ -1,7 +1,27 @@
 // src/models/property/sharedSchemas.ts
 import mongoose, { Schema, Types } from 'mongoose';
-import { IFileRef, IImage, TEXT_INDEX_FIELDS } from '../types/sharedTypes';
+import { IFileRef, IImage, IVerificationDoc, TEXT_INDEX_FIELDS } from '../types/sharedTypes';
 import "./userModel"
+
+
+export const VerificationDocSchema = new Schema<IVerificationDoc>(
+  {
+    type: String,
+    title: String,
+    url: String,
+    key: String,
+    filename: String,
+    mimetype: String,
+    status: {
+      type: String,
+      enum: ["pending", "verified", "rejected"],
+      default: "pending",
+    },
+  },
+  { _id: false }
+);
+
+
 
 export const FileRefSchema = new Schema<IFileRef>(
   {
@@ -76,48 +96,7 @@ export interface IBhkSummary {
 }
 export const BhkSummarySchema = new Schema<IBhkSummary>({ bhk: { type: Number, required: true }, bhkLabel: String, minPrice: Number, maxPrice: Number, units: { type: [UnitSchema], default: [] } }, { _id: false });
 
-/* -------------------------
-   LEGAL / BUYER-CHECK SCHEMA
-   ------------------------- */
-export interface ILegalChecks {
-  titleDeed?: IFileRef | null;
-  saleDeed?: IFileRef | null;
-  encumbranceCertificate?: IFileRef | null;
-  occupancyCertificate?: IFileRef | null;
-  commencementCertificate?: IFileRef | null;
-  conversionCertificate?: IFileRef | null;
-  reraRegistrationNumber?: string | null;
-  approvals?: string[]; // e.g., ['DTCP','HMDA','BDA','RERA']
-  approvalsFiles?: IFileRef[];
-  taxReceipts?: IFileRef[];
-  litigation?: { hasLitigation?: boolean; details?: string; documents?: IFileRef[] };
-  verifiedBy?: { verifierId?: Types.ObjectId; verifiedAt?: Date; notes?: string };
-}
-export const LegalChecksSchema = new Schema<ILegalChecks>(
-  {
-    titleDeed: { type: FileRefSchema },
-    saleDeed: { type: FileRefSchema },
-    encumbranceCertificate: { type: FileRefSchema },
-    occupancyCertificate: { type: FileRefSchema },
-    commencementCertificate: { type: FileRefSchema },
-    conversionCertificate: { type: FileRefSchema },
-    reraRegistrationNumber: String,
-    approvals: { type: [String], default: [] },
-    approvalsFiles: { type: [FileRefSchema], default: [] },
-    taxReceipts: { type: [FileRefSchema], default: [] },
-    litigation: {
-      hasLitigation: { type: Boolean, default: false },
-      details: String,
-      documents: { type: [FileRefSchema], default: [] },
-    },
-    verifiedBy: {
-      verifierId: { type: Schema.Types.ObjectId, ref: 'User' },
-      verifiedAt: Date,
-      notes: String,
-    },
-  },
-  { _id: false }
-);
+
 
 /* -------------------------
    BASE FIELDS (reused in each model)
@@ -161,7 +140,6 @@ export const BaseFields = {
   specifications: { type: [SpecificationSchema], default: [] },
   amenities: { type: [AmenitySchema], default: [] },
   nearbyPlaces: { type: [NearbyPlaceSchema], default: [] },
-  legalChecks: { type: LegalChecksSchema },
   rank: { type: Number, default: 1, index: true },
   banksApproved: {  type: [String],default: [],},
   isPriceNegotiable:{ type: Boolean, default: false, index: true },
@@ -176,7 +154,7 @@ export const BaseFields = {
   step: { type: Number, default: 1 }, // for stepper UI
   lastSection: { type: String }, // "basic", "location", "gallery", etc.
 },
-
+verificationDocuments: {type: [VerificationDocSchema],default: [],},
   status: { type: String, enum: ['draft','active', 'inactive', 'archived'], default: 'draft', index: true },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', index: true, required: true },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
@@ -189,7 +167,6 @@ export default {
   NearbyPlaceSchema,
   BhkSummarySchema,
   UnitSchema,
-  LegalChecksSchema,
   BaseFields,
   TEXT_INDEX_FIELDS,
 };

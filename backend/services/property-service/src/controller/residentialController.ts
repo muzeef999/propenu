@@ -1,10 +1,16 @@
 // src/controllers/residential.controller.ts
 import { Request, Response } from "express";
 import { ZodError } from "zod";
-import { ResidentialCreateSchema, ResidentialUpdateSchema } from "../zod/residentialZod";
-import ResidentialPropertyService, { findRelatedResidential } from "../services/residentialServices";
+import {
+  ResidentialCreateSchema,
+  ResidentialUpdateSchema,
+} from "../zod/residentialZod";
+import ResidentialPropertyService, {
+  findRelatedResidential,
+} from "../services/residentialServices";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import Residential from "../models/residentialModel";
+import { uploadFile } from "../utils/uploadFile";
 
 /** Helper: parse values that might be JSON strings (multipart sends arrays/objects as strings). */
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -13,7 +19,7 @@ function parseMaybeJSON<T = any>(value: any): T | undefined {
   try {
     return JSON.parse(value) as T;
   } catch {
-    return (value as unknown) as T;
+    return value as unknown as T;
   }
 }
 
@@ -28,11 +34,10 @@ export const createResidential = async (req: AuthRequest, res: Response) => {
       amenities: parseMaybeJSON(raw.amenities),
       nearbyPlaces: parseMaybeJSON(raw.nearbyPlaces),
       gallery: parseMaybeJSON(raw.gallery),
-      documents: parseMaybeJSON(raw.documents),
       leads: parseMaybeJSON(raw.leads),
       location: parseMaybeJSON(raw.location),
-      legalChecks: parseMaybeJSON(raw.legalChecks),
       parkingDetails: parseMaybeJSON(raw.parkingDetails),
+      verificationDocuments: parseMaybeJSON(raw.verificationDocuments),
       security: parseMaybeJSON(raw.security),
       fireSafetyDetails: parseMaybeJSON(raw.fireSafetyDetails),
       greenCertification: parseMaybeJSON(raw.greenCertification),
@@ -42,13 +47,18 @@ export const createResidential = async (req: AuthRequest, res: Response) => {
 
     const payload = ResidentialCreateSchema.parse(parsed);
 
-    const files = req.files as { [field: string]: Express.Multer.File[] } | undefined;
+    const files = req.files as
+      | { [field: string]: Express.Multer.File[] }
+      | undefined;
 
+    const created = await ResidentialPropertyService.create(
+      { ...payload, createdBy: req.user!.id, status: "active" },
+      files,
+    );
 
-    const created = await ResidentialPropertyService.create({ ...payload, createdBy: req.user!.id,    status: "active",},files);
-
-
-    const fresh = created?._id ? await ResidentialPropertyService.getById(String(created._id)) : created;
+    const fresh = created?._id
+      ? await ResidentialPropertyService.getById(String(created._id))
+      : created;
 
     return res.status(201).json({ data: fresh });
   } catch (err: any) {
@@ -59,7 +69,9 @@ export const createResidential = async (req: AuthRequest, res: Response) => {
       return res.status(409).json({ error: "Slug already in use" });
     }
     console.error("createResidential:", err);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+    return res
+      .status(500)
+      .json({ error: err.message || "Internal server error" });
   }
 };
 
@@ -88,22 +100,26 @@ export const getAllResidential = async (req: Request, res: Response) => {
     if (typeof q === "string") options.q = q;
     if (typeof status === "string") options.status = status;
     if (typeof sortBy === "string") options.sortBy = sortBy;
-    if (typeof sortOrder === "string") options.sortOrder = sortOrder === "asc" ? "asc" : "desc";
+    if (typeof sortOrder === "string")
+      options.sortOrder = sortOrder === "asc" ? "asc" : "desc";
     if (typeof city === "string") options.city = city;
     if (typeof minPrice === "string") options.minPrice = Number(minPrice);
     if (typeof maxPrice === "string") options.maxPrice = Number(maxPrice);
     if (typeof bedrooms === "string") options.bedrooms = Number(bedrooms);
     if (typeof bathrooms === "string") options.bathrooms = Number(bathrooms);
     if (typeof near === "string") options.near = near;
-    if (typeof maxDistance === "string") options.maxDistance = Number(maxDistance);
+    if (typeof maxDistance === "string")
+      options.maxDistance = Number(maxDistance);
 
     const result = await ResidentialPropertyService.list(options);
     return res.json(result);
   } catch (err: any) {
     console.error("getAllResidential:", err);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+    return res
+      .status(500)
+      .json({ error: err.message || "Internal server error" });
   }
-}; 
+};
 
 /*** GET BY SLUG **/
 export const getResidentialBySlug = async (req: Request, res: Response) => {
@@ -122,14 +138,14 @@ export const getResidentialBySlug = async (req: Request, res: Response) => {
     const id = (property as any)._id?.toString?.();
     if (id) {
       ResidentialPropertyService.incrementViews(id).catch((e: any) =>
-        console.error("incrementViews error:", e)
+        console.error("incrementViews error:", e),
       );
     }
 
     const relatedProjects = await findRelatedResidential(property);
 
     return res.json({
-      data: property, 
+      data: property,
       relatedProjects,
     });
   } catch (err: any) {
@@ -139,7 +155,6 @@ export const getResidentialBySlug = async (req: Request, res: Response) => {
     });
   }
 };
-
 
 /*** GET DETAIL BY ID **/
 export const getResidentialDetail = async (req: Request, res: Response) => {
@@ -151,7 +166,9 @@ export const getResidentialDetail = async (req: Request, res: Response) => {
     if (!doc) return res.status(404).json({ error: "Property not found" });
 
     // increment views (non-blocking)
-    ResidentialPropertyService.incrementViews(id).catch((e: any) => console.error("incrementViews error:", e));
+    ResidentialPropertyService.incrementViews(id).catch((e: any) =>
+      console.error("incrementViews error:", e),
+    );
 
     return res.json({ data: doc });
   } catch (err: any) {
@@ -174,10 +191,9 @@ export const editResidential = async (req: Request, res: Response) => {
       amenities: parseMaybeJSON(raw.amenities),
       nearbyPlaces: parseMaybeJSON(raw.nearbyPlaces),
       gallery: parseMaybeJSON(raw.gallery),
-      documents: parseMaybeJSON(raw.documents),
       leads: parseMaybeJSON(raw.leads),
       location: parseMaybeJSON(raw.location),
-      legalChecks: parseMaybeJSON(raw.legalChecks),
+      verificationDocuments: parseMaybeJSON(raw.verificationDocuments),
       parkingDetails: parseMaybeJSON(raw.parkingDetails),
       security: parseMaybeJSON(raw.security),
       fireSafetyDetails: parseMaybeJSON(raw.fireSafetyDetails),
@@ -188,9 +204,15 @@ export const editResidential = async (req: Request, res: Response) => {
 
     const payload = ResidentialUpdateSchema.parse(parsed);
 
-    const files = req.files as { [field: string]: Express.Multer.File[] } | undefined;
+    const files = req.files as
+      | { [field: string]: Express.Multer.File[] }
+      | undefined;
 
-    const updated = await ResidentialPropertyService.update(id, payload as any, files);
+    const updated = await ResidentialPropertyService.update(
+      id,
+      payload as any,
+      files,
+    );
     if (!updated) return res.status(404).json({ error: "Property not found" });
 
     const fresh = await ResidentialPropertyService.getById(id);
@@ -221,8 +243,10 @@ export const deleteResidential = async (req: Request, res: Response) => {
   }
 };
 
-
-export const createResidentialDraft = async (req: AuthRequest, res: Response) => {
+export const createResidentialDraft = async (
+  req: AuthRequest,
+  res: Response,
+) => {
   const draft = await Residential.create({
     createdBy: req.user!.id,
     status: "draft",
@@ -236,7 +260,6 @@ export const createResidentialDraft = async (req: AuthRequest, res: Response) =>
   res.status(201).json({ data: draft });
 };
 
-
 export const updateBasicStep = async (req: AuthRequest, res: Response) => {
   const updated = await Residential.findByIdAndUpdate(
     req.params.id,
@@ -246,7 +269,7 @@ export const updateBasicStep = async (req: AuthRequest, res: Response) => {
       "completion.step": 2,
       "completion.lastSection": "basic",
     },
-    { new: true }
+    { new: true },
   );
   res.json({ data: updated });
 };
@@ -266,7 +289,7 @@ export const updateLocationStep = async (req: AuthRequest, res: Response) => {
       "completion.step": 3,
       "completion.lastSection": "location",
     },
-    { new: true }
+    { new: true },
   );
 
   res.json({ data: updated });
@@ -274,14 +297,18 @@ export const updateLocationStep = async (req: AuthRequest, res: Response) => {
 
 export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
   try {
-
     console.log("====== UPDATE DETAILS STEP HIT ======");
     console.log("REQ.FILES:", req.files);
     console.log("REQ.BODY.GALLERY:", req.body.gallery);
 
-    const files = req.files as { [field: string]: Express.Multer.File[] } | undefined;
-    
-    console.log("FILES RECEIVED:", files?.galleryFiles?.map(f => f.originalname));
+    const files = req.files as
+      | { [field: string]: Express.Multer.File[] }
+      | undefined;
+
+    console.log(
+      "FILES RECEIVED:",
+      files?.galleryFiles?.map((f) => f.originalname),
+    );
 
     const updated = await ResidentialPropertyService.update(
       req.params.id,
@@ -293,7 +320,7 @@ export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
           lastSection: "details",
         },
       },
-      files
+      files,
     );
 
     if (!updated) {
@@ -308,27 +335,93 @@ export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
 };
 
 export const finalizeResidential = async (req: AuthRequest, res: Response) => {
-  const updated = await Residential.findByIdAndUpdate(
-    req.params.id,
-    {
-      legalChecks: req.body.legalChecks,
+  const property = await Residential.findById(req.params.id);
+  if (!property) {
+    return res.status(404).json({ error: "Property not found" });
+  }
 
-      status: "active",
-      isPublished: true,
+  const files = req.files as
+    | { [field: string]: Express.Multer.File[] }
+    | undefined;
+  const verificationFiles = files?.verificationDocuments ?? [];
 
-      "completion.percent": 100,
-      "completion.step": 5,
-      "completion.lastSection": "verification",
-    },
-    { new: true }
-  );
+  // 1️⃣ Save uploaded verification documents
+  if (verificationFiles.length > 0) {
+    property.verificationDocuments = Array.isArray(
+      property.verificationDocuments,
+    )
+      ? property.verificationDocuments
+      : [];
 
-  res.json({ data: updated });
+    for (const file of verificationFiles) {
+      const up = await uploadFile({
+        buffer: file.buffer,
+        originalName: file.originalname,
+        mimetype: file.mimetype,
+        folder: "residential/verification",
+        entityId: property._id.toString(),
+      });
+
+      property.verificationDocuments.push({
+        type: req.body.verificationType,
+        title: file.originalname,
+        url: up.url,
+        key: up.key,
+        filename: file.originalname,
+        mimetype: file.mimetype,
+        status: "pending",
+      });
+    }
+  }
+
+ const hasVerified = property.verificationDocuments?.some(
+  doc => doc.status === "verified"
+);
+
+if (!property.completion) {
+  property.completion = {
+    percent: 0,
+    step: 1,
+    lastSection: "verification",
+  };
+}
+
+property.completion.lastSection = "verification";
+
+if (hasVerified) {
+  property.status = "active";
+  property.isPublished = true;
+  property.completion.percent = 100;
+  property.completion.step = 5;
+} else {
+  property.status = "draft";
+  property.isPublished = false;
+  property.completion.percent = 80;
+  property.completion.step = 4;
+}
+
+  await property.save();
+
+  res.json({
+    success: true,
+    verified: hasVerified,
+    data: property,
+  });
 };
 
-export const getAllResidentialDraftsForAdmin = async (req: Request, res: Response) => {
+export const getAllResidentialDraftsForAdmin = async (
+  req: Request,
+  res: Response,
+) => {
   try {
-    const { page = "1", limit = "20", q, userId, city, status = "draft" } = req.query;
+    const {
+      page = "1",
+      limit = "20",
+      q,
+      userId,
+      city,
+      status = "draft",
+    } = req.query;
 
     const filter: any = { status };
 

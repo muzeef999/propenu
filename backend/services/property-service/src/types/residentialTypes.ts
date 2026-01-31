@@ -1,6 +1,7 @@
 // src/types/residentialTypes.ts
 import mongoose from "mongoose";
 import { Types } from "mongoose";
+import { IVerificationDoc } from "./sharedTypes";
 
 export const RESIDENTIAL_PROPERTY_TYPES = [
   "apartment",
@@ -52,17 +53,35 @@ export const PROPERTY_AGE_BUCKETS = [
   "20-plus-years",
 ] as const;
 
+
+
+
 export type PropertyAge = (typeof PROPERTY_AGE_BUCKETS)[number];
+
+
+export interface ICompletion {
+  percent: number;
+  step: number;
+  lastSection?: string;
+}
 
 export interface IResidential {
   title?: string;
   slug: string;
   listingSource?: string;
+    verificationDocuments?: IVerificationDoc[];
+
 
   listingType?: "sale" | "rent" | "lease";
   developer?: mongoose.Types.ObjectId | null;
   // base fields...
   address: string;
+  status?:string;
+  isPublished?: boolean;
+  /* ✅ progress tracking */
+  completion?: ICompletion;
+
+
 
   locality: string;
   city?: string;
@@ -73,7 +92,7 @@ export interface IResidential {
     type: "Point";
     coordinates: [number, number];
   };
-
+  
   propertyType?: ResidentialPropertyType;
   // residential-specific
   bhk?: number;
