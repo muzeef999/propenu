@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 import CommercialService, { findRelatedCommercial } from "../services/commercialService";
 import Commercial from "../models/commercialModel";
 import { AuthRequest } from "../middlewares/authMiddleware";
+import { uploadFile } from "../utils/uploadFile";
 
 function parseMaybeJSON<T = any>(value: any): T | undefined {
   if (value === undefined || value === null || value === "") return undefined;
@@ -209,26 +210,34 @@ export const updateCommercialBasicStep = async (req: AuthRequest, res: Response)
 
 
 export const updateCommercialLocationStep = async (req: AuthRequest, res: Response) => {
+    const { city, locality } = req.body;
   
-  const updated = await Commercial.findByIdAndUpdate(
-    req.params.id,
-    {
+    const updatePayload: any = {
       address: req.body.address,
-      city: req.body.city,
+      city,
       state: req.body.state,
       pincode: req.body.pincode,
-      locality: req.body.locality,
+      locality,
       location: req.body.location,
-
+  
       "completion.percent": 45,
       "completion.step": 3,
       "completion.lastSection": "location",
-    },
-    { new: true }
-  );
-
-  res.json({ data: updated });
-};
+    };
+  
+    // ✅ ALWAYS recompute title when location is updated
+    if (city && locality) {
+      updatePayload.title = `Residential Property for Sale in ${locality}, ${city}`;
+    }
+  
+    const updated = await Commercial.findByIdAndUpdate(
+      req.params.id,
+      updatePayload,
+      { new: true }
+    );
+  
+    res.json({ data: updated });
+  };
 
 export const updateCommercialDetailsStep = async (req: AuthRequest, res: Response) => {
   try {
@@ -260,22 +269,78 @@ export const updateCommercialDetailsStep = async (req: AuthRequest, res: Respons
 
 
 export const finalizeCommercial = async (req: AuthRequest, res: Response) => {
-const updated = await Commercial.findByIdAndUpdate(
-    req.params.id,
-    {
-      legalChecks: req.body.legalChecks,
+  const property = await Commercial.findById(req.params.id);
+  if (!property) {
+    return res.status(404).json({ error: "Property not found" });
+  }
 
-      status: "active",
-      isPublished: true,
+  const files = req.files as
+    | { [field: string]: Express.Multer.File[] }
+    | undefined;
+  const verificationFiles = files?.verificationDocuments ?? [];
 
-      "completion.percent": 100,
-      "completion.step": 5,
-      "completion.lastSection": "verification",
-    },
-    { new: true }
-  );
+  // 1️⃣ Save uploaded verification documents
+  if (verificationFiles.length > 0) {
+    property.verificationDocuments = Array.isArray(
+      property.verificationDocuments,
+    )
+      ? property.verificationDocuments
+      : [];
 
-  res.json({ data: updated });
+    for (const file of verificationFiles) {
+      const up = await uploadFile({
+        buffer: file.buffer,
+        originalName: file.originalname,
+        mimetype: file.mimetype,
+        folder: "commercial/verification",
+        entityId: property._id.toString(),
+      });
+
+      property.verificationDocuments.push({
+        type: req.body.verificationType,
+        title: file.originalname,
+        url: up.url,
+        key: up.key,
+        filename: file.originalname,
+        mimetype: file.mimetype,
+        status: "pending",
+      });
+    }
+  }
+
+ const hasVerified = property.verificationDocuments?.some(
+  doc => doc.status === "verified"
+);
+
+if (!property.completion) {
+  property.completion = {
+    percent: 0,
+    step: 1,
+    lastSection: "verification",
+  };
+}
+
+property.completion.lastSection = "verification";
+
+if (hasVerified) {
+  property.status = "active";
+  property.isPublished = true;
+  property.completion.percent = 100;
+  property.completion.step = 5;
+} else {
+  property.status = "draft";
+  property.isPublished = false;
+  property.completion.percent = 80;
+  property.completion.step = 4;
+}
+
+  await property.save();
+
+  res.json({
+    success: true,
+    verified: hasVerified,
+    data: property,
+  });
 };
 
 

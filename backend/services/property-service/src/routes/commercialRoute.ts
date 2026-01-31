@@ -9,16 +9,13 @@ const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 const cpUpload = upload.fields([
-  { name: "galleryFiles", maxCount: 20 },
-  { name: "leaseDocuments", maxCount: 20 },
-  { name: "fireNOCFile", maxCount: 1 },
-  { name: "occupancyCertificateFile", maxCount: 1 },
+  { name: "galleryFiles", maxCount: 5 },
+    { name: "verificationDocuments", maxCount: 5 }, 
 ]);
 
 const jsonKeys = [
   "location",
   "gallery",
-  "leaseDocuments",
   "tenantInfo",
   "buildingManagement",
   "pantry",
@@ -26,7 +23,7 @@ const jsonKeys = [
   "specifications",
   "nearbyPlaces",
   "legalChecks",
-   "parkingDetails",
+  "parkingDetails",
   "fireSafety",
 ];
 

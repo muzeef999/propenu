@@ -1,4 +1,4 @@
-import { IFileRef } from "./sharedTypes";
+import { IFileRef, IVerificationDoc } from "./sharedTypes";
 import mongoose, { Types } from "mongoose";
 
 export const LAND_PROPERTY_TYPES = [
@@ -28,16 +28,24 @@ export const LAND_PROPERTY_SUBTYPES = [
 
 export type LandPropertySubType = (typeof LAND_PROPERTY_SUBTYPES)[number];
 
+export interface ICompletion {
+  percent: number;
+  step: number;
+  lastSection?: string;
+}
+
 export interface ILand {
    title?: string;
   dimensions: {
     length: { type: Number; required: true }; // e.g., 40
     width: { type: Number; required: true }; // e.g., 60
   };
-
   propertyType?: LandPropertyType;
   propertySubType?: LandPropertySubType;
-
+   status?:string;
+  isPublished?: boolean;
+  verificationDocuments?: IVerificationDoc[];
+  completion?: ICompletion;
   plotArea?: number;
   plotAreaUnit?: "sqft" | "sqmt" | "acre" | "guntha" | "kanal" | "hectare";
   roadWidthFt?: number;
@@ -47,7 +55,7 @@ export interface ILand {
   electricityConnection?: boolean;
   approvedByAuthority?: string[];
   facing?: string;
-  cornerPlot?: boolean;
+  cornerPlot?: boolean; 
   fencing?: boolean;
   landUseZone?: string;
   conversionCertificateFile?: IFileRef | null;

@@ -11,7 +11,7 @@ import {
   getLandDetail,
   getAllLands,
   createLandDraft,
-  updateLandBasicStep,
+  updateLandBasicStep, 
   updateLandLocationStep,
   updateLandDetailsStep,
   finalizeLand,
@@ -24,12 +24,10 @@ import { authMiddleware } from "../middlewares/authMiddleware";
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
+
 const cpUpload = upload.fields([
-  { name: "galleryFiles", maxCount: 20 },
-  { name: "documents", maxCount: 20 },
-  { name: "soilTestReport", maxCount: 1 },
-  { name: "conversionCertificateFile", maxCount: 1 },
-  { name: "encumbranceCertificateFile", maxCount: 1 },
+  { name: "galleryFiles", maxCount: 5 },
+    { name: "verificationDocuments", maxCount: 5 }, 
 ]);
 
 const jsonKeys = [

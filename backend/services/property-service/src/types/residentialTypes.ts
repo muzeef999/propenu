@@ -69,20 +69,13 @@ export interface IResidential {
   title?: string;
   slug: string;
   listingSource?: string;
-    verificationDocuments?: IVerificationDoc[];
-
-
+  verificationDocuments?: IVerificationDoc[];
   listingType?: "sale" | "rent" | "lease";
   developer?: mongoose.Types.ObjectId | null;
-  // base fields...
   address: string;
   status?:string;
   isPublished?: boolean;
-  /* ✅ progress tracking */
   completion?: ICompletion;
-
-
-
   locality: string;
   city?: string;
   state?: string;

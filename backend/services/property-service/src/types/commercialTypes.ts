@@ -1,4 +1,4 @@
-import { IFileRef } from "./sharedTypes";
+import { IFileRef, IVerificationDoc } from "./sharedTypes";
 import { Types } from "mongoose";
 
 export const PANTRY_TYPES = ["none", "shared", "no-shared"] as const;
@@ -66,6 +66,13 @@ export const FLOORING_TYPES = [
   "wooden-laminate",
 ] as const;
 
+
+export interface ICompletion {
+  percent: number;
+  step: number;
+  lastSection?: string;
+}
+
 export interface ICommercial {
   title: string;
   slug: string;
@@ -73,6 +80,12 @@ export interface ICommercial {
   buildingName?: String,
   propertyType?: CommercialPropertyType;
   propertySubType?: CommercialPropertySubType;
+
+  completion?: ICompletion;
+
+verificationDocuments?: IVerificationDoc[];
+ status?:string;
+  isPublished?: boolean;
 
   wallFinishStatus?: WallFinishStatus;
   flooringType?: FlooringType;

@@ -275,21 +275,30 @@ export const updateBasicStep = async (req: AuthRequest, res: Response) => {
 };
 
 export const updateLocationStep = async (req: AuthRequest, res: Response) => {
+  const { city, locality } = req.body;
+
+  const updatePayload: any = {
+    address: req.body.address,
+    city,
+    state: req.body.state,
+    pincode: req.body.pincode,
+    locality,
+    location: req.body.location,
+
+    "completion.percent": 45,
+    "completion.step": 3,
+    "completion.lastSection": "location",
+  };
+
+  // ✅ ALWAYS recompute title when location is updated
+  if (city && locality) {
+    updatePayload.title = `Residential Property for Sale in ${locality}, ${city}`;
+  }
+
   const updated = await Residential.findByIdAndUpdate(
     req.params.id,
-    {
-      address: req.body.address,
-      city: req.body.city,
-      state: req.body.state,
-      pincode: req.body.pincode,
-      locality: req.body.locality,
-      location: req.body.location,
-
-      "completion.percent": 45,
-      "completion.step": 3,
-      "completion.lastSection": "location",
-    },
-    { new: true },
+    updatePayload,
+    { new: true }
   );
 
   res.json({ data: updated });
@@ -297,18 +306,9 @@ export const updateLocationStep = async (req: AuthRequest, res: Response) => {
 
 export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
   try {
-    console.log("====== UPDATE DETAILS STEP HIT ======");
-    console.log("REQ.FILES:", req.files);
-    console.log("REQ.BODY.GALLERY:", req.body.gallery);
-
     const files = req.files as
       | { [field: string]: Express.Multer.File[] }
       | undefined;
-
-    console.log(
-      "FILES RECEIVED:",
-      files?.galleryFiles?.map((f) => f.originalname),
-    );
 
     const updated = await ResidentialPropertyService.update(
       req.params.id,

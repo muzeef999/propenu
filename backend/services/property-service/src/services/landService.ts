@@ -19,8 +19,6 @@ function normalizePayload(obj: any) {
   return obj;
 } 
 
-
-
 async function mapAndUploadGallery({
   incomingGallery,
   galleryFiles,
@@ -124,8 +122,6 @@ export async function findRelatedLand(property: any) {
 
   return related;
 }
-
-
 
 /** delete S3 object best-effort */
 async function deleteS3ObjectIfExists(key?: string) {

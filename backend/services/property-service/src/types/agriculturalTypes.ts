@@ -1,4 +1,4 @@
-import { IFileRef } from "./sharedTypes";
+import { IFileRef, IVerificationDoc } from "./sharedTypes";
 import mongoose, { Types } from "mongoose";
 
 export const AGRICULTURAL_PROPERTY_TYPES = [
@@ -41,6 +41,13 @@ export type AreaUnit =
   | "kanal";
 export type RoadUnit = "ft" | "meter";
 
+
+export interface ICompletion {
+  percent: number;
+  step: number;
+  lastSection?: string;
+}
+
 export interface IArea {
   value?: number;
   unit?: AreaUnit;
@@ -57,6 +64,11 @@ export interface IRoadWidth {
 }
 export interface IAgricultural {
   title?: string;
+  completion?: ICompletion;
+
+verificationDocuments?: IVerificationDoc[];
+ status?:string;
+  isPublished?: boolean;
   slug?:string;
   landName: String,
   listingSource?:string;

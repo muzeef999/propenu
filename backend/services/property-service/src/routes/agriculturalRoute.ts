@@ -14,15 +14,15 @@ const upload = multer({ storage: multer.memoryStorage() });
 /**
  * Allowed file fields (must match service handling & model):
  *  - galleryFiles (multiple images) -> gallery[]
- *  - documents (multiple docs) -> documents[]
+ *  - documents (multiple docs) -> documents[] 
  *  - soilTestReport (single file) -> soilTestReport
  *
  * NOTE: removed the earlier 'agriFiles' field (not present in model).
  */
+
 const cpUpload = upload.fields([
-  { name: "galleryFiles", maxCount: 20 },
-  { name: "documents", maxCount: 20 },
-  { name: "soilTestReport", maxCount: 1 },
+  { name: "galleryFiles", maxCount: 5 },
+    { name: "verificationDocuments", maxCount: 5 }, 
 ]);
 
 /** keys that may arrive as JSON strings (multipart/form-data) */

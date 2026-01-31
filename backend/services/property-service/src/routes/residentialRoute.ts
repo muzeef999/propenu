@@ -32,7 +32,7 @@ const jsonKeys = [
   "fireSafetyDetails",
   "greenCertification",
   "smartHomeFeatures",
-  "relatedProjects",
+  "relatedProjects", 
 ];
 
 

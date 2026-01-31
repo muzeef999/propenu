@@ -78,7 +78,7 @@ const ResidentialSchema = new Schema<IResidential>(
     },
     propertyType: { type: String, enum: RESIDENTIAL_PROPERTY_TYPES },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 /* Indexes */
@@ -93,13 +93,14 @@ ResidentialSchema.pre(
         this.title = buildResidentialTitle(this);
       }
 
-      /* -------- SLUG -------- */
-      if (!this.slug && this.title) {
+      /* -------- SLUG (AUTO UPDATE WHEN TITLE CHANGES) -------- */
+      if (this.isModified("title") && this.title) {
         const baseSlug = slugify(this.title);
+
         this.slug = await generateUniqueSlug(
           mongoose.model("Residential"),
           baseSlug,
-          this._id
+          this._id,
         );
       }
 
@@ -138,7 +139,7 @@ ResidentialSchema.pre(
     } catch (err) {
       next(err as any);
     }
-  }
+  },
 );
 
 export const Residential: Model<IResidential> =
@@ -154,8 +155,8 @@ function buildResidentialTitle(doc: any) {
     doc.listingType === "rent"
       ? "Rent"
       : doc.listingType === "lease"
-      ? "Lease"
-      : "Sale";
+        ? "Lease"
+        : "Sale";
 
   const locality = doc.locality ?? "";
   const city = doc.city ?? "";

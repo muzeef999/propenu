@@ -5,6 +5,7 @@ import { AgriculturalCreateSchema, AgriculturalUpdateSchema} from "../zod/agricu
 import AgriculturalService, { findRelatedAgriculture} from "../services/agriculturalServices";
 import Agricultural from "../models/agriculturalModel";
 import { AuthRequest } from "../middlewares/authMiddleware";
+import { uploadFile } from "../utils/uploadFile";
 
 function parseMaybeJSON<T = any>(value: any): T | undefined {
   if (value === undefined || value === null || value === "") return undefined;
@@ -276,23 +277,82 @@ export const updateAgriculturalDetailsStep = async (req: AuthRequest, res: Respo
 };
 
 
+
 export const finalizeAgricultural = async (req: AuthRequest, res: Response) => {
-  const updated = await Agricultural.findByIdAndUpdate(
-    req.params.id,
-    {
-      legalChecks: req.body.legalChecks,
-      status: "active",
-      isPublished: true,
+  const property = await Agricultural.findById(req.params.id);
+  if (!property) {
+    return res.status(404).json({ error: "Property not found" });
+  }
 
-      "completion.percent": 100,
-      "completion.step": 5,
-      "completion.lastSection": "verification",
-    },
-    { new: true }
-  );
+  const files = req.files as
+    | { [field: string]: Express.Multer.File[] }
+    | undefined;
+  const verificationFiles = files?.verificationDocuments ?? [];
 
-  res.json({ data: updated });
+  // 1️⃣ Save uploaded verification documents
+  if (verificationFiles.length > 0) {
+    property.verificationDocuments = Array.isArray(
+      property.verificationDocuments,
+    )
+      ? property.verificationDocuments
+      : [];
+
+    for (const file of verificationFiles) {
+      const up = await uploadFile({
+        buffer: file.buffer,
+        originalName: file.originalname,
+        mimetype: file.mimetype,
+        folder: "agricultural/verification",
+        entityId: property._id.toString(),
+      });
+
+      property.verificationDocuments.push({
+        type: req.body.verificationType,
+        title: file.originalname,
+        url: up.url,
+        key: up.key,
+        filename: file.originalname,
+        mimetype: file.mimetype,
+        status: "pending",
+      });
+    }
+  }
+
+ const hasVerified = property.verificationDocuments?.some(
+  doc => doc.status === "verified"
+);
+
+if (!property.completion) {
+  property.completion = {
+    percent: 0,
+    step: 1,
+    lastSection: "verification",
+  };
+}
+
+property.completion.lastSection = "verification";
+
+if (hasVerified) {
+  property.status = "active";
+  property.isPublished = true;
+  property.completion.percent = 100;
+  property.completion.step = 5;
+} else {
+  property.status = "draft";
+  property.isPublished = false;
+  property.completion.percent = 80;
+  property.completion.step = 4;
+}
+
+  await property.save();
+
+  res.json({
+    success: true,
+    verified: hasVerified,
+    data: property,
+  });
 };
+
 
 
 export const getAllAgriculturalDraftsForAdmin = async (req: Request, res: Response) => {

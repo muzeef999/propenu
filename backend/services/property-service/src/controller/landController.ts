@@ -4,6 +4,7 @@ import { CreateLandSchema, UpdateLandSchema } from "../zod/landZod";
 import LandService, { findRelatedLand } from "../services/landService";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import LandPlot from "../models/landModel";
+import { uploadFile } from "../utils/uploadFile";
 
 /** helper to parse JSON-like values already handled by middleware; keep for safety */
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -312,31 +313,78 @@ export const updateLandDetailsStep = async (req: AuthRequest, res: Response) => 
 
 
 export const finalizeLand = async (req: AuthRequest, res: Response) => {
-  try {
-    const updated = await LandPlot.findByIdAndUpdate(
-      req.params.id,
-      {
-        legalChecks: req.body.legalChecks,
-
-        status: "active",
-        isPublished: true,
-
-        "completion.percent": 100,
-        "completion.step": 5,
-        "completion.lastSection": "verification",
-      },
-      { new: true }
-    );
-
-    if (!updated) {
-      return res.status(404).json({ error: "Land draft not found" });
-    }
-
-    res.json({ data: updated });
-  } catch (err: any) {
-    console.error("finalizeLand:", err);
-    res.status(500).json({ error: err.message || "Internal server error" });
+  const property = await LandPlot.findById(req.params.id);
+  if (!property) {
+    return res.status(404).json({ error: "Property not found" });
   }
+
+  const files = req.files as
+    | { [field: string]: Express.Multer.File[] }
+    | undefined;
+  const verificationFiles = files?.verificationDocuments ?? [];
+
+  // 1️⃣ Save uploaded verification documents
+  if (verificationFiles.length > 0) {
+    property.verificationDocuments = Array.isArray(
+      property.verificationDocuments,
+    )
+      ? property.verificationDocuments
+      : [];
+
+    for (const file of verificationFiles) {
+      const up = await uploadFile({
+        buffer: file.buffer,
+        originalName: file.originalname,
+        mimetype: file.mimetype,
+        folder: "commercial/verification",
+        entityId: property._id.toString(),
+      });
+
+      property.verificationDocuments.push({
+        type: req.body.verificationType,
+        title: file.originalname,
+        url: up.url,
+        key: up.key,
+        filename: file.originalname,
+        mimetype: file.mimetype,
+        status: "pending",
+      });
+    }
+  }
+
+ const hasVerified = property.verificationDocuments?.some(
+  doc => doc.status === "verified"
+);
+
+if (!property.completion) {
+  property.completion = {
+    percent: 0,
+    step: 1,
+    lastSection: "verification",
+  };
+}
+
+property.completion.lastSection = "verification";
+
+if (hasVerified) {
+  property.status = "active";
+  property.isPublished = true;
+  property.completion.percent = 100;
+  property.completion.step = 5;
+} else {
+  property.status = "draft";
+  property.isPublished = false;
+  property.completion.percent = 80;
+  property.completion.step = 4;
+}
+
+  await property.save();
+
+  res.json({
+    success: true,
+    verified: hasVerified,
+    data: property,
+  });
 };
 
 
