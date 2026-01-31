@@ -462,3 +462,38 @@ export const getAllResidentialDraftsForAdmin = async (
     res.status(500).json({ error: e.message });
   }
 };
+
+
+export const verifyResidentialDocument = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const { id } = req.params;
+    const { documentIndex, status } = req.body;
+
+    if (!["verified", "rejected"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+
+    const updated = await ResidentialPropertyService.verifyDocument(
+      id,
+      documentIndex,
+      status
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Property not found" });
+    }
+
+    res.json({
+      success: true,
+      verified: updated.status === "active",
+      data: updated,
+    });
+  } catch (err: any) {
+    console.error("verifyResidentialDocument:", err);
+    res.status(500).json({ message: err.message || "Server error" });
+  }
+};
+

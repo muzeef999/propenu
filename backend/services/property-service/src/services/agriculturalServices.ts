@@ -489,6 +489,43 @@ export const AgriculturalService = {
     return null;
   },
 
+  async verifyDocument(
+    propertyId: string,
+    documentIndex: number,
+    status: "verified" | "rejected"
+  ) {
+    const property = await Agricultural.findById(propertyId);
+    if (!property) return null;
+  
+    if (!property.verificationDocuments?.[documentIndex]) {
+      throw new Error("Invalid document index");
+    }
+  
+    // 1️⃣ Update document status
+    property.verificationDocuments[documentIndex].status = status;
+  
+    // 2️⃣ Check if ANY document is verified
+    const hasVerified = property.verificationDocuments.some(
+      (doc) => doc.status === "verified"
+    );
+  
+    // 3️⃣ Auto publish if verified
+    if (hasVerified) {
+      property.status = "active";
+      property.isPublished = true;
+      property.completion = {
+        percent: 100,
+        step: 5,
+        lastSection: "verification",
+      };
+    } else {
+      property.status = "draft";
+      property.isPublished = false;
+    }
+  
+    await property.save();
+    return property;
+  },
   
   model: Agricultural,
   getPipeline: (filters: any) => {

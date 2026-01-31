@@ -16,10 +16,11 @@ import {
   updateLandDetailsStep,
   finalizeLand,
   getAllLandDraftsForAdmin,
+  verifyLandDocument,
 } from "../controller/landController";
 import { CreateLandSchema, UpdateLandSchema } from "../zod/landZod";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
-import { authMiddleware } from "../middlewares/authMiddleware";
+import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -68,6 +69,15 @@ router.get("/", getAllLands);
 router.get("/slug/:slug", getLandBySlug);
 router.get("/:id", getLandDetail);
 router.delete("/:id", deleteLand);
+
+
+router.patch("/:id/verify-document", authMiddleware, (req : AuthRequest, res, next) => {
+if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){
+       return res.status(403).json({message:"Forbidden only admin/super_admin can see the users"});
+    }
+    next();
+},  verifyLandDocument);
+
 
 
 router.post("/draft", authMiddleware, createLandDraft);

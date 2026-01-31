@@ -432,3 +432,37 @@ export const getAllLandDraftsForAdmin = async (req: Request, res: Response) => {
     res.status(500).json({ error: err.message || "Internal server error" });
   }
 };
+
+
+export const verifyLandDocument = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const { id } = req.params;
+    const { documentIndex, status } = req.body;
+
+    if (!["verified", "rejected"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+
+    const updated = await LandService.verifyDocument(
+      id,
+      documentIndex,
+      status
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Property not found" });
+    }
+
+    res.json({
+      success: true,
+      verified: updated.status === "active",
+      data: updated,
+    });
+  } catch (err: any) {
+    console.error("verifyResidentialDocument:", err);
+    res.status(500).json({ message: err.message || "Server error" });
+  }
+};

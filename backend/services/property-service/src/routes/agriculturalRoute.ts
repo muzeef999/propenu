@@ -5,9 +5,9 @@ import { parseJsonFields } from "../middlewares/parseJsonFields";
 import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
 import { validateBody } from "../middlewares/validate";
 import { AgriculturalCreateSchema, AgriculturalUpdateSchema } from "../zod/agriculturalZod";
-import { createAgricultural, createAgriculturalDraft, deleteAgricultural, editAgricultural, finalizeAgricultural, getAgriculturalBySlug, getAgriculturalDetail, getAllAgricultural, getAllAgriculturalDraftsForAdmin, updateAgriculturalBasicStep, updateAgriculturalDetailsStep, updateAgriculturalLocationStep } from "../controller/agriculturalController";
+import { createAgricultural, createAgriculturalDraft, deleteAgricultural, editAgricultural, finalizeAgricultural, getAgriculturalBySlug, getAgriculturalDetail, getAllAgricultural, getAllAgriculturalDraftsForAdmin, updateAgriculturalBasicStep, updateAgriculturalDetailsStep, updateAgriculturalLocationStep, verifyAgricultiralDocument } from "../controller/agriculturalController";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
-import { authMiddleware } from "../middlewares/authMiddleware";
+import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -68,6 +68,13 @@ router.patch("/:id/location", authMiddleware, updateAgriculturalLocationStep);
 router.patch("/:id/details", authMiddleware,cpUpload, parseJsonFields(jsonKeys),updateAgriculturalDetailsStep);
 router.patch("/:id/verification", authMiddleware, cpUpload,parseJsonFields(jsonKeys), finalizeAgricultural);
 
+
+router.patch("/:id/verify-document", authMiddleware, (req : AuthRequest, res, next) => {
+if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){
+       return res.status(403).json({message:"Forbidden only admin/super_admin can see the users"});
+    }
+    next();
+},  verifyAgricultiralDocument);
 
 
 export default router;

@@ -27,9 +27,9 @@ const jsonKeys = [
   "fireSafety",
 ];
 
-import {  createCommercial,  editCommercial,  getAllCommercial,  getCommercialBySlug,  getCommercialDetail,  deleteCommercial, createCommercialDraft, updateCommercialBasicStep, updateCommercialLocationStep, updateCommercialDetailsStep, finalizeCommercial, getAllCommercialDraftsForAdmin,} from "../controller/commercialController";
+import {  createCommercial,  editCommercial,  getAllCommercial,  getCommercialBySlug,  getCommercialDetail,  deleteCommercial, createCommercialDraft, updateCommercialBasicStep, updateCommercialLocationStep, updateCommercialDetailsStep, finalizeCommercial, getAllCommercialDraftsForAdmin, verifyCommercialDocument,} from "../controller/commercialController";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
-import { authMiddleware } from "../middlewares/authMiddleware";
+import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 
 /** POST */
 router.post("/", authMiddleware, cpUpload,  parseJsonFields(jsonKeys), fallbackCoerceDefault, createCommercial,  requireActiveSubscription);
@@ -38,6 +38,16 @@ router.get("/", getAllCommercial);
 router.get("/slug/:slug", getCommercialBySlug);
 router.get("/:id", getCommercialDetail);
 router.delete("/:id", deleteCommercial);
+
+
+router.patch("/:id/verify-document", authMiddleware, (req : AuthRequest, res, next) => {
+if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){
+       return res.status(403).json({message:"Forbidden only admin/super_admin can see the users"});
+    }
+    next();
+},  verifyCommercialDocument);
+
+
 
 router.get("/draft/all", getAllCommercialDraftsForAdmin);
 router.post("/draft", authMiddleware, createCommercialDraft);
