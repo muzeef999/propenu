@@ -59,7 +59,7 @@ export default function Footer() {
             </h3>
             <div className="space-y-5 text-[14px] text-gray-700 font-medium">
               <div>
-                <p>Help Line – 1800 41 77099</p>
+                <p>Help Line – +91 9182334233</p>
                 <p className="text-gray-500 font-normal">
                   9:30 AM to 6:30 PM (Mon–Sun)
                 </p>
@@ -68,12 +68,13 @@ export default function Footer() {
                 <p>Email – contact@propenu.com</p>
               </div>
               <div>
-                <p className="leading-relaxed">
-                  Address – #191, 5th Floor,
+                <p className="font-medium">Registered Office</p>
+                <p className="leading-relaxed text-gray-700">
+                  3-192/3, Near P.No. 192, B-Block,
                   <br />
-                  Tagore Towers, Kavuri Hills Phase 2,
+                  Kavuri Hills, Guttala, Madhapur, Shaikpet,
                   <br />
-                  Hyderabad – 500033
+                  Hyderabad – 500081, Telangana, India
                 </p>
               </div>
             </div>

@@ -1,7 +1,18 @@
 import { z } from "zod";
 
 export const residentialProfileSchema = z.object({
-  amenities: z.array(z.string()).optional(),
+   amenities: z
+  .array(
+    z.union([
+      z.string(),
+      z.object({
+        title: z.string().min(1),
+      }),
+    ]),
+  )
+  .transform((arr) =>
+    arr.map((a) => (typeof a === "string" ? a : a.title)),
+  ),
 
   parkingType: z.enum(["open", "closed", "both"]).optional(),
 

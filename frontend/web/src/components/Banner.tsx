@@ -43,11 +43,7 @@ const Banner = () => {
         <div className="absolute inset-0 flex items-center">
           <div className="w-full md:w-[65%]  px-6 md:px-14 py-10 space-y-4">
             <div
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full
-  bg-white/90 backdrop-blur-lg
-  border border-[#27AE60]/30
-  shadow-[0_8px_30px_rgba(39,174,96,0.18)]
-"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur-lg border border-[#27AE60]/30shadow-[0_8px_30px_rgba(39,174,96,0.18)]"
             >
               <IoHomeOutline className="w-4 h-4 text-[#27AE60]" />
               <span className="text-sm font-semibold text-[#27AE60] tracking-wide">

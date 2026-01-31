@@ -78,7 +78,7 @@ const LoginDialog = ({
 
       toast.success("Logged in successfully!");
       setTimeout(handleClose, 800);
-      router.refresh();
+      window.location.reload();
     } catch (err) {
       setError("Invalid OTP or verification failed.");
       setOtpDigits(Array(OTP_LENGTH).fill(""));
