@@ -55,7 +55,6 @@ export const createFeatureProperties = async (req: Request, res: Response) => {
 export const getMyFeaturedProjectsController = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id; 
-    console.log("..................", userId)
     const projects = await FeaturePropertyService.getMyFeaturedProjects(userId);
     res.status(200).json({success: true,data: projects});
   } catch (error: any) {

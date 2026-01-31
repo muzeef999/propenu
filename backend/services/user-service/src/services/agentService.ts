@@ -13,6 +13,7 @@ import { IResidential } from "../types/residentialTypes";
 import { ICommercial } from "../types/commercialTypes";
 import { ILand } from "../types/landTypes";
 import { IAgricultural } from "../types/agriculturalTypes";
+import User from "../models/userModel";
 
 dotenv.config({ quiet: true });
 
@@ -386,7 +387,85 @@ async  getAgentsByLocationService(
     },
     topProperties,
   };
+},
+
+
+async editAgentByPhone(
+  phone: string,
+  payload: UpdateAgentDTO,
+  files?: MulterFiles
+) {
+  // ✅ normalize phone
+  const normalizedPhone = phone.trim();
+
+  const user = await User.findOne({
+    phone: normalizedPhone,
+  });
+
+  if (!user) {
+    throw new Error("User not found with this phone number");
+  }
+
+  const existing = await Agent.findOne({ user: user._id });
+  if (!existing) {
+    throw new Error("Agent not found for this user");
+  }
+
+  // slug logic
+  if (payload.slug && payload.slug !== existing.slug) {
+    const newSlug = payload.slug
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-");
+
+    const conflict = await Agent.findOne({ slug: newSlug });
+    if (conflict && conflict._id.toString() !== existing._id.toString()) {
+      throw new Error("Slug already used");
+    }
+
+    existing.slug = newSlug;
+  }
+
+  Object.assign(existing, payload);
+
+  const agentId = existing._id.toString();
+
+  // avatar
+  const avatarFile = files?.avatar?.[0];
+  if (avatarFile) {
+    await deleteS3ObjectIfExists(existing.avatar?.key);
+
+    const up = await uploadBufferToS3Local({
+      buffer: avatarFile.buffer,
+      originalname: avatarFile.originalname,
+      mimetype: avatarFile.mimetype,
+      agentId,
+      folder: "agents/avatar",
+    });
+
+    existing.avatar = { url: up.url, key: up.key };
+  }
+
+  // cover
+  const coverFile = files?.coverImage?.[0];
+  if (coverFile) {
+    await deleteS3ObjectIfExists(existing.coverImage?.key);
+
+    const up = await uploadBufferToS3Local({
+      buffer: coverFile.buffer,
+      originalname: coverFile.originalname,
+      mimetype: coverFile.mimetype,
+      agentId,
+      folder: "agents/cover",
+    });
+
+    existing.coverImage = { url: up.url, key: up.key };
+  }
+
+  await existing.save();
+  return existing.toObject();
 }
+
 };
 
 export default AgentService;

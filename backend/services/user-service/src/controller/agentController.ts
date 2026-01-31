@@ -98,6 +98,25 @@ export const editAgent = async (req: Request, res: Response) => {
   return res.status(200).json({ message: "Agent updated", agent: updated });
 };
 
+
+export const editAgentByPhone = async (req: Request, res: Response) => {
+  const { phone } = req.params;
+  const payload = req.body as UpdateAgentDTO;
+  const files = req.files as MulterFiles;
+
+  if (!phone) {
+    return res.status(400).json({ message: "Phone number is required" });
+  }
+
+  const updated = await AgentService.editAgentByPhone(phone, payload, files);
+
+  return res.status(200).json({
+    message: "Agent updated",
+    agent: updated,
+  });
+};
+
+
 export const deleteAgent = async (req: Request, res: Response) => {
   const id = req.params.id;
 
