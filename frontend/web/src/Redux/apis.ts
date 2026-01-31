@@ -53,37 +53,35 @@ export const updateDetailsApi = async (
 
 /* ---------------- VERIFICATION ---------------- */
 
+
 export const finalizeApi = async (
   category: string,
   id: string,
-  payload: any
+  formData: FormData
 ) => {
+  console.log("🚀 [VERIFY] Sending FormData to backend");
+
+  // 🔍 Debug FormData
+  for (const pair of formData.entries()) {
+    console.log("   →", pair[0], pair[1]);
+  }
+
   const res = await fetch(
     `${url}/api/properties/${category}/${id}/verification`,
     {
       method: "PATCH",
       headers: {
-        ...authHeader(),
-        "Content-Type": "application/json", // ✅ REQUIRED
+        ...authHeader(), // ✅ ONLY auth header
+        // ❌ DO NOT SET Content-Type
       },
-      body: JSON.stringify({
-        reraRegistrationNumber: payload.reraRegistrationNumber,
-        approvals: payload.approvals,
-        litigation: payload.litigation,
-      }),
+      body: formData, // ✅ SEND FORMDATA DIRECTLY
     }
   );
 
-  const text = await res.text();
-  console.log("🧾 Raw verification response:", text.slice(0, 200));
-
-  try {
-    if (!res.ok) throw JSON.parse(text);
-    return JSON.parse(text);
-  } catch {
-    throw new Error("Verification API returned invalid response");
-  }
+  if (!res.ok) throw await res.json();
+  return res.json();
 };
+
 
 
 /* ---------------- helper ---------------- */

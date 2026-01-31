@@ -14,12 +14,9 @@ import { BiBuildingHouse } from "react-icons/bi";
 import { ICommercial } from "@/types/commercial";
 import ImageAutoCarousel from "@/ui/ImageAutoCarousel";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import {
-  me,
-  postLeads,
-  postShortlistProperty,
-} from "@/data/ClientData";
+import { postShortlistProperty } from "@/data/ClientData";
 import { toast } from "sonner";
+import ContactOwnerButton from "@/components/ContactOwnerButton";
 
 const bgPriceColor = hexToRGBA("#27AE60", 0.1);
 
@@ -47,172 +44,155 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
       toast.error("Failed to update shortlist");
     },
   });
-  const { data: userData, isLoading: isLoadingUser } = useQuery({
-    queryKey: ["user"],
-    queryFn: me,
-    retry: 1,
-  });
-  const user = userData?.user;
-  const { mutate: postLead, isPending: isLeadPosting } = useMutation({
-    mutationFn: postLeads,
-    onSuccess: () => {
-      toast.success("Owner will contact you shortly");
-    },
-    onError: () => {
-      toast.error("Failed to contact owner");
-    },
-  });
 
   const pricePerSqft =
     (p as any)?.pricePerSqft ??
     Math.round((p?.price ?? 0) / (p as any)?.superBuiltUpArea || 0);
 
   return (
-    <Link
-      href={`/properties/commercial/${p.slug}`}
+    <div
       className={`card p-2 h-auto flex overflow-hidden ${
         vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"
       }`}
     >
-      {/* Left: image */}
-      <div
-        className={`rounded-xl relative shrink-0 ${
-          vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"
-        }`}
-      >
-        <ImageAutoCarousel
-          images={p?.gallery?.map((g) => g.url) ?? []}
-          alt={p?.title}
-          onIndexChange={setActiveImageIndex}
-          isShortlisted={isShortlisted}
-          isShortlistLoading={isShortlisting}
-          onToggleShortlist={() => {
-            if (!p.id) return;
-            // optimistic UI
-            setIsShortlisted((prev) => !prev);
-
-            shortlistProperty({
-              propertyId: p.id ?? p._id,
-              propertyType: (p as any).type ?? "Commercial",
-            });
-          }}
-        />
-        {/* overlay: image count & date */}
-        <div className="absolute left-2 bottom-2 flex items-center gap-2 text-xs text-white">
-          <div className="bg-black/60 px-2 py-1 rounded-md flex items-center gap-1">
-            <svg
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-            >
-              <path
-                d="M3 7h18M3 12h18M3 17h18"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span>
-              {activeImageIndex + 1}/{p?.gallery?.length ?? 1}
-            </span>{" "}
-          </div>
-        </div>
-      </div>
-
-      {/* Middle: content */}
-      <div className="flex-1 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
-        <div className={`flex ${vertical ? "flex-col gap-1" : "flex-col"}`}>
-          <h3
-            className={`font-semibold truncate ${
-              vertical ? "text-base max-w-[300px]" : "text-lg md:text-md max-w-[400px]"
+      <Link href={`/properties/commercial/${p.slug}`} className={`flex flex-1 min-w-0 ${vertical ? "flex-col" : "flex-col md:flex-row"}`}>
+        {/* Left: image */}
+        <div
+          className={`rounded-xl relative shrink-0 ${vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"
             }`}
+        >
+          <ImageAutoCarousel
+            images={p?.gallery?.map((g) => g.url) ?? []}
+            alt={p?.title}
+            onIndexChange={setActiveImageIndex}
+            isShortlisted={isShortlisted}
+            isShortlistLoading={isShortlisting}
+            onToggleShortlist={() => {
+              if (!p.id) return;
+              // optimistic UI
+              setIsShortlisted((prev) => !prev);
+
+              shortlistProperty({
+                propertyId: p.id ?? p._id,
+                propertyType: (p as any).type ?? "Commercial",
+              });
+            }}
+          />
+          {/* overlay: image count & date */}
+          <div className="absolute left-2 bottom-2 flex items-center gap-2 text-xs text-white">
+            <div className="bg-black/60 px-2 py-1 rounded-md flex items-center gap-1">
+              <svg
+                className="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  d="M3 7h18M3 12h18M3 17h18"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span>
+                {activeImageIndex + 1}/{p?.gallery?.length ?? 1}
+              </span>{" "}
+            </div>
+          </div>
+        </div>
+
+        {/* Middle: content */}
+        <div className="flex-1 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
+          <div className={`flex ${vertical ? "flex-col gap-1" : "flex-col"}`}>
+            <h3
+              className={`font-semibold truncate ${vertical ? "text-base max-w-[300px]" : "text-lg md:text-md max-w-[400px]"
+                }`}
+            >
+              {p.title}
+            </h3>
+
+            <p className="mt-1 flex items-center gap-2 truncate text-sm text-gray-500">
+              <BiBuildingHouse className="h-4 w-4 shrink-0" />
+              {p?.buildingName}
+            </p>
+          </div>
+
+          {/* badges */}
+          <div
+            className={`hidden ${vertical ? "" : "md:flex"} flex-wrap gap-2 mt-3`}
           >
-            {p.title}
-          </h3>
-
-          <p className="mt-1 flex items-center gap-2 truncate text-sm text-gray-500">
-            <BiBuildingHouse className="h-4 w-4 shrink-0" />
-            {p?.buildingName}
-          </p>
-        </div>
-
-        {/* badges */}
-        <div
-          className={`hidden ${vertical ? "" : "md:flex"} flex-wrap gap-2 mt-3`}
-        >
-          <span className="text-xs font-normal px-2 py-1 text-primary">
-            RERA Approved
-          </span>
-          <span className="text-xs font-normal px-2 py-1 text-primary">
-            Premium
-          </span>
-          <span className="text-xs font-normal px-2 py-1 text-primary">
-            Zero Brokerage
-          </span>
-        </div>
-
-        {/* meta icons row */}
-        <div
-          className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200${
-            vertical
-              ? "grid grid-cols-2 gap-4"
-              : "md:flex md:items-center md:gap-6"
-          }`}
-        >
-          <div className="items-center gap-2 flex">
-            <SuperBuiitupAraea size={24} color={bgPriceColoricon} />
-            <div className="flex flex-col">
-              <div className="text-xs text-gray-500 tracking-wide">
-                Built-up Area
-              </div>
-              <div className="font-medium">
-                {(p as any)?.builtUpArea ?? "—"} sqft
-              </div>
-            </div>
+            <span className="text-xs font-normal px-2 py-1 text-primary">
+              RERA Approved
+            </span>
+            <span className="text-xs font-normal px-2 py-1 text-primary">
+              Premium
+            </span>
+            <span className="text-xs font-normal px-2 py-1 text-primary">
+              Zero Brokerage
+            </span>
           </div>
 
-          <div className="items-center gap-2 flex">
-            <UnderConstruction size={24} color={bgPriceColoricon} />
-            <div className="flex flex-col">
-              <div className="text-xs text-gray-500 tracking-wide">
-                Availability
-              </div>
-              <div className="font-medium">
-                {(p as any)?.constructionStatus ? "Available" : " Construction"}
-              </div>
-            </div>
-          </div>
-
-          <div className="items-center gap-2 flex">
-            <Furnishing size={24} color={bgPriceColoricon} />
-            <div className="flex flex-col">
-              <div className="text-xs text-gray-500 tracking-wide">
-                Furnishing
-              </div>
-              <div className="font-medium">
-                {(() => {
-                  const furnishing = (p as any)?.furnishing;
-
-                  if (furnishing === "fully-furnished") return "Furnished";
-                  if (furnishing === "semi-furnished") return "Semi";
-                  return "Unfurnished";
-                })()}
+          {/* meta icons row */}
+          <div
+            className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200${vertical
+                ? "grid grid-cols-2 gap-4"
+                : "md:flex md:items-center md:gap-6"
+              }`}
+          >
+            <div className="items-center gap-2 flex">
+              <SuperBuiitupAraea size={24} color={bgPriceColoricon} />
+              <div className="flex flex-col">
+                <div className="text-xs text-gray-500 tracking-wide">
+                  Built-up Area
+                </div>
+                <div className="font-medium">
+                  {(p as any)?.builtUpArea ?? "—"} sqft
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="items-center gap-2 flex">
-            <Steps size={24} color={bgPriceColoricon} />
-            <div className="flex flex-col">
-              <div className="text-xs text-gray-500 tracking-wide">Floor</div>
-              <div className="font-medium">
-                {p.floorNumber ?? "—"} / {p.totalFloors ?? "—"}
+            <div className="items-center gap-2 flex">
+              <UnderConstruction size={24} color={bgPriceColoricon} />
+              <div className="flex flex-col">
+                <div className="text-xs text-gray-500 tracking-wide">
+                  Availability
+                </div>
+                <div className="font-medium">
+                  {(p as any)?.constructionStatus ? "Available" : " Construction"}
+                </div>
+              </div>
+            </div>
+
+            <div className="items-center gap-2 flex">
+              <Furnishing size={24} color={bgPriceColoricon} />
+              <div className="flex flex-col">
+                <div className="text-xs text-gray-500 tracking-wide">
+                  Furnishing
+                </div>
+                <div className="font-medium">
+                  {(() => {
+                    const furnishing = (p as any)?.furnishing;
+
+                    if (furnishing === "fully-furnished") return "Furnished";
+                    if (furnishing === "semi-furnished") return "Semi";
+                    return "Unfurnished";
+                  })()}
+                </div>
+              </div>
+            </div>
+
+            <div className="items-center gap-2 flex">
+              <Steps size={24} color={bgPriceColoricon} />
+              <div className="flex flex-col">
+                <div className="text-xs text-gray-500 tracking-wide">Floor</div>
+                <div className="font-medium">
+                  {p.floorNumber ?? "—"} / {p.totalFloors ?? "—"}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </Link>
 
       {/* Right: price card */}
       <aside
@@ -252,31 +232,18 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
               : "shrink-0 md:w-full md:mt-4 flex justify-center"
           }`}
         >
-          <button
-            disabled={isLeadPosting}
-            className={`bg-green-600 text-white rounded-md shadow-sm hover:bg-green-700 transition font-medium whitespace-nowrap ${
+          <ContactOwnerButton
+            projectId={p.id}
+            propertyType="commercials"
+            className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${
               vertical
                 ? "px-4 py-1.5 text-sm"
                 : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base "
             }`}
-            onClick={(e) => {
-              e.preventDefault();
-
-              postLead({
-                name: user?.name || "Guest User",
-                phone: user?.phone || "7993371356",
-                email: user?.email || "",
-                projectId: p.id,
-                propertyType: "commercials", // backend enum
-                remarks: `Interested in ${p.title}`,
-              });
-            }}
-          >
-            {isLeadPosting ? "Sending..." : "Contact Owner"}
-          </button>
+          />
         </div>
       </aside>
-    </Link>
+    </div>
   );
 };
 

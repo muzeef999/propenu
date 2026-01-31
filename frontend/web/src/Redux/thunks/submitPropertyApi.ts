@@ -1,6 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 
-import { getFiles, clearFiles } from "@/lib/fileStore";
+import { getFileStoreFiles, clearFileStore } from "@/utilies/fileStore";
+
 import {
   createDraftApi,
   finalizeApi,
@@ -18,7 +19,7 @@ export const createDraftThunk = createAsyncThunk(
   async (category: string) => {
     console.log("📝 [CREATE DRAFT] category:", category);
     return await createDraftApi(category);
-  }
+  },
 );
 
 /* =========================================================
@@ -31,7 +32,7 @@ export const submitBasicThunk = createAsyncThunk(
     console.log("📦 [BASIC] category:", category, "id:", id);
     console.log("📦 [BASIC] payload:", data);
     return await updateBasicApi(category, id, data);
-  }
+  },
 );
 
 /* =========================================================
@@ -44,7 +45,7 @@ export const submitLocationThunk = createAsyncThunk(
     console.log("📍 [LOCATION] category:", category, "id:", id);
     console.log("📍 [LOCATION] payload:", data);
     return await updateLocationApi(category, id, data);
-  }
+  },
 );
 
 /* =========================================================
@@ -56,70 +57,45 @@ export const submitDetailsThunk = createAsyncThunk(
   async ({ category, id, payload }: any) => {
     console.log("🧩 [DETAILS] RAW payload from Redux:", payload);
 
-    const files = getFiles("postProperty");
-
-    /* ======================================================
-       ✅ NEVER MUTATE REDUX OBJECTS
-       Create safe copy first
-    ====================================================== */
+    const files = getFileStoreFiles("postProperty");
 
     const safePayload = {
       ...payload,
-
       amenities: Array.isArray(payload?.amenities)
-        ? payload.amenities
-            .filter((a: any) => a && (a.title || typeof a === "string"))
-            .map((a: any) => ({
-              title: typeof a === "string" ? a.trim() : String(a.title).trim(),
-            }))
+        ? payload.amenities.map((a: any) => ({
+            title: typeof a === "string" ? a.trim() : String(a.title).trim(),
+          }))
         : [],
     };
-
-    console.log("✅ [DETAILS] NORMALIZED payload:", safePayload);
-
-    /* ======================================================
-       ✅ BUILD FORMDATA
-    ====================================================== */
 
     const formData = new FormData();
 
     Object.entries(safePayload).forEach(([key, value]: any) => {
       if (value === undefined || value === null) return;
 
-      if (typeof value === "object") {
+      if (Array.isArray(value) || typeof value === "object") {
         formData.append(key, JSON.stringify(value));
       } else {
         formData.append(key, String(value));
       }
     });
 
-    /* ======================================================
-       ✅ ATTACH FILES
-    ====================================================== */
-
     if (Array.isArray(files) && files.length > 0) {
       files.forEach((file) => {
         formData.append("galleryFiles", file);
       });
-      clearFiles("postProperty");
+      clearFileStore("postProperty");
     }
-
-    /* ======================================================
-       ✅ DEBUG: log FormData content
-    ====================================================== */
 
     console.log("📤 [DETAILS] FINAL FormData:");
     for (let pair of formData.entries()) {
-      console.log(`   → ${pair[0]}:`, pair[1]);
+      console.log(" →", pair[0], pair[1]);
     }
 
     return await updateDetailsApi(category, id, formData);
   }
 );
 
-/* =========================================================
-   FINAL
-========================================================= */
 
 export const submitVerificationThunk = createAsyncThunk(
   "postProperty/verification",
@@ -131,6 +107,5 @@ export const submitVerificationThunk = createAsyncThunk(
     } catch (err: any) {
       return rejectWithValue(err.message || "Verification failed");
     }
-  }
+  },
 );
-
