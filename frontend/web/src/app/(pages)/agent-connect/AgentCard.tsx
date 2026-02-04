@@ -59,7 +59,7 @@ export default function AgentsList() {
           </h1>
 
           <p className="mt-1 text-xs text-gray-500 sm:text-base truncate">
-            Trusted professionals guiding your property journey
+            Expert help, simplified
           </p>
         </div>
 

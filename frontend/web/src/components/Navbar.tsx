@@ -129,13 +129,27 @@ const Navbar = () => {
 
       return [stateName, cities] as [string, LocationItem[]];
     });
+  const handleMyActivityClick = () => {
+    const role = user?.user?.roleName;
+
+    if (role === "agent") {
+      router.push("/agent");
+    } else if (role === "builder") {
+      router.push("/builder");
+    } else {
+      router.push("/settings");
+    }
+
+    setMobileOpen(false);
+  };
+
 
   return (
     <header>
       <nav className="w-full bg-white/80 backdrop-blur-md border-b relative z-30 border-gray-200"
         aria-label="Main navigation"
       >
-        <div className="container mx-auto px-3 sm:px-4">
+        <div className="container mx-auto px-1 sm:px-4 lg:px-3">
           <div className="flex items-center justify-between h-14 sm:h-16">
             {/* LEFT */}
             <div className="flex items-center gap-2 sm:gap-4 min-w-0">
@@ -391,174 +405,168 @@ const Navbar = () => {
         )}
 
         {/* Off-canvas menu */}
+        {/* OVERLAY */}
+        {mobileOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={() => setMobileOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* FLOATING CLOSE BUTTON (OUTSIDE SIDEBAR) */}
+        {mobileOpen && (
+          <button
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close menu"
+            className="fixed top-4 left-78 z-60 h-10 w-10 rounded-full  bg-black/70 text-white backdrop-blur flex items-center justify-center shadow-lg  hover:bg-black/90 transition-all lg:hidden">
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        )}
+
+        {/* SIDEBAR */}
         <div
-          className={`fixed top-0 left-0 h-[120vh] w-80 max-w-[90vw] bg-white shadow-lg lg:hidden transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${mobileOpen ? "translate-x-0" : "-translate-x-full"
-            }`}
+          className={` fixed top-0 left-0 h-[120vh] w-75 max-w-[90vw]  bg-white shadow-lg lg:hidden transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
+  `}
           aria-hidden={!mobileOpen}
           role="dialog"
           aria-modal="true"
         >
-          <div className="px-3 sm:px-4 py-4 border-b border-gray-100 flex items-center justify-between">
-            <span className="text-sm font-semibold text-gray-900">Menu</span>
-            <button
-              onClick={() => setMobileOpen(false)}
-              className="p-1 rounded-md hover:bg-gray-100 transition-colors"
-              aria-label="Close menu"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+          {/* TOP LOGIN / USER SECTION */}
+          <div className="border-b border-gray-200 bg-gray-50">
+            {!user ? (
+              /* ---------- GUEST ---------- */
+              <div className="flex items-center justify-between gap-3 px-4 py-4 bg-gray-50">
+                {/* TEXT */}
+                <span className="text-xs text-gray-700 leading-snug">
+                  Sign in for a <br />
+                  <span className="font-semibold">
+                    smarter property experience
+                  </span>
+                </span>
+
+                {/* LOGIN BUTTON */}
+                <button
+                  onClick={() => {
+                    setAuthMode("login");
+                    setMobileOpen(false);
+                  }}
+                  style={{ backgroundColor: BRAND_GREEN }}
+                  className="text-white text-xs font-semibold px-4 py-1.5 rounded-md shadow-sm whitespace-nowrap transition-all hover:opacity-90 active:scale-95">
+                  Login
+                </button>
+              </div>
+            ) : (
+              /* ---------- LOGGED IN ---------- */
+              <div className="flex items-center gap-3 px-4 py-4 bg-gray-50">
+                {/* AVATAR */}
+                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg border border-white shadow-sm shrink-0">
+                  {user?.user?.name?.charAt(0)?.toUpperCase() ?? "U"}
+                </div>
+
+                {/* USER INFO */}
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-semibold text-gray-900 truncate">
+                    Hi, {user?.user?.name?.split(" ")?.[0] ?? "User"}
+                  </span>
+                  
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="px-3 sm:px-4 pb-4 pt-3 sm:pt-4">
-            <nav className="flex flex-col gap-3 sm:gap-4">
-              {/* login section */}
-              <div className="flex flex-col gap-2">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Account
-                </span>
-                {user ? (
-                  <>
-                    <button
-                      onClick={() => setMobileUserMenuOpen(!mobileUserMenuOpen)}
-                      className="flex items-center gap-3 p-2 rounded-md bg-gray-50 border border-gray-100 hover:bg-gray-100 transition-colors w-full text-left"
-                    >
-                      <div
-                        className="h-8 w-8 rounded-full border-2 border-[#27AE60] text-[#27AE60] flex items-center justify-center font-semibold text-xs shrink-0"
-                      >
-                        {user?.user?.name ? user.user.name.charAt(0).toUpperCase() : "U"}
-                      </div>
-                      <div className="flex flex-col items-start min-w-0 flex-1">
-                        <span className="text-xs font-medium text-gray-800 truncate">
-                          {user?.user?.name || "User"}
-                        </span>
-                        {user?.user?.roleName && user.user.roleName !== "user" && (
-                          <span className="text-xs text-gray-500 capitalize">
-                            {user.user.roleName}
-                          </span>
-                        )}
-                      </div>
-                      <svg
-                        className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${mobileUserMenuOpen ? "rotate-180" : "rotate-0"
-                          }`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                        />
-                      </svg>
-                    </button>
 
-                    {/* User menu items */}
-                    {mobileUserMenuOpen && (
-                      <div className="space-y-1 pl-2">
-                        {(() => {
-                          const userRole = user?.user?.roleName;
-                          const options =
-                            userRole === "agent"
-                              ? [
-                                { label: "Dashboard", link: "/agent" },
-                                { label: "My Properties", link: "/agent/my-properties" },
-                                { label: "Leads", link: "/agent/leads" },
-                                { label: "My Plans", link: "/agent/my-plan" },
-                                { label: "Account & Settings", link: "/agent/account-settings" },
-                              ]
-                              : userRole === "builder"
-                                ? [
-                                  { label: "Dashboard", link: "/builder" },
-                                  { label: "My Properties", link: "/builder/my-properties" },
-                                  { label: "Leads", link: "/builder/leads" },
-                                  { label: "My Plans", link: "/builder/plans" },
-                                  { label: "Account & Settings", link: "/builder/account-settings" },
-                                ]
-                                : [
-                                  { label: "My Properties", link: "/my-properties" },
-                                  { label: "Shortlisted Properties", link: "/shortlisted-properties" },
-                                  { label: "Contacted Properties", link: "/contacted-properties" },
-                                  { label: "Manage Subscription", link: "/membership" },
-                                  { label: "Account & Settings", link: "/settings" },
-                                ];
+          {/* MAIN NAVIGATION */}
+          <div className="flex-1 overflow-y-auto py-2">
 
-                          return options.map((item) => (
-                            <button
-                              key={item.label}
-                              onClick={() => {
-                                router.push(item.link);
-                                setMobileOpen(false);
-                                setMobileUserMenuOpen(false);
-                              }}
-                              className="w-full text-left py-2 px-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                            >
-                              {item.label}
-                            </button>
-                          ));
-                        })()}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => {
+
+            {/* OTHER LINKS */}
+            <nav className="px-2">
+              {[
+                { label: "Buy", link: "/buy" },
+                { label: "Rent", link: "/rent" },
+                { label: "Sell", link: "/sell" },
+                { label: "My Activity", link: "/my-activity" },
+                { label: "Home Loans", link: "/home-loans" },
+                { label: "Home Interiors", link: "/home-interiors" },
+                { label: "Help & Support", link: "/help" },
+              ].map((item) => (
+                <button
+                  key={item.label}
+                  onClick={() => {
+                    // 🔐 MY ACTIVITY LOGIC
+                    if (item.label === "My Activity") {
+                      // Not logged in → open login dialog
+                      if (!user) {
                         setAuthMode("login");
                         setMobileOpen(false);
-                      }}
-                      className="py-2 px-2 rounded-md text-sm font-medium text-primary hover:bg-gray-50 transition-colors text-center w-full cusrsor-pointer"
-                    >
-                      Login
-                    </button>
-                    <button
-                      onClick={() => {
-                        setAuthMode("register");
-                        setMobileOpen(false);
-                      }}
-                      className="py-2 px-2 rounded-md text-sm font-medium text-primary hover:bg-gray-50 transition-colors text-center w-full"
-                    >
-                      Register
-                    </button>
-                  </>
-                )}
-              </div>
+                        return;
+                      }
 
-              {/* post property CTA */}
-              <div>
-                <Link
-                  href="/postproperty"
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-md px-3 sm:px-4 py-2 text-sm font-semibold border transition-colors hover:opacity-90"
-                  style={{
-                    color: BRAND_GREEN,
-                    borderColor: BRAND_GREEN,
+                      // Logged in → role based routing
+                      handleMyActivityClick();
+                      return;
+                    }
+
+                    // 🔗 NORMAL LINKS
+                    router.push(item.link);
+                    setMobileOpen(false);
                   }}
-                  onClick={() => setMobileOpen(false)}
+                  className="w-full flex items-center justify-between px-1 py-3 border-b border-gray-200 hover:bg-gray-100 transition-colors group"
                 >
-                  Post Property
-                  <span
-                    className="text-xs font-semibold rounded-md inline-flex items-center justify-center px-2 py-0.5"
-                    style={{ background: BRAND_GREEN, color: "#fff" }}
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-gray-700 group-hover:text-primary">
+                      {item.label}
+                    </span>
+                  </div>
+
+                  <svg
+                    className="w-4 h-4 text-gray-300 group-hover:text-primary"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    Free
-                  </span>
-                </Link>
-              </div>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </button>
+              ))}
             </nav>
+
+
+          </div>
+
+          {/* FOOTER CTA */}
+          <div className="p-2">
+            <Link
+              href="/postproperty"
+              onClick={() => setMobileOpen(false)}
+              className="w-full flex items-center justify-center gap-2 bg-[#27AE60] text-white py-3 rounded-md font-semibold text-sm shadow-md shadow-green-100 active:scale-[0.98] transition-all"
+            >
+              Post Property
+              <span className="bg-white/20 px-2 py-0.5 rounded text-[10px]">
+                FREE
+              </span>
+            </Link>
           </div>
         </div>
+
       </>
 
       {authMode === "login" && (

@@ -58,7 +58,7 @@ const PopularOwnerPropertiesClient = () => {
           </h1>
 
           <p className="mt-1 text-xs text-gray-500 sm:text-base truncate">
-            Connect directly and simplify your home search in {selectedCity?.city ?? "Hyderabad"}
+            Simplify your home search in {selectedCity?.city ?? "Hyderabad"}
           </p>
         </div>
 
