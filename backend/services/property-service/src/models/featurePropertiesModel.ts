@@ -128,9 +128,7 @@ const LogoSchema = new Schema<ILogo>({
   mimetype: { type: String },
 });
 
-/* -------------------------
-   Main schema
-   -------------------------*/
+/* ------------------------- Main schema  -------------------------*/
 const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
   {
     title: { type: String, required: true, trim: true },
@@ -231,16 +229,26 @@ FeaturePropertySchema.index(
 FeaturePropertySchema.pre<IFeaturedProjectDocument>(
   "validate",
   function (next) {
-    if (!this.slug && this.title) {
-      this.slug = String(this.title)
+    // Auto-generate slug ONLY if not provided
+    if (!this.slug) {
+      const parts = [
+        this.title,
+        this.locality,
+        this.city,
+      ].filter(Boolean);
+
+      this.slug = parts
+        .join(" ")
         .toLowerCase()
         .trim()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "");
     }
+
     next();
   }
 );
+
 
 FeaturePropertySchema.pre<IFeaturedProjectDocument>("save", function (next) {
   try {

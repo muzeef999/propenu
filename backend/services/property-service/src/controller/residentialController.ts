@@ -1,13 +1,8 @@
 // src/controllers/residential.controller.ts
 import { Request, Response } from "express";
 import { ZodError } from "zod";
-import {
-  ResidentialCreateSchema,
-  ResidentialUpdateSchema,
-} from "../zod/residentialZod";
-import ResidentialPropertyService, {
-  findRelatedResidential,
-} from "../services/residentialServices";
+import { ResidentialCreateSchema, ResidentialUpdateSchema} from "../zod/residentialZod";
+import ResidentialPropertyService, { findRelatedResidential,} from "../services/residentialServices";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import Residential from "../models/residentialModel";
 import { uploadFile } from "../utils/uploadFile";

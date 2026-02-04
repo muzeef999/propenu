@@ -23,7 +23,7 @@ const cpUpload = upload.fields([
   { name: "bhkPlanFiles", maxCount: 12 },
   { name: "aboutImage", maxCount: 1 },
   { name: "logo", maxCount: 1 },
-    { name: "brochure", maxCount: 1 }, 
+  { name: "brochure", maxCount: 1 }, 
 ]);
 
 const jsonKeys = [
@@ -42,8 +42,8 @@ const jsonKeys = [
 
 
 
-router.post("/",  cpUpload, parseJsonFields(jsonKeys), authMiddleware, fallbackCoerceDefault, validateBody(CreateFeaturePropertySchema),
-  (req: AuthRequest, res, next) => {
+router.post("/",  cpUpload, parseJsonFields(jsonKeys), authMiddleware, fallbackCoerceDefault, validateBody(CreateFeaturePropertySchema),  
+(req: AuthRequest, res, next) => {
     if (!req.user || !["super_admin", "admin", "builder"].includes(req.user.roleName || "") ) {
       return res.status(403).json({
           message: "only admin/super_admin/builder can post the project",
