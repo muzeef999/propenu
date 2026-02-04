@@ -102,12 +102,22 @@ export const BhkSummarySchema = new Schema<IBhkSummary>({ bhk: { type: Number, r
    BASE FIELDS (reused in each model)
 ------------------------- */
 export const BaseFields = {
- slug: {
+//  slug: {
+//   type: String,
+//   required: function (this: any) {
+//     return this.status === "active";
+//   },
+// },
+slug: {
   type: String,
+  trim: true,
+  unique: true,
+  sparse: true, // 🔥 THIS IS THE KEY FIX
   required: function (this: any) {
     return this.status === "active";
   },
 },
+
   listingType: { type: String, enum: ['sale', 'rent', 'lease'], default: 'sale', index: true },
   listingSource: {  type: String, trim: true},
   address: { type: String,

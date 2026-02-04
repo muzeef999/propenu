@@ -13,7 +13,7 @@ const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 const cpUpload = upload.fields([
-  { name: "galleryFiles", maxCount: 5 },
+    { name: "galleryFiles", maxCount: 5 },
     { name: "verificationDocuments", maxCount: 5 }, 
 ]);
 

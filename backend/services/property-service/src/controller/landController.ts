@@ -227,7 +227,6 @@ export const createLandDraft = async (req: AuthRequest, res: Response) => {
 
 
 export const updateLandBasicStep = async (req: AuthRequest, res: Response) => {
-  try {
     const updated = await LandPlot.findByIdAndUpdate(
       req.params.id,
       {
@@ -238,16 +237,7 @@ export const updateLandBasicStep = async (req: AuthRequest, res: Response) => {
       },
       { new: true }
     );
-
-    if (!updated) {
-      return res.status(404).json({ error: "Land draft not found" });
-    }
-
     res.json({ data: updated });
-  } catch (err: any) {
-    console.error("updateLandBasicStep:", err);
-    res.status(500).json({ error: err.message || "Internal server error" });
-  }
 };
 
 

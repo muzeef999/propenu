@@ -24,7 +24,6 @@ const LandSchema = new Schema<ILand>(
     },
     roadWidthFt: Number,
     readyToConstruct: Boolean,
-    title: { type: String, required: true, trim: true },
     waterConnection: Boolean,
     electricityConnection: Boolean,
     approvedByAuthority: { type: [String], default: [] },
@@ -36,79 +35,71 @@ const LandSchema = new Schema<ILand>(
     encumbranceCertificateFile: FileRefSchema,
     soilTestReport: FileRefSchema,
     surveyNumber: String,
-    layoutType: String, 
+    layoutType: String,
     dimensions: {
-    length: { type: Number, required: true },
-    width: { type: Number, required: true },
- 
-  },
-     landName: String,
+      length: { type: Number },
+      width: { type: Number },
+    },
+    landName: String,
     propertyType: { type: String, enum: LAND_PROPERTY_TYPES },
     propertySubType: { type: String, enum: LAND_PROPERTY_SUBTYPES },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 LandSchema.index(TEXT_INDEX_FIELDS, { name: "Land_Text" });
 
+LandSchema.pre("validate", async function (this: LandDocument, next) {
+  try {
+    /* -------- TITLE -------- */
+    if (!this.title) {
+      this.title = buildLandTitle(this);
+    }
 
-LandSchema.pre(
-  "validate",
-  async function (this: LandDocument, next) {
-    try {
-      /* -------- TITLE -------- */
-      if (!this.title) {
-        this.title = buildLandTitle(this);
-      }
+    /* -------- SLUG -------- */
+    if (this.isModified("title") && this.title) {
+            const baseSlug = slugify(this.title);
+    
+            this.slug = await generateUniqueSlug(
+              mongoose.model("LandPlot"),
+              baseSlug,
+              this._id,
+            );
+          }
+   
 
-      /* -------- SLUG -------- */
-      if (!this.slug && this.title) {
-        const baseSlug = slugify(this.title);
-        this.slug = await generateUniqueSlug(
-          mongoose.model("Agricultural"),
-          baseSlug,
-          this._id
-        );
-      }
+    /* -------- LISTING SOURCE (CORRECTED) -------- */
+    if (!this.listingSource && this.createdBy) {
+      const User = mongoose.model("User");
+      const Role = mongoose.model("Role");
 
-      /* -------- LISTING SOURCE (CORRECTED) -------- */
-      if (!this.listingSource && this.createdBy) {
-        const User = mongoose.model("User");
-        const Role = mongoose.model("Role");
+      const user: any = await User.findById(this.createdBy)
+        .select("role roleId")
+        .lean();
 
-        const user: any = await User.findById(this.createdBy)
-          .select("role roleId")
+      if (user?.role && typeof user.role === "string") {
+        this.listingSource = user.role;
+      } else if (user?.roleId) {
+        const roleDoc: any = await Role.findById(user.roleId)
+          .select("label")
           .lean();
 
-        // 1️⃣ Direct role string on user (if exists)
-        if (user?.role && typeof user.role === "string") {
-          this.listingSource = user.role;
-        }
-
-        // 2️⃣ Role reference → Role.label
-        else if (user?.roleId) {
-          const roleDoc: any = await Role.findById(user.roleId)
-            .select("label")
-            .lean();
-
-          if (roleDoc?.label) {
-            this.listingSource = roleDoc.label;
-          }
+        if (roleDoc?.label) {
+          this.listingSource = roleDoc.label;
         }
       }
-
-      /* -------- FINAL FALLBACK -------- */
-      if (!this.listingSource) {
-        this.listingSource = "owner"; // only if EVERYTHING fails
-      }
-
-      next();
-    } catch (err) {
-      next(err as any);
     }
-  }
-);
 
+    /* -------- FINAL FALLBACK -------- */
+    if (!this.listingSource) {
+      this.listingSource = "owner"; // only if EVERYTHING fails
+    }
+
+    next();
+  } catch (err) {
+    next(err as any);
+  }
+});
 
 export const LandPlot: Model<ILand> =
   (mongoose.models && (mongoose.models as any)["LandPlot"]) ||
@@ -116,9 +107,7 @@ export const LandPlot: Model<ILand> =
 
 export default LandPlot;
 
-
-
-export function buildLandTitle(doc: any) {
+function buildLandTitle(doc: any) {
   /* -------- Plot Area -------- */
   const plotArea =
     doc.plotArea && doc.plotAreaUnit
@@ -140,8 +129,8 @@ export function buildLandTitle(doc: any) {
     doc.listingType === "rent"
       ? "for Rent"
       : doc.listingType === "lease"
-      ? "for Lease"
-      : "for Sale";
+        ? "for Lease"
+        : "for Sale";
 
   /* -------- Location -------- */
   const locality = doc.locality ?? "";
@@ -149,9 +138,7 @@ export function buildLandTitle(doc: any) {
 
   /* -------- Optional Flags -------- */
   const cornerPlot = doc.cornerPlot ? "Corner Plot" : "";
-  const readyToConstruct = doc.readyToConstruct
-    ? "Ready to Construct"
-    : "";
+  const readyToConstruct = doc.readyToConstruct ? "Ready to Construct" : "";
 
   /* -------- Optional Layout / Land Name -------- */
   const landName = doc.dimensions?.LandName
