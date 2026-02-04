@@ -158,7 +158,7 @@ const Navbar = () => {
                 aria-expanded={mobileOpen}
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
                 onClick={() => setMobileOpen((s) => !s)}
-                className="lg:hidden inline-flex items-center justify-center p-1.5 sm:p-2 rounded-md hover:bg-gray-100 shrink-0"
+                className="lg:hidden inline-flex items-center justify-center  sm:p-2 rounded-md hover:bg-gray-100 shrink-0"
               >
                 {/* simple hamburger/x */}
                 <svg

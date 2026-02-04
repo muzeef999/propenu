@@ -9,18 +9,13 @@
   font-display: swap;
 }
 
-/* ------------------------------------ */
-/* Base Theme Values                    */
-/* ------------------------------------ */
 :root {
   --color-primary: #27AE60;
   --color-white: #ffffff;
   --color-black:#111111;
   --color-heading-desc: #8C8989;
-
-  /* Make container WIDER + more padding */
-  --container-padding: 2rem;     /* increase spacing */
-  --container-width: 1400px;     /* wider large container */
+  --container-padding: 1rem;     
+  --container-width: 1400px;     
 }
 
 /* Base reset */
