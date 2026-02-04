@@ -769,7 +769,7 @@ export default function BasicDetailsStep() {
                           setProfileField({
                             propertyType,
                             key: "propertyAge",
-                            value: "",
+                            value: undefined,
                           }),
                         );
                       }

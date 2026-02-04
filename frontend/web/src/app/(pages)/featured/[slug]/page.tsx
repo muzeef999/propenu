@@ -38,7 +38,6 @@ export default async function Page({ params }: PageProps) {
     { title: "Map View", href: "#map-view" },
     { title: "Gallery", href: "#gallery" },
     { title: "About Us", href: "#about-us" },
-    { title: "Brochure", href: "#brochure" },
   ];
   function formatCrRange(priceFrom?: number, priceTo?: number) {
     if (!priceFrom && !priceTo) return "Price on Request";
@@ -112,7 +111,7 @@ export default async function Page({ params }: PageProps) {
         links={links}
         logoUrl={project?.logo?.url}
         color={project?.color?.trim()}
-        brochureUrl={project?.brochureUrl}
+        brochureUrl={project?.brochure?.url}
       />
       <div className="w-full bg-[#4F8EF7] text-white text-sm">
         <div className="container mx-auto px-4 py-2 flex items-center justify-between">

@@ -79,7 +79,7 @@ export default function MicroSiteNavbar({
             </ul>
 
             {/* download / brochure */}
-            <div>
+            <div className="relative group">
               {brochureUrl ? (
                 <a
                   href={brochureUrl}
@@ -92,14 +92,21 @@ export default function MicroSiteNavbar({
               ) : (
                 <button
                   type="button"
-                  aria-label="Download brochure"
-                  title="No brochure available"
-                  className="p-2 rounded hover:bg-slate-100 transition inline-flex items-center opacity-80"
+                  aria-label="Brochure not available"
+                  className="p-2 rounded hover:bg-slate-100 transition inline-flex items-center opacity-80 cursor-not-allowed"
                 >
                   <Download size={24} color={iconColor} />
                 </button>
               )}
+
+              {/* Tooltip */}
+              <span
+                className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs text-white shadow-md opacity-0 transition-opacity duration-200 group-hover:opacity-100 z-50"
+              >
+                {brochureUrl ? "Download brochure" : "Brochure not available"}
+              </span>
             </div>
+
           </div>
 
           {/* mobile hamburger */}
