@@ -104,8 +104,7 @@ export default async function Page({ params }: PageProps) {
     color: project?.color?.trim(),
   };
 
-  console.log("Rendering Featured Project Page for:", project);
-
+ 
   return (
     <div>
       <MicroSiteNavbar
