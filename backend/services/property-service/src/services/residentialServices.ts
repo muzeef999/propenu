@@ -22,8 +22,8 @@ dotenv.config();
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
 
-/* -------------------- Helpers -------------------- */
 
+/* -------------------- Helpers -------------------- */
 function pickDefined<T extends Record<string, any>>(obj: T) {
   return Object.fromEntries(
     Object.entries(obj).filter(([_, v]) => typeof v !== "undefined"),

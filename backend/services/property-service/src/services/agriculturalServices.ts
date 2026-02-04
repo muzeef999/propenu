@@ -1,21 +1,15 @@
 // src/services/agricultural.service.ts
 import mongoose from "mongoose";
-import { randomUUID } from "crypto";
 import s3 from "../config/s3";
 import dotenv from "dotenv";
 import Agricultural from "../models/agriculturalModel";
-import { SearchFilters } from "../types/searchResultItem";
-import User from "../models/userModel";
-import Role from "../models/roleModel";
 import { uploadFile } from "../utils/uploadFile";
 import { extendAgriculturalFilters } from "./filters/agriculturalFilters";
 import { upsertCityAndLocality } from "./locationServices";
-import { findRelatedProperties } from "./findRelatedProperties";
 
 dotenv.config({ quiet: true });
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
-
 
 async function deleteS3ObjectIfExists(key?: string) {
   if (!key) return;
@@ -32,7 +26,6 @@ async function deleteS3ObjectIfExists(key?: string) {
   }
 }
 
-/** helper: map & upload gallery files to S3 and return normalized gallery array */
 async function mapAndUploadGallery({
   incomingGallery,
   galleryFiles,
@@ -87,9 +80,8 @@ async function mapAndUploadGallery({
   return summary;
 }
 
+
 /* --------------------  Search API  -------------------- */
-
-
 export async function findRelatedAgriculture(property: any) {
   if (!property?._id) return [];
 
@@ -97,7 +89,6 @@ export async function findRelatedAgriculture(property: any) {
     _id: { $ne: property._id },
     status: "active",
 
-    // CORE similarity
     listingType: property.listingType,       // sale / lease
     propertyType: property.propertyType,     // agricultural
     city: property.city,

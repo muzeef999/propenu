@@ -57,6 +57,7 @@ AgriculturalSchema.index(
 );
 
 
+
 AgriculturalSchema.pre(
   "validate",
   async function (this: AgriculturalDocument, next) {
@@ -66,15 +67,16 @@ AgriculturalSchema.pre(
         this.title = buildAgriculturalTitle(this);
       }
 
-      /* -------- SLUG -------- */
-      if (!this.slug && this.title) {
-        const baseSlug = slugify(this.title);
-        this.slug = await generateUniqueSlug(
-          mongoose.model("Agricultural"),
-          baseSlug,
-          this._id
-        );
-      }
+     /* -------- SLUG (AUTO UPDATE WHEN TITLE CHANGES) -------- */
+           if (this.isModified("title") && this.title) {
+             const baseSlug = slugify(this.title);
+     
+             this.slug = await generateUniqueSlug(
+               mongoose.model("Residential"),
+               baseSlug,
+               this._id,
+             );
+           }
 
       /* -------- LISTING SOURCE (CORRECTED) -------- */
       if (!this.listingSource && this.createdBy) {
