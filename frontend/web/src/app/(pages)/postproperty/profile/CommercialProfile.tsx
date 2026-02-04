@@ -92,7 +92,7 @@ const CommercialProfile = () => {
           </p>
 
           {/* Fields */}
-          <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 md:grid-cols-3">
+          <div className="grid grid-cols-2 gap-7 sm:grid-cols-2 md:grid-cols-3">
             {/* Two Wheeler */}
             <CounterField
               label="Two-Wheeler Parking"
@@ -137,7 +137,7 @@ const CommercialProfile = () => {
           <p className="text-sm font-medium text-gray-800">Floor Details</p>
 
           {/* Fields */}
-          <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 md:grid-cols-3 items-start">
+          <div className="grid grid-cols-2 gap-7 sm:grid-cols-2 md:grid-cols-3 items-start">
             {/* Flooring Type */}
             <Dropdownui
               label="Flooring Type"
@@ -191,7 +191,7 @@ const CommercialProfile = () => {
             />
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-7 sm:grid-cols-3 items-end">
+        <div className="grid grid-cols-2 gap-7 sm:grid-cols-3 items-end">
           <Dropdownui
             label="Pantry Type"
             value={commercial.pantry?.type || null}
@@ -280,9 +280,9 @@ const CommercialProfile = () => {
           </p>
         </div>
 
-        <div className="space-y-3 grid grid-cols-1 md:grid-cols-2 gap-7">
+        <div className="space-y-3 grid grid-cols-2 md:grid-cols-2 gap-7">
           <InputField
-            label="Building Management Company"
+            label=" Management Company"
             value={commercial.buildingManagement?.managedBy || ""}
             placeholder="e.g. ABC Property Management"
             onChange={(value) =>
@@ -378,7 +378,7 @@ const CommercialProfile = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
               <InputField
                 label="Tenant Name"
                 value={tenant.currentTenant || ""}
@@ -488,7 +488,7 @@ const CommercialProfile = () => {
         </div>
 
         {/* Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {[
             { key: "fireExtinguisher", label: "Fire Extinguisher" },
             { key: "fireSprinklerSystem", label: "Sprinkler System" },

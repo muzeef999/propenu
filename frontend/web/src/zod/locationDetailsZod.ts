@@ -32,14 +32,12 @@ export const locationDetailsSchema = z.object({
   }),
 
   pincode: z
-  .string({ message: "Pincode is required" })
-  .regex(/^\d+$/, "Pincode must contain only numbers")
-  .length(6, "Pincode must be 6 digits"),
+    .string({ message: "Pincode is required" })
+    .regex(/^\d+$/, "Pincode must contain only numbers")
+    .length(6, "Pincode must be 6 digits"),
 
 
-  buildingName: z.string({
-    message: "Building name is required",
-  }),
+  buildingName: z.string().optional(),
   landName: z.string().optional(),
 
   location: z.object({
@@ -48,32 +46,57 @@ export const locationDetailsSchema = z.object({
   }),
 
   nearbyPlaces: z.array(nearbyPlaceSchema).optional(),
-});
+})
+  .superRefine((data, ctx) => {
+    const isLandOrAgri = !!data.landName && !data.buildingName;
 
+    /* ================= BUILDING / LAND NAME ================= */
 
-/* ---------------- Types ---------------- */
+    if (!data.buildingName && !data.landName) {
+      ctx.addIssue({
+        path: ["buildingName"],
+        code: z.ZodIssueCode.custom,
+        message: "Building or land name is required",
+      });
+    }
 
-export type LocationDetailsForm = z.infer<
-  typeof locationDetailsSchema
->;
+    /* ================= LOCATION ================= */
 
-/* ---------------- Validator ---------------- */
-
-export const validateLocationDetails = (base: any) => {
-  return locationDetailsSchema.safeParse({
-    address: base.address,
-    locality: base.locality,
-    city: base.city,
-    state: base.state,
-    pincode: base.pincode,
-    buildingName: base.buildingName,
-    landName: base.landName,
-    location: base.location,
-    nearbyPlaces: base.nearbyPlaces,
+    if (!data.location?.coordinates?.length) {
+      ctx.addIssue({
+        path: ["location"],
+        code: z.ZodIssueCode.custom,
+        message: "Please select location on map",
+      });
+    }
   });
-};
 
-export const getLocationFieldError = (fieldErrors: any, fieldName: string): string | undefined => {
-  return fieldErrors?.[fieldName]?.[0];
-};
+
+
+    /* ---------------- Types ---------------- */
+
+    export type LocationDetailsForm = z.infer<
+      typeof locationDetailsSchema
+    >;
+
+    /* ---------------- Validator ---------------- */
+
+    export const validateLocationDetails = (base: any) => {
+      return locationDetailsSchema.safeParse({
+        address: base.address,
+        locality: base.locality,
+        city: base.city,
+        state: base.state,
+        pincode: base.pincode,
+        buildingName: base.buildingName,
+        landName: base.landName,
+        location: base.location,
+        nearbyPlaces: base.nearbyPlaces,
+      });
+    };
+
+    export const getLocationFieldError = (fieldErrors: any, fieldName: string): string | undefined => {
+      return fieldErrors?.[fieldName]?.[0];
+    };
+    
 

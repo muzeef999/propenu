@@ -1,8 +1,5 @@
 import { useAppSelector } from "@/Redux/store";
-import VerifyResidential from "../verifyproperty/VerifyResidential";
-import VerifyCommercial from "../verifyproperty/VerifyCommercial";
-import VerifyLand from "../verifyproperty/VerifyLand";
-import VerifyAgricultural from "../verifyproperty/VerifyAgricultural";
+import VerifyProperty from "../verifyproperty/VerifyProperty";
 
 const VerificationStep = () => {
   const propertyType = useAppSelector(
@@ -20,11 +17,8 @@ const VerificationStep = () => {
       </div>
 
       {/* Verification Content */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        {propertyType === "residential" && <VerifyResidential />}
-        {propertyType === "commercial" && <VerifyCommercial />}
-        {propertyType === "land" && <VerifyLand />}
-        {propertyType === "agricultural" && <VerifyAgricultural />}
+       <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <VerifyProperty />
       </div>
     </div>
   );

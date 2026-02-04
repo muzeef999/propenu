@@ -2,7 +2,7 @@
 
 import Logo from "@/animations/Logo";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 interface Section {
   id: string;
@@ -38,17 +38,52 @@ function SectionHeader({ id, title }: { id: string; title: string }) {
 
 /* ---------- Terms Page ---------- */
 const Terms = () => {
-  const [activeSection, setActiveSection] = useState<string>("acceptance");
+  const [activeSection, setActiveSection] = useState<string>(sections[0].id);
+  const isClickScrolling = useRef(false);
+  const scrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (isClickScrolling.current) return;
+
+      // A section becomes active when its top passes the middle of the screen
+      const offset = window.innerHeight / 2;
+      const currentPosition = window.scrollY + offset;
+
+      let newActiveSection = sections[0].id;
+      for (const section of sections) {
+        const element = document.getElementById(section.id);
+        if (element && element.offsetTop <= currentPosition) {
+          newActiveSection = section.id;
+        }
+      }
+      setActiveSection(newActiveSection);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    handleScroll(); // Set initial section on page load
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+    };
+  }, []);
 
   const scrollToSection = (id: string) => {
+    isClickScrolling.current = true;
     setActiveSection(id);
     const element = document.getElementById(id);
     element?.scrollIntoView({ behavior: "smooth" });
+
+    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+    scrollTimeout.current = setTimeout(() => {
+      isClickScrolling.current = false;
+    }, 1000); // Prevent scroll handler during smooth scroll
   };
 
   return (
     <div className="bg-linear-to-b from-white to-gray-50 min-h-screen">
-      
+
 
       {/* Main Content Area */}
       <div className=" px-4 sm:px-6 lg:px-8 py-12">
@@ -67,11 +102,10 @@ const Terms = () => {
                       key={section.id}
                       onClick={() => scrollToSection(section.id)}
                       className={`group w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[15px] transition-all duration-200
-              ${
-                isActive
-                  ? "bg-white text-[#27A361] font-semibold shadow-sm"
-                  : "text-gray-500 hover:bg-white/60 hover:text-[#27A361]"
-              }
+              ${isActive
+                          ? "bg-white text-[#27A361] font-semibold shadow-sm"
+                          : "text-gray-500 hover:bg-white/60 hover:text-[#27A361]"
+                        }
             `}
                     >
                       {/* Title */}
@@ -91,6 +125,10 @@ const Terms = () => {
           {/* Main Content */}
           <div className="lg:col-span-3">
             <div className="bg-white rounded-lg shadow-sm p-8 space-y-8">
+              <div className="flex justify-between items-center border-b border-gray-300 pb-4">
+                <h1 className="text-3xl font-bold text-gray-900">Terms & Conditions</h1>
+                <p className="text-sm text-gray-500 italic">Effective Date: March 19, 2026</p>
+              </div>
               {/* Introduction Section */}
               <div className="border-b border-gray-200 pb-8">
                 <div className="space-y-4 text-gray-700 leading-relaxed">
@@ -218,7 +256,7 @@ const Terms = () => {
                   <p className="pt-2">
                     While Propenu takes reasonable steps to verify users and
                     listings, the responsibility for accuracy, legality, and
-                    validity remains with the user who posts it.
+                    validity remains solely with the user who posts it.
                   </p>
 
                   <p>
@@ -271,7 +309,7 @@ const Terms = () => {
                       Propenu does not endorse or guarantee the accuracy,
                       quality, or legality of any advertised or sponsored
                       content, including advertisements from banks or service
-                      providers
+                      providers.
                     </p>
                     <p>
                       Users acknowledge that sponsored content is part of
@@ -298,7 +336,7 @@ const Terms = () => {
                   </p>
                   <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded">
                     <p className="font-semibold mb-2">Prohibited Actions:</p>
-                    <ul className="space-y-1 ml-4 text-sm">
+                    <ul className="space-y-1 ml-4">
                       <li>
                         • Users must not copy, reproduce, modify, distribute,
                         sell, or create derivative works from any part of the
@@ -306,7 +344,7 @@ const Terms = () => {
                       </li>
                       <li>
                         • Use of Propenu’s name, logo, branding, or trademarks
-                        without authorization is strictly prohibited
+                        without authorization is strictly prohibited.
                       </li>
                     </ul>
                   </div>
@@ -337,7 +375,7 @@ const Terms = () => {
                   </p>
                   <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
                     <p className="font-semibold mb-2">Your Responsibilities:</p>
-                    <ul className="space-y-1 ml-4 text-sm">
+                    <ul className="space-y-1 ml-4">
                       <li>
                         • Lead and analytics data is provided only for the
                         user’s internal use in relation to their listings or
@@ -378,7 +416,7 @@ const Terms = () => {
                     <p>
                       <strong>Subscription Details:</strong>
                     </p>
-                    <ul className="space-y-1 ml-4 text-sm">
+                    <ul className="space-y-1 ml-4">
                       <li>
                         • Fees paid are non-refundable, unless otherwise stated
                         in a specific refund or cancellation policy
@@ -446,28 +484,28 @@ const Terms = () => {
                   <div className="space-y-2 bg-red-50 border-l-4 border-red-400 p-4 rounded">
                     <ul className="space-y-2 ml-4">
                       <li className="flex gap-2">
-                        <span className="text-red-600 font-bold">✗</span>
+                        <span className="w-1.5 h-1.5 mt-2 rounded-full bg-red-500 shrink-0" />
                         <span>
                           Posting false, misleading, fraudulent, or unlawful
                           property information or content.
                         </span>
                       </li>
                       <li className="flex gap-2">
-                        <span className="text-red-600 font-bold">✗</span>
+                        <span className="w-1.5 h-1.5 mt-2 rounded-full bg-red-500 shrink-0" />
                         <span>
                           Using the Platform for any illegal purpose or in
                           violation of applicable laws or regulations.
                         </span>
                       </li>
                       <li className="flex gap-2">
-                        <span className="text-red-600 font-bold">✗</span>
+                        <span className="w-1.5 h-1.5 mt-2 rounded-full bg-red-500 shrink-0" />
                         <span>
                           Attempting to hack, disrupt, damage, or interfere with
                           the Platform, servers, networks, or security systems.
                         </span>
                       </li>
                       <li className="flex gap-2">
-                        <span className="text-red-600 font-bold">✗</span>
+                        <span className="w-1.5 h-1.5 mt-2 rounded-full bg-red-500 shrink-0" />
                         <span>
                           Misusing, copying, scraping, selling, or distributing
                           Platform data, leads, or content without
@@ -475,14 +513,14 @@ const Terms = () => {
                         </span>
                       </li>
                       <li className="flex gap-2">
-                        <span className="text-red-600 font-bold">✗</span>
+                        <span className="w-1.5 h-1.5 mt-2 rounded-full bg-red-500 shrink-0" />
                         <span>
                           Impersonating another person, entity, or
                           misrepresenting identity or authority.
                         </span>
                       </li>
                       <li className="flex gap-2">
-                        <span className="text-red-600 font-bold">✗</span>
+                        <span className="w-1.5 h-1.5 mt-2 rounded-full bg-red-500 shrink-0" />
                         <span>
                           Uploading content that infringes third-party rights,
                           including ownership, contractual, or intellectual
@@ -490,14 +528,14 @@ const Terms = () => {
                         </span>
                       </li>
                       <li className="flex gap-2">
-                        <span className="text-red-600 font-bold">✗</span>
+                        <span className="w-1.5 h-1.5 mt-2 rounded-full bg-red-500 shrink-0" />
                         <span>
                           Using automated tools, bots, or scripts to access or
                           interact with the Platform without permission.
                         </span>
                       </li>
                       <li className="flex gap-2">
-                        <span className="text-red-600 font-bold">✗</span>
+                        <span className="w-1.5 h-1.5 mt-2 rounded-full bg-red-500 shrink-0" />
                         <span>
                           Engaging in abusive, harmful, defamatory, or offensive
                           behaviour toward other users or Propenu.
@@ -539,7 +577,7 @@ const Terms = () => {
                   </p>
                   <p>
                     Property listings, analytics, leads, and other content are
-                    provided for informational purposes only.
+                    provided for informational purposes only and don't constitute professional, legal, or financial advice.
                   </p>
                   <p className="font-semibold text-gray-900">
                     Users acknowledge and agree that they are solely responsible

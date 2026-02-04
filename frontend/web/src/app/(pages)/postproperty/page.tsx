@@ -71,7 +71,7 @@ const Page = () => {
           <Sidebar />
 
           {/* Main Content */}
-          <div className="h-full overflow-y-auto p-4 lg:p-0">
+          <div className="h-full overflow-y-auto lg:p-0">
             <MainContent />
           </div>
         </div>

@@ -40,27 +40,27 @@ export default async function Page({ params }: PageProps) {
     { title: "About Us", href: "#about-us" },
     { title: "Brochure", href: "#brochure" },
   ];
- function formatCrRange(priceFrom?: number, priceTo?: number) {
-  if (!priceFrom && !priceTo) return "Price on Request";
+  function formatCrRange(priceFrom?: number, priceTo?: number) {
+    if (!priceFrom && !priceTo) return "Price on Request";
 
-  const fromCr = priceFrom ? Math.floor(priceFrom / 1e7) : null;
-  const toCr = priceTo ? Math.ceil(priceTo / 1e7) : null;
+    const fromCr = priceFrom ? Math.floor(priceFrom / 1e7) : null;
+    const toCr = priceTo ? Math.ceil(priceTo / 1e7) : null;
 
-  if (fromCr && toCr) {
-    if (fromCr === toCr) return `${fromCr} Cr`;
-    return `${fromCr} Cr - ${toCr} Cr`;
+    if (fromCr && toCr) {
+      if (fromCr === toCr) return `${fromCr} Cr`;
+      return `${fromCr} Cr - ${toCr} Cr`;
+    }
+
+    if (fromCr) return `${fromCr} Cr+`;
+    if (toCr) return `Up to ${toCr} Cr`;
+
+    return "Price on Request";
   }
 
-  if (fromCr) return `${fromCr} Cr+`;
-  if (toCr) return `Up to ${toCr} Cr`;
-
-  return "Price on Request";
-}
-
-const startingPrice = formatCrRange(
-  project?.priceFrom,
-  project?.priceTo
-);
+  const startingPrice = formatCrRange(
+    project?.priceFrom,
+    project?.priceTo
+  );
   const hero = {
     projectId: project._id,
     subTagline: project?.heroSubTagline,
@@ -114,10 +114,27 @@ const startingPrice = formatCrRange(
         color={project?.color?.trim()}
         brochureUrl={project?.brochureUrl}
       />
+      <div className="w-full bg-[#4F8EF7] text-white text-sm">
+        <div className="container mx-auto px-4 py-2 flex items-center justify-between">
+          <p className="flex items-center gap-2">
+            <span>🔥</span>
+            <span>
+              This project stands out for the lifestyle it offers, with premium design, modern amenities, and elevated living.
+            </span>
+          </p>
+
+          <button
+            className="text-white/80 hover:text-white text-lg leading-none"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+      </div>
 
       <Herosection hero={hero} />
 
-     <br/>
+      <br />
       <div className="container mx-auto px-4 space-y-2">
 
         <div id="available-properties" className="scroll-mt-20">

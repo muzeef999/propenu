@@ -66,14 +66,7 @@ const InputWithUnit: React.FC<InputWithUnitProps> = ({
           placeholder={placeholder}
           disabled={disabled}
           onChange={(e) => onValueChange(e.target.value)}
-          className={`
-            w-full px-3 py-2 text-sm outline-none bg-transparent
-            placeholder:text-gray-400
-            [appearance:textfield]
-            [&::-webkit-inner-spin-button]:appearance-none
-            [&::-webkit-outer-spin-button]:appearance-none
-            ${disabled ? "text-gray-500" : "text-gray-900"}
-          `}
+          className={`w-full px-3 py-2 text-sm outline-none bg-transparentplaceholder:text-gray-400[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${disabled ? "text-gray-500" : "text-gray-900"}`}
         />
 
         {/* Divider */}
@@ -86,9 +79,7 @@ const InputWithUnit: React.FC<InputWithUnitProps> = ({
             disabled={disabled}
             onChange={(e) => onUnitChange(e.target.value)}
             aria-label={`Unit for ${label}`}
-            className={`
-              h-full appearance-none bg-transparent
-              py-2 pl-1 pr-8 text-sm font-medium outline-none
+            className={`h-full appearance-none bg-transparent py-2 pl-1 pr-2 text-sm font-medium outline-none
               ${
                 disabled
                   ? "cursor-not-allowed text-gray-500"

@@ -60,7 +60,7 @@ const SafetyGuidePage = () => {
                                                 }`}
                                         >
                                             {/* Section title */}
-                                            <span className="flex-1 text-left">{section.title}</span>
+                                            <span className="flex-1 text-left truncate">{section.title}</span>
 
                                             {/* Active indicator dot */}
                                             {isActive && (
@@ -84,8 +84,7 @@ const SafetyGuidePage = () => {
                                 <div className="space-y-4 text-gray-700 leading-relaxed">
                                     <p>
                                         At Propenu, safety is not an afterthought. Every user is
-                                        KYC-verified. Every property is screened and approved. Every
-                                        interaction is monitored to prevent spam and fraud.
+                                        KYC-verified. Every property is screened and approved. Interactions are monitored to help prevent spam and fraud.
                                     </p>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 py-4">
                                         <div className="bg-green-50 text-green-800 p-3 rounded-lg text-center">
@@ -119,7 +118,7 @@ const SafetyGuidePage = () => {
                                     </p>
                                     <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-sm">
                                         <p className="font-semibold text-blue-800">
-                                            🛡️ Fraud is already blocked here. This guide is for your
+                                            🛡️ Fraud is actively prevented here. This guide is for your
                                             extra protection in the real world.
                                         </p>
 
@@ -150,7 +149,7 @@ const SafetyGuidePage = () => {
                                     <ul className="space-y-3">
                                         <li>
                                             <h4 className="font-semibold text-gray-800">
-                                                1. Never Pay Without Seeing the Property
+                                                1. Never Pay Anything without Seeing the Property
                                             </h4>
                                             <ul className="mt-1 ml-10 list-disc text-sm text-gray-600 space-y-1">
                                                 <li>Always visit the property in person.</li>
@@ -233,7 +232,7 @@ const SafetyGuidePage = () => {
                                                 2. Never Share Legal or Financial Details
                                             </h4>
                                             <ul className="mt-1 ml-10 list-disc text-sm text-gray-600 space-y-1">
-                                                <li>Do not share sale deeds, bank details, or ownership papers without legal purpose.</li>
+                                                <li>Do not share sale deeds, bank details, or ownership papers unless legal purpose.</li>
                                             </ul>
                                         </li>
                                         <li>
@@ -298,7 +297,7 @@ const SafetyGuidePage = () => {
                                                     Zero Spam & No Bots
                                                 </h4>
                                                 <p className="text-sm text-gray-600">
-                                                    Our systems actively block fake listings and suspicious accounts.
+                                                    Our systems actively block fake listings and suspicious activity.
                                                 </p>
                                             </div>
                                         </li>
@@ -315,8 +314,6 @@ const SafetyGuidePage = () => {
                                             </div>
                                         </li>
                                     </ul>
-                                    <p>You’re not just browsing.
-                                        You’re operating inside a trusted ecosystem.</p>
                                 </div>
                             </div>{" "}
 

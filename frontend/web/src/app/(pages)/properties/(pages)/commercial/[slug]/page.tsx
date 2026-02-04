@@ -199,10 +199,7 @@ export default async function Page({ params }: PageProps) {
                   {project.amenities && project.amenities.length > 0 ? (
                     <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 sm:grid-cols-3">
                       {project.amenities.map((i) => (
-                        <div
-                          key={i.key}
-                          className="flex items-center gap-2 rounded-md border border-gray-100 px-2 py-1"
-                        >
+                        <div key={i.key} className="flex items-center gap-2 rounded-md border border-gray-100 px-2 py-1">
                           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                           <span>{i.title}</span>
                         </div>

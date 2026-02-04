@@ -1,5 +1,5 @@
 import { useSelector } from "react-redux";
-import { setProfileField } from "@/Redux/slice/postPropertySlice";
+import { nextStep, setBaseField, setProfileField } from "@/Redux/slice/postPropertySlice";
 import CounterField from "@/ui/CounterField";
 import InputField from "@/ui/InputField";
 import TextArea from "@/ui/TextArae";
@@ -8,42 +8,13 @@ import InputWithUnit from "@/ui/InputwithUnit";
 import Dropdownui from "@/ui/DropDownUI";
 import ToggleSwitch from "@/ui/ToggleSwitch";
 import { submitDetailsThunk } from "@/Redux/thunks/submitPropertyApi";
-
-
-const AREA_UNITS = [
-  "sqft",
-  "sqmt",
-  "acre",
-  "guntha",
-  "cent",
-  "hectare",
-] as const;
-
-const ROAD_WIDTH_UNITS = ["ft", "meter"] as const;
-
-const PROPERTY_TYPES = [
-  "agricultural-land",
-  "farm-land",
-  "orchard-land",
-  "plantation",
-  "wet-land",
-  "dry-land",
-  "ranch",
-  "dairy-farm",
-] as const;
-
-const PROPERTY_SUB_TYPES = [
-  "irrigated",
-  "non-irrigated",
-  "fenced",
-  "unfenced",
-  "with-well",
-  "with-borewell",
-  "with-electricity",
-  "near-road",
-  "inside-village",
-  "farmhouse-permission",
-] as const;
+import FileUpload, { UploadedFile } from "@/ui/FileUpload";
+import { setFiles } from "@/lib/fileStore";
+import { setFileStoreFiles } from "@/utilies/fileStore";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { validateAgriculturalProfile } from "@/zod/profileZods/agriculturalZod";
 
 const SOIL_TYPES = [
   "clay",
@@ -83,8 +54,22 @@ const ACCESS_ROAD_TYPES = [
 ] as const;
 
 const AgriculturalProfile = () => {
-  const { agricultural } = useSelector((state: any) => state.postProperty);
+  const { agricultural, draftId, propertyType } = useSelector((state: any) => state.postProperty);
   const dispatch = useAppDispatch();
+  const [showErrors, setShowErrors] = useState(false);
+  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const router = useRouter();
+  const validationResult = validateAgriculturalProfile(agricultural, files.map((f) => f.file),
+  );
+  const formattedErrors =
+    showErrors && !validationResult.success
+      ? validationResult.error.format()
+      : undefined;
+
+  const fieldErrors = formattedErrors;
+  const borewellErrors = formattedErrors?.borewellDetails;
+
+
 
   return (
     <div className="space-y-10">
@@ -97,7 +82,7 @@ const AgriculturalProfile = () => {
           </p>
         </div>
         <div className=" grid grid-cols-1 md:grid-cols-3 gap-4">
-          <InputWithUnit
+          {/* <InputWithUnit
             label="Total Area"
             value={agricultural.totalArea?.value ?? ""}
             unit={agricultural.totalArea?.unit ?? null}
@@ -134,8 +119,8 @@ const AgriculturalProfile = () => {
                 })
               )
             }
-          />
-          <InputWithUnit
+          /> */}
+          {/* <InputWithUnit
             label="Road Width"
             value={agricultural.roadWidth?.value ?? ""}
             unit={agricultural.roadWidth?.unit ?? null}
@@ -168,7 +153,7 @@ const AgriculturalProfile = () => {
                 })
               )
             }
-          />
+          /> */}
           <CounterField
             label="Plantation Age (years)"
             value={agricultural.plantationAge || 0}
@@ -285,64 +270,102 @@ const AgriculturalProfile = () => {
 
           {agricultural.numberOfBorewells > 0 && (
             <>
-              <InputField
-                label="Borewell Depth (meters)"
-                type="number"
-                value={agricultural.borewellDetails?.depthMeters || ""}
-                placeholder="e.g. 100"
-                onChange={(value) =>
-                  dispatch(
-                    setProfileField({
-                      propertyType: "agricultural",
-                      key: "borewellDetails",
-                      value: {
-                        ...agricultural.borewellDetails,
-                        depthMeters: Number(value) || 0,
-                      },
-                    })
-                  )
-                }
-              />
+              {/* ================= DEPTH ================= */}
+              <div>
+                <InputField
+                  label="Borewell Depth (meters)"
+                  type="number"
+                  value={agricultural.borewellDetails?.depthMeters || ""}
+                  placeholder="e.g. 100"
+                  onChange={(value) =>
+                    dispatch(
+                      setProfileField({
+                        propertyType: "agricultural",
+                        key: "borewellDetails",
+                        value: {
+                          ...agricultural.borewellDetails,
+                          depthMeters: Number(value) || 0,
+                        },
+                      }),
+                    )
+                  }
+                />
 
-              <InputField
-                label="Yield (LPM)"
-                type="number"
-                value={agricultural.borewellDetails?.yieldLpm || ""}
-                placeholder="e.g. 5000"
-                onChange={(value) =>
-                  dispatch(
-                    setProfileField({
-                      propertyType: "agricultural",
-                      key: "borewellDetails",
-                      value: {
-                        ...agricultural.borewellDetails,
-                        yieldLpm: Number(value) || 0,
-                      },
-                    })
-                  )
-                }
-              />
+                {borewellErrors?.depthMeters?._errors?.[0] && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {borewellErrors.depthMeters._errors[0]}
+                  </p>
+                )}
 
-              <InputField
-                label="Drilled Year"
-                type="number"
-                value={agricultural.borewellDetails?.drilledYear || ""}
-                placeholder="e.g. 2020"
-                onChange={(value) =>
-                  dispatch(
-                    setProfileField({
-                      propertyType: "agricultural",
-                      key: "borewellDetails",
-                      value: {
-                        ...agricultural.borewellDetails,
-                        drilledYear: Number(value) || 0,
-                      },
-                    })
-                  )
-                }
-              />
+              </div>
+
+              {/* ================= YIELD ================= */}
+              <div>
+                <InputField
+                  label="Yield (LPM)"
+                  type="number"
+                  value={agricultural.borewellDetails?.yieldLpm || ""}
+                  placeholder="e.g. 5000"
+                  onChange={(value) =>
+                    dispatch(
+                      setProfileField({
+                        propertyType: "agricultural",
+                        key: "borewellDetails",
+                        value: {
+                          ...agricultural.borewellDetails,
+                          yieldLpm: Number(value) || 0,
+                        },
+                      }),
+                    )
+                  }
+                />
+
+                {borewellErrors?.yieldLpm?._errors?.[0] && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {borewellErrors.yieldLpm._errors[0]}
+                  </p>
+                )}
+
+              </div>
+
+              {/* ================= DRILLED YEAR ================= */}
+              <div>
+                <InputField
+                  label="Drilled Year"
+                  type="number"
+                  value={agricultural.borewellDetails?.drilledYear || ""}
+                  placeholder="e.g. 2020"
+                  onChange={(value) =>
+                    dispatch(
+                      setProfileField({
+                        propertyType: "agricultural",
+                        key: "borewellDetails",
+                        value: {
+                          ...agricultural.borewellDetails,
+                          drilledYear: Number(value) || 0,
+                        },
+                      }),
+                    )
+                  }
+                />
+
+                {borewellErrors?.drilledYear?._errors?.[0] && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {borewellErrors.drilledYear._errors[0]}
+                  </p>
+                )}
+
+              </div>
+
+              {/* ================= OBJECT LEVEL ERROR ================= */}
+              {Array.isArray(borewellErrors) && borewellErrors[0] && (
+                <p className="text-red-600 text-xs mt-2">
+                  {borewellErrors[0]}
+                </p>
+              )}
             </>
           )}
+
         </div>
       </div>
 
@@ -414,36 +437,57 @@ const AgriculturalProfile = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InputField
-            label="State Purchase Restrictions"
-            value={agricultural.statePurchaseRestrictions || ""}
-            placeholder="e.g. None, Restricted"
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "agricultural",
-                  key: "statePurchaseRestrictions",
-                  value,
-                })
-              )
-            }
-          />
-          <InputField
-            label="Access Road Type"
-            value={agricultural.accessRoadType || ""}
-            placeholder="e.g. Paved, Unpaved"
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "agricultural",
-                  key: "accessRoadType",
-                  value,
-                })
-              )
-            }
-          />
+          {/* ================= STATE PURCHASE RESTRICTIONS ================= */}
+          <div>
+            <InputField
+              label="State Purchase Restrictions"
+              value={agricultural.statePurchaseRestrictions || ""}
+              placeholder="e.g. None, Restricted"
+              onChange={(value) =>
+                dispatch(
+                  setProfileField({
+                    propertyType: "agricultural",
+                    key: "statePurchaseRestrictions",
+                    value,
+                  }),
+                )
+              }
+            />
+
+            {fieldErrors?.statePurchaseRestrictions?.[0] && (
+              <p className="text-red-500 text-xs mt-1">
+                {fieldErrors.statePurchaseRestrictions[0]}
+              </p>
+            )}
+          </div>
+
+          {/* ================= ACCESS ROAD TYPE ================= */}
+          <div>
+            <InputField
+              label="Access Road Type"
+              value={agricultural.accessRoadType || ""}
+              placeholder="e.g. Paved, Unpaved"
+              onChange={(value) =>
+                dispatch(
+                  setProfileField({
+                    propertyType: "agricultural",
+                    key: "accessRoadType",
+                    value,
+                  }),
+                )
+              }
+            />
+
+            {fieldErrors?.accessRoadType?._errors?.[0] && (
+              <p className="text-red-500 text-xs mt-1">
+                {fieldErrors.accessRoadType._errors[0]}
+              </p>
+            )}
+
+          </div>
         </div>
       </div>
+
 
       <div className="space-y-6">
         <div>
@@ -455,16 +499,14 @@ const AgriculturalProfile = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Boundary Wall */}
           <div
-            className={`flex items-center justify-between rounded-md border p-3 transition-colors ${
-              agricultural.boundaryWall
-                ? "border-green-500 bg-green-50 shadow-sm"
-                : "border-gray-300 bg-white hover:border-gray-400"
-            }`}
+            className={`flex items-center justify-between rounded-md border p-3 transition-colors ${agricultural.boundaryWall
+              ? "border-green-500 bg-green-50 shadow-sm"
+              : "border-gray-300 bg-white hover:border-gray-400"
+              }`}
           >
             <span
-              className={`text-sm font-medium ${
-                agricultural.boundaryWall ? "text-green-800" : "text-gray-700"
-              }`}
+              className={`text-sm font-medium ${agricultural.boundaryWall ? "text-green-800" : "text-gray-700"
+                }`}
             >
               Boundary Wall
             </span>
@@ -485,18 +527,16 @@ const AgriculturalProfile = () => {
 
           {/* Electricity Connection */}
           <div
-            className={`flex items-center justify-between rounded-md border p-3 transition-colors ${
-              agricultural.electricityConnection
-                ? "border-green-500 bg-green-50 shadow-sm"
-                : "border-gray-300 bg-white hover:border-gray-400"
-            }`}
+            className={`flex items-center justify-between rounded-md border p-3 transition-colors ${agricultural.electricityConnection
+              ? "border-green-500 bg-green-50 shadow-sm"
+              : "border-gray-300 bg-white hover:border-gray-400"
+              }`}
           >
             <span
-              className={`text-sm font-medium ${
-                agricultural.electricityConnection
-                  ? "text-green-800"
-                  : "text-gray-700"
-              }`}
+              className={`text-sm font-medium ${agricultural.electricityConnection
+                ? "text-green-800"
+                : "text-gray-700"
+                }`}
             >
               Electricity Connection
             </span>
@@ -516,44 +556,37 @@ const AgriculturalProfile = () => {
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4 items-end">
-            <InputField
-              label="Total Price"
-              value={agricultural.price || ""}
-              placeholder="e.g. 75,00,000"
-              onChange={(value) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "agricultural",
-                    key: "price",
-                    value: value.replace(/\D/g, ""),
-                  })
-                )
-              }
-            />
-
-            <InputField
-              label="Price Per Sqft"
-              value={agricultural.pricePerSqft || ""}
-              placeholder="e.g. 6250"
-              onChange={(value) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "agricultural",
-                    key: "pricePerSqft",
-                    value: value.replace(/\D/g, ""),
-                  })
-                )
-              }
-            />
-          </div>
+      <div className="space-y-2">
+        <FileUpload
+          label="Property Images"
+          value={files}
+          onChange={(newFiles) => {
+            setFiles(newFiles);
+            // persist only metadata in Redux (serializable)
+            dispatch(
+              setBaseField({
+                key: "galleryFiles",
+                value: newFiles.map((f) => ({ filename: f.file.name })),
+              }),
+            );
+            // store actual File objects in in-memory file store
+            setFileStoreFiles(
+              "postProperty",
+              newFiles.map((f) => f.file),
+            );
+          }}
+          accept="image/*"
+          maxFiles={5}
+          maxSizeMB={5}
+          error={fieldErrors?.images?.[0]}
+        />
+      </div>
 
       <div
-        className={`flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300 ${
-          agricultural.isPriceNegotiable
-            ? "border-green-500 bg-green-50 shadow-sm"
-            : ""
-        }`}
+        className={`flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300 ${agricultural.isPriceNegotiable
+          ? "border-green-500 bg-green-50 shadow-sm"
+          : ""
+          }`}
       >
         <div>
           <p className="text-sm font-semibold text-gray-800">
@@ -565,11 +598,10 @@ const AgriculturalProfile = () => {
         </div>
         <div className="flex items-center gap-3">
           <span
-            className={`text-xs font-medium ${
-              agricultural.isPriceNegotiable
-                ? "text-green-600"
-                : "text-gray-400"
-            }`}
+            className={`text-xs font-medium ${agricultural.isPriceNegotiable
+              ? "text-green-600"
+              : "text-gray-400"
+              }`}
           >
             {agricultural.isPriceNegotiable ? "YES" : "NO"}
           </span>
@@ -610,10 +642,80 @@ const AgriculturalProfile = () => {
       {/* ========== SUBMIT BUTTON ========== */}
       <button
         type="button"
-        onClick={() => dispatch(submitDetailsThunk(agricultural))}
-        className="px-6 py-3 bg-green-600 text-white rounded-md cursor-pointer"
+        onClick={() => {
+          setShowErrors(true);
+
+          // ✅ FIX: convert amenities objects → string[] ONLY for validation
+          const payload = {
+            ...agricultural,
+
+            amenities: Array.isArray(agricultural.amenities)
+              ? agricultural.amenities.map((a: any) => a?.title).filter(Boolean)
+              : [],
+          };
+
+          const result = validateAgriculturalProfile(
+            payload,
+            files.map((f) => f.file),
+          );
+
+          if (!result.success) {
+            const flattened = result.error.flatten();
+
+            console.error("❌ Residential Profile Validation Failed");
+            console.table(flattened.fieldErrors);
+            console.log("Full Zod Error:", result.error);
+
+            toast.error("Please fix the highlighted errors");
+            return;
+          }
+
+          // 🚀 IMPORTANT: send ORIGINAL agricultural object to backend
+          dispatch(
+            submitDetailsThunk({
+              category: propertyType,
+              id: draftId,
+              payload: agricultural, // backend/thunk will format this
+            }),
+          )
+            .unwrap()
+            .then((response) => {
+              dispatch(nextStep()); // Move to next step on success
+
+
+            })
+            .catch((error: any) => {
+              console.log("🔥 FULL ERROR FROM API:", error);
+
+              const errObj =
+                typeof error === "string"
+                  ? { message: error }
+                  : error?.response?.data || error;
+
+              toast.error(errObj?.message || "Failed to submit property");
+
+              if (
+                errObj?.code === "NO_VALID_PLAN" ||
+                errObj?.code === "PLAN_LIMIT_REACHED"
+              ) {
+                const listingType = agricultural.listingType || "sale";
+
+                const redirectUrl =
+                  listingType === "sale"
+                    ? "/plans/pricing/owner-sell"
+                    : "/plans/pricing/owner-rent";
+
+                console.log("🚀 Redirecting to:", redirectUrl);
+
+                setTimeout(() => {
+                  router.push(redirectUrl);
+                }, 800);
+              }
+            });
+        }}
+        className="py-2 btn-primary text-white rounded-md cursor-pointer w-full"
       >
-        Submit Property
+        Continue
       </button>
     </div>
   );

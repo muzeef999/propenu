@@ -13,9 +13,9 @@ const LEAD_STATUSES = [
     "New",
     "Contacted",
     "Follow-up",
-    "Approved",
-    "Rejected",
+    "Site Visit",
     "Closed",
+    "Not interested",
 ];
 
 const TAB_KEY_MAP: Record<string, string> = {

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const residentialVerifySchema = z.object({
+export const PropertyVerifySchema = z.object({
   verificationDocuments: z
     .array(z.instanceof(File), {
       message: "Verification document is required",
@@ -8,8 +8,8 @@ export const residentialVerifySchema = z.object({
     .min(1, "Please upload a verification document"),
 });
 
-export const validateResidentialVerify = (data: any) => {
-  return residentialVerifySchema.safeParse({
+export const validatePropertyVerify = (data: any) => {
+  return PropertyVerifySchema.safeParse({
     verificationDocuments: data?.verificationDocuments,
   });
 };

@@ -54,7 +54,7 @@ const Page = () => {
   const [activeTab, setActiveTab] = useState("Residential");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<
-    "All" | "Active" | "Reported" | "Subscription Expired" | "Deactivate"
+    "All" | "Active" | "Reported" | "Subscription Expired" | "Deactive"
   >("All");
   const [openResponses, setOpenResponses] = useState(false);
 
@@ -151,7 +151,7 @@ const Page = () => {
             "Active",
             "Reported",
             "Subscription Expired",
-            "Deactivate",
+            "Deactive",
           ].map((item) => (
             <SelectableButton
               key={item}

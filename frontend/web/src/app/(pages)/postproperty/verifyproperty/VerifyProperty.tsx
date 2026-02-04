@@ -11,7 +11,7 @@ import { setProfileField } from "@/Redux/slice/postPropertySlice";
 import { submitVerificationThunk } from "@/Redux/thunks/submitPropertyApi";
 
 import FileUpload, { UploadedFile } from "@/ui/FileUpload";
-import { validateResidentialVerify } from "@/zod/verificationZod/residentialVerifyZod";
+import { validatePropertyVerify } from "@/zod/verificationZod/PropertyVerifyZod";
 
 /* =========================
    DOCUMENT CONFIG (IMPORTANT)
@@ -48,7 +48,7 @@ const VERIFICATION_DOCS = [
   },
 ];
 
-const VerifyResidential = () => {
+const VerifyProperty = () => {
   const { residential, draftId, propertyType } = useSelector(
     (state: any) => state.postProperty,
   );
@@ -59,7 +59,7 @@ const VerifyResidential = () => {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [showErrors, setShowErrors] = useState(false);
 
-  const validationResult = validateResidentialVerify({
+  const validationResult = validatePropertyVerify({
     verificationDocuments: files.map((f) => f.file),
   });
 
@@ -76,7 +76,7 @@ const VerifyResidential = () => {
   const handleSubmit = () => {
     setShowErrors(true);
 
-    const result = validateResidentialVerify({
+    const result = validatePropertyVerify({
       verificationDocuments: files.map((f) => f.file),
     });
 
@@ -221,4 +221,4 @@ const VerifyResidential = () => {
   );
 };
 
-export default VerifyResidential;
+export default VerifyProperty;

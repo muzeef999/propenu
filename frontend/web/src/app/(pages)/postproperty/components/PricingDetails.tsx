@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { setProfileField } from "@/Redux/slice/postPropertySlice";
 import InputField from "@/ui/InputField";
+import InputWithUnit from "@/ui/InputwithUnit";
 import { numberToWords } from "@/utilies/NumberToWord";
 
 type PricingDetailsProps = {
@@ -16,65 +17,42 @@ export default function PricingDetails({
   fieldErrors,
 }: PricingDetailsProps) {
   const dispatch = useDispatch();
-  const isLandLike = propertyType === "land" || propertyType === "agricultural";
 
-  const areaKey =
-    propertyType === "agricultural"
-      ? "totalArea"
-      : propertyType === "land"
-        ? "plotArea"
-        : "carpetArea";
-  const areaLabel =
-    propertyType === "agricultural"
-      ? "Total Area (sq ft)"
-      : propertyType === "land"
-        ? "Plot Area (sq ft)"
-        : "Carpet Area (sq ft)";
-  const extraFieldKey = isLandLike ? "roadWidth" : "builtUpArea";
-  const extraFieldLabel = isLandLike
-    ? "Road Width (ft)"
-    : "Built-up Area (sq ft)";
+  const isAgricultural = propertyType === "agricultural";
+  const isLand = propertyType === "land";
 
-  /* ✅ AUTO CALCULATE PRICE / SQ FT */
+  /* ================= AREA KEYS ================= */
+  const areaValue =
+    isAgricultural
+      ? data.totalArea?.value
+      : isLand
+        ? data.plotArea
+        : data.carpetArea;
+
+  /* ================= AUTO PRICE / SQ FT ================= */
   useEffect(() => {
-    const price = Number(data.price) || Number(data.expectedPrice);
-
-    const area = Number(data[areaKey]);
+    const price = Number(data.price);
+    const area = Number(areaValue);
 
     if (price > 0 && area > 0) {
-      const pricePerSqft = String(Math.round(price / area));
+      const pps = Math.round(price / area).toString();
 
-      if (pricePerSqft !== data.pricePerSqft) {
+      if (pps !== data.pricePerSqft) {
         dispatch(
           setProfileField({
             propertyType,
             key: "pricePerSqft",
-            value: pricePerSqft,
+            value: pps,
           }),
         );
       }
-    } else if (data.pricePerSqft) {
-      dispatch(
-        setProfileField({
-          propertyType,
-          key: "pricePerSqft",
-          value: "",
-        }),
-      );
     }
-  }, [
-    data.price,
-    data.expectedPrice,
-    data.pricePerSqft,
-    data[areaKey],
-    areaKey,
-    propertyType,
-    dispatch,
-  ]);
+  }, [data.price, areaValue, data.pricePerSqft, dispatch, propertyType]);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
-      {/* Total Price */}
+    <div className="grid grid-cols-2 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-start">
+
+      {/* ================= TOTAL PRICE ================= */}
       <div className="flex flex-col">
         <InputField
           label="Total Price"
@@ -92,57 +70,141 @@ export default function PricingDetails({
           }
         />
 
+
         {data.price && (
           <p className="mt-1 text-xs text-gray-500 italic">
             ₹ {numberToWords(Number(data.price))}
             {data.pricePerSqft && (
-              <> (₹ {Number(data.pricePerSqft).toLocaleString()} per sq.ft.)</>
+              <> (₹ {Number(data.pricePerSqft).toLocaleString()} / sq.ft)</>
             )}
           </p>
         )}
       </div>
 
-      <InputField
-        label={areaLabel}
-        value={data[areaKey] || ""}
-        placeholder="e.g. 1200"
-        error={fieldErrors[areaKey]?.[0]}
-        onChange={(value) =>
-          dispatch(
-            setProfileField({
-              propertyType,
-              key: areaKey,
-              value: value.replace(/\D/g, ""),
-            }),
-          )
-        }
-      />
+      {/* ================= AGRICULTURAL AREA ================= */}
+      {isAgricultural ? (
+        <InputWithUnit
+          label="Total Area"
+          placeholder="e.g. 5"
+          value={data.totalArea?.value ?? ""}
+          unit={data.totalArea?.unit ?? "acre"}
+          units={[
+            { label: "SQ.FT", value: "sqft" },
+            { label: "SQ.MT", value: "sqmt" },
+            { label: "ACRE", value: "acre" },
+            { label: "GUNTHA", value: "guntha" },
+            { label: "CENT", value: "cent" },
+            { label: "HECTARE", value: "hectare" },
+          ]}
+          error={fieldErrors.totalArea?.[0]}
+          onValueChange={(value) =>
+            dispatch(
+              setProfileField({
+                propertyType,
+                key: "totalArea",
+                value: {
+                  value,
+                  unit: data.totalArea?.unit || "acre",
+                },
+              }),
+            )
+          }
+          onUnitChange={(unit) =>
+            dispatch(
+              setProfileField({
+                propertyType,
+                key: "totalArea",
+                value: {
+                  value: data.totalArea?.value || "",
+                  unit,
+                },
+              }),
+            )
+          }
+        />
+      ) : (
+        <InputField
+          label={isLand ? "Plot Area (sq ft)" : "Carpet Area (sq ft)"}
+          placeholder={isLand ? "e.g. 2400" : "e.g. 1200"}
+          value={areaValue ?? ""}
+          error={fieldErrors[isLand ? "plotArea" : "carpetArea"]?.[0]}
+          onChange={(value) =>
+            dispatch(
+              setProfileField({
+                propertyType,
+                key: isLand ? "plotArea" : "carpetArea",
+                value: value.replace(/\D/g, ""),
+              }),
+            )
+          }
+        />
 
-      {/* Price / sq ft */}
+      )}
+
+      {/* ================= PRICE / SQ FT ================= */}
       <InputField
         label="Price / sq ft"
         value={data.pricePerSqft || ""}
         placeholder="Auto calculated"
         disabled
-        onChange={() => { }}
       />
 
-      {/* Built-up Area */}
-      <InputField
-        label={extraFieldLabel}
-        value={data[extraFieldKey] || ""}
-        placeholder={isLandLike ? "e.g. 40" : "Optional"}
-        error={fieldErrors[extraFieldKey]?.[0]}
-        onChange={(value) =>
-          dispatch(
-            setProfileField({
-              propertyType,
-              key: extraFieldKey,
-              value: value.replace(/\D/g, ""),
-            }),
-          )
-        }
-      />
+
+      {/* ================= ROAD WIDTH / BUILT-UP ================= */}
+      {isAgricultural ? (
+        <InputWithUnit
+          label="Road Width"
+          placeholder="e.g. 30"
+          value={data.roadWidth?.value ?? ""}
+          unit={data.roadWidth?.unit ?? "ft"}
+          units={[
+            { label: "FT", value: "ft" },
+            { label: "METER", value: "meter" },
+          ]}
+          error={fieldErrors.roadWidth?.[0]}
+          onValueChange={(value) =>
+            dispatch(
+              setProfileField({
+                propertyType,
+                key: "roadWidth",
+                value: {
+                  value,
+                  unit: data.roadWidth?.unit || "ft",
+                },
+              }),
+            )
+          }
+          onUnitChange={(unit) =>
+            dispatch(
+              setProfileField({
+                propertyType,
+                key: "roadWidth",
+                value: {
+                  value: data.roadWidth?.value || "",
+                  unit,
+                },
+              }),
+            )
+          }
+        />
+      ) : (
+        <InputField
+          label={isLand ? "Road Width (ft)" : "Built-up Area (sq ft)"}
+          placeholder={isLand ? "e.g. 30" : "Optional"}
+          value={isLand ? data.roadWidth ?? "" : data.builtUpArea ?? ""}
+          error={fieldErrors[isLand ? "roadWidth" : "builtUpArea"]?.[0]}
+          onChange={(value) =>
+            dispatch(
+              setProfileField({
+                propertyType,
+                key: isLand ? "roadWidth" : "builtUpArea",
+                value: value.replace(/\D/g, ""),
+              }),
+            )
+          }
+        />
+
+      )}
     </div>
   );
 }

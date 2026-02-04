@@ -12,22 +12,23 @@ const About = () => {
       {/* Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8 space-y-8 text-gray-700 leading-relaxed">
+          <div className="flex justify-between items-center border-b border-gray-300 pb-4">
+                  <h1 className="text-3xl font-bold text-gray-900">Privacy Policy</h1>
+                </div>
           {/* Intro */}
           <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-gray-900">
-              Propenu – About Us
-            </h2>
+            
 
             <p>
               Propenu is a next-generation real estate technology platform that
-              makes buying, selling, and managing properties easier by using
+              makes buying, selling, and managing properties easier through
               verified data, trusted services, and secure transactions.
             </p>
 
             <p>
               We connect property seekers with genuine owners, builders, and
               agents through a unified digital ecosystem that supports every
-              stage of the home journey — from verification and discovery to
+              stage of the property journey, from verification and discovery to
               home loan assistance and post-purchase services.
             </p>
           </section>
@@ -45,7 +46,7 @@ const About = () => {
             </p>
 
             <p>
-              This helps prevent fraudulent listings and ensures zero spam
+              This helps prevent fraudulent listings and helps ensures zero spam
               interactions, enabling users to make informed and confident
               property decisions.
             </p>
@@ -65,7 +66,7 @@ const About = () => {
             <ul className="list-disc ml-2 space-y-2">
               <li className="flex gap-2"><span className="text-[#D4AF37] font-bold">•</span><span>Verified and curated property listings</span></li>
               <li className="flex gap-2"><span className="text-[#D4AF37] font-bold">•</span><span>Guided buying and enquiry support</span></li>
-              <li className="flex gap-2"><span className="text-[#D4AF37] font-bold">•</span><span>Lead management and analytics for professionals</span></li>
+              <li className="flex gap-2"><span className="text-[#D4AF37] font-bold">•</span><span>Lead management and analytics for real estate professionals</span></li>
               <li className="flex gap-2"><span className="text-[#D4AF37] font-bold">•</span><span>Access to home finance and post-purchase services</span></li>
             </ul>
           </section>
@@ -79,7 +80,7 @@ const About = () => {
             <p>
               Our aim is to create a trusted real estate ecosystem where verified
               users and properties, along with secure transactions, are the
-              standard—not optional.
+              standard, not optional.
             </p>
 
             <p>

@@ -141,13 +141,13 @@ export default function BasicDetailsStep() {
   const selectedCommercialType = commercial.propertyType;
   const commercialSubTypes =
     propertyType === "commercial" &&
-    selectedCommercialType &&
-    COMMERCIAL_SUBTYPE_MAP[
+      selectedCommercialType &&
+      COMMERCIAL_SUBTYPE_MAP[
       selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
-    ]
+      ]
       ? (COMMERCIAL_SUBTYPE_MAP[
-          selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
-        ] as readonly string[])
+        selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
+      ] as readonly string[])
       : [];
 
   const contactLabel =
@@ -169,7 +169,7 @@ export default function BasicDetailsStep() {
     <div className="space-y-4">
       <p className="text-sm font-medium text-gray-700">Listing type</p>
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         {listingOptions.map((option) => {
           const isActive = base.listingType === option.value;
 
@@ -198,7 +198,7 @@ export default function BasicDetailsStep() {
 
       <h2 className="text-sm font-medium text-gray-700">Property Type</h2>
 
-      <div className="mb-2 flex items-center gap-6">
+      <div className="mb-2 flex flex-wrap items-center gap-3 sm:gap-6">
         {["residential", "commercial", "land", "agricultural"].map((type) => (
           <label
             key={type}
@@ -254,11 +254,10 @@ export default function BasicDetailsStep() {
                         }
                       }}
                       className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition-all
-            ${
-              isSelected
-                ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500"
-                : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-            }
+            ${isSelected
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500"
+                          : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                        }
           `}
                     >
                       <span className="text-2xl">{sub.icon}</span>
@@ -279,7 +278,7 @@ export default function BasicDetailsStep() {
             {propertyType === "residential" && showRoomDetails && (
               <div className="space-y-6">
                 {/* Counters */}
-                <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 md:grid-cols-4">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
                   <CounterField
                     label="Bedrooms"
                     value={residential.bedrooms || residential.bhk || 1}
@@ -339,7 +338,7 @@ export default function BasicDetailsStep() {
                         Furnishing
                       </p>
 
-                      <div className="flex gap-3 flex-wrap">
+                      <div className="flex flex-wrap gap-3">
                         {[
                           { label: "Furnished", value: "fully-furnished" },
                           { label: "Semi furnished", value: "semi-furnished" },
@@ -361,11 +360,10 @@ export default function BasicDetailsStep() {
                                 )
                               }
                               className={`px-5 py-2 rounded-md text-sm border transition
-                  ${
-                    active
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                  }
+                  ${active
+                                  ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                                  : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                                }
                 `}
                             >
                               {item.label}
@@ -438,11 +436,10 @@ export default function BasicDetailsStep() {
                         }),
                       )
                     }
-                    className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
-                      isSelected
-                        ? "border-green-500 bg-green-50 text-green-600"
-                        : "border-gray-300 text-gray-700"
-                    }`}
+                    className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
+                      ? "border-green-500 bg-green-50 text-green-600"
+                      : "border-gray-300 text-gray-700"
+                      }`}
                   >
                     {subType.replace("-", " ").toUpperCase()}
                   </button>
@@ -500,7 +497,7 @@ export default function BasicDetailsStep() {
               <div className="space-y-2">
                 <p className="text-sm font-medium text-gray-700">Furnishing</p>
 
-                <div className="flex gap-5">
+                <div className="flex flex-wrap gap-3">
                   {[
                     { label: "Furnished", value: "fully-furnished" },
                     { label: "Semi furnished", value: "semi-furnished" },
@@ -586,19 +583,93 @@ export default function BasicDetailsStep() {
                     )
                   }
                   className={`px-4 py-2 rounded-md border text-sm transition
-              ${
-                isSelected
-                  ? "border-green-500 bg-green-50 text-green-600"
-                  : "border-gray-300 text-gray-700 hover:bg-gray-50"
-              }`}
+              ${isSelected
+                      ? "border-green-500 bg-green-50 text-green-600"
+                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                    }`}
                 >
                   {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
               );
             })}
           </div>
+
+
+          {showErrors && fieldErrors.landSubType?.[0] && (
+            <p className="text-xs text-red-500 mt-2">
+              {fieldErrors.landSubType[0]}
+            </p>
+          )}
         </div>
       )}
+      {propertyType === "land" && land.landSubType && (
+        <div className="rounded-md border border-green-500 bg-green-50 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm font-semibold text-gray-800">
+                Plot Dimensions (Optional)
+              </p>
+              <p className="text-xs text-gray-500">
+                Enter length and width in feet
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-3 items-end">
+            {/* Length */}
+            <InputField
+              label="Length"
+              type="number"
+              placeholder="e.g. 40"
+              value={land.dimensions?.length ?? ""}
+              onChange={(value) =>
+                dispatch(
+                  setProfileField({
+                    propertyType: "land",
+                    key: "dimensions",
+                    value: {
+                      length: value,
+                      width: land.dimensions?.width || "",
+                    },
+                  }),
+                )
+              }
+            />
+
+            {/* Multiply symbol */}
+            <div className="hidden sm:flex items-center justify-center pb-2">
+              <span className="text-xl font-semibold text-gray-400">×</span>
+            </div>
+
+            {/* Width */}
+            <InputField
+              label="Width"
+              type="number"
+              placeholder="e.g. 60"
+              value={land.dimensions?.width ?? ""}
+              onChange={(value) =>
+                dispatch(
+                  setProfileField({
+                    propertyType: "land",
+                    key: "dimensions",
+                    value: {
+                      length: land.dimensions?.length || "",
+                      width: value,
+                    },
+                  }),
+                )
+              }
+            />
+          </div>
+
+          {showErrors && fieldErrors.dimensions?.[0] && (
+            <p className="text-xs text-red-500 mt-2">
+              {fieldErrors.dimensions[0]}
+            </p>
+          )}
+        </div>
+      )}
+
 
       {agriculturalSubTypes.length > 0 && (
         <div className="mb-6">
@@ -622,17 +693,21 @@ export default function BasicDetailsStep() {
                       }),
                     );
                   }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
-                    isSelected
-                      ? "border-green-500 bg-green-50 text-green-600"
-                      : "border-gray-300 text-gray-700"
-                  }`}
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
+                    ? "border-green-500 bg-green-50 text-green-600"
+                    : "border-gray-300 text-gray-700"
+                    }`}
                 >
                   {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
               );
             })}
           </div>
+          {showErrors && fieldErrors.agriculturalSubType?.[0] && (
+            <p className="text-xs text-red-500 mt-2">
+              {fieldErrors.agriculturalSubType[0]}
+            </p>
+          )}
         </div>
       )}
       {propertyType === "residential" && showPricing && (
@@ -666,7 +741,7 @@ export default function BasicDetailsStep() {
               Availability Status
             </p>
 
-            <div className="flex gap-5">
+            <div className="flex flex-wrap gap-3">
               {[
                 { label: "Ready to Move", value: "ready-to-move" },
                 { label: "Under Construction", value: "under-construction" },
@@ -700,11 +775,10 @@ export default function BasicDetailsStep() {
                       }
                     }}
                     className={`px-6 py-2 rounded-md text-sm border transition
-                ${
-                  active
-                    ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                }`}
+                ${active
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                        : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                      }`}
                   >
                     {item.label}
                   </button>
@@ -745,11 +819,10 @@ export default function BasicDetailsStep() {
                         )
                       }
                       className={`px-6 py-2 rounded-md text-sm border transition
-                  ${
-                    active
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                  }`}
+                  ${active
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                          : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                        }`}
                     >
                       {item.label}
                     </button>
@@ -782,7 +855,7 @@ export default function BasicDetailsStep() {
               Transaction Type
             </p>
 
-            <div className="flex gap-5">
+            <div className="flex flex-wrap gap-3">
               {[
                 { label: "New Sale", value: "new-sale" },
                 { label: "Resale", value: "resale" },
@@ -803,11 +876,10 @@ export default function BasicDetailsStep() {
                       )
                     }
                     className={`px-6 py-2 rounded-md text-sm border transition
-                ${
-                  active
-                    ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                }`}
+                ${active
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                        : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                      }`}
                   >
                     {item.label}
                   </button>
@@ -815,13 +887,13 @@ export default function BasicDetailsStep() {
               })}
             </div>
             {showErrors && fieldErrors.transactionType?.[0] && (
-  <p className="text-xs text-red-500 mt-1">
-    {fieldErrors.transactionType[0]}
-  </p>
-)}
+              <p className="text-xs text-red-500 mt-1">
+                {fieldErrors.transactionType[0]}
+              </p>
+            )}
 
           </div>
-          
+
         </div>
       )}
 

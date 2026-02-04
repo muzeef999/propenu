@@ -64,8 +64,8 @@ export default function FeaturedProjectsClient() {
             Prime Projects
           </h1>
 
-          <p className="mt-1 text-sm text-gray-500 sm:text-base">
-            Exceptional properties in {selectedCity?.city ?? "Hyderabad"}
+          <p className="mt-1 text-sm text-gray-500 sm:text-base ">
+            Stand out for the lifestyle they offer in {selectedCity?.city ?? "Hyderabad"}
           </p>
         </div>
       </div>

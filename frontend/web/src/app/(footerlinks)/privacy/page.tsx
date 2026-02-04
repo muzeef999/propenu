@@ -2,7 +2,7 @@
 
 import Logo from "@/animations/Logo";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 interface Section {
   id: string;
@@ -36,17 +36,52 @@ function SectionHeader({ id, title }: { id: string; title: string }) {
 
 /* ---------- Privacy Policy Page ---------- */
 const PrivacyPolicy = () => {
-  const [activeSection, setActiveSection] = useState<string>("info-collect");
+  const [activeSection, setActiveSection] = useState<string>(sections[0].id);
+  const isClickScrolling = useRef(false);
+  const scrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (isClickScrolling.current) return;
+
+      // A section becomes active when its top passes the middle of the screen
+      const offset = window.innerHeight / 2;
+      const currentPosition = window.scrollY + offset;
+
+      let newActiveSection = sections[0].id;
+      for (const section of sections) {
+        const element = document.getElementById(section.id);
+        if (element && element.offsetTop <= currentPosition) {
+          newActiveSection = section.id;
+        }
+      }
+      setActiveSection(newActiveSection);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    handleScroll(); // Set initial section on page load
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+    };
+  }, []);
 
   const scrollToSection = (id: string) => {
+    isClickScrolling.current = true;
     setActiveSection(id);
     const element = document.getElementById(id);
     element?.scrollIntoView({ behavior: "smooth" });
+
+    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+    scrollTimeout.current = setTimeout(() => {
+      isClickScrolling.current = false;
+    }, 1000); // Prevent scroll handler during smooth scroll
   };
 
   return (
     <div className="bg-linear-to-b from-white to-gray-50 min-h-screen">
-    
+
 
       {/* Main Content Area */}
       <div className=" px-4 sm:px-6 lg:px-8 py-12">
@@ -65,11 +100,10 @@ const PrivacyPolicy = () => {
                       key={section.id}
                       onClick={() => scrollToSection(section.id)}
                       className={`group w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[15px] transition-all duration-200
-              ${
-                isActive
-                  ? "bg-white text-[#27A361] font-semibold shadow-sm"
-                  : "text-gray-500 hover:bg-white/60 hover:text-[#27A361]"
-              }
+              ${isActive
+                          ? "bg-white text-[#27A361] font-semibold shadow-sm"
+                          : "text-gray-500 hover:bg-white/60 hover:text-[#27A361]"
+                        }
             `}
                     >
                       {/* Section title */}
@@ -91,16 +125,16 @@ const PrivacyPolicy = () => {
             <div className="bg-white rounded-lg shadow-sm p-8 space-y-8">
               {/* Introduction Section */}
               <div className="border-b border-gray-200 pb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                  Privacy Policy
-                </h1>
-                <div className="space-y-4 text-gray-700 leading-relaxed">
+                <div className="flex justify-between items-center border-b border-gray-300 pb-4">
+                  <h1 className="text-3xl font-bold text-gray-900">Privacy Policy</h1>
+                </div>
+                <div className="space-y-4 text-gray-700 leading-relaxed mt-8">
                   <p>
                     Propenu (“we”, “our”, “us”) respects your privacy and is
-                    committed to protecting and responsibly managing the
+                    committed to protecting and managing the
                     personal data you share with us. We recognize the importance
                     of safeguarding your information and ensuring transparency
-                    in how it is collected, used, stored, and disclosed.
+                    in how it is collected, used, stored, and shared.
                   </p>
                   <p>
                     This Privacy Policy (“Policy”) governs your access to and
@@ -131,6 +165,9 @@ const PrivacyPolicy = () => {
                     Personal Data in accordance with this Privacy Policy. Where
                     required by applicable law, Propenu may seek your explicit
                     consent for processing Personal Data for specific purposes.
+                  </p>
+                  <p>
+                    We process Personal Data based on User consent, Contractual necessity, legal, obligations, and legitimate business interests.
                   </p>
                   <p>
                     This Privacy Policy should be read together with our{" "}
@@ -228,6 +265,12 @@ const PrivacyPolicy = () => {
                       (where applicable)
                     </span>
                   </li>
+                  <li className="flex gap-2">
+                    <span className="text-[#D4AF37] font-bold">•</span>
+                    <span>
+                      Calls may be recorded for quality, security, and dispute resolution purposes, where permitted by law.
+                    </span>
+                  </li>
                 </ul>
               </div>
 
@@ -288,39 +331,52 @@ const PrivacyPolicy = () => {
                   id="info-share"
                   title="3. Sharing of Information"
                 />
+
                 <div className="space-y-3 text-gray-700">
                   <p>We may share data with:</p>
+
                   <ul className="space-y-2 ml-4">
                     <li className="flex gap-2">
                       <span className="text-emerald-600 font-bold">✓</span>
-                      <span>
-                        Owners/Agents/Developers when you submit enquiries
-                      </span>
+                      <span>Owners / Agents / Developers when you submit enquiries</span>
                     </li>
+
                     <li className="flex gap-2">
                       <span className="text-emerald-600 font-bold">✓</span>
                       <span>
-                        Trusted third-party partners (hosting, analytics,
-                        messaging, support tools)
+                        Trusted third-party partners (hosting, analytics, messaging,
+                        support tools)
                       </span>
                     </li>
+
                     <li className="flex gap-2">
                       <span className="text-emerald-600 font-bold">✓</span>
                       <span>Legal authorities when required by law</span>
                     </li>
+
                     <li className="flex gap-2">
                       <span className="text-emerald-600 font-bold">✓</span>
                       <span>
-                        Other users when you voluntarily share your details via
-                        forms
+                        Other users when you voluntarily share your details via forms
                       </span>
                     </li>
                   </ul>
-                  <p className="pt-2 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+
+                  <p className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
                     We do not sell or trade user data outside Propenu.
                   </p>
+
+                  <div className="pt-2">
+                    <p className="font-medium">International Data Transfers:</p>
+                    <p>
+                      Your information may be stored, processed, or transferred on servers
+                      located within or outside India, in compliance with applicable data
+                      protection laws.
+                    </p>
+                  </div>
                 </div>
               </div>
+
 
               {/* Section 4: Cookies & Tracking Technologies */}
               <div className="border-t border-gray-200 pt-8">
@@ -351,6 +407,10 @@ const PrivacyPolicy = () => {
                   <p className="pt-2">
                     Users may disable cookies, but certain features may not work
                     properly.
+                  </p>
+                  <p className="">
+                    Some third-party tools may use their own cookies, governed by
+                    their respective privacy policies.
                   </p>
                 </div>
               </div>
@@ -410,7 +470,7 @@ const PrivacyPolicy = () => {
               <div className="border-t border-gray-200 pt-8">
                 <SectionHeader id="retention" title="7. Data Retention" />
                 <div className="space-y-3 text-gray-700">
-                  <p>We retain information only as long as necessary to:</p>
+                  <p>We retain information only as long as necessary or as required by applicable laws to:</p>
                   <ul className="space-y-2 ml-4">
                     <li className="flex gap-2">
                       <span className="text-[#D4AF37] font-bold">•</span>
@@ -494,7 +554,7 @@ const PrivacyPolicy = () => {
                     issues in a timely manner.
                   </p>
                   <div className="bg-purple-50 border-l-4 border-purple-400 p-4 rounded space-y-2">
-                    <p className="font-semibold">You may contact us at:</p>
+                    <p className="font-semibold">You may contact the Grievance Officer at:</p>
                     <p>
                       Email:{" "}
                       <a

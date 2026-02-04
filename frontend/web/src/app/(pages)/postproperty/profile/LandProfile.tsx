@@ -102,66 +102,7 @@ const LandProfile = () => {
           </p>
         </div>
 
-        {/* Plot Boundaries */}
-        <div className="rounded-md border border-green-500 bg-green-50 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm font-semibold text-gray-800">
-                Plot Dimensions (Optional)
-              </p>
-              <p className="text-xs text-gray-500">
-                Enter length and width in feet
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-3 items-end">
-            {/* Length */}
-            <InputField
-              label="Length"
-              type="number"
-              placeholder="e.g. 40"
-              value={land.dimensions?.length ?? ""}
-              onChange={(value) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "land",
-                    key: "dimensions",
-                    value: {
-                      length: value,
-                      width: land.dimensions?.width || "",
-                    },
-                  })
-                )
-              }
-            />
-
-            {/* Multiply symbol */}
-            <div className="hidden sm:flex items-center justify-center pb-2">
-              <span className="text-xl font-semibold text-gray-400">×</span>
-            </div>
-
-            {/* Width */}
-            <InputField
-              label="Width"
-              type="number"
-              placeholder="e.g. 60"
-              value={land.dimensions?.width ?? ""}
-              onChange={(value) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "land",
-                    key: "dimensions",
-                    value: {
-                      length: land.dimensions?.length || "",
-                      width: value,
-                    },
-                  })
-                )
-              }
-            />
-          </div>
-        </div>
+        
 
         <div className="grid grid-cols-1 gap-1">
           {/* Furnishing */}

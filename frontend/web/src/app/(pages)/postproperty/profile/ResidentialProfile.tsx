@@ -60,7 +60,7 @@ const ResidentialProfile = () => {
       : {};
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       {/* ========== CONFIGURATION ========== */}
       <div className="space-y-6"></div>
 
@@ -91,7 +91,7 @@ const ResidentialProfile = () => {
         </p>
 
         {/* Fields */}
-        <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {/* Parking Type */}
           <div>
             <Dropdownui
@@ -169,7 +169,7 @@ const ResidentialProfile = () => {
         <p className="text-sm font-medium text-gray-800">Floor Details</p>
 
         {/* Fields */}
-        <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 md:grid-cols-3 items-start">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 items-start">
           {/* Flooring Type */}
           <div>
             <Dropdownui
@@ -239,7 +239,7 @@ const ResidentialProfile = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-7 sm:grid-cols-3 items-end">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 items-end">
         <div>
           <Dropdownui
             label="Kitchen Type"
@@ -324,8 +324,8 @@ const ResidentialProfile = () => {
         />
       </div>
 
-      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+        <div className="space-y-1">
           <p className="text-sm font-semibold text-gray-800">
             Is the price negotiable?
           </p>

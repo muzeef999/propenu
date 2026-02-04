@@ -261,8 +261,8 @@ export const getAgentProfile = async (agentId: string) => {
   return res.data;
 };
 
-export const updateAgentProfile = async (
-  agentId: string,
+export const updateAgentProfileByPhone = async (
+  phone: string,
   payload: Partial<{
     name: string;
     bio: string;
@@ -275,60 +275,50 @@ export const updateAgentProfile = async (
     licenseValidTill: string;
     avatar?: File;
     coverImage?: File;
-  }>,
+  }>
 ) => {
-  // Check if we have files to upload
   const hasFiles = payload.avatar || payload.coverImage;
 
   if (hasFiles) {
-    // Use FormData for multipart file upload
     const formData = new FormData();
 
-    // Add all fields to FormData
     Object.entries(payload).forEach(([key, value]) => {
-      if (key === "avatar" || key === "coverImage") {
-        // Add files with their field names
-        if (value instanceof File) {
-          formData.append(key, value);
-        }
+      if ((key === "avatar" || key === "coverImage") && value instanceof File) {
+        formData.append(key, value);
       } else if (Array.isArray(value)) {
-        // Handle array fields like areasServed and languages
-        value.forEach((item) => {
-          formData.append(`${key}[]`, item);
-        });
+        value.forEach((v) => formData.append(`${key}[]`, v));
       } else if (value !== undefined && value !== null) {
-        // Add regular fields
         formData.append(key, String(value));
       }
     });
 
     const res = await axiosInstance.patch(
-      `${url}/api/users/agent/${agentId}`,
+      `${url}/api/users/agent/by-phone/${phone}`,
       formData,
       {
         headers: {
           Authorization: `Bearer ${Cookies.get("token")}`,
           "Content-Type": "multipart/form-data",
         },
-      },
-    );
-
-    return res.data;
-  } else {
-    // No files, use regular JSON payload
-    const res = await axiosInstance.patch(
-      `${url}/api/users/agent/${agentId}`,
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${Cookies.get("token")}`,
-        },
-      },
+      }
     );
 
     return res.data;
   }
+
+  const res = await axiosInstance.patch(
+    `${url}/api/users/agent/by-phone/${phone}`,
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${Cookies.get("token")}`,
+      },
+    }
+  );
+
+  return res.data;
 };
+
 
 export const createFeaturedProperty = async (
   formData: FormData,

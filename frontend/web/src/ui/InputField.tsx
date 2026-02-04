@@ -3,13 +3,14 @@ import React from "react";
 type InputFieldProps = {
   label: string;
   value: string | number;
-  onChange: (value: string) => void;
+  onChange?: (value: string) => void; // ✅ optional
   placeholder?: string;
-  type?: "text" | "number" | "email"| "date" | "tel";
+  type?: "text" | "number" | "email" | "date" | "tel";
   required?: boolean;
   disabled?: boolean;
   error?: string;
 };
+
 
 const InputField = ({
   label,
@@ -32,9 +33,8 @@ const InputField = ({
         value={value}
         disabled={disabled}
         placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        className={`w-full px-3 py-2 border rounded-md text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors ${error ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-gray-300"} ${disabled ? "bg-gray-100 cursor-not-allowed text-gray-500" : "bg-white"}`}
-      />
+        onChange={(e) => onChange?.(e.target.value)} // ✅ safe call
+        className={`w-full px-3 py-2 border rounded-md text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 ${error ? "border-red-500" : "border-gray-300"} ${disabled ? "bg-gray-100 cursor-not-allowed text-gray-500" : "bg-white"}`}/>
       {error && (
         <p className="mt-1 text-xs text-red-500">{error}</p>
       )}

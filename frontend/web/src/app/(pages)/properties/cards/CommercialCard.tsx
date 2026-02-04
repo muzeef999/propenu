@@ -134,7 +134,7 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
 
           {/* meta icons row */}
           <div
-            className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200${vertical
+            className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200 ${vertical
                 ? "grid grid-cols-2 gap-4"
                 : "md:flex md:items-center md:gap-6"
               }`}

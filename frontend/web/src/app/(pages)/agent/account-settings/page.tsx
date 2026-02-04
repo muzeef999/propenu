@@ -1,14 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import Cookies from "js-cookie";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getAgentProfile, updateAgentProfile } from "@/data/ClientData";
+import { getAgentProfile, me, updateAgentProfileByPhone } from "@/data/ClientData";
 import { Card, DetailRow, StatBox } from "@/ui/AgentPageComponents";
 import { MdEdit, MdVerifiedUser } from "react-icons/md";
-import {  HiOutlineXMark } from "react-icons/hi2";
+import { HiOutlineXMark } from "react-icons/hi2";
 import { toast } from "sonner";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import InputField from "@/ui/InputField";
 import TextArea from "@/ui/TextArae";
 
@@ -329,12 +328,20 @@ const AgentProfilePage = () => {
 
   const queryClient = useQueryClient();
 
-  const { mutate: patchAgent, isPending: isUpdating } = useMutation<
-    void,
-    Error,
-    ProfileEdit
-  >({
-    mutationFn: (payload) => {
+  const { data: meData } = useQuery({
+  queryKey: ["me"],
+  queryFn: me,
+});
+
+const phone = meData?.user?.phone;
+
+const { mutate: patchAgent, isPending: isUpdating } = useMutation({
+  mutationFn: (payload: ProfileEdit) => {
+    if (!phone) {
+      toast.error("Phone number not found");
+      throw new Error("Phone missing");
+    }
+
     const cleanedPayload: UpdateAgentPayload = {
       ...payload,
       avatar: payload.avatar instanceof File ? payload.avatar : undefined,
@@ -342,20 +349,18 @@ const AgentProfilePage = () => {
         payload.coverImage instanceof File ? payload.coverImage : undefined,
     };
 
-    return updateAgentProfile(AGENT_ID, cleanedPayload);
+    return updateAgentProfileByPhone(phone, cleanedPayload);
   },
-
-   onSuccess: () => {
+  onSuccess: () => {
     toast.success("Profile updated successfully");
-    queryClient.invalidateQueries({
-      queryKey: ["agent-profile", AGENT_ID],
-    });
+    queryClient.invalidateQueries({ queryKey: ["agent-profile"] });
     setEditMode(null);
   },
-    onError: () => {
-      toast.error("Failed to update profile");
-    },
-  });
+  onError: () => {
+    toast.error("Failed to update profile");
+  },
+});
+
 
   const handleEditStart = useCallback((section: string, data: ProfileEdit) => {
     setEditMode(section);
@@ -393,16 +398,16 @@ const AgentProfilePage = () => {
     []
   );
 
- const cleanPayload = useCallback((payload: ProfileEdit): ProfileEdit => {
-  return Object.keys(payload)
-    .filter((key) =>
-      ALLOWED_PROFILE_FIELDS.includes(key as keyof ProfileEdit)
-    )
-    .reduce((acc, key) => {
-      (acc as Record<string, any>)[key] = payload[key as keyof ProfileEdit];
-      return acc;
-    }, {} as ProfileEdit);
-}, []);
+  const cleanPayload = useCallback((payload: ProfileEdit): ProfileEdit => {
+    return Object.keys(payload)
+      .filter((key) =>
+        ALLOWED_PROFILE_FIELDS.includes(key as keyof ProfileEdit)
+      )
+      .reduce((acc, key) => {
+        (acc as Record<string, any>)[key] = payload[key as keyof ProfileEdit];
+        return acc;
+      }, {} as ProfileEdit);
+  }, []);
 
 
   const handleEditSave = useCallback(() => {

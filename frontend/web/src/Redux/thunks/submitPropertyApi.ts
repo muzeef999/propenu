@@ -61,12 +61,25 @@ export const submitDetailsThunk = createAsyncThunk(
 
     const safePayload = {
       ...payload,
+       totalArea: payload.totalArea
+        ? {
+            value: Number(payload.totalArea.value),
+            unit: payload.totalArea.unit,
+          }
+        : undefined,
+         roadWidth: payload.roadWidth
+        ? {
+            value: Number(payload.roadWidth.value),
+            unit: payload.roadWidth.unit,
+          }
+        : undefined,
       amenities: Array.isArray(payload?.amenities)
         ? payload.amenities.map((a: any) => ({
             title: typeof a === "string" ? a.trim() : String(a.title).trim(),
           }))
         : [],
     };
+    
 
     const formData = new FormData();
 
