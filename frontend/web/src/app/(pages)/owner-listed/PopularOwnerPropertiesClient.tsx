@@ -88,7 +88,7 @@ const PopularOwnerPropertiesClient = () => {
         className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-1 py-2 snap-x snap-mandatory scroll-px-1"
       >
         {items.map((item: any) => {
-          const wrapperClass = " w-full";
+          const wrapperClass = "lg:snap-start snap-center flex-shrink-0";
 
           if (item.type === "residential") {
             return (
