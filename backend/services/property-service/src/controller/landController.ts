@@ -281,10 +281,11 @@ export const updateLandDetailsStep = async (req: AuthRequest, res: Response) => 
       req.params.id,
       {
         ...req.body,
-
-        "completion.percent": 70,
-        "completion.step": 4,
-        "completion.lastSection": "details",
+        completion: {
+          percent: 70,
+          step: 4,
+          lastSection: "details",
+        },
       },
       files
     );

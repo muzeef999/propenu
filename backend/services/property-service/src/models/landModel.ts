@@ -51,24 +51,40 @@ LandSchema.index(TEXT_INDEX_FIELDS, { name: "Land_Text" });
 
 LandSchema.pre("validate", async function (this: LandDocument, next) {
   try {
-    /* -------- TITLE -------- */
-    if (!this.title) {
-      this.title = buildLandTitle(this);
+    const isDraft = this.status === "draft";
+
+    /* ---------- TITLE (AUTO BUILD IN ALL STEPS) ---------- */
+    const generatedTitle = buildLandTitle(this);
+
+    if (
+      generatedTitle &&
+      (
+        !this.title ||                 // first time (basic step)
+        isDraft                         // keep updating while draft
+      )
+    ) {
+      this.title = generatedTitle;
     }
 
-    /* -------- SLUG -------- */
-    if (this.isModified("title") && this.title) {
-            const baseSlug = slugify(this.title);
-    
-            this.slug = await generateUniqueSlug(
-              mongoose.model("LandPlot"),
-              baseSlug,
-              this._id,
-            );
-          }
-   
+    /* ---------- SLUG (ONLY WHILE DRAFT) ---------- */
+    if (
+      isDraft &&
+      this.title &&
+      (
+        !this.slug ||                  // first time
+        this.isModified("title")       // title improved
+      )
+    ) {
+      const baseSlug = slugify(this.title);
 
-    /* -------- LISTING SOURCE (CORRECTED) -------- */
+      this.slug = await generateUniqueSlug(
+        mongoose.model("LandPlot"),
+        baseSlug,
+        this._id
+      );
+    }
+
+    /* ---------- LISTING SOURCE ---------- */
     if (!this.listingSource && this.createdBy) {
       const User = mongoose.model("User");
       const Role = mongoose.model("Role");
@@ -90,9 +106,8 @@ LandSchema.pre("validate", async function (this: LandDocument, next) {
       }
     }
 
-    /* -------- FINAL FALLBACK -------- */
     if (!this.listingSource) {
-      this.listingSource = "owner"; // only if EVERYTHING fails
+      this.listingSource = "owner";
     }
 
     next();
@@ -100,6 +115,7 @@ LandSchema.pre("validate", async function (this: LandDocument, next) {
     next(err as any);
   }
 });
+
 
 export const LandPlot: Model<ILand> =
   (mongoose.models && (mongoose.models as any)["LandPlot"]) ||
@@ -114,14 +130,20 @@ function buildLandTitle(doc: any) {
       ? `${doc.plotArea} ${doc.plotAreaUnit}`
       : "";
 
+  /* -------- Dimensions -------- */
+  const dimensions =
+    doc.dimensions?.length && doc.dimensions?.width
+      ? `${doc.dimensions.length}×${doc.dimensions.width}`
+      : "";
+
   /* -------- Property Type -------- */
   const propertyType = doc.propertyType
     ? doc.propertyType.replace(/-/g, " ")
     : "Land";
 
-  /* -------- Sub Type (optional) -------- */
+  /* -------- Property Sub-Type -------- */
   const propertySubType = doc.propertySubType
-    ? `(${doc.propertySubType.replace(/-/g, " ")})`
+    ? doc.propertySubType.replace(/-/g, " ")
     : "";
 
   /* -------- Transaction Type -------- */
@@ -129,33 +151,38 @@ function buildLandTitle(doc: any) {
     doc.listingType === "rent"
       ? "for Rent"
       : doc.listingType === "lease"
-        ? "for Lease"
-        : "for Sale";
+      ? "for Lease"
+      : "for Sale";
+
+  /* -------- Flags -------- */
+  const cornerPlot = doc.cornerPlot ? "Corner Plot" : "";
+  const readyToConstruct = doc.readyToConstruct
+    ? "Ready to Construct"
+    : "";
+
+  /* -------- Land / Layout Name -------- */
+  const landName = doc.landName ? doc.landName : "";
 
   /* -------- Location -------- */
   const locality = doc.locality ?? "";
   const city = doc.city ?? "";
 
-  /* -------- Optional Flags -------- */
-  const cornerPlot = doc.cornerPlot ? "Corner Plot" : "";
-  const readyToConstruct = doc.readyToConstruct ? "Ready to Construct" : "";
-
-  /* -------- Optional Layout / Land Name -------- */
-  const landName = doc.dimensions?.LandName
-    ? `(${doc.dimensions.LandName})`
-    : "";
-
   return `
+    ${dimensions}
     ${plotArea}
     ${cornerPlot}
     ${readyToConstruct}
-    ${propertyType}
     ${propertySubType}
-    ${landName}
+    ${propertyType}
     ${transactionType}
-    in ${locality}, ${city}
+    ${landName ? "in " + landName : ""}
+    ${locality || city ? "in" : ""}
+    ${locality}
+    ${city}
   `
     .replace(/\s+/g, " ")
     .replace(/\(\s*\)/g, "")
+    .replace(/\bin in\b/g, "in")
     .trim();
 }
+

@@ -148,12 +148,10 @@ CommercialSchema.pre(
           }
         }
       }
-
       /* -------- FINAL FALLBACK -------- */
       if (!this.listingSource) {
         this.listingSource = "owner"; // only if EVERYTHING fails
       }
-
       next();
     } catch (err) {
       next(err as any);
@@ -168,37 +166,48 @@ export const Commercial: Model<ICommercial> =
 export default Commercial;
 
 export function buildCommercialTitle(doc: any) {
-  // Property type (Office, Shop, Warehouse…)
+  // Area (prefer carpet → built-up)
+  const area = doc.carpetArea
+    ? `${doc.carpetArea} sq ft`
+    : doc.builtUpArea
+    ? `${doc.builtUpArea} sq ft`
+    : "";
+
+  // Property type (office, shop, warehouse…)
   const propertyType = doc.propertyType
     ? doc.propertyType.replace(/-/g, " ")
     : "Commercial Property";
 
-  // Subtype (optional, more specific)
+  // Subtype (optional)
   const propertySubType = doc.propertySubType
-    ? `(${doc.propertySubType.replace(/-/g, " ")})`
+    ? doc.propertySubType.replace(/-/g, " ")
     : "";
 
-  // Transaction type
-  const transactionType =
-    doc.transactionType === "rent"
+  // Listing type (🔥 correct field)
+  const listingType =
+    doc.listingType === "rent"
       ? "for Rent"
-      : doc.transactionType === "lease"
+      : doc.listingType === "lease"
       ? "for Lease"
-      : doc.transactionType === "pre-leased"
-      ? "Pre-Leased"
       : "for Sale";
 
-  // Area (prefer carpetArea, fallback to superBuiltUpArea)
-  const area = doc.carpetArea
-    ? `${doc.carpetArea} Sq Ft`
-    : doc.builtUpArea
-    ? `${doc.builtUpArea} Sq Ft`
-    : "";
+  // Pre-leased flag (optional but powerful)
+  const preLeased =
+    doc.transactionType === "resale" && doc.tenantInfo?.length
+      ? "Pre-Leased"
+      : "";
 
-  const city = doc.city ?? "";
   const locality = doc.locality ?? "";
+  const city = doc.city ?? "";
 
-  return `${area} ${propertyType} ${propertySubType} ${transactionType} in ${locality}, ${city}`
+  return `
+    ${area}
+    ${preLeased}
+    ${propertyType}
+    ${propertySubType}
+    ${listingType}
+    in ${locality}, ${city}
+  `
     .replace(/\s+/g, " ")
     .replace(/\(\s*\)/g, "")
     .trim();
