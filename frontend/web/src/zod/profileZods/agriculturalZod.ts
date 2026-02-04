@@ -3,13 +3,25 @@ import { z } from "zod";
 /* ---------------- Reusable Schemas ---------------- */
 
 const borewellDetailsSchema = z.object({
-  depthMeters: z.number().min(1, "Depth must be greater than 0"),
-  yieldLpm: z.number().min(1, "Yield must be greater than 0"),
-  drilledYear: z
-    .number()
-    .min(1900, "Invalid year")
-    .max(new Date().getFullYear(), "Invalid year"),
+  depthMeters: z.preprocess(
+    (val) => (val === "" || val === undefined ? 0 : Number(val)),
+    z.number().min(1, "Depth must be greater than 0")
+  ),
+
+  yieldLpm: z.preprocess(
+    (val) => (val === "" || val === undefined ? 0 : Number(val)),
+    z.number().min(1, "Yield must be greater than 0")
+  ),
+
+  drilledYear: z.preprocess(
+    (val) => (val === "" || val === undefined ? 0 : Number(val)),
+    z
+      .number()
+      .min(1900, "Invalid year")
+      .max(new Date().getFullYear(), "Invalid year")
+  ),
 });
+
 
 /* ---------------- Agricultural Schema ---------------- */
 
@@ -44,10 +56,17 @@ export const agriculturalSchema = z
 
 
     /* ===== DESCRIPTION ===== */
-    description: z.string().max(500).optional(),
+    description: z.preprocess(
+  (val) => val ?? "",
+  z
+    .string()
+    .nonempty("Description is required")
+    .min(30, "Description must be at least 30 characters long")
+),
 
     /* ===== IMAGES (handled separately) ===== */
-    images: z.array(z.any()).optional(),
+     images: z.array(z.instanceof(File)).min(5, "Upload at least 5 images"),
+
   })
   .superRefine((data, ctx) => {
     if (!data.accessRoadType) {

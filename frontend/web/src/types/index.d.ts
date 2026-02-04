@@ -3,6 +3,12 @@ import { ICommercial } from "./commercial";
 import { ILand } from "./land";
 import { IResidential } from "./residential";
 
+export interface MediaFile {
+  url: string;
+  key?: string;
+  filename?: string;
+  mimetype?: string;
+}
 export interface FeaturedProject {
   // basic
   _id: string;
@@ -39,7 +45,6 @@ export interface FeaturedProject {
   locality?: string;
   state?: string;
 
-
   // pricing / bhk
   currency?: string; // default: 'INR'
   priceFrom?: number; // computed
@@ -55,7 +60,6 @@ export interface FeaturedProject {
   totalUnits?: number;
   availableUnits?: number;
 
-
   aboutSummary?: AboutItem[];
 
   // legal / banks
@@ -64,7 +68,7 @@ export interface FeaturedProject {
 
   // media & gallery
   gallerySummary: IGalleryItem[];
-  brochureUrl?: string;
+  brochure?: MediaFile;
   brochureFileName?: string;
 
   // specifications & amenities
@@ -116,12 +120,12 @@ export interface AgentConnect {
 
 export interface AgentDetailsResponse {
   agent: AgentConnect;
-  properties:{
-     residential: IResidential[];
-     commercial: ICommercial[];
-     land: ILand[];
-     agricultural: IAgricultural[];
-  }
+  properties: {
+    residential: IResidential[];
+    commercial: ICommercial[];
+    land: ILand[];
+    agricultural: IAgricultural[];
+  };
 }
 
 export interface IBhkPlan {
@@ -372,7 +376,7 @@ export type CommercialFilterKey =
   | "Wall Finish"
   | "Tenant Available"
   | "Banks Approved"
-  | "Verified Properties" 
+  | "Verified Properties"
   | "Price Negotiable"
   | "Posted Since"
   | "Posted By";
@@ -455,8 +459,6 @@ export interface MoreFilterSectionAGR {
   selectionType?: SelectionType;
 }
 
-
-
 type Plan = {
   _id: string;
   code: string;
@@ -478,10 +480,10 @@ type Plan = {
     LEAD_DASHBOARD?: boolean;
     TEAM_MEMBERS?: number;
 
-    CONTACT_OWNER_LIMIT?:number
+    CONTACT_OWNER_LIMIT?: number;
 
-    PROPERTY_COMPARISON?:boolean
-  ENQUIRY_LIMIT?:number;
+    PROPERTY_COMPARISON?: boolean;
+    ENQUIRY_LIMIT?: number;
     // builder extras (safe to keep)
     TOP_LISTING_DAYS?: number;
     NEW_LEADS?: boolean;

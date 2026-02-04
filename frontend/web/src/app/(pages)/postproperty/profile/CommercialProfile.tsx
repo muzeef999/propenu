@@ -563,7 +563,12 @@ const CommercialProfile = () => {
         />
       </div>
 
-      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+      <div
+        className={`flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300 ${commercial.isPriceNegotiable
+          ? "border-green-500 bg-green-50 shadow-sm"
+          : ""
+          }`}
+      >
         <div>
           <p className="text-sm font-semibold text-gray-800">
             Is the price negotiable?
@@ -574,9 +579,10 @@ const CommercialProfile = () => {
         </div>
         <div className="flex items-center gap-3">
           <span
-            className={`text-xs font-medium ${
-              commercial.isPriceNegotiable ? "text-green-600" : "text-gray-400"
-            }`}
+            className={`text-xs font-medium ${commercial.isPriceNegotiable
+              ? "text-green-600"
+              : "text-gray-400"
+              }`}
           >
             {commercial.isPriceNegotiable ? "YES" : "NO"}
           </span>
@@ -588,7 +594,7 @@ const CommercialProfile = () => {
                   propertyType: "commercial",
                   key: "isPriceNegotiable",
                   value: val,
-                }),
+                })
               )
             }
           />

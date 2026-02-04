@@ -1,6 +1,6 @@
 import { useSelector } from "react-redux";
-import { useEffect } from "react";
-import { setProfileField } from "@/Redux/slice/postPropertySlice";
+import { useEffect, useState } from "react";
+import { nextStep, setBaseField, setProfileField } from "@/Redux/slice/postPropertySlice";
 import InputField from "@/ui/InputField";
 import TextArea from "@/ui/TextArae";
 import AmenitiesSelect from "./AmenitiesSelect";
@@ -10,35 +10,13 @@ import Dropdownui from "@/ui/DropDownUI";
 import Toggle from "@/ui/ToggleSwitch";
 import InputWithUnit from "@/ui/InputwithUnit";
 import { submitDetailsThunk } from "@/Redux/thunks/submitPropertyApi";
+import FileUpload, { UploadedFile } from "@/ui/FileUpload";
+import { setFileStoreFiles } from "@/utilies/fileStore";
+import { validateLandProfile } from "@/zod/profileZods/landProfileZod";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
-const AREA_UNITS = ["sqft"] as const;
 
-const PLOT_TYPES = [
-  "plot",
-  "residential-plot",
-  "commercial-plot",
-  "industrial-plot",
-  "investment-plot",
-  "corner-plot",
-  "na-plot",
-] as const;
-const LAND_APPROVAL_AUTHORITIES = [
-  "dtcp",
-  "hmda",
-  "cmda",
-  "bda",
-  "mmrda",
-  "cidco",
-  "dda",
-  "noida-authority",
-  "greater-noida-authority",
-  "puda",
-  "hsvp",
-  "guda",
-  "auDA",
-  "panchayat",
-  "municipal-corporation",
-];
 
 const FACING_OPTIONS = [
   "East",
@@ -69,7 +47,10 @@ const PLOT_SUBTYPES = [
 // use shared `AMENITIES` constant for options
 
 const LandProfile = () => {
-  const { land } = useSelector((state: any) => state.postProperty);
+  const { land, draftId, propertyType } = useSelector((state: any) => state.postProperty); const [files, setFiles] = useState<UploadedFile[]>([]);
+  const router = useRouter();
+  const [showErrors, setShowErrors] = useState(false);
+
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -90,6 +71,14 @@ const LandProfile = () => {
       );
     }
   }, [land?.dimensions, dispatch]);
+  const validationResult = validateLandProfile(
+    land,
+    files.map((f) => f.file),
+  );
+  const fieldErrors =
+    showErrors && !validationResult.success
+      ? validationResult.error.flatten().fieldErrors
+      : {};
 
   return (
     <div className="space-y-8">
@@ -102,10 +91,9 @@ const LandProfile = () => {
           </p>
         </div>
 
-        
+
 
         <div className="grid grid-cols-1 gap-1">
-          {/* Furnishing */}
           <div className="space-y-2">
             <p className="text-sm font-medium text-gray-700">Layout Type</p>
 
@@ -131,20 +119,16 @@ const LandProfile = () => {
                         })
                       )
                     }
-                    className={`px-6 py-2 border rounded-md text-sm shadow-sm focus:outline-none  transition-colors
-                              ${
-                                active
-                                  ? "border-green-500 bg-green-50 text-green-600"
-                                  : "border-gray-300 text-gray-700"
-                              }
-                            `}
-                  >
+                    className={`px-6 py-2 border rounded-md text-sm shadow-sm focus:outline-none  transition-colors ${active ? "border-green-500 bg-green-50 text-green-600" : "border-gray-300 text-gray-700"}`}>
                     {item.label}
                   </button>
                 );
               })}
             </div>
           </div>
+          {fieldErrors?.layoutType?.[0] && (
+            <p className="text-red-500 text-xs mt-1">{fieldErrors.layoutType[0]}</p>
+          )}
         </div>
 
         {/* Facing Direction */}
@@ -167,26 +151,6 @@ const LandProfile = () => {
               label: t.replace(/-/g, " "),
             }))}
             placeholder="Select"
-          />
-
-          {/* Approved By Authority */}
-          <Dropdownui
-            label="Approved By Authority"
-            value={land.approvedByAuthority || null}
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "land",
-                  key: "approvedByAuthority",
-                  value,
-                })
-              )
-            }
-            options={LAND_APPROVAL_AUTHORITIES.map((a) => ({
-              value: a,
-              label: a.replace(/-/g, " ").toUpperCase(),
-            }))}
-            placeholder="Select approvals"
           />
         </div>
       </div>
@@ -267,9 +231,10 @@ const LandProfile = () => {
             const enabled = Boolean(land[item.key as keyof typeof land]);
 
             return (
-              <button
+              <div
                 key={item.key}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() =>
                   dispatch(
                     setProfileField({
@@ -279,21 +244,16 @@ const LandProfile = () => {
                     })
                   )
                 }
-                className={`
-          flex items-center justify-between gap-3
-          rounded-md border p-3 text-left
-          transition-all duration-150
-          ${
-            enabled
-              ? "border-green-500 bg-green-50 shadow-sm"
-              : "border-gray-300 bg-white hover:border-gray-400"
-          }
-        `}
+                className={`flex items-center justify-between gap-3 rounded-md border p-3
+    cursor-pointer transition-all duration-150
+    ${enabled
+                    ? "border-green-100 bg-green-50 shadow-sm"
+                    : "border-gray-100 bg-white hover:border-gray-400"
+                  }`}
               >
                 <span
-                  className={`text-sm font-medium ${
-                    enabled ? "text-green-700" : "text-gray-700"
-                  }`}
+                  className={`text-sm font-medium ${enabled ? "text-green-700" : "text-gray-700"
+                    }`}
                 >
                   {item.label}
                 </span>
@@ -310,101 +270,43 @@ const LandProfile = () => {
                     )
                   }
                 />
-              </button>
+              </div>
+
             );
           })}
         </div>
       </div>
       {/* 5. PRICE & OTHER DETAILS */}
       <div className="space-y-6">
-        <div className="space-y-4">
-          <div>
-            <p className="text-sm font-semibold text-gray-900">Price Details</p>
-            <p className="text-xs text-gray-500">
-              Enter pricing and area details for this property
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
-            <InputField
-              label="Total Price"
-              value={land.price || ""}
-              placeholder="e.g. 75,00,000"
-              onChange={(value) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "land",
-                    key: "price",
-                    value: value.replace(/\D/g, ""),
-                  })
-                )
-              }
-            />
-
-            <InputField
-              label="Price Per Sqft"
-              value={land.pricePerSqft || ""}
-              placeholder="e.g. 6250"
-              onChange={(value) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "land",
-                    key: "pricePerSqft",
-                    value: value.replace(/\D/g, ""),
-                  })
-                )
-              }
-            />
-            <InputWithUnit
-              label="Plot Area"
-              value={land.plotArea}
-                unit={land.areaUnit}   // ✅ CORRECT
-              units={[{ label: "SQ.FT", value: "sqft" }]}
-              placeholder="1200"
-              onValueChange={(value) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "land",
-                    key: "plotArea",
-                    value,
-                  })
-                )
-              }
-              onUnitChange={(unit) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "land",
-                    key: "areaUnit",
-                    value: unit,
-                  })
-                )
-              }
-            />
-
-            <InputField
-              label="Road Width (ft)"
-              type="number"
-              value={land.roadWidthFt ?? ""}
-              placeholder="e.g. 40"
-              onChange={(value) =>
-                dispatch(
-                  setProfileField({
-                    propertyType: "land",
-                    key: "roadWidthFt",
-                    value,
-                  })
-                )
-              }
-            />
-          </div>
+        <div className="space-y-2">
+          <FileUpload
+            label="Property Images"
+            value={files}
+            onChange={(newFiles) => {
+              setFiles(newFiles);
+              // persist only metadata in Redux (serializable)
+              dispatch(
+                setBaseField({
+                  key: "galleryFiles",
+                  value: newFiles.map((f) => ({ filename: f.file.name })),
+                }),
+              );
+              // store actual File objects in in-memory file store
+              setFileStoreFiles(
+                "postProperty",
+                newFiles.map((f) => f.file),
+              );
+            }}
+            accept="image/*"
+            maxFiles={5}
+            maxSizeMB={5}
+            error={fieldErrors?.images?.[0]}
+          />
         </div>
 
+
         <div
-          className={`flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300 ${
-            land.isPriceNegotiable
-              ? "border-green-500 bg-green-50 shadow-sm"
-              : ""
-          }`}
+          className={`flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300 ${land.isPriceNegotiable ? "border-green-500 bg-green-50 shadow-sm" : ""}`}
         >
           <div>
             <p className="text-sm font-semibold text-gray-800">
@@ -416,9 +318,8 @@ const LandProfile = () => {
           </div>
           <div className="flex items-center gap-3">
             <span
-              className={`text-xs font-medium ${
-                land.isPriceNegotiable ? "text-green-600" : "text-gray-400"
-              }`}
+              className={`text-xs font-medium ${land.isPriceNegotiable ? "text-green-600" : "text-gray-400"
+                }`}
             >
               {land.isPriceNegotiable ? "YES" : "NO"}
             </span>
@@ -442,6 +343,7 @@ const LandProfile = () => {
           value={land.description || ""}
           placeholder="e.g. This plot is located in a prime area with easy access to main roads..."
           maxLength={500}
+          error={fieldErrors?.description?.[0]}
           onChange={(value) =>
             dispatch(
               setProfileField({
@@ -452,19 +354,79 @@ const LandProfile = () => {
             )
           }
         />
+
       </div>
       <button
         type="button"
         onClick={() => {
-          console.log("Submitting Land...");
-          dispatch(submitDetailsThunk(land))
+          setShowErrors(true);
+
+          const payload = {
+            ...land,
+
+            amenities: Array.isArray(land.amenities)
+              ? land.amenities.map((a: any) => a?.title).filter(Boolean)
+              : [],
+          };
+
+          const result = validateLandProfile(payload, files.map((f) => f.file));
+
+          if (!result.success) {
+            const flattened = result.error.flatten();
+
+            console.table(flattened.fieldErrors);
+            console.log("Full Zod Error:", result.error);
+
+            toast.error("Please fix the highlighted errors");
+            return;
+          }
+
+          // 🚀 IMPORTANT: send ORIGINAL agricultural object to backend
+          dispatch(
+            submitDetailsThunk({
+              category: propertyType,
+              id: draftId,
+              payload: land, // backend/thunk will format this
+            }),
+          )
             .unwrap()
-            .then((res) => console.log("Success:", res))
-            .catch((err) => console.error("Error:", err));
+            .then((response) => {
+              dispatch(nextStep()); // Move to next step on success
+
+
+            })
+            .catch((error: any) => {
+              console.log("🔥 FULL ERROR FROM API:", error);
+
+              const errObj =
+                typeof error === "string"
+                  ? { message: error }
+                  : error?.response?.data || error;
+
+              toast.error(errObj?.message || "Failed to submit property");
+
+              if (
+                errObj?.code === "NO_VALID_PLAN" ||
+                errObj?.code === "PLAN_LIMIT_REACHED"
+              ) {
+                const listingType = land.listingType || "sale";
+
+                const redirectUrl =
+                  listingType === "sale"
+                    ? "/plans/pricing/owner-sell"
+                    : "/plans/pricing/owner-rent";
+
+                console.log("🚀 Redirecting to:", redirectUrl);
+
+                setTimeout(() => {
+                  router.push(redirectUrl);
+                }, 800);
+              }
+            });
         }}
-        className="px-6 py-3 bg-green-600 text-white rounded-md cursor-pointer"
+        className="py-2 btn-primary text-white rounded-md cursor-pointer w-full"
       >
-        Submit Property
+        Continue
       </button>
     </div>
   );

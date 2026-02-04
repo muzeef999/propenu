@@ -29,12 +29,16 @@ const FileUpload: React.FC<FileUploadProps> = ({
   error,
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
+   const isImage = (file: File) => file.type.startsWith("image/");
+    const isPDF = (file: File) => file.type === "application/pdf";
 
   const handleSelect = (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
 
     const selectedFiles = Array.from(e.target.files);
     const remainingSlots = maxFiles - value.length;
+   
+
 
     const validFiles: UploadedFile[] = selectedFiles
       .slice(0, remainingSlots)
@@ -67,11 +71,31 @@ const FileUpload: React.FC<FileUploadProps> = ({
               key={index}
               className="relative group rounded-md overflow-hidden border border-gray-200 shadow-sm aspect-video"
             >
-              <img
-                src={item.preview}
-                alt={`preview-${index}`}
-                className="h-full w-full object-cover"
-              />
+              {isImage(item.file) ? (
+                <img
+                  src={item.preview}
+                  alt={`preview-${index}`}
+                  className="h-full w-full object-cover"
+                />
+              ) : isPDF(item.file) ? (
+                <div className="flex flex-col items-center justify-center h-full w-full bg-gray-100 text-gray-700">
+                  <svg
+                    className="w-10 h-10 text-red-500 mb-2"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 2a5 5 0 00-5 5v10a5 5 0 005 5h5a5 5 0 005-5V9l-7-7h-3z" />
+                  </svg>
+                  <p className="text-xs text-center px-2 truncate">
+                    {item.file.name}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full w-full bg-gray-100 text-xs">
+                  File
+                </div>
+              )}
+
 
               <button
                 type="button"

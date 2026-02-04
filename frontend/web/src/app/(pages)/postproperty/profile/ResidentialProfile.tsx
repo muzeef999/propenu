@@ -324,8 +324,13 @@ const ResidentialProfile = () => {
         />
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-        <div className="space-y-1">
+      <div
+        className={`flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300 ${residential.isPriceNegotiable
+          ? "border-green-500 bg-green-50 shadow-sm"
+          : ""
+          }`}
+      >
+        <div>
           <p className="text-sm font-semibold text-gray-800">
             Is the price negotiable?
           </p>
@@ -335,7 +340,9 @@ const ResidentialProfile = () => {
         </div>
         <div className="flex items-center gap-3">
           <span
-            className={`text-xs font-medium ${residential.isPriceNegotiable ? "text-green-600" : "text-gray-400"
+            className={`text-xs font-medium ${residential.isPriceNegotiable
+              ? "text-green-600"
+              : "text-gray-400"
               }`}
           >
             {residential.isPriceNegotiable ? "YES" : "NO"}
@@ -348,15 +355,13 @@ const ResidentialProfile = () => {
                   propertyType: "residential",
                   key: "isPriceNegotiable",
                   value: val,
-                }),
+                })
               )
             }
           />
         </div>
       </div>
-      {fieldErrors?.isPriceNegotiable?.[0] && (
-        <p className="text-red-500 text-xs mt-1">{fieldErrors.isPriceNegotiable[0]}</p>
-      )}
+
       <TextArea
         label="Property Description"
         value={residential.description || ""}

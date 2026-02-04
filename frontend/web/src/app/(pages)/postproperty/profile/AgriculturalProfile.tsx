@@ -82,78 +82,6 @@ const AgriculturalProfile = () => {
           </p>
         </div>
         <div className=" grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* <InputWithUnit
-            label="Total Area"
-            value={agricultural.totalArea?.value ?? ""}
-            unit={agricultural.totalArea?.unit ?? null}
-            units={[
-              { label: "SQ.FT", value: "sqft" },
-              { label: "SQ.MT", value: "sqmt" },
-              { label: "ACRE", value: "acre" },
-              { label: "GUNTHA", value: "guntha" },
-              { label: "CENT", value: "cent" },
-              { label: "HECTARE", value: "hectare" },
-            ]}
-            placeholder="1200"
-            onValueChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "agricultural",
-                  key: "totalArea",
-                  value: {
-                    value,
-                    unit: agricultural.totalArea?.unit || "acre",
-                  },
-                })
-              )
-            }
-            onUnitChange={(unit) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "agricultural",
-                  key: "totalArea",
-                  value: {
-                    value: agricultural.totalArea?.value || "",
-                    unit,
-                  },
-                })
-              )
-            }
-          /> */}
-          {/* <InputWithUnit
-            label="Road Width"
-            value={agricultural.roadWidth?.value ?? ""}
-            unit={agricultural.roadWidth?.unit ?? null}
-            units={[
-              { label: "FT", value: "ft" },
-              { label: "METER", value: "meter" },
-            ]}
-            placeholder="40"
-            onValueChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "agricultural",
-                  key: "roadWidth",
-                  value: {
-                    value,
-                    unit: agricultural.roadWidth?.unit || "ft",
-                  },
-                })
-              )
-            }
-            onUnitChange={(unit) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "agricultural",
-                  key: "roadWidth",
-                  value: {
-                    value: agricultural.roadWidth?.value || "",
-                    unit,
-                  },
-                })
-              )
-            }
-          /> */}
           <CounterField
             label="Plantation Age (years)"
             value={agricultural.plantationAge || 0}
@@ -578,8 +506,7 @@ const AgriculturalProfile = () => {
           accept="image/*"
           maxFiles={5}
           maxSizeMB={5}
-          error={fieldErrors?.images?.[0]}
-        />
+          error={fieldErrors?.images?._errors?.[0]} />
       </div>
 
       <div
@@ -637,6 +564,11 @@ const AgriculturalProfile = () => {
             )
           }
         />
+        {fieldErrors?.description?._errors?.[0] && (
+          <p className="text-red-500 text-xs">
+            {fieldErrors.description._errors[0]}
+          </p>
+        )}
       </div>
 
       {/* ========== SUBMIT BUTTON ========== */}
@@ -662,7 +594,7 @@ const AgriculturalProfile = () => {
           if (!result.success) {
             const flattened = result.error.flatten();
 
-            console.error("❌ Residential Profile Validation Failed");
+            console.error("❌ Agricultural Profile Validation Failed");
             console.table(flattened.fieldErrors);
             console.log("Full Zod Error:", result.error);
 
