@@ -21,6 +21,11 @@ const SubscriptionSchema = new Schema(
       },
     },
 
+            invoiceUrl: {
+      type: String,
+    },
+
+
     status: {
       type: String,
       enum: ["active", "expired", "cancelled", "pending"],

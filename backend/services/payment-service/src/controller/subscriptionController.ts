@@ -121,6 +121,8 @@ export async function getSubscriptionHistory(req: AuthRequest, res: Response) {
         startDate: item.startDate,
         endDate: item.endDate,
         purchasedAt: item.purchasedAt,
+          invoiceUrl: item.invoiceUrl,
+
       };
     });
 
