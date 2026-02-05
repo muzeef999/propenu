@@ -88,15 +88,14 @@ ResidentialSchema.pre(
   "validate",
   async function (this: ResidentialDocument, next) {
     try {
-      /* -------- TITLE -------- */
-      if (!this.title) {
+      /* -------- TITLE (AUTO REBUILD UNTIL PUBLISHED) -------- */
+      if (!this.title || this.status === "draft") {
         this.title = buildResidentialTitle(this);
       }
 
-      /* -------- SLUG (AUTO UPDATE WHEN TITLE CHANGES) -------- */
-      if (this.isModified("title") && this.title) {
+      /* -------- SLUG (SYNC WITH TITLE UNTIL PUBLISHED) -------- */
+      if (this.title && (!this.slug || this.status === "draft")) {
         const baseSlug = slugify(this.title);
-
         this.slug = await generateUniqueSlug(
           mongoose.model("Residential"),
           baseSlug,
@@ -104,7 +103,7 @@ ResidentialSchema.pre(
         );
       }
 
-      /* -------- LISTING SOURCE (CORRECTED) -------- */
+      /* -------- LISTING SOURCE -------- */
       if (!this.listingSource && this.createdBy) {
         const User = mongoose.model("User");
         const Role = mongoose.model("Role");
@@ -113,13 +112,9 @@ ResidentialSchema.pre(
           .select("role roleId")
           .lean();
 
-        // 1️⃣ Direct role string on user (if exists)
         if (user?.role && typeof user.role === "string") {
           this.listingSource = user.role;
-        }
-
-        // 2️⃣ Role reference → Role.label
-        else if (user?.roleId) {
+        } else if (user?.roleId) {
           const roleDoc: any = await Role.findById(user.roleId)
             .select("label")
             .lean();
@@ -130,9 +125,8 @@ ResidentialSchema.pre(
         }
       }
 
-      /* -------- FINAL FALLBACK -------- */
       if (!this.listingSource) {
-        this.listingSource = "owner"; // only if EVERYTHING fails
+        this.listingSource = "owner";
       }
 
       next();
@@ -141,6 +135,7 @@ ResidentialSchema.pre(
     }
   },
 );
+
 
 export const Residential: Model<IResidential> =
   (mongoose.models && (mongoose.models as any)["Residential"]) ||

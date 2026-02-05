@@ -102,6 +102,11 @@ export const BhkSummarySchema = new Schema<IBhkSummary>({ bhk: { type: Number, r
    BASE FIELDS (reused in each model)
 ------------------------- */
 export const BaseFields = {
+   title: {
+    type: String,
+    trim: true,
+    index: true,
+  },
 slug: {
   type: String,
   trim: true,

@@ -84,7 +84,13 @@ router.post("/draft", authMiddleware, createLandDraft);
 router.patch("/:id/basic",authMiddleware,cpUpload,parseJsonFields(jsonKeys),updateLandBasicStep);
 router.patch("/:id/location", authMiddleware, parseJsonFields(jsonKeys), updateLandLocationStep);
 router.patch("/:id/details", authMiddleware, cpUpload, parseJsonFields(jsonKeys), updateLandDetailsStep);
-router.patch("/:id/verification", authMiddleware, parseJsonFields(jsonKeys), finalizeLand);
+router.patch(
+  "/:id/verification",
+  authMiddleware,
+  cpUpload, // 🔥 REQUIRED
+  parseJsonFields(jsonKeys),
+  finalizeLand
+);
 router.get("/draft/all", getAllLandDraftsForAdmin);
 
 

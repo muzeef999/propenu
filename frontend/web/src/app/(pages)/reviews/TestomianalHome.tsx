@@ -19,7 +19,7 @@ const TestomianalHome = () => {
               <span className="block mt-2">with every click</span>
             </h2>
             <p className="text-slate-500 text-lg md:text-md mt-6 max-w-lg leading-relaxed">
-              They have awesome customer service. I wouldn't recommend going to anyone else. All of you guys are
+              Every click brings you closer to your home
             </p>
           </div>
           <div className="w-full flex justify-center lg:justify-end relative mt-10 lg:mt-0">

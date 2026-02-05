@@ -1,7 +1,11 @@
 import mongoose, { Schema, Document, Model, Types } from "mongoose";
-import {  AGRICULTURAL_PROPERTY_SUBTYPES, AGRICULTURAL_PROPERTY_TYPES, IAgricultural} from "../types/agriculturalTypes";
+import {
+  AGRICULTURAL_PROPERTY_SUBTYPES,
+  AGRICULTURAL_PROPERTY_TYPES,
+  IAgricultural,
+} from "../types/agriculturalTypes";
 import { BaseFields, FileRefSchema } from "./sharedSchemas";
-import {  TEXT_INDEX_FIELDS } from "../types/sharedTypes";
+import { TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
 import "../models/roleModel";
 
@@ -47,36 +51,37 @@ const AgriculturalSchema = new Schema<IAgricultural>(
     propertyType: { type: String, enum: AGRICULTURAL_PROPERTY_TYPES },
     propertySubType: { type: String, enum: AGRICULTURAL_PROPERTY_SUBTYPES },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 AgriculturalSchema.index(TEXT_INDEX_FIELDS, { name: "Agri_Text" });
 AgriculturalSchema.index(
   { city: 1, numberOfBorewells: 1 },
-  { name: "Agri_Borewells" }
+  { name: "Agri_Borewells" },
 );
-
-
 
 AgriculturalSchema.pre(
   "validate",
   async function (this: AgriculturalDocument, next) {
     try {
       /* -------- TITLE -------- */
-      if (!this.title) {
-        this.title = buildAgriculturalTitle(this);
+      const isDraft = this.status === "draft";
+      const generatedTitle = buildAgriculturalTitle(this);
+
+      if (generatedTitle && (isDraft || !this.title)) {
+        this.title = generatedTitle;
       }
 
-     /* -------- SLUG (AUTO UPDATE WHEN TITLE CHANGES) -------- */
-           if (this.isModified("title") && this.title) {
-             const baseSlug = slugify(this.title);
-     
-             this.slug = await generateUniqueSlug(
-               mongoose.model("Residential"),
-               baseSlug,
-               this._id,
-             );
-           }
+      /* -------- SLUG (AUTO UPDATE WHEN TITLE CHANGES) -------- */
+      if (this.isModified("title") && this.title) {
+        const baseSlug = slugify(this.title);
+
+        this.slug = await generateUniqueSlug(
+          mongoose.model("Agricultural"),
+          baseSlug,
+          this._id,
+        );
+      }
 
       /* -------- LISTING SOURCE (CORRECTED) -------- */
       if (!this.listingSource && this.createdBy) {
@@ -113,9 +118,8 @@ AgriculturalSchema.pre(
     } catch (err) {
       next(err as any);
     }
-  }
+  },
 );
-
 
 export const Agricultural: Model<IAgricultural> =
   (mongoose.models && (mongoose.models as any)["Agricultural"]) ||
@@ -123,16 +127,11 @@ export const Agricultural: Model<IAgricultural> =
 
 export default Agricultural;
 
-
-
 export function buildAgriculturalTitle(doc: any) {
   const areaValue = doc.totalArea?.value;
   const areaUnit = doc.totalArea?.unit;
 
-  const area =
-    areaValue && areaUnit
-      ? `${areaValue} ${areaUnit}`
-      : "";
+  const area = areaValue && areaUnit ? `${areaValue} ${areaUnit}` : "";
 
   const propertyType = doc.propertyType
     ? doc.propertyType.replace(/-/g, " ")
@@ -140,11 +139,19 @@ export function buildAgriculturalTitle(doc: any) {
 
   const transactionType = "for Sale";
 
-  const locality = doc.locality ?? "";
-  const city = doc.city ?? "";
+  const locality = doc.locality?.trim();
+  const city = doc.city?.trim();
 
-  return `${area} ${propertyType} ${transactionType} in ${locality}, ${city}`
+  const location =
+    locality && city
+      ? `in ${locality}, ${city}`
+      : locality
+        ? `in ${locality}`
+        : city
+          ? `in ${city}`
+          : "";
+
+  return `${area} ${propertyType} ${transactionType} ${location}`
     .replace(/\s+/g, " ")
     .trim();
 }
-

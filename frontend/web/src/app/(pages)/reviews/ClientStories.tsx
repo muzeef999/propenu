@@ -27,7 +27,7 @@ const testimonials: Testimonial[] = [
         avatarUrl: "https://randomuser.me/api/portraits/women/65.jpg",
         isQuote: true,
         quote:
-            "They have awesome customer service. I wouldn't recommend going to anyone else. All of you guys are awesome. Definitely love the way appscrip works",
+            "Every click brings you closer to your home",
     },
     {
         name: "Diana Johnston",

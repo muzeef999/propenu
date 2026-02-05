@@ -256,48 +256,52 @@ export const createResidentialDraft = async (
 };
 
 export const updateBasicStep = async (req: AuthRequest, res: Response) => {
-  const updated = await Residential.findByIdAndUpdate(
-    req.params.id,
-    {
-      ...req.body,
-      "completion.percent": 25,
-      "completion.step": 2,
-      "completion.lastSection": "basic",
-    },
-    { new: true },
-  );
-  res.json({ data: updated });
-};
-
-export const updateLocationStep = async (req: AuthRequest, res: Response) => {
-  const { city, locality } = req.body;
-
-  const updatePayload: any = {
-    address: req.body.address,
-    city,
-    state: req.body.state,
-    pincode: req.body.pincode,
-    locality,
-    location: req.body.location,
-
-    "completion.percent": 45,
-    "completion.step": 3,
-    "completion.lastSection": "location",
-  };
-
-  // ✅ ALWAYS recompute title when location is updated
-  if (city && locality) {
-    updatePayload.title = `Residential Property for Sale in ${locality}, ${city}`;
+  const doc = await Residential.findById(req.params.id);
+  if (!doc) {
+    return res.status(404).json({ error: "Property not found" });
   }
 
-  const updated = await Residential.findByIdAndUpdate(
-    req.params.id,
-    updatePayload,
-    { new: true }
-  );
+  Object.assign(doc, req.body, {
+    completion: {
+      ...doc.completion,
+      percent: 25,
+      step: 2,
+      lastSection: "basic",
+    },
+  });
 
-  res.json({ data: updated });
+  await doc.save(); // 🔥 triggers buildResidentialTitle
+
+  res.json({ data: doc });
 };
+
+
+export const updateLocationStep = async (req: AuthRequest, res: Response) => {
+  const doc = await Residential.findById(req.params.id);
+  if (!doc) {
+    return res.status(404).json({ error: "Property not found" });
+  }
+
+  Object.assign(doc, {
+    address: req.body.address,
+    city: req.body.city,
+    state: req.body.state,
+    pincode: req.body.pincode,
+    locality: req.body.locality,
+    location: req.body.location,
+    completion: {
+      ...doc.completion,
+      percent: 45,
+      step: 3,
+      lastSection: "location",
+    },
+  });
+
+  await doc.save(); // 🔥 recomputes title correctly
+
+  res.json({ data: doc });
+};
+
 
 export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
   try {

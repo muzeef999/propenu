@@ -226,61 +226,83 @@ export const createLandDraft = async (req: AuthRequest, res: Response) => {
 };
 
 
-export const updateLandBasicStep = async (req: AuthRequest, res: Response) => {
-    const updated = await LandPlot.findByIdAndUpdate(
-      req.params.id,
-      {
-        ...req.body,
-        "completion.percent": 25,
-        "completion.step": 2,
-        "completion.lastSection": "basic",
-      },
-      { new: true }
-    );
-    res.json({ data: updated });
-};
-
-
-
-export const updateLandLocationStep = async (req: AuthRequest, res: Response) => {
-  try {
-    const updated = await LandPlot.findByIdAndUpdate(
-      req.params.id,
-      {
-        address: req.body.address,
-        city: req.body.city,
-        state: req.body.state,
-        pincode: req.body.pincode,
-        locality: req.body.locality,
-        location: req.body.location,
-
-        "completion.percent": 45,
-        "completion.step": 3,
-        "completion.lastSection": "location",
-      },
-      { new: true }
-    );
-
-    if (!updated) {
-      return res.status(404).json({ error: "Land draft not found" });
-    }
-
-    res.json({ data: updated });
-  } catch (err: any) {
-    console.error("updateLandLocationStep:", err);
-    res.status(500).json({ error: err.message || "Internal server error" });
+export const updateLandBasicStep = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const doc = await LandPlot.findById(req.params.id);
+  if (!doc) {
+    return res.status(404).json({ error: "Land draft not found" });
   }
+
+  Object.assign(doc, req.body);
+
+  doc.completion = {
+    ...doc.completion,
+    percent: 25,
+    step: 2,
+    lastSection: "basic",
+  };
+
+  await doc.save(); // 🔥 title + slug build here
+
+  res.json({ data: doc });
 };
 
 
-export const updateLandDetailsStep = async (req: AuthRequest, res: Response) => {
+
+
+export const updateLandLocationStep = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const doc = await LandPlot.findById(req.params.id);
+  if (!doc) {
+    return res.status(404).json({ error: "Land draft not found" });
+  }
+
+  Object.assign(doc, {
+    address: req.body.address,
+    city: req.body.city,
+    state: req.body.state,
+    pincode: req.body.pincode,
+    locality: req.body.locality,
+    location: req.body.location,
+  });
+
+  doc.completion = {
+    ...doc.completion,
+    percent: 45,
+    step: 3,
+    lastSection: "location",
+  };
+
+  await doc.save(); // 🔥 title improves with location
+
+  res.json({ data: doc });
+};
+
+
+
+export const updateLandDetailsStep = async (
+  req: AuthRequest,
+  res: Response
+) => {
   try {
-    const files = req.files as { [field: string]: Express.Multer.File[] } | undefined;
+    const files = req.files as
+      | { [field: string]: Express.Multer.File[] }
+      | undefined;
+
+    const parsed = {
+      ...req.body,
+      approvedByAuthority: parseMaybeJSON(req.body.approvedByAuthority),
+      dimensions: parseMaybeJSON(req.body.dimensions),
+    };
 
     const updated = await LandService.update(
       req.params.id,
       {
-        ...req.body,
+        ...parsed,
         completion: {
           percent: 70,
           step: 4,
@@ -294,7 +316,8 @@ export const updateLandDetailsStep = async (req: AuthRequest, res: Response) => 
       return res.status(404).json({ error: "Land draft not found" });
     }
 
-    res.json({ data: updated });
+    const fresh = await LandService.getById(req.params.id);
+    res.json({ data: fresh });
   } catch (err: any) {
     console.error("updateLandDetailsStep:", err);
     res.status(500).json({ error: err.message || "Internal server error" });
@@ -303,80 +326,96 @@ export const updateLandDetailsStep = async (req: AuthRequest, res: Response) => 
 
 
 
+
 export const finalizeLand = async (req: AuthRequest, res: Response) => {
-  const property = await LandPlot.findById(req.params.id);
-  if (!property) {
-    return res.status(404).json({ error: "Property not found" });
-  }
-
-  const files = req.files as
-    | { [field: string]: Express.Multer.File[] }
-    | undefined;
-  const verificationFiles = files?.verificationDocuments ?? [];
-
-  // 1️⃣ Save uploaded verification documents
-  if (verificationFiles.length > 0) {
-    property.verificationDocuments = Array.isArray(
-      property.verificationDocuments,
-    )
-      ? property.verificationDocuments
-      : [];
-
-    for (const file of verificationFiles) {
-      const up = await uploadFile({
-        buffer: file.buffer,
-        originalName: file.originalname,
-        mimetype: file.mimetype,
-        folder: "commercial/verification",
-        entityId: property._id.toString(),
-      });
-
-      property.verificationDocuments.push({
-        type: req.body.verificationType,
-        title: file.originalname,
-        url: up.url,
-        key: up.key,
-        filename: file.originalname,
-        mimetype: file.mimetype,
-        status: "pending",
-      });
+  try {
+    const property = await LandPlot.findById(req.params.id);
+    if (!property) {
+      return res.status(404).json({ error: "Property not found" });
     }
+
+    // ✅ Multer files (must come from upload.fields)
+    const files = req.files as
+      | { [field: string]: Express.Multer.File[] }
+      | undefined;
+
+    const verificationFiles = files?.verificationDocuments ?? [];
+
+    /* =========================
+       SAVE VERIFICATION DOCS
+    ========================= */
+    if (verificationFiles.length > 0) {
+      property.verificationDocuments = Array.isArray(
+        property.verificationDocuments
+      )
+        ? property.verificationDocuments
+        : [];
+
+      for (const file of verificationFiles) {
+        const uploaded = await uploadFile({
+          buffer: file.buffer,
+          originalName: file.originalname,
+          mimetype: file.mimetype,
+          folder: "land/verification",
+          entityId: property._id.toString(),
+        });
+
+        property.verificationDocuments.push({
+          type: req.body.verificationType, // SALE_DEED / EC / etc
+          title: file.originalname,
+          url: uploaded.url,
+          key: uploaded.key,
+          filename: file.originalname,
+          mimetype: file.mimetype,
+          status: "pending",
+        });
+      }
+    }
+
+    /* =========================
+       COMPLETION + STATUS
+    ========================= */
+    const hasVerified = property.verificationDocuments?.some(
+      (doc) => doc.status === "verified"
+    );
+
+    if (!property.completion) {
+      property.completion = {
+        percent: 0,
+        step: 1,
+        lastSection: "verification",
+      };
+    }
+
+    property.completion.lastSection = "verification";
+
+    if (hasVerified) {
+      property.status = "active";
+      property.isPublished = true;
+      property.completion.percent = 100;
+      property.completion.step = 5;
+    } else {
+      property.status = "draft";
+      property.isPublished = false;
+      property.completion.percent = 80;
+      property.completion.step = 4;
+    }
+
+    await property.save();
+
+    return res.json({
+      success: true,
+      verified: hasVerified,
+      data: property,
+    });
+  } catch (err: any) {
+    console.error("finalizeLand:", err);
+    return res.status(500).json({
+      error: err.message || "Internal server error",
+    });
   }
-
- const hasVerified = property.verificationDocuments?.some(
-  doc => doc.status === "verified"
-);
-
-if (!property.completion) {
-  property.completion = {
-    percent: 0,
-    step: 1,
-    lastSection: "verification",
-  };
-}
-
-property.completion.lastSection = "verification";
-
-if (hasVerified) {
-  property.status = "active";
-  property.isPublished = true;
-  property.completion.percent = 100;
-  property.completion.step = 5;
-} else {
-  property.status = "draft";
-  property.isPublished = false;
-  property.completion.percent = 80;
-  property.completion.step = 4;
-}
-
-  await property.save();
-
-  res.json({
-    success: true,
-    verified: hasVerified,
-    data: property,
-  });
 };
+
 
 
 export const getAllLandDraftsForAdmin = async (req: Request, res: Response) => {

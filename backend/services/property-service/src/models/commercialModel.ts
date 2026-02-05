@@ -9,7 +9,7 @@ import {
   PANTRY_TYPES,
   WALL_FINISH_STATUS,
 } from "../types/commercialTypes";
-import {  TEXT_INDEX_FIELDS } from "../types/sharedTypes";
+import { TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
 import "../models/roleModel";
 
@@ -26,7 +26,7 @@ const PantrySchema = new Schema(
     insidePremises: { type: Boolean },
     shared: { type: Boolean },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const CommercialSchema = new Schema<ICommercial>(
@@ -99,7 +99,7 @@ const CommercialSchema = new Schema<ICommercial>(
     },
     pantry: PantrySchema,
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 CommercialSchema.index(TEXT_INDEX_FIELDS, { name: "Com_Text" });
@@ -108,22 +108,22 @@ CommercialSchema.pre(
   "validate",
   async function (this: CommercialDocument, next) {
     try {
-      /* -------- TITLE -------- */
-      if (!this.title) {
+      /* -------- TITLE (AUTO REBUILD UNTIL PUBLISHED) -------- */
+      if (!this.title || this.status === "draft") {
         this.title = buildCommercialTitle(this);
       }
 
-      /* -------- SLUG -------- */
-      if (!this.slug && this.title) {
+      /* -------- SLUG (SYNC WITH TITLE UNTIL PUBLISHED) -------- */
+      if (this.title && (!this.slug || this.status === "draft")) {
         const baseSlug = slugify(this.title);
         this.slug = await generateUniqueSlug(
           mongoose.model("Commercial"),
           baseSlug,
-          this._id
+          this._id,
         );
       }
 
-      /* -------- LISTING SOURCE (CORRECTED) -------- */
+      /* -------- LISTING SOURCE -------- */
       if (!this.listingSource && this.createdBy) {
         const User = mongoose.model("User");
         const Role = mongoose.model("Role");
@@ -132,13 +132,9 @@ CommercialSchema.pre(
           .select("role roleId")
           .lean();
 
-        // 1️⃣ Direct role string on user (if exists)
         if (user?.role && typeof user.role === "string") {
           this.listingSource = user.role;
-        }
-
-        // 2️⃣ Role reference → Role.label
-        else if (user?.roleId) {
+        } else if (user?.roleId) {
           const roleDoc: any = await Role.findById(user.roleId)
             .select("label")
             .lean();
@@ -148,15 +144,16 @@ CommercialSchema.pre(
           }
         }
       }
-      /* -------- FINAL FALLBACK -------- */
+
       if (!this.listingSource) {
-        this.listingSource = "owner"; // only if EVERYTHING fails
+        this.listingSource = "owner";
       }
+
       next();
     } catch (err) {
       next(err as any);
     }
-  }
+  },
 );
 
 export const Commercial: Model<ICommercial> =
@@ -170,8 +167,8 @@ export function buildCommercialTitle(doc: any) {
   const area = doc.carpetArea
     ? `${doc.carpetArea} sq ft`
     : doc.builtUpArea
-    ? `${doc.builtUpArea} sq ft`
-    : "";
+      ? `${doc.builtUpArea} sq ft`
+      : "";
 
   // Property type (office, shop, warehouse…)
   const propertyType = doc.propertyType
@@ -188,8 +185,8 @@ export function buildCommercialTitle(doc: any) {
     doc.listingType === "rent"
       ? "for Rent"
       : doc.listingType === "lease"
-      ? "for Lease"
-      : "for Sale";
+        ? "for Lease"
+        : "for Sale";
 
   // Pre-leased flag (optional but powerful)
   const preLeased =

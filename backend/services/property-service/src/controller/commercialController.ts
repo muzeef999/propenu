@@ -1,7 +1,9 @@
 import { Request, Response } from "express";
 import { ZodError } from "zod";
-import CommercialService, { findRelatedCommercial } from "../services/commercialService";
-import Commercial from "../models/commercialModel";
+import CommercialService, {
+  findRelatedCommercial,
+} from "../services/commercialService";
+import Commercial, { buildCommercialTitle } from "../models/commercialModel";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { uploadFile } from "../utils/uploadFile";
 
@@ -11,9 +13,9 @@ function parseMaybeJSON<T = any>(value: any): T | undefined {
   try {
     return JSON.parse(value) as T;
   } catch {
-    return (value as unknown) as T;
+    return value as unknown as T;
   }
-} 
+}
 
 export const createCommercial = async (req: Request, res: Response) => {
   try {
@@ -33,30 +35,49 @@ export const createCommercial = async (req: Request, res: Response) => {
     // const payload = CommercialCreateSchema.parse(parsed);
 
     const payload = parsed; // fallback if no zod
-    const files = req.files as { [field: string]: Express.Multer.File[] } | undefined;
+    const files = req.files as
+      | { [field: string]: Express.Multer.File[] }
+      | undefined;
 
     const created = await CommercialService.create(payload as any, files);
-    const fresh = created?._id ? await CommercialService.getById(String(created._id)) : created;
+    const fresh = created?._id
+      ? await CommercialService.getById(String(created._id))
+      : created;
 
     return res.status(201).json({ data: fresh });
   } catch (err: any) {
-    if (err instanceof ZodError) return res.status(422).json({ errors: err.flatten() });
-    if (err && err.code === "SLUG_TAKEN") return res.status(409).json({ error: "Slug already in use" });
+    if (err instanceof ZodError)
+      return res.status(422).json({ errors: err.flatten() });
+    if (err && err.code === "SLUG_TAKEN")
+      return res.status(409).json({ error: "Slug already in use" });
     console.error("createCommercial:", err);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+    return res
+      .status(500)
+      .json({ error: err.message || "Internal server error" });
   }
 };
 
 export const getAllCommercial = async (req: Request, res: Response) => {
   try {
     const options: any = {};
-    const { page, limit, q, status, sortBy, sortOrder, city, minPrice, maxPrice } = req.query;
+    const {
+      page,
+      limit,
+      q,
+      status,
+      sortBy,
+      sortOrder,
+      city,
+      minPrice,
+      maxPrice,
+    } = req.query;
     if (typeof page === "string") options.page = Number(page);
     if (typeof limit === "string") options.limit = Number(limit);
     if (typeof q === "string") options.q = q;
     if (typeof status === "string") options.status = status;
     if (typeof sortBy === "string") options.sortBy = sortBy;
-    if (typeof sortOrder === "string") options.sortOrder = sortOrder === "asc" ? "asc" : "desc";
+    if (typeof sortOrder === "string")
+      options.sortOrder = sortOrder === "asc" ? "asc" : "desc";
     if (typeof city === "string") options.city = city;
     if (typeof minPrice === "string") options.minPrice = Number(minPrice);
     if (typeof maxPrice === "string") options.maxPrice = Number(maxPrice);
@@ -65,7 +86,9 @@ export const getAllCommercial = async (req: Request, res: Response) => {
     return res.json(result);
   } catch (err: any) {
     console.error("getAllCommercial:", err);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+    return res
+      .status(500)
+      .json({ error: err.message || "Internal server error" });
   }
 };
 
@@ -86,7 +109,7 @@ export const getCommercialBySlug = async (req: Request, res: Response) => {
     const id = (property as any)._id?.toString?.();
     if (id) {
       CommercialService.incrementViews(id).catch((e: any) =>
-        console.error("incrementViews error:", e)
+        console.error("incrementViews error:", e),
       );
     }
 
@@ -114,7 +137,9 @@ export const getCommercialDetail = async (req: Request, res: Response) => {
     const doc = await CommercialService.getById(id);
     if (!doc) return res.status(404).json({ error: "Property not found" });
 
-    CommercialService.incrementViews(id).catch((e) => console.error("incrementViews error:", e));
+    CommercialService.incrementViews(id).catch((e) =>
+      console.error("incrementViews error:", e),
+    );
 
     return res.json({ data: doc });
   } catch (err: any) {
@@ -141,7 +166,9 @@ export const editCommercial = async (req: Request, res: Response) => {
 
     // const payload = CommercialUpdateSchema.parse(parsed);
     const payload = parsed;
-    const files = req.files as { [field: string]: Express.Multer.File[] } | undefined;
+    const files = req.files as
+      | { [field: string]: Express.Multer.File[] }
+      | undefined;
 
     const updated = await CommercialService.update(id, payload as any, files);
     if (!updated) return res.status(404).json({ error: "Property not found" });
@@ -149,8 +176,10 @@ export const editCommercial = async (req: Request, res: Response) => {
     const fresh = await CommercialService.getById(id);
     return res.json({ data: fresh });
   } catch (err: any) {
-    if (err instanceof ZodError) return res.status(422).json({ errors: err.flatten() });
-    if (err && err.code === "SLUG_TAKEN") return res.status(409).json({ error: "Slug already in use" });
+    if (err instanceof ZodError)
+      return res.status(422).json({ errors: err.flatten() });
+    if (err && err.code === "SLUG_TAKEN")
+      return res.status(409).json({ error: "Slug already in use" });
     console.error("editCommercial:", err);
     return res.status(400).json({ error: err.message || "Bad request" });
   }
@@ -171,12 +200,10 @@ export const deleteCommercial = async (req: Request, res: Response) => {
   }
 };
 
-
-
-
-
-
-export const createCommercialDraft = async (req: AuthRequest, res: Response) => {
+export const createCommercialDraft = async (
+  req: AuthRequest,
+  res: Response,
+) => {
   const draft = await Commercial.create({
     createdBy: req.user!.id,
     status: "draft",
@@ -190,82 +217,98 @@ export const createCommercialDraft = async (req: AuthRequest, res: Response) => 
   res.status(201).json({ data: draft });
 };
 
+export const updateCommercialBasicStep = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  const doc = await Commercial.findById(req.params.id);
+  if (!doc) {
+    return res.status(404).json({ error: "Property not found" });
+  }
 
-
-export const updateCommercialBasicStep = async (req: AuthRequest, res: Response) => {
-  const updated = await Commercial.findByIdAndUpdate(
-    req.params.id,
-    {
-      ...req.body,
-      "completion.percent": 25,
-      "completion.step": 2,
-      "completion.lastSection": "basic",
+  Object.assign(doc, req.body, {
+    completion: {
+      ...doc.completion,
+      percent: 25,
+      step: 2,
+      lastSection: "basic",
     },
-    { new: true }
-  );
+  });
 
-  res.json({ data: updated });
+  await doc.save(); // 🔥 triggers validate + title rebuild + slug sync
+
+  res.json({ data: doc });
 };
 
 
+export const updateCommercialLocationStep = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  const doc = await Commercial.findById(req.params.id);
+  if (!doc) {
+    return res.status(404).json({ error: "Property not found" });
+  }
 
-export const updateCommercialLocationStep = async (req: AuthRequest, res: Response) => {
-    const { city, locality } = req.body;
-  
-    const updatePayload: any = {
-      address: req.body.address,
-      city,
-      state: req.body.state,
-      pincode: req.body.pincode,
-      locality,
-      location: req.body.location,
-  
-      "completion.percent": 45,
-      "completion.step": 3,
-      "completion.lastSection": "location",
-    };
-  
-    // ✅ ALWAYS recompute title when location is updated
-    if (city && locality) {
-      updatePayload.title = `Residential Property for Sale in ${locality}, ${city}`;
-    }
-  
-    const updated = await Commercial.findByIdAndUpdate(
-      req.params.id,
-      updatePayload,
-      { new: true }
-    );
-  
-    res.json({ data: updated });
-  };
+  Object.assign(doc, {
+    address: req.body.address,
+    city: req.body.city,
+    state: req.body.state,
+    pincode: req.body.pincode,
+    locality: req.body.locality,
+    location: req.body.location,
+    completion: {
+      ...doc.completion,
+      percent: 45,
+      step: 3,
+      lastSection: "location",
+    },
+  });
 
-export const updateCommercialDetailsStep = async (req: AuthRequest, res: Response) => {
+  await doc.save(); // 🔥 title + slug rebuild happens here
+
+  res.json({ data: doc });
+};
+
+
+export const updateCommercialDetailsStep = async (
+  req: AuthRequest,
+  res: Response,
+) => {
   try {
-    const files = req.files as { [field: string]: Express.Multer.File[] } | undefined;
+    const files = req.files as
+      | { [field: string]: Express.Multer.File[] }
+      | undefined;
 
+    // 1️⃣ Update details + files (unchanged)
     const updated = await CommercialService.update(
       req.params.id,
       {
         ...req.body,
-
         "completion.percent": 70,
         "completion.step": 4,
         "completion.lastSection": "details",
       },
-      files
+      files,
     );
 
     if (!updated) {
       return res.status(404).json({ error: "Commercial property not found" });
     }
 
-    res.json({ data: updated });
+    // 2️⃣ 🔥 FORCE title + slug rebuild safely
+    const doc = await Commercial.findById(req.params.id);
+    if (doc) {
+      doc.title = buildCommercialTitle(doc);
+      await doc.save(); // triggers validate → slug sync
+    }
+
+    res.json({ data: doc ?? updated });
   } catch (err: any) {
     console.error("updateCommercialDetailsStep:", err);
     res.status(500).json({ error: err.message || "Internal server error" });
   }
 };
-
 
 
 export const finalizeCommercial = async (req: AuthRequest, res: Response) => {
@@ -308,31 +351,31 @@ export const finalizeCommercial = async (req: AuthRequest, res: Response) => {
     }
   }
 
- const hasVerified = property.verificationDocuments?.some(
-  doc => doc.status === "verified"
-);
+  const hasVerified = property.verificationDocuments?.some(
+    (doc) => doc.status === "verified",
+  );
 
-if (!property.completion) {
-  property.completion = {
-    percent: 0,
-    step: 1,
-    lastSection: "verification",
-  };
-}
+  if (!property.completion) {
+    property.completion = {
+      percent: 0,
+      step: 1,
+      lastSection: "verification",
+    };
+  }
 
-property.completion.lastSection = "verification";
+  property.completion.lastSection = "verification";
 
-if (hasVerified) {
-  property.status = "active";
-  property.isPublished = true;
-  property.completion.percent = 100;
-  property.completion.step = 5;
-} else {
-  property.status = "draft";
-  property.isPublished = false;
-  property.completion.percent = 80;
-  property.completion.step = 4;
-}
+  if (hasVerified) {
+    property.status = "active";
+    property.isPublished = true;
+    property.completion.percent = 100;
+    property.completion.step = 5;
+  } else {
+    property.status = "draft";
+    property.isPublished = false;
+    property.completion.percent = 80;
+    property.completion.step = 4;
+  }
 
   await property.save();
 
@@ -343,8 +386,10 @@ if (hasVerified) {
   });
 };
 
-
-export const getAllCommercialDraftsForAdmin = async (req: Request, res: Response) => {
+export const getAllCommercialDraftsForAdmin = async (
+  req: Request,
+  res: Response,
+) => {
   const { page = "1", limit = "20", q, city, userId } = req.query;
 
   const filter: any = { status: "draft" };
@@ -384,10 +429,9 @@ export const getAllCommercialDraftsForAdmin = async (req: Request, res: Response
   });
 };
 
-
 export const verifyCommercialDocument = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ) => {
   try {
     const { id } = req.params;
@@ -400,7 +444,7 @@ export const verifyCommercialDocument = async (
     const updated = await CommercialService.verifyDocument(
       id,
       documentIndex,
-      status
+      status,
     );
 
     if (!updated) {

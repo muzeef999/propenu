@@ -211,90 +211,128 @@ export const createAgriculturalDraft = async (req: AuthRequest, res: Response) =
   res.status(201).json({ data: draft });
 };
  
-export const updateAgriculturalBasicStep = async (req: AuthRequest, res: Response) => {
-  const updated = await Agricultural.findByIdAndUpdate(
-    req.params.id,
-    {
-      ...req.body,
- 
-      "completion.percent": 25,
-      "completion.step": 2,
-      "completion.lastSection": "basic",
-    },
-    { new: true }
-  );
- 
-  res.json({ data: updated });
+export const updateAgriculturalBasicStep = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const doc = await Agricultural.findById(req.params.id);
+  if (!doc) {
+    return res.status(404).json({ error: "Agricultural draft not found" });
+  }
+
+  // assign only basic fields
+  Object.assign(doc, req.body);
+
+  doc.completion = {
+    ...doc.completion,
+    percent: 25,
+    step: 2,
+    lastSection: "basic",
+  };
+
+  await doc.save(); // 🔥 title builds here
+
+  res.json({ data: doc });
 };
+
  
-export const updateAgriculturalLocationStep = async (req: AuthRequest, res: Response) => {
-  const updated = await Agricultural.findByIdAndUpdate(
-    req.params.id,
-    {
-      address: req.body.address,
-      city: req.body.city,
-      state: req.body.state,
-      pincode: req.body.pincode,
-      locality: req.body.locality,
-      location: req.body.location,
- 
-      "completion.percent": 45,
-      "completion.step": 3,
-      "completion.lastSection": "location",
-    },
-    { new: true }
-  );
- 
-  res.json({ data: updated });
+export const updateAgriculturalLocationStep = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const doc = await Agricultural.findById(req.params.id);
+  if (!doc) {
+    return res.status(404).json({ error: "Agricultural draft not found" });
+  }
+
+  Object.assign(doc, {
+    address: req.body.address,
+    city: req.body.city,
+    state: req.body.state,
+    pincode: req.body.pincode,
+    locality: req.body.locality,
+    location: req.body.location,
+  });
+
+  doc.completion = {
+    ...doc.completion,
+    percent: 45,
+    step: 3,
+    lastSection: "location",
+  };
+
+  await doc.save(); // 🔥 title rebuilds with city + locality
+
+  res.json({ data: doc });
 };
+
  
  
-export const updateAgriculturalDetailsStep = async (req: AuthRequest, res: Response) => {
+export const updateAgriculturalDetailsStep = async (
+  req: AuthRequest,
+  res: Response
+) => {
   try {
-    const files = req.files as { [field: string]: Express.Multer.File[] } | undefined;
-    const parsed={
+    // 1️⃣ Multer files (DO NOT hardcode)
+    const files = req.files as
+      | { [field: string]: Express.Multer.File[] }
+      | undefined;
+
+    // 2️⃣ Parse JSON fields safely
+    const parsed = {
       ...req.body,
-      totalArea:parseMaybeJSON(req.body.totalArea),
-      roadwidth:parseMaybeJSON(req.body.roadwidth),
-      borewellDetails:parseMaybeJSON(req.body.borewellDetails),
-      amenities:parseMaybeJSON(req.body.amenities),
-      location:parseMaybeJSON(req.body.location)
-    }
-    const payload =AgriculturalUpdateSchema.parse(parsed)
- 
+      totalArea: parseMaybeJSON(req.body.totalArea),
+      roadWidth: parseMaybeJSON(req.body.roadWidth), // ✅ fixed casing
+      borewellDetails: parseMaybeJSON(req.body.borewellDetails),
+      amenities: parseMaybeJSON(req.body.amenities),
+      location: parseMaybeJSON(req.body.location),
+      gallery: parseMaybeJSON(req.body.gallery), // optional (if frontend sends JSON)
+      documents: parseMaybeJSON(req.body.documents),
+    };
+
+    // 3️⃣ Validate payload
+    const payload = AgriculturalUpdateSchema.parse(parsed);
+
+    // 4️⃣ Update via service (files handled there)
     const updated = await AgriculturalService.update(
       req.params.id,
       {
-       ...payload,
-       completion:{
-        percent: 70,
-        step: 4,
-        lastSection: "details"
-       }
+        ...payload,
+        completion: {
+          percent: 70,
+          step: 4,
+          lastSection: "details",
+        },
       },
       files
     );
- 
+
     if (!updated) {
-      return res.status(404).json({ error: "Agricultural property not found" });
+      return res
+        .status(404)
+        .json({ error: "Agricultural property not found" });
     }
- 
+
+    // 5️⃣ Fetch fresh doc (with gallery, title, slug)
     const fresh = await AgriculturalService.getById(req.params.id);
- 
-    res.json({ data: fresh });
+
+    return res.json({ data: fresh });
   } catch (err: any) {
-    if(err instanceof ZodError){
+    if (err instanceof ZodError) {
       return res.status(422).json({
-        message: "validation failend",
-        issue: err.flatten(). fieldErrors,
-      })
+        message: "Validation failed",
+        issues: err.flatten().fieldErrors,
+      });
     }
- 
- 
+
     console.error("updateAgriculturalDetailsStep:", err);
-    res.status(500).json({ error: err.message || "Internal server error" });
+    return res
+      .status(500)
+      .json({ error: err.message || "Internal server error" });
   }
 };
+
+
  
  
  
