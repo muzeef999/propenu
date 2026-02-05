@@ -7,6 +7,7 @@ import Residential from "../models/residentialModel";
 import Commercial from "../models/commercialModel";
 import LandPlot from "../models/landModel";
 import Agricultural from "../models/agriculturalModel";
+import { SubscriptionHistory } from "../models/subscriptionHistoryModel";
 
 export async function getMySubscription(req: AuthRequest, res: Response) {
   const userId = req.user!.id;
@@ -85,4 +86,54 @@ export async function getMySubscription(req: AuthRequest, res: Response) {
     active: true,
     plans: result.filter(Boolean),
   });
+}
+
+export async function getSubscriptionHistory(req: AuthRequest, res: Response) {
+  try {
+    const userId = req.user!.id;
+
+    const history = await SubscriptionHistory.find({ userId })
+      .sort({ purchasedAt: -1 })
+      .lean();
+
+    if (!history.length) {
+      return res.json({
+        success: true,
+        history: [],
+      });
+    }
+
+    const planCodes = [...new Set(history.map((h) => h.planCode))];
+    const plans = await Plan.find({ code: { $in: planCodes } }).lean();
+    const planMap = new Map(plans.map((p) => [p.code, p]));
+
+    // 3️⃣ Shape response for UI
+    const result = history.map((item) => {
+      const plan: any = planMap.get(item.planCode);
+
+      return {
+        planCode: item.planCode,
+        planName: plan?.name || item.planCode,
+        tier: item.tier,
+        category: item.category,
+        price: item.price,
+        status: item.status, // active | expired | cancelled
+        startDate: item.startDate,
+        endDate: item.endDate,
+        purchasedAt: item.purchasedAt,
+      };
+    });
+
+    res.json({
+      success: true,
+      history: result,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Unable to fetch subscription history",
+      });
+  }
 }

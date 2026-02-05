@@ -18,9 +18,8 @@ import Image from "next/image";
 import { buildSearchParams } from "./filters/buildSearchParams";
 
 const Page: React.FC = () => {
+  
   const filters = useAppSelector((s) => s.filters);
-
-  // ✅ build params once per filter change
   const params = React.useMemo(() => buildSearchParams(filters), [filters]);
 
   const { items,  loading } = useStreamProperties(params);
@@ -43,12 +42,8 @@ const Page: React.FC = () => {
   return (
     <>
       <FilterBar />
-
       <div className="container p-4">
         {loading && <p>Loading properties…</p>}
-
-        {/* Responsive Grid */}
-
         <div className="flex flex-col lg:flex-row w-full">
           <div className="w-full lg:w-[80%]">
             {items.map((p) => renderPropertyCard(filters.category, p))}

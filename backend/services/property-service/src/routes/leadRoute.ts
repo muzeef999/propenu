@@ -3,10 +3,24 @@ import { assignLeadController, checkLeadController, createLeadController, getLea
 import { LeadCreateSchema } from '../zod/leadZod';
 import { validateBody } from '../middlewares/validate';
 import { authMiddleware } from '../middlewares/authMiddleware';
+import { requireActiveSubscription } from '../middlewares/requireActiveSubscription';
 
 const router = Router();
 
-router.post('/',   validateBody(LeadCreateSchema), authMiddleware,  createLeadController);
+
+router.post(
+  '/',
+  (req, res, next) => {
+    console.log("🧪 ROUTE HIT /leads");
+    console.log("🧪 req.body BEFORE validation:", req.body);
+    next();
+  },
+  validateBody(LeadCreateSchema),
+  authMiddleware,
+  createLeadController
+);
+
+
 router.get('/my-contacts', authMiddleware, getMyContactedProperties);
 router.patch('/:id/assign', assignLeadController);
 router.patch('/:id/status', updateLeadStatusController);

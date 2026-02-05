@@ -4,13 +4,14 @@ import { Payment } from "../models/paymentModel";
 import { Subscription } from "../models/subscriptionModel";
 import { Plan } from "../models/planModel";
 import { Types } from "mongoose";
+import { SubscriptionHistory } from "../models/subscriptionHistoryModel";
 
 /* ---------------- CREATE PAYMENT ORDER ---------------- */
 
 export async function createPaymentOrder(
   planId: string,
   userId: string,
-  userType: "buyer" | "builder" | "agent"
+  userType: "buyer" | "builder" | "agent",
 ) {
   console.log("🔵 STEP 1 → INPUT");
   console.log({ planId, userId, userType });
@@ -131,7 +132,7 @@ export async function createPaymentOrder(
 export async function verifyPaymentAndActivate(
   razorpay_order_id: string,
   razorpay_payment_id: string,
-  razorpay_signature: string
+  razorpay_signature: string,
 ) {
   const body = `${razorpay_order_id}|${razorpay_payment_id}`;
 
@@ -171,47 +172,59 @@ export async function verifyPaymentAndActivate(
 
   // 🔥 Expire old subscriptions
   // 🔥 expire only SAME TYPE + SAME CATEGORY plan
-const expireFilter: any = {
-  userId: payment.userId,
-  userType: plan.userType,
-  status: "active",
-};
+  const expireFilter: any = {
+    userId: payment.userId,
+    userType: plan.userType,
+    status: "active",
+  };
 
-if (plan.category) {
-  expireFilter.category = plan.category;
-}
+  if (plan.category) {
+    expireFilter.category = plan.category;
+  }
 
-await Subscription.updateMany(expireFilter, {
-  status: "expired",
-});
-
+  await Subscription.updateMany(expireFilter, {
+    status: "expired",
+  });
 
   // ✅ Activate new subscription
-  // ✅ Activate new subscription (FIXED)
-await Subscription.create({
-  userId: payment.userId,
+  const subscription = await Subscription.create({
+    userId: payment.userId,
 
-  // from plan
-  userType: plan.userType,
-  category: plan.category || "both",
+    // from plan
+    userType: plan.userType,
+    category: plan.category || "both",
 
-  planCode: plan.code,
-  tier: plan.tier,
+    planCode: plan.code,
+    tier: plan.tier,
 
-  startDate: new Date(),
-  endDate: new Date(
-    Date.now() + plan.durationDays * 24 * 60 * 60 * 1000
-  ),
+    startDate: new Date(),
+    endDate: new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000),
 
-  status: "active",
+    status: "active",
 
-  // important for limits
-  usage: {
-    contactUsed: 0,
-    enquiryUsed: 0,
-  },
-});
+    // important for limits
+    usage: {
+      contactUsed: 0,
+      enquiryUsed: 0,
+    },
+  });
 
+  // 🔥 SAVE SUBSCRIPTION HISTORY (ADD THIS)
+  await SubscriptionHistory.create({
+    userId: payment.userId,
+    userType: plan.userType,
+    planCode: plan.code,
+    tier: plan.tier,
+    category: plan.category,
+    price: plan.price,
+    status: "active",
+    startDate: subscription.startDate,
+    endDate: subscription.endDate,
+    paymentId: payment._id,
+    purchasedAt: new Date(),
+  });
+
+  console.log("🎉 Subscription history created");
 
   return {
     success: true,

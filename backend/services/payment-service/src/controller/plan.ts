@@ -1,71 +1,112 @@
 import { Request, Response } from "express";
 import { Plan } from "../models/planModel";
 import { Subscription } from "../models/subscriptionModel";
+import { SubscriptionHistory } from "../models/subscriptionHistoryModel";
+
+/* ---------------- GET PLANS ---------------- */
 
 export async function getPlans(req: Request, res: Response) {
-  const { userType, category } = req.query;
+  try {
+    const { userType, category } = req.query;
 
-  const filter: any = {};
-  if (userType) filter.userType = userType;
-  if (category) filter.category = category;
+    const filter: any = {};
+    if (userType) filter.userType = userType;
+    if (category) filter.category = category;
 
-  const plans = await Plan.find(filter).sort({ price: 1 });
-  res.json(plans);
+    const plans = await Plan.find(filter).sort({ price: 1 });
+    res.json(plans);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch plans" });
+  }
 }
+
+/* ---------------- ASSIGN PLAN (IMPORTANT) ---------------- */
 
 export const assignPlan = async (req: Request, res: Response) => {
   try {
+    console.log("🔥 assignPlan API CALLED");
+
     const { userId, planCode } = req.body;
 
     if (!userId || !planCode) {
       return res.status(400).json({
+        success: false,
         message: "userId and planCode are required",
       });
     }
 
-    // 1️⃣ Validate plan
+    // 1️⃣ Find plan
     const plan = await Plan.findOne({ code: planCode });
-
     if (!plan) {
       return res.status(404).json({
+        success: false,
         message: "Plan not found",
       });
     }
 
-    // 2️⃣ Calculate dates
+    // 2️⃣ Calculate dates ONCE
     const startDate = new Date();
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() + (plan.durationDays ?? 30));
+    const endDate = new Date(
+      Date.now() + (plan.durationDays ?? 30) * 24 * 60 * 60 * 1000
+    );
 
-    // 3️⃣ Expire old subscription
+    // 3️⃣ Expire existing active subscriptions
     await Subscription.updateMany(
       { userId, status: "active" },
-      { status: "expired" },
+      { status: "expired" }
     );
 
     // 4️⃣ Create new subscription
     const subscription = await Subscription.create({
       userId,
-      planCode,
+      userType: plan.userType,
+      category: plan.category || "both",
+      planCode: plan.code,
+      tier: plan.tier,
       startDate,
       endDate,
       status: "active",
+      usage: {
+        contactUsed: 0,
+        enquiryUsed: 0,
+      },
     });
 
-    res.json({
+    console.log("✅ Subscription created:", subscription._id);
+
+    // 5️⃣ CREATE SUBSCRIPTION HISTORY (THIS IS THE FIX)
+    const history = await SubscriptionHistory.create({
+      userId,
+      userType: plan.userType,
+      planCode: plan.code,
+      tier: plan.tier,
+      category: plan.category,
+      price: plan.price,
+      status: "active",
+      startDate,
+      endDate,
+      purchasedAt: new Date(),
+    });
+
+    console.log("🎉 Subscription history created:", history._id);
+
+    return res.json({
       success: true,
       message: "Plan assigned successfully",
       subscription,
-      plan,
+      history,
     });
   } catch (error) {
+    console.error("❌ assignPlan error:", error);
     res.status(500).json({
+      success: false,
       message: "Failed to assign plan",
     });
   }
 };
 
-// ---------------- ADD PLAN ----------------
+/* ---------------- CREATE PLAN ---------------- */
+
 export const createPlan = async (req: Request, res: Response) => {
   try {
     const plan = await Plan.create(req.body);
@@ -83,7 +124,7 @@ export const createPlan = async (req: Request, res: Response) => {
   }
 };
 
-// ---------------- EDIT PLAN ----------------
+/* ---------------- UPDATE PLAN ---------------- */
 
 export const updatePlan = async (req: Request, res: Response) => {
   try {
@@ -92,17 +133,25 @@ export const updatePlan = async (req: Request, res: Response) => {
     const plan = await Plan.findOneAndUpdate(
       { code },
       { $set: req.body },
-      { new: true, runValidators: true },
+      { new: true, runValidators: true }
     );
 
     if (!plan) {
       return res.status(404).json({
+        success: false,
         message: "Plan not found",
       });
     }
 
-    res.json({ success: true, message: "Plan updated successfully", plan });
+    res.json({
+      success: true,
+      message: "Plan updated successfully",
+      plan,
+    });
   } catch (error: any) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };

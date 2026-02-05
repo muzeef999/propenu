@@ -1,9 +1,11 @@
 import { Router } from "express";
 import { authMiddleware } from "../middlewares/authMiddleware";
-import { getMySubscription } from "../controller/subscriptionController";
+import { getMySubscription, getSubscriptionHistory } from "../controller/subscriptionController";
 
 const router = Router();
 
 router.get("/me", authMiddleware, getMySubscription);
+router.get("/history", authMiddleware, getSubscriptionHistory);
+
 
 export default router;

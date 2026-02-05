@@ -214,6 +214,7 @@ export const postLeads = async (payload: {
   phone: string;
   email?: string;
   projectId?: string;
+  listingType?: string;
   propertyType?: string;
   remarks?: string;
 }) => {

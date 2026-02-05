@@ -46,11 +46,13 @@ export default async function Page({ params }: PageProps) {
   if (!project) {
     notFound();
   }
-  console.log("Project data:", project);
   const priceLabel = formatINR(project.price);
 
   return (
-    <div style={{ background: bgcolor }} className="min-h-screen py-6">
+    <div
+      style={{ background: bgcolor }}
+      className="min-h-screen py-6 overflow-hidden"
+    >
       <div className="container">
         <div className="w-full">
           {/* Top: Price + Title + CTA */}
@@ -147,7 +149,7 @@ export default async function Page({ params }: PageProps) {
 
               <br />
 
-              <div className=" w-full">
+              <div className="w-full">
                 <div className="grid gap-4">
                   <section className="space-y-4">
                     <section className="rounded-lg p-6 shadow-sm bg-[#f7f9fa]">
@@ -224,6 +226,7 @@ export default async function Page({ params }: PageProps) {
 
                       <div className="mt-8">
                         <ContactOwnerButton
+                          listingType={project.listingType}
                           projectId={project._id}
                           propertyType="residentials"
                         />
@@ -238,7 +241,10 @@ export default async function Page({ params }: PageProps) {
                       {project.amenities && project.amenities.length > 0 ? (
                         <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 sm:grid-cols-3">
                           {project.amenities.map((i, index) => (
-                            <div key={i.key ?? `${i.title}-${index}`} className="flex items-center gap-2 rounded-md border border-gray-100 px-2 py-1">
+                            <div
+                              key={i.key ?? `${i.title}-${index}`}
+                              className="flex items-center gap-2 rounded-md border border-gray-100 px-2 py-1"
+                            >
                               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                               <span>{i.title}</span>
                             </div>
@@ -269,19 +275,24 @@ export default async function Page({ params }: PageProps) {
                       )}
                     </section>
 
-                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa] ">
+                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa] w-full overflow-hidden">
                       <h2 className="mb-1 text-xl font-semibold text-gray-900">
                         More Similar Properties for you
                       </h2>
+
                       {project.relatedProjects &&
                       project.relatedProjects.length > 0 ? (
-                        <div className="flex gap-4 h-[485px]">
+                        <div className="flex gap-4 h-[485px] overflow-x-auto overflow-y-hidden w-full">
                           {project.relatedProjects.map((relatedProject) => (
-                            <ResidentialCard
+                            <div
                               key={relatedProject._id}
-                              p={relatedProject}
-                              vertical={true}
-                            />
+                              className="flex-shrink-0"
+                            >
+                              <ResidentialCard
+                                p={relatedProject}
+                                vertical={true}
+                              />
+                            </div>
                           ))}
                         </div>
                       ) : (

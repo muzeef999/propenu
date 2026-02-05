@@ -37,10 +37,23 @@ export const requireActiveSubscription = async (
       return res.status(400).json({ message: "Invalid listingType" });
     }
 
-    // 🔥 STEP 2: Find ACTIVE subscription for THIS category
+    let userType: "buyer" | "agent" | "owner";
+
+    if (roleName === "user") userType = "buyer";
+    else if (roleName === "agent") userType = "agent";
+    else if (roleName === "owner") userType = "owner";
+    else {
+      return res.status(403).json({ message: "Invalid user role" });
+    }
+
+    // 🔍 TEMP DEBUG (keep for now)
+    console.log("roleName:", roleName);
+    console.log("mapped userType:", userType);
+
+    // 🔥 STEP 2.2: Find ACTIVE subscription
     const subscription = await Subscription.findOne({
       userId,
-      userType: "owner",
+      userType, // ✅ FIXED
       category: requiredCategory,
       status: "active",
     });

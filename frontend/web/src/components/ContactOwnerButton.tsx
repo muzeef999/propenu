@@ -9,19 +9,20 @@ import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 
 interface ContactOwnerButtonProps {
+  listingType?: string;
   projectId: undefined | string;
   propertyType?:
-  | "residentials"
-  | "commercials"
-  | "agriculturals"
-  | "landplots"
-  | "featuredprojects";
+    | "residentials"
+    | "commercials"
+    | "agriculturals"
+    | "landplots"
+    | "featuredprojects";
   className?: string;
   children?: React.ReactNode;
 }
 
-
 export default function ContactOwnerButton({
+  listingType,
   projectId,
   propertyType = "residentials",
   className,
@@ -30,6 +31,22 @@ export default function ContactOwnerButton({
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const router = useRouter();
 
+  console.log("listing Type", listingType);
+
+  const redirectToPlan = () => {
+    if (listingType === "sale") {
+      router.push("/plans/pricing/buy-view");
+      return;
+    }
+
+    if (listingType === "rent") {
+      router.push("/plans/pricing/rent-view");
+      return;
+    }
+
+    // fallback (optional)
+    toast.error("Invalid listing type");
+  };
 
   const { data: userData, isLoading: isLoadingUser } = useQuery({
     queryKey: ["user"],
@@ -50,8 +67,11 @@ export default function ContactOwnerButton({
         "Failed to contact owner";
 
       // 🔐 Buyer plan required → redirect ONLY (no toast)
-      if (message.toLowerCase().includes("purchase a buyer plan")) {
-        router.push("/plans/pricing/buy-view");
+      if (
+        message.toLowerCase().includes("purchase") ||
+        message.toLowerCase().includes("plan required")
+      ) {
+        redirectToPlan();
         return;
       }
 
@@ -60,9 +80,18 @@ export default function ContactOwnerButton({
     },
   });
 
-
-
   const handleContactOwner = () => {
+
+    console.log("🔵 Contact Owner clicked");
+
+  console.log("🔵 Current state:", {
+    user,
+    listingType,
+    projectId,
+    propertyType,
+  });
+
+
     if (!user) {
       setShowLoginDialog(true);
       return;
@@ -75,41 +104,39 @@ export default function ContactOwnerButton({
 
     postLead({
       name: user.name || "Guest User",
-      phone: user.phone || "9959456647",
+      phone: user.phone,
       email: user.email ?? undefined, // ✅ FIXED
       projectId,
       propertyType,
+      listingType,
       remarks: "Interested in this property",
-  });
-};
+    });
+  };
 
+  return (
+    <>
+      <button
+        onClick={handleContactOwner}
+        disabled={isLeadPosting || isLoadingUser}
+        className={
+          className ??
+          "rounded btn-primary px-6 py-2 font-medium text-white disabled:cursor-not-allowed transition-opacity"
+        }
+      >
+        {children ?? (isLeadPosting ? "Sending..." : "Contact Owner")}
+      </button>
 
-return (
-  <>
-    <button
-      onClick={handleContactOwner}
-      disabled={isLeadPosting || isLoadingUser}
-      className={
-        className ??
-        "rounded btn-primary px-6 py-2 font-medium text-white disabled:cursor-not-allowed transition-opacity"
-      }
-    >
-      {children ?? (isLeadPosting ? "Sending..." : "Contact Owner")}
-    </button>
-
-
-    {showLoginDialog &&
-      createPortal(
-        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40">
-          <LoginDialog
-            open
-            onClose={() => setShowLoginDialog(false)}
-            onSwitchToRegister={() => { }}
-          />
-        </div>,
-        document.body
-      )}
-
-  </>
-);
+      {showLoginDialog &&
+        createPortal(
+          <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40">
+            <LoginDialog
+              open
+              onClose={() => setShowLoginDialog(false)}
+              onSwitchToRegister={() => {}}
+            />
+          </div>,
+          document.body,
+        )}
+    </>
+  );
 }
