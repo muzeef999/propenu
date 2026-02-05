@@ -8,6 +8,7 @@ import {
   MdOutlinePhoneInTalk,
 } from "react-icons/md";
 import PromoBanner from "@/components/PromoBanner";
+import { useRouter } from "next/navigation";
 
 type Plan = {
   userType: string;
@@ -35,9 +36,22 @@ type ActivePlanCardProps = {
 /* ================= COMPONENT ================= */
 
 const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
+  const router = useRouter();
+  const categoryLabelMap: Record<string, string> = {
+    buy: "Buy view",
+    rent_view: "Rent view",
+  };
+
+
   if (!my_subscription?.active || !my_subscription.plans?.length) {
     return <PromoBanner />;
   }
+  const formatDate = (date: string) =>
+    new Date(date).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
 
   const renderPlanCard = (plan: Plan) => {
     /* ---------- DATE PROGRESS ---------- */
@@ -45,6 +59,7 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
     const startDate = new Date(plan.startDate);
     const endDate = new Date(plan.endDate);
     const now = Date.now();
+
 
     const totalDays = Math.max(
       (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
@@ -65,17 +80,39 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
 
     const usageProgress =
       plan.total > 0 ? Math.min((plan.used / plan.total) * 100, 100) : 0;
+    const nowTime = Date.now();
+    const isExpired = nowTime > endDate.getTime();
+    const isExpiringSoon = !isExpired && remainingDays <= 7;
 
     const isPropertyPlan = plan.unit === "properties";
+
 
     return (
       <div
         key={plan.code}
-        className="w-full rounded-md border border-green-100 bg-white p-3 shadow-sm"
+        className="relative  rounded-md border border-green-100 bg-white p-5 shadow-sm"
       >
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+        {/* Status Badge */}
+        <div className="absolute right-4 top-2 z-10">
+          {isExpired ? (
+            <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700">
+              Expired
+            </span>
+          ) : isExpiringSoon ? (
+            <span className="rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-semibold text-yellow-800">
+              Expiring Soon
+            </span>
+          ) : (
+            <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
+              Active
+            </span>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-4 pt-4 lg:flex-row lg:items-center">
+
           {/* LEFT */}
-          <div className="flex lg:w-[22%] gap-4 items-start">
+          <div className="flex">
             {/* ICON + PLAN NAME */}
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-3">
@@ -84,32 +121,59 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
                   <MdOutlineWorkspacePremium size={34} />
                 </div>
 
+
                 {/* Plan Name beside icon */}
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900">
                     {plan.planName}
                   </h3>
-                  <p className="text-xs text-gray-500 capitalize">
-                    {plan.userType} • {plan.category} {" "}
-                    {/* <span className="font-medium">{plan.tier}</span> */}
+                  <p className="text-xs text-gray-500">
+                    {plan.userType} • {categoryLabelMap[plan.category] ?? plan.category}
                   </p>
+
                 </div>
               </div>
+              {/* Purchased date */}
+              <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-500 justify-center">
+                <span>Purchased on {formatDate(plan.startDate)}</span>
+              </div>
 
-              {/* Helper text */}
-              <span className="text-[10px] text-gray-400 leading-tight pl-1 mt-4">
-                Upgrade to unlock full features
-              </span>
+              {/* Upgrade button */}
+              <button
+                onClick={() => {
+                  if (plan.category === "buy") {
+                    router.push("/plans/pricing/buy-view");
+                  } else if (plan.category === "rent_view") {
+                    router.push("/plans/pricing/rent-view");
+                  } else {
+                    document
+                      .getElementById("pricing-table")
+                      ?.scrollIntoView({ behavior: "smooth" });
+                  }
+                }}
+                className="mt-4 w-full rounded-md bg-[#27AE60] py-2 text-sm font-semibold text-white hover:bg-green-700 transition"
+              >
+                Upgrade Plan
+              </button>
+
+
+
+
+
             </div>
           </div>
 
 
 
+
           {/* RIGHT — SINGLE HIGHLIGHTED PANEL */}
-          <div className="flex flex-1 items-center rounded-md bg-[#f4fbf6] p-4">
+          <div className="relative flex flex-1 items-center rounded-md bg-[#f4fbf6] p-4">
+            {/* Status Badge */}
+
+
             <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               {/* Progress */}
-              <div className="flex w-full flex-col gap-3 lg:w-[60%]">
+              <div className="flex w-full flex-col gap-3 ">
                 {/* Plan duration */}
                 <div>
                   <div className="mb-1 flex justify-between text-xs text-gray-600">
@@ -161,23 +225,27 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
               </div>
 
               {/* Actions */}
-              <div className="relative flex w-full flex-col items-end gap-2 lg:w-[32%]">
+              {/* <div className="relative flex w-full flex-col items-end gap-2 lg:w-[32%]">
 
                 <button className="w-full rounded-md border border-[#27AE60] px-3 py-2 text-sm font-medium text-[#27AE60] hover:bg-[#eaf7ef]">
                   Manage Membership
                 </button>
 
                 <button
-                  onClick={() =>
-                    document
-                      .getElementById("pricing-table")
-                      ?.scrollIntoView({ behavior: "smooth" })
-                  }
+                  onClick={() => {
+                    if (plan.category === "buy") {
+                      router.push("/plans/pricing/buy-view");
+                    } else {
+                      document
+                        .getElementById("pricing-table")
+                        ?.scrollIntoView({ behavior: "smooth" });
+                    }
+                  }}
                   className="w-full rounded-md bg-[#27AE60] px-3 py-2 text-sm font-semibold text-white hover:bg-green-700"
                 >
                   Upgrade Plan
                 </button>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>

@@ -18,24 +18,11 @@ const MainContent = () => {
         {/* --- Enquiry Banner --- */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4 border-b border-gray-50 sm:border-none">
           <div className="flex items-center gap-3">
-            <div className="flex -space-x-2 shrink-0">
-              <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-semibold border-2 border-white">
-                F
-              </div>
-              <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm font-semibold border-2 border-white">
-                A
-              </div>
-            </div>
 
-            <p className="text-sm text-gray-800 leading-tight">
-              <span className="font-semibold">Get 2 extra enquiries</span> if
-              you list your property in
+            <p className="text-sm text-gray-800 leading-tight ">
+              <span className="font-semibold">Your next Buyer or Tenant is just one step away.</span> Post your Property now!
             </p>
           </div>
-
-          <span className="text-xs px-3 py-1 rounded-full bg-orange-400 text-white font-medium whitespace-nowrap">
-            5:35
-          </span>
         </div>
 
         {/* --- Title & Help Button --- */}

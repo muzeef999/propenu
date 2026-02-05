@@ -70,9 +70,8 @@ const Page = () => {
   });
 
   return (
-    <div>
+    <div className="">
       <ActivePlanCard my_subscription={my_subscription} />
-    
     </div>
   );
 };
