@@ -373,15 +373,5 @@ export const getBuilderDashboards = async () => {
   return res.data;
 };
 
-//membership history
-export const getMembershipHistory = async () => {
-  const token = Cookies.get("token");
-  if (!token) return null;
 
-  const res = await axiosInstance.get(`${url}/api/payments/subscriptions/history`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  return res.data;
-};
+

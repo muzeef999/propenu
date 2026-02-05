@@ -5,6 +5,8 @@ import { Subscription } from "../models/subscriptionModel";
 import { Plan } from "../models/planModel";
 import { Types } from "mongoose";
 import { SubscriptionHistory } from "../models/subscriptionHistoryModel";
+import { uploadPdfToS3 } from "../utils/uploadPdfToS3";
+import { generateInvoicePdf } from "../utils/generateInvoicePdf";
 
 /* ---------------- CREATE PAYMENT ORDER ---------------- */
 
@@ -186,30 +188,36 @@ export async function verifyPaymentAndActivate(
     status: "expired",
   });
 
+  const invoiceBuffer = await generateInvoicePdf({
+    invoiceNo: `INV-${payment._id}`,
+    userName: payment.userId ? payment.userId.toString() : "",
+    planName: plan.name || plan.code,
+    amount: plan.price,
+    date: new Date().toISOString().split("T")[0] || "",
+  });
+
+  const s3Key = `invoices/${payment.userId}/${payment._id}.pdf`;
+
+  const invoiceUrl = await uploadPdfToS3(invoiceBuffer, s3Key);
+
   // ✅ Activate new subscription
   const subscription = await Subscription.create({
     userId: payment.userId,
-
-    // from plan
     userType: plan.userType,
     category: plan.category || "both",
-
     planCode: plan.code,
     tier: plan.tier,
-
     startDate: new Date(),
+    invoiceUrl, // ✅ VERY IMPORTANT
+
     endDate: new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000),
-
     status: "active",
-
-    // important for limits
     usage: {
       contactUsed: 0,
       enquiryUsed: 0,
     },
   });
 
-  // 🔥 SAVE SUBSCRIPTION HISTORY (ADD THIS)
   await SubscriptionHistory.create({
     userId: payment.userId,
     userType: plan.userType,
@@ -221,10 +229,19 @@ export async function verifyPaymentAndActivate(
     startDate: subscription.startDate,
     endDate: subscription.endDate,
     paymentId: payment._id,
+    invoiceUrl, // ✅ VERY IMPORTANT
     purchasedAt: new Date(),
   });
 
-  console.log("🎉 Subscription history created");
+  const pdfPath = generateInvoicePdf({
+    invoiceNo: payment._id.toString(),
+    userName: payment.userId ? payment.userId.toString() : "",
+    planName: plan.name || plan.code,
+    amount: plan.price,
+    date: new Date().toISOString().split("T")[0] || "",
+  });
+
+  console.log("📄 Invoice PDF generated at:", pdfPath);
 
   return {
     success: true,

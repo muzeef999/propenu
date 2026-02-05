@@ -63,6 +63,10 @@ const SubscriptionHistorySchema = new Schema(
       index: true,
     },
 
+        invoiceUrl: {
+      type: String,
+    },
+
     purchasedAt: {
       type: Date,
       default: Date.now,
