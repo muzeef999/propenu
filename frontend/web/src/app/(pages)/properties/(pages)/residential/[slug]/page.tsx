@@ -286,7 +286,7 @@ export default async function Page({ params }: PageProps) {
                           {project.relatedProjects.map((relatedProject) => (
                             <div
                               key={relatedProject._id}
-                              className="flex-shrink-0"
+                              className="shrink-0"
                             >
                               <ResidentialCard
                                 p={relatedProject}

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { me } from "@/data/ClientData";
+import { me, getMembershipHistory } from "@/data/ClientData";
 import { MdOutlineLocationOn } from "react-icons/md";
 
 type InfoFieldProps = {
@@ -11,31 +11,46 @@ type InfoFieldProps = {
 };
 
 const SettingsPage = () => {
+  /* -------------------- User Profile -------------------- */
   const {
     data: user,
-    isLoading,
-    isError,
+    isLoading: userLoading,
+    isError: userError,
   } = useQuery({
     queryKey: ["me"],
     queryFn: me,
   });
 
+  /* -------------------- Membership History -------------------- */
+  const {
+    data: membership,
+    isLoading: membershipLoading,
+    isError: membershipError,
+  } = useQuery({
+    queryKey: ["membershipHistory"],
+    queryFn: getMembershipHistory,
+  });
+
   /* -------------------- Loading -------------------- */
-  if (isLoading) {
+  if (userLoading || membershipLoading) {
     return (
-      <div className="p-6 text-center text-gray-500">Loading profile...</div>
+      <div className="p-6 text-center text-gray-500">
+        Loading profile...
+      </div>
     );
   }
 
-  /* -------------------- Error / Not logged in -------------------- */
-  if (isError || !user) {
+  /* -------------------- Error -------------------- */
+  if (userError || membershipError || !user) {
     return (
       <div className="p-6 text-center text-red-500">
         Failed to load user profile
       </div>
     );
   }
-  console.log(user);
+
+  console.log("USER 👉", user);
+  console.log("MEMBERSHIP 👉", membership);
 
   /* -------------------- Success -------------------- */
   return (
@@ -57,7 +72,6 @@ const SettingsPage = () => {
               {user.city || "—"}
             </p>
           </div>
-
         </div>
 
         {/* Personal Information */}
@@ -78,6 +92,21 @@ const SettingsPage = () => {
             </div>
           </div>
         </div>
+
+        {/* Membership Info (example) */}
+        {membership && (
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <h3 className="text-lg font-medium text-[#545454] mb-2">
+              Membership
+            </h3>
+            <p className="text-sm text-gray-700">
+              Plan: <b>{membership.planName}</b>
+            </p>
+            <p className="text-sm text-gray-700">
+              Status: <b>{membership.status}</b>
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
