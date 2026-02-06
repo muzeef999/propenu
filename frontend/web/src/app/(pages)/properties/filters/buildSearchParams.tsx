@@ -5,8 +5,8 @@ export function buildSearchParams(filters: FilterState) {
     category: filters.category,
     listingType: filters.listingTypeValue,
     search: filters.searchText?.trim() || undefined,
-    minBudget: filters.minBudget,
-    maxBudget: filters.maxBudget,
+    minBudget: filters.minPrice,
+    maxBudget: filters.maxPrice,
   };
 
   switch (filters.category) {

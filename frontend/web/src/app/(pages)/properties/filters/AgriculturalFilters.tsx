@@ -4,7 +4,7 @@ import {
   selectCityWithLocalities,
   selectLocalitiesByCity,
 } from "@/Redux/slice/citySlice";
-import { setAgriculturalFilter } from "@/Redux/slice/filterSlice";
+import { setAgriculturalFilter, setBudget } from "@/Redux/slice/filterSlice";
 import { RootState } from "@/Redux/store";
 import FilterDropdown from "@/ui/FilterDropdown";
 import { useDispatch, useSelector } from "react-redux";
@@ -19,9 +19,9 @@ import {
   carpetOptions,
   formatBudget,
 } from "../constants/constants";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PostedByOption } from "@/types/residential";
-import { Range } from "react-range";
+import { getTrackBackground, Range } from "react-range";
 import {
   AgriculturalFilterKey,
   MoreFilterSection,
@@ -37,26 +37,28 @@ const AgriculturalFilters = () => {
   const localities = useSelector(selectLocalitiesByCity);
   const filtersState = useSelector((state: RootState) => state.filters);
 
-  const { minBudget, maxBudget, agricultural } = filtersState;
+  const { minPrice, maxPrice, agricultural } = filtersState;
+  const [budgetTouched, setBudgetTouched] = useState(false);
 
   const { locality, postedBy } = agricultural;
 
   /* -------------------- BUDGET -------------------- */
-
-  const [budgetRange, setBudgetRange] = useState<[number, number]>([
-    minBudget || BUDGET_MIN,
-    maxBudget || BUDGET_MAX,
-  ]);
 
   const [carpetRange, setCarpetRange] = useState<[number, number]>([
     CARPET_MIN,
     CARPET_MAX,
   ]);
 
+const [budgetRange, setBudgetRange] = useState<
+    [number | null, number | null]
+  >([minPrice ?? null, maxPrice ?? null]);
+
   const budgetLabel =
-    minBudget === BUDGET_MIN && maxBudget === BUDGET_MAX
+    budgetRange[0] == null && budgetRange[1] == null
       ? "Budget"
-      : `${formatBudget(minBudget)} - ${formatBudget(maxBudget)}`;
+      : `${budgetRange[0] ? formatBudget(budgetRange[0]) : "Min"} - ${
+          budgetRange[1] ? formatBudget(budgetRange[1]) : "Max"
+        }`;
 
   const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
 
@@ -83,6 +85,18 @@ const AgriculturalFilters = () => {
     setActiveFilter(key);
   };
 
+
+    useEffect(() => {
+    if (!budgetTouched) return;
+  
+    dispatch(
+      setBudget({
+        min: budgetRange[0] ?? null,
+        max: budgetRange[1] ?? null,
+      })
+    );
+  }, [budgetRange, budgetTouched, dispatch]);
+  
 
   return (
     <div className="flex gap-4 items-center">
@@ -138,147 +152,134 @@ const AgriculturalFilters = () => {
       />
 
       {/* ---------- Budget ---------- */}
-      <FilterDropdown
-        triggerLabel={
-          <span className="px-4 text-primary font-medium cursor-pointer">
-            {budgetLabel}
-          </span>
-        }
-        width="w-[320px]"
-        align="left"
-        renderContent={() => (
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold">Budget</h4>
+     
 
-            {/* Min / Max dropdowns */}
-            <div className="flex gap-3">
-              <select
-                value={budgetRange[0]}
-                onChange={(e) =>
-                  setBudgetRange([Number(e.target.value), budgetRange[1]])
-                }
-                className="w-1/2 border rounded-md px-3 py-2 text-sm"
-              >
-                {budgetOptions.map((v) => (
-                  <option key={v} value={v}>
-                    Min {formatBudget(v)}
-                  </option>
-                ))}
-              </select>
+<FilterDropdown
+          triggerLabel={
+            <span className="px-4 text-primary font-medium cursor-pointer">
+              {budgetLabel}
+            </span>
+          }
+          width="w-[320px]"
+          align="left"
+          renderContent={() => (
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold">Budget</h4>
 
-              <select
-                value={budgetRange[1]}
-                onChange={(e) =>
-                  setBudgetRange([budgetRange[0], Number(e.target.value)])
-                }
-                className="w-1/2 border rounded-md px-3 py-2 text-sm"
-              >
-                {budgetOptions.map((v) => (
-                  <option key={v} value={v}>
-                    Max {formatBudget(v)}
-                  </option>
-                ))}
-              </select>
+              {/* ---------- Min / Max Dropdowns ---------- */}
+              <div className="flex gap-3">
+                {/* Min */}
+                <select
+                  value={budgetRange[0] ?? ""}
+                  onChange={(e) => {
+                    setBudgetTouched(true);
+                    setBudgetRange([
+                      e.target.value ? Number(e.target.value) : null,
+                      budgetRange[1],
+                    ]);
+                  }}
+                  className="w-1/2 border border-gray-400 rounded-md px-3 py-2 text-sm 
+           focus:outline-none focus:ring-0 focus:border-gray-400
+           hover:border-gray-400 active:border-gray-400"
+                >
+                  <option value="">Min</option>
+                  {budgetOptions.map((v) => (
+                    <option key={v} value={v}>
+                      ₹ {formatBudget(v)}
+                    </option>
+                  ))}
+                </select>
+
+                <span className="flex items-center justify-center text-md text-gray-500 min-w-[20px]">
+                  to
+                </span>
+
+                {/* Max */}
+                <select
+                  value={budgetRange[1] ?? ""}
+                  onChange={(e) => {
+                    setBudgetTouched(true);
+                    setBudgetRange([
+                      budgetRange[0],
+                      e.target.value ? Number(e.target.value) : null,
+                    ]);
+                  }}
+                  className="w-1/2 border border-gray-400 rounded-md px-3 py-2 text-sm 
+           focus:outline-none focus:ring-0 focus:border-gray-400
+           hover:border-gray-400 active:border-gray-400"
+                >
+                  <option value="">Max</option>
+                  {budgetOptions.map((v) => (
+                    <option key={v} value={v}>
+                      ₹ {formatBudget(v)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* ---------- Range Slider ---------- */}
+              <Range
+                step={BUDGET_STEP}
+                min={BUDGET_MIN}
+                max={BUDGET_MAX}
+                values={[
+                  budgetRange[0] ?? BUDGET_MIN,
+                  budgetRange[1] ?? BUDGET_MAX,
+                ]}
+                onChange={(values) => {
+                  const [min, max] = values as [number, number];
+
+                  setBudgetRange([
+                    min === BUDGET_MIN ? null : min,
+                    max === BUDGET_MAX ? null : max,
+                  ]);
+                }}
+                renderTrack={({ props, children }) => {
+                  const { key, ...restProps } = props as any;
+
+                  return (
+                    <div
+                      key={key}
+                      {...restProps}
+                      className="h-1 w-full rounded"
+                      style={{
+                        background: getTrackBackground({
+                          values: [
+                            budgetRange[0] ?? BUDGET_MIN,
+                            budgetRange[1] ?? BUDGET_MAX,
+                          ],
+                          colors: ["#E5E7EB", "#16A34A", "#E5E7EB"], // gray → green → gray
+                          min: BUDGET_MIN,
+                          max: BUDGET_MAX,
+                        }),
+                      }}
+                    >
+                      {children}
+                    </div>
+                  );
+                }}
+                renderThumb={({ props }) => {
+                  const { key, ...restProps } = props;
+                  return (
+                    <div
+                      key={key}
+                      {...restProps}
+                      className="h-4 w-4 bg-green-600 rounded-full shadow"
+                    />
+                  );
+                }}
+              />
+
+              {/* ---------- Label ---------- */}
+              <div className="text-xs text-gray-500 text-center">
+                {budgetRange[0] ? formatBudget(budgetRange[0]) : "Min"} –{" "}
+                {budgetRange[1] ? formatBudget(budgetRange[1]) : "Max"}
+              </div>
             </div>
+          )}
+        />
 
-            {/* Range Slider */}
-            <Range
-              step={BUDGET_STEP}
-              min={BUDGET_MIN}
-              max={BUDGET_MAX}
-              values={budgetRange}
-              onChange={(values) => setBudgetRange(values as [number, number])}
-              renderTrack={({ props, children }) => (
-                <div {...props} className="h-1 w-full bg-gray-200 rounded">
-                  {children}
-                </div>
-              )}
-              renderThumb={({ props }) => (
-                <div
-                  {...props}
-                  className="h-4 w-4 bg-green-600 rounded-full shadow"
-                />
-              )}
-            />
 
-            {/* Label */}
-            <div className="text-xs text-gray-500 text-center">
-              {formatBudget(budgetRange[0])} – {formatBudget(budgetRange[1])}
-            </div>
-          </div>
-        )}
-      />
-
-      <FilterDropdown
-        triggerLabel={
-          <span className="px-4 text-primary font-medium cursor-pointer">
-            {"Total Area"}
-          </span>
-        }
-        width="w-[320px]"
-        align="left"
-        renderContent={() => (
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold">Total Area</h4>
-
-            {/* Min / Max dropdowns */}
-            <div className="flex gap-3">
-              <select
-                value={budgetRange[0]}
-                onChange={(e) =>
-                  setBudgetRange([Number(e.target.value), budgetRange[1]])
-                }
-                className="w-1/2 border rounded-md px-3 py-2 text-sm"
-              >
-                {budgetOptions.map((v) => (
-                  <option key={v} value={v}>
-                    Min {formatBudget(v)}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={budgetRange[1]}
-                onChange={(e) =>
-                  setBudgetRange([budgetRange[0], Number(e.target.value)])
-                }
-                className="w-1/2 border rounded-md px-3 py-2 text-sm"
-              >
-                {budgetOptions.map((v) => (
-                  <option key={v} value={v}>
-                    Max {formatBudget(v)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Range Slider */}
-            <Range
-              step={BUDGET_STEP}
-              min={BUDGET_MIN}
-              max={BUDGET_MAX}
-              values={budgetRange}
-              onChange={(values) => setBudgetRange(values as [number, number])}
-              renderTrack={({ props, children }) => (
-                <div {...props} className="h-1 w-full bg-gray-200 rounded">
-                  {children}
-                </div>
-              )}
-              renderThumb={({ props }) => (
-                <div
-                  {...props}
-                  className="h-4 w-4 bg-green-600 rounded-full shadow"
-                />
-              )}
-            />
-
-            {/* Label */}
-            <div className="text-xs text-gray-500 text-center">
-              {formatBudget(budgetRange[0])} – {formatBudget(budgetRange[1])}
-            </div>
-          </div>
-        )}
-      />
 
       {/* ---------- MORE FILTER MODAL ---------- */}
       <FilterDropdown
