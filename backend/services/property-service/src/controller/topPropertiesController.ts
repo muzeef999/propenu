@@ -175,11 +175,11 @@ export const myProperties = async (req: AuthRequest, res: Response) => {
       agricultural,
       featured,
     ] = await Promise.all([
-      Residential.find({ createdBy: userId }),
-      Commercial.find({ createdBy: userId }),
-      LandPlot.find({ createdBy: userId }),
-      Agricultural.find({ createdBy: userId }),
-      FeaturedProject.find({ createdBy: userId }),
+      Residential.find({ createdBy: userId }).sort({ createdAt: -1 }),
+      Commercial.find({ createdBy: userId }).sort({ createdAt: -1 }),
+      LandPlot.find({ createdBy: userId }).sort({ createdAt: -1 }),
+      Agricultural.find({ createdBy: userId }).sort({ createdAt: -1 }),
+      FeaturedProject.find({ createdBy: userId }).sort({ createdAt: -1 }),
     ]);
 
     const all = [

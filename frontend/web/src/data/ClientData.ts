@@ -256,11 +256,18 @@ export const getHighlightProjectBuilders = async () => {
   return res.data;
 };
 
-export const getAgentProfile = async (agentId: string) => {
-  const res = await axiosInstance.get(`${url}/api/users/agent/${agentId}`);
+export const getMyAgentProfile = async () => {
+  const token = Cookies.get("token");
+  if (!token) return null;
 
+  const res = await axiosInstance.get(`${url}/api/users/agent/me/profile`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
   return res.data;
 };
+
 
 export const updateAgentProfileByPhone = async (
   phone: string,

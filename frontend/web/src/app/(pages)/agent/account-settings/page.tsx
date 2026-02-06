@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getAgentProfile, me, updateAgentProfileByPhone } from "@/data/ClientData";
+import {  getMyAgentProfile, me, updateAgentProfileByPhone } from "@/data/ClientData";
 import { Card, DetailRow, StatBox } from "@/ui/AgentPageComponents";
 import { MdEdit, MdVerifiedUser } from "react-icons/md";
 import { HiOutlineXMark } from "react-icons/hi2";
@@ -11,7 +11,6 @@ import { useState, useCallback } from "react";
 import InputField from "@/ui/InputField";
 import TextArea from "@/ui/TextArae";
 
-const AGENT_ID = "696e28667c28c77e5672fb32";
 
 type UpdateAgentPayload = Omit<ProfileEdit, "avatar" | "coverImage"> & {
   avatar?: File;
@@ -322,44 +321,45 @@ const AgentProfilePage = () => {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["agent-profile", AGENT_ID],
-    queryFn: () => getAgentProfile(AGENT_ID),
+    queryKey: ["my-agent-profile"],
+    queryFn: getMyAgentProfile,
   });
+
 
   const queryClient = useQueryClient();
 
   const { data: meData } = useQuery({
-  queryKey: ["me"],
-  queryFn: me,
-});
+    queryKey: ["me"],
+    queryFn: me,
+  });
 
-const phone = meData?.user?.phone;
+  const phone = meData?.user?.phone;
 
-const { mutate: patchAgent, isPending: isUpdating } = useMutation({
-  mutationFn: (payload: ProfileEdit) => {
-    if (!phone) {
-      toast.error("Phone number not found");
-      throw new Error("Phone missing");
-    }
+  const { mutate: patchAgent, isPending: isUpdating } = useMutation({
+    mutationFn: (payload: ProfileEdit) => {
+      if (!phone) {
+        toast.error("Phone number not found");
+        throw new Error("Phone missing");
+      }
 
-    const cleanedPayload: UpdateAgentPayload = {
-      ...payload,
-      avatar: payload.avatar instanceof File ? payload.avatar : undefined,
-      coverImage:
-        payload.coverImage instanceof File ? payload.coverImage : undefined,
-    };
+      const cleanedPayload: UpdateAgentPayload = {
+        ...payload,
+        avatar: payload.avatar instanceof File ? payload.avatar : undefined,
+        coverImage:
+          payload.coverImage instanceof File ? payload.coverImage : undefined,
+      };
 
-    return updateAgentProfileByPhone(phone, cleanedPayload);
-  },
-  onSuccess: () => {
-    toast.success("Profile updated successfully");
-    queryClient.invalidateQueries({ queryKey: ["agent-profile"] });
-    setEditMode(null);
-  },
-  onError: () => {
-    toast.error("Failed to update profile");
-  },
-});
+      return updateAgentProfileByPhone(phone, cleanedPayload);
+    },
+    onSuccess: () => {
+      toast.success("Profile updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["my-agent-profile"] });
+      setEditMode(null);
+    },
+    onError: () => {
+      toast.error("Failed to update profile");
+    },
+  });
 
 
   const handleEditStart = useCallback((section: string, data: ProfileEdit) => {

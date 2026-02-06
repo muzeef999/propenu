@@ -143,3 +143,22 @@ export const getMyPropertyStats = async (req: AuthRequest, res: Response) => {
   res.json(data);
 
 };
+
+
+export const getMyAgentProfile = async (req: AuthRequest, res: Response) => {
+  const userId = req.user!.sub;
+
+  const agent = await AgentService.getAgentByUserId(userId);
+
+  if (!agent) {
+    return res.status(404).json({
+      exists: false,
+      message: "Agent profile not created",
+    });
+  }
+
+  res.status(200).json({
+    exists: true,
+    agent,
+  });
+};

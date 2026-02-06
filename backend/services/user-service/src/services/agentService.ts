@@ -389,6 +389,19 @@ async  getAgentsByLocationService(
   };
 },
 
+async getAgentByUserId(userId: string) {
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid user id");
+  }
+
+  const agent = await Agent.findOne({ user: userId })
+    .populate("user", "name email phone")
+    .lean();
+
+  return agent; // can be null → controller already handles it
+},
+
+
 
 async editAgentByPhone(
   phone: string,
