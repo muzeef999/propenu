@@ -8,17 +8,14 @@ dotenv.config();
 
 async function seedPlans() {
   try {
-    console.log("🧹 Removing old plans...");
 
     await connectDB();
 
     // 🚨 STEP 1: DELETE ALL OLD DATA
     await Plan.deleteMany({});
-    console.log("✅ Old plans removed");
-
+   
     // 🌱 STEP 2: INSERT NEW DATA
     await Plan.insertMany(plans);
-    console.log("✅ New plans inserted successfully");
 
   } catch (error) {
     console.error("❌ Seeding failed:", error);

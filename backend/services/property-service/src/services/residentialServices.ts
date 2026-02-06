@@ -258,7 +258,7 @@ export const ResidentialPropertyService = {
         } else {
           existing.gallery.push({ ...inc });
         }
-      }
+      } 
     }
 
     const galleryFiles = files?.galleryFiles ?? [];
@@ -526,7 +526,7 @@ for (const file of galleryFiles) {
   model: Residential,
 
   getPipeline(filters: any) {
-    const match = extendResidentialFilters(filters as any, {});
+const match = extendResidentialFilters(filters, {});
 
     return [
       { $match: match },
@@ -536,6 +536,7 @@ for (const file of galleryFiles) {
           id: "$_id",
           type: { $literal: "Residential" },
           title: 1,
+          locality: 1,
           city: 1,
           listingType: 1,
           transactionType: 1,

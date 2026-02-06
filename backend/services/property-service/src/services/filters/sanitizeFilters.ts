@@ -11,6 +11,8 @@ const ALLOWED_FILTERS = [
   "constructionStatus",
   "propertyType",
 
+  "locality",
+
   // numeric filters
   "bhk",
   "minPrice",

@@ -83,7 +83,6 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
       toast.error(message);
     },
   });
-  console.log("property", p); 
 
   return (
     <div

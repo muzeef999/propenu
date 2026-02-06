@@ -118,7 +118,6 @@ export const getMyContactedProperties = async (
   try {
     const userId = req.user!.id;
 
-    console.log("used id:", userId);
 
 
     const leads = await Lead.find({ createdBy: userId })
@@ -127,7 +126,6 @@ export const getMyContactedProperties = async (
       .sort({ createdAt: -1 })
       .lean();
 
-          console.log("📦 FOUND LEADS:", leads.length);
 
 
     const properties = leads.map((lead: any) => {

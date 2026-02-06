@@ -15,6 +15,8 @@ export function useStreamProperties(params: SearchFilterParams) {
       setLoading(true);
       setItems([]);
 
+
+
       // 🔥 build query string from params
       const query = new URLSearchParams(
         Object.entries(params)

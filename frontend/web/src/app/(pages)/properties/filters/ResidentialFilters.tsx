@@ -1,19 +1,26 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { Range } from "react-range";
+import { getTrackBackground, Range } from "react-range";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/Redux/store";
-import { setResidentialFilter } from "@/Redux/slice/filterSlice";
+import { setBudget, setResidentialFilter } from "@/Redux/slice/filterSlice";
 import FilterDropdown from "@/ui/FilterDropdown";
-import { BHKOption, PostedByOption, residentialKeyMapping } from "@/types/residential";
+import {
+  BHKOption,
+  PostedByOption,
+  residentialKeyMapping,
+} from "@/types/residential";
 import { buildSearchParams } from "./buildSearchParams";
 import { searchFilter } from "@/data/ClientData";
-import { selectCityWithLocalities, selectLocalitiesByCity, } from "@/Redux/slice/citySlice";
-import {  RESFilterKey } from "@/types";
+import {
+  selectCityWithLocalities,
+  selectLocalitiesByCity,
+} from "@/Redux/slice/citySlice";
+import { RESFilterKey } from "@/types";
 import Toggle from "@/ui/ToggleSwitch";
 import { toast } from "sonner";
-import { 
+import {
   BUDGET_MAX,
   BUDGET_MIN,
   BUDGET_STEP,
@@ -27,6 +34,7 @@ import {
 import { ArrowDropdownIcon } from "@/icons/icons";
 import SelectableButton from "@/ui/SelectableButton";
 import { getSelectedMoreFiltersCount } from "../count-helper/ResSelectedMoreFiltersCount";
+import { FiCheck, FiPlus, FiX } from "react-icons/fi";
 
 const ResidentialFilters = () => {
   const dispatch = useDispatch();
@@ -36,7 +44,9 @@ const ResidentialFilters = () => {
   const cityData = useSelector(selectCityWithLocalities);
   const localities = useSelector(selectLocalitiesByCity);
   const filtersState = useSelector((state: RootState) => state.filters);
-  const { minBudget, maxBudget, residential } = filtersState;
+  const { minPrice, maxPrice, residential } = filtersState;
+  const [budgetTouched, setBudgetTouched] = useState(false);
+
   const { locality, bhk, postedBy } = residential;
   const [open, setOpen] = useState(false);
   const [activeFilter, setActiveFilter] =
@@ -66,6 +76,13 @@ const ResidentialFilters = () => {
     CARPET_MAX,
   ]);
 
+  const localityLabel =
+    !locality || locality.length === 0
+      ? "Select Locality"
+      : locality.length === 1
+        ? locality[0]
+        : `${locality.length} Localities`;
+
   /* -------------------- BHK -------------------- */
 
   const bhkOptions: BHKOption[] = [
@@ -84,16 +101,16 @@ const ResidentialFilters = () => {
   const bhkLabel = bhk ? `${bhk}${bhk === 6 ? "+" : ""} BHK` : "BHK";
 
   /* -------------------- BUDGET -------------------- */
-
-  const [budgetRange, setBudgetRange] = useState<[number, number]>([
-    minBudget || BUDGET_MIN,
-    maxBudget || BUDGET_MAX,
-  ]);
+  const [budgetRange, setBudgetRange] = useState<
+    [number | null, number | null]
+  >([minPrice ?? null, maxPrice ?? null]);
 
   const budgetLabel =
-    minBudget === BUDGET_MIN && maxBudget === BUDGET_MAX
+    budgetRange[0] == null && budgetRange[1] == null
       ? "Budget"
-      : `${formatBudget(minBudget)} - ${formatBudget(maxBudget)}`;
+      : `${budgetRange[0] ? formatBudget(budgetRange[0]) : "Min"} - ${
+          budgetRange[1] ? formatBudget(budgetRange[1]) : "Max"
+        }`;
 
   const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
 
@@ -125,11 +142,23 @@ const ResidentialFilters = () => {
       : [...arr, value];
   };
 
-const selectedMoreFiltersCount = getSelectedMoreFiltersCount(
-  residential,
-  residentialKeyMapping
-);
+  const selectedMoreFiltersCount = getSelectedMoreFiltersCount(
+    residential,
+    residentialKeyMapping,
+  );
   /* -------------------- MORE FILTER CONFIG -------------------- */
+
+  useEffect(() => {
+  if (!budgetTouched) return;
+
+  dispatch(
+    setBudget({
+      min: budgetRange[0] ?? null,
+      max: budgetRange[1] ?? null,
+    })
+  );
+}, [budgetRange, budgetTouched, dispatch]);
+
 
   return (
     <>
@@ -140,15 +169,15 @@ const selectedMoreFiltersCount = getSelectedMoreFiltersCount(
           triggerLabel={
             <div className="flex justify-center items-center">
               <span className="px-4 text-primary font-medium cursor-pointer">
-                {locality || "Select Locality"}
+                {localityLabel}
               </span>
             </div>
           }
           width="w-86"
           align="left"
           renderContent={(close) => (
-            <div className="p-2">
-              <h4 className="text-sm font-semibold mb-2">
+            <div className="p-3">
+              <h4 className="text-sm font-semibold mb-3">
                 {cityData
                   ? `Localities in ${cityData.city}`
                   : "Select city first"}
@@ -161,28 +190,76 @@ const selectedMoreFiltersCount = getSelectedMoreFiltersCount(
               )}
 
               {cityData && (
-                <div className="flex gap-2 flex-wrap">
-                  {localities.map((loc) => (
+                <>
+                  {/* Locality Pills */}
+                  <div className="flex gap-2 flex-wrap">
+                    {localities.map((loc) => {
+                      const isSelected =
+                        Array.isArray(locality) && locality.includes(loc.name);
+
+                      return (
+                        <button
+                          key={loc.name}
+                          onClick={() => {
+                            dispatch(
+                              setResidentialFilter({
+                                key: "locality",
+                                value: toggleArrayValue(
+                                  locality || [],
+                                  loc.name,
+                                ),
+                              }),
+                            );
+                          }}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm border transition ${
+                            isSelected
+                              ? "bg-green-100 text-green-700 border-green-400"
+                              : "bg-white hover:bg-gray-50 border-gray-300"
+                          }`}
+                        >
+                          {isSelected ? (
+                            <FiCheck className="text-green-600 text-base" />
+                          ) : (
+                            <FiPlus className="text-gray-500 text-base" />
+                          )}
+                          <span>{loc.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Footer Actions */}
+                  <div className="flex justify-between items-center mt-4">
+                    {/* Clear All */}
                     <button
-                      key={loc.name}
                       onClick={() => {
                         dispatch(
                           setResidentialFilter({
                             key: "locality",
-                            value: loc.name,
-                          })
+                            value: [],
+                          }),
                         );
-
-                        close?.();
                       }}
-                      className={`px-2 py-1 rounded text-sm hover:bg-gray-100 ${
-                        locality === loc.name ? "font-semibold bg-gray-100" : ""
+                      disabled={!locality || locality.length === 0}
+                      className={`flex items-center gap-1 text-sm font-medium ${
+                        locality && locality.length > 0
+                          ? "text-red-500 hover:underline"
+                          : "text-gray-400 cursor-not-allowed"
                       }`}
                     >
-                      {loc.name}
+                      <FiX />
+                      Clear All
                     </button>
-                  ))}
-                </div>
+
+                    {/* Done */}
+                    <button
+                      onClick={close}
+                      className="text-green-600 font-semibold text-sm hover:underline"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -201,46 +278,74 @@ const selectedMoreFiltersCount = getSelectedMoreFiltersCount(
             <div className="space-y-4">
               <h4 className="text-sm font-semibold">Budget</h4>
 
-              {/* Min / Max dropdowns */}
+              {/* ---------- Min / Max Dropdowns ---------- */}
               <div className="flex gap-3">
+                {/* Min */}
                 <select
-                  value={budgetRange[0]}
-                  onChange={(e) =>
-                    setBudgetRange([Number(e.target.value), budgetRange[1]])
-                  }
-                  className="w-1/2 border rounded-md px-3 py-2 text-sm"
+                  value={budgetRange[0] ?? ""}
+                  onChange={(e) => {
+                    setBudgetTouched(true);
+                    setBudgetRange([
+                      e.target.value ? Number(e.target.value) : null,
+                      budgetRange[1],
+                    ]);
+                  }}
+                  className="w-1/2 border border-gray-400 rounded-md px-3 py-2 text-sm 
+           focus:outline-none focus:ring-0 focus:border-gray-400
+           hover:border-gray-400 active:border-gray-400"
                 >
+                  <option value="">Min</option>
                   {budgetOptions.map((v) => (
                     <option key={v} value={v}>
-                      Min {formatBudget(v)}
+                      ₹ {formatBudget(v)}
                     </option>
                   ))}
                 </select>
 
+                <span className="flex items-center justify-center text-md text-gray-500 min-w-[20px]">
+                  to
+                </span>
+
+                {/* Max */}
                 <select
-                  value={budgetRange[1]}
-                  onChange={(e) =>
-                    setBudgetRange([budgetRange[0], Number(e.target.value)])
-                  }
-                  className="w-1/2 border rounded-md px-3 py-2 text-sm"
+                  value={budgetRange[1] ?? ""}
+                  onChange={(e) => {
+                    setBudgetTouched(true);
+                    setBudgetRange([
+                      budgetRange[0],
+                      e.target.value ? Number(e.target.value) : null,
+                    ]);
+                  }}
+                  className="w-1/2 border border-gray-400 rounded-md px-3 py-2 text-sm 
+           focus:outline-none focus:ring-0 focus:border-gray-400
+           hover:border-gray-400 active:border-gray-400"
                 >
+                  <option value="">Max</option>
                   {budgetOptions.map((v) => (
                     <option key={v} value={v}>
-                      Max {formatBudget(v)}
+                      ₹ {formatBudget(v)}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Range Slider */}
+              {/* ---------- Range Slider ---------- */}
               <Range
                 step={BUDGET_STEP}
                 min={BUDGET_MIN}
                 max={BUDGET_MAX}
-                values={budgetRange}
-                onChange={(values) =>
-                  setBudgetRange(values as [number, number])
-                }
+                values={[
+                  budgetRange[0] ?? BUDGET_MIN,
+                  budgetRange[1] ?? BUDGET_MAX,
+                ]}
+                onChange={(values) => {
+                  const [min, max] = values as [number, number];
+
+                  setBudgetRange([
+                    min === BUDGET_MIN ? null : min,
+                    max === BUDGET_MAX ? null : max,
+                  ]);
+                }}
                 renderTrack={({ props, children }) => {
                   const { key, ...restProps } = props as any;
 
@@ -248,7 +353,18 @@ const selectedMoreFiltersCount = getSelectedMoreFiltersCount(
                     <div
                       key={key}
                       {...restProps}
-                      className="h-1 w-full bg-gray-200 rounded"
+                      className="h-1 w-full rounded"
+                      style={{
+                        background: getTrackBackground({
+                          values: [
+                            budgetRange[0] ?? BUDGET_MIN,
+                            budgetRange[1] ?? BUDGET_MAX,
+                          ],
+                          colors: ["#E5E7EB", "#16A34A", "#E5E7EB"], // gray → green → gray
+                          min: BUDGET_MIN,
+                          max: BUDGET_MAX,
+                        }),
+                      }}
                     >
                       {children}
                     </div>
@@ -256,7 +372,6 @@ const selectedMoreFiltersCount = getSelectedMoreFiltersCount(
                 }}
                 renderThumb={({ props }) => {
                   const { key, ...restProps } = props;
-
                   return (
                     <div
                       key={key}
@@ -267,9 +382,10 @@ const selectedMoreFiltersCount = getSelectedMoreFiltersCount(
                 }}
               />
 
-              {/* Label */}
+              {/* ---------- Label ---------- */}
               <div className="text-xs text-gray-500 text-center">
-                {formatBudget(budgetRange[0])} – {formatBudget(budgetRange[1])}
+                {budgetRange[0] ? formatBudget(budgetRange[0]) : "Min"} –{" "}
+                {budgetRange[1] ? formatBudget(budgetRange[1]) : "Max"}
               </div>
             </div>
           )}
@@ -298,7 +414,7 @@ const selectedMoreFiltersCount = getSelectedMoreFiltersCount(
                           setResidentialFilter({
                             key: "bhk",
                             value,
-                          })
+                          }),
                         );
                         close?.();
                       }}
@@ -334,7 +450,7 @@ const selectedMoreFiltersCount = getSelectedMoreFiltersCount(
                       setResidentialFilter({
                         key: "postedBy",
                         value: opt,
-                      })
+                      }),
                     );
                     close?.();
                   }}
@@ -423,7 +539,7 @@ const selectedMoreFiltersCount = getSelectedMoreFiltersCount(
                           toast.success(
                             val
                               ? "Verified properties enabled"
-                              : "Verified properties disabled"
+                              : "Verified properties disabled",
                           );
                         }}
                       />
@@ -506,7 +622,7 @@ const selectedMoreFiltersCount = getSelectedMoreFiltersCount(
                         </div>
                       </div>
                     ) : (
-                      <div className="flex flex-wrap gap-3"> 
+                      <div className="flex flex-wrap gap-3">
                         {section.options?.map((opt) => {
                           const mappedKey = keyMapping[section.key];
                           const currentValue = residential[mappedKey];
@@ -531,10 +647,10 @@ const selectedMoreFiltersCount = getSelectedMoreFiltersCount(
                                       section.selectionType === "multiple"
                                         ? toggleArrayValue(
                                             (currentValue as string[]) || [],
-                                            opt
+                                            opt,
                                           )
                                         : opt,
-                                  })
+                                  }),
                                 );
                               }}
                             />
@@ -554,4 +670,3 @@ const selectedMoreFiltersCount = getSelectedMoreFiltersCount(
 };
 
 export default ResidentialFilters;
- 

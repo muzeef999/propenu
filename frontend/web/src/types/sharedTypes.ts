@@ -71,13 +71,10 @@ export interface ResidentialFilters {
   furnishing?: string;
   postedSince?: string;
   postedBy?: string;
-
    coveredArea?: {
     min?: number;
     max?: number;
   };
-
-
   // ---------- MULTIPLE ----------
   bathroom?: string[];
   balcony?: string[];
@@ -93,7 +90,7 @@ export interface ResidentialFilters {
 
   // ---------- OTHERS ----------
   bhk?: number;
-  locality?: string;
+  locality?: string[];
 }
 
 export interface CommercialFilters {
@@ -199,8 +196,8 @@ export interface FilterState {
   searchText: string;
 
   /* -------- Shared -------- */
-  minBudget: number;
-  maxBudget: number;
+  minPrice: number | null;
+  maxPrice: number | null;
 
   /* -------- Category Buckets -------- */
   residential: ResidentialFilters;

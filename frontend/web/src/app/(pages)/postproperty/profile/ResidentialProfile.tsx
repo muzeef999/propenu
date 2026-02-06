@@ -405,7 +405,6 @@ const ResidentialProfile = () => {
 
             console.error("❌ Residential Profile Validation Failed");
             console.table(flattened.fieldErrors);
-            console.log("Full Zod Error:", result.error);
 
             toast.error("Please fix the highlighted errors");
             return;
@@ -426,7 +425,6 @@ const ResidentialProfile = () => {
 
             })
             .catch((error: any) => {
-              console.log("🔥 FULL ERROR FROM API:", error);
 
               const errObj =
                 typeof error === "string"
@@ -446,7 +444,6 @@ const ResidentialProfile = () => {
                     ? "/plans/pricing/owner-sell"
                     : "/plans/pricing/owner-rent";
 
-                console.log("🚀 Redirecting to:", redirectUrl);
 
                 setTimeout(() => {
                   router.push(redirectUrl);

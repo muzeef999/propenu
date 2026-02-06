@@ -16,8 +16,8 @@ export default function PricingDetails({
   data,
   fieldErrors,
 }: PricingDetailsProps) {
-  const dispatch = useDispatch();
 
+  const dispatch = useDispatch();
   const isAgricultural = propertyType === "agricultural";
   const isLand = propertyType === "land";
 
@@ -86,8 +86,8 @@ export default function PricingDetails({
         <InputWithUnit
           label="Total Area"
           placeholder="e.g. 5"
-          value={data.totalArea?.value ?? ""}
-          unit={data.totalArea?.unit ?? "acre"}
+          value={data?.totalArea?.value ?? ""}
+          unit={data?.totalArea?.unit ?? "acre"}
           units={[
             { label: "SQ.FT", value: "sqft" },
             { label: "SQ.MT", value: "sqmt" },
