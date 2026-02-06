@@ -83,6 +83,7 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
       toast.error(message);
     },
   });
+  console.log("property", p); 
 
   return (
     <div
@@ -265,8 +266,9 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
             }`}
         >
           <ContactOwnerButton
-            projectId={p._id}
+            projectId={p.id}
             propertyType="residentials"
+            listingType={p?.listingType}
             className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${vertical
                 ? "px-4 py-1.5 text-sm"
                 : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base"

@@ -6,9 +6,9 @@ import { MdEventSeat, MdMeetingRoom } from "react-icons/md";
 import { ICommercial } from "@/types/commercial";
 import GalleryFile from "../../../GalleryFile";
 import { FaParking } from "react-icons/fa";
-import CommercialCard from "../../../cards/CommercialCard";
 import NearByPlace from "../../NearByPlace";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
+import RelatedCommercialCarousel from "./RelatedCommercialCarousel";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -234,15 +234,9 @@ export default async function Page({ params }: PageProps) {
                   </h2>
                   {project.relatedProjects &&
                   project.relatedProjects.length > 0 ? (
-                    <div className="flex w-[30%] gap-4 h-[485px]">
-                      {project.relatedProjects.map((relatedProject) => (
-                        <CommercialCard
-                          key={relatedProject._id}
-                          p={relatedProject}
-                          vertical={true}
-                        />
-                      ))}
-                    </div>
+                    <RelatedCommercialCarousel
+                      projects={project.relatedProjects}
+                    />
                   ) : (
                     <p className="text-sm text-gray-500">
                       No similar properties available.

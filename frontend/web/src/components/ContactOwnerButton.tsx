@@ -31,7 +31,6 @@ export default function ContactOwnerButton({
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const router = useRouter();
 
-  console.log("listing Type", listingType);
 
   const redirectToPlan = () => {
     if (listingType === "sale") {
@@ -81,9 +80,6 @@ export default function ContactOwnerButton({
   });
 
   const handleContactOwner = () => {
-
-    console.log("🔵 Contact Owner clicked");
-
   console.log("🔵 Current state:", {
     user,
     listingType,

@@ -234,6 +234,8 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
           <ContactOwnerButton
             projectId={p.id}
             propertyType="agriculturals"
+                        listingType={p?.listingType}
+
             className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${
               vertical
                 ? "px-4 py-1.5 text-sm"

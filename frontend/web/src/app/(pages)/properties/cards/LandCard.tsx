@@ -53,9 +53,8 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
 
   return (
     <div
-      className={`card p-2 h-auto flex overflow-hidden ${
-        vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"
-      }`}
+      className={`card p-2 h-auto flex overflow-hidden ${vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"
+        }`}
     >
       <Link href={`/properties/land/${p.slug}`} className={`flex flex-1 min-w-0 ${vertical ? "flex-col" : "flex-col md:flex-row"}`}>
         {/* Left: image */}
@@ -142,8 +141,8 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
           {/* meta icons row */}
           <div
             className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200 ${vertical
-                ? "grid grid-cols-2 gap-4"
-                : "md:flex md:items-center md:gap-6"
+              ? "grid grid-cols-2 gap-4"
+              : "md:flex md:items-center md:gap-6"
               }`}
           >
             <div className="items-center gap-2 flex">
@@ -167,9 +166,8 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
 
                 <div className="font-medium">
                   {(p as any)?.dimensions?.length && (p as any)?.dimensions?.width
-                    ? `${(p as any).dimensions.length} x ${
-                        (p as any).dimensions.width
-                      }`
+                    ? `${(p as any).dimensions.length} x ${(p as any).dimensions.width
+                    }`
                     : "—"}
                 </div>
               </div>
@@ -204,27 +202,24 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
 
       {/* Right: price card */}
       <aside
-        className={`rounded-xl ${
-          vertical
+        className={`rounded-xl ${vertical
             ? "w-full px-3 py-2 flex items-center justify-between gap-3"
             : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:mt-0"
-        }`}
+          }`}
         style={{ backgroundColor: bgPriceColor }}
       >
         {/* PRICE */}
         <div
-          className={`${
-            vertical
+          className={`${vertical
               ? "flex flex-col"
               : "flex flex-col md:items-center md:text-center"
-          }`}
+            }`}
         >
           <div
-            className={`text-green-700 font-semibold ${
-              vertical
+            className={`text-green-700 font-semibold ${vertical
                 ? "text-lg leading-tight"
                 : "text-lg leading-tight md:text-2xl"
-            }`}
+              }`}
           >
             {formatINR(p?.price)}
           </div>
@@ -234,20 +229,20 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
 
         {/* BUTTON */}
         <div
-          className={`${
-            vertical
+          className={`${vertical
               ? "shrink-0"
               : "shrink-0 md:w-full md:mt-4 justify-center flex"
-          }`}
+            }`}
         >
           <ContactOwnerButton
             projectId={p.id}
             propertyType="landplots"
-            className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${
-              vertical
+            listingType={p?.listingType}
+
+            className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${vertical
                 ? "px-4 py-1.5 text-sm"
                 : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base "
-            }`}
+              }`}
           />
         </div>
       </aside>

@@ -8,8 +8,8 @@ import { GiCompass } from "react-icons/gi";
 import { FaRoad } from "react-icons/fa";
 import { BiShapeSquare } from "react-icons/bi";
 import NearByPlace from "@/app/(pages)/properties/(pages)/NearByPlace";
-import { LandCard } from "../../../cards/LandCard";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
+import RelatedLandCarousel from "./RelatedLandCarousel";
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
 };
@@ -245,21 +245,15 @@ export default async function Page({ params }: PageProps) {
                       )}
                     </section>
 
-                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa] ">
+                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa]">
                       <h2 className="mb-1 text-xl font-semibold text-gray-900">
                         More Similar Properties for you
                       </h2>
                       {project.relatedProjects &&
                       project.relatedProjects.length > 0 ? (
-                        <div className="flex w-[30%] gap-4 h-[485px]">
-                          {project.relatedProjects.map((relatedProject) => (
-                            <LandCard
-                              key={relatedProject._id}
-                              p={relatedProject}
-                              vertical={true}
-                            />
-                          ))}
-                        </div>
+                        <RelatedLandCarousel
+                          projects={project.relatedProjects}
+                        />
                       ) : (
                         <p className="text-sm text-gray-500">
                           No similar properties available.

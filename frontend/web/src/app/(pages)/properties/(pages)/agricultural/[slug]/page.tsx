@@ -8,8 +8,8 @@ import { GiGroundSprout } from "react-icons/gi";
 import { FaRoad } from "react-icons/fa";
 import { IAgricultural } from "@/types/agricultural";
 import NearByPlace from "@/app/(pages)/properties/(pages)/NearByPlace";
-import AgriculturalCard from "../../../cards/AgriculturalCard";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
+import RelatedAgriculturalCarousel from "./RelatedAgriculturalCarousel";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -289,15 +289,9 @@ export default async function Page({ params }: PageProps) {
                       </h2>
                       {project.relatedProjects &&
                       project.relatedProjects.length > 0 ? (
-                        <div className="flex w-[30%] gap-4 h-[485px]">
-                          {project.relatedProjects.map((relatedProject) => (
-                            <AgriculturalCard
-                              key={relatedProject._id}
-                              p={relatedProject}
-                              vertical={true}
-                            />
-                          ))}
-                        </div>
+                        <RelatedAgriculturalCarousel
+                          projects={project.relatedProjects}
+                        />
                       ) : (
                         <p className="text-sm text-gray-500">
                           No similar properties available.

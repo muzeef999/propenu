@@ -27,8 +27,7 @@ export interface GalleryItem {
   url: string;
   key?: string;
   caption?: string;
-    filename?: string;
-    
+  filename?: string;
 }
 export interface IAgricultural {
   boundaryWall?: boolean;
@@ -36,7 +35,7 @@ export interface IAgricultural {
   landShape?: string;
   _id?: string;
   id?: string;
-  slug?:string
+  slug?: string;
   soilType?: string;
   gallery?: GalleryItem[];
   listingSource: string;
@@ -44,10 +43,10 @@ export interface IAgricultural {
   address?: string;
   description?: string;
   amenities?: Amenity[];
-
+  listingType?: string;
   carpetArea?: number;
   roadWidth?: IUnitValue;
-  transactionType?: "buy" | "lease" ;
+  transactionType?: "buy" | "lease";
   constructionStatus?: "ready" | "under_construction";
   furnishing?: "furnished" | "semi_furnished" | "unfurnished";
   kitchenType?: "open" | "closed";
@@ -89,8 +88,6 @@ export type AgriculturalSearchParams = BaseSearchParams & {
   soilType?: string;
 };
 
-
-
 export const agriculturalKeyMapping: Record<
   AgriculturalFilterKey,
   keyof AgriculturalFilters
@@ -122,5 +119,4 @@ export const agriculturalKeyMapping: Record<
 
   "Posted Since": "postedSince",
   "Posted By": "postedBy",
-
 };

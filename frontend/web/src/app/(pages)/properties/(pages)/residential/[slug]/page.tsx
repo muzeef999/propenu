@@ -10,6 +10,7 @@ import NearByPlaceClient from "@/app/(pages)/properties/(pages)/NearByPlaceClien
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import Image from "next/image";
 import ad from "@/asserts/ad.png";
+import RelatedPropertiesCarousel from "./RelatedPropertiesCarousel";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -275,26 +276,14 @@ export default async function Page({ params }: PageProps) {
                       )}
                     </section>
 
-                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa] w-full overflow-hidden">
+                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa] w-full max-w-6xl mx-auto">
                       <h2 className="mb-1 text-xl font-semibold text-gray-900">
                         More Similar Properties for you
                       </h2>
 
                       {project.relatedProjects &&
-                      project.relatedProjects.length > 0 ? (
-                        <div className="flex gap-4 h-[485px] overflow-x-auto overflow-y-hidden w-full">
-                          {project.relatedProjects.map((relatedProject) => (
-                            <div
-                              key={relatedProject._id}
-                              className="shrink-0"
-                            >
-                              <ResidentialCard
-                                p={relatedProject}
-                                vertical={true}
-                              />
-                            </div>
-                          ))}
-                        </div>
+                        project.relatedProjects.length > 0 ? (
+                        <RelatedPropertiesCarousel projects={project.relatedProjects} />
                       ) : (
                         <p className="text-sm text-gray-500">
                           No similar properties available.

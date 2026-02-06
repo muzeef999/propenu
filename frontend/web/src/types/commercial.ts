@@ -50,6 +50,7 @@ export interface ICommercial {
   totalFloors?: number;
   price?: number;
   city?: string;
+  listingType?: string;
   listingSource?: string;
   furnishedStatus?: "unfurnished" | "semi-furnished" | "fully-furnished";
   powerBackup?: string;
