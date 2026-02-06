@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useEffect, useRef, useState } from "react";
 import { getTrackBackground, Range } from "react-range";
 import { useDispatch, useSelector } from "react-redux";
@@ -18,7 +17,6 @@ import {
   selectLocalitiesByCity,
 } from "@/Redux/slice/citySlice";
 import { RESFilterKey } from "@/types";
-import Toggle from "@/ui/ToggleSwitch";
 import { toast } from "sonner";
 import {
   BUDGET_MAX,
@@ -57,16 +55,15 @@ const ResidentialFilters = () => {
   // Map display labels to camelCase property names
   const keyMapping: Record<RESFilterKey, keyof typeof residential> = {
     "Property Type": "propertyType",
-    "Sales Type": "salesType",
-    "Possession Status": "possessionStatus",
+    "Sales Type": "transactionType",
+    "Possession Status": "constructionStatus",
     "Covered Area": "coveredArea",
-    Bathroom: "bathroom",
-    Balcony: "balcony",
-    Parking: "parking",
-    Furnishing: "furnishing",
-    Amenities: "amenities",
-    Facing: "facing",
-    "Verified Properties": "verifiedProperties",
+    "Bathroom": "bathroom",
+    "Balcony": "balcony",
+    "Parking": "parking",
+    "Furnishing": "furnishing",
+    "Amenities": "amenities",
+    "Facing": "facing",
     "Posted Since": "postedSince",
     "Posted By": "postedBy",
   };
@@ -118,7 +115,6 @@ const ResidentialFilters = () => {
     searchFilter(buildSearchParams(filtersState));
   }, [filtersState]);
 
-  const [verifiedOnly, setVerifiedOnly] = useState(false);
 
   const handleSectionClick = (key: RESFilterKey) => {
     const container = rightPanelRef.current;
@@ -531,133 +527,122 @@ const ResidentialFilters = () => {
                     </h3>
 
                     {/* SECTION CONTENT */}
-                    {section.key === "Verified Properties" ? (
-                      <Toggle
-                        enabled={verifiedOnly}
-                        onChange={(val) => {
-                          setVerifiedOnly(val);
-                          toast.success(
-                            val
-                              ? "Verified properties enabled"
-                              : "Verified properties disabled",
-                          );
-                        }}
-                      />
-                    ) : section.key === "Covered Area" ? (
-                      <div className="space-y-4">
-                        {/* Min / Max dropdowns */}
-                        <div className="flex gap-3">
-                          <select
-                            value={carpetRange[0]}
-                            onChange={(e) =>
-                              setCarpetRange([
-                                Number(e.target.value),
-                                carpetRange[1],
-                              ])
-                            }
-                            className="w-1/2 border rounded-md px-3 py-2 text-sm"
-                          >
-                            {carpetOptions.map((v) => (
-                              <option key={v} value={v}>
-                                Min {v} sqft
-                              </option>
-                            ))}
-                          </select>
+                    {section.key === "Covered Area" ? (
+  <div className="space-y-4">
+    {/* Min / Max dropdowns */}
+    <div className="flex gap-3">
+      <select
+        value={carpetRange[0]}
+        onChange={(e) =>
+          setCarpetRange([
+            Number(e.target.value),
+            carpetRange[1],
+          ])
+        }
+        className="w-1/2 border rounded-md px-3 py-2 text-sm"
+      >
+        {carpetOptions.map((v) => (
+          <option key={v} value={v}>
+            Min {v} sqft
+          </option>
+        ))}
+      </select>
 
-                          <select
-                            value={carpetRange[1]}
-                            onChange={(e) =>
-                              setCarpetRange([
-                                carpetRange[0],
-                                Number(e.target.value),
-                              ])
-                            }
-                            className="w-1/2 border rounded-md px-3 py-2 text-sm"
-                          >
-                            {carpetOptions.map((v) => (
-                              <option key={v} value={v}>
-                                Max {v} sqft
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+      <select
+        value={carpetRange[1]}
+        onChange={(e) =>
+          setCarpetRange([
+            carpetRange[0],
+            Number(e.target.value),
+          ])
+        }
+        className="w-1/2 border rounded-md px-3 py-2 text-sm"
+      >
+        {carpetOptions.map((v) => (
+          <option key={v} value={v}>
+            Max {v} sqft
+          </option>
+        ))}
+      </select>
+    </div>
 
-                        {/* Range Slider */}
-                        <Range
-                          step={50}
-                          min={CARPET_MIN}
-                          max={CARPET_MAX}
-                          values={carpetRange}
-                          onChange={(values) =>
-                            setCarpetRange(values as [number, number])
-                          }
-                          renderTrack={({ props, children }) => {
-                            const { key, ...restProps } = props as any;
+    {/* Range Slider */}
+    <Range
+      step={50}
+      min={CARPET_MIN}
+      max={CARPET_MAX}
+      values={carpetRange}
+      onChange={(values) =>
+        setCarpetRange(values as [number, number])
+      }
+      renderTrack={({ props, children }) => {
+        const { key, ...restProps } = props as any;
 
-                            return (
-                              <div
-                                key={key}
-                                {...restProps}
-                                className="h-1 w-full bg-gray-200 rounded"
-                              >
-                                {children}
-                              </div>
-                            );
-                          }}
-                          renderThumb={({ props }) => {
-                            const { key, ...restProps } = props as any;
+        return (
+          <div
+            key={key}
+            {...restProps}
+            className="h-1 w-full bg-gray-200 rounded"
+          >
+            {children}
+          </div>
+        );
+      }}
+      renderThumb={({ props }) => {
+        const { key, ...restProps } = props as any;
 
-                            return (
-                              <div
-                                key={key}
-                                {...restProps}
-                                className="h-4 w-4 bg-green-600 rounded-full shadow"
-                              />
-                            );
-                          }}
-                        />
+        return (
+          <div
+            key={key}
+            {...restProps}
+            className="h-4 w-4 bg-green-600 rounded-full shadow"
+          />
+        );
+      }}
+    />
 
-                        <div className="text-xs text-gray-500">
-                          {carpetRange[0]} – {carpetRange[1]} sqft
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap gap-3">
-                        {section.options?.map((opt) => {
-                          const mappedKey = keyMapping[section.key];
-                          const currentValue = residential[mappedKey];
+    <div className="text-xs text-gray-500">
+      {carpetRange[0]} – {carpetRange[1]} sqft
+    </div>
+  </div>
+) : (
+  <div className="flex flex-wrap gap-3">
+    {section.options?.map((opt) => {
+      const mappedKey = keyMapping[section.key];
+      const currentValue = residential[mappedKey];
 
-                          const isActive =
-                            section.selectionType === "multiple"
-                              ? Array.isArray(currentValue) &&
-                                currentValue.includes(opt)
-                              : currentValue === opt;
+      const isActive =
+        section.selectionType === "multiple"
+          ? Array.isArray(currentValue) &&
+            currentValue.includes(opt)
+          : currentValue === opt;
 
-                          return (
-                            <SelectableButton
-                              key={opt}
-                              label={opt}
-                              active={isActive}
-                              selectionType={section.selectionType ?? "single"} // 👈 THIS is the switch
-                              onClick={() => {
-                                dispatch(
-                                  setResidentialFilter({
-                                    key: mappedKey,
-                                    value:
-                                      section.selectionType === "multiple"
-                                        ? toggleArrayValue(
-                                            (currentValue as string[]) || [],
-                                            opt,
-                                          )
-                                        : opt,
-                                  }),
-                                );
-                              }}
-                            />
-                          );
-                        })}
-                      </div>
-                    )}
+      return (
+        <SelectableButton
+          key={opt}
+          label={opt}
+          active={isActive}
+          selectionType={section.selectionType ?? "single"}
+          onClick={() => {
+            dispatch(
+              setResidentialFilter({
+                key: mappedKey,
+                value:
+                  section.selectionType === "multiple"
+                    ? toggleArrayValue(
+                        (currentValue as string[]) || [],
+                        opt,
+                      )
+                    : opt,
+              }),
+            );
+          }}
+        />
+      );
+    })}
+  </div>
+)}
+
                   </div>
                 ))}
               </div>

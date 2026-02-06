@@ -66,8 +66,8 @@ export type BaseSearchParams = {
 export interface ResidentialFilters {
   // ---------- SINGLE ----------
   propertyType?: string;
-  salesType?: string;
-  possessionStatus?: string;
+  transactionType?: string;
+  constructionStatus?: string; 
   furnishing?: string;
   postedSince?: string;
   postedBy?: string;

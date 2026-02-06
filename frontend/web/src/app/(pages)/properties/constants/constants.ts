@@ -95,7 +95,6 @@ export const moreFilterSections: MoreFilterSection[] = [
       options: ["East", "West", "North", "South"],
       selectionType: "multiple",
     },
-    { key: "Verified Properties", label: "Verified Properties" },
     {
       key: "Posted Since",
       label: "Posted Since",
