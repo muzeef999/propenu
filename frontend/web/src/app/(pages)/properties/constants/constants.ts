@@ -29,19 +29,19 @@ export const carpetOptions = [
 
 
 
-export const moreFilterSections: MoreFilterSection[] = [
+export const moreFilterSections: MoreFilterSection[] = [ 
     {
       key: "Property Type",
       label: "Property Type",
       options: [
-        "Apartment",
-        "Independent house",
-        "Villa",
-        "Penthouse",
-        "Studio",
-        "Duplex",
-        "Triplex",
-        "Farmhouse",
+        "apartment",
+        "independent-house",
+        "villa",
+        "penthouse",
+        "studio",
+        "duplex",
+        "triplex",
+        "farmhouse",
         "independent-builder-floor",
       ],
       selectionType: "multiple",
@@ -107,7 +107,7 @@ export const moreFilterSections: MoreFilterSection[] = [
     {
       key: "Posted By",
       label: "Posted By",
-      options: ["owners", "Agents", "Builders"],
+      options: ["user", "Agents", "Builders"],
       selectionType: "multiple",
     },
   ];

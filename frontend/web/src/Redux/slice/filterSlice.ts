@@ -23,16 +23,10 @@ export type categoryOption =
 const initialState: FilterState = {
   listingTypeLabel: "Buy",
   listingTypeValue: "sale",
-
   category: "Residential",
   searchText: "",
-
-  /* Budget (shared) */
   minPrice: null,
-maxPrice: null,
-
-
-  /* Category buckets */
+  maxPrice: null,
   residential: {},
   commercial: {},
   land: {},
@@ -40,13 +34,12 @@ maxPrice: null,
 };
 
 /* ---------------- Slice ---------------- */
-
 const filterSlice = createSlice({
   name: "filters",
   initialState,
   reducers: {
-    /* -------- Core -------- */
 
+    /* -------- Core -------- */
     setListingType(
       state,
       action: PayloadAction<{

@@ -33,6 +33,7 @@ import { ArrowDropdownIcon } from "@/icons/icons";
 import SelectableButton from "@/ui/SelectableButton";
 import { getSelectedMoreFiltersCount } from "../count-helper/ResSelectedMoreFiltersCount";
 import { FiCheck, FiPlus, FiX } from "react-icons/fi";
+import { formatLabel } from "@/utilies/formatLabel";
 
 const ResidentialFilters = () => {
   const dispatch = useDispatch();
@@ -45,26 +46,33 @@ const ResidentialFilters = () => {
   const { minPrice, maxPrice, residential } = filtersState;
   const [budgetTouched, setBudgetTouched] = useState(false);
 
-  const { locality, bhk, postedBy } = residential;
+  const { locality, bhk, listingSource } = residential;
   const [open, setOpen] = useState(false);
   const [activeFilter, setActiveFilter] =
     useState<RESFilterKey>("Property Type");
 
   const sectionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Map display labels to camelCase property names
+  const POSTED_BY_MAP: Record<string, string> = {
+  Owners: "User",
+  Agents: "Agent",
+  Builders: "Builder",
+};
+
+
   const keyMapping: Record<RESFilterKey, keyof typeof residential> = {
     "Property Type": "propertyType",
     "Sales Type": "transactionType",
     "Covered Area": "coveredArea",
-    "Bathroom": "bathroom",
-    "Balcony": "balcony",
-    "Parking": "parking",
-    "Furnishing": "furnishing",
-    "Amenities": "amenities",
-    "Facing": "facing",
+    "Possession Status": "constructionStatus",
+    Bathroom: "bathroom",
+    Balcony: "balcony",
+    Parking: "parking",
+    Furnishing: "furnishing",
+    Amenities: "amenities",
+    Facing: "facing",
     "Posted Since": "postedSince",
-    "Posted By": "postedBy",
+    "Posted By": "listingSource",
   };
 
   const [carpetRange, setCarpetRange] = useState<[number, number]>([
@@ -114,7 +122,6 @@ const ResidentialFilters = () => {
     searchFilter(buildSearchParams(filtersState));
   }, [filtersState]);
 
-
   const handleSectionClick = (key: RESFilterKey) => {
     const container = rightPanelRef.current;
     const target = sectionRefs.current[key];
@@ -144,16 +151,15 @@ const ResidentialFilters = () => {
   /* -------------------- MORE FILTER CONFIG -------------------- */
 
   useEffect(() => {
-  if (!budgetTouched) return;
+    if (!budgetTouched) return;
 
-  dispatch(
-    setBudget({
-      min: budgetRange[0] ?? null,
-      max: budgetRange[1] ?? null,
-    })
-  );
-}, [budgetRange, budgetTouched, dispatch]);
-
+    dispatch(
+      setBudget({
+        min: budgetRange[0] ?? null,
+        max: budgetRange[1] ?? null,
+      }),
+    );
+  }, [budgetRange, budgetTouched, dispatch]);
 
   return (
     <>
@@ -443,14 +449,14 @@ const ResidentialFilters = () => {
                   onClick={() => {
                     dispatch(
                       setResidentialFilter({
-                        key: "postedBy",
-                        value: opt,
+                        key: "listingSource",
+                        value: POSTED_BY_MAP[opt],
                       }),
                     );
                     close?.();
                   }}
                   className={`px-2 py-1 rounded block w-full text-left hover:bg-gray-100 ${
-                    postedBy === opt ? "font-semibold bg-gray-100" : ""
+                    listingSource === opt ? "font-semibold bg-gray-100" : ""
                   }`}
                 >
                   {opt}
@@ -527,121 +533,120 @@ const ResidentialFilters = () => {
 
                     {/* SECTION CONTENT */}
                     {section.key === "Covered Area" ? (
-  <div className="space-y-4">
-    {/* Min / Max dropdowns */}
-    <div className="flex gap-3">
-      <select
-        value={carpetRange[0]}
-        onChange={(e) =>
-          setCarpetRange([
-            Number(e.target.value),
-            carpetRange[1],
-          ])
-        }
-        className="w-1/2 border rounded-md px-3 py-2 text-sm"
-      >
-        {carpetOptions.map((v) => (
-          <option key={v} value={v}>
-            Min {v} sqft
-          </option>
-        ))}
-      </select>
+                      <div className="space-y-4">
+                        {/* Min / Max dropdowns */}
+                        <div className="flex gap-3">
+                          <select
+                            value={carpetRange[0]}
+                            onChange={(e) =>
+                              setCarpetRange([
+                                Number(e.target.value),
+                                carpetRange[1],
+                              ])
+                            }
+                            className="w-1/2 border rounded-md px-3 py-2 text-sm"
+                          >
+                            {carpetOptions.map((v) => (
+                              <option key={v} value={v}>
+                                Min {v} sqft
+                              </option>
+                            ))}
+                          </select>
 
-      <select
-        value={carpetRange[1]}
-        onChange={(e) =>
-          setCarpetRange([
-            carpetRange[0],
-            Number(e.target.value),
-          ])
-        }
-        className="w-1/2 border rounded-md px-3 py-2 text-sm"
-      >
-        {carpetOptions.map((v) => (
-          <option key={v} value={v}>
-            Max {v} sqft
-          </option>
-        ))}
-      </select>
-    </div>
+                          <select
+                            value={carpetRange[1]}
+                            onChange={(e) =>
+                              setCarpetRange([
+                                carpetRange[0],
+                                Number(e.target.value),
+                              ])
+                            }
+                            className="w-1/2 border rounded-md px-3 py-2 text-sm"
+                          >
+                            {carpetOptions.map((v) => (
+                              <option key={v} value={v}>
+                                Max {v} sqft
+                              </option>
+                            ))}
+                          </select>
+                        </div>
 
-    {/* Range Slider */}
-    <Range
-      step={50}
-      min={CARPET_MIN}
-      max={CARPET_MAX}
-      values={carpetRange}
-      onChange={(values) =>
-        setCarpetRange(values as [number, number])
-      }
-      renderTrack={({ props, children }) => {
-        const { key, ...restProps } = props as any;
+                        {/* Range Slider */}
+                        <Range
+                          step={50}
+                          min={CARPET_MIN}
+                          max={CARPET_MAX}
+                          values={carpetRange}
+                          onChange={(values) =>
+                            setCarpetRange(values as [number, number])
+                          }
+                          renderTrack={({ props, children }) => {
+                            const { key, ...restProps } = props as any;
 
-        return (
-          <div
-            key={key}
-            {...restProps}
-            className="h-1 w-full bg-gray-200 rounded"
-          >
-            {children}
-          </div>
-        );
-      }}
-      renderThumb={({ props }) => {
-        const { key, ...restProps } = props as any;
+                            return (
+                              <div
+                                key={key}
+                                {...restProps}
+                                className="h-1 w-full bg-gray-200 rounded"
+                              >
+                                {children}
+                              </div>
+                            );
+                          }}
+                          renderThumb={({ props }) => {
+                            const { key, ...restProps } = props as any;
 
-        return (
-          <div
-            key={key}
-            {...restProps}
-            className="h-4 w-4 bg-green-600 rounded-full shadow"
-          />
-        );
-      }}
-    />
+                            return (
+                              <div
+                                key={key}
+                                {...restProps}
+                                className="h-4 w-4 bg-green-600 rounded-full shadow"
+                              />
+                            );
+                          }}
+                        />
 
-    <div className="text-xs text-gray-500">
-      {carpetRange[0]} – {carpetRange[1]} sqft
-    </div>
-  </div>
-) : (
-  <div className="flex flex-wrap gap-3">
-    {section.options?.map((opt) => {
-      const mappedKey = keyMapping[section.key];
-      const currentValue = residential[mappedKey];
+                        <div className="text-xs text-gray-500">
+                          {carpetRange[0]} – {carpetRange[1]} sqft
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-3">
+                        {section.options?.map((opt) => {
+                          const mappedKey = keyMapping[section.key];
+                          const currentValue = residential[mappedKey];
 
-      const isActive =
-        section.selectionType === "multiple"
-          ? Array.isArray(currentValue) &&
-            currentValue.includes(opt)
-          : currentValue === opt;
+                          const isActive =
+                            section.selectionType === "multiple"
+                              ? Array.isArray(currentValue) &&
+                                currentValue.includes(opt)
+                              : currentValue === opt;
 
-      return (
-        <SelectableButton
-          key={opt}
-          label={opt}
-          active={isActive}
-          selectionType={section.selectionType ?? "single"}
-          onClick={() => {
-            dispatch(
-              setResidentialFilter({
-                key: mappedKey,
-                value:
-                  section.selectionType === "multiple"
-                    ? toggleArrayValue(
-                        (currentValue as string[]) || [],
-                        opt,
-                      )
-                    : opt,
-              }),
-            );
-          }}
-        />
-      );
-    })}
-  </div>
-)}
-
+                          return (
+                            <SelectableButton
+                              key={opt}
+                              label={formatLabel(opt)} // 👈 UI only
+                              active={isActive}
+                              selectionType={section.selectionType ?? "single"}
+                              onClick={() => {
+                                dispatch(
+                                  setResidentialFilter({
+                                    key: mappedKey,
+                                    value:
+                                      section.selectionType === "multiple"
+                                        ? toggleArrayValue(
+                                            (currentValue as string[]) || [],
+                                            opt,
+                                          )
+                                        : opt,
+                                  }),
+                                );
+                              }}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

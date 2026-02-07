@@ -93,9 +93,34 @@ export function extendResidentialFilters(
     f.transactionType = q.transactionType;
   }
 
-  if (q.propertyType) {
-    f.propertyType = q.propertyType;
+  if (typeof q.propertyType === "string" && q.propertyType.trim().length > 0) {
+  const types = q.propertyType
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  if (types.length === 1) {
+    f.propertyType = types[0]; // fast path
+  } else if (types.length > 1) {
+    f.propertyType = { $in: types };
   }
+}
+
+
+if (typeof q.listingSource === "string" && q.listingSource.trim().length > 0) {
+  const sources = q.listingSource
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (sources.length === 1) {
+    f.listingSource = sources[0];
+  } else if (sources.length > 1) {
+    f.listingSource = { $in: sources };
+  }
+}
+
+
 
   if (typeof q.amenities === "string") {
     const amenityTitle = q.amenities

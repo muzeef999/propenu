@@ -70,7 +70,7 @@ export interface ResidentialFilters {
   constructionStatus?: string; 
   furnishing?: string;
   postedSince?: string;
-  postedBy?: string;
+  listingSource?: string;
    coveredArea?: {
     min?: number;
     max?: number;
@@ -81,9 +81,6 @@ export interface ResidentialFilters {
   parking?: string[];
   amenities?: string[];
   facing?: string[];
-
-    verifiedProperties?: boolean;
-
 
   // ---------- SWITCH ----------
   verifiedOnly?: boolean;

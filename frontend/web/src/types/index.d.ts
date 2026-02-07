@@ -355,7 +355,8 @@ type RESFilterKey =
   | "Amenities"
   | "Facing"
   | "Posted Since"
-  | "Posted By";
+  | "Posted By"
+  | "Possession Status";
 
 export type CommercialFilterKey =
   | "Commercial Type"
