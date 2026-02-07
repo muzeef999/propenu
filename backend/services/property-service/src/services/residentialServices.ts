@@ -22,7 +22,6 @@ dotenv.config();
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
 
-
 /* -------------------- Helpers -------------------- */
 function pickDefined<T extends Record<string, any>>(obj: T) {
   return Object.fromEntries(
@@ -263,55 +262,52 @@ export const ResidentialPropertyService = {
 
     const galleryFiles = files?.galleryFiles ?? [];
 
-// Ensure gallery array exists
-existing.gallery = Array.isArray(existing.gallery)
-  ? existing.gallery
-  : [];
+    // Ensure gallery array exists
+    existing.gallery = Array.isArray(existing.gallery) ? existing.gallery : [];
 
-// Build filename → index map from existing gallery
-const galleryIndexByFilename = new Map<string, number>();
+    // Build filename → index map from existing gallery
+    const galleryIndexByFilename = new Map<string, number>();
 
-existing.gallery.forEach((item: any, index: number) => {
-  if (item?.filename) {
-    galleryIndexByFilename.set(item.filename, index);
-  }
-});
-
-for (const file of galleryFiles) {
-  if (!file) continue;
-
-  const up = await uploadFile({
-    buffer: file.buffer,
-    originalName: file.originalname,
-    mimetype: file.mimetype,
-    folder: "featured/gallery",
-    entityId: propId,
-  });
-
-  // 1️⃣ Find matching gallery item by filename
-  const existingIndex = galleryIndexByFilename.get(file.originalname);
-
-  if (existingIndex !== undefined) {
-    // ✅ Update existing slot
-    existing.gallery[existingIndex] = {
-      ...existing.gallery[existingIndex],
-      url: up.url,
-      key: up.key,
-      filename: file.originalname,
-      category: "image",
-    };
-  } else {
-    // 2️⃣ Push as new gallery item
-    existing.gallery.push({
-      url: up.url,
-      key: up.key,
-      filename: file.originalname,
-      category: "image",
-      order: existing.gallery.length + 1,
+    existing.gallery.forEach((item: any, index: number) => {
+      if (item?.filename) {
+        galleryIndexByFilename.set(item.filename, index);
+      }
     });
-  }
-}
 
+    for (const file of galleryFiles) {
+      if (!file) continue;
+
+      const up = await uploadFile({
+        buffer: file.buffer,
+        originalName: file.originalname,
+        mimetype: file.mimetype,
+        folder: "featured/gallery",
+        entityId: propId,
+      });
+
+      // 1️⃣ Find matching gallery item by filename
+      const existingIndex = galleryIndexByFilename.get(file.originalname);
+
+      if (existingIndex !== undefined) {
+        // ✅ Update existing slot
+        existing.gallery[existingIndex] = {
+          ...existing.gallery[existingIndex],
+          url: up.url,
+          key: up.key,
+          filename: file.originalname,
+          category: "image",
+        };
+      } else {
+        // 2️⃣ Push as new gallery item
+        existing.gallery.push({
+          url: up.url,
+          key: up.key,
+          filename: file.originalname,
+          category: "image",
+          order: existing.gallery.length + 1,
+        });
+      }
+    }
 
     /* Verification Documents */
     const verificationFiles = files?.verificationDocuments ?? [];
@@ -486,47 +482,47 @@ for (const file of galleryFiles) {
   },
 
   async verifyDocument(
-  propertyId: string,
-  documentIndex: number,
-  status: "verified" | "rejected"
-) {
-  const property = await Residential.findById(propertyId);
-  if (!property) return null;
+    propertyId: string,
+    documentIndex: number,
+    status: "verified" | "rejected",
+  ) {
+    const property = await Residential.findById(propertyId);
+    if (!property) return null;
 
-  if (!property.verificationDocuments?.[documentIndex]) {
-    throw new Error("Invalid document index");
-  }
+    if (!property.verificationDocuments?.[documentIndex]) {
+      throw new Error("Invalid document index");
+    }
 
-  // 1️⃣ Update document status
-  property.verificationDocuments[documentIndex].status = status;
+    // 1️⃣ Update document status
+    property.verificationDocuments[documentIndex].status = status;
 
-  // 2️⃣ Check if ANY document is verified
-  const hasVerified = property.verificationDocuments.some(
-    (doc) => doc.status === "verified"
-  );
+    // 2️⃣ Check if ANY document is verified
+    const hasVerified = property.verificationDocuments.some(
+      (doc) => doc.status === "verified",
+    );
 
-  // 3️⃣ Auto publish if verified
-  if (hasVerified) {
-    property.status = "active";
-    property.isPublished = true;
-    property.completion = {
-      percent: 100,
-      step: 5,
-      lastSection: "verification",
-    };
-  } else {
-    property.status = "draft";
-    property.isPublished = false;
-  }
+    // 3️⃣ Auto publish if verified
+    if (hasVerified) {
+      property.status = "active";
+      property.isPublished = true;
+      property.completion = {
+        percent: 100,
+        step: 5,
+        lastSection: "verification",
+      };
+    } else {
+      property.status = "draft";
+      property.isPublished = false;
+    }
 
-  await property.save();
-  return property;
-},
+    await property.save();
+    return property;
+  },
 
   model: Residential,
 
   getPipeline(filters: any) {
-    const match = extendResidentialFilters(filters as any, {});
+    const match = extendResidentialFilters(filters, {});
 
     return [
       { $match: match },
@@ -536,6 +532,7 @@ for (const file of galleryFiles) {
           id: "$_id",
           type: { $literal: "Residential" },
           title: 1,
+          locality: 1,
           city: 1,
           listingType: 1,
           transactionType: 1,
@@ -552,6 +549,7 @@ for (const file of galleryFiles) {
           bathrooms: 1,
           slug: 1,
           createdAt: 1,
+          listingSource : 1
         },
       },
     ];

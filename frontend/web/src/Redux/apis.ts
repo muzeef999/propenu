@@ -59,7 +59,6 @@ export const finalizeApi = async (
   id: string,
   formData: FormData
 ) => {
-  console.log("🚀 [VERIFY] Sending FormData to backend");
 
   // 🔍 Debug FormData
   for (const pair of formData.entries()) {

@@ -24,7 +24,6 @@ export async function getPlans(req: Request, res: Response) {
 
 export const assignPlan = async (req: Request, res: Response) => {
   try {
-    console.log("🔥 assignPlan API CALLED");
 
     const { userId, planCode } = req.body;
 
@@ -72,7 +71,6 @@ export const assignPlan = async (req: Request, res: Response) => {
       },
     });
 
-    console.log("✅ Subscription created:", subscription._id);
 
     // 5️⃣ CREATE SUBSCRIPTION HISTORY (THIS IS THE FIX)
     const history = await SubscriptionHistory.create({
@@ -88,7 +86,6 @@ export const assignPlan = async (req: Request, res: Response) => {
       purchasedAt: new Date(),
     });
 
-    console.log("🎉 Subscription history created:", history._id);
 
     return res.json({
       success: true,

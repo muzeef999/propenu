@@ -944,17 +944,13 @@ export default function BasicDetailsStep() {
 
       <button
         onClick={() => {
-          console.log("Debbug 1");
           setShowErrors(true);
-          console.log("Debbug 2");
-          console.log(isFormValid);
 
           if (!isFormValid || !draftId) {
             console.error("❌ Validation failed");
             console.table(validationResult.error?.flatten().fieldErrors);
             return;
           }
-          console.log("Debbug 3");
 
           const profileData =
             propertyType === "residential"

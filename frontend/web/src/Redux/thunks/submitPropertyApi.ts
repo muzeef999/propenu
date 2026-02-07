@@ -17,7 +17,6 @@ import {
 export const createDraftThunk = createAsyncThunk(
   "postProperty/createDraft",
   async (category: string) => {
-    console.log("📝 [CREATE DRAFT] category:", category);
     return await createDraftApi(category);
   },
 );
@@ -29,8 +28,6 @@ export const createDraftThunk = createAsyncThunk(
 export const submitBasicThunk = createAsyncThunk(
   "postProperty/basic",
   async ({ category, id, data }: any) => {
-    console.log("📦 [BASIC] category:", category, "id:", id);
-    console.log("📦 [BASIC] payload:", data);
     return await updateBasicApi(category, id, data);
   },
 );
@@ -42,8 +39,6 @@ export const submitBasicThunk = createAsyncThunk(
 export const submitLocationThunk = createAsyncThunk(
   "postProperty/location",
   async ({ category, id, data }: any) => {
-    console.log("📍 [LOCATION] category:", category, "id:", id);
-    console.log("📍 [LOCATION] payload:", data);
     return await updateLocationApi(category, id, data);
   },
 );
@@ -55,7 +50,6 @@ export const submitLocationThunk = createAsyncThunk(
 export const submitDetailsThunk = createAsyncThunk(
   "postProperty/details",
   async ({ category, id, payload }: any) => {
-    console.log("🧩 [DETAILS] RAW payload from Redux:", payload);
 
     const files = getFileStoreFiles("postProperty");
 
@@ -100,7 +94,6 @@ export const submitDetailsThunk = createAsyncThunk(
       clearFileStore("postProperty");
     }
 
-    console.log("📤 [DETAILS] FINAL FormData:");
     for (let pair of formData.entries()) {
       console.log(" →", pair[0], pair[1]);
     }
@@ -114,7 +107,6 @@ export const submitVerificationThunk = createAsyncThunk(
   "postProperty/verification",
   async ({ category, id, payload }: any, { rejectWithValue }) => {
     try {
-      console.log("🧪 Thunk payload:", payload); // sanity check
 
       return await finalizeApi(category, id, payload);
     } catch (err: any) {

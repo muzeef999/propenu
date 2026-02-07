@@ -15,18 +15,14 @@ export async function createPaymentOrder(
   userId: string,
   userType: "buyer" | "builder" | "agent",
 ) {
-  console.log("🔵 STEP 1 → INPUT");
-  console.log({ planId, userId, userType });
 
   if (!Types.ObjectId.isValid(planId)) {
     console.error("❌ Invalid planId:", planId);
     throw new Error("Invalid planId");
   }
 
-  console.log("🟢 STEP 2 → planId is valid");
 
   const plan = await Plan.findById(planId).lean();
-  console.log("🟡 STEP 3 → PLAN:", plan);
 
   if (!plan) {
     console.error("❌ Plan not found in DB");
@@ -36,7 +32,6 @@ export async function createPaymentOrder(
 
   /* ✅ FREE PLAN FLOW */
   if (plan.price === 0) {
-    console.log("🟢 STEP 4 → FREE PLAN");
 
     // 🔒 Prevent duplicate active subscription
     const existing = await Subscription.findOne({
@@ -45,7 +40,6 @@ export async function createPaymentOrder(
       status: "active",
     });
 
-    console.log("🟡 STEP 5 → EXISTING SUB:", existing);
 
     if (existing) {
       return {
@@ -74,7 +68,6 @@ export async function createPaymentOrder(
       },
     });
 
-    console.log("✅ STEP 6 → FREE SUB CREATED");
 
     return {
       free: true,
@@ -82,12 +75,6 @@ export async function createPaymentOrder(
     };
   }
 
-  console.log("🟢 STEP 7 → PAID PLAN");
-
-  console.log("🟡 Razorpay ENV:", {
-    key: process.env.RAZORPAY_KEY_ID,
-    secret: !!process.env.RAZORPAY_KEY_SECRET,
-  });
 
   let order;
   try {
@@ -104,7 +91,6 @@ export async function createPaymentOrder(
       },
     });
 
-    console.log("🟢 STEP 8 → RAZORPAY ORDER:", order);
   } catch (err: any) {
     console.error("❌ RAZORPAY ERROR:", err);
     throw new Error("Failed to create Razorpay order");

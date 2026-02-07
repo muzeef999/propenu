@@ -55,6 +55,7 @@ export interface ResidentialQuery extends ParsedQs {
   minPricePerSqft?: string;
   maxPricePerSqft?: string;
   amenities?: string;
+  locality?: string;
 }
 
 export interface CommercialQuery extends ParsedQs {

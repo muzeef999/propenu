@@ -66,18 +66,15 @@ export type BaseSearchParams = {
 export interface ResidentialFilters {
   // ---------- SINGLE ----------
   propertyType?: string;
-  salesType?: string;
-  possessionStatus?: string;
+  transactionType?: string;
+  constructionStatus?: string; 
   furnishing?: string;
   postedSince?: string;
-  postedBy?: string;
-
+  listingSource?: string;
    coveredArea?: {
     min?: number;
     max?: number;
   };
-
-
   // ---------- MULTIPLE ----------
   bathroom?: string[];
   balcony?: string[];
@@ -85,15 +82,12 @@ export interface ResidentialFilters {
   amenities?: string[];
   facing?: string[];
 
-    verifiedProperties?: boolean;
-
-
   // ---------- SWITCH ----------
   verifiedOnly?: boolean;
 
   // ---------- OTHERS ----------
   bhk?: number;
-  locality?: string;
+  locality?: string[];
 }
 
 export interface CommercialFilters {
@@ -199,8 +193,8 @@ export interface FilterState {
   searchText: string;
 
   /* -------- Shared -------- */
-  minBudget: number;
-  maxBudget: number;
+  minPrice: number | null;
+  maxPrice: number | null;
 
   /* -------- Category Buckets -------- */
   residential: ResidentialFilters;

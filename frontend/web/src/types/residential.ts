@@ -128,8 +128,8 @@ export const residentialKeyMapping: Record<
   keyof ResidentialFilters
 > = {
   "Property Type": "propertyType",
-  "Sales Type": "salesType",
-  "Possession Status": "possessionStatus",
+  "Possession Status": "constructionStatus",
+  "Sales Type": "transactionType",
   "Covered Area": "coveredArea",
   "Bathroom": "bathroom",
   "Balcony": "balcony",
@@ -137,8 +137,8 @@ export const residentialKeyMapping: Record<
   "Furnishing": "furnishing",
   "Amenities": "amenities",
   "Facing": "facing",
-  "Verified Properties": "verifiedProperties",
   "Posted Since": "postedSince",
-  "Posted By": "postedBy",
+  "Posted By": "listingSource",
+
 };
 

@@ -10,12 +10,11 @@ const ALLOWED_FILTERS = [
   "furnishing",
   "constructionStatus",
   "propertyType",
-
+  "locality",
   // numeric filters
   "bhk",
   "minPrice",
   "maxPrice",
-
   // infra
   "batchSize",
 ];

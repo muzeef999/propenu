@@ -29,19 +29,19 @@ export const carpetOptions = [
 
 
 
-export const moreFilterSections: MoreFilterSection[] = [
+export const moreFilterSections: MoreFilterSection[] = [ 
     {
       key: "Property Type",
       label: "Property Type",
       options: [
-        "Apartment",
-        "Independent house",
-        "Villa",
-        "Penthouse",
-        "Studio",
-        "Duplex",
-        "Triplex",
-        "Farmhouse",
+        "apartment",
+        "independent-house",
+        "villa",
+        "penthouse",
+        "studio",
+        "duplex",
+        "triplex",
+        "farmhouse",
         "independent-builder-floor",
       ],
       selectionType: "multiple",
@@ -50,12 +50,6 @@ export const moreFilterSections: MoreFilterSection[] = [
       key: "Sales Type",
       label: "Sales Type",
       options: ["new-sale", "resale"],
-      selectionType: "single",
-    },
-    {
-      key: "Possession Status",
-      label: "Possession Status",
-      options: ["ready-to-move", "under-construction"],
       selectionType: "single",
     },
     { key: "Covered Area", label: "Covered Area" },
@@ -95,7 +89,6 @@ export const moreFilterSections: MoreFilterSection[] = [
       options: ["East", "West", "North", "South"],
       selectionType: "multiple",
     },
-    { key: "Verified Properties", label: "Verified Properties" },
     {
       key: "Posted Since",
       label: "Posted Since",
@@ -114,7 +107,7 @@ export const moreFilterSections: MoreFilterSection[] = [
     {
       key: "Posted By",
       label: "Posted By",
-      options: ["owners", "Agents", "Builders"],
+      options: ["user", "Agents", "Builders"],
       selectionType: "multiple",
     },
   ];

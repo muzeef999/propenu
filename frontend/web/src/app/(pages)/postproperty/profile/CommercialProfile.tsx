@@ -638,8 +638,7 @@ const CommercialProfile = () => {
 
             console.error("❌ Commercial Profile Validation Failed");
             console.table(flattened.fieldErrors);
-            console.log("Full Zod Error:", result.error);
-
+           
             toast.error("Please fix the highlighted errors");
             return;
           }

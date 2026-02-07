@@ -375,7 +375,6 @@ const LandProfile = () => {
             const flattened = result.error.flatten();
 
             console.table(flattened.fieldErrors);
-            console.log("Full Zod Error:", result.error);
 
             toast.error("Please fix the highlighted errors");
             return;
@@ -396,7 +395,6 @@ const LandProfile = () => {
 
             })
             .catch((error: any) => {
-              console.log("🔥 FULL ERROR FROM API:", error);
 
               const errObj =
                 typeof error === "string"
@@ -416,7 +414,6 @@ const LandProfile = () => {
                     ? "/plans/pricing/owner-sell"
                     : "/plans/pricing/owner-rent";
 
-                console.log("🚀 Redirecting to:", redirectUrl);
 
                 setTimeout(() => {
                   router.push(redirectUrl);

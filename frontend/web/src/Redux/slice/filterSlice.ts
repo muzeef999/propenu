@@ -21,18 +21,12 @@ export type categoryOption =
 /* ---------------- Initial State ---------------- */
 
 const initialState: FilterState = {
-
   listingTypeLabel: "Buy",
   listingTypeValue: "sale",
-
   category: "Residential",
   searchText: "",
-
-  /* Budget (shared) */
-  minBudget: 5,
-  maxBudget: 5000,
-
-  /* Category buckets */
+  minPrice: null,
+  maxPrice: null,
   residential: {},
   commercial: {},
   land: {},
@@ -40,19 +34,18 @@ const initialState: FilterState = {
 };
 
 /* ---------------- Slice ---------------- */
-
 const filterSlice = createSlice({
   name: "filters",
   initialState,
   reducers: {
-    /* -------- Core -------- */
 
+    /* -------- Core -------- */
     setListingType(
       state,
       action: PayloadAction<{
         label: ListingUILabel;
         value: ListingAPIValue;
-      }>
+      }>,
     ) {
       state.listingTypeLabel = action.payload.label;
       state.listingTypeValue = action.payload.value;
@@ -70,17 +63,17 @@ const filterSlice = createSlice({
 
     setBudget(
       state,
-      action: PayloadAction<{ min: number; max: number }>
+      action: PayloadAction<{ min?: number | null; max?: number | null }>,
     ) {
-      state.minBudget = action.payload.min;
-      state.maxBudget = action.payload.max;
+      state.minPrice = action.payload.min ?? null;
+      state.maxPrice = action.payload.max ?? null;
     },
 
     /* -------- Residential -------- */
 
     setResidentialFilter<K extends keyof ResidentialFilters>(
       state: Draft<FilterState>,
-      action: PayloadAction<{ key: K; value: ResidentialFilters[K] }>
+      action: PayloadAction<{ key: K; value: ResidentialFilters[K] }>,
     ) {
       state.residential[action.payload.key] = action.payload.value;
     },
@@ -89,7 +82,7 @@ const filterSlice = createSlice({
 
     setCommercialFilter<K extends keyof CommercialFilters>(
       state: Draft<FilterState>,
-      action: PayloadAction<{ key: K; value: CommercialFilters[K] }>
+      action: PayloadAction<{ key: K; value: CommercialFilters[K] }>,
     ) {
       state.commercial[action.payload.key] = action.payload.value;
     },
@@ -98,7 +91,7 @@ const filterSlice = createSlice({
 
     setLandFilter<K extends keyof LandFilters>(
       state: Draft<FilterState>,
-      action: PayloadAction<{ key: K; value: LandFilters[K] }>
+      action: PayloadAction<{ key: K; value: LandFilters[K] }>,
     ) {
       state.land[action.payload.key] = action.payload.value;
     },
@@ -107,7 +100,7 @@ const filterSlice = createSlice({
 
     setAgriculturalFilter<K extends keyof AgriculturalFilters>(
       state: Draft<FilterState>,
-      action: PayloadAction<{ key: K; value: AgriculturalFilters[K] }>
+      action: PayloadAction<{ key: K; value: AgriculturalFilters[K] }>,
     ) {
       state.agricultural[action.payload.key] = action.payload.value;
     },

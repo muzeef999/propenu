@@ -2,6 +2,7 @@ import { IAgricultural } from "./agricultural";
 import { ICommercial } from "./commercial";
 import { ILand } from "./land";
 import { IResidential } from "./residential";
+import { ResidentialFilters } from "./sharedTypes";
 
 export interface MediaFile {
   url: string;
@@ -346,7 +347,6 @@ export type SearchFilters = {
 type RESFilterKey =
   | "Property Type"
   | "Sales Type"
-  | "Possession Status"
   | "Covered Area"
   | "Bathroom"
   | "Balcony"
@@ -354,9 +354,9 @@ type RESFilterKey =
   | "Furnishing"
   | "Amenities"
   | "Facing"
-  | "Verified Properties"
   | "Posted Since"
-  | "Posted By";
+  | "Posted By"
+  | "Possession Status";
 
 export type CommercialFilterKey =
   | "Commercial Type"
