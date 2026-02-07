@@ -2,9 +2,6 @@ import type { Request } from "express";
 import { AgriculturalQuery, BaseFilters } from "../../types/filterTypes";
 import parseNumber from "../../utils/parseNumber";
 
-
-
-
 export function extendAgriculturalFilters(
   query: AgriculturalQuery = {},
   baseFilter: Partial<BaseFilters> = {}

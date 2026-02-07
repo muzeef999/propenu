@@ -188,3 +188,30 @@ export async function getLocationByIdService(id: string) {
   }
   return Location.findById(id).lean();
 }
+
+
+
+/* ------------------------------------
+   DEL LOCALITY 
+------------------------------------ */
+export async function removeLocalityFromCity(
+  cityId: string,
+  localityName: string
+) {
+  const doc = await Location.findById(cityId);
+  if (!doc) return null;
+
+  const index = doc.localities.findIndex(
+    (l) => l.name.toLowerCase() === localityName.toLowerCase()
+  );
+
+  // ❌ locality not found
+  if (index === -1) {
+    return null;
+  }
+
+  // ✅ remove ONLY that locality
+  doc.localities.splice(index, 1);
+
+  return doc.save();
+}

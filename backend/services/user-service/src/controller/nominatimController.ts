@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { createLocation, getAllLocationsDetails, getLocationByIdService, removeLocation, updateLocation } from "../services/locationService";
+import { createLocation, getAllLocationsDetails, getLocationByIdService, removeLocalityFromCity, removeLocation, updateLocation } from "../services/locationService";
 import mongoose from "mongoose";
 
 export const postLocation = async (req: Request, res: Response) => {
@@ -117,3 +117,35 @@ const { id } = req.params;
     return res.status(500).json({error: err.message || "server error"});
   }
 }
+
+export const deleteLocality = async (req: Request, res: Response) => {
+  try {
+    const { id, name } = req.params;
+
+    // ✅ STEP 1: Runtime + TypeScript guard
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid city id" });
+    }
+
+    if (!name || typeof name !== "string") {
+      return res.status(400).json({ error: "Locality name required" });
+    }
+
+    // ✅ STEP 2: id & name are now safely `string`
+    const updated = await removeLocalityFromCity(id, name);
+
+    if (!updated) {
+      return res.status(404).json({ error: "City or locality not found" });
+    }
+
+    return res.json({
+      success: true,
+      message: `Locality '${name}' deleted`,
+      item: updated,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || "server error" });
+  }
+};
+
+

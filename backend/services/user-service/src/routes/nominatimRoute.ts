@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  deleteLocality,
   deleteLocation,
   editLocation,
   getAllLocations,
@@ -10,7 +11,7 @@ import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 
 const nominatimRoute = express.Router();
 
-nominatimRoute.post(  "/", authMiddleware,  (req: AuthRequest, res, next) => {
+nominatimRoute.post("/", authMiddleware,  (req: AuthRequest, res, next) => {
     if (
       !req.user ||
       !["super_admin", "admin"].includes(req.user.roleName || "")
@@ -28,11 +29,7 @@ nominatimRoute.post(  "/", authMiddleware,  (req: AuthRequest, res, next) => {
 
 nominatimRoute.get("/", getAllLocations);
 nominatimRoute.get("/:id", getLocationById);
-
-nominatimRoute.patch(
-  "/:id",
-  authMiddleware,
-  (req: AuthRequest, res, next) => {
+nominatimRoute.patch("/:id", authMiddleware,(req: AuthRequest, res, next) => {
     if (
       !req.user ||
       !["super_admin", "admin"].includes(req.user.roleName || "")
@@ -61,6 +58,23 @@ nominatimRoute.delete(
     next();
   },
   deleteLocation
+);
+
+nominatimRoute.delete(
+  "/:id/locality/:name",
+  authMiddleware,
+  (req: AuthRequest, res, next) => {
+    if (
+      !req.user ||
+      !["super_admin", "admin"].includes(req.user.roleName || "")
+    ) {
+      return res.status(403).json({
+        message: "Forbidden: only admin/super_admin allowed",
+      });
+    }
+    next();
+  },
+  deleteLocality
 );
 
 export default nominatimRoute;

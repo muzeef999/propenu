@@ -65,7 +65,7 @@ router.get("/draft/all", getAllAgriculturalDraftsForAdmin);
 router.post("/draft", authMiddleware, createAgriculturalDraft);
 router.patch("/:id/basic", authMiddleware, updateAgriculturalBasicStep);
 router.patch("/:id/location", authMiddleware, updateAgriculturalLocationStep);
-router.patch("/:id/details", authMiddleware,cpUpload, parseJsonFields(jsonKeys),updateAgriculturalDetailsStep);
+router.patch("/:id/details", authMiddleware, cpUpload, parseJsonFields(jsonKeys),updateAgriculturalDetailsStep);
 router.patch("/:id/verification", authMiddleware, cpUpload,parseJsonFields(jsonKeys), finalizeAgricultural);
 
 
