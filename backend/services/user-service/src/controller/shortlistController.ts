@@ -35,8 +35,12 @@ export const removeFromShortlist = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const userId = req.user._id; // from auth middleware
-    const { propertyId } = req.body;
+    const userId = req.user._id;
+    const { propertyId } = req.params; // ✅ FIX
+
+    if (!propertyId) {
+      return res.status(400).json({ message: "propertyId required" });
+    }
 
     await removeFromShortlistService(userId, propertyId);
 
@@ -48,6 +52,7 @@ export const removeFromShortlist = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 
 /* GET USER SHORTLIST */
 export const getMyShortlist = async (req: AuthRequest, res: Response) => {

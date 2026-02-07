@@ -289,6 +289,7 @@ export const updateLocationStep = async (req: AuthRequest, res: Response) => {
     pincode: req.body.pincode,
     locality: req.body.locality,
     location: req.body.location,
+    buildingName: req.body.buildingName,
     completion: {
       ...doc.completion,
       percent: 45,

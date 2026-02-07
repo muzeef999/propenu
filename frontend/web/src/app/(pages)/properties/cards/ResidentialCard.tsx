@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useState } from "react";
 import { IResidential } from "@/types/residential";
 import { hexToRGBA } from "@/ui/hexToRGBA";
@@ -10,16 +10,14 @@ import {
   SuperBuiitupAraea,
   UnderConstruction,
 } from "@/icons/icons";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import formatINR from "@/utilies/PriceFormat";
 import Link from "next/link";
 import { BiBuildingHouse } from "react-icons/bi";
-import { postLeads, postShortlistProperty, me } from "@/data/ClientData";
+import { postLeads, postShortlistProperty, me, removeShortlistProperty, getUserShortlist } from "@/data/ClientData";
 import ImageAutoCarousel from "@/ui/ImageAutoCarousel";
 import { useRouter } from "next/navigation";
-import LoginDialog from "@/app/(auth)/Login";
-import { createPortal } from "react-dom";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 
 
@@ -30,32 +28,71 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
   const bgPriceColor = hexToRGBA("#27AE60", 0.1);
   const bgPriceColoricon = hexToRGBA("#27AE60", 0.4);
 
+
   const img = p?.gallery?.[0]?.url ?? "/placeholder.jpg";
   const pricePerSqft =
     (p as any)?.pricePerSqft ??
     Math.round((p?.price ?? 0) / (p as any)?.builtUpArea || 0);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [isShortlisted, setIsShortlisted] = useState<boolean>(
-    Boolean((p as any)?.isShortlisted),
-  );
+  const [isShortlisted, setIsShortlisted] = useState(false);
+
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
 
-  const { mutate: shortlistProperty, isPending: isShortlisting } = useMutation({
+
+  const addShortlistMutation = useMutation({
     mutationFn: postShortlistProperty,
-
     onSuccess: () => {
-      toast.success(
-        isShortlisted ? "Property shortlisted!" : "Removed from shortlist",
-      );
+      toast.success("Added to shortlist");
     },
-
-    onError: () => {
-      setIsShortlisted((prev) => !prev);
-      toast.error("Failed to update shortlist");
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["user-shortlist"] });
+      const previousShortlist = queryClient.getQueryData(["user-shortlist"]);
+      queryClient.setQueryData(["user-shortlist"], (old: any) => ({
+        ...old,
+        data: [...(old?.data || []), { property: { _id: p.id } }],
+      }));
+      return { previousShortlist };
+    },
+    onError: (err, variables, context: any) => {
+      if (context?.previousShortlist) {
+        queryClient.setQueryData(["user-shortlist"], context.previousShortlist);
+      }
+      toast.error("Failed to add to shortlist.");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-shortlist"] });
     },
   });
+
+
+  const removeShortlistMutation = useMutation({
+    mutationFn: removeShortlistProperty,
+    onSuccess: () => {
+      toast.success("Removed from shortlist");
+    },
+    onMutate: async (propertyId: string) => {
+      await queryClient.cancelQueries({ queryKey: ["user-shortlist"] });
+      const previousShortlist = queryClient.getQueryData(["user-shortlist"]);
+      queryClient.setQueryData(["user-shortlist"], (old: any) => ({
+        ...old,
+        data: (old?.data || []).filter((item: any) => item.property?._id !== propertyId),
+      }));
+      return { previousShortlist };
+    },
+    onError: (err, variables, context: any) => {
+      if (context?.previousShortlist) {
+        queryClient.setQueryData(["user-shortlist"], context.previousShortlist);
+      }
+      toast.error("Failed to remove from shortlist.");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-shortlist"] });
+    },
+  });
+
 
   const { data: userData, isLoading: isLoadingUser } = useQuery({
     queryKey: ["user"],
@@ -83,7 +120,21 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
       toast.error(message);
     },
   });
-  console.log("property", p); 
+
+  const { data: shortlistData } = useQuery({
+    queryKey: ["user-shortlist"],
+    queryFn: getUserShortlist,
+    enabled: !!user,
+  });
+
+  useEffect(() => {
+    if (shortlistData?.data) {
+      const isInList = shortlistData.data.some(
+        (item: any) => item.property?._id === p.id
+      );
+      setIsShortlisted(isInList);
+    }
+  }, [shortlistData, p.id]);
 
   return (
     <div
@@ -101,16 +152,28 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
             alt={p?.title}
             onIndexChange={setActiveImageIndex}
             isShortlisted={isShortlisted}
-            isShortlistLoading={isShortlisting}
+            isShortlistLoading={
+              addShortlistMutation.isPending ||
+              removeShortlistMutation.isPending
+            }
             onToggleShortlist={() => {
-              // optimistic UI
-              setIsShortlisted((prev) => !prev);
+              if (!user) {
+                router.push("/login");
+                return;
+              }
 
-              shortlistProperty({
-                propertyId: p.id,
-                propertyType: "Residential",
-              });
+              if (isShortlisted) {
+                setIsShortlisted(false); // optimistic
+                removeShortlistMutation.mutate(p.id);
+              } else {
+                setIsShortlisted(true); // optimistic
+                addShortlistMutation.mutate({
+                  propertyId: p.id,
+                  propertyType: "Residential",
+                });
+              }
             }}
+
           />
 
           {/* overlay: image count & date */}
@@ -270,8 +333,8 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
             propertyType="residentials"
             listingType={p?.listingType}
             className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${vertical
-                ? "px-4 py-1.5 text-sm"
-                : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base"
+              ? "px-4 py-1.5 text-sm"
+              : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base"
               }`}
           />
 

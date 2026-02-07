@@ -152,6 +152,22 @@ export const me = async () => {
   return res.data;
 };
 
+export const updateUser = async (payload: {
+  name?: string;
+  email?: string;
+  address?: string;
+}) => {
+  const token = Cookies.get("token");
+  if (!token) return null;
+
+  const res = await axiosInstance.patch(`${url}/api/users/auth/me/update`, payload, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return res.data;
+};
+
 export const getShortlistedProperties = async () => {
   const token = Cookies.get("token");
   if (!token) return null;
@@ -163,6 +179,26 @@ export const getShortlistedProperties = async () => {
   });
   return res.data;
 };
+
+export const getUserShortlist = async () => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(`${url}/api/users/shortlist`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+};
+
+export const getShortlistStatus = async (propertyId: string) => {
+  const token = Cookies.get("token");
+  const res = await axiosInstance.get(`${url}/api/users/shortlist/status`, {
+    params: { propertyId }, // This sends ?propertyId=...
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data; 
+};
+
 
 export const postShortlistProperty = async (payload: {
   propertyId: string;
@@ -176,6 +212,21 @@ export const postShortlistProperty = async (payload: {
       Authorization: `Bearer ${token}`,
     },
   });
+
+  return res.data;
+};
+export const removeShortlistProperty = async (propertyId: string) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.delete(
+    `${url}/api/users/shortlist/${propertyId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
 
   return res.data;
 };

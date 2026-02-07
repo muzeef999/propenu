@@ -30,11 +30,11 @@ export interface GalleryItem {
   filename?: string;
 }
 export interface IAgricultural {
+  _id?: string;
+  id?: string;
   boundaryWall?: boolean;
   areaUnit?: "sqft" | "sqmt" | "acre" | "guntha" | "kanal" | "hectare" | string;
   landShape?: string;
-  _id?: string;
-  id?: string;
   slug?: string;
   soilType?: string;
   gallery?: GalleryItem[];

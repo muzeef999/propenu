@@ -276,7 +276,7 @@ export default async function Page({ params }: PageProps) {
                       )}
                     </section>
 
-                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa] w-full max-w-6xl mx-auto">
+                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa] max-w-[940px] mx-auto">
                       <h2 className="mb-1 text-xl font-semibold text-gray-900">
                         More Similar Properties for you
                       </h2>

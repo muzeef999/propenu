@@ -51,7 +51,7 @@ async function uploadBufferToS3Local(opts: {
   return {
     key,
     url: `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(
-      key
+      key,
     )}`,
   };
 }
@@ -154,47 +154,39 @@ const AgentService = {
     };
   },
 
-
-
-async  getAgentsByLocationService(
-  location: { city?: string; state?: string },
-  page = 1,
-  limit = 20
-) {
-
+  async getAgentsByLocationService(
+    location: { city?: string; state?: string },
+    page = 1,
+    limit = 20,
+  ) {
     const filter: any = {}; // ❌ removed status
 
-  if (location.city)
-    filter.city = new RegExp(`^${location.city}$`, "i");
+    if (location.city) filter.city = new RegExp(`^${location.city}$`, "i");
 
-  if (location.state)
-    filter.state = new RegExp(`^${location.state}$`, "i");
+    if (location.state) filter.state = new RegExp(`^${location.state}$`, "i");
 
-  const skip = (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
-  const [items, total] = await Promise.all([
-    Agent.find(filter)
-      .select(
-        "name slug avatar coverImage agencyName bio areasServed stats dealsClosed city state rera experienceYears"
-      )
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 })
-      .lean(),
+    const [items, total] = await Promise.all([
+      Agent.find(filter)
+        .select(
+          "name slug avatar coverImage agencyName bio areasServed stats dealsClosed city state rera experienceYears",
+        )
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean(),
 
-    Agent.countDocuments(filter),
-  ]);
+      Agent.countDocuments(filter),
+    ]);
 
-  return {
-    total,
-    page,
-    limit,
-    items,
-  };
-},
-
-
-  
+    return {
+      total,
+      page,
+      limit,
+      items,
+    };
+  },
 
   async editAgent(id: string, payload: UpdateAgentDTO, files?: MulterFiles) {
     if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
@@ -293,192 +285,214 @@ async  getAgentsByLocationService(
     return true;
   },
 
-  async getAgentDashboardAnalytics(
-  userId: string,
-  range: string
-) {
-  const agent = await Agent.findOne({ user: userId }).lean();
+  async getAgentDashboardAnalytics(userId: string, range: string) {
+    const agent = await Agent.findOne({ user: userId }).lean();
 
-  if (!agent) {
-    return {
-      exists: false,
-      message: "Agent profile not created",
-    };
-  }
-
-  const fromDate = getFromDate(range);
-
-  /* ✅ Normalize all models to one type */
-  const models: Model<any>[] = [
-    Residential as Model<IResidential>,
-    Commercial as Model<ICommercial>,
-    LandPlot as Model<ILand>,
-    Agricultural as Model<IAgricultural>,
-  ];
-
-  /* ✅ Fetch all properties */
-  const allProperties = (
-    await Promise.all(
-      models.map((m) =>
-        m
-          .find(
-            { createdBy: userId, createdAt: { $gte: fromDate } },
-            { title: 1, city: 1, gallery: 1, meta: 1, status: 1, createdAt: 1 }
-          )
-          .lean()
-      )
-    )
-  ).flat();
-
-  /* ------------------ KPI totals ------------------ */
-
-  let totalViews = 0;
-  let totalClicks = 0;
-  let totalInquiries = 0;
-  let active = 0;
-  let pending = 0;
-
-  for (const p of allProperties) {
-    totalViews += p.meta?.views || 0;
-    totalClicks += p.meta?.clicks || 0;
-    totalInquiries += p.meta?.inquiries || 0;
-
-    if (p.status === "active") active++;
-    else pending++;
-  }
-
-  /* ------------------ City distribution ------------------ */
-
-  const cityMap: Record<string, number> = {};
-  allProperties.forEach((p) => {
-    if (!p.city) return;
-    cityMap[p.city] = (cityMap[p.city] || 0) + 1;
-  });
-
-  /* ------------------ Top properties ------------------ */
-
-  const topProperties = [...allProperties]
-    .sort((a, b) => (b.meta?.views || 0) - (a.meta?.views || 0))
-    .slice(0, 5);
-
-  /* ------------------ Final payload ------------------ */
-
-  return {
-    exists: true,
-    agent,
-    range,
-    kpis: {
-      totalProperties: allProperties.length,
-      activeListings: active,
-      pendingListings: pending,
-      totalViews,
-      totalClicks,
-      totalInquiries,
-      conversionRate:
-        totalViews > 0
-          ? Number(((totalInquiries / totalViews) * 100).toFixed(2))
-          : 0,
-    },
-    charts: {
-      byCity: Object.entries(cityMap).map(([city, count]) => ({
-        city,
-        count,
-      })),
-    },
-    topProperties,
-  };
-},
-
-async getAgentByUserId(userId: string) {
-  if (!mongoose.Types.ObjectId.isValid(userId)) {
-    throw new Error("Invalid user id");
-  }
-
-  const agent = await Agent.findOne({ user: userId })
-    .populate("user", "name email phone")
-    .lean();
-
-  return agent; // can be null → controller already handles it
-},
-
-
-
-async editAgentByPhone(
-  phone: string,
-  payload: UpdateAgentDTO,
-  files?: MulterFiles
-) {
-  // ✅ normalize phone
-  const normalizedPhone = phone.trim();
-
-  const user = await User.findOne({
-    phone: normalizedPhone,
-  });
-
-  if (!user) {
-    throw new Error("User not found with this phone number");
-  }
-
-  const existing = await Agent.findOne({ user: user._id });
-  if (!existing) {
-    throw new Error("Agent not found for this user");
-  }
-
-  // slug logic
-  if (payload.slug && payload.slug !== existing.slug) {
-    const newSlug = payload.slug
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-");
-
-    const conflict = await Agent.findOne({ slug: newSlug });
-    if (conflict && conflict._id.toString() !== existing._id.toString()) {
-      throw new Error("Slug already used");
+    if (!agent) {
+      return {
+        exists: false,
+        message: "Agent profile not created",
+      };
     }
 
-    existing.slug = newSlug;
-  }
+    const fromDate = getFromDate(range);
 
-  Object.assign(existing, payload);
+    /* ✅ Normalize all models to one type */
+    const models: Model<any>[] = [
+      Residential as Model<IResidential>,
+      Commercial as Model<ICommercial>,
+      LandPlot as Model<ILand>,
+      Agricultural as Model<IAgricultural>,
+    ];
 
-  const agentId = existing._id.toString();
+    /* ✅ Fetch all properties */
+    const allProperties = (
+      await Promise.all(
+        models.map((m) =>
+          m
+            .find(
+              { createdBy: userId, createdAt: { $gte: fromDate } },
+              {
+                title: 1,
+                city: 1,
+                gallery: 1,
+                meta: 1,
+                status: 1,
+                createdAt: 1,
+              },
+            )
+            .lean(),
+        ),
+      )
+    ).flat();
 
-  // avatar
-  const avatarFile = files?.avatar?.[0];
-  if (avatarFile) {
-    await deleteS3ObjectIfExists(existing.avatar?.key);
+    /* ------------------ KPI totals ------------------ */
 
-    const up = await uploadBufferToS3Local({
-      buffer: avatarFile.buffer,
-      originalname: avatarFile.originalname,
-      mimetype: avatarFile.mimetype,
-      agentId,
-      folder: "agents/avatar",
+    let totalViews = 0;
+    let totalClicks = 0;
+    let totalInquiries = 0;
+    let active = 0;
+    let pending = 0;
+
+    for (const p of allProperties) {
+      totalViews += p.meta?.views || 0;
+      totalClicks += p.meta?.clicks || 0;
+      totalInquiries += p.meta?.inquiries || 0;
+
+      if (p.status === "active") active++;
+      else pending++;
+    }
+
+    /* ------------------ City distribution ------------------ */
+
+    const cityMap: Record<string, number> = {};
+    allProperties.forEach((p) => {
+      if (!p.city) return;
+      cityMap[p.city] = (cityMap[p.city] || 0) + 1;
     });
 
-    existing.avatar = { url: up.url, key: up.key };
-  }
+    /* ------------------ Top properties ------------------ */
 
-  // cover
-  const coverFile = files?.coverImage?.[0];
-  if (coverFile) {
-    await deleteS3ObjectIfExists(existing.coverImage?.key);
+    const topProperties = [...allProperties]
+      .sort((a, b) => (b.meta?.views || 0) - (a.meta?.views || 0))
+      .slice(0, 5);
 
-    const up = await uploadBufferToS3Local({
-      buffer: coverFile.buffer,
-      originalname: coverFile.originalname,
-      mimetype: coverFile.mimetype,
-      agentId,
-      folder: "agents/cover",
-    });
+    /* ------------------ Final payload ------------------ */
 
-    existing.coverImage = { url: up.url, key: up.key };
-  }
+    return {
+      exists: true,
+      agent,
+      range,
+      kpis: {
+        totalProperties: allProperties.length,
+        activeListings: active,
+        pendingListings: pending,
+        totalViews,
+        totalClicks,
+        totalInquiries,
+        conversionRate:
+          totalViews > 0
+            ? Number(((totalInquiries / totalViews) * 100).toFixed(2))
+            : 0,
+      },
+      charts: {
+        byCity: Object.entries(cityMap).map(([city, count]) => ({
+          city,
+          count,
+        })),
+      },
+      topProperties,
+    };
+  },
 
-  await existing.save();
-  return existing.toObject();
-}
+  async getAgentByUserId(userId: string) {
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw new Error("Invalid user id");
+    }
 
+    const agent = await Agent.findOne({ user: userId })
+      .populate("user", "name email phone")
+      .lean();
+
+    return agent; // can be null → controller already handles it
+  },
+
+  async editAgentByPhone(
+    phone: string,
+    payload: UpdateAgentDTO,
+    files?: MulterFiles,
+  ) {
+    const normalizedPhone = phone.trim();
+
+    // 1️⃣ Find user
+    const user = await User.findOne({ phone: normalizedPhone });
+    if (!user) {
+      throw new Error("User not found with this phone number");
+    }
+
+    // 2️⃣ Find agent
+    const existing = await Agent.findOne({ user: user._id });
+    if (!existing) {
+      throw new Error("Agent not found for this user");
+    }
+
+    /* ===============================
+     ✅ UPDATE USER FIELDS
+  =============================== */
+    if (payload.name) {
+      user.name = payload.name;
+      await user.save();
+    }
+
+    /* ===============================
+     ✅ UPDATE AGENT FIELDS
+  =============================== */
+    const {
+      name, // ❌ remove from agent payload
+      avatar,
+      coverImage,
+      ...agentPayload
+    } = payload;
+
+    // slug logic
+    if (agentPayload.slug && agentPayload.slug !== existing.slug) {
+      const newSlug = agentPayload.slug
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-");
+
+      const conflict = await Agent.findOne({ slug: newSlug });
+      if (conflict && conflict._id.toString() !== existing._id.toString()) {
+        throw new Error("Slug already used");
+      }
+
+      existing.slug = newSlug;
+    }
+
+    Object.assign(existing, agentPayload);
+
+    const agentId = existing._id.toString();
+
+    /* ===============================
+     ✅ AVATAR UPLOAD
+  =============================== */
+    const avatarFile = files?.avatar?.[0];
+    if (avatarFile) {
+      await deleteS3ObjectIfExists(existing.avatar?.key);
+
+      const up = await uploadBufferToS3Local({
+        buffer: avatarFile.buffer,
+        originalname: avatarFile.originalname,
+        mimetype: avatarFile.mimetype,
+        agentId,
+        folder: "agents/avatar",
+      });
+
+      existing.avatar = { url: up.url, key: up.key };
+    }
+
+    /* ===============================
+     ✅ COVER IMAGE UPLOAD
+  =============================== */
+    const coverFile = files?.coverImage?.[0];
+    if (coverFile) {
+      await deleteS3ObjectIfExists(existing.coverImage?.key);
+
+      const up = await uploadBufferToS3Local({
+        buffer: coverFile.buffer,
+        originalname: coverFile.originalname,
+        mimetype: coverFile.mimetype,
+        agentId,
+        folder: "agents/cover",
+      });
+
+      existing.coverImage = { url: up.url, key: up.key };
+    }
+
+    await existing.save();
+
+    return existing.toObject();
+  },
 };
 
 export default AgentService;

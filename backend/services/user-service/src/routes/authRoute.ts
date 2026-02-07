@@ -1,5 +1,5 @@
 import express from "express";
-import { createRequestOtp, createVeifytOtp, getAllUsers, me, requestOTP, searchUsers, updateUserRole, verifyOtp } from "../controller/authController";
+import { createRequestOtp, createVeifytOtp, getAllUsers, me, requestOTP, searchUsers, updateUser, updateUserRole, verifyOtp } from "../controller/authController";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 
 const authRoute = express.Router();
@@ -11,6 +11,7 @@ authRoute.post("/request-otp/create",  createRequestOtp);
 authRoute.post("/verify-otp/create",  createVeifytOtp);
 
 authRoute.get("/me", authMiddleware, me);
+authRoute.patch("/me/update", authMiddleware, updateUser);
 authRoute.get("/search", authMiddleware, searchUsers);
  
 authRoute.get('/all-users', authMiddleware,  (req : AuthRequest, res, next) => {

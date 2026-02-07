@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {  getMyAgentProfile, me, updateAgentProfileByPhone } from "@/data/ClientData";
+import { getMyAgentProfile, me, updateAgentProfileByPhone } from "@/data/ClientData";
 import { Card, DetailRow, StatBox } from "@/ui/AgentPageComponents";
 import { MdEdit, MdVerifiedUser } from "react-icons/md";
 import { HiOutlineXMark } from "react-icons/hi2";
@@ -353,9 +353,13 @@ const AgentProfilePage = () => {
     },
     onSuccess: () => {
       toast.success("Profile updated successfully");
+
       queryClient.invalidateQueries({ queryKey: ["my-agent-profile"] });
+      queryClient.invalidateQueries({ queryKey: ["me"] }); // 🔥 REQUIRED
+
       setEditMode(null);
     },
+
     onError: () => {
       toast.error("Failed to update profile");
     },

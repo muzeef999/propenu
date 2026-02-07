@@ -99,6 +99,7 @@ export const me = async (req: AuthRequest, res: Response) => {
         name: user.name,
         email: user.email,
         phone: user.phone,
+        address: user.address,
         roleId: role ? String(role._id) : null,
         roleName: role ? role.name : null,
         permissions: role ? role.permissions : [],
@@ -215,6 +216,61 @@ export const createRequestOtp = async (req: Request, res: Response) => {
       .json({ message: "Failed to send OTP", error: error.message });
   }
 };
+
+export const updateUser = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    // ✅ Allow only safe fields
+    const allowedUpdates = ["name", "email", "address"];
+    const updates: any = {};
+
+    for (const key of allowedUpdates) {
+      if (req.body[key] !== undefined) {
+        updates[key] =
+          typeof req.body[key] === "string"
+            ? req.body[key].trim()
+            : req.body[key];
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "No valid fields to update" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.sub,
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).populate("roleId");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const role: any = user.roleId;
+
+    return res.json({
+      message: "Profile updated successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        address: user.address, // ✅ RETURN IT
+        roleId: role ? String(role._id) : null,
+        roleName: role ? role.name : null,
+        permissions: role ? role.permissions : [],
+      },
+    });
+  } catch (error: any) {
+    console.error("Update profile error:", error);
+    return res.status(500).json({ message: "Failed to update profile" });
+  }
+};
+
 
 export const createVeifytOtp = async (req: Request, res: Response) => {
   try {

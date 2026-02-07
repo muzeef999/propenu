@@ -16,9 +16,11 @@ import { BiBuildingHouse } from "react-icons/bi";
 import { IAgricultural } from "@/types/agricultural";
 import ImageAutoCarousel from "@/ui/ImageAutoCarousel";
 import { toast } from "sonner";
-import { postShortlistProperty } from "@/data/ClientData";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { postShortlistProperty, me, removeShortlistProperty, getUserShortlist } from "@/data/ClientData";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
   p,
@@ -32,27 +34,66 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
     (p as any)?.pricePerSqft ??
     Math.round((p?.price ?? 0) / (p as any)?.builtUpArea || 0);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [isShortlisted, setIsShortlisted] = useState<boolean>(
-    Boolean((p as any)?.isShortlisted)
-  );
-  const { mutate: shortlistProperty, isPending: isShortlisting } = useMutation({
-    mutationFn: postShortlistProperty,
-    onSuccess: () => {
-      toast.success(
-        !isShortlisted ? "Removed from shortlist" : "Property shortlisted!"
+  const [isShortlisted, setIsShortlisted] = useState(false);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const { data: userData } = useQuery({
+    queryKey: ["user"],
+    queryFn: me,
+    retry: 1,
+  });
+  const user = userData?.user;
+
+  const { data: shortlistData } = useQuery({
+    queryKey: ["user-shortlist"],
+    queryFn: getUserShortlist,
+    enabled: !!user,
+  });
+
+  useEffect(() => {
+    if (shortlistData?.data) {
+      const isInList = shortlistData.data.some(
+        (item: any) => item.property?._id === p.id
       );
+      setIsShortlisted(isInList);
+    }
+  }, [shortlistData, p.id]);
+
+  const addShortlistMutation = useMutation({
+    mutationFn: postShortlistProperty,
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["user-shortlist"] });
+      queryClient.setQueryData(["user-shortlist"], (old: any) => ({
+        ...old,
+        data: [...(old?.data || []), { property: { _id: p.id } }],
+      }));
     },
-    onError: () => {
-      setIsShortlisted((prev) => !prev); // rollback
-      toast.error("Failed to update shortlist");
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-shortlist"] });
     },
   });
 
+  const removeShortlistMutation = useMutation({
+    mutationFn: removeShortlistProperty,
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["user-shortlist"] });
+      queryClient.setQueryData(["user-shortlist"], (old: any) => ({
+        ...old,
+        data: (old?.data || []).filter((item: any) => item.property?._id !== p.id),
+      }));
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-shortlist"] });
+    },
+  });
+
+  const { mutate: shortlistProperty, isPending: isShortlisting } = addShortlistMutation;
+
   return (
     <div
-      className={`card p-2 h-auto flex overflow-hidden ${
-        vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"
-      }`}
+      className={`card p-2 h-auto flex overflow-hidden ${vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"
+        }`}
     >
       <Link href={`/properties/agricultural/${p.slug}`} className={`flex flex-1 min-w-0 ${vertical ? "flex-col" : "flex-col md:flex-row"}`}>
         {/* Left: image */}
@@ -67,17 +108,28 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
             isShortlisted={isShortlisted}
             isShortlistLoading={isShortlisting}
             onToggleShortlist={() => {
-              if (!p.id) {
-                toast.error("Property ID is missing, cannot update shortlist.");
+              if (!user) {
+                router.push("/login");
                 return;
               }
-              // optimistic UI
-              setIsShortlisted((prev) => !prev);
 
-              shortlistProperty({
-                propertyId: p.id,
-                propertyType: (p as any).type ?? "Agricultural",
-              });
+              // Ensure we have a valid property ID before proceeding.
+              const propertyId = p.id;
+              if (!propertyId) {
+                toast.error("Cannot shortlist property without a valid ID.");
+                return;
+              }
+
+              if (isShortlisted) {
+                setIsShortlisted(false);
+                removeShortlistMutation.mutate(propertyId);
+              } else {
+                setIsShortlisted(true);
+                addShortlistMutation.mutate({
+                  propertyId: propertyId,
+                  propertyType: (p as any).type ?? "Agricultural",
+                });
+              }
             }}
           />
           {/* overlay: image count & date */}
@@ -133,8 +185,8 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
           {/* meta icons row */}
           <div
             className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200 ${vertical
-                ? "grid grid-cols-2 gap-4"
-                : "md:flex md:items-center md:gap-6"
+              ? "grid grid-cols-2 gap-4"
+              : "md:flex md:items-center md:gap-6"
               }`}
           >
             <div className="items-center gap-2 flex">
@@ -193,27 +245,24 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
 
       {/* Right: price card */}
       <aside
-        className={`rounded-xl ${
-          vertical
-            ? "w-full px-3 py-2 flex items-center justify-between gap-3"
-            : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:mt-0"
-        }`}
+        className={`rounded-xl ${vertical
+          ? "w-full px-3 py-2 flex items-center justify-between gap-3"
+          : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:mt-0"
+          }`}
         style={{ backgroundColor: bgPriceColor }}
       >
         {/* PRICE */}
         <div
-          className={`${
-            vertical
-              ? "flex flex-col"
-              : "flex flex-col md:items-center md:text-center"
-          }`}
+          className={`${vertical
+            ? "flex flex-col"
+            : "flex flex-col md:items-center md:text-center"
+            }`}
         >
           <div
-            className={`text-green-700 font-semibold ${
-              vertical
-                ? "text-lg leading-tight"
-                : "text-lg leading-tight md:text-2xl"
-            }`}
+            className={`text-green-700 font-semibold ${vertical
+              ? "text-lg leading-tight"
+              : "text-lg leading-tight md:text-2xl"
+              }`}
           >
             {formatINR(p?.price)}
           </div>
@@ -225,22 +274,20 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
 
         {/* BUTTON */}
         <div
-          className={`${
-            vertical
-              ? "shrink-0"
-              : "shrink-0 md:w-full md:mt-4 flex justify-center"
-          }`}
+          className={`${vertical
+            ? "shrink-0"
+            : "shrink-0 md:w-full md:mt-4 flex justify-center"
+            }`}
         >
           <ContactOwnerButton
             projectId={p.id}
             propertyType="agriculturals"
-                        listingType={p?.listingType}
+            listingType={p?.listingType}
 
-            className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${
-              vertical
-                ? "px-4 py-1.5 text-sm"
-                : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base "
-            }`}
+            className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${vertical
+              ? "px-4 py-1.5 text-sm"
+              : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base "
+              }`}
           />
         </div>
       </aside>

@@ -28,6 +28,11 @@ const UserSchema = new mongoose.Schema(
       index:true,
       match: [/^\+?[1-9]\d{6,14}$/, "Invalid phone number"],
     },
+    address: {
+      type: String,
+      trim: true,
+      maxlength: 200,
+    },
 
     builderId: {
       type: mongoose.Schema.Types.ObjectId,

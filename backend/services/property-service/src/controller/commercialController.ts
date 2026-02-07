@@ -240,7 +240,6 @@ export const updateCommercialBasicStep = async (
   res.json({ data: doc });
 };
 
-
 export const updateCommercialLocationStep = async (
   req: AuthRequest,
   res: Response,
@@ -257,6 +256,8 @@ export const updateCommercialLocationStep = async (
     pincode: req.body.pincode,
     locality: req.body.locality,
     location: req.body.location,
+    buildingName: req.body.buildingName,
+
     completion: {
       ...doc.completion,
       percent: 45,
@@ -269,7 +270,6 @@ export const updateCommercialLocationStep = async (
 
   res.json({ data: doc });
 };
-
 
 export const updateCommercialDetailsStep = async (
   req: AuthRequest,
@@ -309,7 +309,6 @@ export const updateCommercialDetailsStep = async (
     res.status(500).json({ error: err.message || "Internal server error" });
   }
 };
-
 
 export const finalizeCommercial = async (req: AuthRequest, res: Response) => {
   const property = await Commercial.findById(req.params.id);

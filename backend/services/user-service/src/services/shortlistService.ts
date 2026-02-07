@@ -21,8 +21,13 @@ export const removeFromShortlistService = async (
   userId: string,
   propertyId: string
 ) => {
-  return await (Shortlist.findOneAndUpdate as any)({ userId, propertyId });
+  // Cast to any to bypass the incompatible signature union error
+  return await (Shortlist.deleteOne as any)({ 
+    userId: new Types.ObjectId(userId), 
+    propertyId: new Types.ObjectId(propertyId) 
+  }); 
 };
+
 
 
 export const getUserShortlistService = async (userId: Types.ObjectId) => {
@@ -133,10 +138,18 @@ export const getUserShortlistService = async (userId: Types.ObjectId) => {
 
 
 
-export const getShortlistStatusService = async (userId: string, propertyId: string) => {
-  const exists = await Shortlist.exists({ userId, propertyId });
+export const getShortlistStatusService = async (
+  userId: string,
+  propertyId: string
+) => {
+  const exists = await Shortlist.exists({
+    userId: new Types.ObjectId(userId),
+    propertyId: new Types.ObjectId(propertyId),
+  });
+
   return Boolean(exists);
 };
+
 
 
 export const  getAnalytics =  async() => {

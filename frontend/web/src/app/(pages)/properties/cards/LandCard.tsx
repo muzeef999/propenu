@@ -15,10 +15,12 @@ import { AiOutlineHeart } from "react-icons/ai";
 import { BiBuildingHouse } from "react-icons/bi";
 import { ILand } from "@/types/land";
 import ImageAutoCarousel from "@/ui/ImageAutoCarousel";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { postShortlistProperty } from "@/data/ClientData";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { postShortlistProperty, me, removeShortlistProperty, getUserShortlist } from "@/data/ClientData";
 import { toast } from "sonner";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
   p,
@@ -34,22 +36,62 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
     (p as any)?.pricePerSqft ?? (area ? Math.round((p?.price ?? 0) / area) : 0);
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [isShortlisted, setIsShortlisted] = useState<boolean>(
-    Boolean((p as any)?.isShortlisted)
-  );
+  const [isShortlisted, setIsShortlisted] = useState(false);
+  const router = useRouter();
+  const queryClient = useQueryClient();
 
-  const { mutate: shortlistProperty, isPending: isShortlisting } = useMutation({
-    mutationFn: postShortlistProperty,
-    onSuccess: () => {
-      toast.success(
-        !isShortlisted ? "Property shortlisted!" : "Removed from shortlist"
+  const { data: userData } = useQuery({
+    queryKey: ["user"],
+    queryFn: me,
+    retry: 1,
+  });
+  const user = userData?.user;
+
+  const { data: shortlistData } = useQuery({
+    queryKey: ["user-shortlist"],
+    queryFn: getUserShortlist,
+    enabled: !!user,
+  });
+
+  useEffect(() => {
+    if (shortlistData?.data) {
+      const isInList = shortlistData.data.some(
+        (item: any) => item.property?._id === p.id
       );
+      setIsShortlisted(isInList);
+    }
+  }, [shortlistData, p.id]);
+
+  const addShortlistMutation = useMutation({
+    mutationFn: postShortlistProperty,
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["user-shortlist"] });
+      queryClient.setQueryData(["user-shortlist"], (old: any) => ({
+        ...old,
+        data: [...(old?.data || []), { property: { _id: p.id } }],
+      }));
     },
-    onError: () => {
-      setIsShortlisted((prev) => !prev); // rollback
-      toast.error("Failed to update shortlist");
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-shortlist"] });
     },
   });
+
+  const removeShortlistMutation = useMutation({
+    mutationFn: removeShortlistProperty,
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["user-shortlist"] });
+      queryClient.setQueryData(["user-shortlist"], (old: any) => ({
+        ...old,
+        data: (old?.data || []).filter((item: any) => item.property?._id !== p.id),
+      }));
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-shortlist"] });
+    },
+  });
+
+  const { mutate: shortlistProperty, isPending: isShortlisting } = addShortlistMutation;
+  console.log("project data in card:", p);
 
   return (
     <div
@@ -69,18 +111,28 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
             isShortlisted={isShortlisted}
             isShortlistLoading={isShortlisting}
             onToggleShortlist={() => {
-              if (!p.id) {
-                toast.error(
-                  "Failed to update shortlist: Property ID is missing."
-                );
+              if (!user) {
+                router.push("/login");
                 return;
               }
-              setIsShortlisted((prev) => !prev);
 
-              shortlistProperty({
-                propertyId: p.id ?? p._id,
-                propertyType: "Land",
-              });
+              // Ensure we have a valid property ID before proceeding.
+              const propertyId = p.id;
+              if (!propertyId) {
+                toast.error("Cannot shortlist property without a valid ID.");
+                return;
+              }
+
+              if (isShortlisted) {
+                setIsShortlisted(false);
+                removeShortlistMutation.mutate(propertyId);
+              } else {
+                setIsShortlisted(true);
+                addShortlistMutation.mutate({
+                  propertyId: propertyId,
+                  propertyType: "Land",
+                });
+              }
             }}
           />
 
