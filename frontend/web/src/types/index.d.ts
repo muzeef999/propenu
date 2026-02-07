@@ -347,7 +347,6 @@ export type SearchFilters = {
 type RESFilterKey =
   | "Property Type"
   | "Sales Type"
-  | "Possession Status"
   | "Covered Area"
   | "Bathroom"
   | "Balcony"

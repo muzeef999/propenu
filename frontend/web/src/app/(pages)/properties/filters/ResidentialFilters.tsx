@@ -56,7 +56,6 @@ const ResidentialFilters = () => {
   const keyMapping: Record<RESFilterKey, keyof typeof residential> = {
     "Property Type": "propertyType",
     "Sales Type": "transactionType",
-    "Possession Status": "constructionStatus",
     "Covered Area": "coveredArea",
     "Bathroom": "bathroom",
     "Balcony": "balcony",
