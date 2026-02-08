@@ -50,7 +50,14 @@ const ResidentialSchema = new Schema<IResidential>(
     },
 
     transactionType: { type: String, enum: ["new-sale", "resale"] },
-    title: { type: String, required: true, trim: true },
+    title: {
+  type: String,
+  trim: true,
+  required: function (this: any) {
+    return this.status !== "draft";
+  },
+},
+
     flooringType: { type: String, enum: FLOORING_TYPES },
     kitchenType: { type: String, enum: KITCHEN_TYPES },
     propertyAge: { type: String, enum: PROPERTY_AGE_BUCKETS },
@@ -84,57 +91,63 @@ const ResidentialSchema = new Schema<IResidential>(
 /* Indexes */
 ResidentialSchema.index(TEXT_INDEX_FIELDS, { name: "Res_Text" });
 
-ResidentialSchema.pre(
-  "validate",
-  async function (this: ResidentialDocument, next) {
-    try {
-      /* -------- TITLE (AUTO REBUILD UNTIL PUBLISHED) -------- */
-      if (!this.title || this.status === "draft") {
-        this.title = buildResidentialTitle(this);
-      }
-
-      /* -------- SLUG (SYNC WITH TITLE UNTIL PUBLISHED) -------- */
-      if (this.title && (!this.slug || this.status === "draft")) {
-        const baseSlug = slugify(this.title);
-        this.slug = await generateUniqueSlug(
-          mongoose.model("Residential"),
-          baseSlug,
-          this._id,
-        );
-      }
-
-      /* -------- LISTING SOURCE -------- */
-      if (!this.listingSource && this.createdBy) {
-        const User = mongoose.model("User");
-        const Role = mongoose.model("Role");
-
-        const user: any = await User.findById(this.createdBy)
-          .select("role roleId")
-          .lean();
-
-        if (user?.role && typeof user.role === "string") {
-          this.listingSource = user.role;
-        } else if (user?.roleId) {
-          const roleDoc: any = await Role.findById(user.roleId)
-            .select("label")
-            .lean();
-
-          if (roleDoc?.label) {
-            this.listingSource = roleDoc.label;
-          }
-        }
-      }
-
-      if (!this.listingSource) {
-        this.listingSource = "owner";
-      }
-
-      next();
-    } catch (err) {
-      next(err as any);
-    }
-  },
+// 🔒 ONE ACTIVE DRAFT PER USER (MongoDB-level protection)
+ResidentialSchema.index(
+  { createdBy: 1, status: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: "draft" },
+    name: "uniq_residential_draft_per_user",
+  }
 );
+
+ResidentialSchema.pre("validate", async function (next) {
+  try {
+    // ✅ ALWAYS rebuild title from latest data
+    this.title = buildResidentialTitle(this);
+
+    // 🚫 Do NOT generate slug for drafts
+    if (this.status === "draft") {
+      return next();
+    }
+
+    // ✅ Generate slug only once (when active)
+    if (!this.slug && this.title) {
+      const baseSlug = slugify(this.title);
+      this.slug = await generateUniqueSlug(
+        mongoose.model("Residential"),
+        baseSlug,
+        this._id,
+      );
+    }
+
+    /* -------- LISTING SOURCE -------- */
+    if (!this.listingSource && this.createdBy) {
+      const User = mongoose.model("User");
+      const Role = mongoose.model("Role");
+
+      const user: any = await User.findById(this.createdBy)
+        .select("role roleId")
+        .lean();
+
+      if (user?.role) this.listingSource = user.role;
+      else if (user?.roleId) {
+        const roleDoc: any = await Role.findById(user.roleId)
+          .select("label")
+          .lean();
+        if (roleDoc?.label) this.listingSource = roleDoc.label;
+      }
+    }
+
+    if (!this.listingSource) this.listingSource = "owner";
+
+    next();
+  } catch (err) {
+    next(err as any);
+  }
+});
+
+
 
 
 export const Residential: Model<IResidential> =
@@ -144,8 +157,11 @@ export const Residential: Model<IResidential> =
 export default Residential;
 
 function buildResidentialTitle(doc: any) {
-  const bhk = doc.bedrooms ? `${doc.bedrooms} BHK` : "";
-  const propertyType = doc.propertyType ?? "Residential Property";
+  const parts: string[] = [];
+
+  if (doc.bedrooms) parts.push(`${doc.bedrooms} BHK`);
+  parts.push(doc.propertyType ?? "Residential Property");
+
   const listingType =
     doc.listingType === "rent"
       ? "Rent"
@@ -153,10 +169,13 @@ function buildResidentialTitle(doc: any) {
         ? "Lease"
         : "Sale";
 
-  const locality = doc.locality ?? "";
-  const city = doc.city ?? "";
+  parts.push(`for ${listingType}`);
 
-  return `${bhk} ${propertyType} for ${listingType}  in ${locality}, ${city}`
-    .replace(/\s+/g, " ")
-    .trim();
+  const locationParts = [doc.locality, doc.city].filter(Boolean);
+  if (locationParts.length > 0) {
+    parts.push(`in ${locationParts.join(", ")}`);
+  }
+
+  return parts.join(" ").replace(/\s+/g, " ").trim();
 }
+

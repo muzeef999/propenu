@@ -238,22 +238,39 @@ export const deleteResidential = async (req: Request, res: Response) => {
   }
 };
 
-export const createResidentialDraft = async (
-  req: AuthRequest,
-  res: Response,
-) => {
-  const draft = await Residential.create({
-    createdBy: req.user!.id,
-    status: "draft",
-    completion: {
-      percent: 0,
-      step: 1,
-      lastSection: "basic",
-    },
-  });
 
-  res.status(201).json({ data: draft });
+export const createResidentialDraft = async (req: AuthRequest, res: Response) => {
+  try {
+    const existing = await Residential.findOne({
+      createdBy: req.user!.id,
+      status: "draft",
+    }).lean();
+
+    if (existing) {
+      return res.status(200).json({ data: existing });
+    }
+
+    const draft = await Residential.create({
+      createdBy: req.user!.id,
+      status: "draft",
+      title: "Draft Residential Property", // explicit
+      completion: {
+        percent: 0,
+        step: 1,
+        lastSection: "basic",
+      },
+    });
+
+    return res.status(201).json({ data: draft });
+  } catch (err: any) {
+    console.error("createResidentialDraft:", err);
+    return res.status(500).json({
+      error: "Failed to create residential draft",
+    });
+  }
 };
+
+
 
 export const updateBasicStep = async (req: AuthRequest, res: Response) => {
   const doc = await Residential.findById(req.params.id);

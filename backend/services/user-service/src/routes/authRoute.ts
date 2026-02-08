@@ -2,6 +2,7 @@ import express from "express";
 import { createRequestOtp, createVeifytOtp, getAllUsers, me, requestOTP, searchUsers, updateUser, updateUserRole, verifyOtp } from "../controller/authController";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 
+
 const authRoute = express.Router();
 
 authRoute.post("/request-otp",  requestOTP);
