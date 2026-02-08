@@ -65,6 +65,7 @@ export const basicDetailsSchema = z
     const {
       category,
       propertyType,
+      facing,
       constructionStatus,
       propertyAge,
       price,
@@ -87,36 +88,85 @@ export const basicDetailsSchema = z
         message: "Please select a property sub-type",
       });
     }
+
+    /* ================= RESIDENTIAL COUNTERS ================= */
+    if (category === "residential" && propertyType) {
+      if (data.bedrooms == null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["bedrooms"],
+          message: "Please select number of bedrooms",
+        });
+      }
+
+      if (data.bathrooms == null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["bathrooms"],
+          message: "Please select number of bathrooms",
+        });
+      }
+    }
+
+    /* ================= FURNISHING ================= */
+    if (category === "residential" && propertyType && !data.furnishing) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["furnishing"],
+        message: "Please select furnishing",
+      });
+    }
+
+    if (category === "commercial") {
+      const needsFurnishing = Number(cabins) > 0 || Number(seats) > 0;
+
+      if (needsFurnishing && !data.furnishing) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["furnishing"],
+          message: "Please select furnishing",
+        });
+      }
+    }
+
+    /* ================= FACING ================= */
+    if (category === "residential" && propertyType && !facing) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["facing"],
+        message: "Please select facing",
+      });
+    }
+
     /* ================= LAND ================= */
     if (category === "land" && !data.landSubType) {
       ctx.addIssue({
-        path: ["landSubType"],
         code: z.ZodIssueCode.custom,
+        path: ["landSubType"],
         message: "Land sub-type is required",
       });
     }
-    /* ================= LAND DIMENSIONS (OPTIONAL) ================= */
+
+    /* ================= LAND DIMENSIONS ================= */
     if (category === "land" && data.dimensions) {
       const length = Number(data.dimensions.length);
       const width = Number(data.dimensions.width);
 
-      const hasLength = !!data.dimensions.length;
-      const hasWidth = !!data.dimensions.width;
+      const hasLength = data.dimensions.length != null;
+      const hasWidth = data.dimensions.width != null;
 
-      // If one is filled, both are required
       if ((hasLength && !hasWidth) || (!hasLength && hasWidth)) {
         ctx.addIssue({
-          path: ["dimensions"],
           code: z.ZodIssueCode.custom,
+          path: ["dimensions"],
           message: "Please enter both length and width",
         });
       }
 
-      // If provided, must be positive numbers
       if ((hasLength && length <= 0) || (hasWidth && width <= 0)) {
         ctx.addIssue({
-          path: ["dimensions"],
           code: z.ZodIssueCode.custom,
+          path: ["dimensions"],
           message: "Length and width must be greater than 0",
         });
       }
@@ -125,12 +175,13 @@ export const basicDetailsSchema = z
     /* ================= AGRICULTURAL ================= */
     if (category === "agricultural" && !data.agriculturalSubType) {
       ctx.addIssue({
-        path: ["agriculturalSubType"],
         code: z.ZodIssueCode.custom,
+        path: ["agriculturalSubType"],
         message: "Agricultural sub-type is required",
       });
     }
 
+    /* ================= VALID PROPERTY TYPES ================= */
     if (
       category === "residential" &&
       propertyType &&
@@ -157,31 +208,6 @@ export const basicDetailsSchema = z
         path: ["propertyType"],
         message: "Invalid commercial property type",
       });
-    }
-
-    /* ================= FURNISHING ================= */
-    if (category === "residential") {
-      const needsFurnishing = data.bedrooms || data.bathrooms || data.balconies;
-
-      if (needsFurnishing && !data.furnishing) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["furnishing"],
-          message: "Please select furnishing",
-        });
-      }
-    }
-
-    if (category === "commercial") {
-      const needsFurnishing = Number(cabins) > 0 || Number(seats) > 0;
-
-      if (needsFurnishing && !data.furnishing) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["furnishing"],
-          message: "Please select furnishing",
-        });
-      }
     }
 
     /* ================= PRICING ================= */
@@ -220,17 +246,18 @@ export const basicDetailsSchema = z
         });
       }
     }
-    if (category === "agricultural" && !data.totalArea) {
+
+    if (category === "agricultural" && !totalArea) {
       ctx.addIssue({
-        path: ["totalArea"],
         code: z.ZodIssueCode.custom,
+        path: ["totalArea"],
         message: "Total area is required",
       });
     }
 
     /* ================= AVAILABILITY ================= */
     if (
-      (category === "residential" && data.facing) ||
+      (category === "residential" && facing) ||
       (category === "commercial" && data.wallFinishStatus)
     ) {
       if (!constructionStatus) {
@@ -276,6 +303,17 @@ export const basicDetailsSchema = z
           message: "Please select a commercial sub-type",
         });
       }
+      if (
+  category === "commercial" &&
+  commercialSubType &&      // commercial sub-type selected
+  !data.wallFinishStatus    // wall finish not selected
+) {
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    path: ["wallFinishStatus"],
+    message: "Please select wall finish",
+  });
+}
 
       if (
         (!cabins || Number(cabins) === 0) &&

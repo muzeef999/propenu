@@ -4,11 +4,12 @@ import LandService from "../landService";
 import ResidentialPropertyService from "../residentialServices";
 
 export const CATEGORY_SERVICE_MAP: Record<string, any> = {
-  Residential: ResidentialPropertyService,
-  Commercial: CommercialService,
-  Land: LandService,
-  Agricultural: AgriculturalService,
+  residential: ResidentialPropertyService,
+  commercial: CommercialService,
+  land: LandService,
+  agricultural: AgriculturalService,
 };
+
 
 
 export default async function buildSearchCursor(payload: any) {

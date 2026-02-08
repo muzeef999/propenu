@@ -202,7 +202,8 @@ export default async function Page({ params }: PageProps) {
                       <div className="mt-8">
                         <ContactOwnerButton
                           projectId={project._id}
-                          propertyType="residentials"
+                          propertyType="landplots"
+                          listingType={project.listingType}
                         />
                       </div>
                     </section>

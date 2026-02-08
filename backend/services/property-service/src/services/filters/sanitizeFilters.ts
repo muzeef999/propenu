@@ -1,41 +1,130 @@
 // src/services/filters/sanitizeFilters.ts
 
-const ALLOWED_FILTERS = [
+type SanitizedResult = {
+  filter: Record<string, any>;
+  batchSize: number;
+};
+
+/* -------------------- RESIDENTIAL CONFIG -------------------- */
+
+const RESIDENTIAL_ALLOWED_FILTERS = [
   "category",
   "search",
   "listingType",
   "listingSource",
   "transactionType",
   "city",
+  "locality",
   "furnishing",
   "constructionStatus",
   "propertyType",
-  "locality",
-  // numeric filters
+
+  // numeric
   "bhk",
   "minPrice",
   "maxPrice",
+
   // infra
   "batchSize",
 ];
 
-const NUMERIC_FILTERS = new Set([
+const RESIDENTIAL_NUMERIC_FILTERS = new Set([
   "bhk",
   "minPrice",
   "maxPrice",
   "batchSize",
 ]);
 
-export function sanitizeSearchFilters(req: any) {
-  const filter: any = {};
+/* -------------------- COMMERCIAL CONFIG -------------------- */
+
+const COMMERCIAL_ALLOWED_FILTERS = [
+  "category",
+  "search",
+  "listingType",
+  "listingSource",
+  "city",
+  "locality",
+  "constructionStatus",
+
+  // property
+  "propertyType",
+  "propertySubType",
+
+  // furnishing / infra
+  "furnishedStatus",
+  "powerBackup",
+
+  // numeric
+  "minPrice",
+  "maxPrice",
+  "minCarpetArea",
+  "maxCarpetArea",
+  "floorNumber",
+  "totalFloors",
+  "minPowerCapacityKw",
+  "maxPowerCapacityKw",
+
+  // amenities
+  "amenities",
+
+  // infra
+  "batchSize",
+];
+
+const COMMERCIAL_NUMERIC_FILTERS = new Set([
+  "minPrice",
+  "maxPrice",
+  "minCarpetArea",
+  "maxCarpetArea",
+  "floorNumber",
+  "totalFloors",
+  "minPowerCapacityKw",
+  "maxPowerCapacityKw",
+  "batchSize",
+]);
+
+/* -------------------- PUBLIC API -------------------- */
+
+export function sanitizeSearchFilters(req: any): SanitizedResult {
+  const category = String(req.query.category).toLowerCase();
+
+  if (!category) {
+    throw new Error("Category is required for search");
+  }
+
+  let result: SanitizedResult;
+
+  if (category === "residential") {
+    result = sanitize(req, RESIDENTIAL_ALLOWED_FILTERS, RESIDENTIAL_NUMERIC_FILTERS);
+  } else if (category === "commercial") {
+    result = sanitize(req, COMMERCIAL_ALLOWED_FILTERS, COMMERCIAL_NUMERIC_FILTERS);
+  } else {
+    throw new Error(`Unsupported category: ${category}`);
+  }
+
+  // ✅ FORCE category into filter
+  result.filter.category = category;
+
+  return result;
+}
+
+
+/* -------------------- CORE SANITIZER -------------------- */
+
+function sanitize(
+  req: any,
+  allowedKeys: string[],
+  numericKeys: Set<string>
+): SanitizedResult {
+  const filter: Record<string, any> = {};
   let batchSize = 50;
 
-  for (const key of ALLOWED_FILTERS) {
+  for (const key of allowedKeys) {
     const value = req.query[key];
 
     if (value === undefined || value === null || value === "") continue;
 
-    if (NUMERIC_FILTERS.has(key)) {
+    if (numericKeys.has(key)) {
       const num = Number(value);
       if (!Number.isNaN(num)) {
         filter[key] = num;
@@ -52,7 +141,6 @@ export function sanitizeSearchFilters(req: any) {
     }
   }
 
-  // ✅ THIS SHAPE IS REQUIRED
   return {
     filter,
     batchSize,

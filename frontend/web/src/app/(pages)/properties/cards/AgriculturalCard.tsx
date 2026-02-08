@@ -62,12 +62,23 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
 
   const addShortlistMutation = useMutation({
     mutationFn: postShortlistProperty,
+    onSuccess: () => {
+      toast.success("Added to shortlist");
+    },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ["user-shortlist"] });
+      const previousShortlist = queryClient.getQueryData(["user-shortlist"]);
       queryClient.setQueryData(["user-shortlist"], (old: any) => ({
         ...old,
         data: [...(old?.data || []), { property: { _id: p.id } }],
       }));
+      return { previousShortlist };
+    },
+    onError: (err, variables, context: any) => {
+      if (context?.previousShortlist) {
+        queryClient.setQueryData(["user-shortlist"], context.previousShortlist);
+      }
+      toast.error("Failed to add to shortlist.");
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["user-shortlist"] });
@@ -76,19 +87,30 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
 
   const removeShortlistMutation = useMutation({
     mutationFn: removeShortlistProperty,
-    onMutate: async () => {
+    onSuccess: () => {
+      toast.success("Removed from shortlist");
+    },
+    onMutate: async (propertyId: string) => {
       await queryClient.cancelQueries({ queryKey: ["user-shortlist"] });
+      const previousShortlist = queryClient.getQueryData(["user-shortlist"]);
       queryClient.setQueryData(["user-shortlist"], (old: any) => ({
         ...old,
-        data: (old?.data || []).filter((item: any) => item.property?._id !== p.id),
+        data: (old?.data || []).filter(
+          (item: any) => item.property?._id !== propertyId,
+        ),
       }));
+      return { previousShortlist };
+    },
+    onError: (err, variables, context: any) => {
+      if (context?.previousShortlist) {
+        queryClient.setQueryData(["user-shortlist"], context.previousShortlist);
+      }
+      toast.error("Failed to remove from shortlist.");
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["user-shortlist"] });
     },
   });
-
-  const { mutate: shortlistProperty, isPending: isShortlisting } = addShortlistMutation;
 
   return (
     <div
@@ -106,7 +128,9 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
             alt={p?.title}
             onIndexChange={setActiveImageIndex}
             isShortlisted={isShortlisted}
-            isShortlistLoading={isShortlisting}
+            isShortlistLoading={
+              addShortlistMutation.isPending || removeShortlistMutation.isPending
+            }
             onToggleShortlist={() => {
               if (!user) {
                 router.push("/login");
@@ -121,13 +145,13 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
               }
 
               if (isShortlisted) {
-                setIsShortlisted(false);
+                setIsShortlisted(false); // optimistic
                 removeShortlistMutation.mutate(propertyId);
               } else {
-                setIsShortlisted(true);
+                setIsShortlisted(true); // optimistic
                 addShortlistMutation.mutate({
                   propertyId: propertyId,
-                  propertyType: (p as any).type ?? "Agricultural",
+                  propertyType: "Agricultural",
                 });
               }
             }}

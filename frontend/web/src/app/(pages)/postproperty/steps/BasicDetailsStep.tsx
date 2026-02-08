@@ -54,7 +54,6 @@ export default function BasicDetailsStep() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showRoomDetails, setShowRoomDetails] = useState(false);
-  const [showFurnishingFacing, setShowFurnishingFacing] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
 
@@ -66,20 +65,10 @@ export default function BasicDetailsStep() {
   useEffect(() => {
     if (propertyType === "residential") {
       if (residential.propertyType) setShowRoomDetails(true);
-      if (
-        (residential.bedrooms && residential.bedrooms > 1) ||
-        (residential.bathrooms && residential.bathrooms > 1) ||
-        (residential.balconies && residential.balconies > 0) ||
-        residential.furnishing ||
-        residential.facing
-      ) {
-        setShowFurnishingFacing(true);
-      }
       if (residential.facing) setShowPricing(true);
     } else {
       // Reset when switching away from residential
       setShowRoomDetails(false);
-      setShowFurnishingFacing(false);
       setShowPricing(false);
     }
   }, [propertyType, residential]);
@@ -281,7 +270,7 @@ export default function BasicDetailsStep() {
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
                   <CounterField
                     label="Bedrooms"
-                    value={residential.bedrooms || residential.bhk || 1}
+                    value={residential.bedrooms || 0}
                     min={1}
                     onChange={(value) => {
                       dispatch(
@@ -291,14 +280,13 @@ export default function BasicDetailsStep() {
                           value,
                         }),
                       );
-                      setShowFurnishingFacing(true);
                     }}
                     error={fieldErrors.bedrooms?.[0]}
                   />
 
                   <CounterField
                     label="Bathrooms"
-                    value={residential.bathrooms || 1}
+                    value={residential.bathrooms || 0}
                     min={1}
                     onChange={(value) => {
                       dispatch(
@@ -308,7 +296,6 @@ export default function BasicDetailsStep() {
                           value,
                         }),
                       );
-                      setShowFurnishingFacing(true);
                     }}
                     error={fieldErrors.bathrooms?.[0]}
                   />
@@ -325,82 +312,79 @@ export default function BasicDetailsStep() {
                           value,
                         }),
                       );
-                      setShowFurnishingFacing(true);
                     }}
                   />
                 </div>
 
-                {showFurnishingFacing && (
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_145px] items-start">
-                    {/* Furnishing */}
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-gray-700">
-                        Furnishing
-                      </p>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_145px] items-start">
+                  {/* Furnishing */}
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-gray-700">
+                      Furnishing
+                    </p>
 
-                      <div className="flex flex-wrap gap-3">
-                        {[
-                          { label: "Furnished", value: "fully-furnished" },
-                          { label: "Semi furnished", value: "semi-furnished" },
-                          { label: "Un-furnished", value: "unfurnished" },
-                        ].map((item) => {
-                          const active = residential.furnishing === item.value;
+                    <div className="flex flex-wrap gap-3">
+                      {[
+                        { label: "Furnished", value: "fully-furnished" },
+                        { label: "Semi furnished", value: "semi-furnished" },
+                        { label: "Un-furnished", value: "unfurnished" },
+                      ].map((item) => {
+                        const active = residential.furnishing === item.value;
 
-                          return (
-                            <button
-                              key={item.value}
-                              type="button"
-                              onClick={() =>
-                                dispatch(
-                                  setProfileField({
-                                    propertyType: "residential",
-                                    key: "furnishing",
-                                    value: item.value,
-                                  }),
-                                )
-                              }
-                              className={`px-5 py-2 rounded-md text-sm border transition
+                        return (
+                          <button
+                            key={item.value}
+                            type="button"
+                            onClick={() =>
+                              dispatch(
+                                setProfileField({
+                                  propertyType: "residential",
+                                  key: "furnishing",
+                                  value: item.value,
+                                }),
+                              )
+                            }
+                            className={`px-5 py-2 rounded-md text-sm border transition
                   ${active
-                                  ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                                  : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                                }
+                                ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                                : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                              }
                 `}
-                            >
-                              {item.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {showErrors && fieldErrors.furnishing?.[0] && (
-                        <p className="text-xs text-red-500">
-                          {fieldErrors.furnishing[0]}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Facing */}
-                    <Dropdownui
-                      label="Facing"
-                      value={residential.facing || null}
-                      onChange={(value) => {
-                        dispatch(
-                          setProfileField({
-                            propertyType: "residential",
-                            key: "facing",
-                            value,
-                          }),
+                          >
+                            {item.label}
+                          </button>
                         );
-                        setShowPricing(true);
-                      }}
-                      options={FACING_TYPES.map((t) => ({
-                        value: t,
-                        label: t,
-                      }))}
-                      placeholder="Select"
-                      error={fieldErrors.facing?.[0]}
-                    />
+                      })}
+                    </div>
+                    {showErrors && fieldErrors.furnishing?.[0] && (
+                      <p className="text-xs text-red-500">
+                        {fieldErrors.furnishing[0]}
+                      </p>
+                    )}
                   </div>
-                )}
+
+                  {/* Facing */}
+                  <Dropdownui
+                    label="Facing"
+                    value={residential.facing || null}
+                    onChange={(value) => {
+                      dispatch(
+                        setProfileField({
+                          propertyType: "residential",
+                          key: "facing",
+                          value,
+                        }),
+                      );
+                      setShowPricing(true);
+                    }}
+                    options={FACING_TYPES.map((t) => ({
+                      value: t,
+                      label: t,
+                    }))}
+                    placeholder="Select"
+                    error={fieldErrors.facing?.[0]}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -491,62 +475,65 @@ export default function BasicDetailsStep() {
           )}
 
           {/* Furnishing & Wall Finish - Show only if Cabins or Seats has a value */}
-          {(commercial.cabins > 0 || commercial.seats > 0) && (
-            <div className="grid grid-cols-1 md:grid-cols-[1.2fr_145px] gap-1 items-start">
-              {/* Furnishing */}
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700">Furnishing</p>
+          {(commercial.cabins > 0 ||
+            commercial.seats > 0 ||
+            (showErrors && fieldErrors.wallFinishStatus)) && (
+              <div className="grid grid-cols-1 md:grid-cols-[1.2fr_145px] gap-1 items-start">
+                {/* Furnishing */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-700">Furnishing</p>
 
-                <div className="flex flex-wrap gap-3">
-                  {[
-                    { label: "Furnished", value: "fully-furnished" },
-                    { label: "Semi furnished", value: "semi-furnished" },
-                    { label: "Un-furnished", value: "unfurnished" },
-                  ].map((item) => (
-                    <SelectableButton
-                      key={item.value}
-                      label={item.label}
-                      active={commercial.furnishing === item.value}
-                      onClick={() =>
-                        dispatch(
-                          setProfileField({
-                            propertyType: "commercial",
-                            key: "furnishing",
-                            value: item.value,
-                          }),
-                        )
-                      }
-                    />
-                  ))}
+                  <div className="flex flex-wrap gap-3">
+                    {[
+                      { label: "Furnished", value: "fully-furnished" },
+                      { label: "Semi furnished", value: "semi-furnished" },
+                      { label: "Un-furnished", value: "unfurnished" },
+                    ].map((item) => (
+                      <SelectableButton
+                        key={item.value}
+                        label={item.label}
+                        active={commercial.furnishing === item.value}
+                        onClick={() =>
+                          dispatch(
+                            setProfileField({
+                              propertyType: "commercial",
+                              key: "furnishing",
+                              value: item.value,
+                            }),
+                          )
+                        }
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Wall Finish */}
-              <Dropdownui
-                label="Wall Finish"
-                value={
-                  WALL_FINISH_STATUS.find(
-                    (t) => t === commercial.wallFinishStatus,
-                  ) || null
-                }
-                onChange={(value) =>
-                  dispatch(
-                    setProfileField({
-                      propertyType: "commercial",
-                      key: "wallFinishStatus",
-                      value,
-                    }),
-                  )
-                }
-                options={WALL_FINISH_STATUS.map((t) => ({
-                  value: t,
-                  label: t.replace(/-/g, " "),
-                }))}
-                placeholder="Select"
-                error={fieldErrors.wallFinishStatus?.[0]}
-              />
-            </div>
-          )}
+                {/* Wall Finish */}
+                <Dropdownui
+                  label="Wall Finish"
+                  value={
+                    WALL_FINISH_STATUS.find(
+                      (t) => t === commercial.wallFinishStatus,
+                    ) || null
+                  }
+                  onChange={(value) =>
+                    dispatch(
+                      setProfileField({
+                        propertyType: "commercial",
+                        key: "wallFinishStatus",
+                        value,
+                      }),
+                    )
+                  }
+                  options={WALL_FINISH_STATUS.map((t) => ({
+                    value: t,
+                    label: t.replace(/-/g, " "),
+                  }))}
+                  placeholder="Select"
+                  error={fieldErrors.wallFinishStatus?.[0]}
+                />
+              </div>
+            )}
+
 
           {/* Price Details - Show only if Wall Finish is selected */}
           {commercial.wallFinishStatus && (
