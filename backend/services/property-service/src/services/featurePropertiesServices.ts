@@ -125,6 +125,7 @@ function normalizeGalleryInput(payload: any) {
 }
 
 async function processBhkPlanUpdates(opts: {
+  
   bhkSummaryExisting?: any[];
   bhkSummaryIncoming?: any[];
   bhkPlanFiles?: Express.Multer.File[];
@@ -132,83 +133,94 @@ async function processBhkPlanUpdates(opts: {
   deleteOldS3OnExternalUrl?: boolean;
 }) {
   const {
-    bhkSummaryExisting = [],
+    
     bhkSummaryIncoming = [],
     bhkPlanFiles = [],
-    propertyId,
     deleteOldS3OnExternalUrl = false,
   } = opts;
 
-  const filesByName = new Map<string, Express.Multer.File>();
-  for (const f of bhkPlanFiles) filesByName.set(f.originalname, f);
 
-  for (let i = 0; i < bhkSummaryIncoming.length; i++) {
-    const incomingEntry = bhkSummaryIncoming[i] as any;
-    const existingEntry = bhkSummaryExisting[i] as any;
+  // ✅ MAKE MUTABLE COPIES OF EXISTING
+  const existingSummary: any[] = Array.isArray(opts.bhkSummaryExisting)
+    ? opts.bhkSummaryExisting.map((b) => ({ ...b }))
+    : [];
 
-    // planRemove requested
-    if (incomingEntry.planRemove) {
-      if (existingEntry?.plan?.key) {
-        await deleteS3ObjectIfExists(existingEntry.plan.key);
+
+  for (let b = 0; b < bhkSummaryIncoming.length; b++) {
+    const incomingBhk = bhkSummaryIncoming[b];
+    const existingBhk = existingSummary[b] || { units: [] };
+
+
+
+    if (!Array.isArray(existingBhk.units)) {
+      existingBhk.units = [];
+    }
+
+    for (let u = 0; u < incomingBhk.units.length; u++) {
+      const incomingUnit = incomingBhk.units[u];
+      const existingUnit = existingBhk.units[u];
+
+      if (!incomingUnit) continue;
+
+      /* 1️⃣ Match file by planFileName */
+      const matchedFile = incomingUnit.planFileName
+        ? bhkPlanFiles.find((f) => f.originalname === incomingUnit.planFileName)
+        : undefined;
+
+      /* 2️⃣ Upload new plan */
+      if (matchedFile) {
+        const up = await uploadFile({
+          buffer: matchedFile.buffer,
+          originalName: matchedFile.originalname,
+          mimetype: matchedFile.mimetype,
+          folder: "plans",
+          propertyId: opts.propertyId,
+        });
+
+        if (existingUnit?.plan?.key) {
+          await deleteS3ObjectIfExists(existingUnit.plan.key);
+        }
+
+        incomingUnit.plan = {
+          url: up.url,
+          key: up.key,
+          filename: matchedFile.originalname,
+          mimetype: matchedFile.mimetype,
+        };
+
+        delete incomingUnit.planFileName;
+        delete incomingUnit.planUrl;
+        continue;
       }
-      incomingEntry.plan = null;
-      continue;
-    }
 
-    // try index match first
-    let matchedFile: Express.Multer.File | undefined = bhkPlanFiles[i];
+      /* 3️⃣ External URL */
+      if (incomingUnit.planUrl) {
 
-    // fallback: planFileName match
-    if (
-      !matchedFile &&
-      incomingEntry.planFileName &&
-      filesByName.has(incomingEntry.planFileName)
-    ) {
-      matchedFile = filesByName.get(incomingEntry.planFileName);
-    }
+        if (deleteOldS3OnExternalUrl && existingUnit?.plan?.key) {
+          await deleteS3ObjectIfExists(existingUnit.plan.key);
+        }
 
-    if (matchedFile) {
-      // upload new file
-      const up = await uploadFile({
-        buffer: matchedFile.buffer,
-        originalName: matchedFile.originalname,
-        mimetype: matchedFile.mimetype,
-        folder: "plans",
-      });
+        incomingUnit.plan = {
+          url: incomingUnit.planUrl,
+          key: undefined,
+          filename: undefined,
+          mimetype: undefined,
+        };
 
-      // delete old S3 object if present
-      if (existingEntry?.plan?.key) {
-        await deleteS3ObjectIfExists(existingEntry.plan.key);
+        delete incomingUnit.planFileName;
+        delete incomingUnit.planUrl;
+        continue;
       }
 
-      incomingEntry.plan = {
-        url: up.url,
-        key: up.key,
-        filename: matchedFile.originalname,
-        mimetype: matchedFile.mimetype,
-      };
-      continue;
-    }
-
-    // external URL
-    if (incomingEntry.planUrl) {
-      if (deleteOldS3OnExternalUrl && existingEntry?.plan?.key) {
-        await deleteS3ObjectIfExists(existingEntry.plan.key);
+      /* 4️⃣ Preserve existing */
+      if (existingUnit?.plan) {
+        incomingUnit.plan = existingUnit.plan;
+        delete incomingUnit.planFileName;
+        delete incomingUnit.planUrl;
+        continue;
       }
-      incomingEntry.plan = {
-        url: incomingEntry.planUrl,
-        key: undefined,
-        filename: undefined,
-        mimetype: undefined,
-      };
-      continue;
-    }
 
-    // preserve existing plan if present
-    if (existingEntry?.plan) {
-      incomingEntry.plan = existingEntry.plan;
-    } else {
-      incomingEntry.plan = null;
+      incomingUnit.plan = null;
     }
   }
 

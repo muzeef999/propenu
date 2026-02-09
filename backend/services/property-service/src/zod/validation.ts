@@ -6,6 +6,8 @@ export const UnitZ = z.object({
   price: z.number().nonnegative().optional(),
   maxPrice: z.number().nonnegative().optional(),
   availableCount: z.number().int().nonnegative().optional().default(0),
+  planFileName: z.string().optional(),
+  planUrl:z.string().url().optional(),
   plan: z
     .object({
       url: z.string().optional(),
