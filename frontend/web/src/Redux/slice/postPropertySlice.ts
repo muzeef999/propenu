@@ -158,7 +158,7 @@ const postPropertySlice = createSlice({
   // category-specific data
   if (category === "residential") {
     state.residential = {
-          ...state.residential,
+       ...state.residential,
       builtUpArea: draft.builtUpArea,
       carpetArea: draft.carpetArea,
       facing: draft.facing,

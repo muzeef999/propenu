@@ -37,7 +37,7 @@ export const Step5Media: React.FC<Step5MediaProps> = ({
     const startOrder = data.gallerySummary?.length ?? 0;
 
     const newItems: IGalleryItem[] = files.map((f, index) => ({
-      url: f.file, // 🔥 File object (important)
+      url: f.file!, // 🔥 File object (important)
       title: title || undefined,
       category,
       order: startOrder + index + 1,
