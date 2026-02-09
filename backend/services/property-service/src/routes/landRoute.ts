@@ -66,7 +66,7 @@ router.patch(
   editLand
 );
 
-router.get("/draft/me", getMyLandDraft, authMiddleware);
+router.get("/draft/me",authMiddleware, getMyLandDraft );
 
 router.get("/", getAllLands);
 router.get("/slug/:slug", getLandBySlug);

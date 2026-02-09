@@ -55,13 +55,13 @@ router.patch(
   editAgricultural
 );
 
-router.get("/draft/me", authMiddleware, getMyAgriculturalDraft)
 
 router.get("/", getAllAgricultural);
 router.get("/slug/:slug", getAgriculturalBySlug);
 router.get("/:id", getAgriculturalDetail);
 router.delete("/:id", deleteAgricultural);
 
+router.get("/draft/me", authMiddleware, getMyAgriculturalDraft)
 
 router.get("/draft/all", getAllAgriculturalDraftsForAdmin);
 router.post("/draft", authMiddleware, createAgriculturalDraft);
