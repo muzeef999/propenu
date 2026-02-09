@@ -203,6 +203,35 @@ const postPropertySlice = createSlice({
       propertyType: draft.propertyType,
       furnishing: draft.furnishing,
       price: draft.price,
+      commercialSubType: draft.commercialSubType,
+      transactionType: draft.transactionType,
+      constructionStatus: draft.constructionStatus,
+      carpetArea: draft.carpetArea,
+      builtUpArea: draft.builtUpArea,
+      floorNumber: draft.floorNumber,
+      totalFloors: draft.totalFloors,
+      furnishingStatus: draft.furnishingStatus,
+      pantry: draft.pantry,
+      powerCapacity: draft.powerCapacity,
+      parking: draft.parking,
+      fireSafety: draft.fireSafety,
+      flooringType: draft.flooringType,
+      wallFinish: draft.wallFinish,
+      tenantAvailable: draft.tenantAvailable,
+      banksApproved: draft.banksApproved,
+      isPriceNegotiable: draft.isPriceNegotiable,
+      verifiedProperties: draft.verifiedProperties,
+        description:draft.description,
+        gallery: Array.isArray(draft.gallery)
+      ? draft.gallery.map((img: any) => ({
+          url: img.url,
+          key: img.key,
+          filename: img.filename,
+          order: img.order ?? 0,
+          source: "server", // 🔑 mark as backend image
+
+    }))
+      : [],
     };
   }
 
@@ -210,6 +239,28 @@ const postPropertySlice = createSlice({
     state.land = {
       landSubType: draft.propertyType,
       price: draft.price,
+      landArea: draft.landArea,
+      roadWidth: draft.roadWidth,
+      facing: draft.facing,
+      cornerPlot: draft.cornerPlot,
+      readyToConstruct: draft.readyToConstruct,
+      waterConnection: draft.waterConnection,
+      electricityConnection: draft.electricityConnection,
+      approvedBy: draft.approvedBy,
+      landUseZone: draft.landUseZone,
+      banksApproved: draft.banksApproved,
+        isPriceNegotiable: draft.isPriceNegotiable,
+          description:draft.description,
+      verifiedProperties: draft.verifiedProperties,
+        gallery: Array.isArray(draft.gallery)
+      ? draft.gallery.map((img: any) => ({
+          url: img.url,
+          key: img.key,
+          filename: img.filename,
+          order: img.order ?? 0,
+          source: "server", // 🔑 mark as backend image
+        }))
+      : [],
     };
   }
 
@@ -217,6 +268,28 @@ const postPropertySlice = createSlice({
     state.agricultural = {
       agriculturalSubType: draft.propertyType,
       price: draft.price,
+      landArea: draft.landArea,
+      roadWidth: draft.roadWidth,
+      facing: draft.facing,
+      cornerPlot: draft.cornerPlot,
+      readyToConstruct: draft.readyToConstruct,
+      waterConnection: draft.waterConnection,
+      electricityConnection: draft.electricityConnection,
+      approvedBy: draft.approvedBy,
+      landUseZone: draft.landUseZone,
+      banksApproved: draft.banksApproved,
+      isPriceNegotiable: draft.isPriceNegotiable,
+      verifiedProperties: draft.verifiedProperties,
+        description:draft.description,
+        gallery: Array.isArray(draft.gallery)
+      ? draft.gallery.map((img: any) => ({
+          url: img.url,
+          key: img.key,
+          filename: img.filename,
+          order: img.order ?? 0,
+          source: "server", // 🔑 mark as backend image
+      }))
+      : [],
     };
   }
 });
