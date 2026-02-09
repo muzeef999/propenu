@@ -83,6 +83,61 @@ const COMMERCIAL_NUMERIC_FILTERS = new Set([
   "batchSize",
 ]);
 
+/* -------------------- LAND CONFIG -------------------- */
+
+const LAND_ALLOWED_FILTERS = [
+  "category",
+  "search",
+  "city",
+  "locality",
+  "listingType",
+  "minPrice",
+  "maxPrice",
+  "minPlotArea",
+  "maxPlotArea",
+  "plotAreaUnit",
+  "negotiable",
+  "cornerPlot",
+  "batchSize",
+];
+
+const LAND_NUMERIC_FILTERS = new Set([
+  "minPrice",
+  "maxPrice",
+  "minPlotArea",
+  "maxPlotArea",
+  "batchSize",
+]);
+
+/* -------------------- AGRICULTURAL CONFIG -------------------- */
+
+const AGRICULTURAL_ALLOWED_FILTERS = [
+  "category",
+  "search",
+  "city",
+  "locality",
+  "minPrice",
+  "maxPrice",
+  "minArea",
+  "maxArea",
+  "soilType",
+  "irrigationType",
+  "minBorewells",
+  "maxBorewells",
+  "batchSize",
+  "listingType",
+];
+
+const AGRICULTURAL_NUMERIC_FILTERS = new Set([
+  "minPrice",
+  "maxPrice",
+  "minArea",
+  "maxArea",
+  "minBorewells",
+  "maxBorewells",
+  "batchSize",
+]);
+
 /* -------------------- PUBLIC API -------------------- */
 
 export function sanitizeSearchFilters(req: any): SanitizedResult {
@@ -95,9 +150,25 @@ export function sanitizeSearchFilters(req: any): SanitizedResult {
   let result: SanitizedResult;
 
   if (category === "residential") {
-    result = sanitize(req, RESIDENTIAL_ALLOWED_FILTERS, RESIDENTIAL_NUMERIC_FILTERS);
+    result = sanitize(
+      req,
+      RESIDENTIAL_ALLOWED_FILTERS,
+      RESIDENTIAL_NUMERIC_FILTERS,
+    );
   } else if (category === "commercial") {
-    result = sanitize(req, COMMERCIAL_ALLOWED_FILTERS, COMMERCIAL_NUMERIC_FILTERS);
+    result = sanitize(
+      req,
+      COMMERCIAL_ALLOWED_FILTERS,
+      COMMERCIAL_NUMERIC_FILTERS,
+    );
+  } else if (category === "land") {
+    result = sanitize(req, LAND_ALLOWED_FILTERS, LAND_NUMERIC_FILTERS);
+  } else if (category === "agricultural") {
+    result = sanitize(
+      req,
+      AGRICULTURAL_ALLOWED_FILTERS,
+      AGRICULTURAL_NUMERIC_FILTERS,
+    );
   } else {
     throw new Error(`Unsupported category: ${category}`);
   }
@@ -108,13 +179,12 @@ export function sanitizeSearchFilters(req: any): SanitizedResult {
   return result;
 }
 
-
 /* -------------------- CORE SANITIZER -------------------- */
 
 function sanitize(
   req: any,
   allowedKeys: string[],
-  numericKeys: Set<string>
+  numericKeys: Set<string>,
 ): SanitizedResult {
   const filter: Record<string, any> = {};
   let batchSize = 50;
