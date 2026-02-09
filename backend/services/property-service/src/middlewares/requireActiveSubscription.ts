@@ -23,11 +23,34 @@ export const requireActiveSubscription = async (
       return next(); // 🚀 full access, no subscription needed
     }
 
-    const { listingType } = req.body; // "sale" | "rent"
+        let listingType: string | undefined;
+ 
+        if (req.params?.id) {
+  const property = await Residential.findById(req.params.id).select(
+    "listingType createdBy"
+  );
 
-    if (!listingType) {
-      return res.status(400).json({ message: "listingType is required" });
-    }
+
+   if (!property) {
+    return res.status(404).json({ message: "Property not found" });
+  }
+
+   if (String(property.createdBy) !== String(userId)) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+
+  
+  listingType = property.listingType;
+}
+
+if (!listingType) {
+  listingType = req.body?.listingType;
+}
+
+
+if (!listingType) {
+  return res.status(400).json({ message: "listingType is required" });
+}
 
     // 🔥 STEP 1: Map listingType → plan category
     const requiredCategory =

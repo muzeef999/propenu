@@ -19,6 +19,23 @@ export const createDraftApi = async (category: string) => {
   return res.json();
 };
 
+/* ---------------- MY DRAFT ---------------- */
+
+export const getMyDraftApi = async (category: string) => {
+  const res = await fetch(
+    `${url}/api/properties/${category}/draft/me`,
+    {
+      method: "GET",
+      headers: authHeader(),
+    }
+  );
+
+  if (res.status === 404) return null; // no draft yet
+  if (!res.ok) throw await res.json();
+
+  return res.json();
+};
+
 /* ---------------- BASIC ---------------- */
 
 export const updateBasicApi = async (category: string, id: string, data: any) => {

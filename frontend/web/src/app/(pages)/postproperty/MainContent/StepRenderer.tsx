@@ -4,7 +4,10 @@ import LocationDetailsStep from "../steps/LocationDetailsStep"
 import PropertyProfileStep from "../steps/PropertyProfileStep"
 import VerificationStep from "../steps/VerificationStep"
 
+
 export default function StepRenderer() {
+
+
   const step = useSelector(
     (state: any) => state.postProperty.currentStep
   )

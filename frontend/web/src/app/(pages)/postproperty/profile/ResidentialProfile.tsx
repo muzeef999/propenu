@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { nextStep, setBaseField, setProfileField, setStep } from "@/Redux/slice/postPropertySlice";
+import {
+  nextStep,
+  setBaseField,
+  setProfileField,
+  setStep,
+} from "@/Redux/slice/postPropertySlice";
 import Dropdownui from "@/ui/DropDownUI";
 import CounterField from "@/ui/CounterField";
 import InputField from "@/ui/InputField";
@@ -44,15 +49,22 @@ export const FACING_TYPES = ["North", "South", "East", "West"] as const;
 export const ParkingTypes = ["open", "closed", "both"] as const;
 
 const ResidentialProfile = () => {
-  const { residential, draftId, propertyType } = useSelector((state: any) => state.postProperty);
+  const { residential, draftId, propertyType } = useSelector(
+    (state: any) => state.postProperty,
+  );
   const dispatch = useAppDispatch();
   const router = useRouter();
   const [showErrors, setShowErrors] = useState(false);
   const [files, setFiles] = useState<UploadedFile[]>([]);
-  const validationResult = validateResidentialProfile(
-    residential,
-    files.map((f) => f.file),
-  );
+
+const localFiles: File[] = files
+  .filter((f): f is UploadedFile & { file: File } => f.source === "local")
+  .map((f) => f.file);
+
+const validationResult = validateResidentialProfile(
+  residential,
+  localFiles
+);
 
   const fieldErrors =
     showErrors && !validationResult.success
@@ -80,15 +92,15 @@ const ResidentialProfile = () => {
           }
         />
         {fieldErrors?.amenities?.[0] && (
-          <p className="text-red-500 text-xs mt-1">{fieldErrors.amenities[0]}</p>
+          <p className="text-red-500 text-xs mt-1">
+            {fieldErrors.amenities[0]}
+          </p>
         )}
       </div>
 
       <div className="space-y-3">
         {/* Section Title */}
-        <p className="text-sm font-medium text-gray-800">
-          Parking Details (Optional)
-        </p>
+        <p className="text-sm font-medium text-gray-800">Parking Details</p>
 
         {/* Fields */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -96,24 +108,27 @@ const ResidentialProfile = () => {
           <div>
             <Dropdownui
               label="Parking Type"
-              value={residential.parkingType || null}
-              onChange={(value) =>
+              value={residential.parkingType ?? null}
+              onChange={(value: string) =>
                 dispatch(
                   setProfileField({
                     propertyType: "residential",
                     key: "parkingType",
-                    value,
+                    value, // "open" | "covered"
                   }),
                 )
               }
               options={ParkingTypes.map((t) => ({
-                value: t,
-                label: t.toUpperCase(),
+                value: t, // "open"
+                label: t.toUpperCase(), // "OPEN"
               }))}
               placeholder="Select"
             />
+
             {fieldErrors?.parkingType?.[0] && (
-              <p className="text-red-500 text-xs mt-1">{fieldErrors.parkingType[0]}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {fieldErrors.parkingType[0]}
+              </p>
             )}
           </div>
 
@@ -137,7 +152,9 @@ const ResidentialProfile = () => {
               }
             />
             {fieldErrors?.parkingDetails?.[0] && (
-              <p className="text-red-500 text-xs mt-1">{fieldErrors.parkingDetails[0]}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {fieldErrors.parkingDetails[0]}
+              </p>
             )}
           </div>
 
@@ -191,7 +208,9 @@ const ResidentialProfile = () => {
               placeholder="Select"
             />
             {fieldErrors?.flooringType?.[0] && (
-              <p className="text-red-500 text-xs mt-1">{fieldErrors.flooringType[0]}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {fieldErrors.flooringType[0]}
+              </p>
             )}
           </div>
 
@@ -212,7 +231,9 @@ const ResidentialProfile = () => {
               }
             />
             {fieldErrors?.floorNumber?.[0] && (
-              <p className="text-red-500 text-xs mt-1">{fieldErrors.floorNumber[0]}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {fieldErrors.floorNumber[0]}
+              </p>
             )}
           </div>
 
@@ -233,7 +254,9 @@ const ResidentialProfile = () => {
               }
             />
             {fieldErrors?.totalFloors?.[0] && (
-              <p className="text-red-500 text-xs mt-1">{fieldErrors.totalFloors[0]}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {fieldErrors.totalFloors[0]}
+              </p>
             )}
           </div>
         </div>
@@ -260,7 +283,9 @@ const ResidentialProfile = () => {
             placeholder="Select"
           />
           {fieldErrors?.kitchenType?.[0] && (
-            <p className="text-red-500 text-xs mt-1">{fieldErrors.kitchenType[0]}</p>
+            <p className="text-red-500 text-xs mt-1">
+              {fieldErrors.kitchenType[0]}
+            </p>
           )}
         </div>
 
@@ -294,41 +319,53 @@ const ResidentialProfile = () => {
             />
           </div>
           {fieldErrors?.isModularKitchen?.[0] && (
-            <p className="text-red-500 text-xs mt-1">{fieldErrors.isModularKitchen[0]}</p>
+            <p className="text-red-500 text-xs mt-1">
+              {fieldErrors.isModularKitchen[0]}
+            </p>
           )}
         </div>
       </div>
       <div className="space-y-2">
         <FileUpload
-          label="Property Images"
-          value={files}
-          onChange={(newFiles) => {
-            setFiles(newFiles);
-            // persist only metadata in Redux (serializable)
-            dispatch(
-              setBaseField({
-                key: "galleryFiles",
-                value: newFiles.map((f) => ({ filename: f.file.name })),
-              }),
-            );
-            // store actual File objects in in-memory file store
-            setFileStoreFiles(
-              "postProperty",
-              newFiles.map((f) => f.file),
-            );
-          }}
-          accept="image/*"
-          maxFiles={5}
-          maxSizeMB={5}
-          error={fieldErrors?.images?.[0]}
-        />
+  label="Property Images"
+  value={files}
+  onChange={(newFiles) => {
+    setFiles(newFiles);
+
+    // ✅ Redux: store gallery metadata only
+    dispatch(
+      setBaseField({
+        key: "galleryFiles",
+        value: newFiles.map((f) => ({
+          name: f.name ?? f.file?.name ?? "",
+          source: f.source,
+          preview: f.preview,
+        })),
+      })
+    );
+
+    // ✅ In-memory store: ONLY local files
+    const localFiles = newFiles
+      .filter((f) => f.source === "local")
+      .map((f) => f.file)
+      .filter((file): file is File => Boolean(file));
+
+    setFileStoreFiles("postProperty", localFiles);
+  }}
+  accept="image/*"
+  maxFiles={5}
+  maxSizeMB={5}
+  error={fieldErrors?.images?.[0]}
+/>
+
       </div>
 
       <div
-        className={`flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300 ${residential.isPriceNegotiable
-          ? "border-green-500 bg-green-50 shadow-sm"
-          : ""
-          }`}
+        className={`flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300 ${
+          residential.isPriceNegotiable
+            ? "border-green-500 bg-green-50 shadow-sm"
+            : ""
+        }`}
       >
         <div>
           <p className="text-sm font-semibold text-gray-800">
@@ -340,10 +377,9 @@ const ResidentialProfile = () => {
         </div>
         <div className="flex items-center gap-3">
           <span
-            className={`text-xs font-medium ${residential.isPriceNegotiable
-              ? "text-green-600"
-              : "text-gray-400"
-              }`}
+            className={`text-xs font-medium ${
+              residential.isPriceNegotiable ? "text-green-600" : "text-gray-400"
+            }`}
           >
             {residential.isPriceNegotiable ? "YES" : "NO"}
           </span>
@@ -355,7 +391,7 @@ const ResidentialProfile = () => {
                   propertyType: "residential",
                   key: "isPriceNegotiable",
                   value: val,
-                })
+                }),
               )
             }
           />
@@ -378,7 +414,9 @@ const ResidentialProfile = () => {
         }
       />
       {fieldErrors?.description?.[0] && (
-        <p className="text-red-500 text-xs mt-1">{fieldErrors.description[0]}</p>
+        <p className="text-red-500 text-xs mt-1">
+          {fieldErrors.description[0]}
+        </p>
       )}
 
       <button
@@ -395,10 +433,15 @@ const ResidentialProfile = () => {
               : [],
           };
 
-          const result = validateResidentialProfile(
-            payload,
-            files.map((f) => f.file),
-          );
+          const localFiles: File[] = files
+  .filter((f) => f.source === "local" && f.file)
+  .map((f) => f.file as File);
+
+const result = validateResidentialProfile(
+  payload,
+  localFiles
+);
+
 
           if (!result.success) {
             const flattened = result.error.flatten();
@@ -421,11 +464,8 @@ const ResidentialProfile = () => {
             .unwrap()
             .then((response) => {
               dispatch(nextStep()); // Move to next step on success
-
-
             })
             .catch((error: any) => {
-
               const errObj =
                 typeof error === "string"
                   ? { message: error }
@@ -444,7 +484,6 @@ const ResidentialProfile = () => {
                     ? "/plans/pricing/owner-sell"
                     : "/plans/pricing/owner-rent";
 
-
                 setTimeout(() => {
                   router.push(redirectUrl);
                 }, 800);
@@ -455,7 +494,6 @@ const ResidentialProfile = () => {
       >
         Continue
       </button>
-
     </div>
   );
 };

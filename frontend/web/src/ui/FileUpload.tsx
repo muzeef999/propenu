@@ -1,10 +1,14 @@
 import React, { useEffect, ChangeEvent, useRef } from "react";
 
-/* ---------- Types ---------- */
+/* ======================================================
+   TYPES
+====================================================== */
 
 export type UploadedFile = {
-  file: File;
-  preview: string;
+  file?: File; // only for local uploads
+  preview: string; // blob url OR server url
+  source: "local" | "server";
+  name?: string;
 };
 
 type FileUploadProps = {
@@ -17,7 +21,9 @@ type FileUploadProps = {
   error?: string;
 };
 
-/* ---------- Component ---------- */
+/* ======================================================
+   COMPONENT
+====================================================== */
 
 const FileUpload: React.FC<FileUploadProps> = ({
   label,
@@ -29,16 +35,16 @@ const FileUpload: React.FC<FileUploadProps> = ({
   error,
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
-   const isImage = (file: File) => file.type.startsWith("image/");
-    const isPDF = (file: File) => file.type === "application/pdf";
 
+  const isImage = (preview: string) =>
+    preview.startsWith("blob:") || preview.startsWith("http");
+
+  /* ---------- Handle file select ---------- */
   const handleSelect = (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
 
     const selectedFiles = Array.from(e.target.files);
     const remainingSlots = maxFiles - value.length;
-   
-
 
     const validFiles: UploadedFile[] = selectedFiles
       .slice(0, remainingSlots)
@@ -46,17 +52,28 @@ const FileUpload: React.FC<FileUploadProps> = ({
       .map((file) => ({
         file,
         preview: URL.createObjectURL(file),
+        source: "local",          // ✅ FIX
+        name: file.name,
       }));
 
     onChange([...value, ...validFiles]);
     e.target.value = "";
   };
 
+  /* ---------- Cleanup blob URLs ---------- */
   useEffect(() => {
     return () => {
-      value.forEach((item) => URL.revokeObjectURL(item.preview));
+      value.forEach((item) => {
+        if (item.source === "local" && item.preview.startsWith("blob:")) {
+          URL.revokeObjectURL(item.preview);
+        }
+      });
     };
   }, [value]);
+
+  /* ======================================================
+     RENDER
+  ====================================================== */
 
   return (
     <div className="w-full">
@@ -64,6 +81,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
         {label}
       </label>
 
+      {/* ---------- Preview Grid ---------- */}
       {value.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
           {value.map((item, index) => (
@@ -71,51 +89,50 @@ const FileUpload: React.FC<FileUploadProps> = ({
               key={index}
               className="relative group rounded-md overflow-hidden border border-gray-200 shadow-sm aspect-video"
             >
-              {isImage(item.file) ? (
+              {isImage(item.preview) ? (
                 <img
                   src={item.preview}
-                  alt={`preview-${index}`}
+                  alt={item.name || `preview-${index}`}
                   className="h-full w-full object-cover"
                 />
-              ) : isPDF(item.file) ? (
-                <div className="flex flex-col items-center justify-center h-full w-full bg-gray-100 text-gray-700">
-                  <svg
-                    className="w-10 h-10 text-red-500 mb-2"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M12 2a5 5 0 00-5 5v10a5 5 0 005 5h5a5 5 0 005-5V9l-7-7h-3z" />
-                  </svg>
-                  <p className="text-xs text-center px-2 truncate">
-                    {item.file.name}
-                  </p>
-                </div>
               ) : (
                 <div className="flex items-center justify-center h-full w-full bg-gray-100 text-xs">
                   File
                 </div>
               )}
 
-
+              {/* Remove button */}
               <button
                 type="button"
-                onClick={() => onChange(value.filter((_, i) => i !== index))}
-                className="absolute top-1 right-1 bg-black/50 hover:bg-red-500 text-white rounded-full p-1 transition-colors"
+                onClick={() =>
+                  onChange(value.filter((_, i) => i !== index))
+                }
+                className="absolute top-1 right-1 bg-black/60 hover:bg-red-500 text-white rounded-full p-1 transition-colors"
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                ✕
               </button>
+
+              {/* Badge */}
+              <span className="absolute bottom-1 left-1 text-[10px] px-1.5 py-0.5 rounded bg-black/60 text-white">
+                {item.source === "server" ? "SERVER" : "LOCAL"}
+              </span>
             </div>
           ))}
         </div>
       )}
 
+      {/* ---------- Upload Area ---------- */}
       <div
         onClick={() => inputRef.current?.click()}
         className={`
           border-2 border-dashed rounded-md p-6
           flex flex-col items-center justify-center
           text-center cursor-pointer transition-colors
-          ${error ? "border-red-500 bg-red-50" : "border-gray-300 hover:border-green-500 hover:bg-gray-50"}
+          ${
+            error
+              ? "border-red-500 bg-red-50"
+              : "border-gray-300 hover:border-green-500 hover:bg-gray-50"
+          }
         `}
       >
         <svg

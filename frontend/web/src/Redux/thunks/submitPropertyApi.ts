@@ -5,6 +5,7 @@ import { getFileStoreFiles, clearFileStore } from "@/utilies/fileStore";
 import {
   createDraftApi,
   finalizeApi,
+  getMyDraftApi,
   updateBasicApi,
   updateDetailsApi,
   updateLocationApi,
@@ -21,6 +22,17 @@ export const createDraftThunk = createAsyncThunk(
   },
 );
 
+
+export const getMyDraftThunk = createAsyncThunk(
+  "postProperty/getMyDraft",
+  async (category: string, { rejectWithValue }) => {
+    try {
+      return await getMyDraftApi(category);
+    } catch (err: any) {
+      return rejectWithValue(err);
+    }
+  }
+);
 /* =========================================================
    BASIC
 ========================================================= */

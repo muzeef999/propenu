@@ -116,6 +116,22 @@ export const getAllResidential = async (req: Request, res: Response) => {
   }
 };
 
+export const getMyResidentialDraft = async (req: AuthRequest, res: Response) => {
+  const draft = await Residential.findOne({
+    createdBy: req.user!.id,
+    status: "draft",
+  })
+    .populate("createdBy", "name email phone")
+    .lean();
+
+  if (!draft) {
+    return res.status(404).json({ message: "No draft found" });
+  }
+
+  res.json({ data: draft });
+};
+
+
 /*** GET BY SLUG **/
 export const getResidentialBySlug = async (req: Request, res: Response) => {
   try {
@@ -419,11 +435,15 @@ if (hasVerified) {
 
   await property.save();
 
-  res.json({
-    success: true,
-    verified: hasVerified,
-    data: property,
-  });
+ const fresh = await Residential.findById(property._id)
+  .populate("createdBy", "name email phone")
+  .lean();
+
+res.json({
+  success: true,
+  verified: hasVerified,
+  data: fresh,
+});
 };
 
 export const getAllResidentialDraftsForAdmin = async (

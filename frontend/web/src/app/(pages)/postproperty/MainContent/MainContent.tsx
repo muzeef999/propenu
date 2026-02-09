@@ -1,9 +1,39 @@
-import { useDispatch, useSelector } from "react-redux";
+import { useEffect } from "react";
 import StepRenderer from "./StepRenderer";
-import { useAppSelector } from "@/Redux/store";
+import { useAppDispatch, useAppSelector } from "@/Redux/store";
+import {
+  getMyDraftThunk,
+  createDraftThunk,
+} from "@/Redux/thunks/submitPropertyApi";
+
 
 const MainContent = () => {
-  const currentStep = useAppSelector((state) => state.postProperty.currentStep);
+
+  const dispatch = useAppDispatch();
+
+const { currentStep, propertyType, draftId } = useAppSelector(
+  (state) => state.postProperty
+);
+
+useEffect(() => {
+  // property type not selected yet
+  if (!propertyType) return;
+
+  // try to resume draft
+  dispatch(getMyDraftThunk(propertyType))
+    .unwrap()
+    .then((res) => {
+      // no draft found → create one
+      if (!res) {
+        dispatch(createDraftThunk(propertyType));
+      }
+    })
+    .catch(() => {
+      // 404 or error → create new draft
+      dispatch(createDraftThunk(propertyType));
+    });
+}, [propertyType]);
+
 
   const STEP_TITLES: Record<number, string> = {
     1: "Add Basic Details",

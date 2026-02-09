@@ -32,6 +32,8 @@ import { numberToWords } from "@/utilies/NumberToWord";
 import { property } from "zod";
 import PricingDetails from "../components/PricingDetails";
 
+import { useAppDispatch, useAppSelector } from "@/Redux/store";
+
 export default function BasicDetailsStep() {
   const {
     propertyType,
@@ -41,7 +43,8 @@ export default function BasicDetailsStep() {
     land,
     agricultural,
     draftId,
-  } = useSelector((state: any) => state.postProperty);
+  } = useAppSelector((state) => state.postProperty);
+
   const WALL_FINISH_STATUS = [
     "no-partitions",
     "brick-walls",
@@ -55,12 +58,20 @@ export default function BasicDetailsStep() {
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showRoomDetails, setShowRoomDetails] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
-  const dispatch = useDispatch<AppDispatch>();
+  // const dispatch = useDispatch<AppDispatch>();
+
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     const token = Cookies.get("token");
     setIsLoggedIn(!!token);
   }, []);
+
+  useEffect(() => {
+    if (!propertyType) {
+      dispatch(setPropertyType("residential"));
+    }
+  }, [propertyType, dispatch]);
 
   useEffect(() => {
     if (propertyType === "residential") {
@@ -97,18 +108,24 @@ export default function BasicDetailsStep() {
           ? land
           : agricultural;
 
-  const validationResult = validateBasicDetails(
-    {
-      ...base,
-      ...profileData,
-      propertyType: profileData?.propertyType || base.propertyType,
-    },
-    propertyType,
-  );
-  const isFormValid = validationResult.success;
+  const validationResult = propertyType
+    ? validateBasicDetails(
+        {
+          ...base,
+          ...profileData,
+          propertyType: profileData?.propertyType || base.propertyType,
+        },
+        propertyType,
+      )
+    : {
+        success: false,
+        error: null,
+      };
+
+  const isFormValid = validationResult?.success === true;
 
   const fieldErrors =
-    showErrors && !validationResult.success
+    showErrors && !validationResult.success && validationResult.error
       ? validationResult.error.flatten().fieldErrors
       : {};
 
@@ -130,13 +147,13 @@ export default function BasicDetailsStep() {
   const selectedCommercialType = commercial.propertyType;
   const commercialSubTypes =
     propertyType === "commercial" &&
-      selectedCommercialType &&
-      COMMERCIAL_SUBTYPE_MAP[
+    selectedCommercialType &&
+    COMMERCIAL_SUBTYPE_MAP[
       selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
-      ]
+    ]
       ? (COMMERCIAL_SUBTYPE_MAP[
-        selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
-      ] as readonly string[])
+          selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
+        ] as readonly string[])
       : [];
 
   const contactLabel =
@@ -153,6 +170,14 @@ export default function BasicDetailsStep() {
     propertyType === "agricultural"
       ? (AGRICULTURAL_PROPERTY_SUBTYPES as readonly string[])
       : [];
+
+  // ✅ map redux string → dropdown option
+  const facingOption = residential.facing
+    ? {
+        label: residential.facing.toUpperCase(),
+        value: residential.facing,
+      }
+    : null;
 
   return (
     <div className="space-y-4">
@@ -243,10 +268,11 @@ export default function BasicDetailsStep() {
                         }
                       }}
                       className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition-all
-            ${isSelected
-                          ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500"
-                          : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-                        }
+            ${
+              isSelected
+                ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500"
+                : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+            }
           `}
                     >
                       <span className="text-2xl">{sub.icon}</span>
@@ -345,10 +371,11 @@ export default function BasicDetailsStep() {
                               )
                             }
                             className={`px-5 py-2 rounded-md text-sm border transition
-                  ${active
-                                ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                                : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                              }
+                  ${
+                    active
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }
                 `}
                           >
                             {item.label}
@@ -364,26 +391,29 @@ export default function BasicDetailsStep() {
                   </div>
 
                   {/* Facing */}
-                  <Dropdownui
-                    label="Facing"
-                    value={residential.facing || null}
-                    onChange={(value) => {
-                      dispatch(
-                        setProfileField({
-                          propertyType: "residential",
-                          key: "facing",
-                          value,
-                        }),
-                      );
-                      setShowPricing(true);
-                    }}
-                    options={FACING_TYPES.map((t) => ({
-                      value: t,
-                      label: t,
-                    }))}
-                    placeholder="Select"
-                    error={fieldErrors.facing?.[0]}
-                  />
+  <Dropdownui
+  label="Facing"
+  value={residential.facing ?? null}
+  onChange={(value: string) => {
+    dispatch(
+      setProfileField({
+        propertyType: "residential",
+        key: "facing",
+        value, // "North" | "South" | ...
+      })
+    );
+    setShowPricing(true);
+  }}
+  options={FACING_TYPES.map((dir) => ({
+    label: dir, // UI text
+    value: dir, // stored value
+  }))}
+  placeholder="Select"
+  error={fieldErrors.facing?.[0]}
+/>
+
+
+
                 </div>
               </div>
             )}
@@ -420,10 +450,11 @@ export default function BasicDetailsStep() {
                         }),
                       )
                     }
-                    className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
-                      ? "border-green-500 bg-green-50 text-green-600"
-                      : "border-gray-300 text-gray-700"
-                      }`}
+                    className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
+                      isSelected
+                        ? "border-green-500 bg-green-50 text-green-600"
+                        : "border-gray-300 text-gray-700"
+                    }`}
                   >
                     {subType.replace("-", " ").toUpperCase()}
                   </button>
@@ -478,62 +509,61 @@ export default function BasicDetailsStep() {
           {(commercial.cabins > 0 ||
             commercial.seats > 0 ||
             (showErrors && fieldErrors.wallFinishStatus)) && (
-              <div className="grid grid-cols-1 md:grid-cols-[1.2fr_145px] gap-1 items-start">
-                {/* Furnishing */}
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-gray-700">Furnishing</p>
+            <div className="grid grid-cols-1 md:grid-cols-[1.2fr_145px] gap-1 items-start">
+              {/* Furnishing */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700">Furnishing</p>
 
-                  <div className="flex flex-wrap gap-3">
-                    {[
-                      { label: "Furnished", value: "fully-furnished" },
-                      { label: "Semi furnished", value: "semi-furnished" },
-                      { label: "Un-furnished", value: "unfurnished" },
-                    ].map((item) => (
-                      <SelectableButton
-                        key={item.value}
-                        label={item.label}
-                        active={commercial.furnishing === item.value}
-                        onClick={() =>
-                          dispatch(
-                            setProfileField({
-                              propertyType: "commercial",
-                              key: "furnishing",
-                              value: item.value,
-                            }),
-                          )
-                        }
-                      />
-                    ))}
-                  </div>
+                <div className="flex flex-wrap gap-3">
+                  {[
+                    { label: "Furnished", value: "fully-furnished" },
+                    { label: "Semi furnished", value: "semi-furnished" },
+                    { label: "Un-furnished", value: "unfurnished" },
+                  ].map((item) => (
+                    <SelectableButton
+                      key={item.value}
+                      label={item.label}
+                      active={commercial.furnishing === item.value}
+                      onClick={() =>
+                        dispatch(
+                          setProfileField({
+                            propertyType: "commercial",
+                            key: "furnishing",
+                            value: item.value,
+                          }),
+                        )
+                      }
+                    />
+                  ))}
                 </div>
-
-                {/* Wall Finish */}
-                <Dropdownui
-                  label="Wall Finish"
-                  value={
-                    WALL_FINISH_STATUS.find(
-                      (t) => t === commercial.wallFinishStatus,
-                    ) || null
-                  }
-                  onChange={(value) =>
-                    dispatch(
-                      setProfileField({
-                        propertyType: "commercial",
-                        key: "wallFinishStatus",
-                        value,
-                      }),
-                    )
-                  }
-                  options={WALL_FINISH_STATUS.map((t) => ({
-                    value: t,
-                    label: t.replace(/-/g, " "),
-                  }))}
-                  placeholder="Select"
-                  error={fieldErrors.wallFinishStatus?.[0]}
-                />
               </div>
-            )}
 
+              {/* Wall Finish */}
+              <Dropdownui
+                label="Wall Finish"
+                value={
+                  WALL_FINISH_STATUS.find(
+                    (t) => t === commercial.wallFinishStatus,
+                  ) || null
+                }
+                onChange={(value) =>
+                  dispatch(
+                    setProfileField({
+                      propertyType: "commercial",
+                      key: "wallFinishStatus",
+                      value,
+                    }),
+                  )
+                }
+                options={WALL_FINISH_STATUS.map((t) => ({
+                  value: t,
+                  label: t.replace(/-/g, " "),
+                }))}
+                placeholder="Select"
+                error={fieldErrors.wallFinishStatus?.[0]}
+              />
+            </div>
+          )}
 
           {/* Price Details - Show only if Wall Finish is selected */}
           {commercial.wallFinishStatus && (
@@ -570,17 +600,17 @@ export default function BasicDetailsStep() {
                     )
                   }
                   className={`px-4 py-2 rounded-md border text-sm transition
-              ${isSelected
-                      ? "border-green-500 bg-green-50 text-green-600"
-                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                    }`}
+              ${
+                isSelected
+                  ? "border-green-500 bg-green-50 text-green-600"
+                  : "border-gray-300 text-gray-700 hover:bg-gray-50"
+              }`}
                 >
                   {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
               );
             })}
           </div>
-
 
           {showErrors && fieldErrors.landSubType?.[0] && (
             <p className="text-xs text-red-500 mt-2">
@@ -657,7 +687,6 @@ export default function BasicDetailsStep() {
         </div>
       )}
 
-
       {agriculturalSubTypes.length > 0 && (
         <div className="mb-6">
           <p className="mb-3 text-sm font-medium text-gray-700">
@@ -680,10 +709,11 @@ export default function BasicDetailsStep() {
                       }),
                     );
                   }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
-                    ? "border-green-500 bg-green-50 text-green-600"
-                    : "border-gray-300 text-gray-700"
-                    }`}
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
+                    isSelected
+                      ? "border-green-500 bg-green-50 text-green-600"
+                      : "border-gray-300 text-gray-700"
+                  }`}
                 >
                   {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
@@ -720,77 +750,140 @@ export default function BasicDetailsStep() {
         />
       )}
 
-      {isLoggedIn && ["residential", "commercial"].includes(propertyType) && (
-        <div className="space-y-6">
-          {/* Availability Status */}
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-700">
-              Availability Status
-            </p>
+      {isLoggedIn &&
+        propertyType !== null &&
+        ["residential", "commercial"].includes(propertyType) && (
+          <div className="space-y-6">
+            {/* Availability Status */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-gray-700">
+                Availability Status
+              </p>
 
-            <div className="flex flex-wrap gap-3">
-              {[
-                { label: "Ready to Move", value: "ready-to-move" },
-                { label: "Under Construction", value: "under-construction" },
-              ].map((item) => {
-                const active = profileData.constructionStatus === item.value;
+              <div className="flex flex-wrap gap-3">
+                {[
+                  { label: "Ready to Move", value: "ready-to-move" },
+                  { label: "Under Construction", value: "under-construction" },
+                ].map((item) => {
+                  const active = profileData.constructionStatus === item.value;
 
-                return (
-                  <button
-                    key={item.value}
-                    type="button"
-                    onClick={() => {
-                      dispatch(
-                        setProfileField({
-                          propertyType,
-                          key: "constructionStatus",
-                          value: item.value,
-                        }),
-                      );
-
-                      if (
-                        propertyType === "residential" &&
-                        item.value !== "ready-to-move"
-                      ) {
+                  return (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => {
                         dispatch(
                           setProfileField({
                             propertyType,
-                            key: "propertyAge",
-                            value: undefined,
+                            key: "constructionStatus",
+                            value: item.value,
                           }),
                         );
-                      }
-                    }}
-                    className={`px-6 py-2 rounded-md text-sm border transition
-                ${active
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                        : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                      }`}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
-            {showErrors && fieldErrors.constructionStatus?.[0] && (
-              <p className="text-xs text-red-500 mt-1">
-                {fieldErrors.constructionStatus[0]}
-              </p>
-            )}
-          </div>
 
-          {/* Property Age / Possession */}
-          {profileData.constructionStatus === "ready-to-move" && (
+                        if (
+                          propertyType === "residential" &&
+                          item.value !== "ready-to-move"
+                        ) {
+                          dispatch(
+                            setProfileField({
+                              propertyType,
+                              key: "propertyAge",
+                              value: undefined,
+                            }),
+                          );
+                        }
+                      }}
+                      className={`px-6 py-2 rounded-md text-sm border transition
+                ${
+                  active
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {showErrors && fieldErrors.constructionStatus?.[0] && (
+                <p className="text-xs text-red-500 mt-1">
+                  {fieldErrors.constructionStatus[0]}
+                </p>
+              )}
+            </div>
+
+            {/* Property Age / Possession */}
+            {profileData.constructionStatus === "ready-to-move" && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700">
+                  Property Age
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  {[
+                    { value: "0-1-year", label: "0-1 Year" },
+                    { value: "1-5-years", label: "1-5 Years" },
+                    { value: "5-10-years", label: "5-10 Years" },
+                    { value: "10-plus-years", label: "10+ Years" },
+                  ].map((item) => {
+                    const active = profileData.propertyAge === item.value;
+
+                    return (
+                      <button
+                        key={item.value}
+                        type="button"
+                        onClick={() =>
+                          dispatch(
+                            setProfileField({
+                              propertyType,
+                              key: "propertyAge",
+                              value: item.value,
+                            }),
+                          )
+                        }
+                        className={`px-6 py-2 rounded-md text-sm border transition
+                  ${
+                    active
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }`}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {profileData.constructionStatus === "under-construction" && (
+              <InputField
+                label="Expected Possession Date"
+                type="date"
+                value={profileData.possessionDate || ""}
+                onChange={(value) =>
+                  dispatch(
+                    setProfileField({
+                      propertyType,
+                      key: "possessionDate",
+                      value,
+                    }),
+                  )
+                }
+              />
+            )}
+
+            {/* Transaction Type */}
             <div className="space-y-2">
-              <p className="text-sm font-medium text-gray-700">Property Age</p>
+              <p className="text-sm font-medium text-gray-700">
+                Transaction Type
+              </p>
+
               <div className="flex flex-wrap gap-3">
                 {[
-                  { value: "0-1-year", label: "0-1 Year" },
-                  { value: "1-5-years", label: "1-5 Years" },
-                  { value: "5-10-years", label: "5-10 Years" },
-                  { value: "10-plus-years", label: "10+ Years" },
+                  { label: "New Sale", value: "new-sale" },
+                  { label: "Resale", value: "resale" },
                 ].map((item) => {
-                  const active = profileData.propertyAge === item.value;
+                  const active = profileData.transactionType === item.value;
 
                   return (
                     <button
@@ -800,89 +893,31 @@ export default function BasicDetailsStep() {
                         dispatch(
                           setProfileField({
                             propertyType,
-                            key: "propertyAge",
+                            key: "transactionType",
                             value: item.value,
                           }),
                         )
                       }
                       className={`px-6 py-2 rounded-md text-sm border transition
-                  ${active
-                          ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                          : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                        }`}
+                ${
+                  active
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
                     >
                       {item.label}
                     </button>
                   );
                 })}
               </div>
+              {showErrors && fieldErrors.transactionType?.[0] && (
+                <p className="text-xs text-red-500 mt-1">
+                  {fieldErrors.transactionType[0]}
+                </p>
+              )}
             </div>
-          )}
-
-          {profileData.constructionStatus === "under-construction" && (
-            <InputField
-              label="Expected Possession Date"
-              type="date"
-              value={profileData.possessionDate || ""}
-              onChange={(value) =>
-                dispatch(
-                  setProfileField({
-                    propertyType,
-                    key: "possessionDate",
-                    value,
-                  }),
-                )
-              }
-            />
-          )}
-
-          {/* Transaction Type */}
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-700">
-              Transaction Type
-            </p>
-
-            <div className="flex flex-wrap gap-3">
-              {[
-                { label: "New Sale", value: "new-sale" },
-                { label: "Resale", value: "resale" },
-              ].map((item) => {
-                const active = profileData.transactionType === item.value;
-
-                return (
-                  <button
-                    key={item.value}
-                    type="button"
-                    onClick={() =>
-                      dispatch(
-                        setProfileField({
-                          propertyType,
-                          key: "transactionType",
-                          value: item.value,
-                        }),
-                      )
-                    }
-                    className={`px-6 py-2 rounded-md text-sm border transition
-                ${active
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                        : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                      }`}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
-            {showErrors && fieldErrors.transactionType?.[0] && (
-              <p className="text-xs text-red-500 mt-1">
-                {fieldErrors.transactionType[0]}
-              </p>
-            )}
-
           </div>
-
-        </div>
-      )}
+        )}
 
       {/* Contact Details – Logged Out UI */}
       {!isLoggedIn && (

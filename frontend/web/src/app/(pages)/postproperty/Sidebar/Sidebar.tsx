@@ -9,11 +9,11 @@ const TOTAL_STEPS = 4;
 
 export default function Sidebar() {
   const dispatch = useDispatch();
-  const currentStep = useSelector(
-    (state: any) => state.postProperty.currentStep
+
+   const { currentStep, progressPercent } = useSelector(
+    (state: any) => state.postProperty
   );
 
-  const progressPercent = Math.round((currentStep / TOTAL_STEPS) * 100);
 
   return (
     <>
