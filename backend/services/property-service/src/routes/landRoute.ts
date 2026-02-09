@@ -17,6 +17,7 @@ import {
   finalizeLand,
   getAllLandDraftsForAdmin,
   verifyLandDocument,
+  getMyLandDraft,
 } from "../controller/landController";
 import { CreateLandSchema, UpdateLandSchema } from "../zod/landZod";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
@@ -64,6 +65,8 @@ router.patch(
   validateBody(UpdateLandSchema),
   editLand
 );
+
+router.get("/draft/me", getMyLandDraft, authMiddleware);
 
 router.get("/", getAllLands);
 router.get("/slug/:slug", getLandBySlug);

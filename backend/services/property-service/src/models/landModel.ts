@@ -9,6 +9,7 @@ import {
 import { TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
 import "../models/roleModel";
+import { create } from "domain";
 
 export interface LandDocument extends Document, ILand {
   _id: Types.ObjectId;
@@ -49,69 +50,54 @@ const LandSchema = new Schema<ILand>(
 
 LandSchema.index(TEXT_INDEX_FIELDS, { name: "Land_Text" });
 
-LandSchema.pre("validate", async function (this: LandDocument, next) {
+LandSchema.index({createdBy: 1, status: 1,}, {
+  unique: true,
+  partialFilterExpression: { status: "draft" },
+  name: "uniq_land_draft_per_user",
+});
+
+LandSchema.pre("validate", async function ( next) {
   try {
-    const isDraft = this.status === "draft";
-
-    /* ---------- TITLE (AUTO BUILD IN ALL STEPS) ---------- */
-    const generatedTitle = buildLandTitle(this);
-
-    if (
-      generatedTitle &&
-      (
-        !this.title ||                 // first time (basic step)
-        isDraft                         // keep updating while draft
-      )
-    ) {
-      this.title = generatedTitle;
-    }
-
-    /* ---------- SLUG (ONLY WHILE DRAFT) ---------- */
-    if (
-      isDraft &&
-      this.title &&
-      (
-        !this.slug ||                  // first time
-        this.isModified("title")       // title improved
-      )
-    ) {
-      const baseSlug = slugify(this.title);
-
-      this.slug = await generateUniqueSlug(
-        mongoose.model("LandPlot"),
-        baseSlug,
-        this._id
-      );
-    }
-
-    /* ---------- LISTING SOURCE ---------- */
-    if (!this.listingSource && this.createdBy) {
-      const User = mongoose.model("User");
-      const Role = mongoose.model("Role");
-
-      const user: any = await User.findById(this.createdBy)
-        .select("role roleId")
-        .lean();
-
-      if (user?.role && typeof user.role === "string") {
-        this.listingSource = user.role;
-      } else if (user?.roleId) {
-        const roleDoc: any = await Role.findById(user.roleId)
-          .select("label")
-          .lean();
-
-        if (roleDoc?.label) {
-          this.listingSource = roleDoc.label;
-        }
-      }
-    }
-
-    if (!this.listingSource) {
-      this.listingSource = "owner";
-    }
-
-    next();
-  } catch (err) {
+          // ✅ ALWAYS rebuild title from latest data
+          this.title = buildLandTitle(this);
+      
+          // 🚫 Do NOT generate slug for drafts
+          if (this.status === "draft") {
+            return next();
+          }
+      
+          // ✅ Generate slug only once (when active)
+          if (!this.slug && this.title) {
+            const baseSlug = slugify(this.title);
+            this.slug = await generateUniqueSlug(
+              mongoose.model("LandPlot"),
+              baseSlug,
+              this._id,
+            );
+          }
+      
+          /* -------- LISTING SOURCE -------- */
+          if (!this.listingSource && this.createdBy) {
+            const User = mongoose.model("User");
+            const Role = mongoose.model("Role");
+      
+            const user: any = await User.findById(this.createdBy)
+              .select("role roleId")
+              .lean();
+      
+            if (user?.role) this.listingSource = user.role;
+            else if (user?.roleId) {
+              const roleDoc: any = await Role.findById(user.roleId)
+                .select("label")
+                .lean();
+              if (roleDoc?.label) this.listingSource = roleDoc.label;
+            }
+          }
+      
+          if (!this.listingSource) this.listingSource = "owner";
+      
+          next();
+        } catch (err) {
     next(err as any);
   }
 });

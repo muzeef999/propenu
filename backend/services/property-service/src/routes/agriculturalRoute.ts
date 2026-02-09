@@ -5,7 +5,7 @@ import { parseJsonFields } from "../middlewares/parseJsonFields";
 import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
 import { validateBody } from "../middlewares/validate";
 import { AgriculturalCreateSchema, AgriculturalUpdateSchema } from "../zod/agriculturalZod";
-import { createAgricultural, createAgriculturalDraft, deleteAgricultural, editAgricultural, finalizeAgricultural, getAgriculturalBySlug, getAgriculturalDetail, getAllAgricultural, getAllAgriculturalDraftsForAdmin, updateAgriculturalBasicStep, updateAgriculturalDetailsStep, updateAgriculturalLocationStep, verifyAgricultiralDocument } from "../controller/agriculturalController";
+import { createAgricultural, createAgriculturalDraft, deleteAgricultural, editAgricultural, finalizeAgricultural, getAgriculturalBySlug, getAgriculturalDetail, getAllAgricultural, getAllAgriculturalDraftsForAdmin, getMyAgriculturalDraft, updateAgriculturalBasicStep, updateAgriculturalDetailsStep, updateAgriculturalLocationStep, verifyAgricultiralDocument } from "../controller/agriculturalController";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 const router = express.Router();
@@ -54,6 +54,8 @@ router.patch(
   validateBody(AgriculturalUpdateSchema),
   editAgricultural
 );
+
+router.get("/draft/me", authMiddleware, getMyAgriculturalDraft)
 
 router.get("/", getAllAgricultural);
 router.get("/slug/:slug", getAgriculturalBySlug);

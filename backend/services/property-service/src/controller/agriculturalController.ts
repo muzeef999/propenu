@@ -84,6 +84,21 @@ export const getAllAgricultural = async (req: Request, res: Response) => {
       .json({ error: err.message || "Internal server error" });
   }
 };
+
+export const getMyAgriculturalDraft = async (req: AuthRequest, res: Response) => {
+  const draft = await Agricultural.findOne({
+    createdBy: req.user!.id,
+    status: "draft",
+  })
+    .populate("createdBy", "name email phone")
+    .lean();
+ 
+  if (!draft) {
+    return res.status(404).json({ message: "No draft found" });
+  }
+ 
+  res.json({ data: draft });
+}
  
  
 /** GET BY SLUG */

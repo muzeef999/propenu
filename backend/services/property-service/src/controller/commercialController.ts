@@ -92,6 +92,19 @@ export const getAllCommercial = async (req: Request, res: Response) => {
   }
 };
 
+export const getMyCommercialDraft = async (req: AuthRequest, res: Response) => {
+  const draft = await Commercial.findOne({
+    createdBy: req.user!.id,
+    status: "draft",
+  })
+    .populate("createdBy", "name email phone")
+    .lean();
+  if (!draft) {
+    return res.status(404).json({ error: "No draft found" });
+  }
+  res.json({ data: draft });
+};
+
 export const getCommercialBySlug = async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;

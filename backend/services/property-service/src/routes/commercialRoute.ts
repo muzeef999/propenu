@@ -27,7 +27,7 @@ const jsonKeys = [
   "fireSafety",
 ];
 
-import {  createCommercial,  editCommercial,  getAllCommercial,  getCommercialBySlug,  getCommercialDetail,  deleteCommercial, createCommercialDraft, updateCommercialBasicStep, updateCommercialLocationStep, updateCommercialDetailsStep, finalizeCommercial, getAllCommercialDraftsForAdmin, verifyCommercialDocument,} from "../controller/commercialController";
+import {  createCommercial,  editCommercial,  getAllCommercial,  getCommercialBySlug,  getCommercialDetail,  deleteCommercial, createCommercialDraft, updateCommercialBasicStep, updateCommercialLocationStep, updateCommercialDetailsStep, finalizeCommercial, getAllCommercialDraftsForAdmin, verifyCommercialDocument, getMyCommercialDraft,} from "../controller/commercialController";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 
@@ -51,6 +51,7 @@ if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){
 
 router.get("/draft/all", getAllCommercialDraftsForAdmin);
 router.post("/draft", authMiddleware, createCommercialDraft);
+router.get("/draft/me", authMiddleware, getMyCommercialDraft);
 router.patch("/:id/basic", authMiddleware, cpUpload, parseJsonFields(jsonKeys), updateCommercialBasicStep);
 router.patch("/:id/location", authMiddleware, parseJsonFields(jsonKeys), updateCommercialLocationStep);
 router.patch("/:id/details", authMiddleware, cpUpload, parseJsonFields(jsonKeys), updateCommercialDetailsStep);

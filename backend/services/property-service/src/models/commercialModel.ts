@@ -104,53 +104,60 @@ const CommercialSchema = new Schema<ICommercial>(
 
 CommercialSchema.index(TEXT_INDEX_FIELDS, { name: "Com_Text" });
 
+// 🔒 ONE ACTIVE DRAFT PER USER (MongoDB-level protection)
+CommercialSchema.index(
+  { createdBy: 1, status: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: "draft" },
+    name: "uniq_commercial_draft_per_user",
+  }
+);
+
 CommercialSchema.pre(
   "validate",
-  async function (this: CommercialDocument, next) {
+  async function (next) {
     try {
-      /* -------- TITLE (AUTO REBUILD UNTIL PUBLISHED) -------- */
-      if (!this.title || this.status === "draft") {
+        // ✅ ALWAYS rebuild title from latest data
         this.title = buildCommercialTitle(this);
-      }
-
-      /* -------- SLUG (SYNC WITH TITLE UNTIL PUBLISHED) -------- */
-      if (this.title && (!this.slug || this.status === "draft")) {
-        const baseSlug = slugify(this.title);
-        this.slug = await generateUniqueSlug(
-          mongoose.model("Commercial"),
-          baseSlug,
-          this._id,
-        );
-      }
-
-      /* -------- LISTING SOURCE -------- */
-      if (!this.listingSource && this.createdBy) {
-        const User = mongoose.model("User");
-        const Role = mongoose.model("Role");
-
-        const user: any = await User.findById(this.createdBy)
-          .select("role roleId")
-          .lean();
-
-        if (user?.role && typeof user.role === "string") {
-          this.listingSource = user.role;
-        } else if (user?.roleId) {
-          const roleDoc: any = await Role.findById(user.roleId)
-            .select("label")
+    
+        // 🚫 Do NOT generate slug for drafts
+        if (this.status === "draft") {
+          return next();
+        }
+    
+        // ✅ Generate slug only once (when active)
+        if (!this.slug && this.title) {
+          const baseSlug = slugify(this.title);
+          this.slug = await generateUniqueSlug(
+            mongoose.model("Commercial"),
+            baseSlug,
+            this._id,
+          );
+        }
+    
+        /* -------- LISTING SOURCE -------- */
+        if (!this.listingSource && this.createdBy) {
+          const User = mongoose.model("User");
+          const Role = mongoose.model("Role");
+    
+          const user: any = await User.findById(this.createdBy)
+            .select("role roleId")
             .lean();
-
-          if (roleDoc?.label) {
-            this.listingSource = roleDoc.label;
+    
+          if (user?.role) this.listingSource = user.role;
+          else if (user?.roleId) {
+            const roleDoc: any = await Role.findById(user.roleId)
+              .select("label")
+              .lean();
+            if (roleDoc?.label) this.listingSource = roleDoc.label;
           }
         }
-      }
-
-      if (!this.listingSource) {
-        this.listingSource = "owner";
-      }
-
-      next();
-    } catch (err) {
+    
+        if (!this.listingSource) this.listingSource = "owner";
+    
+        next();
+      } catch (err) {
       next(err as any);
     }
   },

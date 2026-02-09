@@ -87,6 +87,20 @@ export const getAllLands = async (req: Request, res: Response) => {
   }
 };
 
+export const getMyLandDraft = async(req: AuthRequest, res: Response) => {
+  const draft = await LandPlot.findOne({
+    createdBy: req.user!.id,
+    status: "draft",
+  }).populate("createdBy", "name email phone").lean();
+
+  if (!draft) {
+    return res.status(404).json({ error: "No draft found for this user" });
+  }
+
+  res.json({ data: draft });
+};
+
+
 /** GET BY SLUG */
 export const getLandBySlug = async (req: Request, res: Response) => {
   try {

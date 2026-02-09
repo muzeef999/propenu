@@ -55,67 +55,58 @@ const AgriculturalSchema = new Schema<IAgricultural>(
 );
 
 AgriculturalSchema.index(TEXT_INDEX_FIELDS, { name: "Agri_Text" });
-AgriculturalSchema.index(
-  { city: 1, numberOfBorewells: 1 },
-  { name: "Agri_Borewells" },
+AgriculturalSchema.index({ createdBy:1, status:1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: "draft" },
+    name: "uniq_agricultural_draft_per_user",
+  }
 );
 
 AgriculturalSchema.pre(
   "validate",
-  async function (this: AgriculturalDocument, next) {
+  async function (next) {
     try {
-      /* -------- TITLE -------- */
-      const isDraft = this.status === "draft";
-      const generatedTitle = buildAgriculturalTitle(this);
-
-      if (generatedTitle && (isDraft || !this.title)) {
-        this.title = generatedTitle;
-      }
-
-      /* -------- SLUG (AUTO UPDATE WHEN TITLE CHANGES) -------- */
-      if (this.isModified("title") && this.title) {
-        const baseSlug = slugify(this.title);
-
-        this.slug = await generateUniqueSlug(
-          mongoose.model("Agricultural"),
-          baseSlug,
-          this._id,
-        );
-      }
-
-      /* -------- LISTING SOURCE (CORRECTED) -------- */
-      if (!this.listingSource && this.createdBy) {
-        const User = mongoose.model("User");
-        const Role = mongoose.model("Role");
-
-        const user: any = await User.findById(this.createdBy)
-          .select("role roleId")
-          .lean();
-
-        // 1️⃣ Direct role string on user (if exists)
-        if (user?.role && typeof user.role === "string") {
-          this.listingSource = user.role;
+        // ✅ ALWAYS rebuild title from latest data
+        this.title = buildAgriculturalTitle(this);
+    
+        // 🚫 Do NOT generate slug for drafts
+        if (this.status === "draft") {
+          return next();
         }
-
-        // 2️⃣ Role reference → Role.label
-        else if (user?.roleId) {
-          const roleDoc: any = await Role.findById(user.roleId)
-            .select("label")
+    
+        // ✅ Generate slug only once (when active)
+        if (!this.slug && this.title) {
+          const baseSlug = slugify(this.title);
+          this.slug = await generateUniqueSlug(
+            mongoose.model("Agricultural"),
+            baseSlug,
+            this._id,
+          );
+        }
+    
+        /* -------- LISTING SOURCE -------- */
+        if (!this.listingSource && this.createdBy) {
+          const User = mongoose.model("User");
+          const Role = mongoose.model("Role");
+    
+          const user: any = await User.findById(this.createdBy)
+            .select("role roleId")
             .lean();
-
-          if (roleDoc?.label) {
-            this.listingSource = roleDoc.label;
+    
+          if (user?.role) this.listingSource = user.role;
+          else if (user?.roleId) {
+            const roleDoc: any = await Role.findById(user.roleId)
+              .select("label")
+              .lean();
+            if (roleDoc?.label) this.listingSource = roleDoc.label;
           }
         }
-      }
-
-      /* -------- FINAL FALLBACK -------- */
-      if (!this.listingSource) {
-        this.listingSource = "owner"; // only if EVERYTHING fails
-      }
-
-      next();
-    } catch (err) {
+    
+        if (!this.listingSource) this.listingSource = "owner";
+    
+        next();
+      }catch (err) {
       next(err as any);
     }
   },
