@@ -50,8 +50,7 @@ export async function createPaymentOrder(
 
     await Subscription.create({
       userId,
-      // 🔥 coming from PLAN
-      userType: plan.userType,
+      userType,
       category: plan.category || "both",
       planCode: plan.code,
       tier: plan.tier,
@@ -162,7 +161,7 @@ export async function verifyPaymentAndActivate(
   // 🔥 expire only SAME TYPE + SAME CATEGORY plan
   const expireFilter: any = {
     userId: payment.userId,
-    userType: plan.userType,
+    userType: payment.userType,
     status: "active",
   };
 
@@ -186,10 +185,13 @@ export async function verifyPaymentAndActivate(
 
   const invoiceUrl = await uploadPdfToS3(invoiceBuffer, s3Key);
 
+  const userType =
+  payment.userType === "user" ? "buyer" : payment.userType
+
   // ✅ Activate new subscription
   const subscription = await Subscription.create({
     userId: payment.userId,
-    userType: plan.userType,
+    userType,
     category: plan.category || "both",
     planCode: plan.code,
     tier: plan.tier,

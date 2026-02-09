@@ -184,7 +184,7 @@ const postPropertySlice = createSlice({
       transactionType: draft.transactionType,
       price: draft.price,
       pricePerSqft: draft.pricePerSqft,
-      description:draft.pricePerSqft,
+      description:draft.description,
 
        gallery: Array.isArray(draft.gallery)
       ? draft.gallery.map((img: any) => ({

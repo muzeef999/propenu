@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { Plan } from "../models/planModel";
 import { Subscription } from "../models/subscriptionModel";
 import { SubscriptionHistory } from "../models/subscriptionHistoryModel";
+import { AuthRequest } from "../middlewares/authMiddleware";
 
 /* ---------------- GET PLANS ---------------- */
 
@@ -22,7 +23,7 @@ export async function getPlans(req: Request, res: Response) {
 
 /* ---------------- ASSIGN PLAN (IMPORTANT) ---------------- */
 
-export const assignPlan = async (req: Request, res: Response) => {
+export const assignPlan = async (req: AuthRequest, res: Response) => {
   try {
 
     const { userId, planCode } = req.body;
@@ -32,6 +33,11 @@ export const assignPlan = async (req: Request, res: Response) => {
         success: false,
         message: "userId and planCode are required",
       });
+    }
+
+
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
     // 1️⃣ Find plan
@@ -54,11 +60,16 @@ export const assignPlan = async (req: Request, res: Response) => {
       { userId, status: "active" },
       { status: "expired" }
     );
+       if (!req.user) {
+  return res.status(401).json({ message: "Unauthorized" });
+}
 
-    // 4️⃣ Create new subscription
+ const userType = req.user.roleName;
+  
+// 4️⃣ Create new subscription
     const subscription = await Subscription.create({
       userId,
-      userType: plan.userType,
+       userType,
       category: plan.category || "both",
       planCode: plan.code,
       tier: plan.tier,
@@ -75,7 +86,7 @@ export const assignPlan = async (req: Request, res: Response) => {
     // 5️⃣ CREATE SUBSCRIPTION HISTORY (THIS IS THE FIX)
     const history = await SubscriptionHistory.create({
       userId,
-      userType: plan.userType,
+      userType,
       planCode: plan.code,
       tier: plan.tier,
       category: plan.category,

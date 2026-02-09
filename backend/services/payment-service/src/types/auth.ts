@@ -8,6 +8,6 @@ export interface JwtUserPayload extends JwtPayload {
   email: string;
   name: string;
   roleId?: string | undefined; 
-    roleName: "buyer" | "builder" | "agent";
+  roleName: "buyer" | "builder" | "agent";
   permissions: string[];
 }

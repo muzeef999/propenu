@@ -1,14 +1,19 @@
+// subscriptionServices
 import { Subscription } from "../models/subscriptionModel";
 import { Plan } from "../models/planModel";
 
-export async function activateSubscription(userId: string, planCode: string) {
+export async function activateSubscription(userId: string, 
+roleName: "user" | "agent" | "owner" | "builder",
+ planCode: string) {
   const plan = await Plan.findOne({ code: planCode }).lean();
   if (!plan) throw new Error("Plan not found");
+
+    const userType = roleName === "user" ? "buyer" : roleName;
 
   // 🔥 expire only SAME type plan
   const expireFilter: any = {
     userId,
-    userType: plan.userType,
+    userType,
     status: "active",
   };
 
@@ -20,7 +25,7 @@ export async function activateSubscription(userId: string, planCode: string) {
 
   const payload: any = {
     userId,
-    userType: plan.userType,
+    userType,
     planCode: plan.code,
     tier: plan.tier,
     status: "active",

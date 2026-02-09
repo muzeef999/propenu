@@ -22,7 +22,6 @@ export const createDraftThunk = createAsyncThunk(
   },
 );
 
-
 export const getMyDraftThunk = createAsyncThunk(
   "postProperty/getMyDraft",
   async (category: string, { rejectWithValue }) => {
@@ -31,7 +30,7 @@ export const getMyDraftThunk = createAsyncThunk(
     } catch (err: any) {
       return rejectWithValue(err);
     }
-  }
+  },
 );
 /* =========================================================
    BASIC
@@ -62,18 +61,17 @@ export const submitLocationThunk = createAsyncThunk(
 export const submitDetailsThunk = createAsyncThunk(
   "postProperty/details",
   async ({ category, id, payload }: any) => {
-
     const files = getFileStoreFiles("postProperty");
 
     const safePayload = {
       ...payload,
-       totalArea: payload.totalArea
+      totalArea: payload.totalArea
         ? {
             value: Number(payload.totalArea.value),
             unit: payload.totalArea.unit,
           }
         : undefined,
-         roadWidth: payload.roadWidth
+      roadWidth: payload.roadWidth
         ? {
             value: Number(payload.roadWidth.value),
             unit: payload.roadWidth.unit,
@@ -85,7 +83,6 @@ export const submitDetailsThunk = createAsyncThunk(
           }))
         : [],
     };
-    
 
     const formData = new FormData();
 
@@ -111,18 +108,23 @@ export const submitDetailsThunk = createAsyncThunk(
     }
 
     return await updateDetailsApi(category, id, formData);
-  }
+  },
 );
-
 
 export const submitVerificationThunk = createAsyncThunk(
   "postProperty/verification",
   async ({ category, id, payload }: any, { rejectWithValue }) => {
     try {
-
       return await finalizeApi(category, id, payload);
     } catch (err: any) {
-      return rejectWithValue(err.message || "Verification failed");
+     
+      const errorPayload = {
+      code: err?.code || err?.response?.data?.code,      
+      message: err?.message || err?.response?.data?.message || "Verification failed",};
+
+
+      return rejectWithValue(errorPayload);
     }
   },
 );
+

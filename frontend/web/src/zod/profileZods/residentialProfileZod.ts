@@ -43,7 +43,7 @@ export const residentialProfileSchema = z.object({
   kitchenType: z
     .enum(["open", "closed", "semi-open", "island", "parallel", "u-shaped", "l-shaped"])
     .optional(),
-  isModularKitchen: z.boolean().optional(),
+  isModularKitchen: z.boolean().optional(), 
 
   isPriceNegotiable: z.boolean().optional(),
 
@@ -54,10 +54,11 @@ export const residentialProfileSchema = z.object({
       message: "Description is atleast 30 characters long",
     }),
 
-  images: z
-    .array(z.instanceof(File))
-    .min(5, "Upload at least 5 images"),
+    
+  images: z.array(z.instanceof(File)).default([]),
 });
+
+
 
 export const validateResidentialProfile = (
   residential: any,

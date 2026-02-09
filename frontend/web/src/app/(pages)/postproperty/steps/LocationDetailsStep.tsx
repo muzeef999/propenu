@@ -14,8 +14,11 @@ import TextArea from "@/ui/TextArae";
 import { search } from "india-pincode-search";
 import { submitLocationThunk } from "@/Redux/thunks/submitPropertyApi";
 
-const OpenStreetPinMap = dynamic(
-  () => import("@/components/location/OpenStreetPinMap"),
+const OpenStreetPinMap = dynamic<OpenStreetPinMapProps>(
+  () =>
+    import("@/components/location/OpenStreetPinMap").then(
+      (mod) => mod.default
+    ),
   {
     ssr: false,
     loading: () => (
@@ -23,8 +26,13 @@ const OpenStreetPinMap = dynamic(
         Loading map…
       </div>
     ),
-  },
+  }
 );
+
+
+type OpenStreetPinMapProps = {
+  coordinates?: [number, number];
+};
 
 type PincodeResult = {
   city: string;
@@ -253,8 +261,15 @@ const LocationDetailsStep = () => {
 
       {/* Map */}
       <div>
-        <OpenStreetPinMap />
-        <p className="text-xs text-gray-500">
+       <OpenStreetPinMap
+  coordinates={
+    base.location?.coordinates?.length === 2
+      ? base.location.coordinates
+      : undefined
+  }
+/>
+
+         <p className="text-xs text-gray-500">
           Click on the map to mark the exact location of your property.
         </p>
       </div>

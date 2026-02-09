@@ -19,6 +19,13 @@ export const requireActiveSubscription = async (
 
     const { id: userId, roleName } = req.user;
 
+
+    console.log("👤 USER CONTEXT ----------------");
+console.log({
+  userId,
+  roleName,
+});
+
     if (roleName === "admin" || roleName === "super_admin") {
       return next(); // 🚀 full access, no subscription needed
     }
@@ -74,12 +81,38 @@ if (!listingType) {
     console.log("mapped userType:", userType);
 
     // 🔥 STEP 2.2: Find ACTIVE subscription
+console.log("🔍 SUBSCRIPTION QUERY ----------------");
+console.log({
+  userId,
+  userType,
+  category: requiredCategory,
+  status: "active",
+});
+
+
+const allSubs = await Subscription.find({ userId }).lean();
+console.log("📦 ALL USER SUBSCRIPTIONS ----------------");
+console.log(allSubs);
+
+
     const subscription = await Subscription.findOne({
       userId,
       userType, // ✅ FIXED
       category: requiredCategory,
       status: "active",
     });
+
+    console.log("🔍 SUBSCRIPTION QUERY ----------------");
+console.log({
+  userId,
+  userType,
+  category: requiredCategory,
+  status: "active",
+});
+
+console.log("📦 SUBSCRIPTION RESULT ----------------");
+console.log(subscription);
+
 
     if (!subscription) {
       return res.status(403).json({

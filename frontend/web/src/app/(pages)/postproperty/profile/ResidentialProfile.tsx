@@ -56,20 +56,20 @@ const ResidentialProfile = () => {
   const router = useRouter();
   const [showErrors, setShowErrors] = useState(false);
   const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
-const localFiles: File[] = files
-  .filter((f): f is UploadedFile & { file: File } => f.source === "local")
-  .map((f) => f.file);
+  useEffect(() => {
+    if (!residential.gallery || residential.gallery.length === 0) return;
+    if (files.length > 0) return; // 🔒 don’t overwrite user uploads
 
-const validationResult = validateResidentialProfile(
-  residential,
-  localFiles
-);
+    const serverFiles: UploadedFile[] = residential.gallery.map((img: any) => ({
+      preview: img.url, // 👈 VERY IMPORTANT
+      source: "server",
+      name: img.filename,
+    }));
 
-  const fieldErrors =
-    showErrors && !validationResult.success
-      ? validationResult.error.flatten().fieldErrors
-      : {};
+    setFiles(serverFiles);
+  }, [residential.gallery]);
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -327,37 +327,36 @@ const validationResult = validateResidentialProfile(
       </div>
       <div className="space-y-2">
         <FileUpload
-  label="Property Images"
-  value={files}
-  onChange={(newFiles) => {
-    setFiles(newFiles);
+          label="Property Images"
+          value={files}
+          onChange={(newFiles) => {
+            setFiles(newFiles);
 
-    // ✅ Redux: store gallery metadata only
-    dispatch(
-      setBaseField({
-        key: "galleryFiles",
-        value: newFiles.map((f) => ({
-          name: f.name ?? f.file?.name ?? "",
-          source: f.source,
-          preview: f.preview,
-        })),
-      })
-    );
+            // ✅ Redux: store gallery metadata only
+            dispatch(
+              setBaseField({
+                key: "galleryFiles",
+                value: newFiles.map((f) => ({
+                  name: f.name ?? f.file?.name ?? "",
+                  source: f.source,
+                  preview: f.preview,
+                })),
+              }),
+            );
 
-    // ✅ In-memory store: ONLY local files
-    const localFiles = newFiles
-      .filter((f) => f.source === "local")
-      .map((f) => f.file)
-      .filter((file): file is File => Boolean(file));
+            // ✅ In-memory store: ONLY local files
+            const localFiles = newFiles
+              .filter((f) => f.source === "local")
+              .map((f) => f.file)
+              .filter((file): file is File => Boolean(file));
 
-    setFileStoreFiles("postProperty", localFiles);
-  }}
-  accept="image/*"
-  maxFiles={5}
-  maxSizeMB={5}
-  error={fieldErrors?.images?.[0]}
-/>
-
+            setFileStoreFiles("postProperty", localFiles);
+          }}
+          accept="image/*"
+          maxFiles={5}
+          maxSizeMB={5}
+          error={fieldErrors?.images?.[0]}
+        />
       </div>
 
       <div
@@ -424,46 +423,59 @@ const validationResult = validateResidentialProfile(
         onClick={() => {
           setShowErrors(true);
 
-          // ✅ FIX: convert amenities objects → string[] ONLY for validation
+          // ✅ Prepare payload for validation
           const payload = {
             ...residential,
-
             amenities: Array.isArray(residential.amenities)
               ? residential.amenities.map((a: any) => a?.title).filter(Boolean)
               : [],
           };
 
+          // 🖼️ IMAGE COUNT LOGIC (FIX)
+          const serverImageCount = residential.gallery?.length ?? 0;
+
           const localFiles: File[] = files
-  .filter((f) => f.source === "local" && f.file)
-  .map((f) => f.file as File);
+            .filter((f) => f.source === "local" && f.file)
+            .map((f) => f.file as File);
 
-const result = validateResidentialProfile(
-  payload,
-  localFiles
-);
+          const totalImageCount = serverImageCount + localFiles.length;
 
+          // ❌ Not enough images
+          if (totalImageCount < 5) {
+            setFieldErrors({
+              images: ["Upload at least 5 images"],
+            });
+            toast.error("Upload at least 5 images");
+            return;
+          }
+
+          // ✅ Zod validation (non-image fields)
+          const result = validateResidentialProfile(payload, localFiles);
 
           if (!result.success) {
-            const flattened = result.error.flatten();
+            const errors = result.error.flatten().fieldErrors;
 
             console.error("❌ Residential Profile Validation Failed");
-            console.table(flattened.fieldErrors);
+            console.table(errors);
 
+            setFieldErrors(errors);
             toast.error("Please fix the highlighted errors");
             return;
           }
 
-          // 🚀 IMPORTANT: send ORIGINAL residential object to backend
+          setFieldErrors({});
+
+          // 🚀 Submit to backend
           dispatch(
             submitDetailsThunk({
               category: propertyType,
               id: draftId,
-              payload: residential, // backend/thunk will format this
+              payload: residential,
             }),
           )
             .unwrap()
-            .then((response) => {
-              dispatch(nextStep()); // Move to next step on success
+            .then(() => {
+              dispatch(nextStep());
             })
             .catch((error: any) => {
               const errObj =
@@ -472,22 +484,6 @@ const result = validateResidentialProfile(
                   : error?.response?.data || error;
 
               toast.error(errObj?.message || "Failed to submit property");
-
-              if (
-                errObj?.code === "NO_VALID_PLAN" ||
-                errObj?.code === "PLAN_LIMIT_REACHED"
-              ) {
-                const listingType = residential.listingType || "sale";
-
-                const redirectUrl =
-                  listingType === "sale"
-                    ? "/plans/pricing/owner-sell"
-                    : "/plans/pricing/owner-rent";
-
-                setTimeout(() => {
-                  router.push(redirectUrl);
-                }, 800);
-              }
             });
         }}
         className="py-2 btn-primary text-white rounded-md cursor-pointer w-full"

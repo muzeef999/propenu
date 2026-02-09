@@ -8,6 +8,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { setBaseField } from "@/Redux/slice/postPropertySlice";
 import { useEffect, useState } from "react";
 
+type OpenStreetPinMapProps = {
+  coordinates?: [number, number]; // [lng, lat]
+};
+
+
 // Fix default marker icon
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -60,14 +65,12 @@ const DraggableMarker = ({ center }: { center: [number, number] }) => {
   return <Marker position={position} draggable />;
 };
 
-const OpenStreetPinMap = () => {
-  const location = useSelector(
-    (state: any) => state.postProperty.base.location
-  );
+const OpenStreetPinMap = ({ coordinates }: OpenStreetPinMapProps) => {
+  const center: [number, number] =
+    coordinates && coordinates.length === 2
+      ? [coordinates[1], coordinates[0]] // lat, lng
+      : defaultPosition;
 
-  const center: [number, number] = location
-    ? [location.coordinates[1], location.coordinates[0]]
-    : defaultPosition;
 
   return (
     <div className="space-y-2">

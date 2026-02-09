@@ -63,7 +63,6 @@ const VerifyProperty = () => {
     verificationDocuments: files.map((f) => f.file),
   });
 
-
   const fieldErrors =
     showErrors && !validationResult.success
       ? validationResult.error.flatten().fieldErrors
@@ -85,7 +84,6 @@ const VerifyProperty = () => {
       return;
     }
 
-
     if (!files.length) {
       toast.error("Please upload verification document");
       return;
@@ -104,7 +102,14 @@ const VerifyProperty = () => {
     const formData = new FormData();
     formData.append("verificationType", selectedDoc.verificationType);
     formData.append("title", selectedDoc.title);
-    formData.append("verificationDocuments", files[0].file);
+    const localFile = files.find((f) => f.source === "local" && f.file)?.file;
+
+    if (!localFile) {
+      toast.error("Please upload a verification document");
+      return;
+    }
+
+    formData.append("verificationDocuments", localFile);
 
     dispatch(
       submitVerificationThunk({
@@ -126,7 +131,41 @@ const VerifyProperty = () => {
         router.push("/my-properties");
       })
       .catch((error: any) => {
-        toast.error(error?.message || "Verification failed");
+       
+        const errObj =
+          error?.response?.data ??
+          (typeof error === "string" ? { message: error } : error);
+
+       
+        // 🔴 NO ACTIVE PLAN
+        if (errObj?.code === "NO_VALID_PLAN") {
+          toast.error(errObj.message || "Please subscribe to a plan");
+
+          const listingType = residential?.listingType || "sale";
+
+          const redirectUrl =
+            listingType === "sale"
+              ? "/plans/pricing/owner-sell"
+              : "/plans/pricing/owner-rent";
+
+          setTimeout(() => {
+            router.push(redirectUrl);
+          }, 800);
+
+          return;
+        }
+
+        // 🔴 PLAN LIMIT REACHED
+        if (errObj?.code === "PLAN_LIMIT_REACHED") {
+          router.push("/plans/pricing");
+          toast.error("Your plan limit is reached");
+
+       
+          return;
+        }
+
+        // 🔴 Fallback
+        toast.error(errObj?.message || "Verification failed");
       });
   };
 
@@ -143,8 +182,7 @@ const VerifyProperty = () => {
 
         <div className="space-y-4">
           {VERIFICATION_DOCS.map((doc) => {
-            const selected =
-              residential.verificationDocument === doc.key;
+            const selected = residential.verificationDocument === doc.key;
 
             return (
               <label
@@ -169,9 +207,7 @@ const VerifyProperty = () => {
                 />
 
                 {/* Label text */}
-                <span className="text-sm text-gray-800">
-                  {doc.label}
-                </span>
+                <span className="text-sm text-gray-800">{doc.label}</span>
 
                 {/* Optional info icon */}
                 {doc.showInfo && (
@@ -182,18 +218,14 @@ const VerifyProperty = () => {
                     ⓘ
                   </span>
                 )}
-
               </label>
             );
           })}
         </div>
-
-
       </div>
 
       {/* FILE UPLOAD */}
       <div>
-
         <FileUpload
           label="Upload Verification Document"
           value={files}
