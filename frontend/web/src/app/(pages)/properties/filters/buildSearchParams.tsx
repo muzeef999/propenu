@@ -37,6 +37,27 @@ function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+function mapCsv(value: unknown, mapFn: (token: string) => string) {
+  if (typeof value !== "string") return value;
+  return value
+    .split(",")
+    .map((v) => mapFn(v.trim()))
+    .filter(Boolean)
+    .join(",");
+}
+
+function normalizeCommercialTypeToken(token: string) {
+  return token.toLowerCase().replace(/[\s-]+/g, "");
+}
+
+function normalizeCommercialSubTypeToken(token: string) {
+  return token
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
 export function buildSearchParams(filters: FilterState) {
   const base = {
     category: filters.category,
@@ -54,10 +75,35 @@ export function buildSearchParams(filters: FilterState) {
       };
 
     case "Commercial":
-      return {
-        ...base,
-        ...normalizeFilters(filters.commercial),
-      };
+      {
+        const normalized = normalizeFilters(filters.commercial);
+
+        if (normalized.commercialType !== undefined) {
+          normalized.propertyType = mapCsv(
+            normalized.commercialType,
+            normalizeCommercialTypeToken
+          );
+          delete normalized.commercialType;
+        }
+
+        if (normalized.commercialSubType !== undefined) {
+          normalized.propertySubType = mapCsv(
+            normalized.commercialSubType,
+            normalizeCommercialSubTypeToken
+          );
+          delete normalized.commercialSubType;
+        }
+
+        if (normalized.furnishingStatus !== undefined) {
+          normalized.furnishedStatus = normalized.furnishingStatus;
+          delete normalized.furnishingStatus;
+        }
+
+        return {
+          ...base,
+          ...normalized,
+        };
+      }
 
     case "Land":
       return {

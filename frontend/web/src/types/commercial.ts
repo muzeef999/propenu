@@ -1,3 +1,4 @@
+import { CommercialFilterKey } from ".";
 import { BaseSearchParams, CommercialFilters, IFileRef } from "./sharedTypes";
 
 export type GalleryItem = {
@@ -116,7 +117,10 @@ export type CommercialSearchParams = BaseSearchParams & {
   commercialType?: string;
 };
 
-export const commercialKeyMapping: Record<string, keyof CommercialFilters> = {
+export const commercialKeyMapping: Record<
+  CommercialFilterKey,
+  keyof CommercialFilters
+> = {
   "Commercial Type": "commercialType",
   "Commercial Sub Type": "commercialSubType",
   "Transaction Type": "transactionType",
@@ -137,5 +141,5 @@ export const commercialKeyMapping: Record<string, keyof CommercialFilters> = {
   "Price Negotiable": "priceNegotiable",
   "Verified Properties": "verifiedProperties",
   "Posted Since": "postedSince",
-  "Posted By": "postedBy",
+  "Posted By": "listingSource",
 };

@@ -222,7 +222,7 @@ const [budgetRange, setBudgetRange] = useState<
                         ))}
                       </select>
       
-                      <span className="flex items-center justify-center text-md text-gray-500 min-w-[20px]">
+                      <span className="flex items-center justify-center text-md text-gray-500 min-w-5">
                         to
                       </span>
       

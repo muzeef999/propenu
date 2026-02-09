@@ -91,37 +91,30 @@ export interface ResidentialFilters {
 }
 
 export interface CommercialFilters {
-  /* Type & transaction */
-  commercialType?: string[];           // Office, Shop, Warehouse…
-  commercialSubType?: string[];         // Mall Shop, SEZ Office…
-  transactionType?: "new-sale" | "resale";
-  constructionStatus?: "ready-to-move" | "under-construction";
-
+  commercialType?: string[];
+  commercialSubType?: string[];
+  transactionType?: string;
+  constructionStatus?: string;
   builtUpArea?: { min?: number; max?: number };
   carpetArea?: { min?: number; max?: number };
-
   floorNumber?: string[];
   totalFloors?: string[];
-
-  furnishingStatus?: "unfurnished" | "semi-furnished" | "fully-furnished";
-  pantry?: "Inside Premises" | "Shared";
+  furnishingStatus?: string;
+  pantry?: string;
   powerCapacity?: string[];
-
-  parking?: "Visitor Parking" | "2 Wheeler" | "4 Wheeler";
-
+  parking?: string;
   fireSafety?: string[];
   flooringType?: string[];
   wallFinish?: string[];
-
-  tenantAvailable?: boolean;
+  tenantAvailable?: string;
   banksApproved?: string[];
-  priceNegotiable?: boolean;
+  priceNegotiable?: string;
   verifiedProperties?: boolean;
-
   postedSince?: string;
-  postedBy?: string[];
-  locality?: string;
+  listingSource?: string;
+  locality?: string[];
 }
+
 
 
 export interface LandFilters {

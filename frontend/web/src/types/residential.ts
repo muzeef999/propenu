@@ -139,6 +139,5 @@ export const residentialKeyMapping: Record<
   "Facing": "facing",
   "Posted Since": "postedSince",
   "Posted By": "listingSource",
-
 };
 

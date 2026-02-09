@@ -55,6 +55,7 @@ if (typeof q.locality === "string" && q.locality.trim().length > 0) {
 
   const minPrice = parseNumber(q.minPrice);
   const maxPrice = parseNumber(q.maxPrice);
+  
 
   if (minPrice !== undefined || maxPrice !== undefined) {
     f.price = {};
@@ -77,6 +78,7 @@ if (typeof q.locality === "string" && q.locality.trim().length > 0) {
   if (minArea !== undefined) areaFilter.$gte = minArea;
   if (maxArea !== undefined) areaFilter.$lte = maxArea;
 
+  // Use $or to find properties that match the range in EITHER field
   f.$or = [
     { carpetArea: areaFilter },
     { builtUpArea: areaFilter },
