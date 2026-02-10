@@ -226,17 +226,34 @@ export const deleteLand = async (req: Request, res: Response) => {
 
 
 export const createLandDraft = async (req: AuthRequest, res: Response) => {
-  const draft = await LandPlot.create({
-    createdBy: req.user!.id,
-    status: "draft",
-    completion: {
-      percent: 0,
-      step: 1,
-      lastSection: "basic",
-    },
-  });
+  try {
+    const existing = await LandPlot.findOne({
+      createdBy: req.user!.id,
+      status: "draft",
+    }).lean();
 
-  res.status(201).json({ data: draft });
+    if (existing) {
+      return res.status(200).json({ data: existing });
+    }
+
+    const draft = await LandPlot.create({
+      createdBy: req.user!.id,
+      status: "draft",
+      title: "Draft Land Plot Property", // explicit
+      completion: {
+        percent: 0,
+        step: 1,
+        lastSection: "basic",
+      },
+    });
+
+    return res.status(201).json({ data: draft });
+  } catch (err: any) {
+    console.error("createLandDraft:", err);
+    return res.status(500).json({
+      error: "Failed to create land draft",
+    });
+  }
 };
 
 
@@ -343,93 +360,91 @@ export const updateLandDetailsStep = async (
 
 
 export const finalizeLand = async (req: AuthRequest, res: Response) => {
-  try {
-    const property = await LandPlot.findById(req.params.id);
-    if (!property) {
-      return res.status(404).json({ error: "Property not found" });
-    }
-
-    // ✅ Multer files (must come from upload.fields)
-    const files = req.files as
-      | { [field: string]: Express.Multer.File[] }
-      | undefined;
-
-    const verificationFiles = files?.verificationDocuments ?? [];
-
-    /* =========================
-       SAVE VERIFICATION DOCS
-    ========================= */
-    if (verificationFiles.length > 0) {
-      property.verificationDocuments = Array.isArray(
-        property.verificationDocuments
-      )
-        ? property.verificationDocuments
-        : [];
-
-      for (const file of verificationFiles) {
-        const uploaded = await uploadFile({
-          buffer: file.buffer,
-          originalName: file.originalname,
-          mimetype: file.mimetype,
-          folder: "land/verification",
-          entityId: property._id.toString(),
-        });
-
-        property.verificationDocuments.push({
-          type: req.body.verificationType, // SALE_DEED / EC / etc
-          title: file.originalname,
-          url: uploaded.url,
-          key: uploaded.key,
-          filename: file.originalname,
-          mimetype: file.mimetype,
-          status: "pending",
-        });
-      }
-    }
-
-    /* =========================
-       COMPLETION + STATUS
-    ========================= */
-    const hasVerified = property.verificationDocuments?.some(
-      (doc) => doc.status === "verified"
-    );
-
-    if (!property.completion) {
-      property.completion = {
-        percent: 0,
-        step: 1,
-        lastSection: "verification",
-      };
-    }
-
-    property.completion.lastSection = "verification";
-
-    if (hasVerified) {
-      property.status = "active";
-      property.isPublished = true;
-      property.completion.percent = 100;
-      property.completion.step = 5;
-    } else {
-      property.status = "draft";
-      property.isPublished = false;
-      property.completion.percent = 80;
-      property.completion.step = 4;
-    }
-
-    await property.save();
-
-    return res.json({
-      success: true,
-      verified: hasVerified,
-      data: property,
-    });
-  } catch (err: any) {
-    console.error("finalizeLand:", err);
-    return res.status(500).json({
-      error: err.message || "Internal server error",
-    });
+  const property = await LandPlot.findById(req.params.id);
+  if (!property) {
+    return res.status(404).json({ error: "Property not found" });
   }
+
+  // ✅ Multer files (must come from upload.fields)
+  const files = req.files as
+    | { [field: string]: Express.Multer.File[] }
+    | undefined;
+
+  const verificationFiles = files?.verificationDocuments ?? [];
+
+  /* =========================
+     SAVE VERIFICATION DOCS
+  ========================= */
+  if (verificationFiles.length > 0) {
+    property.verificationDocuments = Array.isArray(
+      property.verificationDocuments
+    )
+      ? property.verificationDocuments
+      : [];
+
+    for (const file of verificationFiles) {
+      const uploaded = await uploadFile({
+        buffer: file.buffer,
+        originalName: file.originalname,
+        mimetype: file.mimetype,
+        folder: "land/verification",
+        entityId: property._id.toString(),
+      });
+
+      property.verificationDocuments.push({
+        type: req.body.verificationType, // SALE_DEED / EC / etc
+        title: file.originalname,
+        url: uploaded.url,
+        key: uploaded.key,
+        filename: file.originalname,
+        mimetype: file.mimetype,
+        status: "pending",
+      });
+    }
+  }
+
+  /* =========================
+     COMPLETION + STATUS
+  ========================= */
+  const hasVerified = property.verificationDocuments?.some(
+    (doc) => doc.status === "verified"
+  );
+
+  if (!property.completion) {
+    property.completion = {
+      percent: 0,
+      step: 1,
+      lastSection: "verification",
+    };
+  }
+
+  property.completion.lastSection = "verification";
+
+  if (hasVerified) {
+    property.status = "active";
+    property.isPublished = true;
+    property.completion.percent = 100;
+    property.completion.step = 5;
+  } else {
+    property.status = "draft";
+    property.isPublished = false;
+    property.completion.percent = 80;
+    property.completion.step = 4;
+  }
+
+  await property.save();
+
+  const fresh = await LandPlot.findById(property._id)
+    .populate("createdBy", "name email phone")
+    .lean();
+
+  return res.json({
+    success: true,
+    verified: hasVerified,
+    data: fresh,
+  });
 };
+
 
 
 

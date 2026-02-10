@@ -217,17 +217,34 @@ export const createCommercialDraft = async (
   req: AuthRequest,
   res: Response,
 ) => {
-  const draft = await Commercial.create({
-    createdBy: req.user!.id,
-    status: "draft",
-    completion: {
-      percent: 0,
-      step: 1,
-      lastSection: "basic",
-    },
-  });
+  try {
+    const existing = await Commercial.findOne({
+      createdBy: req.user!.id,
+      status: "draft",
+    }).lean();
 
-  res.status(201).json({ data: draft });
+    if (existing) {
+      return res.status(200).json({ data: existing });
+    }
+
+    const draft = await Commercial.create({
+      createdBy: req.user!.id,
+      status: "draft",
+      title: "Draft Commercial Property", // explicit
+      completion: {
+        percent: 0,
+        step: 1,
+        lastSection: "basic",
+      },
+    });
+
+    return res.status(201).json({ data: draft });
+  } catch (err: any) {
+    console.error("createCommercialDraft:", err);
+    return res.status(500).json({
+      error: "Failed to create commercial draft",
+    });
+  }
 };
 
 export const updateCommercialBasicStep = async (
@@ -391,10 +408,14 @@ export const finalizeCommercial = async (req: AuthRequest, res: Response) => {
 
   await property.save();
 
+  const fresh = await Commercial.findById(property._id)
+    .populate("createdBy", "name email phone")
+    .lean();
+
   res.json({
     success: true,
     verified: hasVerified,
-    data: property,
+    data: fresh,
   });
 };
 
