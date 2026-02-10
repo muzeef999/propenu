@@ -56,9 +56,7 @@ export const commercialProfileSchema = z.object({
     .min(20, "Description must be at least 20 characters")
     .max(500, "Description too long")
     .optional(),
-  images: z
-    .array(z.instanceof(File))
-    .min(5, "Upload at least 5 images"),
+  images: z.array(z.instanceof(File)).default([]),
 });
 
 

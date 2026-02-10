@@ -58,11 +58,6 @@ const CommercialProfile = () => {
   const serverImageCount = commercial.gallery?.length ?? 0;
   const localImageCount = files.filter((f) => f.source === "local").length;
 
-  if (serverImageCount + localImageCount < 5) {
-    toast.error("Upload at least 5 images");
-    return;
-  }
-
   useEffect(() => {
     if (!commercial?.gallery || commercial.gallery.length === 0) return;
     if (files.length > 0) return; // don't overwrite user changes
@@ -74,7 +69,7 @@ const CommercialProfile = () => {
     }));
 
     setFiles(serverFiles);
-  }, [commercial?.gallery]);
+  }, [commercial?.gallery, files.length]);
 
 
   const validationResult = validateCommercialProfile(commercial, localFiles);
@@ -657,6 +652,11 @@ const CommercialProfile = () => {
               : [],
             images: localFiles,
           };
+
+          if (serverImageCount + localImageCount < 5) {
+            toast.error("Upload at least 5 images");
+            return;
+          }
 
           const result = validateCommercialProfile(payload, payload.images);
 

@@ -312,25 +312,25 @@ export const updateAgriculturalDetailsStep = async (
       | undefined;
 
     // 2️⃣ Parse JSON fields safely
-    const parsed = {
-      ...req.body,
-      totalArea: parseMaybeJSON(req.body.totalArea),
-      roadWidth: parseMaybeJSON(req.body.roadWidth), // ✅ fixed casing
-      borewellDetails: parseMaybeJSON(req.body.borewellDetails),
-      amenities: parseMaybeJSON(req.body.amenities),
-      location: parseMaybeJSON(req.body.location),
-      gallery: parseMaybeJSON(req.body.gallery), // optional (if frontend sends JSON)
-      documents: parseMaybeJSON(req.body.documents),
-    };
+    // const parsed = {
+    //   ...req.body,
+    //   totalArea: parseMaybeJSON(req.body.totalArea),
+    //   roadWidth: parseMaybeJSON(req.body.roadWidth), // ✅ fixed casing
+    //   borewellDetails: parseMaybeJSON(req.body.borewellDetails),
+    //   amenities: parseMaybeJSON(req.body.amenities),
+    //   location: parseMaybeJSON(req.body.location),
+    //   gallery: parseMaybeJSON(req.body.gallery), // optional (if frontend sends JSON)
+    //   documents: parseMaybeJSON(req.body.documents),
+    // };
 
     // 3️⃣ Validate payload
-    const payload = AgriculturalUpdateSchema.parse(parsed);
+    // const payload = AgriculturalUpdateSchema.parse(parsed);
 
     // 4️⃣ Update via service (files handled there)
     const updated = await AgriculturalService.update(
       req.params.id,
       {
-        ...payload,
+        ...req.body,
         completion: {
           percent: 70,
           step: 4,
@@ -347,9 +347,9 @@ export const updateAgriculturalDetailsStep = async (
     }
 
     // 5️⃣ Fetch fresh doc (with gallery, title, slug)
-    const fresh = await AgriculturalService.getById(req.params.id);
+    // const fresh = await Agricultural.findById(req.params.id)
 
-    return res.json({ data: fresh });
+    return res.json({ data: updated });
   } catch (err: any) {
     if (err instanceof ZodError) {
       return res.status(422).json({
@@ -366,8 +366,6 @@ export const updateAgriculturalDetailsStep = async (
 };
 
 
- 
- 
  
 export const finalizeAgricultural = async (req: AuthRequest, res: Response) => {
   const property = await Agricultural.findById(req.params.id);
