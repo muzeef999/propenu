@@ -104,6 +104,16 @@ const CommercialSchema = new Schema<ICommercial>(
 
 CommercialSchema.index(TEXT_INDEX_FIELDS, { name: "Com_Text" });
 
+CommercialSchema.index(
+  { slug: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      slug: { $type: "string" },
+    },
+  }
+);
+
 // 🔒 ONE ACTIVE DRAFT PER USER (MongoDB-level protection)
 CommercialSchema.index(
   { createdBy: 1, status: 1 },
@@ -162,6 +172,8 @@ CommercialSchema.pre(
     }
   },
 );
+
+
 
 export const Commercial: Model<ICommercial> =
   (mongoose.models && (mongoose.models as any)["Commercial"]) ||

@@ -54,6 +54,17 @@ const AgriculturalSchema = new Schema<IAgricultural>(
   { timestamps: true },
 );
 
+
+AgriculturalSchema.index(
+  { slug: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      slug: { $type: "string" },
+    },
+  }
+);
+
 AgriculturalSchema.index(TEXT_INDEX_FIELDS, { name: "Agri_Text" });
 AgriculturalSchema.index({ createdBy:1, status:1 },
   {
