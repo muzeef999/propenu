@@ -89,7 +89,7 @@ ResidentialSchema.pre(
       if (!this.title) {
         this.title = buildResidentialTitle(this);
       }
-
+ 
 
       /* -------- LISTING SOURCE (CORRECTED) -------- */
       if (!this.listingSource && this.createdBy) {

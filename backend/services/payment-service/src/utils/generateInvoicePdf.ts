@@ -33,17 +33,16 @@ export async function generateInvoicePdf(data: {
       .text(`Date: ${data.date}`);
 
     doc.moveDown(1.5);
-
-    /* =========================
+  /* =========================
        BILL FROM / BILL TO
     ========================= */
 
     const startY = doc.y;
 
     // BILL FROM
-    doc.font("Helvetica-Bold").text("BILL FROM", 50, startY);
-    doc.font("Helvetica").moveDown(0.5);
-    doc.text("Propenu Solutions Private Limited");
+    doc.font("Helvetica-Bold").text("BILL FROM", 50, startY,);
+    doc.fontSize(18).lineGap(2).text("Propenu Solutions Private Limited");
+    doc.font("Helvetica").moveDown(0.5).lineGap(1);
     doc.text("#191, 5th Floor, Tagore Towers,");
     doc.text("Kavuri Hills Phase 2, Hyderabad – 500033");
     doc.text("Phone: +91 9000352299");
@@ -54,38 +53,13 @@ export async function generateInvoicePdf(data: {
     doc.text("CIN: U7010C256668");
 
     // BILL TO
-    doc.font("Helvetica-Bold").text("BILL TO", 330, startY);
+    doc.font("Helvetica-Bold").text("BILL TO", 50, 423);
     doc.font("Helvetica").moveDown(0.5);
-    doc.text(data.userName, 330);
+    doc.text(data.userName, 450);
 
     doc.moveDown(2);
 
-    /* =========================
-       PLAN TABLE
-    ========================= */
 
-    const tableTop = doc.y;
-
-    doc.font("Helvetica-Bold");
-    doc.text("S.No", 50, tableTop);
-    doc.text("Plan", 90, tableTop);
-    doc.text("Qty", 300, tableTop);
-    doc.text("Price", 350, tableTop);
-    doc.text("Amount", 430, tableTop);
-
-    doc
-      .moveTo(50, tableTop + 15)
-      .lineTo(550, tableTop + 15)
-      .stroke();
-
-    doc.font("Helvetica");
-    doc.text("01", 50, tableTop + 25);
-    doc.text(data.planName, 90, tableTop + 25);
-    doc.text("1", 300, tableTop + 25);
-    doc.text(`₹${data.amount}`, 350, tableTop + 25);
-    doc.text(`₹${data.amount}`, 430, tableTop + 25);
-
-    doc.moveDown(3);
 
     /* =========================
        GST & TOTAL
