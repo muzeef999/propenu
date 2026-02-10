@@ -110,7 +110,6 @@ export const BaseFields = {
 slug: {
   type: String,
   trim: true,
-  unique: true,
   sparse: true, // 🔥 THIS IS THE KEY FIX
   required: function (this: any) {
     return this.status === "active";

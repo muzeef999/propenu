@@ -91,6 +91,16 @@ const ResidentialSchema = new Schema<IResidential>(
 /* Indexes */
 ResidentialSchema.index(TEXT_INDEX_FIELDS, { name: "Res_Text" });
 
+ResidentialSchema.index(
+  { slug: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      slug: { $type: "string" },
+    },
+  }
+);
+
 // 🔒 ONE ACTIVE DRAFT PER USER (MongoDB-level protection)
 ResidentialSchema.index(
   { createdBy: 1, status: 1 },
