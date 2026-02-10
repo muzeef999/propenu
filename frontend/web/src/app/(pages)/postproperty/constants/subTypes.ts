@@ -112,7 +112,7 @@ export const LAND_PROPERTY_TYPES = [
 export const LAND_PROPERTY_SUBTYPES = [
   "gated-community",
   "non-gated",
-  "corner-plot",
+  "corner",
   "road-facing",
   "two-side-open",
   "three-side-open",

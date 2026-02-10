@@ -163,7 +163,7 @@ const LocationDetailsStep = () => {
     <div className="space-y-4">
       {/* Address */}
       <TextArea
-        label="Property Line"
+        label="Address"
         value={base.address || ""}
         placeholder="e.g. Flat 302, Green Residency, Near Metro Station"
         maxLength={500}

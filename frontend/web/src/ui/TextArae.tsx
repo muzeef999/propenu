@@ -21,7 +21,7 @@ const TextArea = ({
   required = false,
   disabled = false,
   error,
-  rows = 3,
+  rows = 2,
   maxLength,
 }: TextAreaProps) => {
   return (

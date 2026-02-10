@@ -62,6 +62,12 @@ export const commercialProfileSchema = z.object({
 });
 
 
-export const validateCommercialProfile = (commercial: any) => {
-  return commercialProfileSchema.safeParse(commercial);
+export const validateCommercialProfile = (
+  commercial: any,
+  files: File[] = [],
+) => {
+  return commercialProfileSchema.safeParse({
+    ...commercial,
+    images: files,
+  });
 };

@@ -22,7 +22,7 @@ interface SetProfileFieldPayload extends SetFieldPayload {
 
 interface PostPropertyState {
   currentStep: number;
-  progressPercent: number; 
+  progressPercent: number;
   propertyType: PropertyCategory;
   draftId: string | null;
   base: Record<string, any>;
@@ -36,7 +36,10 @@ interface PostPropertyState {
    DRAFT → CATEGORY DETECTOR (🔥 IMPORTANT)
 ====================================================== */
 
-const detectCategoryFromDraft = (draft: any): PropertyCategory => {
+const detectCategoryFromDraft = (
+  draft: any,
+  fallback: PropertyCategory,
+): PropertyCategory => {
   if (typeof draft.slug === "string") {
     if (draft.slug.startsWith("residential")) return "residential";
     if (draft.slug.startsWith("commercial")) return "commercial";
@@ -52,7 +55,7 @@ const detectCategoryFromDraft = (draft: any): PropertyCategory => {
 
   if (["plot", "land"].includes(draft.propertyType)) return "land";
 
-  return "residential"; // safe default
+  return fallback; // ✅ DO NOT FORCE residential
 };
 
 /* ======================================================
@@ -61,7 +64,7 @@ const detectCategoryFromDraft = (draft: any): PropertyCategory => {
 
 const initialState: PostPropertyState = {
   currentStep: 1,
-  progressPercent: 0, 
+  progressPercent: 0,
   propertyType: "residential", // ✅ default selection
   draftId: null,
   base: {
@@ -89,9 +92,6 @@ const postPropertySlice = createSlice({
 
     nextStep(state) {
       state.currentStep += 1;
-
-      
-
     },
 
     prevStep(state) {
@@ -104,7 +104,15 @@ const postPropertySlice = createSlice({
 
     /* -------- Property category -------- */
     setPropertyType(state, action: PayloadAction<PropertyCategory>) {
-      state.propertyType = action.payload;
+      const next = action.payload;
+
+      state.propertyType = next;
+
+      // ✅ clear other category data to avoid bleed & validation issues
+      if (next !== "residential") state.residential = {};
+      if (next !== "commercial") state.commercial = {};
+      if (next !== "land") state.land = {};
+      if (next !== "agricultural") state.agricultural = {};
     },
 
     /* -------- Base fields -------- */
@@ -125,175 +133,192 @@ const postPropertySlice = createSlice({
        GET MY DRAFT
     ========================= */
 
-   builder.addCase(getMyDraftThunk.fulfilled, (state, action) => {
-  const draft = action.payload?.data;
-  if (!draft) return;
+    builder.addCase(getMyDraftThunk.fulfilled, (state, action) => {
+      const draft = action.payload?.data;
+      if (!draft) return;
 
-  // draft id
-  state.draftId = draft._id;
+      // draft id
+      state.draftId = draft._id;
 
-  // resume step
-  state.currentStep = draft.completion?.step ?? 1;
+      // resume step
+      state.currentStep = draft.completion?.step ?? 1;
 
-    state.progressPercent = draft.completion?.percent ?? 0;
+      state.progressPercent = draft.completion?.percent ?? 0;
 
+      // ✅ FIX: detect correct category
+      const category = detectCategoryFromDraft(draft, state.propertyType);
+      state.propertyType = category;
 
-  // ✅ FIX: detect correct category
-  const category = detectCategoryFromDraft(draft);
-  state.propertyType = category;
+      // base (shared fields)
+      state.base = {
+        ...state.base,
+        listingType: draft.listingType,
+        city: draft.city,
+        buildingName: draft.buildingName,
+        locality: draft.locality,
+        location: draft.location,
+        address: draft.address,
+        pincode: draft.pincode,
+        state: draft.state,
+      };
 
-  // base (shared fields)
-  state.base = {
-    ...state.base,
-    listingType: draft.listingType,
-    city: draft.city,
-    buildingName: draft.buildingName,
-    locality: draft.locality,
-    location: draft.location,
-    address: draft.address,
-    pincode: draft.pincode,
-    state: draft.state,
-  };
+      // category-specific data
+      if (category === "residential") {
+        state.residential = {
+          ...state.residential,
+          builtUpArea: draft.builtUpArea,
+          carpetArea: draft.carpetArea,
+          facing: typeof draft.facing === "string"
+            ? draft.facing.toLowerCase()
+            : draft.facing,
+          parkingDetails: {
+            twoWheeler: draft.parkingDetails?.twoWheeler ?? 0,
+            fourWheeler: draft.parkingDetails?.fourWheeler ?? 0,
+          },
+          parkingType: draft.parkingType, // ✅ ADD THIS
+          amenities: draft.amenities ?? [],
+          bedrooms: draft.bedrooms,
+          floorNumber: draft.floorNumber,
+          flooringType: draft.flooringType,
+          totalFloors: draft.totalFloors,
+          kitchenType: draft.kitchenType,
+          isModularKitchen: draft.isModularKitchen,
+          isPriceNegotiable: draft.isPriceNegotiable,
+          bathrooms: draft.bathrooms,
+          balconies: draft.balconies,
+          furnishing: draft.furnishing,
+          propertyType: draft.propertyType, // apartment
+          constructionStatus: draft.constructionStatus,
+          propertyAge: draft.propertyAge,
+          transactionType: draft.transactionType,
+          price: draft.price,
+          pricePerSqft: draft.pricePerSqft,
+          description: draft.description,
 
-  // category-specific data
-  if (category === "residential") {
-    state.residential = {
-       ...state.residential,
-      builtUpArea: draft.builtUpArea,
-      carpetArea: draft.carpetArea,
-      facing: draft.facing,
-       parkingDetails: {
-      twoWheeler: draft.parkingDetails?.twoWheeler ?? 0,
-      fourWheeler: draft.parkingDetails?.fourWheeler ?? 0,
-    },
-      parkingType: draft.parkingType, // ✅ ADD THIS
-      amenities: draft.amenities ?? [],
-      bedrooms: draft.bedrooms,
-      floorNumber: draft.floorNumber,
-      flooringType: draft.flooringType,
-      totalFloors: draft.totalFloors,
-      kitchenType: draft.kitchenType,
-      isModularKitchen: draft.isModularKitchen,
-      isPriceNegotiable: draft.isPriceNegotiable,
-      bathrooms: draft.bathrooms,
-      balconies: draft.balconies,
-      furnishing: draft.furnishing,
-      propertyType: draft.propertyType, // apartment
-      constructionStatus: draft.constructionStatus,
-      propertyAge: draft.propertyAge,
-      transactionType: draft.transactionType,
-      price: draft.price,
-      pricePerSqft: draft.pricePerSqft,
-      description:draft.description,
+          gallery: Array.isArray(draft.gallery)
+            ? draft.gallery.map((img: any) => ({
+                url: img.url,
+                key: img.key,
+                filename: img.filename,
+                order: img.order ?? 0,
+                source: "server", // 🔑 mark as backend image
+              }))
+            : [],
+        };
+      }
 
-       gallery: Array.isArray(draft.gallery)
-      ? draft.gallery.map((img: any) => ({
-          url: img.url,
-          key: img.key,
-          filename: img.filename,
-          order: img.order ?? 0,
-          source: "server", // 🔑 mark as backend image
-        }))
-      : [],
-    };
-  }
+      if (category === "commercial") {
+        state.commercial = {
+          propertyType: draft.propertyType,
+          furnishing: draft.furnishedStatus,
+          price: draft.price,
+          commercialSubType: draft.propertySubType,
+          transactionType: draft.transactionType,
+          constructionStatus: draft.constructionStatus,
+          carpetArea: draft.carpetArea,
+          builtUpArea: draft.builtUpArea,
+          floorNumber: draft.floorNumber,
+          totalFloors: draft.totalFloors,
+          pantry: draft.pantry,
+          powerCapacity: draft.powerCapacity,
+          parkingDetails: {
+            twoWheeler: draft.parkingDetails?.twoWheeler ?? 0,
+            fourWheeler: draft.parkingDetails?.fourWheeler ?? 0,
+          },
+          fireSafety: draft.fireSafety,
+          flooringType: draft.flooringType,
+          wallFinishStatus: draft.wallFinishStatus,
+          tenantAvailable: draft.tenantAvailable,
+          banksApproved: draft.banksApproved,
+          isPriceNegotiable: draft.isPriceNegotiable,
+          verifiedProperties: draft.verifiedProperties,
+          description: draft.description,
+          gallery: Array.isArray(draft.gallery)
+            ? draft.gallery.map((img: any) => ({
+                url: img.url,
+                key: img.key,
+                filename: img.filename,
+                order: img.order ?? 0,
+                source: "server", // 🔑 mark as backend image
+              }))
+            : [],
+        };
+      }
 
-  if (category === "commercial") {
-    state.commercial = {
-      propertyType: draft.propertyType,
-      furnishing: draft.furnishing,
-      price: draft.price,
-      commercialSubType: draft.commercialSubType,
-      transactionType: draft.transactionType,
-      constructionStatus: draft.constructionStatus,
-      carpetArea: draft.carpetArea,
-      builtUpArea: draft.builtUpArea,
-      floorNumber: draft.floorNumber,
-      totalFloors: draft.totalFloors,
-      furnishingStatus: draft.furnishingStatus,
-      pantry: draft.pantry,
-      powerCapacity: draft.powerCapacity,
-      parking: draft.parking,
-      fireSafety: draft.fireSafety,
-      flooringType: draft.flooringType,
-      wallFinish: draft.wallFinish,
-      tenantAvailable: draft.tenantAvailable,
-      banksApproved: draft.banksApproved,
-      isPriceNegotiable: draft.isPriceNegotiable,
-      verifiedProperties: draft.verifiedProperties,
-        description:draft.description,
-        gallery: Array.isArray(draft.gallery)
-      ? draft.gallery.map((img: any) => ({
-          url: img.url,
-          key: img.key,
-          filename: img.filename,
-          order: img.order ?? 0,
-          source: "server", // 🔑 mark as backend image
+      if (category === "land") {
+        state.land = {
+          propertyType: draft.propertyType,
+          landSubType: draft.propertySubType,
+          price: draft.price,
+          dimensions: draft.dimensions,
+          plotArea: draft.plotArea,
+          plotAreaUnit: draft.plotAreaUnit,
+          roadWidthFt: draft.roadWidthFt,
+          facing: draft.facing,
+          cornerPlot: draft.cornerPlot,
+          readyToConstruct: draft.readyToConstruct,
+          waterConnection: draft.waterConnection,
+          electricityConnection: draft.electricityConnection,
+          approvedBy: draft.approvedBy,
+          landUseZone: draft.landUseZone,
+          banksApproved: draft.banksApproved,
+          isPriceNegotiable: draft.isPriceNegotiable,
+          description: draft.description,
+          verifiedProperties: draft.verifiedProperties,
+          gallery: Array.isArray(draft.gallery)
+            ? draft.gallery.map((img: any) => ({
+                url: img.url,
+                key: img.key,
+                filename: img.filename,
+                order: img.order ?? 0,
+                source: "server", // 🔑 mark as backend image
+              }))
+            : [],
+        };
+      }
 
-    }))
-      : [],
-    };
-  }
+      if (category === "agricultural") {
+        state.agricultural = {
+          propertyType: draft.propertyType,
+          agriculturalSubType: draft.propertySubType,
 
-  if (category === "land") {
-    state.land = {
-      landSubType: draft.propertyType,
-      price: draft.price,
-      landArea: draft.landArea,
-      roadWidth: draft.roadWidth,
-      facing: draft.facing,
-      cornerPlot: draft.cornerPlot,
-      readyToConstruct: draft.readyToConstruct,
-      waterConnection: draft.waterConnection,
-      electricityConnection: draft.electricityConnection,
-      approvedBy: draft.approvedBy,
-      landUseZone: draft.landUseZone,
-      banksApproved: draft.banksApproved,
-        isPriceNegotiable: draft.isPriceNegotiable,
-          description:draft.description,
-      verifiedProperties: draft.verifiedProperties,
-        gallery: Array.isArray(draft.gallery)
-      ? draft.gallery.map((img: any) => ({
-          url: img.url,
-          key: img.key,
-          filename: img.filename,
-          order: img.order ?? 0,
-          source: "server", // 🔑 mark as backend image
-        }))
-      : [],
-    };
-  }
+          // ✅ actual agri fields
+          boundaryWall: draft.boundaryWall,
+          soilType: draft.soilType,
+          irrigationType: draft.irrigationType,
+          currentCrop: draft.currentCrop,
+          landName: draft.landName,
+          landShape: draft.landShape,
 
-  if (category === "agricultural") {
-    state.agricultural = {
-      agriculturalSubType: draft.propertyType,
-      price: draft.price,
-      landArea: draft.landArea,
-      roadWidth: draft.roadWidth,
-      facing: draft.facing,
-      cornerPlot: draft.cornerPlot,
-      readyToConstruct: draft.readyToConstruct,
-      waterConnection: draft.waterConnection,
-      electricityConnection: draft.electricityConnection,
-      approvedBy: draft.approvedBy,
-      landUseZone: draft.landUseZone,
-      banksApproved: draft.banksApproved,
-      isPriceNegotiable: draft.isPriceNegotiable,
-      verifiedProperties: draft.verifiedProperties,
-        description:draft.description,
-        gallery: Array.isArray(draft.gallery)
-      ? draft.gallery.map((img: any) => ({
-          url: img.url,
-          key: img.key,
-          filename: img.filename,
-          order: img.order ?? 0,
-          source: "server", // 🔑 mark as backend image
-      }))
-      : [],
-    };
-  }
-});
+          numberOfBorewells: draft.numberOfBorewells,
+          borewellDetails: draft.borewellDetails,
 
+          waterSource: draft.waterSource,
+          accessRoadType: draft.accessRoadType,
+          statePurchaseRestrictions: draft.statePurchaseRestrictions,
+
+          electricityConnection: draft.electricityConnection,
+
+          // area & road (OBJECTS, not numbers)
+          totalArea: draft.totalArea,
+          roadWidth: draft.roadWidth,
+
+          price: draft.price,
+          isPriceNegotiable: draft.isPriceNegotiable,
+          description: draft.description,
+
+          gallery: Array.isArray(draft.gallery)
+            ? draft.gallery.map((img: any) => ({
+                url: img.url,
+                key: img.key,
+                filename: img.filename,
+                order: img.order ?? 0,
+                source: "server",
+              }))
+            : [],
+        };
+      }
+    });
 
     /* =========================
        CREATE DRAFT
@@ -304,8 +329,7 @@ const postPropertySlice = createSlice({
       if (!draft) return;
 
       state.draftId = draft._id;
-      state.propertyType =
-        detectCategoryFromDraft(draft) ?? state.propertyType;
+      state.propertyType = detectCategoryFromDraft(draft, state.propertyType);
       state.currentStep = 1;
     });
   },

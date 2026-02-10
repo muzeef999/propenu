@@ -4,14 +4,12 @@ import CounterField from "@/ui/CounterField";
 import InputField from "@/ui/InputField";
 import TextArea from "@/ui/TextArae";
 import { useAppDispatch } from "@/Redux/store";
-import InputWithUnit from "@/ui/InputwithUnit";
 import Dropdownui from "@/ui/DropDownUI";
 import ToggleSwitch from "@/ui/ToggleSwitch";
 import { submitDetailsThunk } from "@/Redux/thunks/submitPropertyApi";
 import FileUpload, { UploadedFile } from "@/ui/FileUpload";
-import { setFiles } from "@/lib/fileStore";
 import { setFileStoreFiles } from "@/utilies/fileStore";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { validateAgriculturalProfile } from "@/zod/profileZods/agriculturalZod";
@@ -59,7 +57,16 @@ const AgriculturalProfile = () => {
   const [showErrors, setShowErrors] = useState(false);
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const router = useRouter();
-  const validationResult = validateAgriculturalProfile(agricultural, files.map((f) => f.file),
+  const extractFiles = (files: UploadedFile[]): File[] =>
+    files
+      .map((f) => f.file)
+      .filter((file): file is File => file instanceof File);
+
+  const serverImageCount = agricultural.gallery?.length ?? 0;
+  const localImageCount = files.filter((f) => f.source === "local").length;
+  const validationResult = validateAgriculturalProfile(
+    agricultural,
+    extractFiles(files),
   );
   const formattedErrors =
     showErrors && !validationResult.success
@@ -68,7 +75,21 @@ const AgriculturalProfile = () => {
 
   const fieldErrors = formattedErrors;
   const borewellErrors = formattedErrors?.borewellDetails;
+  const validUploads = files.filter(
+    (f): f is UploadedFile & { file: File } => f.file instanceof File
+  )
+  useEffect(() => {
+    if (!agricultural?.gallery || agricultural.gallery.length === 0) return;
+    if (files.length > 0) return; // don't overwrite user-selected files
 
+    const serverFiles: UploadedFile[] = agricultural.gallery.map((img: any) => ({
+      preview: img.url,
+      source: "server",
+      name: img.filename,
+    }));
+
+    setFiles(serverFiles);
+  }, [agricultural?.gallery, files.length]);
 
 
   return (
@@ -490,23 +511,31 @@ const AgriculturalProfile = () => {
           value={files}
           onChange={(newFiles) => {
             setFiles(newFiles);
-            // persist only metadata in Redux (serializable)
+
             dispatch(
               setBaseField({
                 key: "galleryFiles",
-                value: newFiles.map((f) => ({ filename: f.file.name })),
+                value: newFiles.map((f) => ({
+                  name: f.file?.name ?? f.name ?? "",
+                  source: f.source,     // "local" | "server"
+                  preview: f.preview,   // URL / objectURL
+                })),
               }),
             );
-            // store actual File objects in in-memory file store
-            setFileStoreFiles(
-              "postProperty",
-              newFiles.map((f) => f.file),
-            );
+
+            const localFiles = newFiles
+              .filter((f) => f.source === "local")
+              .map((f) => f.file)
+              .filter((file): file is File => Boolean(file));
+
+            setFileStoreFiles("postProperty", localFiles);
           }}
           accept="image/*"
           maxFiles={5}
           maxSizeMB={5}
-          error={fieldErrors?.images?._errors?.[0]} />
+          error={fieldErrors?.images?._errors?.[0]}
+        />
+
       </div>
 
       <div
@@ -586,10 +615,13 @@ const AgriculturalProfile = () => {
               : [],
           };
 
-          const result = validateAgriculturalProfile(
-            payload,
-            files.map((f) => f.file),
-          );
+          if (serverImageCount + localImageCount < 5) {
+            toast.error("Upload at least 5 images");
+            return;
+          }
+
+          const result = validateAgriculturalProfile(payload, extractFiles(files));
+
 
           if (!result.success) {
             const flattened = result.error.flatten();

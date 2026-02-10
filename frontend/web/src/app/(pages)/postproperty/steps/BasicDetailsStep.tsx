@@ -67,11 +67,11 @@ export default function BasicDetailsStep() {
     setIsLoggedIn(!!token);
   }, []);
 
-  useEffect(() => {
-    if (!propertyType) {
-      dispatch(setPropertyType("residential"));
-    }
-  }, [propertyType, dispatch]);
+  // useEffect(() => {
+  //   if (!propertyType) {
+  //     dispatch(setPropertyType("residential"));
+  //   }
+  // }, [propertyType, dispatch]);
 
   useEffect(() => {
     if (propertyType === "residential") {
@@ -110,17 +110,17 @@ export default function BasicDetailsStep() {
 
   const validationResult = propertyType
     ? validateBasicDetails(
-        {
-          ...base,
-          ...profileData,
-          propertyType: profileData?.propertyType || base.propertyType,
-        },
-        propertyType,
-      )
+      {
+        ...base,
+        ...profileData,
+        propertyType: profileData?.propertyType || base.propertyType,
+      },
+      propertyType,
+    )
     : {
-        success: false,
-        error: null,
-      };
+      success: false,
+      error: null,
+    };
 
   const isFormValid = validationResult?.success === true;
 
@@ -147,13 +147,13 @@ export default function BasicDetailsStep() {
   const selectedCommercialType = commercial.propertyType;
   const commercialSubTypes =
     propertyType === "commercial" &&
-    selectedCommercialType &&
-    COMMERCIAL_SUBTYPE_MAP[
+      selectedCommercialType &&
+      COMMERCIAL_SUBTYPE_MAP[
       selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
-    ]
+      ]
       ? (COMMERCIAL_SUBTYPE_MAP[
-          selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
-        ] as readonly string[])
+        selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
+      ] as readonly string[])
       : [];
 
   const contactLabel =
@@ -174,9 +174,9 @@ export default function BasicDetailsStep() {
   // ✅ map redux string → dropdown option
   const facingOption = residential.facing
     ? {
-        label: residential.facing.toUpperCase(),
-        value: residential.facing,
-      }
+      label: residential.facing.toUpperCase(),
+      value: residential.facing,
+    }
     : null;
 
   return (
@@ -268,11 +268,10 @@ export default function BasicDetailsStep() {
                         }
                       }}
                       className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition-all
-            ${
-              isSelected
-                ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500"
-                : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-            }
+            ${isSelected
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500"
+                          : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                        }
           `}
                     >
                       <span className="text-2xl">{sub.icon}</span>
@@ -371,11 +370,10 @@ export default function BasicDetailsStep() {
                               )
                             }
                             className={`px-5 py-2 rounded-md text-sm border transition
-                  ${
-                    active
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                  }
+                  ${active
+                                ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                                : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                              }
                 `}
                           >
                             {item.label}
@@ -391,26 +389,27 @@ export default function BasicDetailsStep() {
                   </div>
 
                   {/* Facing */}
-  <Dropdownui
-  label="Facing"
-  value={residential.facing ?? null}
-  onChange={(value: string) => {
-    dispatch(
-      setProfileField({
-        propertyType: "residential",
-        key: "facing",
-        value, // "North" | "South" | ...
-      })
-    );
-    setShowPricing(true);
-  }}
-  options={FACING_TYPES.map((dir) => ({
-    label: dir, // UI text
-    value: dir, // stored value
-  }))}
-  placeholder="Select"
-  error={fieldErrors.facing?.[0]}
-/>
+                  <Dropdownui
+                    label="Facing"
+                    value={residential.facing ?? null}
+                    onChange={(value: string) => {
+                      dispatch(
+                        setProfileField({
+                          propertyType: "residential",
+                          key: "facing",
+                          value, // already lowercase
+                        })
+                      );
+                      setShowPricing(true);
+                    }}
+                    options={FACING_TYPES.map((dir) => ({
+                      label: dir,              // "North"
+                      value: dir.toLowerCase() // ✅ "north"
+                    }))}
+                    placeholder="Select"
+                    error={fieldErrors.facing?.[0]}
+                  />
+
 
 
 
@@ -450,11 +449,10 @@ export default function BasicDetailsStep() {
                         }),
                       )
                     }
-                    className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
-                      isSelected
-                        ? "border-green-500 bg-green-50 text-green-600"
-                        : "border-gray-300 text-gray-700"
-                    }`}
+                    className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
+                      ? "border-green-500 bg-green-50 text-green-600"
+                      : "border-gray-300 text-gray-700"
+                      }`}
                   >
                     {subType.replace("-", " ").toUpperCase()}
                   </button>
@@ -509,61 +507,61 @@ export default function BasicDetailsStep() {
           {(commercial.cabins > 0 ||
             commercial.seats > 0 ||
             (showErrors && fieldErrors.wallFinishStatus)) && (
-            <div className="grid grid-cols-1 md:grid-cols-[1.2fr_145px] gap-1 items-start">
-              {/* Furnishing */}
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700">Furnishing</p>
+              <div className="grid grid-cols-1 md:grid-cols-[1.2fr_145px] gap-1 items-start">
+                {/* Furnishing */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-700">Furnishing</p>
 
-                <div className="flex flex-wrap gap-3">
-                  {[
-                    { label: "Furnished", value: "fully-furnished" },
-                    { label: "Semi furnished", value: "semi-furnished" },
-                    { label: "Un-furnished", value: "unfurnished" },
-                  ].map((item) => (
-                    <SelectableButton
-                      key={item.value}
-                      label={item.label}
-                      active={commercial.furnishing === item.value}
-                      onClick={() =>
-                        dispatch(
-                          setProfileField({
-                            propertyType: "commercial",
-                            key: "furnishing",
-                            value: item.value,
-                          }),
-                        )
-                      }
-                    />
-                  ))}
+                  <div className="flex flex-wrap gap-3">
+                    {[
+                      { label: "Furnished", value: "fully-furnished" },
+                      { label: "Semi furnished", value: "semi-furnished" },
+                      { label: "Un-furnished", value: "unfurnished" },
+                    ].map((item) => (
+                      <SelectableButton
+                        key={item.value}
+                        label={item.label}
+                        active={commercial.furnishing === item.value}
+                        onClick={() =>
+                          dispatch(
+                            setProfileField({
+                              propertyType: "commercial",
+                              key: "furnishing",
+                              value: item.value,
+                            }),
+                          )
+                        }
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Wall Finish */}
-              <Dropdownui
-                label="Wall Finish"
-                value={
-                  WALL_FINISH_STATUS.find(
-                    (t) => t === commercial.wallFinishStatus,
-                  ) || null
-                }
-                onChange={(value) =>
-                  dispatch(
-                    setProfileField({
-                      propertyType: "commercial",
-                      key: "wallFinishStatus",
-                      value,
-                    }),
-                  )
-                }
-                options={WALL_FINISH_STATUS.map((t) => ({
-                  value: t,
-                  label: t.replace(/-/g, " "),
-                }))}
-                placeholder="Select"
-                error={fieldErrors.wallFinishStatus?.[0]}
-              />
-            </div>
-          )}
+                {/* Wall Finish */}
+                <Dropdownui
+                  label="Wall Finish"
+                  value={
+                    WALL_FINISH_STATUS.find(
+                      (t) => t === commercial.wallFinishStatus,
+                    ) || null
+                  }
+                  onChange={(value) =>
+                    dispatch(
+                      setProfileField({
+                        propertyType: "commercial",
+                        key: "wallFinishStatus",
+                        value,
+                      }),
+                    )
+                  }
+                  options={WALL_FINISH_STATUS.map((t) => ({
+                    value: t,
+                    label: t.replace(/-/g, " "),
+                  }))}
+                  placeholder="Select"
+                  error={fieldErrors.wallFinishStatus?.[0]}
+                />
+              </div>
+            )}
 
           {/* Price Details - Show only if Wall Finish is selected */}
           {commercial.wallFinishStatus && (
@@ -600,11 +598,10 @@ export default function BasicDetailsStep() {
                     )
                   }
                   className={`px-4 py-2 rounded-md border text-sm transition
-              ${
-                isSelected
-                  ? "border-green-500 bg-green-50 text-green-600"
-                  : "border-gray-300 text-gray-700 hover:bg-gray-50"
-              }`}
+              ${isSelected
+                      ? "border-green-500 bg-green-50 text-green-600"
+                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                    }`}
                 >
                   {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
@@ -709,11 +706,10 @@ export default function BasicDetailsStep() {
                       }),
                     );
                   }}
-                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
-                    isSelected
-                      ? "border-green-500 bg-green-50 text-green-600"
-                      : "border-gray-300 text-gray-700"
-                  }`}
+                  className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${isSelected
+                    ? "border-green-500 bg-green-50 text-green-600"
+                    : "border-gray-300 text-gray-700"
+                    }`}
                 >
                   {subType.replace(/-/g, " ").toUpperCase()}
                 </button>
@@ -794,11 +790,10 @@ export default function BasicDetailsStep() {
                         }
                       }}
                       className={`px-6 py-2 rounded-md text-sm border transition
-                ${
-                  active
-                    ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                }`}
+                ${active
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                          : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                        }`}
                     >
                       {item.label}
                     </button>
@@ -841,11 +836,10 @@ export default function BasicDetailsStep() {
                           )
                         }
                         className={`px-6 py-2 rounded-md text-sm border transition
-                  ${
-                    active
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                  }`}
+                  ${active
+                            ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                            : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                          }`}
                       >
                         {item.label}
                       </button>
@@ -899,11 +893,10 @@ export default function BasicDetailsStep() {
                         )
                       }
                       className={`px-6 py-2 rounded-md text-sm border transition
-                ${
-                  active
-                    ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                }`}
+                ${active
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                          : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                        }`}
                     >
                       {item.label}
                     </button>
@@ -983,13 +976,38 @@ export default function BasicDetailsStep() {
                   ? land
                   : agricultural;
 
+          const basicPayload: Record<string, any> = {
+            ...base,
+            ...profileData,
+          };
+
+          if (propertyType === "commercial" && profileData.commercialSubType) {
+            basicPayload.propertySubType = profileData.commercialSubType;
+            delete basicPayload.commercialSubType;
+          }
+
+          if (propertyType === "land" && profileData.landSubType) {
+            basicPayload.propertySubType =
+              profileData.landSubType === "corner-plot"
+                ? "corner"
+                : profileData.landSubType;
+            delete basicPayload.landSubType;
+          }
+
+          if (
+            propertyType === "agricultural" &&
+            profileData.agriculturalSubType
+          ) {
+            basicPayload.propertySubType = profileData.agriculturalSubType;
+            delete basicPayload.agriculturalSubType;
+          }
+
           dispatch(
             submitBasicThunk({
               category: propertyType,
               id: draftId,
               data: {
-                ...base,
-                ...profileData,
+                ...basicPayload,
               },
             }),
           )

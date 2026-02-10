@@ -4,22 +4,16 @@ import CounterField from "@/ui/CounterField";
 import InputField from "@/ui/InputField";
 import AmenitiesSelect from "./AmenitiesSelect";
 import { AMENITIES } from "../constants/amenities";
-import IconCardSelect from "./IconCardSelect";
-import { COMMERCIAL_PROPERTY_OPTIONS } from "../constants/subTypes";
 import TextArea from "@/ui/TextArae";
 import { useAppDispatch } from "@/Redux/store";
-import { FACING_TYPES } from "./ResidentialProfile";
 import Dropdownui from "@/ui/DropDownUI";
 import Toggle from "@/ui/ToggleSwitch";
 import { useEffect, useState } from "react";
-import SelectableButton from "@/ui/SelectableButton";
 import { submitDetailsThunk } from "@/Redux/thunks/submitPropertyApi";
 import { validateCommercialProfile } from "@/zod/profileZods/commercialProfileZod";
 import { toast } from "sonner";
 import Router from "next/router";
-import confetti from "canvas-confetti";
 import FileUpload, { UploadedFile } from "@/ui/FileUpload";
-import { setFiles } from "@/lib/fileStore";
 import { setFileStoreFiles } from "@/utilies/fileStore";
 
 export const TRANSACTION_TYPES = [
@@ -58,7 +52,32 @@ const CommercialProfile = () => {
 
   const [showErrors, setShowErrors] = useState(false);
 
-  const validationResult = validateCommercialProfile(commercial);
+  const localFiles = files
+    .map((f) => f.file)
+    .filter((file): file is File => Boolean(file));
+  const serverImageCount = commercial.gallery?.length ?? 0;
+  const localImageCount = files.filter((f) => f.source === "local").length;
+
+  if (serverImageCount + localImageCount < 5) {
+    toast.error("Upload at least 5 images");
+    return;
+  }
+
+  useEffect(() => {
+    if (!commercial?.gallery || commercial.gallery.length === 0) return;
+    if (files.length > 0) return; // don't overwrite user changes
+
+    const serverFiles: UploadedFile[] = commercial.gallery.map((img: any) => ({
+      preview: img.url,
+      source: "server",
+      name: img.filename,
+    }));
+
+    setFiles(serverFiles);
+  }, [commercial?.gallery]);
+
+
+  const validationResult = validateCommercialProfile(commercial, localFiles);
 
   const fieldErrors =
     showErrors && !validationResult.success
@@ -505,16 +524,14 @@ const CommercialProfile = () => {
               <div
                 key={item.key}
                 className={`flex items-center justify-between rounded-md border p-3 shadow-sm transition
-            ${
-              enabled
-                ? "border-green-500 bg-green-50 shadow-sm"
-                : "border-gray-300 bg-white"
-            }`}
+            ${enabled
+                    ? "border-green-500 bg-green-50 shadow-sm"
+                    : "border-gray-300 bg-white"
+                  }`}
               >
                 <span
-                  className={`text-sm font-medium ${
-                    enabled ? "text-green-700" : "text-gray-700"
-                  }`}
+                  className={`text-sm font-medium ${enabled ? "text-green-700" : "text-gray-700"
+                    }`}
                 >
                   {item.label}
                 </span>
@@ -542,25 +559,35 @@ const CommercialProfile = () => {
           label="Property Images"
           value={files}
           onChange={(newFiles) => {
+            // 1️⃣ Update UI state
             setFiles(newFiles);
-            // persist only metadata in Redux (serializable)
+
+            // 2️⃣ Store SERIALIZABLE metadata in Redux
             dispatch(
               setBaseField({
                 key: "galleryFiles",
-                value: newFiles.map((f) => ({ filename: f.file.name })),
+                value: newFiles.map((f) => ({
+                  name: f.file?.name ?? f.name ?? "",
+                  source: f.source,      // "local" | "server"
+                  preview: f.preview,    // URL / objectURL
+                })),
               }),
             );
-            // store actual File objects in in-memory file store
-            setFileStoreFiles(
-              "postProperty",
-              newFiles.map((f) => f.file),
-            );
+
+            // 3️⃣ Store ONLY local File objects in memory store
+            const localFiles = newFiles
+              .filter((f) => f.source === "local")
+              .map((f) => f.file)
+              .filter((file): file is File => Boolean(file));
+
+            setFileStoreFiles("postProperty", localFiles);
           }}
           accept="image/*"
           maxFiles={5}
           maxSizeMB={5}
           error={fieldErrors?.images?.[0]}
         />
+
       </div>
 
       <div
@@ -628,17 +655,17 @@ const CommercialProfile = () => {
             amenities: Array.isArray(commercial.amenities)
               ? commercial.amenities.map((a: any) => a?.title).filter(Boolean)
               : [],
-            images:files.map((f) => f.file),
+            images: localFiles,
           };
 
-          const result = validateCommercialProfile(payload);
+          const result = validateCommercialProfile(payload, payload.images);
 
           if (!result.success) {
             const flattened = result.error.flatten();
 
             console.error("❌ Commercial Profile Validation Failed");
             console.table(flattened.fieldErrors);
-           
+
             toast.error("Please fix the highlighted errors");
             return;
           }
@@ -653,8 +680,8 @@ const CommercialProfile = () => {
           )
             .unwrap()
             .then((response) => {
-                    dispatch(nextStep());
-                  })
+              dispatch(nextStep());
+            })
             .catch((error: any) => {
               console.log("🔥 FULL ERROR FROM API:", error);
 

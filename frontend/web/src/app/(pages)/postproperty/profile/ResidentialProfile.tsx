@@ -4,11 +4,9 @@ import {
   nextStep,
   setBaseField,
   setProfileField,
-  setStep,
 } from "@/Redux/slice/postPropertySlice";
 import Dropdownui from "@/ui/DropDownUI";
 import CounterField from "@/ui/CounterField";
-import InputField from "@/ui/InputField";
 import AmenitiesSelect from "./AmenitiesSelect";
 import { AMENITIES } from "../constants/amenities";
 import TextArea from "@/ui/TextArae";
@@ -16,7 +14,6 @@ import { useAppDispatch } from "@/Redux/store";
 import Toggle from "@/ui/ToggleSwitch";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import confetti from "canvas-confetti";
 import { submitDetailsThunk } from "@/Redux/thunks/submitPropertyApi";
 import FileUpload, { UploadedFile } from "@/ui/FileUpload";
 import { validateResidentialProfile } from "@/zod/profileZods/residentialProfileZod";

@@ -71,14 +71,32 @@ const LandProfile = () => {
       );
     }
   }, [land?.dimensions, dispatch]);
+  const localFiles = files
+    .map((f) => f.file)
+    .filter((file): file is File => Boolean(file));
+
   const validationResult = validateLandProfile(
     land,
-    files.map((f) => f.file),
+    localFiles,
+    land.gallery?.length ?? 0,
   );
   const fieldErrors =
     showErrors && !validationResult.success
       ? validationResult.error.flatten().fieldErrors
       : {};
+
+  useEffect(() => {
+    if (!land?.gallery || land.gallery.length === 0) return;
+    if (files.length > 0) return;
+
+    const serverFiles: UploadedFile[] = land.gallery.map((img: any) => ({
+      preview: img.url,
+      source: "server",
+      name: img.filename,
+    }));
+
+    setFiles(serverFiles);
+  }, [land?.gallery, files.length]);
 
   return (
     <div className="space-y-8">
@@ -288,13 +306,20 @@ const LandProfile = () => {
               dispatch(
                 setBaseField({
                   key: "galleryFiles",
-                  value: newFiles.map((f) => ({ filename: f.file.name })),
+                  value: newFiles.map((f) => ({
+                    name: f.file?.name ?? f.name ?? "",
+                    source: f.source,
+                    preview: f.preview,
+                  })),
                 }),
               );
               // store actual File objects in in-memory file store
               setFileStoreFiles(
                 "postProperty",
-                newFiles.map((f) => f.file),
+                newFiles
+                  .filter((f) => f.source === "local")
+                  .map((f) => f.file)
+                  .filter((file): file is File => Boolean(file)),
               );
             }}
             accept="image/*"
@@ -369,7 +394,18 @@ const LandProfile = () => {
               : [],
           };
 
-          const result = validateLandProfile(payload, files.map((f) => f.file));
+          const serverImageCount = land.gallery?.length ?? 0;
+          const localImageCount = files.filter((f) => f.source === "local").length;
+          if (serverImageCount + localImageCount < 5) {
+            toast.error("Upload at least 5 images");
+            return;
+          }
+
+          const result = validateLandProfile(
+            payload,
+            localFiles,
+            land.gallery?.length ?? 0,
+          );
 
           if (!result.success) {
             const flattened = result.error.flatten();
