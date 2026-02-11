@@ -114,7 +114,6 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
     },
   });
 
-  console.log("project data in card:", p);
 
   return (
     <div
@@ -280,22 +279,22 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
       {/* Right: price card */}
       <aside
         className={`rounded-xl ${vertical
-            ? "w-full px-3 py-2 flex items-center justify-between gap-3"
-            : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:mt-0"
+          ? "w-full px-3 py-2 flex items-center justify-between gap-3"
+          : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:mt-0"
           }`}
         style={{ backgroundColor: bgPriceColor }}
       >
         {/* PRICE */}
         <div
           className={`${vertical
-              ? "flex flex-col"
-              : "flex flex-col md:items-center md:text-center"
+            ? "flex flex-col"
+            : "flex flex-col md:items-center md:text-center"
             }`}
         >
           <div
             className={`text-green-700 font-semibold ${vertical
-                ? "text-lg leading-tight"
-                : "text-lg leading-tight md:text-2xl"
+              ? "text-lg leading-tight"
+              : "text-lg leading-tight md:text-2xl"
               }`}
           >
             {formatINR(p?.price)}
@@ -307,18 +306,19 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
         {/* BUTTON */}
         <div
           className={`${vertical
-              ? "shrink-0"
-              : "shrink-0 md:w-full md:mt-4 justify-center flex"
+            ? "shrink-0"
+            : "shrink-0 md:w-full md:mt-4 justify-center flex"
             }`}
         >
           <ContactOwnerButton
             projectId={p.id}
             propertyType="landplots"
             listingType={p?.listingType}
+            listingSource={p?.listingSource}
 
             className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${vertical
-                ? "px-4 py-1.5 text-sm"
-                : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base "
+              ? "px-4 py-1.5 text-sm"
+              : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base "
               }`}
           />
         </div>

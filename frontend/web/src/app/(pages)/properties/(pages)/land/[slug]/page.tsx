@@ -204,6 +204,7 @@ export default async function Page({ params }: PageProps) {
                           projectId={project._id}
                           propertyType="landplots"
                           listingType={project.listingType}
+                          listingSource={project.listingSource}
                         />
                       </div>
                     </section>
@@ -252,7 +253,7 @@ export default async function Page({ params }: PageProps) {
                         More Similar Properties for you
                       </h2>
                       {project.relatedProjects &&
-                      project.relatedProjects.length > 0 ? (
+                        project.relatedProjects.length > 0 ? (
                         <RelatedLandCarousel
                           projects={project.relatedProjects}
                         />

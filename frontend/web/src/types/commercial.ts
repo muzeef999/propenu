@@ -52,7 +52,7 @@ export interface ICommercial {
   price?: number;
   city?: string;
   listingType?: string;
-  listingSource?: string;
+  listingSource?: "User" | "Agent" | "builder";
   furnishedStatus?: "unfurnished" | "semi-furnished" | "fully-furnished";
   powerBackup?: string;
   powerCapacityKw?: number;

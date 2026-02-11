@@ -241,6 +241,7 @@ export default async function Page({ params }: PageProps) {
                         <ContactOwnerButton
                           projectId={project._id}
                           propertyType="agriculturals"
+                          listingSource={project.listingSource}
                         />
                       </div>
                     </section>

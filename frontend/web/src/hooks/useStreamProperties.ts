@@ -7,6 +7,7 @@ import { SearchFilterParams } from "@/types/sharedTypes";
 export function useStreamProperties(params: SearchFilterParams) {
   const [items, setItems] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -14,10 +15,9 @@ export function useStreamProperties(params: SearchFilterParams) {
     async function start() {
       setLoading(true);
       setItems([]);
+      setTotal(null);
 
-
-
-      // 🔥 build query string from params
+      // ðŸ”¥ build query string from params
       const query = new URLSearchParams(
         Object.entries(params)
           .filter(([_, v]) => v !== undefined)
@@ -52,10 +52,17 @@ export function useStreamProperties(params: SearchFilterParams) {
           if (!line.trim()) continue;
 
           try {
-            const property = JSON.parse(line) as Property;
+            const parsed = JSON.parse(line) as any;
 
-            // ✅ append one property at a time
-            setItems(prev => [...prev, property]);
+            if (parsed && parsed.__meta) {
+              if (typeof parsed.__meta.total === "number") {
+                setTotal(parsed.__meta.total);
+              }
+              continue;
+            }
+
+            // âœ… append one property at a time
+            setItems(prev => [...prev, parsed as Property]);
           } catch (err) {
             console.error("Invalid JSON chunk", line);
           }
@@ -72,5 +79,5 @@ export function useStreamProperties(params: SearchFilterParams) {
     };
   }, [params]);
 
-  return { items, loading };
+  return { items, loading, total };
 }

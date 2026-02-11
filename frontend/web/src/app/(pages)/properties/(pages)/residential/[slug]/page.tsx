@@ -230,6 +230,7 @@ export default async function Page({ params }: PageProps) {
                           listingType={project.listingType}
                           projectId={project._id}
                           propertyType="residentials"
+                          listingSource={project.listingSource}
                         />
                       </div>
                     </section>
@@ -276,7 +277,7 @@ export default async function Page({ params }: PageProps) {
                       )}
                     </section>
 
-                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa] max-w-[940px] mx-auto">
+                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa] max-w-[940px]">
                       <h2 className="mb-1 text-xl font-semibold text-gray-900">
                         More Similar Properties for you
                       </h2>

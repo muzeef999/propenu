@@ -53,7 +53,7 @@ export interface ILand {
   gallery?: GalleryItem[];
   createdBy?: { name?: string; contact?: string; email?: string };
   pricePerSqft?: number;
-  listingSource?: string;
+  listingSource?: "User" | "Agent" | "builder";
   listingType?: 'sale' | 'rent' | 'lease';
   propertyType?: string;
   amenities?: string[];

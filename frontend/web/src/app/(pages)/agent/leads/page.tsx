@@ -43,11 +43,28 @@ const LeadsPage = () => {
 
     const properties = useMemo(() => {
         if (!propertiesData) return [];
-        return propertiesData[TAB_KEY_MAP[activeTab]] ?? [];
+
+        const allProperties = propertiesData[TAB_KEY_MAP[activeTab]] ?? [];
+
+        // ✅ Show only ACTIVE properties
+        return allProperties.filter(
+            (property: any) =>
+                property.status?.toLowerCase() === "active"
+        );
     }, [propertiesData, activeTab]);
 
+
     useEffect(() => {
-        if (properties.length && !selectedPropertyId) {
+        if (!properties.length) {
+            if (selectedPropertyId) setSelectedPropertyId(null);
+            return;
+        }
+
+        const isSelectedValid = properties.some(
+            (property: any) => property._id === selectedPropertyId,
+        );
+
+        if (!isSelectedValid) {
             setSelectedPropertyId(properties[0]._id);
         }
     }, [properties, selectedPropertyId]);
@@ -64,11 +81,16 @@ const LeadsPage = () => {
     }, [selectedPropertyId]);
 
     const filteredLeads = useMemo(() => {
-        const leads = Array.isArray(leadsData) ? leadsData : [];
+        const leadsArray = Array.isArray(leadsData)
+            ? leadsData
+            : Array.isArray((leadsData as any)?.data)
+                ? (leadsData as any).data
+                : [];
+
         if (activeStatus === "All") {
-            return leads;
+            return leadsArray;
         }
-        return leads.filter(
+        return leadsArray.filter(
             (lead: any) => lead.status?.toLowerCase() === activeStatus.toLowerCase(),
         );
     }, [leadsData, activeStatus]);
@@ -80,8 +102,7 @@ const LeadsPage = () => {
             </div>
         );
     }
-    console.log("properties", properties);
-
+    // console.log("leadsData", leadsData);
     return (
         <div className="space-y-6">
             {/* HEADER */}
@@ -105,7 +126,8 @@ const LeadsPage = () => {
             </div>
 
             {/* MAIN LAYOUT */}
-            <div className="grid grid-cols-12 gap-4">
+            <div className="">
+            <div className="grid grid-cols-12">
                 {/* LEFT – PROPERTY LIST */}
                 <div className="col-span-4 space-y-2">
                     {properties.map((property: any) => {
@@ -150,7 +172,14 @@ const LeadsPage = () => {
                 </div>
 
                 {/* RIGHT – LEADS */}
-                <div className="col-span-8 bg-green-50/40 rounded-lg p-4">
+                <div className="col-span-8 bg-green-50/60 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-xl font-semibold text-green-700">Leads</h2>
+                            <div className="h-1 w-10 rounded-full bg-green-500/70" />
+                        </div>
+                    </div>
+
                     {/* STATUS TABS */}
                     <div className="flex flex-wrap gap-2 mb-4">
                         {LEAD_STATUSES.map((status) => {
@@ -162,8 +191,8 @@ const LeadsPage = () => {
                                     onClick={() => setActiveStatus(status)}
                                     className={`px-3 py-1.5 rounded-md text-xs transition
           ${active
-                                            ? "bg-green-100 text-gray-600 font-medium"
-                                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                            ? "bg-green-100 text-gray-700 font-medium"
+                                            : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
                                         }
         `}
                                 >
@@ -187,32 +216,80 @@ const LeadsPage = () => {
                     )}
                 </div>
             </div>
+            </div>
         </div>
     );
 };
 
 /* ================= TABLE ================= */
 
-const LeadsTable = ({ leads }: any) => (
-    <div className="bg-white rounded-lg overflow-hidden">
-        <div className="grid grid-cols-4 px-4 py-3 text-xs font-semibold text-gray-500 border-b">
-            <span>Name</span>
-            <span>Date</span>
-            <span>Contact Number</span>
-            <span>Lead Status</span>
-        </div>
+const LeadsTable = ({ leads }: any) => {
+    const getStatusStyle = (status: string) => {
+        const s = status?.toLowerCase();
 
-        {leads.map((lead: any, idx: number) => (
-            <div key={idx} className="grid grid-cols-4 px-4 py-3 text-sm border-b">
-                <span>{lead.name}</span>
-                <span className="text-gray-500">
-                    {new Date(lead.createdAt).toLocaleDateString("en-IN")}
-                </span>
-                <span>{lead.phone}</span>
-                <span>{lead.status}</span>
+        if (s === "new")
+            return "bg-blue-50 text-blue-600 border-blue-200";
+
+        if (s === "contacted")
+            return "bg-yellow-50 text-yellow-600 border-yellow-200";
+
+        if (s === "follow-up")
+            return "bg-purple-50 text-purple-600 border-purple-200";
+
+        if (s === "site visit")
+            return "bg-indigo-50 text-indigo-600 border-indigo-200";
+
+        if (s === "closed")
+            return "bg-green-50 text-green-600 border-green-200";
+
+        if (s === "rejected")
+            return "bg-red-50 text-red-600 border-red-200";
+
+        return "bg-gray-50 text-gray-600 border-gray-200";
+    };
+
+    return (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            {/* Header */}
+            <div className="grid grid-cols-4 px-6 py-4 text-xs font-semibold text-gray-500 bg-gray-50 border-b">
+                <span>Name</span>
+                <span>Date</span>
+                <span>Contact Number</span>
+                <span>Status</span>
             </div>
-        ))}
-    </div>
-);
+
+            {/* Rows */}
+            {leads.map((lead: any, idx: number) => (
+                <div
+                    key={idx}
+                    className="grid grid-cols-4 px-6 py-4 text-sm border-b last:border-b-0 hover:bg-gray-50 transition"
+                >
+                    <div className="font-medium text-gray-800">
+                        {lead.name}
+                    </div>
+
+                    <div className="text-gray-500">
+                        {new Date(lead.createdAt).toLocaleDateString("en-IN")}
+                    </div>
+
+                    <div className="text-gray-600">
+                        {lead.phone}
+                    </div>
+
+                    <div>
+                        <span
+                            className={`px-2.5 py-1 text-xs rounded-full border font-medium ${getStatusStyle(
+                                lead.status
+                            )}`}
+                        >
+                            {lead.status}
+                        </span>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 
 export default LeadsPage;

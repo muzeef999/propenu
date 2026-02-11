@@ -38,7 +38,7 @@ export interface IAgricultural {
   slug?: string;
   soilType?: string;
   gallery?: GalleryItem[];
-  listingSource: string;
+  listingSource?: "User" | "Agent" | "builder";
   totalArea?: IUnitValue;
   address?: string;
   description?: string;

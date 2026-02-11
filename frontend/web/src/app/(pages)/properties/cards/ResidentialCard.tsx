@@ -332,6 +332,8 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
             projectId={p.id}
             propertyType="residentials"
             listingType={p?.listingType}
+            listingSource={p?.listingSource}
+
             className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${vertical
               ? "px-4 py-1.5 text-sm"
               : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base"

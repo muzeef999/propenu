@@ -314,6 +314,7 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
             projectId={p.id}
             propertyType="commercials"
             listingType={p?.listingType}
+            listingSource={p?.listingSource}
             className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${
               vertical
                 ? "px-4 py-1.5 text-sm"
