@@ -26,8 +26,11 @@ export default async function buildSearchCursor(payload: any) {
   }
 
   const pipeline = service.getPipeline(filter);
-
   pipeline.push({ $sort: { createdAt: -1 } });
 
   return service.model.aggregate(pipeline).cursor({ batchSize });
 }
+
+
+
+

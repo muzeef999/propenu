@@ -53,33 +53,29 @@ const streamSearchHandler: RequestHandler = createStreamingHandler(
     },
 
     // 🔹 Meta info (filter count, category validation)
-    initialMeta: (filters) => {
-      const actual = (filters as any)?.filter ?? filters ?? {};
-      const category = actual.category;
+    initialMeta: async (filters) => {
+  const actual = (filters as any)?.filter ?? filters ?? {};
+  const category = actual.category;
 
-      if (!category) {
-        throw new Error("Category filter is required for search");
-      }
+  if (!category) {
+    throw new Error("Category filter is required for search");
+  }
 
-      const filterBuilder = CATEGORY_SERVICE_MAP[category];
+  const service = CATEGORY_SERVICE_MAP[category];
+  if (!service) {
+    return { total: 0 };
+  }
 
-      if (!filterBuilder) {
-        return { filtersApplied: 0 };
-      }
+  const pipeline = service.getPipeline(actual);
 
-      const match = filterBuilder(actual, {});
-      const filtersApplied = countAppliedFilters(match);
+  const matchStage = pipeline.find((stage: any) => stage.$match);
+  const match = matchStage ? matchStage.$match : {};
 
-      if (process.env.NODE_ENV !== "production") {
-        console.log("🔥 CATEGORY:", category);
-        console.log("🔥 MATCH OBJECT:", match);
-        console.log("🔥 FILTERS APPLIED:", filtersApplied);
-      }
+  const total = await service.model.countDocuments(match);
 
-      return {
-        filtersApplied,
-      };
-    },
+  return { total };
+},
+
   }
 );
 

@@ -45,7 +45,7 @@ export default function createStreamingHandler<TFilters = any, TDoc = any>(
 
     if (initialMeta) {
       try {
-        const meta = initialMeta(filters);
+        const meta = await initialMeta(filters);
         res.write(JSON.stringify({ __meta: meta }) + "\n");
       } catch {}
     }
