@@ -109,11 +109,8 @@ export const BaseFields = {
   },
 slug: {
   type: String,
-  trim: true,
-  sparse: true, // 🔥 THIS IS THE KEY FIX
-  required: function (this: any) {
-    return this.status === "active";
-  },
+  required: true,
+  trim: true
 },
 
   listingType: { type: String, enum: ['sale', 'rent', 'lease'], default: 'sale', index: true },
