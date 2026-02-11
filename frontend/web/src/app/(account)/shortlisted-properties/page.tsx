@@ -8,7 +8,7 @@ import { IoLocationOutline } from "react-icons/io5";
 
 
 import ActiveTabs from "@/ui/ActiveTabs";
-import { getShortlistedProperties } from "@/data/ClientData";
+import { getUserShortlist } from "@/data/ClientData";
 import NopropertiesSvg from "@/svg/NopropertiesSvg";
 import { GoHeartFill } from "react-icons/go";
 
@@ -44,13 +44,13 @@ const Page = () => {
     isError,
     error,
   } = useQuery<
-    { data: ShortlistedItem[] }, 
+    { data: ShortlistedItem[] },
     Error,
-    ShortlistedItem[] 
+    ShortlistedItem[]
   >({
-    queryKey: ["shortlistedProperties"],
-    queryFn: getShortlistedProperties,
-    select: (data) => data.data,
+    queryKey: ["user-shortlist"],
+    queryFn: getUserShortlist,
+    select: (data) => data?.data ?? [],
   });
 
   if (isLoading) {

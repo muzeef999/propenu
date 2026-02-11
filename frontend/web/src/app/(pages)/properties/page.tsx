@@ -67,7 +67,7 @@ const Page: React.FC = () => {
         {loading && <p>Loading properties…</p>}
         {!loading && (
           <p className="mb-4 text-gray-600 capitalize text-2xl pt-2">
-            <strong>{total ?? items.length}</strong> Results | {params.listingType} in 
+            <strong>{total ?? items.length}</strong> Properties for {params.listingType} in 
             {locationLabel ? ` ${locationLabel}` : null}
           </p>
         )}

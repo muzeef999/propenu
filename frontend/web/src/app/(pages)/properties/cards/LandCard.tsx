@@ -154,7 +154,7 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
                 setIsShortlisted(true); // optimistic
                 addShortlistMutation.mutate({
                   propertyId: propertyId,
-                  propertyType: "LandPlot",
+                  propertyType: "Land",
                 });
               }
             }}

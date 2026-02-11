@@ -11,8 +11,8 @@ export const addToShortlistService = async (
   const propertyObjectId = new Types.ObjectId(propertyId);
 
   return await (Shortlist.findOneAndUpdate as any)(
-    { userId, propertyId: propertyObjectId, propertyType},
-    {},
+    { userId, propertyId: propertyObjectId },
+    { $set: { propertyType } },
     { upsert: true, new: true }
   );
 };
@@ -72,7 +72,7 @@ export const getUserShortlistService = async (userId: Types.ObjectId) => {
           { $match: { propertyType: "Land" } },
           {
             $lookup: {
-              from: "lands",
+              from: "landplots",
               localField: "propertyId",
               foreignField: "_id",
               as: "property",
