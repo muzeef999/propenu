@@ -2,10 +2,16 @@
 
 import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getMyAgentProfile, me, updateAgentProfileByPhone } from "@/data/ClientData";
+import {
+  getMembershipHistory,
+  getMyAgentProfile,
+  me,
+  updateAgentProfileByPhone,
+} from "@/data/ClientData";
 import { Card, DetailRow, StatBox } from "@/ui/AgentPageComponents";
 import { MdEdit, MdVerifiedUser } from "react-icons/md";
 import { HiOutlineXMark } from "react-icons/hi2";
+import { HiOutlineDownload } from "react-icons/hi";
 import { toast } from "sonner";
 import { useState, useCallback } from "react";
 import InputField from "@/ui/InputField";
@@ -325,6 +331,14 @@ const AgentProfilePage = () => {
     queryFn: getMyAgentProfile,
   });
 
+  const {
+    data: membership,
+    isLoading: membershipLoading,
+    isError: membershipError,
+  } = useQuery({
+    queryKey: ["membershipHistory"],
+    queryFn: getMembershipHistory,
+  });
 
   const queryClient = useQueryClient();
 
@@ -432,6 +446,7 @@ const AgentProfilePage = () => {
     },
     []
   );
+  console
 
   const updateArrayField = useCallback(
     (key: "areasServed" | "languages", value: string) => {
@@ -444,8 +459,9 @@ const AgentProfilePage = () => {
   );
 
 
-  if (isLoading) return <LoadingState />;
-  if (isError) return <ErrorState message="Failed to load agent profile." />;
+  if (isLoading || membershipLoading) return <LoadingState />;
+  if (isError || membershipError)
+    return <ErrorState message="Failed to load agent profile." />;
 
   const agent = data?.agent;
   if (!agent) return <NotFoundState />;
@@ -464,6 +480,8 @@ const AgentProfilePage = () => {
       languages: agent.languages ?? [],
     });
   }, [agent, handleEditStart]);
+
+  console.log("membership history", membership);  
 
   return (
     <div className="space-y-8 mx-auto max-w-7xl py-1">
@@ -583,6 +601,105 @@ const AgentProfilePage = () => {
         </Card>
       </div>
 
+      {membership?.history?.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-lg font-medium text-[#545454]">
+              Membership History
+            </h3>
+          </div>
+
+          <div className="overflow-x-auto rounded-2xl border border-gray-100 shadow-sm bg-white">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-400">
+                    Plan
+                  </th>
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-400">
+                    Category
+                  </th>
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-400">
+                    Duration
+                  </th>
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-400">
+                    Price
+                  </th>
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-400">
+                    Status
+                  </th>
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-400">
+                    Invoice
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {membership.history.map((item: any, index: number) => (
+                  <tr
+                    key={index}
+                    className="hover:bg-gray-50/50 transition-colors"
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <p className="font-semibold text-gray-800 leading-none">
+                          {item.planName}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1 capitalize">
+                          {item.planCode?.replace(/_/g, " ").toLowerCase()}
+                        </p>
+                      </div>
+                    </td>
+
+                    <td className="px-6 py-4 text-sm text-gray-700 capitalize">
+                      {item.category}
+                    </td>
+
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      <div className="flex flex-col">
+                        <span>{formatDate(item.startDate)}</span>
+                        <span className="text-xs text-gray-400">
+                          to {formatDate(item.endDate)}
+                        </span>
+                      </div>
+                    </td>
+
+                    <td className="px-6 py-4 text-sm font-medium text-gray-700">
+                      INR {item.price}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <div>
+                        <StatusBadge status={item.status} />
+                      </div>
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <div>
+                        {item.invoiceUrl ? (
+                          <a
+                            href={item.invoiceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 rounded-md bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition hover:bg-[#27AE60] hover:text-white"
+                          >
+                            <HiOutlineDownload size={14} />
+                            Download Invoice
+                          </a>
+                        ) : (
+                          <span className="text-xs italic text-gray-400">
+                            No invoice available
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {editMode === "header" && (
         <EditModal
           editFormData={editFormData}
@@ -598,6 +715,31 @@ const AgentProfilePage = () => {
         />
       )}
     </div>
+  );
+};
+
+const formatDate = (date: string) =>
+  new Date(date).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+const StatusBadge = ({ status }: { status: string }) => {
+  const isActive = status === "active";
+
+  return (
+    <span
+      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold
+    ${isActive ? "bg-[#E9F9EF] text-[#1E7F4B]" : "bg-[#EBEDEF] text-[#7F8C8D]"}
+    `}
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full
+      ${isActive ? "bg-[#27AE60]" : "bg-[#95A5A6]"}`}
+      />
+      {isActive ? "Active" : "Expired"}
+    </span>
   );
 };
 

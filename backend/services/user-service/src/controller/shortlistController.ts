@@ -24,6 +24,17 @@ try {
       message: "Property shortlisted",
     });
   } catch (error) {
+    // Handle bad ObjectId or duplicate key errors more gracefully
+    const err: any = error;
+    if (err?.name === "CastError") {
+      return res.status(400).json({ success: false, message: "Invalid propertyId" });
+    }
+    if (err?.code === 11000) {
+      return res.status(200).json({
+        success: true,
+        message: "Property already shortlisted",
+      });
+    }
     res.status(500).json({ success: false, message: "Server error" });
   }
 };

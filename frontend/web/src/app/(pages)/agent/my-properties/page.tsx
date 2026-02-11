@@ -23,6 +23,7 @@ import {
 interface Property {
   _id: string;
   title?: string;
+  listingType?: "sale" | "rent";
   address?: string;
   price?: number;
   builtUpArea?: number;
@@ -31,7 +32,7 @@ interface Property {
   gallery?: { url: string }[];
   propertyType?: string;
   createdAt?: string;
-  status?: "Active" | "Deactive" | "Reported";
+  status?: "Active" | "Draft";
   meta?: {
     views?: number;
     enquiries?: number;
@@ -49,9 +50,9 @@ const TAB_KEY_MAP: Record<string, string> = {
 
 const categories = ["Residential", "Commercial", "Plot", "Agriculture"];
 
-const categoriesDropdown = [
-  { label: "Buy", value: "buy" },
-  { label: "Rent / Lease", value: "rent / lease" },
+const listingTypeOptions = [
+  { label: "Buy", value: "sale" },
+  { label: "Rent", value: "rent" },
 ];
 const getCategoryForTab = (tab: string): PropertyCategory => {
   const category = TAB_KEY_MAP[tab];
@@ -73,9 +74,8 @@ const Page = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<
-    "All" | "Active" | "Reported" | "Subscription Expired" | "Deactive"
-  >("All");
+  const [listingType, setListingType] = useState("sale");
+  const [status, setStatus] = useState<"All" | "Active" | "Draft">("All");
 
   const { data, isLoading } = useQuery<any>({
     queryKey: ["myProperties"],
@@ -89,6 +89,10 @@ const Page = () => {
 
     let list: Property[] = data[TAB_KEY_MAP[activeTab]] ?? [];
 
+    if (listingType) {
+      list = list.filter((p) => p.listingType === listingType);
+    }
+
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -99,11 +103,14 @@ const Page = () => {
     }
 
     if (status !== "All") {
-      list = list.filter((p) => p.status === status);
+      const desired = status.toLowerCase();
+      list = list.filter(
+        (p) => (p.status ?? "").toLowerCase() === desired
+      );
     }
 
     return list;
-  }, [data, activeTab, search, status]);
+  }, [data, activeTab, search, status, listingType]);
 
   if (isLoading) {
     return (
@@ -154,32 +161,26 @@ const Page = () => {
 
         {/* Status Filters */}
         <div className="ml-auto flex gap-2">
-          {[
-            "All",
-            "Active",
-            "Reported",
-            "Subscription Expired",
-            "Deactive",
-          ].map((item) => (
+          {(["All", "Active", "Draft"] as const).map((item) => (
             <SelectableButton
               key={item}
               label={item}
               active={status === item}
               selectionType="single"
-              onClick={() => setStatus(item as any)}
+              onClick={() => setStatus(item)}
               className="px-3 py-1 text-xs"
             />
           ))}
         </div>
 
         {/* Category Dropdown */}
-        <div className="w-32">
+        <div className="w-27 h-14">
           <Dropdownui
             label=""
-            placeholder="Category"
-            value={activeTab}
-            options={categoriesDropdown}
-            onChange={(val) => setActiveTab(val)}
+            placeholder="Listing Type"
+            value={listingType}
+            options={listingTypeOptions}
+            onChange={(val) => setListingType(val)}
           />
         </div>
       </div>
@@ -207,7 +208,7 @@ const Page = () => {
 
                 {/* Content */}
                 <div className="flex flex-1 flex-col">
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-start">
                     <div className="max-w-[420px]">
                       <h3 className="truncate text-lg font-semibold text-gray-900">
                         {property.title ?? "Untitled Property"}
@@ -219,10 +220,18 @@ const Page = () => {
                       </div>
                     </div>
 
-                    {/* <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
-                      {property.status}
-                    </span> */}
+                    {/* STATUS BADGE */}
+                    {property.status && (
+                      <span
+                        className={`px-3 py-1 text-xs font-medium rounded-full border capitalize ${getStatusStyle(
+                          property.status
+                        )}`}
+                      >
+                        {property.status}
+                      </span>
+                    )}
                   </div>
+
 
                   <div className="mt-4 grid grid-cols-2 gap-x-12 gap-y-3 text-sm text-gray-600">
                     <p>
@@ -255,13 +264,13 @@ const Page = () => {
                       <span className="font-medium text-gray-800">
                         {property.createdAt
                           ? new Date(property.createdAt).toLocaleDateString(
-                              "en-IN",
-                              {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              }
-                            )
+                            "en-IN",
+                            {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            }
+                          )
                           : "—"}
                       </span>
                     </p>
@@ -313,5 +322,19 @@ const Page = () => {
     </div>
   );
 };
+
+const getStatusStyle = (status?: string) => {
+  switch (status) {
+    case "Active":
+      return "bg-green-50 text-green-600 border-green-200";
+
+    case "Draft":
+      return "bg-yellow-50 text-yellow-600 border-yellow-200";
+
+    default:
+      return "bg-gray-50 text-gray-600 border-gray-200";
+  }
+};
+
 
 export default Page;
