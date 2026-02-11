@@ -16,13 +16,15 @@ import AgriculturalCard from "./cards/AgriculturalCard";
 import ad from "@/asserts/ad.png";
 import Image from "next/image";
 import { buildSearchParams } from "./filters/buildSearchParams";
+import { selectCityWithLocalities } from "@/Redux/slice/citySlice";
 
 const Page: React.FC = () => {
   
   const filters = useAppSelector((s) => s.filters);
+  const cityData = useAppSelector(selectCityWithLocalities);
   const params = React.useMemo(() => buildSearchParams(filters), [filters]);
 
-  const { items,  loading } = useStreamProperties(params);
+  const { items, loading, total } = useStreamProperties(params);
 
   const renderPropertyCard = (type: string, p: Property) => {
     switch (type.toLowerCase()) {
@@ -38,12 +40,37 @@ const Page: React.FC = () => {
         return <div>No card found for this category.</div>;
     }
   };
+  const locality = (() => {
+    switch (filters.category) {
+      case "Residential":
+        return filters.residential.locality?.join(", ");
+      case "Commercial":
+        return filters.commercial.locality?.join(", ");
+      case "Land":
+        return filters.land.locality;
+      case "Agricultural":
+        return filters.agricultural.locality;
+      default:
+        return undefined;
+    }
+  })();
+
+  const locationLabel = [locality, cityData?.city, cityData?.state]
+    .filter(Boolean)
+    .join(", ");
+
 
   return (
     <>
       <FilterBar />
       <div className="container p-4">
         {loading && <p>Loading properties…</p>}
+        {!loading && (
+          <p className="mb-4 text-gray-600 capitalize text-2xl pt-2">
+            <strong>{total ?? items.length}</strong> Results | {params.listingType} in 
+            {locationLabel ? ` ${locationLabel}` : null}
+          </p>
+        )}
         <div className="flex flex-col lg:flex-row w-full">
           <div className="w-full lg:w-[80%]">
             {items.map((p) => renderPropertyCard(filters.category, p))}

@@ -11,18 +11,22 @@ import { createPortal } from "react-dom";
 interface ContactOwnerButtonProps {
   listingType?: string;
   projectId: undefined | string;
+  listingSource?: "User" | "Agent" | "builder";
+
   propertyType?:
-    | "residentials"
-    | "commercials"
-    | "agriculturals"
-    | "landplots"
-    | "featuredprojects";
+  | "residentials"
+  | "commercials"
+  | "agriculturals"
+  | "landplots"
+  | "featuredprojects";
   className?: string;
   children?: React.ReactNode;
 }
 
 export default function ContactOwnerButton({
   listingType,
+  listingSource,
+
   projectId,
   propertyType = "residentials",
   className,
@@ -53,11 +57,17 @@ export default function ContactOwnerButton({
     retry: 1,
   });
 
+  const getContactPerson = () => {
+    if (listingSource === "Agent") return "Agent";
+    if (listingSource === "builder") return "Builder";
+    return "Owner";
+  };
+
   const user = userData?.user;
   const { mutate: postLead, isPending: isLeadPosting } = useMutation({
     mutationFn: postLeads,
     onSuccess: () => {
-      toast.success("Owner will contact you shortly");
+      toast.success(`${getContactPerson()} will contact you shortly`);
     },
     onError: (error: any) => {
       const message =
@@ -79,13 +89,14 @@ export default function ContactOwnerButton({
     },
   });
 
+
   const handleContactOwner = () => {
-  console.log("🔵 Current state:", {
-    user,
-    listingType,
-    projectId,
-    propertyType,
-  });
+    console.log("🔵 Current state:", {
+      user,
+      listingType,
+      projectId,
+      propertyType,
+    });
 
 
     if (!user) {
@@ -119,7 +130,11 @@ export default function ContactOwnerButton({
           "rounded btn-primary px-6 py-2 font-medium text-white disabled:cursor-not-allowed transition-opacity"
         }
       >
-        {children ?? (isLeadPosting ? "Sending..." : "Contact Owner")}
+        {children ??
+          (isLeadPosting
+            ? "Sending..."
+            : `Contact ${getContactPerson()}`)}
+
       </button>
 
       {showLoginDialog &&
@@ -128,7 +143,7 @@ export default function ContactOwnerButton({
             <LoginDialog
               open
               onClose={() => setShowLoginDialog(false)}
-              onSwitchToRegister={() => {}}
+              onSwitchToRegister={() => { }}
             />
           </div>,
           document.body,

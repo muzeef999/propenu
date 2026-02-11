@@ -1,14 +1,10 @@
 import { RESFilterKey } from ".";
 import { BaseSearchParams, ResidentialFilters } from "./sharedTypes";
 
-
 export type AmenitiesItems = {
-   key:string,
-   title:string
-}
-
-
-
+  key: string;
+  title: string;
+};
 
 export interface IUserMini {
   _id: string;
@@ -24,8 +20,6 @@ export interface NearbyPlace {
   order?: number;
 }
 
-
-
 export type GalleryItem = {
   url: string;
   key: string;
@@ -34,47 +28,65 @@ export type GalleryItem = {
 };
 
 export interface IResidential {
-  listingType?: 'sale' | 'rent' | 'lease';
-  developer?:  string;
+  listingType?: "sale" | "rent" | "lease";
+  developer?: string;
   _id: string;
   id: string;
   // base fields...
   address: string;
-    gallery?: GalleryItem[];
+  gallery?: GalleryItem[];
 
-    amenities?:AmenitiesItems[]
- pricePerSqft? :number;
+  amenities?: AmenitiesItems[];
+  pricePerSqft?: number;
   city?: string;
-  title?:string;
+  title?: string;
   bhk?: number;
-  description?:string;
+  description?: string;
   bedrooms?: number;
-  price?:number;
+  price?: number;
   bathrooms?: number;
   balconies?: number;
   carpetArea?: number;
   builtUpArea?: number;
   superBuiltUpArea?: number;
-  furnishing?: 'unfurnished' | 'semi-furnished' | 'fully-furnished';
+  furnishing?: "unfurnished" | "semi-furnished" | "fully-furnished";
   parkingType?: string;
   floorNumber?: number;
   totalFloors?: number;
   facing?: string;
-  transactionType?:string;
-  constructionStatus?: 'ready-to-move' | 'under-construction';
+  transactionType?: string;
+  constructionStatus?: "ready-to-move" | "under-construction";
   possessionDate?: Date;
   maintenanceCharges?: number;
-  security?: { gated?: boolean; cctv?: boolean; guard?: boolean; details?: string };
-  fireSafetyDetails?: { hasFireSafety?: boolean; fireNOCFile?: any; details?: string };
-  greenCertification?: { leed?: boolean; igbc?: boolean; details?: string; file?: any };
+  security?: {
+    gated?: boolean;
+    cctv?: boolean;
+    guard?: boolean;
+    details?: string;
+  };
+  fireSafetyDetails?: {
+    hasFireSafety?: boolean;
+    fireNOCFile?: any;
+    details?: string;
+  };
+  greenCertification?: {
+    leed?: boolean;
+    igbc?: boolean;
+    details?: string;
+    file?: any;
+  };
   smartHomeFeatures?: string[];
-  parkingDetails?: { visitorParking?: boolean; twoWheeler?: number; fourWheeler?: number };
+  parkingDetails?: {
+    visitorParking?: boolean;
+    twoWheeler?: number;
+    fourWheeler?: number;
+  };
   possessionVerified?: boolean;
   flooringType?: string;
   kitchenType?: string;
-  listingSource?: string;
+  listingSource?: "User" | "Agent" | "builder";
   nearbyPlaces?: NearbyPlace[];
-  createdBy? :IUserMini;
+  createdBy?: IUserMini;
   relatedProjects?: IResidential[];
   slug?: string;
   buildingName?: string;
@@ -85,20 +97,13 @@ export interface IResidential {
   type?: string;
 }
 
-
-
 export interface IAmenity {
-  key: string;          // unique identifier (used in DB)
-  title: string;        // UI label
+  key: string; // unique identifier (used in DB)
+  title: string; // UI label
   description?: string; // optional (future use)
 }
 
-
-
-
-//search 
-
-
+//search
 
 export type BHKOption =
   | "1 BHK"
@@ -109,19 +114,12 @@ export type BHKOption =
   | "6 BHK"
   | "6+ BHK";
 
+export type PostedByOption = "Owners" | "Agents" | "Builders";
 
-  export type PostedByOption =
-  | "Owners"
-  | "Agents"
-  | "Builders";
-
-
-  export type ResidentialSearchParams = BaseSearchParams & {
+export type ResidentialSearchParams = BaseSearchParams & {
   category: "Residential";
   bhk?: number;
 };
-
-
 
 export const residentialKeyMapping: Record<
   RESFilterKey,
@@ -131,13 +129,12 @@ export const residentialKeyMapping: Record<
   "Possession Status": "constructionStatus",
   "Sales Type": "transactionType",
   "Covered Area": "coveredArea",
-  "Bathroom": "bathroom",
-  "Balcony": "balcony",
-  "Parking": "parking",
-  "Furnishing": "furnishing",
-  "Amenities": "amenities",
-  "Facing": "facing",
+  Bathroom: "bathroom",
+  Balcony: "balcony",
+  Parking: "parking",
+  Furnishing: "furnishing",
+  Amenities: "amenities",
+  Facing: "facing",
   "Posted Since": "postedSince",
   "Posted By": "listingSource",
 };
-
