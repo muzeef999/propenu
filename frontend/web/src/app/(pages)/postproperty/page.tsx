@@ -6,30 +6,9 @@ import MainContent from "./MainContent/MainContent";
 import Sidebar from "./Sidebar/Sidebar";
 import PostPropertiesHouse from "@/svg/PostPropertiesHouse";
 import Logo from "@/animations/Logo";
-import { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import type { AppDispatch } from "@/Redux/store";
-import { createDraftThunk } from "@/Redux/thunks/submitPropertyApi";
-import { setDraftId } from "@/Redux/slice/postPropertySlice";
 
 const Page = () => {
   const bgPriceColor = hexToRGBA("#27AE60", 0.12);
-  const dispatch = useDispatch<AppDispatch>();
-
-  const propertyType = useSelector(
-    (state: any) => state.postProperty.propertyType,
-  );
-
-  useEffect(() => {
-    if (!propertyType) return;
-
-    dispatch(createDraftThunk(propertyType))
-      .unwrap()
-      .then((res: any) => {
-        dispatch(setDraftId(res.data._id));
-      })
-      .catch(console.error);
-  }, [propertyType, dispatch]);
 
   return (
     <div

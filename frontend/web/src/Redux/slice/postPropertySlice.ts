@@ -105,8 +105,15 @@ const postPropertySlice = createSlice({
     /* -------- Property category -------- */
     setPropertyType(state, action: PayloadAction<PropertyCategory>) {
       const next = action.payload;
+      if (state.propertyType === next) return;
 
       state.propertyType = next;
+      state.draftId = null;
+      state.currentStep = 1;
+      state.progressPercent = 0;
+      state.base = {
+        nearbyPlaces: [],
+      };
 
       // ✅ clear other category data to avoid bleed & validation issues
       if (next !== "residential") state.residential = {};

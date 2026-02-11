@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { HiOutlineMapPin } from "react-icons/hi2";
 import { FiEdit2 } from "react-icons/fi";
@@ -11,6 +12,11 @@ import SelectableButton from "@/ui/SelectableButton";
 import Dropdownui from "@/ui/DropDownUI";
 import NopropertiesSvg from "@/svg/NopropertiesSvg";
 import { getMyProperties } from "@/data/ClientData";
+import { useAppDispatch } from "@/Redux/store";
+import {
+  setPropertyType,
+  type PropertyCategory,
+} from "@/Redux/slice/postPropertySlice";
 
 /* ================= TYPES ================= */
 
@@ -47,11 +53,25 @@ const categoriesDropdown = [
   { label: "Buy", value: "buy" },
   { label: "Rent / Lease", value: "rent / lease" },
 ];
+const getCategoryForTab = (tab: string): PropertyCategory => {
+  const category = TAB_KEY_MAP[tab];
+  if (
+    category === "residential" ||
+    category === "commercial" ||
+    category === "land" ||
+    category === "agricultural"
+  ) {
+    return category;
+  }
+  return "residential";
+};
 
 /* ================= PAGE ================= */
 
 const Page = () => {
   const [activeTab, setActiveTab] = useState("Residential");
+  const router = useRouter();
+  const dispatch = useAppDispatch();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<
     "All" | "Active" | "Reported" | "Subscription Expired" | "Deactive"
@@ -253,7 +273,10 @@ const Page = () => {
                   <button
                     onClick={(e) => {
                       e.preventDefault();
-                      alert(`Edit ${property.title}`);
+                      e.stopPropagation();
+                      const category = getCategoryForTab(activeTab);
+                      dispatch(setPropertyType(category));
+                      router.push("/postproperty");
                     }}
                     className="rounded-md p-2 text-gray-500 hover:bg-gray-100"
                   >
