@@ -445,7 +445,7 @@ export const LandService = {
 
   async getById(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    return LandPlot.findById(id).lean().exec();
+    return LandPlot.findById(id).populate("createdBy", "name email phone roleId").lean().exec();
   },
 
   async getBySlug(slug: string) {

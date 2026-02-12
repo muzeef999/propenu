@@ -37,7 +37,6 @@ app.use(
 
       const clean = origin.replace(/\/+$/, "");
 
-      // ✅ allow all if ALLOWED_ORIGINS not set
       if (!allowed.length || allowed.includes(clean)) {
         return callback(null, true);
       }
@@ -49,8 +48,6 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-
-// ❌ DO NOT use app.options("*") or app.options("/*")
 
 app.use(morgan("dev"));
 

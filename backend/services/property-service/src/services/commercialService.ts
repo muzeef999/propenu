@@ -14,7 +14,6 @@ type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
 
 /* -------------------- Helpers -------------------- */
 
-
 function normalizePayload(obj: any) {
   if (!obj) return obj;
   if (typeof obj.title === "string") obj.title = obj.title.trim();
@@ -31,8 +30,8 @@ export async function findRelatedCommercial(property: any) {
     status: "active",
 
     // CORE similarity
-    listingType: property.listingType,      // sale / lease
-    propertyType: property.propertyType,    // office / shop
+    listingType: property.listingType, // sale / lease
+    propertyType: property.propertyType, // office / shop
     city: property.city,
   };
 
@@ -56,15 +55,12 @@ export async function findRelatedCommercial(property: any) {
     .sort({ createdAt: -1 })
     .limit(6)
     .select(
-      "title slug price city locality builtUpArea gallery propertyType listingType builtUpArea furnishing parkingDetails constructionStatus"
+      "title slug price city locality builtUpArea gallery propertyType listingType builtUpArea furnishing parkingDetails constructionStatus",
     )
     .lean();
 
   return related;
 }
-
-
-  
 
 async function deleteS3ObjectIfExists(key?: string) {
   if (!key) return;
@@ -76,7 +72,7 @@ async function deleteS3ObjectIfExists(key?: string) {
     console.error(
       "deleteS3ObjectIfExists failed for key:",
       key,
-      e?.message || e
+      e?.message || e,
     );
   }
 }
@@ -142,7 +138,6 @@ async function mapAndUploadGallery({
 
 export const CommercialService = {
   async create(payload: any, files?: MulterFiles) {
-
     let toCreate = normalizePayload({ ...payload });
 
     // preliminary instance for id
@@ -250,15 +245,15 @@ export const CommercialService = {
     const createdDoc = await Commercial.create(toCreate);
 
     if (createdDoc.city && createdDoc.locality) {
-         await upsertCityAndLocality({
- city: createdDoc.city,
-    locality: createdDoc.locality,
-    ...(createdDoc.state && { state: createdDoc.state }),
-    ...(createdDoc.location?.coordinates && {
-      coordinates: createdDoc.location.coordinates,
-         }),
-    });
-  }
+      await upsertCityAndLocality({
+        city: createdDoc.city,
+        locality: createdDoc.locality,
+        ...(createdDoc.state && { state: createdDoc.state }),
+        ...(createdDoc.location?.coordinates && {
+          coordinates: createdDoc.location.coordinates,
+        }),
+      });
+    }
     const populated = await Commercial.findById(createdDoc._id)
       .populate("createdBy", "name email phone role roleId")
       .lean()
@@ -359,7 +354,7 @@ export const CommercialService = {
           folder: "commercial/gallery",
         });
         const emptySlotIndex = (existing as any).gallery.findIndex(
-          (e: any) => !e.url
+          (e: any) => !e.url,
         );
         if (emptySlotIndex >= 0) {
           const slot = (existing as any).gallery[emptySlotIndex] as any;
@@ -484,7 +479,10 @@ export const CommercialService = {
 
   async getById(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    return Commercial.findById(id).lean().exec();
+    return Commercial.findById(id)
+      .populate("createdBy", "name email phone roleId")
+      .lean()
+      .exec();
   },
 
   async getBySlug(slug: string) {
@@ -492,7 +490,7 @@ export const CommercialService = {
     return Commercial.findOne({ slug })
       .populate("createdBy", "name email phone roleId")
       .lean()
-      .exec(); 
+      .exec();
   },
 
   async list(options?: {
@@ -565,7 +563,7 @@ export const CommercialService = {
       await deleteS3ObjectIfExists((existing as any).fireNOCFile.key);
     if ((existing as any).occupancyCertificateFile?.key)
       await deleteS3ObjectIfExists(
-        (existing as any).occupancyCertificateFile.key
+        (existing as any).occupancyCertificateFile.key,
       );
 
     const deleted = await Commercial.findByIdAndDelete(id).exec();
@@ -580,27 +578,26 @@ export const CommercialService = {
     return null;
   },
 
-
-   async verifyDocument(
+  async verifyDocument(
     propertyId: string,
     documentIndex: number,
-    status: "verified" | "rejected"
+    status: "verified" | "rejected",
   ) {
     const property = await Commercial.findById(propertyId);
     if (!property) return null;
-  
+
     if (!property.verificationDocuments?.[documentIndex]) {
       throw new Error("Invalid document index");
     }
-  
+
     // 1️⃣ Update document status
     property.verificationDocuments[documentIndex].status = status;
-  
+
     // 2️⃣ Check if ANY document is verified
     const hasVerified = property.verificationDocuments.some(
-      (doc) => doc.status === "verified"
+      (doc) => doc.status === "verified",
     );
-  
+
     // 3️⃣ Auto publish if verified
     if (hasVerified) {
       property.status = "active";
@@ -614,7 +611,7 @@ export const CommercialService = {
       property.status = "draft";
       property.isPublished = false;
     }
-  
+
     await property.save();
     return property;
   },
@@ -635,9 +632,9 @@ export const CommercialService = {
           gallery: 1,
           propertySubType: 1,
           builtUpArea: 1,
-          constructionStatus:1,
-          furnishing:1,
-          pricePerSqft:1,
+          constructionStatus: 1,
+          furnishing: 1,
+          pricePerSqft: 1,
           buildingName: 1,
           furnishedStatus: 1,
           floorNumber: 1,

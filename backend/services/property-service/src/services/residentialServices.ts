@@ -205,7 +205,7 @@ export const ResidentialPropertyService = {
         city: createdDoc.city,
         locality: createdDoc.locality,
         ...(createdDoc.state && { state: createdDoc.state }),
-        ...(createdDoc.location?.coordinates && {
+        ...(createdDoc.location?.coordinates && { 
           coordinates: createdDoc.location.coordinates,
         }),
       });

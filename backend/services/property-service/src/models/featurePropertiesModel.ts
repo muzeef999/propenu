@@ -125,7 +125,7 @@ const LogoSchema = new Schema<ILogo>({
   url: { type: String },
   key: { type: String },
   filename: { type: String },
-  mimetype: { type: String },
+  mimetype: { type: String }
 });
 
 /* ------------------------- Main schema  -------------------------*/
@@ -162,6 +162,7 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     },
     possessionDate: { type: String },
     totalTowers: { type: Number },
+    redirectUrl:{type : String, trim:true},
     totalFloors: { type: String },
     projectArea: { type: Number },
     totalUnits: { type: Number },

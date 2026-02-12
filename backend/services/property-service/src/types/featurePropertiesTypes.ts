@@ -98,6 +98,7 @@ export interface IFeaturedProject {
   heroSubTagline?: string;
   heroDescription?: string;
   color?: string; 
+  redirectUrl?:string;
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string;

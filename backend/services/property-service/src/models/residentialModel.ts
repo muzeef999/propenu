@@ -44,19 +44,16 @@ const ResidentialSchema = new Schema<IResidential>(
       },
     },
 
-    builtUpArea: {
-      type: Number,
-      min: 0,
-    },
+    builtUpArea: { type: Number,  min: 0, },
 
     transactionType: { type: String, enum: ["new-sale", "resale"] },
     title: {
-  type: String,
-  trim: true,
-  required: function (this: any) {
-    return this.status !== "draft";
-  },
-},
+      type: String,
+      trim: true,
+      required: function (this: any) {
+        return this.status !== "draft";
+      },
+    },
 
     flooringType: { type: String, enum: FLOORING_TYPES },
     kitchenType: { type: String, enum: KITCHEN_TYPES },
@@ -91,17 +88,16 @@ const ResidentialSchema = new Schema<IResidential>(
 /* Indexes */
 ResidentialSchema.index(TEXT_INDEX_FIELDS, { name: "Res_Text" });
 
-ResidentialSchema.index(
-  { slug: 1 },
+ResidentialSchema.index( { slug: 1 },
   {
     unique: true,
     partialFilterExpression: {
       slug: { $type: "string" },
     },
-  }
+  },
 );
 
-// 🔒 ONE ACTIVE DRAFT PER USER (MongoDB-level protection)
+
 ResidentialSchema.index({ slug: 1 }, { unique: true });
 
 ResidentialSchema.pre("validate", async function (next) {
@@ -116,7 +112,7 @@ ResidentialSchema.pre("validate", async function (next) {
       const baseSlug = slugify(this.title);
       this.slug = await generateUniqueSlug(
         mongoose.model("Residential"),
-        baseSlug
+        baseSlug,
       );
     }
     next();
@@ -124,10 +120,6 @@ ResidentialSchema.pre("validate", async function (next) {
     next(err as any);
   }
 });
-
-
-
-
 
 export const Residential: Model<IResidential> =
   (mongoose.models && (mongoose.models as any)["Residential"]) ||
@@ -157,4 +149,3 @@ function buildResidentialTitle(doc: any) {
 
   return parts.join(" ").replace(/\s+/g, " ").trim();
 }
-

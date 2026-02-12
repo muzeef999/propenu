@@ -403,7 +403,7 @@ export const AgriculturalService = {
 
   async getById(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    return Agricultural.findById(id).lean().exec();
+    return Agricultural.findById(id).lean().populate("createdBy", "name email phone roleId").exec();
   },
 
   async getBySlug(slug: string) {
