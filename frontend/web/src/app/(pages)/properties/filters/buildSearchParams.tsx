@@ -149,12 +149,23 @@ function normalizeListingSourceToken(token: string) {
 
 export function buildSearchParams(filters: FilterState) {
   const base = {
-    category: filters.category,
+    category: filters.category?.toLowerCase(),
     listingType: filters.listingTypeValue,
     search: filters.searchText?.trim() || undefined,
-    minPrice: filters.minPrice ?? undefined,
-    maxPrice: filters.maxPrice ?? undefined,
+
+    // 🔥 Convert Lakhs → Rupees
+    minPrice:
+      typeof filters.minPrice === "number"
+        ? filters.minPrice * 100000
+        : undefined,
+
+    maxPrice:
+      typeof filters.maxPrice === "number"
+        ? filters.maxPrice * 100000
+        : undefined,
   };
+
+
 
   switch (filters.category) {
     case "Residential":

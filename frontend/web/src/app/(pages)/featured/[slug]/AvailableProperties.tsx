@@ -199,7 +199,7 @@ export default function AvailableProperties({ bhk }: Props) {
 
             {/* On small screens show summary under image */}
             <div className="mt-4 lg:hidden">
-              <div className="flex gap-4 items-center">
+              <div className="flex gap-1 items-center">
                 <div>
                   <div className="text-xs text-gray-500">Price</div>
                   <div className="text-lg font-bold">

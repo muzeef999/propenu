@@ -12,6 +12,7 @@ import { AgriculturalFilterKey } from "@/types";
 import FilterDropdown from "@/ui/FilterDropdown";
 import SelectableButton from "@/ui/SelectableButton";
 import Toggle from "@/ui/ToggleSwitch";
+import { PostedByOption } from "@/types/residential";
 import { useEffect, useRef, useState } from "react";
 import { getTrackBackground, Range } from "react-range";
 import { useDispatch, useSelector } from "react-redux";
@@ -49,42 +50,57 @@ const BOOLEAN_KEYS = new Set([
   "priceNegotiable",
 ]);
 
+const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
+
+const normalizeBudgetRange = (
+  min: number | null,
+  max: number | null
+): [number | null, number | null] => {
+  if (min == null || max == null) return [min, max];
+  return min <= max ? [min, max] : [max, min];
+};
+
 const AgriculturalFilters = () => {
   const dispatch = useDispatch();
 
   const rightPanelRef = useRef<HTMLDivElement | null>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+
   const cityData = useSelector(selectCityWithLocalities);
   const localities = useSelector(selectLocalitiesByCity);
   const filtersState = useSelector((state: RootState) => state.filters);
-  const { minPrice, maxPrice, agricultural } = filtersState;
+  const { minPrice, maxPrice, agricultural, listingTypeValue } = filtersState;
 
   const [budgetTouched, setBudgetTouched] = useState(false);
   const [open, setOpen] = useState(false);
   const [activeFilter, setActiveFilter] =
     useState<AgriculturalFilterKey>("Agricultural Type");
-  const [budgetRange, setBudgetRange] = useState<[number | null, number | null]>(
-    [minPrice ?? null, maxPrice ?? null]
-  );
+  const [budgetRange, setBudgetRange] = useState<
+    [number | null, number | null]
+  >(() => normalizeBudgetRange(minPrice ?? null, maxPrice ?? null));
   const [carpetRange, setCarpetRange] = useState<[number, number]>([
     agricultural.totalArea?.min ?? CARPET_MIN,
     agricultural.totalArea?.max ?? CARPET_MAX,
   ]);
 
-  const { locality } = agricultural;
+  const { locality, postedBy } = agricultural;
 
   const budgetLabel =
     budgetRange[0] == null && budgetRange[1] == null
       ? "Budget"
-      : `${budgetRange[0] ? formatBudget(budgetRange[0]) : "Min"} - ${
-          budgetRange[1] ? formatBudget(budgetRange[1]) : "Max"
-        }`;
+      : `${budgetRange[0] ? formatBudget(budgetRange[0]) : "Min"} - ${budgetRange[1] ? formatBudget(budgetRange[1]) : "Max"
+      }`;
 
   const selectedMoreFiltersCount = getSelectedMoreFiltersCount(
     agricultural,
     agriculturalKeyMapping
   );
+  const localityCount = locality ? 1 : 0;
+  const listingTypeCount = listingTypeValue ? 1 : 0;
+  const moreFiltersBadgeCount =
+    selectedMoreFiltersCount + localityCount + listingTypeCount;
+  const displayedMoreFiltersBadgeCount = moreFiltersBadgeCount || 2;
 
   const handleSectionClick = (key: AgriculturalFilterKey) => {
     const container = rightPanelRef.current;
@@ -96,6 +112,18 @@ const AgriculturalFilters = () => {
     container.scrollTo({ top, behavior: "smooth" });
     setActiveFilter(key);
   };
+  const agriculturalTypeOptions =
+  agriculturalMoreFilterSections.find(
+    (section) => section.key === "Agricultural Type"
+  )?.options ?? [];
+  const selectedAgriculturalTypes =
+  agricultural.agriculturalType ?? [];
+  const propertyTypeLabel =
+  selectedAgriculturalTypes.length === 0
+    ? "Asset Type"
+    : selectedAgriculturalTypes.length === 1
+      ? selectedAgriculturalTypes[0]
+      : `${selectedAgriculturalTypes.length} Types`;
 
   const toggleArrayValue = (arr: string[] = [], value: string) =>
     arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
@@ -132,7 +160,7 @@ const AgriculturalFilters = () => {
   }, [budgetRange, budgetTouched, dispatch]);
 
   return (
-    <div className="flex gap-4 items-center">
+    <div className="flex gap-1 items-center">
       <FilterDropdown
         triggerLabel={
           <span className="px-4 text-primary font-medium cursor-pointer">
@@ -155,7 +183,7 @@ const AgriculturalFilters = () => {
 
             {cityData && (
               <div className="flex gap-2 flex-wrap">
-                {localities.map((loc) => (
+                {localities.map((loc: { name: string }) => (
                   <button
                     key={loc.name}
                     onClick={() => {
@@ -167,9 +195,8 @@ const AgriculturalFilters = () => {
                       );
                       close?.();
                     }}
-                    className={`px-2 py-1 rounded text-sm hover:bg-gray-100 ${
-                      locality === loc.name ? "font-semibold bg-gray-100" : ""
-                    }`}
+                    className={`px-2 py-1 rounded text-sm hover:bg-gray-100 ${locality === loc.name ? "font-semibold bg-gray-100" : ""
+                      }`}
                   >
                     {loc.name}
                   </button>
@@ -197,10 +224,12 @@ const AgriculturalFilters = () => {
                 value={budgetRange[0] ?? ""}
                 onChange={(e) => {
                   setBudgetTouched(true);
-                  setBudgetRange([
-                    e.target.value ? Number(e.target.value) : null,
-                    budgetRange[1],
-                  ]);
+                  setBudgetRange(
+                    normalizeBudgetRange(
+                      e.target.value ? Number(e.target.value) : null,
+                      budgetRange[1]
+                    )
+                  );
                 }}
                 className="w-1/2 border border-gray-400 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-0 focus:border-gray-400 hover:border-gray-400 active:border-gray-400"
               >
@@ -220,10 +249,12 @@ const AgriculturalFilters = () => {
                 value={budgetRange[1] ?? ""}
                 onChange={(e) => {
                   setBudgetTouched(true);
-                  setBudgetRange([
-                    budgetRange[0],
-                    e.target.value ? Number(e.target.value) : null,
-                  ]);
+                  setBudgetRange(
+                    normalizeBudgetRange(
+                      budgetRange[0],
+                      e.target.value ? Number(e.target.value) : null
+                    )
+                  );
                 }}
                 className="w-1/2 border border-gray-400 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-0 focus:border-gray-400 hover:border-gray-400 active:border-gray-400"
               >
@@ -244,10 +275,12 @@ const AgriculturalFilters = () => {
               onChange={(values) => {
                 const [min, max] = values as [number, number];
                 setBudgetTouched(true);
-                setBudgetRange([
-                  min === BUDGET_MIN ? null : min,
-                  max === BUDGET_MAX ? null : max,
-                ]);
+                setBudgetRange(
+                  normalizeBudgetRange(
+                    min === BUDGET_MIN ? null : min,
+                    max === BUDGET_MAX ? null : max
+                  )
+                );
               }}
               renderTrack={({ props, children }) => {
                 const { key, ...restProps } = props as any;
@@ -292,21 +325,132 @@ const AgriculturalFilters = () => {
         )}
       />
 
+      {/* ---------- Posted By ---------- */}
+      <FilterDropdown
+        triggerLabel={
+          <span className="px-4 font-medium text-primary cursor-pointer">
+            Posted By
+          </span>
+        }
+        width="w-56"
+        renderContent={() => (
+          <div>
+            <h4 className="text-sm font-semibold mb-2">Posted By</h4>
+            {postedByOptions.map((opt) => (
+              <button
+                key={opt}
+                onClick={() => {
+                  dispatch(
+                    setAgriculturalFilter({
+                      key: "postedBy",
+                      value: toggleArrayValue(postedBy || [], opt),
+                    })
+                  );
+                }}
+                className={`px-2 py-1 rounded block w-full text-left hover:bg-gray-100 ${postedBy?.includes(opt) ? "font-semibold bg-gray-100" : ""
+                  }`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        )}
+      />
+      {/* ---------- Property Type ---------- */}
+<FilterDropdown
+  triggerLabel={
+    <div className="flex w-40 items-center justify-between px-4 font-medium text-primary cursor-pointer">
+      <span className="truncate">{propertyTypeLabel}</span>
+      {selectedAgriculturalTypes.length > 0 && (
+        <span className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white">
+          {selectedAgriculturalTypes.length}
+        </span>
+      )}
+    </div>
+  }
+  width="w-72"
+  align="left"
+  renderContent={(close) => (
+    <div className="space-y-3 p-3">
+      <h4 className="text-sm font-semibold">Agricultural Type</h4>
+
+      <div className="flex flex-wrap gap-2">
+        {agriculturalTypeOptions.map((option) => {
+          const isActive =
+            selectedAgriculturalTypes.includes(option);
+
+          return (
+            <button
+              key={option}
+              onClick={() => {
+                dispatch(
+                  setAgriculturalFilter({
+                    key: "agriculturalType",
+                    value: toggleArrayValue(
+                      selectedAgriculturalTypes,
+                      option
+                    ),
+                  })
+                );
+              }}
+              className={`rounded-full border px-3 py-1.5 text-sm transition ${
+                isActive
+                  ? "border-green-400 bg-green-100 text-green-700"
+                  : "border-gray-300 bg-white hover:bg-gray-50"
+              }`}
+            >
+              {option}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex justify-between">
+        <button
+          onClick={() =>
+            dispatch(
+              setAgriculturalFilter({
+                key: "agriculturalType",
+                value: [],
+              })
+            )
+          }
+          disabled={selectedAgriculturalTypes.length === 0}
+          className={`text-sm font-medium ${
+            selectedAgriculturalTypes.length > 0
+              ? "text-red-500 hover:underline"
+              : "cursor-not-allowed text-gray-400"
+          }`}
+        >
+          Clear All
+        </button>
+
+        <button
+          onClick={close}
+          className="text-sm font-semibold text-green-600 hover:underline"
+        >
+          Done
+        </button>
+      </div>
+    </div>
+  )}
+/>
+
+
       <FilterDropdown
         open={open}
         onOpenChange={(next) => setOpen(next)}
         triggerLabel={
           <div className="flex text-primary items-center gap-2 px-2 py-2 rounded-full bg-white cursor-pointer">
             <span className="btn-primary text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-              {selectedMoreFiltersCount}
+              {displayedMoreFiltersBadgeCount}
             </span>
             <span className="text-sm font-semibold text-primary">More Filters</span>
             <ArrowDropdownIcon
               size={12}
               color="#27AE60"
-              className={`transition-transform duration-200 ${
-                open ? "rotate-180" : "rotate-0"
-              }`}
+              className={`transition-transform duration-200 ${open ? "rotate-180" : "rotate-0"
+                }`}
             />
           </div>
         }
@@ -322,11 +466,10 @@ const AgriculturalFilters = () => {
                     handleSectionClick(section.key);
                     setActiveFilter(section.key);
                   }}
-                  className={`w-full text-left px-4 py-3 border-b border-gray-200 ${
-                    activeFilter === section.key
+                  className={`w-full text-left px-4 py-3 border-b border-gray-200 ${activeFilter === section.key
                       ? "font-semibold text-primary"
                       : "hover:bg-gray-50"
-                  }`}
+                    }`}
                 >
                   {section.label}
                 </button>
@@ -443,11 +586,11 @@ const AgriculturalFilters = () => {
                           const isActive = isStateRestrictions
                             ? currentValue === stateRestrictionValue
                             : isBooleanFilter
-                            ? Boolean(currentValue)
-                            : isMultiSelect
-                            ? Array.isArray(currentValue) &&
-                              currentValue.includes(opt)
-                            : currentValue === opt;
+                              ? Boolean(currentValue)
+                              : isMultiSelect
+                                ? Array.isArray(currentValue) &&
+                                currentValue.includes(opt)
+                                : currentValue === opt;
 
                           return (
                             <SelectableButton
@@ -462,15 +605,15 @@ const AgriculturalFilters = () => {
                                     value: isStateRestrictions
                                       ? stateRestrictionValue
                                       : isBooleanFilter
-                                      ? !Boolean(currentValue)
-                                      : isMultiSelect
-                                      ? toggleArrayValue(
-                                          Array.isArray(currentValue)
-                                            ? currentValue
-                                            : [],
-                                          opt
-                                        )
-                                      : opt,
+                                        ? !Boolean(currentValue)
+                                        : isMultiSelect
+                                          ? toggleArrayValue(
+                                            Array.isArray(currentValue)
+                                              ? currentValue
+                                              : [],
+                                            opt
+                                          )
+                                          : opt,
                                   })
                                 );
                               }}

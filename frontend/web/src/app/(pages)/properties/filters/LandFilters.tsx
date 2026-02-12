@@ -45,7 +45,7 @@ const LandFilters = () => {
   const localities = useSelector(selectLocalitiesByCity);
   const filtersState = useSelector((state: RootState) => state.filters);
 
-  const { minPrice, maxPrice, land } = filtersState;
+  const { minPrice, maxPrice, land, listingTypeValue } = filtersState;
   const [budgetTouched, setBudgetTouched] = useState(false);
 
   const { locality, postedBy } = land;
@@ -99,6 +99,11 @@ const LandFilters = () => {
     land,
     landKeyMapping
   );
+  const localityCount = locality ? 1 : 0;
+  const listingTypeCount = listingTypeValue ? 1 : 0;
+  const moreFiltersBadgeCount =
+    selectedMoreFiltersCount + localityCount + listingTypeCount;
+  const displayedMoreFiltersBadgeCount = moreFiltersBadgeCount || 2;
 
   const CARPET_MIN = 300;
   const CARPET_MAX = 10000;
@@ -119,6 +124,20 @@ const LandFilters = () => {
     "electricityConnection",
     "priceNegotiable",
   ]);
+  const selectedLandTypes = Array.isArray(land.landType)
+    ? land.landType
+    : [];
+
+  const landTypeLabel =
+    selectedLandTypes.length === 0
+      ? "Property Type"
+      : selectedLandTypes.length === 1
+        ? selectedLandTypes[0]
+        : `${selectedLandTypes.length} Types`;
+  const landTypeOptions =
+    landMoreFilterSections.find(
+      (section) => section.key === "Land Type"
+    )?.options ?? [];
 
   const updatePlotArea = (next: [number, number]) => {
     setCarpetRange(next);
@@ -181,7 +200,7 @@ const LandFilters = () => {
 
             {cityData && (
               <div className="flex gap-2 flex-wrap">
-                {localities.map((loc) => (
+                {localities.map((loc: { name: string }) => (
                   <button
                     key={loc.name}
                     onClick={() => {
@@ -369,6 +388,87 @@ const LandFilters = () => {
         )}
       />
 
+
+      {/* ---------- Property Type ---------- */}
+      <FilterDropdown
+        triggerLabel={
+          <div className="flex w-40 items-center justify-between px-4 font-medium text-primary cursor-pointer">
+            <span className="truncate">{landTypeLabel}</span>
+
+            {selectedLandTypes.length > 0 && (
+              <span className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white">
+                {selectedLandTypes.length}
+              </span>
+            )}
+          </div>
+        }
+        width="w-72"
+        align="left"
+        renderContent={(close) => (
+          <div className="space-y-3 p-3">
+            <h4 className="text-sm font-semibold">Land Type</h4>
+
+            <div className="flex flex-wrap gap-2">
+              {landTypeOptions.map((option) => {
+                const isActive =
+                  selectedLandTypes.includes(option);
+
+                return (
+                  <button
+                    key={option}
+                    onClick={() => {
+                      dispatch(
+                        setLandFilter({
+                          key: "landType",
+                          value: toggleArrayValue(
+                            selectedLandTypes,
+                            option
+                          ),
+                        })
+                      );
+                    }}
+                    className={`rounded-full border px-3 py-1.5 text-sm transition ${isActive
+                        ? "border-green-400 bg-green-100 text-green-700"
+                        : "border-gray-300 bg-white hover:bg-gray-50"
+                      }`}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-between">
+              <button
+                onClick={() =>
+                  dispatch(
+                    setLandFilter({
+                      key: "landType",
+                      value: [],
+                    })
+                  )
+                }
+                disabled={selectedLandTypes.length === 0}
+                className={`text-sm font-medium ${selectedLandTypes.length > 0
+                    ? "text-red-500 hover:underline"
+                    : "cursor-not-allowed text-gray-400"
+                  }`}
+              >
+                Clear All
+              </button>
+
+              <button
+                onClick={close}
+                className="text-sm font-semibold text-green-600 hover:underline"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        )}
+      />
+
+
       {/* ---------- MORE FILTER MODAL ---------- */}
       <FilterDropdown
         open={open}
@@ -376,7 +476,7 @@ const LandFilters = () => {
         triggerLabel={
           <div className="flex text-primary items-center gap-2 px-2 py-2 rounded-xl border bg-white cursor-pointer">
             <span className="btn-primary text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-              {selectedMoreFiltersCount}
+              {displayedMoreFiltersBadgeCount}
             </span>
 
             <span className="text-sm font-semibold text-primary">
@@ -402,8 +502,8 @@ const LandFilters = () => {
                   key={section.key}
                   onClick={() => handleSectionClick(section.key)}
                   className={`w-full text-left px-4 py-3 border-b border-gray-200 ${activeFilter === section.key
-                      ? "font-semibold text-primary"
-                      : "hover:bg-gray-50"
+                    ? "font-semibold text-primary"
+                    : "hover:bg-gray-50"
                     }`}
                 >
                   {section.label}

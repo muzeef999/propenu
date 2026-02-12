@@ -14,7 +14,7 @@ import {
 } from "../constants/constants";
 import { getTrackBackground, Range } from "react-range";
 import { PostedByOption } from "@/types/residential";
-import { CommercialFilterKey } from "@/types";
+import { CommercialFilterKey, MoreFilterSectionCom } from "@/types";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import { getSelectedMoreFiltersCount } from "../count-helper/ResSelectedMoreFiltersCount";
 import { commercialKeyMapping } from "@/types/commercial";
@@ -39,6 +39,21 @@ const carpetOptions = [
   100, 250, 500, 750, 1000, 1500, 2000, 3000, 4000, 5000, 7500, 10000,
 ];
 
+const COMMERCIAL_SUBTYPE_MAP: Record<string, string[]> = {
+  office: ["BARE SHELL", "WARM SHELL", "BUSINESS CENTER"],
+  retail: ["HIGH STREET-SHOP", "MALL SHOP", "KIOSK", "FOOD COURT-UNIT"],
+  shop: ["HIGH STREET-SHOP", "SHUTTER SHOP", "MALL SHOP"],
+  showroom: ["HIGH STREET-SHOP", "SHOWROOM SPACE"],
+  warehouse: ["WAREHOUSE GODOWN", "LOGISTICS HUB", "COLD STORAGE"],
+  industrial: ["INDUSTRIAL SHED"],
+  coworking: ["COWORKING DEDICATED-DESK", "COWORKING HOT-DESK"],
+  restaurant: ["FOOD COURT-UNIT"],
+  clinic: ["CLINIC SPACE"],
+};
+
+const normalizeCommercialTypeToken = (value: string) =>
+  value.toLowerCase().replace(/[^a-z0-9]/g, "");
+
 const CommercialFilters = () => {
   const dispatch = useDispatch();
 
@@ -53,7 +68,7 @@ const CommercialFilters = () => {
   const localities = useSelector(selectLocalitiesByCity);
   const filtersState = useSelector((state: RootState) => state.filters);
 
-  const { minPrice, maxPrice, commercial } = filtersState;
+  const { minPrice, maxPrice, commercial, listingTypeValue } = filtersState;
 
   const { locality, listingSource } = commercial;
   const localityList = Array.isArray(locality)
@@ -112,8 +127,41 @@ const CommercialFilters = () => {
     commercial,
     commercialKeyMapping
   );
+  const localityCount = localityList.length > 0 ? 1 : 0;
+  const listingTypeCount = listingTypeValue ? 1 : 0;
+  const moreFiltersBadgeCount =
+    selectedMoreFiltersCount + localityCount + listingTypeCount;
 
+  const selectedCommercialTypes = Array.isArray(commercial.commercialType)
+    ? commercial.commercialType
+    : [];
 
+  const commercialSubTypeOptions = Array.from(
+    selectedCommercialTypes.reduce((acc, type) => {
+      const token = normalizeCommercialTypeToken(type);
+      const options = COMMERCIAL_SUBTYPE_MAP[token] ?? [];
+      options.forEach((opt) => acc.add(opt));
+      return acc;
+    }, new Set<string>())
+  );
+
+  const dynamicCommercialSections: MoreFilterSectionCom[] =
+    commercialMoreFilterSections.map((section) =>
+      section.key === "Commercial Sub Type"
+        ? { ...section, options: commercialSubTypeOptions }
+        : section
+    );
+
+  const commercialTypeLabel =
+    selectedCommercialTypes.length === 0
+      ? "Property Type"
+      : selectedCommercialTypes.length === 1
+        ? selectedCommercialTypes[0]
+        : `${selectedCommercialTypes.length} Types`;
+  const commercialTypeOptions =
+    commercialMoreFilterSections.find(
+      (section) => section.key === "Commercial Type"
+    )?.options ?? [];
 
   useEffect(() => {
     if (!budgetTouched) return;
@@ -141,10 +189,32 @@ const CommercialFilters = () => {
     }
   }, [carpetRange, dispatch]);
 
+  useEffect(() => {
+    const currentSubTypes = Array.isArray(commercial.commercialSubType)
+      ? commercial.commercialSubType
+      : [];
+
+    if (currentSubTypes.length === 0) return;
+
+    const validSubTypes = new Set(commercialSubTypeOptions);
+    const nextSubTypes = currentSubTypes.filter((subType) =>
+      validSubTypes.has(subType)
+    );
+
+    if (nextSubTypes.length !== currentSubTypes.length) {
+      dispatch(
+        setCommercialFilter({
+          key: "commercialSubType",
+          value: nextSubTypes,
+        })
+      );
+    }
+  }, [commercial.commercialSubType, commercialSubTypeOptions, dispatch]);
+
   return (
-    <div className="flex gap-4 items-center">
+    <div className="flex gap-1 items-center">
       {/* ---------- Localities ---------- */}
-       <FilterDropdown
+      <FilterDropdown
         triggerLabel={
           <div className="flex justify-center items-center">
             <span className="px-4 text-primary font-medium cursor-pointer">
@@ -168,10 +238,10 @@ const CommercialFilters = () => {
               </p>
             )}
 
-             {cityData && (
+            {cityData && (
               <>
                 <div className="flex gap-2 flex-wrap">
-                  {localities.map((loc) => {
+                  {localities.map((loc: { name: string }) => {
                     const isSelected =
                       localityList.includes(loc.name);
 
@@ -378,7 +448,7 @@ const CommercialFilters = () => {
               <button
                 key={opt}
                 onClick={() => {
-                   dispatch(
+                  dispatch(
                     setCommercialFilter({
                       key: "listingSource", // Use the backend key directly or via mapping
                       value: opt,
@@ -402,15 +472,97 @@ const CommercialFilters = () => {
         )}
       />
 
+      {/* ---------- Property Type ---------- */}
+      <FilterDropdown
+        triggerLabel={
+          <div className="flex w-40 items-center justify-between px-4 font-medium text-primary cursor-pointer">
+            <span className="truncate">{commercialTypeLabel}</span>
+
+            {selectedCommercialTypes.length > 0 && (
+              <span className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white">
+                {selectedCommercialTypes.length}
+              </span>
+            )}
+          </div>
+        }
+        width="w-72"
+        align="left"
+        renderContent={(close) => (
+          <div className="space-y-3 p-3">
+            <h4 className="text-sm font-semibold">Commercial Type</h4>
+
+            <div className="flex flex-wrap gap-2">
+              {commercialTypeOptions.map((option) => {
+                const isActive =
+                  selectedCommercialTypes.includes(option);
+
+                return (
+                  <button
+                    key={option}
+                    onClick={() => {
+                      dispatch(
+                        setCommercialFilter({
+                          key: "commercialType",
+                          value: toggleArrayValue(
+                            selectedCommercialTypes,
+                            option
+                          ),
+                        })
+                      );
+                    }}
+                    className={`rounded-full border px-3 py-1.5 text-sm transition ${isActive
+                        ? "border-green-400 bg-green-100 text-green-700"
+                        : "border-gray-300 bg-white hover:bg-gray-50"
+                      }`}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-between">
+              <button
+                onClick={() =>
+                  dispatch(
+                    setCommercialFilter({
+                      key: "commercialType",
+                      value: [],
+                    })
+                  )
+                }
+                disabled={selectedCommercialTypes.length === 0}
+                className={`text-sm font-medium ${selectedCommercialTypes.length > 0
+                    ? "text-red-500 hover:underline"
+                    : "cursor-not-allowed text-gray-400"
+                  }`}
+              >
+                Clear All
+              </button>
+
+              <button
+                onClick={close}
+                className="text-sm font-semibold text-green-600 hover:underline"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        )}
+      />
+
+
       {/* ---------- MORE FILTER MODAL ---------- */}
       <FilterDropdown
         open={open}
         onOpenChange={(next) => setOpen(next)}
         triggerLabel={
           <div className="flex text-primary items-center gap-2 px-2 py-2 rounded-xl border bg-white cursor-pointer">
-            <span className="btn-primary text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-              {selectedMoreFiltersCount}
-            </span>
+            {moreFiltersBadgeCount > 0 && (
+              <span className="btn-primary text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                {moreFiltersBadgeCount}
+              </span>
+            )}
 
             <span className="text-sm font-semibold text-primary">
               More Filters
@@ -429,7 +581,7 @@ const CommercialFilters = () => {
           <div className="flex h-[420px]">
             {/* Left panel */}
             <div className="w-1/3 border-r border-gray-200 overflow-y-auto">
-              {commercialMoreFilterSections?.map((section) => (
+              {dynamicCommercialSections?.map((section) => (
                 <button
                   key={section.key}
                   onClick={() => {
@@ -452,7 +604,7 @@ const CommercialFilters = () => {
               ref={rightPanelRef}
               className="flex-1 p-6 overflow-y-auto space-y-10"
             >
-              {commercialMoreFilterSections.map((section) => {
+              {dynamicCommercialSections.map((section) => {
                 const mappedKey = commercialKeyMapping[section.key];
                 const currentValue = commercial[mappedKey];
 
@@ -558,6 +710,12 @@ const CommercialFilters = () => {
                     ) : (
                       /* OPTIONS */
                       <div className="flex flex-wrap gap-3">
+                        {section.key === "Commercial Sub Type" &&
+                          (section.options?.length ?? 0) === 0 ? (
+                          <p className="text-sm text-gray-500">
+                            Select Commercial Type first
+                          </p>
+                        ) : null}
                         {section.options?.map((opt) => {
                           const isActive =
                             section.selectionType === "multiple"

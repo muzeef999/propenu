@@ -43,7 +43,7 @@ const ResidentialFilters = () => {
   const cityData = useSelector(selectCityWithLocalities);
   const localities = useSelector(selectLocalitiesByCity);
   const filtersState = useSelector((state: RootState) => state.filters);
-  const { minPrice, maxPrice, residential } = filtersState;
+  const { minPrice, maxPrice, residential, listingTypeValue } = filtersState;
   const [budgetTouched, setBudgetTouched] = useState(false);
 
   const { locality, bhk, listingSource } = residential;
@@ -148,6 +148,10 @@ const ResidentialFilters = () => {
     residential,
     residentialKeyMapping,
   );
+  const localityCount = Array.isArray(locality) && locality.length > 0 ? 1 : 0;
+  const listingTypeCount = listingTypeValue ? 1 : 0;
+  const moreFiltersBadgeCount =
+    selectedMoreFiltersCount + localityCount + listingTypeCount;
   /* -------------------- MORE FILTER CONFIG -------------------- */
 
   useEffect(() => {
@@ -164,7 +168,7 @@ const ResidentialFilters = () => {
   return (
     <>
       {/* ==================== FILTER BAR ==================== */}
-      <div className="flex gap-4 items-center">
+      <div className="flex gap-1 items-center">
         {/* ---------- Localities ---------- */}
         <FilterDropdown
           triggerLabel={
@@ -194,7 +198,7 @@ const ResidentialFilters = () => {
                 <>
                   {/* Locality Pills */}
                   <div className="flex gap-2 flex-wrap">
-                    {localities.map((loc) => {
+                    {localities.map((loc: { name: string }) => {
                       const isSelected =
                         Array.isArray(locality) && locality.includes(loc.name);
 
@@ -473,7 +477,7 @@ const ResidentialFilters = () => {
           triggerLabel={
             <div className="flex text-primary items-center gap-2 px-2 py-2 rounded-xl border bg-white cursor-pointer">
               <span className="btn-primary text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                {selectedMoreFiltersCount}
+                {moreFiltersBadgeCount}
               </span>
 
               <span className="text-sm font-semibold text-primary">

@@ -1,6 +1,88 @@
 import { BaseFilters, CommercialQuery } from "../../types/filterTypes";
 import parseNumber from "../../utils/parseNumber";
 
+type NumericMode = "eq" | "gte";
+
+type NumericCondition = {
+  mode: NumericMode;
+  value: number;
+};
+
+function pushAndCondition(filter: Record<string, any>, condition: Record<string, any>) {
+  if (!condition || Object.keys(condition).length === 0) return;
+  if (!Array.isArray(filter.$and)) filter.$and = [];
+  filter.$and.push(condition);
+}
+
+function parseNumericToken(
+  raw: string,
+  options?: { allowGround?: boolean },
+): NumericCondition | undefined {
+  const token = raw.trim().toLowerCase();
+  if (!token) return undefined;
+
+  if (options?.allowGround && token === "ground") {
+    return { mode: "eq", value: 0 };
+  }
+
+  const gteMatch = token.match(/^(\d+)\+$/);
+  if (gteMatch?.[1]) {
+    return { mode: "gte", value: Number(gteMatch[1]) };
+  }
+
+  const eqMatch = token.match(/^\d+$/);
+  if (eqMatch) {
+    return { mode: "eq", value: Number(token) };
+  }
+
+  return undefined;
+}
+
+function parseNumericSelector(
+  input: unknown,
+  options?: { allowGround?: boolean },
+): NumericCondition[] {
+  if (input === undefined || input === null || input === "") return [];
+
+  const raw =
+    typeof input === "number"
+      ? String(input)
+      : typeof input === "string"
+        ? input
+        : "";
+
+  if (!raw) return [];
+
+  const conditions = raw
+    .split(",")
+    .map((item) => parseNumericToken(item, options))
+    .filter((item): item is NumericCondition => Boolean(item));
+
+  return conditions;
+}
+
+function applyNumericSelector(
+  filter: Record<string, any>,
+  field: string,
+  conditions: NumericCondition[],
+) {
+  if (!conditions.length) return;
+
+  const clauses = conditions.map((condition) =>
+    condition.mode === "eq"
+      ? { [field]: condition.value }
+      : { [field]: { $gte: condition.value } },
+  );
+
+  if (clauses.length === 1) {
+    const clause = clauses[0];
+    if (clause) pushAndCondition(filter, clause);
+    return;
+  }
+
+  pushAndCondition(filter, { $or: clauses });
+}
+
 export function extendCommercialFilters(
   query: CommercialQuery = {},
   baseFilter: Partial<BaseFilters> = {},
@@ -86,11 +168,28 @@ if (typeof q.locality === "string" && q.locality.trim().length > 0) {
 }
 
 
-  const floorNumber = parseNumber(q.floorNumber);
+  const floorNumberConditions = parseNumericSelector(
+    q.floorNumber ?? q.floor,
+    { allowGround: true },
+  );
+
+  const totalFloorsConditions = parseNumericSelector(q.totalFloors);
+
+  // Backward compatibility for callers that still pass plain numbers.
+  const floorNumber = parseNumber(q.floorNumber ?? q.floor);
   const totalFloors = parseNumber(q.totalFloors);
 
-  if (floorNumber !== undefined) f.floorNumber = floorNumber;
-  if (totalFloors !== undefined) f.totalFloors = totalFloors;
+  if (floorNumberConditions.length > 0) {
+    applyNumericSelector(f, "floorNumber", floorNumberConditions);
+  } else if (floorNumber !== undefined) {
+    f.floorNumber = floorNumber;
+  }
+
+  if (totalFloorsConditions.length > 0) {
+    applyNumericSelector(f, "totalFloors", totalFloorsConditions);
+  } else if (totalFloors !== undefined) {
+    f.totalFloors = totalFloors;
+  }
 
   if (q.furnishedStatus) {
     f.furnishedStatus = q.furnishedStatus;

@@ -35,7 +35,13 @@ function parseMinPlusOption(value?: string) {
 
 function normalizeListingSourceToken(token: string) {
   const normalized = token.trim().toLowerCase();
-  if (normalized === "owners" || normalized === "owner") return "user";
+  if (
+    normalized === "owners" ||
+    normalized === "owner" ||
+    normalized === "user"
+  ) {
+    return "owner,user";
+  }
   if (normalized === "agents" || normalized === "agent") return "agent";
   if (normalized === "builders" || normalized === "builder") return "builder";
   return normalized;
@@ -107,8 +113,14 @@ export function extendAgriculturalFilters(
 
   if (minPrice !== undefined || maxPrice !== undefined) {
     const price: any = {};
-    if (minPrice !== undefined) price.$gte = minPrice;
-    if (maxPrice !== undefined) price.$lte = maxPrice;
+    if (minPrice !== undefined && maxPrice !== undefined) {
+      price.$gte = Math.min(minPrice, maxPrice);
+      price.$lte = Math.max(minPrice, maxPrice);
+    } else if (minPrice !== undefined) {
+      price.$gte = minPrice;
+    } else if (maxPrice !== undefined) {
+      price.$lte = maxPrice;
+    }
     and.push({ price });
   }
 
@@ -193,7 +205,13 @@ export function extendAgriculturalFilters(
 
   const listingSourceTokens = parseCsv(
     (q.listingSource ?? q.postedBy) as string | undefined
-  ).map(normalizeListingSourceToken);
+  )
+    .reduce<string[]>(
+      (acc, token) => acc.concat(normalizeListingSourceToken(token).split(",")),
+      []
+    )
+    .map((token) => token.trim())
+    .filter(Boolean);
   if (listingSourceTokens.length === 1) {
     and.push({ listingSource: listingSourceTokens[0] });
   } else if (listingSourceTokens.length > 1) {

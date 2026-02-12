@@ -59,6 +59,9 @@ export interface ResidentialQuery extends ParsedQs {
 }
 
 export interface CommercialQuery extends ParsedQs {
+  floor?: string;
+  floorNumber?: string;
+  totalFloors?: string;
   minCarpetArea?: string;
   maxCarpetArea?: string;
   minPowerCapacityKw?: string;
