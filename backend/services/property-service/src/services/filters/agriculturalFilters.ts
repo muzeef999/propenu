@@ -2,6 +2,59 @@ import type { Request } from "express";
 import { AgriculturalQuery, BaseFilters } from "../../types/filterTypes";
 import parseNumber from "../../utils/parseNumber";
 
+function parseCsv(value?: string) {
+  if (typeof value !== "string") return [];
+  return value
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
+function isTruthy(value: unknown) {
+  if (typeof value !== "string") return false;
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized === "true" ||
+    normalized === "yes" ||
+    normalized === "available" ||
+    normalized === "1"
+  );
+}
+
+function parseMinPlusOption(value?: string) {
+  const options = parseCsv(value);
+  if (options.length === 0) return undefined;
+
+  const parsed = options
+    .map((token) => Number(token.replace(/[^\d.]/g, "")))
+    .filter((n) => Number.isFinite(n));
+
+  if (parsed.length === 0) return undefined;
+  return Math.min(...parsed);
+}
+
+function normalizeListingSourceToken(token: string) {
+  const normalized = token.trim().toLowerCase();
+  if (normalized === "owners" || normalized === "owner") return "user";
+  if (normalized === "agents" || normalized === "agent") return "agent";
+  if (normalized === "builders" || normalized === "builder") return "builder";
+  return normalized;
+}
+
+function normalizeRestrictionToken(value?: string) {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim().toLowerCase().replace(/[\s_]+/g, "-");
+  if (normalized === "true" || normalized === "applicable") return "applicable";
+  if (
+    normalized === "false" ||
+    normalized === "not-applicable" ||
+    normalized === "notapplicable"
+  ) {
+    return "not-applicable";
+  }
+  return undefined;
+}
+
 export function extendAgriculturalFilters(
   query: AgriculturalQuery = {},
   baseFilter: Partial<BaseFilters> = {}
@@ -60,8 +113,8 @@ export function extendAgriculturalFilters(
   }
 
   /* ---------------- AREA ---------------- */
-  const minArea = parseNumber(q.minArea);
-  const maxArea = parseNumber(q.maxArea);
+  const minArea = parseNumber(q.minArea) ?? parseNumber(q.minTotalArea);
+  const maxArea = parseNumber(q.maxArea) ?? parseNumber(q.maxTotalArea);
 
   if (minArea !== undefined || maxArea !== undefined) {
     const area: any = {};
@@ -70,12 +123,59 @@ export function extendAgriculturalFilters(
     and.push({ "totalArea.value": area });
   }
 
+  const areaUnits = parseCsv(q.areaUnit as string | undefined).map((unit) => unit.toLowerCase());
+  if (areaUnits.length === 1) and.push({ "totalArea.unit": areaUnits[0] });
+  else if (areaUnits.length > 1) {
+    and.push({ "totalArea.unit": { $in: areaUnits } });
+  }
+
   /* ---------------- SOIL / IRRIGATION ---------------- */
-  if (q.soilType) and.push({ soilType: q.soilType });
-  if (q.irrigationType) and.push({ irrigationType: q.irrigationType });
+  const soilTypes = parseCsv(q.soilType as string | undefined);
+  if (soilTypes.length === 1) and.push({ soilType: soilTypes[0] });
+  else if (soilTypes.length > 1) and.push({ soilType: { $in: soilTypes } });
+
+  const irrigationTypes = parseCsv(q.irrigationType as string | undefined);
+  if (irrigationTypes.length === 1) {
+    and.push({ irrigationType: irrigationTypes[0] });
+  } else if (irrigationTypes.length > 1) {
+    and.push({ irrigationType: { $in: irrigationTypes } });
+  }
+
+  const waterSources = parseCsv(q.waterSource as string | undefined);
+  if (waterSources.length === 1) and.push({ waterSource: waterSources[0] });
+  else if (waterSources.length > 1) {
+    and.push({ waterSource: { $in: waterSources } });
+  }
+
+  const accessRoadTypes = parseCsv(q.accessRoadType as string | undefined);
+  if (accessRoadTypes.length === 1) {
+    and.push({ accessRoadType: accessRoadTypes[0] });
+  } else if (accessRoadTypes.length > 1) {
+    and.push({ accessRoadType: { $in: accessRoadTypes } });
+  }
+
+  const currentCrops = parseCsv(q.currentCrop as string | undefined);
+  if (currentCrops.length === 1) and.push({ currentCrop: currentCrops[0] });
+  else if (currentCrops.length > 1) {
+    and.push({ currentCrop: { $in: currentCrops } });
+  }
+
+  const propertyTypes = parseCsv(q.propertyType as string | undefined);
+  if (propertyTypes.length === 1) and.push({ propertyType: propertyTypes[0] });
+  else if (propertyTypes.length > 1) {
+    and.push({ propertyType: { $in: propertyTypes } });
+  }
+
+  const propertySubTypes = parseCsv(q.propertySubType as string | undefined);
+  if (propertySubTypes.length === 1) {
+    and.push({ propertySubType: propertySubTypes[0] });
+  } else if (propertySubTypes.length > 1) {
+    and.push({ propertySubType: { $in: propertySubTypes } });
+  }
 
   /* ---------------- BOREWELLS ---------------- */
-  const minBore = parseNumber(q.minBorewells);
+  const minBore =
+    parseNumber(q.minBorewells) ?? parseMinPlusOption(q.borewellCount as string | undefined);
   const maxBore = parseNumber(q.maxBorewells);
 
   if (minBore !== undefined || maxBore !== undefined) {
@@ -83,6 +183,49 @@ export function extendAgriculturalFilters(
     if (minBore !== undefined) bw.$gte = minBore;
     if (maxBore !== undefined) bw.$lte = maxBore;
     and.push({ numberOfBorewells: bw });
+  }
+
+  const minRoadWidth =
+    parseNumber(q.minRoadWidthFt) ?? parseMinPlusOption(q.roadWidth as string | undefined);
+  if (minRoadWidth !== undefined) {
+    and.push({ "roadWidth.value": { $gte: minRoadWidth } });
+  }
+
+  const listingSourceTokens = parseCsv(
+    (q.listingSource ?? q.postedBy) as string | undefined
+  ).map(normalizeListingSourceToken);
+  if (listingSourceTokens.length === 1) {
+    and.push({ listingSource: listingSourceTokens[0] });
+  } else if (listingSourceTokens.length > 1) {
+    and.push({ listingSource: { $in: listingSourceTokens } });
+  }
+
+  if (isTruthy(q.electricityConnection)) and.push({ electricityConnection: true });
+  if (isTruthy(q.boundaryWall)) and.push({ boundaryWall: true });
+
+  if (isTruthy(q.negotiable)) and.push({ negotiable: true });
+  if (isTruthy(q.verifiedProperties)) {
+    and.push({ "verificationDocuments.status": "verified" });
+  }
+
+  const stateRestriction = normalizeRestrictionToken(
+    (q.statePurchaseRestrictions ?? q.stateRestrictions) as string | undefined
+  );
+  if (stateRestriction === "applicable") {
+    and.push({
+      statePurchaseRestrictions: { $in: ["Applicable", "applicable"] },
+    });
+  } else if (stateRestriction === "not-applicable") {
+    and.push({
+      statePurchaseRestrictions: {
+        $in: [
+          "Not Applicable",
+          "not applicable",
+          "Not-Applicable",
+          "not-applicable",
+        ],
+      },
+    });
   }
 
   if (and.length) f.$and = and;

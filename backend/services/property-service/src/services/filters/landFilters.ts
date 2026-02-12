@@ -1,6 +1,45 @@
 import { BaseFilters, LandQuery } from "../../types/filterTypes";
 import parseNumber from "../../utils/parseNumber";
 
+function parseCsv(value?: string) {
+  if (typeof value !== "string") return [];
+  return value
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
+function isTruthy(value: unknown) {
+  if (typeof value !== "string") return false;
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized === "true" ||
+    normalized === "yes" ||
+    normalized === "available" ||
+    normalized === "1"
+  );
+}
+
+function normalizeListingSourceToken(token: string) {
+  const normalized = token.trim().toLowerCase();
+  if (normalized === "owners" || normalized === "owner") return "user";
+  if (normalized === "agents" || normalized === "agent") return "agent";
+  if (normalized === "builders" || normalized === "builder") return "builder";
+  return normalized;
+}
+
+function parseMinRoadWidth(value?: string) {
+  const options = parseCsv(value);
+  if (options.length === 0) return undefined;
+
+  const parsed = options
+    .map((token) => Number(token.replace(/[^\d.]/g, "")))
+    .filter((n) => Number.isFinite(n));
+
+  if (parsed.length === 0) return undefined;
+  return Math.min(...parsed);
+}
+
 export function extendLandFilters(
   query: LandQuery = {},
   baseFilter: Partial<BaseFilters> = {},
@@ -54,6 +93,8 @@ export function extendLandFilters(
 
   const minPlot = parseNumber(q.minPlotArea);
   const maxPlot = parseNumber(q.maxPlotArea);
+  const minDimensionLength = parseNumber(q.minDimensionLength);
+  const minDimensionWidth = parseNumber(q.minDimensionWidth);
   const plotUnit = (q.plotAreaUnit as string | undefined)?.trim();
 
   if (minPlot !== undefined || maxPlot !== undefined) {
@@ -61,8 +102,65 @@ export function extendLandFilters(
     if (minPlot !== undefined) f.plotArea.$gte = minPlot;
     if (maxPlot !== undefined) f.plotArea.$lte = maxPlot;
   }
+
   if (plotUnit) f.plotAreaUnit = plotUnit;
-  if (q.negotiable === "true") f.negotiable = true;
-  if (q.cornerPlot === "true") f.cornerPlot = true;
+  if (minDimensionLength !== undefined) {
+    f["dimensions.length"] = { $gte: minDimensionLength };
+  }
+  if (minDimensionWidth !== undefined) {
+    f["dimensions.width"] = { $gte: minDimensionWidth };
+  }
+
+  const typeList = parseCsv((q.propertyType ?? q.landType) as string | undefined);
+  if (typeList.length === 1) f.propertyType = typeList[0];
+  else if (typeList.length > 1) f.propertyType = { $in: typeList };
+
+  const subTypeList = parseCsv(
+    (q.propertySubType ?? q.landSubType) as string | undefined
+  );
+  if (subTypeList.length === 1) f.propertySubType = subTypeList[0];
+  else if (subTypeList.length > 1) f.propertySubType = { $in: subTypeList };
+
+  const facingList = parseCsv(q.facing as string | undefined);
+  if (facingList.length === 1) f.facing = facingList[0];
+  else if (facingList.length > 1) f.facing = { $in: facingList };
+
+  const minRoadWidth =
+    parseNumber(q.minRoadWidthFt as string | undefined) ??
+    parseMinRoadWidth(q.roadWidth as string | undefined);
+  if (minRoadWidth !== undefined) f.roadWidthFt = { $gte: minRoadWidth };
+
+  const approvedByList = parseCsv(
+    (q.approvedByAuthority ?? q.approvedBy) as string | undefined
+  );
+  if (approvedByList.length === 1) {
+    f.approvedByAuthority = approvedByList[0];
+  } else if (approvedByList.length > 1) {
+    f.approvedByAuthority = { $in: approvedByList };
+  }
+
+  const landUseZoneList = parseCsv(q.landUseZone as string | undefined);
+  if (landUseZoneList.length === 1) f.landUseZone = landUseZoneList[0];
+  else if (landUseZoneList.length > 1) f.landUseZone = { $in: landUseZoneList };
+
+  const banksApprovedList = parseCsv(q.banksApproved as string | undefined);
+  if (banksApprovedList.length > 0) f.banksApproved = { $in: banksApprovedList };
+
+  const sourceTokens = parseCsv(
+    (q.listingSource ?? q.postedBy) as string | undefined
+  ).map(normalizeListingSourceToken);
+  if (sourceTokens.length === 1) f.listingSource = sourceTokens[0];
+  else if (sourceTokens.length > 1) f.listingSource = { $in: sourceTokens };
+
+  if (isTruthy(q.negotiable)) f.isPriceNegotiable = true;
+  if (isTruthy(q.cornerPlot)) f.cornerPlot = true;
+  if (isTruthy(q.readyToConstruct)) f.readyToConstruct = true;
+  if (isTruthy(q.waterConnection)) f.waterConnection = true;
+  if (isTruthy(q.electricityConnection)) f.electricityConnection = true;
+
+  if (isTruthy(q.verifiedProperties)) {
+    f["verificationDocuments.status"] = "verified";
+  }
+
   return f;
 }

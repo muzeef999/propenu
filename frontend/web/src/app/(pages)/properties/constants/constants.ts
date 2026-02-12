@@ -259,23 +259,27 @@ export const moreFilterSections: MoreFilterSection[] = [
       key: "Land Type",
       label: "Land Type",
       options: [
-        "Residential Land",
-        "Commercial Land",
-        "Agricultural Land",
-        "Industrial Land",
-        "Farm Land",
+        "Residential Plot",
+        "Commercial Plot",
+        "Industrial Plot",
+        "NA Plot",
       ],
+      selectionType: "multiple",
     },
     {
       key: "Land Sub Type",
       label: "Land Sub Type",
       options: [
-        "Open Plot",
-        "Layout Plot",
-        "Corner Plot",
-        "DTCP Approved Plot",
-        "HMDA Approved Plot",
+        "Gated Community",
+        "Non Gated",
+        "Corner",
+        "Road Facing",
+        "Two Side Open",
+        "Three Side Open",
+        "Resale",
+        "New Plot",
       ],
+      selectionType: "multiple",
     },
     {
       key: "Plot Area",
@@ -289,11 +293,13 @@ export const moreFilterSections: MoreFilterSection[] = [
       key: "Road Width",
       label: "Road Width (ft)",
       options: ["20+", "30+", "40+", "60+"],
+      selectionType: "multiple",
     },
     {
       key: "Facing",
       label: "Facing",
       options: ["East", "West", "North", "South", "North-East", "North-West"],
+      selectionType: "multiple",
     },
     {
       key: "Corner Plot",
@@ -358,28 +364,34 @@ export const moreFilterSections: MoreFilterSection[] = [
 
 
   
-  export const agriculturalMoreFilterSections: MoreFilterSectionAGR[] = [
+export const agriculturalMoreFilterSections: MoreFilterSectionAGR[] = [
     {
       key: "Agricultural Type",
       label: "Agricultural Type",
       options: [
-        "Dry Land",
-        "Wet Land",
         "Farm Land",
-        "Plantation Land",
-        "Horticulture Land",
+        "Wet Land",
+        "Dry Land",
+        "Dairy Farm",
       ],
+      selectionType: "multiple",
     },
     {
       key: "Agricultural Sub Type",
       label: "Agricultural Sub Type",
       options: [
-        "Paddy Field",
-        "Coconut Garden",
-        "Mango Orchard",
-        "Palm Plantation",
-        "Mixed Crop Land",
+        "Irrigated",
+        "Non Irrigated",
+        "Fenced",
+        "With Well",
+        "With Borewell",
+        "With Electricity",
+        "Unfenced",
+        "Near Road",
+        "Inside Village",
+        "Farmhouse Permission",
       ],
+      selectionType: "multiple",
     },
     {
       key: "Total Area",

@@ -74,21 +74,54 @@ export interface CommercialQuery extends ParsedQs {
 export interface LandQuery extends ParsedQs {
   minPlotArea?: string;
   maxPlotArea?: string;
+  minDimensionLength?: string;
+  minDimensionWidth?: string;
   plotAreaUnit?: string;
+  landType?: string;
+  propertyType?: string;
+  landSubType?: string;
+  propertySubType?: string;
+  roadWidth?: string;
+  minRoadWidthFt?: string;
   negotiable?: string;
   cornerPlot?: string;
   readyToConstruct?: string;
+  waterConnection?: string;
+  electricityConnection?: string;
+  approvedBy?: string;
+  approvedByAuthority?: string;
   landUseZone?: string;
+  banksApproved?: string;
+  postedBy?: string;
+  listingSource?: string;
+  verifiedProperties?: string;
   facing?: string;
 }
 
 export interface AgriculturalQuery extends ParsedQs {
   minArea?: string;
   maxArea?: string;
+  minTotalArea?: string;
+  maxTotalArea?: string;
+  minRoadWidthFt?: string;
+  areaUnit?: string;
   soilType?: string;
   irrigationType?: string;
+  currentCrop?: string;
+  propertyType?: string;
+  propertySubType?: string;
+  borewellCount?: string;
   minBorewells?: string;
   maxBorewells?: string;
   electricityConnection?: string;
   waterSource?: string;
+  accessRoadType?: string;
+  boundaryWall?: string;
+  negotiable?: string;
+  verifiedProperties?: string;
+  stateRestrictions?: string;
+  statePurchaseRestrictions?: string;
+  listingSource?: string;
+  postedBy?: string;
+  locality?: string;
 }
