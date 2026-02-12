@@ -149,7 +149,7 @@ function normalizeListingSourceToken(token: string) {
 
 export function buildSearchParams(filters: FilterState) {
   const base = {
-    category: filters.category?.toLowerCase(),
+    category: filters.category,
     listingType: filters.listingTypeValue,
     search: filters.searchText?.trim() || undefined,
 
