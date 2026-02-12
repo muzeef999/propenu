@@ -175,9 +175,10 @@ const postPropertySlice = createSlice({
           ...state.residential,
           builtUpArea: draft.builtUpArea,
           carpetArea: draft.carpetArea,
-          facing: typeof draft.facing === "string"
-            ? draft.facing.toLowerCase()
-            : draft.facing,
+          facing:
+            typeof draft.facing === "string"
+              ? draft.facing.toLowerCase()
+              : draft.facing,
           parkingDetails: {
             twoWheeler: draft.parkingDetails?.twoWheeler ?? 0,
             fourWheeler: draft.parkingDetails?.fourWheeler ?? 0,
@@ -217,7 +218,7 @@ const postPropertySlice = createSlice({
       if (category === "commercial") {
         state.commercial = {
           propertyType: draft.propertyType,
-          furnishing: draft.furnishedStatus,
+          furnishing: draft.furnishing,
           price: draft.price,
           commercialSubType: draft.propertySubType,
           transactionType: draft.transactionType,
@@ -227,6 +228,8 @@ const postPropertySlice = createSlice({
           floorNumber: draft.floorNumber,
           totalFloors: draft.totalFloors,
           pantry: draft.pantry,
+          cabins: draft.cabins,
+          seats: draft.seats,
           powerCapacity: draft.powerCapacity,
           parkingDetails: {
             twoWheeler: draft.parkingDetails?.twoWheeler ?? 0,
