@@ -523,9 +523,6 @@ export const ResidentialPropertyService = {
 
   getPipeline(filters: any) {
     const match = extendResidentialFilters(filters, {});
-
-    
-
     return [
       { $match: match },
       {

@@ -108,21 +108,17 @@ ResidentialSchema.pre("validate", async function (next) {
   try {
     // Always rebuild title
     this.title = buildResidentialTitle(this);
-
     if (!this.title) {
       this.title = "residential-property";
     }
-
     // Always generate slug if missing (draft + active)
     if (!this.slug) {
       const baseSlug = slugify(this.title);
-
       this.slug = await generateUniqueSlug(
         mongoose.model("Residential"),
         baseSlug
       );
     }
-
     next();
   } catch (err) {
     next(err as any);

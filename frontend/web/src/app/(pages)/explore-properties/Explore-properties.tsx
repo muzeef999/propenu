@@ -1,28 +1,26 @@
+"use client"
 import Link from "next/link";
 import ap_one from "@/asserts/ap_one.png";
 import Farm_house from "@/asserts/Farm_house.png";
 import Ind_one from "@/asserts/Ind_one.png";
 import Res from "@/asserts/Res.png";
-
-
-
-
+import { useCity } from "@/hooks/useCity";
 
 const CATEGORIES = [
   {
     id: "residential",
     title: "Residential Apartment",
-    image:ap_one,
+    image: ap_one,
     imageAlt: "Modern apartment tower at dusk",
     countText: "13,000+ Properties",
-    color:"#FFF0E5",
+    color: "#FFF0E5",
     href: "/properties?type=residential",
   },
   {
     id: "commercial",
     title: "Commercial Land",
-     color:"#FFF0E5",
-    image:Farm_house,
+    color: "#FFF0E5",
+    image: Farm_house,
     imageAlt: "Wide green land plots and dirt road",
     countText: "9,500+ Properties",
     href: "/properties?type=commercial",
@@ -30,8 +28,8 @@ const CATEGORIES = [
   {
     id: "agricultural",
     title: "Agricultural",
-     color:"#FFF0E5",
-    image:Ind_one,
+    color: "#FFF0E5",
+    image: Ind_one,
     imageAlt: "Cozy farm house with porch and lawn",
     countText: "3,200+ Properties",
     href: "/properties?type=agricultural",
@@ -39,12 +37,11 @@ const CATEGORIES = [
   {
     id: "Land /plotes",
     title: "Land /plotes",
-    color:"#FFF0E5",
-    image:Res,
+    color: "#FFF0E5",
+    image: Res,
     imageAlt: "Mediterranean villa with palm trees",
     countText: "5,800+ Properties",
-     href: "/properties?type=land",
-   
+    href: "/properties?type=land",
   },
 ];
 
@@ -52,10 +49,7 @@ const CATEGORIES = [
 
 export function PropertyCard({ item }: { item: (typeof CATEGORIES)[number] }) {
   return (
-    <Link
-      href={item.href}
-      className={`h-[360px] card bg-[${item.color}]`}
-    >
+    <Link href={item.href} className={`h-[360px] card bg-[${item.color}]`}>
       {/* Text Section */}
       <div className="z-10 flex flex-col gap-2 p-6">
         <h3 className="text-2xl headingblack font-medium">{item.title}</h3>
@@ -75,11 +69,22 @@ export function PropertyCard({ item }: { item: (typeof CATEGORIES)[number] }) {
   );
 }
 
-
 // --- Page ------------------------------------------------------------------
 export default function ExploreMorePropertiesPage() {
+
+  const { selectedCity } = useCity();
+
   return (
     <>
+      <div className="headingSideBar">
+        <h1 className="text-base font-bold sm:text-2xl truncate">
+          Explore Properties in {selectedCity?.city ?? "Hyderabad"}
+        </h1>
+        <p className="mt-1 text-sm text-gray-500 sm:text-base">
+          Find apartments, villas, farmhouses, and residential plots in top
+          localities.
+        </p>
+      </div>
       {/* Grid */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {CATEGORIES.map((item) => (
@@ -108,4 +113,3 @@ export default function ExploreMorePropertiesPage() {
     </>
   );
 }
-

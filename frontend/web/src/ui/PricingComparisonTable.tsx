@@ -2,6 +2,9 @@
 import { createPaymentOrder, verifyPayment } from "@/app/(pages)/builder/data";
 import { Plan } from "@/types";
 import SubscriptionLady from "@/svg/SubscriptionLady";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { me } from "@/data/ClientData";
 
 type FeatureRow = {
   label: string;
@@ -20,6 +23,18 @@ export default function PricingComparisonTable({
   userType,
 }: Props) {
   const handleSubscribe = async (plan: Plan) => {
+    const router = useRouter();
+
+    const [user, setUser] = useState<any>(null);
+
+    useEffect(() => {
+      async function fetchUser() {
+        const data = await me();
+        setUser(data);
+      }
+      fetchUser();
+    }, []);
+
     const order = await createPaymentOrder({
       planId: plan._id,
       userType,
@@ -41,15 +56,35 @@ export default function PricingComparisonTable({
       currency: order.currency,
       order_id: order.orderId,
       name: "Propenu",
-      description: "Subscription Payment",
+      description: `${plan.name} Plan Subscription (${userType})`,
+
+      prefill: {
+        name: user?.fullName,
+        email: user?.email,
+      },
       handler: async (response: any) => {
         await verifyPayment({
           razorpay_order_id: response.razorpay_order_id,
           razorpay_payment_id: response.razorpay_payment_id,
           razorpay_signature: response.razorpay_signature,
         });
-        alert("Payment successful 🎉");
+
+        const redirectMap: Record<string, string> = {
+          agent: "/agent/membership",
+          buyer: "/myplan",
+          owner: "/myplan",
+          builder: "/builder/dashboard",
+        };
+        const role = user?.roleName?.toLowerCase();
+        const path = redirectMap[role];
+
+        if (path) {
+          router.replace(path);
+        } else {
+          router.replace("/dashboard"); // fallback
+        }
       },
+
       theme: { color: "#27AE60" },
     });
 
@@ -145,4 +180,3 @@ export default function PricingComparisonTable({
     </div>
   );
 }
-

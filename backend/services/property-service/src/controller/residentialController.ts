@@ -6,6 +6,7 @@ import ResidentialPropertyService, { findRelatedResidential,} from "../services/
 import { AuthRequest } from "../middlewares/authMiddleware";
 import Residential from "../models/residentialModel";
 import { uploadFile } from "../utils/uploadFile";
+import Location from "../models/locationModel";
 
 /** Helper: parse values that might be JSON strings (multipart sends arrays/objects as strings). */
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -331,7 +332,56 @@ export const updateLocationStep = async (req: AuthRequest, res: Response) => {
     },
   });
 
-  await doc.save(); // 🔥 recomputes title correctly
+  await doc.save(); 
+
+  if (doc.city && doc.locality) {
+    const coordinates = doc.location?.coordinates || [0, 0];
+
+    // Step 1 — find city doc
+    let cityDoc = await Location.findOne({
+      city: doc.city,
+      state: doc.state,
+    });
+
+    // Step 2 — if city not exists → create
+    if (!cityDoc) {
+      await Location.create({
+        city: doc.city,
+        state: doc.state,
+        category: "residential",
+        localities: [
+          {
+            name: doc.locality,
+            location: {
+              type: "Point",
+              coordinates,
+            },
+          },
+        ],
+      });
+    } else {
+      // Step 3 — check if locality exists
+      const exists = cityDoc.localities.some(
+        (loc: any) =>
+          loc.name.toLowerCase() === doc.locality.toLowerCase()
+      );
+
+      // Step 4 — push new locality if not exists
+      if (!exists) {
+        cityDoc.localities.push({
+          name: doc.locality,
+          location: {
+            type: "Point",
+            coordinates,
+          },
+        });
+
+        await cityDoc.save();
+      }
+    }
+  }
+
+
 
   res.json({ data: doc });
 };

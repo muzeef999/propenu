@@ -5,6 +5,7 @@ import LandService, { findRelatedLand } from "../services/landService";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import LandPlot from "../models/landModel";
 import { uploadFile } from "../utils/uploadFile";
+import Location from "../models/locationModel";
 
 /** helper to parse JSON-like values already handled by middleware; keep for safety */
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -310,6 +311,54 @@ export const updateLandLocationStep = async (
   };
 
   await doc.save(); // 🔥 title improves with location
+
+  
+  if (doc.city && doc.locality) {
+    const coordinates = doc.location?.coordinates || [0, 0];
+
+    // Step 1 — find city doc
+    let cityDoc = await Location.findOne({
+      city: doc.city,
+      state: doc.state,
+    });
+
+    // Step 2 — if city not exists → create
+    if (!cityDoc) {
+      await Location.create({
+        city: doc.city,
+        state: doc.state,
+        category: "residential",
+        localities: [
+          {
+            name: doc.locality,
+            location: {
+              type: "Point",
+              coordinates,
+            },
+          },
+        ],
+      });
+    } else {
+      // Step 3 — check if locality exists
+      const exists = cityDoc.localities.some(
+        (loc: any) =>
+          loc.name.toLowerCase() === doc.locality.toLowerCase()
+      );
+
+      // Step 4 — push new locality if not exists
+      if (!exists) {
+        cityDoc.localities.push({
+          name: doc.locality,
+          location: {
+            type: "Point",
+            coordinates,
+          },
+        });
+
+        await cityDoc.save();
+      }
+    }
+  }
 
   res.json({ data: doc });
 };

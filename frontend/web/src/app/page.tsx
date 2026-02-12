@@ -22,18 +22,7 @@ export default function Home() {
         <PopularOwnerPropertiesClient />
         <AgentsList />
         <ExploreOurServices />
-        <div>
-          <div className="headingSideBar">
-            <h1 className="text-base font-bold sm:text-2xl truncate">
-              Explore Properties in hyderabad
-            </h1>
-            <p className="mt-1 text-sm text-gray-500 sm:text-base">
-              Find apartments, villas, farmhouses, and residential plots in top
-              localities.
-            </p>
-          </div>
-          <ExploreMorePropertiesPage />
-        </div>
+        <ExploreMorePropertiesPage />
         <TestomianalHome />
       </div>
     </div>
