@@ -65,7 +65,7 @@ export const agriculturalSchema = z
 ),
 
     /* ===== IMAGES (handled separately) ===== */
-     images: z.array(z.instanceof(File)).min(5, "Upload at least 5 images"),
+     images: z.array(z.instanceof(File)).default([]),
 
   })
   .superRefine((data, ctx) => {

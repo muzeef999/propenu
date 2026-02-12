@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import Router from "next/router";
 import FileUpload, { UploadedFile } from "@/ui/FileUpload";
 import { setFileStoreFiles } from "@/utilies/fileStore";
+import { set } from "zod";
 
 export const TRANSACTION_TYPES = [
   "new-sale",
@@ -48,15 +49,16 @@ const CommercialProfile = () => {
     (state: any) => state.postProperty,
   );
   const dispatch = useAppDispatch();
-  const [files, setFiles] = useState<UploadedFile[]>([]);
 
+  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [showErrors, setShowErrors] = useState(false);
 
-  const localFiles = files
-    .map((f) => f.file)
-    .filter((file): file is File => Boolean(file));
-  const serverImageCount = commercial.gallery?.length ?? 0;
-  const localImageCount = files.filter((f) => f.source === "local").length;
+  // const localFiles = files
+  //   .map((f) => f.file)
+  //   .filter((file): file is File => Boolean(file));
+  // const serverImageCount = commercial.gallery?.length ?? 0;
+  // const localImageCount = files.filter((f) => f.source === "local").length;
 
   useEffect(() => {
     if (!commercial?.gallery || commercial.gallery.length === 0) return;
@@ -71,13 +73,6 @@ const CommercialProfile = () => {
     setFiles(serverFiles);
   }, [commercial?.gallery, files.length]);
 
-
-  const validationResult = validateCommercialProfile(commercial, localFiles);
-
-  const fieldErrors =
-    showErrors && !validationResult.success
-      ? validationResult.error.flatten().fieldErrors
-      : {};
 
   return (
     <div className="space-y-8">
@@ -650,15 +645,25 @@ const CommercialProfile = () => {
             amenities: Array.isArray(commercial.amenities)
               ? commercial.amenities.map((a: any) => a?.title).filter(Boolean)
               : [],
-            images: localFiles,
           };
 
-          if (serverImageCount + localImageCount < 5) {
+          const serverImageCount = commercial.gallery?.length ?? 0;
+
+          const localFiles: File[] = files
+            .filter((f) => f.source === "local" && f.file)
+            .map((f) => f.file as File);
+
+          const totalImageCount = serverImageCount + localFiles.length;
+
+          if (totalImageCount < 5) {
+            setFieldErrors({
+              images: ["Upload at least 5 images"],
+            });
             toast.error("Upload at least 5 images");
             return;
           }
 
-          const result = validateCommercialProfile(payload, payload.images);
+          const result = validateCommercialProfile(payload, localFiles);
 
           if (!result.success) {
             const flattened = result.error.flatten();
@@ -670,6 +675,8 @@ const CommercialProfile = () => {
             return;
           }
 
+          setFieldErrors({}); // clear previous errors
+
           // 🚀 IMPORTANT: send ORIGINAL residential object to backend
           dispatch(
             submitDetailsThunk({
@@ -679,19 +686,16 @@ const CommercialProfile = () => {
             }),
           )
             .unwrap()
-            .then((response) => {
+            .then(() => {
               dispatch(nextStep());
             })
             .catch((error: any) => {
-              console.log("🔥 FULL ERROR FROM API:", error);
-
               const errObj =
                 typeof error === "string"
                   ? { message: error }
                   : error?.response?.data || error;
 
               toast.error(errObj?.message || "Failed to submit property");
-
               if (
                 errObj?.code === "NO_VALID_PLAN" ||
                 errObj?.code === "PLAN_LIMIT_REACHED"

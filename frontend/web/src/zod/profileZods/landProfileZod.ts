@@ -57,19 +57,8 @@ export const landProfileSchema = z.object({
     .min(30, "Description must be at least 30 characters long")
 ),
 
-  images: z.array(z.instanceof(File)).optional(),
-  serverImageCount: z.number().int().min(0).optional(),
-}).superRefine((data, ctx) => {
-  const localCount = Array.isArray(data.images) ? data.images.length : 0;
-  const serverCount = data.serverImageCount ?? 0;
-  if (localCount + serverCount < 5) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["images"],
-      message: "Upload at least 5 images",
-    });
-  }
-});
+  images: z.array(z.instanceof(File)).default([]),
+})
 
 /**
  * Useful inferred type
@@ -82,6 +71,5 @@ export const validateLandProfile = (
   return landProfileSchema.safeParse({
     ...land,
     images: files,
-    serverImageCount,
   });
 };
