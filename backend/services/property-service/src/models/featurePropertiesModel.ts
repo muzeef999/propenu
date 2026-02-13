@@ -162,7 +162,7 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     },
     possessionDate: { type: String },
     totalTowers: { type: Number },
-    redirectUrl:{type : String, trim:true},
+    redirectUrl:{type : String, trim : true},
     totalFloors: { type: String },
     projectArea: { type: Number },
     totalUnits: { type: Number },

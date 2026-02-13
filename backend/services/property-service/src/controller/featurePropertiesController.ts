@@ -10,7 +10,7 @@ function parseMaybeJSON<T = any>(value: any): T | undefined {
   if (typeof value !== "string") return value as T;
   try { 
     return JSON.parse(value) as T;
-  } catch {
+  } catch { 
     // not JSON — return as string
     return (value as unknown) as T;
   }

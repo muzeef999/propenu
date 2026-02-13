@@ -134,7 +134,7 @@ const FilterBar: React.FC = () => {
 
   return (
     <div className="sticky top-0 z-20 flex h-14 items-center bg-[#D1EFDD] px-3 shadow-sm">
-      <div className="mx-auto w-full max-w-8xl flex items-center gap-5 rounded-xl bg-white px-4 py-1">
+      <div className="mx-auto container w-full max-w-8xl flex items-center gap-5 rounded-xl bg-white px-4 py-1">
         <div className="flex items-center gap-4 w-full justify-between">
           <div className="flex items-center rounded-md">
             <div className="flex items-center">
