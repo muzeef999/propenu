@@ -118,6 +118,19 @@ CommercialSchema.index(
 CommercialSchema.index({ slug: 1 }, { unique: true });
 
 
+
+
+CommercialSchema.pre("save", async function (next) {
+  if (!this.listingSource && this.createdBy) {
+    const user = await mongoose.model("User").findById(this.createdBy);
+    if (user) {
+      this.listingSource = user.role;
+    }
+  }
+  next();
+});
+
+
 CommercialSchema.pre("validate", async function (next) {
   try {
     // Always rebuild title

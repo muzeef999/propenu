@@ -69,6 +69,17 @@ AgriculturalSchema.index(TEXT_INDEX_FIELDS, { name: "Agri_Text" });
 AgriculturalSchema.index({ slug: 1 }, { unique: true });
 
 
+AgriculturalSchema.pre("save", async function (next) {
+  if (!this.listingSource && this.createdBy) {
+    const user = await mongoose.model("User").findById(this.createdBy);
+    if (user) {
+      this.listingSource = user.role;
+    }
+  }
+  next();
+});
+
+
 AgriculturalSchema.pre("validate", async function (next) {
   try {
     // Always rebuild title
