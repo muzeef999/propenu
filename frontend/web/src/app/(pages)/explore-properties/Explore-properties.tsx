@@ -57,14 +57,14 @@ export function PropertyCard({ item }: { item: (typeof CATEGORIES)[number] }) {
       </div>
 
       {/* Image Section */}
-      <div className="absolute bottom-0 right-0 w-full">
+      {/* <div className="absolute bottom-0 right-0 w-full">
         <img
           src={item.image.src}
           alt={item.imageAlt}
           loading="lazy"
           className="h-full w-full object-cover object-center transition-transform duration-300"
         />
-      </div>
+      </div> */}
     </Link>
   );
 }
