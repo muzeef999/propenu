@@ -8,6 +8,7 @@ export const UnitZ = z.object({
   availableCount: z.number().int().nonnegative().optional().default(0),
   planFileName: z.string().optional(),
   planUrl:z.string().url().optional(),
+  redirectUrl: z.string().url().optional(),
   plan: z
     .object({
       url: z.string().optional(),
@@ -169,6 +170,7 @@ export const UpdateFeaturePropertySchema = z.object({
   city: z.string().optional(),
   state: z.string().optional(),
   locality: z.string().optional(),
+  redirectUrl: z.string().url().optional(),
   location: z
     .object({
       type: z.literal("Point").optional(),
