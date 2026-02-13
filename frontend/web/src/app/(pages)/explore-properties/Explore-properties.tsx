@@ -57,33 +57,26 @@ export function PropertyCard({ item }: { item: (typeof CATEGORIES)[number] }) {
       </div>
 
       {/* Image Section */}
-      {/* <div className="absolute bottom-0 right-0 w-full">
+      <div className="absolute bottom-0 right-0 w-full">
         <img
           src={item.image.src}
           alt={item.imageAlt}
           loading="lazy"
           className="h-full w-full object-cover object-center transition-transform duration-300"
         />
-      </div> */}
+      </div>
     </Link>
   );
 }
 
-// --- Page ------------------------------------------------------------------
+// ---------------------------------------------- Page ------------------------------------------------------------------
 export default function ExploreMorePropertiesPage() {
-
   const { selectedCity } = useCity();
-
   return (
     <>
       <div className="headingSideBar">
-        <h1 className="text-base font-bold sm:text-2xl truncate">
-          Explore Properties in {selectedCity?.city ?? "Hyderabad"}
-        </h1>
-        <p className="mt-1 text-sm text-gray-500 sm:text-base">
-          Find apartments, villas, farmhouses, and residential plots in top
-          localities.
-        </p>
+        <h1 className="text-base font-bold sm:text-2xl truncate">Explore Properties in {selectedCity?.city ?? "Hyderabad"} </h1>
+        <p className="mt-1 text-sm text-gray-500 sm:text-base">Find apartments, villas, farmhouses, and residential plots in top localities.</p>
       </div>
       {/* Grid */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
