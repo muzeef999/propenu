@@ -623,6 +623,32 @@ export const CommercialService = {
     return [
       { $match: match },
       {
+        $lookup: {
+          from: "users",
+          localField: "createdBy",
+          foreignField: "_id",
+          as: "createdByUser",
+        },
+      },
+      {
+        $addFields: {
+          createdByUser: { $arrayElemAt: ["$createdByUser", 0] },
+        },
+      },
+      {
+        $lookup: {
+          from: "roles",
+          localField: "createdByUser.roleId",
+          foreignField: "_id",
+          as: "createdByRole",
+        },
+      },
+      {
+        $addFields: {
+          createdByRole: { $arrayElemAt: ["$createdByRole", 0] },
+        },
+      },
+      {
         $project: {
           _id: 0,
           id: "$_id",
@@ -639,6 +665,9 @@ export const CommercialService = {
           furnishedStatus: 1,
           floorNumber: 1,
           totalFloors: 1,
+          listingSource: {
+            $ifNull: ["$listingSource", { $ifNull: ["$createdByRole.name", "user"] }],
+          },
           price: 1,
           location: 1,
           createdAt: 1,

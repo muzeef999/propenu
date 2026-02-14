@@ -33,6 +33,22 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
   const pricePerSqft =
     (p as any)?.pricePerSqft ??
     Math.round((p?.price ?? 0) / (p as any)?.builtUpArea || 0);
+  const displayLandName = (p as any)?.landName || (p as any)?.title || "Land";
+  const listingSourceRaw = (
+    p?.listingSource ||
+    (p as any)?.createdBy?.roleName ||
+    (p as any)?.createdBy?.role ||
+    "user"
+  )
+    ?.toString()
+    .toLowerCase();
+
+  const resolvedListingSource: "User" | "Agent" | "builder" =
+    listingSourceRaw === "agent"
+      ? "Agent"
+      : listingSourceRaw === "builder"
+        ? "builder"
+        : "User";
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isShortlisted, setIsShortlisted] = useState(false);
   const router = useRouter();
@@ -111,6 +127,7 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
       queryClient.invalidateQueries({ queryKey: ["user-shortlist"] });
     },
   });
+  console.log("property in card:", p);
 
   return (
     <div
@@ -187,7 +204,7 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
             </h3>
             <p className="text-sm text-gray-500 mt-1 flex items-center gap-2 truncate">
               <BiBuildingHouse className="w-4 h-4" />
-              <span className="capitalize">{(p as any)?.landName}</span>
+              <span className="capitalize">{displayLandName}</span>
             </p>
           </div>
 
@@ -307,7 +324,7 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
             projectId={p.id}
             propertyType="agriculturals"
             listingType={p?.listingType}
-            listingSource={p?.listingSource}
+            listingSource={resolvedListingSource}
 
             className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${vertical
               ? "px-4 py-1.5 text-sm"

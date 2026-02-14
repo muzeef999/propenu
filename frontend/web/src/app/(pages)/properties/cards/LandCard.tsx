@@ -34,7 +34,6 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
   const area = (p as any)?.superBuiltUpArea;
   const pricePerSqft =
     (p as any)?.pricePerSqft ?? (area ? Math.round((p?.price ?? 0) / area) : 0);
-
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isShortlisted, setIsShortlisted] = useState(false);
   const router = useRouter();
@@ -113,6 +112,8 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
       queryClient.invalidateQueries({ queryKey: ["user-shortlist"] });
     },
   });
+
+  console.log("property data in LandCard:", p);
 
 
   return (
