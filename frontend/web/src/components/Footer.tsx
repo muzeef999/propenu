@@ -25,10 +25,10 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {/* 1. Company Column */}
           <div>
-            <h3 className="mb-6 text-base font-semibold text-gray-900">
+            <h3 className="mb-6 text-lg font-semibold text-gray-900">
               Company
             </h3>
-            <ul className="space-y-4 text-[14px] text-gray-700 font-medium">
+            <ul className="space-y-4 text-sm text-gray-700 font-medium">
               <li>
                 <Link href="/about" className="hover:text-primary">
                   About Us
@@ -54,10 +54,10 @@ export default function Footer() {
 
           {/* 2. Contact Us Column */}
           <div>
-            <h3 className="mb-6 text-base font-semibold text-gray-900">
+            <h3 className="mb-6 text-lg font-semibold text-gray-900">
               Contact Us
             </h3>
-            <div className="space-y-5 text-[14px] text-gray-700 font-medium">
+            <div className="space-y-5 text-sm text-gray-700 font-medium">
               <div>
                 <p>Help Line – +91 9182334233</p>
                 <p className="text-gray-500 font-normal">
@@ -82,8 +82,8 @@ export default function Footer() {
 
           {/* 3. App Download Column */}
           <div>
-            <h3 className="mb-6 text-base font-semibold text-gray-900">
-              Experience Propenu App on Mobile
+            <h3 className="mb-6 text-lg font-semibold text-gray-900">
+              Experience Propenu on Mobile
             </h3>
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-3">
@@ -107,7 +107,7 @@ export default function Footer() {
 
           {/* 4. Follow Us Column */}
           <div>
-            <h3 className="mb-6 text-base font-semibold text-gray-900">
+            <h3 className="mb-6 text-lg font-semibold text-gray-900">
               Follow Us
             </h3>
             <div className="flex items-center gap-3 mb-8">
@@ -171,7 +171,6 @@ export default function Footer() {
       {/* Background Cityscape Svg */}
       <div className="bottom-0 left-0 w-full flex items-end justify-center pointer-events-none">
         <div className="flex w-full opacity-60">
-          <BuildingFooterSvg />
           <BuildingFooterSvg />
         </div>
       </div>

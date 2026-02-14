@@ -160,7 +160,7 @@ slug: {
   lastSection: { type: String }, // "basic", "location", "gallery", etc.
 },
 verificationDocuments: {type: [VerificationDocSchema],default: [],},
-  status: { type: String, enum: ['draft','active', 'inactive', 'archived'], default: 'draft', index: true },
+  status: { type: String, enum: ['draft','pending','active', 'inactive', 'archived'], default: 'draft', index: true },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', index: true, required: true },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
 } as const;

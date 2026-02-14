@@ -397,8 +397,10 @@ export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
       req.params.id,
       {
         ...req.body,
+        status: "draft",
+        isPublished: false,
         completion: {
-          percent: 70,
+          percent: 80,
           step: 4,
           lastSection: "details",
         },
@@ -477,7 +479,7 @@ if (hasVerified) {
   property.completion.percent = 100;
   property.completion.step = 5;
 } else {
-  property.status = "draft";
+  property.status = "pending";  
   property.isPublished = false;
   property.completion.percent = 80;
   property.completion.step = 4;

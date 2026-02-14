@@ -146,7 +146,10 @@ const BaseResidentialCreate = z.object({
     })
     .optional()
     .default(() => ({ views: 0, inquiries: 0, clicks: 0 } as const)),
-  status: z.enum(["active", "inactive", "archived"]).optional().default("active"),
+  status: z
+    .enum(["draft", "pending", "active", "inactive", "archived"])
+    .optional()
+    .default("active"),
   createdBy: z.string().optional(),
   updatedBy: z.string().optional(),
 });
@@ -330,7 +333,9 @@ export const ResidentialUpdateSchema = z
       })
       .optional(),
 
-    status: z.enum(["active", "inactive", "archived"]).optional(),
+    status: z
+      .enum(["draft", "pending", "active", "inactive", "archived"])
+      .optional(),
     createdBy: z.string().optional(),
     updatedBy: z.string().optional(),
   })

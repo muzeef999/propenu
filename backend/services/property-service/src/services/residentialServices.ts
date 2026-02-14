@@ -511,7 +511,7 @@ export const ResidentialPropertyService = {
         lastSection: "verification",
       };
     } else {
-      property.status = "draft";
+      property.status = "pending";
       property.isPublished = false;
     }
 

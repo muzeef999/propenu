@@ -21,7 +21,7 @@ async function deleteS3ObjectIfExists(key?: string) {
     console.error(
       "deleteS3ObjectIfExists failed for key:",
       key,
-      e?.message || e
+      e?.message || e,
     );
   }
 }
@@ -80,7 +80,6 @@ async function mapAndUploadGallery({
   return summary;
 }
 
-
 /* --------------------  Search API  -------------------- */
 export async function findRelatedAgriculture(property: any) {
   if (!property?._id) return [];
@@ -89,8 +88,8 @@ export async function findRelatedAgriculture(property: any) {
     _id: { $ne: property._id },
     status: "active",
 
-    listingType: property.listingType,       // sale / lease
-    propertyType: property.propertyType,     // agricultural
+    listingType: property.listingType, // sale / lease
+    propertyType: property.propertyType, // agricultural
     city: property.city,
   };
 
@@ -119,13 +118,12 @@ export async function findRelatedAgriculture(property: any) {
     .sort({ createdAt: -1 })
     .limit(6)
     .select(
-      "title slug price city locality landArea cropType gallery propertyType listingType"
+      "title slug price city locality landArea cropType gallery propertyType listingType",
     )
     .lean();
 
   return related;
 }
-
 
 function normalizePayload(obj: any) {
   if (!obj) return obj;
@@ -135,57 +133,53 @@ function normalizePayload(obj: any) {
   return obj;
 }
 
-
 /* --------------------  Service API  -------------------- */
 
 export const AgriculturalService = {
   async create(payload: any, files?: MulterFiles) {
     // build slug and ensure uniqueness
 
-    let toCreate: any = { ...payload};
+    let toCreate: any = { ...payload };
 
     toCreate = normalizePayload(toCreate);
 
-
     const preliminary = new Agricultural(toCreate);
-        const propId = preliminary._id
-          ? preliminary._id.toString()
-          : String(Date.now());
-    
-        // gallery
-        const galleryFiles = files?.galleryFiles ?? [];
-        const mappedGallery = await mapAndUploadGallery({
-          incomingGallery: toCreate.gallery,
-          galleryFiles,
-          propertyId: propId,
-        });
-        toCreate.gallery = Array.isArray(mappedGallery) ? mappedGallery : [];
-    
+    const propId = preliminary._id
+      ? preliminary._id.toString()
+      : String(Date.now());
 
+    // gallery
+    const galleryFiles = files?.galleryFiles ?? [];
+    const mappedGallery = await mapAndUploadGallery({
+      incomingGallery: toCreate.gallery,
+      galleryFiles,
+      propertyId: propId,
+    });
+    toCreate.gallery = Array.isArray(mappedGallery) ? mappedGallery : [];
 
     const documentsFiles = files?.documents ?? [];
-        if (documentsFiles.length > 0) {
-          const docRefs: any[] = Array.isArray(toCreate.documents)
-            ? toCreate.documents.slice()
-            : [];
-          for (const f of documentsFiles) {
-            const up = await uploadFile({
-              buffer: f.buffer,
-              originalName: f.originalname,
-              mimetype: f.mimetype,
-              propertyId: propId,
-              folder: "agricultural/documents",
-            });
-            docRefs.push({
-              title: f.originalname,
-              url: up.url,
-              key: up.key,
-              filename: f.originalname,
-              mimetype: f.mimetype,
-            });
-          }
-          toCreate.documents = docRefs;
-        }
+    if (documentsFiles.length > 0) {
+      const docRefs: any[] = Array.isArray(toCreate.documents)
+        ? toCreate.documents.slice()
+        : [];
+      for (const f of documentsFiles) {
+        const up = await uploadFile({
+          buffer: f.buffer,
+          originalName: f.originalname,
+          mimetype: f.mimetype,
+          propertyId: propId,
+          folder: "agricultural/documents",
+        });
+        docRefs.push({
+          title: f.originalname,
+          url: up.url,
+          key: up.key,
+          filename: f.originalname,
+          mimetype: f.mimetype,
+        });
+      }
+      toCreate.documents = docRefs;
+    }
 
     // soilTestReport single file
     const soilFiles = files?.soilTestReport ?? [];
@@ -209,16 +203,16 @@ export const AgriculturalService = {
 
     const createdDoc = await Agricultural.create(toCreate);
 
-     if (createdDoc.city && createdDoc.locality) {
-             await upsertCityAndLocality({
-     city: createdDoc.city,
+    if (createdDoc.city && createdDoc.locality) {
+      await upsertCityAndLocality({
+        city: createdDoc.city,
         locality: createdDoc.locality,
         ...(createdDoc.state && { state: createdDoc.state }),
         ...(createdDoc.location?.coordinates && {
           coordinates: createdDoc.location.coordinates,
-             }),
-        });
-      }
+        }),
+      });
+    }
 
     const populated = await Agricultural.findById(createdDoc._id)
       .populate("createdBy", "name email phone role roleId")
@@ -403,7 +397,10 @@ export const AgriculturalService = {
 
   async getById(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    return Agricultural.findById(id).lean().populate("createdBy", "name email phone roleId").exec();
+    return Agricultural.findById(id)
+      .lean()
+      .populate("createdBy", "name email phone roleId")
+      .exec();
   },
 
   async getBySlug(slug: string) {
@@ -411,7 +408,7 @@ export const AgriculturalService = {
     return Agricultural.findOne({ slug })
       .populate("createdBy", "name email phone roleId")
       .lean()
-      .exec(); ;
+      .exec();
   },
 
   async list(options?: {
@@ -483,23 +480,23 @@ export const AgriculturalService = {
   async verifyDocument(
     propertyId: string,
     documentIndex: number,
-    status: "verified" | "rejected"
+    status: "verified" | "rejected",
   ) {
     const property = await Agricultural.findById(propertyId);
     if (!property) return null;
-  
+
     if (!property.verificationDocuments?.[documentIndex]) {
       throw new Error("Invalid document index");
     }
-  
+
     // 1️⃣ Update document status
     property.verificationDocuments[documentIndex].status = status;
-  
+
     // 2️⃣ Check if ANY document is verified
     const hasVerified = property.verificationDocuments.some(
-      (doc) => doc.status === "verified"
+      (doc) => doc.status === "verified",
     );
-  
+
     // 3️⃣ Auto publish if verified
     if (hasVerified) {
       property.status = "active";
@@ -513,36 +510,67 @@ export const AgriculturalService = {
       property.status = "draft";
       property.isPublished = false;
     }
-  
+
     await property.save();
     return property;
   },
-  
+
   model: Agricultural,
   getPipeline: (filters: any) => {
-     const match = extendAgriculturalFilters(filters, {});
+    const match = extendAgriculturalFilters(filters, {});
 
-  return [
-    { $match: match },
-    {
-      $project: {
-        _id: 0,
-        id: "$_id",
-        totalArea:1,
-        type: { $literal: "Agricultural" },
-        title: 1,
-        gallery: 1,
-        price: 1,
-        slug: 1,
-        pricePerSqft:1,
-        soilType: 1,
-        waterSource: 1,
-        accessRoadType: 1,
-        createdAt: 1,
+    return [
+      { $match: match },
+      {
+        $lookup: {
+          from: "users",
+          localField: "createdBy",
+          foreignField: "_id",
+          as: "createdByUser",
+        },
       },
-    },
-  ];
-},
+      {
+        $addFields: {
+          createdByUser: { $arrayElemAt: ["$createdByUser", 0] },
+        },
+      },
+      {
+        $lookup: {
+          from: "roles",
+          localField: "createdByUser.roleId",
+          foreignField: "_id",
+          as: "createdByRole",
+        },
+      },
+      {
+        $addFields: {
+          createdByRole: { $arrayElemAt: ["$createdByRole", 0] },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          id: "$_id",
+          totalArea: 1,
+          type: { $literal: "Agricultural" },
+          title: 1,
+          gallery: 1,
+          price: 1,
+          slug: 1,
+          pricePerSqft: 1,
+          listingSource: {
+            $ifNull: ["$listingSource", { $ifNull: ["$createdByRole.name", "user"] }],
+          },
+          landName: 1,
+
+          soilType: 1,
+          waterSource: 1,
+          accessRoadType: 1,
+          createdAt: 1,
+        },
+      },
+    ];
+  },
 };
 
 export default AgriculturalService;

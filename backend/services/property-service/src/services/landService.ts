@@ -17,7 +17,7 @@ function normalizePayload(obj: any) {
   if (obj.price === "") obj.price = undefined;
   if (obj.createdBy) obj.createdBy = String(obj.createdBy);
   return obj;
-} 
+}
 
 async function mapAndUploadGallery({
   incomingGallery,
@@ -86,8 +86,8 @@ export async function findRelatedLand(property: any) {
     status: "active",
 
     // CORE similarity
-    listingType: property.listingType,     // sale
-    propertyType: property.propertyType,   // land
+    listingType: property.listingType, // sale
+    propertyType: property.propertyType, // land
     city: property.city,
   };
 
@@ -116,7 +116,7 @@ export async function findRelatedLand(property: any) {
     .sort({ createdAt: -1 })
     .limit(6)
     .select(
-      "title slug price city locality plotArea landUseZone gallery propertyType listingType"
+      "title slug price city locality plotArea landUseZone gallery propertyType listingType",
     )
     .lean();
 
@@ -134,14 +134,13 @@ async function deleteS3ObjectIfExists(key?: string) {
     console.error(
       "deleteS3ObjectIfExists failed for key:",
       key,
-      e?.message || e
+      e?.message || e,
     );
   }
 }
 
 export const LandService = {
   async create(payload: any, files?: MulterFiles) {
-
     let toCreate = normalizePayload({ ...payload });
 
     // preliminary instance to get _id for S3 keys
@@ -151,14 +150,13 @@ export const LandService = {
       : String(Date.now());
 
     // gallery files
-        const galleryFiles = files?.galleryFiles ?? [];
+    const galleryFiles = files?.galleryFiles ?? [];
     const mappedGallery = await mapAndUploadGallery({
       incomingGallery: toCreate.gallery,
       galleryFiles,
       propertyId: propId,
     });
     toCreate.gallery = Array.isArray(mappedGallery) ? mappedGallery : [];
-
 
     // documents
     const documentsFiles = files?.documents ?? [];
@@ -445,7 +443,10 @@ export const LandService = {
 
   async getById(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    return LandPlot.findById(id).populate("createdBy", "name email phone roleId").lean().exec();
+    return LandPlot.findById(id)
+      .populate("createdBy", "name email phone roleId")
+      .lean()
+      .exec();
   },
 
   async getBySlug(slug: string) {
@@ -453,7 +454,7 @@ export const LandService = {
     return LandPlot.findOne({ slug })
       .populate("createdBy", "name email phone roleId")
       .lean()
-      .exec(); ;
+      .exec();
   },
 
   async list(options?: {
@@ -494,11 +495,11 @@ export const LandService = {
       await deleteS3ObjectIfExists((existing as any).soilTestReport.key);
     if ((existing as any).conversionCertificateFile?.key)
       await deleteS3ObjectIfExists(
-        (existing as any).conversionCertificateFile.key
+        (existing as any).conversionCertificateFile.key,
       );
     if ((existing as any).encumbranceCertificateFile?.key)
       await deleteS3ObjectIfExists(
-        (existing as any).encumbranceCertificateFile.key
+        (existing as any).encumbranceCertificateFile.key,
       );
     if (Array.isArray((existing as any).documents)) {
       for (const d of (existing as any).documents) {
@@ -521,27 +522,26 @@ export const LandService = {
     return null;
   },
 
-
   async verifyDocument(
     propertyId: string,
     documentIndex: number,
-    status: "verified" | "rejected"
+    status: "verified" | "rejected",
   ) {
     const property = await LandPlot.findById(propertyId);
     if (!property) return null;
-  
+
     if (!property.verificationDocuments?.[documentIndex]) {
       throw new Error("Invalid document index");
     }
-  
+
     // 1️⃣ Update document status
     property.verificationDocuments[documentIndex].status = status;
-  
+
     // 2️⃣ Check if ANY document is verified
     const hasVerified = property.verificationDocuments.some(
-      (doc) => doc.status === "verified"
+      (doc) => doc.status === "verified",
     );
-  
+
     // 3️⃣ Auto publish if verified
     if (hasVerified) {
       property.status = "active";
@@ -555,7 +555,7 @@ export const LandService = {
       property.status = "draft";
       property.isPublished = false;
     }
-  
+
     await property.save();
     return property;
   },
@@ -578,6 +578,9 @@ export const LandService = {
           plotArea: 1,
           pricePerSqft: 1,
           slug: 1,
+          listingSource: 1,
+          landName: 1,
+
           roadWidthFt: 1,
           facing: 1,
           price: 1,
