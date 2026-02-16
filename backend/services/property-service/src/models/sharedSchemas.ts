@@ -1,8 +1,12 @@
 // src/models/property/sharedSchemas.ts
-import mongoose, { Schema, Types } from 'mongoose';
-import { IFileRef, IImage, IVerificationDoc, TEXT_INDEX_FIELDS } from '../types/sharedTypes';
-import "./userModel"
-
+import mongoose, { Schema, Types } from "mongoose";
+import {
+  IFileRef,
+  IImage,
+  IVerificationDoc,
+  TEXT_INDEX_FIELDS,
+} from "../types/sharedTypes";
+import "./userModel";
 
 export const VerificationDocSchema = new Schema<IVerificationDoc>(
   {
@@ -18,10 +22,8 @@ export const VerificationDocSchema = new Schema<IVerificationDoc>(
       default: "pending",
     },
   },
-  { _id: false }
+  { _id: false },
 );
-
-
 
 export const FileRefSchema = new Schema<IFileRef>(
   {
@@ -32,7 +34,7 @@ export const FileRefSchema = new Schema<IFileRef>(
     mimetype: String,
     uploadedAt: { type: Date, default: () => new Date() },
   },
-  { _id: false }
+  { _id: false },
 );
 
 export const ImageSchema = new Schema<IImage>(
@@ -44,22 +46,52 @@ export const ImageSchema = new Schema<IImage>(
     order: { type: Number, default: 0 },
     caption: String,
   },
-  { _id: false }
+  { _id: false },
 );
 
 /* -------------------------
    BASIC LIST SUB-SCHEMAS
    ------------------------- */
-export interface IAmenity { key?: string; title?: string; description?: string; }
-export const AmenitySchema = new Schema<IAmenity>({ key: String, title: String, description: String }, { _id: false });
+export interface IAmenity {
+  key?: string;
+  title?: string;
+  description?: string;
+}
+export const AmenitySchema = new Schema<IAmenity>(
+  { key: String, title: String, description: String },
+  { _id: false },
+);
 
-export interface ISpecItem { title?: string; description?: string; }
-export const SpecItemSchema = new Schema<ISpecItem>({ title: String, description: String }, { _id: false });
+export interface ISpecItem {
+  title?: string;
+  description?: string;
+}
+export const SpecItemSchema = new Schema<ISpecItem>(
+  { title: String, description: String },
+  { _id: false },
+);
 
-export interface ISpecification { category?: string; items?: ISpecItem[]; order?: number; }
-export const SpecificationSchema = new Schema<ISpecification>({ category: String, items: { type: [SpecItemSchema], default: [] }, order: { type: Number, default: 0 } }, { _id: false });
+export interface ISpecification {
+  category?: string;
+  items?: ISpecItem[];
+  order?: number;
+}
+export const SpecificationSchema = new Schema<ISpecification>(
+  {
+    category: String,
+    items: { type: [SpecItemSchema], default: [] },
+    order: { type: Number, default: 0 },
+  },
+  { _id: false },
+);
 
-export interface INearbyPlace { name?: string; type?: string; distanceText?: string; coordinates?: [number, number]; order?: number; }
+export interface INearbyPlace {
+  name?: string;
+  type?: string;
+  distanceText?: string;
+  coordinates?: [number, number];
+  order?: number;
+}
 export const NearbyPlaceSchema = new Schema<INearbyPlace>(
   {
     name: String,
@@ -67,11 +99,14 @@ export const NearbyPlaceSchema = new Schema<INearbyPlace>(
     distanceText: String,
     coordinates: {
       type: [Number],
-      validate: { validator: (v: number[]) => !v || v.length === 2, message: 'coordinates must be [lng, lat]' },
+      validate: {
+        validator: (v: number[]) => !v || v.length === 2,
+        message: "coordinates must be [lng, lat]",
+      },
     },
     order: { type: Number, default: 0 },
   },
-  { _id: false }
+  { _id: false },
 );
 
 /* -------------------------
@@ -85,7 +120,17 @@ export interface IUnit {
   availableCount?: number;
   plan?: IFileRef;
 }
-export const UnitSchema = new Schema<IUnit>({ minSqft: Number, maxSqft: Number, minPrice: Number, maxPrice: Number, availableCount: { type: Number, default: 0 }, plan: { type: FileRefSchema } }, { _id: false });
+export const UnitSchema = new Schema<IUnit>(
+  {
+    minSqft: Number,
+    maxSqft: Number,
+    minPrice: Number,
+    maxPrice: Number,
+    availableCount: { type: Number, default: 0 },
+    plan: { type: FileRefSchema },
+  },
+  { _id: false },
+);
 
 export interface IBhkSummary {
   bhk: number;
@@ -94,50 +139,66 @@ export interface IBhkSummary {
   maxPrice?: number;
   units?: IUnit[];
 }
-export const BhkSummarySchema = new Schema<IBhkSummary>({ bhk: { type: Number, required: true }, bhkLabel: String, minPrice: Number, maxPrice: Number, units: { type: [UnitSchema], default: [] } }, { _id: false });
-
-
+export const BhkSummarySchema = new Schema<IBhkSummary>(
+  {
+    bhk: { type: Number, required: true },
+    bhkLabel: String,
+    minPrice: Number,
+    maxPrice: Number,
+    units: { type: [UnitSchema], default: [] },
+  },
+  { _id: false },
+);
 
 /* -------------------------
    BASE FIELDS (reused in each model)
 ------------------------- */
 export const BaseFields = {
-   title: {
+  title: {
     type: String,
     trim: true,
     index: true,
   },
-slug: {
-  type: String,
-  required: true,
-  trim: true
-},
+  slug: {
+    type: String,
+    required: true,
+    trim: true,
+  },
 
-  listingType: { type: String, enum: ['sale', 'rent', 'lease'], default: 'sale', index: true },
-  listingSource: {  type: String, trim: true},
-  address: { type: String,
-  required: function (this: any) {
-    return this.status === "active";
+  listingType: {
+    type: String,
+    enum: ["sale", "rent", "lease"],
+    default: "sale",
+    index: true,
   },
-},
+  listingSource: { type: String, trim: true },
+  address: {
+    type: String,
+    required: function (this: any) {
+      return this.status === "active";
+    },
+  },
   description: {
-  type: String,
-  required: function (this: any) {
-    return this.status === "active";
+    type: String,
+    required: function (this: any) {
+      return this.status === "active";
+    },
   },
-},
   locality: {
-  type: String,
-  required: function (this: any) {
-    return this.status === "active";
+    type: String,
+    required: function (this: any) {
+      return this.status === "active";
+    },
   },
-},
   city: { type: String, index: true },
   state: String,
   pincode: String,
-  location: { type: { type: String, enum: ['Point'], default: 'Point' }, coordinates: { type: [Number], index: '2dsphere' } },
+  location: {
+    type: { type: String, enum: ["Point"], default: "Point" },
+    coordinates: { type: [Number], index: "2dsphere" },
+  },
   mapEmbedUrl: String,
-  currency: { type: String, default: 'INR' },
+  currency: { type: String, default: "INR" },
   price: { type: Number, min: 0, index: true },
   pricePerSqft: { type: Number, min: 0, index: true },
   gallery: { type: [ImageSchema], default: [] },
@@ -146,23 +207,41 @@ slug: {
   amenities: { type: [AmenitySchema], default: [] },
   nearbyPlaces: { type: [NearbyPlaceSchema], default: [] },
   rank: { type: Number, default: 1, index: true },
-  banksApproved: {  type: [String],default: [],},
-  isPriceNegotiable:{ type: Boolean, default: false, index: true },
-  isPublished: { type: Boolean,default: false, index: true},
+  banksApproved: { type: [String], default: [] },
+  isPriceNegotiable: { type: Boolean, default: false, index: true },
+  isPublished: { type: Boolean, default: false, index: true },
   meta: {
     views: { type: Number, default: 0 },
     inquiries: { type: Number, default: 0 },
     clicks: { type: Number, default: 0 },
   },
   completion: {
-  percent: { type: Number, default: 0, min: 0, max: 100 },
-  step: { type: Number, default: 1 }, // for stepper UI
-  lastSection: { type: String }, // "basic", "location", "gallery", etc.
-},
-verificationDocuments: {type: [VerificationDocSchema],default: [],},
-  status: { type: String, enum: ['draft','pending','active', 'inactive', 'archived'], default: 'draft', index: true },
-  createdBy: { type: Schema.Types.ObjectId, ref: 'User', index: true, required: true },
-  updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    percent: { type: Number, default: 0, min: 0, max: 100 },
+    step: { type: Number, default: 1 }, // for stepper UI
+    lastSection: { type: String }, // "basic", "location", "gallery", etc.
+  },
+  verificationDocuments: { type: [VerificationDocSchema], default: [] },
+  status: {
+    type: String,
+    enum: ["draft", "pending", "active", "inactive", "archived"],
+    default: "draft",
+    index: true,
+  },
+
+  approval: {
+    isApprovedByManager: { type: Boolean, default: false },
+    approvedByManager: { type: Schema.Types.ObjectId, ref: "User" },
+    approvedAt: Date,
+    approvalComment: String,
+  },
+
+  createdBy: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+    index: true,
+    required: true,
+  },
+  updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
 } as const;
 export default {
   FileRefSchema,

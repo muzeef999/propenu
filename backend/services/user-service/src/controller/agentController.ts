@@ -126,6 +126,7 @@ export const deleteAgent = async (req: Request, res: Response) => {
   return res.status(200).json({ message: "Agent deleted" });
 };
 
+
 export const getMyPropertyStats = async (req: AuthRequest, res: Response) => {
   
   const userId = req.user!.sub;

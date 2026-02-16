@@ -1,5 +1,5 @@
 import express from "express";
-import { createRequestOtp, createVeifytOtp, getAllUsers, me, requestOTP, searchUsers, updateUser, updateUserRole, verifyOtp } from "../controller/authController";
+import { assignManager, createRequestOtp,  createVerifyOtp, getAllUsers, getManagerTeam, me, requestOTP, searchUsers, updateUser, updateUserRole, verifyOtp } from "../controller/authController";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 
 
@@ -7,13 +7,14 @@ const authRoute = express.Router();
 
 authRoute.post("/request-otp",  requestOTP);
 authRoute.post("/verify-otp",  verifyOtp);
-
 authRoute.post("/request-otp/create",  createRequestOtp);
-authRoute.post("/verify-otp/create",  createVeifytOtp);
-
+authRoute.post("/verify-otp/create",  createVerifyOtp);
 authRoute.get("/me", authMiddleware, me);
 authRoute.patch("/me/update", authMiddleware, updateUser);
 authRoute.get("/search", authMiddleware, searchUsers);
+authRoute.post("/assign-manager", assignManager);
+authRoute.get("/manager-team/:id", getManagerTeam);
+
  
 authRoute.get('/all-users', authMiddleware,  (req : AuthRequest, res, next) => {
     if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){

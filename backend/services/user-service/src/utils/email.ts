@@ -26,10 +26,10 @@ function createTransport() {
   });
 }
 
-function makeOtpHtml(otp: string, name:string) {
+function makeOtpHtml(otp: string) {
   return `
   <div>
-    <h2 style={{ color: "#000", marginBottom: "16px" }}>Hi ${name} !</h2>
+    <h2 style={{ color: "#000", marginBottom: "16px" }}>Hi,</h2>
     <p style="font-size: 15px; color: #000;">Use the following one-time password (OTP) to sign in to your Propenu account.<br/>
     This OTP will be valid for 15 minutes till <b>${ttlInMinutes} seconds</b>.</p>
     <div style="font-size: 32px; letter-spacing: 6px; font-weight: bold; margin: 20px 0; padding: 12px 16px; border: 2px dashed #333; display: inline-block;">
@@ -55,7 +55,7 @@ function makeOtpText(otp: string) {
   return `Your verification code is ${otp}. It expires in ${TTL} seconds.`;
 }
 
-export async function sendOtpEmail(to: string, otp: string, name: string) {
+export async function sendOtpEmail(to: string, otp: string) {
   const transporter = createTransport();
 
   // Verify connection & auth (great for debugging)
@@ -70,7 +70,7 @@ export async function sendOtpEmail(to: string, otp: string, name: string) {
       to,
       subject: "Your verification code",
       text: makeOtpText(otp),
-      html: makeOtpHtml(otp, name),
+      html: makeOtpHtml(otp),
       // replyTo: "support@propenu.com", // optional
     });
 
