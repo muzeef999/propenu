@@ -2,7 +2,7 @@ import React from "react";
 
 const BuildingFooterSvg = () => {
   return (
-    <div>
+    <div style={{width: "100%"}}>
       <svg width="100%" height="204" viewBox="0 0 1440 204" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M701.181 177.384H-66.0654V195.375H701.181V177.384Z" fill="#B5C3C2" />
         <path d="M385.559 190.966H351.585L364.823 123.889H385.559V190.966Z" fill="#95A9A7" />
