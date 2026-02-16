@@ -259,7 +259,7 @@ export default async function Page({ params }: PageProps) {
                               <span>{i.title}</span>
                             </div>
                           ))}
-                        </div>
+                        </div>  
                       ) : (
                         <p className="text-sm text-gray-500">
                           Amenities information not available.

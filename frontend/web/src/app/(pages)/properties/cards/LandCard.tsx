@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { resolveListingSource } from "@/utilies/resolveListingSource";
 
 export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
   p,
@@ -34,6 +35,10 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
   const area = (p as any)?.superBuiltUpArea;
   const pricePerSqft =
     (p as any)?.pricePerSqft ?? (area ? Math.round((p?.price ?? 0) / area) : 0);
+  const resolvedListingSource = resolveListingSource(
+    p?.listingSource,
+      (p as any)?.createdBy,
+  );
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isShortlisted, setIsShortlisted] = useState(false);
   const router = useRouter();
@@ -315,7 +320,7 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
             projectId={p.id}
             propertyType="landplots"
             listingType={p?.listingType}
-            listingSource={p?.listingSource}
+            listingSource={resolvedListingSource}
 
             className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${vertical
               ? "px-4 py-1.5 text-sm"

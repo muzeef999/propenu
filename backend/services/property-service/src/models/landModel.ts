@@ -60,6 +60,38 @@ LandSchema.index(
 
 LandSchema.index(TEXT_INDEX_FIELDS, { name: "Land_Text" });
 
+LandSchema.pre("save", async function (next) {
+  if (!this.listingSource && this.createdBy) {
+    const user = await mongoose
+      .model("User")
+      .findById(this.createdBy)
+      .select("role roleId")
+      .lean();
+
+    const explicitRole =
+      typeof (user as any)?.role === "string" ? (user as any).role : undefined;
+
+    if (explicitRole) {
+      this.listingSource = explicitRole;
+      return next();
+    }
+
+    const roleId = (user as any)?.roleId;
+    if (roleId) {
+      const roleDoc = await mongoose
+        .model("Role")
+        .findById(roleId)
+        .select("name")
+        .lean();
+
+      if ((roleDoc as any)?.name) {
+        this.listingSource = String((roleDoc as any).name);
+      }
+    }
+  }
+  next();
+});
+
 LandSchema.index({ slug: 1 }, { unique: true });
 
 

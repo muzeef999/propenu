@@ -33,6 +33,21 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
   const pricePerSqft =
     (p as any)?.pricePerSqft ??
     Math.round((p?.price ?? 0) / (p as any)?.builtUpArea || 0);
+  const listingSourceRaw = (
+    p?.listingSource ||
+    (p as any)?.createdBy?.roleName ||
+    (p as any)?.createdBy?.role ||
+    "user"
+  )
+    ?.toString()
+    .toLowerCase();
+
+  const resolvedListingSource: "User" | "Agent" | "builder" =
+    listingSourceRaw === "agent"
+      ? "Agent"
+      : listingSourceRaw === "builder"
+        ? "builder"
+        : "User";
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isShortlisted, setIsShortlisted] = useState(false);
 
@@ -333,7 +348,7 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
             projectId={p.id}
             propertyType="residentials"
             listingType={p?.listingType}
-            listingSource={p?.listingSource}
+            listingSource={resolvedListingSource}
 
             className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${vertical
               ? "px-4 py-1.5 text-sm"

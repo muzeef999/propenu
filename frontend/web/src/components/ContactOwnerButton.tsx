@@ -7,11 +7,12 @@ import { useState } from "react";
 import LoginDialog from "@/app/(auth)/Login";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
+import { listingSourceToOwnershipLabel } from "@/utilies/resolveListingSource";
 
 interface ContactOwnerButtonProps {
   listingType?: string;
   projectId: undefined | string;
-  listingSource?: "User" | "Agent" | "builder";
+  listingSource?: "User" | "Agent" | "builder" | string;
 
   propertyType?:
   | "residentials"
@@ -58,9 +59,7 @@ export default function ContactOwnerButton({
   });
 
   const getContactPerson = () => {
-    if (listingSource === "Agent") return "Agent";
-    if (listingSource === "builder") return "Builder";
-    return "Owner";
+    return listingSourceToOwnershipLabel(listingSource);
   };
 
   const user = userData?.user;

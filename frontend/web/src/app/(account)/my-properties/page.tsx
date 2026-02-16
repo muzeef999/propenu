@@ -74,7 +74,7 @@ const Page = () => {
   const [activeTab, setActiveTab] = useState("Residential");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<
-    "All" | "Active" | "Reported" | "Subscription Expired" | "Deactive"
+    "All" | "Active"  | "Deactive"
   >("All");
   const [openResponses, setOpenResponses] = useState(false);
 

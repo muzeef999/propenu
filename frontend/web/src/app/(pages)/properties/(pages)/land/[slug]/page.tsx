@@ -10,6 +10,10 @@ import { BiShapeSquare } from "react-icons/bi";
 import NearByPlace from "@/app/(pages)/properties/(pages)/NearByPlace";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import RelatedLandCarousel from "./RelatedLandCarousel";
+import {
+  listingSourceToOwnershipLabel,
+  resolveListingSource,
+} from "@/utilies/resolveListingSource";
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
 };
@@ -36,6 +40,14 @@ export default async function Page({ params }: PageProps) {
     notFound();
   }
   const priceLabel = formatINR(project?.price);
+  const resolvedListingSource = resolveListingSource(
+    project?.listingSource,
+    project?.createdBy as any,
+  );
+  const ownershipLabel = listingSourceToOwnershipLabel(
+    project?.listingSource,
+    project?.createdBy as any,
+  );
   console.log("Project data:", project);
 
   return (
@@ -165,9 +177,7 @@ export default async function Page({ params }: PageProps) {
                           <p className="font-medium text-gray-900">
                             Property Ownership
                           </p>
-                          <p className="text-gray-500">
-                            {project?.listingSource}
-                          </p>
+                          <p className="text-gray-500">{ownershipLabel}</p>
                         </div>
 
                         <div className="hidden md:block"></div>
@@ -204,7 +214,7 @@ export default async function Page({ params }: PageProps) {
                           projectId={project._id}
                           propertyType="landplots"
                           listingType={project.listingType}
-                          listingSource={project.listingSource}
+                          listingSource={resolvedListingSource}
                         />
                       </div>
                     </section>

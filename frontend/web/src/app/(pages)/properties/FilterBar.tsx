@@ -134,24 +134,35 @@ const FilterBar: React.FC = () => {
 
   return (
     <div className="sticky top-0 z-20 flex h-14 items-center bg-[#D1EFDD] px-3 shadow-sm">
-      <div className="mx-auto container w-full max-w-8xl flex items-center gap-5 rounded-xl bg-white px-4 py-1">
-        <div className="flex items-center gap-4 w-full justify-between">
-          <div className="flex items-center rounded-md">
-            <div className="flex items-center">
+      <div className="sticky top-0 z-999">
+        <div className="mx-auto flex h-14 items-center gap-4 px-4">
+
+          {/* Listing Type + Category */}
+          <div className="flex items-center gap-3 rounded-full bg-white px-4 py-2 shadow-sm">
+
+            {/* Listing Type */}
+            <div className="flex items-center gap-2">
               <FilterDropdown
                 open={open}
                 onOpenChange={setOpen}
                 triggerLabel={
-                  <span className="px-3 py-1.5 text-sm font-medium text-primary">
-                    {listingTypeLabel}
-                  </span>
+                  <div className="flex items-center gap-1 text-sm font-medium cursor-pointer">
+                    <span>{listingTypeLabel}</span>
+                    <ArrowDropdownIcon
+                      size={12}
+                      className={`transition-transform duration-200 ${open ? "rotate-180" : ""
+                        }`}
+                    />
+                  </div>
                 }
                 width="w-56"
                 align="left"
                 renderContent={(close) => (
                   <div>
-                    <h4 className="mb-2 text-sm font-semibold">Listing Type</h4>
-                    <div className="flex flex-wrap gap-2 text-primary">
+                    <h4 className="mb-2 text-sm font-semibold">
+                      Listing Type
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
                       {listingOptions.map((l) => (
                         <button
                           key={l.value}
@@ -164,8 +175,7 @@ const FilterBar: React.FC = () => {
                             );
                             close();
                           }}
-                          className={`rounded px-2 py-1 hover:bg-gray-100 ${listingTypeLabel === l.label ? "font-semibold" : ""
-                            }`}
+                          className="rounded px-2 py-1 hover:bg-gray-100"
                         >
                           {l.label}
                         </button>
@@ -174,50 +184,45 @@ const FilterBar: React.FC = () => {
                   </div>
                 )}
               />
-
-              <ArrowDropdownIcon
-                size={12}
-                color="#27AE60"
-                className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180" : "rotate-0"
-                  }`}
-              />
             </div>
 
-            <span className="h-6 w-px bg-gray-200" />
 
-            <div>
-              <select
-                value={category}
-                onChange={(e) =>
-                  dispatch(setCategory(e.target.value as categoryOption))
-                }
-                className="w-full max-w-lg rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {categoryOptions.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <span className="h-5 w-px bg-gray-200" />
+
+            {/* Category */}
+            <select
+              value={category}
+              onChange={(e) =>
+                dispatch(setCategory(e.target.value as categoryOption))
+              }
+              className="bg-transparent text-sm outline-none"
+            >
+              {categoryOptions.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div className="flex items-center w-64 rounded-md bg-gray-100 px-2">
-            <IoIosSearch className="mr-2 text-xl shrink-0" />
+          {/* Search */}
+          <div className="flex items-center w-72 rounded-full bg-white px-3 py-2 shadow-sm">
+            <IoIosSearch className="mr-2 text-lg text-gray-500" />
             <input
               type="text"
-              placeholder="Search properties..."
+              placeholder="En Loca"
               value={searchText}
               onChange={(e) => dispatch(setSearchText(e.target.value))}
-              className="w-full bg-transparent px-2 py-1 outline-none"
+              className="w-full bg-transparent text-sm outline-none"
             />
           </div>
 
-
-
+          {/* Dynamic Category Filters */}
           <CategoryFilters />
+
         </div>
       </div>
+
     </div>
   );
 };

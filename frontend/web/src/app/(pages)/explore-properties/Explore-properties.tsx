@@ -1,16 +1,16 @@
 "use client"
 import Link from "next/link";
-import ap_one from "@/asserts/ap_one.png";
-import Farm_house from "@/asserts/Farm_house.png";
-import Ind_one from "@/asserts/Ind_one.png";
-import Res from "@/asserts/Res.png";
+import residential from "@/asserts/residential.png";
+import commercial from "@/asserts/commercial.png";
+import land from "@/asserts/land.png";
+import agricultural from "@/asserts/agricultural.png";
 import { useCity } from "@/hooks/useCity";
 
 const CATEGORIES = [
   {
     id: "residential",
     title: "Residential Apartment",
-    image: ap_one,
+    image: residential,
     imageAlt: "Modern apartment tower at dusk",
     countText: "13,000+ Properties",
     color: "#FFF0E5",
@@ -20,7 +20,7 @@ const CATEGORIES = [
     id: "commercial",
     title: "Commercial Land",
     color: "#FFF0E5",
-    image: Farm_house,
+    image: commercial,
     imageAlt: "Wide green land plots and dirt road",
     countText: "9,500+ Properties",
     href: "/properties?type=commercial",
@@ -29,7 +29,7 @@ const CATEGORIES = [
     id: "agricultural",
     title: "Agricultural",
     color: "#FFF0E5",
-    image: Ind_one,
+    image: agricultural,
     imageAlt: "Cozy farm house with porch and lawn",
     countText: "3,200+ Properties",
     href: "/properties?type=agricultural",
@@ -38,7 +38,7 @@ const CATEGORIES = [
     id: "Land /plotes",
     title: "Land /plotes",
     color: "#FFF0E5",
-    image: Res,
+    image: land,
     imageAlt: "Mediterranean villa with palm trees",
     countText: "5,800+ Properties",
     href: "/properties?type=land",
@@ -50,23 +50,39 @@ const CATEGORIES = [
 
 export function PropertyCard({ item }: { item: (typeof CATEGORIES)[number] }) {
   return (
-    <Link href={item.href} className={`h-[360px] card bg-[${item.color}]`}>
-      {/* Text Section */}
-      <div className="z-10 flex flex-col gap-2 p-6">
-        <h3 className="text-2xl headingblack font-medium">{item.title}</h3>
-        <p className="mt-2 text-base headingDesc">{item.countText}</p>
-      </div>
+   <Link
+  href={item.href}
+  className="relative h-[360px] rounded-3xl overflow-hidden group shadow-md hover:shadow-xl transition-all duration-300"
+>
+  {/* Background Color */}
+  <div
+    className="absolute inset-0"
+  />
 
-      {/* Image Section */}
-      {/* <div className="absolute bottom-0 right-0 w-full">
-        <img
-          src={item.image.src}
-          alt={item.imageAlt}
-          loading="lazy"
-          className="h-full w-full object-cover object-center transition-transform duration-300"
-        />
-      </div> */}
-    </Link>
+  {/* Image */}
+  <div className="absolute bottom-0 right-0 w-full h-[75%]">
+    <img
+      src={item.image.src}
+      alt={item.imageAlt}
+      loading="lazy"
+      className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+    />
+  </div>
+
+  {/* Gradient Overlay */}
+  <div className="absolute inset-0" />
+
+  {/* Text Content */}
+  <div className="relative z-10 p-6">
+    <h3 className="text-2xl font-semibold">
+      {item.title}
+    </h3>
+    <p className="mt-2 text-base">
+      {item.countText}
+    </p>
+  </div>
+</Link>
+
   );
 }
 
