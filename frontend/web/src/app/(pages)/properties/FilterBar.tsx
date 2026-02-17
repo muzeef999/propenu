@@ -224,7 +224,7 @@ const FilterBar: React.FC = () => {
     <div className="sticky top-0 z-10 w-full bg-[#D1EFDD] px-3 shadow-sm ">
       <div className="mx-auto flex h-14 items-center gap-4 px-4 container">
         {/* Listing Type + Category + Search */}
-        <div className="flex items-center gap-3 rounded-full bg-white px-4 py-2 shadow-sm">
+        <div className="flex items-center gap-3 rounded-xl bg-white px-4 py-2 shadow-sm">
 
           {/* Listing Type */}
           <div className="flex items-center gap-2">

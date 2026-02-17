@@ -218,23 +218,45 @@ export const searchUsers = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Search query 'q' is required" });
     }
 
-    // Text search + fallback regex
-    const users = await User.find({
-      $or: [
-        { name: { $regex: query, $options: "i" } },
-        { email: { $regex: query, $options: "i" } },
-        { phone: { $regex: query, $options: "i" } },
-      ],
-    })
-      .populate("roleId")
-      .select("name email phone roleId");
+    const users = await User.aggregate([
+      {
+        $lookup: {
+          from: "roles",            // collection name
+          localField: "roleId",
+          foreignField: "_id",
+          as: "role",
+        },
+      },
+      { $unwind: "$role" },
 
-    return res.json({ results: users, count: users.length });
+      {
+        $match: {
+          $or: [
+            { name: { $regex: query, $options: "i" } },
+            { email: { $regex: query, $options: "i" } },
+            { phone: { $regex: query, $options: "i" } },
+            { "role.name": { $regex: query, $options: "i" } }, // 🔥 role search
+          ],
+        },
+      },
+
+      {
+        $project: {
+          name: 1,
+          email: 1,
+          phone: 1,
+          role: 1,
+        },
+      },
+    ]);
+
+    res.json({ results: users, count: users.length });
   } catch (err) {
-    console.error("Search error:", err);
-    res.status(500).json({ message: " Search failed" });
+    console.error(err);
+    res.status(500).json({ message: "Search failed" });
   }
 };
+
 
 export const createRequestOtp = async (req: Request, res: Response) => {
   try {
