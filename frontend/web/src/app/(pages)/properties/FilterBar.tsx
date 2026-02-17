@@ -39,7 +39,7 @@ const FilterBar: React.FC = () => {
   ];
 
   const [open, setOpen] = useState(false);
-const [searchOpen, setSearchOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const dispatch = useDispatch();
   const {
@@ -221,8 +221,8 @@ const [searchOpen, setSearchOpen] = useState(false);
   }, [cityData, searchText]);
 
   return (
-    <div className="sticky top-0 z-10 w-full bg-[#D1EFDD] px-3 shadow-sm container">
-      <div className="mx-auto flex h-14 items-center gap-4 px-4">
+    <div className="sticky top-0 z-10 w-full bg-[#D1EFDD] px-3 shadow-sm ">
+      <div className="mx-auto flex h-14 items-center gap-4 px-4 container">
         {/* Listing Type + Category + Search */}
         <div className="flex items-center gap-3 rounded-full bg-white px-4 py-2 shadow-sm">
 
@@ -232,14 +232,23 @@ const [searchOpen, setSearchOpen] = useState(false);
               open={open}
               onOpenChange={setOpen}
               triggerLabel={
-                <div className="flex items-center gap-1 text-sm font-medium cursor-pointer">
-                  <span>{listingTypeLabel}</span>
-                  <ArrowDropdownIcon
-                    size={12}
-                    className={`transition-transform duration-200 ${open ? "rotate-180" : ""
-                      }`}
-                  />
-                </div>
+                <button
+  type="button"
+  className="flex items-center gap-1 rounded-full bg-[#D1EFDD] px-3 py-1.5 text-sm font-medium text-[#15803D] transition-colors hover:bg-[#BDE5CE]"
+>
+  <span className="leading-none">{listingTypeLabel}</span>
+
+  <ArrowDropdownIcon
+    size={12}
+    color="#15803D"
+
+    className={`transition-transform duration-200  ${
+      open ? "rotate-180" : ""
+    }`}
+  />
+</button>
+
+
               }
               width="w-56"
               align="left"
@@ -248,7 +257,7 @@ const [searchOpen, setSearchOpen] = useState(false);
                   <h4 className="mb-2 text-sm font-semibold">
                     Listing Type
                   </h4>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 ">
                     {listingOptions.map((l) => (
                       <button
                         key={l.value}
@@ -373,7 +382,7 @@ const [searchOpen, setSearchOpen] = useState(false);
                           className="text-left text-sm text-gray-800 hover:text-primary"
                         >
                           {name},{" "}
-                          <span className="text-red-600">
+                          <span className="text-[#26ad5f]">
                             {cityData.city}
                           </span>
                         </button>
