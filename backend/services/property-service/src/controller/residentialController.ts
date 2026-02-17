@@ -579,26 +579,5 @@ export const verifyResidentialDocument = async (
   }
 };
 
-export const approveProperty = async (req: AuthRequest, res:Response) => {
-  const { id } = req.params;
-  const { token } = req.body;
 
-  const property = await Residential.findById(id);
-  if (!property)
-    return res.status(404).json({ message: "Property not found" });
-
-  if (property.approval.approvalToken !== token)
-    return res.status(400).json({ message: "Invalid approval link" });
-
-  property.status = "active";
-  property.isPublished = true;
-
-  property.approval.status = "approved";
-  property.approval.approvedByManager = req.user!.id;
-  property.approval.approvedAt = new Date();
-
-  await property.save();
-
-  res.json({ message: "Property approved" });
-};
 

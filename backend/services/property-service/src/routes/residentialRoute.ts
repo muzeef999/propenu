@@ -5,7 +5,7 @@ import { validateBody } from "../middlewares/validate";
 import { parseJsonFields } from "../middlewares/parseJsonFields";
 import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
 import { ResidentialCreateSchema, ResidentialUpdateSchema } from "../zod/residentialZod";
-import { approveProperty, createResidential, createResidentialDraft, deleteResidential, editResidential, finalizeResidential, getAllResidential, getAllResidentialDraftsForAdmin, getMyResidentialDraft, getResidentialBySlug, getResidentialDetail, updateBasicStep, updateDetailsStep, updateLocationStep, verifyResidentialDocument } from "../controller/residentialController";
+import {  createResidential, createResidentialDraft, deleteResidential, editResidential, finalizeResidential, getAllResidential, getAllResidentialDraftsForAdmin, getMyResidentialDraft, getResidentialBySlug, getResidentialDetail, updateBasicStep, updateDetailsStep, updateLocationStep, verifyResidentialDocument } from "../controller/residentialController";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 
@@ -51,7 +51,7 @@ if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){
     next();
 },  verifyResidentialDocument);
 
-router.post("/:id/approve", authMiddleware, approveProperty);
+// router.post("/:id/approve", authMiddleware, approveProperty);
 
 
 
