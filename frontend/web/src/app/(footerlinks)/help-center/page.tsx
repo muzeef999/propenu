@@ -618,8 +618,8 @@ const Page = () => {
                                             setActiveSubcategory(category.subcategories[0].id);
                                         }}
                                         className={`flex w-full items-center justify-between rounded-xl px-4 py-4 text-left transition-all duration-300 ${isCategoryActive
-                                                ? "bg-[#f4f8f6] text-[#27AE60] shadow-sm"
-                                                : "text-[#2f2f2f] hover:bg-gray-50"
+                                            ? "bg-[#f4f8f6] text-[#27AE60] shadow-sm"
+                                            : "text-[#2f2f2f] hover:bg-gray-50"
                                             }`}
                                     >
                                         <p className="text-base font-semibold tracking-tight">
@@ -628,8 +628,8 @@ const Page = () => {
 
                                         <IoChevronDown
                                             className={`text-base transition-transform duration-300 ${isCategoryActive
-                                                    ? "rotate-180 text-[#27AE60]"
-                                                    : "text-gray-400"
+                                                ? "rotate-180 text-[#27AE60]"
+                                                : "text-gray-400"
                                                 }`}
                                         />
                                     </button>
@@ -637,8 +637,8 @@ const Page = () => {
                                     {/* SUBCATEGORY SECTION */}
                                     <div
                                         className={`overflow-hidden transition-all duration-300 ease-in-out ${isCategoryActive
-                                                ? "mt-2 max-h-96 opacity-100"
-                                                : "max-h-0 opacity-0"
+                                            ? "mt-2 max-h-96 opacity-100"
+                                            : "max-h-0 opacity-0"
                                             }`}
                                     >
                                         <div className="space-y-1 px-3 pb-3">
@@ -650,8 +650,8 @@ const Page = () => {
                                                         key={sub.id}
                                                         onClick={() => setActiveSubcategory(sub.id)}
                                                         className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-all duration-200 ${isSubActive
-                                                                ? " text-[#1e8b4b] font-medium"
-                                                                : "text-[#4b5a53] hover:bg-gray-50"
+                                                            ? " text-[#1e8b4b] font-medium"
+                                                            : "text-[#4b5a53] hover:bg-gray-50"
                                                             }`}
                                                     >
                                                         {sub.title}
@@ -668,13 +668,13 @@ const Page = () => {
 
 
                 <main className="flex-1">
-  <div className="rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
-    <Accordion
-      key={selectedSubcategory.id}
-      items={questionItems}
-    />
-  </div>
-</main>
+                    <div className="rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
+                        <Accordion
+                            key={selectedSubcategory.id}
+                            items={questionItems}
+                        />
+                    </div>
+                </main>
 
             </div>
         </div>
