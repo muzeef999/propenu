@@ -19,45 +19,43 @@ export const requireActiveSubscription = async (
 
     const { id: userId, roleName } = req.user;
 
-
     console.log("👤 USER CONTEXT ----------------");
-console.log({
-  userId,
-  roleName,
-});
+    console.log({
+      userId,
+      roleName,
+    });
 
-    if (roleName === "admin" || roleName === "super_admin") {
-      return next(); // 🚀 full access, no subscription needed
+    const freeRoles = ["admin", "super_admin", "sales_agent", "sales_manager"];
+
+    if (freeRoles.includes(roleName || "")) {
+      return next(); // ✅ Skip subscription
     }
 
-        let listingType: string | undefined;
- 
-        if (req.params?.id) {
-  const property = await Residential.findById(req.params.id).select(
-    "listingType createdBy"
-  );
+    let listingType: string | undefined;
 
+    if (req.params?.id) {
+      const property = await Residential.findById(req.params.id).select(
+        "listingType createdBy",
+      );
 
-   if (!property) {
-    return res.status(404).json({ message: "Property not found" });
-  }
+      if (!property) {
+        return res.status(404).json({ message: "Property not found" });
+      }
 
-   if (String(property.createdBy) !== String(userId)) {
-    return res.status(403).json({ message: "Forbidden" });
-  }
+      if (String(property.createdBy) !== String(userId)) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
 
-  
-  listingType = property.listingType;
-}
+      listingType = property.listingType;
+    }
 
-if (!listingType) {
-  listingType = req.body?.listingType;
-}
+    if (!listingType) {
+      listingType = req.body?.listingType;
+    }
 
-
-if (!listingType) {
-  return res.status(400).json({ message: "listingType is required" });
-}
+    if (!listingType) {
+      return res.status(400).json({ message: "listingType is required" });
+    }
 
     // 🔥 STEP 1: Map listingType → plan category
     const requiredCategory =
@@ -81,19 +79,17 @@ if (!listingType) {
     console.log("mapped userType:", userType);
 
     // 🔥 STEP 2.2: Find ACTIVE subscription
-console.log("🔍 SUBSCRIPTION QUERY ----------------");
-console.log({
-  userId,
-  userType,
-  category: requiredCategory,
-  status: "active",
-});
+    console.log("🔍 SUBSCRIPTION QUERY ----------------");
+    console.log({
+      userId,
+      userType,
+      category: requiredCategory,
+      status: "active",
+    });
 
-
-const allSubs = await Subscription.find({ userId }).lean();
-console.log("📦 ALL USER SUBSCRIPTIONS ----------------");
-console.log(allSubs);
-
+    const allSubs = await Subscription.find({ userId }).lean();
+    console.log("📦 ALL USER SUBSCRIPTIONS ----------------");
+    console.log(allSubs);
 
     const subscription = await Subscription.findOne({
       userId,
@@ -103,16 +99,15 @@ console.log(allSubs);
     });
 
     console.log("🔍 SUBSCRIPTION QUERY ----------------");
-console.log({
-  userId,
-  userType,
-  category: requiredCategory,
-  status: "active",
-});
+    console.log({
+      userId,
+      userType,
+      category: requiredCategory,
+      status: "active",
+    });
 
-console.log("📦 SUBSCRIPTION RESULT ----------------");
-console.log(subscription);
-
+    console.log("📦 SUBSCRIPTION RESULT ----------------");
+    console.log(subscription);
 
     if (!subscription) {
       return res.status(403).json({

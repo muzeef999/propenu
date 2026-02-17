@@ -22,74 +22,91 @@ export default function PricingComparisonTable({
   features,
   userType,
 }: Props) {
-  const handleSubscribe = async (plan: Plan) => {
-    const router = useRouter();
 
-    const [user, setUser] = useState<any>(null);
+  // ✅ Hooks must be here
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
-    useEffect(() => {
-      async function fetchUser() {
+  // ✅ Fetch user once
+  useEffect(() => {
+    async function fetchUser() {
+      try {
         const data = await me();
         setUser(data);
+      } catch (err) {
+        console.error("User fetch error", err);
       }
-      fetchUser();
-    }, []);
-
-    const order = await createPaymentOrder({
-      planId: plan._id,
-      userType,
-    });
-
-    if (order?.free) {
-      alert("Plan activated successfully 🎉");
-      return;
     }
+    fetchUser();
+  }, []);
 
-    if (!(window as any).Razorpay) {
-      alert("Payment SDK not loaded");
-      return;
+  // ✅ Normal async function
+  const handleSubscribe = async (plan: Plan) => {
+    try {
+      setLoadingPlan(plan._id);
+
+      const order = await createPaymentOrder({
+        planId: plan._id,
+        userType,
+      });
+
+      if (order?.free) {
+        alert("Plan activated successfully 🎉");
+        router.replace("/myplan");
+        return;
+      }
+
+      if (!(window as any).Razorpay) {
+        alert("Payment SDK not loaded");
+        return;
+      }
+
+      const rzp = new (window as any).Razorpay({
+        key: order.key,
+        amount: order.amount,
+        currency: order.currency,
+        order_id: order.orderId,
+        name: "Propenu",
+        description: `${plan.name} Plan Subscription (${userType})`,
+
+        prefill: {
+          name: user?.fullName || "",
+          email: user?.email || "",
+        },
+
+        handler: async (response: any) => {
+          await verifyPayment({
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+          });
+
+          const redirectMap: Record<string, string> = {
+            agent: "/agent/membership",
+            buyer: "/myplan",
+            owner: "/myplan",
+            builder: "/builder/dashboard",
+          };
+
+          router.replace(
+            redirectMap[user?.roleName?.toLowerCase()] || "/postproperty"
+          );
+        },
+
+        theme: { color: "#27AE60" },
+      });
+
+      rzp.open();
+
+    } catch (err) {
+      console.error(err);
+      alert("Payment failed");
+    } finally {
+      setLoadingPlan(null);
     }
-
-    const rzp = new (window as any).Razorpay({
-      key: order.key,
-      amount: order.amount,
-      currency: order.currency,
-      order_id: order.orderId,
-      name: "Propenu",
-      description: `${plan.name} Plan Subscription (${userType})`,
-
-      prefill: {
-        name: user?.fullName,
-        email: user?.email,
-      },
-      handler: async (response: any) => {
-        await verifyPayment({
-          razorpay_order_id: response.razorpay_order_id,
-          razorpay_payment_id: response.razorpay_payment_id,
-          razorpay_signature: response.razorpay_signature,
-        });
-
-        const redirectMap: Record<string, string> = {
-          agent: "/agent/membership",
-          buyer: "/myplan",
-          owner: "/myplan",
-          builder: "/builder/dashboard",
-        };
-        const role = user?.roleName?.toLowerCase();
-        const path = redirectMap[role];
-
-        if (path) {
-          router.replace(path);
-        } else {
-          router.replace("/dashboard"); // fallback
-        }
-      },
-
-      theme: { color: "#27AE60" },
-    });
-
-    rzp.open();
   };
+
 
   return (
     <div

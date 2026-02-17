@@ -7,6 +7,7 @@ import { Request, Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { sendOtpWhatsApp } from "../utils/whatsapp";
 import { sendOtpEmail } from "../utils/email";
+import mongoose from "mongoose";
 
 export const requestOTP = async (req: Request, res: Response) => {
   try {
@@ -422,44 +423,125 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
 };
 
 
-export const assignManager = async (req: Request, res: Response) => {
+
+export const getManagerTeamDetails = async (req: Request, res: Response) => {
   try {
-    const { agentId, managerId } = req.body;
+    const managerId = req.params.id;
 
-    if (!agentId || !managerId)
-      return res.status(400).json({ message: "agentId & managerId required" });
+    // ⭐ Check ID exists
+    if (!managerId) {
+      return res.status(400).json({ message: "managerId is required" });
+    }
 
-    const agent = await User.findById(agentId).populate("roleId");
-    const manager = await User.findById(managerId).populate("roleId");
+    // ⭐ Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(managerId)) {
+      return res.status(400).json({ message: "Invalid managerId" });
+    }
 
-    if (!agent || !manager)
-      return res.status(404).json({ message: "User not found" });
+    // ⭐ Now safe to use
+    const manager = await User.findById(managerId)
+      .populate("roleId", "name")
+      .select("name email phone");
+
+    if (!manager) {
+      return res.status(404).json({ message: "Manager not found" });
+    }
 
     const role: any = manager.roleId;
 
     if (!role || role.name !== "sales_manager") {
-      return res.status(400).json({ message: "User is not sales manager" });
+      return res.status(400).json({
+        message: "User is not a sales_manager",
+      });
     }
 
-    agent.managerId = managerId;
+    // ⭐ Get agents
+    const agents = await User.find({ managerId })
+      .select("name email phone")
+      .lean();
+
+    res.json({
+      manager: {
+        id: manager._id,
+        name: manager.name,
+        email: manager.email,
+      },
+      totalAgents: agents.length,
+      agents,
+    });
+
+  } catch (err: any) {
+    console.error("getManagerTeamDetails error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+
+export const assignManager = async (req: Request, res: Response) => {
+  try {
+    const { salesagentId, managerId } = req.body;
+
+    // ⭐ Validate input
+    if (!salesagentId || !managerId) {
+      return res.status(400).json({
+        message: "salesagentId and managerId are required",
+      });
+    }
+
+    // ⭐ Validate ObjectId
+    if (
+      !mongoose.Types.ObjectId.isValid(salesagentId) ||
+      !mongoose.Types.ObjectId.isValid(managerId)
+    ) {
+      return res.status(400).json({ message: "Invalid user IDs" });
+    }
+
+    // ⭐ Get users
+    const agent = await User.findById(salesagentId).populate("roleId");
+    const manager = await User.findById(managerId).populate("roleId");
+
+    if (!agent || !manager) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const agentRole: any = agent.roleId;
+    const managerRole: any = manager.roleId;
+
+    // ⭐ Check agent role
+    if (!agentRole || agentRole.name !== "sales_agent") {
+      return res.status(400).json({
+        message: "User must be sales_agent",
+      });
+    }
+
+    // ⭐ Check manager role
+    if (!managerRole || managerRole.name !== "sales_manager") {
+      return res.status(400).json({
+        message: "Manager must be sales_manager",
+      });
+    }
+
+    // ⭐ Assign manager
+    agent.managerId = manager._id;
     await agent.save();
 
-    res.json({ message: "Manager assigned", agent });
+    return res.json({
+      message: "Manager assigned successfully",
+      agent: {
+        id: agent._id,
+        name: agent.name,
+      },
+      manager: {
+        id: manager._id,
+        name: manager.name,
+      },
+    });
+
   } catch (err: any) {
+    console.error("assignManager error:", err);
     res.status(500).json({ message: err.message });
   }
 };
 
-export const getManagerTeam = async (req: Request, res: Response) => {
-  try {
-    const managerId = req.params.id;
 
-    const team = await User.find({ managerId })
-      .populate("roleId", "name label")
-      .select("name email phone");
-
-    res.json(team);
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
-  }
-};

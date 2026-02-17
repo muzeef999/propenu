@@ -1,12 +1,20 @@
 // src/controllers/residential.controller.ts
 import { Request, Response } from "express";
 import { ZodError } from "zod";
-import { ResidentialCreateSchema, ResidentialUpdateSchema} from "../zod/residentialZod";
-import ResidentialPropertyService, { findRelatedResidential,} from "../services/residentialServices";
+import {
+  ResidentialCreateSchema,
+  ResidentialUpdateSchema,
+} from "../zod/residentialZod";
+import ResidentialPropertyService, {
+  findRelatedResidential,
+} from "../services/residentialServices";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import Residential from "../models/residentialModel";
 import { uploadFile } from "../utils/uploadFile";
 import Location from "../models/locationModel";
+import User from "../models/userModel";
+import { sendManagerApprovalMail } from "../utils/sendManagerMail";
+import mongoose from "mongoose";
 
 /** Helper: parse values that might be JSON strings (multipart sends arrays/objects as strings). */
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -117,7 +125,10 @@ export const getAllResidential = async (req: Request, res: Response) => {
   }
 };
 
-export const getMyResidentialDraft = async (req: AuthRequest, res: Response) => {
+export const getMyResidentialDraft = async (
+  req: AuthRequest,
+  res: Response,
+) => {
   const draft = await Residential.findOne({
     createdBy: req.user!.id,
     status: "draft",
@@ -254,7 +265,10 @@ export const deleteResidential = async (req: Request, res: Response) => {
   }
 };
 
-export const createResidentialDraft = async (req: AuthRequest, res: Response) => {
+export const createResidentialDraft = async (
+  req: AuthRequest,
+  res: Response,
+) => {
   try {
     const existing = await Residential.findOne({
       createdBy: req.user!.id,
@@ -291,7 +305,9 @@ export const updateBasicStep = async (req: AuthRequest, res: Response) => {
     return res.status(404).json({ error: "Property not found" });
   }
 
-  Object.assign(doc, req.body, {
+  const { approval, ...safeBody } = req.body;
+
+  Object.assign(doc, safeBody, {
     completion: {
       ...doc.completion,
       percent: 25,
@@ -327,7 +343,7 @@ export const updateLocationStep = async (req: AuthRequest, res: Response) => {
     },
   });
 
-  await doc.save(); 
+  await doc.save();
 
   if (doc.city && doc.locality) {
     const coordinates = doc.location?.coordinates || [0, 0];
@@ -357,8 +373,7 @@ export const updateLocationStep = async (req: AuthRequest, res: Response) => {
     } else {
       // Step 3 — check if locality exists
       const exists = cityDoc.localities.some(
-        (loc: any) =>
-          loc.name.toLowerCase() === doc.locality.toLowerCase()
+        (loc: any) => loc.name.toLowerCase() === doc.locality.toLowerCase(),
       );
 
       // Step 4 — push new locality if not exists
@@ -375,8 +390,6 @@ export const updateLocationStep = async (req: AuthRequest, res: Response) => {
       }
     }
   }
-
-
 
   res.json({ data: doc });
 };
@@ -412,82 +425,114 @@ export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
 };
 
 export const finalizeResidential = async (req: AuthRequest, res: Response) => {
-  const property = await Residential.findById(req.params.id);
-  if (!property) {
-    return res.status(404).json({ error: "Property not found" });
-  }
+  try {
 
-  const files = req.files as
-    | { [field: string]: Express.Multer.File[] }
-    | undefined;
-  const verificationFiles = files?.verificationDocuments ?? [];
-
-  // 1️⃣ Save uploaded verification documents
-  if (verificationFiles.length > 0) {
-    property.verificationDocuments = Array.isArray(
-      property.verificationDocuments,
-    )
-      ? property.verificationDocuments
-      : [];
-
-    for (const file of verificationFiles) {
-      const up = await uploadFile({
-        buffer: file.buffer,
-        originalName: file.originalname,
-        mimetype: file.mimetype,
-        folder: "residential/verification",
-        entityId: property._id.toString(),
-      });
-
-      property.verificationDocuments.push({
-        type: req.body.verificationType,
-        title: file.originalname,
-        url: up.url,
-        key: up.key,
-        filename: file.originalname,
-        mimetype: file.mimetype,
-        status: "pending",
-      });
+    const property = await Residential.findById(req.params.id);
+    if (!property) {
+      return res.status(404).json({ error: "Property not found" });
     }
+
+
+    const files = req.files as
+      | { [field: string]: Express.Multer.File[] }
+      | undefined;
+
+    const verificationFiles = files?.verificationDocuments ?? [];
+
+    // ---------- Upload Docs ----------
+    if (verificationFiles.length > 0) {
+      property.verificationDocuments ??= [];
+
+      for (const file of verificationFiles) {
+        const up = await uploadFile({
+          buffer: file.buffer,
+          originalName: file.originalname,
+          mimetype: file.mimetype,
+          folder: "residential/verification",
+          entityId: property._id.toString(),
+        });
+
+        property.verificationDocuments.push({
+          type: req.body.verificationType,
+          title: file.originalname,
+          url: up.url,
+          key: up.key,
+          filename: file.originalname,
+          mimetype: file.mimetype,
+          status: "pending",
+        });
+      }
+    }
+
+    // ---------- Check verified ----------
+    const hasVerified = property.verificationDocuments?.some(
+      (d: any) => d.status === "verified",
+    );
+
+    property.completion ??= {
+      percent: 0,
+      step: 1,
+      lastSection: "verification",
+    };
+
+    property.completion.lastSection = "verification";
+
+    const role = req.user?.roleName;
+
+
+    if (hasVerified) {
+
+      if (role === "sales_agent") {
+        // 👉 Send to manager
+
+
+        property.status = "pending";
+        property.isPublished = false;
+
+        property.approval ??= {};
+        property.approval.isApprovedByManager = false;
+        property.approval.approvalToken = crypto.randomUUID();
+
+        const agent = await User.findById(property.createdBy).populate(
+          "managerId",
+        );
+
+        console.log("AGENT:", agent?.name);
+        console.log("MANAGER:", agent?.managerId);
+        console.log("MANAGER EMAIL:", (agent?.managerId as any)?.email);
+
+        if (agent?.managerId && (agent.managerId as any).email) {
+          await sendManagerApprovalMail({
+            managerEmail: (agent.managerId as any).email,
+            propertyId: property._id.toString(),
+            token: property.approval.approvalToken,
+          });
+        }
+      } else {
+        // 👉 Normal user
+        property.status = "active";
+        property.isPublished = true;
+        property.completion.percent = 100;
+        property.completion.step = 5;
+      }
+    } else {
+      property.status = "pending";
+      property.isPublished = false;
+      property.completion.percent = 80;
+      property.completion.step = 4;
+    }
+
+    await property.save();
+
+    const fresh = await Residential.findById(property._id)
+      .populate("createdBy", "name email phone")
+      .lean();
+
+    res.json({ success: true, verified: hasVerified, data: fresh });
+  } catch (err: any) {
+    console.error("finalizeResidential:", err);
+    res.status(500).json({ message: err.message });
   }
-
- const hasVerified = property.verificationDocuments?.some(
-  doc => doc.status === "verified"
-);
-
-if (!property.completion) {
-  property.completion = {
-    percent: 0,
-    step: 1,
-    lastSection: "verification",
-  };
-}
-
-property.completion.lastSection = "verification";
-
-if (hasVerified) {
-  property.status = "active";
-  property.isPublished = true;
-  property.completion.percent = 100;
-  property.completion.step = 5;
-} else {
-  property.status = "draft";
-  property.isPublished = false;
-  property.completion.percent = 80;
-  property.completion.step = 4;
-}
-
-  await property.save();
-
- const fresh = await Residential.findById(property._id)
-  .populate("createdBy", "name email phone")
-  .lean();
-
-res.json({
-  success: true,
-  verified: hasVerified,
-  data: fresh,
-});
 };
 
 export const getAllResidentialDraftsForAdmin = async (
@@ -546,7 +591,7 @@ export const getAllResidentialDraftsForAdmin = async (
 
 export const verifyResidentialDocument = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ) => {
   try {
     const { id } = req.params;
@@ -559,7 +604,7 @@ export const verifyResidentialDocument = async (
     const updated = await ResidentialPropertyService.verifyDocument(
       id,
       documentIndex,
-      status
+      status,
     );
 
     if (!updated) {
@@ -577,5 +622,41 @@ export const verifyResidentialDocument = async (
   }
 };
 
+export const approveProperty = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { token } = req.body;
 
+    const property = await Residential.findById(id);
 
+    if (!property)
+      return res.status(404).json({ message: "Property not found" });
+
+    if (!property.approval || !property.approval.approvalToken) {
+      return res.status(400).json({
+        message: "Property does not require approval",
+      });
+    }
+
+    if (property.approval.approvalToken !== token) {
+      return res.status(400).json({
+        message: "Invalid approval link",
+      });
+    }
+
+    property.status = "active";
+    property.isPublished = true;
+
+    property.approval.isApprovedByManager = true;
+    property.approval.approvedByManager = new mongoose.Types.ObjectId(
+      req.user!.sub,
+    ); // ✅ FIX
+    property.approval.approvedAt = new Date();
+
+    await property.save();
+
+    res.json({ message: "Property approved successfully" });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};

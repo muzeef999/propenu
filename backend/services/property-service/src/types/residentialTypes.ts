@@ -54,6 +54,15 @@ export const PROPERTY_AGE_BUCKETS = [
 ] as const;
 
 
+export interface IApproval {
+  isApprovedByManager?: boolean;
+  approvedByManager?: Types.ObjectId;
+  approvedAt?: Date;
+  approvalComment?: string;
+  approvalToken?: string;
+}
+
+
 
 
 export type PropertyAge = (typeof PROPERTY_AGE_BUCKETS)[number];
@@ -136,4 +145,7 @@ export interface IResidential {
   propertyAge?: PropertyAge;
   constructionYear?: number;
   isModularKitchen?: boolean;
+
+    approval?: IApproval;   // ⭐ ADD THIS
+
 }
