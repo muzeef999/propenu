@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -48,8 +48,20 @@ const VERIFICATION_DOCS = [
   },
 ];
 
-const VerifyProperty = () => {
-  const { residential, draftId, propertyType } = useSelector(
+type VerifyPropertyProps = {
+  onVerificationSubmitted?: (meta: {
+    isSubmitted: boolean;
+    isApproved: boolean;
+    submittedAt?: string;
+    reviewAt?: string;
+    approvedAt?: string;
+  }) => void;
+};
+
+const VerifyProperty: React.FC<VerifyPropertyProps> = ({
+  onVerificationSubmitted,
+}) => {
+  const { residential, draftId, propertyType, base } = useSelector(
     (state: any) => state.postProperty,
   );
 
@@ -58,13 +70,44 @@ const VerifyProperty = () => {
 
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [showErrors, setShowErrors] = useState(false);
+  const didHydratePrefill = useRef(false);
 
-  const validationResult = validatePropertyVerify({
-    verificationDocuments: files.map((f) => f.file),
-  });
+  const prefilledFiles = useMemo<UploadedFile[]>(() => {
+    const docs = Array.isArray(residential?.verificationDocuments)
+      ? residential.verificationDocuments
+      : [];
+
+    return docs
+      .filter((doc: any) => Boolean(doc?.url))
+      .slice(0, 1)
+      .map((doc: any) => ({
+        preview: doc.url,
+        source: "server",
+        name: doc.filename || doc.title || "verification-document",
+      }));
+  }, [residential?.verificationDocuments]);
+
+  useEffect(() => {
+    if (didHydratePrefill.current) return;
+    if (!prefilledFiles.length) return;
+
+    setFiles(prefilledFiles);
+    didHydratePrefill.current = true;
+  }, [prefilledFiles]);
+
+  const localFiles = files
+    .map((f) => f.file)
+    .filter((file): file is File => file instanceof File);
+  const hasServerFile = files.some((file) => file.source === "server");
+
+  const validationResult = hasServerFile
+    ? null
+    : validatePropertyVerify({
+        verificationDocuments: localFiles,
+      });
 
   const fieldErrors =
-    showErrors && !validationResult.success
+    showErrors && validationResult && !validationResult.success
       ? validationResult.error.flatten().fieldErrors
       : {};
 
@@ -75,11 +118,13 @@ const VerifyProperty = () => {
   const handleSubmit = () => {
     setShowErrors(true);
 
-    const result = validatePropertyVerify({
-      verificationDocuments: files.map((f) => f.file),
-    });
+    const result = hasServerFile
+      ? null
+      : validatePropertyVerify({
+          verificationDocuments: localFiles,
+        });
 
-    if (!result.success) {
+    if (result && !result.success) {
       toast.error("Please upload a verification document");
       return;
     }
@@ -103,13 +148,9 @@ const VerifyProperty = () => {
     formData.append("verificationType", selectedDoc.verificationType);
     formData.append("title", selectedDoc.title);
     const localFile = files.find((f) => f.source === "local" && f.file)?.file;
-
-    if (!localFile) {
-      toast.error("Please upload a verification document");
-      return;
+    if (localFile) {
+      formData.append("verificationDocuments", localFile);
     }
-
-    formData.append("verificationDocuments", localFile);
 
     dispatch(
       submitVerificationThunk({
@@ -119,7 +160,7 @@ const VerifyProperty = () => {
       }),
     )
       .unwrap()
-      .then(() => {
+      .then((res: any) => {
         toast.success("Property verified successfully 🎉");
 
         confetti({
@@ -128,7 +169,17 @@ const VerifyProperty = () => {
           origin: { y: 0.6 },
         });
 
-        router.push("/my-properties");
+        const data = res?.data;
+        const approved = Boolean(res?.verified);
+        const updatedAt = data?.updatedAt || new Date().toISOString();
+
+        onVerificationSubmitted?.({
+          isSubmitted: true,
+          isApproved: approved,
+          submittedAt: data?.createdAt || base?.createdAt || updatedAt,
+          reviewAt: updatedAt,
+          approvedAt: approved ? updatedAt : undefined,
+        });
       })
       .catch((error: any) => {
        

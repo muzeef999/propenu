@@ -557,7 +557,6 @@ const BuildingFooterSvg = () => {
         <path opacity="0.33" d="M1237.9 187.457H1235.69V196.475H1237.9V187.457Z" fill="white" />
         <path opacity="0.33" d="M1248.9 168.184H1246.69V177.202H1248.9V168.184Z" fill="white" />
       </svg>
-
     </div>
   );
 };

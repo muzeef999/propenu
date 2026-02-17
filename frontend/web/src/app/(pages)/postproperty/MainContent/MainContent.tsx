@@ -60,11 +60,6 @@ useEffect(() => {
           <p className="text-xl md:text-2xl font-semibold text-gray-900">
             {STEP_TITLES[currentStep]}
           </p>
-
-          <button className="flex items-center gap-1.5 text-sm text-green-600 font-medium hover:underline bg-green-50 md:bg-transparent p-2 md:p-0 rounded-lg w-fit">
-            <span className="text-gray-700">Need help?</span>
-            <span className="flex items-center gap-1">📞 Get a callback</span>
-          </button>
         </div>
 
         {/* --- Form Content --- */}

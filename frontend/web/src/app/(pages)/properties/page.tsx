@@ -61,34 +61,38 @@ const Page: React.FC = () => {
 
 
   return (
-    <>
-      <FilterBar />
-      <div className="container p-4">
-        {loading && <p>Loading properties…</p>}
-        {!loading && (
-          <p className="mb-4 text-gray-600 capitalize text-2xl pt-2">
-            <strong>{total ?? items.length}</strong> Properties for {params.listingType} in 
-            {locationLabel ? ` ${locationLabel}` : null}
-          </p>
-        )}
-        <div className="flex flex-col lg:flex-row w-full">
-          <div className="w-full lg:w-[80%]">
-            {items.map((p) => renderPropertyCard(filters.category, p))}
-          </div>
+  <div className="relative min-h-screen"> 
+    <FilterBar />
+    
+    <div className="container p-4">
+      {loading && <p>Loading properties…</p>}
+      {!loading && (
+        <p className="mb-4 text-gray-600 capitalize text-2xl pt-2">
+          <strong>{total ?? items.length}</strong> Properties for {params.listingType} in 
+          {locationLabel ? ` ${locationLabel}` : " your area"}
+        </p>
+      )}
 
-          <div className="w-full lg:w-[20%]">
+      <div className="flex flex-col lg:flex-row w-full gap-4">
+        <div className="w-full lg:w-[80%]">
+          {items.map((p) => renderPropertyCard(filters.category, p))}
+        </div>
+
+        <div className="w-full lg:w-[20%]">
+          <div className="sticky top-24"> {/* Optional: Make the Ad sticky too! */}
             <Image
               src={ad}
               alt="advertisement banner"
-              className="w-full h-auto p-6"
+              className="w-full h-auto p-2"
             />
           </div>
         </div>
-
-        {!loading && items.length === 0 && <p>No properties found.</p>}
       </div>
-    </>
-  );
+
+      {!loading && items.length === 0 && <p>No properties found.</p>}
+    </div>
+  </div>
+);
 };
 
 export default Page;
