@@ -1,24 +1,79 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/Redux/store";
 import VerifyProperty from "../verifyproperty/VerifyProperty";
+import TrackPropertyStatus from "../verifyproperty/TrackPropertyStatus";
 
 const VerificationStep = () => {
-  const propertyType = useAppSelector(
-    (state) => state.postProperty.propertyType
-  );
+  const router = useRouter();
+  const { residential, base } = useAppSelector((state) => state.postProperty);
+
+  const [submissionMeta, setSubmissionMeta] = useState<{
+    isSubmitted: boolean;
+    isApproved: boolean;
+    submittedAt?: string;
+    reviewAt?: string;
+    approvedAt?: string;
+  } | null>(null);
+
+  /* =========================================
+     FALLBACK DATA (From Draft)
+  ========================================= */
+
+  const fallbackHasDocs = Array.isArray(residential?.verificationDocuments)
+    ? residential.verificationDocuments.length > 0
+    : false;
+
+  const fallbackApproved = Array.isArray(residential?.verificationDocuments)
+    ? residential.verificationDocuments.some(
+        (doc: any) => doc?.status === "verified"
+      )
+    : false;
+
+  const trackerState = submissionMeta ?? {
+    isSubmitted: fallbackHasDocs,
+    isApproved: fallbackApproved,
+    submittedAt: base?.createdAt,
+    reviewAt: base?.updatedAt,
+    approvedAt: fallbackApproved ? base?.updatedAt : undefined,
+  };
+
+  const showTracker = trackerState.isSubmitted;
+
+  /* =========================================
+     RENDER
+  ========================================= */
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900">Verification & Compliance</h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Complete legal verification and compliance details for your property
-        </p>
-      </div>
+      {/* Header (Hide when tracker is open) */}
+      {!showTracker && (
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            Verification & Compliance
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Complete legal verification and compliance details for your
+            property
+          </p>
+        </div>
+      )}
 
       {/* Verification Content */}
-       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <VerifyProperty />
+      <div className="">
+        {showTracker ? (
+          <TrackPropertyStatus
+            isApproved={trackerState.isApproved}
+            submittedAt={trackerState.submittedAt}
+            reviewAt={trackerState.reviewAt}
+            approvedAt={trackerState.approvedAt}
+            onGoToMyProperties={() => router.push("/my-properties")}
+          />
+        ) : (
+          <VerifyProperty onVerificationSubmitted={setSubmissionMeta} />
+        )}
       </div>
     </div>
   );

@@ -58,6 +58,16 @@ const detectCategoryFromDraft = (
   return fallback; // ✅ DO NOT FORCE residential
 };
 
+const mapVerificationTypeToKey = (type?: string) => {
+  if (!type) return undefined;
+  const normalized = String(type).toUpperCase();
+  if (normalized === "SALE_DEED") return "sale-deed";
+  if (normalized === "ENCUMBRANCE_CERTIFICATE") return "ec";
+  if (normalized === "MUNICIPAL_TAX") return "municipal-tax";
+  if (normalized === "UTILITY_BILL") return "utility-bill";
+  return undefined;
+};
+
 /* ======================================================
    INITIAL STATE
 ====================================================== */
@@ -167,10 +177,30 @@ const postPropertySlice = createSlice({
         address: draft.address,
         pincode: draft.pincode,
         state: draft.state,
+        status: draft.status,
+        isPublished: draft.isPublished,
+        createdAt: draft.createdAt,
+        updatedAt: draft.updatedAt,
       };
 
       // category-specific data
       if (category === "residential") {
+        const mappedVerificationDocuments = Array.isArray(
+          draft.verificationDocuments,
+        )
+          ? draft.verificationDocuments.map((doc: any, index: number) => ({
+              url: doc.url,
+              key: doc.key,
+              filename: doc.filename,
+              title: doc.title,
+              type: doc.type,
+              mimetype: doc.mimetype,
+              status: doc.status,
+              order: index,
+              source: "server",
+            }))
+          : [];
+
         state.residential = {
           ...state.residential,
           builtUpArea: draft.builtUpArea,
@@ -202,6 +232,10 @@ const postPropertySlice = createSlice({
           price: draft.price,
           pricePerSqft: draft.pricePerSqft,
           description: draft.description,
+          verificationDocuments: mappedVerificationDocuments,
+          verificationDocument:
+            mapVerificationTypeToKey(mappedVerificationDocuments[0]?.type) ??
+            state.residential.verificationDocument,
 
           gallery: Array.isArray(draft.gallery)
             ? draft.gallery.map((img: any) => ({
