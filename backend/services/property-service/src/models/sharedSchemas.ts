@@ -228,12 +228,18 @@ export const BaseFields = {
     index: true,
   },
 
-  approval: {
-    isApprovedByManager: { type: Boolean, default: false },
-    approvedByManager: { type: Schema.Types.ObjectId, ref: "User" },
-    approvedAt: Date,
-    approvalComment: String,
+approval: {
+  status: {
+    type: String,
+    enum: ["pending", "approved", "rejected"],
+    default: "pending",
+    index: true,
   },
+  approvedByManager: { type: Schema.Types.ObjectId, ref: "User" },
+  approvedAt: Date,
+  approvalComment: String,
+  approvalToken: String   // ⭐ email approval link token
+},
 
   createdBy: {
     type: Schema.Types.ObjectId,

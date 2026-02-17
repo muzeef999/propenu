@@ -132,7 +132,6 @@ export const getMyResidentialDraft = async (req: AuthRequest, res: Response) => 
   res.json({ data: draft });
 };
 
-
 /*** GET BY SLUG **/
 export const getResidentialBySlug = async (req: Request, res: Response) => {
   try {
@@ -255,7 +254,6 @@ export const deleteResidential = async (req: Request, res: Response) => {
   }
 };
 
-
 export const createResidentialDraft = async (req: AuthRequest, res: Response) => {
   try {
     const existing = await Residential.findOne({
@@ -287,8 +285,6 @@ export const createResidentialDraft = async (req: AuthRequest, res: Response) =>
   }
 };
 
-
-
 export const updateBasicStep = async (req: AuthRequest, res: Response) => {
   const doc = await Residential.findById(req.params.id);
   if (!doc) {
@@ -308,7 +304,6 @@ export const updateBasicStep = async (req: AuthRequest, res: Response) => {
 
   res.json({ data: doc });
 };
-
 
 export const updateLocationStep = async (req: AuthRequest, res: Response) => {
   const doc = await Residential.findById(req.params.id);
@@ -385,7 +380,6 @@ export const updateLocationStep = async (req: AuthRequest, res: Response) => {
 
   res.json({ data: doc });
 };
-
 
 export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
   try {
@@ -552,7 +546,6 @@ export const getAllResidentialDraftsForAdmin = async (
   }
 };
 
-
 export const verifyResidentialDocument = async (
   req: AuthRequest,
   res: Response
@@ -584,5 +577,28 @@ export const verifyResidentialDocument = async (
     console.error("verifyResidentialDocument:", err);
     res.status(500).json({ message: err.message || "Server error" });
   }
+};
+
+export const approveProperty = async (req: AuthRequest, res:Response) => {
+  const { id } = req.params;
+  const { token } = req.body;
+
+  const property = await Residential.findById(id);
+  if (!property)
+    return res.status(404).json({ message: "Property not found" });
+
+  if (property.approval.approvalToken !== token)
+    return res.status(400).json({ message: "Invalid approval link" });
+
+  property.status = "active";
+  property.isPublished = true;
+
+  property.approval.status = "approved";
+  property.approval.approvedByManager = req.user!.id;
+  property.approval.approvedAt = new Date();
+
+  await property.save();
+
+  res.json({ message: "Property approved" });
 };
 
