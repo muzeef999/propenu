@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import confetti from "canvas-confetti";
 
 import { useAppDispatch } from "@/Redux/store";
 import { setProfileField } from "@/Redux/slice/postPropertySlice";
@@ -162,12 +161,6 @@ const VerifyProperty: React.FC<VerifyPropertyProps> = ({
       .unwrap()
       .then((res: any) => {
         toast.success("Property verified successfully 🎉");
-
-        confetti({
-          particleCount: 120,
-          spread: 70,
-          origin: { y: 0.6 },
-        });
 
         const data = res?.data;
         const approved = Boolean(res?.verified);
