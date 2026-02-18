@@ -131,7 +131,7 @@ export const getMyResidentialDraft = async (
 ) => {
   const draft = await Residential.findOne({
     createdBy: req.user!.id,
-    status: "draft",
+    status: { $in: ["draft", "pending"] },
   })
     .populate("createdBy", "name email phone")
     .lean();

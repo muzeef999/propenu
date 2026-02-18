@@ -66,6 +66,7 @@ export interface ISpecItem {
   title?: string;
   description?: string;
 }
+
 export const SpecItemSchema = new Schema<ISpecItem>(
   { title: String, description: String },
   { _id: false },
@@ -76,6 +77,7 @@ export interface ISpecification {
   items?: ISpecItem[];
   order?: number;
 }
+
 export const SpecificationSchema = new Schema<ISpecification>(
   {
     category: String,
@@ -223,24 +225,25 @@ export const BaseFields = {
   verificationDocuments: { type: [VerificationDocSchema], default: [] },
   status: {
     type: String,
-    enum: ["draft", "pending", "active", "inactive", "archived"],
+    enum: ["draft", "pending", "active", "expired", "deactivated", "archived"],
     default: "draft",
     index: true,
   },
-
-approval: {
-  status: {
-    type: String,
-    enum: ["pending", "approved", "rejected"],
-    default: "pending",
-    index: true,
+  subscriptionEndDate: Date,
+  deactivatedAt: Date,
+  deactivatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+  approval: {
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+      index: true,
+    },
+    approvedByManager: { type: Schema.Types.ObjectId, ref: "User" },
+    approvedAt: Date,
+    approvalComment: String,
+    approvalToken: String, // ⭐ email approval link token
   },
-  approvedByManager: { type: Schema.Types.ObjectId, ref: "User" },
-  approvedAt: Date,
-  approvalComment: String,
-  approvalToken: String   // ⭐ email approval link token
-},
-
   createdBy: {
     type: Schema.Types.ObjectId,
     ref: "User",

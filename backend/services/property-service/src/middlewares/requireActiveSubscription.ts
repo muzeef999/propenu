@@ -31,6 +31,12 @@ export const requireActiveSubscription = async (
       return next(); // ✅ Skip subscription
     }
 
+     const statusFromBody = req.body?.status;
+    if (statusFromBody === "draft") {
+      return next();
+    }
+
+    
     let listingType: string | undefined;
 
     if (req.params?.id) {
@@ -74,21 +80,8 @@ export const requireActiveSubscription = async (
       return res.status(403).json({ message: "Invalid user role" });
     }
 
-    // 🔍 TEMP DEBUG (keep for now)
-    console.log("roleName:", roleName);
-    console.log("mapped userType:", userType);
-
-    // 🔥 STEP 2.2: Find ACTIVE subscription
-    console.log("🔍 SUBSCRIPTION QUERY ----------------");
-    console.log({
-      userId,
-      userType,
-      category: requiredCategory,
-      status: "active",
-    });
 
     const allSubs = await Subscription.find({ userId }).lean();
-    console.log("📦 ALL USER SUBSCRIPTIONS ----------------");
     console.log(allSubs);
 
     const subscription = await Subscription.findOne({
@@ -97,17 +90,6 @@ export const requireActiveSubscription = async (
       category: requiredCategory,
       status: "active",
     });
-
-    console.log("🔍 SUBSCRIPTION QUERY ----------------");
-    console.log({
-      userId,
-      userType,
-      category: requiredCategory,
-      status: "active",
-    });
-
-    console.log("📦 SUBSCRIPTION RESULT ----------------");
-    console.log(subscription);
 
     if (!subscription) {
       return res.status(403).json({
