@@ -234,7 +234,7 @@ const FilterBar: React.FC = () => {
               triggerLabel={
                 <button
   type="button"
-  className="flex items-center gap-1 rounded-full bg-[#D1EFDD] px-3 py-1.5 text-sm font-medium text-[#15803D] transition-colors hover:bg-[#BDE5CE]"
+  className="flex items-center gap-1 rounded-md bg-[#D1EFDD] px-3 py-1.5 text-sm font-medium text-[#15803D] transition-colors hover:bg-[#BDE5CE]"
 >
   <span className="leading-none">{listingTypeLabel}</span>
 

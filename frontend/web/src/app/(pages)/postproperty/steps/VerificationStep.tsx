@@ -41,6 +41,11 @@ const VerificationStep = () => {
   };
 
   const showTracker = trackerState.isSubmitted;
+  const listingSource = String(
+    base?.listingSource ?? residential?.listingSource ?? ""
+  ).toLowerCase();
+  const myPropertiesRoute =
+    listingSource === "agent" ? "/agent/my-properties" : "/my-properties";
 
   /* =========================================
      RENDER
@@ -69,7 +74,7 @@ const VerificationStep = () => {
             submittedAt={trackerState.submittedAt}
             reviewAt={trackerState.reviewAt}
             approvedAt={trackerState.approvedAt}
-            onGoToMyProperties={() => router.push("/my-properties")}
+            onGoToMyProperties={() => router.push(myPropertiesRoute)}
           />
         ) : (
           <VerifyProperty onVerificationSubmitted={setSubmissionMeta} />

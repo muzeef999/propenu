@@ -13,7 +13,7 @@ import Accordion, { AccordionItem } from "@/ui/Accordion";
 interface FaqQuestion {
     id: string;
     question: string;
-    answer: string;
+    answer: React.ReactNode;
 }
 
 interface FaqSubcategory {
@@ -281,34 +281,46 @@ const FAQ_DATA: FaqCategory[] = [
                 title: "How listing & searching works",
                 faqs: [
                     {
-                        id: "2-1-1",
-                        question: "How listing & searching works",
-                        answer:
-                            "Buyers, tenants, property owners, agents, and builders can use Propenu after completing KYC verification. Property owners, agents, and builders can list properties after completing property verification. Once verified, listings go live and are visible to buyers and tenants. Buyers and tenants can search using filters such as location, budget, property type, and purpose, and contact owners, agents, or builders directly.",
-                    },
+    id: "2-1-1",
+    question: "How listing & searching works",
+    answer: (
+        <>
+            <strong>
+                Buyers, tenants, property owners, agents, and builders
+            </strong>{" "}
+            can use Propenu after completing KYC verification. Property owners, agents, and builders can list properties after completing property verification. Once verified, listings go live and are visible to buyers and tenants.
+            
+            <br />
+            <br />
+
+            Buyers and tenants can search using filters such as location, budget, property type, and purpose (buy or rent). They can view verified listings and contact owners, agents, or builders directly through the platform.
+        </>
+    ),
+},
+
                 ],
             },
             {
                 id: "2-2",
-                title: "Enquiries & responses",
+                title: "Enquiries & Responses",
                 faqs: [
                     {
                         id: "2-2-1",
-                        question: "How enquiries & responses work",
+                        question: "Enquiries & Responses",
                         answer:
-                            "Buyers and tenants can send enquiries after completing KYC verification. Users can contact a limited number of property owners for free, and additional enquiries require a subscription. Owners, agents, and builders can also receive a limited number of enquiries for free, and additional access requires a subscription. All enquiries are managed in the dashboard.",
+                            "Buyers and tenants can send enquiries after completing KYC verification. Users can contact a limited number of property owners for free, and additional enquiries require a subscription.\n\n Property owners, agents, and builders can receive a limited number of enquiries for free. To receive more enquiries beyond this limit, a subscription is required. All enquiries are received in the user dashboard, where owners, agents, and builders can view, respond, and manage conversations directly through the platform.",
                     },
                 ],
             },
             {
                 id: "2-3",
-                title: "Verification overview",
+                title: "Verification Overview",
                 faqs: [
                     {
                         id: "2-3-1",
-                        question: "What is the verification overview?",
+                        question: "Verification Overview",
                         answer:
-                            "Propenu follows a strict verification process to ensure trust and authenticity. All users must complete KYC verification to access platform features. Every property listing also undergoes property verification before publication.",
+                            "Propenu follows a strict verification process to ensure trust and authenticity on the platform. All users are required to complete KYC verification to access platform features.\n\nIn addition, every property listed on Propenu undergoes property verification before being published. This process helps ensure listing authenticity, prevents fraudulent listings, builds buyer trust, and maintains a transparent real estate ecosystem.",
                     },
                 ],
             },
@@ -318,9 +330,9 @@ const FAQ_DATA: FaqCategory[] = [
                 faqs: [
                     {
                         id: "2-4-1",
-                        question: "Are non-verified listings available?",
+                        question: "Verified vs non-verified listings",
                         answer:
-                            "No. Propenu publishes only verified property listings on the platform. This ensures authenticity and helps prevent fraudulent listings.",
+                            "Propenu publishes only verified property listings on the platform. There are no non-verified listings available for users to view or contact.\n\nThis ensures authenticity and preventing fraudulent listings across the platform. ",
                     },
                 ],
             },
@@ -337,9 +349,9 @@ const FAQ_DATA: FaqCategory[] = [
                 faqs: [
                     {
                         id: "3-1-1",
-                        question: "How do I create an account?",
+                        question: "Creating an account",
                         answer:
-                            "Users can sign up with a valid mobile number and email address. During registration, users are required to complete KYC verification to access platform services.",
+                            "To use Propenu’s features, users must create an account by signing up with a valid mobile number, email address. During registration, users are required to complete KYC verification to access platform services.\n\n Once registered, users can log in to their account, manage their profile, and use features relevant to their role—buyer, tenant, property owner, agent, or builder.",
                     },
                 ],
             },
@@ -349,9 +361,9 @@ const FAQ_DATA: FaqCategory[] = [
                 faqs: [
                     {
                         id: "3-2-1",
-                        question: "What should I do if OTP is not received?",
+                        question: "Login / OTP issues",
                         answer:
-                            "Ensure the entered mobile number or email address is correct and active. Check network connectivity, wait briefly, and retry OTP. If the issue continues, contact Propenu support.",
+                            "If you’re unable to log in or not receiving an OTP, ensure that the mobile number or email address entered is correct and active. Check your network connection and allow a few moments for the OTP to arrive.\n\n If the issue persists, try requesting the OTP again or contact Propenu support for assistance.",
                     },
                 ],
             },
@@ -361,9 +373,9 @@ const FAQ_DATA: FaqCategory[] = [
                 faqs: [
                     {
                         id: "3-3-1",
-                        question: "Can I update my profile details?",
+                        question: "Updating profile details",
                         answer:
-                            "Yes. You can update profile details from account settings, including name, contact information, and relevant profile fields.",
+                            "You can update your profile details at any time by logging into your Propenu account and accessing the profile or account settings section. This includes updating your name, contact information, and other relevant details. \n\nKeeping your profile information accurate helps ensure smooth communication and a better experience on the platform.",
                     },
                 ],
             },
@@ -373,9 +385,9 @@ const FAQ_DATA: FaqCategory[] = [
                 faqs: [
                     {
                         id: "3-4-1",
-                        question: "How do I deactivate my account?",
+                        question: "Account deactivation / deletion",
                         answer:
-                            "Log in to your account, open Account Settings or Profile Settings, select Deactivate Account, and confirm. Once deactivated, profile and listings are no longer visible.",
+                            "To deactivate your Propenu account, follow these steps:\n1. Log in to your Propenu account.\n2. Go to Account Settings or Profile Settings.\n3. Select the Deactivate Account option.\n4. Confirm your request when prompted.\n\nOnce deactivated, your profile and listings will no longer be visible on the platform. If you need further assistance, you can contact Propenu support.",
                     },
                 ],
             },
@@ -385,9 +397,9 @@ const FAQ_DATA: FaqCategory[] = [
                 faqs: [
                     {
                         id: "3-5-1",
-                        question: "How do I reactivate a deactivated account?",
+                        question: "Account Re-activation",
                         answer:
-                            "Contact the Propenu support team using your registered email or phone number. After review and verification, the account can be reactivated with access to the same active subscription state.",
+                            "If your Propenu account has been deactivated, you can request re-activation by contacting the Propenu support team. Reach out via the registered email address or phone number associated with your account.\n\n Once your request is reviewed and verified, your account will be re-activated, and you will regain access to your profile and listings using the same subscription that was active before deactivating your account.",
                     },
                 ],
             },
@@ -404,9 +416,9 @@ const FAQ_DATA: FaqCategory[] = [
                 faqs: [
                     {
                         id: "4-1-1",
-                        question: "What is the property verification process?",
+                        question: "Property Verification Process",
                         answer:
-                            "Before a property is listed, owners, agents, and builders must submit details and supporting documents for review. After successful verification, the property is approved and published.",
+                            "Before a property is listed on Propenu, it must go through a property verification process. Owners, agents, and builders are required to submit relevant property details and supporting documents for review. \n\nThe Propenu team verifies the submitted information to confirm authenticity. Once the verification is completed successfully, the property is approved and published on the platform.",
                     },
                 ],
             },
@@ -416,10 +428,27 @@ const FAQ_DATA: FaqCategory[] = [
                 faqs: [
                     {
                         id: "4-2-1",
-                        question: "Which documents are accepted for verification?",
-                        answer:
-                            "Any one of the following is sufficient: Encumbrance Certificate, Municipal Tax Receipt, Water Bill or Electricity Bill, or Sale Deed.",
+                        question: "Documents required",
+                        answer: (
+                            <div>
+                                <p className="mb-3">
+                                    To complete property verification, upload <strong>any one</strong> of the following:
+                                </p>
+
+                                <ul className="list-disc space-y-2 pl-5 text-[#4b5a53]">
+                                    <li>Encumbrance Certificate</li>
+                                    <li>Municipal Tax Receipt</li>
+                                    <li>Water Bill or Electricity Bill</li>
+                                    <li>Sale Deed</li>
+                                </ul>
+
+                                <p className="mt-3">
+                                    Submitting any one of these documents is sufficient to proceed with the verification process.
+                                </p>
+                            </div>
+                        ),
                     },
+
                 ],
             },
             {
@@ -428,9 +457,9 @@ const FAQ_DATA: FaqCategory[] = [
                 faqs: [
                     {
                         id: "4-3-1",
-                        question: "How long does verification take?",
+                        question: "Timelines & status",
                         answer:
-                            "Verification is typically completed within 24 hours of submission. In rare cases, it may take longer due to additional checks or incomplete information. Status updates are shared on dashboard and registered email.",
+                            "Property verification is typically completed within 24 hours of document submission. Once approved, the property listing goes live on the platform.\n\nIn rare cases, verification may take longer than 24 hours due to additional checks or incomplete information. You will be notified about the verification status through your dashboard, email address.",
                     },
                 ],
             },
@@ -440,9 +469,9 @@ const FAQ_DATA: FaqCategory[] = [
                 faqs: [
                     {
                         id: "4-4-1",
-                        question: "Why can verification be rejected?",
+                        question: "Rejection reasons",
                         answer:
-                            "Verification may be rejected if KYC details or property documents are incomplete, unclear, invalid, or mismatched. Rejection reasons are shared in dashboard and email, and users can resubmit updated details.",
+                            "Verification may be rejected if the submitted user (KYC) details or property documents are incomplete, unclear, invalid, or do not match the information provided.\n\nIf verification is rejected, the reason will be shown in your dashboard and sent to your registered email address. You can update or resubmit the required details for review.",
                     },
                 ],
             },
@@ -459,21 +488,21 @@ const FAQ_DATA: FaqCategory[] = [
                 faqs: [
                     {
                         id: "5-1-1",
-                        question: "What plans are available?",
+                        question: "Plans & pricing",
                         answer:
-                            "Propenu offers subscription plans based on user needs and property usage. Owners, agents, and builders can post a limited number of properties for free, and subscriptions unlock additional usage and visibility benefits.",
+                            "Propenu offers subscription plans based on user needs and property usage. Owners, agents, and builders can post a limited number of properties for free on Propenu. To list more than this limit, a subscription is required.\n\nSubscriptions provide access to additional features such as increased visibility and extended enquiry access.",
                     },
                 ],
             },
             {
                 id: "5-2",
-                title: "One subscription = one property",
+                title: "Subscription Usage & Property Limits",
                 faqs: [
                     {
                         id: "5-2-1",
-                        question: "Can remaining validity be used for another property?",
+                        question: "Subscription Usage & Property Limits",
                         answer:
-                            "No. Once properties listed under a subscription are sold or rented, remaining subscription validity cannot be transferred to a new property. A new subscription is required.",
+                            "Each Propenu subscription allows a limited number of properties. Once the properties listed under a subscription are rented or sold, the remaining subscription validity cannot be transferred to another property.\n\nFor example, if an owner, agent, or builder takes a one-month subscription and the listed properties are rented or sold within 15 days, the remaining subscription period cannot be transferred to another property. A new subscription is required to list a new property.\n\nThis policy applies uniformly to property owners, agents, and builders, ensuring fair usage across the platform.",
                     },
                 ],
             },
@@ -483,9 +512,9 @@ const FAQ_DATA: FaqCategory[] = [
                 faqs: [
                     {
                         id: "5-3-1",
-                        question: "How validity and expiry work?",
+                        question: "Validity & expiry",
                         answer:
-                            "Each subscription is valid for the purchased duration and starts from activation. After expiry, associated properties no longer receive subscription benefits unless renewed.",
+                            "Each subscription on Propenu is valid for the duration specified at the time of purchase (e.g., one month). The subscription period starts from the date it is activated for a specific property.\n\nOnce the subscription expires, the associated property will no longer receive subscription benefits such as enhanced visibility or extended enquiry access. Users must renew or purchase a new subscription to continue benefiting from these features.",
                     },
                 ],
             },
@@ -495,9 +524,9 @@ const FAQ_DATA: FaqCategory[] = [
                 faqs: [
                     {
                         id: "5-4-1",
-                        question: "What is refund and billing policy?",
+                        question: "Refund & billing",
                         answer:
-                            "All subscription payments are processed securely on the platform. Subscription fees are non-refundable after successful payment. Users can view billing and subscription history in dashboard.",
+                            "All subscription payments on Propenu are processed securely through the platform. Subscription fees are non-refundable once the payment is completed.\n\nUsers can view their subscription history in the dashboard, which shows all past and active subscriptions.",
                     },
                 ],
             },
@@ -514,9 +543,27 @@ const FAQ_DATA: FaqCategory[] = [
                 faqs: [
                     {
                         id: "6-1-1",
-                        question: "How can I contact support?",
-                        answer:
-                            "You can contact support through email or helpline number for issue resolution and guidance.",
+                        question: "Support channels",
+                        answer: (
+                            <div>
+                                <p className="mb-3">
+                                    If you need assistance, you can reach the Propenu support team through the following channels:
+                                </p>
+
+                                <ul className="list-disc pl-5 space-y-2 marker:text-[#27AE60]">
+                                    <li>
+                                        <strong>Email:</strong> Send your queries to our support email address.
+                                    </li>
+                                    <li>
+                                        <strong>Helpline Number:</strong> Call our support helpline for direct assistance.
+                                    </li>
+                                </ul>
+
+                                <p className="mt-3">
+                                    Our team will respond and help resolve your issue as quickly as possible.
+                                </p>
+                            </div>
+                        ),
                     },
                 ],
             },
@@ -527,13 +574,33 @@ const FAQ_DATA: FaqCategory[] = [
                     {
                         id: "6-2-1",
                         question: "What are support response timelines?",
-                        answer:
-                            "Email responses are usually within 24-48 hours, and helpline support is immediate during support hours. Timelines may vary in rare exceptional cases.",
+                        answer: (
+                            <div>
+                                <p className="mb-3">
+                                    The Propenu support team strives to respond to all queries as quickly as possible.
+                                </p>
+
+                                <ul className="list-disc pl-5 space-y-2 marker:text-[#27AE60]">
+                                    <li>
+                                        <strong>Email:</strong> Typically within 24–48 hours.
+                                    </li>
+                                    <li>
+                                        <strong>Helpline Number:</strong> Immediate assistance during support hours.
+                                    </li>
+                                </ul>
+
+                                <p className="mt-3">
+                                    In rare cases, response times may take longer due to unforeseen circumstances, but the team will make every effort to address your concerns promptly.
+                                </p>
+                            </div>
+                        ),
                     },
+
                 ],
             },
         ],
     },
+
 ];
 
 const Page = () => {
@@ -555,7 +622,12 @@ const Page = () => {
     const questionItems: AccordionItem[] = selectedSubcategory.faqs.map((faq) => ({
         id: faq.id,
         question: faq.question,
-        answer: <div className="whitespace-pre-line">{faq.answer}</div>,
+        answer:
+            typeof faq.answer === "string" ? (
+                <div className="whitespace-pre-line">{faq.answer}</div>
+            ) : (
+                faq.answer
+            ),
     }));
 
     return (
@@ -601,7 +673,7 @@ const Page = () => {
             </div>
 
             <div className="flex flex-col gap-6 md:flex-row">
-                <aside className="w-full md:w-1/3 lg:w-1/4">
+                <aside className="w-full md:w-1/3 lg:w-1/4 md:sticky md:top-6 h-fit">
                     <div className="rounded-2xl border border-gray-100 bg-white p-3 shadow-sm">
                         {FAQ_DATA.map((category) => {
                             const isCategoryActive = activeCategory === category.id;
@@ -649,7 +721,7 @@ const Page = () => {
                                                     <button
                                                         key={sub.id}
                                                         onClick={() => setActiveSubcategory(sub.id)}
-                                                        className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-all duration-200 cursor-pointer ${isSubActive
+                                                        className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-all duration-200 cursor-pointer capitalize ${isSubActive
                                                             ? " text-[#1e8b4b] font-medium"
                                                             : "text-[#4b5a53] hover:bg-gray-50"
                                                             }`}
@@ -667,14 +739,15 @@ const Page = () => {
                 </aside>
 
 
-                <main className="flex-1">
-                    <div className="rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
+                <main className="flex-1 md:sticky md:top-6 h-[calc(100vh-2rem)]">
+                    <div className="rounded-xl border border-gray-100 bg-white p-3 shadow-sm h-full overflow-y-auto">
                         <Accordion
                             key={selectedSubcategory.id}
                             items={questionItems}
                         />
                     </div>
                 </main>
+
 
             </div>
         </div>

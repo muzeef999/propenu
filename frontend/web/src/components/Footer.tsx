@@ -49,6 +49,11 @@ export default function Footer() {
                   Safety Guide
                 </Link>
               </li>
+              <li>
+                <Link href="/help-center" className="hover:text-primary">
+                  Help Center
+                </Link>
+              </li>
             </ul>
           </div>
 

@@ -41,8 +41,8 @@ const Accordion: React.FC<AccordionProps> = ({
                     <div
                         key={item.id}
                         className={`rounded-lg  transition-all duration-300 ${isOpen
-                                ? "bg-[#f2fff9]"
-                                : "bg-white"
+                            ? "bg-[#f2fff9]"
+                            : "bg-white"
                             }`}
                     >
                         <button
@@ -58,20 +58,25 @@ const Accordion: React.FC<AccordionProps> = ({
 
                             <IoChevronDown
                                 className={`transition-transform duration-300 ${isOpen
-                                        ? "rotate-180 text-[#27AE60]"
-                                        : "text-gray-400"
+                                    ? "rotate-180 text-[#27AE60]"
+                                    : "text-gray-400"
                                     }`}
                             />
                         </button>
 
                         <div
-                            className={`overflow-hidden transition-all duration-300 ${isOpen ? "max-h-40 px-5 pb-4 opacity-100" : "max-h-0 opacity-0"
+                            className={`grid transition-all duration-300 ${isOpen
+                                    ? "grid-rows-[1fr] opacity-100"
+                                    : "grid-rows-[0fr] opacity-0"
                                 }`}
                         >
-                            <div className="whitespace-pre-line text-sm text-[#6f7a74] leading-relaxed">
-                                {item.answer}
+                            <div className="overflow-hidden">
+                                <div className="px-5 pb-4 text-sm text-[#6f7a74] leading-relaxed whitespace-pre-line">
+                                    {item.answer}
+                                </div>
                             </div>
                         </div>
+
                     </div>
                 );
             })}
