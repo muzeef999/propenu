@@ -1,5 +1,6 @@
 import { RESFilterKey } from ".";
 import { BaseSearchParams, ResidentialFilters } from "./sharedTypes";
+import type { ReactNode } from "react";
 
 export type AmenitiesItems = {
   key: string;
@@ -99,6 +100,8 @@ export interface IResidential {
 export interface IAmenity {
   key: string; // unique identifier (used in DB)
   title: string; // UI label
+  category?: "Sports" | "Convenience" | "Safety" | "Environment" | string;
+  icon?: ReactNode;
   description?: string; // optional (future use)
 }
 

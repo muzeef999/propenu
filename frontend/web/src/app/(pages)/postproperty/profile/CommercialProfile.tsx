@@ -3,7 +3,7 @@ import { nextStep, setBaseField, setProfileField } from "@/Redux/slice/postPrope
 import CounterField from "@/ui/CounterField";
 import InputField from "@/ui/InputField";
 import AmenitiesSelect from "./AmenitiesSelect";
-import { AMENITIES } from "../constants/amenities";
+import { COMMERCIAL_AMENITIES } from "../constants/amenities";
 import TextArea from "@/ui/TextArae";
 import { useAppDispatch } from "@/Redux/store";
 import Dropdownui from "@/ui/DropDownUI";
@@ -81,7 +81,7 @@ const CommercialProfile = () => {
         <div>
           <AmenitiesSelect
             label="Amenities"
-            options={AMENITIES}
+            options={COMMERCIAL_AMENITIES}
             value={commercial.amenities || []}
             onChange={(value) =>
               dispatch(

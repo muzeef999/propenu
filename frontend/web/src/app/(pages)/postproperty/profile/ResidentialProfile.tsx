@@ -8,7 +8,7 @@ import {
 import Dropdownui from "@/ui/DropDownUI";
 import CounterField from "@/ui/CounterField";
 import AmenitiesSelect from "./AmenitiesSelect";
-import { AMENITIES } from "../constants/amenities";
+import { RESIDENTIAL_AMENITIES } from "../constants/amenities";
 import TextArea from "@/ui/TextArae";
 import { useAppDispatch } from "@/Redux/store";
 import Toggle from "@/ui/ToggleSwitch";
@@ -76,7 +76,7 @@ const ResidentialProfile = () => {
       <div>
         <AmenitiesSelect
           label="Amenities"
-          options={AMENITIES}
+          options={RESIDENTIAL_AMENITIES}
           value={residential.amenities || []}
           onChange={(value) =>
             dispatch(

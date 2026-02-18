@@ -186,6 +186,8 @@ export interface SpecificationItem {
 export interface IAmenity {
   key?: string;
   title?: string;
+  category?: "Sports" | "Convenience" | "Safety" | "Environment" | string;
+  icon?: string;
   description?: string;
 }
 
