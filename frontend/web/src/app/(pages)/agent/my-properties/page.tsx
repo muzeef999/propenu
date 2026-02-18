@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { HiOutlineMapPin } from "react-icons/hi2";
-import { FiEdit2 } from "react-icons/fi";
+import { HiOutlineDotsVertical } from "react-icons/hi";
 
 import ActiveTabs from "@/ui/ActiveTabs";
 import SelectableButton from "@/ui/SelectableButton";
@@ -76,6 +76,7 @@ const Page = () => {
   const [search, setSearch] = useState("");
   const [listingType, setListingType] = useState("sale");
   const [status, setStatus] = useState<"All" | "Active" | "Draft">("All");
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<any>({
     queryKey: ["myProperties"],
@@ -279,18 +280,52 @@ const Page = () => {
 
                 {/* Right Column */}
                 <div className="flex w-28 flex-col items-end">
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const category = getCategoryForTab(activeTab);
-                      dispatch(setPropertyType(category));
-                      router.push("/postproperty");
-                    }}
-                    className="rounded-md p-2 text-gray-500 hover:bg-gray-100"
-                  >
-                    <FiEdit2 className="h-4 w-4" />
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setOpenMenuId((prev) =>
+                          prev === property._id ? null : property._id
+                        );
+                      }}
+                      className="rounded-md p-2 text-gray-500 hover:bg-gray-100"
+                    >
+                      <HiOutlineDotsVertical className="h-4 w-4" />
+                    </button>
+
+                    {openMenuId === property._id && (
+                      <div
+                        className="absolute right-0 top-10 z-20 w-32 rounded-md border border-gray-200 bg-white py-1 shadow-md"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const category = getCategoryForTab(activeTab);
+                            dispatch(setPropertyType(category));
+                            setOpenMenuId(null);
+                            router.push("/postproperty");
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpenMenuId(null);
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm text-gray-500 hover:bg-gray-50"
+                        >
+                          Deactivate
+                        </button>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="mt-auto text-xs text-gray-500 text-right space-y-1">
                     <p>

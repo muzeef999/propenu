@@ -444,3 +444,19 @@ export const getMembershipHistory = async () => {
   });
   return res.data;
 };
+
+export const deactivateMyProperty = async (propertyId: string, propertyType: string) => {
+  const token = Cookies.get("token");
+  if (!token) return null;
+
+  const res = await axiosInstance.post(
+    `${url}/api/properties/${propertyType}/${propertyId}/deactive`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+  return res.data;
+};
