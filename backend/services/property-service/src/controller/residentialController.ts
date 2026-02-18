@@ -497,10 +497,6 @@ export const finalizeResidential = async (req: AuthRequest, res: Response) => {
           "managerId",
         );
 
-        console.log("AGENT:", agent?.name);
-        console.log("MANAGER:", agent?.managerId);
-        console.log("MANAGER EMAIL:", (agent?.managerId as any)?.email);
-
         if (agent?.managerId && (agent.managerId as any).email) {
           await sendManagerApprovalMail({
             managerEmail: (agent.managerId as any).email,
@@ -657,6 +653,31 @@ export const approveProperty = async (req: AuthRequest, res: Response) => {
 
     res.json({ message: "Property approved successfully" });
   } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const deactivateProperty = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const property = await Residential.findById(id);
+    if (!property) {
+      return res.status(404).json({ message: "Property not found" });
+    }
+
+    property.status = "deactivated";
+    property.isPublished = false;
+    property.updatedBy = new mongoose.Types.ObjectId(req.user!.id);
+    await property.save();
+
+    res.json({
+      success: true,
+      message: "Property deactivated",
+      data: property,
+    });
+  } catch (err:any) {
+    console.error(err);
     res.status(500).json({ message: err.message });
   }
 };

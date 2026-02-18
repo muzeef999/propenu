@@ -35,7 +35,6 @@ export interface IResidential {
   // base fields...
   address: string;
   gallery?: GalleryItem[];
-
   amenities?: AmenitiesItems[];
   pricePerSqft?: number;
   city?: string;

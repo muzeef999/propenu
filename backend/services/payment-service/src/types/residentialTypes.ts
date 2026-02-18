@@ -124,4 +124,6 @@ export interface IResidential {
   propertyAge?: PropertyAge;
   constructionYear?: number;
   isModularKitchen?: boolean;
+    updatedBy?: Types.ObjectId;
+
 }

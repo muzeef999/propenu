@@ -47,7 +47,7 @@ export interface IBaseListing {
   city?: string;
    state?: string;
   pincode?: string;
-
+   updatedBy?: Types.ObjectId;
   location?: {
     type: "Point";
     coordinates: [number, number];

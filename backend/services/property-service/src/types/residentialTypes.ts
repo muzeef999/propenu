@@ -148,4 +148,6 @@ export interface IResidential {
 
     approval?: IApproval;   // ⭐ ADD THIS
 
+      updatedBy?: Types.ObjectId;
+
 }
