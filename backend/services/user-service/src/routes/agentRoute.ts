@@ -20,22 +20,13 @@ const agentRoute = express.Router();
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-agentRoute.post(
-  "/",
-  upload.fields([
-    { name: "avatar", maxCount: 1 },
-    { name: "coverImage", maxCount: 1 },
-  ]),
-  validateBody(createAgentSchema),
-  createAgent,
-);
+agentRoute.post("/", upload.fields([{ name: "avatar", maxCount: 1 }, { name: "coverImage", maxCount: 1 },]),  validateBody(createAgentSchema), createAgent,);
 agentRoute.get("/", getAllAgents);
 agentRoute.get("/city", getAgentsByCity);
 agentRoute.get("/my", authMiddleware, getMyPropertyStats);
 agentRoute.get("/:id", getIndetailAgent);
 agentRoute.get("/slug/:slug", getIndetailSlug);
 agentRoute.get("/me/profile", authMiddleware, getMyAgentProfile);
-
 agentRoute.patch(
   "/:id",
   upload.fields([

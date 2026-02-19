@@ -11,6 +11,7 @@ import agriculturalRoutes from "./routes/agriculturalRoute";
 import searchRoute from "./routes/searchRoute";
 import leadRoute from "./routes/leadRoute";
 import "./models"; 
+import analyticsRouter from "./routes/analyticsRoute";
 
 dotenv.config({ quiet: true });
 
@@ -38,6 +39,9 @@ async function start() {
     
     app.use("/api/properties/search", searchRoute);
     app.use('/api/properties/leads', leadRoute);
+    app.use('/api/properties', analyticsRouter);
+
+    
 
     app.listen(Number(port), "0.0.0.0", () => {
       console.log(`proportey running on 0.0.0.0:${port}`);
