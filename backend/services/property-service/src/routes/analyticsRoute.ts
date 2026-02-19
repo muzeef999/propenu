@@ -6,7 +6,7 @@ const analyticsRouter = express.Router();
 
 analyticsRouter.get("/analytics/superadmin", getSuperAdmin);
 analyticsRouter.get("/analytics/admin", getAdmin);
-analyticsRouter.get("/analytics/supermanager", authMiddleware, getsupermanager);
-analyticsRouter.get("/analytics/superagent", authMiddleware, getsuperagent);
+analyticsRouter.get("/analytics/salemanager", authMiddleware, getsupermanager);
+analyticsRouter.get("/analytics/saleagent", authMiddleware, getsuperagent);
 
 export default analyticsRouter;
