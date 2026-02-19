@@ -478,10 +478,14 @@ export const finalizeResidential = async (req: AuthRequest, res: Response) => {
     const role = req.user?.roleName;
 
 
-    if (hasVerified) {
+ if (verificationFiles.length > 0) {
+
+      console.log("User role one: sending one");
 
       if (role === "sales_agent") {
         // 👉 Send to manager
+
+        console.log("User role one: sending  two");
 
         property.status = "pending";
         property.isPublished = false;
