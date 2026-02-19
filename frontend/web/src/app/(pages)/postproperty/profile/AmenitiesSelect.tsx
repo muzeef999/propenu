@@ -123,7 +123,7 @@ const AmenitiesSelect = ({
         mounted &&
         createPortal(
           <div
-            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 p-3 sm:p-6"
+            className="fixed inset-0 z-70 flex items-center justify-center bg-black/55 p-3 sm:p-6"
             onClick={() => setOpen(false)}
           >
             <div
@@ -170,7 +170,7 @@ const AmenitiesSelect = ({
                               key={amenity.key}
                               type="button"
                               onClick={() => toggleAmenity(amenity)}
-                              className={`w-24 h-24 rounded-xl border flex flex-col items-center justify-center transition-all duration-200${checked
+                              className={`w-24 h-24 rounded-xl flex flex-col items-center justify-center transition-all duration-200 border ${checked
                                   ? "border-green-600 bg-green-50"
                                   : "border-gray-300 bg-white hover:bg-gray-50"
                                 }
@@ -179,11 +179,8 @@ const AmenitiesSelect = ({
                               <div className="mb-2 flex justify-center">
                                 <img
                                   src={amenity.icon}
-                                  alt={amenity.title}
-                                  className={`h-6 w-6 transition-all duration-200 ${checked
-                                      ? "filter brightness-0 saturate-400 invert-36 sepia-84 saturate-400 hue-rotate-95"
-                                      : "filter brightness-0 opacity-50"
-                                    }`}
+                                  alt={amenity.title} 
+                                  className={`h-6 w-6 transition-all duration-200 ${checked ? "filter brightness-0 saturate-400 invert-36 sepia-84 saturate-400 hue-rotate-95" : "filter brightness-0 opacity-50"}`}
                                 />
                               </div>
 

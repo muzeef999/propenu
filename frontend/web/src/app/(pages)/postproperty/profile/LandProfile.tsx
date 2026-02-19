@@ -4,7 +4,7 @@ import { nextStep, setBaseField, setProfileField } from "@/Redux/slice/postPrope
 import InputField from "@/ui/InputField";
 import TextArea from "@/ui/TextArae";
 import AmenitiesSelect from "./AmenitiesSelect";
-import { AMENITIES } from "../constants/amenities";
+import { AMENITIES, LAND_PLOT_AMENITIES } from "../constants/amenities";
 import { useAppDispatch } from "@/Redux/store";
 import Dropdownui from "@/ui/DropDownUI";
 import Toggle from "@/ui/ToggleSwitch";
@@ -177,7 +177,7 @@ const LandProfile = () => {
       <div className="space-y-6">
         <AmenitiesSelect
           label="Amenities"
-          options={AMENITIES}
+          options={LAND_PLOT_AMENITIES}
           value={land.amenities || []}
           onChange={(value) =>
             dispatch(

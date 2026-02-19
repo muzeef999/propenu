@@ -13,6 +13,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { validateAgriculturalProfile } from "@/zod/profileZods/agriculturalZod";
+import AmenitiesSelect from "./AmenitiesSelect";
+import { AGRICULTURAL_AMENITIES } from "../constants/amenities";
 
 const SOIL_TYPES = [
   "clay",
@@ -118,6 +120,19 @@ const AgriculturalProfile = () => {
             }
           />
         </div>
+      </div>
+
+      <div className="space-y-6">
+        <AmenitiesSelect
+          label="Amenities"
+          options={AGRICULTURAL_AMENITIES}
+          value={agricultural.amenities || []}
+          onChange={(value) =>
+            dispatch(
+              setProfileField({ propertyType: "agricultural", key: "amenities", value })
+            )
+          }
+        />
       </div>
 
       {/* ========== SOIL & IRRIGATION ========== */}

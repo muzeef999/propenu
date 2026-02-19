@@ -10,12 +10,20 @@ import { IAgricultural } from "@/types/agricultural";
 import NearByPlace from "@/app/(pages)/properties/(pages)/NearByPlace";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import RelatedAgriculturalCarousel from "./RelatedAgriculturalCarousel";
+import Image from "next/image";
+import { AGRICULTURAL_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
 };
 
 const bgcolor = hexToRGBA("#27AE60", 0.08);
+const amenityIconByKey = new Map(
+  AGRICULTURAL_AMENITIES.map((amenity) => [amenity.key, amenity.icon]),
+);
+const amenityIconByTitle = new Map(
+  AGRICULTURAL_AMENITIES.map((amenity) => [amenity.title, amenity.icon]),
+);
 
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
@@ -253,12 +261,35 @@ export default async function Page({ params }: PageProps) {
                       </h2>
                       {project.amenities && project.amenities.length > 0 ? (
                         <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 sm:grid-cols-3">
-                          {project.amenities.map((i) => (
-                            <div key={i.key} className="flex items-center gap-2 rounded-md border border-gray-100 px-2 py-1">
-                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                              <span>{i.title}</span>
-                            </div>
-                          ))}
+                          {project.amenities.map((i, index) => {
+                            const icon =
+                              amenityIconByKey.get(i.key) ??
+                              amenityIconByTitle.get(i.title);
+
+                            return (
+                              <div
+                                key={i.key ?? `${i.title}-${index}`}
+                                className="flex items-center gap-2 rounded-md border border-gray-100 px-2 py-1"
+                              >
+                                {typeof icon === "string" ? (
+                                  <Image
+                                    src={icon.trim()}
+                                    alt={`${i.title} icon`}
+                                    width={14}
+                                    height={14}
+                                    className="h-3.5 w-3.5 opacity-75"
+                                  />
+                                ) : icon ? (
+                                  <span className="text-gray-600 [&>svg]:h-3.5 [&>svg]:w-3.5">
+                                    {icon}
+                                  </span>
+                                ) : (
+                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                )}
+                                <span>{i.title}</span>
+                              </div>
+                            );
+                          })}
                         </div>  
                       ) : (
                         <p className="text-sm text-gray-500">

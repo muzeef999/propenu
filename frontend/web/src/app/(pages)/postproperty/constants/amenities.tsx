@@ -36,25 +36,25 @@ export const RESIDENTIAL_AMENITIES = [
     key: "gym",
     title: "Gym",
     category: "Sports",
-    icon: "./icons/amenities/toilet.svg",
+    icon: "/icons/amenities/Gym.svg",
   },
   {
     key: "swimming-pool",
     title: "Swimming Pool",
     category: "Sports",
-    icon: <FaSwimmingPool size={26} />,
+    icon: "/icons/amenities/Swimming Pool.svg",
   },
   {
     key: "jogging-track",
     title: "Jogging Track",
     category: "Sports",
-    icon: <FaRunning size={26} />,
+    icon: "/icons/amenities/Jogging Track.svg",
   },
   {
     key: "children-play",
     title: "Children's Play Area",
     category: "Sports",
-    icon: <FaChild size={26} />,
+    icon: "/icons/amenities/kids play area.svg",
   },
 
   // 🏢 Convenience
@@ -62,25 +62,25 @@ export const RESIDENTIAL_AMENITIES = [
     key: "lift",
     title: "Lift",
     category: "Convenience",
-    icon: <MdElevator size={26} />,
+    icon: "/icons/amenities/Lift.svg ",
   },
   {
     key: "power-backup",
     title: "Power Backup",
     category: "Convenience",
-    icon: <MdPower size={26} />,
+    icon: "/icons/amenities/Power Backup.svg",
   },
   {
     key: "club-house",
     title: "Club House",
     category: "Convenience",
-    icon: <BsHouseDoor size={26} />,
+    icon: "/icons/amenities/Club House.svg",
   },
   {
     key: "visitor-parking",
     title: "Visitor Parking",
     category: "Convenience",
-    icon: <FaCar size={26} />,
+    icon: "/icons/amenities/Visitor Parking.svg",
   },
 
   // 🔐 Safety
@@ -88,19 +88,19 @@ export const RESIDENTIAL_AMENITIES = [
     key: "security",
     title: "24x7 Security",
     category: "Safety",
-    icon: <FaShieldAlt size={26} />,
+    icon: "/icons/amenities/24x7 Security.svg",
   },
   {
     key: "cctv",
     title: "CCTV Surveillance",
     category: "Safety",
-    icon: <GiCctvCamera size={26} />,
+    icon: "/icons/amenities/CCTV Surveillance.svg",
   },
   {
     key: "fire-safety",
     title: "Fire Safety",
     category: "Safety",
-    icon: <FaFireExtinguisher size={26} />,
+    icon: "/icons/amenities/Fire Safety.svg",
   },
   {
     key: "video-door-phone",
@@ -114,13 +114,13 @@ export const RESIDENTIAL_AMENITIES = [
     key: "garden",
     title: "Garden",
     category: "Environment",
-    icon: <MdNature size={26} />,
+    icon: "/icons/amenities/Garden.svg",
   },
   {
     key: "rainwater-harvesting",
     title: "Rainwater Harvesting",
     category: "Environment",
-    icon: <FaLeaf size={26} />,
+    icon: "/icons/amenities/Rainwater Harvesting.svg",
   },
   {
     key: "solar-lighting",
@@ -136,10 +136,132 @@ export const RESIDENTIAL_AMENITIES = [
   },
 ];
 
+export const AMENITIES_FOR_COMMERCIAL = [
+  // 🏃 Sports
+  { key: "gym",
+  title: "Gym",
+  category: "Sports",
+  icon: "/icons/amenities/Gym.svg",
+},
+{
+  key: "swimming-pool",
+  title: "Swimming Pool",
+  category: "Sports",
+  icon: "/icons/amenities/Swimming Pool.svg",
+},
+
+// 🏢 Convenience
+{
+  key: "lift",
+  title: "Lift",
+  category: "Convenience",
+  icon: "/icons/amenities/Lift.svg",
+},
+{
+  key: "power-backup",
+  title: "Power Backup",
+  category: "Convenience",
+  icon: "/icons/amenities/Power Backup.svg",
+},
+{
+  key: "visitor-parking",
+  title: "Visitor Parking",
+  category: "Convenience",
+  icon: "/icons/amenities/Visitor Parking.svg",
+},
+
+// 🔐 Safety
+{
+  key: "security",
+  title: "24x7 Security",
+  category: "Safety",
+  icon: "/icons/amenities/24x7 Security.svg",
+},
+{
+  key: "cctv",
+  title: "CCTV Surveillance",
+  category: "Safety",
+  icon: "/icons/amenities/CCTV Surveillance.svg",
+},
+{
+  key: "fire-safety",
+  title: "Fire Safety",
+  category: "Safety",
+  icon: "/icons/amenities/Fire Safety.svg",
+},
+{
+  key: "pantry",
+  title: "Pantry",
+  category: "Convenience",
+  icon: "/icons/amenities/Pantry.svg",
+}
+];
+
+export const AMENITIES_FOR_LANDPLOTS = [
+  {
+    key: "garden",
+    title: "Garden",
+    category: "Environment",
+    icon: "/icons/amenities/Garden.svg",
+  },
+  {
+    key: "rainwater-harvesting",
+    title: "Rainwater Harvesting",
+    category: "Environment",
+    icon: "/icons/amenities/Rainwater Harvesting.svg",
+  },
+  {
+    key: "solar-lighting",
+    title: "Solar Lighting",
+    category: "Environment",
+    icon: <MdWbSunny size={26} />,
+  },
+  {
+    key: "waste-management",
+    title: "Waste Management",
+    category: "Environment",
+    icon: <FaRecycle size={26} />,
+  },
+];
+export const AMENITIES_FOR_AGRICULTURAL = [
+    {
+      key: "garden",
+      title: "Garden",
+      category: "Environment",
+      icon: "/icons/amenities/Garden.svg",
+    },
+    {
+      key: "rainwater-harvesting",
+      title: "Rainwater Harvesting",
+      category: "Environment",
+      icon: "/icons/amenities/Rainwater Harvesting.svg",
+    },
+    {
+      key: "solar-lighting",
+      title: "Solar Lighting",
+      category: "Environment",
+      icon: <MdWbSunny size={26} />,
+    },
+    {
+      key: "waste-management",
+      title: "Waste Management",
+      category: "Environment",
+      icon: <FaRecycle size={26} />,
+    },
+    {
+      key: "Electricity",
+      title: "Electricity",
+      category: "Environment",
+      icon: "/icons/amenities/Electricity.svg",
+    }
+]
+
 
 // Backward compatible fallback used by existing screens (land + old imports)
 export const AMENITIES = [...RESIDENTIAL_AMENITIES];
-export const COMMERCIAL_AMENITIES = [...RESIDENTIAL_AMENITIES];
+export const COMMERCIAL_AMENITIES = [...AMENITIES_FOR_COMMERCIAL];
+export const LAND_PLOT_AMENITIES = [...AMENITIES_FOR_LANDPLOTS];
+export const AGRICULTURAL_AMENITIES = [...AMENITIES_FOR_AGRICULTURAL];
 
 export const AMENITIES_FOR_FEATURED_PROJECT = [
   { key: "swimming-pool", title: "Swimming Pool" },
