@@ -8,6 +8,9 @@ import { AuthRequest } from "../middlewares/authMiddleware";
 import { uploadFile } from "../utils/uploadFile";
 import { issue } from "zod/v4/core/util.cjs";
 import Location from "../models/locationModel";
+import User from "../models/userModel";
+import { sendManagerApprovalMail } from "../utils/sendManagerMail";
+import mongoose from "mongoose";
  
 function parseMaybeJSON<T = any>(value: any): T | undefined {
   if (value === undefined || value === null || value === "") return undefined;
@@ -313,7 +316,7 @@ export const updateAgriculturalLocationStep = async (
         await Location.create({
           city: doc.city,
           state: doc.state,
-          category: "residential",
+          category: "agricultural",
           localities: [
             {
               name: doc.locality,
@@ -418,85 +421,119 @@ export const updateAgriculturalDetailsStep = async (
 
  
 export const finalizeAgricultural = async (req: AuthRequest, res: Response) => {
-  const property = await Agricultural.findById(req.params.id);
-  if (!property) {
-    return res.status(404).json({ error: "Property not found" });
-  }
- 
-  const files = req.files as
-    | { [field: string]: Express.Multer.File[] }
-    | undefined;
-  const verificationFiles = files?.verificationDocuments ?? [];
- 
-  // 1️⃣ Save uploaded verification documents
-  if (verificationFiles.length > 0) {
-    property.verificationDocuments = Array.isArray(
-      property.verificationDocuments,
-    )
-      ? property.verificationDocuments
-      : [];
- 
-    for (const file of verificationFiles) {
-      const up = await uploadFile({
-        buffer: file.buffer,
-        originalName: file.originalname,
-        mimetype: file.mimetype,
-        folder: "agricultural/verification",
-        entityId: property._id.toString(),
-      });
- 
-      property.verificationDocuments.push({
-        type: req.body.verificationType,
-        title: file.originalname,
-        url: up.url,
-        key: up.key,
-        filename: file.originalname,
-        mimetype: file.mimetype,
-        status: "pending",
-      });
+  try {
+    const property = await Agricultural.findById(req.params.id);
+    if (!property) {
+      return res.status(404).json({ error: "Property not found" });
     }
+
+    const files = req.files as
+      | { [field: string]: Express.Multer.File[] }
+      | undefined;
+    const verificationFiles = files?.verificationDocuments ?? [];
+
+    // ---------- Upload Docs ----------
+    if (verificationFiles.length > 0) {
+      property.verificationDocuments ??= [];
+
+      for (const file of verificationFiles) {
+        const up = await uploadFile({
+          buffer: file.buffer,
+          originalName: file.originalname,
+          mimetype: file.mimetype,
+          folder: "agricultural/verification",
+          entityId: property._id.toString(),
+        });
+
+        property.verificationDocuments.push({
+          type: req.body.verificationType,
+          title: file.originalname,
+          url: up.url,
+          key: up.key,
+          filename: file.originalname,
+          mimetype: file.mimetype,
+          status: "pending",
+        });
+      }
+    }
+
+    // ---------- Check verified ----------
+    const hasVerified = property.verificationDocuments?.some(
+      (doc: any) => doc.status === "verified",
+    );
+
+    property.completion ??= {
+      percent: 0,
+      step: 1,
+      lastSection: "verification",
+    };
+
+    property.completion.lastSection = "verification";
+
+    const role = req.user?.roleName;
+
+    if (verificationFiles.length > 0) {
+      if (role === "sales_agent") {
+        property.status = "pending";
+        property.isPublished = false;
+
+        property.approval ??= {};
+        property.approval.isApprovedByManager = false;
+        property.approval.approvalToken = crypto.randomUUID();
+
+        const agent = await User.findById(property.createdBy).populate(
+          "managerId",
+        );
+
+        if (agent?.managerId && (agent.managerId as any).email) {
+          await sendManagerApprovalMail({
+            managerEmail: (agent.managerId as any).email,
+            property: {
+              id: property._id,
+              title: property.title,
+              price: property.price,
+              city: property.city,
+              locality: property.locality,
+              image: property.gallery?.[0]?.url,
+              area: property.totalArea?.value,
+            },
+            agent: {
+              name: agent.name,
+              email: agent.email,
+            },
+            token: property.approval.approvalToken,
+          });
+        }
+      } else {
+        property.status = "active";
+        property.isPublished = true;
+        property.completion.percent = 100;
+        property.completion.step = 5;
+      }
+    } else {
+      property.status = "pending";
+      property.isPublished = false;
+      property.completion.percent = 80;
+      property.completion.step = 4;
+    }
+
+    await property.save();
+    const fresh = await Agricultural.findById(property._id)
+      .populate("createdBy", "name email phone")
+      .lean();
+
+    return res.json({
+      success: true,
+      verified: hasVerified,
+      data: fresh,
+    });
+  } catch (err: any) {
+    console.error("finalizeAgricultural:", err);
+    return res.status(500).json({ message: err.message });
   }
- 
- const hasVerified = property.verificationDocuments?.some(
-  doc => doc.status === "verified"
-);
- 
-if (!property.completion) {
-  property.completion = {
-    percent: 0,
-    step: 1,
-    lastSection: "verification",
-  };
-}
- 
-property.completion.lastSection = "verification";
- 
-if (hasVerified) {
-  property.status = "active";
-  property.isPublished = true;
-  property.completion.percent = 100;
-  property.completion.step = 5;
-} else {
-  property.status = "draft";
-  property.isPublished = false;
-  property.completion.percent = 80;
-  property.completion.step = 4;
-}
- 
-  await property.save();
-  const fresh = await Agricultural.findById(property._id)
-    .populate("createdBy", "name email phone")
-    .lean();
- 
-  res.json({
-    success: true,
-    verified: hasVerified,
-    data: fresh,
-  });
 };
- 
- 
- 
+
+
 export const getAllAgriculturalDraftsForAdmin = async (req: Request, res: Response) => {
   const { page = "1", limit = "20", q, city, userId } = req.query;
  
@@ -571,7 +608,69 @@ export const verifyAgricultiralDocument = async (
   }
 };
  
+ export const approveAgriculturalProperty = async (req: Request, res: Response) => {
+   try {
+     const { id } = req.params;
+     const { token } = req.body;
  
+     const property = await Agricultural.findById(id);
+     if (!property)
+       return res.status(404).json({ message: "Property not found" });
  
+     if (!property.approval?.approvalToken)
+       return res.status(400).json({ message: "No approval required" });
  
+     if (property.approval.approvalToken !== token)
+       return res.status(400).json({ message: "Invalid approval link" });
  
+     /* ✅ UPDATE PROPERTY */
+     property.status = "active";
+     property.isPublished = true;
+ 
+     /* ✅ UPDATE APPROVAL */
+     property.approval.status = "approved";
+     property.approval.isApprovedByManager = true;
+     property.approval.approvedAt = new Date();
+ 
+     /* optional security */
+     property.approval.approvalToken = undefined;
+ 
+     await property.save();
+ 
+     res.json({
+       success: true,
+       message: "✅ Property approved successfully",
+       propertyId: property._id,
+     });
+   } catch (err: any) {
+     console.error(err);
+     res.status(500).json({ message: err.message });
+   }
+ };
+ 
+ export const deactivateAgriculturalProperty = async (req: AuthRequest, res: Response) => {
+   try {
+     const { id } = req.params;
+ 
+     const property = await Agricultural.findById(id);
+     if (!property) {
+       return res.status(404).json({ message: "Property not found" });
+     }
+ 
+     property.status = "deactivated";
+     property.isPublished = false;
+     property.updatedBy = new mongoose.Types.ObjectId(req.user!.id);
+     await property.save();
+ 
+     res.json({
+       success: true,
+       message: "Property deactivated",
+       data: property,
+     });
+   } catch (err: any) {
+     console.error(err);
+     res.status(500).json({ message: err.message });
+   }
+ };
+ 
+

@@ -21,23 +21,34 @@ export const COMMERCIAL_PROPERTY_TYPES = [
 
 export const COMMERCIAL_PROPERTY_SUBTYPES = [
   // office
-  "bare-shell", "warm-shell", "business-center",
+  "bare-shell",
+  "warm-shell",
+  "business-center",
   //  retail
-  "high-street-shop", "mall-shop", "kiosk", "food-court-unit",
+  "high-street-shop",
+  "mall-shop",
+  "kiosk",
+  "food-court-unit",
   //shop
-  "high-street-shop", "shutter-shop", "mall-shop",
+  "high-street-shop",
+  "shutter-shop",
+  "mall-shop",
   //showroom
-  "high-street-shop","showroom-space",
-   //warehouse
-   "warehouse-godown", "logistics-hub", "cold-storage",
+  "high-street-shop",
+  "showroom-space",
+  //warehouse
+  "warehouse-godown",
+  "logistics-hub",
+  "cold-storage",
   //industrial
-   "industrial-shed",
+  "industrial-shed",
   // coworking
-   "coworking-dedicated-desk", "coworking-hot-desk",
+  "coworking-dedicated-desk",
+  "coworking-hot-desk",
   // restaurant
-   "food-court-unit",
+  "food-court-unit",
   //clinic
-   "clinic-space",
+  "clinic-space",
 ] as const;
 
 export type CommercialPropertyType = (typeof COMMERCIAL_PROPERTY_TYPES)[number];
@@ -65,7 +76,22 @@ export const FLOORING_TYPES = [
   "epoxy",
   "wooden-laminate",
 ] as const;
+export type ApprovalStatus = "pending" | "approved" | "rejected";
 
+export interface IApproval {
+  status?: ApprovalStatus; // ✅ ADD THIS
+  isApprovedByManager?: boolean;
+  approvedByManager?: Types.ObjectId;
+  approvedAt?: Date;
+  approvalComment?: string;
+  approvalToken?: string | undefined; // ✅ FIX 2
+}
+
+export interface IImage {
+  url: string
+  key?: string
+  filename?: string
+}
 
 export interface ICompletion {
   percent: number;
@@ -77,14 +103,14 @@ export interface ICommercial {
   title: string;
   slug: string;
   floorNumber?: number;
-  buildingName?: String,
+  buildingName?: String;
   propertyType?: CommercialPropertyType;
   propertySubType?: CommercialPropertySubType;
 
   completion?: ICompletion;
 
-verificationDocuments?: IVerificationDoc[];
- status?:string;
+  verificationDocuments?: IVerificationDoc[];
+  status?: string;
   isPublished?: boolean;
 
   wallFinishStatus?: WallFinishStatus;
@@ -123,11 +149,12 @@ verificationDocuments?: IVerificationDoc[];
   loadingDock?: boolean;
   loadingDockDetails?: string;
   parkingCapacity?: number;
-   listingSource?: string;
+  price?: string;
+  listingSource?: string;
   tenantInfo?: {
     currentTenant?: string;
     leaseStart?: Date;
-    leaseEnd?: Date; 
+    leaseEnd?: Date;
     rent?: number;
   }[];
   zoning?: string;
@@ -160,5 +187,9 @@ verificationDocuments?: IVerificationDoc[];
     type: "Point";
     coordinates: [number, number];
   };
+  approval?: IApproval;
+  updatedBy?: Types.ObjectId;
+  gallery?: IImage[]; // ✅ ADD THIS
 
+  cabin?: number;
 }

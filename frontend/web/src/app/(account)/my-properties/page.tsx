@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { HiOutlineMapPin } from "react-icons/hi2";
 import { HiOutlineDotsVertical } from "react-icons/hi";
+import { FiChevronDown } from "react-icons/fi";
 
 import ActiveTabs from "@/ui/ActiveTabs";
 import { deactivateMyProperty, getMyProperties } from "@/data/ClientData";
 import NopropertiesSvg from "@/svg/NopropertiesSvg";
 import SelectableButton from "@/ui/SelectableButton";
-import Dropdownui from "@/ui/DropDownUI";
 import ResponsesDrawer from "../ResponsesDrawer";
 import { useResponses } from "../ResponsesContext";
 import { useAppDispatch } from "@/Redux/store";
@@ -80,6 +80,8 @@ const Page = () => {
   const [listingTypeFilter, setListingTypeFilter] = useState<"sale" | "other">(
     "sale"
   );
+  const [isListingTypeOpen, setIsListingTypeOpen] = useState(false);
+  const listingTypeRef = useRef<HTMLDivElement | null>(null);
   const [openResponses, setOpenResponses] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
@@ -135,6 +137,24 @@ const Page = () => {
 
     return list;
   }, [data, activeTab, search, status, listingTypeFilter]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        listingTypeRef.current &&
+        !listingTypeRef.current.contains(event.target as Node)
+      ) {
+        setIsListingTypeOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedListingTypeLabel =
+    categoriesDropdown.find((item) => item.value === listingTypeFilter)?.label ??
+    "Listing Type";
 
   if (isLoading) {
     return (
@@ -196,15 +216,38 @@ const Page = () => {
           ))}
         </div>
 
-        {/* RIGHT: Category Dropdown */}
-        <div className="w-30 h-14 shrink-0">
-          <Dropdownui
-            label=""
-            placeholder="Listing Type"
-            value={listingTypeFilter}
-            options={categoriesDropdown}
-            onChange={(val) => setListingTypeFilter(val as "sale" | "other")}
-          />
+        {/* RIGHT: Listing Type Dropdown */}
+        <div ref={listingTypeRef} className="relative w-30 shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsListingTypeOpen((prev) => !prev)}
+            className="flex h-9 w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 hover:bg-gray-50"
+          >
+            <span>{selectedListingTypeLabel}</span>
+            <FiChevronDown
+              className={`h-4 w-4 text-gray-500 transition-transform ${isListingTypeOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+
+          {isListingTypeOpen && (
+            <div className="absolute right-0 top-11 z-20 w-30 rounded-md border border-gray-200 bg-white p-2 shadow-lg">
+              <div className="space-y-2">
+                {categoriesDropdown.map((item) => (
+                  <SelectableButton
+                    key={item.value}
+                    label={item.label}
+                    active={listingTypeFilter === item.value}
+                    selectionType="single"
+                    onClick={() => {
+                      setListingTypeFilter(item.value as "sale" | "other");
+                      setIsListingTypeOpen(false);
+                    }}
+                    className="w-full justify-start px-3 py-2 text-xs"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

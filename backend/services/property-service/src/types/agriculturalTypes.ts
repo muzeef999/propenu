@@ -41,7 +41,6 @@ export type AreaUnit =
   | "kanal";
 export type RoadUnit = "ft" | "meter";
 
-
 export interface ICompletion {
   percent: number;
   step: number;
@@ -57,6 +56,22 @@ export interface IRoadWidth {
   value?: number;
   unit?: RoadUnit;
 }
+export interface IImage {
+  url: string;
+  key?: string;
+  filename?: string;
+}
+
+export type ApprovalStatus = "pending" | "approved" | "rejected";
+
+export interface IApproval {
+  status?: ApprovalStatus; // ✅ ADD THIS
+  isApprovedByManager?: boolean;
+  approvedByManager?: Types.ObjectId;
+  approvedAt?: Date;
+  approvalComment?: string;
+  approvalToken?: string | undefined; // ✅ FIX 2
+}
 
 export interface IRoadWidth {
   value?: number;
@@ -66,12 +81,13 @@ export interface IAgricultural {
   title?: string;
   completion?: ICompletion;
 
-verificationDocuments?: IVerificationDoc[];
- status?:string;
+  verificationDocuments?: IVerificationDoc[];
+  status?: string;
   isPublished?: boolean;
-  slug?:string;
-  landName: String,
-  listingSource?:string;
+  slug?: string;
+  price?: string;
+  landName: String;
+  listingSource?: string;
   totalArea?: IArea;
   roadWidth?: IRoadWidth;
   boundaryWall?: boolean;
@@ -100,10 +116,12 @@ verificationDocuments?: IVerificationDoc[];
   city?: string;
   state?: string;
   pincode?: string;
+  gallery?: IImage[]; // ✅ ADD THIS
 
   location?: {
     type: "Point";
     coordinates: [number, number];
   };
-
+  approval?: IApproval; // ⭐ ADD THIS
+  updatedBy?: Types.ObjectId;
 }
