@@ -53,13 +53,17 @@ export const PROPERTY_AGE_BUCKETS = [
   "20-plus-years",
 ] as const;
 
+export type ApprovalStatus = "pending" | "approved" | "rejected";
+
 export interface IApproval {
+  status?: ApprovalStatus;   // ✅ ADD THIS
   isApprovedByManager?: boolean;
   approvedByManager?: Types.ObjectId;
   approvedAt?: Date;
   approvalComment?: string;
-  approvalToken?: string;
+  approvalToken?: string | undefined; // ✅ FIX 2
 }
+
 
 export type PropertyAge = (typeof PROPERTY_AGE_BUCKETS)[number];
 

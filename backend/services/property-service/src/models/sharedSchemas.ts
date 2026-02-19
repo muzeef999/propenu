@@ -233,12 +233,7 @@ export const BaseFields = {
   deactivatedAt: Date,
   deactivatedBy: { type: Schema.Types.ObjectId, ref: "User" },
   approval: {
-    status: {
-      type: String,
-      enum: ["pending", "approved", "rejected"],
-      default: "pending",
-      index: true,
-    },
+      status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
     approvedByManager: { type: Schema.Types.ObjectId, ref: "User" },
     approvedAt: Date,
     approvalComment: String,

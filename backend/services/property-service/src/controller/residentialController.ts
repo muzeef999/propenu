@@ -636,39 +636,27 @@ export const approveProperty = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { token } = req.body;
 
-    console.log("Approve Request:", { id, token });
-
-    if (!token) {
-      return res.status(400).json({ message: "No token provided" });
-    }
-
     const property = await Residential.findById(id);
-
-    if (!property) {
+    if (!property)
       return res.status(404).json({ message: "Property not found" });
-    }
 
-    if (!property.approval?.approvalToken) {
-      return res.status(400).json({
-        message: "Property does not require approval",
-      });
-    }
+    if (!property.approval?.approvalToken)
+      return res.status(400).json({ message: "No approval required" });
 
-    if (property.approval.approvalToken !== token) {
-      return res.status(400).json({
-        message: "Invalid approval link",
-      });
-    }
+    if (property.approval.approvalToken !== token)
+      return res.status(400).json({ message: "Invalid approval link" });
 
-    // ✅ Approve Property
+    /* ✅ UPDATE PROPERTY */
     property.status = "active";
     property.isPublished = true;
 
+    /* ✅ UPDATE APPROVAL */
+    property.approval.status = "approved";
     property.approval.isApprovedByManager = true;
     property.approval.approvedAt = new Date();
 
-    // OPTIONAL → save manager email instead of user id
-    // property.approval.approvedByManager = undefined;
+    /* optional security */
+    property.approval.approvalToken = undefined;
 
     await property.save();
 
@@ -679,10 +667,11 @@ export const approveProperty = async (req: Request, res: Response) => {
     });
 
   } catch (err: any) {
-    console.error("approveProperty error:", err);
+    console.error(err);
     res.status(500).json({ message: err.message });
   }
 };
+
 
 
 export const deactivateProperty = async (req: AuthRequest, res: Response) => {
