@@ -50,7 +50,7 @@ if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){
     next();
 },  verifyResidentialDocument);
 
-router.post("/:id/approve", authMiddleware, approveProperty);
+router.post("/:id/approve",  approveProperty);
 router.post("/:id/deactive", authMiddleware, deactivateProperty );
 
 router.post("/", authMiddleware,cpUpload,parseJsonFields(jsonKeys), fallbackCoerceDefault, requireActiveSubscription, validateBody(ResidentialCreateSchema), createResidential);

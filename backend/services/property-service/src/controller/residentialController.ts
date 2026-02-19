@@ -426,12 +426,10 @@ export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
 
 export const finalizeResidential = async (req: AuthRequest, res: Response) => {
   try {
-
     const property = await Residential.findById(req.params.id);
     if (!property) {
       return res.status(404).json({ error: "Property not found" });
     }
-
 
     const files = req.files as
       | { [field: string]: Express.Multer.File[] }
@@ -485,7 +483,6 @@ export const finalizeResidential = async (req: AuthRequest, res: Response) => {
       if (role === "sales_agent") {
         // 👉 Send to manager
 
-
         property.status = "pending";
         property.isPublished = false;
 
@@ -500,7 +497,23 @@ export const finalizeResidential = async (req: AuthRequest, res: Response) => {
         if (agent?.managerId && (agent.managerId as any).email) {
           await sendManagerApprovalMail({
             managerEmail: (agent.managerId as any).email,
-            propertyId: property._id.toString(),
+
+            property: {
+              id: property._id,
+              title: property.title,
+              price: property.price,
+              city: property.city,
+              locality: property.locality,
+              image: property.gallery?.[0]?.url,
+              bedrooms: property.bedrooms,
+              area: property.locality,
+            },
+
+            agent: {
+              name: agent.name,
+              email: agent.email,
+            },
+
             token: property.approval.approvalToken,
           });
         }
@@ -618,17 +631,24 @@ export const verifyResidentialDocument = async (
   }
 };
 
-export const approveProperty = async (req: AuthRequest, res: Response) => {
+export const approveProperty = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { token } = req.body;
 
+    console.log("Approve Request:", { id, token });
+
+    if (!token) {
+      return res.status(400).json({ message: "No token provided" });
+    }
+
     const property = await Residential.findById(id);
 
-    if (!property)
+    if (!property) {
       return res.status(404).json({ message: "Property not found" });
+    }
 
-    if (!property.approval || !property.approval.approvalToken) {
+    if (!property.approval?.approvalToken) {
       return res.status(400).json({
         message: "Property does not require approval",
       });
@@ -640,22 +660,30 @@ export const approveProperty = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    // ✅ Approve Property
     property.status = "active";
     property.isPublished = true;
 
     property.approval.isApprovedByManager = true;
-    property.approval.approvedByManager = new mongoose.Types.ObjectId(
-      req.user!.sub,
-    ); // ✅ FIX
     property.approval.approvedAt = new Date();
+
+    // OPTIONAL → save manager email instead of user id
+    // property.approval.approvedByManager = undefined;
 
     await property.save();
 
-    res.json({ message: "Property approved successfully" });
+    res.json({
+      success: true,
+      message: "✅ Property approved successfully",
+      propertyId: property._id,
+    });
+
   } catch (err: any) {
+    console.error("approveProperty error:", err);
     res.status(500).json({ message: err.message });
   }
 };
+
 
 export const deactivateProperty = async (req: AuthRequest, res: Response) => {
   try {
@@ -676,7 +704,7 @@ export const deactivateProperty = async (req: AuthRequest, res: Response) => {
       message: "Property deactivated",
       data: property,
     });
-  } catch (err:any) {
+  } catch (err: any) {
     console.error(err);
     res.status(500).json({ message: err.message });
   }

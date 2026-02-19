@@ -53,7 +53,6 @@ export const PROPERTY_AGE_BUCKETS = [
   "20-plus-years",
 ] as const;
 
-
 export interface IApproval {
   isApprovedByManager?: boolean;
   approvedByManager?: Types.ObjectId;
@@ -62,16 +61,18 @@ export interface IApproval {
   approvalToken?: string;
 }
 
-
-
-
 export type PropertyAge = (typeof PROPERTY_AGE_BUCKETS)[number];
-
 
 export interface ICompletion {
   percent: number;
   step: number;
   lastSection?: string;
+}
+
+export interface IImage {
+  url: string
+  key?: string
+  filename?: string
 }
 
 export interface IResidential {
@@ -82,19 +83,19 @@ export interface IResidential {
   listingType?: "sale" | "rent" | "lease";
   developer?: mongoose.Types.ObjectId | null;
   address: string;
-  status?:string;
+  status?: string;
   isPublished?: boolean;
   completion?: ICompletion;
   locality: string;
   city?: string;
   state?: string;
   pincode?: string;
-
+  price?: string;
   location?: {
     type: "Point";
     coordinates: [number, number];
   };
-  
+   gallery?: IImage[]   // ✅ ADD THIS
   propertyType?: ResidentialPropertyType;
   // residential-specific
   bhk?: number;
@@ -145,9 +146,6 @@ export interface IResidential {
   propertyAge?: PropertyAge;
   constructionYear?: number;
   isModularKitchen?: boolean;
-
-    approval?: IApproval;   // ⭐ ADD THIS
-
-      updatedBy?: Types.ObjectId;
-
+  approval?: IApproval; // ⭐ ADD THIS
+  updatedBy?: Types.ObjectId;
 }
