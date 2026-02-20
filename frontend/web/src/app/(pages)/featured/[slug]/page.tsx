@@ -112,23 +112,7 @@ export default async function Page({ params }: PageProps) {
         color={project?.color?.trim()}
         brochureUrl={project?.brochure?.url}
       />
-      <div className="w-full bg-[#4F8EF7] text-white text-sm">
-        <div className="container mx-auto px-4 py-2 flex items-center justify-between">
-          <p className="flex items-center gap-2">
-            <span>🔥</span>
-            <span>
-              This project stands out for the lifestyle it offers, with premium design, modern amenities, and elevated living.
-            </span>
-          </p>
-
-          <button
-            className="text-white/80 hover:text-white text-lg leading-none"
-            aria-label="Close"
-          >
-            ×
-          </button>
-        </div>
-      </div>
+    
 
       <Herosection hero={hero} />
 

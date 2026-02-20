@@ -14,6 +14,16 @@ import {
   ISpecItem,
 } from "../types/featurePropertiesTypes";
 
+
+
+function generateSlug(text: string) {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export interface IFeaturedProjectDocument extends IFeaturedProject, Document {}
 export interface ILeadDocument extends ILead, Document {
   projectId: Types.ObjectId;
@@ -132,7 +142,7 @@ const LogoSchema = new Schema<ILogo>({
 const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
   {
     title: { type: String, required: true, trim: true },
-    slug: { type: String, required: true, unique: true, trim: true },
+    slug: { type: String, unique: true, index: true },
     logo: { type: LogoSchema },
     heroImage: { type: String },
     heroVideo: { type: String },
@@ -228,24 +238,21 @@ FeaturePropertySchema.index(
 );
 
 FeaturePropertySchema.pre<IFeaturedProjectDocument>(
-  "validate",
-  function (next) {
-    // Auto-generate slug ONLY if not provided
-    if (!this.slug) {
-      const parts = [
-        this.title,
-        this.locality,
-        this.city,
-      ].filter(Boolean);
+  "save",
+  async function (next) {
+    if (!this.isModified("title") && this.slug) return next();
 
-      this.slug = parts
-        .join(" ")
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-    }
+    const parts = [this.title, this.locality, this.city].filter(Boolean);
+    let baseSlug = generateSlug(parts.join(" "));
+    let slug = baseSlug;
+    let count = 1;
 
+    // check duplicates
+      while (await FeaturedProject.exists({ slug })) {
+    slug = `${baseSlug}-${count++}`;
+  }
+
+    this.slug = slug;
     next();
   }
 );

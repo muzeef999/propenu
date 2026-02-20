@@ -72,7 +72,6 @@ router.get("/city", getCityFeatureProperties);
 router.get("/search", getSearchFeatureProperties);
 router.get("/slug/:slug", getFeatureBySlug);
 router.get("/:id", getIndetailFeatureProperties);
-
 router.delete("/:id", deleteFeatureProperties);
 
 

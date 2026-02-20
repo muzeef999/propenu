@@ -98,6 +98,7 @@ export const CreateFeaturePropertySchema = z.object({
   city: z.string().optional(),
   locality: z.string().optional(),
   state: z.string().optional(),
+  redirectUrl: z.string().url().optional(),
   location: z
     .object({
       type: z.literal("Point").optional().default("Point"),
@@ -111,7 +112,7 @@ export const CreateFeaturePropertySchema = z.object({
   priceTo: z.number().optional(),
 
   bhkSummary: z.array(BhkSummarySchemaZ).optional(),
-
+ 
   aboutSummary: z.union([AboutSummaryZ, z.array(AboutSummaryZ)]).optional().transform((val) => {
       if (typeof val === "undefined") return [];
       return Array.isArray(val) ? val : [val];

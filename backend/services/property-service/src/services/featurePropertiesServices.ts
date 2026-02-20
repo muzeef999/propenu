@@ -8,7 +8,6 @@ import {
 } from "../zod/validation";
 import dotenv from "dotenv";
 import { uploadFile } from "../utils/uploadFile";
-import { log } from "console";
 
 dotenv.config({ quiet: true });
 
@@ -19,7 +18,6 @@ type LocationParams = {
   city?: string;
   state?: string;
 };
-
 
 function exactCaseInsensitive(value: string) {
   return {
@@ -39,39 +37,11 @@ async function findFeatured(filter: any) {
       city: 1,
       locality: 1,
       state: 1,
-      logo:1,
-      bhkSummary:1,
-      amenities:1,
+      logo: 1,
+      bhkSummary: 1,
+      amenities: 1,
     })
     .lean();
-}
-
-function slugifyTitle(title: string) {
-  return String(title)
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-async function generateUniqueSlug(
-  desiredTitleOrSlug: string,
-  excludeId?: string,
-) {
-  const slug = slugifyTitle(desiredTitleOrSlug);
-
-  const existing = await FeaturedProject.findOne({ slug }).select("_id").lean();
-
-  if (existing) {
-    if (excludeId && existing._id.toString() === excludeId) {
-      return slug;
-    }
-    const err: any = new Error("Slug already in use");
-    err.code = "SLUG_TAKEN";
-    throw err;
-  }
-
-  return slug;
 }
 
 /** compute price range from bhkSummary */
@@ -125,7 +95,6 @@ function normalizeGalleryInput(payload: any) {
 }
 
 async function processBhkPlanUpdates(opts: {
-  
   bhkSummaryExisting?: any[];
   bhkSummaryIncoming?: any[];
   bhkPlanFiles?: Express.Multer.File[];
@@ -133,24 +102,19 @@ async function processBhkPlanUpdates(opts: {
   deleteOldS3OnExternalUrl?: boolean;
 }) {
   const {
-    
     bhkSummaryIncoming = [],
     bhkPlanFiles = [],
     deleteOldS3OnExternalUrl = false,
   } = opts;
-
 
   // ✅ MAKE MUTABLE COPIES OF EXISTING
   const existingSummary: any[] = Array.isArray(opts.bhkSummaryExisting)
     ? opts.bhkSummaryExisting.map((b) => ({ ...b }))
     : [];
 
-
   for (let b = 0; b < bhkSummaryIncoming.length; b++) {
     const incomingBhk = bhkSummaryIncoming[b];
     const existingBhk = existingSummary[b] || { units: [] };
-
-
 
     if (!Array.isArray(existingBhk.units)) {
       existingBhk.units = [];
@@ -195,7 +159,6 @@ async function processBhkPlanUpdates(opts: {
 
       /* 3️⃣ External URL */
       if (incomingUnit.planUrl) {
-
         if (deleteOldS3OnExternalUrl && existingUnit?.plan?.key) {
           await deleteS3ObjectIfExists(existingUnit.plan.key);
         }
@@ -330,7 +293,6 @@ export const FeaturePropertyService = {
     // 1) slug
     const slugSource =
       (payload.slug && String(payload.slug).trim()) || payload.title;
-    const slug = await generateUniqueSlug(slugSource);
 
     // 2) compute prices
     const { priceFrom, priceTo } = computePriceRangeFromBhk(
@@ -340,7 +302,6 @@ export const FeaturePropertyService = {
     // 3) prepare base create payload
     const toCreate: any = {
       ...payload,
-      slug,
       priceFrom,
       priceTo,
     };
@@ -545,17 +506,6 @@ export const FeaturePropertyService = {
 
     // normalize legacy gallery key if present on input
     normalizeGalleryInput(payload as any);
-
-    // ---------- SLUG ----------
-    if (
-      (payload.slug && payload.slug !== existing.slug) ||
-      (payload.title && payload.title !== existing.title)
-    ) {
-      const slugSource =
-        (payload.slug && String(payload.slug).trim()) ||
-        (payload.title as string);
-      existing.slug = await generateUniqueSlug(slugSource, id);
-    }
 
     // ---------- PRICE RANGE (if client provided bhkSummary) ----------
     if ((payload as any).bhkSummary) {
@@ -872,41 +822,46 @@ export const FeaturePropertyService = {
 
   async getFeaturesByCity({ locality, city, state }: LocationParams) {
     // 🥇 1. Try LOCALITY
-   const baseFilter = { isFeatured: true }; // ⭐ SINGLE SOURCE OF TRUTH
+    const baseFilter = { isFeatured: true }; // ⭐ SINGLE SOURCE OF TRUTH
 
     if (locality) {
-    const items = await findFeatured({
-      ...baseFilter,
-      locality: exactCaseInsensitive(locality),
-    });
+      const items = await findFeatured({
+        ...baseFilter,
+        locality: exactCaseInsensitive(locality),
+      });
 
-    if (items.length > 0) {
-      return { level: "locality", value: locality, total: items.length, items };
+      if (items.length > 0) {
+        return {
+          level: "locality",
+          value: locality,
+          total: items.length,
+          items,
+        };
+      }
     }
-  }
 
-   if (city) {
-    const items = await findFeatured({
-      ...baseFilter,
-      city: exactCaseInsensitive(city),
-    });
+    if (city) {
+      const items = await findFeatured({
+        ...baseFilter,
+        city: exactCaseInsensitive(city),
+      });
 
-    if (items.length > 0) {
-      return { level: "city", value: city, total: items.length, items };
+      if (items.length > 0) {
+        return { level: "city", value: city, total: items.length, items };
+      }
     }
-  }
 
     // 🥉 3. Try STATE
     if (state) {
-    const items = await findFeatured({
-      ...baseFilter,
-      state: exactCaseInsensitive(state),
-    });
+      const items = await findFeatured({
+        ...baseFilter,
+        state: exactCaseInsensitive(state),
+      });
 
-    if (items.length > 0) {
-      return { level: "state", value: state, total: items.length, items };
+      if (items.length > 0) {
+        return { level: "state", value: state, total: items.length, items };
+      }
     }
-  }
 
     return {
       level: "none",
@@ -946,89 +901,91 @@ export const FeaturePropertyService = {
     };
   },
 
- async getHighlightByLocation({
-  state,
-  city,
-  locality,
-}: {
-  state?: string;
-  city?: string;
-  locality?: string;
-}) {
-  const baseFilter: any = {
-    isFeatured: false,
-  };
-
-  const makeRegex = (value?: string) =>
-    value ? { $regex: `^${value.trim()}$`, $options: "i" } : undefined;
-
-  // 1️⃣ Locality level
-  if (state || city || locality) {
-    const localityFilter = {
-      ...baseFilter,
-      ...(state && { state: makeRegex(state) }),
-      ...(city && { city: makeRegex(city) }),
-      ...(locality && { locality: makeRegex(locality) }),
+  async getHighlightByLocation({
+    state,
+    city,
+    locality,
+  }: {
+    state?: string;
+    city?: string;
+    locality?: string;
+  }) {
+    const baseFilter: any = {
+      isFeatured: false,
     };
 
-    const localityItems = await FeaturedProject.find(localityFilter)
-      .select("title heroImage priceFrom priceTo slug city state locality logo amenities bhkSummary")
-      .lean();
+    const makeRegex = (value?: string) =>
+      value ? { $regex: `^${value.trim()}$`, $options: "i" } : undefined;
 
-    if (localityItems.length > 0) {
+    // 1️⃣ Locality level
+    if (state || city || locality) {
+      const localityFilter = {
+        ...baseFilter,
+        ...(state && { state: makeRegex(state) }),
+        ...(city && { city: makeRegex(city) }),
+        ...(locality && { locality: makeRegex(locality) }),
+      };
+
+      const localityItems = await FeaturedProject.find(localityFilter)
+        .select(
+          "title heroImage priceFrom priceTo slug city state locality logo amenities bhkSummary",
+        )
+        .lean();
+
+      if (localityItems.length > 0) {
+        return {
+          level: "locality",
+          total: localityItems.length,
+          items: localityItems,
+        };
+      }
+    }
+
+    // 2️⃣ City level fallback
+    if (state || city) {
+      const cityFilter = {
+        ...baseFilter,
+        ...(state && { state: makeRegex(state) }),
+        ...(city && { city: makeRegex(city) }),
+      };
+
+      const cityItems = await FeaturedProject.find(cityFilter)
+        .select("title heroImage priceFrom priceTo slug city state locality")
+        .lean();
+
+      if (cityItems.length > 0) {
+        return {
+          level: "city",
+          total: cityItems.length,
+          items: cityItems,
+        };
+      }
+    }
+
+    // 3️⃣ State level fallback
+    if (state) {
+      const stateFilter = {
+        ...baseFilter,
+        state: makeRegex(state),
+      };
+
+      const stateItems = await FeaturedProject.find(stateFilter)
+        .select("title heroImage priceFrom priceTo slug city state locality")
+        .lean();
+
       return {
-        level: "locality",
-        total: localityItems.length,
-        items: localityItems,
+        level: "state",
+        total: stateItems.length,
+        items: stateItems,
       };
     }
-  }
-
-  // 2️⃣ City level fallback
-  if (state || city) {
-    const cityFilter = {
-      ...baseFilter,
-      ...(state && { state: makeRegex(state) }),
-      ...(city && { city: makeRegex(city) }),
-    };
-
-    const cityItems = await FeaturedProject.find(cityFilter)
-      .select("title heroImage priceFrom priceTo slug city state locality")
-      .lean();
-
-    if (cityItems.length > 0) {
-      return {
-        level: "city",
-        total: cityItems.length,
-        items: cityItems,
-      };
-    }
-  }
-
-  // 3️⃣ State level fallback
-  if (state) {
-    const stateFilter = {
-      ...baseFilter,
-      state: makeRegex(state),
-    };
-
-    const stateItems = await FeaturedProject.find(stateFilter)
-      .select("title heroImage priceFrom priceTo slug city state locality")
-      .lean();
 
     return {
-      level: "state",
-      total: stateItems.length,
-      items: stateItems,
+      level: "none",
+      total: 0,
+      items: [],
     };
-  }
-
-  return {
-    level: "none",
-    total: 0,
-    items: [],
-  };
-},
+  },
 
   async getAllHighlightProjects(options?: {
     page?: number;

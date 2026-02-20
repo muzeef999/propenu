@@ -107,24 +107,13 @@ export default function Amenities(props: Props) {
             const iconSrc = a.imageUrl ?? amenityTitleToIconPath(title) ?? "/icons/amenities/default.svg";
 
             return (
-              <button
+              <div
                 key={key}
-                type="button"
                 title={title}
-                className="inline-flex items-center gap-3 px-4 py-2 rounded-full text-sm font-medium transition-shadow hover:shadow-sm focus:outline-none"
-                style={{
-                  border: `1px solid ${pillBorder}`,
-                  backgroundColor: pillBg,
-                  color:color,
-                }}
+                className="flex items-center gap-3 text-sm text-gray-700"
               >
                 <span
-                  className="flex items-center justify-center rounded-full"
-                  style={{
-                    width: 28,
-                    height: 28,
-                    background: iconBg,
-                  }}
+                  className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 shrink-0"
                 >
                   <img
                     src={iconSrc}
@@ -133,12 +122,12 @@ export default function Amenities(props: Props) {
                       (e.currentTarget as HTMLImageElement).onerror = null;
                       (e.currentTarget as HTMLImageElement).src = "/icons/amenities/default.svg";
                     }}
-                    className="w-4 h-4"
+                    className="w-4 h-4 object-contain"
                   />
                 </span>
 
                 <span className="whitespace-nowrap">{title}</span>
-              </button>
+              </div>
             );
           })
         )}
