@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useMemo } from "react";
 import ActiveTabs from "@/ui/ActiveTabs";
@@ -30,8 +30,44 @@ const TAB_KEY_MAP: Record<string, string> = {
   Agriculture: "agricultural",
 };
 
-const formatPrice = (price?: number) =>
-  price ? `₹ ${(price / 10000000).toFixed(2)} Cr` : "—";
+const formatPrice = (price?: number) => {
+  if (!price) return "—";
+
+  if (price >= 10000000) {
+    return `₹ ${(price / 10000000).toFixed(2)} Cr`;
+  }
+
+  if (price >= 100000) {
+    return `₹ ${(price / 100000).toFixed(2)} L`;
+  }
+
+  return `₹ ${price.toLocaleString("en-IN")}`;
+};
+
+const getPropertyPriceLabel = (property: any) => {
+  const price = Number(property?.price);
+  const priceFrom = Number(property?.priceFrom);
+  const priceTo = Number(property?.priceTo);
+
+  if (Number.isFinite(price) && price > 0) {
+    return formatPrice(price);
+  }
+
+  if (Number.isFinite(priceFrom) && priceFrom > 0 && Number.isFinite(priceTo) && priceTo > 0) {
+    return `${formatPrice(priceFrom)} - ${formatPrice(priceTo)}`;
+  }
+
+  if (Number.isFinite(priceFrom) && priceFrom > 0) {
+    return `From ${formatPrice(priceFrom)}`;
+  }
+
+  if (Number.isFinite(priceTo) && priceTo > 0) {
+    return `Up to ${formatPrice(priceTo)}`;
+  }
+
+  return "—";
+};
+
 
 const BuilderLeadsPage = () => {
   const [activeTab, setActiveTab] = useState("Featured");
@@ -76,7 +112,7 @@ const BuilderLeadsPage = () => {
   if (propertiesLoading) {
     return (
       <div className="flex h-64 items-center justify-center text-gray-500">
-        Loading properties…
+        Loading propertiesâ€¦
       </div>
     );
   }
@@ -101,7 +137,7 @@ const BuilderLeadsPage = () => {
         </span>
       </div>
       <div className="grid grid-cols-12 gap-4">
-        {/* LEFT – PROPERTY LIST */}
+        {/* LEFT â€“ PROPERTY LIST */}
         <div className="col-span-4 space-y-2">
           {properties.map((property: any) => {
             const image = property.gallery?.[0]?.url || "/placeholder.jpg";
@@ -120,7 +156,7 @@ const BuilderLeadsPage = () => {
               >
                 <div className="w-20 h-16 rounded-md overflow-hidden bg-gray-100">
                   <img
-                    src={image}
+                    src={property.heroImage}
                     alt={property.title}
                     className="w-full h-full object-cover"
                   />
@@ -137,7 +173,7 @@ const BuilderLeadsPage = () => {
                     Carpet Area: {property.carpetArea} sq.ft.
                   </p>
                   <p className="text-sm font-semibold text-green-600">
-                    {formatPrice(property.price)}
+                    {getPropertyPriceLabel(property)}
                   </p>
                 </div>
               </button>
@@ -145,7 +181,7 @@ const BuilderLeadsPage = () => {
           })}
         </div>
 
-        {/* RIGHT – LEADS */}
+        {/* RIGHT â€“ LEADS */}
         <div className="col-span-8 bg-green-50/40 rounded-lg p-4">
           {/* STATUS TABS */}
           <div className="flex flex-wrap gap-2 mb-4">
@@ -173,7 +209,7 @@ const BuilderLeadsPage = () => {
           {/* TABLE */}
           {leadsLoading ? (
             <div className="text-center py-20 text-gray-500">
-              Loading leads…
+              Loading leadsâ€¦
             </div>
           ) : filteredLeads.length ? (
             <LeadsTable leads={filteredLeads} />
