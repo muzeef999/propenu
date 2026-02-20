@@ -1,6 +1,7 @@
 import { IAmenity } from "@/types/residential";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import Image from "next/image";
 
 type AmenitiesSelectProps = {
   label?: string;
@@ -177,11 +178,19 @@ const AmenitiesSelect = ({
   `}
                             >
                               <div className="mb-2 flex justify-center">
-                                <img
-                                  src={amenity.icon}
-                                  alt={amenity.title} 
-                                  className={`h-6 w-6 transition-all duration-200 ${checked ? "filter brightness-0 saturate-400 invert-36 sepia-84 saturate-400 hue-rotate-95" : "filter brightness-0 opacity-50"}`}
-                                />
+                                {typeof amenity.icon === "string" ? (
+                                  <Image
+                                    src={amenity.icon.trim()}
+                                    alt={amenity.title}
+                                    width={24}
+                                    height={24}
+                                    className={`h-6 w-6 transition-all duration-200 ${checked ? "filter brightness-0 saturate-400 invert-36 sepia-84 hue-rotate-95" : "filter brightness-0 opacity-50"}`}
+                                  />
+                                ) : amenity.icon ? (
+                                  <span className="text-gray-600 [&>svg]:h-6 [&>svg]:w-6">
+                                    {amenity.icon}
+                                  </span>
+                                ) : null}
                               </div>
 
                               <p

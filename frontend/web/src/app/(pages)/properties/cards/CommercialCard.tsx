@@ -198,7 +198,7 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
         <div className="flex-1 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
           <div className={`flex ${vertical ? "flex-col gap-1" : "flex-col"}`}>
             <h3
-              className={`font-semibold truncate ${vertical ? "text-base max-w-[300px]" : "text-lg md:text-md max-w-[400px]"
+              className={`font-semibold truncate ${vertical ? "text-base max-w-[250px]" : "text-lg md:text-md max-w-[400px]"
                 }`}
             >
               {p.title}

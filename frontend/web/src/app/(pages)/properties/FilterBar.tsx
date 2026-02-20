@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { IoIosSearch } from "react-icons/io";
 import { useDispatch } from "react-redux";
 import FilterDropdown from "@/ui/FilterDropdown";
@@ -18,12 +18,9 @@ import {
 } from "@/Redux/slice/filterSlice";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import CategoryFilters from "./CategoryFilters";
-import {
-  agriculturalMoreFilterSections,
-  commercialMoreFilterSections,
-  landMoreFilterSections,
-} from "./constants/constants";
 import { IoCloseCircleOutline } from "react-icons/io5";
+import { HiOutlineAdjustmentsHorizontal } from "react-icons/hi2";
+import ResidentialMobileFilters from "./filters/ResidentialMobileFilters";
 
 const FilterBar: React.FC = () => {
   const listingOptions = [
@@ -40,6 +37,8 @@ const FilterBar: React.FC = () => {
 
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
 
   const dispatch = useDispatch();
   const {
@@ -56,93 +55,6 @@ const FilterBar: React.FC = () => {
 
   const toggleArrayValue = (arr: string[] = [], value: string) =>
     arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
-
-  const commercialTypeOptions =
-    commercialMoreFilterSections.find((section) => section.key === "Commercial Type")
-      ?.options ?? [];
-  const landTypeOptions =
-    landMoreFilterSections.find((section) => section.key === "Land Type")
-      ?.options ?? [];
-  const agriculturalTypeOptions =
-    agriculturalMoreFilterSections.find(
-      (section) => section.key === "Agricultural Type",
-    )?.options ?? [];
-
-  const propertyTypeOptionsByCategory: Partial<Record<categoryOption, string[]>> =
-  {
-    Commercial: commercialTypeOptions,
-    Land: landTypeOptions,
-    Agricultural: agriculturalTypeOptions,
-  };
-
-  const selectedPropertyTypes =
-    category === "Commercial"
-      ? Array.isArray(commercial.commercialType)
-        ? commercial.commercialType
-        : []
-      : category === "Land"
-        ? Array.isArray(land.landType)
-          ? land.landType
-          : []
-        : category === "Agricultural"
-          ? Array.isArray(agricultural.agriculturalType)
-            ? agricultural.agriculturalType
-            : []
-          : [];
-
-  const propertyTypeLabel =
-    selectedPropertyTypes.length === 0
-      ? "Property Type"
-      : selectedPropertyTypes.length === 1
-        ? selectedPropertyTypes[0]
-        : `${selectedPropertyTypes.length} Types`;
-
-  const handlePropertyTypeToggle = (value: string) => {
-    if (category === "Commercial") {
-      dispatch(
-        setCommercialFilter({
-          key: "commercialType",
-          value: toggleArrayValue(selectedPropertyTypes, value),
-        }),
-      );
-      return;
-    }
-
-    if (category === "Land") {
-      dispatch(
-        setLandFilter({
-          key: "landType",
-          value: toggleArrayValue(selectedPropertyTypes, value),
-        }),
-      );
-      return;
-    }
-
-    if (category === "Agricultural") {
-      dispatch(
-        setAgriculturalFilter({
-          key: "agriculturalType",
-          value: toggleArrayValue(selectedPropertyTypes, value),
-        }),
-      );
-    }
-  };
-
-  const clearPropertyTypes = () => {
-    if (category === "Commercial") {
-      dispatch(setCommercialFilter({ key: "commercialType", value: [] }));
-      return;
-    }
-
-    if (category === "Land") {
-      dispatch(setLandFilter({ key: "landType", value: [] }));
-      return;
-    }
-
-    if (category === "Agricultural") {
-      dispatch(setAgriculturalFilter({ key: "agriculturalType", value: [] }));
-    }
-  };
 
   const selectedLocalities = useMemo(() => {
     if (category === "Residential") {
@@ -233,20 +145,19 @@ const FilterBar: React.FC = () => {
               onOpenChange={setOpen}
               triggerLabel={
                 <button
-  type="button"
-  className="flex items-center gap-1 rounded-md bg-[#D1EFDD] px-3 py-1.5 text-sm font-medium text-[#15803D] transition-colors hover:bg-[#BDE5CE]"
->
-  <span className="leading-none">{listingTypeLabel}</span>
+                  type="button"
+                  className="flex items-center gap-1 rounded-md bg-[#D1EFDD] px-3 py-1.5 text-sm font-medium text-[#15803D] transition-colors hover:bg-[#BDE5CE]"
+                >
+                  <span className="leading-none">{listingTypeLabel}</span>
 
-  <ArrowDropdownIcon
-    size={12}
-    color="#15803D"
+                  <ArrowDropdownIcon
+                    size={12}
+                    color="#15803D"
 
-    className={`transition-transform duration-200  ${
-      open ? "rotate-180" : ""
-    }`}
-  />
-</button>
+                    className={`transition-transform duration-200  ${open ? "rotate-180" : ""
+                      }`}
+                  />
+                </button>
 
 
               }
@@ -299,107 +210,132 @@ const FilterBar: React.FC = () => {
             ))}
           </select>
           <span className="h-5 w-px bg-gray-200" />
-          <FilterDropdown
-            open={searchOpen}
-            onOpenChange={setSearchOpen}
-            align="left"
-            width="w-[360px]"
-            showArrow={false}
-            triggerLabel={
-              <div className="flex items-center cursor-text">
-                <IoIosSearch className="mr-2 text-lg text-gray-500" />
+          <div className="hidden lg:block">
+            <FilterDropdown
+              open={searchOpen}
+              onOpenChange={setSearchOpen}
+              align="left"
+              width="w-[360px]"
+              showArrow={false}
+              triggerLabel={
+                <div className="flex min-w-0 items-center cursor-text">
+                  <IoIosSearch className="mr-2 text-lg text-gray-500" />
 
-                {selectedLocalities.length > 0 && (
-                  <div className="mr-2 flex items-center gap-2">
-                    <span className="flex max-w-36 items-center gap-2 rounded-full bg-[#f2e7e7] px-3 py-1 text-sm text-gray-800">
-                      <span className="truncate">{selectedLocalities[0]}</span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRemoveLocality(selectedLocalities[0]);
-                        }}
-                        className="shrink-0 text-gray-600 hover:text-gray-900"
-                      >
-                        <IoCloseCircleOutline className="h-4 w-4" />
-                      </button>
-                    </span>
-
-                    {selectedLocalities.length > 1 && (
-                      <span className="rounded-full bg-[#f2e7e7] px-3 py-1 text-sm text-gray-700">
-                        +{selectedLocalities.length - 1}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                <input
-                  type="text"
-                  placeholder={
-                    selectedLocalities.length > 0
-                      ? "Add More"
-                      : "Enter Locality or Landmark"
-                  }
-                  value={searchText}
-                  onFocus={() => setSearchOpen(true)}
-                  onChange={(e) => {
-                    dispatch(setSearchText(e.target.value));
-                    setSearchOpen(true);
-                  }}
-                  className={`bg-transparent text-sm outline-none ${selectedLocalities.length > 0 ? "w-28" : "w-72"
-                    }`}
-                />
-              </div>
-            }
-            renderContent={(close) => (
-              <div className="space-y-3">
-                {!cityData && (
-                  <p className="text-sm text-gray-500">
-                    Please select a city to see popular localities.
-                  </p>
-                )}
-
-                {cityData && (
-                  <>
-                    <p className="text-sm font-semibold text-gray-700">
-                      Top Localities in {cityData.city}
-                    </p>
-
-                    {localitySuggestions.length === 0 && (
-                      <p className="text-sm text-gray-500">
-                        No locality found for &quot;{searchText}&quot;
-                      </p>
-                    )}
-
-                    <div className="flex flex-col gap-2">
-                      {localitySuggestions.map((name) => (
+                  {selectedLocalities.length > 0 && (
+                    <div className="mr-2 flex items-center gap-2">
+                      <span className="flex max-w-36 items-center gap-2 rounded-full bg-[#f2e7e7] px-3 py-1 text-sm text-gray-800">
+                        <span className="truncate">{selectedLocalities[0]}</span>
                         <button
-                          key={name}
-                          onClick={() => {
-                            handleLocalitySelect(name);
-                            close();
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveLocality(selectedLocalities[0]);
                           }}
-                          className="text-left text-sm text-gray-800 hover:text-primary"
+                          className="shrink-0 text-gray-600 hover:text-gray-900"
                         >
-                          {name},{" "}
-                          <span className="text-[#26ad5f]">
-                            {cityData.city}
-                          </span>
+                          <IoCloseCircleOutline className="h-4 w-4" />
                         </button>
-                      ))}
+                      </span>
+
+                      {selectedLocalities.length > 1 && (
+                        <span className="rounded-full bg-[#f2e7e7] px-3 py-1 text-sm text-gray-700">
+                          +{selectedLocalities.length - 1}
+                        </span>
+                      )}
                     </div>
-                  </>
-                )}
-              </div>
-            )}
-          />
+                  )}
+
+                  <input
+                    type="text"
+                    placeholder={
+                      selectedLocalities.length > 0
+                        ? "Add More"
+                        : "Enter Locality or Landmark"
+                    }
+                    value={searchText}
+                    onFocus={() => setSearchOpen(true)}
+                    onChange={(e) => {
+                      dispatch(setSearchText(e.target.value));
+                      setSearchOpen(true);
+                    }}
+                    className="bg-transparent text-sm outline-none w-72"
+                  />
+                </div>
+              }
+              renderContent={(close) => (
+                <div className="space-y-3">
+                  {!cityData && (
+                    <p className="text-sm text-gray-500">
+                      Please select a city to see popular localities.
+                    </p>
+                  )}
+
+                  {cityData && (
+                    <>
+                      <p className="text-sm font-semibold text-gray-700">
+                        Top Localities in {cityData.city}
+                      </p>
+
+                      {localitySuggestions.length === 0 && (
+                        <p className="text-sm text-gray-500">
+                          No locality found for &quot;{searchText}&quot;
+                        </p>
+                      )}
+
+                      <div className="flex flex-col gap-2">
+                        {localitySuggestions.map((name) => (
+                          <button
+                            key={name}
+                            onClick={() => {
+                              handleLocalitySelect(name);
+                              close();
+                            }}
+                            className="text-left text-sm text-gray-800 hover:text-primary"
+                          >
+                            {name},{" "}
+                            <span className="text-[#26ad5f]">
+                              {cityData.city}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            />
+          </div>
+          {/* <span className="h-5 w-px bg-gray-200 lg:hidden" /> */}
+          <button
+            type="button"
+            disabled={category !== "Residential"}
+            onClick={() => {
+              if (category === "Residential") setShowAdvanced(true);
+            }}
+            className={`flex items-center gap-2 rounded-md bg-[#D1EFDD] px-3 py-1.5 text-sm font-medium text-[#15803D] transition-colors hover:bg-[#BDE5CE] lg:hidden ${
+              category !== "Residential" ? "cursor-not-allowed opacity-60" : ""
+            }`}
+          >
+            <HiOutlineAdjustmentsHorizontal className="text-base" />
+            More 
+          </button>
+
 
         </div>
 
-        {/* Dynamic Category Filters */}
-        <CategoryFilters />
+        {/* Desktop View */}
+        <div className="hidden lg:block">
+          <CategoryFilters />
+        </div>
 
       </div>
+
+      <ResidentialMobileFilters
+        open={showAdvanced}
+        onClose={() => setShowAdvanced(false)}
+        listingOptions={listingOptions}
+        categoryOptions={categoryOptions}
+      />
     </div>
   );
 };
