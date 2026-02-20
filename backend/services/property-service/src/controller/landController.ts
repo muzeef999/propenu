@@ -496,14 +496,19 @@ export const finalizeLand = async (req: AuthRequest, res: Response) => {
             token: property.approval.approvalToken,
           });
         }
-      } else {
+      } else if (hasVerified) {
         property.status = "active";
         property.isPublished = true;
         property.completion.percent = 100;
         property.completion.step = 5;
+      } else {
+        property.status = "draft";
+        property.isPublished = false;
+        property.completion.percent = 80;
+        property.completion.step = 4;
       }
     } else {
-      property.status = "pending";
+      property.status = "draft";
       property.isPublished = false;
       property.completion.percent = 80;
       property.completion.step = 4;

@@ -481,18 +481,21 @@ export const finalizeCommercial = async (req: AuthRequest, res: Response) => {
             token: property.approval.approvalToken,
           });
         }
-      } else {
-        // 👉 Normal user (direct publish)
+      } else if (hasVerified) {
         property.status = "active"; // ✅ fixed (was state)
         property.isPublished = true;
         property.completion.percent = 100;
         property.completion.step = 5;
+      } else {
+        property.status = "draft";
+        property.isPublished = false;
+        property.completion.percent = 80;
+        property.completion.step = 4;
       }
     } else {
-      // 👉 No documents uploaded
-      property.status = "pending";
+      property.status = "draft";
       property.isPublished = false;
-      property.completion.percent = 80; // ✅ match residential logic
+      property.completion.percent = 80;
       property.completion.step = 4;
     }
 
@@ -508,7 +511,6 @@ export const finalizeCommercial = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 
 export const getAllCommercialDraftsForAdmin = async (
   req: Request,
@@ -586,7 +588,10 @@ export const verifyCommercialDocument = async (
   }
 };
 
-export const approveCommercialProperty = async (req: Request, res: Response) => {
+export const approveCommercialProperty = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const { id } = req.params;
     const { token } = req.body;
@@ -626,7 +631,10 @@ export const approveCommercialProperty = async (req: Request, res: Response) => 
   }
 };
 
-export const deactivateCommercialProperty = async (req: AuthRequest, res: Response) => {
+export const deactivateCommercialProperty = async (
+  req: AuthRequest,
+  res: Response,
+) => {
   try {
     const { id } = req.params;
 
