@@ -31,7 +31,7 @@ import {
   carpetOptions,
   formatBudget,
   moreFilterSections,
-} from "../constants/constants";
+} from "../../constants/constants";
 import { BHKOption } from "@/types/residential";
 import { formatLabel } from "@/utilies/formatLabel";
 import { ResidentialFilters } from "@/types/sharedTypes";
@@ -106,9 +106,21 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
   useEffect(() => {
     if (!open) return;
     const previousOverflow = document.body.style.overflow;
+    const navbar = document.querySelector(
+      'nav[aria-label="Main navigation"]',
+    ) as HTMLElement | null;
+    const previousNavbarDisplay = navbar?.style.display;
+
     document.body.style.overflow = "hidden";
+    if (navbar) {
+      navbar.style.display = "none";
+    }
+
     return () => {
       document.body.style.overflow = previousOverflow;
+      if (navbar) {
+        navbar.style.display = previousNavbarDisplay ?? "";
+      }
     };
   }, [open]);
 
@@ -189,7 +201,7 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-[#f5f6f5] lg:hidden">
-      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-2 py-5 mt-15">
+      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-2 py-5">
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -211,7 +223,7 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
       </div>
 
 
-      <div className="h-[calc(100vh-128px)] space-y-5 overflow-y-auto px-4 py-4 pb-28">
+      <div className="h-[calc(100vh-180px)] space-y-5 overflow-y-auto px-4 py-4 pb-28">
         <div>
           <h3 className="mb-3 text-lg font-semibold">Listing Type</h3>
           <div className="flex gap-3">

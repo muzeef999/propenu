@@ -20,7 +20,7 @@ import { ArrowDropdownIcon } from "@/icons/icons";
 import CategoryFilters from "./CategoryFilters";
 import { IoCloseCircleOutline } from "react-icons/io5";
 import { HiOutlineAdjustmentsHorizontal } from "react-icons/hi2";
-import ResidentialMobileFilters from "./filters/ResidentialMobileFilters";
+import ResidentialMobileFilters from "./filters/adaptiveFilterDesign/ResidentialMobileFilters";
 
 const FilterBar: React.FC = () => {
   const listingOptions = [
