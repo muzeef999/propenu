@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { addToShortlistService, getAnalytics, getShortlistStatusService, getUserShortlistService, removeFromShortlistService } from "../services/shortlistService";
+import { addToShortlistService, getBuilderAnalytics, getShortlistStatusService, getUserShortlistService, removeFromShortlistService } from "../services/shortlistService";
 import { AuthRequest } from "../middlewares/authMiddleware";
 
 
@@ -98,13 +98,17 @@ export const getShortlistStatus = async (req: AuthRequest, res: Response) => {
 };
 
 
-export const getProjectAnalytics = async (req: Request, res: Response) => {
+
+
+export const getProjectAnalytics = async (req: AuthRequest, res: Response) => {
   try {
-    const data = await getAnalytics();
+    const builderId = req.user!.sub;   // from JWT token
+
+    const data = await getBuilderAnalytics(builderId);
+
     res.json(data);
   } catch (e: any) {
     console.error("ANALYTICS_ERROR:", e);
     res.status(500).json({ message: "Failed to load analytics" });
   }
 };
-

@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import Shortlist from "../models/shortlistModel";
 import FeaturedProject from "../models/featurePropertiesModel";
 
@@ -152,77 +152,80 @@ export const getShortlistStatusService = async (
 
 
 
-export const  getAnalytics =  async() => {
-    const now = new Date();
+export const getBuilderAnalytics = async (builderId: string) => {
+  const builderObjectId = new mongoose.Types.ObjectId(builderId);
+
+  const match = { createdBy: builderObjectId };
 
   const [
     totalProjects,
-    statusCounts,
-    featuredCounts,
+    totalViews,
+    featuredProjects,
     cityStats,
     stateStats,
-    topViewed,
+    topViewed
   ] = await Promise.all([
 
-    // 1. Total projects
-    FeaturedProject.countDocuments(),
+    // ✅ total builder projects
+    FeaturedProject.countDocuments(match),
 
-    // 2. Status split
+    // ✅ total views of builder projects
     FeaturedProject.aggregate([
-      { $group: { _id: "$status", count: { $sum: 1 } } }
-    ]),
-
-    // 3. Featured vs non-featured
-    FeaturedProject.aggregate([
+      { $match: match },
       {
         $group: {
-          _id: "$isFeatured",
+          _id: null,
+          totalViews: { $sum: "$meta.views" }
+        }
+      }
+    ]),
+
+    // ✅ featured count
+    FeaturedProject.countDocuments({
+      ...match,
+      isFeatured: true
+    }),
+
+    // ✅ city stats
+    FeaturedProject.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: "$city",
           count: { $sum: 1 }
         }
       }
     ]),
 
-    // 4. Projects by city + featured split
+    // ✅ state stats
     FeaturedProject.aggregate([
-      {
-        $group: {
-          _id: { city: "$city", featured: "$isFeatured" },
-          count: { $sum: 1 }
-        }
-      }
-    ]),
-
-    // 5. Projects by state
-    FeaturedProject.aggregate([
+      { $match: match },
       {
         $group: {
           _id: "$state",
-          total: { $sum: 1 },
-          featured: {
-            $sum: { $cond: ["$isFeatured", 1, 0] }
-          }
+          count: { $sum: 1 }
         }
       }
     ]),
 
-    // 6. Top 5 by views
-    FeaturedProject.find()
+    // ✅ top viewed projects of THIS builder
+    FeaturedProject.find(match)
       .sort({ "meta.views": -1 })
       .limit(5)
-      .select("title city meta.views isFeatured")
+      .select("title city meta.views")
       .lean()
   ]);
 
   return {
-    totals: {
-      projects: totalProjects,
+    builderSummary: {
+      totalProjects,
+      totalViews: totalViews[0]?.totalViews || 0,
+      featuredProjects,
     },
-    status: statusCounts,
-    featuredSplit: featuredCounts,
-    location: {
+    locationStats: {
       cities: cityStats,
       states: stateStats,
     },
     topViewed,
   };
-}
+};
