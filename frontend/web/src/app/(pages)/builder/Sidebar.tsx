@@ -21,6 +21,11 @@ const menuItems = [
     link: "/builder/my-Properties",
     icon: Subscription,
   },
+  {
+    label: "Featured Properties",
+    link: "/builder/featured-properties",
+    icon: Subscription,
+  },
 ];
 
 const Sidebar = () => {

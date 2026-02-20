@@ -260,6 +260,19 @@ export const getPlans = async ({
   return res.data;
 };
 
+
+
+export const projectpostLeads = async (payload: {
+  name: string;
+  phone: string;
+  email?: string;
+  projectId?: string;
+  remarks?: string;
+}) => {
+  const res = await axiosInstance.post(`${url}/api/properties/leads/project/lead`, payload);
+  return res.data;
+};
+
 export const postLeads = async (payload: {
   name: string;
   phone: string;

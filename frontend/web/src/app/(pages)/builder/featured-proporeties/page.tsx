@@ -1,6 +1,6 @@
 const page = ( ) => {
     return (
-        <h1>prime dashboard</h1>
+        <h1>featured dashboard</h1>
     )
 }
 

@@ -9,6 +9,7 @@ import Agricultural from "../models/agriculturalModel";
 import LandPlot from "../models/landModel";
 import FeaturedProject from "../models/featurePropertiesModel";
 
+
 const PROPERTY_MODEL_MAP: Record<string, any> = {
   featuredprojects: FeaturedProject,
   residentials: Residential,
@@ -18,8 +19,7 @@ const PROPERTY_MODEL_MAP: Record<string, any> = {
 };
 
 /** CREATE LEAD **/
-/** CREATE LEAD **/
-export const createLead = async (data: any, userId: string) => {
+export const createLead = async (data: any, userId: string | null) => {
   const { propertyType, projectId } = data;
 
   // 1️⃣ Validate projectId
@@ -38,7 +38,7 @@ export const createLead = async (data: any, userId: string) => {
     return await Lead.create({
       ...data,
       propertyModel: "FeaturedProject",
-      createdBy: userId,
+      createdBy: userId ?? undefined,
     });
   }
 

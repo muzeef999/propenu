@@ -1,7 +1,7 @@
 // components/HeroSection.tsx
 "use client";
 
-import { postLeads } from "@/data/ClientData";
+import { postLeads, projectpostLeads } from "@/data/ClientData";
 import { Leads } from "@/types/property";
 import { useMutation } from "@tanstack/react-query";
 import React, { useState } from "react";
@@ -40,7 +40,7 @@ export default function HeroSection({ hero }: Props) {
   });
 
   const leadsMutation = useMutation({
-    mutationFn: (payload: Leads) => postLeads(payload),
+    mutationFn: (payload: Leads) => projectpostLeads(payload),
     onSuccess: () => {
       toast.success("Lead submitted successfully");
       setForm({

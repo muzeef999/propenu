@@ -9,6 +9,8 @@ import {
 import { LeadCreateSchema } from "../zod/leadZod";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import Lead from "../models/LeadModel";
+import { PublicLeadSchemaZ } from "../zod/publicLeadZod";
+import { createPublicLead } from "../services/publicLeadService";
 
 /*** CREATE LEAD */
 export const createLeadController: RequestHandler = async (req, res) => {
@@ -172,6 +174,30 @@ export const getMyContactedProperties = async (
     res.status(500).json({
       success: false,
       message: "Failed to load contacted properties",
+    });
+  }
+};
+
+
+
+
+export const createPublicLeadController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const data = PublicLeadSchemaZ.parse(req.body);
+    const lead = await createPublicLead(data);
+
+    res.status(201).json({
+      success: true,
+      message: "Lead submitted successfully",
+      data: lead,
+    });
+  } catch (err: any) {
+    res.status(400).json({
+      success: false,
+      message: err.message,
     });
   }
 };

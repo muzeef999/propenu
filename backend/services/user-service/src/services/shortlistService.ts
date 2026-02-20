@@ -146,7 +146,6 @@ export const getShortlistStatusService = async (
     userId: new Types.ObjectId(userId),
     propertyId: new Types.ObjectId(propertyId),
   });
-
   return Boolean(exists);
 };
 
