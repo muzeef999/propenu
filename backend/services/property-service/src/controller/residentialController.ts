@@ -475,18 +475,10 @@ export const finalizeResidential = async (req: AuthRequest, res: Response) => {
 
     property.completion.lastSection = "verification";
 
-    const role = req.user?.roleName;
+        const role = req.user?.roleName;
 
-
- if (verificationFiles.length > 0) {
-
-      console.log("User role one: sending one");
-
+    if (verificationFiles.length > 0) {
       if (role === "sales_agent") {
-        // 👉 Send to manager
-
-        console.log("User role one: sending  two");
-
         property.status = "pending";
         property.isPublished = false;
 
@@ -501,7 +493,6 @@ export const finalizeResidential = async (req: AuthRequest, res: Response) => {
         if (agent?.managerId && (agent.managerId as any).email) {
           await sendManagerApprovalMail({
             managerEmail: (agent.managerId as any).email,
-
             property: {
               id: property._id,
               title: property.title,
@@ -512,24 +503,26 @@ export const finalizeResidential = async (req: AuthRequest, res: Response) => {
               bedrooms: property.bedrooms,
               area: property.locality,
             },
-
             agent: {
               name: agent.name,
               email: agent.email,
             },
-
             token: property.approval.approvalToken,
           });
         }
-      } else {
-        // 👉 Normal user
+      } else if (hasVerified) {
         property.status = "active";
         property.isPublished = true;
         property.completion.percent = 100;
         property.completion.step = 5;
+      } else {
+        property.status = "draft";
+        property.isPublished = false;
+        property.completion.percent = 80;
+        property.completion.step = 4;
       }
     } else {
-      property.status = "pending";
+      property.status = "draft";
       property.isPublished = false;
       property.completion.percent = 80;
       property.completion.step = 4;
@@ -702,3 +695,4 @@ export const deactivateProperty = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: err.message });
   }
 };
+
