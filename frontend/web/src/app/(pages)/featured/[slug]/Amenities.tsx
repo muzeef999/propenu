@@ -104,7 +104,7 @@ export default function Amenities(props: Props) {
             const key = a.key ?? a.title ?? `amenity-${idx}`;
             const title = a.title ?? "Amenity";
             // icon priority: uploaded imageUrl -> local icon path from mapping -> default placeholder
-            const iconSrc = a.imageUrl ?? amenityTitleToIconPath(title) ?? "/icons/amenities/default.svg";
+            const iconSrc = a.imageUrl ?? amenityTitleToIconPath(title) ?? "/icons/amenities/villa.svg";
 
             return (
               <div
@@ -120,9 +120,9 @@ export default function Amenities(props: Props) {
                     alt={title}
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).onerror = null;
-                      (e.currentTarget as HTMLImageElement).src = "/icons/amenities/default.svg";
+                      (e.currentTarget as HTMLImageElement).src = "/icons/amenities/villa.svg";
                     }}
-                    className="w-4 h-4 object-contain"
+                    className="w-6 h-6 object-contain"
                   />
                 </span>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Download } from "@/icons/icons";
@@ -31,6 +31,14 @@ export default function MicroSiteNavbar({
 }: Props) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname() || "/";
+  const [activeHash, setActiveHash] = useState("");
+
+  useEffect(() => {
+    const updateHash = () => setActiveHash(window.location.hash || "");
+    updateHash();
+    window.addEventListener("hashchange", updateHash);
+    return () => window.removeEventListener("hashchange", updateHash);
+  }, []);
 
   // support both string URL or object with src
   const resolvedLogo =
@@ -40,6 +48,29 @@ export default function MicroSiteNavbar({
 
   // safe color fallback
   const iconColor = typeof color === "string" && color.trim() !== "" ? color : "#FFAC1D";
+  const navAccentStyle = { "--nav-accent": iconColor } as React.CSSProperties;
+  const extractHash = (href: string) => {
+    const hashIndex = href.indexOf("#");
+    return hashIndex >= 0 ? href.slice(hashIndex) : "";
+  };
+  const handleNavClick = (href: string) => {
+    const nextHash = extractHash(href);
+    if (nextHash) setActiveHash(nextHash);
+  };
+  const isLinkActive = (href: string) => {
+    if (!href) return false;
+    if (href.startsWith("#")) return activeHash === href;
+
+    const hashIndex = href.indexOf("#");
+    if (hashIndex >= 0) {
+      const hrefPath = href.slice(0, hashIndex) || pathname;
+      const hrefHash = href.slice(hashIndex);
+      const pathMatches = pathname === hrefPath || pathname.startsWith(hrefPath + "/");
+      return pathMatches && activeHash === hrefHash;
+    }
+
+    return pathname === href || pathname.startsWith(href + "/");
+  };
 
   return (
     <header className="bg-white shadow-md border-b border-gray-200  sticky top-0 z-9999">
@@ -55,25 +86,28 @@ export default function MicroSiteNavbar({
           </Link>
 
           {/* desktop links + download icon */}
-          <div className="hidden md:flex items-center">
+          <div className="hidden md:flex items-center" style={navAccentStyle}>
             <ul className="flex items-center gap-6 text-sm font-medium text-slate-700">
               {links.map((l) => {
-                const active = pathname === l.href || pathname.startsWith(l.href + "/");
+                const active = isLinkActive(l.href);
                 return (
                   <li key={l.href}>
                     <Link
-                      href={l.href}
-                      className={
-                        "px-2 py-1 transition rounded " +
-                        (active
-                          ? "text-sky-600 underline underline-offset-4"
-                          : "hover:text-sky-600")
-                      }
-                      aria-current={active ? "page" : undefined}
-                    >
-                      {l.title}
-                    </Link>
+  href={l.href}
+  onClick={() => handleNavClick(l.href)}
+  className={`relative px-2 py-1 transition rounded text-(--nav-accent) after:absolute after:left-1/2 after:-bottom-4 after:h-1 after:w-12 after:-translate-x-1/2 after:bg-(--nav-accent) after:transition-all after:duration-300 ${active
+      ? "after:opacity-100 after:scale-x-100"
+      : "after:opacity-0 after:scale-x-0"
+    }
+  `}
+  aria-current={active ? "page" : undefined}
+>
+  {l.title}
+</Link>
+
+
                   </li>
+
                 );
               })}
             </ul>
@@ -142,19 +176,31 @@ export default function MicroSiteNavbar({
 
         {/* mobile menu */}
         {open && (
-          <div className="md:hidden mt-1 pb-4">
+          <div className="md:hidden mt-1 pb-4" style={navAccentStyle}>
             <ul className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-              {links.map((l) => (
-                <li key={l.href}>
-                  <Link
-                    href={l.href}
-                    onClick={() => setOpen(false)}
-                    className="block px-3 py-2 rounded-md hover:bg-slate-50 hover:text-sky-600 transition"
-                  >
-                    {l.title}
-                  </Link>
-                </li>
-              ))}
+              {links.map((l) => {
+                const active = isLinkActive(l.href);
+                return (
+                  <li key={l.href}>
+                    <Link
+                      href={l.href}
+                      onClick={() => {
+                        handleNavClick(l.href);
+                        setOpen(false);
+                      }}
+                      className={
+                        "block px-3 py-2 rounded-md hover:bg-slate-50 transition " +
+                        (active
+                          ? "text-(--nav-accent)"
+                          : "text-(--nav-accent)")
+                      }
+                      aria-current={active ? "page" : undefined}
+                    >
+                      {l.title}
+                    </Link>
+                  </li>
+                );
+              })}
 
               {/* mobile download button shown in the menu too */}
               <li>
