@@ -46,7 +46,7 @@ export const Step4Amenities: React.FC<Step4AmenitiesProps> = ({
 
       {/* Amenities Select */}
       <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <AmenitiesSelect
+        {/* <AmenitiesSelect
           label="Amenities"
           options={AMENITIES_FOR_FEATURED_PROJECT}
           value={data.amenities || []}
@@ -54,7 +54,7 @@ export const Step4Amenities: React.FC<Step4AmenitiesProps> = ({
             onUpdate("amenities", value)
           }
           error={errors.length ? "Please select at least one amenity" : undefined}
-        />
+        /> */}
       </div>
     </div>
   );

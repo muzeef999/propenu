@@ -479,3 +479,15 @@ export const deactivateMyProperty = async (propertyId: string, propertyType: str
   );
   return res.data;
 };
+
+export const getFeaturedProjectsDashboard = async () => {
+  const token = Cookies.get("token");
+  if (!token) return null;
+
+  const res = await axiosInstance.get(`${url}/api/properties/highlight-projects/builder/featured/me`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return res.data;
+  }

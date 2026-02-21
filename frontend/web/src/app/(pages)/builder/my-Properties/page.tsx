@@ -6,12 +6,18 @@ import { getHighlightProjectBuilders } from "@/data/ClientData";
 import { FeaturedProject } from "@/types";
 import Myproperties from "../components/Myproperties";
 
+type HighlightProjectsBuilderResponse = {
+  success?: boolean;
+  data: FeaturedProject[];
+};
+
 const page = () => {
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError } = useQuery<HighlightProjectsBuilderResponse | FeaturedProject[] | null>({
     queryKey: ["highlight-projects-builder"],
     queryFn: getHighlightProjectBuilders,
-    select: (res) => res?.data ?? res,
   });
+
+  const projects = Array.isArray(data) ? data : data?.data ?? [];
 
   if (isLoading) {
     return <div className="p-6">Loading...</div>;
@@ -22,13 +28,11 @@ const page = () => {
   }
 
   return (
-    <div className="">
+    <div>
       <h1 className="text-2xl font-medium ">My Projects</h1>
-      {data && (data as FeaturedProject[]).length > 0 ? (
-        <div className="space-y-2 grid grid-cols-2">
-          {(data as FeaturedProject[])?.map((project) => (
-            <Myproperties key={project._id} project={project} />
-          ))}
+      {projects.length > 0 ? (
+        <div className="space-y-2">
+          <Myproperties items={projects} />
         </div>
       ) : (
         <div className="p-6 text-center text-gray-500">

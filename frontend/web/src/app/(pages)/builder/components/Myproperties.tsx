@@ -16,20 +16,13 @@ interface ProjectCardProps {
 const Myproperties: React.FC<ProjectCardProps> = ({
   items,
   project,
-  title = "Prime Properties",
-  city = "Hyderabad",
 }) => {
   const list = items ?? (project ? [project] : []);
   return (
     <div className="relative w-full">
-      <div className="flex justify-between items-center mb-4"></div>
-
-      <div className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar p-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-1">
         {list.map((project) => (
-          <div
-            key={project._id}
-            className="min-w-full sm:min-w-[48%] md:min-w-[32%] lg:min-w-[60%] card snap-start"
-          >
+          <div key={project._id} className="w-full card">
             <Link
               href={`/featured/${project.slug}`}
               className="block h-[200px] overflow-hidden rounded-t-md"
