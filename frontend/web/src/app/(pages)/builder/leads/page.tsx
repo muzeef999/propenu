@@ -112,7 +112,7 @@ const BuilderLeadsPage = () => {
   if (propertiesLoading) {
     return (
       <div className="flex h-64 items-center justify-center text-gray-500">
-        Loading propertiesâ€¦
+        Loading properties…
       </div>
     );
   }

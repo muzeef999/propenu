@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import { getHighlightProjects } from "@/data/ClientData";
 import { FeaturedProject } from "@/types";
 import { useCity } from "@/hooks/useCity";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+    FiArrowLeft,
     FiArrowRight,
     FiChevronRight,
     FiDownload,
@@ -20,6 +21,8 @@ const HotspotsPage = () => {
     const [loading, setLoading] = useState(false);
     const [items, setItems] = useState<FeaturedProject[]>([]);
     const [showBanner, setShowBanner] = useState(true);
+    const [selectedLocality, setSelectedLocality] = useState<string>("");
+    const localitiesRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -34,16 +37,24 @@ const HotspotsPage = () => {
         if (!selectedCity) return;
         setLoading(true);
 
-        getHighlightProjects({
-            state: selectedCity.state,
-            city: selectedCity.city,
-        })
+        const queryParams = selectedLocality
+            ? { locality: selectedLocality }
+            : {
+                  state: selectedCity.state,
+                  city: selectedCity.city,
+              };
+
+        getHighlightProjects(queryParams)
             .then((res) => {
                 setItems(res?.items || []);
             })
-            .catch((err) => console.error("❌ Error:", err))
+            .catch((err) => console.error("Failed to fetch highlight projects:", err))
             .finally(() => setLoading(false));
-    }, [selectedCity]);
+    }, [selectedCity, selectedLocality]);
+
+    useEffect(() => {
+        setSelectedLocality("");
+    }, [selectedCity?.city]);
 
     const formatPrice = (price?: number) => {
         if (!price || price <= 0) return "N/A";
@@ -51,9 +62,18 @@ const HotspotsPage = () => {
         return cr.toFixed(2);
     };
 
+    const scrollLocalities = (direction: "left" | "right") => {
+        if (!localitiesRef.current) return;
+        const scrollAmount = 280;
+        localitiesRef.current.scrollBy({
+            left: direction === "left" ? -scrollAmount : scrollAmount,
+            behavior: "smooth",
+        });
+    };
+
     return (
         <>
-            {/* 🔥 Highlight Banner */}
+            {/* Highlight Banner */}
             {showBanner && (
                 <div className="w-full bg-[#4F8EF7] text-white text-sm">
                     <div className="relative container mx-auto px-4 py-2 flex items-center">
@@ -98,34 +118,72 @@ const HotspotsPage = () => {
                     <p className="text-sm text-slate-400">Loading highlights...</p>
                 )}
 
-                {/* Localities */}
-                <div className="flex gap-3 overflow-x-auto scrollbar-hide md:grid md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-                    {selectedCity?.localities?.map((locality: any, index: number) => (
-                        <div
-                            key={index}
-                            className="group min-w-40 rounded-xl border border-slate-200 bg-white p-4 shadow-[10px_10px_10px_rgba(0,0,0,0.10)] transition cursor-pointer hover:border-emerald-300 mb-5"
 
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-500 group-hover:bg-emerald-50 group-hover:text-emerald-600">
-                                    <HiOutlineLocationMarker size={18} />
-                                </div>
-                                <h3 className="text-sm font-medium text-slate-900 truncate">
-                                    {locality.name}
-                                </h3>
-                            </div>
-
-                        </div>
-                    ))}
-                </div>
-
-                {/* ✅ MAIN CONTENT + AD SIDEBAR FIX */}
-                <div className="flex flex-col lg:flex-row gap-20">
+                {/* Main content + sticky ad sidebar */}
+                <div className="flex flex-col lg:flex-row lg:items-start gap-8 lg:gap-10">
                     {/* Projects */}
-                    <section className="space-y-6 flex-1 max-w-4xl">
+                    <section className="space-y-6 flex-1 min-w-0">
+                        {/* Localities */}
+                        <div className="relative mb-5">
+                            <button
+                                type="button"
+                                onClick={() => scrollLocalities("left")}
+                                className="absolute -left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-2 text-slate-600 shadow hover:bg-slate-50"
+                                aria-label="Scroll localities left"
+                            >
+                                <FiArrowLeft size={16} />
+                            </button>
+                            <div
+                                ref={localitiesRef}
+                                className="flex gap-4 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-1 py-5"
+                            >
+                                {selectedCity?.localities?.map((locality: any, index: number) => (
+                                    <button
+                                        key={index}
+                                        type="button"
+                                        onClick={() =>
+                                            setSelectedLocality((prev) =>
+                                                prev === locality.name ? "" : locality.name
+                                            )
+                                        }
+                                        className={`group min-w-40 rounded-xl border bg-white p-4 shadow-[10px_10px_10px_rgba(0,0,0,0.10)] transition cursor-pointer text-left ${
+                                            selectedLocality === locality.name
+                                                ? "border-emerald-500 ring-1 ring-emerald-200"
+                                                : "border-slate-200 hover:border-emerald-300"
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div
+                                                className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                                                    selectedLocality === locality.name
+                                                        ? "bg-emerald-50 text-emerald-600"
+                                                        : "bg-slate-100 text-slate-500 group-hover:bg-emerald-50 group-hover:text-emerald-600"
+                                                }`}
+                                            >
+                                                <HiOutlineLocationMarker size={18} />
+                                            </div>
+                                            <h3 className="text-sm font-medium text-slate-900 truncate">
+                                                {locality.name}
+                                            </h3>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => scrollLocalities("right")}
+                                className="absolute -right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-2 text-slate-600 shadow hover:bg-slate-50"
+                                aria-label="Scroll localities right"
+                            >
+                                <FiArrowRight size={16} />
+                            </button>
+                        </div>
+
                         <h2 className="text-2xl font-semibold text-slate-900">
                             {items.length > 0 && `${items.length}`} Projects in{" "}
-                            {selectedCity?.city || "Loading..."}
+                            {selectedLocality
+                                ? `${selectedLocality}, ${selectedCity?.city || ""}`
+                                : selectedCity?.city || "Loading..."}
                         </h2>
 
                         {loading ? (
@@ -212,9 +270,8 @@ const HotspotsPage = () => {
                             </div>
                         )}
                     </section>
-
-                    {/* ✅ AD BANNER (FIXED) */}
-                    <aside className="w-full lg:w-[200px] sticky top-10 self-start">
+                    {/* Ad banner */}
+                    <aside className="w-full lg:w-[220px] lg:sticky lg:top-24 self-start shrink-0">
                         <Image
                             src={ad}
                             alt="advertisement banner"

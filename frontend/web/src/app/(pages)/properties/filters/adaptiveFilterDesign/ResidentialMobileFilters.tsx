@@ -570,14 +570,30 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
                               max={CARPET_MAX}
                               values={carpetRange}
                               onChange={(values) => setCarpetRange(values as [number, number])}
-                              renderTrack={({ props, children }) => (
-                                <div {...props} className="h-1 w-full rounded bg-gray-200">
-                                  {children}
-                                </div>
-                              )}
-                              renderThumb={({ props }) => (
-                                <div {...props} className="h-4 w-4 rounded-full bg-green-600 shadow" />
-                              )}
+                              renderTrack={({ props, children }) => {
+                                const { key, ...restProps } = props as React.HTMLProps<HTMLDivElement> & {
+                                  key?: React.Key;
+                                };
+
+                                return (
+                                  <div key={key} {...restProps} className="h-1 w-full rounded bg-gray-200">
+                                    {children}
+                                  </div>
+                                );
+                              }}
+                              renderThumb={({ props }) => {
+                                const { key, ...restProps } = props as React.HTMLProps<HTMLDivElement> & {
+                                  key?: React.Key;
+                                };
+
+                                return (
+                                  <div
+                                    key={key}
+                                    {...restProps}
+                                    className="h-4 w-4 rounded-full bg-green-600 shadow"
+                                  />
+                                );
+                              }}
                             />
                           </div>
                         ) : (

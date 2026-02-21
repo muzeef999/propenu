@@ -40,20 +40,26 @@ export async function getFeaturedProjects(params?: {
 export async function getHighlightProjects(params?: {
   state?: string;
   city?: string;
+  locality?: string;
 }) {
   const query = new URLSearchParams();
 
+  if (params?.state) query.append("state", params.state);
   if (params?.city) query.append("city", params.city);
+  if (params?.locality) query.append("locality", params.locality);
 
   const res = await fetch(
     `${url}/api/properties/highlight-projects/city?${query.toString()}`,
-    { cache: "no-store" },
+    { cache: "no-store" }
   );
+
   if (!res.ok) {
     throw new Error("Failed to fetch highlight projects");
   }
+
   return res.json();
 }
+
 
 // export async function getAllAgentConnect(){
 //   const res = await fetch(`${url}/api/users/agent`, {next : { revalidate: 10}});
