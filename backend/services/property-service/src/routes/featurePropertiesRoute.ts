@@ -38,6 +38,7 @@ const jsonKeys = [
   "location",
   "city",
   "aboutSummary",
+  "youtubeVideos"
 ];
 
 

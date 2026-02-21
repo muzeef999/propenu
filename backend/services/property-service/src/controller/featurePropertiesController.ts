@@ -31,6 +31,8 @@ export const createFeatureProperties = async (req: Request, res: Response) => {
       gallerySummary: parseMaybeJSON(raw.gallerySummary),
       sqftRange: parseMaybeJSON(raw.sqftRange),
       leads: parseMaybeJSON(raw.leads),
+        youtubeVideos: parseMaybeJSON(raw.youtubeVideos),  // ⭐ ADD
+
       // add others as needed
     };
 
@@ -232,6 +234,8 @@ export const editFeatureProperties = async (req: Request, res: Response) => {
       gallerySummary: parseMaybeJSON(raw.gallerySummary),
       sqftRange: parseMaybeJSON(raw.sqftRange),
       leads: parseMaybeJSON(raw.leads),
+        youtubeVideos: parseMaybeJSON(raw.youtubeVideos),  // ⭐ ADD
+
     };
 
     const payload = UpdateFeaturePropertySchema.parse(parsed) as UpdateFeaturePropertyDTO;

@@ -14,8 +14,6 @@ import {
   ISpecItem,
 } from "../types/featurePropertiesTypes";
 
-
-
 function generateSlug(text: string) {
   return text
     .toLowerCase()
@@ -78,6 +76,8 @@ const AboutSummarySchema = new Schema<IAboutSummary>(
   { _id: false }
 );
 
+
+
 const brochureSchema = new Schema<Ibrochure>(
   {
     key: { type: String },
@@ -109,6 +109,16 @@ const SpecificationSchema = new Schema<ISpecification>(
   {
     category: { type: String },
     items: { type: [SpecificationItemSchema] },
+    order: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
+const YoutubeVideoSchema = new Schema(
+  {
+    title: { type: String },
+    url: { type: String, required: true },
+    thumbnail: { type: String },
     order: { type: Number, default: 0 },
   },
   { _id: false }
@@ -150,6 +160,7 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     heroSubTagline: { type: String },
     heroDescription: { type: String },
     color: { type: String },
+    
     metaTitle: { type: String },
     metaDescription: { type: String },
     metaKeywords: { type: String },
@@ -180,6 +191,7 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     reraNumber: { type: String },
     banksApproved: { type: [String] },
     gallerySummary: { type: [GallerySummarySchema] },
+    youtubeVideos: { type: [YoutubeVideoSchema] },
     aboutSummary: { type: [AboutSummarySchema] },
     brochure: { type: brochureSchema, default: null },
     specifications: { type: [SpecificationSchema] },

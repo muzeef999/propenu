@@ -87,6 +87,13 @@ export interface ILead {
   createdAt?: Date;
 }
 
+export interface IYoutubeVideo {
+  title?: string;
+  url: string;
+  thumbnail?: string;
+  order?: number;
+}
+
 export interface IFeaturedProject {
   title: string;
   slug: string;
@@ -98,6 +105,7 @@ export interface IFeaturedProject {
   heroSubTagline?: string;
   heroDescription?: string;
   color?: string; 
+  youtubeVideos?: IYoutubeVideo[];
   redirectUrl?:string;
   metaTitle?: string;
   metaDescription?: string;

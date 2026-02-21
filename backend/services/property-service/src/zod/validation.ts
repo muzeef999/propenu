@@ -88,6 +88,13 @@ export const FileMetaZ = z.object({
   mimetype: z.string().optional(),
 });
 
+ export const YoutubeVideoSchema = z.object({
+  title: z.string().optional(),
+  url: z.string().url().optional(),
+  thumbnail: z.string().url().optional(),
+  order: z.number().int().optional().default(0),
+});
+
 /* --------------------------- Create schema (for POST)=---------------*/
 export const CreateFeaturePropertySchema = z.object({
   title: z.string().min(1),
@@ -99,6 +106,7 @@ export const CreateFeaturePropertySchema = z.object({
   locality: z.string().optional(),
   state: z.string().optional(),
   redirectUrl: z.string().url().optional(),
+  youtubeVideos: z.array(YoutubeVideoSchema).optional(),
   location: z
     .object({
       type: z.literal("Point").optional().default("Point"),
@@ -172,6 +180,8 @@ export const UpdateFeaturePropertySchema = z.object({
   state: z.string().optional(),
   locality: z.string().optional(),
   redirectUrl: z.string().url().optional(),
+    youtubeVideos: z.array(YoutubeVideoSchema).optional(),
+
   location: z
     .object({
       type: z.literal("Point").optional(),
