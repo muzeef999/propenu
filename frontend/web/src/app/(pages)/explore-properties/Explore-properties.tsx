@@ -1,9 +1,9 @@
 "use client"
 import Link from "next/link";
-import residential from "@/asserts/residential.png";
-import commercial from "@/asserts/commercial.png";
-import land from "@/asserts/land.png";
-import agricultural from "@/asserts/agricultural.png";
+import residential from "@/asserts/residential.webp";
+import commercial from "@/asserts/commercial.webp";
+import land from "@/asserts/land.webp";
+import agricultural from "@/asserts/agricultural.webp";
 import { useCity } from "@/hooks/useCity";
 
 const CATEGORIES = [
