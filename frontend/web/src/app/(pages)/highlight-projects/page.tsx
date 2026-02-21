@@ -23,6 +23,36 @@ const HotspotsPage = () => {
     const [showBanner, setShowBanner] = useState(true);
     const [selectedLocality, setSelectedLocality] = useState<string>("");
     const localitiesRef = useRef<HTMLDivElement>(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(false);
+
+    const checkScroll = () => {
+        const el = localitiesRef.current;
+        if (!el) return;
+
+        const { scrollLeft, scrollWidth, clientWidth } = el;
+
+        setCanScrollLeft(scrollLeft > 0);
+        setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 1);
+    };
+
+
+    useEffect(() => {
+        const el = localitiesRef.current;
+        if (!el) return;
+
+        checkScroll();
+
+        el.addEventListener("scroll", checkScroll);
+        window.addEventListener("resize", checkScroll);
+
+        return () => {
+            el.removeEventListener("scroll", checkScroll);
+            window.removeEventListener("resize", checkScroll);
+        };
+    }, [selectedCity]);
+
+
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -40,9 +70,9 @@ const HotspotsPage = () => {
         const queryParams = selectedLocality
             ? { locality: selectedLocality }
             : {
-                  state: selectedCity.state,
-                  city: selectedCity.city,
-              };
+                state: selectedCity.state,
+                city: selectedCity.city,
+            };
 
         getHighlightProjects(queryParams)
             .then((res) => {
@@ -80,7 +110,7 @@ const HotspotsPage = () => {
 
                         {/* Centered text */}
                         <p className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 text-center">
-                             🔥 
+                            🔥
                             <span>
                                 Hand-picked for you – discover the most in-demand projects buyers
                                 are choosing right now.
@@ -125,14 +155,15 @@ const HotspotsPage = () => {
                     <section className="space-y-6 flex-1 min-w-0">
                         {/* Localities */}
                         <div className="relative mb-5">
-                            <button
-                                type="button"
-                                onClick={() => scrollLocalities("left")}
-                                className="absolute -left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-2 text-slate-600 shadow hover:bg-slate-50"
-                                aria-label="Scroll localities left"
-                            >
-                                <FiArrowLeft size={16} />
-                            </button>
+                            {canScrollLeft && (
+                                <button
+                                    type="button"
+                                    onClick={() => scrollLocalities("left")}
+                                    className="absolute -left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-2 text-slate-600 shadow hover:bg-slate-50"
+                                >
+                                    <FiArrowLeft size={16} />
+                                </button>
+                            )}
                             <div
                                 ref={localitiesRef}
                                 className="flex gap-4 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-1 py-5"
@@ -146,19 +177,17 @@ const HotspotsPage = () => {
                                                 prev === locality.name ? "" : locality.name
                                             )
                                         }
-                                        className={`group min-w-40 rounded-xl border bg-white p-4 shadow-[10px_10px_10px_rgba(0,0,0,0.10)] transition cursor-pointer text-left ${
-                                            selectedLocality === locality.name
+                                        className={`group min-w-40 rounded-xl border bg-white p-4 shadow-[10px_10px_10px_rgba(0,0,0,0.10)] transition cursor-pointer text-left ${selectedLocality === locality.name
                                                 ? "border-emerald-500 ring-1 ring-emerald-200"
                                                 : "border-slate-200 hover:border-emerald-300"
-                                        }`}
+                                            }`}
                                     >
                                         <div className="flex items-center gap-3">
                                             <div
-                                                className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                                                    selectedLocality === locality.name
+                                                className={`flex h-9 w-9 items-center justify-center rounded-lg ${selectedLocality === locality.name
                                                         ? "bg-emerald-50 text-emerald-600"
                                                         : "bg-slate-100 text-slate-500 group-hover:bg-emerald-50 group-hover:text-emerald-600"
-                                                }`}
+                                                    }`}
                                             >
                                                 <HiOutlineLocationMarker size={18} />
                                             </div>
@@ -169,14 +198,16 @@ const HotspotsPage = () => {
                                     </button>
                                 ))}
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => scrollLocalities("right")}
-                                className="absolute -right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-2 text-slate-600 shadow hover:bg-slate-50"
-                                aria-label="Scroll localities right"
-                            >
-                                <FiArrowRight size={16} />
-                            </button>
+                            {canScrollRight && (
+                                <button
+                                    type="button"
+                                    onClick={() => scrollLocalities("right")}
+                                    className="absolute -right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-2 text-slate-600 shadow hover:bg-slate-50"
+                                >
+                                    <FiArrowRight size={16} />
+                                </button>
+                            )}
+
                         </div>
 
                         <h2 className="text-2xl font-semibold text-slate-900">
