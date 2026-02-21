@@ -11,6 +11,8 @@ import { AuthRequest } from "../middlewares/authMiddleware";
 import Lead from "../models/LeadModel";
 import { PublicLeadSchemaZ } from "../zod/publicLeadZod";
 import { createPublicLead } from "../services/publicLeadService";
+import PublicLead from "../models/PublicLead";
+import { Types } from "mongoose";
 
 /*** CREATE LEAD */
 export const createLeadController: RequestHandler = async (req, res) => {
@@ -199,5 +201,37 @@ export const createPublicLeadController = async (
       success: false,
       message: err.message,
     });
+  }
+};
+
+
+export const getProjectLeadsController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const projectId = req.params.projectId;
+
+    // ✅ STEP 1: Check exists
+    if (!projectId) {
+      return res.status(400).json({ message: "projectId is required" });
+    }
+
+    // ✅ STEP 2: Validate ObjectId
+    if (!Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({ message: "Invalid projectId" });
+    }
+
+    // ✅ STEP 3: Query
+    const leads = await PublicLead.find({ projectId }).lean();
+
+    res.json({
+      success: true,
+      count: leads.length,
+      data: leads,
+    });
+
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
   }
 };
