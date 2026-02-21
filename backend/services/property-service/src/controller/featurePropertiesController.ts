@@ -50,6 +50,16 @@ export const createFeatureProperties = async (req: Request, res: Response) => {
     console.error("createFeatureProperties:", err);
     return res.status(500).json({ error: err.message || "Internal server error" });
   }
+};    
+
+export const getMyHightlightProjectsController = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id; 
+    const projects = await FeaturePropertyService.getMyHightlightProjects(userId);
+    res.status(200).json({success: true,data: projects});
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 export const getMyFeaturedProjectsController = async (req: AuthRequest, res: Response) => {

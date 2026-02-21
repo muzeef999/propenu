@@ -18,7 +18,7 @@ const menuItems = [
   },
   {
     label: "My Properties",
-    link: "/builder/my-Properties",
+    link: "/builder/my-properties",
     icon: Subscription,
   },
   {

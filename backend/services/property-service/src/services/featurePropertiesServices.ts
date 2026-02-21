@@ -794,8 +794,14 @@ export const FeaturePropertyService = {
     return existing;
   },
 
-  async getMyFeaturedProjects(userId: string) {
-    return await FeaturedProject.find({ createdBy: userId })
+  async getMyHightlightProjects(userId: string) {
+    return await FeaturedProject.find({ createdBy: userId, isFeatured: false, })
+      .populate("createdBy", "name email")
+      .lean();
+  },
+
+   async getMyFeaturedProjects(userId: string) {
+    return await FeaturedProject.find({ createdBy: userId, isFeatured: true, })
       .populate("createdBy", "name email")
       .lean();
   },
