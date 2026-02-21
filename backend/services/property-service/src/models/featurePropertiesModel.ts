@@ -118,7 +118,6 @@ const YoutubeVideoSchema = new Schema(
   {
     title: { type: String },
     url: { type: String, required: true },
-    thumbnail: { type: String },
     order: { type: Number, default: 0 },
   },
   { _id: false }

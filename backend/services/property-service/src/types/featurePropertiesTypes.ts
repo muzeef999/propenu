@@ -90,7 +90,6 @@ export interface ILead {
 export interface IYoutubeVideo {
   title?: string;
   url: string;
-  thumbnail?: string;
   order?: number;
 }
 

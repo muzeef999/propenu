@@ -91,7 +91,6 @@ export const FileMetaZ = z.object({
  export const YoutubeVideoSchema = z.object({
   title: z.string().optional(),
   url: z.string().url().optional(),
-  thumbnail: z.string().url().optional(),
   order: z.number().int().optional().default(0),
 });
 
