@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useMemo } from "react";
+import { HiChevronLeft, HiChevronRight } from "react-icons/hi2";
 
 type GalleryItem = {
   title?: string;
@@ -16,6 +17,7 @@ type GalleryItem = {
 
 type GalleryPayload = {
   gallerySummary?: GalleryItem[] | null;
+  youtubeVideos?: YoutubeVideoItem[] | null;
   color?: string | null;
 };
 
@@ -26,23 +28,68 @@ type Props = {
 
 const FALLBACK_IMG = "/mnt/data/d20ab837-b1f5-4b98-9e4c-b827c8e81ccb.png";
 
+type YoutubeVideoItem = {
+  order?: number;
+  title?: string;
+  url?: string;
+};
+
 function normalizeGallery(incoming?: GalleryItem[] | GalleryPayload | null, explicitColor?: string | null) {
   if (Array.isArray(incoming)) {
-    return { items: incoming.slice(), color: explicitColor ?? "#F59E0B" };
+    return { items: incoming.slice(), youtubeVideos: [] as YoutubeVideoItem[], color: explicitColor ?? "#F59E0B" };
   }
   const obj = (incoming || {}) as GalleryPayload;
-  return { items: Array.isArray(obj.gallerySummary) ? obj.gallerySummary.slice() : [], color: explicitColor ?? obj.color ?? "#F59E0B" };
+  return {
+    items: Array.isArray(obj.gallerySummary) ? obj.gallerySummary.slice() : [],
+    youtubeVideos: Array.isArray(obj.youtubeVideos) ? obj.youtubeVideos.slice() : [],
+    color: explicitColor ?? obj.color ?? "#F59E0B",
+  };
+}
+
+function toYoutubeEmbedUrl(rawUrl?: string) {
+  if (!rawUrl) return null;
+  try {
+    const parsed = new URL(rawUrl);
+
+    if (parsed.hostname.includes("youtu.be")) {
+      const videoId = parsed.pathname.replace("/", "");
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    }
+
+    if (parsed.hostname.includes("youtube.com")) {
+      const videoId = parsed.searchParams.get("v");
+      if (videoId) return `https://www.youtube.com/embed/${videoId}`;
+
+      const pathParts = parsed.pathname.split("/").filter(Boolean);
+      if (pathParts[0] === "embed" && pathParts[1]) {
+        return `https://www.youtube.com/embed/${pathParts[1]}`;
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
 }
 
 export default function Gallery(props: Props) {
   const { gallerySummary: raw, primaryColor } = props;
-  const { items: rawItems, color } = useMemo(() => normalizeGallery(raw, primaryColor ?? null), [raw, primaryColor]);
+  const { items: rawItems, youtubeVideos: rawYoutubeVideos, color } = useMemo(
+    () => normalizeGallery(raw, primaryColor ?? null),
+    [raw, primaryColor]
+  );
 
   // stable sorted items by order
   const items = rawItems.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const youtubeVideos = rawYoutubeVideos
+    .slice()
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((video) => ({ ...video, embedUrl: toYoutubeEmbedUrl(video.url) }))
+    .filter((video) => Boolean(video.embedUrl));
 
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const startX = useRef<number | null>(null);
+  const videoTrackRef = useRef<HTMLDivElement | null>(null);
 
   // Keyboard nav
   useEffect(() => {
@@ -75,6 +122,16 @@ export default function Gallery(props: Props) {
       else next();
     }
     startX.current = null;
+  }
+
+  function scrollVideos(direction: "left" | "right") {
+    const track = videoTrackRef.current;
+    if (!track) return;
+    const scrollAmount = Math.max(track.clientWidth * 0.9, 320);
+    track.scrollBy({
+      left: direction === "left" ? -scrollAmount : scrollAmount,
+      behavior: "smooth",
+    });
   }
 
   if (!items || items.length === 0) {
@@ -128,7 +185,7 @@ export default function Gallery(props: Props) {
               className="w-full h-64 md:h-[420px] object-cover transition-transform group-hover:scale-105"
             />
             {renderCategoryPill(items[0])}
-            <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent pointer-events-none" />
+            <div className="absolute inset-0  bg-linear-to-t from-black/20 to-transparent pointer-events-none" />
           </div>
         </div>
 
@@ -152,6 +209,55 @@ export default function Gallery(props: Props) {
           ))}
         </div>
       </div>
+
+      {youtubeVideos.length > 0 && (
+        <div className="mt-4" id="video-gallery">
+          
+          <div
+            ref={videoTrackRef}
+            className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory no-scrollbar pb-1"
+          >
+            {youtubeVideos.map((video, idx) => (
+              <div
+                key={`${video.url}-${idx}`}
+                className="shrink-0 w-full md:w-1/3 rounded-xl overflow-hidden bg-white shadow-sm border border-gray-100 snap-start"
+              >
+                <div className="relative w-full pb-[56.25%]">
+                  <iframe
+                    src={video.embedUrl as string}
+                    title={video.title || `YouTube video ${idx + 1}`}
+                    className="absolute top-0 left-0 w-full h-full"
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+                <div className="p-3 text-sm font-medium text-slate-700 capitalize line-clamp-1">
+                  {video.title || `Video ${idx + 1}`}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => scrollVideos("left")}
+              className="h-9 w-9 rounded-full border border-gray-200 bg-white text-slate-700 hover:bg-slate-50 flex items-center justify-center"
+              aria-label="Previous videos"
+            >
+              <HiChevronLeft size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollVideos("right")}
+              className="h-9 w-9 rounded-full border border-gray-200 bg-white text-slate-700 hover:bg-slate-50 flex items-center justify-center"
+              aria-label="Next videos"
+            >
+              <HiChevronRight size={18} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
       {openIndex !== null && (

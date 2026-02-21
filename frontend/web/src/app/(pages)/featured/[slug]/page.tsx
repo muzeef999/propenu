@@ -63,6 +63,7 @@ export default async function Page({ params }: PageProps) {
   const hero = {
     projectId: project._id,
     subTagline: project?.heroSubTagline,
+    heroTagline: project?.heroTagline,
     description: project?.heroDescription,
     propertyType: project?.propertyType || "residential",
     color: project?.color?.trim(),
@@ -96,12 +97,14 @@ export default async function Page({ params }: PageProps) {
   const gallerySummary = {
     gallerySummary: project?.gallerySummary,
     color: project?.color?.trim(),
+    youtubeVideos: project?.youtubeVideos,
   };
 
   const aboutSummary = {
     aboutSummary: project?.aboutSummary,
     color: project?.color?.trim(),
   };
+  console.log("nav", project)
 
  
   return (
@@ -111,6 +114,7 @@ export default async function Page({ params }: PageProps) {
         logoUrl={project?.logo?.url}
         color={project?.color?.trim()}
         brochureUrl={project?.brochure?.url}
+        redirectUrl={project?.redirectUrl}
       />
     
 

@@ -10,6 +10,12 @@ export interface MediaFile {
   filename?: string;
   mimetype?: string;
 }
+export interface YoutubeVideo {
+  order: number;
+  title: string;
+  url: string;
+}
+
 export interface FeaturedProject {
   // basic
   _id: string;
@@ -27,6 +33,8 @@ export interface FeaturedProject {
   heroTagline?: string;
   heroSubTagline?: string;
   heroDescription?: string;
+  redirectUrl?: string;
+
 
   // SEO / branding
   color?: string; // hex e.g. '#000'
@@ -97,6 +105,7 @@ export interface FeaturedProject {
   updatedBy?: Types.ObjectId | string;
   relatedProjects?: Array<Types.ObjectId | string>;
   propertyType?: string;
+  youtubeVideos?: YoutubeVideo[];
 }
 
 export interface AgentConnect {

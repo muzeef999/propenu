@@ -24,6 +24,7 @@ export type Hero = {
   heroImage?: string;
   stats?: Stat[];
   propertyType?: string;
+  heroTagline?: string;
 };
 
 export default function HeroSection({ hero }: Props) {
@@ -127,6 +128,17 @@ export default function HeroSection({ hero }: Props) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           {/* LEFT TEXT */}
           <div className="lg:col-span-7 space-y-6">
+             {h.heroTagline ? (
+                <div className="mb-5 inline-flex items-center gap-3 rounded-full bg-black/35 pr-4 pl-2 py-2 backdrop-blur-md border border-white/20">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full shadow-[0_0_12px]"
+                    style={{ backgroundColor: h.color || "#f59e0b", boxShadow: `0 0 12px ${h.color || "#f59e0b"}` }}
+                  />
+                  <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-[0.18em] text-white/90">
+                    {h.heroTagline}
+                  </p>
+                </div>
+              ) : null}
             <h1 className="text-white text-2xl sm:text-3xl md:text-[64px] leading-tight">
               {h.subTagline}
             </h1>

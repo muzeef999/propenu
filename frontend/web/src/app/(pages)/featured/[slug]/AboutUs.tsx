@@ -126,7 +126,7 @@ export default function AboutUS(props: Props) {
               <img
                 src={safeUrl}
                 alt={item?.filename ?? "About image"}
-                className="w-full rounded-2xl shadow-lg object-cover h-56 sm:h-72 md:h-80 lg:h-64"
+                className="w-full rounded-2xl shadow-lg object-cover h-56 sm:h-72 md:h-80 lg:h-full"
                 loading="lazy"
                 onError={(e) => {
                   // fallback to hidden placeholder if image fails

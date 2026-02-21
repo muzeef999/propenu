@@ -20,6 +20,8 @@ type Props = {
   brochureUrl?: string | null;
   // optional aria label for logo (defaults to "Site logo")
   logoAlt?: string;
+  redirectUrl?: string;
+
 };
 
 export default function MicroSiteNavbar({
@@ -28,6 +30,7 @@ export default function MicroSiteNavbar({
   color = "#FFAC1D",
   brochureUrl,
   logoAlt = "Site logo",
+  redirectUrl,
 }: Props) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname() || "/";
@@ -71,19 +74,36 @@ export default function MicroSiteNavbar({
 
     return pathname === href || pathname.startsWith(href + "/");
   };
+  const logoHref = redirectUrl?.trim() || "/";
+  const isExternalLogoHref = /^https?:\/\//i.test(logoHref);
 
   return (
     <header className="bg-white shadow-md border-b border-gray-200  sticky top-0 z-9999">
       <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="h-14 flex items-center justify-between">
           {/* logo */}
-          <Link href="/" className="flex items-center gap-3">
-            <img
-              src={resolvedLogo}
-              alt={logoAlt}
-              className="h-12 w-auto object-contain"
-            />
-          </Link>
+          {isExternalLogoHref ? (
+            <a
+              href={logoHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3"
+            >
+              <img
+                src={resolvedLogo}
+                alt={logoAlt}
+                className="h-12 w-auto object-contain"
+              />
+            </a>
+          ) : (
+            <Link href={logoHref} className="flex items-center gap-3">
+              <img
+                src={resolvedLogo}
+                alt={logoAlt}
+                className="h-12 w-auto object-contain"
+              />
+            </Link>
+          )}
 
           {/* desktop links + download icon */}
           <div className="hidden md:flex items-center" style={navAccentStyle}>
@@ -93,17 +113,17 @@ export default function MicroSiteNavbar({
                 return (
                   <li key={l.href}>
                     <Link
-  href={l.href}
-  onClick={() => handleNavClick(l.href)}
-  className={`relative px-2 py-1 transition rounded text-(--nav-accent) after:absolute after:left-1/2 after:-bottom-4 after:h-1 after:w-12 after:-translate-x-1/2 after:bg-(--nav-accent) after:transition-all after:duration-300 ${active
-      ? "after:opacity-100 after:scale-x-100"
-      : "after:opacity-0 after:scale-x-0"
-    }
+                      href={l.href}
+                      onClick={() => handleNavClick(l.href)}
+                      className={`relative px-2 py-1 transition rounded text-(--nav-accent) after:absolute after:left-1/2 after:-bottom-4 after:h-1 after:w-full after:-translate-x-1/2 after:bg-(--nav-accent) after:transition-all after:duration-300 ${active
+                        ? "after:opacity-100 after:scale-x-100"
+                        : "after:opacity-0 after:scale-x-0"
+                        }
   `}
-  aria-current={active ? "page" : undefined}
->
-  {l.title}
-</Link>
+                      aria-current={active ? "page" : undefined}
+                    >
+                      {l.title}
+                    </Link>
 
 
                   </li>
