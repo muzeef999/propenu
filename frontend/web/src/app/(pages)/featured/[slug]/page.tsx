@@ -104,8 +104,7 @@ export default async function Page({ params }: PageProps) {
     aboutSummary: project?.aboutSummary,
     color: project?.color?.trim(),
   };
-  console.log("nav", project)
-
+console.log(project)
  
   return (
     <div>

@@ -114,7 +114,10 @@ async function processBhkPlanUpdates(opts: {
 
   for (let b = 0; b < bhkSummaryIncoming.length; b++) {
     const incomingBhk = bhkSummaryIncoming[b];
-    const existingBhk = existingSummary[b] || { units: [] };
+    // const existingBhk = existingSummary[b] || { units: [] };
+    const existingBhk = existingSummary.find(
+      (eb) => eb.bhk === incomingBhk.bhk,
+    ) || { units: [] };
 
     if (!Array.isArray(existingBhk.units)) {
       existingBhk.units = [];
@@ -122,7 +125,11 @@ async function processBhkPlanUpdates(opts: {
 
     for (let u = 0; u < incomingBhk.units.length; u++) {
       const incomingUnit = incomingBhk.units[u];
-      const existingUnit = existingBhk.units[u];
+      // const existingUnit = existingBhk.units[u];
+      
+      const existingUnit = existingBhk.units.find(
+        (eu: any) => eu._id?.toString() === incomingUnit._id?.toString(),
+      );
 
       if (!incomingUnit) continue;
 
@@ -183,7 +190,9 @@ async function processBhkPlanUpdates(opts: {
         continue;
       }
 
-      incomingUnit.plan = null;
+      if (!incomingUnit.plan && existingUnit?.plan) {
+        incomingUnit.plan = existingUnit.plan;
+      }
     }
   }
 
@@ -1032,9 +1041,11 @@ export const FeaturePropertyService = {
 
     // delete BHK plan keys
     if (Array.isArray(existing.bhkSummary)) {
-      for (const e of existing.bhkSummary) {
-        if ((e as any)?.plan?.key) {
-          await deleteS3ObjectIfExists((e as any).plan.key);
+      for (const b of existing.bhkSummary) {
+        for (const u of b.units || []) {
+          if (u?.plan?.key) {
+            await deleteS3ObjectIfExists(u.plan.key);
+          }
         }
       }
     }
