@@ -125,23 +125,18 @@ const BuilderLeadsPage = () => {
     setActiveStatus("All");
   }, [selectedPropertyId]);
 
-
   const handleDownloadCSV = () => {
-  if (!selectedPropertyId) {
-    alert("Please select a property");
-    return;
-  }
+    if (!selectedPropertyId) {
+      alert("Please select a property");
+      return;
+    }
 
-  const from = fromDate
-    ? fromDate.toISOString().split("T")[0]
-    : undefined;
+    const from = fromDate ? fromDate.toISOString().split("T")[0] : undefined;
 
-  const to = toDate
-    ? toDate.toISOString().split("T")[0]
-    : undefined;
+    const to = toDate ? toDate.toISOString().split("T")[0] : undefined;
 
-  downloadLeadsCSV(selectedPropertyId, from, to);
-};
+    downloadLeadsCSV(selectedPropertyId, from, to);
+  };
 
   const filteredLeads = useMemo(() => {
     const leads = Array.isArray(leadsData?.data) ? leadsData.data : [];
@@ -168,42 +163,76 @@ const BuilderLeadsPage = () => {
         <p className="text-gray-600">
           View enquiries received on your properties
         </p>
+         <span className="text-sm text-gray-500 mr-4">
+            Showing{" "}
+            <span className="font-semibold text-gray-800">
+              {properties.length}
+            </span>{" "}
+            Properties
+          </span>
       </div>
-      <div className="flex items-center justify-between">
-        <ActiveTabs
-          categories={catregories}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-        />
 
-        <div className="flex gap-3 mb-4 items-center">
-          <DatePicker
-            selected={fromDate}
-            onChange={(date: any) => setFromDate(date)}
-            placeholderText="From Date"
-            className="border px-2 py-1 rounded"
-            dateFormat="yyyy-MM-dd"
-          />
+      <div className="bg-white  rounded-2xl shadow-sm px-6 py-5 flex flex-wrap items-center gap-4 justify-between">
+        {/* LEFT SIDE */}
+        <div className="flex flex-wrap items-center gap-4">
+         
+          {/* DATE PICKERS */}
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <DatePicker
+                selected={fromDate}
+                onChange={(date: any) => setFromDate(date)}
+                placeholderText="From Date"
+                className="pl-10 pr-4 py-2 border rounded-full text-sm bg-gray-50 focus:ring-2 focus:ring-green-500"
+                dateFormat="yyyy-MM-dd"
+              />
+              <span className="absolute left-3 top-2.5 text-gray-400">📅</span>
+            </div>
 
-          <DatePicker
-            selected={toDate}
-            onChange={(date: any) => setToDate(date)}
-            placeholderText="To Date"
-            className="border px-2 py-1 rounded"
-            dateFormat="yyyy-MM-dd"
-          />
+            <div className="relative">
+              <DatePicker
+                selected={toDate}
+                onChange={(date: any) => setToDate(date)}
+                placeholderText="To Date"
+                className="pl-10 pr-4 py-2 border rounded-full text-sm bg-gray-50 focus:ring-2 focus:ring-green-500"
+                dateFormat="yyyy-MM-dd"
+              />
+              <span className="absolute left-3 top-2.5 text-gray-400">📅</span>
+            </div>
+          </div>
+
+          {/* STATUS CHIPS */}
+          <div className="flex flex-wrap gap-2 ml-2">
+            {LEAD_STATUSES.map((status) => {
+              const active = activeStatus === status;
+
+              return (
+                <button
+                  key={status}
+                  onClick={() => setActiveStatus(status)}
+                  className={`px-4 py-1.5 rounded-full text-sm capitalize transition shadow-sm
+              ${
+                active
+                  ? "bg-green-600 text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+                >
+                  {status.replace("_", " ")}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
+        {/* RIGHT SIDE */}
         <button
-  onClick={handleDownloadCSV}
-  className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
->
-  Download CSV
-</button>
-        <span className="text-sm text-gray-600">
-          Showing {properties.length} Properties
-        </span>
+          onClick={handleDownloadCSV}
+          className="flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded-full shadow-md hover:bg-green-700"
+        >
+          ⬇ Download CSV
+        </button>
       </div>
+
       <div className="grid grid-cols-12 gap-4">
         {/* LEFT â€“ PROPERTY LIST */}
         <div className="col-span-4 space-y-2">
@@ -252,33 +281,10 @@ const BuilderLeadsPage = () => {
         {/* RIGHT â€“ LEADS */}
         <div className="col-span-8 bg-green-50/40 rounded-lg p-4">
           {/* STATUS TABS */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            {LEAD_STATUSES.map((status) => {
-              const active = activeStatus === status;
-
-              return (
-                <button
-                  key={status}
-                  onClick={() => setActiveStatus(status)}
-                  className={`px-3 py-1.5 rounded-md text-xs transition
-          ${
-            active
-              ? "bg-green-100 text-gray-600 font-medium"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }
-        `}
-                >
-                  {status}
-                </button>
-              );
-            })}
-          </div>
 
           {/* TABLE */}
           {leadsLoading ? (
-            <div className="text-center py-20 text-gray-500">
-              Loading leadsâ€¦
-            </div>
+            <div className="text-center py-20 text-gray-500">Loading lead</div>
           ) : filteredLeads.length ? (
             <LeadsTable
               leads={filteredLeads}
