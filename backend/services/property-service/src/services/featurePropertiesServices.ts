@@ -1040,7 +1040,7 @@ export const FeaturePropertyService = {
     if (!existing) return null;
 
     // delete BHK plan keys
-    if (Array.isArray(existing.bhkSummary)) {
+   if (Array.isArray(existing.bhkSummary)) {
       for (const b of existing.bhkSummary) {
         for (const u of b.units || []) {
           if (u?.plan?.key) {
