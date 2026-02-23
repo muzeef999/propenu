@@ -1,33 +1,31 @@
 ﻿"use client";
 
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+
 import { useState, useEffect, useMemo } from "react";
 import ActiveTabs from "@/ui/ActiveTabs";
-import { getMyProperties, getProjectLeads } from "@/data/ClientData";
-import { useQuery } from "@tanstack/react-query";
+import {
+  downloadLeadsCSV,
+  getMyProperties,
+  getProjectbuilderLeads,
+  getProjectLeads,
+  updateLeadStatus,
+} from "@/data/ClientData";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-const catregories = [
-  "Featured",
-  "Residential",
-  "Commercial",
-  "Plot",
-  "Agriculture",
-];
+const catregories = ["Featured"];
 
-const LEAD_STATUSES = [
-  "All",
-  "New",
-  "Contacted",
-  "Follow-up",
-  "Approved",
-  "Rejected",
-  "Closed",
-];
+export const LEAD_STATUSES = [
+  "new",
+  "contacted",
+  "follow_up",
+  "approved",
+  "rejected",
+  "closed",
+] as const;
 const TAB_KEY_MAP: Record<string, string> = {
   Featured: "featured",
-  Residential: "residential",
-  Commercial: "commercial",
-  Plot: "land",
-  Agriculture: "agricultural",
 };
 
 const formatPrice = (price?: number) => {
@@ -53,7 +51,12 @@ const getPropertyPriceLabel = (property: any) => {
     return formatPrice(price);
   }
 
-  if (Number.isFinite(priceFrom) && priceFrom > 0 && Number.isFinite(priceTo) && priceTo > 0) {
+  if (
+    Number.isFinite(priceFrom) &&
+    priceFrom > 0 &&
+    Number.isFinite(priceTo) &&
+    priceTo > 0
+  ) {
     return `${formatPrice(priceFrom)} - ${formatPrice(priceTo)}`;
   }
 
@@ -68,8 +71,12 @@ const getPropertyPriceLabel = (property: any) => {
   return "—";
 };
 
-
 const BuilderLeadsPage = () => {
+  const queryClient = useQueryClient();
+
+  const [fromDate, setFromDate] = useState<Date | null>(null);
+  const [toDate, setToDate] = useState<Date | null>(null);
+
   const [activeTab, setActiveTab] = useState("Featured");
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(
     null,
@@ -90,17 +97,54 @@ const BuilderLeadsPage = () => {
   }, [properties, selectedPropertyId]);
 
   const { data: leadsData = [], isLoading: leadsLoading } = useQuery({
-    queryKey: ["projectLeads", selectedPropertyId],
-    queryFn: () => getProjectLeads(selectedPropertyId as string),
+    queryKey: ["projectLeadsbuilder", selectedPropertyId, fromDate, toDate],
+    queryFn: () =>
+      getProjectbuilderLeads(
+        selectedPropertyId!,
+        fromDate ?? undefined,
+        toDate ?? undefined,
+      ),
     enabled: !!selectedPropertyId,
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }: any) => {
+      console.log("Updating lead:", id, status);
+      return updateLeadStatus(id, status);
+    },
+
+    onSuccess: () => {
+      console.log("Update success");
+      queryClient.invalidateQueries({
+        queryKey: ["projectLeadsbuilder", selectedPropertyId],
+      });
+    },
   });
 
   useEffect(() => {
     setActiveStatus("All");
   }, [selectedPropertyId]);
 
+
+  const handleDownloadCSV = () => {
+  if (!selectedPropertyId) {
+    alert("Please select a property");
+    return;
+  }
+
+  const from = fromDate
+    ? fromDate.toISOString().split("T")[0]
+    : undefined;
+
+  const to = toDate
+    ? toDate.toISOString().split("T")[0]
+    : undefined;
+
+  downloadLeadsCSV(selectedPropertyId, from, to);
+};
+
   const filteredLeads = useMemo(() => {
-    const leads = Array.isArray(leadsData) ? leadsData : [];
+    const leads = Array.isArray(leadsData?.data) ? leadsData.data : [];
     if (activeStatus === "All") {
       return leads;
     }
@@ -116,7 +160,6 @@ const BuilderLeadsPage = () => {
       </div>
     );
   }
-  console.log("properties", properties);
 
   return (
     <div className="space-y-6">
@@ -132,6 +175,31 @@ const BuilderLeadsPage = () => {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
         />
+
+        <div className="flex gap-3 mb-4 items-center">
+          <DatePicker
+            selected={fromDate}
+            onChange={(date: any) => setFromDate(date)}
+            placeholderText="From Date"
+            className="border px-2 py-1 rounded"
+            dateFormat="yyyy-MM-dd"
+          />
+
+          <DatePicker
+            selected={toDate}
+            onChange={(date: any) => setToDate(date)}
+            placeholderText="To Date"
+            className="border px-2 py-1 rounded"
+            dateFormat="yyyy-MM-dd"
+          />
+        </div>
+
+        <button
+  onClick={handleDownloadCSV}
+  className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+>
+  Download CSV
+</button>
         <span className="text-sm text-gray-600">
           Showing {properties.length} Properties
         </span>
@@ -212,7 +280,10 @@ const BuilderLeadsPage = () => {
               Loading leadsâ€¦
             </div>
           ) : filteredLeads.length ? (
-            <LeadsTable leads={filteredLeads} />
+            <LeadsTable
+              leads={filteredLeads}
+              updateStatusMutation={updateStatusMutation}
+            />
           ) : (
             <div className="text-center py-20 text-gray-500">
               No <b>{activeStatus}</b> leads for this property
@@ -224,27 +295,40 @@ const BuilderLeadsPage = () => {
   );
 };
 
-const LeadsTable = ({ leads }: any) => (
-    <div className="bg-white rounded-lg overflow-hidden">
-        <div className="grid grid-cols-4 px-4 py-3 text-xs font-semibold text-gray-500 border-b">
-            <span>Name</span>
-            <span>Date</span>
-            <span>Contact Number</span>
-            <span>Lead Status</span>
-        </div>
-
-        {leads.map((lead: any, idx: number) => (
-            <div key={idx} className="grid grid-cols-4 px-4 py-3 text-sm border-b">
-                <span>{lead.name}</span>
-                <span className="text-gray-500">
-                    {new Date(lead.createdAt).toLocaleDateString("en-IN")}
-                </span>
-                <span>{lead.phone}</span>
-                <span>{lead.status}</span>
-            </div>
-        ))}
+const LeadsTable = ({ leads, updateStatusMutation }: any) => (
+  <div className="bg-white rounded-lg overflow-hidden">
+    <div className="grid grid-cols-4 px-4 py-3 text-xs font-semibold text-gray-500 border-b">
+      <span>Name</span>
+      <span>Date</span>
+      <span>Contact Number</span>
+      <span>Lead Status</span>
     </div>
-);
 
+    {leads.map((lead: any, idx: number) => (
+      <div key={idx} className="grid grid-cols-4 px-4 py-3 text-sm border-b">
+        <span>{lead.name}</span>
+        <span className="text-gray-500">
+          {new Date(lead.createdAt).toLocaleDateString("en-IN")}
+        </span>
+        <span>{lead.phone}</span>
+        <select
+          value={lead.status || "new"}
+          onChange={(e) =>
+            updateStatusMutation.mutate({
+              id: lead._id,
+              status: e.target.value,
+            })
+          }
+        >
+          {LEAD_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </div>
+    ))}
+  </div>
+);
 
 export default BuilderLeadsPage;

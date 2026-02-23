@@ -8,6 +8,7 @@ import Amenities from "./Amenities";
 import LocateUs from "./LocateUs";
 import Gallery from "./Gallery";
 import AboutUS from "./AboutUs";
+import Specification from "./Specification";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -37,6 +38,7 @@ export default async function Page({ params }: PageProps) {
     { title: "Amenities", href: "#amenities" },
     { title: "Map View", href: "#map-view" },
     { title: "Gallery", href: "#gallery" },
+    { title: "Specifications", href: "#specification" },
     { title: "About Us", href: "#about-us" },
   ];
   function formatCrRange(priceFrom?: number, priceTo?: number) {
@@ -56,10 +58,7 @@ export default async function Page({ params }: PageProps) {
     return "Price on Request";
   }
 
-  const startingPrice = formatCrRange(
-    project?.priceFrom,
-    project?.priceTo
-  );
+  const startingPrice = formatCrRange(project?.priceFrom, project?.priceTo);
   const hero = {
     projectId: project._id,
     subTagline: project?.heroSubTagline,
@@ -71,7 +70,10 @@ export default async function Page({ params }: PageProps) {
     stats: [
       { value: startingPrice, label: "Price Range" },
       { value: "3-4 BHK", label: "Configurations" },
-      { value: (project?.amenities?.length || 0).toString(), label: "Amenities" },
+      {
+        value: (project?.amenities?.length || 0).toString(),
+        label: "Amenities",
+      },
       { value: "RERA", label: "Approved" },
     ],
     ctaPrimary: { text: "Explore", href: "/explore" },
@@ -104,8 +106,12 @@ export default async function Page({ params }: PageProps) {
     aboutSummary: project?.aboutSummary,
     color: project?.color?.trim(),
   };
-console.log(project)
- 
+  
+  const  specifications =  {
+    specifications: project?.specifications,
+    color: project?.color?.trim(),
+  }
+
   return (
     <div>
       <MicroSiteNavbar
@@ -115,13 +121,11 @@ console.log(project)
         brochureUrl={project?.brochure?.url}
         redirectUrl={project?.redirectUrl}
       />
-    
 
       <Herosection hero={hero} />
 
       <br />
       <div className="container mx-auto px-4 space-y-2">
-
         <div id="available-properties" className="scroll-mt-20">
           <AvailableProperties bhk={bhkSummary} />
         </div>
@@ -136,6 +140,10 @@ console.log(project)
 
         <div id="gallery" className="scroll-mt-20">
           <Gallery gallerySummary={gallerySummary} />
+        </div>
+
+        <div id="specification" className="scroll-mt-20">
+          <Specification specifications={specifications} />
         </div>
 
         <div id="about-us" className="scroll-mt-20">

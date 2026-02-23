@@ -11,6 +11,7 @@ import {
 } from "@/types/property";
 import { SearchFilterParams } from "@/types/sharedTypes";
 import axiosInstance from "@/utilies/axiosInstance";
+import axios from "axios";
 import Cookies from "js-cookie";
 
 const url = process.env.NEXT_PUBLIC_API_URL;
@@ -313,6 +314,44 @@ export const getProjectLeads = async (projectId: string) => {
   );
   return res.data;
 };
+
+
+export const getProjectbuilderLeads = async (projectId: string, from?: Date, to?: Date) => {
+  const params = new URLSearchParams();
+  if (from) params.append("from", from.toISOString());
+  if (to) params.append("to", to.toISOString());
+
+  const res = await axiosInstance.get(
+    `${url}/api/properties/leads/project/${projectId}/leads`,
+    { params }
+  );
+  return res.data;
+};
+
+export const downloadLeadsCSV = async (
+  projectId: string,
+  from?: string,
+  to?: string
+) => {
+  const params = new URLSearchParams();
+
+  if (from) params.append("from", from);
+  if (to) params.append("to", to);
+
+  const downloadUrl = `${url}/api/properties/leads/project/${projectId}/leads/csv?${params.toString()}`;
+
+  window.open(downloadUrl, "_blank");
+};
+
+
+export const updateLeadStatus = async (id: string, status: string) => {
+ const res  = await axiosInstance.patch(
+    `${url}/api/properties/leads/project/${id}/status`,
+    { status },
+  );
+  return res.data;
+}
+
 
 export const getHighlightProjectBuilders = async () => {
   const res = await axiosInstance.get(
