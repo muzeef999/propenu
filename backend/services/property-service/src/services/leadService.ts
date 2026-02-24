@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import Lead from "../models/LeadModel";
 import { Subscription } from "../models/subscriptionModel";
 import { Plan } from "../models/planModel";
@@ -8,6 +8,7 @@ import Commercial from "../models/commercialModel";
 import Agricultural from "../models/agriculturalModel";
 import LandPlot from "../models/landModel";
 import FeaturedProject from "../models/featurePropertiesModel";
+import PublicLead from "../models/PublicLead";
 
 
 const PROPERTY_MODEL_MAP: Record<string, any> = {
@@ -212,6 +213,28 @@ export const getLeadById = async (id: string) => {
     .populate("projectId");
 
   if (!lead) throw new Error("Lead not found");
+
+  return lead;
+};
+
+
+export const updateLeadStatusService = async (
+  leadId: string,
+  status: string
+) => {
+  if (!mongoose.Types.ObjectId.isValid(leadId)) {
+    throw new Error("Invalid Lead ID");
+  }
+
+  const lead = await PublicLead.findByIdAndUpdate(
+    leadId,
+    { status },
+    { new: true }
+  );
+
+  if (!lead) {
+    throw new Error("Lead not found");
+  }
 
   return lead;
 };

@@ -137,6 +137,10 @@ export default async function Page({ params }: PageProps) {
           <Gallery gallerySummary={gallerySummary} />
         </div>
 
+        <div id="specification" className="scroll-mt-20">
+          <Specification specifications={specifications} />
+        </div>
+
         <div id="about-us" className="scroll-mt-20">
           <AboutUS aboutSummary={aboutSummary} />
         </div>

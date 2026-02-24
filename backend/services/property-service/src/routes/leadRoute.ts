@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { assignLeadController, checkLeadController, createLeadController, createPublicLeadController, getLeadByIdController, getLeadsController, getMyContactedProperties, getProjectLeadsController, updateLeadStatusController } from "../controller/leadController"
+import { assignLeadController, checkLeadController, createLeadController, createPublicLeadController, downloadLeadsCSVController, getLeadByIdController, getLeadsController, getMyContactedProperties, getProjectLeadsController, updateLeadStatusController, updateProjectLeadStatusController } from "../controller/leadController"
 import { LeadCreateSchema } from '../zod/leadZod';
 import { validateBody } from '../middlewares/validate';
 import { authMiddleware } from '../middlewares/authMiddleware';
@@ -23,6 +23,8 @@ router.post(
 
 router.post("/project/lead",  createPublicLeadController);
 router.get("/project/:projectId/leads", getProjectLeadsController);
+router.patch("/project/:id/status", updateProjectLeadStatusController);
+router.get("/project/:projectId/leads/csv",downloadLeadsCSVController);
 
 
 
