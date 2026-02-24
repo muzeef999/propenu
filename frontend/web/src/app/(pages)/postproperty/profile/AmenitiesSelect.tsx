@@ -138,7 +138,7 @@ const AmenitiesSelect = ({
                 <div className="flex items-center justify-between pb-4 sm:pb-6">
                   <div>
                     <h3 className="text-xl font-semibold text-gray-900">
-                      Add property furnishings and amenities
+                      Add property amenities
                     </h3>
                     <p className="mt-1 text-sm text-gray-500">
                       {value.length} selected
@@ -207,16 +207,6 @@ const AmenitiesSelect = ({
                       </div>
                     </section>
                   ))}
-                </div>
-
-                <div className="mt-8 pt-4 items-center justify-center flex">
-                  <button
-                    type="button"
-                    onClick={() => setOpen(false)}
-                    className="btn-primary w-full rounded-md py-2  text-white sm:w-auto sm:px-8"
-                  >
-                    Save
-                  </button>
                 </div>
               </div>
             </div>
