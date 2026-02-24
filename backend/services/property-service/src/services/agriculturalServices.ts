@@ -130,7 +130,32 @@ function normalizePayload(obj: any) {
   if (typeof obj.title === "string") obj.title = obj.title.trim();
   if (obj.price === "") obj.price = undefined;
   if (obj.createdBy) obj.createdBy = String(obj.createdBy);
+  if (Array.isArray(obj.amenities))
+    obj.amenities = normalizeAmenitiesInput(obj.amenities);
   return obj;
+}
+
+function normalizeAmenityKey(value?: string) {
+  if (!value || typeof value !== "string") return value;
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_")
+    .replace(/[^a-z0-9_]/g, "")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function normalizeAmenitiesInput(amenities?: any[]) {
+  if (!Array.isArray(amenities)) return amenities;
+  return amenities.map((a) => {
+    if (!a || typeof a !== "object") return a;
+    const normalized = { ...a };
+    const sourceKey = normalized.key ?? normalized.title;
+    const normalizedKey = normalizeAmenityKey(sourceKey);
+    if (normalizedKey) normalized.key = normalizedKey;
+    return normalized;
+  });
 }
 
 /* --------------------  Service API  -------------------- */
@@ -227,6 +252,9 @@ export const AgriculturalService = {
     if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
     const existing = await Agricultural.findById(id);
     if (!existing) return null;
+    if (Array.isArray(payload?.amenities)) {
+      payload.amenities = normalizeAmenitiesInput(payload.amenities);
+    }
 
     // slug/title change handling
     // inside your update function in agricultural.service.ts

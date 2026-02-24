@@ -29,11 +29,36 @@ function pickDefined<T extends Record<string, any>>(obj: T) {
   );
 }
 
+function normalizeAmenityKey(value?: string) {
+  if (!value || typeof value !== "string") return value;
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_")
+    .replace(/[^a-z0-9_]/g, "")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function normalizeAmenitiesInput(amenities?: any[]) {
+  if (!Array.isArray(amenities)) return amenities;
+  return amenities.map((a) => {
+    if (!a || typeof a !== "object") return a;
+    const normalized = { ...a };
+    const sourceKey = normalized.key ?? normalized.title;
+    const normalizedKey = normalizeAmenityKey(sourceKey);
+    if (normalizedKey) normalized.key = normalizedKey;
+    return normalized;
+  });
+}
+
 function normalizePayload(obj: any) {
   if (!obj) return obj;
   if (typeof obj.title === "string") obj.title = obj.title.trim();
   if (obj.price === "") obj.price = undefined;
   if (obj.createdBy) obj.createdBy = String(obj.createdBy);
+  if (Array.isArray(obj.amenities))
+    obj.amenities = normalizeAmenitiesInput(obj.amenities);
   return obj;
 }
 
@@ -238,6 +263,11 @@ export const ResidentialPropertyService = {
 
     const data = parsed.data;
     const safeUpdate = pickDefined(data);
+    if (Array.isArray((safeUpdate as any).amenities)) {
+      (safeUpdate as any).amenities = normalizeAmenitiesInput(
+        (safeUpdate as any).amenities,
+      );
+    }
     const incomingGallery = safeUpdate.gallery;
     delete safeUpdate.gallery;
     Object.assign(existing, safeUpdate);
