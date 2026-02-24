@@ -481,7 +481,6 @@ const AgentProfilePage = () => {
     });
   }, [agent, handleEditStart]);
 
-  console.log("membership history", membership);  
 
   return (
     <div className="space-y-8 mx-auto max-w-7xl py-1">

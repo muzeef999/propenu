@@ -118,7 +118,6 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
     },
   });
 
-  console.log("property data in LandCard:", p);
 
 
   return (

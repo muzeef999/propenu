@@ -163,7 +163,6 @@ const Page = () => {
       </div>
     );
   }
-  console.log("Filtered Properties:", filteredProperties);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-1">
