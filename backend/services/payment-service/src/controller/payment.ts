@@ -1,25 +1,41 @@
 import { Request, Response } from "express";
-import { createPaymentOrder, verifyPaymentAndActivate } from "../services/payment";
+import {
+  createPaymentOrder,
+  verifyPaymentAndActivate,
+} from "../services/payment";
 import { AuthRequest } from "../middlewares/authMiddleware";
 
 /* ---------------- CREATE PAYMENT ---------------- */
 
 export async function createPayment(req: AuthRequest, res: Response) {
   try {
-    const {planId } = req.body;
+    const { planId } = req.body;
 
-     if (!planId) {
+    if (!planId) {
       return res.status(400).json({ message: "planId is required" });
     }
-    
-    const userType = req.user!.roleName;
+
+const role = req.user!.roleName;
+
+const userType =
+  role === "user"
+    ? "buyer"
+    : role === "builder"
+      ? "owner"
+      : role === "agent"
+        ? "agent"
+        : "buyer";
     const userId = req.user!.id;
-    
+
     const result = await createPaymentOrder(planId, userId, userType);
 
     if ("free" in result) {
-      return res.json({ message: "Free plan activated" });
-    }
+  return res.json({
+    success: true,
+    free: true,
+    message: "Free plan activated 🎉",
+  });
+}
 
     res.json(result);
   } catch (error: any) {
@@ -35,7 +51,7 @@ export async function verifyPayment(req: AuthRequest, res: Response) {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
-          planId,
+      planId,
     } = req.body;
 
     await verifyPaymentAndActivate(
@@ -49,5 +65,3 @@ export async function verifyPayment(req: AuthRequest, res: Response) {
     res.status(400).json({ message: error.message });
   }
 }
-
-

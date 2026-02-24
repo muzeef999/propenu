@@ -13,7 +13,7 @@ import { generateInvoicePdf } from "../utils/generateInvoicePdf";
 export async function createPaymentOrder(
   planId: string,
   userId: string,
-  userType: "buyer" | "builder" | "agent",
+    userType: "buyer" | "owner" | "agent",
 ) {
 
   if (!Types.ObjectId.isValid(planId)) {
@@ -36,7 +36,8 @@ export async function createPaymentOrder(
     // 🔒 Prevent duplicate active subscription
     const existing = await Subscription.findOne({
       userId,
-      userType: plan.userType,
+      userType,
+      category: plan.category,
       status: "active",
     });
 
@@ -50,23 +51,19 @@ export async function createPaymentOrder(
 
     await Subscription.create({
       userId,
-      userType,
+      userType: plan.userType,
       category: plan.category || "both",
       planCode: plan.code,
       tier: plan.tier,
-
       startDate: new Date(),
       endDate: new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000),
-
       status: "active",
-
       // ✅ very important for limits
       usage: {
         contactUsed: 0,
         enquiryUsed: 0,
       },
     });
-
 
     return {
       free: true,
@@ -185,8 +182,9 @@ export async function verifyPaymentAndActivate(
 
   const invoiceUrl = await uploadPdfToS3(invoiceBuffer, s3Key);
 
-  const userType =
-  payment.userType === "user" ? "buyer" : payment.userType
+  // const userType = payment.userType === "user" ? "buyer" : payment.userType
+
+  const userType = payment.userType;
 
   // ✅ Activate new subscription
   const subscription = await Subscription.create({

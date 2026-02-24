@@ -64,8 +64,18 @@ export const requireActiveSubscription = async (
     }
 
     // 🔥 STEP 1: Map listingType → plan category
-    const requiredCategory =
-      listingType === "sale" ? "sell" : listingType === "rent" ? "rent" : null;
+    // const requiredCategory =
+    //   listingType === "sale" ? "sell" : listingType === "rent" ? "rent" : null;
+
+const requiredCategory =
+  listingType === "sale"
+    ? "sell"
+    : listingType === "rent"
+    ? "rent"
+    : listingType === "buy"
+    ? "buy"
+    : null;
+
 
     if (!requiredCategory) {
       return res.status(400).json({ message: "Invalid listingType" });

@@ -4,6 +4,7 @@ import { LeadCreateSchema } from '../zod/leadZod';
 import { validateBody } from '../middlewares/validate';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import { requireActiveSubscription } from '../middlewares/requireActiveSubscription';
+import { requireContactOwnerLimit } from '../middlewares/requireContactOwnerLimit';
 
 const router = Router();
 
@@ -16,6 +17,7 @@ router.post(
     next();
   },
   validateBody(LeadCreateSchema),
+  requireContactOwnerLimit,
   authMiddleware,
   createLeadController
 );

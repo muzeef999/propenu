@@ -26,11 +26,19 @@ type Plan = {
 
 type ActivePlanCardProps = {
   my_subscription:
-  | {
-    active: boolean;
-    plans: Plan[];
-  }
-  | undefined;
+    | {
+        active: boolean;
+        plans: Plan[];
+      }
+    | undefined;
+};
+
+
+export const PLAN_ROUTE_MAP: Record<string, string> = {
+  buy: "/plans/pricing/buy-view",
+  rent_view: "/plans/pricing/rent-view",
+  sell: "/plans/pricing/owner-sell",
+  rent: "/plans/pricing/owner-rent",
 };
 
 /* ================= COMPONENT ================= */
@@ -41,7 +49,6 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
     buy: "Buy view",
     rent_view: "Rent view",
   };
-
 
   if (!my_subscription?.active || !my_subscription.plans?.length) {
     return <PromoBanner />;
@@ -59,7 +66,6 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
     const startDate = new Date(plan.startDate);
     const endDate = new Date(plan.endDate);
     const now = Date.now();
-
 
     const totalDays = Math.max(
       (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
@@ -86,7 +92,6 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
 
     const isPropertyPlan = plan.unit === "properties";
 
-
     return (
       <div
         key={plan.code}
@@ -110,7 +115,6 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
         </div>
 
         <div className="flex flex-col gap-4 pt-4 lg:flex-row lg:items-center">
-
           {/* LEFT */}
           <div className="flex">
             {/* ICON + PLAN NAME */}
@@ -121,16 +125,15 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
                   <MdOutlineWorkspacePremium size={34} />
                 </div>
 
-
                 {/* Plan Name beside icon */}
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900">
                     {plan.planName}
                   </h3>
                   <p className="text-xs text-gray-500">
-                    {plan.userType} • {categoryLabelMap[plan.category] ?? plan.category}
+                    {plan.userType} •{" "}
+                    {categoryLabelMap[plan.category] ?? plan.category}
                   </p>
-
                 </div>
               </div>
               {/* Purchased date */}
@@ -141,35 +144,26 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
               {/* Upgrade button */}
               <button
                 onClick={() => {
-                  if (plan.category === "buy") {
-                    router.push("/plans/pricing/buy-view");
-                  } else if (plan.category === "rent_view") {
-                    router.push("/plans/pricing/rent-view");
+                  const route = PLAN_ROUTE_MAP[plan.category];
+
+                  if (route) {
+                    router.push(route);
                   } else {
                     document
                       .getElementById("pricing-table")
                       ?.scrollIntoView({ behavior: "smooth" });
                   }
                 }}
-                className="mt-4 w-full rounded-md bg-[#27AE60] py-2 text-sm font-semibold text-white hover:bg-green-700 transition"
+                className="mt-4 w-full rounded-md bg-[#27AE60] py-2 text-sm font-semibold text-white hover:bg-green-700 transition cursor-pointer"
               >
                 Upgrade Plan
               </button>
-
-
-
-
-
             </div>
           </div>
-
-
-
 
           {/* RIGHT — SINGLE HIGHLIGHTED PANEL */}
           <div className="relative flex flex-1 items-center rounded-md bg-[#f4fbf6] p-4">
             {/* Status Badge */}
-
 
             <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               {/* Progress */}
@@ -212,8 +206,9 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
 
                   <div className="h-1.5 w-full rounded-full bg-gray-200">
                     <div
-                      className={`h-1.5 rounded-full ${usageProgress >= 100 ? "bg-red-500" : "bg-[#2ecc71]"
-                        }`}
+                      className={`h-1.5 rounded-full ${
+                        usageProgress >= 100 ? "bg-red-500" : "bg-[#2ecc71]"
+                      }`}
                       style={{ width: `${usageProgress}%` }}
                     />
                   </div>
