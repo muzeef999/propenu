@@ -90,12 +90,6 @@ export default function ContactOwnerButton({
 
 
   const handleContactOwner = () => {
-    console.log("🔵 Current state:", {
-      user,
-      listingType,
-      projectId,
-      propertyType,
-    });
 
 
     if (!user) {

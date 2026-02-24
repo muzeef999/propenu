@@ -66,7 +66,6 @@ export default function ResponsesDrawer({ open, onClose, projectId }: Props) {
     link.click();
     URL.revokeObjectURL(url);
   };
-  console.log("Responses Drawer Rendered:", { open, projectId, leads });
 
   return (
     <>

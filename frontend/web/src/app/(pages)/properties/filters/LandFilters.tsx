@@ -130,7 +130,7 @@ const LandFilters = () => {
 
   const landTypeLabel =
     selectedLandTypes.length === 0
-      ? "Property Type"
+      ? "Asset Type"
       : selectedLandTypes.length === 1
         ? selectedLandTypes[0]
         : `${selectedLandTypes.length} Types`;
@@ -174,11 +174,12 @@ const LandFilters = () => {
 
 
   return (
-    <div className="flex gap-4  items-center">
+    <div className="flex gap-1 items-center">
       {/* ---------- Localities ---------- */}
       <FilterDropdown
+        className="shrink-0"
         triggerLabel={
-          <span className="px-4 text-primary font-medium cursor-pointer">
+          <span className="px-4 text-primary font-medium cursor-pointer whitespace-nowrap">
             {locality || "Select Locality"}
           </span>
         }
@@ -228,8 +229,9 @@ const LandFilters = () => {
       {/* ---------- Budget ---------- */}
 
       <FilterDropdown
+        className="shrink-0"
         triggerLabel={
-          <span className="px-4 text-primary font-medium cursor-pointer">
+          <span className="px-4 text-primary font-medium cursor-pointer whitespace-nowrap">
             {budgetLabel}
           </span>
         }
@@ -358,8 +360,9 @@ const LandFilters = () => {
 
       {/* ---------- Posted By ---------- */}
       <FilterDropdown
+        className="shrink-0"
         triggerLabel={
-          <span className="px-4 font-medium text-primary cursor-pointer">
+          <span className="px-4 font-medium text-primary cursor-pointer whitespace-nowrap">
             Posted By
           </span>
         }
@@ -391,9 +394,10 @@ const LandFilters = () => {
 
       {/* ---------- Property Type ---------- */}
       <FilterDropdown
+        className="shrink-0"
         triggerLabel={
-          <div className="flex w-40 items-center justify-between px-4 font-medium text-primary cursor-pointer">
-            <span className="truncate">{landTypeLabel}</span>
+          <div className="flex w-30 items-center justify-between px-4 font-medium text-primary cursor-pointer whitespace-nowrap">
+            <span className="truncate whitespace-nowrap">{landTypeLabel}</span>
 
             {selectedLandTypes.length > 0 && (
               <span className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white">
@@ -471,15 +475,16 @@ const LandFilters = () => {
 
       {/* ---------- MORE FILTER MODAL ---------- */}
       <FilterDropdown
+        className="shrink-0"
         open={open}
         onOpenChange={(next) => setOpen(next)}
         triggerLabel={
-          <div className="flex text-primary items-center gap-2 px-2 py-2 rounded-xl border bg-white cursor-pointer">
+          <div className="flex text-primary items-center gap-2 px-2 py-2 rounded-xl border bg-white cursor-pointer whitespace-nowrap">
             <span className="btn-primary text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
               {displayedMoreFiltersBadgeCount}
             </span>
 
-            <span className="text-sm font-semibold text-primary">
+            <span className="text-sm font-semibold text-primary whitespace-nowrap">
               More Filters
             </span>
 

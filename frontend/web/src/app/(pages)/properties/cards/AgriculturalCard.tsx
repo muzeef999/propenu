@@ -127,7 +127,6 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
       queryClient.invalidateQueries({ queryKey: ["user-shortlist"] });
     },
   });
-  console.log("property in card:", p);
 
   return (
     <div

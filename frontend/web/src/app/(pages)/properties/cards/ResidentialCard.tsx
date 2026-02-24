@@ -150,7 +150,6 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
       setIsShortlisted(isInList);
     }
   }, [shortlistData, p.id]);
-  console.log("property", p);
 
   return (
     <div

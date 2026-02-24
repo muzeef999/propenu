@@ -45,7 +45,6 @@ export default async function Page({ params }: PageProps) {
   }
 
   const priceLabel = formatINR(project.price);
-  console.log("Project data:", project); // Debug log to check the project data
 
   return (
     <div style={{ background: bgcolor }} className="min-h-screen py-6">

@@ -22,6 +22,8 @@ import { IoCloseCircleOutline } from "react-icons/io5";
 import { HiOutlineAdjustmentsHorizontal } from "react-icons/hi2";
 import ResidentialMobileFilters from "./filters/adaptiveFilterDesign/ResidentialMobileFilters";
 import CommercialMobileFilter from "./filters/adaptiveFilterDesign/CommercialMobileFilter";
+import LandMobileFilter from "./filters/adaptiveFilterDesign/LandMobileFilter";
+import AgriculturalMobileFilter from "./filters/adaptiveFilterDesign/AgriculturalMobileFilter";
 
 const FilterBar: React.FC = () => {
   const listingOptions = [
@@ -40,6 +42,8 @@ const FilterBar: React.FC = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [showResidentialAdvanced, setShowResidentialAdvanced] = useState(false);
   const [showCommercialAdvanced, setShowCommercialAdvanced] = useState(false);
+  const [showLandAdvanced, setShowLandAdvanced] = useState(false);
+  const [showAgriculturalAdvanced, setShowAgriculturalAdvanced] = useState(false);
 
 
   const dispatch = useDispatch();
@@ -309,13 +313,23 @@ const FilterBar: React.FC = () => {
           {/* <span className="h-5 w-px bg-gray-200 lg:hidden" /> */}
           <button
             type="button"
-            disabled={category !== "Residential" && category !== "Commercial"}
+            disabled={
+              category !== "Residential" &&
+              category !== "Commercial" &&
+              category !== "Land" &&
+              category !== "Agricultural"
+            }
             onClick={() => {
               if (category === "Residential") setShowResidentialAdvanced(true);
               if (category === "Commercial") setShowCommercialAdvanced(true);
+              if (category === "Land") setShowLandAdvanced(true);
+              if (category === "Agricultural") setShowAgriculturalAdvanced(true);
             }}
             className={`flex items-center gap-2 rounded-md bg-[#D1EFDD] px-3 py-1 text-sm font-medium text-[#15803D] transition-colors hover:bg-[#BDE5CE] lg:hidden ${
-              category !== "Residential" && category !== "Commercial"
+              category !== "Residential" &&
+              category !== "Commercial" &&
+              category !== "Land" &&
+              category !== "Agricultural"
                 ? "cursor-not-allowed opacity-60"
                 : ""
             }`}
@@ -344,6 +358,20 @@ const FilterBar: React.FC = () => {
       <CommercialMobileFilter
         open={showCommercialAdvanced}
         onClose={() => setShowCommercialAdvanced(false)}
+        listingOptions={listingOptions}
+        categoryOptions={categoryOptions}
+      />
+
+      <LandMobileFilter
+        open={showLandAdvanced}
+        onClose={() => setShowLandAdvanced(false)}
+        listingOptions={listingOptions}
+        categoryOptions={categoryOptions}
+      />
+
+      <AgriculturalMobileFilter
+        open={showAgriculturalAdvanced}
+        onClose={() => setShowAgriculturalAdvanced(false)}
         listingOptions={listingOptions}
         categoryOptions={categoryOptions}
       />
