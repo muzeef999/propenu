@@ -94,6 +94,10 @@ function normalizeGalleryInput(payload: any) {
   }
 }
 
+
+
+
+
 async function processBhkPlanUpdates(opts: {
   bhkSummaryExisting?: any[];
   bhkSummaryIncoming?: any[];
