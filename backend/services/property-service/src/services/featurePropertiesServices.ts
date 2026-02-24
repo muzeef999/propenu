@@ -105,7 +105,7 @@ function normalizeAmenityKey(value?: string) {
     .replace(/^_+|_+$/g, "");
 }
 
-function normalizeAmenitiesInput(amenities?: any[]) {
+function normalizeAmenitiesInputs(amenities?: any[]) {
   if (!Array.isArray(amenities)) return amenities;
   return amenities.map((a) => {
     if (!a || typeof a !== "object") return a;
@@ -323,7 +323,7 @@ export const FeaturePropertyService = {
     files?: MulterFiles,
   ) {
     if (Array.isArray((payload as any).amenities)) {
-      (payload as any).amenities = normalizeAmenitiesInput(
+      (payload as any).amenities = normalizeAmenitiesInputs(
         (payload as any).amenities,
       );
     }
@@ -557,7 +557,7 @@ export const FeaturePropertyService = {
     // ---------- SAFE APPLY (do not blindly overwrite arrays) ----------
     const safeUpdate = pickDefined(payload as any);
     if (Array.isArray((safeUpdate as any).amenities)) {
-      (safeUpdate as any).amenities = normalizeAmenitiesInput(
+      (safeUpdate as any).amenities = normalizeAmenitiesInputs(
         (safeUpdate as any).amenities,
       );
     }
