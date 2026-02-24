@@ -3,18 +3,20 @@
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-import { useState, useEffect, useMemo } from "react";
-import ActiveTabs from "@/ui/ActiveTabs";
+import { useState, useEffect, useMemo, JSX } from "react";
 import {
   downloadLeadsCSV,
   getMyProperties,
   getProjectbuilderLeads,
-  getProjectLeads,
   updateLeadStatus,
 } from "@/data/ClientData";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-const catregories = ["Featured"];
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FiFilter } from "react-icons/fi";
+import { FaTimes, FaDownload, FaCcApplePay } from "react-icons/fa";
+import { BiFilter } from "react-icons/bi";
+
+/* ================= TYPES ================= */
 
 export const LEAD_STATUSES = [
   "new",
@@ -24,23 +26,46 @@ export const LEAD_STATUSES = [
   "rejected",
   "closed",
 ] as const;
+
+type LeadStatus = (typeof LEAD_STATUSES)[number] | "All";
+
+interface Property {
+  _id: string;
+  title: string;
+  city?: string;
+  locality?: string;
+  carpetArea?: number;
+  heroImage?: string;
+  price?: number;
+  priceFrom?: number;
+  priceTo?: number;
+}
+
+interface Lead {
+  _id: string;
+  name: string;
+  phone: string;
+  status: LeadStatus;
+  createdAt: string;
+}
+
+interface LeadsResponse {
+  data: Lead[];
+}
+
+/* ================= UTILS ================= */
+
 const TAB_KEY_MAP: Record<string, string> = {
   Featured: "featured",
 };
 
 const formatPrice = (price?: number) => {
   if (!price) return "—";
-
-  if (price >= 10000000) {
-    return `₹ ${(price / 10000000).toFixed(2)} Cr`;
-  }
-
-  if (price >= 100000) {
-    return `₹ ${(price / 100000).toFixed(2)} L`;
-  }
-
+  if (price >= 10000000) return `₹ ${(price / 10000000).toFixed(2)} Cr`;
+  if (price >= 100000) return `₹ ${(price / 100000).toFixed(2)} L`;
   return `₹ ${price.toLocaleString("en-IN")}`;
 };
+
 
 const getPropertyPriceLabel = (property: any) => {
   const price = Number(property?.price);
@@ -51,12 +76,7 @@ const getPropertyPriceLabel = (property: any) => {
     return formatPrice(price);
   }
 
-  if (
-    Number.isFinite(priceFrom) &&
-    priceFrom > 0 &&
-    Number.isFinite(priceTo) &&
-    priceTo > 0
-  ) {
+  if (Number.isFinite(priceFrom) && priceFrom > 0 && Number.isFinite(priceTo) && priceTo > 0) {
     return `${formatPrice(priceFrom)} - ${formatPrice(priceTo)}`;
   }
 
@@ -70,33 +90,40 @@ const getPropertyPriceLabel = (property: any) => {
 
   return "—";
 };
+/* ================= PAGE ================= */
 
-const BuilderLeadsPage = () => {
+export default function BuilderLeadsPage(): JSX.Element {
   const queryClient = useQueryClient();
 
   const [fromDate, setFromDate] = useState<Date | null>(null);
   const [toDate, setToDate] = useState<Date | null>(null);
-
-  const [activeTab, setActiveTab] = useState("Featured");
+  const [activeTab] = useState("Featured");
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(
     null,
   );
-  const [activeStatus, setActiveStatus] = useState("All");
-  const { data: propertiesData, isLoading: propertiesLoading } = useQuery({
+  const [activeStatus, setActiveStatus] = useState<LeadStatus>("All");
+
+  /* -------- Properties -------- */
+  const { data: propertiesData, isLoading: propertiesLoading } = useQuery<
+    Record<string, Property[]>
+  >({
     queryKey: ["myProperties"],
     queryFn: getMyProperties,
   });
-  const properties = useMemo(() => {
+
+  const properties = useMemo<Property[]>(() => {
     if (!propertiesData) return [];
     return propertiesData[TAB_KEY_MAP[activeTab]] ?? [];
   }, [propertiesData, activeTab]);
+
   useEffect(() => {
     if (properties.length && !selectedPropertyId) {
       setSelectedPropertyId(properties[0]._id);
     }
   }, [properties, selectedPropertyId]);
 
-  const { data: leadsData = [], isLoading: leadsLoading } = useQuery({
+  /* -------- Leads -------- */
+  const { data: leadsData, isLoading: leadsLoading } = useQuery<LeadsResponse>({
     queryKey: ["projectLeadsbuilder", selectedPropertyId, fromDate, toDate],
     queryFn: () =>
       getProjectbuilderLeads(
@@ -108,133 +135,158 @@ const BuilderLeadsPage = () => {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: any) => {
-      console.log("Updating lead:", id, status);
-      return updateLeadStatus(id, status);
-    },
-
+    mutationFn: ({ id, status }: { id: string; status: LeadStatus }) =>
+      updateLeadStatus(id, status),
     onSuccess: () => {
-      console.log("Update success");
       queryClient.invalidateQueries({
         queryKey: ["projectLeadsbuilder", selectedPropertyId],
       });
     },
   });
 
-  useEffect(() => {
+  const filteredLeads = useMemo<Lead[]>(() => {
+    const leads = leadsData?.data ?? [];
+    if (activeStatus === "All") return leads;
+
+    return leads.filter(
+      (lead) => lead.status?.toLowerCase() === activeStatus.toLowerCase(),
+    );
+  }, [leadsData, activeStatus]);
+
+  /* -------- Actions -------- */
+
+  const clearFilters = () => {
+    setFromDate(null);
+    setToDate(null);
     setActiveStatus("All");
-  }, [selectedPropertyId]);
+  };
 
   const handleDownloadCSV = () => {
-    if (!selectedPropertyId) {
-      alert("Please select a property");
-      return;
-    }
+    if (!selectedPropertyId) return alert("Select property first");
 
-    const from = fromDate ? fromDate.toISOString().split("T")[0] : undefined;
-
-    const to = toDate ? toDate.toISOString().split("T")[0] : undefined;
+    const from = fromDate?.toISOString().split("T")[0];
+    const to = toDate?.toISOString().split("T")[0];
 
     downloadLeadsCSV(selectedPropertyId, from, to);
   };
 
-  const filteredLeads = useMemo(() => {
-    const leads = Array.isArray(leadsData?.data) ? leadsData.data : [];
-    if (activeStatus === "All") {
-      return leads;
-    }
-    return leads.filter(
-      (lead: any) => lead.status?.toLowerCase() === activeStatus.toLowerCase(),
-    );
-  }, [leadsData, activeStatus]);
+  /* ================= UI ================= */
 
   if (propertiesLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center text-gray-500">
-        Loading properties…
-      </div>
-    );
+    return <div className="text-center py-20">Loading properties…</div>;
   }
 
   return (
     <div className="space-y-6">
+      {/* HEADER */}
       <div>
         <h1 className="text-2xl font-semibold text-gray-900 mb-1">My Leads</h1>
         <p className="text-gray-600">
           View enquiries received on your properties
         </p>
-         <span className="text-sm text-gray-500 mr-4">
-            Showing{" "}
-            <span className="font-semibold text-gray-800">
-              {properties.length}
-            </span>{" "}
-            Properties
-          </span>
+        <span className="text-sm text-gray-500">
+          Showing <b>{properties.length}</b> Properties
+        </span>
       </div>
 
-      <div className="bg-white  rounded-2xl shadow-sm px-6 py-5 flex flex-wrap items-center gap-4 justify-between">
-        {/* LEFT SIDE */}
-        <div className="flex flex-wrap items-center gap-4">
-         
-          {/* DATE PICKERS */}
-          <div className="flex items-center gap-3">
-            <div className="relative">
+      {/* FILTER TOOLBAR */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05),0_2px_4px_-1px_rgba(0,0,0,0.03)] overflow-hidden">
+        <div className="px-6 py-4 bg-gradient-to-r from-[#F9FAFB] to-white border-b border-[#E5E7EB] flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <BiFilter className="w-4 h-4 text-[#16A34A]" />
+            <h2 className="text-sm font-semibold text-[#111827]">Filters</h2>
+          </div>
+          <button
+            onClick={clearFilters}
+            className="text-xs font-medium text-[#6B7280] hover:text-[#111827] flex items-center gap-1 transition-colors"
+          >
+            <FaCcApplePay className="w-3 h-3" />
+            Clear all
+          </button>
+        </div>
+
+        {/* LEFT */}
+        <div className="flex flex-wrap items-center gap-6 p-5">
+          {/* DATE RANGE */}
+          <div className="p-5">
+            <label className="text-xs font-semibold text-gray-500 uppercase px-1">
+              Date Range
+            </label>
+
+            <div className="flex gap-3 mt-1">
               <DatePicker
                 selected={fromDate}
                 onChange={(date: any) => setFromDate(date)}
                 placeholderText="From Date"
-                className="pl-10 pr-4 py-2 border rounded-full text-sm bg-gray-50 focus:ring-2 focus:ring-green-500"
+                className="h-10 w-[170px] rounded-full border px-4 text-sm"
                 dateFormat="yyyy-MM-dd"
               />
-              <span className="absolute left-3 top-2.5 text-gray-400">📅</span>
-            </div>
 
-            <div className="relative">
               <DatePicker
                 selected={toDate}
                 onChange={(date: any) => setToDate(date)}
                 placeholderText="To Date"
-                className="pl-10 pr-4 py-2 border rounded-full text-sm bg-gray-50 focus:ring-2 focus:ring-green-500"
+                className="h-10 w-[170px] rounded-full border px-4 text-sm"
                 dateFormat="yyyy-MM-dd"
               />
-              <span className="absolute left-3 top-2.5 text-gray-400">📅</span>
             </div>
           </div>
 
-          {/* STATUS CHIPS */}
-          <div className="flex flex-wrap gap-2 ml-2">
-            {LEAD_STATUSES.map((status) => {
-              const active = activeStatus === status;
+          {/* STATUS */}
+          <div >
+            <label className="text-xs font-semibold text-gray-500 uppercase px-1">
+              Status
+            </label>
 
-              return (
-                <button
-                  key={status}
-                  onClick={() => setActiveStatus(status)}
-                  className={`px-4 py-1.5 rounded-full text-sm capitalize transition shadow-sm
-              ${
-                active
-                  ? "bg-green-600 text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-                >
-                  {status.replace("_", " ")}
-                </button>
-              );
-            })}
+            <div className="flex flex-wrap gap-2 mt-1">
+              {["All", ...LEAD_STATUSES].map((status) => {
+                const active = activeStatus === status;
+                return (
+                  <button
+                    key={status}
+                    onClick={() => setActiveStatus(status as LeadStatus)}
+                    className={`h-11 px-5 rounded-md text-sm capitalize transition
+                      ${
+                        active
+                          ? "bg-green-600 text-white shadow"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                  >
+                    {status.replace("_", " ")}
+                  </button>
+                );
+              })}
+            </div>
           </div>
+
+          {(fromDate || toDate || activeStatus !== "All") && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1 text-sm text-gray-500 mt-5"
+            >
+              <FaTimes /> Clear
+            </button>
+          )}
         </div>
 
-        {/* RIGHT SIDE */}
-        <button
-          onClick={handleDownloadCSV}
-          className="flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded-full shadow-md hover:bg-green-700"
-        >
-          ⬇ Download CSV
-        </button>
+        {/* Action Bar */}
+        <div className="px-6 py-4 bg-[#F9FAFB] border-t border-[#E5E7EB] flex items-center justify-between">
+          <p className="text-xs text-[#6B7280]">
+            Use filters to refine your property search
+          </p>
+          <button
+            onClick={handleDownloadCSV}
+            className="h-11 px-6 rounded-xl bg-gradient-to-r from-[#16A34A] to-[#15803D] text-white text-sm font-semibold shadow-[0_2px_8px_rgba(22,163,74,0.25)] hover:shadow-[0_4px_16px_rgba(22,163,74,0.4)] hover:from-[#15803D] hover:to-[#166534] active:scale-[0.97] transition-all duration-200 flex items-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-[0_2px_8px_rgba(22,163,74,0.25)]"
+          >
+            <FaDownload className="w-4 h-4" />
+            Export CSV
+          </button>
+        </div>
       </div>
 
+      {/* GRID */}
       <div className="grid grid-cols-12 gap-4">
-        {/* LEFT â€“ PROPERTY LIST */}
+        {/* PROPERTY LIST */}
         <div className="col-span-4 space-y-2">
           {properties.map((property: any) => {
             const image = property.gallery?.[0]?.url || "/placeholder.jpg";
@@ -278,13 +330,10 @@ const BuilderLeadsPage = () => {
           })}
         </div>
 
-        {/* RIGHT â€“ LEADS */}
+        {/* LEADS TABLE */}
         <div className="col-span-8 bg-green-50/40 rounded-lg p-4">
-          {/* STATUS TABS */}
-
-          {/* TABLE */}
           {leadsLoading ? (
-            <div className="text-center py-20 text-gray-500">Loading lead</div>
+            <div className="text-center py-20">Loading leads…</div>
           ) : filteredLeads.length ? (
             <LeadsTable
               leads={filteredLeads}
@@ -292,49 +341,46 @@ const BuilderLeadsPage = () => {
             />
           ) : (
             <div className="text-center py-20 text-gray-500">
-              No <b>{activeStatus}</b> leads for this property
+              No leads found
             </div>
           )}
         </div>
       </div>
     </div>
   );
-};
+}
 
-const LeadsTable = ({ leads, updateStatusMutation }: any) => (
-  <div className="bg-white rounded-lg overflow-hidden">
-    <div className="grid grid-cols-4 px-4 py-3 text-xs font-semibold text-gray-500 border-b">
-      <span>Name</span>
-      <span>Date</span>
-      <span>Contact Number</span>
-      <span>Lead Status</span>
+/* ================= TABLE ================= */
+
+function LeadsTable({
+  leads,
+  updateStatusMutation,
+}: {
+  leads: Lead[];
+  updateStatusMutation: any;
+}) {
+  return (
+    <div className="bg-white rounded-lg overflow-hidden">
+      {leads.map((lead) => (
+        <div key={lead._id} className="grid grid-cols-4 p-3 border-b">
+          <span>{lead.name}</span>
+          <span>{new Date(lead.createdAt).toLocaleDateString("en-IN")}</span>
+          <span>{lead.phone}</span>
+          <select
+            value={lead.status}
+            onChange={(e) =>
+              updateStatusMutation.mutate({
+                id: lead._id,
+                status: e.target.value,
+              })
+            }
+          >
+            {LEAD_STATUSES.map((s) => (
+              <option key={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+      ))}
     </div>
-
-    {leads.map((lead: any, idx: number) => (
-      <div key={idx} className="grid grid-cols-4 px-4 py-3 text-sm border-b">
-        <span>{lead.name}</span>
-        <span className="text-gray-500">
-          {new Date(lead.createdAt).toLocaleDateString("en-IN")}
-        </span>
-        <span>{lead.phone}</span>
-        <select
-          value={lead.status || "new"}
-          onChange={(e) =>
-            updateStatusMutation.mutate({
-              id: lead._id,
-              status: e.target.value,
-            })
-          }
-        >
-          {LEAD_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </div>
-    ))}
-  </div>
-);
-
-export default BuilderLeadsPage;
+  );
+}
