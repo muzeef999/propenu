@@ -303,6 +303,12 @@ export const FeaturePropertyService = {
     payload: CreateFeaturePropertyDTO,
     files?: MulterFiles,
   ) {
+    if (Array.isArray((payload as any).amenities)) {
+      (payload as any).amenities = normalizeAmenitiesInput(
+        (payload as any).amenities,
+      );
+    }
+
     // 1) slug
     const slugSource =
       (payload.slug && String(payload.slug).trim()) || payload.title;
@@ -531,6 +537,11 @@ export const FeaturePropertyService = {
 
     // ---------- SAFE APPLY (do not blindly overwrite arrays) ----------
     const safeUpdate = pickDefined(payload as any);
+    if (Array.isArray((safeUpdate as any).amenities)) {
+      (safeUpdate as any).amenities = normalizeAmenitiesInput(
+        (safeUpdate as any).amenities,
+      );
+    }
 
     // extract gallerySummary from safeUpdate before removing it so we know client's explicit intent
     const incomingGallerySummary = (safeUpdate as any).gallerySummary;
