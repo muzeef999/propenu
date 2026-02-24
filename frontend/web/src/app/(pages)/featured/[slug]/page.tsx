@@ -8,6 +8,7 @@ import Amenities from "./Amenities";
 import LocateUs from "./LocateUs";
 import Gallery from "./Gallery";
 import AboutUS from "./AboutUs";
+import Specification from "./Specification";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -104,6 +105,11 @@ export default async function Page({ params }: PageProps) {
     aboutSummary: project?.aboutSummary,
     color: project?.color?.trim(),
   };
+
+  const  specifications =  {
+    specifications: project?.specifications,
+    color: project?.color?.trim(),
+  }
  
   return (
     <div>
