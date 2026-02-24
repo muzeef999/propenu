@@ -94,6 +94,29 @@ function normalizeGalleryInput(payload: any) {
   }
 }
 
+function normalizeAmenityKey(value?: string) {
+  if (!value || typeof value !== "string") return value;
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_")
+    .replace(/[^a-z0-9_]/g, "")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function normalizeAmenitiesInput(amenities?: any[]) {
+  if (!Array.isArray(amenities)) return amenities;
+  return amenities.map((a) => {
+    if (!a || typeof a !== "object") return a;
+    const normalized = { ...a };
+    const sourceKey = normalized.key ?? normalized.title;
+    const normalizedKey = normalizeAmenityKey(sourceKey);
+    if (normalizedKey) normalized.key = normalizedKey;
+    return normalized;
+  });
+}
+
 async function processBhkPlanUpdates(opts: {
   bhkSummaryExisting?: any[];
   bhkSummaryIncoming?: any[];
@@ -299,6 +322,12 @@ export const FeaturePropertyService = {
     payload: CreateFeaturePropertyDTO,
     files?: MulterFiles,
   ) {
+    if (Array.isArray((payload as any).amenities)) {
+      (payload as any).amenities = normalizeAmenitiesInput(
+        (payload as any).amenities,
+      );
+    }
+
     // 1) slug
     const slugSource =
       (payload.slug && String(payload.slug).trim()) || payload.title;
@@ -527,6 +556,11 @@ export const FeaturePropertyService = {
 
     // ---------- SAFE APPLY (do not blindly overwrite arrays) ----------
     const safeUpdate = pickDefined(payload as any);
+    if (Array.isArray((safeUpdate as any).amenities)) {
+      (safeUpdate as any).amenities = normalizeAmenitiesInput(
+        (safeUpdate as any).amenities,
+      );
+    }
 
     // extract gallerySummary from safeUpdate before removing it so we know client's explicit intent
     const incomingGallerySummary = (safeUpdate as any).gallerySummary;
