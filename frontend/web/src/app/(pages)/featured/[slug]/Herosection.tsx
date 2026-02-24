@@ -128,17 +128,17 @@ export default function HeroSection({ hero }: Props) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           {/* LEFT TEXT */}
           <div className="lg:col-span-7 space-y-6">
-             {h.heroTagline ? (
-                <div className="mb-5 inline-flex items-center gap-3 rounded-full bg-black/35 pr-4 pl-2 py-2 backdrop-blur-md border border-white/20">
-                  <span
-                    className="h-2.5 w-2.5 rounded-full shadow-[0_0_12px]"
-                    style={{ backgroundColor: h.color || "#f59e0b", boxShadow: `0 0 12px ${h.color || "#f59e0b"}` }}
-                  />
-                  <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-[0.18em] text-white/90">
-                    {h.heroTagline}
-                  </p>
-                </div>
-              ) : null}
+            {h.heroTagline ? (
+              <div className="mb-5 inline-flex items-center gap-3 rounded-full bg-black/35 pr-4 pl-2 py-2 backdrop-blur-md border border-white/20">
+                <span
+                  className="h-2.5 w-2.5 rounded-full shadow-[0_0_12px]"
+                  style={{ backgroundColor: h.color || "#f59e0b", boxShadow: `0 0 12px ${h.color || "#f59e0b"}` }}
+                />
+                <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-[0.18em] text-white/90">
+                  {h.heroTagline}
+                </p>
+              </div>
+            ) : null}
             <h1 className="text-white text-2xl sm:text-3xl md:text-[64px] leading-tight">
               {h.subTagline}
             </h1>
@@ -148,6 +148,26 @@ export default function HeroSection({ hero }: Props) {
             >
               {h.description}
             </h2>
+
+            <div className="absolute bottom-0 left-0 w-full lg:w-[65%] z-10">
+              <div className=" py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                {h.stats?.map((stat, idx) => (
+                  <div key={idx}>
+                    <div className="text-white text-xl md:text-2xl font-bold">
+                      {stat.value}
+                    </div>
+
+                    <div className="text-gray-200 text-sm mt-1">{stat.label}</div>
+
+                    <div
+                      className="w-12 h-0.5 mx-auto mt-2"
+                      style={{ backgroundColor: h.color }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
 
           {/* RIGHT FORM */}
@@ -205,28 +225,6 @@ export default function HeroSection({ hero }: Props) {
                 </button>
               </form>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* BOTTOM STATS BAR */}
-      <div className="absolute bottom-0 left-0 w-full lg:w-[65%] z-10">
-        <div>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            {h.stats?.map((stat, idx) => (
-              <div key={idx}>
-                <div className="text-white text-xl md:text-2xl font-bold">
-                  {stat.value}
-                </div>
-
-                <div className="text-gray-200 text-sm mt-1">{stat.label}</div>
-
-                <div
-                  className="w-12 h-0.5 mx-auto mt-2"
-                  style={{ backgroundColor: h.color }}
-                />
-              </div>
-            ))}
           </div>
         </div>
       </div>

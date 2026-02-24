@@ -96,7 +96,7 @@ export default function Amenities(props: Props) {
       </div>
       <br/>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="grid lg:grid-cols-5 gap-4">
         {filtered.length === 0 ? (
           <div className="text-sm text-slate-500">No amenities available.</div>
         ) : (

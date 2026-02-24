@@ -30,6 +30,12 @@ type Props = {
 };
 
 const DEFAULT_COLOR = "#F59E0B";
+const RICH_TEXT_CLASSES =
+  "text-gray-700 leading-relaxed " +
+  "[&_h1]:text-3xl [&_h1]:font-bold [&_h1]:leading-tight [&_h1]:mb-3 " +
+  "[&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:leading-snug [&_h2]:mb-3 " +
+  "[&_h3]:text-xl [&_h3]:font-semibold [&_h3]:mb-2 " +
+  "[&_p]:mb-3 [&_ol]:list-decimal [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5 [&_li]:mb-2";
 
 /** normalize shapes */
 function normalizeAboutProp(
@@ -95,6 +101,7 @@ export default function AboutUS(props: Props) {
         }
       })()
     : undefined;
+
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="mb-6 flex items-start justify-between gap-6">
@@ -109,7 +116,7 @@ export default function AboutUS(props: Props) {
       {item?.aboutDescription ? (
         hasHtmlDescription ? (
           <div
-            className="mt-6 text-gray-700 text-base sm:text-lg leading-relaxed [&_h1]:text-2xl [&_h2]:text-xl [&_h3]:text-lg [&_p]:mb-3"
+            className={`mt-6 text-base sm:text-lg ${RICH_TEXT_CLASSES}`}
             dangerouslySetInnerHTML={{ __html: item.aboutDescription }}
           />
         ) : (
@@ -152,7 +159,7 @@ export default function AboutUS(props: Props) {
           <div className="bg-white/0">
             {hasHtmlRightContent && item?.rightContent ? (
               <div
-                className="text-gray-700 text-sm leading-snug [&_ol]:list-decimal [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5 [&_li]:mb-2"
+                className={`text-sm ${RICH_TEXT_CLASSES}`}
                 dangerouslySetInnerHTML={{ __html: item.rightContent }}
               />
             ) : (

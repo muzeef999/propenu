@@ -1,7 +1,7 @@
 // components/LocateUs.tsx
 "use client";
 
-import { LocationIcon } from "@/icons/icons";
+import { LOCATION_ICON_PATH, LOCATION_ICON_VIEWBOX, LocationIcon } from "@/icons/icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 /**
@@ -39,8 +39,6 @@ type Props = {
   location?: GeoPoint | null; // explicit override if provided
   heading?: string | null;
 };
-
-const FALLBACK_ICON = "/mnt/data/f4268fce-6dcc-4577-b9d7-02ddeb34758c.png";
 
 /** loads Leaflet from CDN (same as your original helper) */
 function loadLeaflet(): Promise<any> {
@@ -213,17 +211,11 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
     markersRef.current = [];
 
     // create marker icon helper
-    function createMarkerIcon(colorHex: string, size = 28, useImage = false, imageUrl?: string) {
-      if (useImage && imageUrl) {
-        return Lobj.icon({
-          iconUrl: imageUrl,
-          iconSize: [36, 36],
-          className: "rounded-marker",
-        });
-      }
-      const svg = encodeURIComponent(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24"><path fill="${colorHex}" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>`
-      );
+    function createMarkerIcon(colorHex: string, size = 28, useProjectIcon = false) {
+      const svgMarkup = useProjectIcon
+        ? `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="${LOCATION_ICON_VIEWBOX}"><path fill="${colorHex}" d="${LOCATION_ICON_PATH}"/></svg>`
+        : `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24"><path fill="${colorHex}" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>`;
+      const svg = encodeURIComponent(svgMarkup);
       const url = `data:image/svg+xml;utf8,${svg}`;
       return Lobj.icon({
         iconUrl: url,
@@ -236,7 +228,7 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
     // add main project marker
     if (projectCenter) {
       const [lng, lat] = projectCenter;
-      const mainIcon = createMarkerIcon(color, 36, true, FALLBACK_ICON);
+      const mainIcon = createMarkerIcon(color, 36, true);
       const marker = Lobj.marker([lat, lng], { icon: mainIcon }).addTo(map);
       marker.bindPopup(`<strong>Project location</strong>`);
       markersRef.current.push(marker);
