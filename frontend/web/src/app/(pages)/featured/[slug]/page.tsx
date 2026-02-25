@@ -82,6 +82,7 @@ export default async function Page({ params }: PageProps) {
   const bhkSummary = {
     bhkSummary: project?.bhkSummary,
     color: project?.color?.trim(),
+    reraNumber: project?.reraNumber,
   };
 
   const amenities = {
