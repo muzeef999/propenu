@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { amenityTitleToIconPath } from "@/lib/amenityIcons";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 
@@ -59,6 +59,19 @@ export default function Amenities(props: Props) {
 
   const [query, setQuery] = useState("");
   const [showAll, setShowAll] = useState(false);
+  const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
+
+  // Detect screen size for responsive behavior
+  useEffect(() => {
+    const checkScreenSize = () => {
+      // lg breakpoint in Tailwind is 1024px
+      setIsMobileOrTablet(window.innerWidth < 1024);
+    };
+    
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
 
   // color handling
   const accent = typeof color === "string" ? color.trim() : "#F59E0B";
@@ -80,8 +93,15 @@ export default function Amenities(props: Props) {
   }, [items, query]);
 
   const amenitiesToShow = useMemo(
-    () => (showAll ? filtered : filtered.slice(0, 10)),
-    [filtered, showAll]
+    () => {
+      // On desktop (lg and above), show all filtered amenities
+      if (!isMobileOrTablet) {
+        return filtered;
+      }
+      // On mobile/tablet, show 10 unless "showAll" is true
+      return showAll ? filtered : filtered.slice(0, 10);
+    },
+    [filtered, showAll, isMobileOrTablet]
   );
 
 
@@ -140,12 +160,13 @@ export default function Amenities(props: Props) {
         )}
       </div>
 
-      {filtered.length > 10 && (
+      {filtered.length > 10 && isMobileOrTablet && (
         <div className="mt-8 text-center">
           <button
             type="button"
             onClick={() => setShowAll(!showAll)}
-            className="font-semibold text-primary transition hover:underline"
+            style={{color:color}}
+            className="font-semibold transition hover:underline"
           >
             {showAll ? "View Less" : "View More"}
           </button>

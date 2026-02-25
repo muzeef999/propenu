@@ -20,6 +20,7 @@ type BhkItem = {
 type BhkPayload = {
   bhkSummary?: BhkItem[] | null;
   color?: string | null;
+  reraNumber?: string | null;
 };
 
 type Props = {
@@ -44,11 +45,12 @@ function formatINR(v?: number) {
 }
 
 export default function AvailableProperties({ bhk }: Props) {
-  // new shape: bhk is an object containing bhkSummary and color
+  // new shape: bhk is an object containing bhkSummary, color, and reraNumber
   const items: BhkItem[] = Array.isArray(bhk?.bhkSummary)
     ? bhk!.bhkSummary!
     : [];
   const color = (bhk?.color ?? "#F59E0B") as string;
+  const reraNumber = bhk?.reraNumber ?? "--";
 
   // default to first BHK group
   const [activeBhkIndex, setActiveBhkIndex] = useState<number>(0);
@@ -256,14 +258,11 @@ export default function AvailableProperties({ bhk }: Props) {
                 </li>
 
                 <li className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Bathrooms</span>
-                  <span className="font-medium">2 Bathrooms</span>
+                  <span className="text-sm text-gray-500">RERA Number</span>
+                  <span className="font-medium">{reraNumber}</span>
                 </li>
 
-                <li className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Balcony</span>
-                  <span className="font-medium">1 Balcony</span>
-                </li>
+              
 
                 <li className="flex items-center justify-between">
                   <span className="text-sm text-gray-500">Parking</span>
