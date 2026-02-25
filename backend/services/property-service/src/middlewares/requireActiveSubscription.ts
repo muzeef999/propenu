@@ -31,12 +31,11 @@ export const requireActiveSubscription = async (
       return next(); // ✅ Skip subscription
     }
 
-     const statusFromBody = req.body?.status;
+    const statusFromBody = req.body?.status;
     if (statusFromBody === "draft") {
       return next();
     }
 
-    
     let listingType: string | undefined;
 
     if (req.params?.id) {
@@ -67,15 +66,14 @@ export const requireActiveSubscription = async (
     // const requiredCategory =
     //   listingType === "sale" ? "sell" : listingType === "rent" ? "rent" : null;
 
-const requiredCategory =
-  listingType === "sale"
-    ? "sell"
-    : listingType === "rent"
-    ? "rent"
-    : listingType === "buy"
-    ? "buy"
-    : null;
-
+    const requiredCategory =
+      listingType === "sale"
+        ? "sell"
+        : listingType === "rent"
+          ? "rent"
+          : listingType === "buy"
+            ? "buy"
+            : null;
 
     if (!requiredCategory) {
       return res.status(400).json({ message: "Invalid listingType" });
@@ -83,16 +81,27 @@ const requiredCategory =
 
     let userType: "buyer" | "agent" | "owner";
 
-    if (roleName === "user") userType = "buyer";
+    // 🔥 FIX HERE
+    if (roleName === "user")
+      userType = "owner"; // ← change buyer → owner
     else if (roleName === "agent") userType = "agent";
     else if (roleName === "owner") userType = "owner";
+    else if (roleName === "builder") userType = "owner";
     else {
       return res.status(403).json({ message: "Invalid user role" });
     }
 
+    // console.log("🔎 DEBUG SUB CHECK ----------");
+    // console.log({
+    //   userId,
+    //   roleName,
+    //   userType,
+    //   requiredCategory,
+    // });
 
-    const allSubs = await Subscription.find({ userId }).lean();
-    console.log(allSubs);
+    // const allSubs = await Subscription.find({ userId }).lean();
+
+    // console.log("📦 ALL USER SUBSCRIPTIONS:", allSubs);
 
     const subscription = await Subscription.findOne({
       userId,
