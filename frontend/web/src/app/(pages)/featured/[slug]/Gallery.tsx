@@ -1,8 +1,8 @@
-// components/Gallery.tsx
+﻿// components/Gallery.tsx
 "use client";
 
 import React, { useEffect, useRef, useState, useMemo } from "react";
-import { HiChevronLeft, HiChevronRight } from "react-icons/hi2";
+import { HiChevronLeft, HiChevronRight, HiXMark } from "react-icons/hi2";
 
 type GalleryItem = {
   title?: string;
@@ -90,6 +90,31 @@ export default function Gallery(props: Props) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const startX = useRef<number | null>(null);
   const videoTrackRef = useRef<HTMLDivElement | null>(null);
+  const originalBodyOverflowRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (openIndex !== null) {
+      if (originalBodyOverflowRef.current === null) {
+        originalBodyOverflowRef.current = document.body.style.overflow;
+      }
+      document.body.classList.add("gallery-modal-open");
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.classList.remove("gallery-modal-open");
+      if (originalBodyOverflowRef.current !== null) {
+        document.body.style.overflow = originalBodyOverflowRef.current;
+        originalBodyOverflowRef.current = null;
+      }
+    }
+
+    return () => {
+      document.body.classList.remove("gallery-modal-open");
+      if (originalBodyOverflowRef.current !== null) {
+        document.body.style.overflow = originalBodyOverflowRef.current;
+        originalBodyOverflowRef.current = null;
+      }
+    };
+  }, [openIndex]);
 
   // Keyboard nav
   useEffect(() => {
@@ -212,7 +237,7 @@ export default function Gallery(props: Props) {
 
       {youtubeVideos.length > 0 && (
         <div className="mt-4" id="video-gallery">
-          
+
           <div
             ref={videoTrackRef}
             className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory no-scrollbar pb-1"
@@ -262,93 +287,90 @@ export default function Gallery(props: Props) {
       {/* Modal */}
       {openIndex !== null && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 md:p-6"
           onClick={() => setOpenIndex(null)}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
         >
           <div
-            className="relative max-w-6xl w-full mx-auto"
+            className="relative w-full max-w-6xl"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
           >
-            {/* close button */}
+            {/* Close Button */}
             <button
               onClick={() => setOpenIndex(null)}
-              className="absolute right-2 top-2 z-20 bg-white/90 rounded-full p-2 shadow"
+              className="absolute right-0 top-0 z-30 h-11 w-11 rounded-full bg-black/50 text-white hover:bg-black/70 transition flex items-center justify-center"
               aria-label="Close gallery"
             >
-              ✕
+              <HiXMark size={24} />
             </button>
 
-            {/* left arrow */}
-            <button
-              onClick={prev}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-white/90 rounded-full p-2 shadow"
-              aria-label="Previous"
-            >
-              ‹
-            </button>
+            {/* Main Media Container */}
+            <div className="relative rounded-2xl overflow-hidden bg-black shadow-2xl pt-12 md:pt-0">
 
-            {/* right arrow */}
-            <button
-              onClick={next}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-white/90 rounded-full p-2 shadow"
-              aria-label="Next"
-            >
-              ›
-            </button>
+              {/* Arrows */}
+              <button
+                onClick={prev}
+                className="absolute left-3 md:left-5 top-1/2 -translate-y-1/2 z-20 h-11 w-11 rounded-full bg-black/45 hover:bg-black/65 text-white backdrop-blur-md transition flex items-center justify-center"
+                aria-label="Previous"
+              >
+                <HiChevronLeft size={22} />
+              </button>
 
-            {/* main media */}
-            <div className="bg-white rounded-lg overflow-hidden">
-              {/* if video: show video tag; otherwise image */}
+              <button
+                onClick={next}
+                className="absolute right-3 md:right-5 top-1/2 -translate-y-1/2 z-20 h-11 w-11 rounded-full bg-black/45 hover:bg-black/65 text-white backdrop-blur-md transition flex items-center justify-center"
+                aria-label="Next"
+              >
+                <HiChevronRight size={22} />
+              </button>
+
+              {/* Media */}
               {items[openIndex]?.isVideo ? (
                 <video
                   src={items[openIndex]?.url}
                   controls
                   autoPlay
-                  className="w-full max-h-[80vh] object-contain bg-black"
+                  className="w-full max-h-[75vh] object-contain"
                 />
               ) : (
                 <img
                   src={items[openIndex]?.url ?? FALLBACK_IMG}
                   alt={items[openIndex]?.title}
-                  className="w-full max-h-[80vh] object-contain bg-black"
+                  className="w-full max-h-[75vh] object-contain"
                 />
               )}
 
-              {/* caption bar */}
-              <div className="p-3 flex items-center justify-between border-t">
-                <div>
-                  <div className="font-semibold text-slate-900">{items[openIndex]?.title}</div>
-                  <div className="text-sm text-slate-500">{items[openIndex]?.category}</div>
+              {/* Caption Overlay */}
+              <div className="absolute bottom-0 w-full bg-linear-to-t from-black/80 to-transparent p-6 text-white">
+                <div className="text-lg font-semibold">
+                  {items[openIndex]?.title}
                 </div>
-
-                {/* dots */}
-                <div className="flex items-center gap-2">
-                  {items.map((_, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setOpenIndex(idx)}
-                      className={`w-2 h-2 rounded-full ${openIndex === idx ? "bg-slate-900" : "bg-white/60"}`}
-                      aria-label={`Go to ${idx + 1}`}
-                    />
-                  ))}
+                <div className="text-sm text-white/70">
+                  {items[openIndex]?.category}
                 </div>
               </div>
             </div>
 
-            {/* thumbnail strip (optional) */}
-            <div className="mt-3 flex gap-2 overflow-x-auto py-2">
+            {/* Thumbnail Strip */}
+            <div className="mt-6 flex gap-3 overflow-x-auto pb-2">
               {items.map((it, idx) => (
                 <button
                   key={idx}
                   onClick={() => setOpenIndex(idx)}
-                  className={`shrink-0 rounded-md overflow-hidden border ${openIndex === idx ? "ring-2 ring-offset-2" : "border-transparent"}`}
-                  style={{ width: 120 }}
+                  className={`shrink-0 rounded-lg overflow-hidden transition-all duration-200 ${openIndex === idx
+                    ? "ring-2 ring-white scale-90"
+                    : "opacity-70 hover:opacity-100"
+                    }`}
+                  style={{ width: 110 }}
                 >
-                  <img src={it?.thumbUrl ?? it?.url ?? FALLBACK_IMG} alt={it?.title} className="w-full h-20 object-cover" />
+                  <img
+                    src={it?.thumbUrl ?? it?.url ?? FALLBACK_IMG}
+                    alt={it?.title}
+                    className="w-full h-15 object-cover"
+                  />
                 </button>
               ))}
             </div>
@@ -358,3 +380,4 @@ export default function Gallery(props: Props) {
     </section>
   );
 }
+

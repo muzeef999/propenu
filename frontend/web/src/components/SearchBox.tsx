@@ -1,16 +1,18 @@
 "use client";
-import { categoryOption, ListingOption, LocationItem } from "@/types";
-import Banner from "./Banner";
-import { useEffect, useState } from "react";
-import { useCity } from "@/hooks/useCity";
+import { categoryOption } from "@/types";
+import { useState, useEffect } from "react";
 import { useAppSelector } from "@/Redux/store";
 import { useDispatch } from "react-redux";
-import FilterDropdown from "@/ui/FilterDropdown";
-import { setCategory, setListingType } from "@/Redux/slice/filterSlice";
+import { setCategory } from "@/Redux/slice/filterSlice";
 import Link from "next/link";
-import { CiSearch } from "react-icons/ci";
+import { ArrowDropdownIcon } from "@/icons/icons";
+import { IoIosSearch } from "react-icons/io";
 
-const listingOptions: ListingOption[] = ["Buy", "Rent", "Lease"];
+const listingOptions = [
+  { label: "Buy", value: "sale" },
+  { label: "Rent", value: "rent" },
+  { label: "Lease", value: "lease" },
+] as const;
 
 const CATEGORY_OPTIONS = [
   "All Residential",
@@ -20,9 +22,24 @@ const CATEGORY_OPTIONS = [
 ];
 
 const SearchBox = () => {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<LocationItem[]>([]);
-  const { selectCity } = useCity();
+  const [open, setOpen] = useState(false);
+  const [placeholder, setPlaceholder] = useState(
+    "Search for city, locality, project..."
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        // 'md' breakpoint for mobile and tabs
+        setPlaceholder("Search...");
+      } else {
+        setPlaceholder("Search for city, locality, project...");
+      }
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const { listingTypeLabel, category } = useAppSelector((s) => s.filters);
 
@@ -35,108 +52,65 @@ const SearchBox = () => {
 
   const dispatch = useDispatch();
 
-  function handleSelect(item: LocationItem) {
-    selectCity(item);
-    setQuery(item?.city);
-    setResults([]);
-  }
+  const searchParams = new URLSearchParams({ focus: "search" });
 
   return (
-    <div className="relative w-full max-sm:top-55">
-      {/* Search Box floating ABOVE banner */}
-      <div className="w-full max-w-3xl max-sm:relative  right-2 ">
-        <div className="bg-white shadow-md rounded-lg border border-gray-200 p-2">
-          {/* Search Row */}
-          <div className="flex items-center gap-3 relative">
-            <div className="border-r border-r-[#EBEBEB] pr-3">
-              <FilterDropdown
-                triggerLabel={
-                  <span className="px-4 text-primary font-medium">
-                    {listingTypeLabel}
-                  </span>
-                }
-                width="w-56"
-                align="left"
-                renderContent={(close) => (
-                  <div>
-                    <h4 className="text-sm font-semibold mb-2">Listing Type</h4>
-                    <div className="flex gap-2 flex-wrap text-primary">
-                      {listingOptions.map((l) => (
-                        <button
-                          key={l}
-                          onClick={() => {
-                            dispatch(
-                              setListingType({
-                                label: l,
-                                value: l.toLowerCase() as any,
-                              }),
-                            );
-                            close?.();
-                          }}
-                          className={`px-2 py-1 rounded hover:bg-gray-100 ${
-                            listingTypeLabel === l ? "font-semibold" : ""
-                          }`}
-                        >
-                          {l}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              />
-            </div>
+    <div className="relative w-full max-w-2xl">
+      <Link
+        href={`/properties?${searchParams.toString()}`}
+        className="block bg-white shadow-lg rounded-xl border border-gray-200 p-2 cursor-pointer"
+      >
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="flex items-center gap-1 rounded-md bg-[#D1EFDD] px-3 py-1.5 text-sm font-medium text-[#15803D] transition-colors hover:bg-[#BDE5CE]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="leading-none">{listingTypeLabel}</span>
 
-            <select
-              value={category}
-              onChange={(e) =>
-                dispatch(setCategory(e.target.value as categoryOption))
-              }
-              className="rounded-lg focus:ring-2  focus:outline-none"
-            >
-              {categoryOptions.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
+            <ArrowDropdownIcon
+              size={12}
+              color="#15803D"
+              className={`transition-transform duration-200 ${open ? "rotate-180" : ""
+                }`}
+            />
+          </button>
 
-            <div className="relative w-full border-l border-l-[#EBEBEB] pl-3">
-              <CiSearch
-                className="absolute left-3 top-3 text-gray-500"
-                size={18}
-              />
-              <input
-                type="text"
-                placeholder="project, or builder..."
-                className="w-full rounded-lg pl-10 pr-4 py-2 text-sm outline-none"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-              <Link
-                href="/properties"
-                className="absolute right-0 bg-[#27AE60] text-white px-4 py-2 rounded-lg"
-              >
-                Search
-              </Link>
-            </div>
+          <span className="h-6 w-px bg-gray-200" />
+
+          <select
+            value={category}
+            onChange={(e) =>
+              dispatch(setCategory(e.target.value as categoryOption))
+            }
+            onClick={(e) => e.stopPropagation()}
+            className="bg-transparent text-sm outline-none cursor-pointer"
+          >
+            {categoryOptions.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+
+          <span className="md:block h-6 w-px bg-gray-200" />
+
+          {/* Search Input */}
+          <div className="md:flex grow items-center">
+            <IoIosSearch className="mr-2 text-lg text-gray-500 hidden sm:inline" />
+            <input
+              type="text"
+              placeholder={placeholder}
+              className="w-full bg-transparent pl-2 text-sm outline-none"
+            />
           </div>
 
-          {/* Dropdown List */}
-          {results.length > 0 && (
-            <ul className="absolute top-full mt-2 left-0 w-full bg-white border rounded-xl shadow-lg max-h-64 overflow-y-auto text-sm">
-              {results.map((item) => (
-                <li
-                  key={item._id}
-                  onClick={() => handleSelect(item)}
-                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                >
-                  <div className="text-gray-700">{item?.city}</div>
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="btn-primary px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shrink-0">
+            <IoIosSearch className="h-5 w-5" />
+            <span className="hidden sm:inline">Search</span>
+          </div>
         </div>
-      </div>
+      </Link>
     </div>
   );
 };

@@ -33,6 +33,7 @@ export default function MicroSiteNavbar({
   redirectUrl,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const pathname = usePathname() || "/";
   const [activeHash, setActiveHash] = useState("");
 
@@ -41,6 +42,19 @@ export default function MicroSiteNavbar({
     updateHash();
     window.addEventListener("hashchange", updateHash);
     return () => window.removeEventListener("hashchange", updateHash);
+  }, []);
+
+  useEffect(() => {
+    const body = document.body;
+    const syncGalleryState = () => {
+      setIsGalleryOpen(body.classList.contains("gallery-modal-open"));
+    };
+
+    syncGalleryState();
+    const observer = new MutationObserver(syncGalleryState);
+    observer.observe(body, { attributes: true, attributeFilter: ["class"] });
+
+    return () => observer.disconnect();
   }, []);
 
   // support both string URL or object with src
@@ -78,7 +92,7 @@ export default function MicroSiteNavbar({
   const isExternalLogoHref = /^https?:\/\//i.test(logoHref);
 
   return (
-    <header className="bg-white shadow-md border-b border-gray-200  sticky top-0 z-9999">
+    <header className={`bg-white shadow-md border-b border-gray-200 sticky top-0 z-9999 ${isGalleryOpen ? "hidden" : ""}`}>
       <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="h-14 flex items-center justify-between">
           {/* logo */}

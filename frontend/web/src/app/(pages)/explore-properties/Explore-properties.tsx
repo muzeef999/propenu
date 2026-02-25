@@ -25,15 +25,7 @@ const CATEGORIES = [
     countText: "9,500+ Properties",
     href: "/properties?type=commercial",
   },
-  {
-    id: "agricultural",
-    title: "Agricultural",
-    color: "#FFF0E5",
-    image: agricultural,
-    imageAlt: "Cozy farm house with porch and lawn",
-    countText: "3,200+ Properties",
-    href: "/properties?type=agricultural",
-  },
+ 
   {
     id: "Land /plotes",
     title: "Land /plotes",
@@ -42,6 +34,15 @@ const CATEGORIES = [
     imageAlt: "Mediterranean villa with palm trees",
     countText: "5,800+ Properties",
     href: "/properties?type=land",
+  },
+   {
+    id: "agricultural",
+    title: "Agricultural",
+    color: "#FFF0E5",
+    image: agricultural,
+    imageAlt: "Cozy farm house with porch and lawn",
+    countText: "3,200+ Properties",
+    href: "/properties?type=agricultural",
   },
 ];
 

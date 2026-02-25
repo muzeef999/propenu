@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { IoIosSearch } from "react-icons/io";
 import { useDispatch } from "react-redux";
 import FilterDropdown from "@/ui/FilterDropdown";
@@ -24,6 +24,7 @@ import ResidentialMobileFilters from "./filters/adaptiveFilterDesign/Residential
 import CommercialMobileFilter from "./filters/adaptiveFilterDesign/CommercialMobileFilter";
 import LandMobileFilter from "./filters/adaptiveFilterDesign/LandMobileFilter";
 import AgriculturalMobileFilter from "./filters/adaptiveFilterDesign/AgriculturalMobileFilter";
+import { useSearchParams } from "next/navigation";
 
 const FilterBar: React.FC = () => {
   const listingOptions = [
@@ -45,6 +46,14 @@ const FilterBar: React.FC = () => {
   const [showLandAdvanced, setShowLandAdvanced] = useState(false);
   const [showAgriculturalAdvanced, setShowAgriculturalAdvanced] = useState(false);
 
+  const searchParams = useSearchParams();
+
+  // Open search dropdown when coming from SearchBox
+  useEffect(() => {
+    if (searchParams.get("focus") === "search") {
+      setSearchOpen(true);
+    }
+  }, [searchParams]);
 
   const dispatch = useDispatch();
   const {
