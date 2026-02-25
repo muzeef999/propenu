@@ -79,18 +79,24 @@ export const requireActiveSubscription = async (
       return res.status(400).json({ message: "Invalid listingType" });
     }
 
-    let userType: "buyer" | "agent" | "owner";
+let userType: "buyer" | "agent" | "owner";
 
-    // 🔥 FIX HERE
-    if (roleName === "user")
-      userType = "owner"; // ← change buyer → owner
-    else if (roleName === "agent") userType = "agent";
-    else if (roleName === "owner") userType = "owner";
-    else if (roleName === "builder") userType = "owner";
-    else {
-      return res.status(403).json({ message: "Invalid user role" });
-    }
-
+// ⭐ If user is posting property → treat as owner
+if (roleName === "user" && req.body?.listingSource === "user") {
+  userType = "owner";
+}
+else if (roleName === "user") {
+  userType = "buyer";
+}
+else if (roleName === "agent") {
+  userType = "agent";
+}
+else if (roleName === "owner" || roleName === "builder") {
+  userType = "owner";
+}
+else {
+  return res.status(403).json({ message: "Invalid user role" });
+}
     // console.log("🔎 DEBUG SUB CHECK ----------");
     // console.log({
     //   userId,
