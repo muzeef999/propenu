@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import FilterBar from "./FilterBar";
 import { useAppSelector } from "@/Redux/store";
 import { Property } from "@/types/property";
@@ -62,7 +62,9 @@ const Page: React.FC = () => {
 
   return (
   <div className="relative min-h-screen"> 
-    <FilterBar />
+    <Suspense fallback={<div className="sticky top-0 z-10 h-14 w-full bg-[#D1EFDD] shadow-sm" />}>
+      <FilterBar />
+    </Suspense>
     
     <div className="container p-4">
       {loading && <p>Loading properties…</p>}
