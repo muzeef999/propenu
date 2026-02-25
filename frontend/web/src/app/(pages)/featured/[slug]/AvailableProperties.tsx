@@ -92,6 +92,7 @@ export default function AvailableProperties({ bhk }: Props) {
       ),
     [units]
   );
+  console.log("data", bhk); 
 
   const activeUnit = units[activeUnitIndex];
 

@@ -58,6 +58,7 @@ export default function Amenities(props: Props) {
   );
 
   const [query, setQuery] = useState("");
+  const [showAll, setShowAll] = useState(false);
 
   // color handling
   const accent = typeof color === "string" ? color.trim() : "#F59E0B";
@@ -78,7 +79,11 @@ export default function Amenities(props: Props) {
     });
   }, [items, query]);
 
-  console.log(filtered);
+  const amenitiesToShow = useMemo(
+    () => (showAll ? filtered : filtered.slice(0, 10)),
+    [filtered, showAll]
+  );
+
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -98,11 +103,11 @@ export default function Amenities(props: Props) {
       </div>
       <br/>
 
-      <div className="grid lg:grid-cols-5 gap-4">
-        {filtered.length === 0 ? (
+      <div className="grid lg:grid-cols-5 sm:grid-cols-3 grid-cols-2 gap-4 ">
+        {amenitiesToShow.length === 0 ? (
           <div className="text-sm text-slate-500">No amenities available.</div>
         ) : (
-          filtered.map((a, idx) => {
+          amenitiesToShow.map((a, idx) => {
             const key = a.key ?? a.title ?? `amenity-${idx}`;
             const title = a.title ?? "Amenity";
             // icon priority: uploaded imageUrl -> local icon path from mapping -> default placeholder
@@ -112,7 +117,7 @@ export default function Amenities(props: Props) {
               <div
                 key={key}
                 title={title}
-                className="flex items-center gap-3 text-sm text-gray-700"
+                className="flex items-center gap-3 text-sm text-gray-700 truncate"
               >
                 <span
                   className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 shrink-0"
@@ -134,6 +139,18 @@ export default function Amenities(props: Props) {
           })
         )}
       </div>
+
+      {filtered.length > 10 && (
+        <div className="mt-8 text-center">
+          <button
+            type="button"
+            onClick={() => setShowAll(!showAll)}
+            className="font-semibold text-primary transition hover:underline"
+          >
+            {showAll ? "View Less" : "View More"}
+          </button>
+        </div>
+      )}
     </section>
   );
 }

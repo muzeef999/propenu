@@ -56,9 +56,7 @@ const SearchBox = () => {
 
   return (
     <div className="relative w-full max-w-2xl">
-      <Link
-        href={`/properties?${searchParams.toString()}`}
-        className="block bg-white shadow-lg rounded-xl border border-gray-200 p-2 cursor-pointer"
+      <div className="block bg-white shadow-lg rounded-xl border border-gray-200 p-2 cursor-pointer"
       >
         <div className="flex items-center gap-2">
           <button
@@ -96,21 +94,21 @@ const SearchBox = () => {
           <span className="md:block h-6 w-px bg-gray-200" />
 
           {/* Search Input */}
-          <div className="md:flex grow items-center">
+          <Link  href={`/properties?${searchParams.toString()}`} className="md:flex grow items-center">
             <IoIosSearch className="mr-2 text-lg text-gray-500 hidden sm:inline" />
             <input
               type="text"
               placeholder={placeholder}
               className="w-full bg-transparent pl-2 text-sm outline-none"
             />
-          </div>
+          </Link>
 
-          <div className="btn-primary px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shrink-0">
+          <Link href={`/properties?type=residential`} className="btn-primary px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shrink-0">
             <IoIosSearch className="h-5 w-5" />
             <span className="hidden sm:inline">Search</span>
-          </div>
+          </Link>
         </div>
-      </Link>
+      </div>
     </div>
   );
 };
