@@ -38,13 +38,16 @@ export async function createPaymentOrder(
       userId,
       userType,
       category: plan.category,
+      planCode: plan.code,
       status: "active",
+      endDate: { $gt: new Date() },   
     });
 
 
     if (existing) {
       return {
         free: true,
+         alreadyActive: true,
         message: "Free plan already active",
       };
     }
