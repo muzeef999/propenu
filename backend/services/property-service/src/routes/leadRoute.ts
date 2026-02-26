@@ -16,9 +16,10 @@ router.post(
     console.log("🧪 req.body BEFORE validation:", req.body);
     next();
   },
+
   validateBody(LeadCreateSchema),
-  requireContactOwnerLimit,
   authMiddleware,
+  requireContactOwnerLimit,
   createLeadController
 );
 

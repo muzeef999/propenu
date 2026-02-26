@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { me } from "@/data/ClientData";
 import { toast } from "sonner";
 import LoginDialog from "@/app/(auth)/Login";
+import RegisterDialog from "@/app/(auth)/Register";
 
 type FeatureRow = {
   label: string;
@@ -19,17 +20,39 @@ type Props = {
   userType: "buyer" | "builder" | "agent" | "owner";
 };
 
+
+function getRedirectAfterPlan(plan: Plan, user: any) {
+  const code = plan.code?.toLowerCase();
+
+
+  // ✅ Owner plans → go post property
+  if (code?.includes("owner") && (code.includes("sell") || code.includes("rent"))) {
+    return "/postproperty";
+  }
+
+  // ✅ Buyer view plans → stay same page
+  if (code?.includes("buyer") && code.includes("view")) {
+    return null;
+  }
+
+  // ✅ Agent / Builder
+  if (user?.roleName === "builder") return "/builder/dashboard";
+  if (user?.roleName === "agent") return "/agent/dashboard";
+
+  return "/membership";
+}
+
 export default function PricingComparisonTable({
   plans,
   features,
   userType,
 }: Props) {
-
   // ✅ Hooks must be here
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const [showLogin, setShowLogin] = useState(false);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [showRegisterDialog, setShowRegisterDialog] = useState(false);
 
   // ✅ Fetch user once
   useEffect(() => {
@@ -47,12 +70,11 @@ export default function PricingComparisonTable({
   // ✅ Normal async function
   const handleSubscribe = async (plan: Plan) => {
     try {
-      
-       if (!user) {
-    toast.info("Please login to continue");
-    setShowLogin(true);   // ✅ open dialog
-    return;
-  }
+      if (!user) {
+        toast.info("Please login to continue");
+        setShowLoginDialog(true);
+        return;
+      }
 
       setLoadingPlan(plan._id);
       const order = await createPaymentOrder({
@@ -61,8 +83,11 @@ export default function PricingComparisonTable({
       });
 
       if (order?.free) {
-        toast.success("Plan activated successfully 🎉");
-        router.push("/postproperty");
+        const redirect = getRedirectAfterPlan(plan, user);
+
+        if (redirect) router.push(redirect);
+        else router.refresh();
+
         return;
       }
 
@@ -99,7 +124,7 @@ export default function PricingComparisonTable({
           };
 
           router.replace(
-            redirectMap[user?.roleName?.toLowerCase()] || "/postproperty"
+            redirectMap[user?.roleName?.toLowerCase()] || "/postproperty",
           );
         },
 
@@ -107,7 +132,6 @@ export default function PricingComparisonTable({
       });
 
       rzp.open();
-
     } catch (err) {
       console.error(err);
       alert("Payment failed");
@@ -115,7 +139,6 @@ export default function PricingComparisonTable({
       setLoadingPlan(null);
     }
   };
-
 
   return (
     <div
@@ -204,15 +227,29 @@ export default function PricingComparisonTable({
         ))}
       </div>
 
+      <div className="z-50">
+            {showLoginDialog && (
+              <LoginDialog
+                open={showLoginDialog}
+                onClose={() => setShowLoginDialog(false)}
+                onSwitchToRegister={() => {
+                  setShowLoginDialog(false);
+                  setShowRegisterDialog(true);
+                }}
+              />
+            )}
 
-      <LoginDialog
-  open={showLogin}
-  onClose={() => setShowLogin(false)}
-  onSwitchToRegister={() => {
-    setShowLogin(false);
-   
-  }}
-/>
+            {showRegisterDialog && (
+              <RegisterDialog
+                open={showRegisterDialog}
+                onClose={() => setShowRegisterDialog(false)}
+                onSwitchToLogin={() => {
+                  setShowRegisterDialog(false);
+                  setShowLoginDialog(true);
+                }}
+              />
+            )}
+          </div>
     </div>
   );
 }
