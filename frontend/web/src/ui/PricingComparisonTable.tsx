@@ -5,6 +5,7 @@ import SubscriptionLady from "@/svg/SubscriptionLady";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { me } from "@/data/ClientData";
+import { toast } from "sonner";
 
 type FeatureRow = {
   label: string;
@@ -52,8 +53,8 @@ export default function PricingComparisonTable({
       });
 
       if (order?.free) {
-        alert("Plan activated successfully 🎉");
-        router.replace("/myplan");
+        toast.success("Plan activated successfully 🎉");
+        router.push("/postproperty");
         return;
       }
 
@@ -84,8 +85,8 @@ export default function PricingComparisonTable({
 
           const redirectMap: Record<string, string> = {
             agent: "/agent/membership",
-            buyer: "/myplan",
-            owner: "/myplan",
+            buyer: "/membership",
+            owner: "/membership",
             builder: "/builder/dashboard",
           };
 
