@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { me } from "@/data/ClientData";
 import { toast } from "sonner";
+import LoginDialog from "@/app/(auth)/Login";
 
 type FeatureRow = {
   label: string;
@@ -28,6 +29,7 @@ export default function PricingComparisonTable({
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [showLogin, setShowLogin] = useState(false);
 
   // ✅ Fetch user once
   useEffect(() => {
@@ -45,8 +47,14 @@ export default function PricingComparisonTable({
   // ✅ Normal async function
   const handleSubscribe = async (plan: Plan) => {
     try {
-      setLoadingPlan(plan._id);
+      
+       if (!user) {
+    toast.info("Please login to continue");
+    setShowLogin(true);   // ✅ open dialog
+    return;
+  }
 
+      setLoadingPlan(plan._id);
       const order = await createPaymentOrder({
         planId: plan._id,
         userType,
@@ -195,6 +203,16 @@ export default function PricingComparisonTable({
           </div>
         ))}
       </div>
+
+
+      <LoginDialog
+  open={showLogin}
+  onClose={() => setShowLogin(false)}
+  onSwitchToRegister={() => {
+    setShowLogin(false);
+   
+  }}
+/>
     </div>
   );
 }
