@@ -188,7 +188,6 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
                 });
               }
             }}
-
           />
 
           {/* overlay: image count & date */}
@@ -219,7 +218,7 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
 
           <div className={`flex ${vertical ? "flex-col gap-1" : "flex-col"}`}>
             <h3
-              className={`font-semibold truncate ${vertical ? "text-base max-w-[250px]" : "text-lg md:text-md max-w-[400px]"
+              className={`font-semibold truncate ${vertical ? "text-base max-w-[250px]" : "text-lg md:text-md max-w-[500px]"
                 }`}
             >
               {p.title}
@@ -250,8 +249,7 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
           <div
             className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200 ${vertical
               ? "grid grid-cols-2 gap-4"
-              : "md:flex md:items-center md:gap-6"
-              }`}
+              : "grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6"}`}
           >
             <div className="items-center gap-2 flex">
               <SuperBuiitupAraea size={24} color={bgPriceColoricon} />

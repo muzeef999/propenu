@@ -69,7 +69,7 @@ const Page: React.FC = () => {
     <div className="container p-4">
       {loading && <p>Loading properties…</p>}
       {!loading && (
-        <p className="mb-4 text-gray-600 capitalize text-2xl pt-2">
+        <p className="mb-4 pt-2 text-gray-700 capitalize text-base sm:text-lg md:text-xl lg:text-2xl leading-snug wrap-break-word">
           <strong>{total ?? items.length}</strong> Properties for {params.listingType} in 
           {locationLabel ? ` ${locationLabel}` : " your area"}
         </p>

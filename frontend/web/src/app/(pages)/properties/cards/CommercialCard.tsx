@@ -229,7 +229,7 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
           <div
             className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200 ${vertical
                 ? "grid grid-cols-2 gap-4"
-                : "md:flex md:items-center md:gap-6"
+                : "grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6"
               }`}
           >
             <div className="items-center gap-2 flex">
