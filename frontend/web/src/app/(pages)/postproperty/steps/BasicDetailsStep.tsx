@@ -33,6 +33,7 @@ import { property } from "zod";
 import PricingDetails from "../components/PricingDetails";
 
 import { useAppDispatch, useAppSelector } from "@/Redux/store";
+import RegisterDialog from "@/app/(auth)/Register";
 
 export default function BasicDetailsStep() {
   const {
@@ -58,6 +59,7 @@ export default function BasicDetailsStep() {
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showRoomDetails, setShowRoomDetails] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
+  const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   // const dispatch = useDispatch<AppDispatch>();
 
   const dispatch = useAppDispatch();
@@ -948,6 +950,18 @@ export default function BasicDetailsStep() {
                 onClose={() => setShowLoginDialog(false)}
                 onSwitchToRegister={() => {
                   setShowLoginDialog(false);
+                  setShowRegisterDialog(true);
+                }}
+              />
+            )}
+
+            {showRegisterDialog && (
+              <RegisterDialog
+                open={showRegisterDialog}
+                onClose={() => setShowRegisterDialog(false)}
+                onSwitchToLogin={() => {
+                  setShowRegisterDialog(false);
+                  setShowLoginDialog(true);
                 }}
               />
             )}

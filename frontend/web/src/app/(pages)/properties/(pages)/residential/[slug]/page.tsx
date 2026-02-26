@@ -5,7 +5,6 @@ import formatINR from "@/utilies/PriceFormat";
 import { notFound } from "next/navigation";
 import GalleryFile from "../../../GalleryFile"; // Assuming this is client-side or handles SSR correctly
 import { Balconies, Bath, Bhk } from "@/icons/icons";
-import ResidentialCard from "../../../cards/ResidentialCard";
 import NearByPlaceClient from "@/app/(pages)/properties/(pages)/NearByPlaceClient"; // Use the client-side dynamic import
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import Image from "next/image";
