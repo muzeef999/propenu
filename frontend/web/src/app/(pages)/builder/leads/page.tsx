@@ -372,7 +372,7 @@ function LeadsTable({
           <div>
             <div className="relative inline-block w-full">
               <select
-                className="w-full appearance-none px-3 py-1.5 pr-8 text-xs rounded-xl border border-gray-300 bg-white text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full appearance-none px-3 py-1.5 pr-8 text-xs rounded-md border border-gray-300 bg-white text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-green-500"
                 value={lead.status}
                 onChange={(e) =>
                   updateStatusMutation.mutate({

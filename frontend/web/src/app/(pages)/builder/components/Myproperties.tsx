@@ -20,7 +20,7 @@ const Myproperties: React.FC<ProjectCardProps> = ({
   const list = items ?? (project ? [project] : []);
   return (
     <div className="relative w-full">
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4 p-1">
         {list.map((project) => (
           <div key={project._id} className="w-full card">
             <Link
