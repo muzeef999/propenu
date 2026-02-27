@@ -60,20 +60,29 @@ type VerifyPropertyProps = {
 const VerifyProperty: React.FC<VerifyPropertyProps> = ({
   onVerificationSubmitted,
 }) => {
-  const { residential, draftId, propertyType, base } = useSelector(
+  const { residential, commercial, land, agricultural, draftId, propertyType, base } = useSelector(
     (state: any) => state.postProperty,
   );
 
   const dispatch = useAppDispatch();
   const router = useRouter();
 
+  const profileData =
+    propertyType === "residential"
+      ? residential
+      : propertyType === "commercial"
+        ? commercial
+        : propertyType === "land"
+          ? land
+          : agricultural;
+
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [showErrors, setShowErrors] = useState(false);
   const didHydratePrefill = useRef(false);
 
   const prefilledFiles = useMemo<UploadedFile[]>(() => {
-    const docs = Array.isArray(residential?.verificationDocuments)
-      ? residential.verificationDocuments
+    const docs = Array.isArray(profileData?.verificationDocuments)
+      ? profileData.verificationDocuments
       : [];
 
     return docs
@@ -84,7 +93,7 @@ const VerifyProperty: React.FC<VerifyPropertyProps> = ({
         source: "server",
         name: doc.filename || doc.title || "verification-document",
       }));
-  }, [residential?.verificationDocuments]);
+  }, [profileData?.verificationDocuments]);
 
   useEffect(() => {
     if (didHydratePrefill.current) return;
@@ -134,7 +143,7 @@ const VerifyProperty: React.FC<VerifyPropertyProps> = ({
     }
 
     const selectedDoc = VERIFICATION_DOCS.find(
-      (d) => d.key === residential.verificationDocument,
+      (d) => d.key === profileData?.verificationDocument,
     );
 
     if (!selectedDoc) {
@@ -185,9 +194,9 @@ const VerifyProperty: React.FC<VerifyPropertyProps> = ({
         if (errObj?.code === "NO_VALID_PLAN") {
           toast.error(errObj.message || "Please subscribe to a plan");
 
-          const listingType = residential?.listingType || "sale";
+          const listingType = profileData?.listingType || "sale";
 
-          console.log(residential?.listingType);
+          console.log(profileData?.listingType);
           console.log("🚀 Redirecting to plan selection for:", listingType);
           
 
@@ -230,7 +239,7 @@ const VerifyProperty: React.FC<VerifyPropertyProps> = ({
 
         <div className="space-y-4">
           {VERIFICATION_DOCS.map((doc) => {
-            const selected = residential.verificationDocument === doc.key;
+            const selected = profileData?.verificationDocument === doc.key;
 
             return (
               <label
@@ -245,7 +254,7 @@ const VerifyProperty: React.FC<VerifyPropertyProps> = ({
                   onChange={() =>
                     dispatch(
                       setProfileField({
-                        propertyType: "residential",
+                        propertyType,
                         key: "verificationDocument",
                         value: doc.key,
                       }),

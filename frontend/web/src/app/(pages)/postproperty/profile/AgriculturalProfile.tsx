@@ -202,7 +202,7 @@ const AgriculturalProfile = () => {
             }
             options={SOIL_TYPES.map((t) => ({
               value: t,
-              label: t.replace("-", " ").toUpperCase(),
+              label: t.replace("-", " "),
             }))}
             placeholder="Select"
           />
@@ -221,7 +221,7 @@ const AgriculturalProfile = () => {
             }
             options={IRRIGATION_TYPES.map((t) => ({
               value: t,
-              label: t.replace("-", " ").toUpperCase(),
+              label: t.replace("-", " "),
             }))}
             placeholder="Select"
           />
@@ -240,7 +240,7 @@ const AgriculturalProfile = () => {
             }
             options={WATER_SOURCES.map((t) => ({
               value: t,
-              label: t.replace("-", " ").toUpperCase(),
+              label: t.replace("-", " "),
             }))}
             placeholder="Select"
           />

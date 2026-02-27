@@ -59,7 +59,7 @@ const Dropdownui: React.FC<DropdownProps> = ({
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
-          <span className={`text-base ${!selectedOption ? 'text-gray-400' : 'text-gray-900'}`}>
+          <span className={`text-base capitalize ${!selectedOption ? 'text-gray-400' : 'text-gray-900'}`}>
             {selectedOption ? selectedOption.label : placeholder}
           </span>
           <HiChevronDown 
@@ -80,7 +80,7 @@ const Dropdownui: React.FC<DropdownProps> = ({
                     key={option.value}
                     className={`
                       flex cursor-pointer select-none items-center justify-between 
-                      rounded-md px-3 py-2.5 text-sm transition-colors
+                      rounded-md px-3 py-2.5 text-sm transition-colors capitalize
                       ${isSelected 
                         ? 'bg-emerald-50 text-emerald-700' 
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'

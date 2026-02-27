@@ -62,23 +62,28 @@ export const submitDetailsThunk = createAsyncThunk(
   "postProperty/details",
   async ({ category, id, payload }: any) => {
     const files = getFileStoreFiles("postProperty");
+    const {
+      verificationDocuments: _verificationDocuments,
+      verificationDocument: _verificationDocument,
+      ...detailsPayload
+    } = payload ?? {};
 
     const safePayload = {
-      ...payload,
-      totalArea: payload.totalArea
+      ...detailsPayload,
+      totalArea: detailsPayload.totalArea
         ? {
-            value: Number(payload.totalArea.value),
-            unit: payload.totalArea.unit,
+            value: Number(detailsPayload.totalArea.value),
+            unit: detailsPayload.totalArea.unit,
           }
         : undefined,
-      roadWidth: payload.roadWidth
+      roadWidth: detailsPayload.roadWidth
         ? {
-            value: Number(payload.roadWidth.value),
-            unit: payload.roadWidth.unit,
+            value: Number(detailsPayload.roadWidth.value),
+            unit: detailsPayload.roadWidth.unit,
           }
         : undefined,
-      amenities: Array.isArray(payload?.amenities)
-        ? payload.amenities.map((a: any) => ({
+      amenities: Array.isArray(detailsPayload?.amenities)
+        ? detailsPayload.amenities.map((a: any) => ({
             title: typeof a === "string" ? a.trim() : String(a.title).trim(),
           }))
         : [],

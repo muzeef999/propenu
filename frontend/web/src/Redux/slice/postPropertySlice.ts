@@ -183,24 +183,24 @@ const postPropertySlice = createSlice({
         updatedAt: draft.updatedAt,
       };
 
+      const mappedVerificationDocuments = Array.isArray(
+        draft.verificationDocuments,
+      )
+        ? draft.verificationDocuments.map((doc: any, index: number) => ({
+            url: doc.url,
+            key: doc.key,
+            filename: doc.filename,
+            title: doc.title,
+            type: doc.type,
+            mimetype: doc.mimetype,
+            status: doc.status,
+            order: index,
+            source: "server",
+          }))
+        : [];
+
       // category-specific data
       if (category === "residential") {
-        const mappedVerificationDocuments = Array.isArray(
-          draft.verificationDocuments,
-        )
-          ? draft.verificationDocuments.map((doc: any, index: number) => ({
-              url: doc.url,
-              key: doc.key,
-              filename: doc.filename,
-              title: doc.title,
-              type: doc.type,
-              mimetype: doc.mimetype,
-              status: doc.status,
-              order: index,
-              source: "server",
-            }))
-          : [];
-
         state.residential = {
           ...state.residential,
           listingType: draft.listingType,
@@ -258,6 +258,8 @@ const postPropertySlice = createSlice({
           listingSource: draft.listingSource,
           furnishing: draft.furnishing,
           price: draft.price,
+          amenities: draft.amenities ?? [],
+
           commercialSubType: draft.propertySubType,
           transactionType: draft.transactionType,
           constructionStatus: draft.constructionStatus,
@@ -281,6 +283,10 @@ const postPropertySlice = createSlice({
           isPriceNegotiable: draft.isPriceNegotiable,
           verifiedProperties: draft.verifiedProperties,
           description: draft.description,
+          verificationDocuments: mappedVerificationDocuments,
+          verificationDocument:
+            mapVerificationTypeToKey(mappedVerificationDocuments[0]?.type) ??
+            state.commercial.verificationDocument,
           gallery: Array.isArray(draft.gallery)
             ? draft.gallery.map((img: any) => ({
                 url: img.url,
@@ -297,6 +303,7 @@ const postPropertySlice = createSlice({
         state.land = {
           listingType: draft.listingType,
           listingSource: draft.listingSource,
+          amenities: draft.amenities ?? [],
           propertyType: draft.propertyType,
           landSubType: draft.propertySubType,
           price: draft.price,
@@ -315,6 +322,10 @@ const postPropertySlice = createSlice({
           isPriceNegotiable: draft.isPriceNegotiable,
           description: draft.description,
           verifiedProperties: draft.verifiedProperties,
+          verificationDocuments: mappedVerificationDocuments,
+          verificationDocument:
+            mapVerificationTypeToKey(mappedVerificationDocuments[0]?.type) ??
+            state.land.verificationDocument,
           gallery: Array.isArray(draft.gallery)
             ? draft.gallery.map((img: any) => ({
                 url: img.url,
@@ -341,9 +352,9 @@ const postPropertySlice = createSlice({
           currentCrop: draft.currentCrop,
           landName: draft.landName,
           landShape: draft.landShape,
-
           numberOfBorewells: draft.numberOfBorewells,
           borewellDetails: draft.borewellDetails,
+          amenities: draft.amenities ?? [],
 
           waterSource: draft.waterSource,
           accessRoadType: draft.accessRoadType,
@@ -358,6 +369,10 @@ const postPropertySlice = createSlice({
           price: draft.price,
           isPriceNegotiable: draft.isPriceNegotiable,
           description: draft.description,
+          verificationDocuments: mappedVerificationDocuments,
+          verificationDocument:
+            mapVerificationTypeToKey(mappedVerificationDocuments[0]?.type) ??
+            state.agricultural.verificationDocument,
 
           gallery: Array.isArray(draft.gallery)
             ? draft.gallery.map((img: any) => ({

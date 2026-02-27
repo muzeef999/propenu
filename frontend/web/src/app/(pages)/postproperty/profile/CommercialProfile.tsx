@@ -254,7 +254,7 @@ const CommercialProfile = () => {
             }
             options={PANTRY_TYPES.map((t) => ({
               value: t,
-              label: t.replace("-", " ").toUpperCase(),
+              label: t.replace("-", " "),
             }))}
             placeholder="Select"
           />

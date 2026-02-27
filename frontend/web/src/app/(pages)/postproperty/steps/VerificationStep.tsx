@@ -8,7 +8,17 @@ import TrackPropertyStatus from "../verifyproperty/TrackPropertyStatus";
 
 const VerificationStep = () => {
   const router = useRouter();
-  const { residential, base } = useAppSelector((state) => state.postProperty);
+  const { residential, commercial, land, agricultural, propertyType, base } =
+    useAppSelector((state) => state.postProperty);
+
+  const profileData =
+    propertyType === "residential"
+      ? residential
+      : propertyType === "commercial"
+        ? commercial
+        : propertyType === "land"
+          ? land
+          : agricultural;
 
   const [submissionMeta, setSubmissionMeta] = useState<{
     isSubmitted: boolean;
@@ -22,12 +32,12 @@ const VerificationStep = () => {
      FALLBACK DATA (From Draft)
   ========================================= */
 
-  const fallbackHasDocs = Array.isArray(residential?.verificationDocuments)
-    ? residential.verificationDocuments.length > 0
+  const fallbackHasDocs = Array.isArray(profileData?.verificationDocuments)
+    ? profileData.verificationDocuments.length > 0
     : false;
 
-  const fallbackApproved = Array.isArray(residential?.verificationDocuments)
-    ? residential.verificationDocuments.some(
+  const fallbackApproved = Array.isArray(profileData?.verificationDocuments)
+    ? profileData.verificationDocuments.some(
         (doc: any) => doc?.status === "verified"
       )
     : false;
@@ -42,7 +52,7 @@ const VerificationStep = () => {
 
   const showTracker = trackerState.isSubmitted;
   const listingSource = String(
-    base?.listingSource ?? residential?.listingSource ?? ""
+    base?.listingSource ?? profileData?.listingSource ?? ""
   ).toLowerCase();
   const myPropertiesRoute =
     listingSource === "agent" ? "/agent/my-properties" : "/my-properties";

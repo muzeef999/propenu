@@ -1,21 +1,48 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import StepRenderer from "./StepRenderer";
 import { useAppDispatch, useAppSelector } from "@/Redux/store";
 import {
   getMyDraftThunk,
   createDraftThunk,
 } from "@/Redux/thunks/submitPropertyApi";
+import { setPropertyType, type PropertyCategory } from "@/Redux/slice/postPropertySlice";
 
 
 const MainContent = () => {
 
   const dispatch = useAppDispatch();
+  const [isBootstrapped, setIsBootstrapped] = useState(false);
 
 const { currentStep, propertyType, draftId } = useAppSelector(
   (state) => state.postProperty
 );
 
 useEffect(() => {
+  if (typeof window === "undefined") return;
+
+  const storedType = localStorage.getItem("postproperty:propertyType");
+  const allowedTypes: PropertyCategory[] = [
+    "residential",
+    "commercial",
+    "land",
+    "agricultural",
+  ];
+
+  if (
+    storedType &&
+    allowedTypes.includes(storedType as PropertyCategory) &&
+    storedType !== propertyType
+  ) {
+    dispatch(setPropertyType(storedType as PropertyCategory));
+  }
+
+  setIsBootstrapped(true);
+  // Bootstrap once on mount to avoid update loops.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
+
+useEffect(() => {
+  if (!isBootstrapped) return;
   // property type not selected yet
   if (!propertyType) return;
 
@@ -32,7 +59,19 @@ useEffect(() => {
       // 404 or error → create new draft
       dispatch(createDraftThunk(propertyType));
     });
-}, [propertyType]);
+}, [dispatch, isBootstrapped, propertyType]);
+
+useEffect(() => {
+  if (!isBootstrapped || typeof window === "undefined") return;
+
+  if (propertyType) {
+    localStorage.setItem("postproperty:propertyType", propertyType);
+  }
+
+  if (draftId) {
+    localStorage.setItem("postproperty:draftId", draftId);
+  }
+}, [isBootstrapped, propertyType, draftId]);
 
 
   const STEP_TITLES: Record<number, string> = {

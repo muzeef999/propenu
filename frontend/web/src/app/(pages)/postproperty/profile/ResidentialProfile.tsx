@@ -155,7 +155,7 @@ const ResidentialProfile = () => {
               }
               options={ParkingTypes.map((t) => ({
                 value: t, // "open"
-                label: t.toUpperCase(), // "OPEN"
+                label: t, // "OPEN"
               }))}
               placeholder="Select"
             />
@@ -238,7 +238,7 @@ const ResidentialProfile = () => {
               }
               options={FLOORING_TYPES.map((t) => ({
                 value: t,
-                label: t.replace("-", " ").toUpperCase(),
+                label: t.replace("-", " "),
               }))}
               placeholder="Select"
             />
@@ -313,7 +313,7 @@ const ResidentialProfile = () => {
             }
             options={KITCHEN_TYPES.map((t) => ({
               value: t,
-              label: t.replace("-", " ").toUpperCase(),
+              label: t.replace("-", " "),
             }))}
             placeholder="Select"
           />
