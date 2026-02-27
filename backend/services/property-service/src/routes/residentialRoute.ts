@@ -5,7 +5,7 @@ import { validateBody } from "../middlewares/validate";
 import { parseJsonFields } from "../middlewares/parseJsonFields";
 import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
 import { ResidentialCreateSchema, ResidentialUpdateSchema } from "../zod/residentialZod";
-import {  approveProperty, createResidential, createResidentialDraft, deactivateProperty, deleteResidential, editResidential, finalizeResidential, getAllResidential, getAllResidentialDraftsForAdmin, getMyResidentialDraft, getResidentialBySlug, getResidentialDetail, updateBasicStep, updateDetailsStep, updateLocationStep, verifyResidentialDocument } from "../controller/residentialController";
+import {  approveProperty, createResidential, createResidentialDraft, deactivateProperty, deleteGalleryImage, deleteResidential, editResidential, finalizeResidential, getAllResidential, getAllResidentialDraftsForAdmin, getMyResidentialDraft, getResidentialBySlug, getResidentialDetail, updateBasicStep, updateDetailsStep, updateLocationStep, verifyResidentialDocument } from "../controller/residentialController";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 
@@ -52,6 +52,8 @@ if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){
 
 router.post("/:id/approve",  approveProperty);
 router.post("/:id/deactive", authMiddleware, deactivateProperty );
+
+router.delete("/:id/gallery/:imageIndex", authMiddleware, deleteGalleryImage);
 
 router.post("/", authMiddleware,cpUpload,parseJsonFields(jsonKeys), fallbackCoerceDefault, requireActiveSubscription, validateBody(ResidentialCreateSchema), createResidential);
 router.patch("/:id", cpUpload, parseJsonFields(jsonKeys), fallbackCoerceDefault, validateBody(ResidentialUpdateSchema), editResidential );
