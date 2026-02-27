@@ -1,27 +1,4 @@
-// constants/amenities.tsx
 
-import {
-  FaDumbbell,
-  FaSwimmingPool,
-  FaRunning,
-  FaChild,
-  FaCar,
-  FaShieldAlt,
-  FaFireExtinguisher,
-  FaVideo,
-  FaLeaf,
-  FaRecycle,
-} from "react-icons/fa";
-
-import {
-  MdElevator,
-  MdPower,
-  MdNature,
-  MdWbSunny,
-} from "react-icons/md";
-
-import { GiCctvCamera } from "react-icons/gi";
-import { BsHouseDoor } from "react-icons/bs";
 
 
 export type AmenityCategory =
@@ -168,6 +145,82 @@ export const AMENITIES_FOR_COMMERCIAL = [
   category: "Convenience",
   icon: "/icons/amenities/visitor_parking.svg",
 },
+{
+  key: "atms",
+  title: "ATMs",
+  category: "Convenience",
+  icon: "/icons/amenities/atms.svg",
+},
+{
+  key: "ac_waiting_lobby",
+  title: "AC Waiting Lobby",
+  category: "Convenience",
+  icon: "/icons/amenities/ac_waiting_lobby.svg",
+},
+{
+  key: "parking",
+  title: "Parking",
+  category: "Convenience",
+  icon: "/icons/amenities/parking.svg",
+},
+{
+  key:"valet_parking",
+  title:"Valet Parking",
+  category:"Convenience",
+  icon:"/icons/amenities/valet_parking.svg"
+},
+{
+  key:"podium_parking",
+  title:"Podium Parking",
+  category:"Convenience",
+  icon:"/icons/amenities/podium_parking.svg"
+},
+{
+  key:"multi_level_parking",
+  title:"Multi Level Parking",
+  category:"Convenience",
+  icon:"/icons/amenities/multi_level_parking.svg"
+},
+
+{
+  key:"front_desk_service",
+  title:"Front Desk Service",
+  category:"Convenience",
+  icon:"/icons/amenities/front_desk_service.svg"
+},
+{
+  key:"centralized_ac",
+  title:"Centralized AC",
+  category:"Convenience",
+  icon:"/icons/amenities/centralized_ac.svg"
+},
+{
+  key:"24x7_water_supply",
+  title:"24x7 Water Supply",
+  category:"Convenience",
+  icon:"/icons/amenities/24x7_water_supply.svg"
+},
+{
+  key:"separate_entry_or_exit_gates",
+  title:"Separate Entry or Exit Gates",
+  category:"Convenience",
+  icon:"/icons/amenities/separate_entry_or_exit_gates.svg"
+},
+
+{
+  key:"automatic_boom_barriers",
+  title:"Automatic Boom Barriers",
+  category:"Convenience",
+  icon:"/icons/amenities/automatic_boom_barriers.svg"
+},
+{
+  key:"cafe_or_coffee_bar",
+  title:"Cafe or Coffee Bar",
+  category:"Convenience",
+  icon:"/icons/amenities/cafe_or_coffee_bar.svg"
+
+},
+
 
 // 🔐 Safety
 {
@@ -188,16 +241,46 @@ export const AMENITIES_FOR_COMMERCIAL = [
   category: "Safety",
   icon: "/icons/amenities/fire_fighting_systems.svg",
 },
+{
+  key:"smoke_or_heat_sensors",
+  title:"Smoke or Heat Sensors",
+  category:"Safety",
+  icon:"/icons/amenities/smoke_or_heat_sensors.svg"
+},
+{
+  key:"smart_card_access",
+  title:"Smart Card Access",
+  category:"Safety",
+  icon:"/icons/amenities/smart_card_access.svg"
+},
+{
+  key:"emergency_rescue_alarms",
+  title:"Emergency Rescue Alarms",
+  category:"Safety",
+  icon:"/icons/amenities/emergency_rescue_alarms.svg"
+},
+{
+  key: "solar_lighting",
+  title: "Solar Lighting",
+  category: "Environmental",
+  icon: "/icons/amenities/solar_lighting.svg",
+},
+{
+  key:"igbc_ certified_building",
+  title:"IGBC Certified Building",
+  category:"Environmental",
+  icon:"/icons/amenities/igbc_certified_building.svg"
+},
 ];
 
 export const AMENITIES_FOR_LANDPLOTS = [
   // 🌿 Land
   
   {
-    key: "levelled_or_semi-levelled_land",
-    title: "Levelled or Semi-Levelled Land",
+    key: "24x7_water_supply",
+    title: "24x7 Water Supply",
     category: "Land",
-    icon: "/icons/amenities/levelled_or_semi-levelled_land.svg",
+    icon: "/icons/amenities/24x7_water_supply.svg",
   },
  
 
