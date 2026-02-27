@@ -64,90 +64,81 @@ export default async function Page({ params }: PageProps) {
         <div className="w-full">
           {/* Top: Price + Title + CTA */}
           <header className="flex flex-col justify-between gap-2 p-2">
-            <div className="">
-              <div className="flex flex-wrap items-baseline gap-3">
-                <span className="rounded-full px-1 text-2xl font-semibold text-primary">
-                  {priceLabel}
-                </span>
-                <h1 className="text-2xl font-semibold text-gray-900 sm:text-xl">
-                  {project.title}
-                </h1>
-              </div>
+            <div className="text-lg sm:text-2xl md:text-2xl font-semibold leading-snug">
+              <span className="text-primary whitespace-nowrap align-top">
+                {priceLabel}
+              </span>
+              <span className="ml-2 text-gray-900 font-medium">
+                {project.title}
+              </span>
             </div>
           </header>
 
           <div className="flex flex-col gap-8 lg:flex-row">
             <main className="flex-1">
-              <div className="flex gap-2">
-                <div className="w-[58%]">
+              <div className="flex flex-col lg:flex-row gap-2">
+
+                {/* Gallery */}
+                <div className="w-full lg:w-[58%]">
                   <GalleryFile
                     gallery={project?.gallery}
                     title={project?.title}
+                    propertyId={project?._id}
+                    propertyType="Residential"
                   />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-start gap-6">
                     <div className="flex-1">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-7 gap-x-7 p-2">
-                        <div>
-                          <p className="text-gray-500 font-semibold">
-                            Super Built Up Area
-                          </p>
-                          <p>
-                            {project?.superBuiltUpArea} sqft (₹{" "}
-                            {project?.pricePerSqft}
-                            /sqft)
-                          </p>
+                      <div className="p-4 sm:p-2">
+
+                        {/* DETAILS GRID */}
+                        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                          <DetailItem
+                            label="Super Built Up Area"
+                            value={`(₹ ${project?.pricePerSqft}/sqft)`}
+                          />
+
+                          <DetailItem
+                            label="Carpet Area"
+                            value={`${project?.carpetArea ?? "—"} sqft`}
+                          />
+
+                          <DetailItem
+                            label="Sale Type"
+                            value={project?.transactionType}
+                            highlight
+                          />
+
+                          <DetailItem
+                            label="Availability Status"
+                            value={project?.constructionStatus}
+                          />
+
+                          <DetailItem
+                            label="Furnishing Status"
+                            value={project?.furnishing}
+                          />
+
+                          <DetailItem
+                            label="Floors"
+                            value={`${project?.floorNumber}/${project?.totalFloors}`}
+                          />
+
                         </div>
 
-                        <div>
-                          <p className="text-gray-500 font-semibold">
-                            Carpet Area
-                          </p>
-                          <p>{project?.carpetArea}</p>
+                        {/* ICON STATS */}
+                        <div className="flex flex-wrap gap-6 mt-8 border-t border-gray-200 pt-6">
+
+                          <StatItem icon={<Bhk color="#6B7280" />} text={`${project?.bedrooms} BHK`} />
+
+                          <StatItem icon={<Bath color="#6B7280" />} text={`${project?.bathrooms} Bath`} />
+
+                          <StatItem icon={<Balconies color="#6B7280" />} text={`${project?.balconies} Balconies`} />
+
                         </div>
 
-                        <div>
-                          <p className="text-[#ed6115] font-semibold">
-                            Sale Type
-                          </p>
-                          <p>{project?.transactionType}</p>
-                        </div>
-
-                        <div>
-                          <p className="text-gray-500 font-semibold">
-                            Availability Status
-                          </p>
-                          <p>{project?.constructionStatus}</p>
-                        </div>
-
-                        <div>
-                          <p className="text-gray-500 font-semibold">
-                            Frunishing Status
-                          </p>
-                          <p>{project?.furnishing}</p>
-                        </div>
-
-                        <div>
-                          <p className="text-gray-500 font-semibold">Floors</p>
-                          <p>
-                            {project?.floorNumber}/{project.totalFloors}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-x-8 mt-11">
-                        <span className="text-gray-500 text-md font-medium flex">
-                          <Bhk color="#6B7280" />
-                          &nbsp; {project.bedrooms} BHK
-                        </span>
-                        <span className="text-gray-500  font-medium flex">
-                          <Bath color="#6B7280" />
-                          &nbsp;{project.bathrooms} Bath
-                        </span>
-                        <span className="text-gray-500  font-medium flex">
-                          <Balconies color="#6B7280" />
-                          &nbsp; {project.balconies} Balconies
-                        </span>
                       </div>
                     </div>
                   </div>
@@ -336,3 +327,36 @@ export default async function Page({ params }: PageProps) {
     </div>
   );
 }
+
+const DetailItem = ({
+  label,
+  value,
+  highlight = false,
+}: {
+  label: string;
+  value?: string | number;
+  highlight?: boolean;
+}) => (
+  <div className="space-y-1">
+    <p className="text-sm font-medium text-gray-500">
+      {label}
+    </p>
+    <p className={`text-sm sm:text-base font-semibold ${highlight ? "text-[#ed6115]" : "text-gray-800"
+      }`}>
+      {value || "—"}
+    </p>
+  </div>
+);
+
+const StatItem = ({
+  icon,
+  text,
+}: {
+  icon: React.ReactNode;
+  text: string;
+}) => (
+  <div className="flex items-center gap-2 text-gray-600 font-medium text-sm sm:text-base">
+    {icon}
+    {text}
+  </div>
+);

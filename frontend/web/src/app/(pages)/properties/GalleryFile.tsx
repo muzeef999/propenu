@@ -1,20 +1,120 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type MouseEvent } from "react";
 import Image from "next/image";
-import { FiHeart, FiImage, FiShare2, FiX, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { FiImage, FiShare2, FiX, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { GoHeart, GoHeartFill } from "react-icons/go";
 import { GalleryItem } from "@/types/agricultural";
-
-
+import { getUserShortlist, me, postShortlistProperty, removeShortlistProperty } from "@/data/ClientData";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 type GalleryFileProps = {
   gallery?: GalleryItem[];
   title?: string;
+  propertyId?: string;
+  propertyType?: "Residential" | "Commercial" | "Agricultural" | "Land";
 };
 
-const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
+const GalleryFile: React.FC<GalleryFileProps> = ({
+  gallery = [],
+  title,
+  propertyId,
+  propertyType,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [isShortlisted, setIsShortlisted] = useState(false);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const { data: userData } = useQuery({
+    queryKey: ["user"],
+    queryFn: me,
+    retry: 1,
+  });
+  const user = userData?.user;
+
+  const { data: shortlistData } = useQuery({
+    queryKey: ["user-shortlist"],
+    queryFn: getUserShortlist,
+    enabled: !!user && !!propertyId,
+  });
+
+  useEffect(() => {
+    if (!propertyId || !shortlistData?.data) {
+      setIsShortlisted(false);
+      return;
+    }
+    const isInList = shortlistData.data.some(
+      (item: any) => item.property?._id === propertyId,
+    );
+    setIsShortlisted(isInList);
+  }, [shortlistData, propertyId]);
+
+  const addShortlistMutation = useMutation({
+    mutationFn: postShortlistProperty,
+    onSuccess: () => {
+      toast.success("Added to shortlist");
+    },
+    onMutate: async () => {
+      if (!propertyId) return {};
+      await queryClient.cancelQueries({ queryKey: ["user-shortlist"] });
+      const previousShortlist = queryClient.getQueryData(["user-shortlist"]);
+      queryClient.setQueryData(["user-shortlist"], (old: any) => {
+        const oldData = old?.data || [];
+        const alreadyExists = oldData.some(
+          (item: any) => item.property?._id === propertyId,
+        );
+        if (alreadyExists) return old;
+        return {
+          ...old,
+          data: [...oldData, { property: { _id: propertyId } }],
+        };
+      });
+      return { previousShortlist };
+    },
+    onError: (err, variables, context: any) => {
+      if (context?.previousShortlist) {
+        queryClient.setQueryData(["user-shortlist"], context.previousShortlist);
+      }
+      toast.error("Failed to add to shortlist.");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-shortlist"] });
+    },
+  });
+
+  const removeShortlistMutation = useMutation({
+    mutationFn: removeShortlistProperty,
+    onSuccess: () => {
+      toast.success("Removed from shortlist");
+    },
+    onMutate: async (targetPropertyId: string) => {
+      await queryClient.cancelQueries({ queryKey: ["user-shortlist"] });
+      const previousShortlist = queryClient.getQueryData(["user-shortlist"]);
+      queryClient.setQueryData(["user-shortlist"], (old: any) => ({
+        ...old,
+        data: (old?.data || []).filter(
+          (item: any) => item.property?._id !== targetPropertyId,
+        ),
+      }));
+      return { previousShortlist };
+    },
+    onError: (err, variables, context: any) => {
+      if (context?.previousShortlist) {
+        queryClient.setQueryData(["user-shortlist"], context.previousShortlist);
+      }
+      toast.error("Failed to remove from shortlist.");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-shortlist"] });
+    },
+  });
+
+  const isShortlistLoading =
+    addShortlistMutation.isPending || removeShortlistMutation.isPending;
 
   useEffect(() => {
     if (isOpen) {
@@ -34,6 +134,54 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
   const closeLightbox = () => {
     setIsOpen(false);
     setPreviewIndex(null);
+  };
+
+  const handleToggleShortlist = (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    if (!propertyId || !propertyType) {
+      toast.error("Unable to shortlist this property.");
+      return;
+    }
+
+    if (isShortlisted) {
+      setIsShortlisted(false);
+      removeShortlistMutation.mutate(propertyId);
+      return;
+    }
+
+    setIsShortlisted(true);
+    addShortlistMutation.mutate({
+      propertyId,
+      propertyType,
+    });
+  };
+
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+
+    const shareData = {
+      title: title || "Property Listing",
+      text: "Check out this property!",
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        alert("Link copied to clipboard!");
+      }
+    } catch (err) {
+      console.error("Error sharing:", err);
+    }
   };
 
   // Ensure gallery is an array and filter out any items that don't have a URL.
@@ -100,10 +248,28 @@ const GalleryFile: React.FC<GalleryFileProps> = ({ gallery = [], title }) => {
 
         {/* ACTION ICONS */}
         <div className="absolute right-6 top-6 flex gap-2">
-          <button className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow">
-            <FiHeart className="h-4 w-4" />
+          <button
+            type="button"
+            onClick={handleToggleShortlist}
+            disabled={isShortlistLoading}
+            title={isShortlisted ? "Remove from shortlist" : "Shortlist"}
+            className={`flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow transition ${
+              isShortlistLoading ? "opacity-70" : ""
+            }`}
+          >
+            {isShortlistLoading ? (
+              <span className="h-4 w-4 animate-pulse rounded-full bg-gray-300" />
+            ) : isShortlisted ? (
+              <GoHeartFill className="h-4 w-4 text-red-500" />
+            ) : (
+              <GoHeart className="h-4 w-4 text-gray-700" />
+            )}
           </button>
-          <button className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow">
+          <button
+            type="button"
+            onClick={handleShare}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow cursor-pointer"
+          >
             <FiShare2 className="h-4 w-4" />
           </button>
         </div>

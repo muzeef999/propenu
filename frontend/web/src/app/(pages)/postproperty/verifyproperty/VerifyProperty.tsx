@@ -160,7 +160,7 @@ const VerifyProperty: React.FC<VerifyPropertyProps> = ({
     )
       .unwrap()
       .then((res: any) => {
-        toast.success("Property verified successfully 🎉");
+        toast.success("Property is under review");
 
         const data = res?.data;
         const approved = Boolean(res?.verified);
