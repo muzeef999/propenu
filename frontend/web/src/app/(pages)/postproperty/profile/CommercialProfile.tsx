@@ -16,6 +16,7 @@ import Router from "next/router";
 import FileUpload, { UploadedFile } from "@/ui/FileUpload";
 import { setFileStoreFiles } from "@/utilies/fileStore";
 import { set } from "zod";
+import { deleteGalleryImageApi } from "@/Redux/apis";
 
 export const TRANSACTION_TYPES = [
   "new-sale",
@@ -72,6 +73,44 @@ const CommercialProfile = () => {
 
     setFiles(serverFiles);
   }, [commercial?.gallery, files.length]);
+  const syncFiles = (newFiles: UploadedFile[]) => {
+    setFiles(newFiles);
+
+    const serverGallery = newFiles
+      .filter((f) => f.source === "server")
+      .map((f, index) => ({
+        url: f.preview,
+        filename: f.name ?? "",
+        category: "image",
+        order: index + 1,
+      }));
+
+    dispatch(
+      setBaseField({
+        key: "galleryFiles",
+        value: newFiles.map((f) => ({
+          name: f.name ?? f.file?.name ?? "",
+          source: f.source,
+          preview: f.preview,
+        })),
+      }),
+    );
+
+    dispatch(
+      setProfileField({
+        propertyType: "commercial",
+        key: "gallery",
+        value: serverGallery,
+      }),
+    );
+
+    const localFiles = newFiles
+      .filter((f) => f.source === "local")
+      .map((f) => f.file)
+      .filter((file): file is File => Boolean(file));
+
+    setFileStoreFiles("postProperty", localFiles);
+  };
 
 
   return (
@@ -548,29 +587,37 @@ const CommercialProfile = () => {
         <FileUpload
           label="Property Images"
           value={files}
-          onChange={(newFiles) => {
-            // 1️⃣ Update UI state
-            setFiles(newFiles);
+          onChange={syncFiles}
+          onRemove={async (removedItem, removedIndex, currentFiles) => {
+            if (removedItem.source !== "server") return true;
 
-            // 2️⃣ Store SERIALIZABLE metadata in Redux
-            dispatch(
-              setBaseField({
-                key: "galleryFiles",
-                value: newFiles.map((f) => ({
-                  name: f.file?.name ?? f.name ?? "",
-                  source: f.source,      // "local" | "server"
-                  preview: f.preview,    // URL / objectURL
-                })),
-              }),
-            );
+            if (!draftId) {
+              toast.error("Draft not found. Please refresh and try again.");
+              return false;
+            }
 
-            // 3️⃣ Store ONLY local File objects in memory store
-            const localFiles = newFiles
-              .filter((f) => f.source === "local")
-              .map((f) => f.file)
-              .filter((file): file is File => Boolean(file));
+            const serverIndex =
+              currentFiles
+                .slice(0, removedIndex + 1)
+                .filter((f) => f.source === "server").length - 1;
 
-            setFileStoreFiles("postProperty", localFiles);
+            if (serverIndex < 0) {
+              toast.error("Invalid image index.");
+              return false;
+            }
+
+            try {
+              await deleteGalleryImageApi("commercial", draftId, serverIndex);
+              toast.success("Image removed");
+              return true;
+            } catch (err: any) {
+              const message =
+                err?.message ||
+                err?.response?.data?.message ||
+                "Failed to delete image from server";
+              toast.error(message);
+              return false;
+            }
           }}
           accept="image/*"
           maxFiles={5}
@@ -647,7 +694,9 @@ const CommercialProfile = () => {
               : [],
           };
 
-          const serverImageCount = commercial.gallery?.length ?? 0;
+          const serverImageCount = files.filter(
+            (f) => f.source === "server",
+          ).length;
 
           const localFiles: File[] = files
             .filter((f) => f.source === "local" && f.file)
@@ -724,3 +773,4 @@ const CommercialProfile = () => {
 };
 
 export default CommercialProfile;
+

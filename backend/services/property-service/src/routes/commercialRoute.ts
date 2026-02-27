@@ -27,7 +27,7 @@ const jsonKeys = [
   "fireSafety",
 ];
 
-import {  createCommercial,  editCommercial,  getAllCommercial,  getCommercialBySlug,  getCommercialDetail,  deleteCommercial, createCommercialDraft, updateCommercialBasicStep, updateCommercialLocationStep, updateCommercialDetailsStep, finalizeCommercial, getAllCommercialDraftsForAdmin, verifyCommercialDocument, getMyCommercialDraft, approveCommercialProperty, deactivateCommercialProperty} from "../controller/commercialController";
+import {  createCommercial,  editCommercial,  getAllCommercial,  getCommercialBySlug,  getCommercialDetail,  deleteCommercial, createCommercialDraft, updateCommercialBasicStep, updateCommercialLocationStep, updateCommercialDetailsStep, finalizeCommercial, getAllCommercialDraftsForAdmin, verifyCommercialDocument, getMyCommercialDraft, approveCommercialProperty, deactivateCommercialProperty, deleteCommercialGalleryImage} from "../controller/commercialController";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 
@@ -51,6 +51,7 @@ if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){
 router.post("/:id/approve",  approveCommercialProperty);
 router.post("/:id/deactive", authMiddleware, deactivateCommercialProperty);
 
+router.delete("/:id/gallery/:imageIndex", authMiddleware, deleteCommercialGalleryImage);
 
 
 router.get("/draft/all", getAllCommercialDraftsForAdmin);

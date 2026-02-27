@@ -1,4 +1,4 @@
-import React, { useEffect, ChangeEvent, useRef } from "react";
+import React, { useEffect, ChangeEvent, useRef, useState } from "react";
 
 /* ======================================================
    TYPES
@@ -15,6 +15,11 @@ type FileUploadProps = {
   label: string;
   value: UploadedFile[];
   onChange: (files: UploadedFile[]) => void;
+  onRemove?: (
+    file: UploadedFile,
+    index: number,
+    currentFiles: UploadedFile[],
+  ) => Promise<boolean | void> | boolean | void;
   accept?: string;
   maxFiles?: number;
   maxSizeMB?: number;
@@ -29,12 +34,14 @@ const FileUpload: React.FC<FileUploadProps> = ({
   label,
   value,
   onChange,
+  onRemove,
   accept = "image/*",
   maxFiles = 5,
   maxSizeMB = 5,
   error,
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const [removingIndex, setRemovingIndex] = useState<number | null>(null);
 
   const isImage = (preview: string) =>
     preview.startsWith("blob:") || preview.startsWith("http");
@@ -104,12 +111,20 @@ const FileUpload: React.FC<FileUploadProps> = ({
               {/* Remove button */}
               <button
                 type="button"
-                onClick={() =>
-                  onChange(value.filter((_, i) => i !== index))
-                }
+                disabled={removingIndex === index}
+                onClick={async () => {
+                  try {
+                    setRemovingIndex(index);
+                    const allowRemove = await onRemove?.(item, index, value);
+                    if (allowRemove === false) return;
+                    onChange(value.filter((_, i) => i !== index));
+                  } finally {
+                    setRemovingIndex(null);
+                  }
+                }}
                 className="absolute top-1 right-1 bg-black/60 hover:bg-red-500 text-white rounded-full p-1 transition-colors"
               >
-                ✕
+                X
               </button>
 
               {/* Badge */}

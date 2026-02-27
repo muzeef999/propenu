@@ -13,11 +13,11 @@ import TextArea from "@/ui/TextArae";
 import { useAppDispatch } from "@/Redux/store";
 import Toggle from "@/ui/ToggleSwitch";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 import { submitDetailsThunk } from "@/Redux/thunks/submitPropertyApi";
 import FileUpload, { UploadedFile } from "@/ui/FileUpload";
 import { validateResidentialProfile } from "@/zod/profileZods/residentialProfileZod";
 import { setFileStoreFiles } from "@/utilies/fileStore";
+import { deleteGalleryImageApi } from "@/Redux/apis";
 
 export const FLOORING_TYPES = [
   "vitrified",
@@ -50,7 +50,6 @@ const ResidentialProfile = () => {
     (state: any) => state.postProperty,
   );
   const dispatch = useAppDispatch();
-  const router = useRouter();
   const [showErrors, setShowErrors] = useState(false);
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
@@ -67,6 +66,45 @@ const ResidentialProfile = () => {
 
     setFiles(serverFiles);
   }, [residential.gallery]);
+
+  const syncFiles = (newFiles: UploadedFile[]) => {
+    setFiles(newFiles);
+
+    const serverGallery = newFiles
+      .filter((f) => f.source === "server")
+      .map((f, index) => ({
+        url: f.preview,
+        filename: f.name ?? "",
+        category: "image",
+        order: index + 1,
+      }));
+
+    dispatch(
+      setBaseField({
+        key: "galleryFiles",
+        value: newFiles.map((f) => ({
+          name: f.name ?? f.file?.name ?? "",
+          source: f.source,
+          preview: f.preview,
+        })),
+      }),
+    );
+
+    dispatch(
+      setProfileField({
+        propertyType: "residential",
+        key: "gallery",
+        value: serverGallery,
+      }),
+    );
+
+    const localFiles = newFiles
+      .filter((f) => f.source === "local")
+      .map((f) => f.file)
+      .filter((file): file is File => Boolean(file));
+
+    setFileStoreFiles("postProperty", localFiles);
+  };
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -326,28 +364,37 @@ const ResidentialProfile = () => {
         <FileUpload
           label="Property Images"
           value={files}
-          onChange={(newFiles) => {
-            setFiles(newFiles);
+          onChange={syncFiles}
+          onRemove={async (removedItem, removedIndex, currentFiles) => {
+            if (removedItem.source !== "server") return true;
 
-            // ✅ Redux: store gallery metadata only
-            dispatch(
-              setBaseField({
-                key: "galleryFiles",
-                value: newFiles.map((f) => ({
-                  name: f.name ?? f.file?.name ?? "",
-                  source: f.source,
-                  preview: f.preview,
-                })),
-              }),
-            );
+            if (!draftId) {
+              toast.error("Draft not found. Please refresh and try again.");
+              return false;
+            }
 
-            // ✅ In-memory store: ONLY local files
-            const localFiles = newFiles
-              .filter((f) => f.source === "local")
-              .map((f) => f.file)
-              .filter((file): file is File => Boolean(file));
+            const serverIndex =
+              currentFiles
+                .slice(0, removedIndex + 1)
+                .filter((f) => f.source === "server").length - 1;
 
-            setFileStoreFiles("postProperty", localFiles);
+            if (serverIndex < 0) {
+              toast.error("Invalid image index.");
+              return false;
+            }
+
+            try {
+              await deleteGalleryImageApi("residential", draftId, serverIndex);
+              toast.success("Image removed");
+              return true;
+            } catch (err: any) {
+              const message =
+                err?.message ||
+                err?.response?.data?.message ||
+                "Failed to delete image from server";
+              toast.error(message);
+              return false;
+            }
           }}
           accept="image/*"
           maxFiles={5}
@@ -429,7 +476,9 @@ const ResidentialProfile = () => {
           };
 
           // 🖼️ IMAGE COUNT LOGIC (FIX)
-          const serverImageCount = residential.gallery?.length ?? 0;
+          const serverImageCount = files.filter(
+            (f) => f.source === "server",
+          ).length;
 
           const localFiles: File[] = files
             .filter((f) => f.source === "local" && f.file)
@@ -492,3 +541,4 @@ const ResidentialProfile = () => {
 };
 
 export default ResidentialProfile;
+

@@ -68,6 +68,23 @@ export const updateDetailsApi = async (
   return res.json();
 };
 
+export const deleteGalleryImageApi = async (
+  category: string,
+  id: string,
+  imageIndex: number,
+) => {
+  const res = await fetch(
+    `${url}/api/properties/${category}/${id}/gallery/${imageIndex}`,
+    {
+      method: "DELETE",
+      headers: authHeader(),
+    },
+  );
+
+  if (!res.ok) throw await res.json();
+  return res.json();
+};
+
 /* ---------------- VERIFICATION ---------------- */
 
 

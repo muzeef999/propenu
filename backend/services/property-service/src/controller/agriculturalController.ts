@@ -11,6 +11,7 @@ import Location from "../models/locationModel";
 import User from "../models/userModel";
 import { sendManagerApprovalMail } from "../utils/sendManagerMail";
 import mongoose from "mongoose";
+import { deleteS3ObjectIfExists } from "../utils/s3Helpers";
  
 function parseMaybeJSON<T = any>(value: any): T | undefined {
   if (value === undefined || value === null || value === "") return undefined;
@@ -678,4 +679,36 @@ export const verifyAgricultiralDocument = async (
    }
  };
  
+export const deleteAgriculturalGalleryImage = async (req: Request, res: Response) => {
+  try {
+    const { id, imageIndex } = req.params;
+    if (!id || imageIndex === undefined) {
+      return res.status(400).json({ message: "Missing params" });
+    }
+    const property = await Agricultural.findById(id);
+    if (!property) {
+      return res.status(404).json({ message: "Property not found" });
+    }
+    const index = Number(imageIndex);
+    if (!property.gallery?.[index]) {
+      return res.status(404).json({ message: "Image not found" });
+    }
+    const image = property.gallery[index];
 
+    // ✅ Delete from S3
+    if (image.key) {
+      await deleteS3ObjectIfExists(image.key);
+    }
+
+    // ✅ Remove from DB
+    property.gallery.splice(index, 1);
+
+    await property.save();
+
+    res.json({ success: true, data: property.gallery });
+
+  } catch (err: any) {
+    console.error("deleteGalleryImage:", err);
+    res.status(500).json({ message: err.message });
+  }
+};

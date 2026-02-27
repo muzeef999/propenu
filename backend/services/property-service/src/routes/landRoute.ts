@@ -20,6 +20,7 @@ import {
   getMyLandDraft,
   approveLandProperty,
   deactivateLandProperty,
+  deleteLandGalleryImage,
 } from "../controller/landController";
 import { CreateLandSchema, UpdateLandSchema } from "../zod/landZod";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
@@ -87,6 +88,9 @@ if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){
 
 router.post("/:id/approve",  approveLandProperty);
 router.post("/:id/deactive", authMiddleware, deactivateLandProperty);
+
+router.delete("/:id/gallery/:imageIndex", authMiddleware, deleteLandGalleryImage);
+
 
 router.post("/draft", authMiddleware, createLandDraft);
 router.patch("/:id/basic",authMiddleware,cpUpload,parseJsonFields(jsonKeys),updateLandBasicStep);

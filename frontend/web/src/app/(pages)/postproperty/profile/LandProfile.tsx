@@ -15,6 +15,7 @@ import { setFileStoreFiles } from "@/utilies/fileStore";
 import { validateLandProfile } from "@/zod/profileZods/landProfileZod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { deleteGalleryImageApi } from "@/Redux/apis";
 
 
 
@@ -78,7 +79,7 @@ const LandProfile = () => {
   const validationResult = validateLandProfile(
     land,
     localFiles,
-    land.gallery?.length ?? 0,
+    files.filter((f) => f.source === "server").length,
   );
   const fieldErrors =
     showErrors && !validationResult.success
@@ -97,6 +98,46 @@ const LandProfile = () => {
 
     setFiles(serverFiles);
   }, [land?.gallery, files.length]);
+
+  const syncFiles = (newFiles: UploadedFile[]) => {
+    setFiles(newFiles);
+
+    const serverGallery = newFiles
+      .filter((f) => f.source === "server")
+      .map((f, index) => ({
+        url: f.preview,
+        filename: f.name ?? "",
+        category: "image",
+        order: index + 1,
+      }));
+
+    dispatch(
+      setBaseField({
+        key: "galleryFiles",
+        value: newFiles.map((f) => ({
+          name: f.file?.name ?? f.name ?? "",
+          source: f.source,
+          preview: f.preview,
+        })),
+      }),
+    );
+
+    dispatch(
+      setProfileField({
+        propertyType: "land",
+        key: "gallery",
+        value: serverGallery,
+      }),
+    );
+
+    setFileStoreFiles(
+      "postProperty",
+      newFiles
+        .filter((f) => f.source === "local")
+        .map((f) => f.file)
+        .filter((file): file is File => Boolean(file)),
+    );
+  };
 
   return (
     <div className="space-y-8">
@@ -300,27 +341,37 @@ const LandProfile = () => {
           <FileUpload
             label="Property Images"
             value={files}
-            onChange={(newFiles) => {
-              setFiles(newFiles);
-              // persist only metadata in Redux (serializable)
-              dispatch(
-                setBaseField({
-                  key: "galleryFiles",
-                  value: newFiles.map((f) => ({
-                    name: f.file?.name ?? f.name ?? "",
-                    source: f.source,
-                    preview: f.preview,
-                  })),
-                }),
-              );
-              // store actual File objects in in-memory file store
-              setFileStoreFiles(
-                "postProperty",
-                newFiles
-                  .filter((f) => f.source === "local")
-                  .map((f) => f.file)
-                  .filter((file): file is File => Boolean(file)),
-              );
+            onChange={syncFiles}
+            onRemove={async (removedItem, removedIndex, currentFiles) => {
+              if (removedItem.source !== "server") return true;
+
+              if (!draftId) {
+                toast.error("Draft not found. Please refresh and try again.");
+                return false;
+              }
+
+              const serverIndex =
+                currentFiles
+                  .slice(0, removedIndex + 1)
+                  .filter((f) => f.source === "server").length - 1;
+
+              if (serverIndex < 0) {
+                toast.error("Invalid image index.");
+                return false;
+              }
+
+              try {
+                await deleteGalleryImageApi("land", draftId, serverIndex);
+                toast.success("Image removed");
+                return true;
+              } catch (err: any) {
+                const message =
+                  err?.message ||
+                  err?.response?.data?.message ||
+                  "Failed to delete image from server";
+                toast.error(message);
+                return false;
+              }
             }}
             accept="image/*"
             maxFiles={5}
@@ -394,7 +445,9 @@ const LandProfile = () => {
               : [],
           };
 
-          const serverImageCount = land.gallery?.length ?? 0;
+          const serverImageCount = files.filter(
+            (f) => f.source === "server",
+          ).length;
           const localImageCount = files.filter((f) => f.source === "local").length;
           if (serverImageCount + localImageCount < 5) {
             toast.error("Upload at least 5 images");
@@ -404,7 +457,7 @@ const LandProfile = () => {
           const result = validateLandProfile(
             payload,
             localFiles,
-            land.gallery?.length ?? 0,
+            serverImageCount,
           );
 
           if (!result.success) {

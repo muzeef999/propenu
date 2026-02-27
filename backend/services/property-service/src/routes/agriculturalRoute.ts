@@ -5,7 +5,7 @@ import { parseJsonFields } from "../middlewares/parseJsonFields";
 import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
 import { validateBody } from "../middlewares/validate";
 import { AgriculturalCreateSchema, AgriculturalUpdateSchema } from "../zod/agriculturalZod";
-import { approveAgriculturalProperty, createAgricultural, createAgriculturalDraft, deactivateAgriculturalProperty, deleteAgricultural, editAgricultural, finalizeAgricultural, getAgriculturalBySlug, getAgriculturalDetail, getAllAgricultural, getAllAgriculturalDraftsForAdmin, getMyAgriculturalDraft, updateAgriculturalBasicStep, updateAgriculturalDetailsStep, updateAgriculturalLocationStep, verifyAgricultiralDocument } from "../controller/agriculturalController";
+import { approveAgriculturalProperty, createAgricultural, createAgriculturalDraft, deactivateAgriculturalProperty, deleteAgricultural, deleteAgriculturalGalleryImage, editAgricultural, finalizeAgricultural, getAgriculturalBySlug, getAgriculturalDetail, getAllAgricultural, getAllAgriculturalDraftsForAdmin, getMyAgriculturalDraft, updateAgriculturalBasicStep, updateAgriculturalDetailsStep, updateAgriculturalLocationStep, verifyAgricultiralDocument } from "../controller/agriculturalController";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 const router = express.Router();
@@ -81,6 +81,9 @@ if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){
 
 router.post("/:id/approve",  approveAgriculturalProperty);
 router.post("/:id/deactive", authMiddleware, deactivateAgriculturalProperty);
+
+router.delete("/:id/gallery/:imageIndex", authMiddleware, deleteAgriculturalGalleryImage);
+
 
 
 export default router;
