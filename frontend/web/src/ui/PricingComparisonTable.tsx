@@ -83,6 +83,14 @@ export default function PricingComparisonTable({
       });
 
       if (order?.free) {
+      
+         if (order?.alreadyActive) {
+    toast.info("Plan already active 👍");
+    return;
+  }
+
+    toast.success("Plan activated 🎉");
+
         const redirect = getRedirectAfterPlan(plan, user);
 
         if (redirect) router.push(redirect);

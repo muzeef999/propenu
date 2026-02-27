@@ -79,35 +79,43 @@ export const requireActiveSubscription = async (
       return res.status(400).json({ message: "Invalid listingType" });
     }
 
-let userType: "buyer" | "agent" | "owner";
+    let userType: "buyer" | "agent" | "owner";
 
-// ⭐ If user is posting property → treat as owner
-if (roleName === "user" && req.body?.listingSource === "user") {
+    // // ⭐ If user is posting property → treat as owner
+    // if (roleName === "user" && req.body?.listingSource === "user") {
+    //   userType = "owner";
+    // } else if (roleName === "user") {
+    //   userType = "buyer";
+    // } else if (roleName === "agent") {
+    //   userType = "agent";
+    // } else if (roleName === "owner" || roleName === "builder") {
+    //   userType = "owner";
+    // } else {
+    //   return res.status(403).json({ message: "Invalid user role" });
+    // }
+
+ 
+/*
+⭐ IMPORTANT LOGIC
+If user is posting property (sale or rent)
+→ he is OWNER
+*/
+
+if (listingType === "sale" || listingType === "rent") {
   userType = "owner";
-}
-else if (roleName === "user") {
-  userType = "buyer";
 }
 else if (roleName === "agent") {
   userType = "agent";
 }
-else if (roleName === "owner" || roleName === "builder") {
-  userType = "owner";
-}
 else {
-  return res.status(403).json({ message: "Invalid user role" });
+  userType = "buyer";
 }
-    // console.log("🔎 DEBUG SUB CHECK ----------");
-    // console.log({
-    //   userId,
-    //   roleName,
-    //   userType,
-    //   requiredCategory,
-    // });
 
-    // const allSubs = await Subscription.find({ userId }).lean();
-
-    // console.log("📦 ALL USER SUBSCRIPTIONS:", allSubs);
+    console.log("🔎 CHECKING PLAN:", {
+      userId,
+      userType,
+      requiredCategory,
+    });
 
     const subscription = await Subscription.findOne({
       userId,

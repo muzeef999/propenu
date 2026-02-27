@@ -203,6 +203,8 @@ const postPropertySlice = createSlice({
 
         state.residential = {
           ...state.residential,
+          listingType: draft.listingType,
+          listingSource: draft.listingSource,
           builtUpArea: draft.builtUpArea,
           carpetArea: draft.carpetArea,
           facing:
@@ -252,6 +254,8 @@ const postPropertySlice = createSlice({
       if (category === "commercial") {
         state.commercial = {
           propertyType: draft.propertyType,
+          listingType: draft.listingType,
+          listingSource: draft.listingSource,
           furnishing: draft.furnishing,
           price: draft.price,
           commercialSubType: draft.propertySubType,
@@ -291,6 +295,8 @@ const postPropertySlice = createSlice({
 
       if (category === "land") {
         state.land = {
+          listingType: draft.listingType,
+          listingSource: draft.listingSource,
           propertyType: draft.propertyType,
           landSubType: draft.propertySubType,
           price: draft.price,
@@ -323,6 +329,8 @@ const postPropertySlice = createSlice({
 
       if (category === "agricultural") {
         state.agricultural = {
+          listingType: draft.listingType,
+          listingSource: draft.listingSource,
           propertyType: draft.propertyType,
           agriculturalSubType: draft.propertySubType,
 

@@ -187,6 +187,10 @@ const VerifyProperty: React.FC<VerifyPropertyProps> = ({
 
           const listingType = residential?.listingType || "sale";
 
+          console.log(residential?.listingType);
+          console.log("🚀 Redirecting to plan selection for:", listingType);
+          
+
           const redirectUrl =
             listingType === "sale"
               ? "/plans/pricing/owner-sell"
