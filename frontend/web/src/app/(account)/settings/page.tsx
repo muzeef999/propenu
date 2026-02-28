@@ -6,6 +6,7 @@ import { me, getMembershipHistory, updateUser } from "@/data/ClientData";
 import { MdOutlineLocationOn, MdOutlineWorkspacePremium } from "react-icons/md";
 import { HiOutlineDownload } from "react-icons/hi";
 import { toast } from "sonner";
+import KycButton from "./KycButton";
 
 type InfoFieldProps = {
   label: string;
@@ -121,6 +122,11 @@ const SettingsPage = () => {
             <p className="flex items-center gap-1 text-gray-400 text-sm capitalize">
               {user.user.roleName}
             </p>
+          </div>
+
+          
+          <div>
+            <KycButton />
           </div>
         </div>
 

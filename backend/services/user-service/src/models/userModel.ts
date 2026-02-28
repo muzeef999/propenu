@@ -1,5 +1,25 @@
 import mongoose from "mongoose";
 
+const KycSchema = new mongoose.Schema({
+  status: {
+    type: String,
+    enum: ["not_started", "pending", "verified", "rejected"],
+    default: "not_started",
+  },
+  provider: {
+    type: String,
+    enum: ["digilocker", "pan", "manual"],
+  },
+  documents: [
+    {
+      type: String, // PAN, Aadhaar, DL etc
+    },
+  ],
+  digilockerId: String,
+  verifiedAt: Date,
+  remarks: String,
+});
+
 const UserSchema = new mongoose.Schema(
   {
     name: {
@@ -28,6 +48,14 @@ const UserSchema = new mongoose.Schema(
       index: true,
       match: [/^\+?[1-9]\d{6,14}$/, "Invalid phone number"],
     },
+
+    kyc: {
+  type: KycSchema,
+  default: () => ({
+    status: "not_started",
+  }),
+},
+
     address: {
       type: String,
       trim: true,

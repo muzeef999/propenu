@@ -460,12 +460,23 @@ export const FeaturePropertyService = {
     const bhkPlanFiles = files?.bhkPlanFiles ?? [];
     toCreate.bhkSummary = toCreate.bhkSummary || [];
     // safety: ensure uploaded files count not greater than provided entries (index matching)
-    if (bhkPlanFiles.length > toCreate.bhkSummary.length) {
-      // not fatal but probably a client error — reject to avoid mismapping
-      throw new Error(
-        "Too many bhkPlanFiles uploaded for provided bhkSummary entries",
-      );
+    // if (bhkPlanFiles.length > toCreate.bhkSummary.length) {
+    //   // not fatal but probably a client error — reject to avoid mismapping
+    //   throw new Error(
+    //     "Too many bhkPlanFiles uploaded for provided bhkSummary entries",
+    //   );
+    // }    
+
+    const totalUnits = (toCreate.bhkSummary || []).reduce(
+      (sum: number, b: any) =>
+        sum + (Array.isArray(b.units) ? b.units.length : 0),
+      0,
+    );
+
+    if (bhkPlanFiles.length > totalUnits) {
+      throw new Error("Too many bhkPlanFiles uploaded for provided bhk units");
     }
+    
     toCreate.bhkSummary = await processBhkPlanUpdates({
       bhkSummaryExisting: [], // none on create
       bhkSummaryIncoming: toCreate.bhkSummary,

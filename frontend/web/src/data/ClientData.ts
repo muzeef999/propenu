@@ -530,3 +530,16 @@ export const getFeaturedProjectsDashboard = async () => {
   });
   return res.data;
   }
+
+
+  export const  startKyc = async () => {
+    const token = Cookies.get("token");
+    if(!token) return null;
+
+    const res = await axiosInstance.get(`${url}/api/users/kyc/start`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.data;
+  }

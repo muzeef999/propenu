@@ -20,7 +20,7 @@ const cpUpload = upload.fields([
   { name: "heroImage", maxCount: 1 },
   { name: "heroVideo", maxCount: 1 },
   { name: "galleryFiles", maxCount: 12 },
-  { name: "bhkPlanFiles", maxCount: 12 },
+  { name: "bhkPlanFiles", maxCount: 22 },
   { name: "aboutImage", maxCount: 1 },
   { name: "logo", maxCount: 1 },
   { name: "brochure", maxCount: 1 }, 
