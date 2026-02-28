@@ -273,9 +273,7 @@ export const AMENITIES_FOR_COMMERCIAL = [
 },
 ];
 
-export const AMENITIES_FOR_LANDPLOTS = [
-  // 🌿 Land
-  
+export const AMENITIES_FOR_LANDPLOTS = [  
   {
     key: "24x7_water_supply",
     title: "24x7 Water Supply",
@@ -338,6 +336,12 @@ export const AMENITIES_FOR_AGRICULTURAL = [
     category: "Land",
     icon: "/icons/amenities/levelled_or_semi-levelled_land.svg",
   },
+  {
+    key:"river_harvesting_system",
+    title:"River Harvesting System",
+    category:"Water",
+    icon:"/icons/amenities/river_harvesting_system.svg"
+  },
 
   // 💧 Water Resources
   {
@@ -358,7 +362,7 @@ export const AMENITIES_FOR_AGRICULTURAL = [
     category: "Water",
     icon: "/icons/amenities/canal_river_water_access.svg",
   },
-
+  
   // ⚡ Power
   {
     key: "water_pump_set",
@@ -367,18 +371,30 @@ export const AMENITIES_FOR_AGRICULTURAL = [
     icon: "/icons/amenities/water_pump_set.svg",
   },
   {
-    key: "motor_shed",
-    title: "Motor Shed",
-    category: "Infrastructure",
-    icon: "/icons/amenities/motor_shed.svg",
+    key:"solar_power_provision",
+    title:"Solar Power Provision",
+    category:"Power",
+    icon:"/icons/amenities/solar_power_provision.svg"
   },
-
+  {
+    key:"electricity_connection",
+    title:"Electricity Connection",
+    category:"Power",
+    icon:"/icons/amenities/electricity_connection.svg"
+  },
+  
   // 🚜 Infrastructure
   {
     key: "cattle_shed",
     title: "Cattle Shed",
     category: "Infrastructure",
     icon: "/icons/amenities/cattle_shed.svg",
+  },
+  {
+    key: "motor_shed",
+    title: "Motor Shed",
+    category: "Infrastructure",
+    icon: "/icons/amenities/motor_shed.svg",
   },
   {
     key: "greenhouse",
@@ -393,6 +409,18 @@ export const AMENITIES_FOR_AGRICULTURAL = [
     title: "Watchman Room",
     category: "Infrastructure",
     icon: "/icons/amenities/watchman_room.svg",
+  },
+  {
+    key: "toilets_wash_area",
+    title: "Toilets and Wash Area",
+    category: "Infrastructure",
+    icon: "/icons/amenities/toilets_wash_area.svg",
+  },
+  {
+    key: "cctv_video_surveillance",
+    title: "CCTV Video Surveillance",
+    category: "Safety",
+    icon: "/icons/amenities/cctv_video_surveillance.svg",
   },
 ];
 

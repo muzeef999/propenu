@@ -10,7 +10,7 @@ const TOTAL_STEPS = 4;
 export default function Sidebar() {
   const dispatch = useDispatch();
 
-   const { currentStep, progressPercent } = useSelector(
+  const { currentStep, progressPercent } = useSelector(
     (state: any) => state.postProperty
   );
 
@@ -18,16 +18,45 @@ export default function Sidebar() {
   return (
     <>
       {/* Mobile and Tablet View: Shows only Progress Bar */}
+      {/* Mobile and Tablet View: Shows Progress Bar + Back Button */}
       <div className="block lg:hidden w-full p-4 bg-white border-b border-[#EBECF0]">
-        <div className="flex justify-between items-end mb-2">
-          <div>
+
+        {/* Top Row */}
+        <div className="flex items-center justify-between mb-2">
+
+          {/* 🔙 Back Button */}
+          <button
+            disabled={currentStep === 1}
+            onClick={() => dispatch(prevStep())}
+            className={`flex items-center text-sm transition ${currentStep === 1
+                ? "text-gray-300 cursor-not-allowed"
+                : "text-gray-600 active:scale-95"
+              }`}
+          >
+            <ArrowDropdownIcon
+              size={16}
+              color="currentColor"
+              className="rotate-90 mr-1"
+            />
+          </button>
+
+          {/* Title */}
+          <div className="text-center">
             <h2 className="font-medium text-base text-gray-900 leading-tight">
               Post your property
             </h2>
-            <p className="text-[10px] text-gray-500">Step {currentStep} of {TOTAL_STEPS}</p>
+            <p className="text-[10px] text-gray-500">
+              Step {currentStep} of {TOTAL_STEPS}
+            </p>
           </div>
-          <p className="text-xs font-semibold text-green-600">{progressPercent}%</p>
+
+          {/* Progress Percent */}
+          <p className="text-xs font-semibold text-green-600">
+            {progressPercent}%
+          </p>
         </div>
+
+        {/* Progress Bar */}
         <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
           <div
             className="h-full bg-green-500 rounded-full transition-all duration-300"
@@ -49,11 +78,10 @@ export default function Sidebar() {
           <button
             disabled={currentStep === 1}
             onClick={() => dispatch(prevStep())}
-            className={`flex items-center text-sm py-1.5 transition ${
-              currentStep === 1
+            className={`flex items-center text-sm py-1.5 transition ${currentStep === 1
                 ? "text-gray-300 cursor-not-allowed"
                 : "text-[#8F8F8F] hover:text-gray-700 cursor-pointer"
-            }`}
+              }`}
           >
             <ArrowDropdownIcon
               size={12}

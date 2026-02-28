@@ -25,7 +25,7 @@ const RentView = () => {
         <div className="flex items-center gap-2 px-6 py-2 mb-6 rounded-md bg-[#F1FCF5] text-[#27AE60]">
           <AiOutlineThunderbolt size={18} fill="currentColor" />
           <span className="text-lg font-medium">
-            Upgrade today and stay ahead of other rentals
+            Upgrade today and stay ahead of other tenants
           </span>
         </div>
 
