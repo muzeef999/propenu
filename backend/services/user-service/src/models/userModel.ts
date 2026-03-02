@@ -15,6 +15,9 @@ const KycSchema = new mongoose.Schema({
       type: String, // PAN, Aadhaar, DL etc
     },
   ],
+  verifiedName: String,
+ verifiedPhone: String,
+ verifiedDob: String,
   digilockerId: String,
   verifiedAt: Date,
   remarks: String,

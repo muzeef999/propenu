@@ -157,6 +157,7 @@ export const me = async (req: AuthRequest, res: Response) => {
         roleId: role ? String(role._id) : null,
         roleName: role ? role.name : null,
         permissions: role ? role.permissions : [],
+        kycStatus: user.kyc?.status || "not_submitted",
       },
     });
   } catch (err: any) {

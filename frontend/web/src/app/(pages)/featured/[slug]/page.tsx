@@ -14,6 +14,27 @@ type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
 };
 
+
+export async function generateMetadata({ params }: PageProps) {
+  const { slug } = await params;
+
+  const project = await getFeaturedSlugProjects({ slug });
+
+  if (!project) {
+    return {
+      title: "Project Not Found",
+      description: "Project not found",
+    };
+  }
+
+  return {
+    title: project.metaTitle,
+    description: project.metaDescription,
+    keywords: project.metaKeywords
+  };
+}
+
+
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
   let project: FeaturedProject | null;
@@ -122,13 +143,9 @@ export default async function Page({ params }: PageProps) {
         brochureUrl={project?.brochure?.url}
         redirectUrl={project?.redirectUrl}
       />
-    
-
       <Herosection hero={hero} />
-
       <br />
       <div className="container mx-auto px-4 space-y-2">
-
         <div id="available-properties" className="scroll-mt-20">
           <AvailableProperties bhk={bhkSummary} />
         </div>

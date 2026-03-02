@@ -124,9 +124,9 @@ const SettingsPage = () => {
             </p>
           </div>
 
-          
+            
           <div>
-            <KycButton />
+            <KycButton kycStatus={user?.user?.kycStatus} />
           </div>
         </div>
 
