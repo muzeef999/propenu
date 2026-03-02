@@ -174,7 +174,7 @@ export default function TestimonialCardsMarquee({
     <div className="w-[80%] p-2">
       <div
         ref={wrapRef}
-        className="relative overflow-hidden py-4"
+        className="relative overflow-hidden py-4 px-3"
         aria-label="Features carousel"
       >
         <div ref={sliderRef} className="flex flex-col w-full will-change-transform">
