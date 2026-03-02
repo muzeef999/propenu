@@ -49,10 +49,19 @@ const SearchBox = () => {
     "Land",
     "Agricultural",
   ];
+  const categoryToType: Record<categoryOption, string> = {
+    Residential: "residential",
+    Commercial: "commercial",
+    Land: "land",
+    Agricultural: "agricultural",
+  };
 
   const dispatch = useDispatch();
 
-  const searchParams = new URLSearchParams({ focus: "search" });
+  const searchParams = new URLSearchParams({
+    focus: "search",
+    type: categoryToType[category],
+  });
 
   return (
     <div className="relative w-full max-w-2xl">
@@ -103,7 +112,7 @@ const SearchBox = () => {
             />
           </Link>
 
-          <Link href={`/properties?type=residential`} className="btn-primary px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shrink-0">
+          <Link href={`/properties?type=${categoryToType[category]}`} className="btn-primary px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shrink-0">
             <IoIosSearch className="h-5 w-5" />
             <span className="hidden sm:inline">Search</span>
           </Link>

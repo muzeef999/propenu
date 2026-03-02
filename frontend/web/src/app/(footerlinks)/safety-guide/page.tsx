@@ -149,7 +149,7 @@ const SafetyGuidePage = () => {
                                     <ul className="space-y-3">
                                         <li>
                                             <h4 className="font-semibold text-gray-800">
-                                                1. Never Pay Anything without Seeing the Property
+                                                1. Never Pay Anything Without Seeing the Property
                                             </h4>
                                             <ul className="mt-1 ml-10 list-disc text-sm text-gray-600 space-y-1">
                                                 <li>Always visit the property in person.</li>
@@ -170,7 +170,7 @@ const SafetyGuidePage = () => {
                                                 </li>
                                                 <li>
                                                     Be cautious if someone pressures you with urgency or
-                                                    limited time offers.
+                                                    limited-time offers.
                                                 </li>
                                             </ul>
                                         </li>
@@ -232,7 +232,7 @@ const SafetyGuidePage = () => {
                                                 2. Never Share Legal or Financial Details
                                             </h4>
                                             <ul className="mt-1 ml-10 list-disc text-sm text-gray-600 space-y-1">
-                                                <li>Do not share sale deeds, bank details, or ownership papers unless legal purpose.</li>
+                                                <li>Do not share sale deeds, bank details, or ownership papers unless legally required.</li>
                                             </ul>
                                         </li>
                                         <li>

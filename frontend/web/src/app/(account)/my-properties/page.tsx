@@ -167,8 +167,7 @@ const Page = () => {
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-1">
       {/* ================= TABS ================= */}
-      <div className="flex items-center justify-between">
-        {/* Tabs */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">        {/* Tabs */}
         <ActiveTabs
           categories={categories}
           activeTab={activeTab}
@@ -185,19 +184,18 @@ const Page = () => {
       </div>
 
       {/* ================= FILTER BAR ================= */}
-      <div className="flex items-center gap-4">
-        {/* LEFT: Search */}
+      <div className="flex flex-col lg:flex-row lg:items-center gap-4">        {/* LEFT: Search */}
         <div className="shrink-0">
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Enter Locality"
-            className="h-9 w-48 rounded-md border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus:border-green-500"
+            className="h-9 w-full sm:w-64 rounded-md border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus:border-green-500"
           />
         </div>
 
         {/* CENTER: Status Filters */}
-        <div className="flex flex-1 justify-end gap-2">
+        <div className="flex flex-wrap gap-2 lg:justify-end">
           {[
             "All",
             "Active",
@@ -216,7 +214,7 @@ const Page = () => {
         </div>
 
         {/* RIGHT: Listing Type Dropdown */}
-        <div ref={listingTypeRef} className="relative w-30 shrink-0">
+        <div ref={listingTypeRef} className="relative w-full sm:w-40">
           <button
             type="button"
             onClick={() => setIsListingTypeOpen((prev) => !prev)}
@@ -261,38 +259,48 @@ const Page = () => {
                 key={property._id}
                 href={`/properties/${TAB_KEY_MAP[activeTab] ?? "residential"}/${property.slug
                   }`}
-                className="card group flex flex-row items-start gap-5 border border-gray-200 p-2"
+                className="card group flex flex-col md:flex-row items-start md:items-center gap-1.5 sm:gap-2.5 md:gap-4 border border-gray-200 p-1.5 sm:p-2 md:p-3 rounded-lg md:rounded-2xl bg-white hover:shadow-md transition-all duration-300 w-full max-w-[330px] sm:max-w-none mx-auto sm:mx-0"
               >
                 {/* Image */}
-                <div className="w-55 shrink-0 overflow-hidden rounded-lg bg-gray-100 aspect-4/3">
+                <div className="w-full h-60 md:w-40 md:h-full lg:w-48 lg:h-full shrink-0 overflow-hidden rounded-md md:rounded-lg bg-gray-100">
                   <img
                     src={image}
                     alt={property.title}
-                    className="h-50  object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>
 
                 {/* Content */}
-                <div className="flex flex-1 flex-col">
-                  <div className="flex items-start justify-between">
-                    <div className="min-w-0 max-w-[380px]">
-                      <h3 className="truncate text-lg font-semibold text-gray-900 ">
+                <div className="flex min-w-0 flex-1 flex-col">
+
+                  {/* Title + Status */}
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+
+                    {/* Left */}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 line-clamp-2">
                         {property.title ?? "Untitled Property"}
                       </h3>
 
-                      <div className="mt-1 flex items-center gap-1 text-sm text-gray-500 truncate">
-                        <HiOutlineMapPin className="h-4 w-4 text-green-600 shrink-0 " />
-                        {property.address ?? "Location not specified"}
+                      <div className="mt-1 flex items-center gap-1 text-xs sm:text-sm text-gray-500">
+                        <HiOutlineMapPin className="h-4 w-4 text-green-600 shrink-0" />
+                        <span className="truncate">
+                          {property.address ?? "Location not specified"}
+                        </span>
                       </div>
                     </div>
 
-                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700 capitalize">
+                    {/* Status */}
+                    <span className="self-start sm:self-auto inline-block rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700 capitalize whitespace-nowrap">
                       {property.status}
                     </span>
                   </div>
 
-                  <div className="mt-4 grid grid-cols-2 gap-x-12 gap-y-3 text-sm text-gray-600">
-                    <p>
+
+                  {/* Property Details */}
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-xs sm:text-sm text-gray-600">
+
+                    <p className="flex justify-between sm:block">
                       <span className="text-gray-500">Price:</span>{" "}
                       <span className="font-medium text-gray-800">
                         {property.price
@@ -301,14 +309,14 @@ const Page = () => {
                       </span>
                     </p>
 
-                    <p>
+                    <p className="flex justify-between sm:block">
                       <span className="text-gray-500">Property ID:</span>{" "}
                       <span className="font-medium text-gray-800">
                         {property._id.slice(-8).toUpperCase()}
                       </span>
                     </p>
 
-                    <p>
+                    <p className="flex justify-between sm:block">
                       <span className="text-gray-500">Carpet Area:</span>{" "}
                       <span className="font-medium text-gray-800">
                         {property.carpetArea
@@ -317,27 +325,27 @@ const Page = () => {
                       </span>
                     </p>
 
-                    <p>
+                    <p className="flex justify-between sm:block">
                       <span className="text-gray-500">Posted On:</span>{" "}
                       <span className="font-medium text-gray-800">
                         {property.createdAt
-                          ? new Date(property.createdAt).toLocaleDateString(
-                            "en-IN",
-                            {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            }
-                          )
+                          ? new Date(property.createdAt).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
                           : "—"}
                       </span>
                     </p>
+
                   </div>
                 </div>
 
                 {/* Right Column */}
-                <div className="flex w-28 flex-col items-end">
-                  <div className="relative">
+                <div className="mt-3 md:mt-0 w-full md:w-32 flex flex-row md:flex-col items-center md:items-end justify-between gap-3">
+
+                  {/* Menu Button */}
+                  <div className="relative ml-50 md:ml-0">
                     <button
                       onClick={(e) => {
                         e.preventDefault();
@@ -346,14 +354,14 @@ const Page = () => {
                           prev === property._id ? null : property._id
                         );
                       }}
-                      className="rounded-md p-2 text-gray-500 hover:bg-gray-100"
+                      className="rounded-md p-2 text-gray-500 hover:bg-gray-100 transition"
                     >
-                      <HiOutlineDotsVertical className="h-4 w-4" />
+                      <HiOutlineDotsVertical className="h-5 w-5" />
                     </button>
 
                     {openMenuId === property._id && (
                       <div
-                        className="absolute right-0 top-10 z-20 w-32 rounded-md border border-gray-200 bg-white py-1 shadow-md"
+                        className="absolute right-0 top-10 z-30 w-36 rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -367,10 +375,11 @@ const Page = () => {
                             setOpenMenuId(null);
                             router.push("/postproperty");
                           }}
-                          className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                          className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
                         >
                           Edit
                         </button>
+
                         <button
                           type="button"
                           onClick={async () => {
@@ -387,7 +396,7 @@ const Page = () => {
                             }
                           }}
                           disabled={deactivatingId === property._id}
-                          className="w-full px-3 py-2 text-left text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-60"
+                          className="w-full px-4 py-2 text-left text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-60"
                         >
                           {deactivatingId === property._id
                             ? "Deactivating..."
@@ -397,21 +406,25 @@ const Page = () => {
                     )}
                   </div>
 
-                  <div className="mt-auto text-xs text-gray-500 text-right space-y-1 pr-3">
+                  {/* Stats Section */}
+                  <div className="text-xs sm:text-sm text-gray-600 text-left md:text-right space-y-1 md:pr-2">
                     <p>
                       Views:{" "}
-                      <span className="font-medium text-gray-700">
+                      <span className="font-medium text-gray-800">
                         {property.meta?.views ?? 0}
                       </span>
                     </p>
+
                     <p>
                       Enquiries:{" "}
-                      <span className="font-medium text-gray-700">
+                      <span className="font-medium text-gray-800">
                         {property.meta?.enquiries ?? 0}
                       </span>
                     </p>
+
                     <ResponsesButton propertyId={property._id} />
                   </div>
+
                 </div>
               </Link>
             );

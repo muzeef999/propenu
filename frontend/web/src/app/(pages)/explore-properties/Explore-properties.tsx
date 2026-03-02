@@ -25,7 +25,7 @@ const CATEGORIES = [
     countText: "9,500+ Properties",
     href: "/properties?type=commercial",
   },
- 
+
   {
     id: "Land /plotes",
     title: "Land /plotes",
@@ -35,7 +35,7 @@ const CATEGORIES = [
     countText: "5,800+ Properties",
     href: "/properties?type=land",
   },
-   {
+  {
     id: "agricultural",
     title: "Agricultural",
     color: "#FFF0E5",
@@ -51,38 +51,38 @@ const CATEGORIES = [
 
 export function PropertyCard({ item }: { item: (typeof CATEGORIES)[number] }) {
   return (
-   <Link
-  href={item.href}
-  className="relative h-[360px] rounded-3xl overflow-hidden group shadow-md hover:shadow-xl transition-all duration-300"
->
-  {/* Background Color */}
-  <div
-    className="absolute inset-0"
-  />
+    <Link
+      href={item.href}
+      className="relative h-[360px] rounded-3xl overflow-hidden group shadow-md hover:shadow-xl transition-all duration-300"
+    >
+      {/* Background Color */}
+      <div
+        className="absolute inset-0"
+      />
 
-  {/* Image */}
-  <div className="absolute bottom-0 right-0 w-full h-[75%]">
-    <img
-      src={item.image.src}
-      alt={item.imageAlt}
-      loading="lazy"
-      className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
-    />
-  </div>
+      {/* Image */}
+      <div className="absolute bottom-0 right-0 w-full h-[75%]">
+        <img
+          src={item.image.src}
+          alt={item.imageAlt}
+          loading="lazy"
+          className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+        />
+      </div>
 
-  {/* Gradient Overlay */}
-  <div className="absolute inset-0" />
+      {/* Gradient Overlay */}
+      <div className="absolute inset-0" />
 
-  {/* Text Content */}
-  <div className="relative z-10 p-6">
-    <h3 className="text-2xl font-semibold">
-      {item.title}
-    </h3>
-    <p className="mt-2 text-base">
-      {item.countText}
-    </p>
-  </div>
-</Link>
+      {/* Text Content */}
+      <div className="relative z-10 p-6">
+        <h3 className="text-2xl font-semibold">
+          {item.title}
+        </h3>
+        <p className="mt-2 text-base">
+          {item.countText}
+        </p>
+      </div>
+    </Link>
 
   );
 }

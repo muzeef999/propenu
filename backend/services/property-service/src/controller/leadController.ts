@@ -153,7 +153,9 @@ export const getMyContactedProperties = async (
 
 
 
-    const properties = leads.map((lead: any) => {
+    const properties = leads
+      .filter((lead: any) => Boolean(lead?.projectId))
+      .map((lead: any) => {
       const property = lead.projectId;
 
       return {
@@ -166,6 +168,7 @@ export const getMyContactedProperties = async (
 
         // 🔥 property info
         propertyId: property?._id,
+        slug: property?.slug || null,
         title:
           property?.title ||
           property?.projectName ||

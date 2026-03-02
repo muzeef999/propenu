@@ -2,14 +2,12 @@ import mongoose, { Types } from "mongoose";
 import Lead from "../models/LeadModel";
 import { Subscription } from "../models/subscriptionModel";
 import { Plan } from "../models/planModel";
-
 import Residential from "../models/residentialModel";
 import Commercial from "../models/commercialModel";
 import Agricultural from "../models/agriculturalModel";
 import LandPlot from "../models/landModel";
 import FeaturedProject from "../models/featurePropertiesModel";
 import PublicLead from "../models/PublicLead";
-
 
 const PROPERTY_MODEL_MAP: Record<string, any> = {
   featuredprojects: FeaturedProject,
@@ -23,51 +21,64 @@ const PROPERTY_MODEL_MAP: Record<string, any> = {
 export const createLead = async (data: any, userId: string | null) => {
   const { propertyType, projectId } = data;
 
-  // 1️⃣ Validate projectId
+  if (!userId) {
+    throw new Error("Unauthorized");
+  }
+
   if (!Types.ObjectId.isValid(projectId)) {
     throw new Error("Invalid project/property ID");
   }
 
-  // 2️⃣ Resolve property model
   const PropertyModel = PROPERTY_MODEL_MAP[propertyType];
   if (!PropertyModel) {
     throw new Error(`Invalid propertyType: ${propertyType}`);
   }
 
-  // 3️⃣ Featured projects → no subscription logic
-  if (propertyType === "featuredprojects") {
-    return await Lead.create({
-      ...data,
-      propertyModel: "FeaturedProject",
-      createdBy: userId ?? undefined,
-    });
-  }
-
-  // 4️⃣ Prevent duplicate enquiry
   const existingLead = await Lead.findOne({
     projectId,
     createdBy: userId,
   });
-
   if (existingLead) {
     throw new Error("You have already contacted for this property");
   }
 
-  // 5️⃣ Load property
   const property = await PropertyModel.findById(projectId);
   if (!property) {
     throw new Error("Property not found");
   }
 
-  // listingType is GUARANTEED: "sale" | "rent"
-  const listingType: "sale" | "rent" = property.listingType;
-  const ownerId = property.createdBy;
+  const ownerId = (property as any).createdBy;
+  if (!ownerId) {
+    throw new Error("Property owner not found");
+  }
 
-  // 6️⃣ BUYER plan category mapping
-  const requiredViewerCategory =
-    listingType === "sale" ? "buy" : "rent_view";
+  // User/agent/builder cannot contact their own property.
+  if (String(ownerId) === String(userId)) {
+    throw new Error("You cannot contact your own property");
+  }
 
-  // 7️⃣ CHECK BUYER SUBSCRIPTION (THIS IS THE ONLY GATE)
+  const listingType = (property as any).listingType as
+    | "sale"
+    | "rent"
+    | "lease"
+    | undefined;
+  if (!listingType) {
+    throw new Error("Invalid listing type for property");
+  }
+
+  // Featured projects skip subscription checks.
+  if (propertyType === "featuredprojects") {
+    return await Lead.create({
+      ...data,
+      propertyModel: "FeaturedProject",
+      createdBy: userId,
+      ownerId,
+      listingType,
+    });
+  }
+
+  const requiredViewerCategory = listingType === "sale" ? "buy" : "rent_view";
+
   const viewerSub = await Subscription.findOne({
     userId,
     status: "active",
@@ -82,18 +93,15 @@ export const createLead = async (data: any, userId: string | null) => {
     );
   }
 
-  // 8️⃣ Ensure usage object exists
   if (!viewerSub.usage) {
     viewerSub.usage = { contactUsed: 0, enquiryUsed: 0 };
   }
 
-  // 9️⃣ Load buyer plan
   const viewerPlan = await Plan.findOne({ code: viewerSub.planCode });
   if (!viewerPlan) {
     throw new Error("Invalid buyer subscription plan");
   }
 
-  // 🔟 BUYER contact limit check
   const contactLimit = viewerPlan.features?.get("CONTACT_OWNER_LIMIT");
   if (
     typeof contactLimit === "number" &&
@@ -102,7 +110,7 @@ export const createLead = async (data: any, userId: string | null) => {
     throw new Error("Your contact limit is over. Please upgrade your plan.");
   }
 
-  // 1️⃣1️⃣ Create lead (do NOT trust frontend listingType)
+  // Do not trust listingType sent by client.
   const { listingType: _ignore, ...safeData } = data;
 
   const lead = await Lead.create({
@@ -113,19 +121,13 @@ export const createLead = async (data: any, userId: string | null) => {
     listingType,
   });
 
-  // 1️⃣2️⃣ Update buyer usage
   viewerSub.usage.contactUsed += 1;
   await viewerSub.save();
 
   return lead;
 };
 
-
-
-
-
-
-/**  ASSIGN LEAD TO SALES **/
+/** ASSIGN LEAD TO SALES **/
 export const assignLead = async (leadId: string, assignedTo: string) => {
   if (!Types.ObjectId.isValid(leadId)) {
     throw new Error("Invalid lead ID");
@@ -135,18 +137,14 @@ export const assignLead = async (leadId: string, assignedTo: string) => {
     throw new Error("Invalid user ID");
   }
 
-  const lead = await Lead.findByIdAndUpdate(
-    leadId,
-    { assignedTo },
-    { new: true }
-  );
+  const lead = await Lead.findByIdAndUpdate(leadId, { assignedTo }, { new: true });
 
   if (!lead) throw new Error("Lead not found");
 
   return lead;
 };
 
-/**   UPDATE LEAD STATUS **/
+/** UPDATE LEAD STATUS **/
 export const updateLeadStatus = async (
   leadId: string,
   status: string,
@@ -179,7 +177,6 @@ export const updateLeadStatus = async (
 export const getLeads = async (query: any, user?: any) => {
   const filter: any = {};
 
-  /* ✅ Project-wise filter */
   if (query.projectId) {
     if (!Types.ObjectId.isValid(query.projectId)) {
       throw new Error("Invalid projectId");
@@ -187,11 +184,9 @@ export const getLeads = async (query: any, user?: any) => {
     filter.projectId = query.projectId;
   }
 
-  /* Optional filters */
   if (query.propertyType) filter.propertyType = query.propertyType;
   if (query.status) filter.status = query.status;
 
-  /* Role-based rules */
   if (user?.role === "sales") {
     filter.assignedTo = user.id;
   }
@@ -202,7 +197,7 @@ export const getLeads = async (query: any, user?: any) => {
     .lean();
 };
 
-/*** GET SINGLE LEAD **/
+/** GET SINGLE LEAD **/
 export const getLeadById = async (id: string) => {
   if (!Types.ObjectId.isValid(id)) {
     throw new Error("Invalid lead ID");
@@ -216,7 +211,6 @@ export const getLeadById = async (id: string) => {
 
   return lead;
 };
-
 
 export const updateLeadStatusService = async (
   leadId: string,
