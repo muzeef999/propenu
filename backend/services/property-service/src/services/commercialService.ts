@@ -80,7 +80,7 @@ export async function findRelatedCommercial(property: any) {
     .sort({ createdAt: -1 })
     .limit(6)
     .select(
-      "title slug price city locality builtUpArea gallery propertyType listingType builtUpArea furnishing parkingDetails constructionStatus",
+      "title slug price city locality builtUpArea gallery propertyType listingType builtUpArea furnishedStatus parkingDetails  constructionStatus",
     )
     .lean();
 

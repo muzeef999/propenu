@@ -50,6 +50,7 @@ export const basicDetailsSchema = z
     balconies: z.union([z.string(), z.number()]).optional(),
 
     furnishing: z.string().optional(),
+    furnishedStatus: z.string().optional(),
     facing: z.string().optional(),
 
     /* ---------------- STATUS ---------------- */
@@ -119,11 +120,12 @@ export const basicDetailsSchema = z
 
     if (category === "commercial") {
       const needsFurnishing = Number(cabins) > 0 || Number(seats) > 0;
+      const selectedFurnishing = data.furnishedStatus ?? data.furnishing;
 
-      if (needsFurnishing && !data.furnishing) {
+      if (needsFurnishing && !selectedFurnishing) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ["furnishing"],
+          path: ["furnishedStatus"],
           message: "Please select furnishing",
         });
       }

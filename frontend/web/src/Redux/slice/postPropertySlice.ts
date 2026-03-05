@@ -256,7 +256,7 @@ const postPropertySlice = createSlice({
           propertyType: draft.propertyType,
           listingType: draft.listingType,
           listingSource: draft.listingSource,
-          furnishing: draft.furnishing,
+          furnishedStatus: draft.furnishedStatus ?? draft.furnishing,
           price: draft.price,
           amenities: draft.amenities ?? [],
 
