@@ -7,10 +7,11 @@ import { MdWaterDrop } from "react-icons/md";
 import { GiGroundSprout } from "react-icons/gi";
 import { FaRoad } from "react-icons/fa";
 import { IAgricultural } from "@/types/agricultural";
-import NearByPlace from "@/app/(pages)/properties/(pages)/NearByPlace";
+import NearByPlaceClient from "@/app/(pages)/properties/(pages)/NearByPlaceClient";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import RelatedAgriculturalCarousel from "./RelatedAgriculturalCarousel";
 import Image from "next/image";
+import ad from "@/asserts/ad.png";
 import { AGRICULTURAL_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
 
 type PageProps = {
@@ -49,7 +50,9 @@ export default async function Page({ params }: PageProps) {
 
 
   return (
-    <div style={{ background: bgcolor }} className="min-h-screen py-6">
+    <div
+      className="min-h-screen py-6 overflow-hidden"
+    >
       <div className="container">
         <div className="w-full">
           {/* Top: Price + Title + CTA */}
@@ -64,9 +67,9 @@ export default async function Page({ params }: PageProps) {
             </div>
           </header>
 
-          <div className="flex flex-col gap-8 lg:flex-row">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch">
             <main className="flex-1">
-              <div className="flex flex-col lg:flex-row gap-2">
+              <div className="flex flex-col gap-2 lg:flex-row lg:items-stretch">
 
                 <div className="w-full lg:w-[58%]">
                   <GalleryFile
@@ -76,76 +79,99 @@ export default async function Page({ params }: PageProps) {
                     propertyType="Agricultural"
                   />
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-start gap-6">
-                    <div className="flex-1">
-                      <div className="p-4 sm:p-6">
+                <div className="flex flex-1 self-stretch min-h-0">
+                  <div className="flex-1 p-4 sm:p-2 flex flex-col justify-between h-full gap-8">
 
-                        {/* DETAILS GRID */}
-                        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* PART 1 */}
+                    <div className="grid grid-cols-2 gap-8 pl-1">
 
-                          <DetailItem
-                            label="Plot Area"
-                            value={`(₹ ${project?.pricePerSqft ?? 0}/sqft)`}
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Total Area
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          {project?.totalArea?.value} {project?.totalArea?.unit}
+                        </span>
+                      </div>
 
-                          <DetailItem
-                            label="Boundary Wall"
-                            value={project?.boundaryWall ? "Available" : "Not Available"}
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Price Per Sqft
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          ₹ {project?.pricePerSqft}/sqft
+                        </span>
+                      </div>
 
-                          <DetailItem
-                            label="Listed Type"
-                            value={project?.listingType}
-                            highlight
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Listed Type
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-orange-600">
+                          {project?.listingType ?? "—"}
+                        </span>
+                      </div>
 
-                          <DetailItem
-                            label="Irrigation Type"
-                            value={project?.irrigationType}
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Boundary Wall
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          {project?.boundaryWall ? "Available" : "Not Available"}
+                        </span>
+                      </div>
 
-                          <DetailItem
-                            label="Electricity"
-                            value={project?.electricityConnection ? "Available" : "Not Available"}
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Irrigation Type
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          {project?.irrigationType ?? "—"}
+                        </span>
+                      </div>
 
-                          <DetailItem
-                            label="Land shape"
-                            value={project?.landShape}
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Land Shape
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          {project?.landShape ?? "—"}
+                        </span>
+                      </div>
 
-                        </div>
+                    </div>
 
-                        {/* ICON STATS */}
-                        <div className="flex flex-wrap gap-6 mt-8 border-t border-gray-200 pt-6">
+                    {/* ICON STATS */}
+                    <div
+                      className="grid grid-cols-3 border border-gray-200 rounded-md overflow-hidden shadow-sm"
+                      style={{ background: bgcolor }}
+                    >
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4">
+                        <MdWaterDrop color="#6B7280" />
+                        <span className="font-semibold text-gray-900 text-sm sm:text-base">{project?.numberOfBorewells ?? 0}</span>
+                        <span className="text-xs sm:text-sm text-gray-500">Borewells</span>
+                      </div>
 
-                          <StatItem
-                            icon={<MdWaterDrop color="#6B7280" size={20} />}
-                            text={`${project?.numberOfBorewells ?? 0} Borewells`}
-                          />
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 border-x border-gray-200">
+                        <GiGroundSprout color="#6B7280" />
+                        <span className="font-semibold text-gray-900 text-sm sm:text-base">{project?.soilType ?? "—"}</span>
+                        <span className="text-xs sm:text-sm text-gray-500">Soil Type</span>
+                      </div>
 
-                          <StatItem
-                            icon={<GiGroundSprout color="#6B7280" size={20} />}
-                            text={project?.soilType ?? "—"}
-                          />
-
-                          <StatItem
-                            icon={<FaRoad color="#6B7280" size={20} />}
-                            text={`${project?.roadWidth?.value ?? 0} ${project?.roadWidth?.unit ?? ""}`}
-                          />
-
-                        </div>
-
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4">
+                        <FaRoad color="#6B7280" />
+                        <span className="font-semibold text-gray-900 text-sm sm:text-base">{project?.roadWidth?.value ?? "—"} {project?.roadWidth?.unit ?? ""}</span>
+                        <span className="text-xs sm:text-sm text-gray-500">Road Width</span>
                       </div>
                     </div>
+
                   </div>
                 </div>
               </div>
 
               <br />
 
-              <div className=" w-full">
+              <div className="w-full">
                 <div className="grid gap-4">
                   <section className="space-y-4">
                     <section className="rounded-lg p-6 shadow-sm bg-[#f7f9fa]">
@@ -153,7 +179,7 @@ export default async function Page({ params }: PageProps) {
                         More Details
                       </h2>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
                         <div className="flex flex-col gap-1">
                           <p className="font-medium text-gray-900">
                             Price Breakup
@@ -172,57 +198,14 @@ export default async function Page({ params }: PageProps) {
 
                         <div className="flex flex-col gap-1">
                           <p className="font-medium text-gray-900">
-                            Total Area
-                          </p>
-                          <p className="text-gray-500">
-                            {project?.totalArea?.value}{" "}
-                            {project?.totalArea?.unit}
-                          </p>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                          <p className="font-medium text-gray-900">
-                            Land Shape
-                          </p>
-                          <p className="text-gray-500">{project?.landShape}</p>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                          <p className="font-medium text-gray-900">
-                            Road Width
-                          </p>
-                          <p className="text-gray-500">
-                            {project?.roadWidth?.value}{" "}
-                            {project?.roadWidth?.unit}
-                          </p>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                          <p className="font-medium text-gray-900">
-                            Soil Type
-                          </p>
-                          <p className="text-gray-500">{project?.soilType}</p>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                          <p className="font-medium text-gray-900">
-                            Irrigation
-                          </p>
-                          <p className="text-gray-500">
-                            {project?.irrigationType}
-                          </p>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                          <p className="font-medium text-gray-900">
                             Electricity
                           </p>
                           <p className="text-gray-500">
-                            {project?.electricityConnection
-                              ? "Available"
-                              : "No"}
+                            {project?.electricityConnection ? "Available" : "Not Available"}
                           </p>
                         </div>
+
+                        <div className="hidden md:block"></div>
                       </div>
 
                       {/* ADDRESS */}
@@ -245,6 +228,7 @@ export default async function Page({ params }: PageProps) {
 
                       <div className="mt-8">
                         <ContactOwnerButton
+                          listingType={project.listingType}
                           projectId={project._id}
                           propertyType="agriculturals"
                           listingSource={project.listingSource}
@@ -259,35 +243,37 @@ export default async function Page({ params }: PageProps) {
                       </h2>
                       {project.amenities && project.amenities.length > 0 ? (
                         <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 sm:grid-cols-3">
-                          {project.amenities.map((i, index) => {
-                            const icon =
-                              amenityIconByKey.get(i.key) ??
-                              amenityIconByTitle.get(i.title);
+                          {project.amenities.map((i, index) => (
+                            (() => {
+                              const icon =
+                                amenityIconByKey.get(i.key) ??
+                                amenityIconByTitle.get(i.title);
 
-                            return (
-                              <div
-                                key={i.key ?? `${i.title}-${index}`}
-                                className="flex items-center gap-2 rounded-md border border-gray-100 px-2 py-1"
-                              >
-                                {typeof icon === "string" ? (
-                                  <Image
-                                    src={icon.trim()}
-                                    alt={`${i.title} icon`}
-                                    width={14}
-                                    height={14}
-                                    className="h-3.5 w-3.5 opacity-75"
-                                  />
-                                ) : icon ? (
-                                  <span className="text-gray-600 [&>svg]:h-3.5 [&>svg]:w-3.5">
-                                    {icon}
-                                  </span>
-                                ) : (
-                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                )}
-                                <span>{i.title}</span>
-                              </div>
-                            );
-                          })}
+                              return (
+                                <div
+                                  key={i.key ?? `${i.title}-${index}`}
+                                  className="flex items-center gap-2 rounded-md border border-gray-100 px-2 py-1"
+                                >
+                                  {typeof icon === "string" ? (
+                                    <Image
+                                      src={icon.trim()}
+                                      alt={`${i.title} icon`}
+                                      width={14}
+                                      height={14}
+                                      className="h-3.5 w-3.5 opacity-75"
+                                    />
+                                  ) : icon ? (
+                                    <span className="text-gray-600 [&>svg]:h-3.5 [&>svg]:w-3.5">
+                                      {icon}
+                                    </span>
+                                  ) : (
+                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                  )}
+                                  <span>{i.title}</span>
+                                </div>
+                              );
+                            })()
+                          ))}
                         </div>
                       ) : (
                         <p className="text-sm text-gray-500">
@@ -302,7 +288,7 @@ export default async function Page({ params }: PageProps) {
                       </h2>
 
                       {project.location ? (
-                        <NearByPlace
+                        <NearByPlaceClient
                           projectLocation={project.location}
                           projectName={project.title ?? "Property Location"}
                           nearbyPlaces={project.nearbyPlaces ?? []}
@@ -314,7 +300,7 @@ export default async function Page({ params }: PageProps) {
                       )}
                     </section>
 
-                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa] ">
+                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa]">
                       <h2 className="mb-1 text-xl font-semibold text-gray-900">
                         More Similar Properties for you
                       </h2>
@@ -333,63 +319,16 @@ export default async function Page({ params }: PageProps) {
                 </div>
               </div>
             </main>
-            <aside className="w-full shrink-0 lg:w-[260px]">
-              {/* Contact card here */}
-              <div className="sticky top-20 h-fit rounded-xl border border-gray-100 bg-[#f7f9fa] p-5 shadow-sm">
-                <p className="mb-3 text-lg font-semibold text-green-600">
-                  Contact Owner
-                </p>
-
-                <p className="text-sm font-medium text-gray-900">
-                  {project?.createdBy?.name}
-                </p>
-
-                <p className="mt-1 text-xs text-gray-500">
-                  {project?.createdBy?.email}
-                </p>
-
-                <button className="mt-4 w-full rounded-lg bg-green-600 py-2 text-sm font-medium text-white transition hover:bg-green-700">
-                  Get Phone No.
-                </button>
-              </div>
+            <aside className="w-full shrink-0 lg:w-[260px] sticky top-20 self-start">
+              <Image
+                src={ad}
+                alt="advertisement banner"
+                className="w-full h-auto p-6"
+              />
             </aside>
           </div>
         </div>
       </div>
     </div>
   );
-}
-
-
-const DetailItem = ({
-  label,
-  value,
-  highlight = false,
-}: {
-  label: string;
-  value?: string | number;
-  highlight?: boolean;
-}) => (
-  <div className="space-y-1">
-    <p className="text-sm font-medium text-gray-500">
-      {label}
-    </p>
-    <p className={`text-sm sm:text-base font-semibold ${highlight ? "text-[#ed6115]" : "text-gray-800"
-      }`}>
-      {value || "—"}
-    </p>
-  </div>
-);
-
-const StatItem = ({
-  icon,
-  text,
-}: {
-  icon: React.ReactNode;
-  text: string;
-}) => (
-  <div className="flex items-center gap-2 text-gray-600 font-medium text-sm sm:text-base">
-    {icon}
-    {text}
-  </div>
-);
+};

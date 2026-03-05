@@ -7,10 +7,11 @@ import GalleryFile from "../../../GalleryFile";
 import { GiCompass } from "react-icons/gi";
 import { FaRoad } from "react-icons/fa";
 import { BiShapeSquare } from "react-icons/bi";
-import NearByPlace from "@/app/(pages)/properties/(pages)/NearByPlace";
+import NearByPlaceClient from "@/app/(pages)/properties/(pages)/NearByPlaceClient";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import RelatedLandCarousel from "./RelatedLandCarousel";
 import Image from "next/image";
+import ad from "@/asserts/ad.png";
 import { LAND_PLOT_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
 import {
   listingSourceToOwnershipLabel,
@@ -58,7 +59,9 @@ export default async function Page({ params }: PageProps) {
   );
 
   return (
-    <div style={{ background: bgcolor }} className="min-h-screen py-6 overflow-hidden">
+    <div
+      className="min-h-screen py-6 overflow-hidden"
+    >
       <div className="container">
         <div className="w-full">
           {/* Top: Price + Title + CTA */}
@@ -73,9 +76,9 @@ export default async function Page({ params }: PageProps) {
             </div>
           </header>
 
-          <div className="flex flex-col gap-8 lg:flex-row">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch">
             <main className="flex-1">
-              <div className="flex flex-col lg:flex-row gap-2">
+              <div className="flex flex-col gap-2 lg:flex-row lg:items-stretch">
 
                 {/* Gallery */}
                 <div className="w-full lg:w-[58%]">
@@ -86,119 +89,166 @@ export default async function Page({ params }: PageProps) {
                     propertyType="Land"
                   />
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-start gap-6">
-                    <div className="flex-1">
-                      <div className="p-4 sm:p-2">
+                <div className="flex flex-1 self-stretch min-h-0">
+                  <div className="flex-1 p-4 sm:p-2 flex flex-col justify-between h-full gap-8">
 
-                        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* PART 1 */}
+                    <div className="grid grid-cols-2 gap-8 pl-1">
 
-                          <DetailItem
-                            label="Total Area"
-                            value={`${project?.plotArea ?? "—"} sqft (₹ ${project?.pricePerSqft ?? 0}/sqft)`}
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Total Area
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          {project?.plotArea ?? "—"} sqft
+                        </span>
+                      </div>
 
-                          <DetailItem
-                            label="Water Connection"
-                            value={project?.waterConnection ? "Available" : "Unavailable"}
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Price Per Sqft
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          ₹ {project?.pricePerSqft}/sqft
+                        </span>
+                      </div>
 
-                          <DetailItem
-                            label="Sale Type"
-                            value={project?.listingType}
-                            highlight
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Sale Type
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-orange-600">
+                          {project?.listingType ?? "—"}
+                        </span>
+                      </div>
 
-                          <DetailItem
-                            label="Availability Status"
-                            value={project?.readyToConstruct ? "Ready to Construct" : "Under Construction"}
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Availability Status
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          {project?.readyToConstruct ? "Ready to Construct" : "Under Construction"}
+                        </span>
+                      </div>
 
-                          <DetailItem
-                            label="Property Type"
-                            value={project?.propertyType}
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Water Connection
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          {project?.waterConnection ? "Available" : "Unavailable"}
+                        </span>
+                      </div>
 
-                          <DetailItem
-                            label="Approved By"
-                            value={project?.approvedByAuthority?.join(", ")}
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Fencing
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          {project?.fencing ? "Available" : "Unavailable"}
+                        </span>
+                      </div>
 
-                        </div>
-                        <div className="flex flex-wrap gap-6 mt-8 border-t border-gray-200 pt-6">
-                          <StatItem
-                            icon={<GiCompass className="text-[#6B7280] h-5 w-5" />}
-                            text={project?.facing ?? "—"}
-                          />
+                    </div>
 
-                          <StatItem
-                            icon={<FaRoad className="text-[#6B7280] h-5 w-5" />}
-                            text={`${project?.roadWidthFt ?? 0} ft`}
-                          />
+                    {/* ICON STATS */}
+                    <div
+                      className="grid grid-cols-3 border border-gray-200 rounded-md overflow-hidden shadow-sm"
+                      style={{ background: bgcolor }}
+                    >
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4">
+                        <GiCompass color="#6B7280" />
+                        <span className="font-semibold text-gray-900 text-sm sm:text-base">{project?.facing ?? "—"}</span>
+                        <span className="text-xs sm:text-sm text-gray-500">Facing</span>
+                      </div>
 
-                          <StatItem
-                            icon={<BiShapeSquare className="text-[#6B7280] h-5 w-5" />}
-                            text={project?.cornerPlot ? "Corner Plot" : "Non-Corner Plot"}
-                          />
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 border-x border-gray-200">
+                        <FaRoad color="#6B7280" />
+                        <span className="font-semibold text-gray-900 text-sm sm:text-base">{project?.roadWidthFt ?? "—"} ft</span>
+                        <span className="text-xs sm:text-sm text-gray-500">Road Width</span>
+                      </div>
 
-                        </div>
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4">
+                        <BiShapeSquare color="#6B7280" />
+                        <span className="font-semibold text-gray-900 text-sm sm:text-base">{project?.cornerPlot ? "Yes" : "No"}</span>
+                        <span className="text-xs sm:text-sm text-gray-500">Corner Plot</span>
                       </div>
                     </div>
+
                   </div>
                 </div>
               </div>
 
               <br />
 
-              <div className=" w-full">
+              <div className="w-full">
                 <div className="grid gap-4">
                   <section className="space-y-4">
-                    <section className="rounded-xl p-6 bg-[#f7f9fa] shadow-sm border border-gray-100">
+                    <section className="rounded-lg p-6 shadow-sm bg-[#f7f9fa]">
                       <h2 className="mb-6 text-xl font-semibold text-gray-900">
                         More Details
                       </h2>
 
-                      {/* DETAILS GRID */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+                      {/* Changed to 4 columns to match the wide layout in the image */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+                        <div className="flex flex-col gap-1">
+                          <p className="font-medium text-gray-900">
+                            Price Breakup
+                          </p>
+                          <p className="text-gray-500">₹{project?.price}</p>
+                        </div>
 
-                        <DetailItem
-                          label="Price Breakup"
-                          value={`₹${project?.price ?? "—"}`}
-                        />
+                        <div className="flex flex-col gap-1">
+                          <p className="font-medium text-gray-900">
+                            Property Ownership
+                          </p>
+                          <p className="text-gray-500">
+                            {ownershipLabel}
+                          </p>
+                        </div>
 
-                        <DetailItem
-                          label="Property Ownership"
-                          value={ownershipLabel}
-                        />
+                        <div className="hidden md:block"></div>
+                        <div className="hidden md:block"></div>
 
-                        <DetailItem
-                          label="Fencing"
-                          value={project?.fencing ? "Available" : "Unavailable"}
-                        />
+                        <div className="flex flex-col gap-1">
+                          <p className="font-medium text-gray-900">Property Type</p>
+                          <p className="text-gray-500">{project?.propertyType}</p>
+                        </div>
 
+                        <div className="flex flex-col gap-1">
+                          <p className="font-medium text-gray-900">Approved By</p>
+                          <p className="text-gray-500">
+                            {project?.approvedByAuthority?.join(", ") ?? "—"}
+                          </p>
+                        </div>
+
+                        <div className="hidden md:block"></div>
+                        <div className="hidden md:block"></div>
                       </div>
 
                       {/* ADDRESS */}
-                      <div className="mt-10">
+                      <div className="mt-8">
                         <p className="font-medium text-gray-900">Address</p>
-                        <p className="text-gray-600 mt-2 leading-relaxed truncate">
-                          {project.address || "—"}
+                        <p className="text-gray-500 mt-1 leading-relaxed">
+                          {project.address}
                         </p>
                       </div>
 
                       {/* DESCRIPTION */}
-                      <div className="mt-8">
-                        <p className="font-medium text-gray-900">Description</p>
-                        <p className="text-gray-600 mt-2 leading-relaxed truncate">
-                          {project.description || "—"}
+                      <div className="mt-6">
+                        <p className="font-medium text-gray-900">
+                          Description:
+                        </p>
+                        <p className="text-gray-500 mt-1 leading-relaxed">
+                          {project.description}
                         </p>
                       </div>
 
-                      <div className="mt-10">
+                      <div className="mt-8">
                         <ContactOwnerButton
+                          listingType={project.listingType}
                           projectId={project._id}
                           propertyType="landplots"
-                          listingType={project.listingType}
                           listingSource={resolvedListingSource}
                         />
                       </div>
@@ -211,35 +261,37 @@ export default async function Page({ params }: PageProps) {
                       </h2>
                       {project.amenities && project.amenities.length > 0 ? (
                         <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 sm:grid-cols-3">
-                          {project.amenities.map((amenity: any, index) => {
-                            const icon =
-                              amenityIconByKey.get(amenity.key) ??
-                              amenityIconByTitle.get(amenity.title);
+                          {project.amenities.map((i: any, index) => (
+                            (() => {
+                              const icon =
+                                amenityIconByKey.get(i.key) ??
+                                amenityIconByTitle.get(i.title);
 
-                            return (
-                              <div
-                                key={amenity.key || index}
-                                className="flex items-center gap-2 rounded-md border border-gray-100 px-2 py-1"
-                              >
-                                {typeof icon === "string" ? (
-                                  <Image
-                                    src={icon.trim()}
-                                    alt={`${amenity.title} icon`}
-                                    width={14}
-                                    height={14}
-                                    className="h-3.5 w-3.5 opacity-75"
-                                  />
-                                ) : icon ? (
-                                  <span className="text-gray-600 [&>svg]:h-3.5 [&>svg]:w-3.5">
-                                    {icon}
-                                  </span>
-                                ) : (
-                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                )}
-                                <span>{amenity.title}</span>
-                              </div>
-                            );
-                          })}
+                              return (
+                                <div
+                                  key={i.key ?? `${i.title}-${index}`}
+                                  className="flex items-center gap-2 rounded-md border border-gray-100 px-2 py-1"
+                                >
+                                  {typeof icon === "string" ? (
+                                    <Image
+                                      src={icon.trim()}
+                                      alt={`${i.title} icon`}
+                                      width={14}
+                                      height={14}
+                                      className="h-3.5 w-3.5 opacity-75"
+                                    />
+                                  ) : icon ? (
+                                    <span className="text-gray-600 [&>svg]:h-3.5 [&>svg]:w-3.5">
+                                      {icon}
+                                    </span>
+                                  ) : (
+                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                  )}
+                                  <span>{i.title}</span>
+                                </div>
+                              );
+                            })()
+                          ))}
                         </div>
                       ) : (
                         <p className="text-sm text-gray-500">
@@ -254,7 +306,7 @@ export default async function Page({ params }: PageProps) {
                       </h2>
 
                       {project.location ? (
-                        <NearByPlace
+                        <NearByPlaceClient
                           projectLocation={project.location}
                           projectName={project.title ?? "Property Location"}
                           nearbyPlaces={project.nearbyPlaces ?? []}
@@ -270,11 +322,10 @@ export default async function Page({ params }: PageProps) {
                       <h2 className="mb-1 text-xl font-semibold text-gray-900">
                         More Similar Properties for you
                       </h2>
+
                       {project.relatedProjects &&
                         project.relatedProjects.length > 0 ? (
-                        <RelatedLandCarousel
-                          projects={project.relatedProjects}
-                        />
+                        <RelatedLandCarousel projects={project.relatedProjects} />
                       ) : (
                         <p className="text-sm text-gray-500">
                           No similar properties available.
@@ -285,64 +336,16 @@ export default async function Page({ params }: PageProps) {
                 </div>
               </div>
             </main>
-            <aside className="w-full shrink-0 lg:w-[260px] sticky top-20 self-start">              {/* Contact card here */}
-              <div className="sticky top-20 h-fit rounded-xl border border-gray-100 bg-[#f7f9fa] p-5 shadow-sm">
-                <p className="mb-3 text-lg font-semibold text-green-600">
-                  Contact Owner
-                </p>
-
-                <p className="text-sm font-medium text-gray-900">
-                  {project?.createdBy?.name}
-                </p>
-
-                <p className="mt-1 text-xs text-gray-500">
-                  {project?.createdBy?.email}
-                </p>
-
-                <button className="mt-4 w-full rounded-lg bg-green-600 py-2 text-sm font-medium text-white transition hover:bg-green-700">
-                  Get Phone No.
-                </button>
-              </div>
+            <aside className="w-full shrink-0 lg:w-[260px] sticky top-20 self-start">
+              <Image
+                src={ad}
+                alt="advertisement banner"
+                className="w-full h-auto p-6"
+              />
             </aside>
           </div>
         </div>
       </div>
     </div>
   );
-}
-
-
-const DetailItem = ({
-  label,
-  value,
-  highlight = false,
-}: {
-  label: string;
-  value?: string | number;
-  highlight?: boolean;
-}) => (
-  <div className="space-y-1">
-    <p className="text-sm font-medium text-gray-500">
-      {label}
-    </p>
-    <p className={`text-sm sm:text-base font-semibold ${highlight ? "text-[#ed6115]" : "text-gray-800"
-      }`}>
-      {value || "—"}
-    </p>
-  </div>
-);
-
-const StatItem = ({
-  icon,
-  text,
-}: {
-  icon: React.ReactNode;
-  text: string;
-}) => (
-  <div className="flex items-center gap-2 text-gray-600 font-medium text-sm sm:text-base">
-    <span className="flex h-5 w-5 items-center justify-center">
-      {icon}
-    </span>
-    {text}
-  </div>
-);
+};
