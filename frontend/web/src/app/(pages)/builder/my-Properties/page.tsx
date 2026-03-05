@@ -29,17 +29,22 @@ const page = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-medium ">My Projects</h1>
-      {projects.length > 0 ? (
-        <div className="space-y-2">
-          <Myproperties items={projects} />
-        </div>
-      ) : (
-        <div className="p-6 text-center text-gray-500">
-          <p>You have not added any projects yet.</p>
-        </div>
-      )}
+  <h1 className="text-2xl font-medium">My Projects</h1>
+
+  <p className="text-sm text-gray-500 mt-1">
+    Manage and track all your property projects in one place.
+  </p>
+
+  {projects.length > 0 ? (
+    <div className="space-y-2 mt-4">
+      <Myproperties items={projects} />
     </div>
+  ) : (
+    <div className="p-6 text-center text-gray-500">
+      <p>You have not added any projects yet.</p>
+    </div>
+  )}
+</div>
   );
 };
 

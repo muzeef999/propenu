@@ -57,7 +57,6 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <div
-      style={{ background: bgcolor }}
       className="min-h-screen py-6 overflow-hidden"
     >
       <div className="container">
@@ -129,15 +128,40 @@ export default async function Page({ params }: PageProps) {
                         </div>
 
                         {/* ICON STATS */}
-                        <div className="flex flex-wrap gap-6 mt-8 border-t border-gray-200 pt-6">
+                        <div
+  className="grid grid-cols-3 mt-8 border border-gray-200 rounded-md overflow-hidden shadow-sm"
+  style={{ background: bgcolor }}
+>
+  <div className="flex items-center justify-center gap-2 py-4 hover:bg-gray-50 transition">
+    <Bhk color="#6B7280" />
+    <span className="font-semibold text-gray-900">
+      {project?.bedrooms}
+    </span>
+    <span className="text-sm text-gray-500">
+      Bedrooms
+    </span>
+  </div>
 
-                          <StatItem icon={<Bhk color="#6B7280" />} text={`${project?.bedrooms} BHK`} />
+  <div className="flex items-center justify-center gap-2 py-4 border-x border-gray-200 hover:bg-gray-50 transition">
+    <Bath color="#6B7280" />
+    <span className="font-semibold text-gray-900">
+      {project?.bathrooms}
+    </span>
+    <span className="text-sm text-gray-500">
+      Bathrooms
+    </span>
+  </div>
 
-                          <StatItem icon={<Bath color="#6B7280" />} text={`${project?.bathrooms} Bath`} />
-
-                          <StatItem icon={<Balconies color="#6B7280" />} text={`${project?.balconies} Balconies`} />
-
-                        </div>
+  <div className="flex items-center justify-center gap-2 py-4 hover:bg-gray-50 transition">
+    <Balconies color="#6B7280" />
+    <span className="font-semibold text-gray-900">
+      {project?.balconies}
+    </span>
+    <span className="text-sm text-gray-500">
+      Balconies
+    </span>
+  </div>
+</div>
 
                       </div>
                     </div>

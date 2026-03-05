@@ -12,7 +12,7 @@ const ActiveTabs = ({
   setActiveTab,
 }: ActiveTabsProps) => {
   return (
-<div className="overflow-x-auto sm:overflow-visible border-b border-gray-100">
+<div className="overflow-x-auto sm:overflow-visible border-b border-gray-100 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex gap-4 sm:gap-8 min-w-max px-1">
         {categories.map((cat) => (
           <button

@@ -19,18 +19,18 @@ const KpiCard: React.FC<KpiCardProps> = ({
 }) => {
   return (
     <div
-      className="flex items-center justify-between rounded-xl p-5 border border-gray-100 shadow-sm"
+      className="flex items-center justify-between rounded-xl p-4 sm:p-5 border border-gray-100 shadow-sm gap-3"
       style={{ backgroundColor: bgColor }}
     >
-      <div>
-        <p className="text-sm text-gray-500">{title}</p>
-        <h3 className="text-2xl font-semibold text-gray-900 mt-1">
+      <div className="min-w-0">
+        <p className="text-xs sm:text-sm text-gray-500 truncate">{title}</p>
+        <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 mt-1 wrap-break-word">
           {value}
         </h3>
       </div>
 
       <div
-        className="w-12 h-12 rounded-lg flex items-center justify-center"
+        className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center shrink-0"
         style={{ backgroundColor: iconBgColor }}
       >
         {icon}

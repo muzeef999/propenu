@@ -52,7 +52,7 @@ const Banner = () => {
             </div> */}
 
             <h1 className="text-neutral-600 font-bold text-4xl">
-              Are you looking for a happy home? <br />
+              Are you looking for a happy home, <br />
               just like we did?
             </h1>
             <h3 className="text-neutral-600 font-normal text-xl">

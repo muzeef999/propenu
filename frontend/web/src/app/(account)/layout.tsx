@@ -18,7 +18,7 @@ export default function AccountLayout({
 
 
   return (
-    <div className="min-h-screen container mx-auto flex relative">
+    <div className="min-h-screen container mx-auto flex relative mb-4">
       {/* LEFT SIDEBAR */}
       <Sidebar />
 
@@ -39,7 +39,7 @@ export default function AccountLayout({
         }}
       >
         {/* MAIN CONTENT */}
-        <main className="flex-1 p-4 md:p-6 pb-24 lg:pb-6 relative">
+        <main className="flex-1 p-1 md:p-6 pb-24 lg:pb-6 relative">
 
           {children}
         </main>

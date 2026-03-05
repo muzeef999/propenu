@@ -80,10 +80,10 @@ const FilterBar: React.FC = () => {
     if (!type) return;
 
     const nextCategory = typeToCategory[type];
-    if (nextCategory && nextCategory !== category) {
+    if (nextCategory) {
       dispatch(setCategory(nextCategory));
     }
-  }, [searchParams, category, dispatch]);
+  }, [searchParams, dispatch]);
 
   const toggleArrayValue = (arr: string[] = [], value: string) =>
     arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];

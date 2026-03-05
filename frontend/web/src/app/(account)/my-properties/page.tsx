@@ -101,7 +101,7 @@ const Page = () => {
           setActiveProjectId(propertyId);
           setOpenResponses(true);
         }}
-        className="text-xs text-green-600 hover:underline mt-18"
+        className="text-xs text-green-600 hover:underline mt-1"
       >
         Responses
       </button>
@@ -262,7 +262,7 @@ const Page = () => {
                 className="card group flex flex-col md:flex-row items-start md:items-center gap-1.5 sm:gap-2.5 md:gap-4 border border-gray-200 p-1.5 sm:p-2 md:p-3 rounded-lg md:rounded-2xl bg-white hover:shadow-md transition-all duration-300 w-full max-w-[330px] sm:max-w-none mx-auto sm:mx-0"
               >
                 {/* Image */}
-                <div className="w-full h-60 md:w-40 md:h-full lg:w-48 lg:h-full shrink-0 overflow-hidden rounded-md md:rounded-lg bg-gray-100">
+                <div className="w-full h-50 md:w-40  lg:w-48  md:h-48 lg:h-45 shrink-0 overflow-hidden rounded-md md:rounded-lg bg-gray-100">
                   <img
                     src={image}
                     alt={property.title}
@@ -278,11 +278,11 @@ const Page = () => {
 
                     {/* Left */}
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 line-clamp-2">
+                      <h3 className="text-base sm:text-base md:text-lg font-semibold text-gray-900 line-clamp-2">
                         {property.title ?? "Untitled Property"}
                       </h3>
 
-                      <div className="mt-1 flex items-center gap-1 text-xs sm:text-sm text-gray-500">
+                      <div className="mt-1 flex items-center gap-1 text-sm sm:text-sm text-gray-500">
                         <HiOutlineMapPin className="h-4 w-4 text-green-600 shrink-0" />
                         <span className="truncate">
                           {property.address ?? "Location not specified"}
@@ -345,7 +345,7 @@ const Page = () => {
                 <div className="mt-3 md:mt-0 w-full md:w-32 flex flex-row md:flex-col items-center md:items-end justify-between gap-3">
 
                   {/* Menu Button */}
-                  <div className="relative ml-50 md:ml-0">
+                  <div className="absolute top-3 right-3">
                     <button
                       onClick={(e) => {
                         e.preventDefault();

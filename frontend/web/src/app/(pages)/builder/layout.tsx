@@ -1,6 +1,5 @@
-"use client";
+﻿"use client";
 
-import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 
 export default function AccountLayout({
@@ -8,18 +7,11 @@ export default function AccountLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-
-  const hidePromoOn = [""];
-
-  const shouldShowPromo = !hidePromoOn.includes(pathname);
-
   return (
-    <div className="min-h-screen container mx-auto flex mb-2">
+    <div className="min-h-screen container mx-auto flex flex-col lg:flex-row mb-4">
       <Sidebar />
 
-      <main className="flex-1 p-4 md:p-6">
-
+      <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-24 lg:pb-6">
         {children}
       </main>
     </div>

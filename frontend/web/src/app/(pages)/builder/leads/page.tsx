@@ -175,11 +175,11 @@ export default function BuilderLeadsPage(): JSX.Element {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* HEADER */}
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 mb-1">My Leads</h1>
-        <p className="text-gray-600">
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1">My Leads</h1>
+        <p className="text-sm sm:text-base text-gray-600">
           View enquiries received on your properties
         </p>
         <span className="text-sm text-gray-500">
@@ -215,24 +215,24 @@ export default function BuilderLeadsPage(): JSX.Element {
         </div>
 
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative">
+          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2">
+            <div className="relative w-full sm:w-auto">
               <DatePicker
                 selected={fromDate}
                 onChange={(date: any) => setFromDate(date)}
                 placeholderText="From Date"
-                className="h-9 w-[108px] rounded-md bg-[#E7E9E8] border border-[#DCE1DD] pl-3 pr-8 text-sm text-[#4B5563]"
+                className="h-9 w-full sm:w-[108px] rounded-md bg-[#E7E9E8] border border-[#DCE1DD] pl-3 pr-8 text-sm text-[#4B5563]"
                 dateFormat="yyyy-MM-dd"
               />
               <FiChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#4B5563]" />
             </div>
 
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <DatePicker
                 selected={toDate}
                 onChange={(date: any) => setToDate(date)}
                 placeholderText="To Date"
-                className="h-9 w-[108px] rounded-md bg-[#E7E9E8] border border-[#DCE1DD] pl-3 pr-8 text-sm text-[#4B5563]"
+                className="h-9 w-full sm:w-[108px] rounded-md bg-[#E7E9E8] border border-[#DCE1DD] pl-3 pr-8 text-sm text-[#4B5563]"
                 dateFormat="yyyy-MM-dd"
               />
               <FiChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#4B5563]" />
@@ -240,7 +240,7 @@ export default function BuilderLeadsPage(): JSX.Element {
 
             <button
               onClick={handleDownloadCSV}
-              className="h-9 px-4 rounded-md bg-[#16A34A] text-white text-sm font-medium hover:bg-[#15803D] transition flex items-center gap-2"
+              className="h-9 px-4 rounded-md bg-[#16A34A] text-white text-sm font-medium hover:bg-[#15803D] transition flex items-center justify-center gap-2 w-full sm:w-auto"
             >
               Download
               <FiDownloadCloud className="w-4 h-4" />
@@ -249,7 +249,7 @@ export default function BuilderLeadsPage(): JSX.Element {
             {(fromDate || toDate || activeStatus !== "All") && (
               <button
                 onClick={clearFilters}
-                className="h-9 px-3 rounded-md text-sm text-[#4B5563] bg-[#E7E9E8] hover:bg-[#DDE1DE] transition"
+                className="h-9 px-3 rounded-md text-sm text-[#4B5563] bg-[#E7E9E8] hover:bg-[#DDE1DE] transition w-full sm:w-auto"
               >
                 Clear
               </button>
@@ -263,9 +263,9 @@ export default function BuilderLeadsPage(): JSX.Element {
       </div>
 
       {/* GRID */}
-      <div className="grid grid-cols-12 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* PROPERTY LIST */}
-        <div className="col-span-4 space-y-2">
+        <div className="lg:col-span-4 space-y-2 max-h-[60vh] overflow-y-auto pr-1">
           {properties.map((property: any) => {
             const image = property.gallery?.[0]?.url || "/placeholder.jpg";
             const active = property._id === selectedPropertyId;
@@ -283,7 +283,7 @@ export default function BuilderLeadsPage(): JSX.Element {
               >
                 <div className="w-20 h-16 rounded-md overflow-hidden bg-gray-100">
                   <img
-                    src={property.heroImage}
+                    src={property.heroImage || image}
                     alt={property.title}
                     className="w-full h-full object-cover"
                   />
@@ -309,7 +309,7 @@ export default function BuilderLeadsPage(): JSX.Element {
         </div>
 
         {/* LEADS TABLE */}
-        <div className="col-span-8 bg-green-50/40 rounded-lg">
+        <div className="lg:col-span-8 bg-green-50/40 rounded-lg p-2 sm:p-0">
           {leadsLoading ? (
             <div className="text-center py-20">Loading leads…</div>
           ) : filteredLeads.length ? (
@@ -338,41 +338,24 @@ function LeadsTable({
   updateStatusMutation: any;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-      {/* Header */}
-      <div className="grid grid-cols-4 px-6 py-4 text-xs font-semibold text-gray-500 bg-gray-50 border-b uppercase tracking-wide">
-        <span>Name</span>
-        <span>Date</span>
-        <span>Contact Number</span>
-        <span>Status</span>
-      </div>
-
-      {/* Rows */}
-      {leads.map((lead) => (
-        <div
-          key={lead._id}
-          className="grid grid-cols-4 items-center px-6 py-4 bg-[#E6E6E6] text-sm border-b last:border-b-0 hover:bg-gray-50 transition"
-        >
-          {/* Name */}
-          <div className="font-medium text-gray-800 truncate">
-            {lead.name}
-          </div>
-
-          {/* Date */}
-          <div className="text-gray-500">
-            {new Date(lead.createdAt).toLocaleDateString("en-IN")}
-          </div>
-
-          {/* Phone */}
-          <div className="text-gray-600">
-            {lead.phone}
-          </div>
-
-          {/* Status Dropdown Styled */}
-          <div>
-            <div className="relative inline-block w-full">
+    <>
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-3">
+        {leads.map((lead) => (
+          <div
+            key={lead._id}
+            className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-3"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-medium text-gray-800 truncate">{lead.name}</p>
+              <span className="text-xs text-gray-500 whitespace-nowrap">
+                {new Date(lead.createdAt).toLocaleDateString("en-IN")}
+              </span>
+            </div>
+            <p className="text-sm text-gray-600">{lead.phone}</p>
+            <div className="relative">
               <select
-                className="w-full appearance-none px-3 py-1.5 pr-8 text-xs rounded-md border border-gray-300 bg-white text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full appearance-none px-3 py-2 pr-8 text-xs rounded-md border border-gray-300 bg-white text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-green-500"
                 value={lead.status}
                 onChange={(e) =>
                   updateStatusMutation.mutate({
@@ -387,15 +370,67 @@ function LeadsTable({
                   </option>
                 ))}
               </select>
-
-              {/* Dropdown Arrow */}
               <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">
                 ▼
               </div>
             </div>
           </div>
+        ))}
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+        <div className="grid grid-cols-4 px-6 py-4 text-xs font-semibold text-gray-500 bg-gray-50 border-b uppercase tracking-wide">
+          <span>Name</span>
+          <span>Date</span>
+          <span>Contact Number</span>
+          <span>Status</span>
         </div>
-      ))}
-    </div>
+
+        {leads.map((lead) => (
+          <div
+            key={lead._id}
+            className="grid grid-cols-4 items-center px-6 py-4 bg-[#E6E6E6] text-sm border-b last:border-b-0 hover:bg-gray-50 transition"
+          >
+            <div className="font-medium text-gray-800 truncate">
+              {lead.name}
+            </div>
+
+            <div className="text-gray-500">
+              {new Date(lead.createdAt).toLocaleDateString("en-IN")}
+            </div>
+
+            <div className="text-gray-600">
+              {lead.phone}
+            </div>
+
+            <div>
+              <div className="relative inline-block w-full">
+                <select
+                  className="w-full appearance-none px-3 py-1.5 pr-8 text-xs rounded-md border border-gray-300 bg-white text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-green-500"
+                  value={lead.status}
+                  onChange={(e) =>
+                    updateStatusMutation.mutate({
+                      id: lead._id,
+                      status: e.target.value,
+                    })
+                  }
+                >
+                  {LEAD_STATUSES.map((s) => (
+                    <option key={s} value={s}>
+                      {s.replace("_", " ")}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">
+                  ▼
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }

@@ -165,26 +165,26 @@ const EditModal = ({
   updateField,
   updateArrayField,
 }: EditModalProps) => (
-  <div className="fixed inset-0 bg-black/60 z-90 flex items-center justify-center p-4">
-    <div className="bg-white rounded-md shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+  <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 sm:p-4">
+    <div className="bg-white rounded-md shadow-2xl w-full max-w-3xl max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
       {/* Modal Header */}
-      <div className="px-8 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Edit Profile</h2>
+      <div className="px-4 sm:px-6 md:px-8 py-4 border-b border-gray-200 flex justify-between items-start sm:items-center gap-3 bg-gray-50">
+        <div className="min-w-0">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Edit Profile</h2>
           <p className="text-sm text-gray-500">
             Update your professional information and presence.
           </p>
         </div>
         <button
           onClick={onCancel}
-          className="p-2 hover:bg-white rounded-full transition-colors border border-gray-200 shadow-sm"
+          className="p-2 hover:bg-white rounded-full transition-colors border border-gray-200 shadow-sm shrink-0"
         >
           <HiOutlineXMark size={24} color="gray" />
         </button>
       </div>
 
       {/* Modal Body */}
-      <div className="flex-1 overflow-y-auto p-8 space-y-8">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-8">
         <section>
           <h3 className="text-sm font-semibold text-green-600 uppercase tracking-wider mb-4">
             Profile Images
@@ -301,17 +301,17 @@ const EditModal = ({
       </div>
 
       {/* Modal Footer */}
-      <div className="px-8 py-3 border-t border-gray-200 bg-gray-50 flex justify-end gap-4">
+      <div className="px-4 sm:px-6 md:px-8 py-3 border-t border-gray-200 bg-gray-50 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 sm:gap-4">
         <button
           onClick={onCancel}
-          className="px-6 py-2.5 rounded-xl font-semibold text-gray-600 hover:bg-gray-200 transition-colors"
+          className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-gray-600 hover:bg-gray-200 transition-colors"
         >
           Cancel
         </button>
         <button
           onClick={onSave}
           disabled={isUpdating}
-          className="px-4 py-2.5 btn btn-primary font-semibold"
+          className="w-full sm:w-auto px-4 py-2.5 btn btn-primary font-semibold"
         >
           {isUpdating ? "Saving..." : "Save Changes"}
         </button>
@@ -446,7 +446,6 @@ const AgentProfilePage = () => {
     },
     []
   );
-  console
 
   const updateArrayField = useCallback(
     (key: "areasServed" | "languages", value: string) => {
@@ -483,11 +482,11 @@ const AgentProfilePage = () => {
 
 
   return (
-    <div className="space-y-8 mx-auto max-w-7xl py-1">
+    <div className="space-y-6 sm:space-y-8 mx-auto max-w-7xl py-2 sm:py-3 px-3 sm:px-4 md:px-0">
       {/* ================= COVER & AVATAR ================= */}
       <div className="relative">
         {/* Cover Image */}
-        <div className="relative h-56 w-full overflow-hidden rounded-xl">
+        <div className="relative h-40 sm:h-48 md:h-56 w-full overflow-hidden rounded-xl">
           <Image
             src={agent.coverImage?.url || "/cover-placeholder.jpg"}
             alt="Cover"
@@ -497,8 +496,8 @@ const AgentProfilePage = () => {
         </div>
 
         {/* Avatar - Positioned relative to the parent container */}
-        <div className="absolute -bottom-10 left-6 z-10">
-          <div className="relative h-24 w-24 overflow-hidden rounded-xl ring-4 ring-white">
+        <div className="absolute -bottom-8 sm:-bottom-10 left-4 sm:left-6 z-10">
+          <div className="relative h-20 w-20 sm:h-24 sm:w-24 overflow-hidden rounded-xl ring-4 ring-white">
             <Image
               src={agent.avatar?.url || "/avatar-placeholder.jpg"}
               alt={agent.user?.name || "Agent Avatar"}
@@ -510,10 +509,10 @@ const AgentProfilePage = () => {
       </div>
 
       {/* ================= HEADER ================= */}
-      <div className="bg-white rounded-xl p-6 pt-14 shadow-md flex justify-between items-start">
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-gray-900 capitalize">
+      <div className="bg-white rounded-xl p-4 sm:p-6 pt-12 sm:pt-14 shadow-md flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 capitalize wrap-break-word">
               {agent.user?.name}
             </h1>
 
@@ -526,7 +525,7 @@ const AgentProfilePage = () => {
           </div>
 
           <p className="text-gray-600 mt-1 font-medium">
-            {agent.agencyName} · {agent.city}
+            {agent.agencyName} {"\u00b7"} {agent.city}
           </p>
 
           <p className="italic text-gray-500 mt-2 text-sm">{agent.bio}</p>
@@ -534,7 +533,7 @@ const AgentProfilePage = () => {
 
         <button
           onClick={handleEditButtonClick}
-          className="ml-4 flex items-center gap-2 border border-green-600 text-green-600 px-4 py-2 rounded-lg text-sm hover:bg-green-50 font-medium transition"
+          className="w-full sm:w-auto sm:ml-4 flex items-center justify-center gap-2 border border-green-600 text-green-600 px-4 py-2 rounded-lg text-sm hover:bg-green-50 font-medium transition"
         >
           <MdEdit size={16} />
           Edit Profile
@@ -608,8 +607,67 @@ const AgentProfilePage = () => {
             </h3>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-gray-100 shadow-sm bg-white">
-            <table className="w-full text-left border-collapse">
+          <div className="space-y-3 md:hidden">
+            {membership.history.map((item: any, index: number) => (
+              <div
+                key={index}
+                className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm space-y-3"
+              >
+                <div>
+                  <p className="font-semibold text-gray-800 leading-none">
+                    {item.planName}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1 capitalize">
+                    {item.planCode?.replace(/_/g, " ").toLowerCase()}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-gray-400">Category</p>
+                    <p className="text-gray-700 capitalize">{item.category}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-gray-400">Price</p>
+                    <p className="text-gray-700 font-medium">INR {item.price}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-[11px] uppercase tracking-wide text-gray-400">Duration</p>
+                    <p className="text-gray-700">
+                      {formatDate(item.startDate)} to {formatDate(item.endDate)}
+                    </p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-[11px] uppercase tracking-wide text-gray-400">Status</p>
+                    <div className="mt-1">
+                      <StatusBadge status={item.status} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-1">
+                  {item.invoiceUrl ? (
+                    <a
+                      href={item.invoiceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-gray-100 px-3 py-2 text-xs font-medium text-gray-700 shadow-sm transition hover:bg-[#27AE60] hover:text-white"
+                    >
+                      <HiOutlineDownload size={14} />
+                      Download Invoice
+                    </a>
+                  ) : (
+                    <span className="text-xs italic text-gray-400">
+                      No invoice available
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden md:block overflow-x-auto rounded-2xl border border-gray-100 shadow-sm bg-white">
+            <table className="w-full min-w-[900px] text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
                   <th className="px-6 py-4 text-sm font-semibold text-gray-400">
@@ -662,7 +720,7 @@ const AgentProfilePage = () => {
                       </div>
                     </td>
 
-                    <td className="px-6 py-4 text-sm font-medium text-gray-700">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-700 whitespace-nowrap">
                       INR {item.price}
                     </td>
 
@@ -679,7 +737,7 @@ const AgentProfilePage = () => {
                             href={item.invoiceUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 rounded-md bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition hover:bg-[#27AE60] hover:text-white"
+                            className="inline-flex items-center gap-2 rounded-md bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition hover:bg-[#27AE60] hover:text-white whitespace-nowrap"
                           >
                             <HiOutlineDownload size={14} />
                             Download Invoice

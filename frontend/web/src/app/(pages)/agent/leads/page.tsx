@@ -104,17 +104,17 @@ const LeadsPage = () => {
     }
     // console.log("leadsData", leadsData);
     return (
-        <div className="space-y-6">
+        <div className="space-y-5 sm:space-y-6">
             {/* HEADER */}
             <div>
-                <h1 className="text-2xl font-semibold text-gray-900 mb-1">My Leads</h1>
-                <p className="text-gray-600">
+                <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1">My Leads</h1>
+                <p className="text-sm sm:text-base text-gray-600">
                     View enquiries received on your properties
                 </p>
             </div>
 
             {/* TABS */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <ActiveTabs
                     categories={categories}
                     activeTab={activeTab}
@@ -126,10 +126,10 @@ const LeadsPage = () => {
             </div>
 
             {/* MAIN LAYOUT */}
-            <div className="">
-            <div className="grid grid-cols-12">
+            <div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                 {/* LEFT – PROPERTY LIST */}
-                <div className="col-span-4 space-y-2">
+                <div className="lg:col-span-4 space-y-2 max-h-[60vh] overflow-y-auto pr-1">
                     {properties.map((property: any) => {
                         const image = property.gallery?.[0]?.url || "/placeholder.jpg";
                         const active = property._id === selectedPropertyId;
@@ -172,10 +172,10 @@ const LeadsPage = () => {
                 </div>
 
                 {/* RIGHT – LEADS */}
-                <div className="col-span-8 bg-green-50/60 rounded-lg p-4">
+                <div className="lg:col-span-8 bg-green-50/60 rounded-lg p-3 sm:p-4">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                            <h2 className="text-xl font-semibold text-green-700">Leads</h2>
+                            <h2 className="text-lg sm:text-xl font-semibold text-green-700">Leads</h2>
                             <div className="h-1 w-10 rounded-full bg-green-500/70" />
                         </div>
                     </div>
@@ -249,45 +249,68 @@ const LeadsTable = ({ leads }: any) => {
     };
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            {/* Header */}
-            <div className="grid grid-cols-4 px-6 py-4 text-xs font-semibold text-gray-500 bg-gray-50 border-b">
-                <span>Name</span>
-                <span>Date</span>
-                <span>Contact Number</span>
-                <span>Status</span>
+        <>
+            {/* Mobile Cards */}
+            <div className="md:hidden space-y-3">
+                {leads.map((lead: any, idx: number) => (
+                    <div key={idx} className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+                        <div className="flex items-start justify-between gap-3">
+                            <p className="font-medium text-gray-800">{lead.name}</p>
+                            <span
+                                className={`px-2.5 py-1 text-xs rounded-full border font-medium ${getStatusStyle(
+                                    lead.status
+                                )}`}
+                            >
+                                {lead.status}
+                            </span>
+                        </div>
+                        <p className="text-sm text-gray-500">
+                            {new Date(lead.createdAt).toLocaleDateString("en-IN")}
+                        </p>
+                        <p className="text-sm text-gray-600">{lead.phone}</p>
+                    </div>
+                ))}
             </div>
 
-            {/* Rows */}
-            {leads.map((lead: any, idx: number) => (
-                <div
-                    key={idx}
-                    className="grid grid-cols-4 px-6 py-4 text-sm border-b last:border-b-0 hover:bg-gray-50 transition"
-                >
-                    <div className="font-medium text-gray-800">
-                        {lead.name}
-                    </div>
-
-                    <div className="text-gray-500">
-                        {new Date(lead.createdAt).toLocaleDateString("en-IN")}
-                    </div>
-
-                    <div className="text-gray-600">
-                        {lead.phone}
-                    </div>
-
-                    <div>
-                        <span
-                            className={`px-2.5 py-1 text-xs rounded-full border font-medium ${getStatusStyle(
-                                lead.status
-                            )}`}
-                        >
-                            {lead.status}
-                        </span>
-                    </div>
+            {/* Desktop Table */}
+            <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="grid grid-cols-4 px-6 py-4 text-xs font-semibold text-gray-500 bg-gray-50 border-b">
+                    <span>Name</span>
+                    <span>Date</span>
+                    <span>Contact Number</span>
+                    <span>Status</span>
                 </div>
-            ))}
-        </div>
+
+                {leads.map((lead: any, idx: number) => (
+                    <div
+                        key={idx}
+                        className="grid grid-cols-4 px-6 py-4 text-sm border-b last:border-b-0 hover:bg-gray-50 transition"
+                    >
+                        <div className="font-medium text-gray-800">
+                            {lead.name}
+                        </div>
+
+                        <div className="text-gray-500">
+                            {new Date(lead.createdAt).toLocaleDateString("en-IN")}
+                        </div>
+
+                        <div className="text-gray-600">
+                            {lead.phone}
+                        </div>
+
+                        <div>
+                            <span
+                                className={`px-2.5 py-1 text-xs rounded-full border font-medium ${getStatusStyle(
+                                    lead.status
+                                )}`}
+                            >
+                                {lead.status}
+                            </span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </>
     );
 };
 

@@ -83,13 +83,13 @@ export default function PricingComparisonTable({
       });
 
       if (order?.free) {
+      
+         if (order?.alreadyActive) {
+    toast.info("Plan already active 👍");
+    return;
+  }
 
-        if (order?.alreadyActive) {
-          toast.info("Plan already active 👍");
-          return;
-        }
-
-        toast.success("Plan activated 🎉");
+    toast.success("Plan activated 🎉");
 
         const redirect = getRedirectAfterPlan(plan, user);
 
@@ -151,10 +151,10 @@ export default function PricingComparisonTable({
   return (
     <div
       id="pricing-table"
-      className="flex flex-col md:flex-row gap-4 items-stretch mx-auto p-4 font-sans container  "
+      className="flex flex-col md:flex-row gap-4 items-stretch max-w-7xl mx-auto p-4 font-sans"
     >
       {/* ---------- LEFT SIDEBAR (Service Details) ---------- */}
-      <div className="w-full md:w-60 relative mt-16 md:mt-12">
+      <div className="w-full md:w-72 lg:w-70 relative mt-16 md:mt-12">
         {/* HEADER TEXT */}
         <div className="mb-4 ml-20">
           <p className="text-sm text-[#27AE60] font-medium">Get started</p>
@@ -171,11 +171,11 @@ export default function PricingComparisonTable({
           </div>
 
           {/* FEATURES */}
-          <div className="flex flex-col text-white/90 text-sm mt-10">
+          <div className="flex flex-col text-white/90 text-sm">
             {features.map((feature, idx) => (
               <div
                 key={idx}
-                className="py-4 border-b border-white/20 last:border-0 min-h-[60px]"
+                className="py-4 border-b border-white/20 last:border-0 font-medium flex min-h-[60px]"
               >
                 {feature.label}
               </div>
@@ -185,87 +185,75 @@ export default function PricingComparisonTable({
       </div>
 
       {/* ---------- PLANS LIST ---------- */}
-      <div className="flex flex-1 gap-4 overflow-x-auto pb-4 items-stretch p-2 ">
+      <div className="flex flex-1 gap-4 flex-wrap pb-4 items-stretch px-2 justify-center md:justify-start">
         {plans.map((plan) => (
           <div
             key={plan.code}
-            className="w-[80%] flex-1 bg-white rounded-2xl shadow-lg border border-gray-100 flex flex-col transition-transform hover:scale-[1.02]"
+            className="w-[170px] sm:w-[190px] md:w-[180px] lg:w-[210px] bg-white rounded-2xl shadow-lg border border-gray-100 flex flex-col transition-transform hover:scale-[1.02]"
           >
-            {/* Inner Wrapper for Padding */}
-            <div className="p-5 flex flex-col flex-1">
-
-              {/* Plan Header */}
-              <div className="bg-[#F1FCF5] rounded-xl p-5">
-                <h3 className="text-[#27AE60] font-semibold text-lg mb-2">
-                  {plan.name}
-                </h3>
-
-                <div className="flex items-end gap-1 mb-1">
-                  <span className="text-2xl font-semibold">
-                    ₹{plan.price.toLocaleString()}
+            {/* Plan Header */}
+            <div className="p-5 bg-[#F4FBF7] rounded-t-2xl text-center">
+              <h3 className="text-[#27AE60] font-semibold text-lg mb-1">
+                {plan.name}
+              </h3>
+              <div className="flex items-center justify-center gap-1">
+                <span className="text-2xl font-semibold">
+                  ₹{plan.price.toLocaleString()}
+                </span>
+                {plan.price > 0 && (
+                  <span className="text-xs text-gray-400">
+                    /{plan.validityDays || 30} Days
                   </span>
-
-                  {plan.price > 0 && (
-                    <span className="text-xs text-gray-400 mb-1">
-                      /{plan.validityDays || 30} Days
-                    </span>
-                  )}
-                </div>
-
-                {plan.name === "Elite" && (
-                  <p className="text-xs text-red-400 line-through mb-2">
-                    ₹9,999
-                  </p>
                 )}
+              </div>
 
-                <button
-                  onClick={() => handleSubscribe(plan)}
-                  className="mt-4 btn-primary font-medium py-1.5 px-7 rounded-md"
+
+              <button
+                onClick={() => handleSubscribe(plan)}
+                className="mt-4 w-full btn-primary font-medium cursor-pointer py-2"
+              >
+                Buy Now
+              </button>
+            </div>
+
+            {/* Feature Values */}
+            <div className="flex flex-col flex-1 justify-between py-4">
+              {features.map((feature, idx) => (
+                <div
+                  key={idx}
+                  className="py-4 text-center text-gray-700 text-sm border-b border-gray-50 last:border-0 flex items-center justify-center min-h-[60px]"
                 >
-                  Buy Now
-                </button>
-              </div>
-
-              {/* Feature Values */}
-              <div className="flex flex-col flex-1 divide-y divide-gray-100 mt-4">
-                {features.map((feature, idx) => (
-                  <div
-                    key={idx}
-                    className="py-4 text-center text-gray-700 text-sm flex items-center justify-center min-h-[60px]"
-                  >
-                    {feature.render(plan)}
-                  </div>
-                ))}
-              </div>
-
+                  {feature.render(plan)}
+                </div>
+              ))}
             </div>
           </div>
         ))}
       </div>
 
       <div className="z-50">
-        {showLoginDialog && (
-          <LoginDialog
-            open={showLoginDialog}
-            onClose={() => setShowLoginDialog(false)}
-            onSwitchToRegister={() => {
-              setShowLoginDialog(false);
-              setShowRegisterDialog(true);
-            }}
-          />
-        )}
+            {showLoginDialog && (
+              <LoginDialog
+                open={showLoginDialog}
+                onClose={() => setShowLoginDialog(false)}
+                onSwitchToRegister={() => {
+                  setShowLoginDialog(false);
+                  setShowRegisterDialog(true);
+                }}
+              />
+            )}
 
-        {showRegisterDialog && (
-          <RegisterDialog
-            open={showRegisterDialog}
-            onClose={() => setShowRegisterDialog(false)}
-            onSwitchToLogin={() => {
-              setShowRegisterDialog(false);
-              setShowLoginDialog(true);
-            }}
-          />
-        )}
-      </div>
+            {showRegisterDialog && (
+              <RegisterDialog
+                open={showRegisterDialog}
+                onClose={() => setShowRegisterDialog(false)}
+                onSwitchToLogin={() => {
+                  setShowRegisterDialog(false);
+                  setShowLoginDialog(true);
+                }}
+              />
+            )}
+          </div>
     </div>
   );
 }

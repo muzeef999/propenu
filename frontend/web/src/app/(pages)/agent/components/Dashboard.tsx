@@ -101,24 +101,24 @@ const Dashboard = () => {
   }, [data]);
 
   return (
-    <div className="mx-auto">
+    <div className="mx-auto w-full">
       {/* ================= HEADER ================= */}
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900 mb-1">
+      <div className="mb-6 sm:mb-8 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1">
             Agent Analytics Dashboard
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600">
             Track your property performance and leads
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex w-full md:w-auto flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
           <span className="text-sm text-gray-600 whitespace-nowrap">
             Date Range:
           </span>
 
-          <div className="w-40">
+          <div className="w-full sm:w-48 md:w-40">
             <Dropdownui
               label=""
               value={dateRange}
@@ -131,7 +131,7 @@ const Dashboard = () => {
       </div>
 
       {/* ================= KPI GRID ================= */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
         <KpiCard
           title="Total Properties"
           value={kpis.totalProperties}
@@ -182,9 +182,9 @@ const Dashboard = () => {
       </div>
 
       {/* ================= ANALYTICS GRID ================= */}
-      <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="mt-8 sm:mt-10 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* ================= PROPERTY TYPE PIE ================= */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 sm:p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">
             Property Type Distribution
           </h2>
@@ -202,7 +202,7 @@ const Dashboard = () => {
         </div>
 
         {/* ================= TOP CITIES BAR ================= */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 sm:p-6">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-gray-900">
               Top Cities by Views
@@ -222,7 +222,7 @@ const Dashboard = () => {
         </div>
       </div>
       {/* ================= Top Properties Table ================= */}
-      <div className="mt-10">
+      <div className="mt-8 sm:mt-10 overflow-hidden rounded-xl">
         <TopPropertiesTable properties={topProperties} />
       </div>
     </div>

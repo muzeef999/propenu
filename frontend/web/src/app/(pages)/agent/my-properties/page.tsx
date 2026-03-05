@@ -142,26 +142,28 @@ const Page = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* ================= HEADER ================= */}
       <div className="items-start justify-between">
         <div className="mb-4">
-          <h1 className="text-2xl font-semibold text-gray-900 mb-1">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1">
             My Properties
           </h1>
-          <p className="text-gray-600">View and manage your properties</p>
+          <p className="text-sm sm:text-base text-gray-600">View and manage your properties</p>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           {/* Tabs */}
-          <ActiveTabs
-            categories={categories}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-          />
+          <div>
+            <ActiveTabs
+              categories={categories}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
+          </div>
 
           {/* Filtered count */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 lg:shrink-0">
             <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">
               {filteredProperties.length}
             </span>
@@ -171,17 +173,17 @@ const Page = () => {
       </div>
 
       {/* ================= FILTER BAR ================= */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-4">
         {/* Search */}
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Enter locality"
-          className="h-9 w-48 rounded-md border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus:border-green-500"
+          className="h-9 w-full lg:w-56 rounded-md border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus:border-green-500"
         />
 
         {/* Status Filters */}
-        <div className="ml-auto flex gap-2">
+        <div className="flex flex-wrap gap-2 lg:ml-auto">
           {(["All", "Active", "Draft"] as const).map((item) => (
             <SelectableButton
               key={item}
@@ -195,7 +197,7 @@ const Page = () => {
         </div>
 
         {/* Listing Type Dropdown */}
-        <div ref={listingTypeRef} className="relative w-44 shrink-0">
+        <div ref={listingTypeRef} className="relative w-full lg:w-44 shrink-0">
           <button
             type="button"
             onClick={() => setIsListingTypeOpen((prev) => !prev)}
@@ -208,7 +210,7 @@ const Page = () => {
           </button>
 
           {isListingTypeOpen && (
-            <div className="absolute right-0 top-11 z-20 w-44 rounded-md border border-gray-200 bg-white p-2 shadow-lg">
+            <div className="absolute right-0 top-11 z-20 w-full lg:w-44 rounded-md border border-gray-200 bg-white p-2 shadow-lg">
               <div className="space-y-2">
                 {listingTypeOptions.map((item) => (
                   <SelectableButton
@@ -239,10 +241,10 @@ const Page = () => {
               <Link
                 key={property._id}
                 href={`/properties/${TAB_KEY_MAP[activeTab]}/${property.slug}`}
-                className="group flex gap-5 rounded-md border border-gray-200 p-2 hover:shadow-sm transition"
+                className="group flex flex-col md:flex-row gap-3 sm:gap-5 rounded-md border border-gray-200 p-2 sm:p-3 hover:shadow-sm transition"
               >
                 {/* Image */}
-                <div className="w-56 shrink-0 overflow-hidden rounded-md bg-gray-100 aspect-4/3">
+                <div className="w-full md:w-56 shrink-0 overflow-hidden rounded-md bg-gray-100 aspect-4/3">
                   <img
                     src={image}
                     alt={property.title}
@@ -251,9 +253,9 @@ const Page = () => {
                 </div>
 
                 {/* Content */}
-                <div className="flex flex-1 flex-col">
-                  <div className="flex justify-between items-start">
-                    <div className="max-w-[420px]">
+                <div className="flex flex-1 flex-col min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                    <div className="min-w-0 sm:max-w-[420px]">
                       <h3 className="truncate text-lg font-semibold text-gray-900">
                         {property.title ?? "Untitled Property"}
                       </h3>
@@ -267,7 +269,7 @@ const Page = () => {
                     {/* STATUS BADGE */}
                     {property.status && (
                       <span
-                        className={`px-3 py-1 text-xs font-medium rounded-full border capitalize ${getStatusStyle(
+                        className={`w-fit px-3 py-1 text-xs font-medium rounded-full border capitalize ${getStatusStyle(
                           property.status
                         )}`}
                       >
@@ -277,7 +279,7 @@ const Page = () => {
                   </div>
 
 
-                  <div className="mt-4 grid grid-cols-2 gap-x-12 gap-y-3 text-sm text-gray-600">
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 lg:gap-x-12 gap-y-2 sm:gap-y-3 text-sm text-gray-600">
                     <p>
                       <span className="text-gray-500">Price:</span>{" "}
                       <span className="font-medium text-gray-800">
@@ -322,8 +324,8 @@ const Page = () => {
                 </div>
 
                 {/* Right Column */}
-                <div className="flex w-28 flex-col items-end">
-                  <div className="relative">
+                <div className="flex w-full md:w-28 md:shrink-0 flex-row md:flex-col items-start md:items-end justify-between md:justify-start gap-3">
+                  <div className="relative order-2 md:order-1 self-end md:self-auto">
                     <button
                       onClick={(e) => {
                         e.preventDefault();
@@ -370,7 +372,7 @@ const Page = () => {
                     )}
                   </div>
 
-                  <div className="mt-auto text-xs text-gray-500 text-right space-y-1">
+                  <div className="order-1 md:order-2 md:mt-auto text-xs text-gray-500 text-left md:text-right space-y-1">
                     <p>
                       Views:{" "}
                       <span className="font-medium text-gray-700">
@@ -389,7 +391,7 @@ const Page = () => {
             );
           })
         ) : (
-          <div className="py-16 text-center text-gray-500">
+          <div className="py-12 sm:py-16 text-center text-gray-500">
             <div className="mx-auto mb-4 flex justify-center">
               <NopropertiesSvg />
             </div>
