@@ -523,12 +523,12 @@ export default function BasicDetailsStep() {
                       <SelectableButton
                         key={item.value}
                         label={item.label}
-                        active={commercial.furnishing === item.value}
+                        active={commercial.furnishedStatus === item.value}
                         onClick={() =>
                           dispatch(
                             setProfileField({
                               propertyType: "commercial",
-                              key: "furnishing",
+                              key: "furnishedStatus",
                               value: item.value,
                             }),
                           )

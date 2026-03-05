@@ -1,4 +1,4 @@
-import { getCommercialSlugProjects } from "@/data/serverData";
+﻿import { getCommercialSlugProjects } from "@/data/serverData";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import formatINR from "@/utilies/PriceFormat";
 import { notFound } from "next/navigation";
@@ -75,70 +75,97 @@ export default async function Page({ params }: PageProps) {
                     propertyType="Commercial"
                   />
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-start gap-6">
-                    <div className="flex-1">
-                      <div className="p-4 sm:p-2">
+                <div className="flex flex-1 self-stretch min-h-0">
+                  <div className="flex-1 p-4 sm:p-2 flex flex-col justify-between h-full gap-8">
+                    {/* PART 1 */}
+                    <div className="grid grid-cols-2 gap-8 pl-1">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Super Built Up Area
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          ? {project?.pricePerSqft ?? 0}/sqft
+                        </span>
+                      </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Carpet Area
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          {project?.carpetArea ?? "—"} sqft
+                        </span>
+                      </div>
 
-                          <DetailItem
-                            label="Super Built Up Area"
-                            value={`(₹ ${project?.pricePerSqft ?? 0}/sqft)`}
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Sale Type
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-orange-600">
+                          {project?.transactionType ?? "—"}
+                        </span>
+                      </div>
 
-                          <DetailItem
-                            label="Carpet Area"
-                            value={`${project?.carpetArea ?? "—"} sqft`}
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Availability Status
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          {project?.constructionStatus ?? "—"}
+                        </span>
+                      </div>
 
-                          <DetailItem
-                            label="Sale Type"
-                            value={project?.transactionType}
-                            highlight
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Furnishing Status
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          {project?.furnishedStatus ?? "—"}
+                        </span>
+                      </div>
 
-                          <DetailItem
-                            label="Availability Status"
-                            value={project?.constructionStatus}
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Floors
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          {project?.floorNumber ?? "—"}/{project?.totalFloors ?? "—"}
+                        </span>
+                      </div>
+                    </div>
 
-                          <DetailItem
-                            label="Furnishing Status"
-                            value={project?.furnishedStatus}
-                          />
+                    {/* ICON STATS */}
+                    <div
+                      className="grid grid-cols-3 border border-gray-200 rounded-md overflow-hidden shadow-sm"
+                      style={{ background: bgcolor }}
+                    >
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4">
+                        <FaParking color="#6B7280" />
+                        <span className="font-semibold text-gray-900 text-sm sm:text-base">
+                          {project?.parkingCapacity ?? 0}
+                        </span>
+                        <span className="text-xs sm:text-sm text-gray-500">Parking</span>
+                      </div>
 
-                          <DetailItem
-                            label="Floors"
-                            value={`${project?.floorNumber ?? 0}/${project?.totalFloors ?? 0}`}
-                          />
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 border-x border-gray-200">
+                        <MdEventSeat color="#6B7280" />
+                        <span className="font-semibold text-gray-900 text-sm sm:text-base">
+                          {project?.seats ?? 0}
+                        </span>
+                        <span className="text-xs sm:text-sm text-gray-500">Seats</span>
+                      </div>
 
-                        </div>
-                        <div className="flex flex-wrap gap-6 mt-8 border-t border-gray-200 pt-6">
-
-                          <StatItem
-                            icon={<FaParking color="#6b7280" />}
-                            text={`${project?.parkingCapacity ?? 0} Parking`}
-                          />
-
-                          <StatItem
-                            icon={<MdEventSeat color="#6b7280" />}
-                            text={`${project?.seats ?? 0} Seats`}
-                          />
-
-                          <StatItem
-                            icon={<MdMeetingRoom color="#6b7280" />}
-                            text={`${project?.officeRooms ?? 0} Rooms`}
-                          />
-
-                        </div>
-
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4">
+                        <MdMeetingRoom color="#6B7280" />
+                        <span className="font-semibold text-gray-900 text-sm sm:text-base">
+                          {project?.officeRooms ?? 0}
+                        </span>
+                        <span className="text-xs sm:text-sm text-gray-500">Rooms</span>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-
               <br />
 
               <div className="w-full">
@@ -157,7 +184,7 @@ export default async function Page({ params }: PageProps) {
                           <p className="font-medium text-gray-900">
                             Price Breakup
                           </p>
-                          <p className="text-gray-500">₹{project?.price}</p>
+                          <p className="text-gray-500">â‚¹{project?.price}</p>
                         </div>
 
                         <div className="flex flex-col gap-1">
@@ -316,37 +343,5 @@ export default async function Page({ params }: PageProps) {
   );
 }
 
-const DetailItem = ({
-  label,
-  value,
-  highlight = false,
-}: {
-  label: string;
-  value?: string | number;
-  highlight?: boolean;
-}) => (
-  <div className="space-y-1">
-    <p className="text-sm font-medium text-gray-500">
-      {label}
-    </p>
-    <p className={`text-sm sm:text-base font-semibold ${highlight ? "text-[#ed6115]" : "text-gray-800"
-      }`}>
-      {value || "—"}
-    </p>
-  </div>
-);
 
-const StatItem = ({
-  icon,
-  text,
-}: {
-  icon: React.ReactNode;
-  text: string;
-}) => (
-  <div className="flex items-center gap-2 text-gray-600 font-medium text-sm sm:text-base">
-    <span className="flex h-5 w-5 items-center justify-center">
-      {icon}
-    </span>
-    {text}
-  </div>
-);
+

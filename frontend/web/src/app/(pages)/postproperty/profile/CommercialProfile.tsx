@@ -292,28 +292,6 @@ const CommercialProfile = () => {
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">
-              Shared Pantry
-            </label>
-            <div className="flex py-2 items-center justify-between rounded-md border border-gray-300 bg-white px-4 shadow-sm transition hover:border-gray-400 mt-2">
-              <span className="text-sm text-gray-700">Available</span>
-              <input
-                type="checkbox"
-                checked={commercial.pantry?.shared || false}
-                onChange={(e) =>
-                  dispatch(
-                    setProfileField({
-                      propertyType: "commercial",
-                      key: "pantry",
-                      value: { ...commercial.pantry, shared: e.target.checked },
-                    }),
-                  )
-                }
-                className="h-5 w-5 accent-green-600 cursor-pointer"
-              />
-            </div>
-          </div>
         </div>
       </div>
 
