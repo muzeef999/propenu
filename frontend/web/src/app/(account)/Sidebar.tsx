@@ -12,11 +12,36 @@ import {
 } from "@/icons/icons";
 
 const menuItems = [
-  { label: "Account", link: "/settings", icon: profile },
-  { label: "Listings", link: "/my-properties", icon: Building },
-  { label: "Saved", link: "/shortlisted-properties", icon: Shortlistedicons },
-  { label: "Contacts", link: "/contacted-properties", icon: MdOutlinePhoneInTalk },
-  { label: "Plans", link: "/membership", icon: Subscription },
+  {
+    label: "Account & Settings",
+    mobileLabel: "Account",
+    link: "/settings",
+    icon: profile,
+  },
+  {
+    label: "My Properties",
+    mobileLabel: "Properties",
+    link: "/my-properties",
+    icon: Building,
+  },
+  {
+    label: "Shortlisted Properties",
+    mobileLabel: "Saved",
+    link: "/shortlisted-properties",
+    icon: Shortlistedicons,
+  },
+  {
+    label: "Contacted Properties",
+    mobileLabel: "Contacted",
+    link: "/contacted-properties",
+    icon: MdOutlinePhoneInTalk,
+  },
+  {
+    label: "Membership",
+    mobileLabel: "Plans",
+    link: "/membership",
+    icon: Subscription,
+  },
 ];
 
 const Sidebar = () => {
@@ -98,30 +123,28 @@ const Sidebar = () => {
                 >
                   {/* Icon Wrapper */}
                   <div
-  className={`p-2 rounded-full transition-all duration-300 ${
-    isActive
-      ? "bg-[#27A361]/15 scale-105"
-      : "bg-transparent"
-  }`}
->
-  <Icon
-    size={20}
-    className={`transition-all duration-300 ${
-      isActive
-        ? "text-[#27A361]"
-        : "text-gray-400"
-    }`}
-  />
-</div>
+                    className={`p-2 rounded-full transition-all duration-300 ${isActive
+                        ? "bg-[#27A361]/15 scale-105"
+                        : "bg-transparent"
+                      }`}
+                  >
+                    <Icon
+                      size={20}
+                      className={`transition-all duration-300 ${isActive
+                          ? "text-[#27A361]"
+                          : "text-gray-400"
+                        }`}
+                    />
+                  </div>
 
                   {/* Label */}
                   <span
                     className={`text-xs mt-1 transition-all duration-200 ${isActive
-                        ? "text-[#27A361]"
-                        : "text-gray-400"
+                      ? "text-[#27A361]"
+                      : "text-gray-400"
                       }`}
                   >
-                    {item.label}
+                    {item.mobileLabel ?? item.label}
                   </span>
                 </Link>
               );
