@@ -11,6 +11,10 @@ import { LandCard } from "../properties/cards/LandCard";
 import AgriculturalCard from "../properties/cards/AgriculturalCard";
 import { getOwnerProperties } from "@/data/ClientData";
 import { useCity } from "@/hooks/useCity";
+import { IResidential } from "@/types/residential";
+import { IAgricultural } from "@/types/agricultural";
+import { ILand } from "@/types/land";
+import { ICommercial } from "@/types/commercial";
 
 type OwnerCardItem = PopularOwnerProperty & {
   id?: string;
@@ -104,28 +108,28 @@ const PopularOwnerPropertiesClient = () => {
           if (item.type === "residential") {
             return (
               <div key={item._id} className={wrapperClass}>
-                <ResidentialCard p={item} vertical={true} />
+                <ResidentialCard p={item as unknown as IResidential} vertical={true} />
               </div>
             );
           }
           if (item.type === "commercial") {
             return (
               <div key={item._id} className={wrapperClass}>
-                <CommercialCard p={item} vertical={true} />
+                <CommercialCard p={item as unknown as ICommercial} vertical={true} />
               </div>
             );
           }
           if (item.type === "land") {
             return (
               <div key={item._id} className={wrapperClass}>
-                <LandCard p={item} vertical={true} />
+                <LandCard p={item as unknown as ILand} vertical={true} />
               </div>
             );
           }
           if (item.type === "agricultural") {
             return (
               <div key={item._id} className={wrapperClass}>
-                <AgriculturalCard p={item} vertical={true} />
+                <AgriculturalCard p={item as unknown as IAgricultural} vertical={true} />
               </div>
             );
           }
