@@ -19,7 +19,7 @@ const data = [
   {
     href: "/home-loans",
     icon: <ServiceHomeLoan />,
-    title: "Easy Home Loans with Expert Support",
+    title: "Easy Home Loans Expert Support",
     desc: "Quick approvals, low interest, zero hassle.",
   },
   {

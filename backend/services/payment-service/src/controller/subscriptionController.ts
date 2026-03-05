@@ -28,17 +28,17 @@ export async function getMySubscription(req: AuthRequest, res: Response) {
   // ✅ count properties ONCE
   const [sellCount, rentCount] = await Promise.all([
     Promise.all([
-      Residential.countDocuments({ createdBy: userId, listingType: "sale" }),
-      Commercial.countDocuments({ createdBy: userId, listingType: "sale" }),
-      LandPlot.countDocuments({ createdBy: userId, listingType: "sale" }),
-      Agricultural.countDocuments({ createdBy: userId, listingType: "sale" }),
+      Residential.countDocuments({ createdBy: userId, listingType: "sale", status: "active" }),
+      Commercial.countDocuments({ createdBy: userId, listingType: "sale", status: "active" }),
+      LandPlot.countDocuments({ createdBy: userId, listingType: "sale", status: "active" }),
+      Agricultural.countDocuments({ createdBy: userId, listingType: "sale", status: "active" }),
     ]).then((r) => r.reduce((a, b) => a + b, 0)),
 
     Promise.all([
-      Residential.countDocuments({ createdBy: userId, listingType: "rent" }),
-      Commercial.countDocuments({ createdBy: userId, listingType: "rent" }),
-      LandPlot.countDocuments({ createdBy: userId, listingType: "rent" }),
-      Agricultural.countDocuments({ createdBy: userId, listingType: "rent" }),
+      Residential.countDocuments({ createdBy: userId, listingType: "rent", status: "active" }),
+      Commercial.countDocuments({ createdBy: userId, listingType: "rent", status: "active" }),
+      LandPlot.countDocuments({ createdBy: userId, listingType: "rent", status: "active" }),
+      Agricultural.countDocuments({ createdBy: userId, listingType: "rent", status: "active" }),
     ]).then((r) => r.reduce((a, b) => a + b, 0)),
   ]);
 

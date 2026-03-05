@@ -193,31 +193,29 @@ const VerifyProperty: React.FC<VerifyPropertyProps> = ({
         // 🔴 NO ACTIVE PLAN
         if (errObj?.code === "NO_VALID_PLAN") {
           toast.error(errObj.message || "Please subscribe to a plan");
-
           const listingType = profileData?.listingType || "sale";
-
-          console.log(profileData?.listingType);
-          console.log("🚀 Redirecting to plan selection for:", listingType);
-          
 
           const redirectUrl =
             listingType === "sale"
               ? "/plans/pricing/owner-sell"
               : "/plans/pricing/owner-rent";
 
-          setTimeout(() => {
             router.push(redirectUrl);
-          }, 800);
-
+         
           return;
         }
 
         // 🔴 PLAN LIMIT REACHED
         if (errObj?.code === "PLAN_LIMIT_REACHED") {
-          router.push("/plans/pricing");
-          toast.error("Your plan limit is reached");
 
-       
+             const listingType = profileData?.listingType || "sale";
+          const redirectUrl =
+            listingType === "sale"
+              ? "/plans/pricing/owner-sell"
+              : "/plans/pricing/owner-rent";
+
+              router.push(redirectUrl);
+          toast.error("Your plan limit is reached");
           return;
         }
 
@@ -226,9 +224,6 @@ const VerifyProperty: React.FC<VerifyPropertyProps> = ({
       });
   };
 
-  /* =========================
-     UI
-  ========================= */
 
   return (
     <div className="space-y-8 max-w-2xl mx-auto">
