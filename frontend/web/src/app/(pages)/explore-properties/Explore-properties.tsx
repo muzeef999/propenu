@@ -18,7 +18,7 @@ const CATEGORIES = [
   },
   {
     id: "commercial",
-    title: "Commercial Land",
+    title: "Commercial",
     color: "#FFF0E5",
     image: commercial,
     imageAlt: "Wide green land plots and dirt road",

@@ -190,7 +190,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({
   // The grid layout requires at least 3 images.
   if (safeGallery.length < 3) {
     return (
-      <div className="flex items-center justify-center h-[270px] sm:h-80 bg-gray-100 rounded-2xl text-gray-500 p-3">
+      <div className="flex items-center justify-center h-[270px] sm:h-80 bg-gray-100 rounded-2xl text-gray-500">
         Not enough images to display gallery
       </div>
     );
@@ -198,7 +198,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({
 
   return (
     <>
-      <div className="relative grid h-[270px] grid-cols-[7fr_5fr] grid-rows-2 gap-3 rounded-3xl p-3 sm:h-80">
+      <div className="relative grid h-[270px] grid-cols-[7fr_5fr] grid-rows-2 gap-3 rounded-md p-2 sm:h-80">
 
         {/* LEFT TOP (70%) */}
         <div
@@ -253,9 +253,8 @@ const GalleryFile: React.FC<GalleryFileProps> = ({
             onClick={handleToggleShortlist}
             disabled={isShortlistLoading}
             title={isShortlisted ? "Remove from shortlist" : "Shortlist"}
-            className={`flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow transition ${
-              isShortlistLoading ? "opacity-70" : ""
-            }`}
+            className={`flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow transition ${isShortlistLoading ? "opacity-70" : ""
+              }`}
           >
             {isShortlistLoading ? (
               <span className="h-4 w-4 animate-pulse rounded-full bg-gray-300" />
@@ -281,14 +280,19 @@ const GalleryFile: React.FC<GalleryFileProps> = ({
         <div
           className="fixed inset-0 z-99 flex flex-col bg-black/95 backdrop-blur-sm"
         >
-          <div className="flex items-center gap-4 p-3 bg-[#1fab60]">
+          <div className="flex items-center gap-3 sm:gap-4 p-2 sm:p-3 bg-[#1fab60]">
+
             <button
-              className="rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20 border border-white/50"
+              className="rounded-full bg-white/10 p-1.5 sm:p-2 text-white transition hover:bg-white/20 border border-white/50"
               onClick={closeLightbox}
             >
-              <FiChevronLeft className="h-6 w-6" />
+              <FiChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
-            <h2 className="text-xl font-semibold text-white">{title}</h2>
+
+            <h2 className="text-sm sm:text-lg md:text-xl font-semibold text-white truncate">
+              {title}
+            </h2>
+
           </div>
 
           <div className="flex-1 overflow-y-auto p-4">

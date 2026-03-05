@@ -10,12 +10,18 @@ import CommercialCard from "../properties/cards/CommercialCard";
 import { LandCard } from "../properties/cards/LandCard";
 import AgriculturalCard from "../properties/cards/AgriculturalCard";
 import { getOwnerProperties } from "@/data/ClientData";
-  import { useCity } from "@/hooks/useCity";
+import { useCity } from "@/hooks/useCity";
+
+type OwnerCardItem = PopularOwnerProperty & {
+  id?: string;
+  _id?: string;
+  type?: string;
+};
 
 
 const PopularOwnerPropertiesClient = () => {
   const sliderRef = useRef<HTMLDivElement | null>(null);
-  const [items, setItems] = useState<PopularOwnerProperty[]>([]);
+  const [items, setItems] = useState<OwnerCardItem[]>([]);
   const [loading, setLoading] = useState(false);
 
 
@@ -31,8 +37,13 @@ const PopularOwnerPropertiesClient = () => {
       state: selectedCity.state,
       city: selectedCity.city,
     })
-      .then((res) => {
-        setItems(res.items || []);
+      .then((res: { items?: OwnerCardItem[]; properties?: OwnerCardItem[] }) => {
+        const source = res.items ?? res.properties ?? [];
+        const normalized = source.map((item: OwnerCardItem) => ({
+          ...item,
+          id: item.id ?? item._id,
+        }));
+        setItems(normalized);
       })
       .catch((err) => {
         console.error("❌ Owner properties fetch failed:", err);
@@ -87,7 +98,7 @@ const PopularOwnerPropertiesClient = () => {
         ref={sliderRef}
         className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-1 py-2 snap-x snap-mandatory scroll-px-1"
       >
-        {items.map((item: any) => {
+        {items.map((item) => {
           const wrapperClass = "lg:snap-start snap-center flex-shrink-0";
 
           if (item.type === "residential") {

@@ -6,13 +6,21 @@ import { useDispatch, useSelector } from "react-redux";
 import { prevStep } from "@/Redux/slice/postPropertySlice";
 
 const TOTAL_STEPS = 4;
+const VERIFICATION_STEP_PROGRESS = 90;
 
 export default function Sidebar() {
   const dispatch = useDispatch();
 
-  const { currentStep, progressPercent } = useSelector(
+  const { currentStep } = useSelector(
     (state: any) => state.postProperty
   );
+  const safeTotalSteps = Math.max(1, TOTAL_STEPS);
+  const safeCurrentStep = Math.min(Math.max(currentStep || 1, 1), safeTotalSteps);
+  const baseProgress = Math.round(
+    ((safeCurrentStep - 1) / (safeTotalSteps - 1 || 1)) * 100
+  );
+  const progressPercent =
+    safeCurrentStep === safeTotalSteps ? VERIFICATION_STEP_PROGRESS : baseProgress;
 
 
   return (
@@ -26,9 +34,9 @@ export default function Sidebar() {
 
           {/* 🔙 Back Button */}
           <button
-            disabled={currentStep === 1}
+            disabled={safeCurrentStep === 1}
             onClick={() => dispatch(prevStep())}
-            className={`flex items-center text-sm transition ${currentStep === 1
+            className={`flex items-center text-sm transition ${safeCurrentStep === 1
                 ? "text-gray-300 cursor-not-allowed"
                 : "text-gray-600 active:scale-95"
               }`}
@@ -46,7 +54,7 @@ export default function Sidebar() {
               Post your property
             </h2>
             <p className="text-[10px] text-gray-500">
-              Step {currentStep} of {TOTAL_STEPS}
+              Step {safeCurrentStep} of {TOTAL_STEPS}
             </p>
           </div>
 
@@ -76,9 +84,9 @@ export default function Sidebar() {
         >
           {/* 🔙 Go Back */}
           <button
-            disabled={currentStep === 1}
+            disabled={safeCurrentStep === 1}
             onClick={() => dispatch(prevStep())}
-            className={`flex items-center text-sm py-1.5 transition ${currentStep === 1
+            className={`flex items-center text-sm py-1.5 transition ${safeCurrentStep === 1
                 ? "text-gray-300 cursor-not-allowed"
                 : "text-[#8F8F8F] hover:text-gray-700 cursor-pointer"
               }`}

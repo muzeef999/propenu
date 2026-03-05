@@ -35,21 +35,38 @@ export default function ContactOwnerButton({
 }: ContactOwnerButtonProps) {
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const router = useRouter();
+  const normalizeListingType = (
+    value?: string,
+  ): "sale" | "rent" | undefined => {
+    const normalized = value?.toLowerCase().trim();
+    if (!normalized) return undefined;
+    if (normalized === "sale" || normalized === "sell" || normalized === "buy") {
+      return "sale";
+    }
+    if (
+      normalized === "rent" ||
+      normalized === "rental" ||
+      normalized === "lease"
+    ) {
+      return "rent";
+    }
+    return undefined;
+  };
+  const resolvedListingType = normalizeListingType(listingType);
 
 
   const redirectToPlan = () => {
-    if (listingType === "sale") {
+    if (resolvedListingType === "sale") {
       router.push("/plans/pricing/buy-view");
       return;
     }
 
-    if (listingType === "rent") {
+    if (resolvedListingType === "rent") {
       router.push("/plans/pricing/rent-view");
       return;
     }
 
-    // fallback (optional)
-    toast.error("Invalid listing type");
+    router.push("/plans/pricing/buy-view");
   };
 
   const { data: userData, isLoading: isLoadingUser } = useQuery({
@@ -108,7 +125,7 @@ export default function ContactOwnerButton({
       email: user.email ?? undefined, // ✅ FIXED
       projectId,
       propertyType,
-      listingType,
+      listingType: resolvedListingType,
       remarks: "Interested in this property",
     });
   };

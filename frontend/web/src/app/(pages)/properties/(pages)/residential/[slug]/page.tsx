@@ -73,9 +73,9 @@ export default async function Page({ params }: PageProps) {
             </div>
           </header>
 
-          <div className="flex flex-col gap-8 lg:flex-row">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch">
             <main className="flex-1">
-              <div className="flex flex-col lg:flex-row gap-2">
+              <div className="flex flex-col gap-2 lg:flex-row lg:items-stretch">
 
                 {/* Gallery */}
                 <div className="w-full lg:w-[58%]">
@@ -86,85 +86,92 @@ export default async function Page({ params }: PageProps) {
                     propertyType="Residential"
                   />
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-start gap-6">
-                    <div className="flex-1">
-                      <div className="p-4 sm:p-2">
+                <div className="flex flex-1 self-stretch min-h-0">
+                  <div className="flex-1 p-4 sm:p-2 flex flex-col justify-between h-full gap-8">
 
-                        {/* DETAILS GRID */}
-                        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* PART 1 */}
+                    <div className="grid grid-cols-2 gap-8 pl-1">
 
-                          <DetailItem
-                            label="Super Built Up Area"
-                            value={`(₹ ${project?.pricePerSqft}/sqft)`}
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Super Built Up Area
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          ₹ {project?.pricePerSqft}/sqft
+                        </span>
+                      </div>
 
-                          <DetailItem
-                            label="Carpet Area"
-                            value={`${project?.carpetArea ?? "—"} sqft`}
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Carpet Area
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          {project?.carpetArea ?? "—"} sqft
+                        </span>
+                      </div>
 
-                          <DetailItem
-                            label="Sale Type"
-                            value={project?.transactionType}
-                            highlight
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Sale Type
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-orange-600">
+                          {project?.transactionType ?? "—"}
+                        </span>
+                      </div>
 
-                          <DetailItem
-                            label="Availability Status"
-                            value={project?.constructionStatus}
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Availability Status
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          {project?.constructionStatus ?? "—"}
+                        </span>
+                      </div>
 
-                          <DetailItem
-                            label="Furnishing Status"
-                            value={project?.furnishing}
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Furnishing Status
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          {project?.furnishing ?? "—"}
+                        </span>
+                      </div>
 
-                          <DetailItem
-                            label="Floors"
-                            value={`${project?.floorNumber}/${project?.totalFloors}`}
-                          />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                          Floors
+                        </span>
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          {project?.floorNumber ?? "—"}/{project?.totalFloors ?? "—"}
+                        </span>
+                      </div>
 
-                        </div>
+                    </div>
 
-                        {/* ICON STATS */}
-                        <div
-  className="grid grid-cols-3 mt-8 border border-gray-200 rounded-md overflow-hidden shadow-sm"
-  style={{ background: bgcolor }}
->
-  <div className="flex items-center justify-center gap-2 py-4 hover:bg-gray-50 transition">
-    <Bhk color="#6B7280" />
-    <span className="font-semibold text-gray-900">
-      {project?.bedrooms}
-    </span>
-    <span className="text-sm text-gray-500">
-      Bedrooms
-    </span>
-  </div>
+                    {/* ICON STATS */}
+                    <div
+                      className="grid grid-cols-3 border border-gray-200 rounded-md overflow-hidden shadow-sm"
+                      style={{ background: bgcolor }}
+                    >
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4">
+                        <Bhk color="#6B7280" />
+                        <span className="font-semibold text-gray-900 text-sm sm:text-base">{project?.bedrooms}</span>
+                        <span className="text-xs sm:text-sm text-gray-500">Bedrooms</span>
+                      </div>
 
-  <div className="flex items-center justify-center gap-2 py-4 border-x border-gray-200 hover:bg-gray-50 transition">
-    <Bath color="#6B7280" />
-    <span className="font-semibold text-gray-900">
-      {project?.bathrooms}
-    </span>
-    <span className="text-sm text-gray-500">
-      Bathrooms
-    </span>
-  </div>
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 border-x border-gray-200">
+                        <Bath color="#6B7280" />
+                        <span className="font-semibold text-gray-900 text-sm sm:text-base">{project?.bathrooms}</span>
+                        <span className="text-xs sm:text-sm text-gray-500">Bathrooms</span>
+                      </div>
 
-  <div className="flex items-center justify-center gap-2 py-4 hover:bg-gray-50 transition">
-    <Balconies color="#6B7280" />
-    <span className="font-semibold text-gray-900">
-      {project?.balconies}
-    </span>
-    <span className="text-sm text-gray-500">
-      Balconies
-    </span>
-  </div>
-</div>
-
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4">
+                        <Balconies color="#6B7280" />
+                        <span className="font-semibold text-gray-900 text-sm sm:text-base">{project?.balconies}</span>
+                        <span className="text-xs sm:text-sm text-gray-500">Balconies</span>
                       </div>
                     </div>
+
                   </div>
                 </div>
               </div>
@@ -302,7 +309,7 @@ export default async function Page({ params }: PageProps) {
                       )}
                     </section>
 
-                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa] rela">
+                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa]">
                       <h2 className="mb-3 text-xl font-semibold text-gray-900">
                         Popular Landmarks Nearby
                       </h2>
@@ -320,7 +327,7 @@ export default async function Page({ params }: PageProps) {
                       )}
                     </section>
 
-                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa] max-w-[940px]">
+                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa]">
                       <h2 className="mb-1 text-xl font-semibold text-gray-900">
                         More Similar Properties for you
                       </h2>
@@ -347,40 +354,7 @@ export default async function Page({ params }: PageProps) {
             </aside>
           </div>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
-}
-
-const DetailItem = ({
-  label,
-  value,
-  highlight = false,
-}: {
-  label: string;
-  value?: string | number;
-  highlight?: boolean;
-}) => (
-  <div className="space-y-1">
-    <p className="text-sm font-medium text-gray-500">
-      {label}
-    </p>
-    <p className={`text-sm sm:text-base font-semibold ${highlight ? "text-[#ed6115]" : "text-gray-800"
-      }`}>
-      {value || "—"}
-    </p>
-  </div>
-);
-
-const StatItem = ({
-  icon,
-  text,
-}: {
-  icon: React.ReactNode;
-  text: string;
-}) => (
-  <div className="flex items-center gap-2 text-gray-600 font-medium text-sm sm:text-base">
-    {icon}
-    {text}
-  </div>
-);
+};
