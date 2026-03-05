@@ -1,5 +1,7 @@
 import { IFileRef, IVerificationDoc } from "./sharedTypes";
 import { Types } from "mongoose";
+import { PropertyAge } from "./residentialTypes";
+
 
 export const PANTRY_TYPES = ["none", "shared", "no-shared"] as const;
 
@@ -86,6 +88,7 @@ export interface IApproval {
   approvalComment?: string;
   approvalToken?: string | undefined; // ✅ FIX 2
 }
+
 
 export interface IImage {
   url: string
@@ -190,6 +193,7 @@ export interface ICommercial {
   approval?: IApproval;
   updatedBy?: Types.ObjectId;
   gallery?: IImage[]; // ✅ ADD THIS
+  propertyAge?: PropertyAge;
 
   cabin?: number;
 }

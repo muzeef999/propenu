@@ -12,6 +12,7 @@ import {
 import { TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
 import "../models/roleModel";
+import { PROPERTY_AGE_BUCKETS } from "../types/residentialTypes";
 
 export interface CommercialDocument extends Document, ICommercial {
   _id: Types.ObjectId;
@@ -54,6 +55,7 @@ const CommercialSchema = new Schema<ICommercial>(
       fireControlPanel: { type: Boolean },
       emergencyExitSignage: { type: Boolean },
     },
+    propertyAge: { type: String, enum: PROPERTY_AGE_BUCKETS },
 
     constructionStatus: {
       type: String,
@@ -117,7 +119,6 @@ CommercialSchema.index(
 // 🔒 ONE ACTIVE DRAFT PER USER (MongoDB-level protection)
 CommercialSchema.index({ slug: 1 }, { unique: true });
 
-
 CommercialSchema.pre("save", async function (next) {
   if (!this.listingSource && this.createdBy) {
     const user = await mongoose
@@ -149,7 +150,6 @@ CommercialSchema.pre("save", async function (next) {
   next();
 });
 
-
 CommercialSchema.pre("validate", async function (next) {
   try {
     // Always rebuild title
@@ -165,7 +165,7 @@ CommercialSchema.pre("validate", async function (next) {
 
       this.slug = await generateUniqueSlug(
         mongoose.model("Commercial"),
-        baseSlug
+        baseSlug,
       );
     }
 
@@ -174,7 +174,6 @@ CommercialSchema.pre("validate", async function (next) {
     next(err as any);
   }
 });
-
 
 export const Commercial: Model<ICommercial> =
   (mongoose.models && (mongoose.models as any)["Commercial"]) ||
