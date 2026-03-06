@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import ActiveTabs from "@/ui/ActiveTabs";
 import { getMyProperties, getProjectLeads } from "@/data/ClientData";
 
-const categories = ["Residential", "Commercial", "Plot", "Agriculture"];
+const categories = ["Residential", "Commercial", "Open Plot", "Agriculture Land"];
 
 const LEAD_STATUSES = [
     "All",

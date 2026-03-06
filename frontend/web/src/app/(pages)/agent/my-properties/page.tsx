@@ -48,7 +48,7 @@ const TAB_KEY_MAP: Record<string, string> = {
   Agriculture: "agricultural",
 };
 
-const categories = ["Residential", "Commercial", "Plot", "Agriculture"];
+const categories = ["Residential", "Commercial", "Open Plot", "Agriculture Land"];
 
 const listingTypeOptions = [
   { label: "Buy", value: "sale" },

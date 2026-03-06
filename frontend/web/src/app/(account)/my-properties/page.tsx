@@ -68,7 +68,7 @@ const getCategoryForTab = (tab: string): PropertyCategory => {
   return "residential";
 };
 const Page = () => {
-  const categories = ["Residential", "Commercial", "Plot", "Agriculture"];
+  const categories = ["Residential", "Commercial", "Open Plot", "Agriculture land"];
   const router = useRouter();
   const dispatch = useAppDispatch();
 

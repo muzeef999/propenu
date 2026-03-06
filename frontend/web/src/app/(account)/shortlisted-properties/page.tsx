@@ -36,7 +36,7 @@ interface ShortlistedItem {
 const Page = () => {
   const [activeTab, setActiveTab] = useState("Residential");
 
-  const categories = ["Residential", "Commercial", "Plot", "Agriculture"];
+  const categories = ["Residential", "Commercial", "Open Plot", "Agriculture Land"];
 
   const {
     data: shortlisted = [],
