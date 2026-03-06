@@ -17,7 +17,6 @@ import {
   selectLocalitiesByCity,
 } from "@/Redux/slice/citySlice";
 import { RESFilterKey } from "@/types";
-import { toast } from "sonner";
 import {
   BUDGET_MAX,
   BUDGET_MIN,
@@ -53,11 +52,11 @@ const ResidentialFilters = () => {
 
   const sectionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
 
-  const POSTED_BY_MAP: Record<string, string> = {
-  Owners: "User",
-  Agents: "Agent",
-  Builders: "Builder",
-};
+  const POSTED_BY_MAP: Record<PostedByOption, string> = {
+    Owners: "user",
+    Agents: "agent",
+    Builders: "builder",
+  };
 
 
   const keyMapping: Record<RESFilterKey, keyof typeof residential> = {
@@ -451,21 +450,43 @@ const ResidentialFilters = () => {
                 <button
                   key={opt}
                   onClick={() => {
+                    const mappedValue = POSTED_BY_MAP[opt];
                     dispatch(
                       setResidentialFilter({
                         key: "listingSource",
-                        value: POSTED_BY_MAP[opt],
+                        value: listingSource === mappedValue ? "" : mappedValue,
                       }),
                     );
                     close?.();
                   }}
                   className={`px-2 py-1 rounded block w-full text-left hover:bg-gray-100 ${
-                    listingSource === opt ? "font-semibold bg-gray-100" : ""
+                    listingSource === POSTED_BY_MAP[opt]
+                      ? "font-semibold bg-gray-100"
+                      : ""
                   }`}
                 >
                   {opt}
                 </button>
               ))}
+              <button
+                onClick={() => {
+                  dispatch(
+                    setResidentialFilter({
+                      key: "listingSource",
+                      value: "",
+                    }),
+                  );
+                  close?.();
+                }}
+                disabled={!listingSource}
+                className={`mt-2 px-2 py-1 rounded block w-full text-left ${
+                  listingSource
+                    ? "text-red-500 hover:bg-red-50"
+                    : "text-gray-400 cursor-not-allowed"
+                }`}
+              >
+                Clear
+              </button>
             </div>
           )}
         />

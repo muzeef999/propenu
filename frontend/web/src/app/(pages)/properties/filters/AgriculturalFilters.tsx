@@ -336,7 +336,7 @@ const AgriculturalFilters = () => {
           </span>
         }
         width="w-56"
-        renderContent={() => (
+        renderContent={(close) => (
           <div>
             <h4 className="text-sm font-semibold mb-2">Posted By</h4>
             {postedByOptions.map((opt) => (
@@ -356,6 +356,25 @@ const AgriculturalFilters = () => {
                 {opt}
               </button>
             ))}
+            <button
+              onClick={() => {
+                dispatch(
+                  setAgriculturalFilter({
+                    key: "postedBy",
+                    value: [],
+                  })
+                );
+                close?.();
+              }}
+              disabled={!postedBy || postedBy.length === 0}
+              className={`mt-2 px-2 py-1 rounded block w-full text-left ${
+                postedBy && postedBy.length > 0
+                  ? "text-red-500 hover:bg-red-50"
+                  : "text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              Clear
+            </button>
           </div>
         )}
       />

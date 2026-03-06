@@ -471,6 +471,25 @@ const CommercialFilters = () => {
                 {opt}
               </button>
             ))}
+            <button
+              onClick={() => {
+                dispatch(
+                  setCommercialFilter({
+                    key: "listingSource",
+                    value: "",
+                  })
+                );
+                close?.();
+              }}
+              disabled={!listingSource}
+              className={`mt-2 px-2 py-1 rounded block w-full text-left ${
+                listingSource
+                  ? "text-red-500 hover:bg-red-50"
+                  : "text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              Clear
+            </button>
           </div>
         )}
       />

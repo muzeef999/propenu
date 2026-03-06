@@ -169,10 +169,21 @@ export function buildSearchParams(filters: FilterState) {
 
   switch (filters.category) {
     case "Residential":
-      return {
-        ...base,
-        ...normalizeFilters(filters.residential),
-      };
+      {
+        const normalized = normalizeFilters(filters.residential);
+
+        if (normalized.listingSource !== undefined) {
+          normalized.listingSource = mapCsv(
+            normalized.listingSource,
+            normalizeListingSourceToken
+          );
+        }
+
+        return {
+          ...base,
+          ...normalized,
+        };
+      }
 
     case "Commercial":
       {
@@ -197,6 +208,13 @@ export function buildSearchParams(filters: FilterState) {
         if (normalized.furnishingStatus !== undefined) {
           normalized.furnishedStatus = normalized.furnishingStatus;
           delete normalized.furnishingStatus;
+        }
+
+        if (normalized.listingSource !== undefined) {
+          normalized.listingSource = mapCsv(
+            normalized.listingSource,
+            normalizeListingSourceToken
+          );
         }
 
         return {
@@ -229,6 +247,14 @@ export function buildSearchParams(filters: FilterState) {
         if (normalized.approvedBy !== undefined) {
           normalized.approvedByAuthority = normalized.approvedBy;
           delete normalized.approvedBy;
+        }
+
+        if (normalized.postedBy !== undefined) {
+          normalized.listingSource = mapCsv(
+            normalized.postedBy,
+            normalizeListingSourceToken
+          );
+          delete normalized.postedBy;
         }
 
         const cornerPlot = toTrueQueryValue(normalized.cornerPlot);
