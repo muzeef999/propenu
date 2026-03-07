@@ -25,7 +25,6 @@ export async function getPlans(req: Request, res: Response) {
 
 export const assignPlan = async (req: AuthRequest, res: Response) => {
   try {
-
     const { userId, planCode } = req.body;
 
     if (!userId || !planCode) {
@@ -34,7 +33,6 @@ export const assignPlan = async (req: AuthRequest, res: Response) => {
         message: "userId and planCode are required",
       });
     }
-
 
     if (!req.user) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -52,24 +50,24 @@ export const assignPlan = async (req: AuthRequest, res: Response) => {
     // 2️⃣ Calculate dates ONCE
     const startDate = new Date();
     const endDate = new Date(
-      Date.now() + (plan.durationDays ?? 30) * 24 * 60 * 60 * 1000
+      Date.now() + (plan.durationDays ?? 30) * 24 * 60 * 60 * 1000,
     );
 
     // 3️⃣ Expire existing active subscriptions
     await Subscription.updateMany(
       { userId, status: "active" },
-      { status: "expired" }
+      { status: "expired" },
     );
-       if (!req.user) {
-  return res.status(401).json({ message: "Unauthorized" });
-}
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
 
- const userType = req.user.roleName;
-  
-// 4️⃣ Create new subscription
+    const userType = req.user.roleName;
+
+    // 4️⃣ Create new subscription
     const subscription = await Subscription.create({
       userId,
-       userType,
+      userType,
       category: plan.category || "both",
       planCode: plan.code,
       tier: plan.tier,
@@ -81,7 +79,6 @@ export const assignPlan = async (req: AuthRequest, res: Response) => {
         enquiryUsed: 0,
       },
     });
-
 
     // 5️⃣ CREATE SUBSCRIPTION HISTORY (THIS IS THE FIX)
     const history = await SubscriptionHistory.create({
@@ -96,7 +93,6 @@ export const assignPlan = async (req: AuthRequest, res: Response) => {
       endDate,
       purchasedAt: new Date(),
     });
-
 
     return res.json({
       success: true,
@@ -141,7 +137,7 @@ export const updatePlan = async (req: Request, res: Response) => {
     const plan = await Plan.findOneAndUpdate(
       { code },
       { $set: req.body },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!plan) {

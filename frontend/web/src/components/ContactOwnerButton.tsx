@@ -15,11 +15,11 @@ interface ContactOwnerButtonProps {
   listingSource?: "User" | "Agent" | "builder" | string;
 
   propertyType?:
-  | "residentials"
-  | "commercials"
-  | "agriculturals"
-  | "landplots"
-  | "featuredprojects";
+    | "residentials"
+    | "commercials"
+    | "agriculturals"
+    | "landplots"
+    | "featuredprojects";
   className?: string;
   children?: React.ReactNode;
 }
@@ -40,7 +40,11 @@ export default function ContactOwnerButton({
   ): "sale" | "rent" | undefined => {
     const normalized = value?.toLowerCase().trim();
     if (!normalized) return undefined;
-    if (normalized === "sale" || normalized === "sell" || normalized === "buy") {
+    if (
+      normalized === "sale" ||
+      normalized === "sell" ||
+      normalized === "buy"
+    ) {
       return "sale";
     }
     if (
@@ -53,7 +57,6 @@ export default function ContactOwnerButton({
     return undefined;
   };
   const resolvedListingType = normalizeListingType(listingType);
-
 
   const redirectToPlan = () => {
     if (resolvedListingType === "sale") {
@@ -92,9 +95,13 @@ export default function ContactOwnerButton({
         "Failed to contact owner";
 
       // 🔐 Buyer plan required → redirect ONLY (no toast)
+      const lowerMessage = message.toLowerCase();
+
       if (
-        message.toLowerCase().includes("purchase") ||
-        message.toLowerCase().includes("plan required")
+        lowerMessage.includes("purchase") ||
+        lowerMessage.includes("plan required") ||
+        lowerMessage.includes("subscribe") ||
+        lowerMessage.includes("subscription")
       ) {
         redirectToPlan();
         return;
@@ -105,10 +112,7 @@ export default function ContactOwnerButton({
     },
   });
 
-
   const handleContactOwner = () => {
-
-
     if (!user) {
       setShowLoginDialog(true);
       return;
@@ -141,10 +145,7 @@ export default function ContactOwnerButton({
         }
       >
         {children ??
-          (isLeadPosting
-            ? "Sending..."
-            : `Contact ${getContactPerson()}`)}
-
+          (isLeadPosting ? "Sending..." : `Contact ${getContactPerson()}`)}
       </button>
 
       {showLoginDialog &&
@@ -153,7 +154,7 @@ export default function ContactOwnerButton({
             <LoginDialog
               open
               onClose={() => setShowLoginDialog(false)}
-              onSwitchToRegister={() => { }}
+              onSwitchToRegister={() => {}}
             />
           </div>,
           document.body,
