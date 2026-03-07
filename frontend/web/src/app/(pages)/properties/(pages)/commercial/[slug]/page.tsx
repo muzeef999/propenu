@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { MdEventSeat, MdMeetingRoom } from "react-icons/md";
 import { ICommercial } from "@/types/commercial";
 import GalleryFile from "../../../GalleryFile";
-import { FaCarAlt, FaParking, FaRegCalendarCheck } from "react-icons/fa";
+import { FaCarAlt, FaParking, FaRegCalendarCheck, FaRegUser } from "react-icons/fa";
 import {
   FiBriefcase,
   FiCalendar,
@@ -23,10 +23,11 @@ import RelatedCommercialCarousel from "./RelatedCommercialCarousel";
 import Image from "next/image";
 import ad from "@/asserts/ad.png";
 import { COMMERCIAL_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
-import { PiArmchair, PiWallLight } from "react-icons/pi";
-import { RiEBikeLine, RiParkingFill } from "react-icons/ri";
+import { PiArmchair, PiCalendarBlank, PiCoffee, PiMotorcycle, PiWall } from "react-icons/pi";
+import { RiCarLine } from "react-icons/ri";
 import { GiMoneyStack } from "react-icons/gi";
 import { TilesIcons } from "../../MoreDetailsIcons";
+import { HiOutlineUser } from "react-icons/hi2";
 
 
 type PageProps = {
@@ -103,7 +104,7 @@ export default async function Page({ params }: PageProps) {
     {
       label: "Listing Source",
       value: project?.listingSource,
-      icon: FiUser,
+      icon: HiOutlineUser,
     },
     {
       label: "Negotiable",
@@ -113,7 +114,7 @@ export default async function Page({ params }: PageProps) {
     {
       label: "Pantry",
       value: project?.pantry?.type ?? "N/A",
-      icon: FiCoffee,
+      icon: PiCoffee,
     },
     {
       label: "Furnished Status",
@@ -123,17 +124,17 @@ export default async function Page({ params }: PageProps) {
     {
       label: "2W Parking",
       value: ((project as any)?.parkingDetails?.twoWheeler ?? 0).toString(),
-      icon: RiEBikeLine,
+      icon: PiMotorcycle,
     },
     {
       label: "4W Parking",
       value: ((project as any)?.parkingDetails?.fourWheeler ?? 0).toString(),
-      icon: FaCarAlt,
+      icon: RiCarLine,
     },
     {
       label: "Wall Finishing",
       value: ((project as any)?.wallFinishStatus ?? "N/A").toString(),
-      icon: PiWallLight,
+      icon: PiWall,
     },
     {
       label: "Flooring Type",
@@ -143,10 +144,9 @@ export default async function Page({ params }: PageProps) {
     {
       label: "Age of Property",
       value: project?.propertyAge?.toString() ?? "N/A",
-      icon: FaRegCalendarCheck,
+      icon: PiCalendarBlank,
     },
   ];
-  console.log(project);
 
 
   return (
@@ -188,7 +188,7 @@ export default async function Page({ params }: PageProps) {
 
                       <div className="flex flex-col gap-1">
                         <span className="text-xs sm:text-sm text-gray-500 font-medium">
-                          Super Built Up Area
+                          Built Up Area
                         </span>
                         <span className="text-sm sm:text-base font-semibold text-gray-900">
                           ₹ {project?.pricePerSqft ?? 0}/sqft

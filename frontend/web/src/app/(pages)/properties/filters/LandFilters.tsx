@@ -525,7 +525,7 @@ const LandFilters = () => {
                 <button
                   key={section.key}
                   onClick={() => handleSectionClick(section.key)}
-                  className={`w-full text-left px-4 py-3 border-b border-gray-200 ${activeFilter === section.key
+                  className={`w-full text-left px-4 py-3 border-b border-gray-200 cursor-pointer ${activeFilter === section.key
                     ? "font-semibold text-primary"
                     : "hover:bg-gray-50"
                     }`}

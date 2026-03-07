@@ -4,7 +4,7 @@ import formatINR from "@/utilies/PriceFormat";
 import { notFound } from "next/navigation";
 import { ILand } from "@/types/land";
 import GalleryFile from "../../../GalleryFile";
-import { GiCompass } from "react-icons/gi";
+import { GiCompass, GiRoad } from "react-icons/gi";
 import { FaRoad } from "react-icons/fa";
 import { BiShapeSquare } from "react-icons/bi";
 import NearByPlaceClient from "@/app/(pages)/properties/(pages)/NearByPlaceClient";
@@ -14,9 +14,15 @@ import Image from "next/image";
 import ad from "@/asserts/ad.png";
 import { LAND_PLOT_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
 import {
-  listingSourceToOwnershipLabel,
   resolveListingSource,
 } from "@/utilies/resolveListingSource";
+import { FiGrid, FiHash, FiZap } from "react-icons/fi";
+import { GiMoneyStack } from "react-icons/gi";
+import { IoWaterOutline } from "react-icons/io5";
+import { MdOutlineElectricBolt } from "react-icons/md";
+import { RiSurveyLine } from "react-icons/ri";
+import { TbMapSearch } from "react-icons/tb";
+
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
 };
@@ -53,10 +59,40 @@ export default async function Page({ params }: PageProps) {
     project?.listingSource,
     project?.createdBy as any,
   );
-  const ownershipLabel = listingSourceToOwnershipLabel(
-    project?.listingSource,
-    project?.createdBy as any,
-  );
+  const detailsItems = [
+    {
+      label: "Negotiable",
+      value: project?.negotiable ? "Yes" : "No",
+      icon: GiMoneyStack,
+    },
+    {
+      label: "Survey Number",
+      value: project?.surveyNumber ?? "N/A",
+      icon: RiSurveyLine,
+    },
+    {
+      label: "Land Use Zone",
+      value: project?.landUseZone ?? "N/A",
+      icon: TbMapSearch,
+    },
+    {
+      label: "Road Width",
+      value: project?.roadWidthFt ? `${project.roadWidthFt} ft` : "N/A",
+      icon: GiRoad,
+    },
+    {
+      label: "Water Connection",
+      value: project?.waterConnection ? "Available" : "Unavailable",
+      icon: IoWaterOutline,
+    },
+    {
+      label: "Electricity Connection",
+      value: project?.electricityConnection ? "Available" : "Unavailable",
+      icon: FiZap,
+    },
+  ];
+
+  console.log(project);
 
   return (
     <div
@@ -97,7 +133,7 @@ export default async function Page({ params }: PageProps) {
 
                       <div className="flex flex-col gap-1">
                         <span className="text-xs sm:text-sm text-gray-500 font-medium">
-                          Total Area
+                          Plot Area
                         </span>
                         <span className="text-sm sm:text-base font-semibold text-gray-900">
                           {project?.plotArea ?? "—"} sqft
@@ -117,7 +153,7 @@ export default async function Page({ params }: PageProps) {
                         <span className="text-xs sm:text-sm text-gray-500 font-medium">
                           Sale Type
                         </span>
-                        <span className="text-sm sm:text-base font-semibold text-orange-600">
+                        <span className="text-sm sm:text-base font-semibold text-gray-900 capitalize">
                           {project?.listingType ?? "—"}
                         </span>
                       </div>
@@ -133,10 +169,10 @@ export default async function Page({ params }: PageProps) {
 
                       <div className="flex flex-col gap-1">
                         <span className="text-xs sm:text-sm text-gray-500 font-medium">
-                          Water Connection
+                          Layout type
                         </span>
-                        <span className="text-sm sm:text-base font-semibold text-gray-900">
-                          {project?.waterConnection ? "Available" : "Unavailable"}
+                        <span className="capitalize text-sm sm:text-base font-semibold text-gray-900">
+                          {project?.layoutType ?? "—"}
                         </span>
                       </div>
 
@@ -189,41 +225,26 @@ export default async function Page({ params }: PageProps) {
                         More Details
                       </h2>
 
-                      {/* Changed to 4 columns to match the wide layout in the image */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
-                        <div className="flex flex-col gap-1">
-                          <p className="font-medium text-gray-900">
-                            Price Breakup
-                          </p>
-                          <p className="text-gray-500">₹{project?.price}</p>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                          <p className="font-medium text-gray-900">
-                            Property Ownership
-                          </p>
-                          <p className="text-gray-500">
-                            {ownershipLabel}
-                          </p>
-                        </div>
-
-                        <div className="hidden md:block"></div>
-                        <div className="hidden md:block"></div>
-
-                        <div className="flex flex-col gap-1">
-                          <p className="font-medium text-gray-900">Property Type</p>
-                          <p className="text-gray-500">{project?.propertyType}</p>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                          <p className="font-medium text-gray-900">Approved By</p>
-                          <p className="text-gray-500">
-                            {project?.approvedByAuthority?.join(", ") ?? "—"}
-                          </p>
-                        </div>
-
-                        <div className="hidden md:block"></div>
-                        <div className="hidden md:block"></div>
+                      <div className="grid grid-cols-1 gap-5 text-sm sm:grid-cols-2 xl:grid-cols-4">
+                        {detailsItems.map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <div
+                              key={item.label}
+                              className="grid grid-cols-[32px_1fr] grid-rows-2 gap-x-3 items-center"
+                            >
+                              <div className="row-span-2 flex items-center justify-center text-gray-500">
+                                <Icon size={25} />
+                              </div>
+                              <p className="text-sm font-medium text-gray-900">
+                                {item.label}
+                              </p>
+                              <p className="text-gray-500 wrap-break-word">
+                                {item.value}
+                              </p>
+                            </div>
+                          );
+                        })}
                       </div>
 
                       {/* ADDRESS */}

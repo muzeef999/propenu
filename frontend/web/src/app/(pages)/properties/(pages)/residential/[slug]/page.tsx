@@ -24,9 +24,12 @@ import {
 } from "react-icons/fi";
 import { FaCarAlt, FaCarSide, FaRegCalendarCheck } from "react-icons/fa";
 import { GiKnifeFork, GiMoneyStack } from "react-icons/gi";
-import { RiEBikeLine, RiParkingFill } from "react-icons/ri";
+import { RiCarLine, RiEBikeLine, RiParkingFill } from "react-icons/ri";
 import { ImCompass2 } from "react-icons/im";
 import { KitchenIcons, TilesIcons } from "../../MoreDetailsIcons";
+import { HiOutlineUser } from "react-icons/hi2";
+import { LuSquareParking } from "react-icons/lu";
+import { PiCalendarBlank, PiCompass, PiMotorcycle } from "react-icons/pi";
 
 
 type PageProps = {
@@ -75,7 +78,7 @@ export default async function Page({ params }: PageProps) {
     {
       label: "Listing Source",
       value: project?.listingSource,
-      icon: FiUser,
+      icon: HiOutlineUser,
     },
     {
       label: "Negotiable",
@@ -85,27 +88,27 @@ export default async function Page({ params }: PageProps) {
     {
       label: "Parking Type",
       value: ((project as any)?.parkingType ?? "N/A").toString(),
-      icon: RiParkingFill,
+      icon: LuSquareParking,
     },
     {
       label: "2W Parking",
       value: ((project as any)?.parkingDetails?.twoWheeler ?? 0).toString(),
-      icon: RiEBikeLine,
+      icon: PiMotorcycle,
     },
     {
       label: "4W Parking",
       value: ((project as any)?.parkingDetails?.fourWheeler ?? 0).toString(),
-      icon: FaCarAlt,
+      icon: RiCarLine,
     },
     {
       label: "Facing",
       value: (project?.facing ?? "N/A").toString(),
-      icon: ImCompass2,
+      icon: PiCompass,
     },
     {
       label: "Floor Type",
       value: ((project as any)?.flooringType ?? "N/A").toString(),
-      icon: FiLayers,
+      icon: TilesIcons,
     },
     {
       label: "Kitchen Type",
@@ -117,10 +120,9 @@ export default async function Page({ params }: PageProps) {
       value: (project as any)?.builtYear
         ? `${Math.max(new Date().getFullYear() - (project as any).builtYear, 0)} Year`
         : "0-1 Year",
-      icon: FaRegCalendarCheck,
+      icon: PiCalendarBlank,
     },
   ];
-  console.log(project);
 
   return (
     <div
@@ -161,7 +163,7 @@ export default async function Page({ params }: PageProps) {
 
                       <div className="flex flex-col gap-1">
                         <span className="text-xs sm:text-sm text-gray-500 font-medium">
-                          Super Built Up Area
+                          Built Up Area
                         </span>
                         <span className="text-sm sm:text-base font-semibold text-gray-900">
                           ₹ {project?.pricePerSqft}/sqft
