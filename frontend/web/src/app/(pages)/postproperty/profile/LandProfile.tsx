@@ -143,12 +143,6 @@ const LandProfile = () => {
     <div className="space-y-8">
       {/* 1. PLOT DETAILS */}
       <div className="space-y-6">
-        <div>
-          <p className="text-sm font-semibold text-gray-900">Plot Details</p>
-          <p className="text-xs text-gray-500">
-            Provide essential information about the plot.
-          </p>
-        </div>
 
 
 
@@ -231,10 +225,9 @@ const LandProfile = () => {
       {/* 3. LEGAL & SURVEY DETAILS */}
       <div className="space-y-6">
         <div>
-          <p className="text-sm font-semibold text-gray-900">
+          <p className="text-base font-semibold text-gray-900">
             Legal & Survey Details
           </p>
-          <p className="text-xs text-gray-500">Survey and zoning information</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InputField
@@ -272,11 +265,8 @@ const LandProfile = () => {
       {/* 4. PLOT FEATURES & UTILITIES */}
       <div className="space-y-6">
         <div>
-          <p className="text-sm font-semibold text-gray-900">
+          <p className="text-base font-semibold text-gray-900">
             Plot Features & Utilities
-          </p>
-          <p className="text-xs text-gray-500">
-            Select all features available for this plot
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -419,7 +409,6 @@ const LandProfile = () => {
           value={land.description || ""}
           placeholder="e.g. This plot is located in a prime area with easy access to main roads..."
           maxLength={500}
-          error={fieldErrors?.description?.[0]}
           onChange={(value) =>
             dispatch(
               setProfileField({

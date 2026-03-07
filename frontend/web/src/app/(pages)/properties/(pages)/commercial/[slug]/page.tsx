@@ -5,13 +5,29 @@ import { notFound } from "next/navigation";
 import { MdEventSeat, MdMeetingRoom } from "react-icons/md";
 import { ICommercial } from "@/types/commercial";
 import GalleryFile from "../../../GalleryFile";
-import { FaParking } from "react-icons/fa";
+import { FaCarAlt, FaParking, FaRegCalendarCheck } from "react-icons/fa";
+import {
+  FiBriefcase,
+  FiCalendar,
+  FiCoffee,
+  FiGrid,
+  FiLayers,
+  FiPhone,
+  FiTag,
+  FiTruck,
+  FiUser,
+} from "react-icons/fi";
 import NearByPlaceClient from "@/app/(pages)/properties/(pages)/NearByPlaceClient";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import RelatedCommercialCarousel from "./RelatedCommercialCarousel";
 import Image from "next/image";
 import ad from "@/asserts/ad.png";
 import { COMMERCIAL_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
+import { PiArmchair, PiWallLight } from "react-icons/pi";
+import { RiEBikeLine, RiParkingFill } from "react-icons/ri";
+import { GiMoneyStack } from "react-icons/gi";
+import { TilesIcons } from "../../MoreDetailsIcons";
+
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -24,6 +40,43 @@ const amenityIconByKey = new Map(
 const amenityIconByTitle = new Map(
   COMMERCIAL_AMENITIES.map((amenity) => [amenity.title, amenity.icon]),
 );
+
+const formatTenantMonthYear = (value?: unknown) => {
+  if (!value) return null;
+
+  const date =
+    value instanceof Date
+      ? value
+      : typeof value === "string" || typeof value === "number"
+        ? new Date(value)
+        : null;
+  if (!date) return null;
+  if (Number.isNaN(date.getTime())) return null;
+
+  return new Intl.DateTimeFormat("en-IN", {
+    month: "long",
+    year: "numeric",
+  }).format(date);
+};
+
+const formatTenantRent = (rent?: unknown) => {
+  if (rent === undefined || rent === null || rent === "") return null;
+
+  const amount =
+    typeof rent === "number"
+      ? rent
+      : typeof rent === "string"
+        ? Number(rent)
+        : NaN;
+  if (Number.isNaN(amount) || amount <= 0) return null;
+
+  const compact = new Intl.NumberFormat("en-IN", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(amount);
+
+  return `₹ ${compact}/month`;
+};
 
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
@@ -46,6 +99,55 @@ export default async function Page({ params }: PageProps) {
   }
 
   const priceLabel = formatINR(project.price);
+  const detailsItems = [
+    {
+      label: "Listing Source",
+      value: project?.listingSource,
+      icon: FiUser,
+    },
+    {
+      label: "Negotiable",
+      value: (project as any)?.priceNegotiable ? "Yes" : "No",
+      icon: GiMoneyStack,
+    },
+    {
+      label: "Pantry",
+      value: project?.pantry?.type ?? "N/A",
+      icon: FiCoffee,
+    },
+    {
+      label: "Furnished Status",
+      value: project?.furnishedStatus ?? "N/A",
+      icon: PiArmchair,
+    },
+    {
+      label: "2W Parking",
+      value: ((project as any)?.parkingDetails?.twoWheeler ?? 0).toString(),
+      icon: RiEBikeLine,
+    },
+    {
+      label: "4W Parking",
+      value: ((project as any)?.parkingDetails?.fourWheeler ?? 0).toString(),
+      icon: FaCarAlt,
+    },
+    {
+      label: "Wall Finishing",
+      value: ((project as any)?.wallFinishStatus ?? "N/A").toString(),
+      icon: PiWallLight,
+    },
+    {
+      label: "Flooring Type",
+      value: ((project as any)?.flooringType ?? "N/A").toString(),
+      icon: TilesIcons,
+    },
+    {
+      label: "Age of Property",
+      value: project?.propertyAge?.toString() ?? "N/A",
+      icon: FaRegCalendarCheck,
+    },
+  ];
+  console.log(project);
+
 
   return (
     <div
@@ -106,7 +208,7 @@ export default async function Page({ params }: PageProps) {
                         <span className="text-xs sm:text-sm text-gray-500 font-medium">
                           Sale Type
                         </span>
-                        <span className="text-sm sm:text-base font-semibold text-orange-600">
+                        <span className="capitalize text-sm sm:text-base font-semibold text-gray-900">
                           {project?.transactionType ?? "—"}
                         </span>
                       </div>
@@ -115,8 +217,8 @@ export default async function Page({ params }: PageProps) {
                         <span className="text-xs sm:text-sm text-gray-500 font-medium">
                           Availability Status
                         </span>
-                        <span className="text-sm sm:text-base font-semibold text-gray-900">
-                          {project?.constructionStatus ?? "—"}
+                        <span className="capitalize text-sm sm:text-base font-semibold text-gray-900">
+                          {project?.constructionStatus}
                         </span>
                       </div>
 
@@ -124,7 +226,7 @@ export default async function Page({ params }: PageProps) {
                         <span className="text-xs sm:text-sm text-gray-500 font-medium">
                           Furnishing Status
                         </span>
-                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                        <span className="text-sm sm:text-base font-semibold text-gray-900 capitalize">
                           {project?.furnishedStatus ?? "—"}
                         </span>
                       </div>
@@ -174,39 +276,37 @@ export default async function Page({ params }: PageProps) {
                 <div className="grid gap-4">
                   <section className="space-y-4">
                     <section className="rounded-lg p-6 shadow-sm bg-[#f7f9fa]">
-                      <h2 className="mb-6 text-xl font-semibold text-gray-900">
+                      <h2 className="mb-5 text-xl font-semibold text-gray-900">
                         More Details
                       </h2>
 
-                      {/* Changed to 4 columns to match the wide layout in the image */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
-                        <div className="flex flex-col gap-1">
-                          <p className="font-medium text-gray-900">
-                            Price Breakup
-                          </p>
-                          <p className="text-gray-500">₹{project?.price}</p>
-                        </div>
+                      <div className="grid grid-cols-1 gap-5 text-sm sm:grid-cols-2 xl:grid-cols-4">
+                        {detailsItems.map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <div
+                              key={item.label}
+                              className="grid grid-cols-[32px_1fr] grid-rows-2 gap-x-3 items-center"
+                            >
+                              {/* Icon (center between label and value) */}
+                              <div className="row-span-2 flex items-center justify-center text-gray-500">
+                                <Icon size={25} />
+                              </div>
 
-                        <div className="flex flex-col gap-1">
-                          <p className="font-medium text-gray-900">
-                            Property Ownership
-                          </p>
-                          <p className="text-gray-500">
-                            {project?.listingSource}
-                          </p>
-                        </div>
+                              {/* Label */}
+                              <p className="text-sm font-medium text-gray-900">
+                                {item.label}
+                              </p>
 
-                        <div className="flex flex-col gap-1">
-                          <p className="font-medium text-gray-900">Lift</p>
-                          <p className="text-gray-500">
-                            {project?.lift ? "Available" : "Unavailable"}
-                          </p>
-                        </div>
-
-                        <div className="hidden md:block"></div>
+                              {/* Value */}
+                              <p className="text-gray-500 wrap-break-word capitalize">
+                                {item.value}
+                              </p>
+                            </div>
+                          );
+                        })}
                       </div>
 
-                      {/* ADDRESS */}
                       <div className="mt-8">
                         <p className="font-medium text-gray-900">Address</p>
                         <p className="text-gray-500 mt-1 leading-relaxed">
@@ -214,7 +314,6 @@ export default async function Page({ params }: PageProps) {
                         </p>
                       </div>
 
-                      {/* DESCRIPTION */}
                       <div className="mt-6">
                         <p className="font-medium text-gray-900">
                           Description:
@@ -232,6 +331,57 @@ export default async function Page({ params }: PageProps) {
                           listingSource={project.listingSource}
                         />
                       </div>
+                    </section>
+
+                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa]">
+                      <h2 className="mb-3 text-xl font-semibold text-gray-900">
+                        Tenant information
+                      </h2>
+                      {project.tenantInfo && project.tenantInfo.length > 0 ? (
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          {project.tenantInfo.map((tenant, index) => {
+                            const tenantName = tenant.currentTenant?.trim() || "Tenant";
+                            const tenantInitial = tenantName.charAt(0).toUpperCase();
+                            const leaseStart = formatTenantMonthYear(tenant.leaseStart);
+                            const leaseEnd = formatTenantMonthYear(tenant.leaseEnd);
+                            const rent = formatTenantRent(tenant.rent);
+
+                            return (
+                              <div
+                                key={`${tenant.currentTenant ?? "tenant"}-${index}`}
+                                className="rounded-md bg-[#ececec] p-4"
+                              >
+                                <p className="text-base leading-none text-[#22a85b]">
+                                  {rent ?? "Rent not available"}
+                                </p>
+                                <div className="mt-4 flex items-center gap-3">
+                                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#dce9df] text-2xl leading-none text-[#22a85b]">
+                                    {tenantInitial}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="truncate text-base font-medium text-gray-900">
+                                      {tenantName}
+                                    </p>
+                                    <p className="text-base text-gray-500">
+                                      {leaseStart && leaseEnd
+                                        ? `${leaseStart} - ${leaseEnd}`
+                                        : leaseStart
+                                          ? `From ${leaseStart}`
+                                          : leaseEnd
+                                            ? `Until ${leaseEnd}`
+                                            : "Lease period not available"}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500">
+                          Tenant information not available.
+                        </p>
+                      )}
                     </section>
 
                     {/* Amenities */}

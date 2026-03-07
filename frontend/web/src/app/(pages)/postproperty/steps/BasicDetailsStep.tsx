@@ -579,7 +579,7 @@ export default function BasicDetailsStep() {
       {propertyType === "land" && land.propertyType && (
         <div className="mb-6">
           <p className="mb-3 text-sm font-medium text-gray-700">
-            Land Characteristics
+            Land Details
           </p>
 
           <div className="flex flex-wrap gap-3">
@@ -750,128 +750,135 @@ export default function BasicDetailsStep() {
 
       {isLoggedIn &&
         propertyType !== null &&
-        ["residential", "commercial"].includes(propertyType) && (
+        ["residential", "commercial", "land"].includes(propertyType) && (
           <div className="space-y-6">
-            {/* Availability Status */}
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-gray-700">
-                Availability Status
-              </p>
+            {propertyType !== "land" && (
+              <>
+                {/* Availability Status */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-700">
+                    Availability Status
+                  </p>
 
-              <div className="flex flex-wrap gap-3">
-                {[
-                  { label: "Ready to Move", value: "ready-to-move" },
-                  { label: "Under Construction", value: "under-construction" },
-                ].map((item) => {
-                  const active = profileData.constructionStatus === item.value;
+                  <div className="flex flex-wrap gap-3">
+                    {[
+                      { label: "Ready to Move", value: "ready-to-move" },
+                      {
+                        label: "Under Construction",
+                        value: "under-construction",
+                      },
+                    ].map((item) => {
+                      const active = profileData.constructionStatus === item.value;
 
-                  return (
-                    <button
-                      key={item.value}
-                      type="button"
-                      onClick={() => {
-                        dispatch(
-                          setProfileField({
-                            propertyType,
-                            key: "constructionStatus",
-                            value: item.value,
-                          }),
-                        );
+                      return (
+                        <button
+                          key={item.value}
+                          type="button"
+                          onClick={() => {
+                            dispatch(
+                              setProfileField({
+                                propertyType,
+                                key: "constructionStatus",
+                                value: item.value,
+                              }),
+                            );
 
-                        if (
-                          propertyType === "residential" &&
-                          item.value !== "ready-to-move"
-                        ) {
-                          dispatch(
-                            setProfileField({
-                              propertyType,
-                              key: "propertyAge",
-                              value: undefined,
-                            }),
-                          );
-                        }
-                      }}
-                      className={`px-6 py-2 rounded-md text-sm border transition
+                            if (
+                              propertyType === "residential" &&
+                              item.value !== "ready-to-move"
+                            ) {
+                              dispatch(
+                                setProfileField({
+                                  propertyType,
+                                  key: "propertyAge",
+                                  value: undefined,
+                                }),
+                              );
+                            }
+                          }}
+                          className={`px-6 py-2 rounded-md text-sm border transition
                 ${active
-                          ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                          : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                        }`}
-                    >
-                      {item.label}
-                    </button>
-                  );
-                })}
-              </div>
-              {showErrors && fieldErrors.constructionStatus?.[0] && (
-                <p className="text-xs text-red-500 mt-1">
-                  {fieldErrors.constructionStatus[0]}
-                </p>
-              )}
-            </div>
-
-            {/* Property Age / Possession */}
-            {profileData.constructionStatus === "ready-to-move" && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700">
-                  Property Age
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  {[
-                    { value: "0-1-year", label: "0-1 Year" },
-                    { value: "1-5-years", label: "1-5 Years" },
-                    { value: "5-10-years", label: "5-10 Years" },
-                    { value: "10-plus-years", label: "10+ Years" },
-                  ].map((item) => {
-                    const active = profileData.propertyAge === item.value;
-
-                    return (
-                      <button
-                        key={item.value}
-                        type="button"
-                        onClick={() =>
-                          dispatch(
-                            setProfileField({
-                              propertyType,
-                              key: "propertyAge",
-                              value: item.value,
-                            }),
-                          )
-                        }
-                        className={`px-6 py-2 rounded-md text-sm border transition
-                  ${active
-                            ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                            : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                          }`}
-                      >
-                        {item.label}
-                      </button>
-                    );
-                  })}
+                              ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                              : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                            }`}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {showErrors && fieldErrors.constructionStatus?.[0] && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {fieldErrors.constructionStatus[0]}
+                    </p>
+                  )}
                 </div>
-              </div>
-            )}
 
-            {profileData.constructionStatus === "under-construction" && (
-              <InputField
-                label="Expected Possession Date"
-                type="date"
-                value={profileData.possessionDate || ""}
-                onChange={(value) =>
-                  dispatch(
-                    setProfileField({
-                      propertyType,
-                      key: "possessionDate",
-                      value,
-                    }),
-                  )
-                }
-              />
+                {/* Property Age / Possession */}
+                {profileData.constructionStatus === "ready-to-move" && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-gray-700">
+                      Property Age
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      {[
+                        { value: "0-1-year", label: "0-1 Year" },
+                        { value: "1-5-years", label: "1-5 Years" },
+                        { value: "5-10-years", label: "5-10 Years" },
+                        { value: "10-plus-years", label: "10+ Years" },
+                      ].map((item) => {
+                        const active = profileData.propertyAge === item.value;
+
+                        return (
+                          <button
+                            key={item.value}
+                            type="button"
+                            onClick={() =>
+                              dispatch(
+                                setProfileField({
+                                  propertyType,
+                                  key: "propertyAge",
+                                  value: item.value,
+                                }),
+                              )
+                            }
+                            className={`px-6 py-2 rounded-md text-sm border transition
+                  ${active
+                                ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                                : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                              }`}
+                          >
+                            {item.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {profileData.constructionStatus === "under-construction" && (
+                  <InputField
+                    label="Expected Possession Date"
+                    type="date"
+                    value={profileData.possessionDate || ""}
+                    onChange={(value) =>
+                      dispatch(
+                        setProfileField({
+                          propertyType,
+                          key: "possessionDate",
+                          value,
+                        }),
+                      )
+                    }
+                  />
+                )}
+              </>
             )}
 
             {/* Transaction Type */}
             <div className="space-y-2">
               <p className="text-sm font-medium text-gray-700">
-                Transaction Type
+                Sale Type
               </p>
 
               <div className="flex flex-wrap gap-3">

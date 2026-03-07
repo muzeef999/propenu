@@ -108,7 +108,7 @@ const AmenitiesSelect = ({
             {value.map((amenity) => (
               <span
                 key={amenity.key}
-                className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full"
+                className="text-xs px-2 py-1 bg-green-50 text-green-600 rounded-full"
               >
                 {amenity.title}
               </span>

@@ -110,14 +110,10 @@ export const LAND_PROPERTY_TYPES = [
 
 // Subtypes / characteristics used in the basic details form for land
 export const LAND_PROPERTY_SUBTYPES = [
-  "gated-community",
-  "non-gated",
   "corner",
   "road-facing",
   "two-side-open",
   "three-side-open",
-  "resale",
-  "new-plot",
 ] as const;
 
 export type LandPropertySubtype = (typeof LAND_PROPERTY_SUBTYPES)[number];

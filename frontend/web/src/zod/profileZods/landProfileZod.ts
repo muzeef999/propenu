@@ -49,14 +49,6 @@ export const landProfileSchema = z.object({
   // Pricing
   isPriceNegotiable: z.boolean().default(false),
 
-   description: z.preprocess(
-  (val) => val ?? "",
-  z
-    .string()
-    .nonempty("Description is required")
-    .min(30, "Description must be at least 30 characters long")
-),
-
   images: z.array(z.instanceof(File)).default([]),
 })
 

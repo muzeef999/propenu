@@ -49,6 +49,7 @@ export interface ICommercial {
   _id: string;
   floorNumber?: number;
   totalFloors?: number;
+  propertyAge?: string;
   price?: number;
   city?: string;
   listingType?: string;
