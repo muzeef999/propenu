@@ -50,7 +50,7 @@ const CounterField = ({
           type="button"
           onClick={decrease}
           disabled={value <= min}
-          className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-30"
+          className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 transition cursor-pointer hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-30"
         >
           <MdRemove size={18} />
         </button>
@@ -65,7 +65,7 @@ const CounterField = ({
           type="button"
           onClick={increase}
           disabled={max !== undefined && value >= max}
-          className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-30"
+          className="flex h-7 w-7 items-center justify-center cursor-pointer rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-30"
         >
           <MdAdd size={18} />
         </button>

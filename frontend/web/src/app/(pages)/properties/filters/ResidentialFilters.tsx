@@ -526,7 +526,7 @@ const ResidentialFilters = () => {
                       handleSectionClick(section.key);
                       setActiveFilter(section.key);
                     }}
-                    className={`w-full text-left px-4 py-3 border-b border-gray-200   ${
+                    className={`w-full text-left px-4 py-3 border-b border-gray-200 cursor-pointer   ${
                       activeFilter === section.key
                         ? " font-semibold text-primary"
                         : "hover:bg-gray-50"
@@ -558,7 +558,7 @@ const ResidentialFilters = () => {
 
                     {/* SECTION CONTENT */}
                     {section.key === "Covered Area" ? (
-                      <div className="space-y-4">
+                      <div className="space-y-4 cursor-pointer">
                         {/* Min / Max dropdowns */}
                         <div className="flex gap-3">
                           <select
@@ -618,7 +618,7 @@ const ResidentialFilters = () => {
                               </div>
                             );
                           }}
-                          renderThumb={({ props }) => {
+                          renderThumb={({ props }) => { 
                             const { key, ...restProps } = props as any;
 
                             return (

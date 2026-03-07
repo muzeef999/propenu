@@ -49,7 +49,7 @@ const Dropdownui: React.FC<DropdownProps> = ({
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           className={`
-            flex w-full items-center justify-between rounded-lg border bg-white px-3 py-[0.40rem] shadow-sm transition-all
+            flex w-full items-center justify-between rounded-lg border bg-white px-3 py-[0.40rem] shadow-sm transition-all cursor-pointer
             ${isOpen ? 'border-emerald-500 ring-1 ring-emerald-500' : ''}
             ${error 
               ? 'border-red-500 ring-red-500' 

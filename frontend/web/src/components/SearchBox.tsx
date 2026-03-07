@@ -70,7 +70,7 @@ const SearchBox = () => {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="flex items-center gap-1 rounded-md bg-[#D1EFDD] px-3 py-1.5 text-sm font-medium text-[#15803D] transition-colors hover:bg-[#BDE5CE]"
+            className="flex items-center gap-1 rounded-md cursor-pointer bg-[#D1EFDD] px-3 py-1.5 text-sm font-medium text-[#15803D] transition-colors hover:bg-[#BDE5CE]"
             onClick={(e) => e.stopPropagation()}
           >
             <span className="leading-none">{listingTypeLabel}</span>

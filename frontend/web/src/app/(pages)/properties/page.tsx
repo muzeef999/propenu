@@ -116,12 +116,12 @@ const Page: React.FC = () => {
                 </p>
               )}
 
-              <label className="inline-flex w-fit items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm">
+              <label className="inline-flex w-fit items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm cursor-pointer">
                 <HiArrowsUpDown className="h-4 w-4" />
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-transparent text-sm text-gray-700 outline-none"
+                  className="bg-transparent text-sm text-gray-700 outline-none cursor-pointer"
                   aria-label="Sort properties"
                 >
                   <option value="newest">Newest</option>

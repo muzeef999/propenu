@@ -177,7 +177,7 @@ const FilterBar: React.FC = () => {
               triggerLabel={
                 <button
                   type="button"
-                  className="flex items-center gap-1 rounded-md bg-[#D1EFDD] px-3 py-1.5 text-sm font-medium text-[#15803D] transition-colors hover:bg-[#BDE5CE]"
+                  className="flex items-center gap-1 rounded-md bg-[#D1EFDD] px-3 py-1.5 text-sm font-medium text-[#15803D] transition-colors hover:bg-[#BDE5CE] cursor-pointer"
                 >
                   <span className="leading-none">{listingTypeLabel}</span>
 
@@ -199,7 +199,7 @@ const FilterBar: React.FC = () => {
                   <h4 className="mb-2 text-sm font-semibold">
                     Listing Type
                   </h4>
-                  <div className="flex flex-wrap gap-2 ">
+                  <div className="flex flex-wrap gap-2">
                     {listingOptions.map((l) => (
                       <button
                         key={l.value}
@@ -212,7 +212,7 @@ const FilterBar: React.FC = () => {
                           );
                           close();
                         }}
-                        className="rounded px-2 py-1 hover:bg-gray-100"
+                        className="rounded px-2 py-1 hover:bg-gray-100 cursor-pointer"
                       >
                         {l.label}
                       </button>
@@ -321,7 +321,7 @@ const FilterBar: React.FC = () => {
                               handleLocalitySelect(name);
                               close();
                             }}
-                            className="text-left text-sm text-gray-800 hover:text-primary"
+                            className="text-left text-sm cursor-pointer text-gray-800 hover:text-primary"
                           >
                             {name},{" "}
                             <span className="text-[#26ad5f]">
