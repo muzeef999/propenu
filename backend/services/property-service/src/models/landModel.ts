@@ -128,42 +128,24 @@ export const LandPlot: Model<ILand> =
 export default LandPlot;
 
 function buildLandTitle(doc: any) {
-  /* -------- Plot Area -------- */
-  const plotArea =
-    doc.plotArea && doc.plotAreaUnit
-      ? `${doc.plotArea} ${doc.plotAreaUnit}`
-      : "";
-
-  /* -------- Dimensions -------- */
+  /* -------- Core fields only (short title) -------- */
   const dimensions =
     doc.dimensions?.length && doc.dimensions?.width
       ? `${doc.dimensions.length}×${doc.dimensions.width}`
       : "";
-
-  /* -------- Property Type -------- */
-  const propertyType = doc.propertyType
-    ? doc.propertyType.replace(/-/g, " ")
-    : "Land";
-
-  /* -------- Property Sub-Type -------- */
+  const plotArea =
+    doc.plotArea && doc.plotAreaUnit ? `${doc.plotArea} ${doc.plotAreaUnit}` : "";
   const propertySubType = doc.propertySubType
     ? doc.propertySubType.replace(/-/g, " ")
     : "";
+  const propertyType = doc.propertyType ? doc.propertyType.replace(/-/g, " ") : "Land";
 
-  /* -------- Transaction Type -------- */
   const transactionType =
     doc.listingType === "rent"
       ? "for Rent"
       : doc.listingType === "lease"
         ? "for Lease"
         : "for Sale";
-
-  /* -------- Flags -------- */
-  const cornerPlot = doc.cornerPlot ? "Corner Plot" : "";
-  const readyToConstruct = doc.readyToConstruct ? "Ready to Construct" : "";
-
-  /* -------- Land / Layout Name -------- */
-  const landName = doc.landName ? doc.landName : "";
 
   /* -------- Location -------- */
   const locality = doc.locality ?? "";
@@ -172,17 +154,15 @@ function buildLandTitle(doc: any) {
   return `
     ${dimensions}
     ${plotArea}
-    ${cornerPlot}
-    ${readyToConstruct}
     ${propertySubType}
     ${propertyType}
     ${transactionType}
-    ${landName ? "in " + landName : ""}
     ${locality || city ? "in" : ""}
-    ${locality}
+    ${locality},
     ${city}
   `
     .replace(/\s+/g, " ")
+    .replace(/\bReady to Construct\b/gi, "")
     .replace(/\(\s*\)/g, "")
     .replace(/\bin in\b/g, "in")
     .trim();

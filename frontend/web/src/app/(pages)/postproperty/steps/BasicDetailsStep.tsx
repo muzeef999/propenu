@@ -1013,6 +1013,12 @@ export default function BasicDetailsStep() {
                 ? "corner"
                 : profileData.landSubType;
             delete basicPayload.landSubType;
+
+            // Backward compatibility: older UI/state used `roadWidth` for land.
+            if (!basicPayload.roadWidthFt && basicPayload.roadWidth) {
+              basicPayload.roadWidthFt = basicPayload.roadWidth;
+            }
+            delete basicPayload.roadWidth;
           }
 
           if (

@@ -314,14 +314,16 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
 
     // ✅ Allow only safe fields
     const allowedUpdates = ["name", "email", "address"];
-    const updates: any = {};
+    const updates: Record<string, unknown> = {};
 
     for (const key of allowedUpdates) {
       if (req.body[key] !== undefined) {
-        updates[key] =
-          typeof req.body[key] === "string"
-            ? req.body[key].trim()
-            : req.body[key];
+        if (typeof req.body[key] === "string") {
+          const cleaned = req.body[key].trim();
+          updates[key] = key === "email" ? cleaned.toLowerCase() : cleaned;
+        } else {
+          updates[key] = req.body[key];
+        }
       }
     }
 
@@ -356,6 +358,13 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error("Update profile error:", error);
+
+    if (error?.code === 11000 && error?.keyPattern?.email) {
+      return res.status(409).json({
+        message: "Email already exists. Please use a different email.",
+      });
+    }
+
     return res.status(500).json({ message: "Failed to update profile" });
   }
 };

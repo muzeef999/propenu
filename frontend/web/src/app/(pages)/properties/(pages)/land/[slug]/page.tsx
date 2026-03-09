@@ -18,10 +18,12 @@ import {
 } from "@/utilies/resolveListingSource";
 import { FiGrid, FiHash, FiZap } from "react-icons/fi";
 import { GiMoneyStack } from "react-icons/gi";
-import { IoWaterOutline } from "react-icons/io5";
-import { MdOutlineElectricBolt } from "react-icons/md";
+import { IoSparklesOutline, IoWaterOutline } from "react-icons/io5";
+import { MdOutlineElectricBolt, MdOutlineLayers } from "react-icons/md";
 import { RiSurveyLine } from "react-icons/ri";
 import { TbMapSearch } from "react-icons/tb";
+import { PiMapTrifold } from "react-icons/pi";
+import { HiOutlineViewGrid } from "react-icons/hi";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -68,12 +70,12 @@ export default async function Page({ params }: PageProps) {
     {
       label: "Survey Number",
       value: project?.surveyNumber ?? "N/A",
-      icon: RiSurveyLine,
+      icon: PiMapTrifold,
     },
     {
       label: "Land Use Zone",
       value: project?.landUseZone ?? "N/A",
-      icon: TbMapSearch,
+      icon: MdOutlineLayers,
     },
     {
       label: "Road Width",
@@ -92,7 +94,6 @@ export default async function Page({ params }: PageProps) {
     },
   ];
 
-  console.log(project);
 
   return (
     <div
@@ -205,9 +206,9 @@ export default async function Page({ params }: PageProps) {
                       </div>
 
                       <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4">
-                        <BiShapeSquare color="#6B7280" />
-                        <span className="font-semibold text-gray-900 text-sm sm:text-base">{project?.cornerPlot ? "Yes" : "No"}</span>
-                        <span className="text-xs sm:text-sm text-gray-500">Corner Plot</span>
+                        <IoSparklesOutline  color="#6B7280" />
+                        <span className="font-semibold text-gray-900 text-sm sm:text-base">{project?.amenities?.length ?? 0}</span>
+                        <span className="text-xs sm:text-sm text-gray-500">Amenities</span>
                       </div>
                     </div>
 

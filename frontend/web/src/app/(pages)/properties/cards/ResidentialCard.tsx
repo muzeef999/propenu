@@ -218,7 +218,7 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
 
           <div className={`flex ${vertical ? "flex-col gap-1" : "flex-col"}`}>
             <h3
-              className={`font-semibold truncate ${vertical ? "text-base max-w-[250px]" : "text-lg md:text-md max-w-[500px]"
+              className={`font-semibold leading-snug line-clamp-2 ${vertical ? "text-base max-w-[250px] truncate" : "text-lg md:text-md max-w-[600px]"
                 }`}
             >
               {p.title}

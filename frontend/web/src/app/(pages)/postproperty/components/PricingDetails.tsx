@@ -191,13 +191,13 @@ export default function PricingDetails({
         <InputField
           label={isLand ? "Road Width (ft)" : "Built-up Area (sq ft)"}
           placeholder={isLand ? "e.g. 30" : "Optional"}
-          value={isLand ? data.roadWidth ?? "" : data.builtUpArea ?? ""}
-          error={fieldErrors[isLand ? "roadWidth" : "builtUpArea"]?.[0]}
+          value={isLand ? data.roadWidthFt ?? data.roadWidth ?? "" : data.builtUpArea ?? ""}
+          error={fieldErrors[isLand ? "roadWidthFt" : "builtUpArea"]?.[0]}
           onChange={(value) =>
             dispatch(
               setProfileField({
                 propertyType,
-                key: isLand ? "roadWidth" : "builtUpArea",
+                key: isLand ? "roadWidthFt" : "builtUpArea",
                 value: value.replace(/\D/g, ""),
               }),
             )

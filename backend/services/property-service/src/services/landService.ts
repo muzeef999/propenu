@@ -21,6 +21,27 @@ function normalizePayload(obj: any) {
   return obj;
 }
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function stripLegacyReadyToConstruct(title?: string, landName?: string) {
+  if (!title || typeof title !== "string") return title;
+  let cleaned = title
+    .replace(/\bReady to Construct\b/gi, "")
+    .trim();
+
+  if (landName && typeof landName === "string") {
+    const safeLandName = escapeRegex(landName.trim());
+    if (safeLandName) {
+      const landNamePattern = new RegExp(`\\s+in\\s+${safeLandName}\\b`, "gi");
+      cleaned = cleaned.replace(landNamePattern, "");
+    }
+  }
+
+  return cleaned.replace(/\s+/g, " ").trim();
+}
+
 function normalizeAmenityKey(value?: string) {
   if (!value || typeof value !== "string") return value;
   return value
@@ -471,18 +492,40 @@ export const LandService = {
 
   async getById(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    return LandPlot.findById(id)
+    const doc = await LandPlot.findById(id)
       .populate("createdBy", "name email phone roleId")
-      .lean()
       .exec();
+    if (!doc) return null;
+
+    const cleanedTitle = stripLegacyReadyToConstruct(
+      (doc as any).title,
+      (doc as any).landName,
+    );
+    if (cleanedTitle && cleanedTitle !== (doc as any).title) {
+      (doc as any).title = cleanedTitle;
+      await doc.save();
+    }
+
+    return doc.toObject ? doc.toObject() : (doc as any);
   },
 
   async getBySlug(slug: string) {
     if (!slug || typeof slug !== "string") throw new Error("Invalid slug");
-    return LandPlot.findOne({ slug })
+    const doc = await LandPlot.findOne({ slug })
       .populate("createdBy", "name email phone roleId")
-      .lean()
       .exec();
+    if (!doc) return null;
+
+    const cleanedTitle = stripLegacyReadyToConstruct(
+      (doc as any).title,
+      (doc as any).landName,
+    );
+    if (cleanedTitle && cleanedTitle !== (doc as any).title) {
+      (doc as any).title = cleanedTitle;
+      await doc.save();
+    }
+
+    return doc.toObject ? doc.toObject() : (doc as any);
   },
 
   async list(options?: {

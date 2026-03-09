@@ -139,6 +139,8 @@ const LandProfile = () => {
     );
   };
 
+  console.log("land", land);
+
   return (
     <div className="space-y-8">
       {/* 1. PLOT DETAILS */}
@@ -293,11 +295,10 @@ const LandProfile = () => {
                     })
                   )
                 }
-                className={`flex items-center justify-between gap-3 rounded-md border p-3
-    cursor-pointer transition-all duration-150
-    ${enabled
-                    ? "border-green-100 bg-green-50 shadow-sm"
-                    : "border-gray-100 bg-white hover:border-gray-400"
+                className={`flex items-center justify-between rounded-md border p-3 shadow-sm transition
+            ${enabled
+                    ? "border-green-500 bg-green-50 shadow-sm"
+                    : "border-gray-300 bg-white"
                   }`}
               >
                 <span

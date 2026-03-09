@@ -199,7 +199,7 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
         <div className="flex-1 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
           <div>
             <h3
-              className={`font-semibold truncate ${vertical ? "text-base max-w-[250px]" : "text-lg md:text-md max-w-[400px]"
+              className={`font-semibold leading-snug line-clamp-2 ${vertical ? "text-base max-w-[250px] truncate" : "text-lg md:text-md max-w-[600px]"
                 }`}
             >
               {p.title}

@@ -35,6 +35,7 @@ export const basicDetailsSchema = z
 
     plotArea: z.union([z.string(), z.number()]).optional(),
     totalArea: z.any().optional(),
+    roadWidthFt: z.union([z.string(), z.number()]).optional(),
     roadWidth: z.any().optional(),
 
     dimensions: z
