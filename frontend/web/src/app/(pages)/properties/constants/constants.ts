@@ -262,7 +262,6 @@ export const moreFilterSections: MoreFilterSection[] = [
         "Residential Plot",
         "Commercial Plot",
         "Industrial Plot",
-        "NA Plot",
       ],
       selectionType: "multiple",
     },

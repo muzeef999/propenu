@@ -81,7 +81,6 @@ export const LAND_PROPERTY_OPTIONS: PropertyTypeOption[] = [
   { key: "residential-plot", label: "Residential Plot", icon: "🏠" },
   { key: "commercial-plot", label: "Commercial Plot", icon: "🏢" },
   { key: "industrial-plot", label: "Industrial Plot", icon: "🏭" },
-  { key: "na-plot", label: "NA Plot", icon: "📝" },//other
 ];
 
 export const LAND_PROPERTY_KEYS = [

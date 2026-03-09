@@ -19,6 +19,9 @@ import { postLeads, postShortlistProperty, me, removeShortlistProperty, getUserS
 import ImageAutoCarousel from "@/ui/ImageAutoCarousel";
 import { useRouter } from "next/navigation";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
+import LoginDialog from "@/app/(auth)/Login";
+import RegisterDialog from "@/app/(auth)/Register";
+import { createPortal } from "react-dom";
 
 
 const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
@@ -52,6 +55,7 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
   const [isShortlisted, setIsShortlisted] = useState(false);
 
   const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -173,7 +177,7 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
             }
             onToggleShortlist={() => {
               if (!user) {
-                router.push("/login");
+                setShowLoginDialog(true);
                 return;
               }
 
@@ -355,6 +359,36 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
 
         </div>
       </aside>
+
+      {showLoginDialog &&
+        createPortal(
+          <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40">
+            <LoginDialog
+              open
+              onClose={() => setShowLoginDialog(false)}
+              onSwitchToRegister={() => {
+                setShowLoginDialog(false);
+                setShowRegisterDialog(true);
+              }}
+            />
+          </div>,
+          document.body,
+        )}
+
+      {showRegisterDialog &&
+        createPortal(
+          <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40">
+            <RegisterDialog
+              open
+              onClose={() => setShowRegisterDialog(false)}
+              onSwitchToLogin={() => {
+                setShowRegisterDialog(false);
+                setShowLoginDialog(true);
+              }}
+            />
+          </div>,
+          document.body,
+        )}
 
     </div>
   );

@@ -73,7 +73,6 @@ const LAND_TYPE_LABEL_TO_API: Record<string, string> = {
   "residential plot": "residential-plot",
   "commercial plot": "commercial-plot",
   "industrial plot": "industrial-plot",
-  "na plot": "na-plot",
   "residential land": "residential-plot",
   "commercial land": "commercial-plot",
   "industrial land": "industrial-plot",

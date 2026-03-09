@@ -28,7 +28,7 @@ const Banner = () => {
   }, []);
 
   return (
-    <section className="relative w-full overflow-hidden">
+    <section className="relative w-full overflow-visible">
       {/* ================= DESKTOP ================= */}
       <div className="hidden md:block w-full relative">
         <Image

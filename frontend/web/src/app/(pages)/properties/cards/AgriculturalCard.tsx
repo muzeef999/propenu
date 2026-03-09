@@ -19,8 +19,10 @@ import { toast } from "sonner";
 import { postShortlistProperty, me, removeShortlistProperty, getUserShortlist } from "@/data/ClientData";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
-import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import LoginDialog from "@/app/(auth)/Login";
+import RegisterDialog from "@/app/(auth)/Register";
+import { createPortal } from "react-dom";
 
 const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
   p,
@@ -51,7 +53,8 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
         : "User";
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isShortlisted, setIsShortlisted] = useState(false);
-  const router = useRouter();
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: userData } = useQuery({
@@ -149,7 +152,7 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
             }
             onToggleShortlist={() => {
               if (!user) {
-                router.push("/login");
+                setShowLoginDialog(true);
                 return;
               }
 
@@ -335,6 +338,36 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
           />
         </div>
       </aside>
+
+      {showLoginDialog &&
+        createPortal(
+          <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40">
+            <LoginDialog
+              open
+              onClose={() => setShowLoginDialog(false)}
+              onSwitchToRegister={() => {
+                setShowLoginDialog(false);
+                setShowRegisterDialog(true);
+              }}
+            />
+          </div>,
+          document.body,
+        )}
+
+      {showRegisterDialog &&
+        createPortal(
+          <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40">
+            <RegisterDialog
+              open
+              onClose={() => setShowRegisterDialog(false)}
+              onSwitchToLogin={() => {
+                setShowRegisterDialog(false);
+                setShowLoginDialog(true);
+              }}
+            />
+          </div>,
+          document.body,
+        )}
     </div>
   );
 };

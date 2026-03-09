@@ -8,7 +8,9 @@ import { GalleryItem } from "@/types/agricultural";
 import { getUserShortlist, me, postShortlistProperty, removeShortlistProperty } from "@/data/ClientData";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import LoginDialog from "@/app/(auth)/Login";
+import RegisterDialog from "@/app/(auth)/Register";
+import { createPortal } from "react-dom";
 
 type GalleryFileProps = {
   gallery?: GalleryItem[];
@@ -26,7 +28,8 @@ const GalleryFile: React.FC<GalleryFileProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [isShortlisted, setIsShortlisted] = useState(false);
-  const router = useRouter();
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: userData } = useQuery({
@@ -141,7 +144,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({
     e.stopPropagation();
 
     if (!user) {
-      router.push("/login");
+      setShowLoginDialog(true);
       return;
     }
 
@@ -359,6 +362,36 @@ const GalleryFile: React.FC<GalleryFileProps> = ({
           )}
         </div>
       )}
+
+      {showLoginDialog &&
+        createPortal(
+          <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40">
+            <LoginDialog
+              open
+              onClose={() => setShowLoginDialog(false)}
+              onSwitchToRegister={() => {
+                setShowLoginDialog(false);
+                setShowRegisterDialog(true);
+              }}
+            />
+          </div>,
+          document.body,
+        )}
+
+      {showRegisterDialog &&
+        createPortal(
+          <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40">
+            <RegisterDialog
+              open
+              onClose={() => setShowRegisterDialog(false)}
+              onSwitchToLogin={() => {
+                setShowRegisterDialog(false);
+                setShowLoginDialog(true);
+              }}
+            />
+          </div>,
+          document.body,
+        )}
     </>
   );
 };

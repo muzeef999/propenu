@@ -68,13 +68,6 @@ const FilterBar: React.FC = () => {
     useAppSelector((s) => s.filters);
   const cityData = useAppSelector(selectCityWithLocalities);
 
-  // Open search dropdown when coming from SearchBox
-  useEffect(() => {
-    if (searchParams.get("focus") === "search") {
-      setSearchOpen(true);
-    }
-  }, [searchParams]);
-
   useEffect(() => {
     const type = searchParams.get("type")?.toLowerCase();
     if (!type) return;
@@ -106,6 +99,13 @@ const FilterBar: React.FC = () => {
     if (Array.isArray(agricultural.locality)) return agricultural.locality;
     return agricultural.locality ? [agricultural.locality] : [];
   }, [category, residential.locality, commercial.locality, land.locality, agricultural.locality]);
+
+  // Open search dropdown when coming from SearchBox
+  useEffect(() => {
+    if (searchParams.get("focus") === "search" && selectedLocalities.length === 0) {
+      setSearchOpen(true);
+    }
+  }, [searchParams, selectedLocalities.length]);
 
   const handleLocalitySelect = (name: string) => {
     if (category === "Residential") {
@@ -249,11 +249,11 @@ const FilterBar: React.FC = () => {
               width="w-[360px]"
               showArrow={false}
               triggerLabel={
-                <div className="flex min-w-0 items-center cursor-text">
+                <div className="flex w-[360px] min-w-0 max-w-[360px] items-center cursor-text">
                   <IoIosSearch className="mr-2 text-lg text-gray-500" />
 
                   {selectedLocalities.length > 0 && (
-                    <div className="mr-2 flex items-center gap-2">
+                    <div className="mr-2 flex items-center gap-2 overflow-hidden">
                       <span className="flex max-w-36 items-center gap-2 rounded-full bg-[#f2e7e7] px-3 py-1 text-sm text-gray-800">
                         <span className="truncate">{selectedLocalities[0]}</span>
                         <button
@@ -284,12 +284,11 @@ const FilterBar: React.FC = () => {
                         : "Enter Locality or Landmark"
                     }
                     value={searchText}
-                    onFocus={() => setSearchOpen(true)}
                     onChange={(e) => {
                       dispatch(setSearchText(e.target.value));
                       setSearchOpen(true);
                     }}
-                    className="bg-transparent text-sm outline-none w-72"
+                    className="bg-transparent text-sm outline-none flex-1 min-w-0"
                   />
                 </div>
               }
