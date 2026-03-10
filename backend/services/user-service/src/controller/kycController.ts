@@ -1,7 +1,7 @@
 import { Response } from "express";
 import User from "../models/userModel";
 import { AuthRequest } from "../middlewares/authMiddleware";
-import { exchangeToken, fetchDocuments, saveVerifier } from "../services/kycService";
+import { exchangeToken, fetchDocuments, fetchProfile, saveVerifier } from "../services/kycService";
 import crypto from "crypto";
 
 
@@ -51,7 +51,32 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
     const token = await exchangeToken(code, state);
     const docs = await fetchDocuments(token.access_token);
 
+    const profile = await fetchProfile(token.access_token);
+
     const docTypes = docs.items?.map((d: any) => d.name) || [];
+    
+
+    const user = await User.findById(state);
+
+if (!user) {
+  throw new Error("User not found");
+}
+
+
+const appPhone = normalizePhone(user.phone ?? undefined);
+const kycPhone = normalizePhone(profile.mobile ?? undefined);
+
+if (appPhone !== kycPhone) {
+
+  await User.findByIdAndUpdate(state, {
+    "kyc.status": "rejected",
+    "kyc.remarks": "Phone number mismatch",
+  });
+
+  return res.redirect(
+    `${process.env.FRONTEND_URL}/settings?kyc=rejected`
+  );
+}
 
     await User.findByIdAndUpdate(state, {
       $set: {
@@ -75,3 +100,11 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
     );
   }
 };
+
+
+
+function normalizePhone(phone?: string| undefined) {
+  if (!phone) return "";
+
+  return phone.replace("+91", "").replace(/\s/g, "");
+}

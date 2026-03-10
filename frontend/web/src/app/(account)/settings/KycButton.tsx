@@ -1,13 +1,14 @@
 "use client";
 
 import { startKyc } from "@/data/ClientData";
-import { FaCheckCircle, FaClock, FaUserShield } from "react-icons/fa";
+import { FaCheckCircle, FaClock, FaTimesCircle, FaUserShield } from "react-icons/fa";
 
 interface Props {
   kycStatus?: string;
+    kycRemarks?: string;
 }
 
-export default function KycButton({ kycStatus }: Props) {
+export default function KycButton({ kycStatus, kycRemarks  }: Props) {
   const handleStartKyc = async () => {
     try {
       const data = await startKyc();
@@ -37,6 +38,32 @@ export default function KycButton({ kycStatus }: Props) {
       <div className="flex items-center gap-2 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold">
         <FaClock />
         KYC Pending
+      </div>
+    );
+  }
+
+
+    if (kycStatus === "rejected") {
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2 bg-red-100 text-red-700 px-3 py-2 rounded-full text-sm font-semibold">
+          <FaTimesCircle />
+          KYC Rejected
+        </div>
+
+        {kycRemarks && (
+          <p className="text-xs text-red-600">
+            Reason: {kycRemarks}
+          </p>
+        )}
+
+        <button
+          onClick={handleStartKyc}
+          className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg cursor-pointer hover:bg-red-700 transition"
+        >
+          <FaUserShield />
+          Retry KYC
+        </button>
       </div>
     );
   }

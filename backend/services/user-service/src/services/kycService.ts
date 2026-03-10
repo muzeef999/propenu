@@ -65,3 +65,18 @@ export const fetchDocuments = async (accessToken: string) => {
 
   return res.data;
 };
+
+
+
+export const fetchProfile = async (accessToken: string) => {
+  const res = await axios.get(
+    "https://digilocker.meripehchaan.gov.in/public/oauth2/1/user",
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  return res.data;
+};

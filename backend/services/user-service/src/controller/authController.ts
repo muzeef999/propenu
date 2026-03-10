@@ -371,7 +371,7 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
 
 export const createVerifyOtp = async (req: Request, res: Response) => {
   try {
-    let { email, phone, otp, name, role } = req.body;
+    let { email, phone, otp, name, role,  locality, city, state, pincode } = req.body;
 
     email = email?.trim()?.toLowerCase();
     phone = phone?.trim();
@@ -427,6 +427,11 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       email: email || undefined,
       phone: phone || undefined,
       roleId: roleDoc._id,
+      phoneVerified: true,
+      locality,
+      city,
+      state,
+      pincode,
     });
 
     // ⭐ Generate token

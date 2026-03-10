@@ -51,7 +51,7 @@ const SettingsPage = () => {
     },
     onError: (error: any) => {
       toast.error(
-        error?.response?.data?.message || "Failed to update profile."
+        error?.response?.data?.message || "Failed to update profile.",
       );
     },
   });
@@ -73,13 +73,10 @@ const SettingsPage = () => {
     }
   }, [user]);
 
-
   /* -------------------- Loading -------------------- */
   if (userLoading || membershipLoading) {
     return (
-      <div className="p-6 text-center text-gray-500">
-        Loading profile...
-      </div>
+      <div className="p-6 text-center text-gray-500">Loading profile...</div>
     );
   }
 
@@ -101,14 +98,12 @@ const SettingsPage = () => {
     updateProfileMutation.mutate(formData);
   };
 
-
   /* -------------------- Success -------------------- */
   return (
     <div className="sm:p-4 md:p-1 font-sans text-[#4A4A4A]">
       <div className="max-w-5xl space-y-6">
         {/* Profile Card */}
         <div className="bg-white p-4 sm:p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center gap-4">
-
           {/* Avatar */}
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-green-600 flex items-center justify-center text-white text-lg sm:text-xl font-semibold shrink-0">
@@ -131,7 +126,6 @@ const SettingsPage = () => {
           <div className="w-full sm:w-auto sm:ml-auto">
             <KycButton kycStatus={user?.user?.kycStatus} />
           </div>
-
         </div>
 
         {/* Personal Information */}
@@ -216,28 +210,41 @@ const SettingsPage = () => {
                   className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm space-y-3"
                 >
                   <div>
-                    <p className="font-semibold text-gray-800 leading-none">{item.planName}</p>
+                    <p className="font-semibold text-gray-800 leading-none">
+                      {item.planName}
+                    </p>
                     <p className="text-xs text-gray-400 mt-1 capitalize">
                       {item.planCode?.replace(/_/g, " ").toLowerCase()}
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-gray-400">Category</p>
-                      <p className="text-gray-700 capitalize">{item.category}</p>
+                      <p className="text-[11px] uppercase tracking-wide text-gray-400">
+                        Category
+                      </p>
+                      <p className="text-gray-700 capitalize">
+                        {item.category}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-gray-400">Price</p>
+                      <p className="text-[11px] uppercase tracking-wide text-gray-400">
+                        Price
+                      </p>
                       <p className="text-gray-700 font-medium">₹{item.price}</p>
                     </div>
                     <div className="col-span-2">
-                      <p className="text-[11px] uppercase tracking-wide text-gray-400">Duration</p>
+                      <p className="text-[11px] uppercase tracking-wide text-gray-400">
+                        Duration
+                      </p>
                       <p className="text-gray-700">
-                        {formatDate(item.startDate)} to {formatDate(item.endDate)}
+                        {formatDate(item.startDate)} to{" "}
+                        {formatDate(item.endDate)}
                       </p>
                     </div>
                     <div className="col-span-2">
-                      <p className="text-[11px] uppercase tracking-wide text-gray-400">Status</p>
+                      <p className="text-[11px] uppercase tracking-wide text-gray-400">
+                        Status
+                      </p>
                       <div className="mt-1">
                         <StatusBadge status={item.status} />
                       </div>
@@ -255,7 +262,9 @@ const SettingsPage = () => {
                         Download Invoice
                       </a>
                     ) : (
-                      <span className="text-xs italic text-gray-400">No invoice available</span>
+                      <span className="text-xs italic text-gray-400">
+                        No invoice available
+                      </span>
                     )}
                   </div>
                 </div>
@@ -266,20 +275,37 @@ const SettingsPage = () => {
               <table className="w-full min-w-[900px] text-left border-collapse">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100">
-                    <th className="px-6 py-4 text-sm font-semibold text-gray-400">Plan</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-gray-400">Category</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-gray-400">Duration</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-gray-400">Price</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-gray-400">Status</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-gray-400">Invoice</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-400">
+                      Plan
+                    </th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-400">
+                      Category
+                    </th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-400">
+                      Duration
+                    </th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-400">
+                      Price
+                    </th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-400">
+                      Status
+                    </th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-400">
+                      Invoice
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {membership.history.map((item: any, index: number) => (
-                    <tr key={index} className="hover:bg-gray-50/50 transition-colors">
+                    <tr
+                      key={index}
+                      className="hover:bg-gray-50/50 transition-colors"
+                    >
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                          <p className="font-semibold text-gray-800 leading-none">{item.planName}</p>
+                          <p className="font-semibold text-gray-800 leading-none">
+                            {item.planName}
+                          </p>
                           <p className="text-xs text-gray-400 mt-1 capitalize">
                             {item.planCode?.replace(/_/g, " ").toLowerCase()}
                           </p>
@@ -291,7 +317,9 @@ const SettingsPage = () => {
                       <td className="px-6 py-4 text-sm text-gray-700">
                         <div className="flex flex-col">
                           <span>{formatDate(item.startDate)}</span>
-                          <span className="text-xs text-gray-400">to {formatDate(item.endDate)}</span>
+                          <span className="text-xs text-gray-400">
+                            to {formatDate(item.endDate)}
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-700 whitespace-nowrap">
@@ -312,7 +340,9 @@ const SettingsPage = () => {
                             Download Invoice
                           </a>
                         ) : (
-                          <span className="text-xs italic text-gray-400">No invoice available</span>
+                          <span className="text-xs italic text-gray-400">
+                            No invoice available
+                          </span>
                         )}
                       </td>
                     </tr>
@@ -322,7 +352,6 @@ const SettingsPage = () => {
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
@@ -371,10 +400,9 @@ const StatusBadge = ({ status }: { status: string }) => {
   return (
     <span
       className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold
-    ${isActive
-          ? "bg-[#E9F9EF] text-[#1E7F4B]"
-          : "bg-[#EBEDEF] text-[#7F8C8D]"
-        }`}
+    ${
+      isActive ? "bg-[#E9F9EF] text-[#1E7F4B]" : "bg-[#EBEDEF] text-[#7F8C8D]"
+    }`}
     >
       <span
         className={`h-1.5 w-1.5 rounded-full
@@ -382,9 +410,7 @@ const StatusBadge = ({ status }: { status: string }) => {
       />
       {isActive ? "Active" : "Expired"}
     </span>
-
   );
 };
-
 
 export default SettingsPage;

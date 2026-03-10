@@ -9,9 +9,6 @@ accountRoutes.get("/subscriptions", getSubscriptionsController);
 accountRoutes.get("/subscription-history", getSubscriptionHistoryController);
 accountRoutes.get("/revenue/by-plan", getRevenueByPlanController);
 
-
-
-
 export default accountRoutes;
 
 

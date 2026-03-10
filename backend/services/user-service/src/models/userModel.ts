@@ -16,8 +16,8 @@ const KycSchema = new mongoose.Schema({
     },
   ],
   verifiedName: String,
- verifiedPhone: String,
- verifiedDob: String,
+  verifiedPhone: String,
+  verifiedDob: String,
   digilockerId: String,
   verifiedAt: Date,
   remarks: String,
@@ -53,10 +53,21 @@ const UserSchema = new mongoose.Schema(
     },
 
     kyc: {
-  type: KycSchema,
-  default: () => ({
-    status: "not_started",
-  }),
+      type: KycSchema,
+      default: () => ({
+        status: "not_started",
+      }),
+    },
+
+
+    locality :{ type: String, trim: true, minlength: 3, maxlength: 30, index: true},
+    city: { type: String, trim: true, minlength: 3, maxlength: 30, index: true },
+    state: { type: String, trim: true, minlength: 3, maxlength: 30, index: true },
+    pincode: { type: String, trim: true, minlength: 3, maxlength: 30, index: true },
+
+    phoneVerified: {
+  type: Boolean,
+  default: false
 },
 
     address: {
@@ -105,3 +116,5 @@ UserSchema.path("phone").validate(function () {
 // ✅ Use ESM export, not CommonJS
 const User = mongoose.model("User", UserSchema);
 export default User;
+
+
