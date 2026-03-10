@@ -7,9 +7,10 @@ import { toast } from "sonner";
 import {
   MdClose,
   MdOutlineBadge,
-  MdOutlineEngineering,
   MdOutlineWhatsapp,
 } from "react-icons/md";
+import { BsBuildings } from "react-icons/bs";
+
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input"; // isValidPhoneNumber is crucial for Zod
 import { z } from "zod";
 import "react-phone-number-input/style.css";
@@ -303,7 +304,7 @@ const RegisterDialog = ({
                     {
                       value: "builder",
                       label: "Builder",
-                      icon: AiOutlineTool,
+                      icon: BsBuildings,
                     },
                     { value: "agent", label: "Agent", icon: MdOutlineBadge },
                   ].map(({ value, label, icon: Icon }) => {

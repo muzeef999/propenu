@@ -143,8 +143,8 @@ const SearchBox = () => {
   }, [cityData, searchText]);
 
   return (
-    <div className="relative z-50 w-full max-w-2xl">
-      <div className="relative z-50 block bg-white shadow-lg rounded-xl border border-gray-200 p-2 cursor-pointer"
+    <div className="relative w-full max-w-2xl">
+      <div className=" block bg-white shadow-lg rounded-xl border border-gray-200 p-2 cursor-pointer"
       >
         <div className="flex items-center gap-2">
           <button
