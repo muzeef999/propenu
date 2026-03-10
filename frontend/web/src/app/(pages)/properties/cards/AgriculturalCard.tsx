@@ -23,6 +23,7 @@ import { useEffect } from "react";
 import LoginDialog from "@/app/(auth)/Login";
 import RegisterDialog from "@/app/(auth)/Register";
 import { createPortal } from "react-dom";
+import { addLocalShortlist, isLocalShortlisted, removeLocalShortlist } from "@/utilies/shortlistLocal";
 
 const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
   p,
@@ -70,14 +71,20 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
     enabled: !!user,
   });
 
-  useEffect(() => {
-    if (shortlistData?.data) {
-      const isInList = shortlistData.data.some(
-        (item: any) => item.property?._id === p.id
-      );
-      setIsShortlisted(isInList);
-    }
-  }, [shortlistData, p.id]);
+    useEffect(() => {
+        if (user && shortlistData?.data) {
+          const isInList = shortlistData.data.some(
+            (item: any) => item.property?._id === p.id,
+          );
+    
+          setIsShortlisted(isInList);
+        } else {
+          // 👇 guest user → check localStorage
+          const local = isLocalShortlisted(p.id);
+          setIsShortlisted(local);
+        }
+      }, [shortlistData, p.id, user]);
+    
 
   const addShortlistMutation = useMutation({
     mutationFn: postShortlistProperty,
@@ -151,29 +158,29 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
               addShortlistMutation.isPending || removeShortlistMutation.isPending
             }
             onToggleShortlist={() => {
-              if (!user) {
-                setShowLoginDialog(true);
-                return;
-              }
-
-              // Ensure we have a valid property ID before proceeding.
-              const propertyId = p.id;
-              if (!propertyId) {
-                toast.error("Cannot shortlist property without a valid ID.");
-                return;
-              }
-
-              if (isShortlisted) {
-                setIsShortlisted(false); // optimistic
-                removeShortlistMutation.mutate(propertyId);
-              } else {
-                setIsShortlisted(true); // optimistic
-                addShortlistMutation.mutate({
-                  propertyId: propertyId,
-                  propertyType: "Agricultural",
-                });
-              }
-            }}
+  if (user) {
+    if (isShortlisted) {
+      setIsShortlisted(false);
+      removeShortlistMutation.mutate(p.id);
+    } else {
+      setIsShortlisted(true);
+      addShortlistMutation.mutate({
+        propertyId: p.id,
+        propertyType: "Agricultural",
+      });
+    }
+  } else {
+    if (isShortlisted) {
+      removeLocalShortlist(p.id);
+      setIsShortlisted(false);
+      toast.success("Removed from shortlist");
+    } else {
+      addLocalShortlist(p.id, "Agricultural");
+      setIsShortlisted(true);
+      toast.success("Added to shortlist");
+    }
+  }
+}}
           />
           {/* overlay: image count & date */}
           <div className="absolute left-2 bottom-2 flex items-center gap-2 text-xs text-white">

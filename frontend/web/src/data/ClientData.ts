@@ -543,3 +543,26 @@ export const getFeaturedProjectsDashboard = async () => {
     });
     return res.data;
   }
+
+
+  export const syncShortlist = async (properties: any[]) => {
+
+  const token = Cookies.get("token");
+
+  if (!token) return null;
+
+  const res = await axiosInstance.post(
+    `${url}/api/users/shortlist/sync`,   
+    {
+      properties,                 
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  return res.data;
+};

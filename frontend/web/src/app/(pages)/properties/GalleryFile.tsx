@@ -248,7 +248,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({
           <FiImage className="h-4 w-4" />
           {safeGallery.length}
         </div>
-
+              
         {/* ACTION ICONS */}
         <div className="absolute right-6 top-6 flex gap-2">
           <button

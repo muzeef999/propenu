@@ -112,3 +112,38 @@ export const getProjectAnalytics = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: "Failed to load analytics" });
   }
 };
+
+
+export const syncShortlist = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!._id;
+    const { properties } = req.body;
+
+    if (!properties || !Array.isArray(properties)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid shortlist data",
+      });
+    }
+
+    for (const item of properties) {
+      await addToShortlistService(
+        userId,
+        item.propertyId,
+        item.propertyType
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Shortlist synced successfully",
+    });
+  } catch (error) {
+    console.error("SYNC_SHORTLIST_ERROR", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};

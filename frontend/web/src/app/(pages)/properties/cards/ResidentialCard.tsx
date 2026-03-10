@@ -15,14 +15,24 @@ import { toast } from "sonner";
 import formatINR from "@/utilies/PriceFormat";
 import Link from "next/link";
 import { BiBuildingHouse } from "react-icons/bi";
-import { postLeads, postShortlistProperty, me, removeShortlistProperty, getUserShortlist } from "@/data/ClientData";
+import {
+  postLeads,
+  postShortlistProperty,
+  me,
+  removeShortlistProperty,
+  getUserShortlist,
+} from "@/data/ClientData";
 import ImageAutoCarousel from "@/ui/ImageAutoCarousel";
 import { useRouter } from "next/navigation";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import LoginDialog from "@/app/(auth)/Login";
 import RegisterDialog from "@/app/(auth)/Register";
 import { createPortal } from "react-dom";
-
+import {
+  addLocalShortlist,
+  isLocalShortlisted,
+  removeLocalShortlist,
+} from "@/utilies/shortlistLocal";
 
 const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
   p,
@@ -30,7 +40,6 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
 }) => {
   const bgPriceColor = hexToRGBA("#27AE60", 0.1);
   const bgPriceColoricon = hexToRGBA("#27AE60", 0.4);
-
 
   const img = p?.gallery?.[0]?.url ?? "/placeholder.jpg";
   const pricePerSqft =
@@ -59,8 +68,6 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
   const router = useRouter();
   const queryClient = useQueryClient();
 
-
-
   const addShortlistMutation = useMutation({
     mutationFn: postShortlistProperty,
     onSuccess: () => {
@@ -86,7 +93,6 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
     },
   });
 
-
   const removeShortlistMutation = useMutation({
     mutationFn: removeShortlistProperty,
     onSuccess: () => {
@@ -97,7 +103,9 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
       const previousShortlist = queryClient.getQueryData(["user-shortlist"]);
       queryClient.setQueryData(["user-shortlist"], (old: any) => ({
         ...old,
-        data: (old?.data || []).filter((item: any) => item.property?._id !== propertyId),
+        data: (old?.data || []).filter(
+          (item: any) => item.property?._id !== propertyId,
+        ),
       }));
       return { previousShortlist };
     },
@@ -111,7 +119,6 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
       queryClient.invalidateQueries({ queryKey: ["user-shortlist"] });
     },
   });
-
 
   const { data: userData, isLoading: isLoadingUser } = useQuery({
     queryKey: ["user"],
@@ -147,24 +154,34 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
   });
 
   useEffect(() => {
-    if (shortlistData?.data) {
+    if (user && shortlistData?.data) {
       const isInList = shortlistData.data.some(
-        (item: any) => item.property?._id === p.id
+        (item: any) => item.property?._id === p.id,
       );
+
       setIsShortlisted(isInList);
+    } else {
+      // 👇 guest user → check localStorage
+      const local = isLocalShortlisted(p.id);
+      setIsShortlisted(local);
     }
-  }, [shortlistData, p.id]);
+  }, [shortlistData, p.id, user]);
 
   return (
     <div
-      className={`card p-2 h-auto flex overflow-hidden ${vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"
-        }`}
+      className={`card p-2 h-auto flex overflow-hidden ${
+        vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"
+      }`}
     >
-      <Link href={`/properties/residential/${p.slug}`} className={`flex flex-1 min-w-0 ${vertical ? "flex-col" : "flex-col md:flex-row"}`}>
+      <Link
+        href={`/properties/residential/${p.slug}`}
+        className={`flex flex-1 min-w-0 ${vertical ? "flex-col" : "flex-col md:flex-row"}`}
+      >
         {/* Left: image */}
         <div
-          className={`rounded-xl relative shrink-0 ${vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"
-            }`}
+          className={`rounded-xl relative shrink-0 ${
+            vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"
+          }`}
         >
           <ImageAutoCarousel
             images={p?.gallery?.map((g) => g.url) ?? []}
@@ -176,20 +193,33 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
               removeShortlistMutation.isPending
             }
             onToggleShortlist={() => {
-              if (!user) {
-                setShowLoginDialog(true);
-                return;
-              }
+              // ✅ USER LOGGED IN → use API
+              if (user) {
+                if (isShortlisted) {
+                  setIsShortlisted(false);
 
-              if (isShortlisted) {
-                setIsShortlisted(false); // optimistic
-                removeShortlistMutation.mutate(p.id);
-              } else {
-                setIsShortlisted(true); // optimistic
-                addShortlistMutation.mutate({
-                  propertyId: p.id,
-                  propertyType: "Residential",
-                });
+                  removeShortlistMutation.mutate(p.id);
+                } else {
+                  setIsShortlisted(true);
+
+                  addShortlistMutation.mutate({
+                    propertyId: p.id,
+                    propertyType: "Residential",
+                  });
+                }
+              }
+              // ✅ GUEST USER → use localStorage
+              else {
+                if (isShortlisted) {
+                  removeLocalShortlist(p.id);
+
+                  setIsShortlisted(false);
+                  toast.success("Removed from shortlist");
+                } else {
+                  addLocalShortlist(p.id, "Residential");
+                  setIsShortlisted(true);
+                  toast.success("Added to shortlist");
+                }
               }
             }}
           />
@@ -219,11 +249,13 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
 
         {/* Middle: content */}
         <div className="flex-1 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
-
           <div className={`flex ${vertical ? "flex-col gap-1" : "flex-col"}`}>
             <h3
-              className={`font-semibold leading-snug line-clamp-2 ${vertical ? "text-base max-w-[250px] truncate" : "text-lg md:text-md max-w-[600px]"
-                }`}
+              className={`font-semibold leading-snug line-clamp-2 ${
+                vertical
+                  ? "text-base max-w-[250px] truncate"
+                  : "text-lg md:text-md max-w-[600px]"
+              }`}
             >
               {p.title}
             </h3>
@@ -251,9 +283,11 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
 
           {/* meta icons row */}
           <div
-            className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200 ${vertical
-              ? "grid grid-cols-2 gap-4"
-              : "grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6"}`}
+            className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200 ${
+              vertical
+                ? "grid grid-cols-2 gap-4"
+                : "grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6"
+            }`}
           >
             <div className="items-center gap-2 flex">
               <SuperBuiitupAraea size={24} color={bgPriceColoricon} />
@@ -299,7 +333,9 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
             <div className="items-center gap-2 flex">
               <Parking size={24} color={bgPriceColoricon} />
               <div className="flex flex-col">
-                <div className="text-xs text-gray-500 tracking-wide">Parking</div>
+                <div className="text-xs text-gray-500 tracking-wide">
+                  Parking
+                </div>
                 <div className="font-medium">
                   {(p as any)?.parkingDetails?.twoWheeler ?? 0}
                   {" + "}
@@ -313,24 +349,27 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
 
       {/* Right: price card */}
       <aside
-        className={`rounded-xl ${vertical
-          ? "w-full px-3 py-2 flex items-center justify-between gap-3"
-          : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:mt-0"
-          }`}
+        className={`rounded-xl ${
+          vertical
+            ? "w-full px-3 py-2 flex items-center justify-between gap-3"
+            : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:mt-0"
+        }`}
         style={{ backgroundColor: bgPriceColor }}
       >
         {/* PRICE */}
         <div
-          className={`${vertical
-            ? "flex flex-col"
-            : "flex flex-col md:items-center md:text-center"
-            }`}
+          className={`${
+            vertical
+              ? "flex flex-col"
+              : "flex flex-col md:items-center md:text-center"
+          }`}
         >
           <div
-            className={`text-green-700 font-semibold ${vertical
-              ? "text-lg leading-tight"
-              : "text-lg leading-tight md:text-2xl"
-              }`}
+            className={`text-green-700 font-semibold ${
+              vertical
+                ? "text-lg leading-tight"
+                : "text-lg leading-tight md:text-2xl"
+            }`}
           >
             {formatINR(p?.price)}
           </div>
@@ -340,23 +379,23 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
 
         {/* BUTTON */}
         <div
-          className={`${vertical
-            ? "shrink-0"
-            : "shrink-0 md:w-full md:mt-4 flex justify-center"
-            }`}
+          className={`${
+            vertical
+              ? "shrink-0"
+              : "shrink-0 md:w-full md:mt-4 flex justify-center"
+          }`}
         >
           <ContactOwnerButton
             projectId={p.id}
             propertyType="residentials"
             listingType={p?.listingType}
             listingSource={resolvedListingSource}
-
-            className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${vertical
-              ? "px-4 py-1.5 text-sm"
-              : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base"
-              }`}
+            className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${
+              vertical
+                ? "px-4 py-1.5 text-sm"
+                : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base"
+            }`}
           />
-
         </div>
       </aside>
 
@@ -389,7 +428,6 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
           </div>,
           document.body,
         )}
-
     </div>
   );
 };

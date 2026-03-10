@@ -31,7 +31,7 @@ export interface GalleryItem {
 }
 export interface IAgricultural {
   _id?: string;
-  id?: string;
+  id: string;
   boundaryWall?: boolean;
   areaUnit?: "sqft" | "sqmt" | "acre" | "guntha" | "kanal" | "hectare" | string;
   landShape?: string;

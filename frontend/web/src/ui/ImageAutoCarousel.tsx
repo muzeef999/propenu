@@ -88,6 +88,9 @@ const ImageAutoCarousel = ({
         ))}
       </div>
 
+
+
+       short
       {/* ❤️ SHORTLIST ICON */}
       {onToggleShortlist && (
         <button

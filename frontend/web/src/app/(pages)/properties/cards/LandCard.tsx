@@ -16,7 +16,12 @@ import { BiBuildingHouse } from "react-icons/bi";
 import { ILand } from "@/types/land";
 import ImageAutoCarousel from "@/ui/ImageAutoCarousel";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { postShortlistProperty, me, removeShortlistProperty, getUserShortlist } from "@/data/ClientData";
+import {
+  postShortlistProperty,
+  me,
+  removeShortlistProperty,
+  getUserShortlist,
+} from "@/data/ClientData";
 import { toast } from "sonner";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import { useEffect } from "react";
@@ -24,6 +29,7 @@ import { resolveListingSource } from "@/utilies/resolveListingSource";
 import LoginDialog from "@/app/(auth)/Login";
 import RegisterDialog from "@/app/(auth)/Register";
 import { createPortal } from "react-dom";
+import { addLocalShortlist, isLocalShortlisted, removeLocalShortlist } from "@/utilies/shortlistLocal";
 
 export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
   p,
@@ -39,7 +45,7 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
     (p as any)?.pricePerSqft ?? (area ? Math.round((p?.price ?? 0) / area) : 0);
   const resolvedListingSource = resolveListingSource(
     p?.listingSource,
-      (p as any)?.createdBy,
+    (p as any)?.createdBy,
   );
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isShortlisted, setIsShortlisted] = useState(false);
@@ -60,14 +66,21 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
     enabled: !!user,
   });
 
-  useEffect(() => {
-    if (shortlistData?.data) {
-      const isInList = shortlistData.data.some(
-        (item: any) => item.property?._id === p.id
-      );
-      setIsShortlisted(isInList);
-    }
-  }, [shortlistData, p.id]);
+  
+    useEffect(() => {
+      if (user && shortlistData?.data) {
+        const isInList = shortlistData.data.some(
+          (item: any) => item.property?._id === p.id,
+        );
+  
+        setIsShortlisted(isInList);
+      } else {
+        // 👇 guest user → check localStorage
+        const local = isLocalShortlisted(p.id);
+        setIsShortlisted(local);
+      }
+    }, [shortlistData, p.id, user]);
+  
 
   const addShortlistMutation = useMutation({
     mutationFn: postShortlistProperty,
@@ -121,18 +134,21 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
     },
   });
 
-
-
   return (
     <div
-      className={`card p-2 h-auto flex overflow-hidden ${vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"
-        }`}
+      className={`card p-2 h-auto flex overflow-hidden ${
+        vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"
+      }`}
     >
-      <Link href={`/properties/land/${p.slug}`} className={`flex flex-1 min-w-0 ${vertical ? "flex-col" : "flex-col md:flex-row"}`}>
+      <Link
+        href={`/properties/land/${p.slug}`}
+        className={`flex flex-1 min-w-0 ${vertical ? "flex-col" : "flex-col md:flex-row"}`}
+      >
         {/* Left: image */}
         <div
-          className={`rounded-xl relative shrink-0 ${vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"
-            }`}
+          className={`rounded-xl relative shrink-0 ${
+            vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"
+          }`}
         >
           <ImageAutoCarousel
             images={p?.gallery?.map((g) => g.url) ?? []}
@@ -140,30 +156,31 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
             onIndexChange={setActiveImageIndex}
             isShortlisted={isShortlisted}
             isShortlistLoading={
-              addShortlistMutation.isPending || removeShortlistMutation.isPending
+              addShortlistMutation.isPending ||
+              removeShortlistMutation.isPending
             }
             onToggleShortlist={() => {
-              if (!user) {
-                setShowLoginDialog(true);
-                return;
-              }
-
-              // Ensure we have a valid property ID before proceeding.
-              const propertyId = p.id;
-              if (!propertyId) {
-                toast.error("Cannot shortlist property without a valid ID.");
-                return;
-              }
-
-              if (isShortlisted) {
-                setIsShortlisted(false); // optimistic
-                removeShortlistMutation.mutate(propertyId);
+              if (user) {
+                if (isShortlisted) {
+                  setIsShortlisted(false);
+                  removeShortlistMutation.mutate(p.id);
+                } else {
+                  setIsShortlisted(true);
+                  addShortlistMutation.mutate({
+                    propertyId: p.id,
+                    propertyType: "Land",
+                  });
+                }
               } else {
-                setIsShortlisted(true); // optimistic
-                addShortlistMutation.mutate({
-                  propertyId: propertyId,
-                  propertyType: "Land",
-                });
+                if (isShortlisted) {
+                  removeLocalShortlist(p.id);
+                  setIsShortlisted(false);
+                  toast.success("Removed from shortlist");
+                } else {
+                  addLocalShortlist(p.id, "Land");
+                  setIsShortlisted(true);
+                  toast.success("Added to shortlist");
+                }
               }
             }}
           />
@@ -195,8 +212,11 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
         <div className="flex-1 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
           <div className={`flex ${vertical ? "flex-col gap-1" : "flex-col"}`}>
             <h3
-              className={`font-semibold leading-snug line-clamp-2 ${vertical ? "text-base max-w-[250px] truncate" : "text-lg md:text-md max-w-[600px]"
-                }`}
+              className={`font-semibold leading-snug line-clamp-2 ${
+                vertical
+                  ? "text-base max-w-[250px] truncate"
+                  : "text-lg md:text-md max-w-[600px]"
+              }`}
             >
               {p.title}
             </h3>
@@ -224,10 +244,11 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
 
           {/* meta icons row */}
           <div
-            className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200 ${vertical
-              ? "grid grid-cols-2 gap-4"
-              : "grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6"
-              }`}
+            className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200 ${
+              vertical
+                ? "grid grid-cols-2 gap-4"
+                : "grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6"
+            }`}
           >
             <div className="items-center gap-2 flex">
               <SuperBuiitupAraea size={24} color={bgPriceColoricon} />
@@ -249,9 +270,11 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
                 </div>
 
                 <div className="font-medium">
-                  {(p as any)?.dimensions?.length && (p as any)?.dimensions?.width
-                    ? `${(p as any).dimensions.length} x ${(p as any).dimensions.width
-                    }`
+                  {(p as any)?.dimensions?.length &&
+                  (p as any)?.dimensions?.width
+                    ? `${(p as any).dimensions.length} x ${
+                        (p as any).dimensions.width
+                      }`
                     : "—"}
                 </div>
               </div>
@@ -260,7 +283,9 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
             <div className="items-center gap-2 flex">
               <Facing size={24} color={bgPriceColoricon} />
               <div className="flex flex-col">
-                <div className="text-xs text-gray-500 tracking-wide">Facing</div>
+                <div className="text-xs text-gray-500 tracking-wide">
+                  Facing
+                </div>
                 <div className="font-medium">
                   {(p as any)?.facing?.trim() ?? "—"}
                 </div>
@@ -286,24 +311,27 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
 
       {/* Right: price card */}
       <aside
-        className={`rounded-xl ${vertical
-          ? "w-full px-3 py-2 flex items-center justify-between gap-3"
-          : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:mt-0"
-          }`}
+        className={`rounded-xl ${
+          vertical
+            ? "w-full px-3 py-2 flex items-center justify-between gap-3"
+            : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:mt-0"
+        }`}
         style={{ backgroundColor: bgPriceColor }}
       >
         {/* PRICE */}
         <div
-          className={`${vertical
-            ? "flex flex-col"
-            : "flex flex-col md:items-center md:text-center"
-            }`}
+          className={`${
+            vertical
+              ? "flex flex-col"
+              : "flex flex-col md:items-center md:text-center"
+          }`}
         >
           <div
-            className={`text-green-700 font-semibold ${vertical
-              ? "text-lg leading-tight"
-              : "text-lg leading-tight md:text-2xl"
-              }`}
+            className={`text-green-700 font-semibold ${
+              vertical
+                ? "text-lg leading-tight"
+                : "text-lg leading-tight md:text-2xl"
+            }`}
           >
             {formatINR(p?.price)}
           </div>
@@ -313,21 +341,22 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
 
         {/* BUTTON */}
         <div
-          className={`${vertical
-            ? "shrink-0"
-            : "shrink-0 md:w-full md:mt-4 justify-center flex"
-            }`}
+          className={`${
+            vertical
+              ? "shrink-0"
+              : "shrink-0 md:w-full md:mt-4 justify-center flex"
+          }`}
         >
           <ContactOwnerButton
             projectId={p.id}
             propertyType="landplots"
             listingType={p?.listingType}
             listingSource={resolvedListingSource}
-
-            className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${vertical
-              ? "px-4 py-1.5 text-sm"
-              : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base "
-              }`}
+            className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${
+              vertical
+                ? "px-4 py-1.5 text-sm"
+                : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base "
+            }`}
           />
         </div>
       </aside>

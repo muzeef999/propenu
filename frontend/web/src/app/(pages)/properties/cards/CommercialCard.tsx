@@ -14,13 +14,23 @@ import { BiBuildingHouse } from "react-icons/bi";
 import { ICommercial } from "@/types/commercial";
 import ImageAutoCarousel from "@/ui/ImageAutoCarousel";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { postShortlistProperty, me, removeShortlistProperty, getUserShortlist } from "@/data/ClientData";
+import {
+  postShortlistProperty,
+  me,
+  removeShortlistProperty,
+  getUserShortlist,
+} from "@/data/ClientData";
 import { toast } from "sonner";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import { useEffect } from "react";
 import LoginDialog from "@/app/(auth)/Login";
 import RegisterDialog from "@/app/(auth)/Register";
 import { createPortal } from "react-dom";
+import {
+  addLocalShortlist,
+  isLocalShortlisted,
+  removeLocalShortlist,
+} from "@/utilies/shortlistLocal";
 
 const bgPriceColor = hexToRGBA("#27AE60", 0.1);
 
@@ -50,14 +60,20 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
     enabled: !!user,
   });
 
-  useEffect(() => {
-    if (shortlistData?.data) {
-      const isInList = shortlistData.data.some(
-        (item: any) => item.property?._id === p.id
-      );
-      setIsShortlisted(isInList);
-    }
-  }, [shortlistData, p.id]);
+  
+    useEffect(() => {
+      if (user && shortlistData?.data) {
+        const isInList = shortlistData.data.some(
+          (item: any) => item.property?._id === p.id,
+        );
+  
+        setIsShortlisted(isInList);
+      } else {
+        // 👇 guest user → check localStorage
+        const local = isLocalShortlisted(p.id);
+        setIsShortlisted(local);
+      }
+    }, [shortlistData, p.id, user]);
 
   const addShortlistMutation = useMutation({
     mutationFn: postShortlistProperty,
@@ -115,10 +131,7 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
     (p as any)?.pricePerSqft ??
     Math.round((p?.price ?? 0) / (p as any)?.superBuiltUpArea || 0);
 
-  const listingSourceRaw = (
-    p?.listingSource ||
-    "user"
-  )
+  const listingSourceRaw = (p?.listingSource || "user")
     ?.toString()
     .toLowerCase();
 
@@ -135,11 +148,15 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
         vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"
       }`}
     >
-      <Link href={`/properties/commercial/${p.slug}`} className={`flex flex-1 min-w-0 ${vertical ? "flex-col" : "flex-col md:flex-row"}`}>
+      <Link
+        href={`/properties/commercial/${p.slug}`}
+        className={`flex flex-1 min-w-0 ${vertical ? "flex-col" : "flex-col md:flex-row"}`}
+      >
         {/* Left: image */}
         <div
-          className={`rounded-xl relative shrink-0 ${vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"
-            }`}
+          className={`rounded-xl relative shrink-0 ${
+            vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"
+          }`}
         >
           <ImageAutoCarousel
             images={p?.gallery?.map((g) => g.url) ?? []}
@@ -147,30 +164,31 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
             onIndexChange={setActiveImageIndex}
             isShortlisted={isShortlisted}
             isShortlistLoading={
-              addShortlistMutation.isPending || removeShortlistMutation.isPending
+              addShortlistMutation.isPending ||
+              removeShortlistMutation.isPending
             }
             onToggleShortlist={() => {
-              if (!user) {
-                setShowLoginDialog(true);
-                return;
-              }
-
-              // Ensure we have a valid property ID before proceeding.
-              const propertyId = p.id;
-              if (!propertyId) {
-                toast.error("Cannot shortlist property without a valid ID.");
-                return;
-              }
-
-              if (isShortlisted) {
-                setIsShortlisted(false); // optimistic
-                removeShortlistMutation.mutate(propertyId);
+              if (user) {
+                if (isShortlisted) {
+                  setIsShortlisted(false);
+                  removeShortlistMutation.mutate(p.id);
+                } else {
+                  setIsShortlisted(true);
+                  addShortlistMutation.mutate({
+                    propertyId: p.id,
+                    propertyType: "Commercial",
+                  });
+                }
               } else {
-                setIsShortlisted(true); // optimistic
-                addShortlistMutation.mutate({
-                  propertyId: propertyId,
-                  propertyType: "Commercial",
-                });
+                if (isShortlisted) {
+                  removeLocalShortlist(p.id);
+                  setIsShortlisted(false);
+                  toast.success("Removed from shortlist");
+                } else {
+                  addLocalShortlist(p.id, "Commercial");
+                  setIsShortlisted(true);
+                  toast.success("Added to shortlist");
+                }
               }
             }}
           />
@@ -199,10 +217,15 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
 
         {/* Middle: content */}
         <div className="flex-1 min-w-0 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
-          <div className={`min-w-0 flex ${vertical ? "flex-col gap-1" : "flex-col"}`}>
+          <div
+            className={`min-w-0 flex ${vertical ? "flex-col gap-1" : "flex-col"}`}
+          >
             <h3
-              className={`font-semibold leading-snug line-clamp-2 ${vertical ? "text-base max-w-[250px] truncate" : "text-lg md:text-md max-w-[600px]"
-                }`}
+              className={`font-semibold leading-snug line-clamp-2 ${
+                vertical
+                  ? "text-base max-w-[250px] truncate"
+                  : "text-lg md:text-md max-w-[600px]"
+              }`}
             >
               {p.title}
             </h3>
@@ -230,10 +253,11 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
 
           {/* meta icons row */}
           <div
-            className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200 ${vertical
+            className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200 ${
+              vertical
                 ? "grid grid-cols-2 gap-4"
                 : "grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6"
-              }`}
+            }`}
           >
             <div className="items-center gap-2 flex">
               <SuperBuiitupAraea size={24} color={bgPriceColoricon} />
@@ -254,7 +278,9 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
                   Availability
                 </div>
                 <div className="font-medium">
-                  {(p as any)?.constructionStatus ? "Available" : " Construction"}
+                  {(p as any)?.constructionStatus
+                    ? "Available"
+                    : " Construction"}
                 </div>
               </div>
             </div>

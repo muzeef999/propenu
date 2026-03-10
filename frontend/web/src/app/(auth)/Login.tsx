@@ -1,6 +1,6 @@
 "use client";
 
-import { requestOtp, verifyOtp } from "@/data/ClientData";
+import { requestOtp, syncShortlist, verifyOtp } from "@/data/ClientData";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
@@ -75,9 +75,19 @@ const LoginDialog = ({
         expires: 30,
       });
 
+      const localShortlist = JSON.parse(
+  localStorage.getItem("shortlist") || "[]"
+);
+
+if (localShortlist.length > 0) {
+  await syncShortlist(localShortlist);
+  localStorage.removeItem("shortlist");
+}
 
       toast.success("Logged in successfully!");
+
       setTimeout(handleClose, 800);
+      
       window.location.reload();
     } catch (err) {
       setError("Invalid OTP or verification failed.");
