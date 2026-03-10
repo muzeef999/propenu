@@ -305,6 +305,7 @@ export const updateLandLocationStep = async (
     locality: req.body.locality,
     location: req.body.location,
     landName: req.body.landName,
+    nearbyPlaces: req.body.nearbyPlaces,
   });
 
   doc.completion = {

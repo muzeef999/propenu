@@ -292,6 +292,7 @@ export const updateCommercialLocationStep = async (
     locality: req.body.locality,
     location: req.body.location,
     buildingName: req.body.buildingName,
+    nearbyPlaces: req.body.nearbyPlaces,
 
     completion: {
       ...doc.completion,

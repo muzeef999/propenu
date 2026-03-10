@@ -44,11 +44,16 @@ const Specification = ({ specifications }: Props) => {
 
   if (!specs.length) return null;
 
-  const sorted = [...specs].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const sorted = [...specs]
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((spec, index) => ({
+      ...spec,
+      key: `${spec.category}-${spec.order ?? "na"}-${index}`,
+    }));
 
-  const [active, setActive] = useState(sorted[0].category);
+  const [activeKey, setActiveKey] = useState(sorted[0].key);
 
-  const activeSpec = sorted.find((s) => s.category === active) || sorted[0];
+  const activeSpec = sorted.find((s) => s.key === activeKey) || sorted[0];
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -69,16 +74,16 @@ const Specification = ({ specifications }: Props) => {
 
           return (
             <button
-              key={s.category}
-              onClick={() => setActive(s.category)}
+              key={s.key}
+              onClick={() => setActiveKey(s.key)}
               className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm whitespace-nowrap transition
                 ${
-                  active === s.category
+                  activeKey === s.key
                     ? "text-white shadow"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }
               `}
-              style={active === s.category ? { backgroundColor: color } : {}}
+              style={activeKey === s.key ? { backgroundColor: color } : {}}
             >
               <Icon />
               {s.category}

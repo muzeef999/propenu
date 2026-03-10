@@ -289,7 +289,8 @@ export const updateAgriculturalLocationStep = async (
     pincode: req.body.pincode,
     locality: req.body.locality,
     location: req.body.location,
-      landName: req.body.landName,
+    landName: req.body.landName,
+    nearbyPlaces: req.body.nearbyPlaces,
   });
 
   doc.completion = {

@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useState } from "react";
 import LoginDialog from "@/app/(auth)/Login";
+import RegisterDialog from "@/app/(auth)/Register";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { listingSourceToOwnershipLabel } from "@/utilies/resolveListingSource";
@@ -34,6 +35,7 @@ export default function ContactOwnerButton({
   children,
 }: ContactOwnerButtonProps) {
   const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const router = useRouter();
   const normalizeListingType = (
     value?: string,
@@ -154,7 +156,25 @@ export default function ContactOwnerButton({
             <LoginDialog
               open
               onClose={() => setShowLoginDialog(false)}
-              onSwitchToRegister={() => {}}
+              onSwitchToRegister={() => {
+                setShowLoginDialog(false);
+                setShowRegisterDialog(true);
+              }}
+            />
+          </div>,
+          document.body,
+        )}
+
+      {showRegisterDialog &&
+        createPortal(
+          <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40">
+            <RegisterDialog
+              open
+              onClose={() => setShowRegisterDialog(false)}
+              onSwitchToLogin={() => {
+                setShowRegisterDialog(false);
+                setShowLoginDialog(true);
+              }}
             />
           </div>,
           document.body,

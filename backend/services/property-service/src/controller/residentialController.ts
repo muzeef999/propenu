@@ -338,6 +338,7 @@ export const updateLocationStep = async (req: AuthRequest, res: Response) => {
     locality: req.body.locality,
     location: req.body.location,
     buildingName: req.body.buildingName,
+    nearbyPlaces: req.body.nearbyPlaces,
     completion: {
       ...doc.completion,
       percent: 45,

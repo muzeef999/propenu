@@ -4,14 +4,13 @@ import NearbyLocationSearch from "@/components/location/NearbyLocationSearch";
 import dynamic from "next/dynamic";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch } from "@/Redux/store";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { setBaseField, nextStep } from "@/Redux/slice/postPropertySlice";
 import { validateLocationDetails, getLocationFieldError } from "@/zod/locationDetailsZod";
 import InputField from "@/ui/InputField";
 import TextArea from "@/ui/TextArae";
 
-import { search } from "india-pincode-search";
 import { submitLocationThunk } from "@/Redux/thunks/submitPropertyApi";
 
 const OpenStreetPinMap = dynamic<OpenStreetPinMapProps>(
@@ -32,15 +31,39 @@ const OpenStreetPinMap = dynamic<OpenStreetPinMapProps>(
 
 type OpenStreetPinMapProps = {
   coordinates?: [number, number];
+  shouldAutoFocus?: boolean;
+  onPinChange?: (payload: {
+    coordinates: [number, number];
+    locality?: string;
+    city?: string;
+    state?: string;
+  }) => void;
 };
 
-type PincodeResult = {
-  city: string;
-  district: string;
-  office: string;
-  pincode: string;
-  state: string;
-  village: string;
+type NominatimPincodeResult = {
+  lat?: string;
+  lon?: string;
+  address?: {
+    suburb?: string;
+    neighbourhood?: string;
+    hamlet?: string;
+    village?: string;
+    town?: string;
+    city?: string;
+    city_district?: string;
+    county?: string;
+    state_district?: string;
+    state?: string;
+  };
+};
+
+const formatToTitleCase = (str: string) => {
+  if (!str) return "";
+  return str
+    .toLowerCase()
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 };
 
 const LocationDetailsStep = () => {
@@ -50,8 +73,14 @@ const LocationDetailsStep = () => {
 
   const dispatch = useDispatch<AppDispatch>();
   const [showErrors, setShowErrors] = useState(false);
+  const skipNextFieldGeocodeRef = useRef(false);
 
   useEffect(() => {
+    if (skipNextFieldGeocodeRef.current) {
+      skipNextFieldGeocodeRef.current = false;
+      return;
+    }
+
     if (!base.locality || !base.city || !base.state) return;
 
     const controller = new AbortController();
@@ -61,15 +90,11 @@ const LocationDetailsStep = () => {
         const query = `${base.locality}, ${base.city}, ${base.state}`;
 
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-            query,
-          )}&limit=1`,
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
           {
             signal: controller.signal,
-            headers: {
-              "Accept-Language": "en",
-            },
-          },
+            headers: { "Accept-Language": "en" },
+          }
         );
 
         const data = await res.json();
@@ -84,7 +109,7 @@ const LocationDetailsStep = () => {
               type: "Point",
               coordinates: [Number(lon), Number(lat)],
             },
-          }),
+          })
         );
       } catch (err) {
         if ((err as any).name !== "AbortError") {
@@ -96,7 +121,85 @@ const LocationDetailsStep = () => {
     fetchCoordinates();
 
     return () => controller.abort();
-  }, [base.locality, base.city, base.state]);
+  }, [base.locality, base.city, base.state, dispatch]);
+
+  useEffect(() => {
+    const pincode = (base.pincode || "").replace(/\D/g, "");
+    if (pincode.length !== 6) return;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?postalcode=${pincode}&country=India&format=json&addressdetails=1&limit=1&accept-language=en`,
+          {
+            signal: controller.signal,
+            headers: {
+              "Accept-Language": "en",
+            },
+          }
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as NominatimPincodeResult[];
+        const best = Array.isArray(data) ? data[0] : undefined;
+        const address = best?.address;
+        if (!address) return;
+
+        const locality = formatToTitleCase(
+          address.suburb ||
+            address.neighbourhood ||
+            address.hamlet ||
+            address.village ||
+            address.town ||
+            address.city_district ||
+            address.county ||
+            ""
+        );
+        const city = formatToTitleCase(
+          address.city ||
+            address.town ||
+            address.village ||
+            address.city_district ||
+            address.state_district ||
+            address.county ||
+            ""
+        );
+        const state = formatToTitleCase(address.state || "");
+        const lat = Number(best?.lat);
+        const lon = Number(best?.lon);
+
+        if (state) {
+          dispatch(setBaseField({ key: "state", value: state }));
+        }
+        if (city) {
+          dispatch(setBaseField({ key: "city", value: city }));
+        }
+        if (locality) {
+          dispatch(setBaseField({ key: "locality", value: locality }));
+        }
+        if (Number.isFinite(lat) && Number.isFinite(lon)) {
+          dispatch(
+            setBaseField({
+              key: "location",
+              value: {
+                type: "Point",
+                coordinates: [lon, lat],
+              },
+            }),
+          );
+        }
+      } catch (err) {
+        if ((err as { name?: string })?.name !== "AbortError") {
+          console.error("Pincode lookup error", err);
+        }
+      }
+    }, 250);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timeout);
+    };
+  }, [base.pincode, dispatch]);
 
   const validationResult = validateLocationDetails(base);
   const isFormValid = validationResult.success;
@@ -106,58 +209,57 @@ const LocationDetailsStep = () => {
       ? validationResult.error.flatten().fieldErrors
       : {};
 
-  // ✅ Convert CAPS / lowercase → Title Case
-  const formatToTitleCase = (str: string) => {
-    if (!str) return "";
-    return str
-      .toLowerCase()
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  };
-
   const getError = (key: string) => {
     if (!showErrors) return undefined;
     return getLocationFieldError(fieldErrors, key);
   };
 
 
-  // ✅ FIXED PINCODE HANDLER (NO CAPS)
+  // Keep only numeric pincode input, without auto-filling location fields.
   const handlePincodeChange = (value: string) => {
-    const numericValue = value.replace(/\D/g, "");
+    const numericValue = value.replace(/\D/g, "").slice(0, 6);
     dispatch(setBaseField({ key: "pincode", value: numericValue }));
-
-    if (numericValue.length !== 6) return;
-
-    const data = search(numericValue) as PincodeResult[];
-    if (!data || data.length === 0) return;
-
-    const pin = data[0];
-
-    dispatch(
-      setBaseField({
-        key: "state",
-        value: formatToTitleCase(pin.state),
-      }),
-    );
-
-    dispatch(
-      setBaseField({
-        key: "city",
-        value: formatToTitleCase(pin.city),
-      }),
-    );
-
-    dispatch(
-      setBaseField({
-        key: "locality",
-        value: formatToTitleCase(pin.village || pin.office),
-      }),
-    );
   };
 
   const isLandOrAgri =
     propertyType === "land" || propertyType === "agricultural";
+  const shouldAutoFocusMap = /^\d{6}$/.test(
+    (base.pincode || "").replace(/\D/g, "")
+  );
+
+  const handlePinChange = ({
+    coordinates,
+    locality,
+    city,
+    state,
+  }: {
+    coordinates: [number, number];
+    locality?: string;
+    city?: string;
+    state?: string;
+  }) => {
+    skipNextFieldGeocodeRef.current = true;
+
+    dispatch(
+      setBaseField({
+        key: "location",
+        value: {
+          type: "Point",
+          coordinates,
+        },
+      }),
+    );
+
+    if (locality) {
+      dispatch(setBaseField({ key: "locality", value: locality }));
+    }
+    if (city) {
+      dispatch(setBaseField({ key: "city", value: city }));
+    }
+    if (state) {
+      dispatch(setBaseField({ key: "state", value: state }));
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -261,21 +363,32 @@ const LocationDetailsStep = () => {
 
       {/* Map */}
       <div>
-       <OpenStreetPinMap
-  coordinates={
-    base.location?.coordinates?.length === 2
-      ? base.location.coordinates
-      : undefined
-  }
-/>
+        <OpenStreetPinMap
+          coordinates={
+            base.location?.coordinates?.length === 2
+              ? base.location.coordinates
+              : undefined
+          }
+          shouldAutoFocus={shouldAutoFocusMap}
+          onPinChange={handlePinChange}
+        />
 
-         <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-500">
           Click on the map to mark the exact location of your property.
         </p>
       </div>
 
       {/* Nearby locations */}
-      <NearbyLocationSearch city={base.city} state={base.state} />
+      <NearbyLocationSearch
+        locality={base.locality}
+        city={base.city}
+        state={base.state}
+        coordinates={
+          base.location?.coordinates?.length === 2
+            ? base.location.coordinates
+            : undefined
+        }
+      />
 
       {/* Continue */}
       <button
