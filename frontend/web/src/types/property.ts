@@ -65,7 +65,8 @@ export interface VerifyOtpPayload {
 
 export interface VerifyOtpResponse {
   message: string;
-  token: string;
+  token?: string;
+  kycStatus?: string;
 }
 
 export interface RequestOtpResponse {
@@ -73,16 +74,19 @@ export interface RequestOtpResponse {
 }
 
 export interface createRequestOtpPayload {
-  name: string;
   phone: string;
-  role: string;
 }
 
 export interface createVerifyOtpPayload {
+  email?: string;
   phone: string;
   otp: string;
   name: string;
   role: string;
+  locality: string;
+  city: string;
+  state: string;
+  pincode: string;
 }
 
 export interface Leads {

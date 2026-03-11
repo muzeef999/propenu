@@ -34,8 +34,8 @@ const getDistanceKm = (
   const a =
     Math.sin(latDelta / 2) ** 2 +
     Math.cos(toRadians(originLat)) *
-      Math.cos(toRadians(destinationLat)) *
-      Math.sin(lonDelta / 2) ** 2;
+    Math.cos(toRadians(destinationLat)) *
+    Math.sin(lonDelta / 2) ** 2;
 
   return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
@@ -84,46 +84,59 @@ const NearbyLocationSearch = ({
   const [loading, setLoading] = useState(false);
 
   /* 🔍 Search */
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     if (query.length < 3) {
       setResults([]);
       return;
     }
 
-    const controller = new AbortController();
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
 
-    const searchPlaces = async () => {
-      try {
-        setLoading(true);
-        const params = new URLSearchParams({
-          format: "json",
-          q: [query, locality, city, state].filter(Boolean).join(", "),
-          limit: coordinates ? "20" : "5",
-          "accept-language": "en",
-          addressdetails: "1",
-        });
+    searchTimeoutRef.current = setTimeout(() => {
+      const controller = new AbortController();
 
-        if (coordinates) {
-          const { left, top, right, bottom } = getViewboxForRadius(
-            coordinates,
-            SEARCH_RADIUS_KM
+      const searchPlaces = async () => {
+        try {
+          setLoading(true);
+
+          const params = new URLSearchParams({
+            format: "json",
+            q: [query, locality, city, state].filter(Boolean).join(", "),
+            limit: coordinates ? "20" : "5",
+            "accept-language": "en",
+            addressdetails: "1",
+          });
+
+          if (coordinates) {
+            const { left, top, right, bottom } = getViewboxForRadius(
+              coordinates,
+              SEARCH_RADIUS_KM
+            );
+
+            params.set("viewbox", `${left},${top},${right},${bottom}`);
+            params.set("bounded", "1");
+          }
+
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?${params.toString()}`,
+            {
+              signal: controller.signal,
+              headers: {
+                "Accept-Language": "en",
+              },
+            }
           );
 
-          params.set("viewbox", `${left},${top},${right},${bottom}`);
-          params.set("bounded", "1");
-        }
+          if (!res.ok) return;
 
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?${params.toString()}`,
-          {
-            signal: controller.signal,
-            headers: { "Accept-Language": "en" },
-          }
-        );
+          const data = (await res.json()) as SearchResult[];
 
-        const data = (await res.json()) as SearchResult[];
-        const nextResults = coordinates
-          ? data
+          const nextResults = coordinates
+            ? data
               .map((place) => ({
                 ...place,
                 distanceKm: getDistanceKm(coordinates, [
@@ -134,20 +147,28 @@ const NearbyLocationSearch = ({
               .filter((place) => place.distanceKm <= SEARCH_RADIUS_KM)
               .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
               .slice(0, 5)
-          : data.slice(0, 5);
+            : data.slice(0, 5);
 
-        setResults(nextResults);
-      } catch (err) {
-        if ((err as any).name !== "AbortError") {
-          console.error("Nearby search error", err);
+          setResults(nextResults);
+        } catch (err) {
+          if ((err as any).name !== "AbortError") {
+            console.error("Nearby search error", err);
+          }
+        } finally {
+          setLoading(false);
         }
-      } finally {
-        setLoading(false);
+      };
+
+      searchPlaces();
+
+      return () => controller.abort();
+    }, 400);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
       }
     };
-
-    searchPlaces();
-    return () => controller.abort();
   }, [query, locality, city, state, coordinates]);
 
   /* ❌ Close dropdown on outside click */

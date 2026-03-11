@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { AppartmentIcons, FarmhouseIcons, IndependentHouseIcons, PenthouseIcons, VillaIcons } from "@/app/(pages)/postproperty/icons/PostPropertyIcons";
+
 
 export type PropertyTypeOption = {
   key: string;
@@ -9,11 +11,11 @@ export type PropertyTypeOption = {
 
 
 export const RESIDENTIAL_PROPERTY_OPTIONS: PropertyTypeOption[] = [
-  { key: "apartment", label: "Apartment", icon: "🏠" },
-  { key: "independent-house", label: "Independent House", icon: "🏠" },
-  { key: "villa", label: "Villa", icon: "🏡" },
-  { key: "penthouse", label: "Penthouse", icon: "🏙️" },
-  { key: "farmhouse", label: "Farmhouse", icon: "🌾" },
+  { key: "apartment", label: "Apartment", icon: <AppartmentIcons /> },
+  { key: "independent-house", label: "Independent House", icon: <IndependentHouseIcons /> },
+  { key: "villa", label: "Villa", icon: <VillaIcons /> },
+  { key: "penthouse", label: "Penthouse", icon: <PenthouseIcons /> },
+  { key: "farmhouse", label: "Farmhouse", icon: <FarmhouseIcons /> },
 ];
 
 export const RESIDENTIAL_PROPERTY_KEYS = [

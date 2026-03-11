@@ -276,7 +276,9 @@ export default function BasicDetailsStep() {
                         }
           `}
                     >
-                      <span className="text-2xl">{sub.icon}</span>
+                      <span className="text-2xl text-current [&_svg]:h-9 [&_svg]:w-9 [&_svg]:fill-current [&_svg]:text-current">
+                        {sub.icon}
+                      </span>
                       <span className="text-xs font-medium">{sub.label}</span>
                     </button>
                   );

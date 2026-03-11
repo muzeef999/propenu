@@ -163,6 +163,10 @@ export const updateUser = async (payload: {
   name?: string;
   email?: string;
   address?: string;
+  locality?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
 }) => {
   const token = Cookies.get("token");
   if (!token) return null;
