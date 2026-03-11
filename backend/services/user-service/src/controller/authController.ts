@@ -268,6 +268,7 @@ export const searchUsers = async (req: Request, res: Response) => {
   }
 };
 
+
 export const createRequestOtp = async (req: Request, res: Response) => {
   try {
 
@@ -298,69 +299,6 @@ export const createRequestOtp = async (req: Request, res: Response) => {
   }
 };
 
-
-export const updateUser = async (req: AuthRequest, res: Response) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    // ✅ Allow only safe fields
-    const allowedUpdates = ["name", "email", "address"];
-    const updates: Record<string, unknown> = {};
-
-    for (const key of allowedUpdates) {
-      if (req.body[key] !== undefined) {
-        if (typeof req.body[key] === "string") {
-          const cleaned = req.body[key].trim();
-          updates[key] = key === "email" ? cleaned.toLowerCase() : cleaned;
-        } else {
-          updates[key] = req.body[key];
-        }
-      }
-    }
-
-    if (Object.keys(updates).length === 0) {
-      return res.status(400).json({ message: "No valid fields to update" });
-    }
-
-    const user = await User.findByIdAndUpdate(
-      req.user.sub,
-      { $set: updates },
-      { new: true, runValidators: true },
-    ).populate("roleId");
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    const role: any = user.roleId;
-
-    return res.json({
-      message: "Profile updated successfully",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        address: user.address, // ✅ RETURN IT
-        roleId: role ? String(role._id) : null,
-        roleName: role ? role.name : null,
-        permissions: role ? role.permissions : [],
-      },
-    });
-  } catch (error: any) {
-    console.error("Update profile error:", error);
-
-    if (error?.code === 11000 && error?.keyPattern?.email) {
-      return res.status(409).json({
-        message: "Email already exists. Please use a different email.",
-      });
-    }
-
-    return res.status(500).json({ message: "Failed to update profile" });
-  }
-};
 
 export const createVerifyOtp = async (req: Request, res: Response) => {
   try {
@@ -441,6 +379,70 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
   }
 };
 
+
+
+export const updateUser = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    // ✅ Allow only safe fields
+    const allowedUpdates = ["name", "email", "address"];
+    const updates: Record<string, unknown> = {};
+
+    for (const key of allowedUpdates) {
+      if (req.body[key] !== undefined) {
+        if (typeof req.body[key] === "string") {
+          const cleaned = req.body[key].trim();
+          updates[key] = key === "email" ? cleaned.toLowerCase() : cleaned;
+        } else {
+          updates[key] = req.body[key];
+        }
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "No valid fields to update" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.sub,
+      { $set: updates },
+      { new: true, runValidators: true },
+    ).populate("roleId");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const role: any = user.roleId;
+
+    return res.json({
+      message: "Profile updated successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        address: user.address, // ✅ RETURN IT
+        roleId: role ? String(role._id) : null,
+        roleName: role ? role.name : null,
+        permissions: role ? role.permissions : [],
+      },
+    });
+  } catch (error: any) {
+    console.error("Update profile error:", error);
+
+    if (error?.code === 11000 && error?.keyPattern?.email) {
+      return res.status(409).json({
+        message: "Email already exists. Please use a different email.",
+      });
+    }
+
+    return res.status(500).json({ message: "Failed to update profile" });
+  }
+};
 
 
 export const getManagerTeamDetails = async (req: Request, res: Response) => {

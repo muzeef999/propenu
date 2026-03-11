@@ -7,8 +7,10 @@ const authRoute = express.Router();
 
 authRoute.post("/request-otp",  requestOTP);
 authRoute.post("/verify-otp",  verifyOtp);
+
 authRoute.post("/request-otp/create",  createRequestOtp);
 authRoute.post("/verify-otp/create",  createVerifyOtp);
+
 authRoute.get("/me", authMiddleware, me);
 authRoute.patch("/me/update", authMiddleware, updateUser);
 authRoute.get("/search", authMiddleware, searchUsers);
