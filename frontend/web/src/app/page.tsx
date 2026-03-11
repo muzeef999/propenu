@@ -15,33 +15,20 @@ import { useEffect } from "react";
 import Cookies from "js-cookie";
 
 
+import { Suspense } from "react";
+import TokenHandler from "@/components/TokenHandler";
+
+
+
 export default function Home() {
-
-
-   const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const token = searchParams.get("token");
-    const kyc = searchParams.get("kyc");
-
-    if (token) {
-      // store token in cookie
-      Cookies.set("token", token, {
-        expires: 7,
-        sameSite: "lax",
-      });
-
-      // clean URL (remove token from address bar)
-      window.history.replaceState({}, "", "/");
-    }
-
-    if (kyc === "verified") {
-      console.log("KYC Verified Successfully");
-    }
-  }, [searchParams]);
 
   return (
     <div>
+
+      <Suspense fallback={null}>
+        <TokenHandler />
+      </Suspense>
+
       <Banner />
       <br />
       <br />
