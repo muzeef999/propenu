@@ -365,9 +365,20 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       pincode,
     });
 
+    const token = generateToken({
+      sub: String(user._id),
+      email: user.email,
+      phone: Number(user.phone),
+      name: user.name,
+      roleId: String(roleDoc._id),
+      roleName: roleDoc.name,
+      permissions: roleDoc.permissions,
+    });
+
 
     return res.status(201).json({
       message: "Account created. Please complete KYC to activate account.",
+      token,
         kycStatus: "not_started"
     });
 

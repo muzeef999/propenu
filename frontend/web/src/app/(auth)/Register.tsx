@@ -161,13 +161,19 @@ const RegisterDialog = ({
     const otpToSubmit = typeof manualOtp === "string" ? manualOtp : otp;
     const phoneValidation = phoneSchema.safeParse({ phone: phoneNumber });
     if (!phoneValidation.success) {
-      setErrors((prev) => ({ ...prev, ...mapZodErrors(phoneValidation.error) }));
+      setErrors((prev) => ({
+        ...prev,
+        ...mapZodErrors(phoneValidation.error),
+      }));
       return;
     }
 
     const accountValidation = accountSchema.safeParse(formData);
     if (!accountValidation.success) {
-      setErrors((prev) => ({ ...prev, ...mapZodErrors(accountValidation.error) }));
+      setErrors((prev) => ({
+        ...prev,
+        ...mapZodErrors(accountValidation.error),
+      }));
       return;
     }
 
@@ -225,7 +231,7 @@ const RegisterDialog = ({
     setStep("kyc");
   }
 
-  async function handleCompleteRegistration() {
+  async function handleCompleteLocation() {
     const validation = locationSchema.safeParse(formData);
 
     if (!validation.success) {
@@ -257,21 +263,26 @@ const RegisterDialog = ({
 
       toast.success("Account created successfully!");
 
-      const kycData = await startKyc();
-
-      if (kycData?.url) {
-        window.location.href = kycData.url;
-        return;
-      }
-
-      handleClose();
-      window.location.href = "/";
+      // move to KYC step
+      setStep("kyc");
     } catch {
       toast.error("Failed to create account.");
     } finally {
       setLoading(false);
     }
   }
+
+  const handleStartKyc = async () => {
+  console.log("KYC button clicked");
+
+  const data = await startKyc();
+
+  console.log("KYC API response:", data);
+
+  if (data?.url) {
+    window.location.href = data.url;
+  }
+};
 
   function handleOtpChange(value: string, index: number) {
     setErrors((prev) => ({ ...prev, otp: undefined }));
@@ -429,7 +440,10 @@ const RegisterDialog = ({
                     type="text"
                     value={formData.name}
                     onChange={(e) => {
-                      setFormData((prev) => ({ ...prev, name: e.target.value }));
+                      setFormData((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }));
                       setErrors((prev) => ({ ...prev, name: undefined }));
                     }}
                     placeholder="Enter your full name"
@@ -497,7 +511,9 @@ const RegisterDialog = ({
                           autoComplete="one-time-code"
                           maxLength={1}
                           value={digit}
-                          onChange={(e) => handleOtpChange(e.target.value, index)}
+                          onChange={(e) =>
+                            handleOtpChange(e.target.value, index)
+                          }
                           onKeyDown={(e) => handleOtpKeyDown(e, index)}
                           className="h-10 w-10 rounded-xl border border-[#d8ded9] bg-white text-center text-lg font-semibold text-[#1f1f1f] outline-none transition focus:border-[#28b463] focus:ring-2 focus:ring-[#cfead8]"
                         />
@@ -521,7 +537,10 @@ const RegisterDialog = ({
                     type="email"
                     value={formData.email}
                     onChange={(e) => {
-                      setFormData((prev) => ({ ...prev, email: e.target.value }));
+                      setFormData((prev) => ({
+                        ...prev,
+                        email: e.target.value,
+                      }));
                       setErrors((prev) => ({ ...prev, email: undefined }));
                     }}
                     placeholder="Enter your mail id"
@@ -540,7 +559,11 @@ const RegisterDialog = ({
 
                 <div className="grid grid-cols-3 gap-2.5">
                   {[
-                    { value: "user", label: "Buyer/Seller", icon: AiOutlineUser },
+                    {
+                      value: "user",
+                      label: "Buyer/Seller",
+                      icon: AiOutlineUser,
+                    },
                     { value: "agent", label: "Agent", icon: MdOutlineBadge },
                     { value: "builder", label: "Builder", icon: BsBuildings },
                   ].map(({ value, label, icon: Icon }) => {
@@ -643,7 +666,10 @@ const RegisterDialog = ({
                     type="text"
                     value={formData.locality}
                     onChange={(e) => {
-                      setFormData((prev) => ({ ...prev, locality: e.target.value }));
+                      setFormData((prev) => ({
+                        ...prev,
+                        locality: e.target.value,
+                      }));
                       setErrors((prev) => ({ ...prev, locality: undefined }));
                     }}
                     placeholder="Enter locality"
@@ -664,7 +690,10 @@ const RegisterDialog = ({
                     type="text"
                     value={formData.city}
                     onChange={(e) => {
-                      setFormData((prev) => ({ ...prev, city: e.target.value }));
+                      setFormData((prev) => ({
+                        ...prev,
+                        city: e.target.value,
+                      }));
                       setErrors((prev) => ({ ...prev, city: undefined }));
                     }}
                     placeholder="Enter city"
@@ -685,7 +714,10 @@ const RegisterDialog = ({
                     type="text"
                     value={formData.state}
                     onChange={(e) => {
-                      setFormData((prev) => ({ ...prev, state: e.target.value }));
+                      setFormData((prev) => ({
+                        ...prev,
+                        state: e.target.value,
+                      }));
                       setErrors((prev) => ({ ...prev, state: undefined }));
                     }}
                     placeholder="Enter state"
@@ -707,7 +739,7 @@ const RegisterDialog = ({
                 </button>
                 <button
                   type="button"
-                  onClick={handleLocationContinue}
+                  onClick={handleCompleteLocation}
                   className="w-full rounded-lg py-2.5 text-base font-semibold text-white shadow-lg transition-all btn-primary"
                 >
                   Next
@@ -715,7 +747,7 @@ const RegisterDialog = ({
               </div>
             </div>
           )}
-  
+
           {step === "kyc" && (
             <div className="space-y-5">
               <div>
@@ -745,19 +777,22 @@ const RegisterDialog = ({
                 ].map((item) => (
                   <div key={item} className="flex items-center gap-3">
                     <MdCheckCircle className="shrink-0 text-lg text-[#28b463]" />
-                    <span className="text-[1.02rem] text-[#1f1f1f]">{item}</span>
+                    <span className="text-[1.02rem] text-[#1f1f1f]">
+                      {item}
+                    </span>
                   </div>
                 ))}
               </div>
 
               <div className="flex items-center gap-2 text-sm text-[#8b8f8c]">
                 <MdOutlineLock className="text-base" />
-                <span>secure & government approved DigiLocker verification</span>
+                <span>
+                  secure & government approved DigiLocker verification
+                </span>
               </div>
 
               <div className="pt-2">
-                <KycButton
-                />
+                <KycButton />
               </div>
             </div>
           )}

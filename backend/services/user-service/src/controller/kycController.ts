@@ -107,11 +107,7 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
       permissions: role ? role.permissions : [],
     });
 
-    return res.json({
-      message: "KYC verified successfully",
-      token: jwtToken,
-      kycStatus: "verified",
-    });
+    return res.redirect(`${process.env.FRONTEND_URL}/kyc-success?token=${jwtToken}&kyc=verified`);
   } catch (err) {
     console.error("KYC Error:", err);
 

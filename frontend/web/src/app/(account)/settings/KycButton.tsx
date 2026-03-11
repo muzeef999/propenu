@@ -1,17 +1,25 @@
 "use client";
 
 import { startKyc } from "@/data/ClientData";
-import { FaCheckCircle, FaClock, FaTimesCircle, FaUserShield } from "react-icons/fa";
+import {
+  FaCheckCircle,
+  FaClock,
+  FaTimesCircle,
+  FaUserShield,
+} from "react-icons/fa";
 
 interface Props {
   kycStatus?: string;
-    kycRemarks?: string;
+  kycRemarks?: string;
 }
 
-export default function KycButton({ kycStatus, kycRemarks  }: Props) {
+export default function KycButton({ kycStatus, kycRemarks }: Props) {
   const handleStartKyc = async () => {
     try {
+      console.log("Starting KYC process...");
       const data = await startKyc();
+
+      console.log("KYC API response:", data);
 
       if (data?.url) {
         window.location.href = data.url;
@@ -42,8 +50,7 @@ export default function KycButton({ kycStatus, kycRemarks  }: Props) {
     );
   }
 
-
-    if (kycStatus === "rejected") {
+  if (kycStatus === "rejected") {
     return (
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2 bg-red-100 text-red-700 px-3 py-2 rounded-full text-sm font-semibold">
@@ -52,9 +59,7 @@ export default function KycButton({ kycStatus, kycRemarks  }: Props) {
         </div>
 
         {kycRemarks && (
-          <p className="text-xs text-red-600">
-            Reason: {kycRemarks}
-          </p>
+          <p className="text-xs text-red-600">Reason: {kycRemarks}</p>
         )}
 
         <button

@@ -548,6 +548,7 @@ export const getFeaturedProjectsDashboard = async () => {
     return res.data;
   }
 
+  
 
   export const syncShortlist = async (properties: any[]) => {
 
