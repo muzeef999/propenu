@@ -1,9 +1,14 @@
 import { Response } from "express";
 import User from "../models/userModel";
 import { AuthRequest } from "../middlewares/authMiddleware";
-import { exchangeToken, fetchDocuments, fetchProfile, saveVerifier } from "../services/kycService";
+import {
+  exchangeToken,
+  fetchDocuments,
+  fetchProfile,
+  saveVerifier,
+} from "../services/kycService";
 import crypto from "crypto";
-
+import { generateToken } from "../utils/jwt";
 
 function generatePKCE() {
   const codeVerifier = crypto.randomBytes(32).toString("hex");
@@ -54,58 +59,67 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
     const profile = await fetchProfile(token.access_token);
 
     const docTypes = docs.items?.map((d: any) => d.name) || [];
-    
 
     const user = await User.findById(state);
 
-if (!user) {
-  throw new Error("User not found");
-}
+    if (!user) {
+      throw new Error("User not found");
+    }
 
+    const appPhone = normalizePhone(user.phone ?? undefined);
+    const kycPhone = normalizePhone(profile.mobile ?? undefined);
 
-const appPhone = normalizePhone(user.phone ?? undefined);
-const kycPhone = normalizePhone(profile.mobile ?? undefined);
+    if (appPhone !== kycPhone) {
+      await User.findByIdAndUpdate(state, {
+        "kyc.status": "rejected",
+        "kyc.remarks": "Phone number mismatch",
+      });
 
-if (appPhone !== kycPhone) {
+      return res.redirect(`${process.env.FRONTEND_URL}/settings?kyc=rejected`);
+    }
 
-  await User.findByIdAndUpdate(state, {
-    "kyc.status": "rejected",
-    "kyc.remarks": "Phone number mismatch",
-  });
-
-  return res.redirect(
-    `${process.env.FRONTEND_URL}/settings?kyc=rejected`
-  );
-}
-
-    await User.findByIdAndUpdate(state, {
-      $set: {
-        "kyc.status": "verified",
-        "kyc.provider": "digilocker",
-        "kyc.documents": docTypes,
-        "kyc.verifiedAt": new Date(),
-
-        accountStatus: "active"
+    const updatedUser = await User.findByIdAndUpdate(
+      state,
+      {
+        $set: {
+          "kyc.status": "verified",
+          "kyc.provider": "digilocker",
+          "kyc.documents": docTypes,
+          "kyc.verifiedAt": new Date(),
+          accountStatus: "active",
+        },
       },
-    });
+      { new: true },
+    ).populate("roleId");
 
     // ✅ REDIRECT TO FRONTEND SETTINGS PAGE
-    return res.redirect(
-      `${process.env.FRONTEND_URL}/settings?kyc=success`
-    );
+    // return res.redirect(`${process.env.FRONTEND_URL}/settings?kyc=success`);
 
+    const role: any = updatedUser?.roleId;
+
+    const jwtToken = generateToken({
+      sub: String(updatedUser?._id),
+      email: updatedUser?.email,
+      phone: Number(updatedUser?.phone),
+      name: updatedUser?.name ?? "",
+      roleId: role ? String(role._id) : undefined,
+      roleName: role ? role.name : undefined,
+      permissions: role ? role.permissions : [],
+    });
+
+    return res.json({
+      message: "KYC verified successfully",
+      token: jwtToken,
+      kycStatus: "verified",
+    });
   } catch (err) {
     console.error("KYC Error:", err);
 
-    return res.redirect(
-      `${process.env.FRONTEND_URL}/settings?kyc=failed`
-    );
+    return res.redirect(`${process.env.FRONTEND_URL}/settings?kyc=failed`);
   }
 };
 
-
-
-function normalizePhone(phone?: string| undefined) {
+function normalizePhone(phone?: string | undefined) {
   if (!phone) return "";
 
   return phone.replace("+91", "").replace(/\s/g, "");

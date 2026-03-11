@@ -98,11 +98,21 @@ export const verifyOtp = async (req: Request, res: Response) => {
       ],
     }).populate("roleId");
 
+
+    
     if (!user) {
       return res.status(404).json({
         message: "Account not found",
       });
     }
+
+    if (user.accountStatus !== "active") {
+  return res.status(403).json({
+    message: "Account not active. Please complete KYC verification.",
+    kycStatus: user.kyc?.status || "not_started",
+  });
+}
+
 
     const role: any = user.roleId;
 
@@ -417,25 +427,13 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       pincode,
     });
 
-    // ⭐ Generate token
-    const token = generateToken({
-      sub: String(user._id),
-      email: user.email,
-      phone: Number(user.phone),
-      name: user.name,
-      roleId: String(roleDoc._id),
-      roleName: roleDoc.name,
-      permissions: roleDoc.permissions,
-    });
 
     return res.status(201).json({
       message: "Account created. Please complete KYC to activate account.",
-      token,
         kycStatus: "not_started"
     });
 
   } catch (error: any) {
-    console.error(error);
     res.status(500).json({
       message: "Signup failed",
       error: error.message,
