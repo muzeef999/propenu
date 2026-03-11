@@ -43,6 +43,7 @@ const UserSchema = new mongoose.Schema(
       index: true,
       match: [/^\S+@\S+\.\S+$/, "Invalid email"],
     },
+
     phone: {
       type: String,
       trim: true,
@@ -59,16 +60,46 @@ const UserSchema = new mongoose.Schema(
       }),
     },
 
+    locality: {
+      type: String,
+      trim: true,
+      minlength: 3,
+      maxlength: 30,
+      index: true,
+    },
+    city: {
+      type: String,
+      trim: true,
+      minlength: 3,
+      maxlength: 30,
+      index: true,
+    },
+    state: {
+      type: String,
+      trim: true,
+      minlength: 3,
+      maxlength: 30,
+      index: true,
+    },
 
-    locality :{ type: String, trim: true, minlength: 3, maxlength: 30, index: true},
-    city: { type: String, trim: true, minlength: 3, maxlength: 30, index: true },
-    state: { type: String, trim: true, minlength: 3, maxlength: 30, index: true },
-    pincode: { type: String, trim: true, minlength: 3, maxlength: 30, index: true },
+    pincode: {
+      type: String,
+      trim: true,
+      minlength: 3,
+      maxlength: 30,
+      index: true,
+    },
 
     phoneVerified: {
-  type: Boolean,
-  default: false
-},
+      type: Boolean,
+      default: false,
+    },
+
+    accountStatus: {
+      type: String,
+      enum: ["pending_kyc", "active", "blocked"],
+      default: "pending_kyc",
+    },
 
     address: {
       type: String,
@@ -116,5 +147,3 @@ UserSchema.path("phone").validate(function () {
 // ✅ Use ESM export, not CommonJS
 const User = mongoose.model("User", UserSchema);
 export default User;
-
-

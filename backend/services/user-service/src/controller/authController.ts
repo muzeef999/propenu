@@ -258,53 +258,36 @@ export const searchUsers = async (req: Request, res: Response) => {
   }
 };
 
-
 export const createRequestOtp = async (req: Request, res: Response) => {
   try {
-    let { name, phone, role, email } = req.body;
 
-    email = email?.trim();
+    let { phone } = req.body;
     phone = phone?.trim();
 
-    if (!name)
-      return res.status(400).json({ message: "Name is required" });
-
-    if (!role)
-      return res.status(400).json({ message: "Role is required" });
-
-    if (!email && !phone) {
+    // Validate phone
+    if (!phone) {
       return res.status(400).json({
-        message: "Either email or phone is required",
+        message: "Phone number is required",
       });
     }
-
-    const roleDoc = await Role.findOne({ name: role.toLowerCase() });
-    if (!roleDoc)
-      return res.status(400).json({ message: "Invalid role" });
-
     const otp = genOtp();
 
-    // ⭐ Save OTP
-    const key = email || phone;
+    const key = phone;
     await saveOtpToRedis(key, otp);
 
-    // ⭐ Send OTP based on input
-    if (email) {
-      await sendOtpEmail(email, otp);
-    } else if (phone) {
-      await sendOtpWhatsApp(phone, otp);
-    }
+    await sendOtpWhatsApp(phone, otp);
 
-    res.status(200).json({ message: "OTP sent successfully" });
-
+    res.status(200).json({
+      message: "OTP sent successfully",
+    });
   } catch (error: any) {
-    console.error(error);
     res.status(500).json({
       message: "Failed to send OTP",
       error: error.message,
     });
   }
 };
+
 
 export const updateUser = async (req: AuthRequest, res: Response) => {
   try {
@@ -446,8 +429,9 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
     });
 
     return res.status(201).json({
-      message: "Account created successfully",
+      message: "Account created. Please complete KYC to activate account.",
       token,
+        kycStatus: "not_started"
     });
 
   } catch (error: any) {

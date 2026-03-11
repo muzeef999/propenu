@@ -84,6 +84,8 @@ if (appPhone !== kycPhone) {
         "kyc.provider": "digilocker",
         "kyc.documents": docTypes,
         "kyc.verifiedAt": new Date(),
+
+        accountStatus: "active"
       },
     });
 
