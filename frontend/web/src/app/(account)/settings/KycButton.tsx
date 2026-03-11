@@ -11,9 +11,10 @@ import {
 interface Props {
   kycStatus?: string;
   kycRemarks?: string;
+  className?: string;
 }
 
-export default function KycButton({ kycStatus, kycRemarks }: Props) {
+export default function KycButton({ kycStatus, kycRemarks, className }: Props) {
   const handleStartKyc = async () => {
     try {
       console.log("Starting KYC process...");
@@ -64,7 +65,7 @@ export default function KycButton({ kycStatus, kycRemarks }: Props) {
 
         <button
           onClick={handleStartKyc}
-          className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg cursor-pointer hover:bg-red-700 transition"
+          className={`flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer hover:bg-green-700 transition ${className}`}
         >
           <FaUserShield />
           Retry KYC
@@ -77,7 +78,7 @@ export default function KycButton({ kycStatus, kycRemarks }: Props) {
   return (
     <button
       onClick={handleStartKyc}
-      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer hover:bg-green-700 transition"
+      className={`flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer hover:bg-green-700 transition ${className}`}
     >
       <FaUserShield />
       Verify KYC

@@ -273,16 +273,16 @@ const RegisterDialog = ({
   }
 
   const handleStartKyc = async () => {
-  console.log("KYC button clicked");
+    console.log("KYC button clicked");
 
-  const data = await startKyc();
+    const data = await startKyc();
 
-  console.log("KYC API response:", data);
+    console.log("KYC API response:", data);
 
-  if (data?.url) {
-    window.location.href = data.url;
-  }
-};
+    if (data?.url) {
+      window.location.href = data.url;
+    }
+  };
 
   function handleOtpChange(value: string, index: number) {
     setErrors((prev) => ({ ...prev, otp: undefined }));
@@ -384,7 +384,7 @@ const RegisterDialog = ({
         aria-hidden="true"
       />
 
-      <div className="relative z-50 w-full max-w-[440px] overflow-hidden rounded-[28px] bg-[#dfe6e1] shadow-2xl">
+      <div className="relative z-50 w-full max-w-[440px] overflow-hidden rounded-[28px] bg-[#f2fcf6]  shadow-2xl">
         <button
           onClick={handleClose}
           className="absolute right-5 top-5 rounded-full p-1 text-[#8d908e] transition-colors hover:text-[#5e635f]"
@@ -393,15 +393,15 @@ const RegisterDialog = ({
           <MdClose size={22} />
         </button>
 
-        <div className="p-4 pb-3">
+        <div className="p-6 pb-3">
           <h2 className="pr-10 text-2xl font-medium leading-none text-[#28b463]">
             Create an Account
           </h2>
-          <p className="mt-2 max-w-[320px] text-sm leading-5 text-[#7f8481]">
+          <p className="mt-2 text-sm leading-5 text-[#7f8481]">
             Provide your personal details to create your account
           </p>
 
-          <div className="mt-3 flex gap-5 text-[0.9rem]">
+          <div className="mt-3 flex justify-between gap-6 text-[0.9rem]">
             {tabs.map((tab) => {
               const isActive = step === tab.id;
               const isEnabled =
@@ -415,7 +415,7 @@ const RegisterDialog = ({
                   type="button"
                   onClick={() => handleTabClick(tab.id)}
                   disabled={!isEnabled}
-                  className={`border-b-2 pb-2 text-left transition ${
+                  className={`border-b-2 pb-2 text-center transition cursor-pointer ${
                     isActive
                       ? "border-[#28b463] text-[#28b463]"
                       : "border-[#b6b8b6] text-[#8d908e]"
@@ -428,14 +428,12 @@ const RegisterDialog = ({
           </div>
         </div>
 
-        <div className="rounded-t-[26px] bg-[#f7f5f5] px-6 py-6">
+        <div className="rounded-t-[26px] bg-[#ffffff] px-6 py-6 shadow-[0_-6px_20px_rgba(0,0,0,0.1)]">
           {step === "personal" && (
             <div className="space-y-4">
               <div>
-                <label className="text-[1.05rem] font-medium text-[#1e1e1e]">
-                  Full Name
-                </label>
-                <div className="mt-2 rounded-xl bg-[#e7efea] px-4 py-2.5">
+                <label className="font-medium text-[#1e1e1e]">Full Name</label>
+                <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-2.5">
                   <input
                     type="text"
                     value={formData.name}
@@ -456,14 +454,14 @@ const RegisterDialog = ({
               </div>
 
               <div>
-                <label className="text-[1.05rem] font-medium text-[#1e1e1e]">
+                <label className="font-medium text-[#1e1e1e]">
                   Mobile{" "}
                   <span className="text-sm font-normal text-[#9ca09d]">
                     (aadhaar linked mobile number)
                   </span>
                 </label>
 
-                <div className="mt-2 rounded-xl bg-[#e7efea] px-4 py-0.5">
+                <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-0.5">
                   <div className="phone-material flex items-center gap-3">
                     <PhoneInput
                       international
@@ -493,13 +491,10 @@ const RegisterDialog = ({
 
                 {showPhoneStepOtp && (
                   <div className="mt-3">
-                    <p className="mb-2 text-sm text-[#7f8481]">
+                    <p className="mb-2 font-medium text-[#1e1e1e]">
                       Enter WhatsApp OTP
                     </p>
-                    <div
-                      className="flex justify-center gap-3"
-                      onPaste={handleOtpPaste}
-                    >
+                    <div className="flex  gap-3" onPaste={handleOtpPaste}>
                       {otpDigits.map((digit, index) => (
                         <input
                           key={index}
@@ -515,7 +510,7 @@ const RegisterDialog = ({
                             handleOtpChange(e.target.value, index)
                           }
                           onKeyDown={(e) => handleOtpKeyDown(e, index)}
-                          className="h-10 w-10 rounded-xl border border-[#d8ded9] bg-white text-center text-lg font-semibold text-[#1f1f1f] outline-none transition focus:border-[#28b463] focus:ring-2 focus:ring-[#cfead8]"
+                          className="h-10 w-10 rounded-md border border-[#d8ded9] bg-white text-center text-lg font-semibold text-[#1f1f1f] outline-none transition focus:border-[#28b463] focus:ring-2 focus:ring-[#cfead8]"
                         />
                       ))}
                     </div>
@@ -529,10 +524,8 @@ const RegisterDialog = ({
               </div>
 
               <div>
-                <label className="text-[1.05rem] font-medium text-[#1e1e1e]">
-                  Mail ID
-                </label>
-                <div className="mt-2 rounded-xl bg-[#e7efea] px-4 py-2.5">
+                <label className="font-medium text-[#1e1e1e]">Mail ID</label>
+                <div className="mt-2 rounded-md bg-[#f2fcf6]  px-4 py-2.5">
                   <input
                     type="email"
                     value={formData.email}
@@ -553,7 +546,7 @@ const RegisterDialog = ({
               </div>
 
               <div>
-                <label className="mb-2 block text-[1.05rem] font-medium text-[#1e1e1e]">
+                <label className="mb-2 block font-medium text-[#1e1e1e]">
                   You are a
                 </label>
 
@@ -580,10 +573,10 @@ const RegisterDialog = ({
                           }));
                           setErrors((prev) => ({ ...prev, role: undefined }));
                         }}
-                        className={`flex min-h-[46px] items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                        className={`flex min-h-[46px] items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition cursor-pointer ${
                           isActive
-                            ? "border-[#28b463] bg-[#eef8f1] text-[#28b463]"
-                            : "border-transparent bg-[#e7efea] text-[#8a8d8b]"
+                            ? "border-[#28b463] bg-[#f2fcf6]  text-[#28b463]"
+                            : "border-transparent bg-[#f2fcf6]  text-[#8a8d8b]"
                         }`}
                       >
                         <Icon size={20} />
@@ -633,10 +626,10 @@ const RegisterDialog = ({
           {step === "location" && (
             <div className="space-y-4">
               <div>
-                <label className="text-[1.05rem] font-medium text-[#1e1e1e]">
+                <label className="font-medium text-[#1e1e1e]">
                   Pincode
                 </label>
-                <div className="mt-2 rounded-xl bg-[#e7efea] px-4 py-2.5">
+                <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-2.5">
                   <input
                     type="text"
                     inputMode="numeric"
@@ -658,10 +651,10 @@ const RegisterDialog = ({
               </div>
 
               <div>
-                <label className="text-[1.05rem] font-medium text-[#1e1e1e]">
+                <label className=" font-medium text-[#1e1e1e]">
                   Locality
                 </label>
-                <div className="mt-2 rounded-xl bg-[#e7efea] px-4 py-2.5">
+                <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-2.5">
                   <input
                     type="text"
                     value={formData.locality}
@@ -682,10 +675,10 @@ const RegisterDialog = ({
               </div>
 
               <div>
-                <label className="text-[1.05rem] font-medium text-[#1e1e1e]">
+                <label className="font-medium text-[#1e1e1e]">
                   City
                 </label>
-                <div className="mt-2 rounded-xl bg-[#e7efea] px-4 py-2.5">
+                <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-2.5">
                   <input
                     type="text"
                     value={formData.city}
@@ -706,10 +699,10 @@ const RegisterDialog = ({
               </div>
 
               <div>
-                <label className="text-[1.05rem] font-medium text-[#1e1e1e]">
+                <label className="font-medium text-[#1e1e1e]">
                   State
                 </label>
-                <div className="mt-2 rounded-xl bg-[#e7efea] px-4 py-2.5">
+                <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-2.5">
                   <input
                     type="text"
                     value={formData.state}
@@ -751,10 +744,10 @@ const RegisterDialog = ({
           {step === "kyc" && (
             <div className="space-y-5">
               <div>
-                <h3 className="text-[2rem] font-medium leading-none text-[#1f1f1f]">
+                <h3 className="text-lg font-medium leading-none text-[#1f1f1f]">
                   Verify with DigiLocker
                 </h3>
-                <div className="mt-5 rounded-xl bg-[#e7efea] px-4 py-3">
+                <div className="mt-5 rounded-md bg-[#f2fcf6] px-4 py-3">
                   <div className="flex items-center gap-3">
                     <div className="min-w-0 flex-1 text-base font-medium text-[#1f1f1f]">
                       {phoneNumber || "-"}
@@ -767,7 +760,7 @@ const RegisterDialog = ({
                 </p>
               </div>
 
-              <div className="space-y-5 py-1">
+              <div className="space-y-2 py-1">
                 {[
                   "Real users, verified identities",
                   "One-time KYC verification",
@@ -792,7 +785,7 @@ const RegisterDialog = ({
               </div>
 
               <div className="pt-2">
-                <KycButton />
+                <KycButton className="w-full text-center" />
               </div>
             </div>
           )}
