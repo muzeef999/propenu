@@ -29,6 +29,11 @@ const PlanSchema = new Schema(
       required: true,
       default: 0,
     },
+     dprice: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
 
     durationDays: { type: Number, default: 30 },
 

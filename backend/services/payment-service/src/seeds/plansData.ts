@@ -18,6 +18,7 @@ export const plans = [
     tier: "tier1",
     name: "Rental Assist",
     price: 699,
+    dprice: 99999,
     features: {
       CONTACT_OWNER_LIMIT: 4,
     },
@@ -29,6 +30,7 @@ export const plans = [
     tier: "tier2",
     name: "Rental Guide",
     price: 1499,
+    dprice: 99999,
     features: {
       CONTACT_OWNER_LIMIT: 10,
       PROPERTY_COMPARISON: true,
@@ -42,6 +44,7 @@ export const plans = [
     tier: "tier3",
     name: "Rental Assure",
     price: 2999,
+    dprice: 99999,
     features: {
       CONTACT_OWNER_LIMIT: 20,
       PROPERTY_COMPARISON: true,
@@ -68,6 +71,7 @@ export const plans = [
     tier: "tier1",
     name: "Buyer Easy",
     price: 499,
+    dprice: 99999,
     features: {
       CONTACT_OWNER_LIMIT: 4,
     },
@@ -79,6 +83,7 @@ export const plans = [
     tier: "tier2",
     name: "Buyer Core",
     price: 999,
+    dprice: 99999,
     features: {
       CONTACT_OWNER_LIMIT: 10,
       PROPERTY_COMPARISON: true,
@@ -92,6 +97,7 @@ export const plans = [
     tier: "tier3",
     name: "Buyer Advance",
     price: 1999,
+    dprice: 99999,
     features: {
       CONTACT_OWNER_LIMIT: 20,
       PROPERTY_COMPARISON: true,
@@ -120,6 +126,7 @@ export const plans = [
     tier: "tier1",
     name: "Owner Access",
     price: 499,
+    dprice: 99999,
     features: {
       PROPERTY_LISTING_LIMIT: 10,
       ENQUIRY_LIMIT: 10,
@@ -133,6 +140,7 @@ export const plans = [
     tier: "tier2",
     name: "Owner Advantage",
     price: 999,
+    dprice: 99999,
     features: {
       PROPERTY_LISTING_LIMIT: 15,
       ENQUIRY_LIMIT: 15,
@@ -146,6 +154,7 @@ export const plans = [
     tier: "tier3",
     name: "Owner Ultra",
     price: 1999,
+    dprice: 99999,
     features: {
       PROPERTY_LISTING_LIMIT: 20,
       ENQUIRY_LIMIT: 20,
@@ -174,6 +183,7 @@ export const plans = [
     tier: "tier1",
     name: "Owner Access",
     price: 499,
+    dprice: 99999,
     features: {
       PROPERTY_LISTING_LIMIT: 10,
       ENQUIRY_LIMIT: 10,
@@ -187,6 +197,7 @@ export const plans = [
     tier: "tier2",
     name: "Owner Advantage",
     price: 999,
+    dprice: 99999,
     features: {
       PROPERTY_LISTING_LIMIT: 15,
       ENQUIRY_LIMIT: 15,
@@ -231,6 +242,7 @@ export const plans = [
     tier: "tier1",
     name: "Pro Rent",
     price: 1999,
+    dprice: 99999,
     durationDays: 30,
     features: {
       PROPERTY_LISTING_LIMIT: 40,
@@ -247,6 +259,7 @@ export const plans = [
     tier: "tier2",
     name: "Pro Sell",
     price: 2999,
+    dprice: 99999,
     durationDays: 40,
     features: {
       PROPERTY_LISTING_LIMIT: 40,
@@ -263,6 +276,7 @@ export const plans = [
     tier: "tier3",
     name: "Elite",
     price: 5999,
+    dprice: 99999,
     durationDays: 120,
     features: {
       PROPERTY_LISTING_LIMIT: 80,
