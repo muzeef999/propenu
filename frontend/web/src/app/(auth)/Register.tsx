@@ -136,6 +136,16 @@ const RegisterDialog = ({
   }
 
   function handlePersonalStepNext() {
+    const accountValidation = accountSchema.safeParse(formData);
+
+    if (!accountValidation.success) {
+      setErrors((prev) => ({
+        ...prev,
+        ...mapAuthZodErrors(accountValidation.error),
+      }));
+      return;
+    }
+
     if (isOtpVerified) {
       setStep("location");
       return;
