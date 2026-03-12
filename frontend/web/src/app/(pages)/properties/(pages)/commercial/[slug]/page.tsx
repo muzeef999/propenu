@@ -142,6 +142,7 @@ export default async function Page({ params }: PageProps) {
       icon: PiCalendarBlank,
     },
   ];
+  console.log(project);
 
 
   return (

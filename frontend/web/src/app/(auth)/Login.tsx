@@ -191,55 +191,55 @@ if (localShortlist.length > 0) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      {/* backdrop */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div
         className="absolute inset-0"
         onClick={handleClose}
         aria-hidden="true"
       />
 
-      <div className="relative z-50 w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-gray-900/5">
-        {/* Close button */}
+      <div className="relative z-50 w-full max-w-[440px] overflow-hidden rounded-xl bg-[#f2fcf6] shadow-2xl">
         <button
           onClick={handleClose}
-          className="absolute right-4 top-4 rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none"
+          className="absolute right-5 top-5 rounded-full p-1 text-[#8d908e] transition-colors hover:text-[#5e635f] cursor-pointer"
           aria-label="Close"
         >
           <MdClose size={22} />
         </button>
 
-        <div className="p-8">
-          <div className="mb-8 text-center">
-            <h2 className="text-2xl font-semibold text-gray-900">
-              {step === "request" ? "Welcome Back" : "Verify OTP"}
-            </h2>
-            <p className="mt-2 text-sm text-gray-500">
-              {step === "request"
-                ? "Enter your details to access your account"
-                : "Please enter the verification code sent to your phone"}
-            </p>
-          </div>
+        <div className="p-6 pb-3">
+          <h2 className="pr-10 text-2xl font-medium leading-none text-[#28b463]">
+            {step === "request" ? "Welcome Back" : "Verify OTP"}
+          </h2>
+          <p className="mt-2 text-sm leading-5 text-[#7f8481]">
+            {step === "request"
+              ? "Enter your details to access your account"
+              : "Please enter the verification code sent to your phone"}
+          </p>
+        </div>
 
+        <div className="rounded-2xl bg-[#ffffff] px-6 py-6 shadow-[0_-6px_20px_rgba(0,0,0,0.1)]">
           {step === "request" && (
-            <div className="space-y-5">
-              <div className="relative mt-4">
-                <label className="text-sm font-medium text-[#374254]">
+            <div className="space-y-4">
+              <div>
+                <label className="font-normal text-[#1e1e1e]">
                   Enter Whatsapp Number
                 </label>
 
-                <div className="phone-underline mt-1">
-                  <PhoneInput
-                    international
-                    defaultCountry="IN"
-                    value={phone}
-                    onChange={(value) => {
-                      setPhone(value || "");
-                      setError(null);
-                    }}
-                    placeholder=" "
-                    className="phone-material"
-                  />
+                <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-0.5">
+                  <div className="phone-material flex items-center gap-3">
+                    <PhoneInput
+                      international
+                      defaultCountry="IN"
+                      value={phone}
+                      onChange={(value) => {
+                        setPhone(value || "");
+                        setError(null);
+                      }}
+                      placeholder="Enter your mobile number"
+                      className="w-full"
+                    />
+                  </div>
                 </div>
                 {step === "request" && error && (
                   <p className="mt-1 text-xs text-red-600">{error}</p>
@@ -248,7 +248,7 @@ if (localShortlist.length > 0) {
 
               <button
                 onClick={handleRequestOtp}
-                className="w-full rounded-md btn-primary py-3 text-sm font-semibold text-white shadow-lg transition-all focus:outline-none "
+                className="w-full rounded-lg py-2.5 text-base font-semibold text-white shadow-lg transition-all btn-primary"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -279,7 +279,7 @@ if (localShortlist.length > 0) {
               </button>
 
               <div className="text-center">
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-[#7f8481]">
                   New to Propenu?{" "}
                   <button
                     type="button"
@@ -287,7 +287,7 @@ if (localShortlist.length > 0) {
                       e.preventDefault();
                       onSwitchToRegister();
                     }}
-                    className="font-medium text-emerald-600 cursor-pointer hover:text-emerald-700 hover:underline"
+                    className="cursor-pointer font-medium text-[#28b463] hover:underline"
                   >
                     Create an account
                   </button>
@@ -297,45 +297,58 @@ if (localShortlist.length > 0) {
           )}
 
           {step === "verify" && (
-            <div className="space-y-6">
-              <div className="rounded-xl bg-emerald-50 p-4 text-center">
-                <p className="text-sm text-emerald-800">
-                  Code sent to <span className="font-semibold">{phone}</span>
-                </p>
-                <button
-                  onClick={() => setStep("request")}
-                  className="mt-1 flex w-full items-center justify-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700"
-                >
-                  <LuPencilLine /> Edit Phone
-                </button>
+            <div className="space-y-5">
+              <div>
+                <label className="font-normal text-[#1e1e1e]">
+                  WhatsApp Number
+                </label>
+                <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="min-w-0 truncate text-base font-medium text-[#1f1f1f]">
+                      {phone}
+                    </p>
+                    <button
+                      onClick={() => setStep("request")}
+                      className="flex shrink-0 items-center gap-1 text-xs font-medium text-[#28b463] hover:underline"
+                    >
+                      <LuPencilLine />
+                      Edit
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex justify-center gap-3">
-                {otpDigits.map((digit, index) => (
-                  <input
-                    key={index}
-                    ref={(el) => {
-                      inputsRef.current[index] = el;
-                    }}
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleOtpChange(e.target.value, index)}
-                    onKeyDown={(e) => handleOtpKeyDown(e, index)}
-                    onPaste={index === 0 ? handleOtpPaste : undefined}
-                    className="h-14 w-14 rounded-xl border border-gray-200 bg-gray-50 text-center text-2xl font-bold text-gray-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"
-                  />
-                ))}
+              <div>
+                <p className="mb-2 font-normal text-[#1e1e1e]">
+                  Enter WhatsApp OTP
+                </p>
+                <div className="flex gap-3" onPaste={handleOtpPaste}>
+                  {otpDigits.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => {
+                        inputsRef.current[index] = el;
+                      }}
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(e.target.value, index)}
+                      onKeyDown={(e) => handleOtpKeyDown(e, index)}
+                      onPaste={index === 0 ? handleOtpPaste : undefined}
+                      className="h-10 w-10 rounded-md border border-[#d8ded9] bg-white text-center text-lg font-semibold text-[#1f1f1f] outline-none transition focus:border-[#28b463] focus:ring-2 focus:ring-[#cfead8]"
+                    />
+                  ))}
+                </div>
                 {step === "verify" && error && (
-                  <p className="text-center text-sm text-red-600">{error}</p>
+                  <p className="mt-2 text-center text-xs text-red-600">{error}</p>
                 )}
               </div>
 
               <button
                 onClick={handleVerifyOtp}
-                className="w-full rounded-xl bg-[#27AE60] py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-green-700/90 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                className="w-full rounded-lg py-2.5 text-base font-semibold text-white shadow-lg transition-all btn-primary"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -363,9 +376,6 @@ if (localShortlist.length > 0) {
               </button>
             </div>
           )}
-
-
-
         </div>
       </div>
     </div>

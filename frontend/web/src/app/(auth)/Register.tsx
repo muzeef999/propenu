@@ -385,10 +385,10 @@ const RegisterDialog = ({
         aria-hidden="true"
       />
 
-      <div className="relative z-50 w-full max-w-[440px] overflow-hidden rounded-[28px] bg-[#f2fcf6]  shadow-2xl">
+      <div className="relative z-50 w-full max-w-[440px] overflow-hidden rounded-xl bg-[#f2fcf6]  shadow-2xl">
         <button
           onClick={handleClose}
-          className="absolute right-5 top-5 rounded-full p-1 text-[#8d908e] transition-colors hover:text-[#5e635f]"
+          className="absolute right-5 top-5 rounded-full p-1 cursor-pointer text-[#8d908e] transition-colors hover:text-[#5e635f]"
           aria-label="Close"
         >
           <MdClose size={22} />
@@ -609,8 +609,8 @@ const RegisterDialog = ({
                   "Verifying..."
                 ) : (
                   <span className="flex items-center justify-center gap-2">
-                    <MdOutlineWhatsapp size={18} />
-                    Next
+                    
+                    Continue
                   </span>
                 )}
               </button>
@@ -737,7 +737,7 @@ const RegisterDialog = ({
                   onClick={handleCompleteLocation}
                   className="w-full rounded-lg py-2.5 text-base font-semibold text-white shadow-lg transition-all btn-primary"
                 >
-                  Next
+                  Continue
                 </button>
               </div>
             </div>
