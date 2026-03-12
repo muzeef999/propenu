@@ -34,6 +34,9 @@ const Navbar = () => {
   const [mobileUserMenuOpen, setMobileUserMenuOpen] = useState(false);
   const [openState, setOpenState] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [registerStep, setRegisterStep] = useState<
+    "personal" | "location" | "kyc"
+  >("personal");
 
   useEffect(() => {
     if (mobileOpen) {
@@ -49,16 +52,34 @@ const Navbar = () => {
 
   useEffect(() => {
     async function fetchUser() {
-      const data = await me();
-      setUser(data);
+      try {
+        const data = await me();
+        setUser(data);
+
+        const status = data?.user?.accountStatus;
+
+        console.log("User account status:", status);
+        console.log("User data:", data);
+
+        // Resume onboarding based on account status
+       if (status === "location_pending") {
+  setRegisterStep("location");
+}
+
+if (status === "kyc_pending") {
+  setRegisterStep("kyc");
+}
+      } catch (err) {
+        // user not logged in
+      }
     }
+
     fetchUser();
   }, []);
 
   const toggleState = (stateName: string) => {
     setOpenState((prev) => (prev === stateName ? null : stateName));
   };
-
 
   const { selectedCity, locations, selectCity } = useCity();
 
@@ -143,10 +164,10 @@ const Navbar = () => {
     setMobileOpen(false);
   };
 
-
   return (
     <header>
-      <nav className="w-full bg-white/80 backdrop-blur-md border-b relative z-30 border-gray-200"
+      <nav
+        className="w-full bg-white/80 backdrop-blur-md border-b relative z-30 border-gray-200"
         aria-label="Main navigation"
       >
         <div className="container mx-auto px-1 sm:px-4 lg:px-3">
@@ -219,8 +240,9 @@ const Navbar = () => {
                         <ArrowDropdownIcon
                           size={12}
                           color="#27AE60"
-                          className={`transition-transform duration-200 shrink-0 ${open ? "rotate-180" : "rotate-0"
-                            }`}
+                          className={`transition-transform duration-200 shrink-0 ${
+                            open ? "rotate-180" : "rotate-0"
+                          }`}
                         />
                       </div>
                     }
@@ -276,7 +298,7 @@ const Navbar = () => {
             {/* RIGHT - desktop */}
             <div className="hidden lg:flex items-center gap-4 lg:gap-6 text-[#1A1A1A] shrink-0">
               <>
-                {!user ? (
+                {!user || user?.user?.accountStatus !== "active" ? (
                   <button
                     onClick={() => setAuthMode("login")}
                     className="text-sm text-gray-700 hover:text-gray-900 transition-colors cursor-pointer"
@@ -316,8 +338,9 @@ const Navbar = () => {
                       <ArrowDropdownIcon
                         size={12}
                         color="#27AE60"
-                        className={`transition-transform duration-200 shrink-0 ${mobileOpen_city ? "rotate-180" : "rotate-0"
-                          }`}
+                        className={`transition-transform duration-200 shrink-0 ${
+                          mobileOpen_city ? "rotate-180" : "rotate-0"
+                        }`}
                       />
                     </div>
                   }
@@ -419,7 +442,8 @@ const Navbar = () => {
           <button
             onClick={() => setMobileOpen(false)}
             aria-label="Close menu"
-            className="fixed top-4 left-78 z-60 h-10 w-10 rounded-full  bg-black/70 text-white backdrop-blur flex items-center justify-center shadow-lg  hover:bg-black/90 transition-all lg:hidden">
+            className="fixed top-4 left-78 z-60 h-10 w-10 rounded-full  bg-black/70 text-white backdrop-blur flex items-center justify-center shadow-lg  hover:bg-black/90 transition-all lg:hidden"
+          >
             <svg
               className="w-5 h-5"
               fill="none"
@@ -464,7 +488,8 @@ const Navbar = () => {
                     setMobileOpen(false);
                   }}
                   style={{ backgroundColor: BRAND_GREEN }}
-                  className="text-white text-xs font-semibold px-4 py-1.5 rounded-md shadow-sm whitespace-nowrap transition-all hover:opacity-90 active:scale-95">
+                  className="text-white text-xs font-semibold px-4 py-1.5 rounded-md shadow-sm whitespace-nowrap transition-all hover:opacity-90 active:scale-95"
+                >
                   Login
                 </button>
               </div>
@@ -481,17 +506,13 @@ const Navbar = () => {
                   <span className="text-sm font-semibold text-gray-900 truncate">
                     Hi, {user?.user?.name?.split(" ")?.[0] ?? "User"}
                   </span>
-                  
                 </div>
               </div>
             )}
           </div>
 
-
           {/* MAIN NAVIGATION */}
           <div className="flex-1 overflow-y-auto py-2">
-
-
             {/* OTHER LINKS */}
             <nav className="px-2">
               {[
@@ -548,8 +569,6 @@ const Navbar = () => {
                 </button>
               ))}
             </nav>
-
-
           </div>
 
           {/* FOOTER CTA */}
@@ -566,7 +585,6 @@ const Navbar = () => {
             </Link>
           </div>
         </div>
-
       </>
 
       {authMode === "login" && (
@@ -579,6 +597,7 @@ const Navbar = () => {
       {authMode === "register" && (
         <RegisterDialog
           open={true}
+            initialStep={registerStep}
           onClose={() => setAuthMode(null)}
           onSwitchToLogin={() => setAuthMode("login")}
         />

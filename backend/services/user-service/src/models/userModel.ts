@@ -35,8 +35,8 @@ const UserSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: false, // ✅ make this optional if you're using phone too
-      unique: true,
+      required: true, // ✅ make this optional if you're using phone too
+      unique: false,
       trim: true,
       lowercase: true,
       sparse: true,
@@ -97,8 +97,8 @@ const UserSchema = new mongoose.Schema(
 
     accountStatus: {
       type: String,
-      enum: ["pending_kyc", "active", "blocked"],
-      default: "pending_kyc",
+        enum: ["pending", "location_pending", "kyc_pending", "active"],
+      default: "location_pending",
     },
 
     address: {

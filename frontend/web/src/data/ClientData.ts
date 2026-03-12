@@ -571,3 +571,21 @@ export const getFeaturedProjectsDashboard = async () => {
 
   return res.data;
 };
+
+
+export const updateLocation = async (payload:any) => {
+
+  const token = Cookies.get("token");
+
+  const res = await axios.post(
+    `${url}/api/users/auth/update-location/create`,
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    }
+  );
+
+  return res.data;
+};

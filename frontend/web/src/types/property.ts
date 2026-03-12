@@ -78,15 +78,11 @@ export interface createRequestOtpPayload {
 }
 
 export interface createVerifyOtpPayload {
-  email?: string;
-  phone: string;
-  otp: string;
-  name: string;
-  role: string;
-  locality: string;
-  city: string;
-  state: string;
-  pincode: string;
+  name: string
+  email?: string
+  role: "user" | "builder" | "agent"
+  phone: string
+  otp: string
 }
 
 export interface Leads {

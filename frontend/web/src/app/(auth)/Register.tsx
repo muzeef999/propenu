@@ -1,7 +1,12 @@
 "use client";
 
 import KycButton from "@/app/(account)/settings/KycButton";
-import { createRequestOtp, createVerifyOtp, startKyc } from "@/data/ClientData";
+import {
+  createRequestOtp,
+  createVerifyOtp,
+  me,
+  updateLocation,
+} from "@/data/ClientData";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -22,6 +27,7 @@ interface RegisterDialogProps {
   open: boolean;
   onClose: () => void;
   onSwitchToLogin: () => void;
+  initialStep?: "personal" | "location" | "kyc";
 }
 
 const OTP_LENGTH = 4;
@@ -82,8 +88,9 @@ const RegisterDialog = ({
   open,
   onClose,
   onSwitchToLogin,
+  initialStep = "personal",
 }: RegisterDialogProps) => {
-  const [step, setStep] = useState<RegisterStep>("personal");
+  const [step, setStep] = useState<RegisterStep>(initialStep || "personal");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [formData, setFormData] = useState({
     name: "",
@@ -95,16 +102,6 @@ const RegisterDialog = ({
     state: "",
   });
 
-  const [signupPayload, setSignupPayload] = useState({
-    name: "",
-    role: "user" as "user" | "builder" | "agent",
-    phone: "",
-    otp: "",
-    pincode: "",
-    locality: "",
-    city: "",
-    state: "",
-  });
   const [otpDigits, setOtpDigits] = useState<string[]>(
     Array(OTP_LENGTH).fill(""),
   );
@@ -157,103 +154,33 @@ const RegisterDialog = ({
     }
   }
 
-  async function handleVerifyOtp(manualOtp?: string | React.MouseEvent) {
-    const otpToSubmit = typeof manualOtp === "string" ? manualOtp : otp;
+  async function handleVerifyOtp() {
+    const otpToSubmit = otp;
+
     const phoneValidation = phoneSchema.safeParse({ phone: phoneNumber });
-    if (!phoneValidation.success) {
-      setErrors((prev) => ({
-        ...prev,
-        ...mapZodErrors(phoneValidation.error),
-      }));
-      return;
-    }
+    if (!phoneValidation.success) return;
 
     const accountValidation = accountSchema.safeParse(formData);
-    if (!accountValidation.success) {
-      setErrors((prev) => ({
-        ...prev,
-        ...mapZodErrors(accountValidation.error),
-      }));
-      return;
-    }
+    if (!accountValidation.success) return;
 
     const otpValidation = otpSchema.safeParse(otpToSubmit);
-    if (!otpValidation.success) {
-      setErrors((prev) => ({
-        ...prev,
-        otp: otpValidation.error.issues[0].message,
-      }));
-      return;
-    }
-
-    setLoading(true);
-    setErrors({});
-
-    try {
-      setSignupPayload({
-        name: accountValidation.data.name.trim(),
-        role: accountValidation.data.role,
-        phone: phoneValidation.data.phone,
-        otp: otpToSubmit,
-        pincode: "",
-        locality: "",
-        city: "",
-        state: "",
-      });
-
-      setIsOtpVerified(true);
-      setStep("location");
-      toast.success("OTP verified successfully");
-    } catch {
-      setErrors({ otp: "Invalid OTP or an error occurred." });
-      setOtpDigits(Array(OTP_LENGTH).fill(""));
-      inputsRef.current[0]?.focus();
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function handleLocationContinue() {
-    const validation = locationSchema.safeParse(formData);
-
-    if (!validation.success) {
-      setErrors((prev) => ({ ...prev, ...mapZodErrors(validation.error) }));
-      return;
-    }
-
-    setErrors((prev) => ({
-      ...prev,
-      pincode: undefined,
-      locality: undefined,
-      city: undefined,
-      state: undefined,
-    }));
-    setStep("kyc");
-  }
-
-  async function handleCompleteLocation() {
-    const validation = locationSchema.safeParse(formData);
-
-    if (!validation.success) {
-      setErrors((prev) => ({ ...prev, ...mapZodErrors(validation.error) }));
-      setStep("location");
-      return;
-    }
+    if (!otpValidation.success) return;
 
     setLoading(true);
 
     try {
       const payload = {
-        ...signupPayload,
-        locality: validation.data.locality.trim(),
-        city: validation.data.city.trim(),
-        state: validation.data.state.trim(),
-        pincode: validation.data.pincode.trim(),
+        name: accountValidation.data.name,
+        email: accountValidation.data.email,
+        role: accountValidation.data.role,
+        phone: phoneValidation.data.phone,
+        otp: otpToSubmit,
       };
 
       const res = await createVerifyOtp(payload);
 
-      if (res.token) {
+      // save token
+      if (res?.token) {
         Cookies.set("token", res.token, {
           expires: 7,
           secure: process.env.NODE_ENV === "production",
@@ -261,28 +188,48 @@ const RegisterDialog = ({
         });
       }
 
-      toast.success("Account created successfully!");
+      setIsOtpVerified(true);
 
-      // move to KYC step
-      setStep("kyc");
-    } catch {
-      toast.error("Failed to create account.");
+      // move to location step
+      setStep("location");
+
+      toast.success("OTP verified successfully");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "OTP verification failed");
     } finally {
       setLoading(false);
     }
   }
 
-  const handleStartKyc = async () => {
-    console.log("KYC button clicked");
+  async function handleCompleteLocation() {
+    const validation = locationSchema.safeParse(formData);
 
-    const data = await startKyc();
-
-    console.log("KYC API response:", data);
-
-    if (data?.url) {
-      window.location.href = data.url;
+    if (!validation.success) {
+      setErrors(mapZodErrors(validation.error));
+      return;
     }
-  };
+
+    setLoading(true);
+
+    try {
+      const payload = {
+        locality: validation.data.locality,
+        city: validation.data.city,
+        state: validation.data.state,
+        pincode: validation.data.pincode,
+      };
+
+      await updateLocation(payload);
+
+      toast.success("Location updated");
+
+      setStep("kyc");
+    } catch {
+      toast.error("Failed to update location");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   function handleOtpChange(value: string, index: number) {
     setErrors((prev) => ({ ...prev, otp: undefined }));
@@ -376,6 +323,40 @@ const RegisterDialog = ({
     handleRegisterRequest();
   }, [step, showPhoneStepOtp, phoneNumber, loading]);
 
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const data = await me();
+        const user = data?.user;
+
+        if (!user) return;
+
+        // fill phone
+        setPhoneNumber(user.phone || "");
+
+        // fill form fields
+        setFormData((prev) => ({
+          ...prev,
+          name: user.name || "",
+          email: user.email || "",
+          pincode: user.pincode || "",
+          locality: user.locality || "",
+          city: user.city || "",
+          state: user.state || "",
+        }));
+
+        // important: user already verified OTP
+        setIsOtpVerified(true);
+      } catch (err) {
+        console.log("Failed to fetch user");
+      }
+    }
+
+    if (open) {
+      fetchUser();
+    }
+  }, [open]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div
@@ -432,7 +413,7 @@ const RegisterDialog = ({
           {step === "personal" && (
             <div className="space-y-4">
               <div>
-                <label className="font-medium text-[#1e1e1e]">Full Name</label>
+                <label className="font-normal text-[#1e1e1e]">Full Name</label>
                 <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-2.5">
                   <input
                     type="text"
@@ -454,7 +435,7 @@ const RegisterDialog = ({
               </div>
 
               <div>
-                <label className="font-medium text-[#1e1e1e]">
+                <label className="font-normal text-[#1e1e1e]">
                   Mobile{" "}
                   <span className="text-sm font-normal text-[#9ca09d]">
                     (aadhaar linked mobile number)
@@ -491,7 +472,7 @@ const RegisterDialog = ({
 
                 {showPhoneStepOtp && (
                   <div className="mt-3">
-                    <p className="mb-2 font-medium text-[#1e1e1e]">
+                    <p className="mb-2 font-normal text-[#1e1e1e]">
                       Enter WhatsApp OTP
                     </p>
                     <div className="flex  gap-3" onPaste={handleOtpPaste}>
@@ -524,7 +505,7 @@ const RegisterDialog = ({
               </div>
 
               <div>
-                <label className="font-medium text-[#1e1e1e]">Mail ID</label>
+                <label className="font-normal text-[#1e1e1e]">Mail ID</label>
                 <div className="mt-2 rounded-md bg-[#f2fcf6]  px-4 py-2.5">
                   <input
                     type="email"
@@ -546,8 +527,8 @@ const RegisterDialog = ({
               </div>
 
               <div>
-                <label className="mb-2 block font-medium text-[#1e1e1e]">
-                  You are a
+                <label className="mb-2 block font-normal text-[#1e1e1e]">
+                  Select Role
                 </label>
 
                 <div className="grid grid-cols-3 gap-2.5">
@@ -626,9 +607,7 @@ const RegisterDialog = ({
           {step === "location" && (
             <div className="space-y-4">
               <div>
-                <label className="font-medium text-[#1e1e1e]">
-                  Pincode
-                </label>
+                <label className="font-medium text-[#1e1e1e]">Pincode</label>
                 <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-2.5">
                   <input
                     type="text"
@@ -651,9 +630,7 @@ const RegisterDialog = ({
               </div>
 
               <div>
-                <label className=" font-medium text-[#1e1e1e]">
-                  Locality
-                </label>
+                <label className=" font-medium text-[#1e1e1e]">Locality</label>
                 <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-2.5">
                   <input
                     type="text"
@@ -675,9 +652,7 @@ const RegisterDialog = ({
               </div>
 
               <div>
-                <label className="font-medium text-[#1e1e1e]">
-                  City
-                </label>
+                <label className="font-medium text-[#1e1e1e]">City</label>
                 <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-2.5">
                   <input
                     type="text"
@@ -699,9 +674,7 @@ const RegisterDialog = ({
               </div>
 
               <div>
-                <label className="font-medium text-[#1e1e1e]">
-                  State
-                </label>
+                <label className="font-medium text-[#1e1e1e]">State</label>
                 <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-2.5">
                   <input
                     type="text"
