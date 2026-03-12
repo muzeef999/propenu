@@ -1,5 +1,6 @@
 "use client";
 
+import LeadDialog from "@/app/(pages)/properties/cards/LeadDialog";
 import { me, postLeads } from "@/data/ClientData";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -14,13 +15,18 @@ interface ContactOwnerButtonProps {
   listingType?: string;
   projectId: undefined | string;
   listingSource?: "User" | "Agent" | "builder" | string;
-
   propertyType?:
     | "residentials"
     | "commercials"
     | "agriculturals"
     | "landplots"
     | "featuredprojects";
+  ownerName?: string;
+  ownerPhone?: string;
+  ownerEmail?: string;
+  postedOn?: string | Date;
+  price?: number | string;
+  propertyLabel?: string;
   className?: string;
   children?: React.ReactNode;
 }
@@ -28,14 +34,20 @@ interface ContactOwnerButtonProps {
 export default function ContactOwnerButton({
   listingType,
   listingSource,
-
   projectId,
   propertyType = "residentials",
+  ownerName,
+  ownerPhone,
+  ownerEmail,
+  postedOn,
+  price,
+  propertyLabel,
   className,
   children,
 }: ContactOwnerButtonProps) {
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
+  const [showLeadDialog, setShowLeadDialog] = useState(false);
   const router = useRouter();
   const normalizeListingType = (
     value?: string,
@@ -88,7 +100,7 @@ export default function ContactOwnerButton({
   const { mutate: postLead, isPending: isLeadPosting } = useMutation({
     mutationFn: postLeads,
     onSuccess: () => {
-      toast.success(`${getContactPerson()} will contact you shortly`);
+      setShowLeadDialog(true);
     },
     onError: (error: any) => {
       const message =
@@ -177,6 +189,22 @@ export default function ContactOwnerButton({
               }}
             />
           </div>,
+          document.body,
+        )}
+
+      {showLeadDialog &&
+        createPortal(
+          <LeadDialog
+            open={showLeadDialog}
+            onClose={() => setShowLeadDialog(false)}
+            ownerName={ownerName}
+            ownerRole={getContactPerson()}
+            phone={ownerPhone}
+            email={ownerEmail}
+            postedOn={postedOn}
+            price={price}
+            propertyLabel={propertyLabel}
+          />,
           document.body,
         )}
     </>

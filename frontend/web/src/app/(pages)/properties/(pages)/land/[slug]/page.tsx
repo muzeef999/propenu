@@ -272,6 +272,12 @@ export default async function Page({ params }: PageProps) {
                           projectId={project._id}
                           propertyType="landplots"
                           listingSource={resolvedListingSource}
+                          ownerName={project?.createdBy?.name}
+                          ownerPhone={project?.createdBy?.contact ?? (project as any)?.phone}
+                          ownerEmail={project?.createdBy?.email}
+                          postedOn={(project as any)?.createdAt}
+                          price={project?.price}
+                          propertyLabel={project?.title}
                         />
                       </div>
                     </section>

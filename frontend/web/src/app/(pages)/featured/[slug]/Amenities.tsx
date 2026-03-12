@@ -67,7 +67,7 @@ export default function Amenities(props: Props) {
       // lg breakpoint in Tailwind is 1024px
       setIsMobileOrTablet(window.innerWidth < 1024);
     };
-    
+
     checkScreenSize();
     window.addEventListener("resize", checkScreenSize);
     return () => window.removeEventListener("resize", checkScreenSize);
@@ -108,20 +108,20 @@ export default function Amenities(props: Props) {
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-4 flex items-center justify-between gap-4">
-        <div  style={{color:color, borderLeft:`5px solid ${color}`}}>
-              <div className="ml-2">
+        <div style={{ color: color, borderLeft: `5px solid ${color}` }}>
+          <div className="ml-2">
             <h1 className="text-2xl font-bold">
               Amenities
             </h1>
             <p className="headingDesc">
-             Building excellence in Hyderabad
+              Facilities designed for comfortable living
             </p>
           </div>
-          </div>
-          <br/>
+        </div>
+        <br />
 
       </div>
-      <br/>
+      <br />
 
       <div className="grid lg:grid-cols-5 sm:grid-cols-3 grid-cols-2 gap-4 ">
         {amenitiesToShow.length === 0 ? (
@@ -133,7 +133,7 @@ export default function Amenities(props: Props) {
             // icon priority: uploaded imageUrl -> local icon path from mapping -> default placeholder
             const iconSrc = a.imageUrl ?? amenityTitleToIconPath(title) ?? "/icons/amenities/default.svg";
 
-            
+
             return (
               <div
                 key={key}
@@ -166,7 +166,7 @@ export default function Amenities(props: Props) {
           <button
             type="button"
             onClick={() => setShowAll(!showAll)}
-            style={{color:color}}
+            style={{ color: color }}
             className="font-semibold transition hover:underline"
           >
             {showAll ? "View Less" : "View More"}

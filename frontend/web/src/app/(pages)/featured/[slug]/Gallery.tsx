@@ -191,7 +191,7 @@ export default function Gallery(props: Props) {
       <div className="mb-6 flex items-start justify-between gap-6">
         <div style={{ color: color, borderLeft: `5px solid ${color}` }} className="pl-3">
           <h1 className="text-2xl font-bold">Gallery</h1>
-          <p className="text-sm text-slate-500">Building excellence in Hyderabad</p>
+          <p className="text-sm text-slate-500">See the space before you step in</p>
         </div>
       </div>
 

@@ -62,7 +62,8 @@ const Specification = ({ specifications }: Props) => {
         <div style={{ color: color, borderLeft: `5px solid ${color}` }}>
           <div className="ml-2">
             <h1 className="text-2xl font-bold">Specifications</h1>
-            <p className="headingDesc">Building excellence in Hyderabad</p>
+            <p className="headingDesc">Key details of the property
+</p>
           </div>
         </div>
       </div>

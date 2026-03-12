@@ -352,6 +352,12 @@ export const LandCard: React.FC<{ p: ILand; vertical?: boolean }> = ({
             propertyType="landplots"
             listingType={p?.listingType}
             listingSource={resolvedListingSource}
+            ownerName={p?.createdBy?.name}
+            ownerPhone={p?.createdBy?.contact ?? (p as any)?.phone}
+            ownerEmail={p?.createdBy?.email}
+            postedOn={(p as any)?.createdAt}
+            price={p?.price}
+            propertyLabel={p?.title}
             className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${
               vertical
                 ? "px-4 py-1.5 text-sm"

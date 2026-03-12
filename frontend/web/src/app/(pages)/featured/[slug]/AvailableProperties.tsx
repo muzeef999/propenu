@@ -115,7 +115,7 @@ export default function AvailableProperties({ bhk }: Props) {
               Available properties
             </h1>
             <p className="headingDesc">
-             Building excellence in Hyderabad
+             Your next property could be here
             </p>
           </div>
           </div>

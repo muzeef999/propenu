@@ -390,6 +390,12 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
             propertyType="residentials"
             listingType={p?.listingType}
             listingSource={resolvedListingSource}
+            ownerName={(p as any)?.createdBy?.name}
+            ownerPhone={(p as any)?.createdBy?.contact ?? (p as any)?.phone}
+            ownerEmail={(p as any)?.createdBy?.email ?? (p as any)?.email}
+            postedOn={(p as any)?.createdAt}
+            price={p?.price}
+            propertyLabel={p?.bhk ? `${p.bhk}BHK apartment` : p?.title}
             className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${
               vertical
                 ? "px-4 py-1.5 text-sm"

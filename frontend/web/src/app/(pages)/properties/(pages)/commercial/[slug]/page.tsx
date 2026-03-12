@@ -117,11 +117,6 @@ export default async function Page({ params }: PageProps) {
       icon: PiCoffee,
     },
     {
-      label: "Furnished Status",
-      value: project?.furnishedStatus ?? "N/A",
-      icon: PiArmchair,
-    },
-    {
       label: "2W Parking",
       value: ((project as any)?.parkingDetails?.twoWheeler ?? 0).toString(),
       icon: PiMotorcycle,
@@ -329,6 +324,12 @@ export default async function Page({ params }: PageProps) {
                           projectId={project._id}
                           propertyType="commercials"
                           listingSource={project.listingSource}
+                          ownerName={project?.createdBy?.name}
+                          ownerPhone={project?.createdBy?.contact ?? (project as any)?.phone}
+                          ownerEmail={project?.createdBy?.email}
+                          postedOn={(project as any)?.createdAt}
+                          price={project?.price}
+                          propertyLabel={project?.title}
                         />
                       </div>
                     </section>

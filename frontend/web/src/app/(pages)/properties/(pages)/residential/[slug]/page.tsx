@@ -306,6 +306,12 @@ export default async function Page({ params }: PageProps) {
                           projectId={project._id}
                           propertyType="residentials"
                           listingSource={project.listingSource}
+                          ownerName={(project as any)?.createdBy?.name}
+                          ownerPhone={(project as any)?.createdBy?.phone}
+                          ownerEmail={(project as any)?.createdBy?.email ?? (project as any)?.email}
+                          postedOn={(project as any)?.createdAt}
+                          price={project?.price}
+                          propertyLabel={project?.title}
                         />
                       </div>
                     </section>

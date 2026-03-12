@@ -232,6 +232,12 @@ export default async function Page({ params }: PageProps) {
                           projectId={project._id}
                           propertyType="agriculturals"
                           listingSource={project.listingSource}
+                          ownerName={project?.createdBy?.name}
+                          ownerPhone={(project as any)?.createdBy?.contact ?? (project as any)?.phone}
+                          ownerEmail={project?.createdBy?.email}
+                          postedOn={(project as any)?.createdAt}
+                          price={project?.price}
+                          propertyLabel={project?.title}
                         />
                       </div>
                     </section>

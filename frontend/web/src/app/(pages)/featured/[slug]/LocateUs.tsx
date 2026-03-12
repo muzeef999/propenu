@@ -292,7 +292,8 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
               Near by Places
             </h1>
             <p className="headingDesc">
-              Find important locations around your property
+              Everything you need, just minutes away                                                        
+
             </p>
           </div>
           </div>
