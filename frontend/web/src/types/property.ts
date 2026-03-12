@@ -65,7 +65,7 @@ export interface VerifyOtpPayload {
 
 export interface VerifyOtpResponse {
   message: string;
-  token?: string;
+  token: string;
   kycStatus?: string;
 }
 

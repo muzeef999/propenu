@@ -115,7 +115,12 @@ export const verifyOtp = async (req: Request, res: Response) => {
       roleId: role ? String(role._id) : undefined,
       roleName: role ? role.name : undefined,
       permissions: role ? role.permissions : [],
+                accountStatus: user.accountStatus 
+
     });
+
+
+ 
 
     return res.status(200).json({
       message: "OTP verified successfully",
@@ -148,7 +153,7 @@ export const me = async (req: AuthRequest, res: Response) => {
     if (!user) {
       return res.status(404).json({
         message: "User not found",
-      });
+      }); 
     }
 
     const role: any = user.roleId;

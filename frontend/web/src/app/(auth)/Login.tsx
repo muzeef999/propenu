@@ -68,12 +68,12 @@ const LoginDialog = ({
         otp: otpToSubmit,
       });
 
-      // Cookies.set("token", res.token, {
-      //   path: "/",          // ✅ VERY IMPORTANT
-      //   secure: true,
-      //   sameSite: "Strict",
-      //   expires: 30,
-      // });
+      Cookies.set("token", res.token, {
+        path: "/",          // ✅ VERY IMPORTANT
+        secure: true,
+        sameSite: "Strict",
+        expires: 30,
+      });
 
       const localShortlist = JSON.parse(
   localStorage.getItem("shortlist") || "[]"
