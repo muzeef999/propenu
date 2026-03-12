@@ -18,10 +18,18 @@ import {
 } from "react-icons/md";
 import { BsBuildings } from "react-icons/bs";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
-import { z } from "zod";
 import "react-phone-number-input/style.css";
 import Cookies from "js-cookie";
 import { AiOutlineUser } from "react-icons/ai";
+import {
+  accountSchema,
+  FormErrors,
+  locationSchema,
+  mapAuthZodErrors,
+  OTP_LENGTH,
+  otpSchema,
+  phoneSchema,
+} from "./AuthZod";
 
 interface RegisterDialogProps {
   open: boolean;
@@ -29,52 +37,6 @@ interface RegisterDialogProps {
   onSwitchToLogin: () => void;
   initialStep?: "personal" | "location" | "kyc";
 }
-
-const OTP_LENGTH = 4;
-
-const phoneSchema = z.object({
-  phone: z.string().refine(isValidPhoneNumber, {
-    message: "Invalid or incomplete phone number.",
-  }),
-});
-
-const accountSchema = z.object({
-  name: z.string().min(3, { message: "Name must be at least 3 characters." }),
-  email: z
-    .string()
-    .trim()
-    .email({ message: "Invalid email address." })
-    .optional()
-    .or(z.literal("")),
-  role: z.enum(["user", "builder", "agent"]),
-});
-
-const locationSchema = z.object({
-  pincode: z
-    .string()
-    .trim()
-    .regex(/^\d{6}$/, { message: "Pincode must be 6 digits." }),
-  locality: z.string().trim().min(2, { message: "Locality is required." }),
-  city: z.string().trim().min(2, { message: "City is required." }),
-  state: z.string().trim().min(2, { message: "State is required." }),
-});
-
-const otpSchema = z
-  .string()
-  .min(1, { message: "Please enter the OTP." })
-  .length(OTP_LENGTH, { message: `OTP must be ${OTP_LENGTH} digits long.` });
-
-type FormErrors = {
-  name?: string;
-  email?: string;
-  phone?: string;
-  role?: string;
-  pincode?: string;
-  locality?: string;
-  city?: string;
-  state?: string;
-  otp?: string;
-};
 
 type RegisterStep = "personal" | "location" | "kyc";
 
@@ -110,29 +72,48 @@ const RegisterDialog = ({
   const [isOtpVerified, setIsOtpVerified] = useState(false);
 
   const otp = otpDigits.join("");
-  const showPhoneStepOtp = isValidPhoneNumber(phoneNumber);
+  const isPhoneValid = isValidPhoneNumber(phoneNumber);
+  const shouldShowOtpInputs = isPhoneValid && !isOtpVerified;
+  const isPersonalDetailsFilled =
+    formData.name.trim().length > 0 &&
+    phoneNumber.trim().length > 0 &&
+    formData.email.trim().length > 0 &&
+    Boolean(formData.role);
+  const isLocationFilled =
+    formData.pincode.trim().length === 6 &&
+    formData.locality.trim().length > 0 &&
+    formData.city.trim().length > 0 &&
+    formData.state.trim().length > 0;
 
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const lastOtpRequestedPhoneRef = useRef("");
+  const verifiedPhoneRef = useRef("");
 
   if (!open) return null;
 
-  function mapZodErrors(error: z.ZodError) {
-    const fieldErrors: FormErrors = {};
+  function normalizePhone(value: string) {
+    const validation = phoneSchema.safeParse({ phone: value });
+    return validation.success ? validation.data.phone : value;
+  }
 
-    error.issues.forEach((issue) => {
-      const field = issue.path[0] as keyof FormErrors;
-      if (field) fieldErrors[field] = issue.message;
-    });
-
-    return fieldErrors;
+  function isPreviouslyVerifiedPhone(value: string) {
+    const normalizedPhone = normalizePhone(value);
+    return (
+      Boolean(verifiedPhoneRef.current) &&
+      normalizedPhone === verifiedPhoneRef.current
+    );
   }
 
   async function handleRegisterRequest() {
+    if (isOtpVerified || isPreviouslyVerifiedPhone(phoneNumber)) {
+      setIsOtpVerified(true);
+      return;
+    }
+
     const validation = phoneSchema.safeParse({ phone: phoneNumber });
 
     if (!validation.success) {
-      setErrors((prev) => ({ ...prev, ...mapZodErrors(validation.error) }));
+      setErrors((prev) => ({ ...prev, ...mapAuthZodErrors(validation.error) }));
       return;
     }
 
@@ -154,17 +135,41 @@ const RegisterDialog = ({
     }
   }
 
+  function handlePersonalStepNext() {
+    if (isOtpVerified) {
+      setStep("location");
+      return;
+    }
+
+    handleVerifyOtp();
+  }
+
   async function handleVerifyOtp() {
     const otpToSubmit = otp;
 
     const phoneValidation = phoneSchema.safeParse({ phone: phoneNumber });
-    if (!phoneValidation.success) return;
-
     const accountValidation = accountSchema.safeParse(formData);
-    if (!accountValidation.success) return;
-
     const otpValidation = otpSchema.safeParse(otpToSubmit);
-    if (!otpValidation.success) return;
+
+    if (
+      !phoneValidation.success ||
+      !accountValidation.success ||
+      !otpValidation.success
+    ) {
+      setErrors((prev) => ({
+        ...prev,
+        ...(phoneValidation.success
+          ? {}
+          : mapAuthZodErrors(phoneValidation.error)),
+        ...(accountValidation.success
+          ? {}
+          : mapAuthZodErrors(accountValidation.error)),
+        ...(otpValidation.success
+          ? {}
+          : { otp: otpValidation.error.issues[0]?.message }),
+      }));
+      return;
+    }
 
     setLoading(true);
 
@@ -188,6 +193,7 @@ const RegisterDialog = ({
         });
       }
 
+      verifiedPhoneRef.current = phoneValidation.data.phone;
       setIsOtpVerified(true);
 
       // move to location step
@@ -205,7 +211,7 @@ const RegisterDialog = ({
     const validation = locationSchema.safeParse(formData);
 
     if (!validation.success) {
-      setErrors(mapZodErrors(validation.error));
+      setErrors(mapAuthZodErrors(validation.error));
       return;
     }
 
@@ -281,6 +287,7 @@ const RegisterDialog = ({
     setPhoneNumber("");
     setIsOtpVerified(false);
     lastOtpRequestedPhoneRef.current = "";
+    verifiedPhoneRef.current = "";
     setFormData({
       name: "",
       email: "",
@@ -316,12 +323,13 @@ const RegisterDialog = ({
 
   useEffect(() => {
     if (step !== "personal") return;
-    if (!showPhoneStepOtp) return;
+    if (!isPhoneValid) return;
+    if (isOtpVerified || isPreviouslyVerifiedPhone(phoneNumber)) return;
     if (loading) return;
     if (phoneNumber === lastOtpRequestedPhoneRef.current) return;
 
     handleRegisterRequest();
-  }, [step, showPhoneStepOtp, phoneNumber, loading]);
+  }, [step, isPhoneValid, isOtpVerified, phoneNumber, loading]);
 
   useEffect(() => {
     async function fetchUser() {
@@ -333,6 +341,8 @@ const RegisterDialog = ({
 
         // fill phone
         setPhoneNumber(user.phone || "");
+        verifiedPhoneRef.current =
+          user.phoneVerified && user.phone ? normalizePhone(user.phone) : "";
 
         // fill form fields
         setFormData((prev) => ({
@@ -346,7 +356,7 @@ const RegisterDialog = ({
         }));
 
         // important: user already verified OTP
-        setIsOtpVerified(true);
+        setIsOtpVerified(Boolean(user.phoneVerified));
       } catch (err) {
         console.log("Failed to fetch user");
       }
@@ -385,6 +395,9 @@ const RegisterDialog = ({
           <div className="mt-3 flex justify-between gap-6 text-[0.9rem]">
             {tabs.map((tab) => {
               const isActive = step === tab.id;
+              const isCompleted =
+                (tab.id === "personal" && isPersonalDetailsFilled) ||
+                (tab.id === "location" && isLocationFilled);
               const isEnabled =
                 tab.id === "personal" ||
                 (tab.id === "location" && isOtpVerified) ||
@@ -397,8 +410,10 @@ const RegisterDialog = ({
                   onClick={() => handleTabClick(tab.id)}
                   disabled={!isEnabled}
                   className={`border-b-2 pb-2 text-center transition cursor-pointer ${
-                    isActive
-                      ? "border-[#28b463] text-[#28b463]"
+                    isCompleted
+                        ? "border-[#1c7b44] text-[#1f8f4d]"
+                      : isActive
+                        ? "border-[#28b463] text-[#28b463]"
                       : "border-[#b6b8b6] text-[#8d908e]"
                   } ${!isEnabled ? "cursor-not-allowed opacity-60" : ""}`}
                 >
@@ -449,14 +464,18 @@ const RegisterDialog = ({
                       defaultCountry="IN"
                       value={phoneNumber}
                       onChange={(value) => {
-                        setPhoneNumber(value || "");
+                        const nextPhone = value || "";
+                        const isSameVerifiedPhone =
+                          isPreviouslyVerifiedPhone(nextPhone);
+
+                        setPhoneNumber(nextPhone);
                         setErrors((prev) => ({
                           ...prev,
                           phone: undefined,
                           otp: undefined,
                         }));
                         setOtpDigits(Array(OTP_LENGTH).fill(""));
-                        setIsOtpVerified(false);
+                        setIsOtpVerified(isSameVerifiedPhone);
                       }}
                       placeholder="Enter your mobile number"
                       className="w-full"
@@ -470,7 +489,7 @@ const RegisterDialog = ({
                   <p className="mt-1 text-xs text-red-600">{errors.phone}</p>
                 )}
 
-                {showPhoneStepOtp && (
+                {shouldShowOtpInputs && (
                   <div className="mt-3">
                     <p className="mb-2 font-normal text-[#1e1e1e]">
                       Enter WhatsApp OTP
@@ -572,8 +591,8 @@ const RegisterDialog = ({
               </div>
 
               <button
-                disabled={loading || !showPhoneStepOtp}
-                onClick={handleVerifyOtp}
+                disabled={loading}
+                onClick={handlePersonalStepNext}
                 className="w-full rounded-lg py-2.5 text-base font-semibold text-white shadow-lg transition-all btn-primary disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {loading ? (

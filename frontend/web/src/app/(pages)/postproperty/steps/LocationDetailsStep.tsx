@@ -66,6 +66,13 @@ const formatToTitleCase = (str: string) => {
     .join(" ");
 };
 
+const normalizePincodeAreaName = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+
+  return trimmed.replace(/^ward\s*\d+[a-z]?\s+/i, "").trim();
+};
+
 const LocationDetailsStep = () => {
   const { propertyType, base, draftId } = useSelector(
     (state: any) => state.postProperty,
@@ -178,14 +185,16 @@ const LocationDetailsStep = () => {
         if (!address) return;
 
         const locality = formatToTitleCase(
-          address.suburb ||
-          address.neighbourhood ||
-          address.hamlet ||
-          address.village ||
-          address.town ||
-          address.city_district ||
-          address.county ||
-          ""
+          normalizePincodeAreaName(
+            address.suburb ||
+              address.neighbourhood ||
+              address.hamlet ||
+              address.village ||
+              address.town ||
+              address.city_district ||
+              address.county ||
+              "",
+          ),
         );
 
         const city = formatToTitleCase(
