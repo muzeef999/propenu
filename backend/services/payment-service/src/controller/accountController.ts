@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import { getAccountsSummary, getPayments, getRevenueByPlan, getSubscriptionHistoryone, getSubscriptions } from "../services/accountServices";
-import { getSubscriptionHistory } from "./subscriptionController";
 
 export const getAccountsSummaryController = async (
   _req: Request,

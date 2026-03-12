@@ -115,6 +115,9 @@ export default function ContactOwnerButton({
         lowerMessage.includes("purchase") ||
         lowerMessage.includes("plan required") ||
         lowerMessage.includes("subscribe") ||
+        lowerMessage.includes("plan") ||
+        lowerMessage.includes("limit") ||
+        lowerMessage.includes("upgrade") ||
         lowerMessage.includes("subscription")
       ) {
         redirectToPlan();
