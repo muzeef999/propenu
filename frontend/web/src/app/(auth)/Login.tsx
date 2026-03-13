@@ -76,7 +76,7 @@ const LoginDialog = ({
       });
 
       const localShortlist = JSON.parse(
-  localStorage.getItem("shortlist") || "[]"
+      localStorage.getItem("shortlist") || "[]"
 );
 
 if (localShortlist.length > 0) {

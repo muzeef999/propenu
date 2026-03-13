@@ -10,6 +10,9 @@ import {
 import crypto from "crypto";
 import { generateToken } from "../utils/jwt";
 
+import { sendTemplateMessage } from "../../../../shared/whatsapp/whatsapp.service";
+import { WHATSAPP_TEMPLATES } from "../../../../shared/whatsapp/whatsapp.templates";
+
 function generatePKCE() {
   const codeVerifier = crypto.randomBytes(32).toString("hex");
 
@@ -40,7 +43,6 @@ export const startKyc = async (req: AuthRequest, res: Response) => {
     `&state=${req.user._id}` +
     `&code_challenge=${codeChallenge}` +
     "&code_challenge_method=S256";
-
   res.json({ url });
 };
 
@@ -92,6 +94,25 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
       { new: true },
     ).populate("roleId");
 
+    try {
+      console.log(
+        "📩 Sending WhatsApp KYC success message...............................................",
+      );
+
+      console.log("📞 User phone:", updatedUser?.phone);
+      console.log("👤 User name:", updatedUser?.name);
+
+      if (updatedUser?.phone && updatedUser?.name) {
+        await sendTemplateMessage(
+          updatedUser.phone.replace("+", ""),
+          WHATSAPP_TEMPLATES.BUYER_TENANT_SIGNUP,
+          [updatedUser.name, `${process.env.FRONTEND_URL}/properties`],
+        );
+      }
+    } catch (err) {
+      console.error(" WhatsApp send failed:", err);
+    }
+
     // ✅ REDIRECT TO FRONTEND SETTINGS PAGE
     // return res.redirect(`${process.env.FRONTEND_URL}/settings?kyc=success`);
 
@@ -107,7 +128,9 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
       permissions: role ? role.permissions : [],
     });
 
-    return res.redirect(`${process.env.FRONTEND_URL}/?token=${jwtToken}&kyc=verified`);
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/?token=${jwtToken}&kyc=verified`,
+    );
   } catch (err) {
     console.error("KYC Error:", err);
     return res.redirect(`${process.env.FRONTEND_URL}/settings?kyc=failed`);
@@ -116,6 +139,5 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
 
 function normalizePhone(phone?: string | undefined) {
   if (!phone) return "";
-
   return phone.replace("+91", "").replace(/\s/g, "");
 }

@@ -479,7 +479,7 @@ type Plan = {
 
   tier: "free" | "tier1" | "tier2" | "tier3";
   name: string;
-
+  dprice: number;
   price: number;
   durationDays?: number;
   validityDays?: number; // ✅ ADD THIS

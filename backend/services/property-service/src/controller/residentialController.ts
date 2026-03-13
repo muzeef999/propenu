@@ -16,6 +16,8 @@ import User from "../models/userModel";
 import { sendManagerApprovalMail } from "../utils/sendManagerMail";
 import mongoose from "mongoose";
 import { deleteS3ObjectIfExists } from "../utils/s3Helpers";
+import { sendListingSubmittedVerification } from "../../../../shared/whatsapp/whatsapp.helper";
+
 
 
 
@@ -537,6 +539,32 @@ export const finalizeResidential = async (req: AuthRequest, res: Response) => {
     const fresh = await Residential.findById(property._id)
       .populate("createdBy", "name email phone")
       .lean();
+
+
+      // 📩 Send WhatsApp Listing Submitted message
+try {
+  const owner: any = fresh?.createdBy;
+
+  if (owner?.phone && owner?.name) { 
+    console.log("📩 Sending listing submitted WhatsApp message...");
+
+    console.log(owner?.phone, "owner phone...");
+
+    console.log(owner?.name, "owner name...");
+
+    await sendListingSubmittedVerification(
+      owner.phone.replace("+", ""),   // phone
+      owner.name,                     // {{1}}
+      property.title || "Property",   // {{2}}
+      property.city || property.locality || "Location", // {{3}}
+      `${process.env.FRONTEND_URL}/property/${property._id}` // {{4}}
+    );
+
+    console.log("✅ Listing submitted WhatsApp sent");
+  }
+} catch (err) {
+  console.error("⚠️ WhatsApp listing message failed:", err);
+}
 
     res.json({ success: true, verified: hasVerified, data: fresh });
   } catch (err: any) {

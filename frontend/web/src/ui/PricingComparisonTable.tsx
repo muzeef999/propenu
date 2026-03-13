@@ -20,13 +20,14 @@ type Props = {
   userType: "buyer" | "builder" | "agent" | "owner";
 };
 
-
 function getRedirectAfterPlan(plan: Plan, user: any) {
   const code = plan.code?.toLowerCase();
 
-
   // ✅ Owner plans → go post property
-  if (code?.includes("owner") && (code.includes("sell") || code.includes("rent"))) {
+  if (
+    code?.includes("owner") &&
+    (code.includes("sell") || code.includes("rent"))
+  ) {
     return "/postproperty";
   }
 
@@ -83,13 +84,12 @@ export default function PricingComparisonTable({
       });
 
       if (order?.free) {
-      
-         if (order?.alreadyActive) {
-    toast.info("Plan already active 👍");
-    return;
-  }
+        if (order?.alreadyActive) {
+          toast.info("Plan already active 👍");
+          return;
+        }
 
-    toast.success("Plan activated 🎉");
+        toast.success("Plan activated 🎉");
 
         const redirect = getRedirectAfterPlan(plan, user);
 
@@ -192,29 +192,54 @@ export default function PricingComparisonTable({
             className="w-[170px] sm:w-[190px] md:w-[180px] lg:w-[210px] bg-white rounded-2xl shadow-lg border border-gray-100 flex flex-col transition-transform hover:scale-[1.02]"
           >
             {/* Plan Header */}
-            <div className="p-5 bg-[#F4FBF7] rounded-t-2xl text-center">
-              <h3 className="text-[#27AE60] font-semibold text-lg mb-1">
-                {plan.name}
-              </h3>
-              <div className="flex items-center justify-center gap-1">
-                <span className="text-2xl font-semibold">
-                  ₹{plan.price.toLocaleString()}
-                </span>
-                {plan.price > 0 && (
-                  <span className="text-xs text-gray-400">
-                    /{plan.validityDays || 30} Days
-                  </span>
-                )}
-              </div>
+             
+             <div className="p-6 bg-[#F4FBF7] rounded-t-2xl text-center relative flex flex-col h-full">
 
+  {/* Discount Badge */}
+  {plan.dprice > plan.price && (
+    <span className="absolute top-3 right-3 bg-[#27AE60] text-white text-xs font-semibold px-3 py-1 rounded-full">
+      {Math.round(((plan.dprice - plan.price) / plan.dprice) * 100)}% OFF
+    </span>
+  )}
 
-              <button
-                onClick={() => handleSubscribe(plan)}
-                className="mt-4 w-full btn-primary font-medium cursor-pointer py-2"
-              >
-                Buy Now
-              </button>
-            </div>
+  {/* Plan Name */}
+  <h3 className="text-[#27AE60] font-semibold text-lg mb-3">
+    {plan.name}
+  </h3>
+
+  {/* Price Row */}
+  <div className="flex items-center justify-center gap-2 mb-1">
+
+    {/* Final Price */}
+    <span className="text-3xl font-bold text-gray-900">
+      ₹{plan.price.toLocaleString()}
+    </span>
+
+    {/* Old Price */}
+    {plan.dprice > plan.price && (
+      <span className="text-sm text-gray-400 line-through">
+        ₹{plan.dprice.toLocaleString()}
+      </span>
+    )}
+  </div>
+
+  {/* Validity */}
+  <p className="text-sm text-gray-500 mb-6">
+    / {plan.validityDays || 30} Days
+  </p>
+
+  {/* Spacer pushes button bottom */}
+  <div className="flex-grow" />
+
+  {/* Button */}
+  <button
+    onClick={() => handleSubscribe(plan)}
+    className="w-full bg-[#27AE60] hover:bg-[#219653] text-white font-semibold py-3 rounded-lg transition"
+  >
+    Buy Now
+  </button>
+
+</div>
 
             {/* Feature Values */}
             <div className="flex flex-col flex-1 justify-between py-4">
@@ -232,28 +257,28 @@ export default function PricingComparisonTable({
       </div>
 
       <div className="z-50">
-            {showLoginDialog && (
-              <LoginDialog
-                open={showLoginDialog}
-                onClose={() => setShowLoginDialog(false)}
-                onSwitchToRegister={() => {
-                  setShowLoginDialog(false);
-                  setShowRegisterDialog(true);
-                }}
-              />
-            )}
+        {showLoginDialog && (
+          <LoginDialog
+            open={showLoginDialog}
+            onClose={() => setShowLoginDialog(false)}
+            onSwitchToRegister={() => {
+              setShowLoginDialog(false);
+              setShowRegisterDialog(true);
+            }}
+          />
+        )}
 
-            {showRegisterDialog && (
-              <RegisterDialog
-                open={showRegisterDialog}
-                onClose={() => setShowRegisterDialog(false)}
-                onSwitchToLogin={() => {
-                  setShowRegisterDialog(false);
-                  setShowLoginDialog(true);
-                }}
-              />
-            )}
-          </div>
+        {showRegisterDialog && (
+          <RegisterDialog
+            open={showRegisterDialog}
+            onClose={() => setShowRegisterDialog(false)}
+            onSwitchToLogin={() => {
+              setShowRegisterDialog(false);
+              setShowLoginDialog(true);
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }

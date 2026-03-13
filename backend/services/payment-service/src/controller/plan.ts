@@ -5,7 +5,6 @@ import { SubscriptionHistory } from "../models/subscriptionHistoryModel";
 import { AuthRequest } from "../middlewares/authMiddleware";
 
 /* ---------------- GET PLANS ---------------- */
-
 export async function getPlans(req: Request, res: Response) {
   try {
     const { userType, category } = req.query;
