@@ -21,7 +21,7 @@ export interface ILand {
   id: string;
   plotAreaUnit?: 'sqft' | 'sqmt' | 'acre' | 'guntha' | 'kanal' | 'hectare';
   roadWidthFt?: number;
-  negotiable?: boolean;
+  isPriceNegotiable?: boolean;
   readyToConstruct?: boolean;
   waterConnection?: boolean;
   electricityConnection?: boolean;

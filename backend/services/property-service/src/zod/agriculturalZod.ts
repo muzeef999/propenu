@@ -82,6 +82,13 @@ const GalleryItem = z.object({
   caption: z.string().optional(),
 });
 
+const AmenitySchema = z.object({
+  key: z.string().optional(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  icon: z.string().optional(),
+});
+
 const LeadSchema = z.object({
   name: z.string().min(1),
   phone: z.string().min(6),
@@ -141,6 +148,8 @@ const BaseCreate = z.object({
 
   // documents: accept JSON string representing array of FileMetaZ OR files uploaded
   documents: preprocessArrayJsonOrValue(FileMetaZ).optional().default([]),
+
+  amenities: preprocessArrayJsonOrValue(AmenitySchema).optional().default([]),
 
   leads: z.array(LeadSchema).optional().default([]),
 

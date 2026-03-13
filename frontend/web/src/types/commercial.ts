@@ -93,6 +93,7 @@ export interface ICommercial {
     insidePremises?: boolean;
     shared?: boolean;
   };
+  isPriceNegotiable?: boolean;
   description?: string;
   buildingManagement?: {
     security?: boolean;

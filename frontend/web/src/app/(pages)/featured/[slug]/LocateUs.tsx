@@ -1,28 +1,21 @@
-// components/LocateUs.tsx
 "use client";
 
 import { LOCATION_ICON_PATH, LOCATION_ICON_VIEWBOX, LocationIcon } from "@/icons/icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-/**
- * NearbyPlace / Geo types
- */
 type NearbyPlace = {
   name?: string;
   type?: string;
   distanceText?: string;
-  coordinates?: [number, number] | number[]; // lng, lat or number[]
+  coordinates?: [number, number] | number[];
   order?: number;
 };
 
 type GeoPoint = {
   type: "Point";
-  coordinates?: [number, number] | number[]; // lng, lat
+  coordinates?: [number, number] | number[];
 };
 
-/**
- * Payload shape you passed from page
- */
 type LocatePayload = {
   nearbyPlaces?: NearbyPlace[] | null;
   location?: GeoPoint | null;
@@ -30,55 +23,113 @@ type LocatePayload = {
   heading?: string | null;
 };
 
-/**
- * Component props: accept either an array OR the payload object
- */
 type Props = {
   nearbyPlaces?: NearbyPlace[] | LocatePayload | null;
-  primaryColor?: string | null; // explicit override if provided
-  location?: GeoPoint | null; // explicit override if provided
+  primaryColor?: string | null;
+  location?: GeoPoint | null;
   heading?: string | null;
 };
 
-/** loads Leaflet from CDN (same as your original helper) */
-function loadLeaflet(): Promise<any> {
-  if (typeof window === "undefined") return Promise.reject("No window");
-  if ((window as any).L) return Promise.resolve((window as any).L);
+type MapplsPosition = { lat: number; lng: number };
 
-  return new Promise((resolve, reject) => {
-    const href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-    if (!document.querySelector(`link[href="${href}"]`)) {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = href;
-      link.crossOrigin = "";
-      document.head.appendChild(link);
-    }
+type MapplsMarkerOptions = {
+  map: unknown;
+  position: MapplsPosition;
+  icon?: string;
+  width?: number;
+  height?: number;
+  popupHtml?: string;
+  fitbounds?: boolean;
+};
 
-    const src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-    if (document.querySelector(`script[src="${src}"]`)) {
-      const check = () => {
-        if ((window as any).L) resolve((window as any).L);
-        else setTimeout(check, 50);
-      };
-      check();
+type MapplsMapOptions = {
+  center: [number, number];
+  zoom: number;
+  zoomControl?: boolean;
+  location?: boolean;
+};
+
+type MapplsMapInstance = {
+  remove?: () => void;
+  fitBounds?: (bounds: [[number, number], [number, number]], options?: Record<string, unknown>) => void;
+  setCenter?: (center: [number, number]) => void;
+  panTo?: (position: MapplsPosition) => void;
+  flyTo?: (options: { center: [number, number]; zoom?: number }) => void;
+  setZoom?: (zoom: number) => void;
+};
+
+type MapplsGlobal = {
+  Map: new (element: string | HTMLElement, options: MapplsMapOptions) => MapplsMapInstance;
+  Marker: new (options: MapplsMarkerOptions) => unknown;
+};
+
+type MarkerRefItem = {
+  marker: unknown;
+  coords: [number, number];
+  listIndex: number | null;
+};
+
+type MapplsMarkerInstance = {
+  remove?: () => void;
+  setMap?: (map: unknown) => void;
+  on?: (event: string, cb: () => void) => void;
+  addListener?: (event: string, cb: () => void) => void;
+  openPopup?: () => void;
+};
+
+function getMapplsGlobal() {
+  const win = window as unknown as { mappls?: MapplsGlobal; Mappls?: MapplsGlobal };
+  return win.mappls ?? win.Mappls;
+}
+
+function loadMapplsScript(apiKey: string) {
+  return new Promise<void>((resolve, reject) => {
+    if (getMapplsGlobal()) {
+      resolve();
       return;
     }
 
+    const existingScript = document.querySelector<HTMLScriptElement>("script[data-mappls-sdk='true']");
+    if (existingScript) {
+      existingScript.addEventListener(
+        "load",
+        () => {
+          if (getMapplsGlobal()) resolve();
+          else reject(new Error("Mappls SDK loaded but global object was not found."));
+        },
+        { once: true }
+      );
+      existingScript.addEventListener("error", () => reject(new Error("Failed to load Mappls SDK")), { once: true });
+      return;
+    }
+
+    const callbackName = `__mapplsInit_${Date.now()}`;
+    const windowWithCallback = window as unknown as Record<string, unknown>;
+    windowWithCallback[callbackName] = () => {
+      delete windowWithCallback[callbackName];
+      resolve();
+    };
+
     const script = document.createElement("script");
-    script.src = src;
+    script.src = `https://apis.mappls.com/advancedmaps/api/${apiKey}/map_sdk?layer=vector&v=3.0&callback=${callbackName}`;
     script.async = true;
     script.defer = true;
+    script.dataset.mapplsSdk = "true";
     script.onload = () => {
-      if ((window as any).L) resolve((window as any).L);
-      else reject(new Error("Leaflet loaded but L not present"));
+      if (getMapplsGlobal()) {
+        delete windowWithCallback[callbackName];
+        resolve();
+      }
     };
-    script.onerror = (e) => reject(e);
-    document.body.appendChild(script);
+    script.onerror = () => {
+      delete windowWithCallback[callbackName];
+      reject(new Error("Failed to load Mappls SDK script."));
+    };
+
+    document.head.appendChild(script);
   });
 }
 
-/** haversine distance (meters) */
 function haversine([lng1, lat1]: [number, number], [lng2, lat2]: [number, number]) {
   const toRad = (deg: number) => (deg * Math.PI) / 180;
   const R = 6371000;
@@ -91,8 +142,7 @@ function haversine([lng1, lat1]: [number, number], [lng2, lat2]: [number, number
   return R * c;
 }
 
-/** convert any coords value to [lng, lat] tuple or undefined */
-function normalizeCoords(coords?: [number, number] | number[] | undefined): [number, number] | undefined {
+function normalizeCoords(coords?: [number, number] | number[]): [number, number] | undefined {
   if (!coords || !Array.isArray(coords) || coords.length < 2) return undefined;
   const lng = Number(coords[0]);
   const lat = Number(coords[1]);
@@ -100,14 +150,12 @@ function normalizeCoords(coords?: [number, number] | number[] | undefined): [num
   return [lng, lat];
 }
 
-/** NORMALIZER: accept both array or payload object */
 function normalizeIncoming(
   incoming?: NearbyPlace[] | LocatePayload | null,
   explicitLocation?: GeoPoint | null,
   explicitColor?: string | null,
   explicitHeading?: string | null
 ) {
-  // If array passed directly
   if (Array.isArray(incoming)) {
     return {
       places: incoming as NearbyPlace[],
@@ -117,7 +165,6 @@ function normalizeIncoming(
     };
   }
 
-  // incoming is payload or null/undefined
   const p = (incoming || {}) as LocatePayload;
   return {
     places: Array.isArray(p.nearbyPlaces) ? p.nearbyPlaces : [],
@@ -127,35 +174,102 @@ function normalizeIncoming(
   };
 }
 
+function createMarkerIconDataUrl(colorHex: string, size = 28, useProjectIcon = false) {
+  const svgMarkup = useProjectIcon
+    ? `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="${LOCATION_ICON_VIEWBOX}"><path fill="${colorHex}" d="${LOCATION_ICON_PATH}"/></svg>`
+    : `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24"><path fill="${colorHex}" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>`;
+  const svg = encodeURIComponent(svgMarkup);
+  return `data:image/svg+xml;utf8,${svg}`;
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function removeMarker(map: MapplsMapInstance | null, marker: unknown) {
+  const markerAny = marker as {
+    remove?: () => void;
+    setMap?: (map: unknown) => void;
+  };
+
+  if (typeof markerAny.remove === "function") {
+    markerAny.remove();
+    return;
+  }
+
+  if (typeof markerAny.setMap === "function") {
+    markerAny.setMap(null);
+    return;
+  }
+
+  const mapAny = map as { removeLayer?: (layer: unknown) => void } | null;
+  if (mapAny && typeof mapAny.removeLayer === "function") {
+    mapAny.removeLayer(marker);
+  }
+}
+
+function cleanupMarkerInstances(map: MapplsMapInstance | null, markers: MarkerRefItem[]) {
+  markers.forEach((item) => {
+    try {
+      removeMarker(map, item.marker);
+    } catch {
+      // Ignore SDK cleanup issues; markers are recreated from current data.
+    }
+  });
+}
+
+function focusMapOn(map: MapplsMapInstance | null, coords: [number, number]) {
+  if (!map) return;
+
+  const [lng, lat] = coords;
+  if (typeof map.panTo === "function") {
+    map.panTo({ lat, lng });
+    return;
+  }
+
+  if (typeof map.flyTo === "function") {
+    map.flyTo({ center: [lat, lng], zoom: 14 });
+    return;
+  }
+
+  if (typeof map.setCenter === "function") {
+    map.setCenter([lat, lng]);
+  }
+}
+
 export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: explicitLocation, heading: headingProp }: Props) {
-  // normalize once
   const { places, location, color, heading } = useMemo(
     () => normalizeIncoming(raw, explicitLocation ?? null, primaryColor ?? null, headingProp ?? null),
     [raw, primaryColor, explicitLocation, headingProp]
   );
 
+  const apiKey = process.env.NEXT_PUBLIC_MAPPLS_MAP_SDK_KEY || process.env.NEXT_MAPPLS_MAP_SDK_KEY;
+  const mapContainerId = "locate-us-mappls-map";
   const mapRef = useRef<HTMLDivElement | null>(null);
-  const leafletMapRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
-  const [Lobj, setLobj] = useState<any | null>(null);
+  const mapInstanceRef = useRef<MapplsMapInstance | null>(null);
+  const markersRef = useRef<MarkerRefItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [mapReady, setMapReady] = useState(false);
 
-  // project center tuple
   const projectCenter = useMemo(() => {
     if (!location) return undefined;
     return normalizeCoords(location.coordinates);
   }, [location]);
 
-  // attach __coordsTuple for each place
   const normalizedPlaces = useMemo(
     () => (Array.isArray(places) ? places.map((p) => ({ ...p, __coordsTuple: normalizeCoords(p.coordinates) })) : []),
     [places]
   );
 
-  // compute distances if project center available
   const withDistance = useMemo(() => {
     return normalizedPlaces.map((item) => {
-      const coords = (item as any).__coordsTuple as [number, number] | undefined;
+      const coords = (item as NearbyPlace & { __coordsTuple?: [number, number] }).__coordsTuple;
       if (!projectCenter || !coords) return { p: item as NearbyPlace, distance: undefined, distanceText: item.distanceText };
       const meters = haversine(projectCenter, coords);
       const dt = meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${Math.round(meters)} m`;
@@ -163,122 +277,160 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
     });
   }, [normalizedPlaces, projectCenter]);
 
-  // load Leaflet
   useEffect(() => {
-    let alive = true;
-    loadLeaflet()
-      .then((L) => {
-        if (!alive) return;
-        setLobj(L);
-      })
-      .catch((e) => {
-        console.error("Leaflet load failed", e);
-      });
+    let isCancelled = false;
+
+    const initMap = async () => {
+      if (!apiKey) {
+        setMapError("Mappls API key is missing. Set NEXT_PUBLIC_MAPPLS_MAP_SDK_KEY in .env.");
+        return;
+      }
+
+      if (!mapRef.current) return;
+
+      try {
+        setMapError(null);
+        await loadMapplsScript(apiKey);
+        if (isCancelled) return;
+
+        const mapplsSdk = getMapplsGlobal();
+        if (!mapplsSdk || !mapRef.current || mapInstanceRef.current) {
+          throw new Error("Mappls SDK loaded but API object is unavailable.");
+        }
+
+        const mapContainer = document.getElementById(mapContainerId);
+        if (!mapContainer) {
+          throw new Error("Map Container div not found, please check timing of your map div initialization");
+        }
+
+        // Clear leftover SDK DOM before creating a fresh map instance.
+        mapRef.current.replaceChildren();
+
+        mapInstanceRef.current = new mapplsSdk.Map(mapContainerId, {
+          center: projectCenter ? [projectCenter[1], projectCenter[0]] : [20.5937, 78.9629],
+          zoom: projectCenter ? 13 : 4,
+          zoomControl: true,
+          location: false,
+        });
+
+        const map = mapInstanceRef.current;
+        if (!map) {
+          throw new Error("Mappls map instance was not created.");
+        }
+
+        const renderMarkers = () => {
+          cleanupMarkerInstances(map, markersRef.current);
+          markersRef.current = [];
+
+          if (projectCenter) {
+            const [lng, lat] = projectCenter;
+            const mainMarker = new mapplsSdk.Marker({
+              map,
+              position: { lat, lng },
+              icon: createMarkerIconDataUrl(color, 36, true),
+              width: 36,
+              height: 36,
+              popupHtml: "<strong>Project location</strong>",
+            });
+
+            markersRef.current.push({ marker: mainMarker, coords: projectCenter, listIndex: null });
+          }
+
+          for (let i = 0; i < withDistance.length; i++) {
+            const item = withDistance[i];
+            const coords = (item as { coords?: [number, number] }).coords;
+            if (!coords) continue;
+
+            const [lng, lat] = coords;
+            const marker = new mapplsSdk.Marker({
+              map,
+              position: { lat, lng },
+              icon: createMarkerIconDataUrl(color, 28, false),
+              width: 28,
+              height: 28,
+              popupHtml: `<div style="font-weight:600">${escapeHtml(item.p.name ?? "Place")}</div><div style="font-size:12px;color:#444;margin-top:4px">${escapeHtml(item.p.type ?? "")} • ${escapeHtml(item.distanceText ?? "")}</div>`,
+            });
+
+            const markerAny = marker as MapplsMarkerInstance;
+            if (typeof markerAny.on === "function") markerAny.on("click", () => setSelectedIndex(i));
+            if (typeof markerAny.addListener === "function") markerAny.addListener("click", () => setSelectedIndex(i));
+
+            markersRef.current.push({ marker, coords, listIndex: i });
+          }
+
+          if (projectCenter) {
+            focusMapOn(map, projectCenter);
+            if (typeof map.setZoom === "function") map.setZoom(14);
+          } else {
+            const firstMarkerCoords = markersRef.current[0]?.coords;
+            if (firstMarkerCoords) {
+              focusMapOn(map, firstMarkerCoords);
+              if (typeof map.setZoom === "function") map.setZoom(14);
+            }
+          }
+        };
+
+        const mapAny = map as {
+          getCanvasContainer?: () => unknown;
+          on?: (event: string, cb: () => void) => void;
+          addListener?: (event: string, cb: () => void) => void;
+        };
+
+        if (typeof mapAny.getCanvasContainer === "function") {
+          renderMarkers();
+        } else if (typeof mapAny.on === "function") {
+          mapAny.on("load", renderMarkers);
+        } else if (typeof mapAny.addListener === "function") {
+          mapAny.addListener("load", renderMarkers);
+        } else {
+          setTimeout(renderMarkers, 200);
+        }
+        setMapReady(true);
+      } catch (error) {
+        if (!isCancelled) {
+          const message = error instanceof Error ? error.message : "Unable to load Mappls map right now.";
+          setMapError(message);
+          console.error("Mappls init error:", error);
+        }
+      }
+    };
+
+    initMap();
+
     return () => {
-      alive = false;
+      isCancelled = true;
+      cleanupMarkerInstances(mapInstanceRef.current, markersRef.current);
+      markersRef.current = [];
+      mapInstanceRef.current = null;
+      setMapReady(false);
+    };
+  }, [apiKey, color, mapContainerId, projectCenter, withDistance]);
+
+  useEffect(() => {
+    if (!mapReady || selectedIndex === null) return;
+
+    const map = mapInstanceRef.current;
+    const markerItem = markersRef.current.find((m) => m.listIndex === selectedIndex);
+    if (!markerItem) return;
+
+    const markerAny = markerItem.marker as MapplsMarkerInstance;
+    if (typeof markerAny.openPopup === "function") {
+      markerAny.openPopup();
+    }
+
+    focusMapOn(map, markerItem.coords);
+  }, [mapReady, selectedIndex]);
+
+  useEffect(() => {
+    return () => {
+      cleanupMarkerInstances(mapInstanceRef.current, markersRef.current);
+      markersRef.current = [];
+      mapInstanceRef.current = null;
     };
   }, []);
 
-  // initialize / update map and markers
-  useEffect(() => {
-    if (!Lobj || !mapRef.current) return;
-
-    // create map if not exists
-    if (!leafletMapRef.current) {
-      const map = Lobj.map(mapRef.current, {
-        center: projectCenter ? [projectCenter[1], projectCenter[0]] : [0, 0],
-        zoom: projectCenter ? 13 : 2,
-        zoomControl: true,
-        attributionControl: true,
-      });
-
-      Lobj.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      }).addTo(map);
-
-      leafletMapRef.current = map;
-    }
-
-    const map = leafletMapRef.current;
-
-    // clear previous markers
-    for (const m of markersRef.current) {
-      try {
-        map.removeLayer(m);
-      } catch {}
-    }
-    markersRef.current = [];
-
-    // create marker icon helper
-    function createMarkerIcon(colorHex: string, size = 28, useProjectIcon = false) {
-      const svgMarkup = useProjectIcon
-        ? `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="${LOCATION_ICON_VIEWBOX}"><path fill="${colorHex}" d="${LOCATION_ICON_PATH}"/></svg>`
-        : `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24"><path fill="${colorHex}" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>`;
-      const svg = encodeURIComponent(svgMarkup);
-      const url = `data:image/svg+xml;utf8,${svg}`;
-      return Lobj.icon({
-        iconUrl: url,
-        iconSize: [size, size],
-        iconAnchor: [size / 2, size],
-        popupAnchor: [0, -size],
-      });
-    }
-
-    // add main project marker
-    if (projectCenter) {
-      const [lng, lat] = projectCenter;
-      const mainIcon = createMarkerIcon(color, 36, true);
-      const marker = Lobj.marker([lat, lng], { icon: mainIcon }).addTo(map);
-      marker.bindPopup(`<strong>Project location</strong>`);
-      markersRef.current.push(marker);
-    }
-
-    // add nearby markers
-    for (let i = 0; i < withDistance.length; i++) {
-      const item = withDistance[i];
-      const coords = (item as any).coords as [number, number] | undefined;
-      if (!coords) continue;
-      const [lng, lat] = coords;
-      const icon = createMarkerIcon(color, 28, false);
-      const m = Lobj.marker([lat, lng], { icon }).addTo(map);
-      const popupHtml = `<div style="font-weight:600">${item.p.name ?? "Place"}</div><div style="font-size:12px;color:#444;margin-top:4px">${item.p.type ?? ""} • ${item.distanceText ?? ""}</div>`;
-      m.bindPopup(popupHtml);
-      m.on("click", () => setSelectedIndex(i));
-      markersRef.current.push(m);
-    }
-
-    // fit bounds if markers exist
-    if (markersRef.current.length > 0) {
-      const group = Lobj.featureGroup(markersRef.current);
-      map.fitBounds(group.getBounds().pad(0.2));
-    } else if (projectCenter) {
-      map.setView([projectCenter[1], projectCenter[0]], 14);
-    }
-
-    return () => {
-      for (const m of markersRef.current) {
-        try {
-          map.removeLayer(m);
-        } catch {}
-      }
-      markersRef.current = [];
-    };
-  }, [Lobj, projectCenter, withDistance, color]);
-
   function onSelectPlace(index: number) {
     setSelectedIndex(index);
-    // marker index offset: if projectCenter present we added main marker first
-    const offset = projectCenter ? 1 : 0;
-    const marker = markersRef.current[index + offset];
-    if (marker && marker.openPopup) {
-      marker.openPopup();
-      const map = leafletMapRef.current;
-      if (map) {
-        const latlng = marker.getLatLng();
-        map.panTo(latlng);
-      }
-    }
   }
 
   const isHex = typeof color === "string" && color.startsWith("#");
@@ -286,60 +438,55 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="mb-6 flex items-start justify-between gap-6">
-         <div  style={{color:color, borderLeft:`5px solid ${color}`}}>
-              <div className="ml-2">
-            <h1 className="text-2xl font-bold">
-              Near by Places
-            </h1>
-            <p className="headingDesc">
-              Everything you need, just minutes away                                                        
-
-            </p>
+        <div style={{ color: color, borderLeft: `5px solid ${color}` }}>
+          <div className="ml-2">
+            <h1 className="text-2xl font-bold">{heading || "Near by Places"}</h1>
+            <p className="headingDesc">Find important locations around your property</p>
           </div>
-          </div>
+        </div>
       </div>
-      
 
       <div className="w-full">
-        
-        
-            <ul className="flex items-center justify-between">
-              {withDistance.length === 0 && <li className="text-sm text-slate-500">No nearby places provided.</li>}
-              {withDistance.map(({ p, distanceText }, idx) => {
-                const active = selectedIndex === idx;
-                const coords = (normalizedPlaces[idx] as any).__coordsTuple as [number, number] | undefined;
-                return (
-                  <li
-                    key={`${p.name ?? "place"}-${idx}`}
-                    onClick={() => onSelectPlace(idx)}
-                    className={`cursor-pointer rounded-md p-3 transition ${active ? "ring-2 ring-offset-2" : "hover:bg-slate-50"}`}
-                    style={{ boxShadow: active ? `0 6px 20px ${color}22` : undefined } as React.CSSProperties}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <div className="w-9 h-9 rounded-md flex items-center justify-center" style={{ background: isHex ? `${color}11` : undefined }}>
-                            <LocationIcon color={color} />
-                          </div>
-                          <div>
-                          <div className="text-sm font-medium text-slate-900 truncate">{p.name}</div>
-                            <div className="mt-1 text-xs text-slate-500">{p.type ?? "Place"} • {distanceText ?? p.distanceText ?? "—"}</div>
+        <ul className="flex items-center justify-between">
+          {withDistance.length === 0 && <li className="text-sm text-slate-500">No nearby places provided.</li>}
+          {withDistance.map(({ p, distanceText }, idx) => {
+            const active = selectedIndex === idx;
+            return (
+              <li
+                key={`${p.name ?? "place"}-${idx}`}
+                onClick={() => onSelectPlace(idx)}
+                className={`cursor-pointer rounded-md p-3 transition ${active ? "ring-2 ring-offset-2" : "hover:bg-slate-50"}`}
+                style={{ boxShadow: active ? `0 6px 20px ${color}22` : undefined } as React.CSSProperties}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <div className="w-9 h-9 rounded-md flex items-center justify-center" style={{ background: isHex ? `${color}11` : undefined }}>
+                        <LocationIcon color={color} />
                       </div>
+                      <div>
+                        <div className="text-sm font-medium text-slate-900 truncate">{p.name}</div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {p.type ?? "Place"} • {distanceText ?? p.distanceText ?? "-"}
                         </div>
                       </div>
-
                     </div>
-                  </li>
-                );
-              })}
-            </ul>
-          <div className="rounded-lg overflow-hidden border border-slate-100 shadow-sm">
-            <div ref={mapRef} className="w-full  sm:h-[520px]" />
-          </div>
-          <div className="mt-3 text-xs text-slate-500">Click markers to open details. Click a list item to focus that marker.</div>
-        </div>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
 
-      
+        <div className="rounded-lg overflow-hidden border border-slate-100 shadow-sm">
+          {mapError ? (
+            <div className="w-full sm:h-[520px] flex items-center justify-center text-slate-500 text-center px-4">{mapError}</div>
+          ) : (
+            <div id={mapContainerId} ref={mapRef} className="w-full sm:h-[520px]" />
+          )}
+        </div>
+        <div className="mt-3 text-xs text-slate-500">Click markers to open details. Click a list item to focus that marker.</div>
+      </div>
     </section>
   );
 }

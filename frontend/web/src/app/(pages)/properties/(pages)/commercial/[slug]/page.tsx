@@ -5,7 +5,12 @@ import { notFound } from "next/navigation";
 import { MdEventSeat, MdMeetingRoom } from "react-icons/md";
 import { ICommercial } from "@/types/commercial";
 import GalleryFile from "../../../GalleryFile";
-import { FaCarAlt, FaParking, FaRegCalendarCheck, FaRegUser } from "react-icons/fa";
+import {
+  FaCarAlt,
+  FaParking,
+  FaRegCalendarCheck,
+  FaRegUser,
+} from "react-icons/fa";
 import {
   FiBriefcase,
   FiCalendar,
@@ -17,18 +22,23 @@ import {
   FiTruck,
   FiUser,
 } from "react-icons/fi";
-import NearByPlaceClient from "@/app/(pages)/properties/(pages)/NearByPlaceClient";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import RelatedCommercialCarousel from "./RelatedCommercialCarousel";
 import Image from "next/image";
 import ad from "@/asserts/ad.png";
 import { COMMERCIAL_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
-import { PiArmchair, PiCalendarBlank, PiCoffee, PiMotorcycle, PiWall } from "react-icons/pi";
+import {
+  PiArmchair,
+  PiCalendarBlank,
+  PiCoffee,
+  PiMotorcycle,
+  PiWall,
+} from "react-icons/pi";
 import { RiCarLine } from "react-icons/ri";
 import { GiMoneyStack } from "react-icons/gi";
 import { TilesIcons } from "../../MoreDetailsIcons";
 import { HiOutlineUser } from "react-icons/hi2";
-
+import CommercialNearbySection from "./CommercialNearbySection";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -100,6 +110,13 @@ export default async function Page({ params }: PageProps) {
   }
 
   const priceLabel = formatINR(project.price);
+  const nearbyLandmarks = (project.nearbyPlaces ?? [])
+    .slice()
+    .sort(
+      (a, b) =>
+        (a.order ?? Number.MAX_SAFE_INTEGER) -
+        (b.order ?? Number.MAX_SAFE_INTEGER),
+    );
   const detailsItems = [
     {
       label: "Listing Source",
@@ -108,7 +125,7 @@ export default async function Page({ params }: PageProps) {
     },
     {
       label: "Negotiable",
-      value: (project as any)?.priceNegotiable ? "Yes" : "No",
+      value: project.isPriceNegotiable ? "Yes" : "No",
       icon: GiMoneyStack,
     },
     {
@@ -144,11 +161,8 @@ export default async function Page({ params }: PageProps) {
   ];
   console.log(project);
 
-
   return (
-    <div
-      className="min-h-screen py-6 overflow-hidden"
-    >
+    <div className="min-h-screen py-6 overflow-hidden">
       <div className="container">
         <div className="w-full">
           {/* Top: Price + Title + CTA */}
@@ -163,12 +177,11 @@ export default async function Page({ params }: PageProps) {
             </div>
           </header>
 
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch">
-            <main className="flex-1">
-              <div className="flex flex-col gap-2 lg:flex-row lg:items-stretch">
-
+          <div className="flex min-w-0 flex-col gap-8 lg:flex-row lg:items-stretch">
+            <main className="min-w-0 flex-1">
+              <div className="flex min-w-0 flex-col gap-2 lg:flex-row lg:items-stretch">
                 {/* Gallery */}
-                <div className="w-full lg:w-[58%]">
+                <div className="min-w-0 w-full lg:w-[58%]">
                   <GalleryFile
                     gallery={project?.gallery}
                     title={project?.title}
@@ -176,12 +189,10 @@ export default async function Page({ params }: PageProps) {
                     propertyType="Commercial"
                   />
                 </div>
-                <div className="flex flex-1 self-stretch min-h-0">
-                  <div className="flex-1 p-4 sm:p-2 flex flex-col justify-between h-full gap-8">
-
+                <div className="flex min-w-0 flex-1 self-stretch min-h-0">
+                  <div className="flex h-full min-w-0 flex-1 flex-col justify-between gap-8 p-4 sm:p-2">
                     {/* PART 1 */}
                     <div className="grid grid-cols-2 gap-8 pl-1">
-
                       <div className="flex flex-col gap-1">
                         <span className="text-xs sm:text-sm text-gray-500 font-medium">
                           Built Up Area
@@ -232,10 +243,10 @@ export default async function Page({ params }: PageProps) {
                           Floors
                         </span>
                         <span className="text-sm sm:text-base font-semibold text-gray-900">
-                          {project?.floorNumber ?? "—"}/{project?.totalFloors ?? "—"}
+                          {project?.floorNumber ?? "—"}/
+                          {project?.totalFloors ?? "—"}
                         </span>
                       </div>
-
                     </div>
 
                     {/* ICON STATS */}
@@ -245,32 +256,43 @@ export default async function Page({ params }: PageProps) {
                     >
                       <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4">
                         <FaParking color="#6B7280" />
-                        <span className="font-semibold text-gray-900 text-sm sm:text-base">{project?.parkingCapacity ?? 0}</span>
-                        <span className="text-xs sm:text-sm text-gray-500">Parking</span>
+                        <span className="font-semibold text-gray-900 text-sm sm:text-base">
+                          {project?.parkingCapacity ?? 0}
+                        </span>
+                        <span className="text-xs sm:text-sm text-gray-500">
+                          Parking
+                        </span>
                       </div>
 
                       <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 border-x border-gray-200">
                         <MdEventSeat color="#6B7280" />
-                        <span className="font-semibold text-gray-900 text-sm sm:text-base">{project?.seats ?? 0}</span>
-                        <span className="text-xs sm:text-sm text-gray-500">Seats</span>
+                        <span className="font-semibold text-gray-900 text-sm sm:text-base">
+                          {project?.seats ?? 0}
+                        </span>
+                        <span className="text-xs sm:text-sm text-gray-500">
+                          Seats
+                        </span>
                       </div>
 
                       <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4">
                         <MdMeetingRoom color="#6B7280" />
-                        <span className="font-semibold text-gray-900 text-sm sm:text-base">{project?.officeRooms ?? 0}</span>
-                        <span className="text-xs sm:text-sm text-gray-500">Rooms</span>
+                        <span className="font-semibold text-gray-900 text-sm sm:text-base">
+                          {project?.officeRooms ?? 0}
+                        </span>
+                        <span className="text-xs sm:text-sm text-gray-500">
+                          Rooms
+                        </span>
                       </div>
                     </div>
-
                   </div>
                 </div>
               </div>
 
               <br />
 
-              <div className="w-full">
+              <div className="min-w-0 w-full">
                 <div className="grid gap-4">
-                  <section className="space-y-4">
+                  <section className="min-w-0 space-y-4">
                     <section className="rounded-lg p-6 shadow-sm bg-[#f7f9fa]">
                       <h2 className="mb-5 text-xl font-semibold text-gray-900">
                         More Details
@@ -326,7 +348,10 @@ export default async function Page({ params }: PageProps) {
                           propertyType="commercials"
                           listingSource={project.listingSource}
                           ownerName={project?.createdBy?.name}
-                          ownerPhone={project?.createdBy?.contact ?? (project as any)?.phone}
+                          ownerPhone={
+                            project?.createdBy?.contact ??
+                            (project as any)?.phone
+                          }
                           ownerEmail={project?.createdBy?.email}
                           postedOn={(project as any)?.createdAt}
                           price={project?.price}
@@ -342,10 +367,17 @@ export default async function Page({ params }: PageProps) {
                       {project.tenantInfo && project.tenantInfo.length > 0 ? (
                         <div className="grid gap-3 sm:grid-cols-3">
                           {project.tenantInfo.map((tenant, index) => {
-                            const tenantName = tenant.currentTenant?.trim() || "Tenant";
-                            const tenantInitial = tenantName.charAt(0).toUpperCase();
-                            const leaseStart = formatTenantMonthYear(tenant.leaseStart);
-                            const leaseEnd = formatTenantMonthYear(tenant.leaseEnd);
+                            const tenantName =
+                              tenant.currentTenant?.trim() || "Tenant";
+                            const tenantInitial = tenantName
+                              .charAt(0)
+                              .toUpperCase();
+                            const leaseStart = formatTenantMonthYear(
+                              tenant.leaseStart,
+                            );
+                            const leaseEnd = formatTenantMonthYear(
+                              tenant.leaseEnd,
+                            );
                             const rent = formatTenantRent(tenant.rent);
 
                             return (
@@ -393,7 +425,7 @@ export default async function Page({ params }: PageProps) {
                       </h2>
                       {project.amenities && project.amenities.length > 0 ? (
                         <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 sm:grid-cols-3">
-                          {project.amenities.map((i, index) => (
+                          {project.amenities.map((i, index) =>
                             (() => {
                               const icon =
                                 amenityIconByKey.get(i.key) ??
@@ -410,7 +442,7 @@ export default async function Page({ params }: PageProps) {
                                       alt={`${i.title} icon`}
                                       width={14}
                                       height={14}
-                                      className="h-3.5 w-3.5 opacity-75"
+                                      className="h-5 w-5 opacity-75"
                                     />
                                   ) : icon ? (
                                     <span className="text-gray-600 [&>svg]:h-3.5 [&>svg]:w-3.5">
@@ -422,8 +454,8 @@ export default async function Page({ params }: PageProps) {
                                   <span>{i.title}</span>
                                 </div>
                               );
-                            })()
-                          ))}
+                            })(),
+                          )}
                         </div>
                       ) : (
                         <p className="text-sm text-gray-500">
@@ -437,12 +469,11 @@ export default async function Page({ params }: PageProps) {
                       <h2 className="mb-3 text-xl font-semibold text-gray-900">
                         Popular Landmarks Nearby
                       </h2>
-
                       {project.location ? (
-                        <NearByPlaceClient
+                        <CommercialNearbySection
                           projectLocation={project.location}
                           projectName={project.title ?? "Property Location"}
-                          nearbyPlaces={project.nearbyPlaces ?? []}
+                          nearbyLandmarks={nearbyLandmarks}
                         />
                       ) : (
                         <p className="text-sm text-gray-500">
@@ -468,7 +499,6 @@ export default async function Page({ params }: PageProps) {
                         </p>
                       )}
                     </section>
-
                   </section>
                 </div>
               </div>
@@ -485,5 +515,4 @@ export default async function Page({ params }: PageProps) {
       </div>
     </div>
   );
-};
-
+}

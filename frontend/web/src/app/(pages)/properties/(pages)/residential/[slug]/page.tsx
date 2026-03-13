@@ -5,11 +5,11 @@ import formatINR from "@/utilies/PriceFormat";
 import { notFound } from "next/navigation";
 import GalleryFile from "../../../GalleryFile"; // Assuming this is client-side or handles SSR correctly
 import { Balconies, Bath, Bhk } from "@/icons/icons";
-import NearByPlaceClient from "@/app/(pages)/properties/(pages)/NearByPlaceClient"; // Use the client-side dynamic import
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import Image from "next/image";
 import ad from "@/asserts/ad.png";
 import RelatedPropertiesCarousel from "./RelatedPropertiesCarousel";
+import ResidentialNearbySection from "./ResidentialNearbySection";
 import { RESIDENTIAL_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
 import {
   FiCalendar,
@@ -74,6 +74,13 @@ export default async function Page({ params }: PageProps) {
     notFound();
   }
   const priceLabel = formatINR(project.price);
+  const nearbyLandmarks = (project.nearbyPlaces ?? [])
+    .slice()
+    .sort(
+      (a, b) =>
+        (a.order ?? Number.MAX_SAFE_INTEGER) -
+        (b.order ?? Number.MAX_SAFE_INTEGER),
+    );
   const detailsItems = [
     {
       label: "Listing Source",
@@ -82,7 +89,7 @@ export default async function Page({ params }: PageProps) {
     },
     {
       label: "Negotiable",
-      value: (project as any)?.priceNegotiable ? "Yes" : "No",
+      value: project?.isPriceNegotiable ? "Yes" : "No",
       icon: GiMoneyStack,
     },
     {
@@ -125,9 +132,7 @@ export default async function Page({ params }: PageProps) {
   ];
 
   return (
-    <div
-      className="min-h-screen py-6 overflow-hidden"
-    >
+    <div className="min-h-screen py-6 overflow-hidden">
       <div className="container">
         <div className="w-full">
           {/* Top: Price + Title + CTA */}
@@ -142,12 +147,11 @@ export default async function Page({ params }: PageProps) {
             </div>
           </header>
 
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch">
-            <main className="flex-1">
-              <div className="flex flex-col gap-2 lg:flex-row lg:items-stretch">
-
+          <div className="flex min-w-0 flex-col gap-8 lg:flex-row lg:items-stretch">
+            <main className="min-w-0 flex-1">
+              <div className="flex min-w-0 flex-col gap-2 lg:flex-row lg:items-stretch">
                 {/* Gallery */}
-                <div className="w-full lg:w-[58%]">
+                <div className="min-w-0 w-full lg:w-[58%]">
                   <GalleryFile
                     gallery={project?.gallery}
                     title={project?.title}
@@ -155,8 +159,8 @@ export default async function Page({ params }: PageProps) {
                     propertyType="Residential"
                   />
                 </div>
-                <div className="flex flex-1 self-stretch min-h-0">
-                  <div className="flex-1 p-4 sm:p-2 flex flex-col justify-between h-full gap-8">
+                <div className="flex min-w-0 flex-1 self-stretch min-h-0">
+                  <div className="flex h-full min-w-0 flex-1 flex-col justify-between gap-8 p-4 sm:p-2">
 
                     {/* PART 1 */}
                     <div className="grid grid-cols-2 gap-8 pl-1">
@@ -247,9 +251,9 @@ export default async function Page({ params }: PageProps) {
 
               <br />
 
-              <div className="w-full">
+              <div className="min-w-0 w-full">
                 <div className="grid gap-4">
-                  <section className="space-y-4">
+                  <section className="min-w-0 space-y-4">
                     <section className="rounded-lg p-6 shadow-sm bg-[#f7f9fa]">
                       <h2 className="mb-6 text-xl font-semibold text-gray-900">
                         More Details
@@ -340,16 +344,16 @@ export default async function Page({ params }: PageProps) {
                                       alt={`${i.title} icon`}
                                       width={14}
                                       height={14}
-                                      className="h-3.5 w-3.5 opacity-75"
+                                      className="h-6 w-6 opacity-75"
                                     />
                                   ) : icon ? (
                                     <span className="text-gray-600 [&>svg]:h-3.5 [&>svg]:w-3.5">
                                       {icon}
                                     </span>
                                   ) : (
-                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
                                   )}
-                                  <span>{i.title}</span>
+                                  <span className="text-sm">{i.title}</span>
                                 </div>
                               );
                             })()
@@ -368,10 +372,10 @@ export default async function Page({ params }: PageProps) {
                       </h2>
 
                       {project.location ? (
-                        <NearByPlaceClient
+                        <ResidentialNearbySection
                           projectLocation={project.location}
                           projectName={project.title ?? "Property Location"}
-                          nearbyPlaces={project.nearbyPlaces ?? []}
+                          nearbyLandmarks={nearbyLandmarks}
                         />
                       ) : (
                         <p className="text-sm text-gray-500">

@@ -7,12 +7,12 @@ import { MdWaterDrop } from "react-icons/md";
 import { GiGroundSprout } from "react-icons/gi";
 import { FaRoad } from "react-icons/fa";
 import { IAgricultural } from "@/types/agricultural";
-import NearByPlaceClient from "@/app/(pages)/properties/(pages)/NearByPlaceClient";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import RelatedAgriculturalCarousel from "./RelatedAgriculturalCarousel";
 import Image from "next/image";
 import ad from "@/asserts/ad.png";
 import { AGRICULTURAL_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
+import AgriculturalNearbySection from "./AgriculturalNearbySection";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -46,8 +46,13 @@ export default async function Page({ params }: PageProps) {
     notFound();
   }
   const priceLabel = formatINR(project?.price);
-  console.log(project);
-
+  const nearbyLandmarks = (project.nearbyPlaces ?? [])
+    .slice()
+    .sort(
+      (a, b) =>
+        (a.order ?? Number.MAX_SAFE_INTEGER) -
+        (b.order ?? Number.MAX_SAFE_INTEGER),
+    );
 
   return (
     <div
@@ -171,9 +176,9 @@ export default async function Page({ params }: PageProps) {
 
               <br />
 
-              <div className="w-full">
+              <div className="min-w-0 w-full">
                 <div className="grid gap-4">
-                  <section className="space-y-4">
+                  <section className="min-w-0 space-y-4">
                     <section className="rounded-lg p-6 shadow-sm bg-[#f7f9fa]">
                       <h2 className="mb-6 text-xl font-semibold text-gray-900">
                         More Details
@@ -294,10 +299,10 @@ export default async function Page({ params }: PageProps) {
                       </h2>
 
                       {project.location ? (
-                        <NearByPlaceClient
+                        <AgriculturalNearbySection
                           projectLocation={project.location}
                           projectName={project.title ?? "Property Location"}
-                          nearbyPlaces={project.nearbyPlaces ?? []}
+                          nearbyLandmarks={nearbyLandmarks}
                         />
                       ) : (
                         <p className="text-sm text-gray-500">

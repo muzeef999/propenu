@@ -58,6 +58,7 @@ export interface IResidential {
   constructionStatus?: "ready-to-move" | "under-construction";
   possessionDate?: Date;
   maintenanceCharges?: number;
+  isPriceNegotiable?: boolean;
   security?: {
     gated?: boolean;
     cctv?: boolean;
