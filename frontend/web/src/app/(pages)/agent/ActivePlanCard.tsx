@@ -40,23 +40,32 @@ export const PLAN_ROUTE_MAP: Record<string, string> = {
   rent_view: "/plans/pricing/rent-view",
   sell: "/plans/pricing/owner-sell",
   rent: "/plans/pricing/owner-rent",
-};
 
+  both: "/plans/pricing/agent-plan",
+};
 
 const getPlanRoute = (role: string | null, category: string) => {
 
+  // AGENT PLAN (handles "both")
+  if (category === "both") {
+    return "/plans/pricing/agent-plan";
+  }
+
+  // OWNER / AGENT SELL
   if (category === "sell") {
     return role === "agent"
       ? "/plans/pricing/agent-plan"
-      : "/plans/pricing/owner-plan";
+      : "/plans/pricing/owner-sell";
   }
 
+  // OWNER / AGENT RENT
   if (category === "rent") {
     return role === "agent"
       ? "/plans/pricing/agent-plan"
       : "/plans/pricing/owner-rent";
   }
 
+  // VIEW PLANS
   if (category === "buy") {
     return "/plans/pricing/buy-view";
   }
@@ -65,7 +74,7 @@ const getPlanRoute = (role: string | null, category: string) => {
     return "/plans/pricing/rent-view";
   }
 
-  return null;
+  return "/plans/pricing";
 };
 /* ================= COMPONENT ================= */
 
