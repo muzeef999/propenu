@@ -60,12 +60,25 @@ type VerifyPropertyProps = {
 const VerifyProperty: React.FC<VerifyPropertyProps> = ({
   onVerificationSubmitted,
 }) => {
-  const { residential, commercial, land, agricultural, draftId, propertyType, base } = useSelector(
-    (state: any) => state.postProperty,
-  );
+  const {
+    residential,
+    commercial,
+    land,
+    agricultural,
+    draftId,
+    propertyType,
+    base,
+  } = useSelector((state: any) => state.postProperty);
 
   const dispatch = useAppDispatch();
   const router = useRouter();
+
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const storedRole = localStorage.getItem("role");
+    setRole(storedRole);
+  }, []);
 
   const profileData =
     propertyType === "residential"
@@ -122,6 +135,18 @@ const VerifyProperty: React.FC<VerifyPropertyProps> = ({
   /* =========================
      SUBMIT HANDLER
   ========================= */
+
+  const getPlanRedirectUrl = (role: string | null, listingType: string) => {
+    if (role === "agent") {
+      return listingType === "sale"
+        ? "/plans/pricing/agent-plan"
+        : "/plans/pricing/agent-plan";
+    }
+
+    return listingType === "sale"
+      ? "/plans/pricing/owner-sell"
+      : "/plans/pricing/owner-rent";
+  };
 
   const handleSubmit = () => {
     setShowErrors(true);
@@ -184,37 +209,29 @@ const VerifyProperty: React.FC<VerifyPropertyProps> = ({
         });
       })
       .catch((error: any) => {
-       
         const errObj =
           error?.response?.data ??
           (typeof error === "string" ? { message: error } : error);
 
-       
         // 🔴 NO ACTIVE PLAN
         if (errObj?.code === "NO_VALID_PLAN") {
           toast.error(errObj.message || "Please subscribe to a plan");
           const listingType = profileData?.listingType || "sale";
 
-          const redirectUrl =
-            listingType === "sale"
-              ? "/plans/pricing/owner-sell"
-              : "/plans/pricing/owner-rent";
+          const redirectUrl = getPlanRedirectUrl(role, listingType);
+          router.push(redirectUrl);
 
-            router.push(redirectUrl);
-         
           return;
         }
 
         // 🔴 PLAN LIMIT REACHED
         if (errObj?.code === "PLAN_LIMIT_REACHED") {
-
-             const listingType = profileData?.listingType || "sale";
+          const listingType = profileData?.listingType || "sale";
           const redirectUrl =
             listingType === "sale"
               ? "/plans/pricing/owner-sell"
               : "/plans/pricing/owner-rent";
-
-              router.push(redirectUrl);
+          router.push(redirectUrl);
           toast.error("Your plan limit is reached");
           return;
         }
@@ -223,7 +240,6 @@ const VerifyProperty: React.FC<VerifyPropertyProps> = ({
         toast.error(errObj?.message || "Verification failed");
       });
   };
-
 
   return (
     <div className="space-y-8 max-w-2xl mx-auto">

@@ -35,16 +35,58 @@ type ActivePlanCardProps = {
 
 
 export const PLAN_ROUTE_MAP: Record<string, string> = {
+  agent_plan: "/plans/pricing/agent-plan",
   buy: "/plans/pricing/buy-view",
   rent_view: "/plans/pricing/rent-view",
   sell: "/plans/pricing/owner-sell",
   rent: "/plans/pricing/owner-rent",
+
+  both: "/plans/pricing/agent-plan",
 };
 
+const getPlanRoute = (role: string | null, category: string) => {
+
+  // AGENT PLAN (handles "both")
+  if (category === "both") {
+    return "/plans/pricing/agent-plan";
+  }
+
+  // OWNER / AGENT SELL
+  if (category === "sell") {
+    return role === "agent"
+      ? "/plans/pricing/agent-plan"
+      : "/plans/pricing/owner-sell";
+  }
+
+  // OWNER / AGENT RENT
+  if (category === "rent") {
+    return role === "agent"
+      ? "/plans/pricing/agent-plan"
+      : "/plans/pricing/owner-rent";
+  }
+
+  // VIEW PLANS
+  if (category === "buy") {
+    return "/plans/pricing/buy-view";
+  }
+
+  if (category === "rent_view") {
+    return "/plans/pricing/rent-view";
+  }
+
+  return "/plans/pricing";
+};
 /* ================= COMPONENT ================= */
 
 const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
   const router = useRouter();
+
+
+  const role =
+  typeof window !== "undefined"
+    ? localStorage.getItem("role")
+    : null;
+
   const categoryLabelMap: Record<string, string> = {
     buy: "Buy view",
     rent_view: "Rent view",
@@ -144,7 +186,8 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
               {/* Upgrade button */}
               <button
                 onClick={() => {
-                  const route = PLAN_ROUTE_MAP[plan.category];
+
+                  const route = getPlanRoute(role, plan.category);
 
                   if (route) {
                     router.push(route);
