@@ -157,6 +157,12 @@ export async function findRelatedResidential(property: any) {
   if (property.bhk) {
     query.bhk = { $in: [property.bhk, property.bhk - 1, property.bhk + 1] };
   }
+   // Optional bedroom similarity
+  if (property.bedrooms) {
+    query.bedrooms = {
+      $in: [property.bedrooms, property.bedrooms - 1, property.bedrooms + 1],
+    };
+  }
 
   // Optional price band (±30%)
   if (property.price) {
@@ -170,7 +176,7 @@ export async function findRelatedResidential(property: any) {
     .sort({ createdAt: -1 })
     .limit(6)
     .select(
-      "title slug price city locality bhk gallery propertyType listingType builtUpArea furnishing parkingDetails constructionStatus",
+      "title slug price city locality bhk bedrooms gallery propertyType listingType builtUpArea furnishing parkingDetails constructionStatus",
     )
     .lean();
 

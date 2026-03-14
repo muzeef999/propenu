@@ -40,7 +40,6 @@ export interface IResidential {
   pricePerSqft?: number;
   city?: string;
   title?: string;
-  bhk?: number;
   description?: string;
   bedrooms?: number;
   price?: number;
@@ -108,7 +107,7 @@ export interface IAmenity {
 
 //search
 
-export type BHKOption =
+export type BedroomOption =
   | "1 BHK"
   | "2 BHK"
   | "3 BHK"
@@ -121,7 +120,7 @@ export type PostedByOption = "Owners" | "Agents" | "Builders";
 
 export type ResidentialSearchParams = BaseSearchParams & {
   category: "Residential";
-  bhk?: number;
+  bedrooms?: number;
 };
 
 export const residentialKeyMapping: Record<

@@ -1,6 +1,7 @@
 export function calculateResidentialCompletion(doc: any) {
   const sections = [
     !!(doc.title && doc.propertyType && doc.listingType && doc.bhk),
+    !!(doc.title && doc.propertyType && doc.listingType && doc.bedrooms),
     !!(doc.city && doc.locality && doc.address),
     !!(doc.price),
     !!(doc.gallery && doc.gallery.length > 0),

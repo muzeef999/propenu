@@ -20,6 +20,7 @@ const RESIDENTIAL_ALLOWED_FILTERS = [
   "propertyType",
 
   // numeric
+  "bedrooms",
   "bhk",
   "minPrice",
   "maxPrice",
@@ -29,6 +30,7 @@ const RESIDENTIAL_ALLOWED_FILTERS = [
 ];
 
 const RESIDENTIAL_NUMERIC_FILTERS = new Set([
+  "bedrooms",
   "bhk",
   "minPrice",
   "maxPrice",
