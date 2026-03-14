@@ -154,7 +154,7 @@ export default function PricingComparisonTable({
       className="flex flex-col md:flex-row gap-4 items-stretch max-w-7xl mx-auto p-4 font-sans"
     >
       {/* ---------- LEFT SIDEBAR (Service Details) ---------- */}
-      <div className="w-full md:w-72 lg:w-70 relative mt-16 md:mt-12">
+      <div className="w-full md:w-72 lg:w-70 relative mt-16 md:mt-33">
         {/* HEADER TEXT */}
         <div className="mb-4 ml-20">
           <p className="text-sm text-[#27AE60] font-medium">Get started</p>
@@ -203,7 +203,7 @@ export default function PricingComparisonTable({
               )}
 
               {/* Plan Name */}
-              <h3 className="text-[#27AE60] font-semibold text-lg mb-3">
+              <h3 className="text-[#27AE60] font-semibold text-lg mb-3 mt-3">
                 {plan.name}
               </h3>
 
@@ -222,7 +222,6 @@ export default function PricingComparisonTable({
                 )}
               </div>
 
-              <p>{plan.dprice}</p>
 
               {/* Validity */}
               <p className="text-sm text-gray-500 mb-6">
@@ -230,7 +229,7 @@ export default function PricingComparisonTable({
               </p>
 
               {/* Spacer pushes button bottom */}
-              <div className="flex-grow" />
+              <div className="grow" />
 
               {/* Button */}
               <button
@@ -246,7 +245,7 @@ export default function PricingComparisonTable({
               {features.map((feature, idx) => (
                 <div
                   key={idx}
-                  className="py-4 text-center text-gray-700 text-sm border-b border-gray-50 last:border-0 flex items-center justify-center min-h-[60px]"
+                  className="py-4 text-center text-gray-700 text-sm border-b border-gray-100 last:border-0 flex items-center justify-center min-h-[60px]"
                 >
                   {feature.render(plan)}
                 </div>

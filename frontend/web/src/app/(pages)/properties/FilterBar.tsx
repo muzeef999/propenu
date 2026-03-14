@@ -48,6 +48,7 @@ const FilterBar: React.FC = () => {
   ];
 
   const [open, setOpen] = useState(false);
+  const [categoryOpen, setCategoryOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [showResidentialAdvanced, setShowResidentialAdvanced] = useState(false);
   const [showCommercialAdvanced, setShowCommercialAdvanced] = useState(false);
@@ -165,7 +166,7 @@ const FilterBar: React.FC = () => {
   }, [cityData, searchText]);
 
   return (
-    <div className="sticky top-0 z-10 w-full bg-[#D1EFDD] px-3 shadow-sm ">
+    <div className="sticky top-0 z-45 w-full bg-[#D1EFDD] px-3 shadow-sm">
       <div className="mx-auto flex h-14 items-center gap-4 px-4 container">
         {/* Listing Type + Category + Search */}
         <div className="flex items-center gap-3 rounded-xl bg-white px-4 py-2 shadow-sm">
@@ -227,19 +228,51 @@ const FilterBar: React.FC = () => {
           <span className="h-5 w-px bg-gray-200" />
 
           {/* Category */}
-          <select
-            value={category}
-            onChange={(e) =>
-              dispatch(setCategory(e.target.value as categoryOption))
+          <FilterDropdown
+            open={categoryOpen}
+            onOpenChange={setCategoryOpen}
+            triggerLabel={
+              <button
+                type="button"
+                className="flex items-center gap-2 bg-transparent text-sm text-gray-900 cursor-pointer"
+              >
+                <span>{category}</span>
+                <ArrowDropdownIcon
+                  size={12}
+                  color="#111827"
+                  className={`transition-transform duration-200 ${
+                    categoryOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
             }
-            className="bg-transparent text-sm outline-none"
-          >
-            {categoryOptions.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
+            width="w-44"
+            align="left"
+            renderContent={(close) => (
+              <div>
+                <h4 className="mb-2 text-sm font-semibold">Category</h4>
+                <div className="flex flex-col gap-1">
+                  {categoryOptions.map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => {
+                        dispatch(setCategory(type));
+                        close();
+                      }}
+                      className={`rounded px-3 py-2 text-left text-sm cursor-pointer transition-colors ${
+                        category === type
+                          ? "bg-[#D1EFDD] text-[#15803D] font-medium"
+                          : "hover:bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          />
           <span className="h-5 w-px bg-gray-200" />
           <div className="hidden lg:block">
             <FilterDropdown

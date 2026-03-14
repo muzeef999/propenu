@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export type Align = "left" | "center" | "right";
 
@@ -10,6 +11,7 @@ export interface FilterDropdownProps {
   renderContent: (close: () => void) => React.ReactNode;
   width?: string;
   align?: Align;
+  backdropClassName?: string;
   showArrow?: boolean;
   className?: string;
   open?: boolean;
@@ -22,6 +24,7 @@ export default function FilterDropdown({
   renderContent,
   width = "w-auto",
   align = "left",
+  backdropClassName = "fixed inset-0 bg-black/45 z-40 transition-all duration-100",
   open: controlledOpen,
   onOpenChange,
   showArrow = true,
@@ -29,7 +32,7 @@ export default function FilterDropdown({
   showDoneButton = true,
 }: FilterDropdownProps) {
   const [internalOpen, setInternalOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 
   const openState =
@@ -41,12 +44,7 @@ export default function FilterDropdown({
   };
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 0);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    setMounted(true);
   }, []);
 
   // Close on click outside or Escape key
@@ -110,10 +108,17 @@ export default function FilterDropdown({
       {openState && (
         <>
           {/* Backdrop (visual only) */}
-          <div className={`fixed ${scrolled ? "top-13.5" : "top-30"} left-0 right-0 bottom-0 bg-black/45 z-40 transition-all duration-100`} onClick={() => setOpen(false)} />
+          {mounted &&
+            createPortal(
+              <div
+                className={backdropClassName}
+                onClick={() => setOpen(false)}
+              />,
+              document.body,
+            )}
 
           {/* Dropdown Panel */}
-          <div className={`absolute z-50 mt-2 ${alignClass}`}>
+          <div className={`absolute z-60 mt-2 ${alignClass}`}>
             <div
               className={`${width} bg-white rounded-xl border border-gray-200 shadow-lg p-3 relative`}
             >

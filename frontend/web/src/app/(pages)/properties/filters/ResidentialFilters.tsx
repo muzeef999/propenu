@@ -177,7 +177,7 @@ const ResidentialFilters = () => {
               </span>
             </div>
           }
-          width="w-86"
+          width="w-116"
           align="left"
           renderContent={(close) => (
             <div className="p-3">

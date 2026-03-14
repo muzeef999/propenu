@@ -71,6 +71,7 @@ const UserGreeting = ({ user, onClose }: UserGreetingProps) => {
   return (
     <div className="text-sm text-gray-700">
       <FilterDropdown
+        backdropClassName="fixed inset-0 bg-black/45 z-40 transition-all duration-100"
         triggerLabel={
           <div
             className="flex items-center gap-3 cursor-pointer px-4 py-1"

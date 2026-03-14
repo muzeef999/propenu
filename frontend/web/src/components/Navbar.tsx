@@ -166,8 +166,7 @@ if (status === "kyc_pending") {
 
   return (
     <header>
-      <nav
-        className="w-full bg-white/80 backdrop-blur-md border-b relative z-30 border-gray-200"
+      <nav className="w-full bg-white border-b relative z-50 border-gray-200"
         aria-label="Main navigation"
       >
         <div className="container mx-auto px-1 sm:px-4 lg:px-3">
@@ -231,6 +230,7 @@ if (status === "kyc_pending") {
                   <FilterDropdown
                     open={open}
                     onOpenChange={(next) => setOpen(next)}
+                    backdropClassName="fixed inset-0 bg-black/45 z-40 transition-all duration-100"
                     triggerLabel={
                       <div className="flex gap-1 items-center justify-center">
                         <LocationIcon size={18} color="#27AE60" />
@@ -329,6 +329,7 @@ if (status === "kyc_pending") {
                 <FilterDropdown
                   open={mobileOpen_city}
                   onOpenChange={(next) => setMobileOpen_city(next)}
+                  backdropClassName="fixed inset-0 bg-black/45 z-40 transition-all duration-100"
                   triggerLabel={
                     <div className="flex items-center gap-1">
                       <LocationIcon size={14} color="#27AE60" />
@@ -461,8 +462,7 @@ if (status === "kyc_pending") {
         )}
 
         {/* SIDEBAR */}
-        <div
-          className={` fixed top-0 left-0 h-[120vh] w-75 max-w-[90vw]  bg-white shadow-lg lg:hidden transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
+        <div className={` fixed top-0 left-0 h-[120vh] w-75 max-w-[90vw]  bg-white shadow-lg lg:hidden transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
   `}
           aria-hidden={!mobileOpen}
           role="dialog"

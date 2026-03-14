@@ -481,6 +481,7 @@ type Plan = {
   name: string;
   dprice: number;
   price: number;
+  offerText?: string;
   durationDays?: number;
   validityDays?: number; // ✅ ADD THIS
 

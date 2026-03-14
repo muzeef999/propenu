@@ -2,6 +2,7 @@ import { IAmenity } from "@/types/residential";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
+import { FiX } from "react-icons/fi";
 
 type AmenitiesSelectProps = {
   label?: string;
@@ -147,10 +148,10 @@ const AmenitiesSelect = ({
                   <button
                     type="button"
                     onClick={() => setOpen(false)}
-                    className="h-10 w-10 rounded-full bg-gray-100 text-2xl leading-none text-gray-500 transition hover:bg-gray-200"
+                    className="h-10 w-10 rounded-full bg-gray-100 text-2xl leading-none text-gray-500 transition hover:bg-gray-200 cursor-pointer"
                     aria-label="Close amenities dialog"
                   >
-                    &times;
+                    <FiX />
                   </button>
                 </div>
 
