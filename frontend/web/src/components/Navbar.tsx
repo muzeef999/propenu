@@ -58,17 +58,16 @@ const Navbar = () => {
 
         const status = data?.user?.accountStatus;
 
-        console.log("User account status:", status);
-        console.log("User data:", data);
+        localStorage.setItem("role", data.user.roleName);
 
         // Resume onboarding based on account status
-       if (status === "location_pending") {
-  setRegisterStep("location");
-}
+        if (status === "location_pending") {
+          setRegisterStep("location");
+        }
 
-if (status === "kyc_pending") {
-  setRegisterStep("kyc");
-}
+        if (status === "kyc_pending") {
+          setRegisterStep("kyc");
+        }
       } catch (err) {
         // user not logged in
       }
@@ -597,7 +596,7 @@ if (status === "kyc_pending") {
       {authMode === "register" && (
         <RegisterDialog
           open={true}
-            initialStep={registerStep}
+          initialStep={registerStep}
           onClose={() => setAuthMode(null)}
           onSwitchToLogin={() => setAuthMode("login")}
         />
