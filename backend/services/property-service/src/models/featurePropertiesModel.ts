@@ -158,8 +158,7 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     heroTagline: { type: String },
     heroSubTagline: { type: String },
     heroDescription: { type: String },
-    color: { type: String },
-    
+    color: { type: String }, 
     metaTitle: { type: String },
     metaDescription: { type: String },
     metaKeywords: { type: String },

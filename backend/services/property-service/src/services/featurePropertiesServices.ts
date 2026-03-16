@@ -989,7 +989,7 @@ export const FeaturePropertyService = {
       const localityItems = await FeaturedProject.find(localityFilter)
         .select(
           "title heroImage priceFrom priceTo slug city state locality logo amenities bhkSummary",
-        )
+        ).sort({ createdAt: -1 }).limit(5)
         .lean();
 
       if (localityItems.length > 0) {
