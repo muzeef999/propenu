@@ -475,7 +475,7 @@ export const ResidentialPropertyService = {
       sort[options.sortBy] = options.sortOrder === "asc" ? 1 : -1;
     else sort.createdAt = -1;
     const [items, total] = await Promise.all([
-      Residential.find(filter).sort(sort).skip(skip).limit(limit).lean().exec(),
+      Residential.find(filter).sort(sort).populate("createdBy", "name email phone roleId").skip(skip).limit(limit).lean().exec(),
       Residential.countDocuments(filter).exec(),
     ]);
     return {

@@ -546,7 +546,7 @@ export const LandService = {
     const sort: any = { createdAt: -1 };
 
     const [items, total] = await Promise.all([
-      LandPlot.find(filter).sort(sort).skip(skip).limit(limit).lean().exec(),
+      LandPlot.find(filter).sort(sort).populate("createdBy", "name email phone roleId").skip(skip).limit(limit).lean().exec(),
       LandPlot.countDocuments(filter).exec(),
     ]);
 

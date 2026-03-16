@@ -556,7 +556,7 @@ export const CommercialService = {
     else sort.createdAt = -1;
 
     const [items, total] = await Promise.all([
-      Commercial.find(filter).sort(sort).skip(skip).limit(limit).lean().exec(),
+      Commercial.find(filter).sort(sort).populate("createdBy", "name email phone roleId").skip(skip).limit(limit).lean().exec(),
       Commercial.countDocuments(filter).exec(),
     ]);
 

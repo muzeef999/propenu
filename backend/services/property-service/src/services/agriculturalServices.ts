@@ -459,7 +459,7 @@ export const AgriculturalService = {
     else sort.createdAt = -1;
 
     const [items, total] = await Promise.all([
-      Agricultural.find(filter)
+      Agricultural.find(filter)        .populate("createdBy", "name email phone roleId")
         .sort(sort)
         .skip(skip)
         .limit(limit)

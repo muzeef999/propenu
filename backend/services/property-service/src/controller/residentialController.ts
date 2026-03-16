@@ -17,9 +17,7 @@ import { sendManagerApprovalMail } from "../utils/sendManagerMail";
 import mongoose from "mongoose";
 import { deleteS3ObjectIfExists } from "../utils/s3Helpers";
 import { sendListingSubmittedVerification } from "../../../../shared/whatsapp/whatsapp.helper";
-
-
-
+import { sendListingSubmittedEmail } from "../../../../shared/email/email.helper";
 
 /** Helper: parse values that might be JSON strings (multipart sends arrays/objects as strings). */
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -481,7 +479,7 @@ export const finalizeResidential = async (req: AuthRequest, res: Response) => {
 
     property.completion.lastSection = "verification";
 
-        const role = req.user?.roleName;
+    const role = req.user?.roleName;
 
     if (verificationFiles.length > 0) {
       if (role === "sales_agent") {
@@ -540,31 +538,54 @@ export const finalizeResidential = async (req: AuthRequest, res: Response) => {
       .populate("createdBy", "name email phone")
       .lean();
 
+    // 📩 Send WhatsApp Listing Submitted message
+    // try {
+    //   const owner: any = fresh?.createdBy;
 
-      // 📩 Send WhatsApp Listing Submitted message
-try {
-  const owner: any = fresh?.createdBy;
+    //   if (owner?.phone && owner?.name) {
+    //     console.log("📩 Sending listing submitted WhatsApp message...");
 
-  if (owner?.phone && owner?.name) { 
-    console.log("📩 Sending listing submitted WhatsApp message...");
+    //     console.log(owner?.phone, "owner phone...");
 
-    console.log(owner?.phone, "owner phone...");
+    //     console.log(owner?.name, "owner name...");
 
-    console.log(owner?.name, "owner name...");
+    //     await sendListingSubmittedVerification(
+    //       owner.phone.replace("+", ""),   // phone
+    //       owner.name,                     // {{1}}
+    //       property.title || "Property",   // {{2}}
+    //       property.city || property.locality || "Location", // {{3}}
+    //       `${process.env.FRONTEND_URL}/property/${property._id}` // {{4}}
+    //     );
 
-    await sendListingSubmittedVerification(
-      owner.phone.replace("+", ""),   // phone
-      owner.name,                     // {{1}}
-      property.title || "Property",   // {{2}}
-      property.city || property.locality || "Location", // {{3}}
-      `${process.env.FRONTEND_URL}/property/${property._id}` // {{4}}
+    //     console.log("✅ Listing submitted WhatsApp sent");
+    //   }
+    // } catch (err) {
+    //   console.error("⚠️ WhatsApp listing message failed:", err);
+    // }
+
+    console.log(
+      "Finalized property:--------------------------------------------------------------",
     );
 
-    console.log("✅ Listing submitted WhatsApp sent");
-  }
-} catch (err) {
-  console.error("⚠️ WhatsApp listing message failed:", err);
-}
+    try {
+      const owner: any = fresh?.createdBy;
+
+      if (owner?.email && owner?.name) {
+        console.log("📧 Sending listing submitted email...");
+
+        await sendListingSubmittedEmail(
+          owner.email,
+          owner.name,
+          property.title || "Property",
+          property.city || property.locality || "Location",
+          `${process.env.FRONTEND_URL}/property/${property._id}`,
+        );
+
+        console.log("✅ Listing email sent");
+      }
+    } catch (err) {
+      console.error("⚠️ Email sending failed:", err);
+    }
 
     res.json({ success: true, verified: hasVerified, data: fresh });
   } catch (err: any) {
@@ -694,14 +715,11 @@ export const approveProperty = async (req: Request, res: Response) => {
       message: "✅ Property approved successfully",
       propertyId: property._id,
     });
-
   } catch (err: any) {
     console.error(err);
     res.status(500).json({ message: err.message });
   }
 };
-
-
 
 export const deactivateProperty = async (req: AuthRequest, res: Response) => {
   try {
@@ -727,8 +745,6 @@ export const deactivateProperty = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: err.message });
   }
 };
-
-
 
 export const deleteGalleryImage = async (req: Request, res: Response) => {
   try {
@@ -757,7 +773,6 @@ export const deleteGalleryImage = async (req: Request, res: Response) => {
     await property.save();
 
     res.json({ success: true, data: property.gallery });
-
   } catch (err: any) {
     console.error("deleteGalleryImage:", err);
     res.status(500).json({ message: err.message });

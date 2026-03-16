@@ -94,35 +94,44 @@ export const requireActiveSubscription = async (
     //   return res.status(403).json({ message: "Invalid user role" });
     // }
 
- 
-/*
+    /*
 ⭐ IMPORTANT LOGIC
 If user is posting property (sale or rent)
 → he is OWNER
 */
 
-if (listingType === "sale" || listingType === "rent") {
-  userType = "owner";
-}
-else if (roleName === "agent") {
-  userType = "agent";
-}
-else {
-  userType = "buyer";
-}
+    // if (listingType === "sale" || listingType === "rent") {
+    //   userType = "owner";
+    // } else if (roleName === "agent") {
+    //   userType = "agent";
+    // } else {
+    //   userType = "buyer";
+    // }
 
-    console.log("🔎 CHECKING PLAN:", {
-      userId,
-      userType,
-      requiredCategory,
-    });
+    if (roleName === "agent") {
+      userType = "agent";
+    } else if (roleName === "builder" || roleName === "owner") {
+      userType = "owner";
+    } else {
+      userType = "buyer";
+    }
+
+    console.log("🔎 PLAN CHECK DEBUG ----------------");
+    console.log("User ID:", userId);
+    console.log("Role Name:", roleName);
+    console.log("Listing Type:", listingType);
+    console.log("Required Category:", requiredCategory);
+    console.log("User Type:", userType);
 
     const subscription = await Subscription.findOne({
       userId,
       userType, // ✅ FIXED
-      category: requiredCategory,
+      // category: requiredCategory,
       status: "active",
+      category: { $in: [requiredCategory, "both"] }, // ✅ allow both
     });
+
+    console.log("Subscription Found:", subscription);
 
     if (!subscription) {
       return res.status(403).json({

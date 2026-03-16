@@ -9,6 +9,7 @@ import accountRoutes from "./routes/accountRoutes";
 dotenv.config({ quiet: true });
 
 
+
 const app = express();
 app.use(express.json());
 

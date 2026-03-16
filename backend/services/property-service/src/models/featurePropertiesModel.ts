@@ -196,7 +196,7 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     amenities: { type: [AmenitySchema] },
     nearbyPlaces: { type: [NearbyPlaceSchema] },
     isFeatured: { type: Boolean, default: false, index: true },
-    rank: { type: Number, default: 1, index: true },
+    rank: { type: Number, default: 0, index: true },
     meta: {
       views: { type: Number, default: 0 },
       inquiries: { type: Number, default: 0 },
