@@ -115,12 +115,8 @@ export const verifyOtp = async (req: Request, res: Response) => {
       roleId: role ? String(role._id) : undefined,
       roleName: role ? role.name : undefined,
       permissions: role ? role.permissions : [],
-                accountStatus: user.accountStatus 
-
+      accountStatus: user.accountStatus,
     });
-
-
- 
 
     return res.status(200).json({
       message: "OTP verified successfully",
@@ -134,7 +130,6 @@ export const verifyOtp = async (req: Request, res: Response) => {
 
 export const me = async (req: AuthRequest, res: Response) => {
   try {
-
     // 1️⃣ check authentication
     if (!req.user) {
       return res.status(401).json({
@@ -146,24 +141,19 @@ export const me = async (req: AuthRequest, res: Response) => {
     const token = authHeader?.split(" ")[1] || null;
 
     // 2️⃣ load user
-    const user = await User.findById(req.user.sub)
-      .populate("roleId")
-      .lean();
+    const user = await User.findById(req.user.sub).populate("roleId").lean();
 
     if (!user) {
       return res.status(404).json({
         message: "User not found",
-      }); 
+      });
     }
 
     const role: any = user.roleId;
 
     // 3️⃣ detect location completion
     const locationCompleted =
-      !!user.locality &&
-      !!user.city &&
-      !!user.state &&
-      !!user.pincode;
+      !!user.locality && !!user.city && !!user.state && !!user.pincode;
 
     // 4️⃣ detect KYC status
     const kycStatus = user.kyc?.status || "not_started";
@@ -193,9 +183,7 @@ export const me = async (req: AuthRequest, res: Response) => {
         },
       },
     });
-
   } catch (err: any) {
-  
     return res.status(500).json({
       message: "Failed to load user profile",
     });
@@ -379,7 +367,6 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
 
     // USER EXISTS
     if (user) {
-
       if (user.accountStatus === "active") {
         return res.status(409).json({
           message: "Account already registered. Please login.",
@@ -396,8 +383,7 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
         roleId: String(roleDoc._id),
         roleName: roleDoc.name,
         permissions: roleDoc.permissions,
-          accountStatus: user.accountStatus 
-
+        accountStatus: user.accountStatus,
       });
 
       let nextStep = "location";
@@ -445,8 +431,7 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       roleId: String(roleDoc._id),
       roleName: roleDoc.name,
       permissions: roleDoc.permissions,
-        accountStatus: user.accountStatus 
-
+      accountStatus: user.accountStatus,
     });
 
     return res.status(201).json({
@@ -455,7 +440,6 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       nextStep: "location",
       kycStatus: "not_started",
     });
-
   } catch (error: any) {
     return res.status(500).json({
       message: "Signup failed",
@@ -472,7 +456,7 @@ export const updateLocationOtp = async (req: AuthRequest, res: Response) => {
 
     let { locality, city, state, pincode } = req.body;
 
-     if (!locality || !city || !state || !pincode) {
+    if (!locality || !city || !state || !pincode) {
       return res.status(400).json({
         message: "All location fields are required",
       });
@@ -485,17 +469,15 @@ export const updateLocationOtp = async (req: AuthRequest, res: Response) => {
         city: city.trim(),
         state: state.trim(),
         pincode: pincode.trim(),
-            accountStatus: "kyc_pending",
-
+        accountStatus: "kyc_pending",
       },
-      { new: true }
+      { new: true },
     );
 
     return res.status(200).json({
       message: "Location updated successfully",
       user: updatedUser,
     });
-
   } catch (error: any) {
     res.status(500).json({
       message: "Failed to update location",
