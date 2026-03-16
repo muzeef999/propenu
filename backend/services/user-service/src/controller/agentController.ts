@@ -103,7 +103,6 @@ export const editAgent = async (req: Request, res: Response) => {
   return res.status(200).json({ message: "Agent updated", agent: updated });
 };
 
-
 export const editAgentByPhone = async (req: Request, res: Response) => {
   const { phone } = req.params;
   const payload = req.body as UpdateAgentDTO;
@@ -121,7 +120,6 @@ export const editAgentByPhone = async (req: Request, res: Response) => {
   });
 };
 
-
 export const deleteAgent = async (req: Request, res: Response) => {
   const id = req.params.id;
 
@@ -130,7 +128,6 @@ export const deleteAgent = async (req: Request, res: Response) => {
   await AgentService.deleteAgent(id);
   return res.status(200).json({ message: "Agent deleted" });
 };
-
 
 export const getMyPropertyStats = async (req: AuthRequest, res: Response) => {
   
@@ -150,7 +147,6 @@ export const getMyPropertyStats = async (req: AuthRequest, res: Response) => {
 
 };
 
-
 export const getMyAgentProfile = async (req: AuthRequest, res: Response) => {
   const userId = req.user!.sub;
 
@@ -168,7 +164,6 @@ export const getMyAgentProfile = async (req: AuthRequest, res: Response) => {
     agent,
   });
 };
-
 
 export const verifyAgentStatus = async (req: Request, res: Response) => {
   try {

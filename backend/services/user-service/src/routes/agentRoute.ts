@@ -33,6 +33,7 @@ agentRoute.patch("/:id", upload.fields([{ name: "avatar", maxCount: 1 },{ name: 
 agentRoute.patch("/by-phone/:phone", upload.fields([ { name: "avatar", maxCount: 1 }, { name: "coverImage", maxCount: 1 }, ]), validateBody(updateAgentSchema), editAgentByPhone,);
 agentRoute.delete("/:id", deleteAgent);
 
+
 agentRoute.patch("/admin/verify/:id", authMiddleware, verifyAgentStatus);
 
 export default agentRoute;
