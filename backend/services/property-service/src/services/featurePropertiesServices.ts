@@ -986,10 +986,13 @@ export const FeaturePropertyService = {
         ...(locality && { locality: makeRegex(locality) }),
       };
 
+
+
+      //checking
       const localityItems = await FeaturedProject.find(localityFilter)
         .select(
           "title heroImage priceFrom priceTo slug city state locality logo amenities bhkSummary",
-        ).sort({ createdAt: -1 }).limit(5)
+        ).sort({ rank: 1 }).limit(5)
         .lean();
 
       if (localityItems.length > 0) {
@@ -1011,6 +1014,8 @@ export const FeaturePropertyService = {
 
       const cityItems = await FeaturedProject.find(cityFilter)
         .select("title heroImage priceFrom priceTo slug city state locality")
+        .sort({ rank: 1 })
+        .limit(5)
         .lean();
 
       if (cityItems.length > 0) {
@@ -1030,8 +1035,8 @@ export const FeaturePropertyService = {
       };
 
       const stateItems = await FeaturedProject.find(stateFilter)
-        .select("title heroImage priceFrom priceTo slug city state locality")
-        .lean();
+        .select("title heroImage priceFrom priceTo slug city state locality").sort({ rank: 1 }).limit(5)
+        .lean();  
 
       return {
         level: "state",

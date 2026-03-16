@@ -3,6 +3,7 @@ import { CreateAgentDTO, UpdateAgentDTO } from "../zod/validation";
 import AgentService from "../services/agentService";
 import { GetAgentsQuery } from "../types";
 import { AuthRequest } from "../middlewares/authMiddleware";
+import Agent from "../models/agentModel";
 
 type MulterFiles =
   | {
@@ -162,4 +163,41 @@ export const getMyAgentProfile = async (req: AuthRequest, res: Response) => {
     exists: true,
     agent,
   });
+};
+
+
+export const verifyAgentStatus = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!["approved", "rejected"].includes(status)) {
+      return res.status(400).json({
+        message: "Invalid status",
+      });
+    }
+
+    const agent = await Agent.findByIdAndUpdate(
+      id,
+      { verificationStatus: status },
+      { new: true }
+    );
+
+    if (!agent) {
+      return res.status(404).json({
+        message: "Agent not found",
+      });
+    }
+
+    return res.json({
+      message: `Agent ${status} successfully`,
+      agent,
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Failed to update agent status",
+    });
+  }
 };

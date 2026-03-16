@@ -22,7 +22,7 @@ router.post("/seed-roles", async (_req, res) => {
       "agent:create",
       "agent:view",
       "agent:edit",
-      "agent:delete"
+      "agent:delete",
     ];
 
     // 2️⃣ Define roles
@@ -63,42 +63,42 @@ router.post("/seed-roles", async (_req, res) => {
       {
         name: "sales_agent",
         label: "Sales Agent",
-        permissions: [
-          "project:view",
-          "lead:view",
-          "lead:edit",
-        ],
+        permissions: ["project:view", "lead:view", "lead:edit"],
       },
       {
         name: "user",
         label: "User",
+        permissions: ["project:view", "project:create"],
+      },
+      {
+        name: "agent",
+        label: "Agent",
+        permissions: ["project:view", "lead:view", "lead:edit", "agent:view"],
+      },
+      {
+        name: "builder",
+        label: "Builder",
         permissions: [
-          "project:view",
           "project:create",
+          "project:view",
+          "project:edit",
+          "agent:create",
+          "agent:view",
+          "agent:edit",
         ],
       },
-       {
-    name: "agent",
-    label: "Agent",
-    permissions: [
-      "project:view",
-      "lead:view",
-      "lead:edit",
-      "agent:view"
-    ],
-  },
-  {
-  name: "builder",
-  label: "Builder",
-  permissions: [
-    "project:create",
-    "project:view",
-    "project:edit",
-    "agent:create",
-    "agent:view",
-    "agent:edit"
-  ],
-}
+
+      {
+        name: "sales_manager",
+        label: "Sales Manager",
+        permissions: ["project:view", "lead:view", "lead:edit"],
+      },
+
+      {
+        name: "accounts",
+        label: "Accounts",
+        permissions: ["project:view", "lead:view", "lead:edit"],
+      },
     ];
 
     // 3️⃣ Upsert roles (create if not exist, update if exist)

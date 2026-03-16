@@ -1,3 +1,52 @@
+
+export const welcomeTemplate = (name: string, link: string) => `
+<div style="font-family: Arial, sans-serif; max-width:600px; margin:auto; padding:20px; border:1px solid #eee; border-radius:8px">
+
+  <h2 style="color:#2c7be5;">Welcome to Propenu 🎉</h2>
+
+  <p>Hello <b>${name}</b>,</p>
+
+  <p>
+  Welcome to <b>Propenu</b> — your verification is now complete.
+  </p>
+
+  <p>
+  You’re officially part of a platform built on:
+  </p>
+
+  <ul>
+    <li>✔ Verified users</li>
+    <li>✔ Verified properties</li>
+    <li>✔ Zero spam</li>
+    <li>✔ Secure transactions</li>
+  </ul>
+
+  <p>
+  You can now post your property and move ahead with confidence on Propenu.
+  </p>
+
+  <div style="margin:20px 0;">
+    <a href="${link}"
+       style="background:#2c7be5;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">
+       Start Posting Your Property
+    </a>
+  </div>
+
+  <p>
+  We’re excited to have you with us and wish you great success on the platform.
+  </p>
+
+  <p style="margin-top:30px;">
+  Regards,<br/>
+  <b>Team Propenu</b>
+  </p>
+
+</div>
+`;
+
+
+
+
 export const listingSubmittedTemplate = (
   name: string,
   property: string,
@@ -34,5 +83,4 @@ export const listingSubmittedTemplate = (
 
   <p style="color:#888">— Team Propenu</p>
 
-</div>
-`;
+</div>`;

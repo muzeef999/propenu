@@ -159,7 +159,7 @@ const AgentService = {
     page = 1,
     limit = 20,
   ) {
-    const filter: any = {}; // ❌ removed status
+      const filter: any = { verificationStatus: "approved"};
 
     if (location.city) filter.city = new RegExp(`^${location.city}$`, "i");
 

@@ -250,44 +250,67 @@ export const getAllUsers = async (_req: Request, res: Response) => {
 export const searchUsers = async (req: Request, res: Response) => {
   try {
     const query = req.query.q?.toString().trim();
+    const roleFilter = req.query.role?.toString().trim(); // optional role filter
 
-    if (!query) {
-      return res.status(400).json({ message: "Search query 'q' is required" });
+    if (!query && !roleFilter) {
+      return res.status(400).json({
+        message: "Search query 'q' or role is required",
+      });
     }
 
-    const users = await User.aggregate([
+    const match: any = {};
+
+    // text search
+    if (query) {
+      match.$or = [
+        { name: { $regex: query, $options: "i" } },
+        { email: { $regex: query, $options: "i" } },
+        { phone: { $regex: query, $options: "i" } },
+      ];
+    }
+
+    const pipeline: any[] = [
       {
         $lookup: {
-          from: "roles", // collection name
+          from: "roles",
           localField: "roleId",
           foreignField: "_id",
           as: "role",
         },
       },
       { $unwind: "$role" },
+    ];
 
-      {
+    // apply role filter
+    if (roleFilter) {
+      pipeline.push({
         $match: {
-          $or: [
-            { name: { $regex: query, $options: "i" } },
-            { email: { $regex: query, $options: "i" } },
-            { phone: { $regex: query, $options: "i" } },
-            { "role.name": { $regex: query, $options: "i" } }, // 🔥 role search
-          ],
+          "role.name": roleFilter, // exact role match
         },
-      },
+      });
+    }
 
-      {
-        $project: {
-          name: 1,
-          email: 1,
-          phone: 1,
-          role: 1,
-        },
-      },
-    ]);
+    if (query) {
+      pipeline.push({
+        $match: match,
+      });
+    }
 
-    res.json({ results: users, count: users.length });
+    pipeline.push({
+      $project: {
+        name: 1,
+        email: 1,
+        phone: 1,
+        "role.name": 1,
+      },
+    });
+
+    const users = await User.aggregate(pipeline);
+
+    res.json({
+      results: users,
+      count: users.length,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Search failed" });
