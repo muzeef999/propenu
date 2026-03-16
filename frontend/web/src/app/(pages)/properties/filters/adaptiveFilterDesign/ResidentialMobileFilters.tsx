@@ -32,7 +32,7 @@ import {
   formatBudget,
   moreFilterSections,
 } from "../../constants/constants";
-import { BHKOption } from "@/types/residential";
+import { BedroomOption } from "@/types/residential";
 import { formatLabel } from "@/utilies/formatLabel";
 import { ResidentialFilters } from "@/types/sharedTypes";
 
@@ -70,7 +70,7 @@ const keyMapping: Record<RESFilterKey, keyof ResidentialFilters> = {
   "Posted By": "listingSource",
 };
 
-const bhkOptions: BHKOption[] = [
+const bedroomOptions: BedroomOption[] = [
   "1 BHK",
   "2 BHK",
   "3 BHK",
@@ -80,7 +80,8 @@ const bhkOptions: BHKOption[] = [
   "6+ BHK",
 ];
 
-const getBhkNumber = (b: BHKOption) => (b === "6+ BHK" ? 6 : Number(b.split(" ")[0]));
+const getBedroomNumber = (value: BedroomOption) =>
+  value === "6+ BHK" ? 6 : Number(value.split(" ")[0]);
 
 const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
   open,
@@ -446,21 +447,23 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
 
 
         <div>
-          <h3 className="mb-3 text-lg font-semibold">BHK</h3>
+          <h3 className="mb-3 text-lg font-semibold">Bedrooms</h3>
           <div className="flex flex-wrap gap-2">
-            {bhkOptions.map((bhkOption) => {
-              const value = getBhkNumber(bhkOption);
+            {bedroomOptions.map((bedroomOption) => {
+              const value = getBedroomNumber(bedroomOption);
               return (
                 <button
-                  key={bhkOption}
+                  key={bedroomOption}
                   type="button"
-                  onClick={() => dispatch(setResidentialFilter({ key: "bhk", value }))}
-                  className={`rounded-xl border px-3 py-2 text-sm ${residential.bhk === value
+                  onClick={() =>
+                    dispatch(setResidentialFilter({ key: "bedrooms", value }))
+                  }
+                  className={`rounded-xl border px-3 py-2 text-sm ${residential.bedrooms === value
                     ? "border-green-600 bg-[#d8ece0] text-green-700"
                     : "border-gray-300 bg-white"
                     }`}
                 >
-                  {bhkOption}
+                  {bedroomOption}
                 </button>
               );
             })}

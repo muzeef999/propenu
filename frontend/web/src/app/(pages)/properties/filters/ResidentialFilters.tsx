@@ -6,7 +6,7 @@ import { RootState } from "@/Redux/store";
 import { setBudget, setResidentialFilter } from "@/Redux/slice/filterSlice";
 import FilterDropdown from "@/ui/FilterDropdown";
 import {
-  BHKOption,
+  BedroomOption,
   PostedByOption,
   residentialKeyMapping,
 } from "@/types/residential";
@@ -45,7 +45,7 @@ const ResidentialFilters = () => {
   const { minPrice, maxPrice, residential, listingTypeValue } = filtersState;
   const [budgetTouched, setBudgetTouched] = useState(false);
 
-  const { locality, bhk, listingSource } = residential;
+  const { locality, bedrooms, listingSource } = residential;
   const [open, setOpen] = useState(false);
   const [activeFilter, setActiveFilter] =
     useState<RESFilterKey>("Property Type");
@@ -86,9 +86,9 @@ const ResidentialFilters = () => {
         ? locality[0]
         : `${locality.length} Localities`;
 
-  /* -------------------- BHK -------------------- */
+  /* -------------------- BEDROOMS -------------------- */
 
-  const bhkOptions: BHKOption[] = [
+  const bedroomOptions: BedroomOption[] = [
     "1 BHK",
     "2 BHK",
     "3 BHK",
@@ -98,10 +98,12 @@ const ResidentialFilters = () => {
     "6+ BHK",
   ];
 
-  const getBhkNumber = (b: BHKOption) =>
-    b === "6+ BHK" ? 6 : Number(b.split(" ")[0]);
+  const getBedroomNumber = (value: BedroomOption) =>
+    value === "6+ BHK" ? 6 : Number(value.split(" ")[0]);
 
-  const bhkLabel = bhk ? `${bhk}${bhk === 6 ? "+" : ""} BHK` : "BHK";
+  const bedroomLabel = bedrooms
+    ? `${bedrooms}${bedrooms === 6 ? "+" : ""} BHK`
+    : "BHK";
 
   /* -------------------- BUDGET -------------------- */
   const [budgetRange, setBudgetRange] = useState<
@@ -395,35 +397,35 @@ const ResidentialFilters = () => {
           )}
         />
 
-        {/* ---------- BHK ---------- */}
+        {/* ---------- Bedrooms ---------- */}
         <FilterDropdown
-          key={bhk}
+          key={bedrooms}
           triggerLabel={
             <span className="px-4 text-primary font-medium cursor-pointer">
-              {bhkLabel}
+              {bedroomLabel}
             </span>
           }
           width="w-86"
           renderContent={(close) => (
             <div>
-              <h4 className="text-sm font-semibold mb-2">BHK Type</h4>
+              <h4 className="text-sm font-semibold mb-2">Bedrooms</h4>
               <div className="flex gap-2 flex-wrap">
-                {bhkOptions.map((opt) => {
-                  const value = getBhkNumber(opt);
+                {bedroomOptions.map((opt) => {
+                  const value = getBedroomNumber(opt);
                   return (
                     <button
                       key={opt}
                       onClick={() => {
                         dispatch(
                           setResidentialFilter({
-                            key: "bhk",
+                            key: "bedrooms",
                             value,
                           }),
                         );
                         close?.();
                       }}
                       className={`px-2 py-1 rounded hover:bg-gray-100 ${
-                        bhk === value ? "font-semibold bg-gray-100" : ""
+                        bedrooms === value ? "font-semibold bg-gray-100" : ""
                       }`}
                     >
                       {opt}

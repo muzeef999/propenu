@@ -14,7 +14,6 @@ import {
   MdClose,
   MdOutlineBadge,
   MdOutlineLock,
-  MdOutlineWhatsapp,
 } from "react-icons/md";
 import { BsBuildings } from "react-icons/bs";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
@@ -39,6 +38,38 @@ interface RegisterDialogProps {
 }
 
 type RegisterStep = "personal" | "location" | "kyc";
+
+type NominatimPincodeResult = {
+  address?: {
+    suburb?: string;
+    neighbourhood?: string;
+    hamlet?: string;
+    village?: string;
+    town?: string;
+    city?: string;
+    city_district?: string;
+    county?: string;
+    state_district?: string;
+    state?: string;
+  };
+};
+
+function formatToTitleCase(value: string) {
+  if (!value) return "";
+
+  return value
+    .toLowerCase()
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function normalizePincodeAreaName(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+
+  return trimmed.replace(/^ward\s*\d+[a-z]?\s+/i, "").trim();
+}
 
 const tabs: { id: RegisterStep; label: string }[] = [
   { id: "personal", label: "Personal Details" },
@@ -68,6 +99,7 @@ const RegisterDialog = ({
     Array(OTP_LENGTH).fill(""),
   );
   const [loading, setLoading] = useState(false);
+  const [isLookingUpPincode, setIsLookingUpPincode] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isOtpVerified, setIsOtpVerified] = useState(false);
 
@@ -377,6 +409,103 @@ const RegisterDialog = ({
     }
   }, [open]);
 
+  useEffect(() => {
+    if (step !== "location") return;
+
+    const pincode = formData.pincode.replace(/\D/g, "");
+
+    if (pincode.length !== 6) {
+      setIsLookingUpPincode(false);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const timeout = setTimeout(async () => {
+      setIsLookingUpPincode(true);
+
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?postalcode=${pincode}&country=India&format=json&addressdetails=1&limit=1&accept-language=en`;
+        const res = await fetch(url, {
+          signal: controller.signal,
+          headers: {
+            "Accept-Language": "en",
+          },
+        });
+
+        if (!res.ok) {
+          console.error("Pincode lookup failed:", res.status);
+          return;
+        }
+
+        const data: NominatimPincodeResult[] = await res.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          setErrors((prev) => ({
+            ...prev,
+            pincode: "Couldn't find location details for this pincode.",
+          }));
+          return;
+        }
+
+        const address = data[0]?.address;
+        if (!address) return;
+
+        const locality = formatToTitleCase(
+          normalizePincodeAreaName(
+            address.suburb ||
+              address.neighbourhood ||
+              address.hamlet ||
+              address.village ||
+              address.town ||
+              address.city_district ||
+              address.county ||
+              "",
+          ),
+        );
+
+        const city = formatToTitleCase(
+          address.city ||
+            address.town ||
+            address.village ||
+            address.city_district ||
+            address.state_district ||
+            address.county ||
+            "",
+        );
+
+        const state = formatToTitleCase(address.state || "");
+
+        setFormData((prev) => ({
+          ...prev,
+          locality: locality || prev.locality,
+          city: city || prev.city,
+          state: state || prev.state,
+        }));
+
+        setErrors((prev) => ({
+          ...prev,
+          pincode: undefined,
+          locality: locality ? undefined : prev.locality,
+          city: city ? undefined : prev.city,
+          state: state ? undefined : prev.state,
+        }));
+      } catch (err) {
+        if ((err as { name?: string })?.name === "AbortError") return;
+
+        console.error("Pincode lookup error:", err);
+      } finally {
+        setIsLookingUpPincode(false);
+      }
+    }, 300);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timeout);
+      setIsLookingUpPincode(false);
+    };
+  }, [formData.pincode, step]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div
@@ -643,9 +772,20 @@ const RegisterDialog = ({
                     inputMode="numeric"
                     value={formData.pincode}
                     onChange={(e) => {
+                      const nextPincode = e.target.value
+                        .replace(/\D/g, "")
+                        .slice(0, 6);
+
                       setFormData((prev) => ({
                         ...prev,
-                        pincode: e.target.value.replace(/\D/g, "").slice(0, 6),
+                        pincode: nextPincode,
+                        ...(nextPincode.length < 6
+                          ? {
+                              locality: "",
+                              city: "",
+                              state: "",
+                            }
+                          : {}),
                       }));
                       setErrors((prev) => ({ ...prev, pincode: undefined }));
                     }}
@@ -655,6 +795,11 @@ const RegisterDialog = ({
                 </div>
                 {errors.pincode && (
                   <p className="mt-1 text-xs text-red-600">{errors.pincode}</p>
+                )}
+                {!errors.pincode && isLookingUpPincode && (
+                  <p className="mt-1 text-xs text-[#7f8481]">
+                    Fetching locality, city, and state...
+                  </p>
                 )}
               </div>
 

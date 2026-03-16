@@ -68,9 +68,14 @@ export function extendResidentialFilters(
   }
 
   const bhk = parseNumber(q.bhk);
-
+  const bedrooms = parseNumber(q.bedrooms) ?? parseNumber(q.bhk);
+  
   if (bhk !== undefined) {
     f.bhk = bhk;
+  }
+
+  if (bedrooms !== undefined) {
+    f.bedrooms = bedrooms;
   }
 
   if (q.transactionType) {

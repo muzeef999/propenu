@@ -86,7 +86,7 @@ export interface ResidentialFilters {
   verifiedOnly?: boolean;
 
   // ---------- OTHERS ----------
-  bhk?: number;
+  bedrooms?: number;
   locality?: string[];
 }
 
