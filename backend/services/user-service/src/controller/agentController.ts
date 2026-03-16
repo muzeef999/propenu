@@ -65,7 +65,10 @@ export const getIndetailAgent = async (req: Request, res: Response) => {
   return res.status(200).json({ agent });
 };
 
-export const getIndetailSlug = async (req: Request, res: Response) => {
+export const getIndetailSlug = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
   try {
     const { slug } = req.params;
 
@@ -81,6 +84,7 @@ export const getIndetailSlug = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error("getIndetailSlug error:", error);
+
     return res.status(500).json({
       success: false,
       message: "Failed to fetch property details",

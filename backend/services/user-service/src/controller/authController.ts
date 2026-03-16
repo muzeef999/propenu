@@ -240,7 +240,7 @@ export const getAllUsers = async (_req: Request, res: Response) => {
 export const searchUsers = async (req: Request, res: Response) => {
   try {
     const query = req.query.q?.toString().trim();
-    const roleFilter = req.query.role?.toString().trim(); // optional role filter
+    const roleFilter = req.query.role?.toString().trim();
 
     if (!query && !roleFilter) {
       return res.status(400).json({
@@ -250,7 +250,6 @@ export const searchUsers = async (req: Request, res: Response) => {
 
     const match: any = {};
 
-    // text search
     if (query) {
       match.$or = [
         { name: { $regex: query, $options: "i" } },
@@ -269,21 +268,31 @@ export const searchUsers = async (req: Request, res: Response) => {
         },
       },
       { $unwind: "$role" },
+
+      {
+        $lookup: {
+          from: "agents",
+          localField: "_id",
+          foreignField: "user",
+          as: "agent",
+        },
+      },
+      {
+        $unwind: {
+          path: "$agent",
+          preserveNullAndEmptyArrays: true
+        }
+      }
     ];
 
-    // apply role filter
     if (roleFilter) {
       pipeline.push({
-        $match: {
-          "role.name": roleFilter, // exact role match
-        },
+        $match: { "role.name": roleFilter }
       });
     }
 
     if (query) {
-      pipeline.push({
-        $match: match,
-      });
+      pipeline.push({ $match: match });
     }
 
     pipeline.push({
@@ -292,15 +301,23 @@ export const searchUsers = async (req: Request, res: Response) => {
         email: 1,
         phone: 1,
         "role.name": 1,
-      },
+        verificationStatus: {
+          $cond: [
+            { $eq: ["$role.name", "agent"] },
+            "$agent.verificationStatus",
+            "$$REMOVE"
+          ]
+        }
+      }
     });
 
     const users = await User.aggregate(pipeline);
 
     res.json({
       results: users,
-      count: users.length,
+      count: users.length
     });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Search failed" });
