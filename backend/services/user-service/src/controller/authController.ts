@@ -96,10 +96,10 @@ export const verifyOtp = async (req: Request, res: Response) => {
 
     const role: any = user.roleId;
 
-    /* ---------------- ROLE BASED KYC ---------------- */
+    /* ⭐ Roles that require KYC */
+    const KYC_REQUIRED_ROLES = ["user", "agent", "builder"];
 
-    // Only "user" role must complete KYC
-    if (role?.name === "user") {
+    if (KYC_REQUIRED_ROLES.includes(role?.name)) {
       if (user.accountStatus !== "active") {
         return res.status(403).json({
           message: "Please complete KYC verification",
@@ -107,8 +107,6 @@ export const verifyOtp = async (req: Request, res: Response) => {
         });
       }
     }
-
-    /* ---------------- CREATE TOKEN ---------------- */
 
     const token = generateToken({
       sub: String(user._id),
