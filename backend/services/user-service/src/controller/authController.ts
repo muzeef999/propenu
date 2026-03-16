@@ -64,7 +64,6 @@ export const verifyOtp = async (req: Request, res: Response) => {
     phone = phone?.trim();
     otp = otp?.trim();
 
-    // ⭐ Either email OR phone required
     if (!email && !phone) {
       return res.status(400).json({
         message: "Either email or phone is required",
@@ -75,7 +74,6 @@ export const verifyOtp = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "OTP is required" });
     }
 
-    // ⭐ Same key used in requestOTP
     const key = email || phone;
 
     const isValid = await verifyAndConsumeOtp(key, otp);
@@ -86,7 +84,6 @@ export const verifyOtp = async (req: Request, res: Response) => {
       });
     }
 
-    // ⭐ Find user
     const user = await User.findOne({
       $or: [...(email ? [{ email }] : []), ...(phone ? [{ phone }] : [])],
     }).populate("roleId");
@@ -97,16 +94,22 @@ export const verifyOtp = async (req: Request, res: Response) => {
       });
     }
 
-    if (user.accountStatus !== "active") {
-      return res.status(403).json({
-        message: "Account not active. Please complete KYC verification.",
-        kycStatus: user.kyc?.status || "not_started",
-      });
-    }
-
     const role: any = user.roleId;
 
-    // ⭐ Create JWT
+    /* ---------------- ROLE BASED KYC ---------------- */
+
+    // Only "user" role must complete KYC
+    if (role?.name === "user") {
+      if (user.accountStatus !== "active") {
+        return res.status(403).json({
+          message: "Please complete KYC verification",
+          kycStatus: user.kyc?.status || "not_started",
+        });
+      }
+    }
+
+    /* ---------------- CREATE TOKEN ---------------- */
+
     const token = generateToken({
       sub: String(user._id),
       email: user.email,
@@ -122,6 +125,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
       message: "OTP verified successfully",
       token,
     });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to verify OTP" });
