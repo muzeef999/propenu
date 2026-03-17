@@ -295,21 +295,33 @@ export const searchUsers = async (req: Request, res: Response) => {
       pipeline.push({ $match: match });
     }
 
-    pipeline.push({
-      $project: {
-        name: 1,
-        email: 1,
-        phone: 1,
-        "role.name": 1,
-        verificationStatus: {
-          $cond: [
-            { $eq: ["$role.name", "agent"] },
-            "$agent.verificationStatus",
-            "$$REMOVE"
-          ]
-        }
-      }
-    });
+   pipeline.push({
+  $project: {
+    _id: 1, // user id
+
+    agentId: {
+      $cond: [
+        { $eq: ["$role.name", "agent"] },
+        "$agent._id", // ✅ FIXED
+        "$$REMOVE",
+      ],
+    },
+
+    name: 1,
+    email: 1,
+    phone: 1,
+
+    role: "$role.name", // cleaner
+
+    verificationStatus: {
+      $cond: [
+        { $eq: ["$role.name", "agent"] },
+        "$agent.verificationStatus",
+        "$$REMOVE",
+      ],
+    },
+  },
+});
 
     const users = await User.aggregate(pipeline);
 
