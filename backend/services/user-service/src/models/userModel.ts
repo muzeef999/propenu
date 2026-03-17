@@ -129,6 +129,11 @@ const UserSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
     lastLoginAt: { type: Date },
     loginCount: { type: Number, default: 0 },
+
+    fcmToken: {
+  type: String,
+  default: null,
+}
   },
   {
     timestamps: true, // automatically adds createdAt & updatedAt

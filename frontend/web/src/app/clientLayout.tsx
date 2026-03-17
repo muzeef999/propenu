@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useEffect, useState } from "react";
-import { me } from "@/data/ClientData";
+import { me, sendTokenToBackend } from "@/data/ClientData";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Provider } from "react-redux";
@@ -12,6 +12,7 @@ import { usePathname } from "next/navigation";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import { ModalProvider, useModal } from "@/app/context/ModalContext";
+import { getFcmToken } from "@/utilies/getFcmToken";
 
 const HIDE_LAYOUT_ROUTES = [
   "/featured",
@@ -57,6 +58,22 @@ function ClientProvidersContent({
       }
     }
     fetchUser();
+  }, []);
+
+
+    useEffect(() => {
+    const initPush = async () => {
+      const token = await getFcmToken();
+
+      if (token) {
+        // ⚠️ replace with actual logged-in user ID
+        const userId = "69b51f917a772ff246ec8f78";
+
+        await sendTokenToBackend(userId, token);
+      }
+    };
+
+    initPush();
   }, []);
 
   return (

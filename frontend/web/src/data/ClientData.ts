@@ -589,3 +589,13 @@ export const updateLocation = async (payload:any) => {
 
   return res.data;
 };
+
+
+
+
+export const sendTokenToBackend = async (userId: string, token: string) => {
+  await axios.post(`${url}/api/users/notifications/save-fcm-token`, {
+    userId,
+    token,
+  });
+};

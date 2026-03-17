@@ -8,6 +8,7 @@ import seedRolesRoute from "./routes/seedRolesRoute";
 import shortlistRoutes from "./routes/shortlistRoute";
 import roleRoute from "./routes/roleRoute";
 import kycRoutes from "./routes/kycRoute";
+import userRoutes from "./routes/userRoutes";
 
 dotenv.config({ quiet: true });
 
@@ -33,7 +34,7 @@ async function start() {
     app.use("/api/users/agent", agentRoute);
     app.use("/api/users/roles", roleRoute);
     app.use("/api/users/kyc", kycRoutes);
-
+    app.use("/api/users/notifications", userRoutes);
     
 
     app.listen(Number(port), "0.0.0.0", () => {
