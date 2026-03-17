@@ -1,4 +1,14 @@
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
+
+
+export interface IUser extends Document {
+  name: string;
+  email?: string;
+  phone?: string;
+  city?: string;
+  roleId?: Types.ObjectId;
+  fcmToken?: string | null;
+}
 
 const KycSchema = new mongoose.Schema({
   status: {
@@ -97,7 +107,7 @@ const UserSchema = new mongoose.Schema(
 
     accountStatus: {
       type: String,
-        enum: ["pending", "location_pending", "kyc_pending", "active"],
+      enum: ["pending", "location_pending", "kyc_pending", "active"],
       default: "location_pending",
     },
 
@@ -131,9 +141,9 @@ const UserSchema = new mongoose.Schema(
     loginCount: { type: Number, default: 0 },
 
     fcmToken: {
-  type: String,
-  default: null,
-}
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true, // automatically adds createdAt & updatedAt

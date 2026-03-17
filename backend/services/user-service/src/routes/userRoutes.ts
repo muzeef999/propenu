@@ -1,12 +1,11 @@
 import express from "express";
-import { saveFcmToken } from "../controller/userController";
-import { testPush } from "../controller/userController";
-
+import { saveFcmToken, sendCustomNotification } from "../controller/userController";
 
 const router = express.Router();
 
 router.post("/save-fcm-token", saveFcmToken);
 
-router.post("/test-push", testPush);
+router.post("/admin/notify/custom", sendCustomNotification);
+
 
 export default router;

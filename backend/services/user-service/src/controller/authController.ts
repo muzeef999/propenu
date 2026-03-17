@@ -338,22 +338,29 @@ export const searchUsers = async (req: Request, res: Response) => {
 
 export const createRequestOtp = async (req: Request, res: Response) => {
   try {
-    let { phone } = req.body;
+    let { phone, email } = req.body;
     phone = phone?.trim();
+    email = email?.trim()?.toLowerCase();
 
     // Validate phone
-    if (!phone) {
+    if (!phone && !email) {
       return res.status(400).json({
-        message: "Phone number is required",
+        message: "Either phone or email is required",
       });
     }
-    const otp = genOtp();
 
-    const key = phone;
+    const otp = genOtp();
+    
+    const key = phone || email;
+
     await saveOtpToRedis(key, otp);
 
-    await sendOtpWhatsApp(phone, otp);
-
+   if (phone) {
+      await sendOtpWhatsApp(phone, otp);
+    } else if (email) {
+      await sendOtpEmail(email, otp); // 👈 you need to implement this
+    }
+    
     res.status(200).json({
       message: "OTP sent successfully",
     });

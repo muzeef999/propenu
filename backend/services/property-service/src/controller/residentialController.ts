@@ -18,6 +18,7 @@ import mongoose from "mongoose";
 import { deleteS3ObjectIfExists } from "../utils/s3Helpers";
 import { sendListingSubmittedVerification } from "../../../../shared/whatsapp/whatsapp.helper";
 import { sendListingSubmittedEmail } from "../../../../shared/email/email.helper";
+import { sendTemplateNotification } from "../../../../shared/notifications/push.service";
 
 /** Helper: parse values that might be JSON strings (multipart sends arrays/objects as strings). */
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -668,6 +669,39 @@ export const verifyResidentialDocument = async (
 
     if (!updated) {
       return res.status(404).json({ message: "Property not found" });
+    }
+
+    if (updated.status === "active") {
+      try {
+      const user = await User.findById((updated as any).ownerId);
+        if (user?.fcmToken) {
+          await sendTemplateNotification({
+            token: user.fcmToken,
+            templateKey: "PROPERTY_APPROVED",
+            data: {
+              name: user.name || "User",
+              propertyTitle: updated.title || "Your Property",
+            },
+          });
+        }
+      } catch (notifyError) {
+        console.error("Notification error:", notifyError);
+      }
+    }
+
+    if (status === "rejected") {
+      const user = await User.findById((updated as any).ownerId);
+
+      if (user?.fcmToken) {
+        await sendTemplateNotification({
+          token: user.fcmToken,
+          templateKey: "PROPERTY_REJECTED",
+          data: {
+            name: user.name || "User",
+            propertyTitle: updated.title || "Your Property",
+          },
+        });
+      }
     }
 
     res.json({

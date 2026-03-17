@@ -1,5 +1,28 @@
 import mongoose from "mongoose";
 
+const KycSchema = new mongoose.Schema({
+  status: {
+    type: String,
+    enum: ["not_started", "pending", "verified", "rejected"],
+    default: "not_started",
+  },
+  provider: {
+    type: String,
+    enum: ["digilocker", "pan", "manual"],
+  },
+  documents: [
+    {
+      type: String, // PAN, Aadhaar, DL etc
+    },
+  ],
+  verifiedName: String,
+  verifiedPhone: String,
+  verifiedDob: String,
+  digilockerId: String,
+  verifiedAt: Date,
+  remarks: String,
+});
+
 const UserSchema = new mongoose.Schema(
   {
     name: {
@@ -12,14 +35,15 @@ const UserSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: false, // ✅ make this optional if you're using phone too
-      unique: true,
+      required: true, // ✅ make this optional if you're using phone too
+      unique: false,
       trim: true,
       lowercase: true,
       sparse: true,
       index: true,
       match: [/^\S+@\S+\.\S+$/, "Invalid email"],
     },
+
     phone: {
       type: String,
       trim: true,
@@ -28,6 +52,55 @@ const UserSchema = new mongoose.Schema(
       index: true,
       match: [/^\+?[1-9]\d{6,14}$/, "Invalid phone number"],
     },
+
+    kyc: {
+      type: KycSchema,
+      default: () => ({
+        status: "not_started",
+      }),
+    },
+
+    locality: {
+      type: String,
+      trim: true,
+      minlength: 3,
+      maxlength: 30,
+      index: true,
+    },
+    city: {
+      type: String,
+      trim: true,
+      minlength: 3,
+      maxlength: 30,
+      index: true,
+    },
+    state: {
+      type: String,
+      trim: true,
+      minlength: 3,
+      maxlength: 30,
+      index: true,
+    },
+
+    pincode: {
+      type: String,
+      trim: true,
+      minlength: 3,
+      maxlength: 30,
+      index: true,
+    },
+
+    phoneVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    accountStatus: {
+      type: String,
+      enum: ["pending", "location_pending", "kyc_pending", "active"],
+      default: "location_pending",
+    },
+
     address: {
       type: String,
       trim: true,
@@ -56,6 +129,11 @@ const UserSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
     lastLoginAt: { type: Date },
     loginCount: { type: Number, default: 0 },
+
+    fcmToken: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true, // automatically adds createdAt & updatedAt
