@@ -680,7 +680,7 @@ export const verifyResidentialDocument = async (
             templateKey: "PROPERTY_APPROVED",
             data: {
               name: user.name || "User",
-              propertyTitle: updated.title || "Your Property",
+              propertyTitle:  "Your Property",
             },
           });
         }
@@ -698,7 +698,7 @@ export const verifyResidentialDocument = async (
           templateKey: "PROPERTY_REJECTED",
           data: {
             name: user.name || "User",
-            propertyTitle: updated.title || "Your Property",
+            propertyTitle:  "Your Property",
           },
         });
       }

@@ -514,8 +514,12 @@ export const AgriculturalService = {
     if (!property) return null;
 
     if (!property.verificationDocuments?.[documentIndex]) {
-      throw new Error("Invalid document index");
-    }
+  return {
+    success: false,
+    status: 400,
+    message: "Invalid document index",
+  };
+}
 
     // 1️⃣ Update document status
     property.verificationDocuments[documentIndex].status = status;
