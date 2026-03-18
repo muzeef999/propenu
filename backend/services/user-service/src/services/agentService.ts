@@ -121,14 +121,25 @@ const AgentService = {
   },
 
   async getAgentBySlugWithProperties(slug: string) {
-    if (!slug) throw new Error("Invalid slug");
-
+   if (!slug) {
+    return {
+      success: false,
+      status: 400,
+      message: "Invalid slug",
+    };
+  }
     const agent = await Agent.findOne({ slug })
       .populate("user", "name email phone")
       .lean();
 
-    if (!agent) throw new Error("Agent not found");
-
+       if (!agent) {
+    return {
+      success: false,
+      status: 404,
+      message: "Agent not found",
+    };
+  }
+   
     const userId = typeof agent.user === "string" ? agent.user : agent.user._id;
 
     const [residential, commercial, land, agricultural] = await Promise.all([
@@ -192,7 +203,13 @@ const AgentService = {
     if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
 
     const existing = await Agent.findById(id);
-    if (!existing) throw new Error("Agent not found");
+    if (!existing) {
+      return {
+        success: false,
+        status: 404,
+        message: "Agent not found",
+      };
+    }
 
     // update slug
     if (payload.slug && payload.slug !== existing.slug) {
@@ -251,7 +268,13 @@ const AgentService = {
     if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
 
     const agent = await Agent.findById(id).populate("user", "name email");
-    if (!agent) throw new Error("Agent not found");
+    if (!agent) {
+      return {
+        success: false,
+        status: 404,
+        message: "Agent not found",
+      };
+    }
     return agent;
   },
 
@@ -276,7 +299,13 @@ const AgentService = {
     if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
 
     const existing = await Agent.findById(id).lean();
-    if (!existing) throw new Error("Agent not found");
+    if (!existing) {
+      return {
+        success: false,
+        status: 404,
+        message: "Agent not found",
+      };
+    }
 
     await deleteS3ObjectIfExists(existing.avatar?.key);
     await deleteS3ObjectIfExists(existing.coverImage?.key);
@@ -413,7 +442,11 @@ const AgentService = {
     // 2️⃣ Find agent
     const existing = await Agent.findOne({ user: user._id });
     if (!existing) {
-      throw new Error("Agent not found for this user");
+      return {
+        success: false,
+        status: 404,
+        message: "Agent not found for this user",
+      };
     }
 
     /* ===============================
