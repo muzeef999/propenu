@@ -26,11 +26,26 @@ const CitySchema = new mongoose.Schema(
 
 // indexes
 CitySchema.index({ city: 1, state: 1 }, { unique: true });
+
 CitySchema.index({ city: 1, "localities.name": 1 });
-CitySchema.index(
-  { city: 1, "localities.name": 1 },
-  { unique: true, sparse: true }
-);
+
+CitySchema.index({ "localities.location": "2dsphere" });
+
+
+CitySchema.pre("save", function (next) {
+  if (!this.localities || this.localities.length === 0) {
+    return next();
+  }
+
+  const names = this.localities.map((l) => l.name.toLowerCase().trim());
+  const uniqueNames = new Set(names);
+
+  if (names.length !== uniqueNames.size) {
+    return next(new Error("Duplicate locality names in same city"));
+  }
+
+  next();
+});
 
 
 const Location = mongoose.model("Location", CitySchema);

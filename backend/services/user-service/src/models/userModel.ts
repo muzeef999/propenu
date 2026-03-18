@@ -53,7 +53,6 @@ const UserSchema = new mongoose.Schema(
       index: true,
       match: [/^\S+@\S+\.\S+$/, "Invalid email"],
     },
-
     phone: {
       type: String,
       trim: true,
@@ -62,14 +61,12 @@ const UserSchema = new mongoose.Schema(
       index: true,
       match: [/^\+?[1-9]\d{6,14}$/, "Invalid phone number"],
     },
-
     kyc: {
       type: KycSchema,
       default: () => ({
         status: "not_started",
       }),
     },
-
     locality: {
       type: String,
       trim: true,
@@ -91,7 +88,6 @@ const UserSchema = new mongoose.Schema(
       maxlength: 30,
       index: true,
     },
-
     pincode: {
       type: String,
       trim: true,
@@ -99,37 +95,31 @@ const UserSchema = new mongoose.Schema(
       maxlength: 30,
       index: true,
     },
-
     phoneVerified: {
       type: Boolean,
       default: false,
     },
-
     accountStatus: {
       type: String,
       enum: ["pending", "location_pending", "kyc_pending", "active"],
       default: "location_pending",
     },
-
     address: {
       type: String,
       trim: true,
       maxlength: 200,
     },
-
     builderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Builder",
       required: false,
       index: true,
     },
-
     roleId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Role",
       required: false,
     },
-
     managerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
