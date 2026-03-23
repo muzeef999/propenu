@@ -1,10 +1,15 @@
 import admin from "firebase-admin";
 import path from "path";
+import { readFileSync } from "fs";
 
-const serviceAccount = require(path.join(
+const serviceAccountPath = path.join(
   __dirname,
   "../../firebase-service-account.json"
-));
+);
+
+const serviceAccount = JSON.parse(
+  readFileSync(serviceAccountPath, "utf-8")
+);
 
 if (!admin.apps.length) {
   admin.initializeApp({
