@@ -71,7 +71,13 @@ const AgentService = {
   async createAgent(payload: CreateAgentDTO, files?: MulterFiles) {
     // one agent per user
     const exists = await Agent.findOne({ user: payload.user });
-    if (exists) throw new Error("Agent already exists for this user");
+    if (exists) {
+      return {
+  success: false,
+  status: 400,
+  message: "Agent already exists for this user",
+};
+    };
 
     // slug creation
     const slugBase = payload.slug || payload.name;
@@ -121,46 +127,74 @@ const AgentService = {
   },
 
   async getAgentBySlugWithProperties(slug: string) {
-  if (!slug || typeof slug !== "string") {
-    return null; // ✅ always return null for invalid
+  try {
+    // ✅ Validate slug
+    if (!slug || typeof slug !== "string") {
+      return null;
+    }
+
+    const cleanSlug = slug.trim();
+
+    // ✅ Find agent (safe match)
+    const agent = await Agent.findOne({
+      slug: new RegExp(`^${cleanSlug}$`, "i"),
+    })
+      .populate("user", "name email phone")
+      .lean();
+
+    // ✅ If not found → return null (NO THROW)
+    if (!agent) {
+      return null;
+    }
+
+    // ✅ Safe userId extraction
+    const userId =
+      typeof agent.user === "string"
+        ? agent.user
+        : agent.user?._id?.toString();
+
+    if (!userId) {
+      console.error("❌ userId missing in agent");
+      return null;
+    }
+
+    // ✅ Safe property fetch (NO CRASH)
+    let residential: any[] = [];
+    let commercial: any[] = [];
+    let land: any[] = [];
+    let agricultural: any[] = [];
+
+    try {
+      [residential, commercial, land, agricultural] = await Promise.all([
+        Residential.find({ createdBy: userId, status: "active" }).lean(),
+        Commercial.find({ createdBy: userId, status: "active" }).lean(),
+        LandPlot.find({ createdBy: userId, status: "active" }).lean(),
+        Agricultural.find({ createdBy: userId, status: "active" }).lean(),
+      ]);
+    } catch (err) {
+      console.error("❌ Property fetch error:", err);
+      // continue without crashing
+    }
+
+    // ✅ Return clean response
+    return {
+      agent,
+      properties: {
+        residential,
+        commercial,
+        land,
+        agricultural,
+        total:
+          residential.length +
+          commercial.length +
+          land.length +
+          agricultural.length,
+      },
+    };
+  } catch (error) {
+    console.error("❌ Service error:", error);
+    return null; // ✅ NEVER crash
   }
-
-  const cleanSlug = slug.trim();
-
-  const agent = await Agent.findOne({
-    slug: new RegExp(`^${cleanSlug}$`, "i"),
-  })
-    .populate("user", "name email phone")
-    .lean();
-
-  if (!agent) {
-    return null;
-  }
-
-  const userId =
-    typeof agent.user === "string" ? agent.user : agent.user._id;
-
-  const [residential, commercial, land, agricultural] = await Promise.all([
-    Residential.find({ createdBy: userId, status: "active" }).lean(),
-    Commercial.find({ createdBy: userId, status: "active" }).lean(),
-    LandPlot.find({ createdBy: userId, status: "active" }).lean(),
-    Agricultural.find({ createdBy: userId, status: "active" }).lean(),
-  ]);
-
-  return {
-    agent,
-    properties: {
-      residential,
-      commercial,
-      land,
-      agricultural,
-      total:
-        residential.length +
-        commercial.length +
-        land.length +
-        agricultural.length,
-    },
-  };
 },
 
   async getAgentsByLocationService(
@@ -198,7 +232,14 @@ const AgentService = {
   },
 
   async editAgent(id: string, payload: UpdateAgentDTO, files?: MulterFiles) {
-    if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+  return {
+    success: false,
+    status: 400,
+    message: "Invalid id",
+  };
+}
 
     const existing = await Agent.findById(id);
     if (!existing) {
@@ -433,9 +474,14 @@ const AgentService = {
 
     // 1️⃣ Find user
     const user = await User.findOne({ phone: normalizedPhone });
+    
     if (!user) {
-      throw new Error("User not found with this phone number");
-    }
+  return {
+    success: false,
+    status: 404,
+    message: "User not found",
+  };
+}
 
     // 2️⃣ Find agent
     const existing = await Agent.findOne({ user: user._id });
@@ -474,7 +520,11 @@ const AgentService = {
 
       const conflict = await Agent.findOne({ slug: newSlug });
       if (conflict && conflict._id.toString() !== existing._id.toString()) {
-        throw new Error("Slug already used");
+        return {
+  success: false,
+  status: 400,
+  message: "Slug already used",
+};
       }
 
       existing.slug = newSlug;

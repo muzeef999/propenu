@@ -5,6 +5,17 @@ import { GetAgentsQuery } from "../types";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import Agent from "../models/agentModel";
 
+type ErrorResponse = {
+  success: false;
+  status: number;
+  message: string;
+};
+
+function isErrorResponse(obj: any): obj is ErrorResponse {
+  return obj && obj.success === false && typeof obj.status === "number";
+}
+
+
 type MulterFiles =
   | {
       avatar?: Express.Multer.File[];
@@ -13,11 +24,34 @@ type MulterFiles =
   | undefined;
 
 export const createAgent = async (req: Request, res: Response) => {
-  const payload = req.body as unknown as CreateAgentDTO;
-  const files = req.files as MulterFiles;
+  try {
+    const payload = req.body as CreateAgentDTO;
+    const files = req.files as MulterFiles;
 
-  const created = await AgentService.createAgent(payload, files);
-  return res.status(201).json({ message: "Agent created", agent: created });
+    const created = await AgentService.createAgent(payload, files);
+
+    // ✅ SAFE TYPE CHECK
+    if (isErrorResponse(created)) {
+      return res.status(created.status).json({
+        success: false,
+        message: created.message,
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Agent created",
+      agent: created,
+    });
+
+  } catch (error: any) {
+    console.error("createAgent error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
 };
 
 export const getAllAgents = async (
