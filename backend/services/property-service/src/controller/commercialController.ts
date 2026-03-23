@@ -566,21 +566,26 @@ export const verifyCommercialDocument = async (
 
     let { documentIndex, status } = req.body;
 
-
-    console.log("checking latest aws 2");
-
-    // ✅ validate status
+    // ✅ Validate status
     if (!["verified", "rejected"].includes(status)) {
-      return res.status(400).json({ message: "Invalid status" });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status (must be verified or rejected)",
+      });
     }
 
-    // ✅ FIX: ensure number
+    // ✅ Convert index to number
     documentIndex = Number(documentIndex);
 
-    if (isNaN(documentIndex)) {
-      return res.status(400).json({ message: "Invalid document index" });
+    // ✅ Validate index strictly
+    if (!Number.isInteger(documentIndex) || documentIndex < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid document index (must be positive integer)",
+      });
     }
 
+    // ✅ Call service
     const updated = await CommercialService.verifyDocument(
       id,
       documentIndex,
@@ -588,17 +593,24 @@ export const verifyCommercialDocument = async (
     );
 
     if (!updated) {
-      return res.status(404).json({ message: "Property not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Property not found",
+      });
     }
 
-    res.json({
+    return res.json({
       success: true,
       verified: updated.status === "active",
       data: updated,
     });
   } catch (err: any) {
     console.error("verifyCommercialDocument:", err);
-    res.status(500).json({ message: err.message || "Server error" });
+
+    return res.status(400).json({
+      success: false,
+      message: err.message || "Something went wrong",
+    });
   }
 };
 

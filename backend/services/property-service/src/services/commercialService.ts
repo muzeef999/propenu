@@ -606,43 +606,52 @@ export const CommercialService = {
     return null;
   },
 
-  async verifyDocument(
+ async verifyDocument(
   propertyId: string,
   documentIndex: number,
   status: "verified" | "rejected",
 ) {
+  // ✅ Validate propertyId
+  if (!mongoose.Types.ObjectId.isValid(propertyId)) {
+    throw new Error("Invalid property ID");
+  }
+
   const property = await Commercial.findById(propertyId);
-  if (!property) return null;
 
-if (
-  !property.verificationDocuments ||
-  !Array.isArray(property.verificationDocuments)
-) {
-  throw new Error("Verification documents not found");
-}
+  if (!property) {
+    return null;
+  }
 
-if (
-  !Number.isInteger(documentIndex) ||
-  documentIndex < 0 ||
-  documentIndex >= property.verificationDocuments.length
-) {
-  throw new Error(`Invalid document index: ${documentIndex}`);
-}
+  const docs = property.verificationDocuments;
 
-// ✅ TS safe + runtime safe
-const doc = property.verificationDocuments[documentIndex];
+  // ✅ Validate documents existence
+  if (!docs || !Array.isArray(docs)) {
+    throw new Error("Verification documents not found");
+  }
 
+  // ✅ Validate index range
+  if (
+    !Number.isInteger(documentIndex) ||
+    documentIndex < 0 ||
+    documentIndex >= docs.length
+  ) {
+    throw new Error(`Invalid document index: ${documentIndex}`);
+  }
 
-if (!doc) {
-  throw new Error(`Document not found at index: ${documentIndex}`);
-}
+  const doc = docs[documentIndex];
 
-doc.status = status;
+  // ✅ Double safety (TypeScript + runtime)
+  if (!doc) {
+    throw new Error(`Document not found at index: ${documentIndex}`);
+  }
 
-  const hasVerified = property.verificationDocuments.some(
-    (doc) => doc.status === "verified",
-  );
+  // ✅ Update status
+  doc.status = status;
 
+  // ✅ Check if any document is verified
+  const hasVerified = docs.some((d) => d.status === "verified");
+
+  // ✅ Update property state
   if (hasVerified) {
     property.status = "active";
     property.isPublished = true;
@@ -657,6 +666,7 @@ doc.status = status;
   }
 
   await property.save();
+
   return property;
 },
 
