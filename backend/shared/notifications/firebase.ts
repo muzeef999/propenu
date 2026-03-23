@@ -1,16 +1,15 @@
 import path from "path";
 import fs from "fs";
 import admin from "firebase-admin";
+import dotenv from "dotenv";
+dotenv.config();
 
-// ✅ Always resolve from PROJECT ROOT
-const serviceAccountPath = path.resolve(
-  process.cwd(),
-  "backend/firebase-service-account.json"
-);
+const relativePath = process.env.FIREBASE_KEY_PATH || "backend/firebase-service-account.json";
+
+const serviceAccountPath = path.resolve(process.cwd(), relativePath);
 
 console.log("Firebase Path:", serviceAccountPath);
 
-// ✅ Check file exists (extra safety)
 if (!fs.existsSync(serviceAccountPath)) {
   throw new Error("Firebase service account file NOT FOUND");
 }
