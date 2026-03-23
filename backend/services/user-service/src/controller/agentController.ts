@@ -5,6 +5,17 @@ import { GetAgentsQuery } from "../types";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import Agent from "../models/agentModel";
 
+type ErrorResponse = {
+  success: false;
+  status: number;
+  message: string;
+};
+
+function isErrorResponse(obj: any): obj is ErrorResponse {
+  return obj && obj.success === false && typeof obj.status === "number";
+}
+
+
 type MulterFiles =
   | {
       avatar?: Express.Multer.File[];
@@ -13,11 +24,34 @@ type MulterFiles =
   | undefined;
 
 export const createAgent = async (req: Request, res: Response) => {
-  const payload = req.body as unknown as CreateAgentDTO;
-  const files = req.files as MulterFiles;
+  try {
+    const payload = req.body as CreateAgentDTO;
+    const files = req.files as MulterFiles;
 
-  const created = await AgentService.createAgent(payload, files);
-  return res.status(201).json({ message: "Agent created", agent: created });
+    const created = await AgentService.createAgent(payload, files);
+
+    // ✅ SAFE TYPE CHECK
+    if (isErrorResponse(created)) {
+      return res.status(created.status).json({
+        success: false,
+        message: created.message,
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Agent created",
+      agent: created,
+    });
+
+  } catch (error: any) {
+    console.error("createAgent error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
 };
 
 export const getAllAgents = async (
@@ -72,22 +106,38 @@ export const getIndetailSlug = async (
   try {
     const { slug } = req.params;
 
+    console.log("🔍 Incoming slug:", slug);
+
+    // ✅ validate slug
     if (!slug || typeof slug !== "string") {
-      return res.status(400).json({ message: "Invalid slug" });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid slug",
+      });
     }
 
     const result = await AgentService.getAgentBySlugWithProperties(slug);
 
+    // ✅ handle not found (ONLY this check needed)
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Agent not found",
+      });
+    }
+
+    // ✅ success
     return res.status(200).json({
       success: true,
       data: result,
     });
+
   } catch (error: any) {
     console.error("getIndetailSlug error:", error);
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch property details",
+      message: error.message || "Failed to fetch agent details",
     });
   }
 };

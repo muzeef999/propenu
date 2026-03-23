@@ -606,47 +606,69 @@ export const CommercialService = {
     return null;
   },
 
-  async verifyDocument(
-    propertyId: string,
-    documentIndex: number,
-    status: "verified" | "rejected",
+ async verifyDocument(
+  propertyId: string,
+  documentIndex: number,
+  status: "verified" | "rejected",
+) {
+  // ✅ Validate propertyId
+  if (!mongoose.Types.ObjectId.isValid(propertyId)) {
+    throw new Error("Invalid property ID");
+  }
+
+  const property = await Commercial.findById(propertyId);
+
+  if (!property) {
+    return null;
+  }
+
+  const docs = property.verificationDocuments;
+
+  // ✅ Validate documents existence
+  if (!docs || !Array.isArray(docs)) {
+    throw new Error("Verification documents not found");
+  }
+
+  // ✅ Validate index range
+  if (
+    !Number.isInteger(documentIndex) ||
+    documentIndex < 0 ||
+    documentIndex >= docs.length
   ) {
-    const property = await Commercial.findById(propertyId);
-    if (!property) return null;
+    throw new Error(`Invalid document index: ${documentIndex}`);
+  }
 
-    if (!property.verificationDocuments?.[documentIndex]) {
-  return {
-    success: false,
-    status: 400,
-    message: "Invalid document index",
-  };
-}
+  const doc = docs[documentIndex];
 
-    // 1️⃣ Update document status
-    property.verificationDocuments[documentIndex].status = status;
+  // ✅ Double safety (TypeScript + runtime)
+  if (!doc) {
+    throw new Error(`Document not found at index: ${documentIndex}`);
+  }
 
-    // 2️⃣ Check if ANY document is verified
-    const hasVerified = property.verificationDocuments.some(
-      (doc) => doc.status === "verified",
-    );
+  // ✅ Update status
+  doc.status = status;
 
-    // 3️⃣ Auto publish if verified
-    if (hasVerified) {
-      property.status = "active";
-      property.isPublished = true;
-      property.completion = {
-        percent: 100,
-        step: 5,
-        lastSection: "verification",
-      };
-    } else {
-      property.status = "draft";
-      property.isPublished = false;
-    }
+  // ✅ Check if any document is verified
+  const hasVerified = docs.some((d) => d.status === "verified");
 
-    await property.save();
-    return property;
-  },
+  // ✅ Update property state
+  if (hasVerified) {
+    property.status = "active";
+    property.isPublished = true;
+    property.completion = {
+      percent: 100,
+      step: 5,
+      lastSection: "verification",
+    };
+  } else {
+    property.status = "draft";
+    property.isPublished = false;
+  }
+
+  await property.save();
+
+  return property;
+},
 
   model: Commercial,
 
