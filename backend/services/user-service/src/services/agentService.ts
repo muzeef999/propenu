@@ -121,45 +121,47 @@ const AgentService = {
   },
 
   async getAgentBySlugWithProperties(slug: string) {
-    if (!slug) {
-      return {
-        success: false,
-        status: 400,
-        message: "Invalid slug",
-      };
-    }
-    const agent = await Agent.findOne({ slug })
-      .populate("user", "name email phone")
-      .lean();
+  if (!slug || typeof slug !== "string") {
+    return null; // ✅ always return null for invalid
+  }
 
-    if (!agent) {
-      return null;
-    }
+  const cleanSlug = slug.trim();
 
-    const userId = typeof agent.user === "string" ? agent.user : agent.user._id;
+  const agent = await Agent.findOne({
+    slug: new RegExp(`^${cleanSlug}$`, "i"),
+  })
+    .populate("user", "name email phone")
+    .lean();
 
-    const [residential, commercial, land, agricultural] = await Promise.all([
-      Residential.find({ createdBy: userId, status: "active" }).lean(),
-      Commercial.find({ createdBy: userId, status: "active" }).lean(),
-      LandPlot.find({ createdBy: userId, status: "active" }).lean(),
-      Agricultural.find({ createdBy: userId, status: "active" }).lean(),
-    ]);
+  if (!agent) {
+    return null;
+  }
 
-    return {
-      agent,
-      properties: {
-        residential,
-        commercial,
-        land,
-        agricultural,
-        total:
-          residential.length +
-          commercial.length +
-          land.length +
-          agricultural.length,
-      },
-    };
-  },
+  const userId =
+    typeof agent.user === "string" ? agent.user : agent.user._id;
+
+  const [residential, commercial, land, agricultural] = await Promise.all([
+    Residential.find({ createdBy: userId, status: "active" }).lean(),
+    Commercial.find({ createdBy: userId, status: "active" }).lean(),
+    LandPlot.find({ createdBy: userId, status: "active" }).lean(),
+    Agricultural.find({ createdBy: userId, status: "active" }).lean(),
+  ]);
+
+  return {
+    agent,
+    properties: {
+      residential,
+      commercial,
+      land,
+      agricultural,
+      total:
+        residential.length +
+        commercial.length +
+        land.length +
+        agricultural.length,
+    },
+  };
+},
 
   async getAgentsByLocationService(
     location: { city?: string; state?: string },
