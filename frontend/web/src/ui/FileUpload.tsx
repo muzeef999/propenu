@@ -1,4 +1,5 @@
 import React, { useEffect, ChangeEvent, useRef, useState } from "react";
+import imageCompression from "browser-image-compression";
 
 /* ======================================================
    TYPES
@@ -46,25 +47,59 @@ const FileUpload: React.FC<FileUploadProps> = ({
   const isImage = (preview: string) =>
     preview.startsWith("blob:") || preview.startsWith("http");
 
+  const compressFile = async (file: File) => {
+    if (!file.type.startsWith("image/")) return file;
+
+    try {
+      const compressed: Blob | File = await imageCompression(file, {
+        maxSizeMB,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      });
+
+      if (compressed instanceof File) return compressed;
+
+      return new File([compressed], file.name, {
+        type: compressed.type || file.type,
+        lastModified: Date.now(),
+      });
+    } catch (compressionError) {
+      console.error("Image compression failed, using original file.", compressionError);
+      return file;
+    }
+  };
+
   /* ---------- Handle file select ---------- */
-  const handleSelect = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleSelect = async (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
 
     const selectedFiles = Array.from(e.target.files);
     const remainingSlots = maxFiles - value.length;
+    const limitedFiles = selectedFiles.slice(0, remainingSlots);
 
-    const validFiles: UploadedFile[] = selectedFiles
-      .slice(0, remainingSlots)
-      .filter((file) => file.size <= maxSizeMB * 1024 * 1024)
-      .map((file) => ({
-        file,
-        preview: URL.createObjectURL(file),
-        source: "local",          // ✅ FIX
-        name: file.name,
-      }));
+    try {
+      const preparedFiles = await Promise.all(
+        limitedFiles.map(async (file) => {
+          const finalFile = await compressFile(file);
+          if (finalFile.size > maxSizeMB * 1024 * 1024) return null;
 
-    onChange([...value, ...validFiles]);
-    e.target.value = "";
+          return {
+            file: finalFile,
+            preview: URL.createObjectURL(finalFile),
+            source: "local" as const,
+            name: finalFile.name,
+          };
+        }),
+      );
+
+      const validFiles: UploadedFile[] = preparedFiles.filter(
+        (file): file is NonNullable<typeof file> => file !== null,
+      );
+
+      onChange([...value, ...validFiles]);
+    } finally {
+      e.target.value = "";
+    }
   };
 
   /* ---------- Cleanup blob URLs ---------- */

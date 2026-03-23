@@ -4,6 +4,7 @@ import {
   verifyPaymentAndActivate,
 } from "../services/payment";
 import { AuthRequest } from "../middlewares/authMiddleware";
+import { sendSubscriptionActivatedEmail } from "../../../../shared/email/email.helper";
 
 /* ---------------- CREATE PAYMENT ---------------- */
 
@@ -51,16 +52,43 @@ export async function verifyPayment(req: AuthRequest, res: Response) {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
-      planId,
     } = req.body;
 
-    await verifyPaymentAndActivate(
+    const result = await verifyPaymentAndActivate(
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
     );
 
-    res.json({ message: "Payment verified & subscription activated" });
+    let emailSent = false;
+
+    if (!result.alreadyPaid && result.subscriptionName && req.user?.email) {
+      try {
+        await sendSubscriptionActivatedEmail(
+          req.user.email,
+          req.user.name?.trim() || "Customer",
+          result.subscriptionName,
+          {
+            roleName: req.user.roleName,
+            invoiceLink: result.invoiceUrl,
+          },
+        );
+
+        emailSent = true;
+      } catch (emailError: any) {
+        console.error("[payment] failed to send subscription activation email", {
+          email: req.user.email,
+          subscriptionName: result.subscriptionName,
+          error: emailError?.message,
+          response: emailError?.response,
+        });
+      }
+    }
+
+    res.json({
+      message: result.message || "Payment verified & subscription activated",
+      emailSent,
+    });
   } catch (error: any) {
     res.status(400).json({ message: error.message });
   }

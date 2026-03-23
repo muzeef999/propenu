@@ -8,6 +8,13 @@ import { SubscriptionHistory } from "../models/subscriptionHistoryModel";
 import { uploadPdfToS3 } from "../utils/uploadPdfToS3";
 import { generateInvoicePdf } from "../utils/generateInvoicePdf";
 
+type VerifyPaymentResult = {
+  success: true;
+  alreadyPaid?: boolean;
+  subscriptionName?: string;
+  invoiceUrl?: string;
+  message?: string;
+};
 
 /* ======================================================
    CREATE PAYMENT ORDER
@@ -124,7 +131,7 @@ export async function verifyPaymentAndActivate(
   razorpay_order_id: string,
   razorpay_payment_id: string,
   razorpay_signature: string
-) {
+): Promise<VerifyPaymentResult> {
 
   const body = `${razorpay_order_id}|${razorpay_payment_id}`;
 
@@ -146,7 +153,15 @@ export async function verifyPaymentAndActivate(
   }
 
   if (payment.status === "paid") {
-    return { success: true };
+    const existingPlan = await Plan.findById(payment.planId).lean();
+
+    const resolvedName = existingPlan?.name || existingPlan?.code;
+    return {
+      success: true,
+      alreadyPaid: true,
+      ...(resolvedName && { subscriptionName: resolvedName }),
+      message: "Payment already verified",
+    };
   }
 
   /* ======================================================
@@ -243,6 +258,8 @@ export async function verifyPaymentAndActivate(
 
   return {
     success: true,
+    subscriptionName: plan.name || plan.code,
+    invoiceUrl,
     message: "Payment verified & subscription activated"
   };
 }

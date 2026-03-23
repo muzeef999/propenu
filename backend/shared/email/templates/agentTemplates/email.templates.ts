@@ -277,7 +277,6 @@ export const agentListingApprovedEmailSubject = (
 export const agentListingApprovedEmail = (
     name: string,
     propertyName: string,
-    location: string,
     activeUsers: string,
     link: string,
 ) => `
@@ -288,11 +287,11 @@ export const agentListingApprovedEmail = (
   <p>Hello <b>${name}</b>,</p>
 
   <p>
-    Great news — your <b>${propertyName}</b> in <b>${location}</b> on Propenu has been successfully approved and is now live on the platform.
+    Great news — your <b>${propertyName}</b> on Propenu has been successfully approved and is now live on the platform.
   </p>
 
   <p>
-    Your verified listing is now visible to <b>${activeUsers}</b> genuine buyers/tenants actively searching in your area. You can expect quality enquiries from interested prospects.
+    Your verified listing is now visible to genuine buyers/tenants actively searching in your area. You can expect quality enquiries from interested prospects.
   </p>
 
   <div style="margin:20px 0;">
@@ -316,14 +315,12 @@ export const agentListingApprovedEmail = (
 export const agentListingRejectedEmailSubject = (
     name: string,
     propertyName: string,
-    location: string,
 ) =>
-    `${name}, Verification Failed for Your ${propertyName} in ${location} — Please Update`;
+    `${name}, Verification Failed for Your ${propertyName} — Please Update`;
 
 export const agentListingRejectedEmail = (
     name: string,
     propertyName: string,
-    location: string,
     reason: string,
     link: string = "https://propenu.com/postproperty",
     helplineNumber: string = "+91 9182334233",
@@ -335,7 +332,7 @@ export const agentListingRejectedEmail = (
   <p>Hello <b>${name}</b>,</p>
 
   <p>
-    Your <b>${propertyName}</b> in <b>${location}</b> on Propenu could not be approved.
+    Your <b>${propertyName}</b> on Propenu could not be approved.
   </p>
 
   <p>
@@ -552,13 +549,11 @@ export const agentListingDeactivatedEmail = (
 export const agentReactivateListingEmailSubject = (
     name: string,
     propertyName: string,
-    location: string,
-) => ` ${name}, Reactivate Your ${propertyName} in ${location} to Resume Enquiries`;
+) => `${name}, Reactivate Your ${propertyName} to Resume Enquiries`;
 
 export const agentReactivateListingEmail = (
     name: string,
     propertyName: string,
-    location: string,
     activeUsers: string,
     link: string = "https://propenu.com/agent/my-properties",
 ) => `
@@ -569,7 +564,7 @@ export const agentReactivateListingEmail = (
   <p>Hello <b>${name}</b>,</p>
 
   <p>
-    Your <b>${propertyName}</b> in <b>${location}</b> is currently not visible to <b>${activeUsers}</b> active buyers/tenants on Propenu.
+    Your <b>${propertyName}</b> is currently not visible to  active buyers/tenants on Propenu.
   </p>
 
   <p>

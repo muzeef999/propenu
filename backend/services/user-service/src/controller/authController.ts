@@ -6,7 +6,7 @@ import { generateToken } from "../utils/jwt";
 import { Request, Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { sendOtpWhatsApp } from "../utils/whatsapp";
-import { sendOtpEmail } from "../utils/email";
+import { sendOtpEmail, sendSignupEmailByRole } from "../utils/email";
 import mongoose from "mongoose";
 
 export const requestOTP = async (req: Request, res: Response) => {
@@ -460,6 +460,14 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
         status: "not_started",
       },
     });
+
+    try {
+      if (user.email && user.name) {
+        await sendSignupEmailByRole(user.email, user.name, roleDoc.name);
+      }
+    } catch (emailError) {
+      console.error("Signup email failed:", emailError);
+    }
 
     const token = generateToken({
       sub: String(user._id),

@@ -10,6 +10,7 @@ import User from "../models/userModel";
 import { sendManagerApprovalMail } from "../utils/sendManagerMail";
 import mongoose from "mongoose";
 import { deleteS3ObjectIfExists } from "../utils/s3Helpers";
+import { sendListingApprovedEmail } from "../../../../shared/email/email.helper";
 
 /** helper to parse JSON-like values already handled by middleware; keep for safety */
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -642,6 +643,25 @@ export const approveLandProperty = async (req: Request, res: Response) => {
     property.approval.approvalToken = undefined;
 
     await property.save();
+
+    try {
+      const agent = await User.findById(property.createdBy).lean();
+
+      if (agent?.email && agent?.name) {
+        await sendListingApprovedEmail(
+          agent.email,
+          agent.name,
+          property.title || "Property",
+          {
+            roleName: "sales_agent",
+            location: property.city || property.locality || "your area",
+            link: `${process.env.FRONTEND_URL || "https://propenu.com"}/agent/my-properties`,
+          },
+        );
+      }
+    } catch (err) {
+      console.error("Approval email sending failed:", err);
+    }
 
     res.json({
       success: true,

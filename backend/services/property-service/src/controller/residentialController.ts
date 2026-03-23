@@ -17,7 +17,10 @@ import { sendManagerApprovalMail } from "../utils/sendManagerMail";
 import mongoose from "mongoose";
 import { deleteS3ObjectIfExists } from "../utils/s3Helpers";
 import { sendListingSubmittedVerification } from "../../../../shared/whatsapp/whatsapp.helper";
-import { sendListingSubmittedEmail } from "../../../../shared/email/email.helper";
+import {
+  sendListingApprovedEmail,
+  sendListingSubmittedEmail,
+} from "../../../../shared/email/email.helper";
 import { sendTemplateNotification } from "../../../../shared/notifications/push.service";
 
 /** Helper: parse values that might be JSON strings (multipart sends arrays/objects as strings). */
@@ -578,8 +581,14 @@ export const finalizeResidential = async (req: AuthRequest, res: Response) => {
           owner.email,
           owner.name,
           property.title || "Property",
-          property.city || property.locality || "Location",
-          `${process.env.FRONTEND_URL}/property/${property._id}`,
+          {
+            roleName: req.user?.roleName,
+            location: property.city || property.locality || "your area",
+            link:
+              req.user?.roleName === "sales_agent"
+                ? `${process.env.FRONTEND_URL || "https://propenu.com"}/agent/my-properties`
+                : `${process.env.FRONTEND_URL || "https://propenu.com"}/my-properties`,
+          },
         );
 
         console.log("✅ Listing email sent");
@@ -743,6 +752,25 @@ export const approveProperty = async (req: Request, res: Response) => {
     property.approval.approvalToken = undefined;
 
     await property.save();
+
+    try {
+      const agent = await User.findById(property.createdBy).lean();
+
+      if (agent?.email && agent?.name) {
+        await sendListingApprovedEmail(
+          agent.email,
+          agent.name,
+          property.title || "Property",
+          {
+            roleName: "sales_agent",
+            location: property.city || property.locality || "your area",
+            link: `${process.env.FRONTEND_URL || "https://propenu.com"}/agent/my-properties`,
+          },
+        );
+      }
+    } catch (err) {
+      console.error("Approval email sending failed:", err);
+    }
 
     res.json({
       success: true,
