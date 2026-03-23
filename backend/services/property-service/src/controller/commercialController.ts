@@ -564,11 +564,21 @@ export const verifyCommercialDocument = async (
   try {
     const { id } = req.params;
 
-    console.log("checkinggg updated or not");
-    const { documentIndex, status } = req.body;
+    let { documentIndex, status } = req.body;
 
+
+    console.log("checking latest aws 2");
+
+    // ✅ validate status
     if (!["verified", "rejected"].includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
+    }
+
+    // ✅ FIX: ensure number
+    documentIndex = Number(documentIndex);
+
+    if (isNaN(documentIndex)) {
+      return res.status(400).json({ message: "Invalid document index" });
     }
 
     const updated = await CommercialService.verifyDocument(
@@ -587,7 +597,7 @@ export const verifyCommercialDocument = async (
       data: updated,
     });
   } catch (err: any) {
-    console.error("verifyResidentialDocument:", err);
+    console.error("verifyCommercialDocument:", err);
     res.status(500).json({ message: err.message || "Server error" });
   }
 };

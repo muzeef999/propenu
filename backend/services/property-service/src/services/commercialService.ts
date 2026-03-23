@@ -607,46 +607,58 @@ export const CommercialService = {
   },
 
   async verifyDocument(
-    propertyId: string,
-    documentIndex: number,
-    status: "verified" | "rejected",
-  ) {
-    const property = await Commercial.findById(propertyId);
-    if (!property) return null;
+  propertyId: string,
+  documentIndex: number,
+  status: "verified" | "rejected",
+) {
+  const property = await Commercial.findById(propertyId);
+  if (!property) return null;
 
-    if (!property.verificationDocuments?.[documentIndex]) {
-  return {
-    success: false,
-    status: 400,
-    message: "Invalid document index",
-  };
+if (
+  !property.verificationDocuments ||
+  !Array.isArray(property.verificationDocuments)
+) {
+  throw new Error("Verification documents not found");
 }
 
-    // 1️⃣ Update document status
-    property.verificationDocuments[documentIndex].status = status;
+if (
+  !Number.isInteger(documentIndex) ||
+  documentIndex < 0 ||
+  documentIndex >= property.verificationDocuments.length
+) {
+  throw new Error(`Invalid document index: ${documentIndex}`);
+}
 
-    // 2️⃣ Check if ANY document is verified
-    const hasVerified = property.verificationDocuments.some(
-      (doc) => doc.status === "verified",
-    );
+// ✅ TS safe + runtime safe
+const doc = property.verificationDocuments[documentIndex];
 
-    // 3️⃣ Auto publish if verified
-    if (hasVerified) {
-      property.status = "active";
-      property.isPublished = true;
-      property.completion = {
-        percent: 100,
-        step: 5,
-        lastSection: "verification",
-      };
-    } else {
-      property.status = "draft";
-      property.isPublished = false;
-    }
 
-    await property.save();
-    return property;
-  },
+if (!doc) {
+  throw new Error(`Document not found at index: ${documentIndex}`);
+}
+
+doc.status = status;
+
+  const hasVerified = property.verificationDocuments.some(
+    (doc) => doc.status === "verified",
+  );
+
+  if (hasVerified) {
+    property.status = "active";
+    property.isPublished = true;
+    property.completion = {
+      percent: 100,
+      step: 5,
+      lastSection: "verification",
+    };
+  } else {
+    property.status = "draft";
+    property.isPublished = false;
+  }
+
+  await property.save();
+  return property;
+},
 
   model: Commercial,
 
