@@ -121,25 +121,21 @@ const AgentService = {
   },
 
   async getAgentBySlugWithProperties(slug: string) {
-   if (!slug) {
-    return {
-      success: false,
-      status: 400,
-      message: "Invalid slug",
-    };
-  }
+    if (!slug) {
+      return {
+        success: false,
+        status: 400,
+        message: "Invalid slug",
+      };
+    }
     const agent = await Agent.findOne({ slug })
       .populate("user", "name email phone")
       .lean();
 
-       if (!agent) {
-    return {
-      success: false,
-      status: 404,
-      message: "Agent not found",
-    };
-  }
-   
+    if (!agent) {
+      return null;
+    }
+
     const userId = typeof agent.user === "string" ? agent.user : agent.user._id;
 
     const [residential, commercial, land, agricultural] = await Promise.all([
@@ -170,7 +166,7 @@ const AgentService = {
     page = 1,
     limit = 20,
   ) {
-      const filter: any = { verificationStatus: "approved"};
+    const filter: any = { verificationStatus: "approved" };
 
     if (location.city) filter.city = new RegExp(`^${location.city}$`, "i");
 

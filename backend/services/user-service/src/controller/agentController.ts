@@ -72,7 +72,7 @@ export const getIndetailSlug = async (
   try {
     const { slug } = req.params;
 
-    // ✅ Validate slug
+    // ✅ validate slug
     if (!slug || typeof slug !== "string") {
       return res.status(400).json({
         success: false,
@@ -82,18 +82,18 @@ export const getIndetailSlug = async (
 
     const result = await AgentService.getAgentBySlugWithProperties(slug);
 
-    // ✅ Handle service error
-    if (!result.success) {
-  return res.status(result.status || 500).json({
-    success: false,
-    message: result.message,
-  });
-}
+    // ✅ if agent not found
+    if (!result || (result as any).status === 404) {
+      return res.status(404).json({
+        success: false,
+        message: "Agent not found",
+      });
+    }
 
-    // ✅ Success response
+    // ✅ success response
     return res.status(200).json({
       success: true,
-      data: result.message,
+      data: result,
     });
 
   } catch (error: any) {
@@ -101,7 +101,7 @@ export const getIndetailSlug = async (
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch property details",
+      message: "Failed to fetch agent details",
     });
   }
 };
