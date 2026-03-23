@@ -563,6 +563,8 @@ export const verifyCommercialDocument = async (
 ) => {
   try {
     const { id } = req.params;
+
+    console.log("checkinggg updated or not");
     const { documentIndex, status } = req.body;
 
     if (!["verified", "rejected"].includes(status)) {

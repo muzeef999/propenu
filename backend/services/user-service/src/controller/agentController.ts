@@ -72,16 +72,30 @@ export const getIndetailSlug = async (
   try {
     const { slug } = req.params;
 
+    // ✅ Validate slug
     if (!slug || typeof slug !== "string") {
-      return res.status(400).json({ message: "Invalid slug" });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid slug",
+      });
     }
 
     const result = await AgentService.getAgentBySlugWithProperties(slug);
 
+    // ✅ Handle service error
+    if (!result.success) {
+  return res.status(result.status || 500).json({
+    success: false,
+    message: result.message,
+  });
+}
+
+    // ✅ Success response
     return res.status(200).json({
       success: true,
-      data: result,
+      data: result.message,
     });
+
   } catch (error: any) {
     console.error("getIndetailSlug error:", error);
 
