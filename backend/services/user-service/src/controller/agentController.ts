@@ -71,6 +71,8 @@ export const getIndetailSlug = async (
 ): Promise<Response> => {
   try {
     const { slug } = req.params;
+ 
+    console.log("checking info");
 
     // ✅ validate slug
     if (!slug || typeof slug !== "string") {
