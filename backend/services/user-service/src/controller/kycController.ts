@@ -78,7 +78,7 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
         "kyc.remarks": "Phone number mismatch",
       });
 
-      return res.redirect(`${process.env.FRONTEND_URL}/settings?kyc=rejected`);
+      return res.redirect(`${process.env.FRONTEND_URL}?kyc=rejected`);
     }
 
     const updatedUser = await User.findByIdAndUpdate(
@@ -127,7 +127,7 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
     );
   } catch (err) {
     console.error("KYC Error:", err);
-    return res.redirect(`${process.env.FRONTEND_URL}/settings?kyc=failed`);
+    return res.redirect(`${process.env.FRONTEND_URL}?kyc=failed`);
   }
 };
 
