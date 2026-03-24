@@ -22,7 +22,7 @@ module.exports = {
     },
     { name: 'payment-service',
       cwd: __dirname + '/services/payment-service',
-      script: 'dist/server.js',
+      script: 'dist/backend/services/payment-service/src/server.js',
       instances: 1,
       exec_mode: 'cluster'
     }
