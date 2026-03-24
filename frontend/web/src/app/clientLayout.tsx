@@ -61,20 +61,25 @@ function ClientProvidersContent({
   }, []);
 
 
-    useEffect(() => {
-    const initPush = async () => {
-      const token = await getFcmToken();
+  useEffect(() => {
+  if (!user?.user?.id) return; // ⛔ WAIT for user
 
-      if (token) {
-        // ⚠️ replace with actual logged-in user ID
-        const userId = "69b51f917a772ff246ec8f78";
+  const initPush = async () => {
+    const token = await getFcmToken();
 
-        await sendTokenToBackend(userId, token);
-      }
-    };
+    console.log("🔥 Token:", token);
 
-    initPush();
-  }, []);
+    if (!token) return;
+
+    const userId = user.user.id;
+
+    console.log("👤 User ID:", userId);
+
+    await sendTokenToBackend(userId, token);
+  };
+
+  initPush();
+}, [user]); // ✅ DEPENDENCY FIX
 
   return (
      <Provider store={store}>
