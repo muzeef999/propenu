@@ -169,7 +169,7 @@ const FilterBar: React.FC = () => {
     <div className="sticky top-0 z-45 w-full bg-[#D1EFDD] px-3 shadow-sm">
       <div className="mx-auto flex h-14 items-center gap-4 px-4 container">
         {/* Listing Type + Category + Search */}
-        <div className="flex items-center gap-3 rounded-xl bg-white px-4 py-2 shadow-sm">
+        <div className="flex items-center gap-3 rounded-xl bg-white px-4 py-2 shadow-sm md:w-full md:min-w-0 lg:w-auto lg:min-w-fit">
 
           <div className="flex items-center gap-2">
             <FilterDropdown
@@ -236,7 +236,7 @@ const FilterBar: React.FC = () => {
                 type="button"
                 className="flex items-center gap-2 bg-transparent text-sm text-gray-900 cursor-pointer"
               >
-                <span>{category}</span>
+                <span className="md:max-w-24 md:truncate lg:max-w-none">{category}</span>
                 <ArrowDropdownIcon
                   size={12}
                   color="#111827"
@@ -274,15 +274,15 @@ const FilterBar: React.FC = () => {
             )}
           />
           <span className="h-5 w-px bg-gray-200" />
-          <div className="hidden lg:block">
+          <div className="hidden md:block md:min-w-0 md:flex-1 lg:flex-none">
             <FilterDropdown
               open={searchOpen}
               onOpenChange={setSearchOpen}
               align="left"
-              width="w-[360px]"
+              width="w-[260px] lg:w-[360px]"
               showArrow={false}
               triggerLabel={
-                <div className="flex w-[360px] min-w-0 max-w-[360px] items-center cursor-text">
+                <div className="flex w-full min-w-0 max-w-full items-center cursor-text lg:w-[360px] lg:max-w-[360px]">
                   <IoIosSearch className="mr-2 text-lg text-gray-500" />
 
                   {selectedLocalities.length > 0 && (

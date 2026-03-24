@@ -539,7 +539,15 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
     }
 
     // ✅ Allow only safe fields
-    const allowedUpdates = ["name", "email", "address"];
+    const allowedUpdates = [
+      "name",
+      "email",
+      "address",
+      "locality",
+      "city",
+      "state",
+      "pincode",
+    ];
     const updates: Record<string, unknown> = {};
 
     for (const key of allowedUpdates) {
@@ -576,7 +584,11 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
         name: user.name,
         email: user.email,
         phone: user.phone,
-        address: user.address, // ✅ RETURN IT
+        address: user.address,
+        locality: user.locality,
+        city: user.city,
+        state: user.state,
+        pincode: user.pincode,
         roleId: role ? String(role._id) : null,
         roleName: role ? role.name : null,
         permissions: role ? role.permissions : [],

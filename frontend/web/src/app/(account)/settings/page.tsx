@@ -15,7 +15,10 @@ type InfoFieldProps = {
 type FormData = {
   name: string;
   email: string;
-  address: string;
+  locality: string;
+  city: string;
+  state: string;
+  pincode: string;
 };
 
 const SettingsPage = () => {
@@ -60,7 +63,10 @@ const SettingsPage = () => {
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
-    address: "",
+    locality: "",
+    city: "",
+    state: "",
+    pincode: "",
   });
 
   useEffect(() => {
@@ -68,7 +74,10 @@ const SettingsPage = () => {
       setFormData({
         name: user.user.name || "",
         email: user.user.email || "",
-        address: user.user.address || "",
+        locality: user.user.locality || "",
+        city: user.user.city || "",
+        state: user.user.state || "",
+        pincode: user.user.pincode || "",
       });
     }
   }, [user]);
@@ -94,10 +103,23 @@ const SettingsPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleEditStart = () => {
+    setFormData({
+      name: user?.user?.name || "",
+      email: user?.user?.email || "",
+      locality: user?.user?.locality || "",
+      city: user?.user?.city || "",
+      state: user?.user?.state || "",
+      pincode: user?.user?.pincode || "",
+    });
+    setIsEditing(true);
+  };
+
   const handleSave = () => {
     updateProfileMutation.mutate(formData);
   };
 
+  
   /* -------------------- Success -------------------- */
   return (
     <div className="sm:p-4 md:p-1 font-sans text-[#4A4A4A]">
@@ -123,9 +145,9 @@ const SettingsPage = () => {
           </div>
 
           {/* KYC Button */}
-          <div className="w-full sm:w-auto sm:ml-auto">
+          {/* <div className="w-full sm:w-auto sm:ml-auto">
             <KycButton kycStatus={user?.user?.kycStatus} />
-          </div>
+          </div> */}
         </div>
 
         {/* Personal Information */}
@@ -136,7 +158,7 @@ const SettingsPage = () => {
             </h3>
             {!isEditing && (
               <button
-                onClick={() => setIsEditing(true)}
+                onClick={handleEditStart}
                 className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
               >
                 Edit
@@ -162,9 +184,27 @@ const SettingsPage = () => {
                   />
                   <InfoField label="Phone Number" value={user.user.phone} />
                   <EditableField
-                    label="Address"
-                    name="address"
-                    value={formData.address}
+                    label="Locality"
+                    name="locality"
+                    value={formData.locality}
+                    onChange={handleInputChange}
+                  />
+                  <EditableField
+                    label="City"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleInputChange}
+                  />
+                  <EditableField
+                    label="State"
+                    name="state"
+                    value={formData.state}
+                    onChange={handleInputChange}
+                  />
+                  <EditableField
+                    label="Pincode"
+                    name="pincode"
+                    value={formData.pincode}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -189,7 +229,10 @@ const SettingsPage = () => {
                 <InfoField label="Name" value={user.user.name} />
                 <InfoField label="Email Address" value={user.user.email} />
                 <InfoField label="Phone Number" value={user.user.phone} />
-                <InfoField label="Address" value={user.user.address} />
+                <InfoField label="Locality" value={user.user.locality} />
+                <InfoField label="City" value={user.user.city} />
+                <InfoField label="State" value={user.user.state} />
+                <InfoField label="Pincode" value={user.user.pincode} />
               </div>
             )}
           </div>
