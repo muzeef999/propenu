@@ -6,13 +6,13 @@ import planRoutes from "./routes/planRoute";
 import subscriptionRoutes from "./routes/subscriptionRoute"
 import pdfRawData from "./routes/pdfRawData";
 import accountRoutes from "./routes/accountRoutes";
-dotenv.config({ quiet: true });
 
+
+dotenv.config({ quiet: true });
 
 
 const app = express();
 app.use(express.json());
-
 
 const PORT = process.env.PORT ?? 4002;
 
@@ -36,13 +36,10 @@ async function start() {
     app.listen(Number(PORT), "0.0.0.0", () => {
       console.log(`payment Service running on 0.0.0.0:${PORT}`);
     });
-
   } catch (err) {
     console.error("Failed to start server", err);
     process.exit(1);
   }
-
 }
-
 
 start();
