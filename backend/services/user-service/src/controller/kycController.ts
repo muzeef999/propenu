@@ -106,7 +106,6 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
       { new: true },
     ).populate("roleId");
 
-        console.log("✅ Updated User:", updatedUser);
 
 
     // 📧 Send Welcome Email after KYC verified
