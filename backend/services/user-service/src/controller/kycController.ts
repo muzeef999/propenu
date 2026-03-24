@@ -51,6 +51,10 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
   try {
     const { code, state } = req.query as any;
 
+    console.log("👉 Query Params:", { code, state });
+
+    console.log("👉 FRONTEND_URL:", process.env.FRONTEND_URL);
+
     if (!code || !state) {
       return res.status(400).json({ message: "Missing code/state" });
     }
@@ -72,7 +76,11 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
     const appPhone = normalizePhone(user.phone ?? undefined);
     const kycPhone = normalizePhone(profile.mobile ?? undefined);
 
+     console.log("📱 App Phone:", appPhone);
+    console.log("📱 KYC Phone:", kycPhone);
+
     if (appPhone !== kycPhone) {
+       console.log("❌ Phone mismatch → KYC REJECTED");
       await User.findByIdAndUpdate(state, {
         "kyc.status": "rejected",
         "kyc.remarks": "Phone number mismatch",
@@ -80,6 +88,9 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
 
       return res.redirect(`${process.env.FRONTEND_URL}?kyc=rejected`);
     }
+
+
+    console.log("✅ Phone matched → KYC VERIFIED");
 
     const updatedUser = await User.findByIdAndUpdate(
       state,
@@ -94,6 +105,9 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
       },
       { new: true },
     ).populate("roleId");
+
+        console.log("✅ Updated User:", updatedUser);
+
 
     // 📧 Send Welcome Email after KYC verified
     // 📧 Send Welcome Email
@@ -131,7 +145,9 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
   }
 };
 
-function normalizePhone(phone?: string | undefined) {
+
+
+function normalizePhone(phone?: string) {
   if (!phone) return "";
-  return phone.replace("+91", "").replace(/\s/g, "");
+  return phone.replace(/\D/g, "").slice(-10);
 }
