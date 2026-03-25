@@ -12,7 +12,6 @@ import ActiveTabs from "@/ui/ActiveTabs";
 import { deactivateMyProperty, getMyProperties } from "@/data/ClientData";
 import NopropertiesSvg from "@/svg/NopropertiesSvg";
 import SelectableButton from "@/ui/SelectableButton";
-import ResponsesDrawer from "../ResponsesDrawer";
 import { useResponses } from "../ResponsesContext";
 import { useAppDispatch } from "@/Redux/store";
 import {
@@ -82,7 +81,6 @@ const Page = () => {
   );
   const [isListingTypeOpen, setIsListingTypeOpen] = useState(false);
   const listingTypeRef = useRef<HTMLDivElement | null>(null);
-  const [openResponses, setOpenResponses] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
 
