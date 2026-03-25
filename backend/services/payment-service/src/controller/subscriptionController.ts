@@ -2,7 +2,6 @@ import { Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { Subscription } from "../models/subscriptionModel";
 import { Plan } from "../models/planModel";
-
 import Residential from "../models/residentialModel";
 import Commercial from "../models/commercialModel";
 import LandPlot from "../models/landModel";
@@ -52,13 +51,23 @@ export async function getMySubscription(req: AuthRequest, res: Response) {
 
     // 🏠 OWNER → PROPERTY PLANS
     if (
-      plan.userType === "owner" &&
-      typeof plan.features?.PROPERTY_LISTING_LIMIT === "number"
-    ) {
-      total = plan.features.PROPERTY_LISTING_LIMIT;
-      used = sub.category === "sell" ? sellCount : rentCount;
-      unit = "properties";
-    }
+  (plan.userType === "owner" || plan.userType === "agent") &&
+  typeof plan.features?.PROPERTY_LISTING_LIMIT === "number"
+) {
+  total = plan.features.PROPERTY_LISTING_LIMIT;
+
+  // ⭐ OWNER → based on category
+  if (plan.userType === "owner") {
+    used = sub.category === "sell" ? sellCount : rentCount;
+  }
+
+  // ⭐ AGENT → total properties (sell + rent)
+  if (plan.userType === "agent") {
+    used = sellCount + rentCount;
+  }
+
+  unit = "properties";
+}
 
     // 👤 BUYER → CONTACT PLANS
     if (plan.features?.CONTACT_OWNER_LIMIT) {

@@ -79,8 +79,6 @@ export const requireActiveSubscription = async (
       return res.status(400).json({ message: "Invalid listingType" });
     }
 
-    let userType: "buyer" | "agent" | "owner";
-
     // // ⭐ If user is posting property → treat as owner
     // if (roleName === "user" && req.body?.listingSource === "user") {
     //   userType = "owner";
@@ -108,13 +106,18 @@ If user is posting property (sale or rent)
     //   userType = "buyer";
     // }
 
-    if (roleName === "agent") {
-      userType = "agent";
-    } else if (roleName === "builder" || roleName === "owner") {
-      userType = "owner";
-    } else {
-      userType = "buyer";
-    }
+    let userType: "buyer" | "agent" | "owner";
+
+// ⭐ If posting property → OWNER plan
+if (listingType === "sale" || listingType === "rent") {
+  userType = "owner";
+}
+else if (roleName === "agent") {
+  userType = "agent";
+}
+else {
+  userType = "buyer";
+}
 
     console.log("🔎 PLAN CHECK DEBUG ----------------");
     console.log("User ID:", userId);
@@ -125,10 +128,9 @@ If user is posting property (sale or rent)
 
     const subscription = await Subscription.findOne({
       userId,
-      userType, // ✅ FIXED
-      // category: requiredCategory,
       status: "active",
-      category: { $in: [requiredCategory, "both"] }, // ✅ allow both
+      category: { $in: [requiredCategory, "both"] }, 
+        userType: { $in: ["owner", "agent"] },
     });
 
     console.log("Subscription Found:", subscription);

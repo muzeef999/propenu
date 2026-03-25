@@ -40,6 +40,7 @@ async function start() {
     app.listen(Number(port), "0.0.0.0", () => {
       console.log(`user service running on 0.0.0.0:${port}`);
     });
+    
   } catch (err) {
     console.error("Failed to start server", err);
     process.exit(1);

@@ -54,7 +54,7 @@ export const createLead = async (data: any, userId: string | null) => {
 
   // User/agent/builder cannot contact their own property.
   if (String(ownerId) === String(userId)) {
-    throw new Error("You cannot contact your own property");
+    throw new Error("This is your own property");
   }
 
   const listingType = (property as any).listingType as

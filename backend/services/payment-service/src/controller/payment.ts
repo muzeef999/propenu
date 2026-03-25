@@ -30,11 +30,14 @@ const userType =
 
     const result = await createPaymentOrder(planId, userId, userType);
 
-    if ("free" in result) {
+  if ("free" in result) {
   return res.json({
     success: true,
     free: true,
-    message: "Free plan activated 🎉",
+    alreadyActive: result.alreadyActive || false, // 🔥 IMPORTANT
+    message: result.alreadyActive
+      ? "You already have an active plan"
+      : "Free plan activated 🎉",
   });
 }
 

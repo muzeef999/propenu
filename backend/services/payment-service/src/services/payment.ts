@@ -44,6 +44,7 @@ export async function createPaymentOrder(
     // Check if same plan already active
     const existing = await Subscription.findOne({
       userId,
+      userType: plan.userType,
       category: plan.category,
       status: "active",
       endDate: { $gt: new Date() }
@@ -61,6 +62,7 @@ export async function createPaymentOrder(
     await Subscription.updateMany(
       {
         userId,
+        userType: plan.userType,
         category: plan.category,
         status: "active"
       },
