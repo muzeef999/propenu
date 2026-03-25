@@ -112,7 +112,7 @@ const Sidebar = () => {
       {/* Mobile/Tablet Bottom Tabs */}
       <nav className="fixed bottom-0 inset-x-0 z-30 border-t border-gray-200 bg-white lg:hidden">
         <div className="container mx-auto px-2">
-          <div className="grid grid-cols-5">
+          <div className="grid grid-cols-6">
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = isItemActive(item.link);

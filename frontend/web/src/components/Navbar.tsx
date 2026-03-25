@@ -13,6 +13,8 @@ import UserGreeting from "@/app/(auth)/UserGreeting";
 import FilterDropdown from "@/ui/FilterDropdown";
 import { useCity } from "@/hooks/useCity";
 import { LocationItem } from "@/types";
+import { useAppDispatch } from "@/Redux/store";
+import { setListingType } from "@/Redux/slice/filterSlice";
 
 type AuthMode = "login" | "register" | null;
 
@@ -24,6 +26,7 @@ const BRAND_GREEN = "#27AE60"; // use your logo color
 
 const Navbar = () => {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>(null);
   const [open, setOpen] = useState(false);
@@ -149,20 +152,6 @@ const Navbar = () => {
 
       return [stateName, cities] as [string, LocationItem[]];
     });
-  const handleMyActivityClick = () => {
-    const role = user?.user?.roleName;
-
-    if (role === "agent") {
-      router.push("/agent");
-    } else if (role === "builder") {
-      router.push("/builder");
-    } else {
-      router.push("/settings");
-    }
-
-    setMobileOpen(false);
-  };
-
   return (
     <header>
       <nav className="w-full bg-white border-b relative z-50 border-gray-200"
@@ -515,32 +504,27 @@ const Navbar = () => {
             {/* OTHER LINKS */}
             <nav className="px-2">
               {[
-                { label: "Buy", link: "/buy" },
-                { label: "Rent", link: "/rent" },
-                { label: "Sell", link: "/sell" },
-                { label: "My Activity", link: "/my-activity" },
+                {
+                  label: "Buy",
+                  link: "/properties?type=residential",
+                  listingType: { label: "Buy" as const, value: "sale" as const },
+                },
+                {
+                  label: "Rent",
+                  link: "/properties?type=residential",
+                  listingType: { label: "Rent" as const, value: "rent" as const },
+                },
                 { label: "Home Loans", link: "/home-loans" },
-                { label: "Home Interiors", link: "/home-interiors" },
-                { label: "Help & Support", link: "/help" },
+                { label: "Home Interiors", link: "/interior-designer" },
+                { label: "Home Care", link: "/home-care" },
+                { label: "Help & Support", link: "/help-center" },
               ].map((item) => (
                 <button
                   key={item.label}
                   onClick={() => {
-                    // 🔐 MY ACTIVITY LOGIC
-                    if (item.label === "My Activity") {
-                      // Not logged in → open login dialog
-                      if (!user) {
-                        setAuthMode("login");
-                        setMobileOpen(false);
-                        return;
-                      }
-
-                      // Logged in → role based routing
-                      handleMyActivityClick();
-                      return;
+                    if (item.listingType) {
+                      dispatch(setListingType(item.listingType));
                     }
-
-                    // 🔗 NORMAL LINKS
                     router.push(item.link);
                     setMobileOpen(false);
                   }}

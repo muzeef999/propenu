@@ -132,7 +132,6 @@ export default async function Page({ params }: PageProps) {
     specifications: project?.specifications,
     color: project?.color?.trim(),
   }
-  console.log(project)
  
   return (
     <div>

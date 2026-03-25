@@ -121,8 +121,7 @@ export default function HeroSection({ hero }: Props) {
       style={{ backgroundImage: `url(${h.heroImage})` }}
     >
       {/* DARK OVERLAY */}
-      <div className="absolute inset-0 bg-linear-to-b from-white/0 to-black" />
-
+      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80" />
       {/* MAIN CONTENT */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 md:pt-20 pb-48">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
@@ -143,8 +142,11 @@ export default function HeroSection({ hero }: Props) {
               {h.subTagline}
             </h1>
             <h2
-              className="text-md sm:text-3xl  line-clamp-2 overflow-hidden"
-              style={{ color: h.color }}
+              className="text-md sm:text-3xl line-clamp-2 drop-shadow-lg"
+              style={{
+                color: h.color || "#fff",
+                textShadow: "0 2px 10px rgba(0,0,0,0.8)"
+              }}
             >
               {h.description}
             </h2>

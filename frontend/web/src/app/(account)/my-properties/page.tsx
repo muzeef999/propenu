@@ -194,18 +194,17 @@ const Page = () => {
       </div>
 
       {/* ================= FILTER BAR ================= */}
-      <div className="flex flex-col lg:flex-row lg:items-center gap-4">        {/* LEFT: Search */}
-        <div className="shrink-0">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Enter Locality"
-            className="h-9 w-full sm:w-64 rounded-md border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus:border-green-500"
-          />
-        </div>
+      <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-4">
+        {/* Search */}
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Enter locality"
+          className="h-9 w-full lg:w-56 rounded-md border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus:border-green-500"
+        />
 
-        {/* CENTER: Status Filters */}
-        <div className="flex flex-wrap gap-2 lg:justify-end">
+        {/* Status Filters */}
+        <div className="flex flex-wrap gap-2 lg:ml-auto">
           {[
             "All",
             "Active",
@@ -223,8 +222,8 @@ const Page = () => {
           ))}
         </div>
 
-        {/* RIGHT: Listing Type Dropdown */}
-        <div ref={listingTypeRef} className="relative w-full sm:w-40">
+        {/* Listing Type Dropdown */}
+        <div ref={listingTypeRef} className="relative w-full lg:w-44 shrink-0">
           <button
             type="button"
             onClick={() => setIsListingTypeOpen((prev) => !prev)}
@@ -237,7 +236,7 @@ const Page = () => {
           </button>
 
           {isListingTypeOpen && (
-            <div className="absolute right-0 top-11 z-20 w-30 rounded-md border border-gray-200 bg-white p-2 shadow-lg">
+            <div className="absolute right-0 top-11 z-20 w-full lg:w-44 rounded-md border border-gray-200 bg-white p-2 shadow-lg">
               <div className="space-y-2">
                 {categoriesDropdown.map((item) => (
                   <SelectableButton
@@ -263,12 +262,24 @@ const Page = () => {
         {filteredProperties.length ? (
           filteredProperties.map((property) => {
             const image = property.gallery?.[0]?.url || "/placeholder.jpg";
+            const isDraft =
+              String(property.status ?? "").toLowerCase() === "draft";
+            const propertyCategory =
+              TAB_KEY_MAP[activeTab] ?? "residential";
 
             return (
               <Link
                 key={property._id}
-                href={`/properties/${TAB_KEY_MAP[activeTab] ?? "residential"}/${property.slug
-                  }`}
+                href={
+                  isDraft
+                    ? "/postproperty"
+                    : `/properties/${propertyCategory}/${property.slug}`
+                }
+                onClick={() => {
+                  if (isDraft) {
+                    dispatch(setPropertyType(getCategoryForTab(activeTab)));
+                  }
+                }}
                 className="card group flex flex-col md:flex-row items-start md:items-center gap-1.5 sm:gap-2.5 md:gap-4 border border-gray-200 p-1.5 sm:p-2 md:p-3 rounded-lg md:rounded-2xl bg-white hover:shadow-md transition-all duration-300 w-full max-w-[330px] sm:max-w-none mx-auto sm:mx-0"
               >
                 {/* Image */}
@@ -398,7 +409,7 @@ const Page = () => {
                             try {
                               await deactivateMyProperty(
                                 property._id,
-                                TAB_KEY_MAP[activeTab] ?? "residential"
+                                propertyCategory
                               );
                               await refetch();
                             } finally {
