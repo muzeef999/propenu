@@ -122,8 +122,18 @@ const SettingsPage = () => {
   
   /* -------------------- Success -------------------- */
   return (
-    <div className="sm:p-4 md:p-1 font-sans text-[#4A4A4A]">
+    <div className="sm:p-4 md:p-1 lg:p-0 font-sans text-[#4A4A4A]">
       <div className="max-w-5xl space-y-6">
+        <div className="rounded-2xl border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
+          <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">
+            Account Settings
+          </h1>
+          <p className="mt-2 text-sm text-gray-600 md:text-base">
+            Update your profile details, review your membership history, and
+            keep your account information up to date.
+          </p>
+        </div>
+
         {/* Profile Card */}
         <div className="bg-white p-4 sm:p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center gap-4">
           {/* Avatar */}

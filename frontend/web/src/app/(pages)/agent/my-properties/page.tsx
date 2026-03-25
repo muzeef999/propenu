@@ -145,11 +145,14 @@ const Page = () => {
     <div className="space-y-5 sm:space-y-6">
       {/* ================= HEADER ================= */}
       <div className="items-start justify-between">
-        <div className="mb-4">
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1">
+        <div className="mb-4 rounded-2xl border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
+          <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">
             My Properties
           </h1>
-          <p className="text-sm sm:text-base text-gray-600">View and manage your properties</p>
+          <p className="mt-2 text-sm text-gray-600 md:text-base">
+            View and manage your properties, track activity, and keep your
+            listings organized in one place.
+          </p>
         </div>
 
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

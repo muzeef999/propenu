@@ -106,10 +106,13 @@ const LeadsPage = () => {
     return (
         <div className="space-y-5 sm:space-y-6">
             {/* HEADER */}
-            <div>
-                <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1">My Leads</h1>
-                <p className="text-sm sm:text-base text-gray-600">
-                    View enquiries received on your properties
+            <div className="rounded-2xl border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
+                <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">
+                    My Leads
+                </h1>
+                <p className="mt-2 text-sm text-gray-600 md:text-base">
+                    View enquiries received on your properties and keep track of
+                    buyer activity in one place.
                 </p>
             </div>
 

@@ -1,22 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const userOnlyRoutes = [
+  "/settings",
+  "/my-properties",
+  "/shortlisted-properties",
+  "/contacted-properties",
+  "/membership",
+];
+
 export function middleware(req: NextRequest) {
   const token = req.cookies.get("token")?.value;
   const pathname = req.nextUrl.pathname;
+  const isProtectedRoleRoute =
+    pathname.startsWith("/user") ||
+    pathname.startsWith("/agent") ||
+    pathname.startsWith("/builder");
+  const isUserOnlyRoute = userOnlyRoutes.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
 
   // 1. Not logged in → block protected routes
-  if (!token && (pathname.startsWith("/user") || pathname.startsWith("/agent") || pathname.startsWith("/builder"))) {
+  if (!token && (isProtectedRoleRoute || isUserOnlyRoute)) {
     return new NextResponse(null, { status: 403 });
   }
 
   if (!token) return NextResponse.next();
 
-  // 2. Decode token
-  const payload = JSON.parse(
-    Buffer.from(token.split(".")[1], "base64").toString()
-  );
+  let role: string | undefined;
 
-  const role = payload.roleName; // user | agent | builder
+  try {
+    const payload = JSON.parse(
+      Buffer.from(token.split(".")[1], "base64").toString()
+    );
+    role = payload.roleName; // user | agent | builder
+  } catch {
+    return new NextResponse(null, { status: 403 });
+  }
 
   // 3. Role rules
   if (pathname.startsWith("/agent") && role !== "agent") {
@@ -31,9 +50,22 @@ export function middleware(req: NextRequest) {
       return new NextResponse(null, { status: 403 });
   }
 
+  if (isUserOnlyRoute && role !== "user") {
+    return new NextResponse(null, { status: 403 });
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/user/:path*", "/agent/:path*", "/builder/:path*"],
+  matcher: [
+    "/user/:path*",
+    "/agent/:path*",
+    "/builder/:path*",
+    "/settings/:path*",
+    "/my-properties/:path*",
+    "/shortlisted-properties/:path*",
+    "/contacted-properties/:path*",
+    "/membership/:path*",
+  ],
 };

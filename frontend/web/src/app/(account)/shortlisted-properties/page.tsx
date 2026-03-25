@@ -85,7 +85,17 @@ const Page = () => {
   console.log("Filtered Shortlisted Properties:", filteredProperties);
 
   return (
-    <div className="max-w-7xl mx-auto p-2 space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
+      <div className="rounded-2xl border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
+        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">
+          Shortlisted Properties
+        </h1>
+        <p className="mt-2 text-sm text-gray-600 md:text-base">
+          Explore the properties you have shortlisted and revisit the ones you
+          liked most.
+        </p>
+      </div>
+
       {/* TABS */}
       <ActiveTabs
         categories={categories}

@@ -39,7 +39,7 @@ export default function AccountLayout({
         }}
       >
         {/* MAIN CONTENT */}
-        <main className="flex-1 p-1 md:p-6 pb-24 lg:pb-6 relative">
+        <main className="flex-1 p-1 md:p-6 pb-24 lg:pb-1 relative">
 
           {children}
         </main>

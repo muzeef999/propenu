@@ -28,6 +28,7 @@ const GreetingOptions = [
 const AgentOptions = [
   { label: "Dashboard", link: "/agent" },
   { label: "My Properties", link: "/agent/my-properties" },
+  { label: "Shortlisted Properties", link: "/agent/shortlisted-properties" },
   { label: "Leads", link: "/agent/leads" },
   { label: "My Plans", link: "/agent/my-plan" },
   { label: "Account & Settings", link: "/agent/account-settings" },

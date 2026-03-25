@@ -44,17 +44,23 @@ const Page = () => {
 
   return (
     <div className="mx-auto w-full space-y-4">
+      <div className="rounded-2xl border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
+        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">
+          Contacted Properties
+        </h1>
+        <p className="mt-2 text-sm text-gray-600 md:text-base">
+          Revisit the properties you contacted and quickly jump back into the
+          listings that matter most.
+        </p>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
-            My Contacts Listing
-          </h1>
           <p className="text-sm text-gray-500">
             Properties you have contacted ({properties.length})
           </p>
         </div>
-
         <div className="w-full md:w-auto">
           <ActiveTabs
             categories={categories}

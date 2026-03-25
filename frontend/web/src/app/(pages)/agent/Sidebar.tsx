@@ -19,6 +19,12 @@ const menuItems = [
     icon: Building,
   },
   {
+    label: "Shortlist Properties",
+    mobileLabel: "Shortlist",
+    link: "/agent/shortlisted-properties",
+    icon: Building,
+  },
+  {
     label: "Leads",
     mobileLabel: "Leads",
     link: "/agent/leads",

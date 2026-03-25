@@ -93,7 +93,18 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
   };
 
   if (!my_subscription?.active || !my_subscription.plans?.length) {
-    return <PromoBanner />;
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900">
+            No active plan
+          </h2>
+          <p className="mt-2 text-sm text-gray-500">
+            You do not have any active membership right now.
+          </p>
+        </div>
+      </div>
+    );
   }
   const formatDate = (date: string) =>
     new Date(date).toLocaleDateString("en-IN", {

@@ -165,7 +165,17 @@ const Page = () => {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-1">
+    <div className="mx-auto max-w-7xl space-y-6">
+      <div className="rounded-2xl border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
+        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">
+          My Properties
+        </h1>
+        <p className="mt-2 text-sm text-gray-600 md:text-base">
+          Manage your listed properties, track responses, and keep an eye on
+          their status in one place.
+        </p>
+      </div>
+
       {/* ================= TABS ================= */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">        {/* Tabs */}
         <ActiveTabs

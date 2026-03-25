@@ -22,9 +22,15 @@ export const RentView = () => {
 
   return (
     <>
-      <h1 className="text-center font-medium text-2xl p-6">
-        Rent View
-      </h1>
+      <div className="mb-6 rounded-2xl border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
+        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">
+          Rent View Plans
+        </h1>
+        <p className="mt-2 text-sm text-gray-600 md:text-base">
+          Compare available rent-view plans and choose the one that fits your
+          property goals.
+        </p>
+      </div>
 
       <PricingComparisonTable
         plans={rent}
@@ -50,9 +56,15 @@ export const BuyView = () => {
 
   return (
     <>
-      <h1 className="text-center font-medium text-2xl p-6">
-        Buy View
-      </h1>
+      <div className="mb-6 rounded-2xl border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
+        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">
+          Buy View Plans
+        </h1>
+        <p className="mt-2 text-sm text-gray-600 md:text-base">
+          Explore buy-view plans, compare features, and select the best option
+          for your listings.
+        </p>
+      </div>
 
       <PricingComparisonTable
         plans={buy}
@@ -70,7 +82,17 @@ const Page = () => {
   });
 
   return (
-    <div className="">
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
+        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">
+          Membership
+        </h1>
+        <p className="mt-2 text-sm text-gray-600 md:text-base">
+          Check your active subscription and stay on top of your membership
+          benefits.
+        </p>
+      </div>
+
       <ActivePlanCard my_subscription={my_subscription} />
     </div>
   );
