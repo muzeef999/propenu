@@ -30,6 +30,9 @@ function createTransport() {
   const user = requireEnv("SMTP_USER");
   const pass = requireEnv("SMTP_PASS");
 
+  console.log("📡 SMTP CONFIG ----------------");
+  console.log({ host, port, user }); // ❗ NEVER log password
+
   return nodemailer.createTransport({
     host,
     port,
@@ -71,7 +74,10 @@ export async function sendOtpEmail(to: string, otp: string) {
   const transporter = createTransport();
 
   await transporter.verify().catch((e) => {
-    console.error("SMTP verify failed:", e?.response || e?.message, e);
+    console.error("❌ SMTP VERIFY FAILED ----------------");
+    console.error("Message:", e?.message);
+    console.error("Response:", e?.response);
+    console.error("Full Error:", e);
     throw e;
   });
 
@@ -87,7 +93,11 @@ export async function sendOtpEmail(to: string, otp: string) {
     console.log(`OTP email sent to ${to} (id: ${info.messageId})`);
     return info;
   } catch (err: any) {
-    console.error("sendMail error:", err?.response || err?.message, err);
+    console.error("❌ SEND MAIL ERROR ----------------");
+    console.error("Message:", err?.message);
+    console.error("Response:", err?.response);
+    console.error("Code:", err?.code);
+    console.error("Full Error:", err);
     throw err;
   }
 }
