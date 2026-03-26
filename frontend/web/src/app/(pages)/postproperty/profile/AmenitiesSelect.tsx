@@ -148,7 +148,7 @@ const AmenitiesSelect = ({
                   <button
                     type="button"
                     onClick={() => setOpen(false)}
-                    className="h-10 w-10 rounded-full bg-gray-100 text-2xl leading-none text-gray-500 transition hover:bg-gray-200 cursor-pointer"
+                    className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-gray-500 transition hover:bg-gray-200 hover:text-gray-700 [&>svg]:h-5 [&>svg]:w-5 [&>svg]:shrink-0"
                     aria-label="Close amenities dialog"
                   >
                     <FiX />
