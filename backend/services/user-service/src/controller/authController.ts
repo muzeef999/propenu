@@ -255,6 +255,10 @@ export const searchUsers = async (req: Request, res: Response) => {
         { name: { $regex: query, $options: "i" } },
         { email: { $regex: query, $options: "i" } },
         { phone: { $regex: query, $options: "i" } },
+        { locality : { $regex: query, $options: "i"}},
+        { city :{ $regex: query, $options: "i"}},
+        { state :{ $regex: query, $options: "i"}},
+        { pincode:{ $regex: query, $options: "i"}},
       ];
     }
 
@@ -310,6 +314,11 @@ export const searchUsers = async (req: Request, res: Response) => {
     name: 1,
     email: 1,
     phone: 1,
+
+     locality: 1,
+    city: 1,
+    state: 1,
+    pincode: 1,
 
     role: "$role.name", // cleaner
 
