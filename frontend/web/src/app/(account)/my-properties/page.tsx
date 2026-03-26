@@ -37,6 +37,7 @@ interface Property {
 
   meta?: {
     views?: number;
+    inquiries?: number;
     enquiries?: number;
   };
 }
@@ -89,7 +90,13 @@ const Page = () => {
     queryFn: getMyProperties,
   });
 
-  function ResponsesButton({ propertyId }: { propertyId: string }) {
+  function ResponsesButton({
+    propertyId,
+    count,
+  }: {
+    propertyId: string;
+    count: number;
+  }) {
     const { setActiveProjectId, setOpenResponses } = useResponses();
     return (
       <button
@@ -99,9 +106,9 @@ const Page = () => {
           setActiveProjectId(propertyId);
           setOpenResponses(true);
         }}
-        className="text-xs text-green-600 hover:underline mt-1"
+        className="mt-2 inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700 transition hover:border-green-300 hover:bg-green-100"
       >
-        Responses
+        <span>Responses</span>
       </button>
     );
   }
@@ -437,11 +444,16 @@ const Page = () => {
                     <p>
                       Enquiries:{" "}
                       <span className="font-medium text-gray-800">
-                        {property.meta?.enquiries ?? 0}
+                        {property.meta?.inquiries ?? property.meta?.enquiries ?? 0}
                       </span>
                     </p>
 
-                    <ResponsesButton propertyId={property._id} />
+                    <ResponsesButton
+                      propertyId={property._id}
+                      count={
+                        property.meta?.inquiries ?? property.meta?.enquiries ?? 0
+                      }
+                    />
                   </div>
 
                 </div>

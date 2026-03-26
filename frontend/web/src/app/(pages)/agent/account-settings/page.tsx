@@ -9,7 +9,7 @@ import {
   updateAgentProfileByPhone,
 } from "@/data/ClientData";
 import { Card, DetailRow, StatBox } from "@/ui/AgentPageComponents";
-import { MdEdit, MdVerifiedUser } from "react-icons/md";
+import { MdEdit, MdVerified, MdVerifiedUser } from "react-icons/md";
 import { HiOutlineXMark } from "react-icons/hi2";
 import { HiOutlineDownload } from "react-icons/hi";
 import { toast } from "sonner";
@@ -83,6 +83,57 @@ const NotFoundState = () => (
     </div>
   </div>
 );
+
+const formatVerificationStatus = (status?: string) => {
+  if (!status) return "Pending";
+  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+};
+
+const VerificationStatusBadge = ({ status }: { status?: string }) => {
+  const normalized = (status || "pending").toLowerCase();
+
+  const statusStyles: Record<
+    string,
+    { wrapper: string; dot: string; label: string; showVerifiedIcon?: boolean }
+  > = {
+    approved: {
+      wrapper: "border-emerald-200 bg-emerald-50/90 text-emerald-700",
+      dot: "bg-emerald-500",
+      label: "Approved",
+      showVerifiedIcon: true,
+    },
+    pending: {
+      wrapper: "border-amber-200 bg-amber-50/90 text-amber-700",
+      dot: "bg-amber-500",
+      label: "Pending",
+    },
+    rejected: {
+      wrapper: "border-rose-200 bg-rose-50/90 text-rose-700",
+      dot: "bg-rose-500",
+      label: "Rejected",
+    },
+    default: {
+      wrapper: "border-gray-200 bg-gray-50 text-gray-700",
+      dot: "bg-gray-400",
+      label: formatVerificationStatus(status),
+    },
+  };
+
+  const current = statusStyles[normalized] || statusStyles.default;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold tracking-[0.01em] shadow-sm ${current.wrapper}`}
+    >
+      {current.showVerifiedIcon ? (
+        <MdVerified className="text-sm" />
+      ) : (
+        <span className={`h-2 w-2 rounded-full ${current.dot}`} />
+      )}
+      <span>{current.label}</span>
+    </span>
+  );
+};
 
 // Image Preview Component
 interface ImagePreviewProps {
@@ -331,6 +382,7 @@ const AgentProfilePage = () => {
     queryFn: getMyAgentProfile,
   });
 
+
   const {
     data: membership,
     isLoading: membershipLoading,
@@ -522,6 +574,8 @@ const AgentProfilePage = () => {
                 Verified
               </span>
             )}
+
+            <VerificationStatusBadge status={agent.verificationStatus} />
           </div>
 
           <p className="text-gray-600 mt-1 font-medium">
@@ -576,7 +630,10 @@ const AgentProfilePage = () => {
             label="Valid Till"
             value={new Date(agent.licenseValidTill).toLocaleDateString()}
           />
-          <DetailRow label="Verification" value={agent.verificationStatus} />
+          <div className="flex items-center justify-between py-3">
+            <span className="text-sm text-gray-500">Verification</span>
+            <VerificationStatusBadge status={agent.verificationStatus} />
+          </div>
         </Card>
 
         <Card title="Service Information">

@@ -365,34 +365,49 @@ const AgentService = {
 
     const fromDate = getFromDate(range);
 
-    /* ✅ Normalize all models to one type */
-    const models: Model<any>[] = [
-      Residential as Model<IResidential>,
-      Commercial as Model<ICommercial>,
-      LandPlot as Model<ILand>,
-      Agricultural as Model<IAgricultural>,
+    const propertySources: Array<{
+      key: "residential" | "commercial" | "plot" | "agricultural";
+      model: Model<any>;
+    }> = [
+      {
+        key: "residential",
+        model: Residential as Model<IResidential>,
+      },
+      {
+        key: "commercial",
+        model: Commercial as Model<ICommercial>,
+      },
+      {
+        key: "plot",
+        model: LandPlot as Model<ILand>,
+      },
+      {
+        key: "agricultural",
+        model: Agricultural as Model<IAgricultural>,
+      },
     ];
 
     /* ✅ Fetch all properties */
-    const allProperties = (
-      await Promise.all(
-        models.map((m) =>
-          m
-            .find(
-              { createdBy: userId, createdAt: { $gte: fromDate } },
-              {
-                title: 1,
-                city: 1,
-                gallery: 1,
-                meta: 1,
-                status: 1,
-                createdAt: 1,
-              },
-            )
-            .lean(),
-        ),
-      )
-    ).flat();
+    const propertiesByType = await Promise.all(
+      propertySources.map(async ({ key, model }) => ({
+        key,
+        items: await model
+          .find(
+            { createdBy: userId, createdAt: { $gte: fromDate } },
+            {
+              title: 1,
+              city: 1,
+              gallery: 1,
+              meta: 1,
+              status: 1,
+              createdAt: 1,
+            },
+          )
+          .lean(),
+      })),
+    );
+
+    const allProperties = propertiesByType.flatMap(({ items }) => items);
 
     /* ------------------ KPI totals ------------------ */
 
@@ -427,10 +442,24 @@ const AgentService = {
 
     /* ------------------ Final payload ------------------ */
 
+    const stats = propertiesByType.reduce(
+      (acc, { key, items }) => {
+        acc[key] = items.length;
+        return acc;
+      },
+      {
+        residential: 0,
+        commercial: 0,
+        plot: 0,
+        agricultural: 0,
+      },
+    );
+
     return {
       exists: true,
       agent,
       range,
+      stats,
       kpis: {
         totalProperties: allProperties.length,
         activeListings: active,

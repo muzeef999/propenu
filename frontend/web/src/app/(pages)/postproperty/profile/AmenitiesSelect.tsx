@@ -175,8 +175,7 @@ const AmenitiesSelect = ({
                               className={`w-24 h-24 rounded-xl flex flex-col items-center justify-center transition-all duration-200 border ${checked
                                   ? "border-green-600 bg-green-50"
                                   : "border-gray-300 bg-white hover:bg-gray-50"
-                                }
-  `}
+                                }`}
                             >
                               <div className="mb-2 flex justify-center">
                                 {typeof amenity.icon === "string" ? (
