@@ -34,8 +34,8 @@ export interface IGalleryItem {
   category?: string;
   order?: number;
   fileName: string;
-  key: String;
-  mimetype: String;
+  key: string;
+  mimetype: string;
 }
 
 export interface IAmenity {
@@ -47,8 +47,8 @@ export interface IAmenity {
 export interface Ibrochure {
   key?: string;
   url?: string;
-  filename?: String,
-  mimetype?: String,
+  filename?: string,
+  mimetype?: string,
 }
 
 export interface IAboutSummary {

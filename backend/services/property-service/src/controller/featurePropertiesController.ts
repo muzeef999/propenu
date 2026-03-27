@@ -3,6 +3,8 @@ import { CreateFeaturePropertyDTO, UpdateFeaturePropertyDTO, CreateFeatureProper
 import { FeaturePropertyService } from "../services/featurePropertiesServices";
 import { ZodError } from "zod";
 import { AuthRequest } from "../middlewares/authMiddleware";
+import FeatureProperty from "../models/featurePropertiesModel";
+import { deleteS3ObjectIfExists } from "../utils/s3Helpers";
 
 
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -263,5 +265,42 @@ export const deleteFeatureProperties = async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error("deleteFeatureProperties:", err);
     return res.status(400).json({ error: err.message || "Bad request" });
+  }
+};
+
+export const deleteFeatureGalleryImage = async (req: Request, res: Response) => {
+  try {
+    const { id, imageIndex } = req.params;
+
+    if (!id || imageIndex === undefined) {
+      return res.status(400).json({ message: "Missing params" });
+    }
+
+    const property = await FeatureProperty.findById(id);
+
+    if (!property) {
+      return res.status(404).json({ message: "Feature property not found" });
+    }
+
+    const index = Number(imageIndex);
+
+    if (!property.gallerySummary?.[index]) {
+      return res.status(404).json({ message: "Image not found" });
+    }
+
+    const image = property.gallerySummary[index];
+
+    if (image.key) {
+      await deleteS3ObjectIfExists(image.key);
+    }
+
+    property.gallerySummary.splice(index, 1);
+
+    await property.save();
+
+    return res.json({ success: true, data: property.gallerySummary });
+  } catch (err: any) {
+    console.error("deleteFeatureGalleryImage:", err);
+    return res.status(500).json({ message: err.message });
   }
 };
