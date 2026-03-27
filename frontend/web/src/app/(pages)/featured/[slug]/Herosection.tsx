@@ -142,7 +142,7 @@ export default function HeroSection({ hero }: Props) {
               {h.subTagline}
             </h1>
             <h2
-              className="text-md sm:text-3xl line-clamp-2 drop-shadow-lg"
+              className="lg:text-xl sm:text-3xl line-clamp-2 drop-shadow-lg"
               style={{
                 color: h.color || "#fff",
                 textShadow: "0 2px 10px rgba(0,0,0,0.8)"

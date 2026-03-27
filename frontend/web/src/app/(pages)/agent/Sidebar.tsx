@@ -15,7 +15,7 @@ const menuItems = [
   {
     label: "My Properties",
     mobileLabel: "Props",
-    link: "/agent/my-properties",
+    link: "/agent/my-projects ",
     icon: Building,
   },
   {

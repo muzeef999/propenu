@@ -9,10 +9,20 @@ import {
 } from "../services/kycService";
 import crypto from "crypto";
 import { generateToken } from "../utils/jwt";
-
-import { sendTemplateMessage } from "../../../../shared/whatsapp/whatsapp.service";
-import { WHATSAPP_TEMPLATES } from "../../../../shared/whatsapp/whatsapp.templates";
+import { sendWhatsAppEvent } from "../../../../shared/whatsapp/whatsapp.helper";
 import { sendWelcomeEmail } from "../utils/email";
+
+function getVerifiedWhatsAppEvent(roleName?: string) {
+  if (roleName === "user") {
+    return "USER_VERIFIED_BUYER" as const;
+  }
+
+  if (roleName === "agent" || roleName === "sales_agent") {
+    return "USER_VERIFIED_AGENT" as const;
+  }
+
+  return "USER_VERIFIED_OWNER" as const;
+}
 
 function generatePKCE() {
   const codeVerifier = crypto.randomBytes(32).toString("hex");
@@ -119,6 +129,33 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
       }
     } catch (err) {
       console.error("⚠️ Welcome email failed:", err);
+    }
+
+    try {
+      if (updatedUser?.phone && updatedUser?.name) {
+        const role: any = updatedUser?.roleId;
+        const whatsappEvent = getVerifiedWhatsAppEvent(role?.name);
+
+        console.log("📤 Sending WhatsApp:", {
+          event: whatsappEvent,
+          phone: updatedUser.phone,
+          parameters: [updatedUser.name],
+        });
+
+        const whatsappResult = await sendWhatsAppEvent(
+          whatsappEvent,
+          updatedUser.phone,
+          [updatedUser.name],
+        );
+
+        if (whatsappResult.status === "error") {
+          console.error("❌ WhatsApp failed:", whatsappResult.reason);
+        } else {
+          console.log("✅ WhatsApp sent successfully");
+        }
+      }
+    } catch (err) {
+      console.error("❌ WhatsApp error:", err);
     }
 
     // ✅ REDIRECT TO FRONTEND SETTINGS PAGE
