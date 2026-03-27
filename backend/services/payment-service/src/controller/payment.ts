@@ -1,8 +1,5 @@
 import { Request, Response } from "express";
-import {
-  createPaymentOrder,
-  verifyPaymentAndActivate,
-} from "../services/payment";
+import { createPaymentOrder,  verifyPaymentAndActivate,} from "../services/payment";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { sendSubscriptionActivatedEmail } from "../../../../shared/email/email.helper";
 
