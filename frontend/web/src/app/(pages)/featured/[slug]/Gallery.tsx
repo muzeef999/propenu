@@ -86,6 +86,7 @@ export default function Gallery(props: Props) {
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     .map((video) => ({ ...video, embedUrl: toYoutubeEmbedUrl(video.url) }))
     .filter((video) => Boolean(video.embedUrl));
+  const hasSingleYoutubeVideo = youtubeVideos.length === 1;
 
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const startX = useRef<number | null>(null);
@@ -237,15 +238,22 @@ export default function Gallery(props: Props) {
 
       {youtubeVideos.length > 0 && (
         <div className="mt-4" id="video-gallery">
-
           <div
             ref={videoTrackRef}
-            className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory no-scrollbar pb-1"
+            className={
+              hasSingleYoutubeVideo
+                ? "mx-auto max-w-4xl"
+                : "flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory no-scrollbar pb-1"
+            }
           >
             {youtubeVideos.map((video, idx) => (
               <div
                 key={`${video.url}-${idx}`}
-                className="shrink-0 w-full md:w-1/3 rounded-xl overflow-hidden bg-white shadow-sm border border-gray-100 snap-start"
+                className={
+                  hasSingleYoutubeVideo
+                    ? "w-full rounded-xl overflow-hidden bg-white shadow-sm border border-gray-100"
+                    : "shrink-0 w-full md:w-1/3 rounded-xl overflow-hidden bg-white shadow-sm border border-gray-100 snap-start"
+                }
               >
                 <div className="relative w-full pb-[56.25%]">
                   <iframe
@@ -263,24 +271,26 @@ export default function Gallery(props: Props) {
               </div>
             ))}
           </div>
-          <div className="mt-4 flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => scrollVideos("left")}
-              className="h-9 w-9 rounded-full border border-gray-200 bg-white text-slate-700 hover:bg-slate-50 flex items-center justify-center"
-              aria-label="Previous videos"
-            >
-              <HiChevronLeft size={18} />
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollVideos("right")}
-              className="h-9 w-9 rounded-full border border-gray-200 bg-white text-slate-700 hover:bg-slate-50 flex items-center justify-center"
-              aria-label="Next videos"
-            >
-              <HiChevronRight size={18} />
-            </button>
-          </div>
+          {!hasSingleYoutubeVideo && (
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => scrollVideos("left")}
+                className="h-9 w-9 rounded-full border border-gray-200 bg-white text-slate-700 hover:bg-slate-50 flex items-center justify-center"
+                aria-label="Previous videos"
+              >
+                <HiChevronLeft size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollVideos("right")}
+                className="h-9 w-9 rounded-full border border-gray-200 bg-white text-slate-700 hover:bg-slate-50 flex items-center justify-center"
+                aria-label="Next videos"
+              >
+                <HiChevronRight size={18} />
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -380,4 +390,3 @@ export default function Gallery(props: Props) {
     </section>
   );
 }
-

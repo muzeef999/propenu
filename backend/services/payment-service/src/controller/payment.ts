@@ -2,6 +2,48 @@ import { Request, Response } from "express";
 import { createPaymentOrder,  verifyPaymentAndActivate,} from "../services/payment";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { sendSubscriptionActivatedEmail } from "../../../../shared/email/email.helper";
+import {
+  sendPaymentSuccess,
+  sendSubscriptionActivated,
+} from "../../../../shared/whatsapp/whatsapp.helper";
+import User from "../../../user-service/src/models/userModel";
+
+const isAgentRole = (roleName?: string) =>
+  roleName === "agent" || roleName === "sales_agent";
+
+async function sendSubscriptionWhatsAppNotification(
+  userId: string,
+  roleName: string | undefined,
+  subscriptionName: string,
+) {
+  try {
+    const user = await User.findById(userId).select("name phone").lean();
+
+    if (!user?.phone || !user?.name) {
+      return false;
+    }
+
+    const parameters = [user.name.trim() || "Customer", subscriptionName];
+
+    if (isAgentRole(roleName)) {
+      await sendSubscriptionActivated(user.phone, parameters);
+    } else {
+      await sendPaymentSuccess(user.phone, parameters);
+    }
+
+    return true;
+  } catch (whatsAppError: any) {
+    console.error("[payment] failed to send subscription activation WhatsApp", {
+      userId,
+      roleName,
+      subscriptionName,
+      error: whatsAppError?.message,
+      response: whatsAppError?.response,
+    });
+
+    return false;
+  }
+}
 
 /* ---------------- CREATE PAYMENT ---------------- */
 
@@ -27,16 +69,32 @@ const userType =
 
     const result = await createPaymentOrder(planId, userId, userType);
 
-  if ("free" in result) {
-  return res.json({
-    success: true,
-    free: true,
-    alreadyActive: result.alreadyActive || false, // 🔥 IMPORTANT
-    message: result.alreadyActive
-      ? "You already have an active plan"
-      : "Free plan activated 🎉",
-  });
-}
+    let whatsappSent = false;
+
+    if (
+      "free" in result &&
+      !result.alreadyActive &&
+      result.subscriptionName &&
+      req.user?.id
+    ) {
+      whatsappSent = await sendSubscriptionWhatsAppNotification(
+        req.user.id,
+        req.user.roleName,
+        result.subscriptionName,
+      );
+    }
+
+    if ("free" in result) {
+      return res.json({
+        success: true,
+        free: true,
+        alreadyActive: result.alreadyActive || false, // 🔥 IMPORTANT
+        whatsappSent,
+        message: result.alreadyActive
+          ? "You already have an active plan"
+          : "Free plan activated 🎉",
+      });
+    }
 
     res.json(result);
   } catch (error: any) {
@@ -61,6 +119,7 @@ export async function verifyPayment(req: AuthRequest, res: Response) {
     );
 
     let emailSent = false;
+    let whatsappSent = false;
 
     if (!result.alreadyPaid && result.subscriptionName && req.user?.email) {
       try {
@@ -85,9 +144,18 @@ export async function verifyPayment(req: AuthRequest, res: Response) {
       }
     }
 
+    if (!result.alreadyPaid && result.subscriptionName && req.user?.id) {
+      whatsappSent = await sendSubscriptionWhatsAppNotification(
+        req.user.id,
+        req.user.roleName,
+        result.subscriptionName,
+      );
+    }
+
     res.json({
       message: result.message || "Payment verified & subscription activated",
       emailSent,
+      whatsappSent,
     });
   } catch (error: any) {
     res.status(400).json({ message: error.message });
