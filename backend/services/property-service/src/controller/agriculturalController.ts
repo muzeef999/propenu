@@ -12,6 +12,7 @@ import User from "../models/userModel";
 import { sendManagerApprovalMail } from "../utils/sendManagerMail";
 import mongoose from "mongoose";
 import { deleteS3ObjectIfExists } from "../utils/s3Helpers";
+import { sendListingSubmittedVerification } from "../../../../shared/whatsapp/whatsapp.helper";
 import { sendListingApprovedEmail } from "../../../../shared/email/email.helper";
  
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -531,6 +532,24 @@ export const finalizeAgricultural = async (req: AuthRequest, res: Response) => {
     const fresh = await Agricultural.findById(property._id)
       .populate("createdBy", "name email phone")
       .lean();
+
+    try {
+      const owner: any = fresh?.createdBy;
+
+      if (owner?.phone && owner?.name) {
+        console.log("📩 Sending listing submitted WhatsApp message...");
+
+        await sendListingSubmittedVerification(
+          owner.phone,
+          owner.name,
+          property.title || "Property",
+        );
+
+        console.log("✅ Listing submitted WhatsApp sent");
+      }
+    } catch (err) {
+      console.error("⚠️ WhatsApp listing message failed:", err);
+    }
 
     return res.json({
       success: true,

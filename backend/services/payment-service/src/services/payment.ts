@@ -54,6 +54,7 @@ export async function createPaymentOrder(
       return {
         free: true,
         alreadyActive: true,
+        subscriptionName: plan.name || plan.code,
         message: "Free plan already active"
       };
     }
@@ -89,6 +90,7 @@ export async function createPaymentOrder(
 
     return {
       free: true,
+      subscriptionName: plan.name || plan.code,
       message: "Free plan activated"
     };
   }

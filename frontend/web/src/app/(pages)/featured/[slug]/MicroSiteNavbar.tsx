@@ -4,6 +4,9 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Download } from "@/icons/icons";
+import Cookies from "js-cookie";
+import LoginDialog from "@/app/(auth)/Login";
+import RegisterDialog from "@/app/(auth)/Register";
 
 export type NavLink = {
   title: string;
@@ -34,6 +37,8 @@ export default function MicroSiteNavbar({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const pathname = usePathname() || "/";
   const [activeHash, setActiveHash] = useState("");
 
@@ -90,11 +95,25 @@ export default function MicroSiteNavbar({
   };
   const logoHref = redirectUrl?.trim() || "/";
   const isExternalLogoHref = /^https?:\/\//i.test(logoHref);
+  const handleBrochureDownload = () => {
+    if (!brochureUrl) return;
+
+    const token = Cookies.get("token")?.trim();
+    if (!token) {
+      setOpen(false);
+      setShowRegisterDialog(false);
+      setShowLoginDialog(true);
+      return;
+    }
+
+    window.open(brochureUrl, "_blank", "noopener,noreferrer");
+  };
 
   return (
-    <header className={`bg-white shadow-md border-b border-gray-200 sticky top-0 z-9999 ${isGalleryOpen ? "hidden" : ""}`}>
-      <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="h-14 flex items-center justify-between">
+    <>
+      <header className={`bg-white shadow-md border-b border-gray-200 sticky top-0 z-9999 ${isGalleryOpen ? "hidden" : ""}`}>
+        <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="h-14 flex items-center justify-between">
           {/* logo */}
           {isExternalLogoHref ? (
             <a
@@ -149,14 +168,14 @@ export default function MicroSiteNavbar({
             {/* download / brochure */}
             <div className="relative group">
               {brochureUrl ? (
-                <a
-                  href={brochureUrl}
-                  download
+                <button
+                  type="button"
+                  onClick={handleBrochureDownload}
                   aria-label="Download brochure"
                   className="p-2 rounded hover:bg-slate-100 transition inline-flex items-center"
                 >
                   <Download size={24} color={iconColor} />
-                </a>
+                </button>
               ) : (
                 <button
                   type="button"
@@ -239,14 +258,14 @@ export default function MicroSiteNavbar({
               {/* mobile download button shown in the menu too */}
               <li>
                 {brochureUrl ? (
-                  <a
-                    href={brochureUrl}
-                    download
+                  <button
+                    type="button"
+                    onClick={handleBrochureDownload}
                     className=" px-3 py-2 rounded-md hover:bg-slate-50 hover:text-sky-600 transition flex items-center"
                   >
                     <Download size={18} color={iconColor} />
                     <span>Download Brochure</span>
-                  </a>
+                  </button>
                 ) : (
                   <div className="block px-3 py-2 text-sm text-slate-500">Brochure not available</div>
                 )}
@@ -254,7 +273,30 @@ export default function MicroSiteNavbar({
             </ul>
           </div>
         )}
-      </nav>
-    </header>
+        </nav>
+      </header>
+
+      {showLoginDialog && (
+        <LoginDialog
+          open
+          onClose={() => setShowLoginDialog(false)}
+          onSwitchToRegister={() => {
+            setShowLoginDialog(false);
+            setShowRegisterDialog(true);
+          }}
+        />
+      )}
+
+      {showRegisterDialog && (
+        <RegisterDialog
+          open
+          onClose={() => setShowRegisterDialog(false)}
+          onSwitchToLogin={() => {
+            setShowRegisterDialog(false);
+            setShowLoginDialog(true);
+          }}
+        />
+      )}
+    </>
   );
 }
