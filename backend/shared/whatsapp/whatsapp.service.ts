@@ -4,17 +4,17 @@ import {
   WhatsAppCategory,
   WhatsAppEvent,
 } from "./whatsapp.templates";
+
 import path from "path";
 import dotenv from "dotenv";
 
 const envPath = path.resolve(
   process.cwd(),
-  "../user-service/.env"
+  "../../services/user-service/.env"
 );
 
 dotenv.config({ path: envPath });
 
-console.log("✅ ENV PATH:", envPath);
 
 
 const PHONE_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
