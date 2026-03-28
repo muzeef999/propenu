@@ -89,7 +89,7 @@ export default function FeaturedProjectsClient() {
             className="shrink-0 w-[90%] sm:w-[calc(50%-0.5rem)] lg:w-[calc(50%-0.5rem)] card snap-start group"
           >
             <Link
-              href={`/featured/${project.slug}`}
+              href={`/prime/${project.slug}`}
               className="relative block overflow-hidden rounded-t-md h-40 sm:h-[50px] md:h-[200px] lg:h-[220px]"
             >
               <Image

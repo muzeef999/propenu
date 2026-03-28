@@ -107,7 +107,7 @@ export default function HighlightProjectsClient() {
         {items.map((project) => (
           <Link
             key={project._id}
-            href={`/featured/${project.slug}`}
+            href={`/prime/${project.slug}`}
             className="relative shrink-0 snap-start group cursor-pointer transition-all duration-300 hover:-translate-y-2 w-[260px] sm:w-[280px] md:w-[320px]"
           >
             {/* IMAGE box */}

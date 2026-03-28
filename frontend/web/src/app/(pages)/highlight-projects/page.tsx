@@ -228,7 +228,7 @@ const HotspotsPage = () => {
                                 {items.map((project) => (
                                     <Link
                                         key={project._id}
-                                        href={`/featured/${project.slug}`}
+                                        href={`/prime/${project.slug}`}
                                         className="block"
                                     >
                                         <div className="flex flex-col lg:flex-row card rounded-xl p-2 sm:p-3 gap-3 sm:gap-4">

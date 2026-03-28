@@ -24,7 +24,7 @@ const Myproperties: React.FC<ProjectCardProps> = ({
         {list.map((project) => (
           <div key={project._id} className="w-full card">
             <Link
-              href={`/featured/${project.slug}`}
+              href={`/prime/${project.slug}`}
               className="block h-[200px] overflow-hidden rounded-t-md"
             >
               <img

@@ -5,7 +5,7 @@ import TestomianalHome from "./(pages)/reviews/TestomianalHome";
 import ExploreMorePropertiesPage from "./(pages)/explore-properties/Explore-properties";
 import SearchBox from "@/components/SearchBox";
 import ExploreOurServices from "@/app/(pages)/explore-properties/ExploreOurServices";
-import FeaturedProjectsClient from "./(pages)/featured/FeaturedProjectsClient";
+import FeaturedProjectsClient from "./(pages)/prime/FeaturedProjectsClient";
 import HighlightProjectsClient from "./(pages)/highlight-projects/HighlightProjectsClient";
 import AgentsList from "./(pages)/agent-connect/AgentCard";
 import PopularOwnerPropertiesClient from "./(pages)/owner-listed/PopularOwnerPropertiesClient";
