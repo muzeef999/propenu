@@ -243,8 +243,22 @@ export const updateUserRole = async (req: Request, res: Response) => {
 
 export const getAllUsers = async (_req: Request, res: Response) => {
   try {
-    const users = await User.find().select("-token");
-    res.json(users);
+    const users = await User.find()
+      .select("-token")
+      .populate("roleId", "name")
+      .lean();
+
+    const formattedUsers = users.map((user: any) => {
+      const role = user.roleId;
+
+      return {
+        ...user,
+        roleId: role?._id ? String(role._id) : user.roleId ? String(user.roleId) : null,
+        roleName: role?.name || null,
+      };
+    });
+
+    res.json(formattedUsers);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch users" });
   }

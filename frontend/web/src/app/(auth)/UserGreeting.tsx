@@ -17,19 +17,19 @@ interface UserGreetingProps {
 }
 
 const GreetingOptions = [
+  { label: "Account & Settings", link: "/settings" },
   { label: "My Properties", link: "/my-properties" },
   { label: "Shortlisted Properties", link: "/shortlisted-properties" },
   { label: "Contacted Properties", link: "/contacted-properties" },
-  { label: "Manage Subscription", link: "/membership" },
-  { label: "Account & Settings", link: "/settings" },
+  { label: "Membership", link: "/membership" },
   { label: "Logout", link: "/logout" },
 ];
 
 const AgentOptions = [
   { label: "Dashboard", link: "/agent" },
+  { label: "Leads", link: "/agent/leads" },
   { label: "My Properties", link: "/agent/my-properties" },
   { label: "Shortlisted Properties", link: "/agent/shortlisted-properties" },
-  { label: "Leads", link: "/agent/leads" },
   { label: "My Plans", link: "/agent/my-plan" },
   { label: "Account & Settings", link: "/agent/account-settings" },
   { label: "Logout", link: "/logout" },

@@ -13,21 +13,21 @@ const menuItems = [
     icon: profile,
   },
   {
+    label: "Leads",
+    mobileLabel: "Leads",
+    link: "/agent/leads",
+    icon: Building,
+  },
+  {
     label: "My Properties",
     mobileLabel: "Props",
-    link: "/agent/my-projects ",
+    link: "/agent/my-projects",
     icon: Building,
   },
   {
     label: "Shortlist Properties",
     mobileLabel: "Shortlist",
     link: "/agent/shortlisted-properties",
-    icon: Building,
-  },
-  {
-    label: "Leads",
-    mobileLabel: "Leads",
-    link: "/agent/leads",
     icon: Building,
   },
   {
