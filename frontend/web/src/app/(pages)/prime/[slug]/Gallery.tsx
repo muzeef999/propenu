@@ -87,6 +87,7 @@ export default function Gallery(props: Props) {
     .map((video) => ({ ...video, embedUrl: toYoutubeEmbedUrl(video.url) }))
     .filter((video) => Boolean(video.embedUrl));
   const hasSingleYoutubeVideo = youtubeVideos.length === 1;
+  const hasTwoYoutubeVideos = youtubeVideos.length === 2;
 
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const startX = useRef<number | null>(null);
@@ -243,6 +244,8 @@ export default function Gallery(props: Props) {
             className={
               hasSingleYoutubeVideo
                 ? "mx-auto max-w-4xl"
+                : hasTwoYoutubeVideos
+                  ? "grid grid-cols-1 gap-4 md:grid-cols-2"
                 : "flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory no-scrollbar pb-1"
             }
           >
@@ -252,6 +255,8 @@ export default function Gallery(props: Props) {
                 className={
                   hasSingleYoutubeVideo
                     ? "w-full rounded-xl overflow-hidden bg-white shadow-sm border border-gray-100"
+                    : hasTwoYoutubeVideos
+                      ? "w-full rounded-xl overflow-hidden bg-white shadow-sm border border-gray-100"
                     : "shrink-0 w-full md:w-1/3 rounded-xl overflow-hidden bg-white shadow-sm border border-gray-100 snap-start"
                 }
               >

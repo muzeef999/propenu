@@ -48,26 +48,25 @@ const FileUpload: React.FC<FileUploadProps> = ({
     preview.startsWith("blob:") || preview.startsWith("http");
 
   const compressFile = async (file: File) => {
-    if (!file.type.startsWith("image/")) return file;
+  if (!file.type.startsWith("image/")) return file;
 
-    try {
-      const compressed: Blob | File = await imageCompression(file, {
-        maxSizeMB,
-        maxWidthOrHeight: 1920,
-        useWebWorker: true,
-      });
+  try {
+    const compressedFile = await imageCompression(file, {
+      maxSizeMB: 1, // 🔥 force under 1MB
+      maxWidthOrHeight: 1920,
+      useWebWorker: true,
+      initialQuality: 0.8,
+    });
 
-      if (compressed instanceof File) return compressed;
-
-      return new File([compressed], file.name, {
-        type: compressed.type || file.type,
-        lastModified: Date.now(),
-      });
-    } catch (compressionError) {
-      console.error("Image compression failed, using original file.", compressionError);
-      return file;
-    }
-  };
+    return new File([compressedFile], file.name, {
+      type: compressedFile.type,
+      lastModified: Date.now(),
+    });
+  } catch (error) {
+    console.error("Compression failed", error);
+    return file;
+  }
+};
 
   /* ---------- Handle file select ---------- */
   const handleSelect = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -81,7 +80,9 @@ const FileUpload: React.FC<FileUploadProps> = ({
       const preparedFiles = await Promise.all(
         limitedFiles.map(async (file) => {
           const finalFile = await compressFile(file);
-          if (finalFile.size > maxSizeMB * 1024 * 1024) return null;
+          if (finalFile.size > 1 * 1024 * 1024) {
+  console.warn("Still larger than 1MB after compression");
+}
 
           return {
             file: finalFile,
