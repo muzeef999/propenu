@@ -1,6 +1,6 @@
 "use client";
 
-import { LOCATION_ICON_PATH, LOCATION_ICON_VIEWBOX, LocationIcon } from "@/icons/icons";
+import { LOCATION_ICON_PATH, LOCATION_ICON_VIEWBOX } from "@/icons/icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type NearbyPlace = {
@@ -174,12 +174,30 @@ function normalizeIncoming(
   };
 }
 
-function createMarkerIconDataUrl(colorHex: string, size = 28, useProjectIcon = false) {
+function createMarkerIconDataUrl(colorHex: string, size = 32, useProjectIcon = false) {
   const svgMarkup = useProjectIcon
     ? `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="${LOCATION_ICON_VIEWBOX}"><path fill="${colorHex}" d="${LOCATION_ICON_PATH}"/></svg>`
-    : `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24"><path fill="${colorHex}" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>`;
+    : `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 32 32" fill="none"><path d="M16 3.5C10.75 3.5 6.5 7.75 6.5 13c0 6.94 7.39 13.34 8.93 14.59a.9.9 0 0 0 1.14 0C18.11 26.34 25.5 19.94 25.5 13c0-5.25-4.25-9.5-9.5-9.5Z" fill="${colorHex}"/><path d="M16 5.25c4.28 0 7.75 3.47 7.75 7.75 0 5.37-5.3 10.87-7.75 12.99-2.45-2.12-7.75-7.62-7.75-12.99 0-4.28 3.47-7.75 7.75-7.75Z" fill="#ffffff" fill-opacity="0.18"/><circle cx="16" cy="13" r="4.25" fill="#ffffff"/><circle cx="16" cy="13" r="2.1" fill="${colorHex}"/></svg>`;
   const svg = encodeURIComponent(svgMarkup);
   return `data:image/svg+xml;utf8,${svg}`;
+}
+
+function NearbyPlaceIcon({ color }: { color: string }) {
+  return (
+    <svg viewBox="0 0 32 32" className="h-5 w-5" fill="none" aria-hidden="true">
+      <path
+        d="M16 3.5C10.75 3.5 6.5 7.75 6.5 13c0 6.94 7.39 13.34 8.93 14.59a.9.9 0 0 0 1.14 0C18.11 26.34 25.5 19.94 25.5 13c0-5.25-4.25-9.5-9.5-9.5Z"
+        fill={color}
+      />
+      <path
+        d="M16 5.25c4.28 0 7.75 3.47 7.75 7.75 0 5.37-5.3 10.87-7.75 12.99-2.45-2.12-7.75-7.62-7.75-12.99 0-4.28 3.47-7.75 7.75-7.75Z"
+        fill="#ffffff"
+        fillOpacity="0.18"
+      />
+      <circle cx="16" cy="13" r="4.25" fill="#ffffff" />
+      <circle cx="16" cy="13" r="2.1" fill={color} />
+    </svg>
+  );
 }
 
 function escapeHtml(value: string) {
@@ -345,9 +363,9 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
             const marker = new mapplsSdk.Marker({
               map,
               position: { lat, lng },
-              icon: createMarkerIconDataUrl(color, 28, false),
-              width: 28,
-              height: 28,
+              icon: createMarkerIconDataUrl(color, 32, false),
+              width: 32,
+              height: 32,
               popupHtml: `<div style="font-weight:600">${escapeHtml(item.p.name ?? "Place")}</div><div style="font-size:12px;color:#444;margin-top:4px">${escapeHtml(item.p.type ?? "")} • ${escapeHtml(item.distanceText ?? "")}</div>`,
             });
 
@@ -463,11 +481,12 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <div className="w-9 h-9 rounded-md flex items-center justify-center" style={{ background: isHex ? `${color}11` : undefined }}>
-                        <LocationIcon color={color} />
+                        <NearbyPlaceIcon color={color} />
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-slate-900 truncate">{p.name}</div>
-                        <div className="mt-1 text-xs text-slate-500">
+                        <div className="text-sm font-medium text-slate-900 truncate">
+                          {p.name?.split(",")[0]}
+                        </div>                        <div className="mt-1 text-xs text-slate-500">
                           {p.type ?? "Place"} • {distanceText ?? p.distanceText ?? "-"}
                         </div>
                       </div>
