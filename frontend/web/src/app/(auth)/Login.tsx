@@ -21,6 +21,7 @@ interface LoginDialogProps {
 const OTP_LENGTH = 4;
 const INDIA_COUNTRY_CODE = "+91";
 const INDIA_PHONE_REGEX = /^\+91\d{10}$/;
+const INDIA_PHONE_INPUT_MAX_LENGTH = 15;
 
 const phoneSchema = z.string().regex(INDIA_PHONE_REGEX, {
   message: "Enter a valid 10-digit mobile number with +91.",
@@ -263,7 +264,7 @@ if (localShortlist.length > 0) {
                       smartCaret={false}
                       countryCallingCodeEditable={false}
                       numberInputProps={{
-                        maxLength: 10,
+                        maxLength: INDIA_PHONE_INPUT_MAX_LENGTH,
                         inputMode: "numeric",
                       }}
                       value={phone}
