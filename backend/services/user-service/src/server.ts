@@ -21,7 +21,6 @@ const port = process.env.PORT ?? 4004;
 async function start() {
   try {
     await connectDB();
-
     app.get("/", (req, res) => {
       res.json({ message: "User Service is running" });
     });
