@@ -16,7 +16,7 @@ export const agentWelcomeEmail = (
   </p>
 
   <p>
-    You’re officially part of a platform built on verified users, verified properties, zero spam, and secure transactions.
+    You’re officially part of a platform built on turst with: verified users, verified properties, zero spam, and secure transactions.
   </p>
 
   <p>

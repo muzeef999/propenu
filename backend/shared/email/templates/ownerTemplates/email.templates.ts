@@ -11,7 +11,7 @@ export const ownerWelcomeEmail = (name: string, link: string = "https://propenu.
   </p>
 
   <p>
-    You’re officially part of a platform built on verified users, verif ied properties, zero spam, and secure transactions.
+    You’re officially part of a platform built on trust with: verified users, verified properties, zero spam, and secure transactions.
   </p>
 
   <p>

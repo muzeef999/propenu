@@ -6,21 +6,8 @@ import { generateToken } from "../utils/jwt";
 import { Request, Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { sendOtpWhatsApp } from "../utils/whatsapp";
-import { sendOtpEmail, sendSignupEmailByRole } from "../utils/email";
+import { sendOtpEmail } from "../utils/email";
 import mongoose from "mongoose";
-import { sendWhatsAppEvent } from "../../../../shared/whatsapp/whatsapp.helper";
-
-function getSignupWhatsAppEvent(roleName: string) {
-  if (roleName === "user") {
-    return "USER_VERIFIED_BUYER" as const;
-  }
-
-  if (roleName === "agent" || roleName === "sales_agent") {
-    return "USER_VERIFIED_AGENT" as const;
-  }
-
-  return "USER_VERIFIED_OWNER" as const;
-}
 
 export const requestOTP = async (req: Request, res: Response) => {
   try {
@@ -496,31 +483,6 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
         status: "not_started",
       },
     });
-
-    try {
-      if (user.email && user.name) {
-        await sendSignupEmailByRole(user.email, user.name, roleDoc.name);
-      }
-    } catch (emailError) {
-      console.error("Signup email failed:", emailError);
-    }
-
-    try {
-      if (user.phone && user.name) {
-        const whatsappEvent = getSignupWhatsAppEvent(roleDoc.name);
-        const whatsappResult = await sendWhatsAppEvent(
-          whatsappEvent,
-          user.phone,
-          [user.name],
-        );
-
-        if (whatsappResult.status === "error") {
-          console.error("Signup WhatsApp failed:", whatsappResult.reason);
-        }
-      }
-    } catch (whatsappError) {
-      console.error("Signup WhatsApp failed:", whatsappError);
-    }
 
     const token = generateToken({
       sub: String(user._id),

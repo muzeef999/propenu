@@ -15,7 +15,7 @@ import { ModalProvider, useModal } from "@/app/context/ModalContext";
 import { getFcmToken } from "@/utilies/getFcmToken";
 
 const HIDE_LAYOUT_ROUTES = [
-  "/featured",
+  "/prime",
   "/postproperty",
 ];
 

@@ -11,7 +11,7 @@ export const welcomeTemplate = (name: string, link: string) => `
   </p>
 
   <p>
-  You’re officially part of a platform built on:
+  You’re officially part of a platform built on trust with:
   </p>
 
   <ul>

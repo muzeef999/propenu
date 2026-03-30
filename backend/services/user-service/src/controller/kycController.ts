@@ -61,9 +61,8 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
   try {
     const { code, state } = req.query as any;
 
-    console.log("👉 Query Params:", { code, state });
-
-    console.log("👉 FRONTEND_URL:", process.env.FRONTEND_URL);
+    console.log("[KYC] Callback received:", { code, state });
+    console.log("[KYC] FRONTEND_URL:", process.env.FRONTEND_URL);
 
     if (!code || !state) {
       return res.status(400).json({ message: "Missing code/state" });
@@ -76,6 +75,7 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
     const profile = await fetchProfile(token.access_token);
 
     const docTypes = docs.items?.map((d: any) => d.name) || [];
+    console.log("[KYC] Documents fetched:", docTypes);
 
     const user = await User.findById(state);
 
@@ -86,11 +86,11 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
     const appPhone = normalizePhone(user.phone ?? undefined);
     const kycPhone = normalizePhone(profile.mobile ?? undefined);
 
-     console.log("📱 App Phone:", appPhone);
-    console.log("📱 KYC Phone:", kycPhone);
+    console.log("[KYC] App phone:", appPhone);
+    console.log("[KYC] DigiLocker phone:", kycPhone);
 
     if (appPhone !== kycPhone) {
-       console.log("❌ Phone mismatch → KYC REJECTED");
+      console.log("[KYC] Phone mismatch. Marking KYC as rejected.");
       await User.findByIdAndUpdate(state, {
         "kyc.status": "rejected",
         "kyc.remarks": "Phone number mismatch",
@@ -100,7 +100,7 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
     }
 
 
-    console.log("✅ Phone matched → KYC VERIFIED");
+    console.log("[KYC] Phone matched. Marking KYC as verified.");
 
     const updatedUser = await User.findByIdAndUpdate(
       state,
@@ -116,19 +116,26 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
       { new: true },
     ).populate("roleId");
 
-        console.log("✅ Updated User:", updatedUser);
+    console.log("[KYC] User updated after verification:", {
+      userId: updatedUser?._id,
+      accountStatus: updatedUser?.accountStatus,
+      kycStatus: updatedUser?.kyc?.status,
+    });
 
 
-    // 📧 Send Welcome Email after KYC verified
-    // 📧 Send Welcome Email
     try {
       if (updatedUser?.email && updatedUser?.name) {
-        console.log("📧 Sending welcome email...");
+        console.log("[KYC] Sending welcome email:", {
+          email: updatedUser.email,
+          name: updatedUser.name,
+        });
         await sendWelcomeEmail(updatedUser.email, updatedUser.name);
-        console.log("✅ Welcome email sent");
+        console.log("[KYC] Welcome email sent successfully.");
+      } else {
+        console.log("[KYC] Skipping welcome email. Missing email or name.");
       }
     } catch (err) {
-      console.error("⚠️ Welcome email failed:", err);
+      console.error("[KYC] Welcome email failed:", err);
     }
 
     try {
@@ -136,7 +143,7 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
         const role: any = updatedUser?.roleId;
         const whatsappEvent = getVerifiedWhatsAppEvent(role?.name);
 
-        console.log("📤 Sending WhatsApp:", {
+        console.log("[KYC] Sending WhatsApp template:", {
           event: whatsappEvent,
           phone: updatedUser.phone,
           parameters: [updatedUser.name],
@@ -149,17 +156,16 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
         );
 
         if (whatsappResult.status === "error") {
-          console.error("❌ WhatsApp failed:", whatsappResult.reason);
+          console.error("[KYC] WhatsApp template failed:", whatsappResult.reason);
         } else {
-          console.log("✅ WhatsApp sent successfully");
+          console.log("[KYC] WhatsApp template sent successfully.");
         }
+      } else {
+        console.log("[KYC] Skipping WhatsApp template. Missing phone or name.");
       }
     } catch (err) {
-      console.error("❌ WhatsApp error:", err);
+      console.error("[KYC] WhatsApp error:", err);
     }
-
-    // ✅ REDIRECT TO FRONTEND SETTINGS PAGE
-    // return res.redirect(`${process.env.FRONTEND_URL}/settings?kyc=success`);
 
     const role: any = updatedUser?.roleId;
 
@@ -173,11 +179,12 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
       permissions: role ? role.permissions : [],
     });
 
+    console.log("[KYC] Redirecting verified user to frontend.");
     return res.redirect(
       `${process.env.FRONTEND_URL}/?token=${jwtToken}&kyc=verified`,
     );
   } catch (err) {
-    console.error("KYC Error:", err);
+    console.error("[KYC] Callback failed:", err);
     return res.redirect(`${process.env.FRONTEND_URL}?kyc=failed`);
   }
 };

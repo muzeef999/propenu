@@ -4,10 +4,11 @@ import { requestOtp, syncShortlist, verifyOtp } from "@/data/ClientData";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
+import axios from "axios";
 import { VerifyOtpResponse } from "@/types/property";
 import { LuPencilLine } from "react-icons/lu";
 import { MdClose, MdOutlineWhatsapp } from "react-icons/md";
-import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
+import PhoneInput from "react-phone-number-input";
 import { z } from "zod";
 import "react-phone-number-input/style.css";
 import { useRouter } from "next/navigation";
@@ -18,9 +19,11 @@ interface LoginDialogProps {
 }
 
 const OTP_LENGTH = 4;
+const INDIA_COUNTRY_CODE = "+91";
+const INDIA_PHONE_REGEX = /^\+91\d{10}$/;
 
-const phoneSchema = z.string().refine(isValidPhoneNumber, {
-  message: "Invalid or incomplete phone number.",
+const phoneSchema = z.string().regex(INDIA_PHONE_REGEX, {
+  message: "Enter a valid 10-digit mobile number with +91.",
 });
 
 const otpSchema = z
@@ -43,9 +46,22 @@ const LoginDialog = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(INDIA_COUNTRY_CODE);
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const router = useRouter();
+
+  function normalizeIndianPhone(value?: string) {
+    if (!value) return INDIA_COUNTRY_CODE;
+
+    const digitsOnly = value.replace(/\D/g, "");
+    const nationalNumber = digitsOnly.startsWith("91")
+      ? digitsOnly.slice(2)
+      : digitsOnly;
+
+    if (!nationalNumber) return INDIA_COUNTRY_CODE;
+
+    return `${INDIA_COUNTRY_CODE}${nationalNumber.slice(0, 10)}`;
+  }
 
   if (!open) return null; // don't render when closed
 
@@ -161,7 +177,7 @@ if (localShortlist.length > 0) {
 
   function handleClose() {
     setStep("request");
-    setPhone("");
+    setPhone(INDIA_COUNTRY_CODE);
     setOtpDigits(Array(OTP_LENGTH).fill(""));
     setError(null);
     setInfo(null);
@@ -184,7 +200,17 @@ if (localShortlist.length > 0) {
       toast.success("OTP sent to your WhatsApp number");
       setStep("verify");
     } catch (err) {
-      setError("Something went wrong while requesting OTP.");
+      const backendMessage = axios.isAxiosError(err)
+        ? err.response?.data?.message ||
+          err.response?.data?.error ||
+          err.response?.data
+        : null;
+
+      setError(
+        typeof backendMessage === "string" && backendMessage.trim()
+          ? backendMessage
+          : "Something went wrong while requesting OTP.",
+      );
     } finally {
       setLoading(false);
     }
@@ -231,9 +257,18 @@ if (localShortlist.length > 0) {
                     <PhoneInput
                       international
                       defaultCountry="IN"
+                      countries={["IN"]}
+                      withCountryCallingCode
+                      limitMaxLength
+                      smartCaret={false}
+                      countryCallingCodeEditable={false}
+                      numberInputProps={{
+                        maxLength: 10,
+                        inputMode: "numeric",
+                      }}
                       value={phone}
                       onChange={(value) => {
-                        setPhone(value || "");
+                        setPhone(normalizeIndianPhone(value));
                         setError(null);
                       }}
                       placeholder="Enter your mobile number"

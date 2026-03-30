@@ -16,7 +16,7 @@ export const buyerWelcomeEmail = (
   </p>
 
   <p>
-    You’re officially part of a platform built on verified users, verified properties, zero spam, and secure transactions.
+    You’re officially part of a platform built on trust with: verified users, verified properties, zero spam, and secure transactions.
   </p>
 
   <p>
