@@ -12,9 +12,9 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Property Management Made Simple",
+  title: "Propenu | Smart, Trusted & Verified Real Estate Platform",
   description:
-    "Manage properties, tenants, leases, rent collection, and maintenance requests — all in one smart platform.",
+    "Post your property on Propenu and sell smarter. Verified listings, genuine buyers, and a completely spam-free experience.",
   keywords: [
     "Real Estate",
     "Property Management",

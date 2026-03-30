@@ -4,6 +4,7 @@ import { Request, Response } from "express";
 import User , { IUser } from "../models/userModel";
 import { sendBulkNotification, sendBulkPush } from "../../../../shared/notifications/push.service";
 import { HydratedDocument } from "mongoose";
+import Role from "../models/roleModel";
 
 
 export const saveFcmToken = async (req: Request, res: Response) => {
@@ -27,59 +28,97 @@ export const saveFcmToken = async (req: Request, res: Response) => {
 
 
 export const sendCustomNotification = async (req: Request, res: Response) => {
+ 
   try {
-    const { title, body, userIds, target, city } = req.body;
+    const { title, body, userIds,  role,  city,  state,  locality,  target,  image  } = req.body;
 
     if (!title || !body) {
       return res.status(400).json({ message: "Title & body required" });
     }
 
-    // ✅ FIX: Proper typing
-    let users: HydratedDocument<IUser>[] = [];
+    const query: any = {
+      fcmToken: { $ne: null },
+    };
 
-    // 🎯 1. Specific users
     if (userIds?.length) {
-      users = await User.find({
-        _id: { $in: userIds },
-        fcmToken: { $ne: null },
-      });
+      query._id = { $in: userIds };
     }
 
-    // 🎯 2. All users
-    else if (target === "all") {
-      users = await User.find({
-        fcmToken: { $ne: null },
-      });
+    if (role) {
+      const roleDoc = await Role.findOne({ name: role });
+
+      if (!roleDoc) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+
+      query.roleId = roleDoc._id;
     }
 
-    // 🎯 3. City-based
-    else if (city) {
-      users = await User.find({
-        city,
-        fcmToken: { $ne: null },
-      });
+    if (city) {
+      query.city = new RegExp(`^${city}$`, "i");
     }
+
+    if (state) {
+      query.state = new RegExp(`^${state}$`, "i");
+    }
+
+    if (locality) {
+      query.locality = new RegExp(`^${locality}$`, "i");
+    }
+
+    if (
+      target === "all" &&
+      !userIds &&
+      !role &&
+      !city &&
+      !state &&
+      !locality
+    ) {
+      // no extra filters needed
+    }
+
+    // 🚀 Fetch Users
+    const users: HydratedDocument<IUser>[] = await User.find(query);
 
     if (!users.length) {
-      return res.status(404).json({ message: "No users found" });
+      return res.status(404).json({
+        message: "No users found",
+        appliedQuery: query,
+      });
     }
 
-    // ✅ FIX: Safe token extraction
+    // 🎯 Extract Tokens
     const tokens = users
       .map((u) => u.fcmToken)
       .filter((token): token is string => !!token);
 
+    if (!tokens.length) {
+      return res.status(404).json({
+        message: "No valid FCM tokens found",
+      });
+    }
+
+    // 🚀 Send Notification
     await sendBulkPush({
       tokens,
       title,
       body,
+      image,
     });
 
     res.json({
+      success: true,
       message: `Notification sent to ${tokens.length} users 🚀`,
+      filters: query,
     });
+
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error sending notification" });
+    console.error("❌ Notification Error:", error);
+    res.status(500).json({
+      message: "Error sending notification",
+    });
   }
 };
+
+
+
