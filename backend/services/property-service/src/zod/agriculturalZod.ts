@@ -222,9 +222,16 @@ export const AgriculturalCreateSchema = BaseCreate.extend({
 
 /* ----------------------
    Agricultural UPDATE schema (PATCH)
-   - all fields optional, arrays do not default
+   - all fields optional
+   - do not auto-promote missing status to "active"
    ---------------------- */
-export const AgriculturalUpdateSchema = AgriculturalCreateSchema.partial();
+export const AgriculturalUpdateSchema = AgriculturalCreateSchema.omit({
+  status: true,
+})
+  .partial()
+  .extend({
+    status: preprocessEnumString(["active", "inactive", "archived"]).optional(),
+  });
 
 /* ---- Types ---- */
 export type CreateAgriculturalDTO = z.infer<typeof AgriculturalCreateSchema>;
