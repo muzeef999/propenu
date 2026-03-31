@@ -199,11 +199,6 @@ const LocationDetailsStep = () => {
 
         const city = formatToTitleCase(
           address.city ||
-          address.town ||
-          address.village ||
-          address.city_district ||
-          address.state_district ||
-          address.county ||
           ""
         );
 

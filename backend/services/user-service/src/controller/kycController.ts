@@ -10,7 +10,7 @@ import {
 import crypto from "crypto";
 import { generateToken } from "../utils/jwt";
 import { sendWhatsAppEvent } from "../../../../shared/whatsapp/whatsapp.helper";
-import { sendWelcomeEmail } from "../utils/email";
+import { sendSignupEmailByRole } from "../utils/email";
 
 function getVerifiedWhatsAppEvent(roleName?: string) {
   if (roleName === "user") {
@@ -240,11 +240,67 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
     } else {
       console.log("[KYC] Phone matched. Marking KYC as verified.");
 
-      await User.findByIdAndUpdate(state, {
-        "kyc.status": "verified",
-        "kyc.remarks": "KYC successful",
-        "kyc.documents": docTypes,
-      });
+      const updatedUser = await User.findByIdAndUpdate(
+        state,
+        {
+          "kyc.status": "verified",
+          "kyc.remarks": "KYC successful",
+          "kyc.documents": docTypes,
+        },
+        { new: true },
+      ).populate("roleId");
+
+      try {
+        const role: any = updatedUser?.roleId;
+        const roleName = role?.name ?? "owner";
+
+        if (updatedUser?.email && updatedUser?.name) {
+          console.log("[KYC] Sending welcome email:", {
+            email: updatedUser.email,
+            name: updatedUser.name,
+            roleName,
+          });
+          await sendSignupEmailByRole(
+            updatedUser.email,
+            updatedUser.name,
+            roleName,
+          );
+          console.log("[KYC] Welcome email sent successfully.");
+        } else {
+          console.log("[KYC] Skipping welcome email. Missing email or name.");
+        }
+      } catch (err) {
+        console.error("[KYC] Welcome email failed:", err);
+      }
+
+      try {
+        if (updatedUser?.phone && updatedUser?.name) {
+          const role: any = updatedUser?.roleId;
+          const whatsappEvent = getVerifiedWhatsAppEvent(role?.name);
+
+          console.log("[KYC] Sending WhatsApp template:", {
+            event: whatsappEvent,
+            phone: updatedUser.phone,
+            parameters: [updatedUser.name],
+          });
+
+          const whatsappResult = await sendWhatsAppEvent(
+            whatsappEvent,
+            updatedUser.phone,
+            [updatedUser.name],
+          );
+
+          if (whatsappResult.status === "error") {
+            console.error("[KYC] WhatsApp template failed:", whatsappResult.reason);
+          } else {
+            console.log("[KYC] WhatsApp template sent successfully.");
+          }
+        } else {
+          console.log("[KYC] Skipping WhatsApp template. Missing phone or name.");
+        }
+      } catch (err) {
+        console.error("[KYC] WhatsApp error:", err);
+      }
 
       status = "success";
     }
