@@ -10,7 +10,7 @@ import {
 import crypto from "crypto";
 import { generateToken } from "../utils/jwt";
 import { sendWhatsAppEvent } from "../../../../shared/whatsapp/whatsapp.helper";
-import { sendSignupEmailByRole } from "../utils/email";
+import { sendSignupEmailByRole, sendWelcomeEmail } from "../utils/email";
 
 function getVerifiedWhatsAppEvent(roleName?: string) {
   if (roleName === "user") {
@@ -194,158 +194,124 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
   try {
     const { code, state } = req.query as any;
 
-    console.log("[KYC] Callback received:", { code, state });
-    console.log("[KYC] FRONTEND_URL:", process.env.FRONTEND_URL);
+    console.log("👉 Query Params:", { code, state });
+
+    console.log("👉 FRONTEND_URL:", process.env.FRONTEND_URL);
 
     if (!code || !state) {
       return res.status(400).json({ message: "Missing code/state" });
     }
 
-    // 🔐 Exchange token
+    // state = userId
     const token = await exchangeToken(code, state);
-
-    // 📄 Fetch documents
     const docs = await fetchDocuments(token.access_token);
 
-    // 👤 Fetch profile
     const profile = await fetchProfile(token.access_token);
 
     const docTypes = docs.items?.map((d: any) => d.name) || [];
-    console.log("[KYC] Documents fetched:", docTypes);
 
     const user = await User.findById(state);
 
     if (!user) {
-      throw new Error("User not found.");
+      throw new Error("User not found");
     }
 
     const appPhone = normalizePhone(user.phone ?? undefined);
     const kycPhone = normalizePhone(profile.mobile ?? undefined);
 
-    console.log("[KYC] App phone:", appPhone);
-    console.log("[KYC] DigiLocker phone:", kycPhone);
+     console.log("📱 App Phone:", appPhone);
+    console.log("📱 KYC Phone:", kycPhone);
 
-    let status = "success";
-
-    // ❌ Phone mismatch → reject
     if (appPhone !== kycPhone) {
-      console.log("[KYC] Phone mismatch. Marking KYC as rejected.");
-
+       console.log("❌ Phone mismatch → KYC REJECTED");
       await User.findByIdAndUpdate(state, {
         "kyc.status": "rejected",
         "kyc.remarks": "Phone number mismatch",
       });
 
-      status = "rejected";
-    } else {
-      console.log("[KYC] Phone matched. Marking KYC as verified.");
-
-      const updatedUser = await User.findByIdAndUpdate(
-        state,
-        {
-          "kyc.status": "verified",
-          "kyc.remarks": "KYC successful",
-          "kyc.documents": docTypes,
-        },
-        { new: true },
-      ).populate("roleId");
-
-      try {
-        const role: any = updatedUser?.roleId;
-        const roleName = role?.name ?? "owner";
-
-        if (updatedUser?.email && updatedUser?.name) {
-          console.log("[KYC] Sending welcome email:", {
-            email: updatedUser.email,
-            name: updatedUser.name,
-            roleName,
-          });
-          await sendSignupEmailByRole(
-            updatedUser.email,
-            updatedUser.name,
-            roleName,
-          );
-          console.log("[KYC] Welcome email sent successfully.");
-        } else {
-          console.log("[KYC] Skipping welcome email. Missing email or name.");
-        }
-      } catch (err) {
-        console.error("[KYC] Welcome email failed:", err);
-      }
-
-      try {
-        if (updatedUser?.phone && updatedUser?.name) {
-          const role: any = updatedUser?.roleId;
-          const whatsappEvent = getVerifiedWhatsAppEvent(role?.name);
-
-          console.log("[KYC] Sending WhatsApp template:", {
-            event: whatsappEvent,
-            phone: updatedUser.phone,
-            parameters: [updatedUser.name],
-          });
-
-          const whatsappResult = await sendWhatsAppEvent(
-            whatsappEvent,
-            updatedUser.phone,
-            [updatedUser.name],
-          );
-
-          if (whatsappResult.status === "error") {
-            console.error("[KYC] WhatsApp template failed:", whatsappResult.reason);
-          } else {
-            console.log("[KYC] WhatsApp template sent successfully.");
-          }
-        } else {
-          console.log("[KYC] Skipping WhatsApp template. Missing phone or name.");
-        }
-      } catch (err) {
-        console.error("[KYC] WhatsApp error:", err);
-      }
-
-      status = "success";
+      return res.redirect(`${process.env.FRONTEND_URL}?kyc=rejected`);
     }
 
-    // 🔥 IMPORTANT PART (APP REDIRECT FIX)
 
-    const FRONTEND_URL = process.env.FRONTEND_URL || "https://propenu.com";
+    console.log("✅ Phone matched → KYC VERIFIED");
 
-    // 📱 App deep link (must match your app config)
-    const appDeepLink = `propenu://kyc?status=${status}`;
+    const updatedUser = await User.findByIdAndUpdate(
+      state,
+      {
+        $set: {
+          "kyc.status": "verified",
+          "kyc.provider": "digilocker",
+          "kyc.documents": docTypes,
+          "kyc.verifiedAt": new Date(),
+          accountStatus: "active",
+        },
+      },
+      { new: true },
+    ).populate("roleId");
 
-    // 🌐 Web fallback
-    const webUrl = `${FRONTEND_URL}?kyc=${status}`;
+        console.log("✅ Updated User:", updatedUser);
 
-    console.log("[KYC] Redirecting:", { appDeepLink, webUrl });
 
-    // ✅ Send HTML (NOT res.redirect)
-    return res.send(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Redirecting...</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <script>
-            // Try to open mobile app
-            window.location.href = "${appDeepLink}";
+    // 📧 Send Welcome Email after KYC verified
+    // 📧 Send Welcome Email
+    try {
+      if (updatedUser?.email && updatedUser?.name) {
+        console.log("📧 Sending welcome email...");
+        await sendWelcomeEmail(updatedUser.email, updatedUser.name);
+        console.log("✅ Welcome email sent");
+      }
+    } catch (err) {
+      console.error("⚠️ Welcome email failed:", err);
+    }
 
-            // Fallback to website after delay
-            setTimeout(function () {
-              window.location.href = "${webUrl}";
-            }, 1500);
-          </script>
-        </head>
-        <body style="font-family: sans-serif; text-align:center; padding-top:50px;">
-          <h3>Redirecting...</h3>
-          <p>If nothing happens, <a href="${webUrl}">click here</a>.</p>
-        </body>
-      </html>
-    `);
-  } catch (error: any) {
-    console.error("[KYC] Callback error:", error);
+    try {
+      if (updatedUser?.phone && updatedUser?.name) {
+        const role: any = updatedUser?.roleId;
+        const whatsappEvent = getVerifiedWhatsAppEvent(role?.name);
 
-    const FRONTEND_URL = process.env.FRONTEND_URL || "https://propenu.com";
+        console.log("📤 Sending WhatsApp:", {
+          event: whatsappEvent,
+          phone: updatedUser.phone,
+          parameters: [updatedUser.name],
+        });
 
-    return res.redirect(`${FRONTEND_URL}?kyc=error`);
+        const whatsappResult = await sendWhatsAppEvent(
+          whatsappEvent,
+          updatedUser.phone,
+          [updatedUser.name],
+        );
+
+        if (whatsappResult.status === "error") {
+          console.error("❌ WhatsApp failed:", whatsappResult.reason);
+        } else {
+          console.log("✅ WhatsApp sent successfully");
+        }
+      }
+    } catch (err) {
+      console.error("❌ WhatsApp error:", err);
+    }
+
+    // ✅ REDIRECT TO FRONTEND SETTINGS PAGE
+    // return res.redirect(${process.env.FRONTEND_URL}/settings?kyc=success);
+
+    const role: any = updatedUser?.roleId;
+
+    const jwtToken = generateToken({
+      sub: String(updatedUser?._id),
+      email: updatedUser?.email,
+      phone: Number(updatedUser?.phone),
+      name: updatedUser?.name ?? "",
+      roleId: role ? String(role._id) : undefined,
+      roleName: role ? role.name : undefined,
+      permissions: role ? role.permissions : [],
+    });
+
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/?token=${jwtToken}&kyc=verified`,
+    );
+  } catch (err) {
+    console.error("KYC Error:", err);
+    return res.redirect(`${process.env.FRONTEND_URL}?kyc=failed`);
   }
 };
 
