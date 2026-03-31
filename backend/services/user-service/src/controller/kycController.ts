@@ -216,7 +216,7 @@ export const callbackKyc = async (req: AuthRequest, res: Response) => {
     const user = await User.findById(state);
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error("User not found.");
     }
 
     const appPhone = normalizePhone(user.phone ?? undefined);
