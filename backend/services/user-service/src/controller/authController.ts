@@ -523,17 +523,19 @@ export const updateLocationOtp = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user.sub,
-      {
-        locality: locality.trim(),
-        city: city.trim(),
-        state: state.trim(),
-        pincode: pincode.trim(),
-        accountStatus: "kyc_pending",
-      },
-      { new: true },
-    );
+    const updatedUser = await User.findById(req.user.sub);
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    updatedUser.locality = locality.trim();
+    updatedUser.city = city.trim();
+    updatedUser.state = state.trim();
+    updatedUser.pincode = pincode.trim();
+    updatedUser.accountStatus = "kyc_pending";
+
+    await updatedUser.save();
 
     return res.status(200).json({
       message: "Location updated successfully",
@@ -580,15 +582,14 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: "No valid fields to update" });
     }
 
-    const user = await User.findByIdAndUpdate(
-      req.user.sub,
-      { $set: updates },
-      { new: true, runValidators: true },
-    ).populate("roleId");
+    const user = await User.findById(req.user.sub).populate("roleId");
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+
+    Object.assign(user, updates);
+    await user.save();
 
     const role: any = user.roleId;
 

@@ -57,6 +57,14 @@ type NominatimPincodeResult = {
   };
 };
 
+type PostalPincodeResponse = {
+  Status?: string;
+  PostOffice?: Array<{
+    District?: string;
+    State?: string;
+  }>;
+};
+
 const formatToTitleCase = (str: string) => {
   if (!str) return "";
   return str
@@ -157,22 +165,35 @@ const LocationDetailsStep = () => {
 
     const timeout = setTimeout(async () => {
       try {
-        const url = `https://nominatim.openstreetmap.org/search?postalcode=${pincode}&country=India&format=json&addressdetails=1&limit=1&accept-language=en`;
+        const postalApiUrl = `https://api.postalpincode.in/pincode/${pincode}`;
+        const nominatimUrl = `https://nominatim.openstreetmap.org/search?postalcode=${pincode}&country=India&format=json&addressdetails=1&limit=1&accept-language=en`;
 
-        const res = await fetch(url, {
-          signal: controller.signal,
-          headers: {
-            "Accept-Language": "en",
-          },
-        });
+        const [postalRes, nominatimRes] = await Promise.all([
+          fetch(postalApiUrl, { signal: controller.signal }),
+          fetch(nominatimUrl, {
+            signal: controller.signal,
+            headers: {
+              "Accept-Language": "en",
+            },
+          }),
+        ]);
 
-        // check response
-        if (!res.ok) {
-          console.error("Pincode lookup failed:", res.status);
+        let postalCity = "";
+
+        if (postalRes.ok) {
+          const postalData: PostalPincodeResponse[] = await postalRes.json();
+          const firstPostalOffice = postalData?.[0]?.PostOffice?.[0];
+          postalCity = formatToTitleCase(firstPostalOffice?.District || "");
+        } else {
+          console.error("Postal pincode lookup failed:", postalRes.status);
+        }
+
+        if (!nominatimRes.ok) {
+          console.error("Pincode lookup failed:", nominatimRes.status);
           return;
         }
 
-        const data: NominatimPincodeResult[] = await res.json();
+        const data: NominatimPincodeResult[] = await nominatimRes.json();
 
         if (!Array.isArray(data) || data.length === 0) {
           console.warn("No pincode result found");
@@ -197,15 +218,16 @@ const LocationDetailsStep = () => {
           ),
         );
 
-        const city = formatToTitleCase(
-          address.city ||
-          ""
-        );
+        const city = postalCity;
 
         const state = formatToTitleCase(address.state || "");
 
         const lat = Number(best?.lat);
         const lon = Number(best?.lon);
+
+        // Preserve coordinates returned by pincode lookup instead of
+        // immediately re-geocoding with locality + district + state.
+        skipNextFieldGeocodeRef.current = true;
 
         // update redux fields
         if (state) {
