@@ -2,6 +2,13 @@ import { notificationTemplates } from "./templates";
 import { renderTemplate } from "./templateEngine";
 import admin from "./firebase"; // your firebase init
 
+
+type BulkNotificationResult = {
+  successCount: number;
+  failureCount: number;
+};
+
+
 export const sendTemplateNotification = async ({ token, templateKey,
  data,
 }: {
@@ -34,8 +41,8 @@ export const sendBulkNotification = async ({
   tokens: string[];
   title: string;
   body: string;
-  data?: any;
-}) => {
+  data?: Record<string, string>;
+}): Promise<BulkNotificationResult> => {
   const response = await admin.messaging().sendEachForMulticast({
     tokens,
     notification: { title, body },
@@ -43,9 +50,12 @@ export const sendBulkNotification = async ({
   });
 
   console.log("✅ Bulk push:", response.successCount);
-  return response;
-};
 
+  return {
+    successCount: response.successCount,
+    failureCount: response.failureCount,
+  };
+};
 
 
 
