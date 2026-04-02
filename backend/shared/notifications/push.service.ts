@@ -2,10 +2,8 @@ import { notificationTemplates } from "./templates";
 import { renderTemplate } from "./templateEngine";
 import admin from "./firebase"; // your firebase init
 
-export const sendTemplateNotification = async ({
-  token,
-  templateKey,
-  data,
+export const sendTemplateNotification = async ({ token, templateKey,
+ data,
 }: {
   token: string;
   templateKey: string;
@@ -51,12 +49,7 @@ export const sendBulkNotification = async ({
 
 
 
-export const sendBulkPush = async ({
-  tokens,
-  title,
-  body,
-  image,
-  data = {},
+export const sendBulkPush = async ({  tokens,  title,  body,  image, data = {},
 }: {
   tokens: string[];
   title: string;

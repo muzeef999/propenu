@@ -362,7 +362,6 @@ export const agentListingRejectedEmail = (
     Regards,<br/>
     <b>Team Propenu</b>
   </p>
-
 </div>`;
 
 export const agentSubscriptionExpiryEmailSubject = (
