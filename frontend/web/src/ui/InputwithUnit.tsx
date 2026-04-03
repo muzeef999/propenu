@@ -1,5 +1,6 @@
 import React, { useId } from "react";
 import { IoIosArrowDown } from "react-icons/io";
+import { InfoIcon } from "@/icons/icons";
 
 type UnitOption = {
   label: string;
@@ -10,13 +11,15 @@ interface InputWithUnitProps {
   label: string;
   value: string | number;
   unit: string | null;
-    units: { label: string; value: string }[];
+  units: { label: string; value: string }[];
   placeholder?: string;
   onValueChange: (value: string) => void;
   onUnitChange: (unit: string) => void;
   required?: boolean;
   disabled?: boolean;
   error?: string;
+  tooltip?: string;
+  tooltipPosition?: "start" | "center" | "end";
 }
 
 const InputWithUnit: React.FC<InputWithUnitProps> = ({
@@ -30,19 +33,60 @@ const InputWithUnit: React.FC<InputWithUnitProps> = ({
   required = false,
   disabled = false,
   error,
+  tooltip,
+  tooltipPosition = "center",
 }) => {
   const inputId = useId();
 
+  const getTooltipPosition = () => {
+    switch (tooltipPosition) {
+      case "start":
+        return "left-0";
+      case "end":
+        return "right-0";
+      default:
+        return "left-1/2 -translate-x-1/2";
+    }
+  };
+
+  const getArrowPosition = () => {
+    switch (tooltipPosition) {
+      case "start":
+        return "left-3";
+      case "end":
+        return "right-3";
+      default:
+        return "left-1/2 -translate-x-1/2";
+    }
+  };
+
   return (
     <div className="w-full">
-      {/* Label */}
-      <label
-        htmlFor={inputId}
-        className="block text-sm font-medium text-gray-700 mb-2"
-      >
-        {label}
-        {required && <span className="ml-1 text-red-500">*</span>}
-      </label>
+      <div className="mb-2 flex items-center gap-1">
+        <label
+          htmlFor={inputId}
+          className="block text-sm font-medium text-gray-700"
+        >
+          {label}
+          {required && <span className="ml-1 text-red-500">*</span>}
+        </label>
+
+        {tooltip && (
+          <div className="relative group">
+            <InfoIcon size={16} color="#9CA3AF" />
+
+            <div
+              className={`absolute ${getTooltipPosition()} bottom-full mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-md min-w-[205px] max-w-[400px] whitespace-normal break-words opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50`}
+            >
+              {tooltip}
+
+              <div
+                className={`absolute ${getArrowPosition()} top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900`}
+              ></div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Input wrapper */}
       <div

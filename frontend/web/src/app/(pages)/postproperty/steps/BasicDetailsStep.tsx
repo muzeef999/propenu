@@ -31,6 +31,7 @@ import { FACING_TYPES } from "../profile/ResidentialProfile";
 import { numberToWords } from "@/utilies/NumberToWord";
 import { property } from "zod";
 import PricingDetails from "../components/PricingDetails";
+import { InfoIcon } from "@/icons/icons";
 
 import { useAppDispatch, useAppSelector } from "@/Redux/store";
 import RegisterDialog from "@/app/(auth)/Register";
@@ -879,9 +880,22 @@ export default function BasicDetailsStep() {
 
             {/* Transaction Type */}
             <div className="space-y-2">
-              <p className="text-sm font-medium text-gray-700">
-                Sale Type
-              </p>
+              <div className="flex items-center gap-1">
+                <p className="text-sm font-medium text-gray-700">
+                  Sale Type
+                </p>
+
+                <div className="relative group">
+                  <InfoIcon size={16} color="#9CA3AF" />
+
+                  <div className="absolute left-1/2 bottom-full z-50 mb-2 min-w-[205px] max-w-[320px] -translate-x-1/2 rounded-md bg-gray-900 px-3 py-2 text-xs text-white opacity-0 invisible transition-all duration-200 whitespace-normal break-words group-hover:opacity-100 group-hover:visible">
+                    Choose "New Sale" for a newly built property being sold for
+                    the first time, or "Resale" for a previously owned property.
+
+                    <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                  </div>
+                </div>
+              </div>
 
               <div className="flex flex-wrap gap-3">
                 {[

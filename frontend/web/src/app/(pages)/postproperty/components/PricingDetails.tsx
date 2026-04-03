@@ -97,6 +97,8 @@ export default function PricingDetails({
             { label: "HECTARE", value: "hectare" },
           ]}
           error={fieldErrors.totalArea?.[0]}
+          tooltip="Total land size. You can enter it in square feet, square meters, acres, guntha, cent, or hectare."
+          tooltipPosition="center"
           onValueChange={(value) =>
             dispatch(
               setProfileField({
@@ -125,16 +127,22 @@ export default function PricingDetails({
       ) : (
         <InputField
           label={isLand ? "Plot Area (sq ft)" : "Carpet Area (sq ft)"}
-          placeholder={isLand ? "e.g. 2400" : "e.g. 1200"}
-          value={areaValue ?? ""}
+          placeholder={isLand ? "Enter plot area" : "Enter carpet area"}
+          value={areaValue || ""}
           error={fieldErrors[isLand ? "plotArea" : "carpetArea"]?.[0]}
-          onChange={(value) =>
+          tooltip={
+            isLand
+              ? "Total land size"
+              : "Usable space inside the property."
+          }
+tooltipPosition="center"     
+     onChange={(value) =>
             dispatch(
               setProfileField({
                 propertyType,
                 key: isLand ? "plotArea" : "carpetArea",
-                value: value.replace(/\D/g, ""),
-              }),
+                value: value.replace(/[^0-9]/g, ""), // only numbers
+              })
             )
           }
         />
@@ -162,6 +170,8 @@ export default function PricingDetails({
             { label: "METER", value: "meter" },
           ]}
           error={fieldErrors.roadWidth?.[0]}
+          tooltip="Width of the road in front of the property. You can enter it in feet or meters."
+          tooltipPosition="end"
           onValueChange={(value) =>
             dispatch(
               setProfileField({
@@ -190,16 +200,26 @@ export default function PricingDetails({
       ) : (
         <InputField
           label={isLand ? "Road Width (ft)" : "Built-up Area (sq ft)"}
-          placeholder={isLand ? "e.g. 30" : "Optional"}
-          value={isLand ? data.roadWidthFt ?? data.roadWidth ?? "" : data.builtUpArea ?? ""}
+          placeholder={isLand ? "Enter road width" : "Enter built-up area (optional)"}
+          value={
+            isLand
+              ? data.roadWidthFt || data.roadWidth || ""
+              : data.builtUpArea || ""
+          }
           error={fieldErrors[isLand ? "roadWidthFt" : "builtUpArea"]?.[0]}
+          tooltip={
+            isLand
+              ? "Width of the road in front of the plot"
+              : "Total area including walls"
+          }
+          tooltipPosition="end"
           onChange={(value) =>
             dispatch(
               setProfileField({
                 propertyType,
                 key: isLand ? "roadWidthFt" : "builtUpArea",
-                value: value.replace(/\D/g, ""),
-              }),
+                value: value.replace(/[^0-9]/g, ""), // only numbers
+              })
             )
           }
         />

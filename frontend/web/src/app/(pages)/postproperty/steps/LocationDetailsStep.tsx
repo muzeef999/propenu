@@ -399,6 +399,8 @@ const LocationDetailsStep = () => {
           label="City"
           value={base.city || ""}
           placeholder="Enter city"
+            disabled
+
           onChange={(value) =>
             dispatch(
               setBaseField({

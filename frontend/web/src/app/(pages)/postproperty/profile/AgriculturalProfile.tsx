@@ -149,6 +149,8 @@ const AgriculturalProfile = () => {
             label="Plantation Age (years)"
             value={agricultural.plantationAge || 0}
             min={0}
+            tooltip="Age of the existing plantation or crop trees on the land, measured in years."
+            tooltipPosition="center"
             onChange={(value) =>
               dispatch(
                 setProfileField({
@@ -447,6 +449,8 @@ const AgriculturalProfile = () => {
               label="State Purchase Restrictions"
               value={agricultural.statePurchaseRestrictions || ""}
               placeholder="e.g. None, Restricted"
+              tooltip="Mention any state-specific rules or eligibility restrictions that apply to buying this agricultural land."
+              tooltipPosition="center"
               onChange={(value) =>
                 dispatch(
                   setProfileField({
@@ -471,6 +475,8 @@ const AgriculturalProfile = () => {
               label="Access Road Type"
               value={agricultural.accessRoadType || ""}
               placeholder="e.g. Paved, Unpaved"
+              tooltip="Type of road to the property (Tar road, Mud road, Gravel road)"
+              tooltipPosition="center"
               onChange={(value) =>
                 dispatch(
                   setProfileField({

@@ -17,6 +17,7 @@ import FileUpload, { UploadedFile } from "@/ui/FileUpload";
 import { setFileStoreFiles } from "@/utilies/fileStore";
 import { set } from "zod";
 import { deleteGalleryImageApi } from "@/Redux/apis";
+import { InfoIcon } from "@/icons/icons";
 
 export const TRANSACTION_TYPES = [
   "new-sale",
@@ -298,9 +299,23 @@ const CommercialProfile = () => {
       {/* ========== BUILDING MANAGEMENT ========== */}
       <div className="space-y-4">
         <div>
-          <p className="text-sm font-semibold text-gray-900">
-            Building Management
-          </p>
+          <div className="flex items-center gap-1">
+            <p className="text-sm font-semibold text-gray-900">
+              Building Management
+            </p>
+
+            <div className="relative group">
+              <InfoIcon size={16} color="#9CA3AF" />
+
+              <div className="absolute left-1/2 bottom-full z-50 mb-2 min-w-[205px] max-w-[320px] -translate-x-1/2 rounded-md bg-gray-900 px-3 py-2 text-xs text-white opacity-0 invisible transition-all duration-200 whitespace-normal break-words group-hover:opacity-100 group-hover:visible">
+                Add details about how the building is operated or maintained,
+                such as maintenance responsibility, staffing, or common
+                facility management.
+
+                <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+              </div>
+            </div>
+          </div>
           <p className="text-xs text-gray-500">
             Provide building management details
           </p>
@@ -351,6 +366,8 @@ const CommercialProfile = () => {
           label="Zoning Information"
           value={commercial.zoning || ""}
           placeholder="e.g. Commercial Zone B2"
+          tooltip="Zoning classification assigned to the property, indicating the type of commercial use permitted in that area."
+          tooltipPosition="center"
           onChange={(value) =>
             dispatch(
               setProfileField({
@@ -366,9 +383,22 @@ const CommercialProfile = () => {
       {/* ========== TENANT INFORMATION ========== */}
       <div className="space-y-4">
         <div>
-          <p className="text-sm font-semibold text-gray-900">
-            Tenant Information
-          </p>
+          <div className="flex items-center gap-1">
+            <p className="text-sm font-semibold text-gray-900">
+              Tenant Information
+            </p>
+
+            <div className="relative group">
+              <InfoIcon size={16} color="#9CA3AF" />
+
+              <div className="absolute left-1/2 bottom-full z-50 mb-2 min-w-[205px] max-w-[320px] -translate-x-1/2 rounded-md bg-gray-900 px-3 py-2 text-xs text-white opacity-0 invisible transition-all duration-200 whitespace-normal break-words group-hover:opacity-100 group-hover:visible">
+                Include relevant details about the current or past tenants,
+                such as occupancy status, business type, or lease background.
+
+                <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+              </div>
+            </div>
+          </div>
           <p className="text-xs text-gray-500">
             Add details about current or previous tenants
           </p>
@@ -751,4 +781,3 @@ const CommercialProfile = () => {
 };
 
 export default CommercialProfile;
-

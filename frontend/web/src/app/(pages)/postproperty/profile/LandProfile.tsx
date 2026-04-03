@@ -16,6 +16,7 @@ import { validateLandProfile } from "@/zod/profileZods/landProfileZod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { deleteGalleryImageApi } from "@/Redux/apis";
+import { InfoIcon } from "@/icons/icons";
 
 
 
@@ -150,7 +151,20 @@ const LandProfile = () => {
 
         <div className="grid grid-cols-1 gap-1">
           <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-700">Layout Type</p>
+            <div className="flex items-center gap-1">
+              <p className="text-sm font-medium text-gray-700">Layout Type</p>
+
+              <div className="relative group">
+                <InfoIcon size={16} color="#9CA3AF" />
+
+                <div className="absolute left-1/2 bottom-full z-50 mb-2 min-w-[205px] max-w-[320px] -translate-x-1/2 rounded-md bg-gray-900 px-3 py-2 text-xs text-white opacity-0 invisible transition-all duration-200 whitespace-normal break-words group-hover:opacity-100 group-hover:visible">
+                  Select the plot layout category, such as approved,
+                  unapproved, gated, or individual plot.
+
+                  <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                </div>
+              </div>
+            </div>
 
             <div className="flex gap-5">
               {[
@@ -236,6 +250,8 @@ const LandProfile = () => {
             label="Survey Number"
             value={land.surveyNumber || ""}
             placeholder="e.g. 123/45/B"
+            tooltip="Official survey or plot identification number recorded in land revenue or registration documents."
+            tooltipPosition="center"
             onChange={(value) =>
               dispatch(
                 setProfileField({
@@ -251,6 +267,8 @@ const LandProfile = () => {
             label="Land Use Zone"
             value={land.landUseZone || ""}
             placeholder="e.g. Residential Zone A"
+            tooltip="Zoning classification assigned to the land, such as residential, commercial, agricultural, or mixed use."
+            tooltipPosition="center"
             onChange={(value) =>
               dispatch(
                 setProfileField({
