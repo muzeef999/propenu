@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { FeaturedProject } from "@/types";
+import { FeaturedProject, IBhkUnit } from "@/types";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import { useCity } from "@/hooks/useCity";
 import { RiArrowRightSLine } from "react-icons/ri";
@@ -19,8 +19,9 @@ import {
 function getProjectMinSqft(project: FeaturedProject) {
   const sqftValues =
     project.bhkSummary?.flatMap((bhk) =>
-      bhk.units?.map((unit) => unit.minSqft).filter(
-        (minSqft): minSqft is number => typeof minSqft === "number",
+      bhk.units?.map((unit: IBhkUnit) => unit.minSqft).filter(
+        (minSqft: number | undefined): minSqft is number =>
+          typeof minSqft === "number",
       ) ?? [],
     ) ?? [];
 
