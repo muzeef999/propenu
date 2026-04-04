@@ -5,7 +5,6 @@ import Link from "next/link";
 import { FeaturedProject } from "@/types";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import { useCity } from "@/hooks/useCity";
-import formatINR from "@/utilies/PriceFormat";
 import { RiArrowRightSLine } from "react-icons/ri";
 import { getHighlightProjects } from "@/data/ClientData";
 import HomeSectionSkeleton from "@/components/HomeSectionSkeleton";
@@ -17,6 +16,16 @@ import {
   setHomeSectionCache,
 } from "@/utilies/homeSectionCache";
 
+function getProjectMinSqft(project: FeaturedProject) {
+  const sqftValues =
+    project.bhkSummary?.flatMap((bhk) =>
+      bhk.units?.map((unit) => unit.minSqft).filter(
+        (minSqft): minSqft is number => typeof minSqft === "number",
+      ) ?? [],
+    ) ?? [];
+
+  return sqftValues.length > 0 ? Math.min(...sqftValues) : undefined;
+}
 
 export default function HighlightProjectsClient() {
   const sliderRef = useRef<HTMLDivElement | null>(null);
@@ -88,6 +97,8 @@ export default function HighlightProjectsClient() {
       behavior: "smooth",
     });
   const hasItems = items.length > 0;
+
+  console.log("projects", items);
   return (
     <div className="relative w-full">
       {/* Header Section */}
@@ -149,7 +160,10 @@ export default function HighlightProjectsClient() {
           ref={sliderRef}
           className="flex gap-4 sm:gap-6 overflow-x-auto scroll-smooth no-scrollbar pb-6 snap-x snap-mandatory px-1"
         >
-          {items.map((project) => (
+          {items.map((project) => {
+            const minSqft = getProjectMinSqft(project);
+
+            return (
             <Link
               key={project._id}
               href={`/prime/${project.slug}`}
@@ -173,7 +187,7 @@ export default function HighlightProjectsClient() {
                   </h2>
 
                   <span className="text-sm font-medium text-gray-900 whitespace-nowrap">
-                    {project.priceFrom ? formatINR(project.priceFrom) : "—"}
+                    ₹{minSqft ? `${minSqft}/sq.ft` : "—"}
                   </span>
                 </div>
 
@@ -182,7 +196,8 @@ export default function HighlightProjectsClient() {
                 </p>
               </div>
             </Link>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <HomeSectionComingSoon
