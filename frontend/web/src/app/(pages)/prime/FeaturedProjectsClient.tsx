@@ -8,38 +8,73 @@ import { useCity } from "@/hooks/useCity";
 import Image from "next/image";
 import formatINR from "@/utilies/PriceFormat";
 import { getFeaturedProjects } from "@/data/ClientData";
+import HomeSectionSkeleton from "@/components/HomeSectionSkeleton";
+import HomeSectionComingSoon from "@/components/HomeSectionComingSoon";
+import { minDelay } from "@/utilies/minDelay";
+import {
+  getHomeSectionCache,
+  getHomeSectionCacheKey,
+  setHomeSectionCache,
+} from "@/utilies/homeSectionCache";
 
 
 
 export default function FeaturedProjectsClient() {
   const sliderRef = useRef<HTMLDivElement | null>(null);
-
-  const [items, setItems] = useState<FeaturedProject[]>([]);
-  const [loading, setLoading] = useState(false);
   const { selectedCity } = useCity();
+  const cacheKey = getHomeSectionCacheKey("featured-projects", {
+    state: selectedCity?.state,
+    city: selectedCity?.city,
+  });
+  const [items, setItems] = useState<FeaturedProject[]>(
+    () => getHomeSectionCache<FeaturedProject[]>(cacheKey) ?? [],
+  );
+  const [loading, setLoading] = useState(() => !getHomeSectionCache(cacheKey));
 
 
   useEffect(() => {
-  if (!selectedCity) return;
+    if (!selectedCity) return;
 
-  setLoading(true);
+    const cachedItems = getHomeSectionCache<FeaturedProject[]>(cacheKey);
+    if (cachedItems) {
+      setItems(cachedItems);
+      setLoading(false);
+      return;
+    }
 
-  console.log("📍 City from Redux:", selectedCity);
+    let isActive = true;
 
-  getFeaturedProjects({
-    state: selectedCity.state,
-    city: selectedCity.city,
-  })
-    .then((res) => {
-      console.log("✅ Featured API response:", res);
-      setItems(res.items || []);
-    })
-    .catch((err) => {
-      console.error("❌ Featured fetch failed:", err);
-    })
-    .finally(() => setLoading(false));
+    setLoading(true);
+    setItems([]);
 
-}, [selectedCity]);
+    Promise.all([
+      getFeaturedProjects({
+        state: selectedCity.state,
+        city: selectedCity.city,
+      }),
+      minDelay(),
+    ])
+      .then(([res]) => {
+        if (!isActive) return;
+
+        const nextItems = res.items || [];
+        setHomeSectionCache(cacheKey, nextItems);
+        setItems(nextItems);
+      })
+      .catch((err) => {
+        if (!isActive) return;
+        console.error("❌ Featured fetch failed:", err);
+      })
+      .finally(() => {
+        if (isActive) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [cacheKey, selectedCity]);
 
 
   const scrollLeft = () =>
@@ -53,6 +88,7 @@ export default function FeaturedProjectsClient() {
       left: window.innerWidth / 2,
       behavior: "smooth",
     });
+  const hasItems = items.length > 0;
 
   return (
     <div className="relative w-full">
@@ -70,89 +106,104 @@ export default function FeaturedProjectsClient() {
         </div>
       </div>
 
-      <button
-        onClick={scrollLeft}
-        aria-label="Scroll left"
-        className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-white rounded-full shadow-md hover:shadow-lg cursor-pointer transition-all duration-300 -translate-x-1/2 hidden md:flex items-center justify-center"
-      >
-        <ArrowDropdownIcon size={20} className="rotate-90" />
-      </button>
+      {!loading && hasItems && (
+        <button
+          onClick={scrollLeft}
+          aria-label="Scroll left"
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-white rounded-full shadow-md hover:shadow-lg cursor-pointer transition-all duration-300 -translate-x-1/2 hidden md:flex items-center justify-center"
+        >
+          <ArrowDropdownIcon size={20} className="rotate-90" />
+        </button>
+      )}
 
       {/* Scrollable Row */}
-      <div
-        ref={sliderRef}
-        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-1 py-2 snap-x snap-mandatory"
-      >
-        {items.map((project) => (
-          <div
-            key={project._id}
-            className="shrink-0 w-[90%] sm:w-[calc(50%-0.5rem)] lg:w-[calc(50%-0.5rem)] card snap-start group"
-          >
-            <Link
-              href={`/prime/${project.slug}`}
-              className="relative block overflow-hidden rounded-t-md h-40 sm:h-[50px] md:h-[200px] lg:h-[220px]"
+      {loading ? (
+        <div
+          ref={sliderRef}
+          className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-1 py-2 snap-x snap-mandatory"
+        >
+          <HomeSectionSkeleton variant="prime" count={2} />
+        </div>
+      ) : hasItems ? (
+        <div
+          ref={sliderRef}
+          className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-1 py-2 snap-x snap-mandatory"
+        >
+          {items.map((project) => (
+            <div
+              key={project._id}
+              className="shrink-0 w-[90%] sm:w-[calc(50%-0.5rem)] lg:w-[calc(50%-0.5rem)] card snap-start group"
             >
-              <Image
-                src={project.heroImage ?? "/images/placeholder.svg"}
-                alt={project.title}
-                fill
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                className="object-cover transition-transform duration-300 group-hover:scale-105"
-              />
-            </Link>
-
-            <div className="p-3 flex justify-between items-center gap-3">
-              {/* Logo */}
-              <div className="shrink-0">
+              <Link
+                href={`/prime/${project.slug}`}
+                className="relative block overflow-hidden rounded-t-md h-40 sm:h-[50px] md:h-[200px] lg:h-[220px]"
+              >
                 <Image
-                  src={project?.logo?.url ?? "/images/placeholder.svg"}
-                  alt={`${project.title} logo`}
-                  width={64}
-                  height={64}
-                  className="object-contain rounded-md w-16 h-16 sm:w-20 sm:h-20"
+                  src={project.heroImage ?? "/images/placeholder.svg"}
+                  alt={project.title}
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
                 />
-              </div>
+              </Link>
 
-              {/* Title + Address */}
-              <div className="flex flex-col justify-center grow min-w-0">
-                <h2 className="text-lg md:text-xl font-medium text-left truncate">
-                  {project.title}
-                </h2>
+              <div className="p-3 flex justify-between items-center gap-3">
+                <div className="shrink-0">
+                  <Image
+                    src={project?.logo?.url ?? "/images/placeholder.svg"}
+                    alt={`${project.title} logo`}
+                    width={64}
+                    height={64}
+                    className="object-contain rounded-md w-16 h-16 sm:w-20 sm:h-20"
+                  />
+                </div>
 
-                {project.address && (
-                  <p className="text-gray-500 text-sm mt-1 truncate">
-                    {project.address}
+                <div className="flex flex-col justify-center grow min-w-0">
+                  <h2 className="text-lg md:text-xl font-medium text-left truncate">
+                    {project.title}
+                  </h2>
+
+                  {project.address && (
+                    <p className="text-gray-500 text-sm mt-1 truncate">
+                      {project.address}
+                    </p>
+                  )}
+                </div>
+
+                <div className="text-right flex flex-col items-end gap-1 shrink-0">
+                  <p className="text-gray-600 font-light text-sm md:text-base">
+                    2,3 BHK Flats
                   </p>
-                )}
-              </div>
 
-              {/* BHK, Price, Button */}
-              <div className="text-right flex flex-col items-end gap-1 shrink-0">
-                <p className="text-gray-600 font-light text-sm md:text-base">
-                  2,3 BHK Flats
-                </p>
-
-                <p className="text-[#26ad5f] text-sm md:text-base font-medium">
-                  {formatINR(project?.priceFrom)}
-                  <span className="text-[#676666] font-light text-sm">
-                    {" "}
-                    onwards
-                  </span>
-                </p>
+                  <p className="text-[#26ad5f] text-sm md:text-base font-medium">
+                    {formatINR(project?.priceFrom)}
+                    <span className="text-[#676666] font-light text-sm">
+                      {" "}
+                      onwards
+                    </span>
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <HomeSectionComingSoon
+          title="Prime Projects Are Coming Soon"
+          description={`We’re lining up premium projects for ${selectedCity?.city ?? "your city"}. Check back shortly for fresh launches and standout listings.`}
+        />
+      )}
 
       {/* Right Arrow */}
-      <button
-        onClick={scrollRight}
-        aria-label="Scroll right"
-        className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white p-2 rounded-full shadow-md hover:shadow-lg cursor-pointer transition-all duration-300 translate-x-1/2 hidden md:flex items-center justify-center"
-      >
-        <ArrowDropdownIcon size={20} className="-rotate-90" />
-      </button>
+      {!loading && hasItems && (
+        <button
+          onClick={scrollRight}
+          aria-label="Scroll right"
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white p-2 rounded-full shadow-md hover:shadow-lg cursor-pointer transition-all duration-300 translate-x-1/2 hidden md:flex items-center justify-center"
+        >
+          <ArrowDropdownIcon size={20} className="-rotate-90" />
+        </button>
+      )}
     </div>
   );
 }

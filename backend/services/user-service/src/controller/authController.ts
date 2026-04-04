@@ -26,11 +26,17 @@ export const requestOTP = async (req: Request, res: Response) => {
     // ⭐ Find user
     const existingUser = await User.findOne({
       $or: [...(email ? [{ email }] : []), ...(phone ? [{ phone }] : [])],
-    }).select("_id name email phone");
+    }).select("_id name email phone accountStatus");
 
     if (!existingUser) {
       return res.status(404).json({
         message: "Account not registered. Please sign up first.",
+      });
+    }
+
+    if (existingUser.accountStatus !== "active") {
+      return res.status(403).json({
+        message: "Please complete the KYC process",
       });
     }
 

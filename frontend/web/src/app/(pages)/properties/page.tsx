@@ -19,6 +19,47 @@ import AgriculturalCard from "./cards/AgriculturalCard";
 import ad from "@/asserts/ad.png";
 import { buildSearchParams } from "./filters/buildSearchParams";
 
+const propertySkeletonItems = Array.from({ length: 4 });
+
+function PropertiesListSkeleton() {
+  return (
+    <div className="space-y-4">
+      {propertySkeletonItems.map((_, index) => (
+        <div
+          key={`property-skeleton-${index}`}
+          className="overflow-hidden rounded-2xl border border-gray-100 bg-white p-2 shadow-sm"
+        >
+          <div className="flex flex-col gap-4 md:h-[236px] md:flex-row">
+            <div className="h-48 w-full animate-pulse rounded-xl bg-gray-200 md:h-full md:w-56 md:shrink-0" />
+
+            <div className="flex min-w-0 flex-1 flex-col justify-between p-2 md:p-4">
+              <div>
+                <div className="h-6 w-3/4 animate-pulse rounded bg-gray-200" />
+                <div className="mt-3 h-4 w-1/2 animate-pulse rounded bg-gray-200" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 border-t border-gray-200 pt-4 md:grid-cols-4 md:gap-6">
+                {Array.from({ length: 4 }).map((__, metaIndex) => (
+                  <div key={`property-skeleton-meta-${metaIndex}`} className="space-y-2">
+                    <div className="h-4 w-16 animate-pulse rounded bg-gray-200" />
+                    <div className="h-4 w-20 animate-pulse rounded bg-gray-200" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-[#27AE60]/10 px-3 py-4 md:flex md:w-52 md:flex-col md:justify-center">
+              <div className="h-7 w-24 animate-pulse rounded bg-[#27AE60]/20" />
+              <div className="mt-2 h-4 w-16 animate-pulse rounded bg-[#27AE60]/15" />
+              <div className="mt-4 h-10 w-full animate-pulse rounded-md bg-[#27AE60]/25" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const Page: React.FC = () => {
   const filters = useAppSelector((s) => s.filters);
   const cityData = useAppSelector(selectCityWithLocalities);
@@ -108,7 +149,9 @@ const Page: React.FC = () => {
         <div className="flex w-full flex-col gap-4 lg:flex-row">
           <div className="w-full lg:w-[80%]">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              {loading && <p>Loading properties...</p>}
+              {loading && (
+                <div className="h-8 w-64 animate-pulse rounded bg-gray-200 sm:w-80" />
+              )}
               {!loading && (
                 <p className="text-base capitalize leading-snug text-gray-700 wrap-break-word sm:text-lg md:text-xl lg:text-2xl">
                   <strong>{total ?? items.length}</strong> Properties for {params.listingType} in
@@ -134,7 +177,11 @@ const Page: React.FC = () => {
               </label>
             </div>
 
-            {sortedItems.map((p) => renderPropertyCard(filters.category, p))}
+            {loading ? (
+              <PropertiesListSkeleton />
+            ) : (
+              sortedItems.map((p) => renderPropertyCard(filters.category, p))
+            )}
             {!loading && sortedItems.length === 0 && <p>No properties found.</p>}
           </div>
 

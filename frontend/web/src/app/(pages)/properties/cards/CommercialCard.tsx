@@ -145,7 +145,7 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
   return (
     <div
       className={`card p-2 h-auto flex overflow-hidden ${
-        vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"
+        vertical ? "w-[min(100vw-2rem,360px)] flex-col" : "flex-col md:flex-row md:h-[220px]"
       }`}
     >
       <Link
@@ -230,9 +230,11 @@ const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
               {p.title}
             </h3>
 
-            <p className="mt-1 flex items-center gap-2 truncate text-sm text-gray-500">
+            <p className="mt-1 flex min-w-0 items-center gap-2 text-sm text-gray-500">
               <BiBuildingHouse className="h-4 w-4 shrink-0" />
-              {p?.buildingName}
+              <span className="block min-w-0 truncate">
+                {p?.buildingName}
+              </span>
             </p>
           </div>
 

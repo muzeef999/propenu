@@ -170,7 +170,7 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
   return (
     <div
       className={`card p-2 h-auto flex overflow-hidden ${
-        vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"
+        vertical ? "w-[min(100vw-2rem,360px)] flex-col" : "flex-col md:flex-row md:h-[220px]"
       }`}
     >
       <Link
@@ -248,8 +248,8 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
         </div>
 
         {/* Middle: content */}
-        <div className="flex-1 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
-          <div className={`flex ${vertical ? "flex-col gap-1" : "flex-col"}`}>
+        <div className="flex-1 min-w-0 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
+          <div className={`min-w-0 flex ${vertical ? "flex-col gap-1" : "flex-col"}`}>
             <h3
               className={`font-semibold leading-snug line-clamp-2 ${
                 vertical
@@ -260,9 +260,11 @@ const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
               {p.title}
             </h3>
 
-            <p className="mt-1 flex items-center gap-2 truncate text-sm text-gray-500">
+            <p className="mt-1 flex min-w-0 items-center gap-2 text-sm text-gray-500">
               <BiBuildingHouse className="h-4 w-4 shrink-0" />
-              {p?.buildingName}
+              <span className="block min-w-0 truncate">
+                {p?.buildingName}
+              </span>
             </p>
           </div>
 

@@ -15,6 +15,14 @@ import { IResidential } from "@/types/residential";
 import { IAgricultural } from "@/types/agricultural";
 import { ILand } from "@/types/land";
 import { ICommercial } from "@/types/commercial";
+import HomeSectionSkeleton from "@/components/HomeSectionSkeleton";
+import HomeSectionComingSoon from "@/components/HomeSectionComingSoon";
+import { minDelay } from "@/utilies/minDelay";
+import {
+  getHomeSectionCache,
+  getHomeSectionCacheKey,
+  setHomeSectionCache,
+} from "@/utilies/homeSectionCache";
 
 type OwnerCardItem = PopularOwnerProperty & {
   id?: string;
@@ -25,35 +33,63 @@ type OwnerCardItem = PopularOwnerProperty & {
 
 const PopularOwnerPropertiesClient = () => {
   const sliderRef = useRef<HTMLDivElement | null>(null);
-  const [items, setItems] = useState<OwnerCardItem[]>([]);
-  const [loading, setLoading] = useState(false);
-
-
-
   const { selectedCity } = useCity();
+  const cacheKey = getHomeSectionCacheKey("owner-properties", {
+    state: selectedCity?.state,
+    city: selectedCity?.city,
+  });
+  const [items, setItems] = useState<OwnerCardItem[]>(
+    () => getHomeSectionCache<OwnerCardItem[]>(cacheKey) ?? [],
+  );
+  const [loading, setLoading] = useState(() => !getHomeSectionCache(cacheKey));
 
   useEffect(() => {
     if (!selectedCity) return;
 
-    setLoading(true);
+    const cachedItems = getHomeSectionCache<OwnerCardItem[]>(cacheKey);
+    if (cachedItems) {
+      setItems(cachedItems);
+      setLoading(false);
+      return;
+    }
 
-    getOwnerProperties({
-      state: selectedCity.state,
-      city: selectedCity.city,
-    })
-      .then((res: { items?: OwnerCardItem[]; properties?: OwnerCardItem[] }) => {
+    let isActive = true;
+
+    setLoading(true);
+    setItems([]);
+
+    Promise.all([
+      getOwnerProperties({
+        state: selectedCity.state,
+        city: selectedCity.city,
+      }),
+      minDelay(),
+    ])
+      .then(([res]: [{ items?: OwnerCardItem[]; properties?: OwnerCardItem[] }, unknown]) => {
+        if (!isActive) return;
+
         const source = res.items ?? res.properties ?? [];
         const normalized = source.map((item: OwnerCardItem) => ({
           ...item,
           id: item.id ?? item._id,
         }));
+        setHomeSectionCache(cacheKey, normalized);
         setItems(normalized);
       })
       .catch((err) => {
+        if (!isActive) return;
         console.error("❌ Owner properties fetch failed:", err);
       })
-      .finally(() => setLoading(false));
-  }, [selectedCity]);
+      .finally(() => {
+        if (isActive) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [cacheKey, selectedCity]);
 
   const scrollBy = (dir: "left" | "right") => {
     const el = sliderRef.current;
@@ -61,6 +97,7 @@ const PopularOwnerPropertiesClient = () => {
     const step = Math.floor(el.clientWidth / 2);
     el.scrollBy({ left: dir === "left" ? -step : step, behavior: "smooth" });
   };
+  const hasItems = items.length > 0;
 
   return (
     <section className="relative w-full">
@@ -88,64 +125,82 @@ const PopularOwnerPropertiesClient = () => {
       </div>
 
       {/* Left arrow */}
-      <button
-        type="button"
-        aria-label="Scroll left"
-        onClick={() => scrollBy("left")}
-        className="absolute left-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex items-center justify-center bg-white p-2 rounded-full shadow-md hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-green-300"
-      >
-        <ArrowDropdownIcon size={16} className="rotate-90" />
-      </button>
+      {!loading && hasItems && (
+        <button
+          type="button"
+          aria-label="Scroll left"
+          onClick={() => scrollBy("left")}
+          className="absolute left-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex items-center justify-center bg-white p-2 rounded-full shadow-md hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-green-300"
+        >
+          <ArrowDropdownIcon size={16} className="rotate-90" />
+        </button>
+      )}
 
       {/* Carousel */}
-      <div
-        ref={sliderRef}
-        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-1 py-2 snap-x snap-mandatory scroll-px-1"
-      >
-        {items.map((item) => {
-          const wrapperClass = "lg:snap-start snap-center flex-shrink-0";
+      {loading ? (
+        <div
+          ref={sliderRef}
+          className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-1 py-2 snap-x snap-mandatory scroll-px-1"
+        >
+          <HomeSectionSkeleton variant="owner" count={3} />
+        </div>
+      ) : hasItems ? (
+        <div
+          ref={sliderRef}
+          className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-1 py-2 snap-x snap-mandatory scroll-px-1"
+        >
+          {items.map((item) => {
+            const wrapperClass = "lg:snap-start snap-center flex-shrink-0";
 
-          if (item.type === "residential") {
-            return (
-              <div key={item._id} className={wrapperClass}>
-                <ResidentialCard p={item as unknown as IResidential} vertical={true} />
-              </div>
-            );
-          }
-          if (item.type === "commercial") {
-            return (
-              <div key={item._id} className={wrapperClass}>
-                <CommercialCard p={item as unknown as ICommercial} vertical={true} />
-              </div>
-            );
-          }
-          if (item.type === "land") {
-            return (
-              <div key={item._id} className={wrapperClass}>
-                <LandCard p={item as unknown as ILand} vertical={true} />
-              </div>
-            );
-          }
-          if (item.type === "agricultural") {
-            return (
-              <div key={item._id} className={wrapperClass}>
-                <AgriculturalCard p={item as unknown as IAgricultural} vertical={true} />
-              </div>
-            );
-          }
-          return null;
-        })}
-      </div>
+            if (item.type === "residential") {
+              return (
+                <div key={item._id} className={wrapperClass}>
+                  <ResidentialCard p={item as unknown as IResidential} vertical={true} />
+                </div>
+              );
+            }
+            if (item.type === "commercial") {
+              return (
+                <div key={item._id} className={wrapperClass}>
+                  <CommercialCard p={item as unknown as ICommercial} vertical={true} />
+                </div>
+              );
+            }
+            if (item.type === "land") {
+              return (
+                <div key={item._id} className={wrapperClass}>
+                  <LandCard p={item as unknown as ILand} vertical={true} />
+                </div>
+              );
+            }
+            if (item.type === "agricultural") {
+              return (
+                <div key={item._id} className={wrapperClass}>
+                  <AgriculturalCard p={item as unknown as IAgricultural} vertical={true} />
+                </div>
+              );
+            }
+            return null;
+          })}
+        </div>
+      ) : (
+        <HomeSectionComingSoon
+          title="Owner Listings Are Coming Soon"
+          description={`We’re gathering direct owner properties for ${selectedCity?.city ?? "your city"}. This section will light up as new listings go live.`}
+        />
+      )}
 
       {/* Right arrow */}
-      <button
-        type="button"
-        aria-label="Scroll right"
-        onClick={() => scrollBy("right")}
-        className="absolute right-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex items-center justify-center bg-white p-2 rounded-full shadow-md hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-green-300"
-      >
-        <ArrowDropdownIcon size={16} className="rotate-270" />
-      </button>
+      {!loading && hasItems && (
+        <button
+          type="button"
+          aria-label="Scroll right"
+          onClick={() => scrollBy("right")}
+          className="absolute right-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex items-center justify-center bg-white p-2 rounded-full shadow-md hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-green-300"
+        >
+          <ArrowDropdownIcon size={16} className="rotate-270" />
+        </button>
+      )}
     </section>
   );
 };

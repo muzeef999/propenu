@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Property } from "@/types/property";
 import { SearchFilterParams } from "@/types/sharedTypes";
+import { minDelay } from "@/utilies/minDelay";
 
 export function useStreamProperties(params: SearchFilterParams) {
   const [items, setItems] = useState<Property[]>([]);
@@ -13,6 +14,7 @@ export function useStreamProperties(params: SearchFilterParams) {
     let cancelled = false;
 
     async function start() {
+      const startedAt = Date.now();
       setLoading(true);
       setItems([]);
       setTotal(null);
@@ -67,6 +69,11 @@ export function useStreamProperties(params: SearchFilterParams) {
             console.error("Invalid JSON chunk", line);
           }
         }
+      }
+
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < 1000) {
+        await minDelay(1000 - elapsed);
       }
 
       if (!cancelled) setLoading(false);

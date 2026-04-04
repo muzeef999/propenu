@@ -9,31 +9,68 @@ import { AgentConnect } from "@/types";
 import { RiArrowRightSLine } from "react-icons/ri";
 import { useCity } from "@/hooks/useCity";
 import { getAgentConnect } from "@/data/ClientData";
+import HomeSectionSkeleton from "@/components/HomeSectionSkeleton";
+import HomeSectionComingSoon from "@/components/HomeSectionComingSoon";
+import { minDelay } from "@/utilies/minDelay";
+import {
+  getHomeSectionCache,
+  getHomeSectionCacheKey,
+  setHomeSectionCache,
+} from "@/utilies/homeSectionCache";
 
 export default function AgentsList() {
   const sliderRef = useRef<HTMLDivElement | null>(null);
-
-  const [agents, setAgents] = useState<AgentConnect[]>([]);
-  const [loading, setLoading] = useState(false);
-
   const { selectedCity } = useCity();
+  const cacheKey = getHomeSectionCacheKey("agent-connect", {
+    city: selectedCity?.city,
+  });
+  const [agents, setAgents] = useState<AgentConnect[]>(
+    () => getHomeSectionCache<AgentConnect[]>(cacheKey) ?? [],
+  );
+  const [loading, setLoading] = useState(() => !getHomeSectionCache(cacheKey));
 
   useEffect(() => {
     if (!selectedCity) return;
 
-    setLoading(true);
+    const cachedAgents = getHomeSectionCache<AgentConnect[]>(cacheKey);
+    if (cachedAgents) {
+      setAgents(cachedAgents);
+      setLoading(false);
+      return;
+    }
 
-    getAgentConnect({
-      city: selectedCity.city,
-    })
-      .then((res) => {
-        setAgents(res.items || []);
+    let isActive = true;
+
+    setLoading(true);
+    setAgents([]);
+
+    Promise.all([
+      getAgentConnect({
+        city: selectedCity.city,
+      }),
+      minDelay(),
+    ])
+      .then(([res]) => {
+        if (!isActive) return;
+
+        const nextAgents = res.items || [];
+        setHomeSectionCache(cacheKey, nextAgents);
+        setAgents(nextAgents);
       })
       .catch((err) => {
+        if (!isActive) return;
         console.error("❌ Agent fetch failed:", err);
       })
-      .finally(() => setLoading(false));
-  }, [selectedCity]);
+      .finally(() => {
+        if (isActive) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [cacheKey, selectedCity]);
 
   const scrollLeft = () =>
     sliderRef.current?.scrollBy({
@@ -46,6 +83,7 @@ export default function AgentsList() {
       left: 320,
       behavior: "smooth",
     });
+  const hasItems = agents.length > 0;
 
 
   return (
@@ -74,35 +112,53 @@ export default function AgentsList() {
       </div>
 
       {/* Navigation Buttons */}
-      <button
-        type="button"
-        onClick={scrollLeft}
-        aria-label="Scroll left"
-        className="absolute left-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex bg-white p-2 rounded-full shadow-md hover:shadow-xl cursor-pointer transition-all duration-300"
-      >
-        <ArrowDropdownIcon size={16} className="rotate-90" />
-      </button>
+      {!loading && hasItems && (
+        <button
+          type="button"
+          onClick={scrollLeft}
+          aria-label="Scroll left"
+          className="absolute left-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex bg-white p-2 rounded-full shadow-md hover:shadow-xl cursor-pointer transition-all duration-300"
+        >
+          <ArrowDropdownIcon size={16} className="rotate-90" />
+        </button>
+      )}
 
-      <button
-        type="button"
-        onClick={scrollRight}
-        aria-label="Scroll right"
-        className="absolute right-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex bg-white p-2 rounded-full shadow-md hover:shadow-xl cursor-pointer transition-all duration-300"
-      >
-        <ArrowDropdownIcon size={16} className="-rotate-90" />
-      </button>
+      {!loading && hasItems && (
+        <button
+          type="button"
+          onClick={scrollRight}
+          aria-label="Scroll right"
+          className="absolute right-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex bg-white p-2 rounded-full shadow-md hover:shadow-xl cursor-pointer transition-all duration-300"
+        >
+          <ArrowDropdownIcon size={16} className="-rotate-90" />
+        </button>
+      )}
 
       {/* Scrollable Container */}
-      <div
-        ref={sliderRef}
-        className="flex gap-3 overflow-x-auto scroll-smooth no-scrollbar pb-8 pt-2 snap-x snap-mandatory px-1"
-      >
-        {agents.map((agent) => (
-          <div key={agent._id} className="snap-start shrink-0 px-1 py-1">
-            <AgentCard data={agent} />
-          </div>
-        ))}
-      </div>
+      {loading ? (
+        <div
+          ref={sliderRef}
+          className="flex gap-3 overflow-x-auto scroll-smooth no-scrollbar pb-8 pt-2 snap-x snap-mandatory px-1"
+        >
+          <HomeSectionSkeleton variant="agent" count={3} />
+        </div>
+      ) : hasItems ? (
+        <div
+          ref={sliderRef}
+          className="flex gap-3 overflow-x-auto scroll-smooth no-scrollbar pb-8 pt-2 snap-x snap-mandatory px-1"
+        >
+          {agents.map((agent) => (
+            <div key={agent._id} className="snap-start shrink-0 px-1 py-1">
+              <AgentCard data={agent} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <HomeSectionComingSoon
+          title="Agent Connect Is Coming Soon"
+          description={`We’re onboarding trusted agents for ${selectedCity?.city ?? "your city"}. You’ll see expert profiles here as soon as they’re available.`}
+        />
+      )}
     </div>
   );
 }

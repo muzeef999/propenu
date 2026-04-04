@@ -140,7 +140,7 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
 
   return (
     <div
-      className={`card p-2 h-auto flex overflow-hidden ${vertical ? "flex-col" : "flex-col md:flex-row md:h-[220px]"
+      className={`card p-2 h-auto flex overflow-hidden ${vertical ? "w-[min(100vw-2rem,360px)] flex-col" : "flex-col md:flex-row md:h-[220px]"
         }`}
     >
       <Link href={`/properties/agricultural/${p.slug}`} className={`flex flex-1 min-w-0 ${vertical ? "flex-col" : "flex-col md:flex-row"}`}>
@@ -206,17 +206,19 @@ const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
         </div>
 
         {/* Middle: content */}
-        <div className="flex-1 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
-          <div>
+        <div className="flex-1 min-w-0 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
+          <div className="min-w-0">
             <h3
               className={`font-semibold leading-snug line-clamp-2 ${vertical ? "text-base max-w-[250px] truncate" : "text-lg md:text-md max-w-[600px]"
                 }`}
             >
               {p.title}
             </h3>
-            <p className="text-sm text-gray-500 mt-1 flex items-center gap-2 truncate">
-              <BiBuildingHouse className="w-4 h-4" />
-              <span className="capitalize">{displayLandName}</span>
+            <p className="mt-1 flex min-w-0 items-center gap-2 text-sm text-gray-500">
+              <BiBuildingHouse className="h-4 w-4 shrink-0" />
+              <span className="block min-w-0 truncate capitalize">
+                {displayLandName}
+              </span>
             </p>
           </div>
 
