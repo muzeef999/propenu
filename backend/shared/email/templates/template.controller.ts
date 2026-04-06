@@ -4,6 +4,7 @@ import User from "../../../services/user-service/src/models/userModel";
 import { renderTemplate } from "../../notifications/templateEngine";
 import { sendEmail } from "../email.service";
 import EmailTemplate from "./template.model";
+import { emailQueue } from "../../../services/user-service/src/queues/email.queue";
 
 // ---------------- CREATE ----------------
 export const createEmailTemplate = async (
@@ -121,7 +122,7 @@ export const sendTemplateToUsers = async (
   res: Response
 ) => {
   try {
-    console.log("🔥 SEND TEMPLATE API HIT"); // 🔥 DEBUG
+    console.log("🔥 SEND TEMPLATE API HIT");
 
     const { slug, city, state, roleId } = req.body;
 
@@ -168,31 +169,40 @@ export const sendTemplateToUsers = async (
       });
     }
 
-    await Promise.all(
-      users.map(async (user) => {
-        if (!user.email) return;
+    // ✅ Queue instead of sending directly
+    for (const user of users) {
+      if (!user.email) continue;
 
-        const data = {
-          name: user.name || "User",
-          city: user.city || "",
-          state: user.state || "",
-        };
+      const data = {
+        name: user.name || "User",
+        city: user.city || "",
+        state: user.state || "",
+      };
 
-        const subject = renderTemplate(template.subject, data);
-        const html = renderTemplate(template.content, data);
+      const subject = renderTemplate(template.subject, data);
+      const html = renderTemplate(template.content, data);
 
-        await sendEmail({
-          to: user.email,
+      await emailQueue.add(
+        "send-email",
+        {
+          email: user.email,
           subject,
           html,
-        });
-      })
-    );
+        },
+        {
+          attempts: 3,
+          backoff: {
+            type: "exponential",
+            delay: 5000,
+          },
+        }
+      );
+    }
 
     res.json({
       success: true,
       totalUsers: users.length,
-      message: "Emails sent successfully",
+      message: "Emails queued successfully",
     });
   } catch (error: any) {
     res.status(500).json({

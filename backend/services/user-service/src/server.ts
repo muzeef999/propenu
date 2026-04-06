@@ -35,6 +35,7 @@ async function start() {
     app.use("/api/users/roles", roleRoute);
     app.use("/api/users/kyc", kycRoutes);
 
+    
     app.use("/api/users/notifications", userRoutes);
     
 
