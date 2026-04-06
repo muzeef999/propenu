@@ -10,6 +10,7 @@ router.post("/send-email-campaign", sendTemplateToUsers);
 router.post("/save-fcm-token", saveFcmToken);
 router.post("/admin/notify/custom", upload.single("image"), sendCustomNotification);
 
+console.log("User routes initialized");
 
 //gmail template
 router.post("/email", createEmailTemplate);
