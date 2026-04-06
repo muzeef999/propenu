@@ -1,5 +1,6 @@
 import { Response, NextFunction } from "express";
 import { AuthRequest } from "./authMiddleware";
+import { canAccessAdminDashboard } from "../utils/accessPolicy";
 
 /**
  * Allow only admin & super_admin
@@ -15,7 +16,7 @@ export const adminOnly = (
 
   const role = req.user.roleName;
 
-  if (role !== "admin" && role !== "super_admin") {
+  if (!canAccessAdminDashboard(role)) {
     return res.status(403).json({
       message: "Forbidden: admin or super_admin only",
     });

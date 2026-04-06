@@ -9,37 +9,67 @@ export async function createWatermarkedBuffer(imageBuffer: Buffer) {
     throw new Error("❌ Watermark not found at: " + watermarkPath);
   }
 
-  // 1. Get main image size
-  const image = sharp(imageBuffer);
-  const imageMeta = await image.metadata();
+  // 1. Get main image size and calculate the final output size explicitly.
+  const originalMeta = await sharp(imageBuffer).metadata();
 
-  if (!imageMeta.width || !imageMeta.height) {
+  if (!originalMeta.width || !originalMeta.height) {
     throw new Error("Invalid image dimensions");
   }
 
-  // 2. Resize watermark relative to image (25% width)
-  const watermark = await sharp(watermarkPath)
+  const scale = Math.min(
+    1600 / originalMeta.width,
+    1200 / originalMeta.height,
+    1,
+  );
+  const finalWidth = Math.max(1, Math.round(originalMeta.width * scale));
+  const finalHeight = Math.max(1, Math.round(originalMeta.height * scale));
+
+  // 2. Resize watermark relative to image and preserve transparency
+  const resizedWatermark = await sharp(watermarkPath)
     .resize({
-      width: Math.round(imageMeta.width * 0.25), // 25% of image width
+      width: Math.min(
+        finalWidth,
+        Math.max(140, Math.round(finalWidth * 0.22)),
+      ),
       withoutEnlargement: true,
     })
     .png()
     .toBuffer();
 
-  // Apply opacity to watermark
-  const watermarkWithOpacity = await sharp(watermark)
-    .composite([{ input: Buffer.from('<svg><rect width="100%" height="100%" fill="black" opacity="0.5"/></svg>'), blend: 'multiply' }])
-    .png()
-    .toBuffer();
+  const watermarkMeta = await sharp(resizedWatermark).metadata();
+
+  if (!watermarkMeta.width || !watermarkMeta.height) {
+    throw new Error("Invalid watermark dimensions");
+  }
+
+  const margin = Math.max(16, Math.round(finalWidth * 0.02));
+  const left = Math.max(0, finalWidth - watermarkMeta.width - margin);
+  const top = Math.max(0, finalHeight - watermarkMeta.height - margin);
+  const watermarkOverlay = Buffer.from(
+    `
+      <svg width="${watermarkMeta.width}" height="${watermarkMeta.height}">
+        <image
+          href="data:image/png;base64,${resizedWatermark.toString("base64")}"
+          width="${watermarkMeta.width}"
+          height="${watermarkMeta.height}"
+          opacity="0.72"
+        />
+      </svg>
+    `,
+  );
 
   // 3. Apply watermark safely
-  const outputBuffer = await image
-    .resize(1600, 1200, { fit: "inside", withoutEnlargement: true })
+  const outputBuffer = await sharp(imageBuffer)
+    .resize(1600, 1200, {
+      fit: "inside",
+      withoutEnlargement: true,
+    })
     .composite([
       {
-        input: watermark,
-        gravity: "southeast",
-        blend: "multiply",
+        input: watermarkOverlay,
+        left,
+        top,
+        blend: "over",
       },
     ])
     .jpeg({ quality: 90 })

@@ -7,6 +7,10 @@ import { Request, Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { sendOtpWhatsApp } from "../utils/whatsapp";
 import { sendOtpEmail } from "../utils/email";
+import {
+  getOtpLoginRestrictionMessage,
+  requiresKycForLogin,
+} from "../utils/accessPolicy";
 import mongoose from "mongoose";
 
 export const requestOTP = async (req: Request, res: Response) => {
@@ -26,7 +30,7 @@ export const requestOTP = async (req: Request, res: Response) => {
     // ⭐ Find user
     const existingUser = await User.findOne({
       $or: [...(email ? [{ email }] : []), ...(phone ? [{ phone }] : [])],
-    }).select("_id name email phone accountStatus");
+    }).select("_id name email phone accountStatus roleId");
 
     if (!existingUser) {
       return res.status(404).json({
@@ -34,9 +38,28 @@ export const requestOTP = async (req: Request, res: Response) => {
       });
     }
 
-    if (existingUser.accountStatus !== "active") {
+    const role = existingUser.roleId
+      ? await Role.findById(existingUser.roleId).select("name").lean()
+      : null;
+
+    if (
+      requiresKycForLogin(role?.name) &&
+      existingUser.accountStatus !== "active"
+    ) {
       return res.status(403).json({
         message: "Please complete the KYC process",
+      });
+    }
+
+    const restrictionMessage = getOtpLoginRestrictionMessage({
+      roleName: role?.name,
+      email,
+      phone,
+    });
+
+    if (restrictionMessage) {
+      return res.status(403).json({
+        message: restrictionMessage,
       });
     }
 
@@ -80,16 +103,6 @@ export const verifyOtp = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "OTP is required" });
     }
 
-    const key = email || phone;
-
-    const isValid = await verifyAndConsumeOtp(key, otp);
-
-    if (!isValid) {
-      return res.status(400).json({
-        message: "Invalid or expired OTP",
-      });
-    }
-
     const user = await User.findOne({
       $or: [...(email ? [{ email }] : []), ...(phone ? [{ phone }] : [])],
     }).populate("roleId");
@@ -101,6 +114,28 @@ export const verifyOtp = async (req: Request, res: Response) => {
     }
 
     const role: any = user.roleId;
+
+    const restrictionMessage = getOtpLoginRestrictionMessage({
+      roleName: role?.name,
+      email,
+      phone,
+    });
+
+    if (restrictionMessage) {
+      return res.status(403).json({
+        message: restrictionMessage,
+      });
+    }
+
+    const key = email || phone;
+
+    const isValid = await verifyAndConsumeOtp(key, otp);
+
+    if (!isValid) {
+      return res.status(400).json({
+        message: "Invalid or expired OTP",
+      });
+    }
 
     /* ⭐ Roles that require KYC */
     const KYC_REQUIRED_ROLES = ["user", "agent", "builder"];

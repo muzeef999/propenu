@@ -6,6 +6,7 @@ import Agricultural from "../models/agriculturalModel";
 import { uploadFile } from "../utils/uploadFile";
 import { extendAgriculturalFilters } from "./filters/agriculturalFilters";
 import { upsertCityAndLocality } from "./locationServices";
+import { createWatermarkedBuffer } from "../utils/imageProcessing";
 
 dotenv.config({ quiet: true });
 
@@ -60,8 +61,10 @@ async function mapAndUploadGallery({
     }
     if (matchedIndex === -1) matchedIndex = i;
 
+    const watermarkedBuffer = await createWatermarkedBuffer(file.buffer);
+
     const up = await uploadFile({
-      buffer: file.buffer,
+      buffer: watermarkedBuffer,
       originalName: file.originalname,
       mimetype: file.mimetype,
       propertyId,
@@ -318,8 +321,9 @@ export const AgriculturalService = {
         if (declared && filesByName.has(declared)) {
           const f = filesByName.get(declared);
           if (!f) continue;
+          const watermarkedBuffer = await createWatermarkedBuffer(f.buffer);
           const up = await uploadFile({
-            buffer: f.buffer,
+            buffer: watermarkedBuffer,
             originalName: f.originalname,
             mimetype: f.mimetype,
             propertyId: propId,
@@ -332,8 +336,9 @@ export const AgriculturalService = {
       }
 
       for (const file of Array.from(filesByName.values())) {
+        const watermarkedBuffer = await createWatermarkedBuffer(file.buffer);
         const up = await uploadFile({
-          buffer: file.buffer,
+          buffer: watermarkedBuffer,
           originalName: file.originalname,
           mimetype: file.mimetype,
           propertyId: propId,

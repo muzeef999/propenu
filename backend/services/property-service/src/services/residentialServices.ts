@@ -313,8 +313,9 @@ export const ResidentialPropertyService = {
     for (const file of galleryFiles) {
       if (!file) continue;
 
+      const watermarkedBuffer = await createWatermarkedBuffer(file.buffer);
       const up = await uploadFile({
-        buffer: file.buffer,
+        buffer: watermarkedBuffer,
         originalName: file.originalname,
         mimetype: file.mimetype,
         folder: "featured/gallery",

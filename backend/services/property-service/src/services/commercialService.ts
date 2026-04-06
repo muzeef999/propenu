@@ -8,6 +8,7 @@ import { uploadFile } from "../utils/uploadFile";
 import { extendCommercialFilters } from "./filters/commercialFilters";
 import { upsertCityAndLocality } from "./locationServices";
 import { findRelatedProperties } from "./findRelatedProperties";
+import { createWatermarkedBuffer } from "../utils/imageProcessing";
 dotenv.config({ quiet: true });
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
@@ -138,8 +139,10 @@ async function mapAndUploadGallery({
     }
     if (matchedIndex === -1) matchedIndex = i;
 
+    const watermarkedBuffer = await createWatermarkedBuffer(file.buffer);
+
     const up = await uploadFile({
-      buffer: file.buffer,
+      buffer: watermarkedBuffer,
       originalName: file.originalname,
       mimetype: file.mimetype,
       propertyId,
@@ -358,8 +361,9 @@ export const CommercialService = {
         if (declared && filesByName.has(declared)) {
           const f = filesByName.get(declared);
           if (!f) continue;
+          const watermarkedBuffer = await createWatermarkedBuffer(f.buffer);
           const up = await uploadFile({
-            buffer: f.buffer,
+            buffer: watermarkedBuffer,
             originalName: f.originalname,
             mimetype: f.mimetype,
             propertyId: propId,
@@ -374,8 +378,9 @@ export const CommercialService = {
 
       const remainingFiles = Array.from(filesByName.values());
       for (const file of remainingFiles) {
+        const watermarkedBuffer = await createWatermarkedBuffer(file.buffer);
         const up = await uploadFile({
-          buffer: file.buffer,
+          buffer: watermarkedBuffer,
           originalName: file.originalname,
           mimetype: file.mimetype,
           propertyId: propId,
