@@ -14,6 +14,11 @@ module.exports = {
       instances: 1,
       exec_mode: 'cluster'
     },
+    {
+      name: "email-worker",
+      script:
+        "backend/services/user-service/dist/services/user-service/src/workers/email.worker.js",
+    },
     { name: 'property-service',
       cwd: __dirname + '/services/property-service',
       script: "dist/services/property-service/src/server.js",

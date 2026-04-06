@@ -1,15 +1,29 @@
 import { Worker } from "bullmq";
 import { redisConnection } from "../lib/redis.connection";
+import { sendEmail } from "../../../../shared/email/email.service";
 
 new Worker(
   "email-queue",
   async (job) => {
-    const { email, name } = job.data;
+    console.log("🔥 JOB RECEIVED:", job.data);
 
-    console.log("📩 Sending email to:", email);
+    const { email, subject, html } = job.data;
 
-    // simulate email
-    await new Promise((res) => setTimeout(res, 1000));
+    try {
+      console.log("📩 Sending email to:", email);
+
+      // ✅ REAL EMAIL SEND
+      await sendEmail({
+        to: email,
+        subject,
+        html,
+      });
+
+      console.log("✅ Email sent:", email);
+    } catch (error) {
+      console.error("❌ Email failed:", email, error);
+      throw error; // important for retry
+    }
   },
   {
     connection: redisConnection,

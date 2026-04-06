@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "ts-node-dev --respawn src/server.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/services/user-service/src/server.js"
+    "start": "node dist/services/user-service/src/server.js",
+    "worker": "node dist/services/user-service/src/workers/email.worker.js",
+    "worker:dev": "ts-node src/workers/email.worker.ts"
+
   },
   "keywords": [],
   "author": "",
@@ -28,6 +31,7 @@
     "node-cache": "^5.1.2",
     "node-cron": "^4.2.1",
     "typescript": "^6.0.2",
+    "uuid": "^13.0.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {

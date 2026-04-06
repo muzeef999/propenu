@@ -2,15 +2,11 @@ import { Request, Response } from "express";
 import { Types } from "mongoose";
 import User from "../../../services/user-service/src/models/userModel";
 import { renderTemplate } from "../../notifications/templateEngine";
-import { sendEmail } from "../email.service";
 import EmailTemplate from "./template.model";
 import { emailQueue } from "../../../services/user-service/src/queues/email.queue";
 
 // ---------------- CREATE ----------------
-export const createEmailTemplate = async (
-  req: Request,
-  res: Response
-) => {
+export const createEmailTemplate = async (req: Request, res: Response) => {
   try {
     const template = await EmailTemplate.create(req.body);
 
@@ -43,7 +39,7 @@ export const getAllTemplates = async (req: Request, res: Response) => {
 // ---------------- GET ONE ----------------
 export const getTemplateById = async (
   req: Request<{ id: string }>,
-  res: Response
+  res: Response,
 ) => {
   const { id } = req.params;
 
@@ -69,7 +65,7 @@ export const getTemplateById = async (
 // ---------------- UPDATE ----------------
 export const updateTemplate = async (
   req: Request<{ id: string }>,
-  res: Response
+  res: Response,
 ) => {
   try {
     const { id } = req.params;
@@ -96,7 +92,7 @@ export const updateTemplate = async (
 // ---------------- DELETE ----------------
 export const deleteTemplate = async (
   req: Request<{ id: string }>,
-  res: Response
+  res: Response,
 ) => {
   try {
     const { id } = req.params;
@@ -117,15 +113,18 @@ export const deleteTemplate = async (
 };
 
 // ---------------- SEND EMAIL ----------------
-export const sendTemplateToUsers = async (
-  req: Request,
-  res: Response
-) => {
+export const sendTemplateToUsers = async (req: Request, res: Response) => {
   try {
-    console.log("🔥 SEND TEMPLATE API HIT");
+    // ✅ Fix for uuid (CommonJS + ESM issue)
+    const { v4: uuidv4 } = await import("uuid");
+
+    const campaignId = uuidv4();
 
     const { slug, city, state, roleId } = req.body;
 
+    console.log("🚀 Campaign started:", campaignId);
+
+    // ✅ Validation
     if (!slug) {
       return res.status(400).json({
         success: false,
@@ -133,6 +132,7 @@ export const sendTemplateToUsers = async (
       });
     }
 
+    // ✅ Get template
     const template = await EmailTemplate.findOne({
       slug,
       status: "active",
@@ -145,6 +145,7 @@ export const sendTemplateToUsers = async (
       });
     }
 
+    // ✅ Build filter
     const filter: any = {
       isActive: true,
       email: { $exists: true, $ne: null },
@@ -157,57 +158,178 @@ export const sendTemplateToUsers = async (
       filter.roleId = new Types.ObjectId(roleId);
     }
 
-    const users = await User.find(filter)
-      .select("name email city state")
-      .limit(100)
-      .lean();
+    // ✅ BATCH PROCESSING (NO LIMIT ❌ → SAFE LOOP ✅)
+    const batchSize = 500;
+    let page = 0;
+    let totalUsers = 0;
 
-    if (!users.length) {
-      return res.status(404).json({
-        success: false,
-        message: "No users found",
-      });
-    }
+    while (true) {
+      const users = await User.find(filter)
+        .select("name email city state")
+        .skip(page * batchSize)
+        .limit(batchSize)
+        .lean();
 
-    // ✅ Queue instead of sending directly
-    for (const user of users) {
-      if (!user.email) continue;
+      if (!users.length) break;
 
-      const data = {
-        name: user.name || "User",
-        city: user.city || "",
-        state: user.state || "",
-      };
+      console.log(`📦 Processing batch ${page + 1} (${users.length} users)`);
 
-      const subject = renderTemplate(template.subject, data);
-      const html = renderTemplate(template.content, data);
+      // ✅ Parallel queue add (FAST ⚡)
+      await Promise.all(
+        users.map((user) => {
+          if (!user.email) return;
 
-      await emailQueue.add(
-        "send-email",
-        {
-          email: user.email,
-          subject,
-          html,
-        },
-        {
-          attempts: 3,
-          backoff: {
-            type: "exponential",
-            delay: 5000,
-          },
-        }
+          const data = {
+            name: user.name || "User",
+            city: user.city || "",
+            state: user.state || "",
+          };
+
+          const subject = renderTemplate(template.subject, data);
+          const html = renderTemplate(template.content, data);
+
+          return emailQueue.add(
+            "send-email",
+            {
+              campaignId,
+              email: user.email,
+              subject,
+              html,
+            },
+            {
+              attempts: 3,
+              backoff: {
+                type: "exponential",
+                delay: 5000,
+              },
+            }
+          );
+        })
       );
+
+      totalUsers += users.length;
+      page++;
     }
 
-    res.json({
+    console.log("✅ Campaign queued:", totalUsers, "users");
+
+    // ✅ Final response
+    return res.json({
       success: true,
-      totalUsers: users.length,
+      campaignId,
+      totalUsers,
       message: "Emails queued successfully",
     });
   } catch (error: any) {
-    res.status(500).json({
+    console.error("❌ Campaign error:", error);
+
+    return res.status(500).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+export const sendEmailCampaignStatus = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { campaignId } = req.query;
+
+    const jobs = await emailQueue.getJobs([
+      "waiting",
+      "active",
+      "completed",
+      "failed",
+    ]);
+
+    // 🟢 CASE 1: Specific campaign
+    if (campaignId) {
+      let waiting = 0;
+      let active = 0;
+      let completed = 0;
+      let failed = 0;
+
+      for (const job of jobs) {
+        if (job.data.campaignId !== campaignId) continue;
+
+        if (job.failedReason) failed++;
+        else if (job.finishedOn) completed++;
+        else if (job.processedOn) active++;
+        else waiting++;
+      }
+
+      const total = waiting + active + completed + failed;
+
+      const progress =
+        total === 0 ? 0 : Number(((completed / total) * 100).toFixed(2));
+
+      return res.json({
+        success: true,
+        data: {
+          campaignId,
+          total,
+          waiting,
+          processing: active,
+          completed,
+          failed,
+          progress: `${progress}%`,
+          lastUpdated: new Date().toISOString(),
+        },
+      });
+    }
+
+    // 🔵 CASE 2: ALL campaigns summary
+    const campaignMap: any = {};
+
+    for (const job of jobs) {
+      const id = job.data.campaignId;
+      if (!id) continue;
+
+      if (!campaignMap[id]) {
+        campaignMap[id] = {
+          campaignId: id,
+          waiting: 0,
+          active: 0,
+          completed: 0,
+          failed: 0,
+        };
+      }
+
+      if (job.failedReason) campaignMap[id].failed++;
+      else if (job.finishedOn) campaignMap[id].completed++;
+      else if (job.processedOn) campaignMap[id].active++;
+      else campaignMap[id].waiting++;
+    }
+
+    const result = Object.values(campaignMap).map((c: any) => {
+      const total =
+        c.waiting + c.active + c.completed + c.failed;
+
+      const progress =
+        total === 0
+          ? 0
+          : Number(((c.completed / total) * 100).toFixed(2));
+
+      return {
+        ...c,
+        total,
+        processing: c.active,
+        progress: `${progress}%`,
+      };
+    });
+
+    return res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    console.error("❌ Status error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch campaign status",
     });
   }
 };
