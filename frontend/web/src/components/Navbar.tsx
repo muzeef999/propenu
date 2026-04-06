@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import LoginDialog from "@/app/(auth)/Login";
 import RegisterDialog from "@/app/(auth)/Register";
+import Cookies from "js-cookie";
 import { me } from "@/data/ClientData";
 import UserGreeting from "@/app/(auth)/UserGreeting";
 import FilterDropdown from "@/ui/FilterDropdown";
@@ -91,6 +92,15 @@ const Navbar = () => {
     setMobileOpen_city(false);
     btnRef.current?.focus();
   }
+
+  const handleLogout = () => {
+    Cookies.remove("token");
+    localStorage.removeItem("role");
+    setUser(null);
+    setAuthMode(null);
+    setMobileOpen(false);
+    window.location.href = "/";
+  };
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -552,6 +562,17 @@ const Navbar = () => {
                 </button>
               ))}
             </nav>
+
+            {user && (
+              <div className="px-2 pt-2">
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left text-sm text-red-600 px-3 py-3 rounded-md hover:bg-red-50 transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
 
           {/* FOOTER CTA */}

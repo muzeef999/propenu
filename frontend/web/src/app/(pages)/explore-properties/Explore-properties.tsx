@@ -27,8 +27,8 @@ const CATEGORIES = [
   },
 
   {
-    id: "Land /plotes",
-    title: "Land /plotes",
+    id: "Land /plots",
+    title: "Land /plots",
     color: "#FFF0E5",
     image: land,
     imageAlt: "Mediterranean villa with palm trees",
