@@ -10,6 +10,8 @@ import roleRoute from "./routes/roleRoute";
 import kycRoutes from "./routes/kycRoute";
 import userRoutes from "./routes/userRoutes";
 import { startNotificationJob } from "./jobs/notification.job";
+import emailRouter from "./routes/emailRoute";
+import whatsappRouter from "./routes/whatsappRoute";
 
 dotenv.config({ quiet: true });
 
@@ -34,19 +36,16 @@ async function start() {
     app.use("/api/users/agent", agentRoute);
     app.use("/api/users/roles", roleRoute);
     app.use("/api/users/kyc", kycRoutes);
-
-    
     app.use("/api/users/notifications", userRoutes);
+    app.use("/api/users/email", emailRouter);
+    app.use("/api/users/whatsapp", whatsappRouter);
     
 
     
 
     app.listen(Number(port), "0.0.0.0", () => {
       console.log(`user service running on 0.0.0.0:${port}`);
-
       // startNotificationJob();
-
-
     });
     
   } catch (err) {

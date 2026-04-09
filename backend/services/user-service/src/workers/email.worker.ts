@@ -1,32 +1,55 @@
-import { Worker } from "bullmq";
-import { redisConnection } from "../lib/redis.connection";
-import { sendEmail } from "../../../../shared/email/email.service";
+import dotenv from "dotenv";
+dotenv.config();
 
-new Worker(
+import { Worker } from "bullmq";
+import { sendEmail } from "../../../../shared/email/email.service";
+import { EmailLog } from "../logs/emailLog.model";
+import { redisConnection } from "../lib/redis.connection";
+
+interface EmailJobData {
+  to: string;
+  subject: string;
+  html: string;
+  logId?: string;
+  campaignId?: string;
+}
+
+new Worker<EmailJobData>(
   "email-queue",
   async (job) => {
-    console.log("🔥 JOB RECEIVED:", job.data);
-
-    const { email, subject, html } = job.data;
+    console.log("📨 Processing job:", job.id, job.data.to);
 
     try {
-      console.log("📩 Sending email to:", email);
+      await sendEmail(job.data.to, job.data.subject, job.data.html);
 
-      // ✅ REAL EMAIL SEND
-      await sendEmail({
-        to: email,
-        subject,
-        html,
-      });
+      console.log("✅ Email sent:", job.data.to);
 
-      console.log("✅ Email sent:", email);
-    } catch (error) {
-      console.error("❌ Email failed:", email, error);
-      throw error; // important for retry
+      if (job.data.logId) {
+        await EmailLog.findByIdAndUpdate(job.data.logId, {
+          status: "success",
+        });
+      }
+    } catch (err: any) {
+      console.error("❌ Email failed:", job.data.to, err.message);
+
+      if (job.data.logId) {
+        await EmailLog.findByIdAndUpdate(job.data.logId, {
+          status: "failed",
+          error: err.message,
+        });
+      }
+
+      throw err;
     }
   },
   {
     connection: redisConnection,
-    concurrency: 3,
+    concurrency: 1,
+
+    // ✅ VERY SAFE FOR ZOHO
+    limiter: {
+      max: 5, // 5 emails
+      duration: 60000, // per minute
+    },
   }
 );

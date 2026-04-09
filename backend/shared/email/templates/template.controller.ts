@@ -4,6 +4,7 @@ import User from "../../../services/user-service/src/models/userModel";
 import { renderTemplate } from "../../notifications/templateEngine";
 import EmailTemplate from "./template.model";
 import { emailQueue } from "../../../services/user-service/src/queues/email.queue";
+import { EmailLog } from "../../../services/user-service/src/logs/emailLog.model";
 
 // ---------------- CREATE ----------------
 export const createEmailTemplate = async (req: Request, res: Response) => {
@@ -159,7 +160,7 @@ export const sendTemplateToUsers = async (req: Request, res: Response) => {
     }
 
     // ✅ BATCH PROCESSING (NO LIMIT ❌ → SAFE LOOP ✅)
-    const batchSize = 500;
+    const batchSize = 100;
     let page = 0;
     let totalUsers = 0;
 
@@ -175,37 +176,46 @@ export const sendTemplateToUsers = async (req: Request, res: Response) => {
       console.log(`📦 Processing batch ${page + 1} (${users.length} users)`);
 
       // ✅ Parallel queue add (FAST ⚡)
-      await Promise.all(
-        users.map((user) => {
-          if (!user.email) return;
+      for (const user of users) {
+        if (!user.email) continue;
 
-          const data = {
-            name: user.name || "User",
-            city: user.city || "",
-            state: user.state || "",
-          };
+        const data = {
+          name: user.name || "User",
+          city: user.city || "",
+          state: user.state || "",
+        };
 
-          const subject = renderTemplate(template.subject, data);
-          const html = renderTemplate(template.content, data);
+        const subject = renderTemplate(template.subject, data);
+        const html = renderTemplate(template.content, data);
 
-          return emailQueue.add(
-            "send-email",
-            {
-              campaignId,
-              email: user.email,
-              subject,
-              html,
+        const log = await EmailLog.create({
+          campaignId,
+          to: user.email,
+          subject,
+          status: "pending",
+        });
+
+        await emailQueue.add(
+          "send-email",
+          {
+            campaignId,
+            to: user.email,
+            subject,
+            html,
+            logId: log._id.toString(),
+          },
+          {
+            attempts: 3,
+            backoff: {
+              type: "exponential",
+              delay: 5000,
             },
-            {
-              attempts: 3,
-              backoff: {
-                type: "exponential",
-                delay: 5000,
-              },
-            }
-          );
-        })
-      );
+          },
+        );
+
+        // ✅ VERY IMPORTANT (anti-block)
+        await new Promise((r) => setTimeout(r, 500)); // 500ms delay
+      }
 
       totalUsers += users.length;
       page++;
@@ -230,10 +240,7 @@ export const sendTemplateToUsers = async (req: Request, res: Response) => {
   }
 };
 
-export const sendEmailCampaignStatus = async (
-  req: Request,
-  res: Response
-) => {
+export const sendEmailCampaignStatus = async (req: Request, res: Response) => {
   try {
     const { campaignId } = req.query;
 
@@ -304,13 +311,10 @@ export const sendEmailCampaignStatus = async (
     }
 
     const result = Object.values(campaignMap).map((c: any) => {
-      const total =
-        c.waiting + c.active + c.completed + c.failed;
+      const total = c.waiting + c.active + c.completed + c.failed;
 
       const progress =
-        total === 0
-          ? 0
-          : Number(((c.completed / total) * 100).toFixed(2));
+        total === 0 ? 0 : Number(((c.completed / total) * 100).toFixed(2));
 
       return {
         ...c,
