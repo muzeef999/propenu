@@ -1,6 +1,7 @@
 ﻿import { getCommercialSlugProjects } from "@/data/serverData";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import formatINR from "@/utilies/PriceFormat";
+import { minDelay } from "@/utilies/minDelay";
 import { notFound } from "next/navigation";
 import { MdEventSeat, MdMeetingRoom } from "react-icons/md";
 import { ICommercial } from "@/types/commercial";
@@ -11,17 +12,7 @@ import {
   FaRegCalendarCheck,
   FaRegUser,
 } from "react-icons/fa";
-import {
-  FiBriefcase,
-  FiCalendar,
-  FiCoffee,
-  FiGrid,
-  FiLayers,
-  FiPhone,
-  FiTag,
-  FiTruck,
-  FiUser,
-} from "react-icons/fi";
+
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import RelatedCommercialCarousel from "./RelatedCommercialCarousel";
 import Image from "next/image";
@@ -94,7 +85,10 @@ export default async function Page({ params }: PageProps) {
 
   let project: ICommercial | null;
   try {
-    project = await getCommercialSlugProjects({ slug });
+    [project] = await Promise.all([
+      getCommercialSlugProjects({ slug }),
+      minDelay(1500),
+    ]);
   } catch (err) {
     console.error("Error fetching project:", err);
     return (
@@ -159,7 +153,6 @@ export default async function Page({ params }: PageProps) {
       icon: PiCalendarBlank,
     },
   ];
-  console.log(project);
 
   return (
     <div className="min-h-screen py-6 overflow-hidden">

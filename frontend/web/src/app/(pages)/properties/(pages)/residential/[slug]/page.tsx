@@ -2,6 +2,7 @@ import { getResidentialSlugProjects } from "@/data/serverData";
 import { IResidential } from "@/types/residential";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import formatINR from "@/utilies/PriceFormat";
+import { minDelay } from "@/utilies/minDelay";
 import { notFound } from "next/navigation";
 import GalleryFile from "../../../GalleryFile"; // Assuming this is client-side or handles SSR correctly
 import { Balconies, Bath, Bhk } from "@/icons/icons";
@@ -49,7 +50,10 @@ export default async function Page({ params }: PageProps) {
 
   let project: IResidential | null;
   try {
-    project = await getResidentialSlugProjects({ slug });
+    [project] = await Promise.all([
+      getResidentialSlugProjects({ slug }),
+      minDelay(1500),
+    ]);
   } catch (err) {
     console.error("Error fetching project:", err);
     return (

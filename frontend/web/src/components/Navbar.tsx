@@ -41,6 +41,7 @@ const Navbar = () => {
   const [registerStep, setRegisterStep] = useState<
     "personal" | "location" | "kyc"
   >("personal");
+  const isBuilder = user?.user?.roleName === "builder";
 
   useEffect(() => {
     if (mobileOpen) {
@@ -309,15 +310,17 @@ const Navbar = () => {
               </>
 
               {/* CTA - secondary outlined */}
-              <Link
-                href="/postproperty"
-                className="btn btn-secondary text-xs sm:text-sm whitespace-nowrap"
-              >
-                Post Property
-                <span className="text-xs bg-[#27AE60] px-1 text-white rounded">
-                  Free
-                </span>
-              </Link>
+              {!isBuilder && (
+                <Link
+                  href="/postproperty"
+                  className="btn btn-secondary text-xs sm:text-sm whitespace-nowrap"
+                >
+                  Post Property
+                  <span className="text-xs bg-[#27AE60] px-1 text-white rounded">
+                    Free
+                  </span>
+                </Link>
+              )}
             </div>
 
             {/* mobile controls */}
@@ -576,18 +579,20 @@ const Navbar = () => {
           </div>
 
           {/* FOOTER CTA */}
-          <div className="p-2">
-            <Link
-              href="/postproperty"
-              onClick={() => setMobileOpen(false)}
-              className="w-full flex items-center justify-center gap-2 bg-[#27AE60] text-white py-3 rounded-md font-semibold text-sm shadow-md shadow-green-100 active:scale-[0.98] transition-all"
-            >
-              Post Property
-              <span className="bg-white/20 px-2 py-0.5 rounded text-[10px]">
-                FREE
-              </span>
-            </Link>
-          </div>
+          {!isBuilder && (
+            <div className="p-2">
+              <Link
+                href="/postproperty"
+                onClick={() => setMobileOpen(false)}
+                className="w-full flex items-center justify-center gap-2 bg-[#27AE60] text-white py-3 rounded-md font-semibold text-sm shadow-md shadow-green-100 active:scale-[0.98] transition-all"
+              >
+                Post Property
+                <span className="bg-white/20 px-2 py-0.5 rounded text-[10px]">
+                  FREE
+                </span>
+              </Link>
+            </div>
+          )}
         </div>
       </>
 

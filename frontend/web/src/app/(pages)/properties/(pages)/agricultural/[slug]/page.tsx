@@ -1,6 +1,7 @@
 import { getAgriculturalSlugProjects } from "@/data/serverData";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import formatINR from "@/utilies/PriceFormat";
+import { minDelay } from "@/utilies/minDelay";
 import { notFound } from "next/navigation";
 import GalleryFile from "../../../GalleryFile";
 import { MdWaterDrop } from "react-icons/md";
@@ -31,7 +32,10 @@ export default async function Page({ params }: PageProps) {
 
   let project: IAgricultural | null;
   try {
-    project = await getAgriculturalSlugProjects({ slug });
+    [project] = await Promise.all([
+      getAgriculturalSlugProjects({ slug }),
+      minDelay(1500),
+    ]);
   } catch (err) {
     console.error("Error fetching project:", err);
     return (

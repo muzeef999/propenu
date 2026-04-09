@@ -1,6 +1,7 @@
 import { getLandSlugProjects } from "@/data/serverData";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import formatINR from "@/utilies/PriceFormat";
+import { minDelay } from "@/utilies/minDelay";
 import { notFound } from "next/navigation";
 import { ILand } from "@/types/land";
 import GalleryFile from "../../../GalleryFile";
@@ -42,7 +43,10 @@ export default async function Page({ params }: PageProps) {
 
   let project: ILand | null;
   try {
-    project = await getLandSlugProjects({ slug });
+    [project] = await Promise.all([
+      getLandSlugProjects({ slug }),
+      minDelay(1500),
+    ]);
   } catch (err) {
     console.error("Error fetching project:", err);
     return (

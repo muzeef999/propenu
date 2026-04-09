@@ -7,6 +7,7 @@ const userOnlyRoutes = [
   "/contacted-properties",
   "/membership",
 ];
+const builderRestrictedRoutes = ["/postproperty"];
 
 export function middleware(req: NextRequest) {
   const token = req.cookies.get("token")?.value;
@@ -16,6 +17,9 @@ export function middleware(req: NextRequest) {
     pathname.startsWith("/agent") ||
     pathname.startsWith("/builder");
   const isUserOnlyRoute = userOnlyRoutes.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
+  const isBuilderRestrictedRoute = builderRestrictedRoutes.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
 
@@ -54,6 +58,10 @@ export function middleware(req: NextRequest) {
     return new NextResponse(null, { status: 403 });
   }
 
+  if (isBuilderRestrictedRoute && role === "builder") {
+    return new NextResponse(null, { status: 403 });
+  }
+
   return NextResponse.next();
 }
 
@@ -67,5 +75,6 @@ export const config = {
     "/shortlisted-properties/:path*",
     "/contacted-properties/:path*",
     "/membership/:path*",
+    "/postproperty/:path*",
   ],
 };
