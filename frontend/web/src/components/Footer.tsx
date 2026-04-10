@@ -118,7 +118,9 @@ export default function Footer() {
             <div className="flex items-center gap-3 mb-8">
               {/* LinkedIn */}
               <Link
-                href="#"
+                href="https://www.linkedin.com/company/propenu"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm transition hover:shadow-md hover:bg-[#0A66C2] group"
               >
                 <span className="w-7 h-7 text-[#0A66C2] group-hover:text-white transition">
@@ -128,7 +130,9 @@ export default function Footer() {
 
               {/* Instagram */}
               <Link
-                href="#"
+                href="https://www.instagram.com/propenu"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm transition-all duration-300 hover:shadow-md group hover:bg-[linear-gradient(45deg,#f09433_0%,#e6683c_25%,#dc2743_50%,#cc2366_75%,#bc1888_100%)]">
                 <span className="w-6 h-6">
                   <InstagramSVG />
@@ -137,7 +141,9 @@ export default function Footer() {
 
               {/* Facebook */}
               <Link
-                href="#"
+                href="https://www.facebook.com/profile.php?id=61584609591479"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm transition hover:shadow-md hover:bg-[#1877F2] group"
               >
                 <span className="w-7 h-7 text-[#1877F2] group-hover:text-white transition">
@@ -147,7 +153,9 @@ export default function Footer() {
 
               {/* Twitter / X */}
               <Link
-                href="#"
+                href="https://x.com/propenu"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm transition-all hover:shadow-md hover:bg-black group"
               >
                 <span className="w-5 h-5 text-black group-hover:text-white transition-colors">
@@ -157,7 +165,9 @@ export default function Footer() {
 
               {/* YouTube */}
               <Link
-                href="#"
+                href="https://www.youtube.com/@Propenu"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm transition hover:shadow-md hover:bg-[#FF0000] group"
               >
                 <span className="w-6 h-6 text-[#FF0000] group-hover:text-white transition">

@@ -2,21 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { FaChartLine, FaHeart, FaUserPlus } from "react-icons/fa";
 import { hexToRGBA } from "@/ui/hexToRGBA";
-import { Building, profile, Subscription } from "@/icons/icons";
+import { Building, Subscription } from "@/icons/icons";
+import { RiAccountCircle2Fill } from "react-icons/ri";
 
 const menuItems = [
   {
     label: "Dashboard",
     mobileLabel: "Home",
     link: "/agent",
-    icon: profile,
+    icon: FaChartLine,
   },
   {
     label: "Leads",
     mobileLabel: "Leads",
     link: "/agent/leads",
-    icon: Building,
+    icon: FaUserPlus,
   },
   {
     label: "My Properties",
@@ -28,7 +30,7 @@ const menuItems = [
     label: "Shortlist Properties",
     mobileLabel: "Shortlist",
     link: "/agent/shortlisted-properties",
-    icon: Building,
+    icon: FaHeart,
   },
   {
     label: "My Plan",
@@ -40,7 +42,7 @@ const menuItems = [
     label: "Account & Settings",
     mobileLabel: "Account",
     link: "/agent/account-settings",
-    icon: Subscription,
+    icon: RiAccountCircle2Fill,
   },
 ];
 
@@ -157,4 +159,3 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
-
