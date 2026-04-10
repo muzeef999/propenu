@@ -3,37 +3,29 @@ export const ownerWelcomeEmail = (name: string, link: string = "https://propenu.
 <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto; padding:20px; border:1px solid #eee; border-radius:8px">
 
   <h2 style="color:#2c7be5;">Welcome to Propenu 🎉</h2>
-
   <p>Hello <b>${name}</b>,</p>
-
   <p>
     Welcome to <b>Propenu</b> — your verification is now complete.
   </p>
-
   <p>
     You’re officially part of a platform built on trust with: verified users, verified properties, zero spam, and secure transactions.
   </p>
-
   <p>
     You can now post your property and move ahead with confidence on Propenu.
   </p>
-
   <div style="margin:20px 0;">
     <a href="${link}"
        style="display:inline-block;background:#2c7be5;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">
        Post Your Property
     </a>
   </div>
-
   <p>
     We’re excited to have you with us and wish you great success on the platform.
   </p>
-
   <p style="margin-top:30px;">
     Regards,<br/>
     <b>Team Propenu</b>
   </p>
-
 </div>  
 `;
 
@@ -41,39 +33,30 @@ export const ownerIncompleteListingEmailSubject = (name: string) => `${name}, Co
 
 export const ownerIncompleteListingEmail = (name: string, activeUsers: string) => `
 <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto; padding:20px; border:1px solid #eee; border-radius:8px">
-
   <h2 style="color:#2c7be5;">Continue Your Listing</h2>
-
   <p>Hello <b>${name}</b>,</p>
-
   <p>
     Your property draft is saved on Propenu, and you can continue right where you left off.
   </p>
-
   <p>
     Your listing is still incomplete. Finish the remaining details to submit your property for verification.
   </p>
-
   <p>
     Once approved, your property can be shown to <b>${activeUsers}</b> active, genuine buyers/tenants searching on the platform.
   </p>
-
   <div style="margin:20px 0;">
     <a href="https://propenu.com/postproperty"
        style="display:inline-block;background:#2c7be5;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">
        Continue Your Listing
     </a>
   </div>
-
   <p>
     If you have any questions, feel free to reach out to our support team at <b>+91 9182334233</b>.
   </p>
-
   <p style="margin-top:30px;">
     Regards,<br/>
     <b>Team Propenu</b>
   </p>
-
 </div>
 `;
 
@@ -84,41 +67,32 @@ export const listingSubmittedTemplate = (
 <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto; padding:20px; border:1px solid #eee; border-radius:8px">
 
   <h2 style="color:#2c7be5;">Listing Submitted Successfully</h2>
-
   <p>Hello <b>${name}</b>,</p>
-
   <p>
     Your <b>${title}</b> has been successfully submitted on Propenu.
   </p>
-
   <p>
     Our team is currently reviewing your listing as part of the verification process.
   </p>
-
   <p>
     Property verification is typically completed within <b>24 hours</b>. In rare cases, the process may take slightly longer than 24 hours. Once approved, your property will go live and become visible to genuine buyers/tenants.
   </p>
-
   <div style="margin:20px 0;">
     <a href="https://propenu.com/postproperty"
        style="display:inline-block;background:#2c7be5;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">
        View Listing to Track Its Status
     </a>
   </div>
-
   <p>
     Thank you for listing with Propenu.
   </p>
-
   <p>
     If you have any questions, feel free to reach out to our support team at <b>+91 9182334233</b>.
   </p>
-
   <p style="margin-top:30px;">
     Regards,<br/>
     <b>Team Propenu</b>
   </p>
-
 </div>`;    
 
 export const ownerListingApprovalEmailSubject = (
@@ -135,35 +109,27 @@ export const ownerListingApprovalEmail = (
   link: string,
 ) => `
 <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto; padding:20px; border:1px solid #eee; border-radius:8px">
-
   <h2 style="color:#2c7be5;">Listing Approved</h2>
-
   <p>Hello <b>${name}</b>,</p>
-
   <p>
     Great news — your <b>${propertyName}</b> in <b>${location}</b> on Propenu has been successfully approved and is now live on the platform.
   </p>
-
   <p>
     Your verified listing is now visible to <b>${activeUsers}</b> genuine buyers/tenants actively searching in your area. You can expect quality enquiries from interested prospects.
   </p>
-
   <div style="margin:20px 0;">
     <a href="${link}"
        style="display:inline-block;background:#2c7be5;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">
        View Your Listing and Start Receiving Enquiries
     </a>
   </div>
-
   <p>
     Thank you for choosing Propenu.
   </p>
-
   <p style="margin-top:30px;">
     Regards,<br/>
     <b>Team Propenu</b>
   </p>
-
 </div>`;
 
 export const ownerListingRejectedEmailSubject = (
@@ -179,43 +145,33 @@ export const ownerListingRejectedEmail = (
   helplineNumber: string = "+91 9182334233",
 ) => `
 <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto; padding:20px; border:1px solid #eee; border-radius:8px">
-
   <h2 style="color:#d9534f;">Verification Failed for Your Listing</h2>
-
   <p>Hello <b>${name}</b>,</p>
-
   <p>
     Your <b>${propertyName}</b> on Propenu could not be approved.
   </p>
-
   <p>
     <b>Rejected</b>
   </p>
-
   <p>
     Please update the required details and resubmit your listing to proceed with verification.
   </p>
-
   <div style="margin:20px 0;">
     <a href="${link}"
        style="display:inline-block;background:#2c7be5;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">
        Update Your Listing and Resubmit for Review
     </a>
   </div>
-
   <p>
     Our team will review it again once updated. Verification is usually completed within <b>24 hours</b>, though in rare cases it may take slightly longer.
   </p>
-
   <p>
     If you have any questions, feel free to reach out to our support team at <b>${helplineNumber}</b>.
   </p>
-
   <p style="margin-top:30px;">
     Regards,<br/>
     <b>Team Propenu</b>
   </p>
-
 </div>`;
 
 export const ownerLowEnquiriesEmailSubject = (
@@ -263,6 +219,9 @@ export const ownerBoostActivatedEmailSubject = (
   name: string,
   propertyName: string,
 ) => `${name}, Payment Successful — Boost Activated for Your ${propertyName}`;
+
+
+
 
 export const ownerBoostActivatedEmail = (
   name: string,
@@ -405,6 +364,7 @@ export const ownerSubscriptionActivatedEmailSubject = (
   subscriptionName: string,
 ) => `${name}, Payment Successful — ${subscriptionName} Subscription Activated`;
 
+
 export const ownerSubscriptionActivatedEmail = (
   name: string,
   subscriptionName: string,
@@ -454,11 +414,16 @@ export const ownerSubscriptionActivatedEmail = (
   </p>
 
 </div>`;
+
+
+
 export const ownerListingDeactivatedEmailSubject = (
   name: string,
   propertyName: string,
   location: string,
 ) => `${name}, Your ${propertyName} in ${location} Has Been Deactivated`;
+
+
 
 export const ownerListingDeactivatedEmail = (
   name: string,

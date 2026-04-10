@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
-import { EmailLog } from "./emailLog.model.js";
-import { emailQueue } from "../queues/email.queue.js";
+import { EmailLog } from "./emailLog.model";
+import { emailQueue } from "../queues/email.queue";
 
 const router = Router();
 
@@ -65,11 +65,7 @@ router.get("/campaigns", async (_req: Request, res: Response) => {
           failed: 1,
           pending: 1,
           progress: {
-            $concat: [
-              { $toString: "$success" },
-              "/",
-              { $toString: "$total" },
-            ],
+            $concat: [{ $toString: "$success" }, "/", { $toString: "$total" }],
           },
         },
       },
@@ -85,7 +81,6 @@ router.get("/campaigns", async (_req: Request, res: Response) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 router.get("/campaign-running", async (_req: Request, res: Response) => {
   try {
@@ -145,11 +140,7 @@ router.get("/campaign-running", async (_req: Request, res: Response) => {
           failed: 1,
           pending: 1,
           progress: {
-            $concat: [
-              { $toString: "$success" },
-              "/",
-              { $toString: "$total" },
-            ],
+            $concat: [{ $toString: "$success" }, "/", { $toString: "$total" }],
           },
         },
       },
@@ -208,17 +199,13 @@ router.get("/campaign/:campaignId", async (req: Request, res: Response) => {
  */
 router.get("/", async (_req: Request, res: Response) => {
   try {
-    const logs = await EmailLog.find()
-      .sort({ createdAt: -1 })
-      .limit(100);
+    const logs = await EmailLog.find().sort({ createdAt: -1 }).limit(100);
 
     res.json(logs);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
-
-
 
 router.post("/retry-failed/:campaignId", async (req, res) => {
   try {
@@ -232,28 +219,28 @@ router.post("/retry-failed/:campaignId", async (req, res) => {
     let retried = 0;
 
     for (const log of failedLogs) {
-  // ✅ SAFE EXTRACTION
-  const to = log.to as string | undefined;
-  const subject = log.subject as string | undefined;
-  const html = (log as any).html as string | undefined;
+      // ✅ SAFE EXTRACTION
+      const to = log.to as string | undefined;
+      const subject = log.subject as string | undefined;
+      const html = (log as any).html as string | undefined;
 
-  // ✅ VALIDATION (IMPORTANT)
-  if (!to || !subject || !html) {
-    console.log("⚠️ Skipping invalid log:", log._id);
-    continue;
-  }
+      // ✅ VALIDATION (IMPORTANT)
+      if (!to || !subject || !html) {
+        console.log("⚠️ Skipping invalid log:", log._id);
+        continue;
+      }
 
-  await emailQueue.add("send-email", {
-    to,
-    subject,
-    html,
-    logId: String(log._id),
-    campaignId,
-  });
+      await emailQueue.add("send-email", {
+        to,
+        subject,
+        html,
+        logId: String(log._id),
+        campaignId,
+      });
 
-  log.status = "pending";
-  await log.save();
-}
+      log.status = "pending";
+      await log.save();
+    }
 
     res.json({
       message: "Retry started",

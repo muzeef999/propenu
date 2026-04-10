@@ -1,18 +1,27 @@
-import multer from "multer";
+// src/middlewares/upload.ts
+import multer, { FileFilterCallback } from "multer";
+import { Request } from "express";
 
-// ✅ store file in memory (not S3 directly)
 export const upload = multer({
+
   storage: multer.memoryStorage(),
 
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB
   },
 
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) {
+  fileFilter: (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
+    const isCSV =
+      file.mimetype === "text/csv" ||
+      file.mimetype === "application/vnd.ms-excel" ||
+      file.originalname.toLowerCase().endsWith(".csv");
+
+    const isImage = file.mimetype.startsWith("image/");
+
+    if (isCSV || isImage) {
       cb(null, true);
     } else {
-      cb(new Error("Only images allowed"));
+      cb(new Error("Only CSV and image files are allowed"));
     }
   },
 });

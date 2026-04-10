@@ -5,6 +5,10 @@ import { renderTemplate } from "../../notifications/templateEngine";
 import EmailTemplate from "./template.model";
 import { emailQueue } from "../../../services/user-service/src/queues/email.queue";
 import { EmailLog } from "../../../services/user-service/src/logs/emailLog.model";
+import * as fs from "fs";
+import csv from "csv-parser";
+import { parseTemplate } from "../../../services/user-service/src/utils/parseTemplate";
+import { Readable } from "stream";
 
 // ---------------- CREATE ----------------
 export const createEmailTemplate = async (req: Request, res: Response) => {
@@ -240,6 +244,7 @@ export const sendTemplateToUsers = async (req: Request, res: Response) => {
   }
 };
 
+// ---------------- CAMPAIGN STATUS ----------------
 export const sendEmailCampaignStatus = async (req: Request, res: Response) => {
   try {
     const { campaignId } = req.query;
@@ -334,6 +339,104 @@ export const sendEmailCampaignStatus = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch campaign status",
+    });
+  }
+};
+
+// ---------------- SEND CSV BULK EMAIL ----------------
+export const sendCsvBulkEmail = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    const { templateId } = req.body as { templateId?: string };
+
+    // ✅ validations
+    if (!req.file) {
+      return res.status(400).json({ message: "CSV file required" });
+    }
+
+    if (!templateId) {
+      return res.status(400).json({ message: "templateId required" });
+    }
+
+    const template = await EmailTemplate.findById(templateId);
+
+    if (!template) {
+      return res.status(404).json({ message: "Template not found" });
+    }
+
+    let jobCount = 0;
+
+    // ✅ create one campaignId for entire CSV
+    const campaignId = "csv_" + Date.now();
+
+    // ✅ FIX: buffer → stream
+    const stream = Readable.from(req.file.buffer).pipe(csv());
+
+    // ⚠️ IMPORTANT: async handler
+    stream.on("data", async (row: Record<string, string>) => {
+      try {
+        const email = row.email;
+
+        if (!email) return;
+
+        const subject = parseTemplate(template.subject || "", row);
+        const html = parseTemplate(template.content || "", row);
+
+        // ✅ STEP 1: create log (pending)
+        const log = await EmailLog.create({
+          to: email,
+          subject,
+          html,
+          status: "pending",
+          campaignId,
+        });
+
+        // ✅ STEP 2: add to queue WITH logId
+        await emailQueue.add(
+          "send-email",
+          {
+            to: email,
+            subject,
+            html,
+            logId: String(log._id), // 🔥 REQUIRED for worker
+            campaignId,
+          },
+          {
+            delay: jobCount * 2000,
+          }
+        );
+
+        jobCount++;
+      } catch (err) {
+        console.error("Row processing error:", err);
+      }
+    });
+
+    stream.on("end", () => {
+      return res.status(200).json({
+        message: "✅ CSV bulk queued successfully",
+        totalJobs: jobCount,
+        campaignId,
+      });
+    });
+
+    stream.on("error", (err: Error) => {
+      return res.status(500).json({
+        message: "CSV processing failed",
+        error: err.message,
+      });
+    });
+
+    return res;
+  } catch (err: unknown) {
+    const errorMessage =
+      err instanceof Error ? err.message : "Unknown error";
+
+    return res.status(500).json({
+      message: "Something went wrong",
+      error: errorMessage,
     });
   }
 };
