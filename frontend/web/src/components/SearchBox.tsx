@@ -25,6 +25,7 @@ const listingOptions = [
 
 const SearchBox = () => {
   const [open, setOpen] = useState(false);
+  const [categoryOpen, setCategoryOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const searchDropdownRef = useRef<HTMLDivElement | null>(null);
   const [placeholder, setPlaceholder] = useState(
@@ -166,20 +167,58 @@ const SearchBox = () => {
 
           <span className="h-6 w-px bg-gray-200" />
 
-          <select
-            value={category}
-            onChange={(e) =>
-              dispatch(setCategory(e.target.value as categoryOption))
-            }
-            onClick={(e) => e.stopPropagation()}
-            className="bg-transparent text-sm outline-none cursor-pointer"
-          >
-            {categoryOptions.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setCategoryOpen((prev) => !prev);
+              }}
+              className="flex items-center gap-2 bg-transparent text-sm text-gray-900 cursor-pointer"
+            >
+              <span className="md:max-w-24 md:truncate lg:max-w-none">
+                {category}
+              </span>
+              <ArrowDropdownIcon
+                size={12}
+                color="#111827"
+                className={`transition-transform duration-200 ${
+                  categoryOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {categoryOpen && (
+              <div
+                className="absolute left-0 top-[calc(100%+8px)] z-60 w-44 rounded-xl border border-gray-200 bg-white p-3 shadow-lg"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="absolute -top-2 left-6 pointer-events-none">
+                  <div className="h-3 w-3 rotate-45 bg-white border-l border-t border-gray-200" />
+                </div>
+                <h4 className="mb-2 text-sm font-semibold">Category</h4>
+                <div className="flex flex-col gap-1">
+                  {categoryOptions.map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => {
+                        dispatch(setCategory(type));
+                        setCategoryOpen(false);
+                      }}
+                      className={`rounded px-3 py-2 text-left text-sm cursor-pointer transition-colors ${
+                        category === type
+                          ? "bg-[#D1EFDD] text-[#15803D] font-medium"
+                          : "hover:bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           <span className="md:block h-6 w-px bg-gray-200" />
 
