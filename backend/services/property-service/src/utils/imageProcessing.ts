@@ -4,7 +4,7 @@ import fs from "fs";
 
 export async function createWatermarkedBuffer(imageBuffer: Buffer) {
  
-  const watermarkPath = path.resolve(__dirname, "../../../assets/watermark.png");
+const watermarkPath = path.resolve(__dirname, "../../../../assets/watermark.png");
 
   if (!fs.existsSync(watermarkPath)) {
     throw new Error("❌ Watermark not found at: " + watermarkPath);
