@@ -59,7 +59,6 @@ export const getWhatsAppTemplates = async (_: Request, res: Response) => {
   }
 };
 
-
 // DELETE
 export const deleteWhatsAppTemplate = async (req: Request, res: Response) => {
   try {
@@ -88,3 +87,4 @@ export const deleteWhatsAppTemplate = async (req: Request, res: Response) => {
     });
   }
 };
+

@@ -1,4 +1,5 @@
 export const ownerWelcomeEmailSubject = (name: string) => `${name}, Welcome to Propenu - Your Verification is Complete`;
+
 export const ownerWelcomeEmail = (name: string, link: string = "https://propenu.com/postproperty") => `
 <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto; padding:20px; border:1px solid #eee; border-radius:8px">
 
@@ -181,7 +182,7 @@ export const ownerLowEnquiriesEmailSubject = (
 
 export const ownerLowEnquiriesEmail = (
   name: string,
-  propertyName: string,  link: string = "http://localhost:3000/plans/pricing/owner-rent",
+  propertyName: string,  link: string = "https://propenu.com/plans/pricing/owner-rent",
 ) => `
 <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto; padding:20px; border:1px solid #eee; border-radius:8px">
 

@@ -4,12 +4,21 @@ import {
   deleteWhatsAppTemplate,
   getWhatsAppTemplates,
 } from "../../../../shared/whatsapp/templates/whatsappTemplate.controller";
+import whatsappLogRouter from "../logs/whatsappLog.routes";
+import {   sendWhatsAppBulkMessages, sendWhatsAppCampaignDynamic } from "../../../../shared/whatsapp/templates/whatsappTemplate.service";
+import { upload } from "../middlewares/upload";
+
 
 const whatsappRouter = express.Router();
 
+whatsappRouter.post("/", createWhatsAppTemplate);
+whatsappRouter.get("/", getWhatsAppTemplates);
+whatsappRouter.delete("/:name", deleteWhatsAppTemplate);
+whatsappRouter.use("/whatsapp-logs", whatsappLogRouter);
+whatsappRouter.post("/send-whatsapp", sendWhatsAppCampaignDynamic);
+whatsappRouter.post("/send-csv-bulk-whatsapp", upload.single("file"), sendWhatsAppBulkMessages);
 
-whatsappRouter.post("/whatsapp/template", createWhatsAppTemplate);
-whatsappRouter.get("/whatsapp/template", getWhatsAppTemplates);
-whatsappRouter.delete("/whatsapp/template/:name", deleteWhatsAppTemplate);
+
+
 
 export default whatsappRouter;

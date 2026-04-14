@@ -1,7 +1,6 @@
 import { Router, Request, Response } from "express";
-import { WhatsAppLog } from "./whatsappLog.model.js";
-import { whatsappQueue } from "../queues/whatsapp.queue.js";
-
+import { whatsappQueue } from "../queues/whatsapp.queue";
+import { WhatsAppLog } from "./whatsappLog.model";
 const router = Router();
 
 /**

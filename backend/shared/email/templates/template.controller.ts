@@ -5,10 +5,13 @@ import { renderTemplate } from "../../notifications/templateEngine";
 import EmailTemplate from "./template.model";
 import { emailQueue } from "../../../services/user-service/src/queues/email.queue";
 import { EmailLog } from "../../../services/user-service/src/logs/emailLog.model";
-import * as fs from "fs";
 import csv from "csv-parser";
 import { parseTemplate } from "../../../services/user-service/src/utils/parseTemplate";
 import { Readable } from "stream";
+
+type MulterRequest = Request & {
+  file: Express.Multer.File;
+};
 
 // ---------------- CREATE ----------------
 export const createEmailTemplate = async (req: Request, res: Response) => {

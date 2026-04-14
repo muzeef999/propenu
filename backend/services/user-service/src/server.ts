@@ -41,8 +41,6 @@ async function start() {
     app.use("/api/users/whatsapp", whatsappRouter);
     
 
-    
-
     app.listen(Number(port), "0.0.0.0", () => {
       console.log(`user service running on 0.0.0.0:${port}`);
       // startNotificationJob();

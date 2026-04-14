@@ -8,11 +8,9 @@ type SendEmailParams = {
 
 const requireEnv = (name: string) => {
   const value = process.env[name];
-
   if (!value) {
     throw new Error(`Missing ENV variable: ${name}`);
   }
-
   return value;
 };
 
@@ -75,7 +73,6 @@ export async function sendEmail(
     subject,
     html,
   });
-
   return info;
 }
 
