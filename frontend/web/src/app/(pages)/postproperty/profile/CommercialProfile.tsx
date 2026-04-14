@@ -764,7 +764,6 @@ const CommercialProfile = () => {
                     ? "/plans/pricing/owner-sell"
                     : "/plans/pricing/owner-rent";
 
-                console.log("🚀 Redirecting to:", redirectUrl);
 
                 setTimeout(() => {
                   Router.push(redirectUrl);

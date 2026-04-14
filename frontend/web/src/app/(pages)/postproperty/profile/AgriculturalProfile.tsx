@@ -700,7 +700,6 @@ const AgriculturalProfile = () => {
 
             console.error("❌ Agricultural Profile Validation Failed");
             console.table(flattened.fieldErrors);
-            console.log("Full Zod Error:", result.error);
 
             toast.error("Please fix the highlighted errors");
             return;
@@ -721,7 +720,6 @@ const AgriculturalProfile = () => {
 
             })
             .catch((error: any) => {
-              console.log("🔥 FULL ERROR FROM API:", error);
 
               const errObj =
                 typeof error === "string"
@@ -741,7 +739,6 @@ const AgriculturalProfile = () => {
                     ? "/plans/pricing/owner-sell"
                     : "/plans/pricing/owner-rent";
 
-                console.log("🚀 Redirecting to:", redirectUrl);
 
                 setTimeout(() => {
                   router.push(redirectUrl);

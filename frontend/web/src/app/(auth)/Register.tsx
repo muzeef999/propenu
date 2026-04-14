@@ -77,6 +77,8 @@ const tabs: { id: RegisterStep; label: string }[] = [
   { id: "kyc", label: "KYC Verification" },
 ];
 
+const RESEND_OTP_SECONDS = 30;
+
 const RegisterDialog = ({
   open,
   onClose,
@@ -99,6 +101,7 @@ const RegisterDialog = ({
     Array(OTP_LENGTH).fill(""),
   );
   const [loading, setLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [isLookingUpPincode, setIsLookingUpPincode] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isOtpVerified, setIsOtpVerified] = useState(false);
@@ -121,8 +124,6 @@ const RegisterDialog = ({
   const lastOtpRequestedPhoneRef = useRef("");
   const verifiedPhoneRef = useRef("");
 
-  if (!open) return null;
-
   function normalizePhone(value: string) {
     const validation = phoneSchema.safeParse({ phone: value });
     return validation.success ? validation.data.phone : value;
@@ -136,7 +137,9 @@ const RegisterDialog = ({
     );
   }
 
-  async function handleRegisterRequest() {
+  async function handleRegisterRequest(isResend = false) {
+    if (isResend && resendCooldown > 0) return;
+
     if (isOtpVerified || isPreviouslyVerifiedPhone(phoneNumber)) {
       setIsOtpVerified(true);
       return;
@@ -158,7 +161,13 @@ const RegisterDialog = ({
       });
 
       lastOtpRequestedPhoneRef.current = validation.data.phone;
-      toast.success("OTP sent to your WhatsApp number");
+      setOtpDigits(Array(OTP_LENGTH).fill(""));
+      setResendCooldown(RESEND_OTP_SECONDS);
+      toast.success(
+        isResend
+          ? "OTP resent to your WhatsApp number"
+          : "OTP sent to your WhatsApp number",
+      );
       inputsRef.current[0]?.focus();
     } catch {
       toast.error("Account already exists or something went wrong");
@@ -328,6 +337,7 @@ const RegisterDialog = ({
     setStep("personal");
     setPhoneNumber("");
     setIsOtpVerified(false);
+    setResendCooldown(0);
     lastOtpRequestedPhoneRef.current = "";
     verifiedPhoneRef.current = "";
     setFormData({
@@ -362,6 +372,17 @@ const RegisterDialog = ({
       }
     }
   }
+
+  useEffect(() => {
+    if (!open || step !== "personal" || !shouldShowOtpInputs) return;
+    if (resendCooldown <= 0) return;
+
+    const timer = window.setTimeout(() => {
+      setResendCooldown((seconds) => Math.max(seconds - 1, 0));
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [open, resendCooldown, shouldShowOtpInputs, step]);
 
   useEffect(() => {
     if (step !== "personal") return;
@@ -506,6 +527,8 @@ const RegisterDialog = ({
     };
   }, [formData.pincode, step]);
 
+  if (!open) return null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div
@@ -614,6 +637,7 @@ const RegisterDialog = ({
                           otp: undefined,
                         }));
                         setOtpDigits(Array(OTP_LENGTH).fill(""));
+                        setResendCooldown(0);
                         setIsOtpVerified(isSameVerifiedPhone);
                       }}
                       placeholder="Enter your mobile number"
@@ -658,6 +682,20 @@ const RegisterDialog = ({
                         {errors.otp}
                       </p>
                     )}
+                    <div className="mt-3 text-center text-xs text-[#7f8481]">
+                      {resendCooldown > 0 ? (
+                        <p>Resend OTP in {resendCooldown}s</p>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleRegisterRequest(true)}
+                          disabled={loading}
+                          className="cursor-pointer font-medium text-[#28b463] hover:underline disabled:cursor-not-allowed disabled:text-[#9aa39e] disabled:no-underline"
+                        >
+                          Resend OTP
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

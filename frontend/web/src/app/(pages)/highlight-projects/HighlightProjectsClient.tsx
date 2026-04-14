@@ -39,53 +39,78 @@ export default function HighlightProjectsClient() {
     () => getHomeSectionCache<FeaturedProject[]>(cacheKey) ?? [],
   );
   const [loading, setLoading] = useState(() => !getHomeSectionCache(cacheKey));
-
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
   useEffect(() => {
-      if (!selectedCity) return;
+    if (!selectedCity) return;
 
-      const cachedItems = getHomeSectionCache<FeaturedProject[]>(cacheKey);
-      if (cachedItems) {
-        setItems(cachedItems);
-        setLoading(false);
-        return;
-      }
+    const cachedItems = getHomeSectionCache<FeaturedProject[]>(cacheKey);
+    if (cachedItems) {
+      setItems(cachedItems);
+      setLoading(false);
+      return;
+    }
 
-      let isActive = true;
+    let isActive = true;
 
-      setLoading(true);
-      setItems([]);
+    setLoading(true);
+    setItems([]);
 
-      Promise.all([
-        getHighlightProjects({
-          state: selectedCity.state,
-          city: selectedCity.city,
-        }),
-        minDelay(),
-      ])
-        .then(([res]) => {
-          if (!isActive) return;
+    Promise.all([
+      getHighlightProjects({
+        state: selectedCity.state,
+        city: selectedCity.city,
+      }),
+      minDelay(),
+    ])
+      .then(([res]) => {
+        if (!isActive) return;
 
-          const nextItems = res.items || [];
-          setHomeSectionCache(cacheKey, nextItems);
-          setItems(nextItems);
-        })
-        .catch((err) => {
-          if (!isActive) return;
-          console.error("❌ Featured fetch failed:", err);
-        })
-        .finally(() => {
-          if (isActive) {
-            setLoading(false);
-          }
-        });
+        const nextItems = res.items || [];
+        setHomeSectionCache(cacheKey, nextItems);
+        setItems(nextItems);
+      })
+      .catch((err) => {
+        if (!isActive) return;
+        console.error("❌ Featured fetch failed:", err);
+      })
+      .finally(() => {
+        if (isActive) {
+          setLoading(false);
+        }
+      });
 
-      return () => {
-        isActive = false;
-      };
-    }, [cacheKey, selectedCity]);
+    return () => {
+      isActive = false;
+    };
+  }, [cacheKey, selectedCity]);
 
-  
+  useEffect(() => {
+    const slider = sliderRef.current;
+    if (!slider || loading || items.length === 0) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
+
+    const updateScrollButtons = () => {
+      const maxScrollLeft = slider.scrollWidth - slider.clientWidth;
+
+      setCanScrollLeft(slider.scrollLeft > 1);
+      setCanScrollRight(slider.scrollLeft < maxScrollLeft - 1);
+    };
+
+    updateScrollButtons();
+    slider.addEventListener("scroll", updateScrollButtons);
+    window.addEventListener("resize", updateScrollButtons);
+
+    return () => {
+      slider.removeEventListener("scroll", updateScrollButtons);
+      window.removeEventListener("resize", updateScrollButtons);
+    };
+  }, [items, loading]);
+
   const scrollLeft = () =>
     sliderRef.current?.scrollBy({
       left: -320,
@@ -99,7 +124,6 @@ export default function HighlightProjectsClient() {
     });
   const hasItems = items.length > 0;
 
-  console.log("projects", items);
   return (
     <div className="relative w-full">
       {/* Header Section */}
@@ -125,7 +149,7 @@ export default function HighlightProjectsClient() {
 
       {/* Navigation Buttons */}
       {/* Left button */}
-      {!loading && hasItems && (
+      {!loading && hasItems && canScrollLeft && (
         <button
           onClick={scrollLeft}
           aria-label="Scroll left"
@@ -136,7 +160,7 @@ export default function HighlightProjectsClient() {
       )}
 
       {/* Right button */}
-      {!loading && hasItems && (
+      {!loading && hasItems && canScrollRight && (
         <button
           onClick={scrollRight}
           aria-label="Scroll right"

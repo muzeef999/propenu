@@ -102,7 +102,6 @@ const LeadsPage = () => {
             </div>
         );
     }
-    // console.log("leadsData", leadsData);
     return (
         <div className="space-y-5 sm:space-y-6">
             {/* HEADER */}

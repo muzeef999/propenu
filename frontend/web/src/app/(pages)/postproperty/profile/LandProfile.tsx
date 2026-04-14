@@ -140,7 +140,6 @@ const LandProfile = () => {
     );
   };
 
-  console.log("land", land);
 
   return (
     <div className="space-y-8">

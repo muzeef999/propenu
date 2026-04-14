@@ -96,7 +96,6 @@ export const finalizeApi = async (
 
   // 🔍 Debug FormData
   for (const pair of formData.entries()) {
-    console.log("   →", pair[0], pair[1]);
   }
 
   const res = await fetch(

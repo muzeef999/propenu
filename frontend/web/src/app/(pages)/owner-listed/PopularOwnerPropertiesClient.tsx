@@ -42,6 +42,8 @@ const PopularOwnerPropertiesClient = () => {
     () => getHomeSectionCache<OwnerCardItem[]>(cacheKey) ?? [],
   );
   const [loading, setLoading] = useState(() => !getHomeSectionCache(cacheKey));
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
   useEffect(() => {
     if (!selectedCity) return;
@@ -91,6 +93,31 @@ const PopularOwnerPropertiesClient = () => {
     };
   }, [cacheKey, selectedCity]);
 
+  useEffect(() => {
+    const slider = sliderRef.current;
+    if (!slider || loading || items.length === 0) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
+
+    const updateScrollButtons = () => {
+      const maxScrollLeft = slider.scrollWidth - slider.clientWidth;
+
+      setCanScrollLeft(slider.scrollLeft > 1);
+      setCanScrollRight(slider.scrollLeft < maxScrollLeft - 1);
+    };
+
+    updateScrollButtons();
+    slider.addEventListener("scroll", updateScrollButtons);
+    window.addEventListener("resize", updateScrollButtons);
+
+    return () => {
+      slider.removeEventListener("scroll", updateScrollButtons);
+      window.removeEventListener("resize", updateScrollButtons);
+    };
+  }, [items, loading]);
+
   const scrollBy = (dir: "left" | "right") => {
     const el = sliderRef.current;
     if (!el) return;
@@ -125,7 +152,7 @@ const PopularOwnerPropertiesClient = () => {
       </div>
 
       {/* Left arrow */}
-      {!loading && hasItems && (
+      {!loading && hasItems && canScrollLeft && (
         <button
           type="button"
           aria-label="Scroll left"
@@ -191,7 +218,7 @@ const PopularOwnerPropertiesClient = () => {
       )}
 
       {/* Right arrow */}
-      {!loading && hasItems && (
+      {!loading && hasItems && canScrollRight && (
         <button
           type="button"
           aria-label="Scroll right"

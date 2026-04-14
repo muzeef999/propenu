@@ -82,7 +82,6 @@ const Page = () => {
   (item) =>
     normalizeType(item.propertyType) === activeTab.toLowerCase()
 );
-  console.log("Filtered Shortlisted Properties:", filteredProperties);
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">

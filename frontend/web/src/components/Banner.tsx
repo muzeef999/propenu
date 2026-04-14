@@ -5,7 +5,6 @@ import heroBannerMobile from "@/asserts/propenu-hero-banner-for-moblie.jpeg";
 import heroBannerwebp from "@/asserts/propenu-hero-web-banner.jpeg";
 import { useEffect, useState } from "react";
 import "./bannerStyle.css";
-import { IoHomeOutline } from "react-icons/io5";
 import SearchBox from "./SearchBox";
 import { IoMdCheckmarkCircleOutline } from "react-icons/io";
 

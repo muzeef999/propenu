@@ -20,7 +20,6 @@ export default function ApprovePage() {
     if (!propertyId || !token) {
       setStatus("error");
       setMessage("❌ Invalid approval link");
-      console.log("DEBUG PARAMS:", { propertyId, token });
       return;
     }
 
@@ -29,11 +28,6 @@ export default function ApprovePage() {
 
   async function approveProperty() {
     try {
-      console.log("📡 Calling approve API...", {
-        propertyId,
-        token,
-      });
-
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/properties/residential/${propertyId}/approve`,
         {
@@ -46,7 +40,6 @@ export default function ApprovePage() {
       );
 
       const data = await res.json();
-      console.log("📨 API Response:", data);
 
       if (!res.ok) {
         throw new Error(data?.message || "Approval failed");

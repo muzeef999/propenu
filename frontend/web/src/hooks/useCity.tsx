@@ -139,11 +139,6 @@ export function useCity() {
     const requestCurrentLocation = () => {
       navigator.geolocation.getCurrentPosition(
         async ({ coords }) => {
-          console.log("[useCity] Current coordinates:", {
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-          });
-
           try {
             const detectedCity = await reverseGeocodeCurrentCity(
               coords.latitude,

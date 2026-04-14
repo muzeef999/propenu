@@ -24,7 +24,7 @@ export default function TokenHandler() {
     }
 
     if (kyc === "verified") {
-      console.log("KYC Verified Successfully");
+      // console.log("KYC Verified Successfully");
     }
   }, [searchParams, router]);
 

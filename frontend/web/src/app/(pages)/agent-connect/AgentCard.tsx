@@ -28,6 +28,8 @@ export default function AgentsList() {
     () => getHomeSectionCache<AgentConnect[]>(cacheKey) ?? [],
   );
   const [loading, setLoading] = useState(() => !getHomeSectionCache(cacheKey));
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
   useEffect(() => {
     if (!selectedCity) return;
@@ -72,6 +74,35 @@ export default function AgentsList() {
     };
   }, [cacheKey, selectedCity]);
 
+  useEffect(() => {
+    const slider = sliderRef.current;
+    if (!slider || loading || agents.length === 0) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
+
+    const updateScrollButtons = () => {
+      const maxScrollLeft = slider.scrollWidth - slider.clientWidth;
+
+      setCanScrollLeft(slider.scrollLeft > 1);
+      setCanScrollRight(slider.scrollLeft < maxScrollLeft - 1);
+    };
+
+    setCanScrollLeft(false);
+    slider.scrollLeft = 0;
+
+    const frameId = window.requestAnimationFrame(updateScrollButtons);
+    slider.addEventListener("scroll", updateScrollButtons);
+    window.addEventListener("resize", updateScrollButtons);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      slider.removeEventListener("scroll", updateScrollButtons);
+      window.removeEventListener("resize", updateScrollButtons);
+    };
+  }, [agents, loading]);
+
   const scrollLeft = () =>
     sliderRef.current?.scrollBy({
       left: -320,
@@ -112,7 +143,7 @@ export default function AgentsList() {
       </div>
 
       {/* Navigation Buttons */}
-      {!loading && hasItems && (
+      {!loading && hasItems && canScrollLeft && (
         <button
           type="button"
           onClick={scrollLeft}
@@ -123,7 +154,7 @@ export default function AgentsList() {
         </button>
       )}
 
-      {!loading && hasItems && (
+      {!loading && hasItems && canScrollRight && (
         <button
           type="button"
           onClick={scrollRight}

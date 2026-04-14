@@ -1,7 +1,7 @@
 "use client";
 
 import { requestOtp, syncShortlist, verifyOtp } from "@/data/ClientData";
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 import axios from "axios";
@@ -11,7 +11,6 @@ import { MdClose, MdOutlineWhatsapp } from "react-icons/md";
 import PhoneInput from "react-phone-number-input";
 import { z } from "zod";
 import "react-phone-number-input/style.css";
-import { useRouter } from "next/navigation";
 interface LoginDialogProps {
   open: boolean;
   onClose: () => void;
@@ -19,6 +18,7 @@ interface LoginDialogProps {
 }
 
 const OTP_LENGTH = 4;
+const RESEND_OTP_SECONDS = 30;
 const INDIA_COUNTRY_CODE = "+91";
 const INDIA_PHONE_REGEX = /^\+91\d{10}$/;
 const INDIA_PHONE_INPUT_MAX_LENGTH = 15;
@@ -45,11 +45,20 @@ const LoginDialog = ({
   const otp = otpDigits.join(""); // final OTP string
 
   const [loading, setLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
   const [phone, setPhone] = useState(INDIA_COUNTRY_CODE);
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
-  const router = useRouter();
+
+  useEffect(() => {
+    if (!open || step !== "verify" || resendCooldown <= 0) return;
+
+    const timer = window.setTimeout(() => {
+      setResendCooldown((seconds) => Math.max(seconds - 1, 0));
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [open, resendCooldown, step]);
 
   function normalizeIndianPhone(value?: string) {
     if (!value) return INDIA_COUNTRY_CODE;
@@ -63,7 +72,6 @@ const LoginDialog = ({
 
     return `${INDIA_COUNTRY_CODE}${nationalNumber.slice(0, 10)}`;
   }
-
   if (!open) return null; // don't render when closed
 
   async function handleVerifyOtp(manualOtp?: string | React.MouseEvent) {
@@ -77,7 +85,6 @@ const LoginDialog = ({
     }
 
     setLoading(true);
-    setInfo(null);
 
     try {
       const res: VerifyOtpResponse = await verifyOtp({
@@ -107,7 +114,17 @@ if (localShortlist.length > 0) {
       
       window.location.reload();
     } catch (err) {
-      setError("Invalid OTP or verification failed.");
+      const backendMessage = axios.isAxiosError(err)
+        ? err.response?.data?.message ||
+          err.response?.data?.error ||
+          err.response?.data
+        : null;
+
+      setError(
+        typeof backendMessage === "string" && backendMessage.trim()
+          ? backendMessage
+          : "Invalid OTP or verification failed.",
+      );
       setOtpDigits(Array(OTP_LENGTH).fill(""));
       inputsRef.current[0]?.focus();
     } finally {
@@ -153,6 +170,7 @@ if (localShortlist.length > 0) {
 
   function handleOtpPaste(e: React.ClipboardEvent<HTMLInputElement>) {
     e.preventDefault();
+
     const paste = e.clipboardData
       .getData("text")
       .replace(/\D/g, "")
@@ -180,12 +198,14 @@ if (localShortlist.length > 0) {
     setStep("request");
     setPhone(INDIA_COUNTRY_CODE);
     setOtpDigits(Array(OTP_LENGTH).fill(""));
+    setResendCooldown(0);
     setError(null);
-    setInfo(null);
     onClose();
   }
 
-  async function handleRequestOtp() {
+  async function handleRequestOtp(isResend = false) {
+    if (isResend && resendCooldown > 0) return;
+
     const validation = phoneSchema.safeParse(phone);
 
     if (!validation.success) {
@@ -194,11 +214,17 @@ if (localShortlist.length > 0) {
     }
 
     setLoading(true);
-    setInfo(null);
 
     try {
       await requestOtp({ phone });
-      toast.success("OTP sent to your WhatsApp number");
+      toast.success(
+        isResend
+          ? "OTP resent to your WhatsApp number"
+          : "OTP sent to your WhatsApp number",
+      );
+      setOtpDigits(Array(OTP_LENGTH).fill(""));
+      setError(null);
+      setResendCooldown(RESEND_OTP_SECONDS);
       setStep("verify");
     } catch (err) {
       const backendMessage = axios.isAxiosError(err)
@@ -283,7 +309,8 @@ if (localShortlist.length > 0) {
               </div>
 
               <button
-                onClick={handleRequestOtp}
+                onClick={() => handleRequestOtp()}
+                disabled={loading}
                 className="w-full rounded-lg py-2.5 text-base font-semibold text-white shadow-lg transition-all btn-primary"
               >
                 {loading ? (
@@ -344,7 +371,10 @@ if (localShortlist.length > 0) {
                       {phone}
                     </p>
                     <button
-                      onClick={() => setStep("request")}
+                      onClick={() => {
+                        setStep("request");
+                        setOtpDigits(Array(OTP_LENGTH).fill(""));
+                      }}
                       className="flex shrink-0 items-center gap-1 text-xs font-medium text-[#28b463] hover:underline"
                     >
                       <LuPencilLine />
@@ -370,20 +400,36 @@ if (localShortlist.length > 0) {
                       autoComplete="one-time-code"
                       maxLength={1}
                       value={digit}
+                      disabled={loading}
                       onChange={(e) => handleOtpChange(e.target.value, index)}
                       onKeyDown={(e) => handleOtpKeyDown(e, index)}
                       onPaste={index === 0 ? handleOtpPaste : undefined}
-                      className="h-10 w-10 rounded-md border border-[#d8ded9] bg-white text-center text-lg font-semibold text-[#1f1f1f] outline-none transition focus:border-[#28b463] focus:ring-2 focus:ring-[#cfead8]"
+                      className="h-10 w-10 rounded-md border border-[#d8ded9] bg-white text-center text-lg font-semibold text-[#1f1f1f] outline-none transition focus:border-[#28b463] focus:ring-2 focus:ring-[#cfead8] disabled:bg-[#f4f4f4] disabled:text-[#9aa39e]"
                     />
                   ))}
                 </div>
                 {step === "verify" && error && (
                   <p className="mt-2 text-center text-xs text-red-600">{error}</p>
                 )}
+                <div className="mt-3 text-center text-xs text-[#7f8481]">
+                  {resendCooldown > 0 ? (
+                    <p>Didn&apos;t get the OTP? Resend OTP in {resendCooldown}s</p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleRequestOtp(true)}
+                      disabled={loading}
+                      className="cursor-pointer font-medium text-[#28b463] hover:underline disabled:cursor-not-allowed disabled:text-[#9aa39e] disabled:no-underline"
+                    >
+                      Resend OTP
+                    </button>
+                  )}
+                </div>
               </div>
 
               <button
                 onClick={handleVerifyOtp}
+                disabled={loading}
                 className="w-full rounded-lg py-2.5 text-base font-semibold text-white shadow-lg transition-all btn-primary"
               >
                 {loading ? (

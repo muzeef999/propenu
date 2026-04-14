@@ -32,34 +32,6 @@ const HotspotsPage = () => {
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
 
-    const checkScroll = () => {
-        const el = localitiesRef.current;
-        if (!el) return;
-
-        const { scrollLeft, scrollWidth, clientWidth } = el;
-
-        setCanScrollLeft(scrollLeft > 0);
-        setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 1);
-    };
-
-
-    useEffect(() => {
-        const el = localitiesRef.current;
-        if (!el) return;
-
-        checkScroll();
-
-        el.addEventListener("scroll", checkScroll);
-        window.addEventListener("resize", checkScroll);
-
-        return () => {
-            el.removeEventListener("scroll", checkScroll);
-            window.removeEventListener("resize", checkScroll);
-        };
-    }, [selectedCity]);
-
-
-
     useEffect(() => {
         const timer = setTimeout(() => {
             setShowBanner(false);
@@ -99,6 +71,33 @@ const HotspotsPage = () => {
     });
 
     const items = data?.items || [];
+
+    useEffect(() => {
+        const el = localitiesRef.current;
+        if (isLoading || !el) {
+            setCanScrollLeft(false);
+            setCanScrollRight(false);
+            return;
+        }
+
+        const checkScroll = () => {
+            const { scrollLeft, scrollWidth, clientWidth } = el;
+
+            setCanScrollLeft(scrollLeft > 1);
+            setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 1);
+        };
+
+        const frameId = window.requestAnimationFrame(checkScroll);
+
+        el.addEventListener("scroll", checkScroll);
+        window.addEventListener("resize", checkScroll);
+
+        return () => {
+            window.cancelAnimationFrame(frameId);
+            el.removeEventListener("scroll", checkScroll);
+            window.removeEventListener("resize", checkScroll);
+        };
+    }, [isLoading, selectedCity?.city, selectedCity?.localities?.length]);
 
     const formatPrice = (price?: number) => {
         if (!price || price <= 0) return "N/A";

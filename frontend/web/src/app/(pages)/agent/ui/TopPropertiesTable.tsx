@@ -42,7 +42,6 @@ const TopPropertiesTable: React.FC<Props> = ({ properties }) => {
       </div>
     );
   }
-  console.log("data", properties);
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 sm:p-6">

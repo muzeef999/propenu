@@ -67,13 +67,11 @@ function ClientProvidersContent({
   const initPush = async () => {
     const token = await getFcmToken();
 
-    console.log("🔥 Token:", token);
 
     if (!token) return;
 
     const userId = user.user.id;
 
-    console.log("👤 User ID:", userId);
 
     await sendTokenToBackend(userId, token);
   };

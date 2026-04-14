@@ -17,10 +17,8 @@ interface Props {
 export default function KycButton({ kycStatus, kycRemarks, className }: Props) {
   const handleStartKyc = async () => {
     try {
-      console.log("Starting KYC process...");
       const data = await startKyc();
 
-      console.log("KYC API response:", data);
 
       if (data?.url) {
         window.location.href = data.url;
@@ -65,7 +63,7 @@ export default function KycButton({ kycStatus, kycRemarks, className }: Props) {
 
         <button
           onClick={handleStartKyc}
-          className={`flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer hover:bg-green-700 transition ${className}`}
+          className={`flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white transition hover:bg-green-700 cursor-pointer ${className}`}
         >
           <FaUserShield />
           Retry KYC
@@ -78,7 +76,7 @@ export default function KycButton({ kycStatus, kycRemarks, className }: Props) {
   return (
     <button
       onClick={handleStartKyc}
-      className={`flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer hover:bg-green-700 transition ${className}`}
+      className={`flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white transition hover:bg-green-700 cursor-pointer ${className}`}
     >
       <FaUserShield />
       Verify KYC
