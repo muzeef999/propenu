@@ -1,9 +1,7 @@
 import axios from "axios";
 import { Request, Response } from "express";
-import fs from "fs";
 import { Types } from "mongoose";
-import csv from "csv-parser";
-import { Readable } from "stream";
+
 import { whatsappQueue } from "../../../services/user-service/src/queues";
 import User from "../../../services/user-service/src/models/userModel";
 

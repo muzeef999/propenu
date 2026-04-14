@@ -4,7 +4,7 @@ dotenv.config();
 import { Worker, Job } from "bullmq";
 import { WhatsAppLog } from "../logs/whatsappLog.model.js";
 import { redisConnection } from "../lib/redis.connection.js";
-import { sendWhatsAppMessage } from "../../../../shared/whatsapp/templates/whatsappTemplate.service.js";
+import { sendWhatsAppBulkMessages as sendWhatsAppMessage } from "../../../../shared/whatsapp/templates/whatsappTemplate.service.js";
 // ✅ Job type
 interface WhatsAppJobData {
   to: string;

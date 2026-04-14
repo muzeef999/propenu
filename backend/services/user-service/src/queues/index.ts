@@ -1,5 +1,5 @@
 // src/lib/queue/index.ts
 
-export * from "./email.queue.js";
+export * from "./email.queue";
 // later:
-export * from "./whatsapp.queue.js";
+export * from "./whatsapp.queue";
