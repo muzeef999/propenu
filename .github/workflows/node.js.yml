@@ -1,6 +1,5 @@
 name:  Backend CI/CD  
 
-
 on:
   push:
     branches: ["deploy"]
@@ -19,7 +18,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
       # 3) Create .env files for each service
       - name: Create environment files
