@@ -18,6 +18,7 @@ jobs:
       # 2) Use Node
       - name: Check Node version
         run: |
+          export PATH=/usr/bin:$PATH
           node -v
           npm -v
           which node
