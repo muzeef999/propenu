@@ -10,6 +10,8 @@ export type UploadedFile = {
   preview: string; // blob url OR server url
   source: "local" | "server";
   name?: string;
+  type?: string;
+  size?: number;
 };
 
 type FileUploadProps = {
@@ -27,6 +29,11 @@ type FileUploadProps = {
   error?: string;
 };
 
+type PreparedUpload = {
+  upload?: UploadedFile;
+  error?: string;
+};
+
 /* ======================================================
    COMPONENT
 ====================================================== */
@@ -36,68 +43,119 @@ const FileUpload: React.FC<FileUploadProps> = ({
   value,
   onChange,
   onRemove,
-  accept = "image/*",
+  accept = "*/*",
   maxFiles = 5,
   maxSizeMB = 5,
   error,
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const previousValueRef = useRef<UploadedFile[]>(value);
   const [removingIndex, setRemovingIndex] = useState<number | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
 
-  const isImage = (preview: string) =>
-    preview.startsWith("blob:") || preview.startsWith("http");
+  const imageExtensionPattern =
+    /\.(avif|bmp|gif|heic|heif|jpe?g|png|svg|webp)$/i;
+
+  const isImage = (item: UploadedFile) => {
+    if (item.file?.type) return item.file.type.startsWith("image/");
+    if (item.type) return item.type.startsWith("image/");
+    return (
+      imageExtensionPattern.test(item.preview) ||
+      imageExtensionPattern.test(item.name || "")
+    );
+  };
+
+  const getFileLabel = (item: UploadedFile) => {
+    if (item.name) return item.name;
+
+    try {
+      const pathname = new URL(item.preview).pathname;
+      const filename = pathname.split("/").filter(Boolean).pop();
+      return filename || "File";
+    } catch {
+      return "File";
+    }
+  };
 
   const compressFile = async (file: File) => {
-  if (!file.type.startsWith("image/")) return file;
+    if (!file.type.startsWith("image/")) return file;
 
-  try {
-    const compressedFile = await imageCompression(file, {
-      maxSizeMB: 1, // 🔥 force under 1MB
-      maxWidthOrHeight: 1920,
-      useWebWorker: true,
-      initialQuality: 0.8,
-    });
+    try {
+      const compressedFile = await imageCompression(file, {
+        maxSizeMB,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        initialQuality: 0.8,
+      });
 
-    return new File([compressedFile], file.name, {
-      type: compressedFile.type,
-      lastModified: Date.now(),
-    });
-  } catch (error) {
-    console.error("Compression failed", error);
-    return file;
-  }
-};
+      return new File([compressedFile], file.name, {
+        type: compressedFile.type,
+        lastModified: Date.now(),
+      });
+    } catch (error) {
+      console.error("Compression failed", error);
+      return file;
+    }
+  };
 
   /* ---------- Handle file select ---------- */
   const handleSelect = async (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
 
+    setLocalError(null);
+
     const selectedFiles = Array.from(e.target.files);
     const remainingSlots = maxFiles - value.length;
+    if (remainingSlots <= 0) {
+      e.target.value = "";
+      return;
+    }
+
     const limitedFiles = selectedFiles.slice(0, remainingSlots);
 
     try {
       const preparedFiles = await Promise.all(
-        limitedFiles.map(async (file) => {
+        limitedFiles.map(async (file): Promise<PreparedUpload> => {
           const finalFile = await compressFile(file);
-          if (finalFile.size > 1 * 1024 * 1024) {
-  console.warn("Still larger than 1MB after compression");
-}
+          const maxBytes = maxSizeMB * 1024 * 1024;
+
+          if (finalFile.size > maxBytes) {
+            const compressedText = file.type.startsWith("image/")
+              ? " after compression"
+              : "";
+            return {
+              error: `${file.name} is larger than ${maxSizeMB}MB${compressedText}.`,
+            };
+          }
 
           return {
-            file: finalFile,
-            preview: URL.createObjectURL(finalFile),
-            source: "local" as const,
-            name: finalFile.name,
+            upload: {
+              file: finalFile,
+              preview: URL.createObjectURL(finalFile),
+              source: "local" as const,
+              name: finalFile.name,
+              type: finalFile.type,
+              size: finalFile.size,
+            },
           };
         }),
       );
 
-      const validFiles: UploadedFile[] = preparedFiles.filter(
-        (file): file is NonNullable<typeof file> => file !== null,
-      );
+      const localErrors = preparedFiles
+        .map((result) => result.error)
+        .filter((message): message is string => Boolean(message));
 
-      onChange([...value, ...validFiles]);
+      const validFiles: UploadedFile[] = preparedFiles
+        .map((result) => result.upload)
+        .filter((file): file is UploadedFile => Boolean(file));
+
+      if (localErrors.length > 0) {
+        setLocalError(localErrors.join(" "));
+      }
+
+      if (validFiles.length > 0) {
+        onChange([...value, ...validFiles].slice(0, maxFiles));
+      }
     } finally {
       e.target.value = "";
     }
@@ -105,14 +163,32 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
   /* ---------- Cleanup blob URLs ---------- */
   useEffect(() => {
+    previousValueRef.current.forEach((item) => {
+      const stillExists = value.some(
+        (currentItem) => currentItem.preview === item.preview,
+      );
+
+      if (
+        !stillExists &&
+        item.source === "local" &&
+        item.preview.startsWith("blob:")
+      ) {
+        URL.revokeObjectURL(item.preview);
+      }
+    });
+
+    previousValueRef.current = value;
+  }, [value]);
+
+  useEffect(() => {
     return () => {
-      value.forEach((item) => {
+      previousValueRef.current.forEach((item) => {
         if (item.source === "local" && item.preview.startsWith("blob:")) {
           URL.revokeObjectURL(item.preview);
         }
       });
     };
-  }, [value]);
+  }, []);
 
   /* ======================================================
      RENDER
@@ -132,15 +208,18 @@ const FileUpload: React.FC<FileUploadProps> = ({
               key={index}
               className="relative group rounded-md overflow-hidden border border-gray-200 shadow-sm aspect-video"
             >
-              {isImage(item.preview) ? (
+              {isImage(item) ? (
                 <img
                   src={item.preview}
-                  alt={item.name || `preview-${index}`}
+                  alt={getFileLabel(item)}
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex items-center justify-center h-full w-full bg-gray-100 text-xs">
-                  File
+                <div className="flex h-full w-full flex-col items-center justify-center gap-1 bg-gray-100 px-2 text-center text-xs text-gray-600">
+                  <span className="font-medium text-gray-700">File</span>
+                  <span className="max-w-full truncate">
+                    {getFileLabel(item)}
+                  </span>
                 </div>
               )}
 
@@ -205,20 +284,23 @@ const FileUpload: React.FC<FileUploadProps> = ({
         </p>
 
         <p className="text-xs text-gray-500 mt-1">
-          Max {maxFiles} images • Up to {maxSizeMB}MB each
+          Max {maxFiles} {maxFiles === 1 ? "file" : "files"} • Up to{" "}
+          {maxSizeMB}MB each
         </p>
 
         <input
           ref={inputRef}
           type="file"
           accept={accept}
-          multiple
+          multiple={maxFiles > 1}
           onChange={handleSelect}
           className="hidden"
         />
       </div>
 
-      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+      {(error || localError) && (
+        <p className="mt-1 text-xs text-red-500">{error || localError}</p>
+      )}
     </div>
   );
 };

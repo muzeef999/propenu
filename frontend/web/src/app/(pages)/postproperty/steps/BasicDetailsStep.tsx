@@ -1018,6 +1018,13 @@ export default function BasicDetailsStep() {
             ...profileData,
           };
 
+          if (
+            (propertyType === "land" || propertyType === "agricultural") &&
+            base.landName
+          ) {
+            basicPayload.landName = base.landName;
+          }
+
           if (propertyType === "commercial" && profileData.commercialSubType) {
             basicPayload.propertySubType = profileData.commercialSubType;
             delete basicPayload.commercialSubType;
