@@ -14,11 +14,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2) Use Node.js
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+
+      # 2) Use Node
+      - name: Check Node version
+        run: |
+          node -v
+          npm -v
+          which node
 
       # 3) Create .env files for each service
       - name: Create environment files
