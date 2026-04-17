@@ -4,6 +4,8 @@ import AgentService from "../services/agentService";
 import { GetAgentsQuery } from "../types";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import Agent from "../models/agentModel";
+import mongoose from "mongoose";
+import User from "../models/userModel";
 
 type ErrorResponse = {
   success: false;
@@ -220,19 +222,39 @@ export const verifyAgentStatus = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { status } = req.body;
 
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Valid agent id is required",
+      });
+    }
+
     if (!["approved", "rejected"].includes(status)) {
       return res.status(400).json({
         message: "Invalid status",
       });
     }
 
-    const agent = await Agent.findByIdAndUpdate(
-      id,
+    const agent = await Agent.findOneAndUpdate(
+      {
+        $or: [
+          { _id: id },
+          { user: id },
+        ],
+      },
       { verificationStatus: status },
       { new: true }
     );
 
     if (!agent) {
+      const user = await User.findById(id).select("_id").lean();
+
+      if (user) {
+        return res.status(404).json({
+          message:
+            "Agent profile not found for this user. Use agentId from the search response, or create the agent profile before verifying.",
+        });
+      }
+
       return res.status(404).json({
         message: "Agent not found",
       });
@@ -243,10 +265,13 @@ export const verifyAgentStatus = async (req: Request, res: Response) => {
       agent,
     });
 
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
+    console.error("verifyAgentStatus error:", error);
     res.status(500).json({
-      message: "Failed to update agent status",
+      message:
+        process.env.NODE_ENV === "production"
+          ? "Failed to update agent status"
+          : error?.message || "Failed to update agent status",
     });
   }
 };

@@ -13,6 +13,30 @@ import {
 } from "../utils/accessPolicy";
 import mongoose from "mongoose";
 
+const getDummyLoginConfig = () => ({
+  phone: process.env.DUMMY_LOGIN_PHONE?.trim(),
+  otp: process.env.DUMMY_LOGIN_OTP?.trim(),
+});
+
+const normalizePhoneDigits = (phone?: string) => phone?.replace(/\D/g, "");
+
+const isDummyLoginPhone = (phone?: string) => {
+  const { phone: dummyPhone } = getDummyLoginConfig();
+  const inputDigits = normalizePhoneDigits(phone);
+  const dummyDigits = normalizePhoneDigits(dummyPhone);
+
+  if (!phone || !dummyPhone || !inputDigits || !dummyDigits) {
+    return false;
+  }
+
+  return (
+    phone.trim() === dummyPhone ||
+    inputDigits === dummyDigits ||
+    inputDigits === `91${dummyDigits}` ||
+    inputDigits.endsWith(dummyDigits)
+  );
+};
+
 export const requestOTP = async (req: Request, res: Response) => {
   try {
     let { email, phone } = req.body;
@@ -61,6 +85,10 @@ export const requestOTP = async (req: Request, res: Response) => {
       return res.status(403).json({
         message: restrictionMessage,
       });
+    }
+
+    if (isDummyLoginPhone(phone)) {
+      return res.status(200).json({ message: "OTP sent successfully" });
     }
 
     const otp = genOtp();
@@ -128,8 +156,11 @@ export const verifyOtp = async (req: Request, res: Response) => {
     }
 
     const key = email || phone;
-
-    const isValid = await verifyAndConsumeOtp(key, otp);
+    const { otp: dummyOtp } = getDummyLoginConfig();
+    const isValid =
+      isDummyLoginPhone(phone) && dummyOtp
+        ? otp === dummyOtp
+        : await verifyAndConsumeOtp(key, otp);
 
     if (!isValid) {
       return res.status(400).json({
@@ -354,38 +385,46 @@ export const searchUsers = async (req: Request, res: Response) => {
       pipeline.push({ $match: match });
     }
 
-   pipeline.push({
-  $project: {
-    _id: 1, // user id
+    pipeline.push({
+      $project: {
+        _id: {
+          $cond: [
+            { $eq: ["$role.name", "agent"] },
+            { $ifNull: ["$agent._id", "$_id"] },
+            "$_id",
+          ],
+        },
 
-    agentId: {
-      $cond: [
-        { $eq: ["$role.name", "agent"] },
-        "$agent._id", // ✅ FIXED
-        "$$REMOVE",
-      ],
-    },
+        userId: "$_id",
 
-    name: 1,
-    email: 1,
-    phone: 1,
+        agentId: {
+          $cond: [
+            { $eq: ["$role.name", "agent"] },
+            "$agent._id",
+            "$$REMOVE",
+          ],
+        },
 
-     locality: 1,
-    city: 1,
-    state: 1,
-    pincode: 1,
+        name: 1,
+        email: 1,
+        phone: 1,
 
-    role: "$role.name", // cleaner
+        locality: 1,
+        city: 1,
+        state: 1,
+        pincode: 1,
 
-    verificationStatus: {
-      $cond: [
-        { $eq: ["$role.name", "agent"] },
-        "$agent.verificationStatus",
-        "$$REMOVE",
-      ],
-    },
-  },
-});
+        role: "$role.name",
+
+        verificationStatus: {
+          $cond: [
+            { $eq: ["$role.name", "agent"] },
+            "$agent.verificationStatus",
+            "$$REMOVE",
+          ],
+        },
+      },
+    });
 
     const users = await User.aggregate(pipeline);
 
@@ -416,6 +455,12 @@ export const createRequestOtp = async (req: Request, res: Response) => {
     const otp = genOtp();
     
     const key = phone || email;
+
+    if (isDummyLoginPhone(phone)) {
+      return res.status(200).json({
+        message: "OTP sent successfully",
+      });
+    }
 
     await saveOtpToRedis(key, otp);
 
@@ -457,7 +502,11 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
     }
 
     // verify OTP
-    const isValid = await verifyAndConsumeOtp(phone, otp);
+    const { otp: dummyOtp } = getDummyLoginConfig();
+    const isValid =
+      isDummyLoginPhone(phone) && dummyOtp
+        ? otp === dummyOtp
+        : await verifyAndConsumeOtp(phone, otp);
 
     if (!isValid) {
       return res.status(400).json({
