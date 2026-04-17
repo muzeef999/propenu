@@ -5,7 +5,7 @@ import {
   getWhatsAppTemplates,
 } from "../../../../shared/whatsapp/templates/whatsappTemplate.controller";
 import whatsappLogRouter from "../logs/whatsappLog.routes";
-import {   sendWhatsAppCampaignDynamic } from "../../../../shared/whatsapp/templates/whatsappTemplate.service";
+import { sendWhatsAppCampaignDynamic } from "../../../../shared/whatsapp/templates/whatsappTemplate.service";
 
 
 const whatsappRouter = express.Router();
