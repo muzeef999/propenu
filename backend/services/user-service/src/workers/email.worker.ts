@@ -25,11 +25,11 @@ const startWorker = async () => {
     new Worker<EmailJobData>(
       "email-queue",
       async (job) => {
-        console.log("━━━━━━━━━━━━━━━━━━━━━━━");
-        console.log("📨 Processing job:", job.id);
-        console.log("📩 Email:", job.data.to);
-        console.log("🧾 logId:", job.data.logId);
-        console.log("📦 FULL JOB DATA:", job.data);
+        // console.log("━━━━━━━━━━━━━━━━━━━━━━━");
+        // console.log("📨 Processing job:", job.id);
+        // console.log("📩 Email:", job.data.to);
+        // console.log("🧾 logId:", job.data.logId);
+        // console.log("📦 FULL JOB DATA:", job.data);  
 
         // 🔍 CHECK IF LOG EXISTS
         if (job.data.logId) {

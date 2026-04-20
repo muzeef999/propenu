@@ -7,12 +7,10 @@
     "dev": "ts-node-dev --respawn src/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/services/user-service/src/server.js",
-    
-     "worker": "node dist/services/user-service/src/workers/email.worker.js",
+    "worker": "concurrently \"node dist/services/user-service/src/workers/email.worker.js\" \"node dist/services/user-service/src/workers/whatsapp.worker.js\"",
+    "worker:dev": "concurrently \"ts-node src/workers/email.worker.ts\" \"ts-node src/workers/whatsapp.worker.ts\"",
+    "dev:worker": "concurrently \"ts-node-dev --respawn src/workers/email.worker.ts\" \"ts-node-dev --respawn src/workers/whatsapp.worker.ts\""
 
-  "worker:dev": "ts-node src/workers/email.worker.ts",
-
-  "dev:worker": "ts-node-dev --respawn src/workers/email.worker.ts" 
   },
   "keywords": [],
   "author": "",
@@ -23,6 +21,7 @@
     "aws-sdk": "^2.1693.0",
     "axios": "^1.13.5",
     "bullmq": "^5.73.0",
+    "concurrently": "^9.2.1",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "csv-parser": "^3.2.0",

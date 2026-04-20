@@ -1,21 +1,14 @@
 import axios from "axios";
 
-/**
- * TEMP PKCE verifier storage
- * ⚠️ In production use Redis or DB
- */
+/*** TEMP PKCE verifier storage * ⚠️ In production use Redis or DB */
 const verifierStore = new Map<string, string>();
 
-/**
- * Save PKCE verifier before redirecting to DigiLocker
- */
+/*** Save PKCE verifier before redirecting to DigiLocker */
 export const saveVerifier = async (userId: string, verifier: string) => {
   verifierStore.set(userId, verifier);
 };
 
-/**
- * Get PKCE verifier during callback
- */
+/*** Get PKCE verifier during callback */
 export const getVerifier = async (userId: string) => {
   return verifierStore.get(userId);
 };

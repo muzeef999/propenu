@@ -25,13 +25,28 @@ router.get("/stats", async (_req: Request, res: Response) => {
   }
 });
 
+
+
+/**
+ * 🔥 GET ALL LOGS
+ */
+router.get("/", async (_req: Request, res: Response) => {
+  try {
+    const logs = await WhatsAppLog.find().sort({ createdAt: -1 }).limit(100);
+
+    res.json(logs);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 /**
  * 🔥 CAMPAIGN STATS
  */
 router.get("/campaign/:campaignId", async (req: Request, res: Response) => {
   try {
     const campaignId = req.params.campaignId as string;
-
     if (!campaignId) {
       return res.status(400).json({ message: "campaignId required" });
     }
@@ -66,18 +81,6 @@ router.get("/campaign/:campaignId", async (req: Request, res: Response) => {
   }
 });
 
-/**
- * 🔥 GET ALL LOGS
- */
-router.get("/", async (_req: Request, res: Response) => {
-  try {
-    const logs = await WhatsAppLog.find().sort({ createdAt: -1 }).limit(100);
-
-    res.json(logs);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 /**
  * 🔥 RETRY FAILED WHATSAPP

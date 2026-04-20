@@ -9,6 +9,7 @@ export interface IWhatsAppTemplate extends Document {
   createdBy?: string;
   createdAt: Date;
   updatedAt: Date;
+
 }
 
 const WhatsAppTemplateSchema = new Schema<IWhatsAppTemplate>(
@@ -45,4 +46,4 @@ const WhatsAppTemplateSchema = new Schema<IWhatsAppTemplate>(
 export default mongoose.model<IWhatsAppTemplate>(
   "WhatsAppTemplate",
   WhatsAppTemplateSchema
-);
+);  

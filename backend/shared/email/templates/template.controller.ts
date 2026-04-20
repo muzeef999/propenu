@@ -8,10 +8,7 @@ import { EmailLog } from "../../../services/user-service/src/logs/emailLog.model
 import csv from "csv-parser";
 import { parseTemplate } from "../../../services/user-service/src/utils/parseTemplate";
 import { Readable } from "stream";
-
-type MulterRequest = Request & {
-  file: Express.Multer.File;
-};
+import { whatsappQueue } from "../../../services/user-service/src/queues";
 
 // ---------------- CREATE ----------------
 export const createEmailTemplate = async (req: Request, res: Response) => {
@@ -349,7 +346,7 @@ export const sendEmailCampaignStatus = async (req: Request, res: Response) => {
 // ---------------- SEND CSV BULK EMAIL ----------------
 export const sendCsvBulkEmail = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   try {
     const { templateId } = req.body as { templateId?: string };
@@ -408,7 +405,7 @@ export const sendCsvBulkEmail = async (
           },
           {
             delay: jobCount * 2000,
-          }
+          },
         );
 
         jobCount++;
@@ -434,12 +431,79 @@ export const sendCsvBulkEmail = async (
 
     return res;
   } catch (err: unknown) {
-    const errorMessage =
-      err instanceof Error ? err.message : "Unknown error";
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
 
     return res.status(500).json({
       message: "Something went wrong",
       error: errorMessage,
+    });
+  }
+};
+
+// ---------------- SEND BULK WHATSAPP ----------------
+export const sendWhatsAppCSV = async (req: Request, res: Response) => {
+  try {
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: "CSV file is required",
+      });
+    }
+
+    const results: any[] = [];
+
+    // ✅ Convert buffer → stream (IMPORTANT FIX)
+    const stream = Readable.from(file.buffer);
+
+    stream
+      .pipe(csv())
+      .on("data", (data) => results.push(data))
+      .on("end", async () => {
+        console.log("📄 CSV parsed:", results.length);
+
+        let total = 0;
+
+        for (const row of results) {
+          if (!row.phone) continue;
+
+          const phone = row.phone.replace(/\D/g, "");
+
+          const formattedPhone = phone.startsWith("91")
+            ? phone
+            : `91${phone}`;
+
+          const variables = [
+            row.name || "User",
+            row.property || "Property",
+            row.refId || "REF123",
+          ];
+
+          await whatsappQueue.add("send-message", {
+            to: formattedPhone,
+            templateName: req.body.templateName,
+            variables,
+          });
+
+          total++;
+
+          await new Promise((r) => setTimeout(r, 300));
+        }
+
+        return res.json({
+          success: true,
+          total,
+          message: "CSV WhatsApp campaign queued",
+        });
+      });
+
+  } catch (error: any) {
+    console.error("❌ CSV Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };

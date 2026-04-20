@@ -4,13 +4,15 @@ import { Types } from "mongoose";
 
 import { whatsappQueue } from "../../../services/user-service/src/queues";
 import User from "../../../services/user-service/src/models/userModel";
+import { WhatsAppLog } from "../../../services/user-service/src/logs/whatsappLog.model";
 
 const BASE_URL = "https://graph.facebook.com/v19.0";
 
-const TOKEN =
-  "EAAXhIccvVfgBQvEc8BR5zh8DSyeEfvY9ZCoQHrIG7a8zRBHkN2kfKuUHujlpo31J1oZBfwCNM9DlXpXhQuoubdcAhLmhahYj2LdgQ8iTYytWMK6HMghwHZCxaNSLEhZBrvD3r9ZA6ZCRnJmStnLhoflMLt2szXvyW3fmC507UKfLFX3RCvSbFpAjYut2Avw1rQUgZDZD";
+const TOKEN ="EAAXhIccvVfgBQvEc8BR5zh8DSyeEfvY9ZCoQHrIG7a8zRBHkN2kfKuUHujlpo31J1oZBfwCNM9DlXpXhQuoubdcAhLmhahYj2LdgQ8iTYytWMK6HMghwHZCxaNSLEhZBrvD3r9ZA6ZCRnJmStnLhoflMLt2szXvyW3fmC507UKfLFX3RCvSbFpAjYut2Avw1rQUgZDZD";
 const BUSINESS_ID = "1519313212465013";
 const PHONE_ID = "935750846293139";
+
+
 
 interface SendWhatsAppInput {
   to: string;
@@ -69,7 +71,6 @@ export const sendWhatsAppCampaignDynamic = async (
 ) => {
   try {
     const { v4: uuidv4 } = await import("uuid");
-
     const campaignId = uuidv4();
     const { templateName, city, state, roleId } = req.body;
 
@@ -80,11 +81,9 @@ export const sendWhatsAppCampaignDynamic = async (
       });
     }
 
-    // ✅ 1. Fetch template dynamically
+    // ✅ 1. Fetch templates
     const templatesRes = await getTemplatesService();
-
-    const templates =
-      templatesRes?.data?.data?.data || templatesRes?.data?.data || [];
+    const templates = templatesRes?.data || [];
 
     const template = templates.find(
       (t: any) =>
@@ -92,7 +91,7 @@ export const sendWhatsAppCampaignDynamic = async (
     );
 
     if (!template) {
-      return res.status(400).json({
+      return res.status(404).json({
         success: false,
         message: "Template not found",
       });
@@ -105,13 +104,6 @@ export const sendWhatsAppCampaignDynamic = async (
 
     const templateText = bodyComponent?.text || "";
     const variableCount = getVariableCount(templateText);
-
-    if (variableCount === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "No variables in template",
-      });
-    }
 
     // ✅ 3. Build filter
     const filter: any = {
@@ -126,52 +118,75 @@ export const sendWhatsAppCampaignDynamic = async (
       filter.roleId = new Types.ObjectId(roleId);
     }
 
+    // ✅ 4. Pagination (same as email)
     const batchSize = 100;
     let page = 0;
     let totalUsers = 0;
 
     while (true) {
-      const users = await User.find(filter).lean();
-
+      const users = await User.find(filter)
+        .select("name phone city state")
+        .skip(page * batchSize)
+        .limit(batchSize)
+        .lean();
       if (!users.length) break;
-
+      
       for (const user of users) {
         if (!user.phone) continue;
 
-        // ✅ 4. Extract dynamic values from DB
-        const userKeys = Object.keys(user).filter(
-          (k) => k !== "phone" && k !== "_id" && k !== "__v",
-        );
+        // ✅ 5. Prepare variables (SAFE mapping)
+        const data = {
+          name: user.name || "User",
+          city: user.city || "",
+          state: user.state || "",
+        };
 
-        // 🔥 pick only required number of variables
-        const variables = userKeys
-          .slice(0, variableCount)
-          .map((key) => String((user as any)[key] || ""));
+        const variables = Object.values(data).slice(0, variableCount);
 
         if (variables.length !== variableCount) continue;
 
-        await whatsappQueue.add("send-message", {
-          campaignId,
+        const log = await WhatsAppLog.create({
           to: user.phone,
           templateName,
-          variables,
+          status: "pending",
+          campaignId,
+          variables, // optional but recommended
         });
 
+        console.log("🧾 Log created:", log._id);
+
+        // ✅ 6. Add to queue
+        await whatsappQueue.add(
+          "send-message",
+          {
+            campaignId,
+            to: user.phone,
+            templateName,
+            variables,
+            logId: log._id.toString(),
+          },
+          {
+            attempts: 3,
+            backoff: {
+              type: "exponential",
+              delay: 5000,
+            },
+          },
+        );
+        // ✅ 7. Delay (avoid block)
         await new Promise((r) => setTimeout(r, 300));
       }
-
       totalUsers += users.length;
       page++;
-      break; // remove if using pagination properly
     }
-
     return res.json({
       success: true,
       campaignId,
       totalUsers,
-      message: "WhatsApp dynamic campaign queued",
+      message: "WhatsApp campaign queued successfully",
     });
   } catch (error: any) {
+    console.error("❌ WhatsApp Campaign Error:", error);
     return res.status(500).json({
       success: false,
       message: error.message,
@@ -185,17 +200,22 @@ export const sendWhatsAppBulkMessages = async ({
   variables,
 }: SendWhatsAppInput) => {
   try {
+    
     if (!to || !templateName) {
       throw new Error("Missing required fields");
     }
 
-    // ✅ format phone
+    // ✅ Normalize phone
     const cleanPhone = String(to).replace(/\D/g, "");
     const formattedPhone = cleanPhone.startsWith("91")
       ? cleanPhone
       : `91${cleanPhone}`;
 
-    // ✅ payload
+    // ✅ Validate variables
+    if (!Array.isArray(variables)) {
+      throw new Error("Variables must be an array");
+    }
+
     const payload = {
       messaging_product: "whatsapp",
       to: formattedPhone,
@@ -215,7 +235,8 @@ export const sendWhatsAppBulkMessages = async ({
       },
     };
 
-    console.log("📤 Sending:", payload);
+    console.log("📤 Sending to:", formattedPhone);
+    console.log("📦 Payload:", JSON.stringify(payload, null, 2));
 
     const response = await axios.post(
       `https://graph.facebook.com/v18.0/${PHONE_ID}/messages`,
@@ -225,12 +246,15 @@ export const sendWhatsAppBulkMessages = async ({
           Authorization: `Bearer ${TOKEN}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
+
+    console.log("✅ Sent:", response.data);
 
     return response.data;
   } catch (err: any) {
     console.error("❌ WhatsApp Error:", err.response?.data || err.message);
+
     throw new Error(err.response?.data?.error?.message || "WhatsApp failed");
   }
 };
