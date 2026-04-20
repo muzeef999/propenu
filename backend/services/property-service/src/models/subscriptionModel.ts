@@ -16,7 +16,7 @@ const SubscriptionSchema = new Schema(
     },
 
 
-      usage: {
+  usage: {
     contactUsed: { type: Number, default: 0 },
     enquiryUsed: { type: Number, default: 0 },
   },
