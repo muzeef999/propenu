@@ -419,8 +419,11 @@ const ResidentialFilters = () => {
                   const value = getBedroomNumber(opt);
                   const isSelected = selectedBedrooms.includes(value);
                   return (
-                    <button
+                    <SelectableButton
                       key={opt}
+                      label={opt}
+                      active={isSelected}
+                      selectionType="multiple"
                       onClick={() => {
                         dispatch(
                           setResidentialFilter({
@@ -432,12 +435,7 @@ const ResidentialFilters = () => {
                           }),
                         );
                       }}
-                      className={`px-2 py-1 rounded hover:bg-gray-100 ${
-                        isSelected ? "font-semibold bg-gray-100" : ""
-                      }`}
-                    >
-                      {opt}
-                    </button>
+                    />
                   );
                 })}
               </div>

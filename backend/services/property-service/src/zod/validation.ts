@@ -145,6 +145,10 @@ export const CreateFeaturePropertySchema = z.object({
   metaDescription: z.string().optional(),
   metaKeywords: z.string().optional(),
   propertyType: z.literal("apartment").optional().default("apartment"),
+  categoryType: z
+    .enum(["featuredProject", "residential", "land", "commercial", "agricultural"])
+    .optional()
+    .default("featuredProject"),
   gallerySummary: z.array(GallerySummarySchema).optional().default([]),
   brochure: z.object(BrochureSchema).optional(),
   specifications: z.array(SpecificationSchema).optional(),
@@ -215,6 +219,9 @@ export const UpdateFeaturePropertySchema = z.object({
   metaDescription: z.string().optional(),
   metaKeywords: z.string().optional(),
   propertyType: z.literal("apartment").optional(),
+  categoryType: z
+    .enum(["featuredProject", "residential", "land", "commercial", "agricultural"])
+    .optional(),
   gallerySummary: z.array(GallerySummarySchema).optional(),
   brochure: z.object(BrochureSchema).optional(),
   specifications: z.array(SpecificationSchema).optional(),

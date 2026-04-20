@@ -110,6 +110,7 @@ export interface IFeaturedProject {
   metaDescription?: string;
   metaKeywords?: string;
   propertyType?: "apartment";
+  categoryType?: "featuredProject" | "residential" | "land" | "commercial" | "agricultural";
   address: string;
   city?: string;
   location?: {

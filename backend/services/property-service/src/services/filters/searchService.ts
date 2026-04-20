@@ -48,7 +48,9 @@ function shouldIncludeFeaturedProjects(filter: any) {
   if (filter?.category !== "residential") return false;
 
   const propertyTypes = getPropertyTypeList(filter);
-  if (!propertyTypes.includes("apartment")) return false;
+  if (propertyTypes.length > 0 && !propertyTypes.includes("apartment")) {
+    return false;
+  }
 
   if (filter.listingType && filter.listingType !== "sale") return false;
   if (filter.transactionType && filter.transactionType !== "new-sale") return false;

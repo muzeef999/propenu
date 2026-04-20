@@ -162,8 +162,12 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     metaTitle: { type: String },
     metaDescription: { type: String },
     metaKeywords: { type: String },
-    propertyType: { type: String, enum: ["apartment"], default: "apartment" },
+    propertyType: { type: String,},
     address: { type: String, required: true },
+    categoryType: {
+      type: String,
+      enum: ["residential", "land", "commercial", "agricultural"],
+    },
     city: { type: String, index: true, required: true },
     locality: { type: String, index: true, required: true },
     state: { type: String, index: true, required: true},

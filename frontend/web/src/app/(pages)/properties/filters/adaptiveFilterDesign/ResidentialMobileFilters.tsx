@@ -35,6 +35,7 @@ import {
 import { BedroomOption } from "@/types/residential";
 import { formatLabel } from "@/utilies/formatLabel";
 import { ResidentialFilters } from "@/types/sharedTypes";
+import SelectableButton from "@/ui/SelectableButton";
 
 type ListingOption = {
   label: "Buy" | "Rent";
@@ -457,9 +458,11 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
               const value = getBedroomNumber(bedroomOption);
               const isSelected = selectedBedrooms.includes(value);
               return (
-                <button
+                <SelectableButton
                   key={bedroomOption}
-                  type="button"
+                  label={bedroomOption}
+                  active={isSelected}
+                  selectionType="multiple"
                   onClick={() =>
                     dispatch(
                       setResidentialFilter({
@@ -471,13 +474,8 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
                       }),
                     )
                   }
-                  className={`rounded-xl border px-3 py-2 text-sm ${isSelected
-                    ? "border-green-600 bg-[#d8ece0] text-green-700"
-                    : "border-gray-300 bg-white"
-                    }`}
-                >
-                  {bedroomOption}
-                </button>
+                  className="rounded-xl text-sm"
+                />
               );
             })}
           </div>
@@ -626,9 +624,11 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
                                 : currentValue === opt;
 
                               return (
-                                <button
+                                <SelectableButton
                                   key={opt}
-                                  type="button"
+                                  label={formatLabel(opt)}
+                                  active={isActive}
+                                  selectionType={isMulti ? "multiple" : "single"}
                                   onClick={() =>
                                     dispatch(
                                       setResidentialFilter({
@@ -639,13 +639,8 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
                                       }),
                                     )
                                   }
-                                  className={`rounded-xl border px-3 py-1.5 text-base ${isActive
-                                    ? "border-green-600 bg-[#d8ece0] text-green-700"
-                                    : "border-gray-300 bg-white text-gray-800"
-                                    }`}
-                                >
-                                  {formatLabel(opt)}
-                                </button>
+                                  className="rounded-xl px-3 py-1.5 text-base"
+                                />
                               );
                             })}
                           </div>
