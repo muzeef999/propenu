@@ -2,9 +2,11 @@
 
 import type { RequestHandler } from "express";
 import createStreamingHandler from "../factory/streamingFactory";
-import buildSearchCursor from "../services/filters/searchService";
+import buildSearchCursor, {
+  CATEGORY_SERVICE_MAP,
+  countSearchResults,
+} from "../services/filters/searchService";
 import { sanitizeSearchFilters } from "../services/filters/sanitizeFilters";
-import { CATEGORY_SERVICE_MAP } from "../services/filters/searchService";
 
 /**
  * Count applied filters safely
@@ -54,27 +56,22 @@ const streamSearchHandler: RequestHandler = createStreamingHandler(
 
     // 🔹 Meta info (filter count, category validation)
     initialMeta: async (filters) => {
-  const actual = (filters as any)?.filter ?? filters ?? {};
-  const category = actual.category;
+      const actual = (filters as any)?.filter ?? filters ?? {};
+      const category = actual.category;
 
-  if (!category) {
-    throw new Error("Category filter is required for search");
-  }
+      if (!category) {
+        throw new Error("Category filter is required for search");
+      }
 
-  const service = CATEGORY_SERVICE_MAP[category];
-  if (!service) {
-    return { total: 0 };
-  }
+      const service = CATEGORY_SERVICE_MAP[category];
+      if (!service) {
+        return { total: 0 };
+      }
 
-  const pipeline = service.getPipeline(actual);
+      const total = await countSearchResults({ filter: actual });
 
-  const matchStage = pipeline.find((stage: any) => stage.$match);
-  const match = matchStage ? matchStage.$match : {};
-
-  const total = await service.model.countDocuments(match);
-
-  return { total };
-},
+      return { total };
+    },
 
   }
 );

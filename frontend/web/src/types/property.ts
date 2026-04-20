@@ -12,7 +12,7 @@ export interface Property {
   _id: string;
   title: string;
   slug?: string;
-  address: string;
+  address?: string;
   city?: string;
   location?: {
     type: "Point";
@@ -37,12 +37,47 @@ export interface Property {
   createdAt?: string;
   floorNumber?:number | string;
   totalFloors?:number | string;
-  type: "Residential" | "Commercial" | "Land" | "Agricultural";
   dimensions?: {
     length?: number;
     width?: number;
   }
   buildingName?: string;
+  propertyType?: string;
+  listingType?: string;
+  transactionType?: string;
+  locality?: string;
+  priceFrom?: number;
+  priceTo?: number;
+  bhk?: number | number[];
+  bhkSummary?: {
+    bhk: number;
+    bhkLabel?: string;
+    units?: {
+      minSqft?: number;
+      maxPrice?: number;
+      availableCount?: number;
+    }[];
+  }[];
+  builtUpArea?: number | {
+    min?: number;
+    max?: number;
+  };
+  gallerySummary?: {
+    title?: string;
+    url: string;
+    category?: string;
+    fileName?: string;
+    order?: number;
+    key?: string;
+    mimetype?: string;
+  }[];
+  amenities?: {
+    key?: string;
+    title?: string;
+    imageUrl?: string;
+  }[];
+  amenitiesCount?: number;
+  type: "Residential" | "Commercial" | "Land" | "Agricultural" | "FeaturedProject";
 }
 
 

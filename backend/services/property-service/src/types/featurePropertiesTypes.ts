@@ -109,6 +109,7 @@ export interface IFeaturedProject {
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string;
+  propertyType?: "apartment";
   address: string;
   city?: string;
   location?: {

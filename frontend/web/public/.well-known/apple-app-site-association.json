@@ -1,0 +1,10 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appID": "255493C566.com.propenu.app",
+        "paths": ["/kyc/*", "/kyc/success", "/kyc/callback*"]
+      }
+    ]
+  }
+}

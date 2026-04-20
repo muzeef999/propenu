@@ -169,6 +169,10 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
     );
   }, [residential.listingSource]);
 
+  const selectedBedrooms = Array.isArray(residential.bedrooms)
+    ? residential.bedrooms
+    : [];
+
   const toggleArrayValue = (arr: string[] = [], value: string) =>
     arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
 
@@ -451,14 +455,23 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
           <div className="flex flex-wrap gap-2">
             {bedroomOptions.map((bedroomOption) => {
               const value = getBedroomNumber(bedroomOption);
+              const isSelected = selectedBedrooms.includes(value);
               return (
                 <button
                   key={bedroomOption}
                   type="button"
                   onClick={() =>
-                    dispatch(setResidentialFilter({ key: "bedrooms", value }))
+                    dispatch(
+                      setResidentialFilter({
+                        key: "bedrooms",
+                        value: toggleArrayValue(
+                          selectedBedrooms.map(String),
+                          String(value),
+                        ).map(Number),
+                      }),
+                    )
                   }
-                  className={`rounded-xl border px-3 py-2 text-sm ${residential.bedrooms === value
+                  className={`rounded-xl border px-3 py-2 text-sm ${isSelected
                     ? "border-green-600 bg-[#d8ece0] text-green-700"
                     : "border-gray-300 bg-white"
                     }`}

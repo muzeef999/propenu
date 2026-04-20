@@ -120,7 +120,7 @@ export type PostedByOption = "Owners" | "Agents" | "Builders";
 
 export type ResidentialSearchParams = BaseSearchParams & {
   category: "Residential";
-  bedrooms?: number;
+  bedrooms?: number[];
 };
 
 export const residentialKeyMapping: Record<

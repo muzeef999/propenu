@@ -16,6 +16,7 @@ import ResidentialCard from "./cards/ResidentialCard";
 import CommercialCard from "./cards/CommercialCard";
 import { LandCard } from "./cards/LandCard";
 import AgriculturalCard from "./cards/AgriculturalCard";
+import FeaturedPropertyCard from "./cards/FeaturedPropertyCard";
 import ad from "@/asserts/ad.png";
 import { buildSearchParams } from "./filters/buildSearchParams";
 
@@ -71,6 +72,8 @@ const Page: React.FC = () => {
     switch (type.toLowerCase()) {
       case "residential":
         return <ResidentialCard key={p.id} p={p as unknown as IResidential} />;
+      case "featuredproject":
+        return <FeaturedPropertyCard key={p.id} p={p} />;
       case "commercial":
         return <CommercialCard key={p.id} p={p as unknown as ICommercial} />;
       case "land":
@@ -108,6 +111,14 @@ const Page: React.FC = () => {
       (property as any)?.plotArea,
       (property as any)?.totalArea?.value,
     ].find((v) => typeof v === "number" && Number.isFinite(v));
+
+    if (
+      typeof property.builtUpArea === "object" &&
+      typeof property.builtUpArea?.min === "number"
+    ) {
+      return property.builtUpArea.min;
+    }
+
     return typeof candidate === "number" ? candidate : 0;
   };
 
@@ -180,7 +191,7 @@ const Page: React.FC = () => {
             {loading ? (
               <PropertiesListSkeleton />
             ) : (
-              sortedItems.map((p) => renderPropertyCard(filters.category, p))
+              sortedItems.map((p) => renderPropertyCard(p.type ?? filters.category, p))
             )}
             {!loading && sortedItems.length === 0 && <p>No properties found.</p>}
           </div>

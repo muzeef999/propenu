@@ -101,9 +101,14 @@ const ResidentialFilters = () => {
   const getBedroomNumber = (value: BedroomOption) =>
     value === "6+ BHK" ? 6 : Number(value.split(" ")[0]);
 
-  const bedroomLabel = bedrooms
-    ? `${bedrooms}${bedrooms === 6 ? "+" : ""} BHK`
-    : "BHK";
+  const selectedBedrooms = Array.isArray(bedrooms) ? bedrooms : [];
+
+  const bedroomLabel =
+    selectedBedrooms.length === 0
+      ? "BHK"
+      : selectedBedrooms.length === 1
+        ? `${selectedBedrooms[0]}${selectedBedrooms[0] === 6 ? "+" : ""} BHK`
+        : `${selectedBedrooms.length} BHK Selected`;
 
   /* -------------------- BUDGET -------------------- */
   const [budgetRange, setBudgetRange] = useState<
@@ -181,7 +186,7 @@ const ResidentialFilters = () => {
           }
           width="w-116"
           align="left"
-          renderContent={(close) => (
+          renderContent={() => (
             <div className="p-3">
               <h4 className="text-sm font-semibold mb-3">
                 {cityData
@@ -399,19 +404,20 @@ const ResidentialFilters = () => {
 
         {/* ---------- Bedrooms ---------- */}
         <FilterDropdown
-          key={bedrooms}
+          key={selectedBedrooms.join(",")}
           triggerLabel={
             <span className="px-4 text-primary font-medium cursor-pointer">
               {bedroomLabel}
             </span>
           }
           width="w-86"
-          renderContent={(close) => (
+          renderContent={() => (
             <div>
               <h4 className="text-sm font-semibold mb-2">Bedrooms</h4>
               <div className="flex gap-2 flex-wrap">
                 {bedroomOptions.map((opt) => {
                   const value = getBedroomNumber(opt);
+                  const isSelected = selectedBedrooms.includes(value);
                   return (
                     <button
                       key={opt}
@@ -419,13 +425,15 @@ const ResidentialFilters = () => {
                         dispatch(
                           setResidentialFilter({
                             key: "bedrooms",
-                            value,
+                            value: toggleArrayValue(
+                              selectedBedrooms.map(String),
+                              String(value),
+                            ).map(Number),
                           }),
                         );
-                        close?.();
                       }}
                       className={`px-2 py-1 rounded hover:bg-gray-100 ${
-                        bedrooms === value ? "font-semibold bg-gray-100" : ""
+                        isSelected ? "font-semibold bg-gray-100" : ""
                       }`}
                     >
                       {opt}
@@ -642,11 +650,13 @@ const ResidentialFilters = () => {
                         {section.options?.map((opt) => {
                           const mappedKey = keyMapping[section.key];
                           const currentValue = residential[mappedKey];
+                          const currentValues = Array.isArray(currentValue)
+                            ? (currentValue as string[])
+                            : [];
 
                           const isActive =
                             section.selectionType === "multiple"
-                              ? Array.isArray(currentValue) &&
-                                currentValue.includes(opt)
+                              ? currentValues.includes(opt)
                               : currentValue === opt;
 
                           return (
@@ -661,10 +671,7 @@ const ResidentialFilters = () => {
                                     key: mappedKey,
                                     value:
                                       section.selectionType === "multiple"
-                                        ? toggleArrayValue(
-                                            (currentValue as string[]) || [],
-                                            opt,
-                                          )
+                                        ? toggleArrayValue(currentValues, opt)
                                         : opt,
                                   }),
                                 );
