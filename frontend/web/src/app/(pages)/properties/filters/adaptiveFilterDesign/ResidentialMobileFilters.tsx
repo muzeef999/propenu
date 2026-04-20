@@ -618,8 +618,11 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
                               const mappedKey = keyMapping[section.key];
                               const currentValue = residential[mappedKey];
                               const isMulti = section.selectionType === "multiple";
+                              const currentValues = Array.isArray(currentValue)
+                                ? (currentValue as string[])
+                                : [];
                               const isActive = isMulti
-                                ? Array.isArray(currentValue) && currentValue.includes(opt)
+                                ? currentValues.includes(opt)
                                 : currentValue === opt;
 
                               return (
@@ -631,7 +634,7 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
                                       setResidentialFilter({
                                         key: mappedKey,
                                         value: isMulti
-                                          ? toggleArrayValue((currentValue as string[]) || [], opt)
+                                          ? toggleArrayValue(currentValues, opt)
                                           : opt,
                                       }),
                                     )
