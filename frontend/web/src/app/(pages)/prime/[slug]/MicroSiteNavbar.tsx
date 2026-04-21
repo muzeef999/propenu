@@ -117,8 +117,8 @@ export default function MicroSiteNavbar({
           {/* logo */}
           {isExternalLogoHref ? (
             <a
-              href={logoHref}
-              target="_blank"
+              // href={logoHref}
+              // target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-3"
             >
