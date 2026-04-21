@@ -14,6 +14,20 @@ type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
 };
 
+function getProjectConfigurationValue(project: FeaturedProject) {
+  const bhkValues = Array.from(
+    new Set(
+      (project.bhkSummary ?? [])
+        .map((item) => item?.bhk)
+        .filter((bhk): bhk is number => typeof bhk === "number"),
+    ),
+  ).sort((a, b) => a - b);
+
+  if (bhkValues.length === 0) return project.propertyType ?? "Apartments";
+
+  return `${bhkValues.join("-")} BHK`;
+}
+
 
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params;
@@ -82,6 +96,7 @@ export default async function Page({ params }: PageProps) {
     project?.priceFrom,
     project?.priceTo
   );
+  const configurationValue = getProjectConfigurationValue(project);
   const hero = {
     projectId: project._id,
     subTagline: project?.heroSubTagline,
@@ -92,7 +107,7 @@ export default async function Page({ params }: PageProps) {
     heroImage: project.heroImage,
     stats: [
       { value: startingPrice, label: "Price Range" },
-      { value: "3-4 BHK", label: "Configurations" },
+      { value: configurationValue, label: "Configurations" },
       { value: (project?.amenities?.length || 0).toString(), label: "Amenities" },
       { value: "RERA", label: "Approved" },
     ],

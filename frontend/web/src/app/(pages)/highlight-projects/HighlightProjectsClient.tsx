@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { FeaturedProject, IBhkUnit } from "@/types";
+import { FeaturedProject } from "@/types";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import { useCity } from "@/hooks/useCity";
 import { RiArrowRightSLine } from "react-icons/ri";
@@ -10,22 +10,25 @@ import { getHighlightProjects } from "@/data/ClientData";
 import HomeSectionSkeleton from "@/components/HomeSectionSkeleton";
 import HomeSectionComingSoon from "@/components/HomeSectionComingSoon";
 import { minDelay } from "@/utilies/minDelay";
+import formatINR from "@/utilies/PriceFormat";
 import {
   getHomeSectionCache,
   getHomeSectionCacheKey,
   setHomeSectionCache,
 } from "@/utilies/homeSectionCache";
 
-function getProjectMinSqft(project: FeaturedProject) {
-  const sqftValues =
-    project.bhkSummary?.flatMap((bhk) =>
-      bhk.units?.map((unit: IBhkUnit) => unit.minSqft).filter(
-        (minSqft: number | undefined): minSqft is number =>
-          typeof minSqft === "number",
-      ) ?? [],
-    ) ?? [];
+function getProjectConfigurationLabel(project: FeaturedProject) {
+  const bhkValues = Array.from(
+    new Set(
+      (project.bhkSummary ?? [])
+        .map((item) => item?.bhk)
+        .filter((bhk): bhk is number => typeof bhk === "number"),
+    ),
+  ).sort((a, b) => a - b);
 
-  return sqftValues.length > 0 ? Math.min(...sqftValues) : undefined;
+  if (bhkValues.length === 0) return project.propertyType ?? "Apartments";
+
+  return `${bhkValues.join(", ")} BHK Apartments`;
 }
 
 export default function HighlightProjectsClient() {
@@ -186,8 +189,6 @@ export default function HighlightProjectsClient() {
           className="flex gap-4 sm:gap-6 overflow-x-auto scroll-smooth no-scrollbar pb-6 snap-x snap-mandatory px-1"
         >
           {items.map((project) => {
-            const minSqft = getProjectMinSqft(project);
-
             return (
             <Link
               key={project._id}
@@ -211,13 +212,24 @@ export default function HighlightProjectsClient() {
                     {project.title}
                   </h2>
 
-                  <span className="text-sm font-medium text-gray-900 whitespace-nowrap">
-                    ₹{minSqft ? `${minSqft}/sq.ft` : "—"}
+                  <span className="text-sm font-medium whitespace-nowrap">
+                    {project?.priceFrom ? (
+                      <>
+                        <span className="text-[#26ad5f]">
+                          {formatINR(project.priceFrom)}
+                        </span>{" "}
+                        <span className="text-[#676666] font-light text-sm">onwards</span>
+                      </>
+                    ) : (
+                      "—"
+                    )}
                   </span>
                 </div>
 
                 <p className="text-xs text-gray-500 truncate font-medium capitalize">
-                  2, 3, 4, BHK Appartment{project.locality ? ` • ${project.locality}` : ""}{project.state ? `, ${project.state}` : ""}
+                  {getProjectConfigurationLabel(project)}
+                  {project.locality ? ` • ${project.locality}` : ""}
+                  {project.state ? `, ${project.state}` : ""}
                 </p>
               </div>
             </Link>
