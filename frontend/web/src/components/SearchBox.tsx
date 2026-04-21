@@ -65,11 +65,11 @@ const SearchBox = () => {
   const { listingTypeLabel, category, searchText, residential, commercial, land, agricultural } = useAppSelector((s) => s.filters);
   const cityData = useAppSelector(selectCityWithLocalities);
 
-  const categoryOptions: categoryOption[] = [
-    "Residential",
-    "Commercial",
-    "Land",
-    "Agricultural",
+  const categoryOptions: Array<{ label: string; value: categoryOption }> = [
+    { label: "Residential", value: "Residential" },
+    { label: "Commercial", value: "Commercial" },
+    { label: "Plot", value: "Land" },
+    { label: "Agricultural", value: "Agricultural" },
   ];
   const categoryToType: Record<categoryOption, string> = {
     Residential: "residential",
@@ -177,7 +177,7 @@ const SearchBox = () => {
               className="flex items-center gap-2 bg-transparent text-sm text-gray-900 cursor-pointer"
             >
               <span className="md:max-w-24 md:truncate lg:max-w-none">
-                {category}
+                {category === "Land" ? "Plot" : category}
               </span>
               <ArrowDropdownIcon
                 size={12}
@@ -198,21 +198,21 @@ const SearchBox = () => {
                 </div>
                 <h4 className="mb-2 text-sm font-semibold">Category</h4>
                 <div className="flex flex-col gap-1">
-                  {categoryOptions.map((type) => (
+                  {categoryOptions.map(({ label, value }) => (
                     <button
-                      key={type}
+                      key={value}
                       type="button"
                       onClick={() => {
-                        dispatch(setCategory(type));
+                        dispatch(setCategory(value));
                         setCategoryOpen(false);
                       }}
                       className={`rounded px-3 py-2 text-left text-sm cursor-pointer transition-colors ${
-                        category === type
+                        category === value
                           ? "bg-[#D1EFDD] text-[#15803D] font-medium"
                           : "hover:bg-gray-100 text-gray-700"
                       }`}
                     >
-                      {type}
+                      {label}
                     </button>
                   ))}
                 </div>

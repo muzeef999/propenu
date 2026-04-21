@@ -4,9 +4,8 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.propenu.app",
-      "sha256_cert_fingerprints": [
-        "4C:37:BC:DA:A1:1A:A9:90:0B:33:48:00:E7:14:99:AD:4C:06:5D:C8:17:E2:C7:F9:D4:92:87:75:20:34:36:E8"
-      ]
+      "sha256_cert_fingerprints":
+        ["4C:37:BC:DA:A1:1A:A9:90:0B:33:48:00:E7:14:99:AD:4C:06:5D:C8:17:E2:C7:F9:D4:92:87:75:20:34:36:E8"]
     }
   }
 ]

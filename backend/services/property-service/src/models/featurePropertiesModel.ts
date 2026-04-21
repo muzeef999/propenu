@@ -166,8 +166,12 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     address: { type: String, required: true },
     categoryType: {
       type: String,
-      enum: ["residential", "land", "commercial", "agricultural"],
-    },
+      enum: [
+        "residential",
+        "land",
+        "commercial",
+        "agricultural",
+      ],    },
     city: { type: String, index: true, required: true },
     locality: { type: String, index: true, required: true },
     state: { type: String, index: true, required: true},

@@ -60,13 +60,15 @@ export const buildFormData = (data: IFeaturedProject): FormData => {
   // Possession & Units
   if (data.possessionDate)
     formData.append("possessionDate", data.possessionDate);
-  if (data.totalTowers)
+  if (data.totalTowers !== undefined && data.totalTowers !== null)
     formData.append("totalTowers", String(data.totalTowers));
-  if (data.totalFloors) formData.append("totalFloors", data.totalFloors);
-  if (data.projectArea)
+  if (data.totalFloors !== undefined && data.totalFloors !== null)
+    formData.append("totalFloors", data.totalFloors);
+  if (data.projectArea !== undefined && data.projectArea !== null)
     formData.append("projectArea", String(data.projectArea));
-  if (data.totalUnits) formData.append("totalUnits", String(data.totalUnits));
-  if (data.availableUnits)
+  if (data.totalUnits !== undefined && data.totalUnits !== null)
+    formData.append("totalUnits", String(data.totalUnits));
+  if (data.availableUnits !== undefined && data.availableUnits !== null)
     formData.append("availableUnits", String(data.availableUnits));
 
   // RERA & Banks

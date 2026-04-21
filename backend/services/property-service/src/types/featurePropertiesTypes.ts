@@ -109,8 +109,8 @@ export interface IFeaturedProject {
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string;
-  propertyType?: "apartment";
-  categoryType?: "featuredProject" | "residential" | "land" | "commercial" | "agricultural";
+  propertyType?: string; // default: 'featuredProject'
+  categoryType?: "residential" | "land" | "commercial" | "agricultural";
   address: string;
   city?: string;
   location?: {
