@@ -169,7 +169,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
     }
 
     /* ⭐ Roles that require KYC */
-    const KYC_REQUIRED_ROLES = ["user", "agent", "builder"];
+    const KYC_REQUIRED_ROLES = ["user", "agent"];
 
     if (KYC_REQUIRED_ROLES.includes(role?.name)) {
       if (user.accountStatus !== "active") {
@@ -540,7 +540,7 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       let nextStep = "location";
 
       if (user.locality && user.city && user.state && user.pincode) {
-        nextStep = "kyc";
+        nextStep = roleDoc.name === "builder" ? "completed" : "kyc";
       }
 
       return res.status(200).json({
@@ -623,12 +623,37 @@ export const updateLocationOtp = async (req: AuthRequest, res: Response) => {
     updatedUser.city = city.trim();
     updatedUser.state = state.trim();
     updatedUser.pincode = pincode.trim();
-    updatedUser.accountStatus = "kyc_pending";
+
+    const populatedUser = await updatedUser.populate("roleId");
+    const roleName =
+      typeof populatedUser.roleId === "object" &&
+      populatedUser.roleId &&
+      "name" in populatedUser.roleId
+        ? populatedUser.roleId.name
+        : undefined;
+
+    updatedUser.accountStatus = roleName === "builder" ? "active" : "kyc_pending";
 
     await updatedUser.save();
 
+    const roleDoc: any = updatedUser.roleId;
+    const token = generateToken({
+      sub: String(updatedUser._id),
+      email: updatedUser.email,
+      phone: Number(updatedUser.phone),
+      name: updatedUser.name,
+      roleId: roleDoc ? String(roleDoc._id) : undefined,
+      roleName: roleDoc?.name,
+      permissions: roleDoc?.permissions ?? [],
+      accountStatus: updatedUser.accountStatus,
+    });
+
     return res.status(200).json({
-      message: "Location updated successfully",
+      message:
+        roleName === "builder"
+          ? "Location updated successfully. Builder account is now active."
+          : "Location updated successfully",
+      token,
       user: updatedUser,
     });
   } catch (error: any) {

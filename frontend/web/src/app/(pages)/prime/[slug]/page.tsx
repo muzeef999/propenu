@@ -9,25 +9,11 @@ import LocateUs from "./LocateUs";
 import Gallery from "./Gallery";
 import AboutUS from "./AboutUs";
 import Specification from "./Specification";
+import { getProjectConfigurationValue } from "@/utilies/projectConfiguration";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
 };
-
-function getProjectConfigurationValue(project: FeaturedProject) {
-  const bhkValues = Array.from(
-    new Set(
-      (project.bhkSummary ?? [])
-        .map((item) => item?.bhk)
-        .filter((bhk): bhk is number => typeof bhk === "number"),
-    ),
-  ).sort((a, b) => a - b);
-
-  if (bhkValues.length === 0) return project.propertyType ?? "Apartments";
-
-  return `${bhkValues.join("-")} BHK`;
-}
-
 
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params;
@@ -75,19 +61,33 @@ export default async function Page({ params }: PageProps) {
     { title: "Gallery", href: "#gallery" },
     { title: "About Us", href: "#about-us" },
   ];
-  function formatCrRange(priceFrom?: number, priceTo?: number) {
-    if (!priceFrom && !priceTo) return "Price on Request";
-
-    const fromCr = priceFrom ? Math.floor(priceFrom / 1e7) : null;
-    const toCr = priceTo ? Math.ceil(priceTo / 1e7) : null;
-
-    if (fromCr && toCr) {
-      if (fromCr === toCr) return `${fromCr} Cr`;
-      return `${fromCr} Cr - ${toCr} Cr`;
+  function formatCompactPrice(price?: number) {
+    if (typeof price !== "number" || !Number.isFinite(price) || price <= 0) {
+      return null;
     }
 
-    if (fromCr) return `${fromCr} Cr+`;
-    if (toCr) return `Up to ${toCr} Cr`;
+    if (price >= 1e7) {
+      return `${(price / 1e7).toFixed(2).replace(/\.00$/, "")} Cr`;
+    }
+
+    if (price >= 1e5) {
+      return `${(price / 1e5).toFixed(2).replace(/\.00$/, "")} L`;
+    }
+
+    return price.toLocaleString("en-IN");
+  }
+
+  function formatCrRange(priceFrom?: number, priceTo?: number) {
+    const fromLabel = formatCompactPrice(priceFrom);
+    const toLabel = formatCompactPrice(priceTo);
+
+    if (fromLabel && toLabel) {
+      if (priceFrom === priceTo) return fromLabel;
+      return `${fromLabel} - ${toLabel}`;
+    }
+
+    if (fromLabel) return `From ${fromLabel}`;
+    if (toLabel) return `Up to ${toLabel}`;
 
     return "Price on Request";
   }

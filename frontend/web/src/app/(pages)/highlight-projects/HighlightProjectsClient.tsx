@@ -11,25 +11,12 @@ import HomeSectionSkeleton from "@/components/HomeSectionSkeleton";
 import HomeSectionComingSoon from "@/components/HomeSectionComingSoon";
 import { minDelay } from "@/utilies/minDelay";
 import formatINR from "@/utilies/PriceFormat";
+import { getProjectConfigurationLabel } from "@/utilies/projectConfiguration";
 import {
   getHomeSectionCache,
   getHomeSectionCacheKey,
   setHomeSectionCache,
 } from "@/utilies/homeSectionCache";
-
-function getProjectConfigurationLabel(project: FeaturedProject) {
-  const bhkValues = Array.from(
-    new Set(
-      (project.bhkSummary ?? [])
-        .map((item) => item?.bhk)
-        .filter((bhk): bhk is number => typeof bhk === "number"),
-    ),
-  ).sort((a, b) => a - b);
-
-  if (bhkValues.length === 0) return project.propertyType ?? "Apartments";
-
-  return `${bhkValues.join(", ")} BHK Apartments`;
-}
 
 export default function HighlightProjectsClient() {
   const sliderRef = useRef<HTMLDivElement | null>(null);
@@ -227,7 +214,7 @@ export default function HighlightProjectsClient() {
                 </div>
 
                 <p className="text-xs text-gray-500 truncate font-medium capitalize">
-                  {getProjectConfigurationLabel(project)}
+                  {getProjectConfigurationLabel(project, "Apartments")}
                   {project.locality ? ` • ${project.locality}` : ""}
                   {project.state ? `, ${project.state}` : ""}
                 </p>

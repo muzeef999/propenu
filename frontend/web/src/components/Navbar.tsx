@@ -79,6 +79,16 @@ const Navbar = () => {
     }
 
     fetchUser();
+
+    const handleAuthChanged = () => {
+      fetchUser();
+    };
+
+    window.addEventListener("auth-changed", handleAuthChanged);
+
+    return () => {
+      window.removeEventListener("auth-changed", handleAuthChanged);
+    };
   }, []);
 
   const toggleState = (stateName: string) => {

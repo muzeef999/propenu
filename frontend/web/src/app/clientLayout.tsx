@@ -57,7 +57,18 @@ function ClientProvidersContent({
         // ignore
       }
     }
+
     fetchUser();
+
+    const handleAuthChanged = () => {
+      fetchUser();
+    };
+
+    window.addEventListener("auth-changed", handleAuthChanged);
+
+    return () => {
+      window.removeEventListener("auth-changed", handleAuthChanged);
+    };
   }, []);
 
 

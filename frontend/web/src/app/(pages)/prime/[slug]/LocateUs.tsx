@@ -2,6 +2,7 @@
 
 import { LOCATION_ICON_PATH, LOCATION_ICON_VIEWBOX } from "@/icons/icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
 type NearbyPlace = {
   name?: string;
@@ -269,6 +270,7 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
   const apiKey = process.env.NEXT_PUBLIC_MAPPLS_MAP_SDK_KEY || process.env.NEXT_MAPPLS_MAP_SDK_KEY;
   const mapContainerId = "locate-us-mappls-map";
   const mapRef = useRef<HTMLDivElement | null>(null);
+  const sliderRef = useRef<HTMLUListElement | null>(null);
   const mapInstanceRef = useRef<MapplsMapInstance | null>(null);
   const markersRef = useRef<MarkerRefItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -451,6 +453,21 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
     setSelectedIndex(index);
   }
 
+  function scrollSlider(direction: "left" | "right") {
+    if (!sliderRef.current) return;
+
+    const firstCard = sliderRef.current.querySelector("li");
+    if (!firstCard) return;
+
+    const gap = 16;
+    const cardWidth = firstCard.clientWidth + gap;
+
+    sliderRef.current.scrollBy({
+      left: direction === "left" ? -cardWidth : cardWidth,
+      behavior: "smooth",
+    });
+  }
+
   const isHex = typeof color === "string" && color.startsWith("#");
 
 
@@ -459,44 +476,79 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
       <div className="mb-6 flex items-start justify-between gap-6">
         <div style={{ color: color, borderLeft: `5px solid ${color}` }}>
           <div className="ml-2">
-            <h1 className="text-2xl font-bold">{heading || "Near by Places"}</h1>
+            <h1 className="text-2xl font-bold">{"Near by Places"}</h1>
             <p className="headingDesc">Find important locations around your property</p>
           </div>
         </div>
       </div>
 
       <div className="w-full">
-        <ul className="flex items-center justify-between">
-          {withDistance.length === 0 && <li className="text-sm text-slate-500">No nearby places provided.</li>}
-          {withDistance.map(({ p, distanceText }, idx) => {
-            const active = selectedIndex === idx;
-            return (
-              <li
-                key={`${p.name ?? "place"}-${idx}`}
-                onClick={() => onSelectPlace(idx)}
-                className={`cursor-pointer rounded-md p-3 transition ${active ? "ring-2 ring-offset-2" : "hover:bg-slate-50"}`}
-                style={{ boxShadow: active ? `0 6px 20px ${color}22` : undefined } as React.CSSProperties}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <div className="w-9 h-9 rounded-md flex items-center justify-center" style={{ background: isHex ? `${color}11` : undefined }}>
-                        <NearbyPlaceIcon color={color} />
+        <div className="mb-3 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => scrollSlider("left")}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+            aria-label="Previous nearby places"
+          >
+            <FiChevronLeft className="h-4 w-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => scrollSlider("right")}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+            aria-label="Next nearby places"
+          >
+            <FiChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mb-6 w-full min-w-0 overflow-hidden">
+          <ul
+            ref={sliderRef}
+            className="flex w-full min-w-0 gap-4 overflow-x-auto scroll-smooth pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {withDistance.length === 0 && (
+              <li className="text-sm text-slate-500">No nearby places provided.</li>
+            )}
+
+            {withDistance.map(({ p, distanceText }, idx) => {
+              const active = selectedIndex === idx;
+
+              return (
+                <li
+                  key={`${p.name ?? "place"}-${idx}`}
+                  onClick={() => onSelectPlace(idx)}
+                  className={`w-[280px] shrink-0 cursor-pointer rounded-md p-3 transition sm:w-[320px] ${
+                    active ? "ring-2 ring-offset-2" : "hover:bg-[#eef1f3]"
+                  }`}
+                  style={{
+                    backgroundColor: "#f1f4f5",
+                    boxShadow: active ? `0 6px 20px ${color}22` : undefined,
+                  } as React.CSSProperties}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md"
+                      style={{ background: isHex ? `${color}11` : "#dde9ee" }}
+                    >
+                      <NearbyPlaceIcon color={color} />
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="truncate text-[15px] font-semibold text-slate-900">
+                        {p.name?.split(",")[0] ?? "Nearby place"}
                       </div>
-                      <div>
-                        <div className="text-sm font-medium text-slate-900 truncate">
-                          {p.name?.split(",")[0]}
-                        </div>                        <div className="mt-1 text-xs text-slate-500">
-                          {p.type ?? "Place"} • {distanceText ?? p.distanceText ?? "-"}
-                        </div>
+                      <div className="mt-1 truncate text-xs text-slate-500">
+                        {p.type ?? "Place"} • {distanceText ?? p.distanceText ?? "-"}
                       </div>
                     </div>
                   </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
 
         <div className="rounded-lg overflow-hidden border border-slate-100 shadow-sm">
           {mapError ? (

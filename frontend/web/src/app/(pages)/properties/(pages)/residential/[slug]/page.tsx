@@ -12,17 +12,7 @@ import ad from "@/asserts/ad.png";
 import RelatedPropertiesCarousel from "./RelatedPropertiesCarousel";
 import ResidentialNearbySection from "./ResidentialNearbySection";
 import { RESIDENTIAL_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
-import {
-  FiCalendar,
-  FiCompass,
-  FiGrid,
-  FiHome,
-  FiLayers,
-  FiTag,
-  FiTool,
-  FiTruck,
-  FiUser,
-} from "react-icons/fi";
+
 import { FaCarAlt, FaCarSide, FaRegCalendarCheck } from "react-icons/fa";
 import { GiKnifeFork, GiMoneyStack } from "react-icons/gi";
 import { RiCarLine, RiEBikeLine, RiParkingFill } from "react-icons/ri";

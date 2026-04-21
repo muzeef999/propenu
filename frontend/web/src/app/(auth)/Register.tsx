@@ -20,6 +20,7 @@ import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import Cookies from "js-cookie";
 import { AiOutlineUser } from "react-icons/ai";
+import { useRouter } from "next/navigation";
 import {
   accountSchema,
   FormErrors,
@@ -85,6 +86,7 @@ const RegisterDialog = ({
   onSwitchToLogin,
   initialStep = "personal",
 }: RegisterDialogProps) => {
+  const router = useRouter();
   const [step, setStep] = useState<RegisterStep>(initialStep || "personal");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [formData, setFormData] = useState({
@@ -119,6 +121,10 @@ const RegisterDialog = ({
     formData.locality.trim().length > 0 &&
     formData.city.trim().length > 0 &&
     formData.state.trim().length > 0;
+  const requiresKyc = formData.role !== "builder";
+  const visibleTabs = requiresKyc
+    ? tabs
+    : tabs.filter((tab) => tab.id !== "kyc");
 
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const lastOtpRequestedPhoneRef = useRef("");
@@ -242,6 +248,7 @@ const RegisterDialog = ({
           secure: process.env.NODE_ENV === "production",
           sameSite: "Lax",
         });
+        window.dispatchEvent(new Event("auth-changed"));
       }
 
       verifiedPhoneRef.current = phoneValidation.data.phone;
@@ -276,11 +283,27 @@ const RegisterDialog = ({
         pincode: validation.data.pincode,
       };
 
-      await updateLocation(payload);
+      const res = await updateLocation(payload);
 
-      toast.success("Location updated");
+      if (res?.token) {
+        Cookies.set("token", res.token, {
+          expires: 7,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "Lax",
+        });
+      }
 
-      setStep("kyc");
+      window.dispatchEvent(new Event("auth-changed"));
+      router.refresh();
+
+      if (requiresKyc) {
+        toast.success("Location updated");
+        setStep("kyc");
+        return;
+      }
+
+      toast.success("Location updated. Builder account is now active.");
+      handleClose();
     } catch {
       toast.error("Failed to update location");
     } finally {
@@ -365,7 +388,7 @@ const RegisterDialog = ({
       return;
     }
 
-    if (nextStep === "kyc" && isOtpVerified) {
+    if (nextStep === "kyc" && isOtpVerified && requiresKyc) {
       const validation = locationSchema.safeParse(formData);
       if (validation.success) {
         setStep("kyc");
@@ -412,6 +435,10 @@ const RegisterDialog = ({
           ...prev,
           name: user.name || "",
           email: user.email || "",
+          role:
+            user.roleName === "builder" || user.roleName === "agent"
+              ? user.roleName
+              : "user",
           pincode: user.pincode || "",
           locality: user.locality || "",
           city: user.city || "",
@@ -555,7 +582,7 @@ const RegisterDialog = ({
           </p>
 
           <div className="mt-3 flex justify-between gap-6 text-[0.9rem]">
-            {tabs.map((tab) => {
+            {visibleTabs.map((tab) => {
               const isActive = step === tab.id;
               const isCompleted =
                 (tab.id === "personal" && isPersonalDetailsFilled) ||
@@ -563,7 +590,7 @@ const RegisterDialog = ({
               const isEnabled =
                 tab.id === "personal" ||
                 (tab.id === "location" && isOtpVerified) ||
-                (tab.id === "kyc" && isOtpVerified);
+                (tab.id === "kyc" && isOtpVerified && requiresKyc);
 
               return (
                 <button

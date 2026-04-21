@@ -11,25 +11,12 @@ import { getFeaturedProjects } from "@/data/ClientData";
 import HomeSectionSkeleton from "@/components/HomeSectionSkeleton";
 import HomeSectionComingSoon from "@/components/HomeSectionComingSoon";
 import { minDelay } from "@/utilies/minDelay";
+import { getProjectConfigurationLabel } from "@/utilies/projectConfiguration";
 import {
   getHomeSectionCache,
   getHomeSectionCacheKey,
   setHomeSectionCache,
 } from "@/utilies/homeSectionCache";
-
-function getProjectConfigurationLabel(project: FeaturedProject) {
-  const bhkValues = Array.from(
-    new Set(
-      (project.bhkSummary ?? [])
-        .map((item) => item?.bhk)
-        .filter((bhk): bhk is number => typeof bhk === "number"),
-    ),
-  ).sort((a, b) => a - b);
-
-  if (bhkValues.length === 0) return project.propertyType ?? "Apartments";
-
-  return `${bhkValues.join(", ")} BHK Flats`;
-}
 
 
 export default function FeaturedProjectsClient() {
@@ -185,7 +172,7 @@ export default function FeaturedProjectsClient() {
 
                 <div className="text-right flex flex-col items-end gap-1 shrink-0">
                   <p className="text-gray-600 font-light text-sm md:text-base">
-                    {getProjectConfigurationLabel(project)}
+                    {getProjectConfigurationLabel(project, "Flats")}
                   </p>
 
                   <p className="text-[#26ad5f] text-sm md:text-base font-medium">
