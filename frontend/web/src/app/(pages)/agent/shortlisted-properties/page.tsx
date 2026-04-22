@@ -19,23 +19,35 @@ interface PropertyDetails {
     address?: string;
     city?: string;
     price?: number;
+    priceFrom?: number;
+    priceTo?: number;
     pricePerSqft?: number;
     slug?: string;
     gallery?: { url: string }[];
+    gallerySummary?: { url: string }[];
+    heroImage?: string;
+    locality?: string;
 }
 
-type PropertyType = "Residential" | "Commercial" | "Land" | "Agricultural";
+type PropertyType =
+    | "Residential"
+    | "Commercial"
+    | "Land"
+    | "Agricultural"
+    | "FeaturedProject";
 type ContactPropertyType =
     | "residentials"
     | "commercials"
     | "landplots"
-    | "agriculturals";
+    | "agriculturals"
+    | "featuredprojects";
 
 const PROPERTY_TYPE_MAP: Record<PropertyType, ContactPropertyType> = {
     Residential: "residentials",
     Commercial: "commercials",
     Land: "landplots",
     Agricultural: "agriculturals",
+    FeaturedProject: "featuredprojects",
 };
 
 interface ShortlistedItem {
@@ -54,6 +66,7 @@ const Page = () => {
         "Commercial",
         "Open Plot",
         "Agriculture Land",
+        "Projects",
     ];
 
     const {
@@ -92,6 +105,7 @@ const Page = () => {
         const t = type.toLowerCase();
         if (t === "land") return "plot";
         if (t === "agricultural") return "agriculture";
+        if (t === "featuredproject") return "prime projects";
         return t;
     };
 
@@ -101,7 +115,7 @@ const Page = () => {
 
     return (
         <div className="mx-auto max-w-7xl space-y-6">
-            <div className="rounded-2xl border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
+            <div className="rounded-2xl border border-green-100 bg-linear-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
                 <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">
                     Shortlisted Properties
                 </h1>
@@ -121,16 +135,33 @@ const Page = () => {
                 {filteredProperties.length ? (
                     filteredProperties.map((item) => {
                         const image = item.property?.gallery?.[0]?.url;
+                        const shortlistImage =
+                            image ||
+                            item.property?.gallerySummary?.[0]?.url ||
+                            item.property?.heroImage;
+                        const href =
+                            item.propertyType === "FeaturedProject"
+                                ? `/prime/${item.property?.slug}`
+                                : `/properties/${item.propertyType?.toLowerCase()}/${item.property?.slug}`;
+                        const price =
+                            item.property?.price ??
+                            item.property?.priceFrom ??
+                            item.property?.priceTo;
+                        const location =
+                            item.property?.address ||
+                            [item.property?.locality, item.property?.city]
+                                .filter(Boolean)
+                                .join(", ");
 
                         return (
                             <Link
                                 key={item._id}
-                                href={`/properties/${item.propertyType?.toLowerCase()}/${item.property?.slug}`}
+                                href={href}
                                 className="card flex flex-col overflow-hidden rounded-xl bg-white"
                             >
                                 <div className="relative h-44">
                                     <img
-                                        src={image}
+                                        src={shortlistImage}
                                         alt={item.property?.title || "Property"}
                                         className="h-full w-full object-cover"
                                     />
@@ -147,15 +178,15 @@ const Page = () => {
 
                                     <div className="flex items-center gap-1 truncate text-sm text-gray-500">
                                         <IoLocationOutline className="h-4 w-4 text-green-500" />
-                                        {item.property?.address || "Location not specified"}
+                                        {location || "Location not specified"}
                                     </div>
                                 </div>
 
                                 <aside className="mx-1.5 mb-1.5 mt-auto flex items-center justify-between rounded-xl bg-[#E9F7EF] p-2">
                                     <div className="flex flex-col pl-2 leading-tight">
                                         <span className="text-md font-semibold text-[#21884B]">
-                                            {item.property?.price
-                                                ? `₹ ${item.property.price.toLocaleString("en-IN")}`
+                                            {price
+                                                ? `₹ ${price.toLocaleString("en-IN")}`
                                                 : "—"}
                                         </span>
 
@@ -170,11 +201,13 @@ const Page = () => {
                                         <ContactOwnerButton
                                             projectId={item.property?._id}
                                             propertyType={PROPERTY_TYPE_MAP[item.propertyType]}
-                                            price={item.property?.price}
+                                            price={price}
                                             propertyLabel={item.property?.title}
                                             className="rounded-md bg-[#26ad5f] px-4 py-2 text-sm font-medium text-white"
                                         >
-                                            Contact Owner
+                                            {item.propertyType === "FeaturedProject"
+                                                ? "Contact Builder"
+                                                : "Contact Owner"}
                                         </ContactOwnerButton>
                                     </div>
                                 </aside>

@@ -162,7 +162,7 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     metaTitle: { type: String },
     metaDescription: { type: String },
     metaKeywords: { type: String },
-    propertyType: { type: String,},
+    propertyType: { type: String, required: true },
     address: { type: String, required: true },
     categoryType: {
       type: String,

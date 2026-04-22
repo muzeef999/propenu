@@ -25,7 +25,14 @@ const ShortlistSchema = new Schema<IShortlist>(
 
     propertyType: {
       type: String,
-      enum: ["Residential", "Commercial", "LandPlot", "Agricultural"],
+      enum: [
+        "Residential",
+        "Commercial",
+        "Land",
+        "LandPlot",
+        "Agricultural",
+        "FeaturedProject",
+      ],
       required: true,
       index: true,
     },

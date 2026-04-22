@@ -24,7 +24,7 @@ const Page = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-medium">My Featured Projects</h1>
+      <h1 className="text-2xl font-medium">My Prime Projects</h1>
       {featuredProjects.length > 0 ? (
         <div className="space-y-2">
           <Myproperties items={featuredProjects} />

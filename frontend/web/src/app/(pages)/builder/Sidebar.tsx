@@ -4,6 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import { Building, profile, Subscription } from "@/icons/icons";
+import { FaCrown, FaHeart } from "react-icons/fa";
+import { TbBuildingSkyscraper } from "react-icons/tb";
+import { RiUserHeartLine } from "react-icons/ri";
 
 const menuItems = [
   {
@@ -19,16 +22,28 @@ const menuItems = [
     icon: Building,
   },
   {
-    label: "My Properties",
-    mobileLabel: "Listings",
-    link: "/builder/my-properties",
-    icon: Subscription,
+    label:"My Shortlists",
+    mobileLabel: "Shortlists",
+    link: "/builder/my-shortlists",
+    icon: FaHeart,
   },
   {
-    label: "Featured Properties",
-    mobileLabel: "Featured",
-    link: "/builder/featured-properties",
-    icon: Subscription,
+    label: "User Shortlists",
+    mobileLabel: "Shortlists",
+    link: "/builder/user-shortlists",
+    icon: RiUserHeartLine, 
+  },
+  {
+    label: "My Properties",
+    mobileLabel: "Listings",
+    link: "/builder/my-projects",
+    icon: TbBuildingSkyscraper,
+  },
+  {
+    label: "Prime Projects",
+    mobileLabel: "Prime",
+    link: "/builder/prime-projects",
+    icon: FaCrown,
   },
 ];
 
@@ -82,7 +97,7 @@ const Sidebar = () => {
           })}
         </nav>
 
-        {/* Desktop CTA */}
+        {/* Desktop CTA
         <div className="mt-auto p-4">
           <div className="bg-[#ffffff] rounded-2xl p-6 border border-[#E8F5EE] text-center">
             <h3 className="text-lg font-medium text-gray-800 leading-tight mb-2">
@@ -94,7 +109,7 @@ const Sidebar = () => {
               Post Property
             </Link>
           </div>
-        </div>
+        </div> */}
       </aside>
 
       {/* Mobile/Tablet Bottom Tabs */}

@@ -3,13 +3,13 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { BiBuildingHouse } from "react-icons/bi";
-import { HiOutlineLocationMarker } from "react-icons/hi";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import ImageAutoCarousel from "@/ui/ImageAutoCarousel";
 import formatINR from "@/utilies/PriceFormat";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import { AmenitiesIcon, SuperBuiitupAraea, UnderConstruction } from "@/icons/icons";
 import { Property } from "@/types/property";
+import { useShortlist } from "@/hooks/useShortlist";
 
 function getBhkLabel(property: Property) {
   const bhks = Array.isArray(property.bhkSummary)
@@ -104,8 +104,12 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
     p.gallery?.map((item) => item.url) ??
     p.gallerySummary?.map((item) => item.url) ??
     [];
-  const location = [p.locality, p.city].filter(Boolean).join(", ");
   const amenitiesCount = getAmenitiesCount(p);
+  const projectId = p.id || p._id;
+  const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(
+    projectId,
+    "FeaturedProject",
+  );
   return (
     <div
       className={`card p-2 h-auto flex overflow-hidden ${vertical
@@ -126,12 +130,15 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
             images={images}
             alt={p.title}
             onIndexChange={setActiveImageIndex}
+            isShortlisted={isShortlisted}
+            isShortlistLoading={isShortlistLoading}
+            onToggleShortlist={toggleShortlist}
           />
 
-          <div className="absolute left-2 top-2 rounded-md bg-[#27AE60] px-2 py-1 text-xs font-medium text-white">
+          <div className="absolute left-2 top-2 rounded-md bg-[#27AE60]/80 px-2 py-1 text-xs font-medium text-white">
             Prime Project
           </div>
-
+            
           <div className="absolute left-2 bottom-2 flex items-center gap-2 text-xs text-white">
             <div className="bg-black/60 px-2 py-1 rounded-md flex items-center gap-1">
               <span>
@@ -245,7 +252,7 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
             }`}
         >
           <ContactOwnerButton
-            projectId={p.id}
+            projectId={projectId}
             propertyType="featuredprojects"
             listingType="sale"
             listingSource="builder"

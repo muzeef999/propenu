@@ -144,7 +144,7 @@ export const CreateFeaturePropertySchema = z.object({
   metaTitle: z.string().optional(),
   metaDescription: z.string().optional(),
   metaKeywords: z.string().optional(),
-  propertyType: z.string().optional(),
+  propertyType: z.string().min(1, "Property type is required"),
   categoryType: z
     .enum(["residential", "land", "commercial", "agricultural"])
     .optional()

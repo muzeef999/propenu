@@ -13,7 +13,7 @@ const About = () => {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8 space-y-8 text-gray-700 leading-relaxed">
           <div className="flex justify-between items-center border-b border-gray-300 pb-4">
-                  <h1 className="text-3xl font-bold text-gray-900">Privacy Policy</h1>
+                  <h1 className="text-3xl font-bold text-gray-900">About Us</h1>
                 </div>
           {/* Intro */}
           <section className="space-y-4">

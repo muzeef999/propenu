@@ -12,11 +12,82 @@ import HomeSectionComingSoon from "@/components/HomeSectionComingSoon";
 import { minDelay } from "@/utilies/minDelay";
 import formatINR from "@/utilies/PriceFormat";
 import { getProjectConfigurationLabel } from "@/utilies/projectConfiguration";
+import { GoHeart, GoHeartFill } from "react-icons/go";
 import {
   getHomeSectionCache,
   getHomeSectionCacheKey,
   setHomeSectionCache,
 } from "@/utilies/homeSectionCache";
+import { useShortlist } from "@/hooks/useShortlist";
+
+function HighlightProjectCard({ project }: { project: FeaturedProject }) {
+  const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(
+    project._id,
+    "FeaturedProject",
+  );
+
+  return (
+    <Link
+      key={project._id}
+      href={`/prime/${project.slug}`}
+      className="relative shrink-0 snap-start group cursor-pointer transition-all duration-300 hover:-translate-y-2 w-[260px] sm:w-[280px] md:w-[320px]"
+    >
+      <div className="mt-5 w-full overflow-hidden rounded-2xl h-[150px] sm:h-[170px] md:h-[180px] shadow-sm transition-shadow duration-300 group-hover:shadow-2xl">
+        <img
+          src={project.heroImage ?? "/images/placeholder.svg"}
+          alt={project.title}
+          className="h-full w-full object-cover"
+        />
+
+        <button
+          type="button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleShortlist();
+          }}
+          className="absolute right-3 top-3 rounded-full bg-white/90 p-2 shadow transition-all duration-200 hover:scale-110 active:scale-95"
+          title={isShortlisted ? "Remove from shortlist" : "Shortlist"}
+        >
+          {isShortlistLoading ? (
+            <span className="block h-5 w-5 animate-pulse rounded-full bg-gray-300" />
+          ) : isShortlisted ? (
+            <GoHeartFill className="h-5 w-5 text-red-500" />
+          ) : (
+            <GoHeart className="h-5 w-5 text-gray-600 hover:text-red-500" />
+          )}
+        </button>
+      </div>
+
+      <div className="absolute left-3 right-3 top-[130px] sm:top-[140px] md:top-[150px] bg-white rounded-xl p-3 shadow-sm transition-shadow duration-300 group-hover:shadow-md">
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <h2 className="text-sm sm:text-base font-medium text-gray-900 truncate">
+            {project.title}
+          </h2>
+
+          <span className="text-sm font-medium whitespace-nowrap">
+            {project?.priceFrom ? (
+              <>
+                <span className="text-[#26ad5f]">
+                  {formatINR(project.priceFrom)}
+                </span>{" "}
+                <span className="text-[#676666] font-light text-sm">onwards</span>
+              </>
+            ) : (
+              "—"
+            )}
+          </span>
+        </div>
+
+        <p className="text-xs text-gray-500 truncate font-medium capitalize">
+          {getProjectConfigurationLabel(project, "Apartments")}
+          {project.locality ? ` • ${project.locality}` : ""}
+          {project.state ? `, ${project.state}` : ""}
+        </p>
+      </div>
+    </Link>
+  );
+}
 
 export default function HighlightProjectsClient() {
   const sliderRef = useRef<HTMLDivElement | null>(null);
@@ -107,6 +178,8 @@ export default function HighlightProjectsClient() {
       behavior: "smooth",
     });
 
+    
+
   const scrollRight = () =>
     sliderRef.current?.scrollBy({
       left: 320,
@@ -175,53 +248,9 @@ export default function HighlightProjectsClient() {
           ref={sliderRef}
           className="flex gap-4 sm:gap-6 overflow-x-auto scroll-smooth no-scrollbar pb-6 snap-x snap-mandatory px-1"
         >
-          {items.map((project) => {
-            return (
-            <Link
-              key={project._id}
-              href={`/prime/${project.slug}`}
-              className="relative shrink-0 snap-start group cursor-pointer transition-all duration-300 hover:-translate-y-2 w-[260px] sm:w-[280px] md:w-[320px]"
-            >
-              <div
-                className="mt-5 w-full overflow-hidden rounded-2xl h-[150px] sm:h-[170px] md:h-[180px] shadow-sm transition-shadow duration-300 group-hover:shadow-2xl"
-              >
-                <img
-                  src={project.heroImage ?? "/images/placeholder.svg"}
-                  alt={project.title}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-
-              <div
-                className="absolute left-3 right-3 top-[130px] sm:top-[140px] md:top-[150px] bg-white rounded-xl p-3 shadow-sm transition-shadow duration-300 group-hover:shadow-md">
-                <div className="mb-1 flex items-center justify-between gap-2">
-                  <h2 className="text-sm sm:text-base font-medium text-gray-900 truncate">
-                    {project.title}
-                  </h2>
-
-                  <span className="text-sm font-medium whitespace-nowrap">
-                    {project?.priceFrom ? (
-                      <>
-                        <span className="text-[#26ad5f]">
-                          {formatINR(project.priceFrom)}
-                        </span>{" "}
-                        <span className="text-[#676666] font-light text-sm">onwards</span>
-                      </>
-                    ) : (
-                      "—"
-                    )}
-                  </span>
-                </div>
-
-                <p className="text-xs text-gray-500 truncate font-medium capitalize">
-                  {getProjectConfigurationLabel(project, "Apartments")}
-                  {project.locality ? ` • ${project.locality}` : ""}
-                  {project.state ? `, ${project.state}` : ""}
-                </p>
-              </div>
-            </Link>
-            );
-          })}
+          {items.map((project) => (
+            <HighlightProjectCard key={project._id} project={project} />
+          ))}
         </div>
       ) : (
         <HomeSectionComingSoon

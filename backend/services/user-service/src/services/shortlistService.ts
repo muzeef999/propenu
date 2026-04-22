@@ -6,7 +6,12 @@ import FeaturedProject from "../models/featurePropertiesModel";
 export const addToShortlistService = async (
   userId: Types.ObjectId,
   propertyId: string,
-  propertyType: "Residential" | "Commercial" | "Land" | "Agricultural",
+  propertyType:
+    | "Residential"
+    | "Commercial"
+    | "Land"
+    | "Agricultural"
+    | "FeaturedProject",
 ) => {
   const propertyObjectId = new Types.ObjectId(propertyId);
 
@@ -93,6 +98,19 @@ export const getUserShortlistService = async (userId: Types.ObjectId) => {
           },
           { $unwind: "$property" },
         ],
+
+        featuredProjects: [
+          { $match: { propertyType: "FeaturedProject" } },
+          {
+            $lookup: {
+              from: "featuredprojects",
+              localField: "propertyId",
+              foreignField: "_id",
+              as: "property",
+            },
+          },
+          { $unwind: "$property" },
+        ],
       },
     },
 
@@ -105,6 +123,7 @@ export const getUserShortlistService = async (userId: Types.ObjectId) => {
             "$commercial",
             "$land",
             "$agricultural",
+            "$featuredProjects",
           ],
         },
       },
@@ -126,9 +145,14 @@ export const getUserShortlistService = async (userId: Types.ObjectId) => {
           _id: "$all.property._id",
           title: "$all.property.title",
           gallery: "$all.property.gallery",
+          gallerySummary: "$all.property.gallerySummary",
+          heroImage: "$all.property.heroImage",
           address: "$all.property.address",
-          price: "$all.property.price",
+          locality: "$all.property.locality",
           city: "$all.property.city",
+          price: { $ifNull: ["$all.property.price", "$all.property.priceFrom"] },
+          priceFrom: "$all.property.priceFrom",
+          priceTo: "$all.property.priceTo",
           slug: "$all.property.slug",
         },
       },

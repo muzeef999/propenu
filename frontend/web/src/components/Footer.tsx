@@ -103,7 +103,7 @@ export default function Footer() {
                   </div>
                 </div>
                 <p className="text-[12px] text-gray-600 leading-snug">
-                  Open camera &<br /> scan the QR code to
+                  Scan the QR code to
                   <br /> Download the App
                 </p>
               </div>

@@ -134,7 +134,7 @@ export const TwitterSVG = () => {
 export const PlayStoreBadge = () => {
   return (
     <Link
-      href="#"
+      href="https://play.google.com/store/apps/details?id=com.propenu.app"
       aria-label="Download on the App Store"
       className="inline-flex"
     >
