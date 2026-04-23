@@ -1,12 +1,13 @@
 import rateLimit from "express-rate-limit";
 
 export const globalLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 100, // 100 requests per IP
+  windowMs: 5 * 60 * 1000,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
-    message: "Too many payment requests, slow down.",
+    message: "Too many requests, please slow down.",
   },
+  skip: (req) => req.path === "/health",
 });
