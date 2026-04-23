@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { addToShortlistService, getBuilderAnalytics, getShortlistStatusService, getUserShortlistService, removeFromShortlistService } from "../services/shortlistService";
+import { addToShortlistService, getBuilderAnalytics, getBuilderFeaturedProjectShortlists, getShortlistStatusService, getUserShortlistService, removeFromShortlistService } from "../services/shortlistService";
 import { AuthRequest } from "../middlewares/authMiddleware";
 
 
@@ -110,6 +110,31 @@ export const getProjectAnalytics = async (req: AuthRequest, res: Response) => {
   } catch (e: any) {
     console.error("ANALYTICS_ERROR:", e);
     res.status(500).json({ message: "Failed to load analytics" });
+  }
+};
+
+export const getBuilderFeaturedShortlists = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const builderId = req.user?.sub;
+
+    if (!builderId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const data = await getBuilderFeaturedProjectShortlists(builderId);
+
+    return res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("BUILDER_FEATURED_SHORTLISTS_ERROR:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to load shortlisted projects" });
   }
 };
 

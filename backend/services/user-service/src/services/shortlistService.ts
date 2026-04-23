@@ -252,3 +252,92 @@ export const getBuilderAnalytics = async (builderId: string) => {
     topViewed,
   };
 };
+
+export const getBuilderFeaturedProjectShortlists = async (builderId: string) => {
+  const builderObjectId = new mongoose.Types.ObjectId(builderId);
+
+  return Shortlist.aggregate([
+    {
+      $match: {
+        propertyType: "FeaturedProject",
+      },
+    },
+    {
+      $lookup: {
+        from: "featuredprojects",
+        localField: "propertyId",
+        foreignField: "_id",
+        as: "project",
+      },
+    },
+    { $unwind: "$project" },
+    {
+      $match: {
+        "project.createdBy": builderObjectId,
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "shortlistedBy",
+      },
+    },
+    {
+      $unwind: {
+        path: "$shortlistedBy",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "roles",
+        localField: "shortlistedBy.roleId",
+        foreignField: "_id",
+        as: "role",
+      },
+    },
+    {
+      $unwind: {
+        path: "$role",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    { $sort: { createdAt: -1 } },
+    {
+      $project: {
+        _id: 1,
+        createdAt: 1,
+        propertyType: 1,
+        project: {
+          _id: "$project._id",
+          title: "$project.title",
+          slug: "$project.slug",
+          heroImage: "$project.heroImage",
+          gallerySummary: "$project.gallerySummary",
+          address: "$project.address",
+          locality: "$project.locality",
+          city: "$project.city",
+          state: "$project.state",
+          priceFrom: "$project.priceFrom",
+          priceTo: "$project.priceTo",
+          isFeatured: "$project.isFeatured",
+          createdAt: "$project.createdAt",
+        },
+        shortlistedBy: {
+          _id: "$shortlistedBy._id",
+          name: "$shortlistedBy.name",
+          email: "$shortlistedBy.email",
+          phone: "$shortlistedBy.phone",
+          city: "$shortlistedBy.city",
+          locality: "$shortlistedBy.locality",
+          userCode: "$shortlistedBy.userCode",
+          role: {
+            $ifNull: ["$role.label", "$role.name"],
+          },
+        },
+      },
+    },
+  ]);
+};

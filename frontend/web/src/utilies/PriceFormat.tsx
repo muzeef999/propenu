@@ -1,7 +1,8 @@
 export default function formatINR(price: number | string | undefined) {
-  if (!price) return "";
+  if (price === undefined || price === null || price === "") return "";
   const n = Number(price);
-  if (n >= 10000000) return `₹ ${(n / 10000000).toFixed(2).replace(/\.00$/, "")} Cr`;
-  if (n >= 100000) return `₹  ${(n / 100000).toFixed(2).replace(/\.00$/, "")} L`;
+  if (Number.isNaN(n)) return "";
+  if (n >= 10000000) return `₹ ${Number((n / 10000000).toFixed(2))} Cr`;
+  if (n >= 100000) return `₹ ${Number((n / 100000).toFixed(2))} L`;
   return `₹${n.toLocaleString("en-IN")}`;
 }

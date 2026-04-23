@@ -105,9 +105,10 @@ const Page = () => {
     if (
       normalized === "featuredproject" ||
       normalized === "featured project" ||
-      normalized === "prime projects"
+      normalized === "prime projects" ||
+      normalized === "projects"
     ) {
-      return "prime projects";
+      return "projects";
     }
 
     return normalized;

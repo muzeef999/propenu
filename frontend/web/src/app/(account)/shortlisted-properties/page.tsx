@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { HiHeart } from "react-icons/hi";
 import { IoLocationOutline } from "react-icons/io5";
 
 
@@ -86,20 +85,37 @@ const Page = () => {
     );
   }
 
-  // Normalizes backend property types (e.g., "Land") for matching with UI tabs (e.g., "Plot")
+  // Normalize backend types and tab labels so filtering stays consistent.
   const normalizeType = (type?: string) => {
     if (!type) return "";
-    const t = type.toLowerCase();
-    if (t === "land") return "plot";
-    if (t === "agricultural") return "agriculture";
-    if (t === "featuredproject") return "prime projects";
-    return t;
+    const normalized = type.toLowerCase().trim();
+
+    if (normalized === "land" || normalized === "open plot") {
+      return "open plot";
+    }
+
+    if (
+      normalized === "agricultural" ||
+      normalized === "agriculture" ||
+      normalized === "agriculture land"
+    ) {
+      return "agriculture land";
+    }
+
+    if (
+      normalized === "featuredproject" ||
+      normalized === "featured project" ||
+      normalized === "projects"
+    ) {
+      return "projects";
+    }
+
+    return normalized;
   };
 
- const filteredProperties = shortlisted.filter(
-  (item) =>
-    normalizeType(item.propertyType) === activeTab.toLowerCase()
-);
+  const filteredProperties = shortlisted.filter(
+    (item) => normalizeType(item.propertyType) === normalizeType(activeTab)
+  );
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">

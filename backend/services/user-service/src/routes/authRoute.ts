@@ -1,5 +1,5 @@
 import express from "express";
-import { assignManager, createRequestOtp,  createVerifyOtp, getAllUsers,  getManagerTeamDetails, me, requestOTP, searchUsers, updateLocationOtp, updateUser, updateUserRole, verifyOtp } from "../controller/authController";
+import { assignManager, createRequestOtp,  createVerifyOtp, deleteMyAccount, getAllUsers,  getManagerTeamDetails, me, requestOTP, searchUsers, updateLocationOtp, updateUser, updateUserRole, verifyOtp } from "../controller/authController";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 
 
@@ -18,6 +18,7 @@ authRoute.post("/update-location/create", authMiddleware, updateLocationOtp);
 
 authRoute.get("/me", authMiddleware, me);
 authRoute.patch("/me/update", authMiddleware, updateUser);
+authRoute.delete("/me", authMiddleware, deleteMyAccount);
 authRoute.get("/search", authMiddleware, searchUsers);
 authRoute.post("/assign-manager", assignManager);
 authRoute.get("/manager-team-details/:id", getManagerTeamDetails);

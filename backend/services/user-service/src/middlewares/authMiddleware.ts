@@ -3,6 +3,7 @@ import { Request, Response, NextFunction } from "express";
 import { JwtUserPayload } from "../types/auth";
 import jwt from "jsonwebtoken";
 import Role from "../models/roleModel";
+import User from "../models/userModel";
 
 export interface AuthRequest extends Request {
   user?: JwtUserPayload;
@@ -51,6 +52,12 @@ export async function authMiddleware(
 
       roleName = role.name;
       permissions = role.permissions ?? [];
+    }
+
+    const activeUser = await User.findById(decoded.sub).select("_id isActive").lean();
+
+    if (!activeUser || activeUser.isActive === false) {
+      return res.status(401).json({ message: "Account is no longer active" });
     }
 
     req.user = { ...decoded, _id : decoded.sub, roleName, permissions }

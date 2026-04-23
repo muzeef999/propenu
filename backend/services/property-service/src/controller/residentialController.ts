@@ -408,16 +408,22 @@ export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
       | { [field: string]: Express.Multer.File[] }
       | undefined;
 
+    const detailsPayload = {
+      ...req.body,
+      floorNumber:
+        req.body?.floorNumber === undefined ? 0 : req.body.floorNumber,
+      totalFloors:
+        req.body?.totalFloors === undefined ? 0 : req.body.totalFloors,
+      completion: {
+        percent: 70,
+        step: 4,
+        lastSection: "details",
+      },
+    };
+
     const updated = await ResidentialPropertyService.update(
       req.params.id,
-      {
-        ...req.body,
-        completion: {
-          percent: 70,
-          step: 4,
-          lastSection: "details",
-        },
-      },
+      detailsPayload,
       files,
     );
 

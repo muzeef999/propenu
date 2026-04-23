@@ -76,6 +76,7 @@ const LoginDialog = ({
 
   async function handleVerifyOtp(manualOtp?: string | React.MouseEvent) {
     const otpToSubmit = typeof manualOtp === "string" ? manualOtp : otp;
+    const normalizedPhone = normalizeIndianPhone(phone);
 
     const validation = otpSchema.safeParse(otpToSubmit);
 
@@ -88,7 +89,7 @@ const LoginDialog = ({
 
     try {
       const res: VerifyOtpResponse = await verifyOtp({
-        phone,
+        phone: normalizedPhone,
         otp: otpToSubmit,
       });
 
@@ -206,7 +207,8 @@ if (localShortlist.length > 0) {
   async function handleRequestOtp(isResend = false) {
     if (isResend && resendCooldown > 0) return;
 
-    const validation = phoneSchema.safeParse(phone);
+    const normalizedPhone = normalizeIndianPhone(phone);
+    const validation = phoneSchema.safeParse(normalizedPhone);
 
     if (!validation.success) {
       setError(validation.error.issues[0].message);
@@ -216,7 +218,8 @@ if (localShortlist.length > 0) {
     setLoading(true);
 
     try {
-      await requestOtp({ phone });
+      await requestOtp({ phone: normalizedPhone });
+      setPhone(normalizedPhone);
       toast.success(
         isResend
           ? "OTP resent to your WhatsApp number"
@@ -287,7 +290,6 @@ if (localShortlist.length > 0) {
                       countries={["IN"]}
                       withCountryCallingCode
                       limitMaxLength
-                      smartCaret={false}
                       countryCallingCodeEditable={false}
                       numberInputProps={{
                         maxLength: INDIA_PHONE_INPUT_MAX_LENGTH,
@@ -295,7 +297,7 @@ if (localShortlist.length > 0) {
                       }}
                       value={phone}
                       onChange={(value) => {
-                        setPhone(normalizeIndianPhone(value));
+                        setPhone(value || INDIA_COUNTRY_CODE);
                         setError(null);
                       }}
                       placeholder="Enter your mobile number"

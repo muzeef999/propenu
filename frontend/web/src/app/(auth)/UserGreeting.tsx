@@ -39,8 +39,11 @@ const AgentOptions = [
 
 const BuilderOptions = [
   { label: "Dashboard", link: "/builder" },
-  { label: "My Properties", link: "/builder/my-properties" },
   { label: "Leads", link: "/builder/leads" },
+  { label: "My Shortlists", link: "/builder/my-shortlists" },
+  { label: "User Shortlists", link: "/builder/user-shortlists" },
+  { label: "My Properties", link: "/builder/my-properties" },
+  { label: "Prime Projects", link: "/builder/prime-projects" },
   { label: "Logout", link: "/logout" },
 ];
 

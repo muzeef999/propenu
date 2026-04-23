@@ -1,7 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { usePathname, useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 import { HiOutlineExclamationTriangle } from "react-icons/hi2";
+import { toast } from "sonner";
+
+import { deleteMyAccount } from "@/data/ClientData";
 
 const reasons = [
   "I created this account by mistake",
@@ -17,10 +23,89 @@ const impacts = [
   "This action is intended to be irreversible once confirmed.",
 ];
 
+type DeleteAccountForm = {
+  reason: string;
+  feedback: string;
+  acknowledged: boolean;
+};
+
 const DeleteAccountPage = () => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [form, setForm] = useState<DeleteAccountForm>({
+    reason: "",
+    feedback: "",
+    acknowledged: false,
+  });
+
+  const isFormValid = useMemo(() => {
+    return Boolean(
+      form.reason &&
+      form.acknowledged,
+    );
+  }, [form]);
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: deleteMyAccount,
+    onSuccess: (data) => {
+      toast.success(data?.message || "Account deleted successfully");
+      Cookies.remove("token");
+      localStorage.removeItem("role");
+      localStorage.removeItem("shortlist");
+      window.dispatchEvent(new Event("auth-changed"));
+      router.push("/");
+      router.refresh();
+    },
+    onError: (error: any) => {
+      toast.error(
+        error?.response?.data?.message || "Failed to delete your account.",
+      );
+    },
+  });
+
+  const handleChange = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    const { name, value, type } = event.target;
+    const checked =
+      type === "checkbox" ? (event.target as HTMLInputElement).checked : false;
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleSubmit = () => {
+    if (!form.reason) {
+      toast.error("Please select a reason for deleting your account.");
+      return;
+    }
+
+    if (!form.acknowledged) {
+      toast.error("Please acknowledge the deletion warning.");
+      return;
+    }
+
+    deleteAccountMutation.mutate({
+      reason: form.reason,
+      feedback: form.feedback.trim(),
+    });
+  };
+
+  const handleKeepAccount = () => {
+    const settingsRoute = pathname.startsWith("/agent")
+      ? "/agent/account-settings"
+      : pathname.startsWith("/builder")
+        ? "/builder/account-settings"
+        : "/account/settings";
+
+    router.push(settingsRoute);
+  };
+
   return (
     <div className="space-y-6 font-sans text-[#4A4A4A]">
-      <div className="rounded-2xl border border-red-100 bg-gradient-to-r from-red-50 via-white to-rose-50 px-5 py-6">
+      <div className="rounded-2xl border border-red-100 bg-linear-to-r from-red-50 via-white to-rose-50 px-5 py-6">
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-600">
             <HiOutlineExclamationTriangle size={24} />
@@ -32,8 +117,8 @@ const DeleteAccountPage = () => {
             </h1>
             <p className="mt-2 max-w-3xl text-sm text-gray-600 md:text-base">
               Before deleting your account, please review what will be affected.
-              This screen is UI-only for now and does not submit or remove any
-              data.
+              Once confirmed, your account will be marked deleted and access
+              will be disabled.
             </p>
           </div>
         </div>
@@ -76,11 +161,19 @@ const DeleteAccountPage = () => {
                 {reasons.map((reason) => (
                   <label
                     key={reason}
-                    className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 transition hover:border-red-200 hover:bg-red-50/40"
+                    className={`flex cursor-pointer items-start gap-3 rounded-xl border bg-white px-4 py-3 transition hover:border-red-200 hover:bg-red-50/40 ${
+                      form.reason === reason
+                        ? "border-red-300 bg-red-50/50"
+                        : "border-gray-200"
+                    }`}
                   >
                     <input
                       type="radio"
                       name="delete-reason"
+                      checked={form.reason === reason}
+                      onChange={() =>
+                        setForm((prev) => ({ ...prev, reason }))
+                      }
                       className="mt-1 h-4 w-4 accent-red-500"
                     />
                     <span className="text-sm text-gray-700">{reason}</span>
@@ -89,37 +182,7 @@ const DeleteAccountPage = () => {
               </div>
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label
-                  htmlFor="delete-phone"
-                  className="text-sm font-medium text-gray-800"
-                >
-                  Phone Number
-                </label>
-                <input
-                  id="delete-phone"
-                  type="tel"
-                  placeholder="Enter your phone number"
-                  className="h-12 w-full rounded-xl border border-gray-200 px-4 text-sm outline-none transition placeholder:text-gray-400 focus:border-red-300"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label
-                  htmlFor="delete-confirmation"
-                  className="text-sm font-medium text-gray-800"
-                >
-                  Type DELETE to confirm
-                </label>
-                <input
-                  id="delete-confirmation"
-                  type="text"
-                  placeholder="DELETE"
-                  className="h-12 w-full rounded-xl border border-gray-200 px-4 text-sm uppercase outline-none transition placeholder:text-gray-400 focus:border-red-300"
-                />
-              </div>
-            </div>
+            
 
             <div className="space-y-2">
               <label
@@ -131,6 +194,9 @@ const DeleteAccountPage = () => {
               <textarea
                 id="delete-feedback"
                 rows={5}
+                name="feedback"
+                value={form.feedback}
+                onChange={handleChange}
                 placeholder="Tell us what we could have done better"
                 className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition placeholder:text-gray-400 focus:border-red-300"
               />
@@ -139,6 +205,9 @@ const DeleteAccountPage = () => {
             <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
               <input
                 type="checkbox"
+                name="acknowledged"
+                checked={form.acknowledged}
+                onChange={handleChange}
                 className="mt-1 h-4 w-4 accent-red-500"
               />
               <span className="text-sm leading-6 text-gray-600">
@@ -150,15 +219,20 @@ const DeleteAccountPage = () => {
             <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:justify-end">
               <button
                 type="button"
+                onClick={handleKeepAccount}
                 className="rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-600 transition hover:bg-gray-50"
               >
                 Keep My Account
               </button>
               <button
                 type="button"
-                className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
+                onClick={handleSubmit}
+                disabled={!isFormValid || deleteAccountMutation.isPending}
+                className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-300"
               >
-                Delete My Account
+                {deleteAccountMutation.isPending
+                  ? "Deleting Account..."
+                  : "Delete My Account"}
               </button>
             </div>
           </div>
@@ -189,20 +263,14 @@ const DeleteAccountPage = () => {
               Need help before deleting?
             </h3>
             <p className="mt-2 text-sm leading-6 text-amber-800">
-              You may want to contact support, review your membership, or update
-              your personal details instead of removing the account.
+              You may want to review your membership or update your personal
+              details instead of removing the account.
             </p>
 
-            <div className="mt-4 flex flex-col gap-3">
+            <div className="mt-4">
               <button
                 type="button"
-                className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-amber-900 shadow-sm transition hover:bg-amber-100"
-              >
-                Contact Support
-              </button>
-              <button
-                type="button"
-                className="rounded-xl border border-amber-200 px-4 py-3 text-sm font-semibold text-amber-900 transition hover:bg-amber-100/60"
+                className="w-full rounded-xl border border-amber-200 px-4 py-3 text-sm font-semibold text-amber-900 transition hover:bg-amber-100/60"
               >
                 Review Membership
               </button>

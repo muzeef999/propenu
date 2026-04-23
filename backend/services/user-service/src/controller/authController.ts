@@ -12,6 +12,10 @@ import {
   requiresKycForLogin,
 } from "../utils/accessPolicy";
 import mongoose from "mongoose";
+import DeletedAccount from "../models/deletedAccountModel";
+
+const deletedAccountMessage =
+  "This account has been deleted. Please create a new account.";
 
 const getDummyLoginConfig = () => ({
   phone: process.env.DUMMY_LOGIN_PHONE?.trim(),
@@ -37,6 +41,25 @@ const isDummyLoginPhone = (phone?: string) => {
   );
 };
 
+const findDeletedAccount = async ({
+  email,
+  phone,
+}: {
+  email?: string;
+  phone?: string;
+}) => {
+  const lookup = [
+    ...(email ? [{ email }] : []),
+    ...(phone ? [{ phone }] : []),
+  ];
+
+  if (!lookup.length) {
+    return null;
+  }
+
+  return DeletedAccount.findOne({ $or: lookup }).select("_id").lean();
+};
+
 export const requestOTP = async (req: Request, res: Response) => {
   try {
     let { email, phone } = req.body;
@@ -54,11 +77,25 @@ export const requestOTP = async (req: Request, res: Response) => {
     // ⭐ Find user
     const existingUser = await User.findOne({
       $or: [...(email ? [{ email }] : []), ...(phone ? [{ phone }] : [])],
-    }).select("_id name email phone accountStatus roleId");
+    }).select("_id name email phone accountStatus roleId isActive");
 
     if (!existingUser) {
+      const deletedAccount = await findDeletedAccount({ email, phone });
+
+      if (deletedAccount) {
+        return res.status(403).json({
+          message: deletedAccountMessage,
+        });
+      }
+
       return res.status(404).json({
         message: "Account not registered. Please sign up first.",
+      });
+    }
+
+    if (existingUser.isActive === false) {
+      return res.status(403).json({
+        message: deletedAccountMessage,
       });
     }
 
@@ -136,8 +173,22 @@ export const verifyOtp = async (req: Request, res: Response) => {
     }).populate("roleId");
 
     if (!user) {
+      const deletedAccount = await findDeletedAccount({ email, phone });
+
+      if (deletedAccount) {
+        return res.status(403).json({
+          message: deletedAccountMessage,
+        });
+      }
+
       return res.status(404).json({
         message: "Account not found",
+      });
+    }
+
+    if (user.isActive === false) {
+      return res.status(403).json({
+        message: deletedAccountMessage,
       });
     }
 
@@ -223,6 +274,12 @@ export const me = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    if (user.isActive === false) {
+      return res.status(403).json({
+        message: "Account is no longer active",
+      });
+    }
+
     const role: any = user.roleId;
 
     // 3️⃣ detect location completion
@@ -297,6 +354,54 @@ export const updateUserRole = async (req: Request, res: Response) => {
     res
       .status(500)
       .json({ message: "Failed to update user role", error: err.message });
+  }
+};
+
+export const deleteMyAccount = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user?.sub) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { reason, feedback } = req.body as {
+      reason?: string;
+      feedback?: string;
+    };
+
+    const user = await User.findById(req.user.sub).select(
+      "_id name email phone roleId isActive"
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.isActive === false) {
+      return res.status(400).json({ message: "Account is already deleted" });
+    }
+
+    await DeletedAccount.create({
+      userId: user._id,
+      name: user.name,
+      email: user.email ?? null,
+      phone: user.phone ?? null,
+      roleId: user.roleId ?? null,
+      deletedAt: new Date(),
+      deletionReason: reason?.trim() || null,
+      deletionFeedback: feedback?.trim() || null,
+    });
+
+    await User.findByIdAndDelete(user._id);
+
+    return res.status(200).json({
+      message: "Your account has been deleted successfully",
+    });
+  } catch (error: any) {
+    console.error("deleteMyAccount error", error);
+    return res.status(500).json({
+      message: "Failed to delete account",
+      error: error.message,
+    });
   }
 };
 

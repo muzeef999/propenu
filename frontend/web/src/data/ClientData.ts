@@ -179,6 +179,23 @@ export const updateUser = async (payload: {
   return res.data;
 };
 
+export const deleteMyAccount = async (payload: {
+  reason?: string;
+  feedback?: string;
+}) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.delete(`${url}/api/users/auth/me`, {
+    data: payload,
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.data;
+};
+
 export const getShortlistedProperties = async () => {
   const token = Cookies.get("token");
   if (!token) return null;
@@ -490,6 +507,22 @@ export const getBuilderDashboards = async () => {
       Authorization: `Bearer ${token}`,
     },
   });
+  return res.data;
+};
+
+export const getBuilderFeaturedShortlists = async () => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(
+    `${url}/api/users/builder/featured-shortlists`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
   return res.data;
 };
 

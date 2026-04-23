@@ -6,7 +6,7 @@ import { hexToRGBA } from "@/ui/hexToRGBA";
 import { Building, profile, Subscription } from "@/icons/icons";
 import { FaCrown, FaHeart } from "react-icons/fa";
 import { TbBuildingSkyscraper } from "react-icons/tb";
-import { RiUserHeartLine } from "react-icons/ri";
+import { RiDeleteBin6Line, RiUserHeartLine } from "react-icons/ri";
 
 const menuItems = [
   {
@@ -44,6 +44,12 @@ const menuItems = [
     mobileLabel: "Prime",
     link: "/builder/prime-projects",
     icon: FaCrown,
+  },
+  {
+    label: "Delete Account",
+    mobileLabel: "Delete",
+    link: "/builder/delete-account",
+    icon: RiDeleteBin6Line,
   },
 ];
 
@@ -115,7 +121,7 @@ const Sidebar = () => {
       {/* Mobile/Tablet Bottom Tabs */}
       <nav className="fixed bottom-0 inset-x-0 z-30 border-t border-gray-200 bg-white lg:hidden">
         <div className="container mx-auto px-2">
-          <div className="grid grid-cols-4">
+          <div className="grid grid-cols-7">
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = isItemActive(item.link);

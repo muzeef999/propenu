@@ -254,6 +254,7 @@ const ResidentialProfile = () => {
             <CounterField
               label="Floor Number"
               min={0}
+              tooltip="0 means ground floor."
               value={residential.floorNumber ?? 0}
               onChange={(value) =>
                 dispatch(
@@ -277,6 +278,7 @@ const ResidentialProfile = () => {
             <CounterField
               label="Total Floors"
               min={0}
+              tooltip="Use 0 only when the building has a ground floor and no upper floors."
               value={residential.totalFloors ?? 0}
               onChange={(value) =>
                 dispatch(
@@ -541,4 +543,3 @@ const ResidentialProfile = () => {
 };
 
 export default ResidentialProfile;
-

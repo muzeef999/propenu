@@ -209,7 +209,10 @@ export default async function Page({ params }: PageProps) {
                           Floors
                         </span>
                         <span className="text-sm sm:text-base font-semibold text-gray-900">
-                          {project?.floorNumber ?? "—"}/{project?.totalFloors ?? "—"}
+                          {project?.floorNumber === 0
+                            ? "G"
+                            : (project?.floorNumber ?? "—")}
+                          /{project?.totalFloors ?? "—"}
                         </span>
                       </div>
 

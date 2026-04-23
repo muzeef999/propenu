@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { FaChartLine, FaHeart, FaUserPlus } from "react-icons/fa";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import { Building, Subscription } from "@/icons/icons";
-import { RiAccountCircle2Fill } from "react-icons/ri";
+import { RiAccountCircle2Fill, RiDeleteBin6Line } from "react-icons/ri";
 
 const menuItems = [
   {
@@ -43,6 +43,12 @@ const menuItems = [
     mobileLabel: "Account",
     link: "/agent/account-settings",
     icon: RiAccountCircle2Fill,
+  },
+  {
+    label: "Delete Account",
+    mobileLabel: "Delete",
+    link: "/agent/delete-account",
+    icon: RiDeleteBin6Line,
   },
 ];
 
@@ -114,7 +120,7 @@ const Sidebar = () => {
       {/* Mobile/Tablet Bottom Tabs */}
       <nav className="fixed bottom-0 inset-x-0 z-30 border-t border-gray-200 bg-white lg:hidden">
         <div className="container mx-auto px-2">
-          <div className="grid grid-cols-6">
+          <div className="grid grid-cols-7">
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = isItemActive(item.link);
