@@ -4,6 +4,7 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import cors from "cors";
 import { Socket } from "net";
+import { globalLimiter } from "../src/middleware/rateLimiter";
 
 dotenv.config({ quiet: true });
 
@@ -50,6 +51,10 @@ app.use(
 );
 
 app.use(morgan("dev"));
+
+
+app.use("/api", globalLimiter);
+
 
 // =====================
 // PROXY HELPER
