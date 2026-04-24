@@ -68,24 +68,37 @@ function shouldIncludeFeaturedProjects(filter: any) {
 function buildFeaturedProjectMatch(filter: any) {
   const match: any = {
     status: "active",
-    $or: [
-      { propertyType: "apartment" },
-      { propertyType: { $exists: false } },
-      { propertyType: null },
-    ],
+
+    // 🔥 EXCLUDE SPONSORED
+    "promotion.type": { $ne: "sponsored" },
+
+    // 🔥 EXPIRY HANDLING
+    $and: [
+      {
+        $or: [
+          { "promotion.boostExpiry": { $gt: new Date() } },
+          { "promotion.type": { $in: ["normal", "featured"] } }
+        ]
+      },
+      {
+        $or: [
+          { propertyType: { $exists: false } },
+          { propertyType: null },
+          { propertyType: "apartment" } // ✅ important fix
+        ]
+      }
+    ]
   };
 
+  // 🌍 LOCATION FILTER
   if (filter.city) {
     match.city = filter.city;
   }
 
-  if (
-    typeof filter.locality === "string" &&
-    filter.locality.trim().length > 0
-  ) {
+  if (typeof filter.locality === "string" && filter.locality.trim()) {
     const localityList = filter.locality
       .split(",")
-      .map((locality: string) => locality.trim())
+      .map((l: string) => l.trim())
       .filter(Boolean);
 
     if (localityList.length > 0) {
@@ -93,52 +106,57 @@ function buildFeaturedProjectMatch(filter: any) {
     }
   }
 
-  if (typeof filter.search === "string" && filter.search.trim().length > 0) {
+  // 🔍 SEARCH FILTER
+  if (typeof filter.search === "string" && filter.search.trim()) {
     const words = filter.search
       .split(/\s+/)
-      .map((word: string) => word.trim())
+      .map((w: string) => w.trim())
       .filter(Boolean);
 
     if (words.length > 0) {
-      match.$and = words.map((word: string) => ({
-        title: { $regex: word, $options: "i" },
-      }));
+      match.$and.push(
+        ...words.map((word: string) => ({
+          title: { $regex: word, $options: "i" }
+        }))
+      );
     }
   }
 
+  // 🏠 BHK FILTER
   const bhk = Number(filter.bhk ?? filter.bedrooms);
   if (!Number.isNaN(bhk)) {
     match["bhkSummary.bhk"] = bhk;
   }
 
+  // 💰 PRICE FILTER
   const minPrice = Number(filter.minPrice);
   const maxPrice = Number(filter.maxPrice);
+
   if (!Number.isNaN(minPrice) || !Number.isNaN(maxPrice)) {
-    const low = !Number.isNaN(minPrice) ? minPrice : undefined;
-    const high = !Number.isNaN(maxPrice) ? maxPrice : undefined;
-    const priceMatch: any[] = [];
+    const priceConditions: any[] = [];
 
-    if (low !== undefined) {
-      priceMatch.push({ priceTo: { $gte: low } });
+    if (!Number.isNaN(minPrice)) {
+      priceConditions.push({ priceTo: { $gte: minPrice } });
     }
 
-    if (high !== undefined) {
-      priceMatch.push({ priceFrom: { $lte: high } });
+    if (!Number.isNaN(maxPrice)) {
+      priceConditions.push({ priceFrom: { $lte: maxPrice } });
     }
 
-    if (priceMatch.length > 0) {
-      match.$and = [...(match.$and ?? []), ...priceMatch];
+    if (priceConditions.length > 0) {
+      match.$and.push(...priceConditions);
     }
   }
 
+  // 🏊 AMENITIES
   if (typeof filter.amenities === "string") {
-    const amenityTitle = filter.amenities
+    const amenityList = filter.amenities
       .split(",")
-      .map((amenity: string) => amenity.trim())
+      .map((a: string) => a.trim())
       .filter(Boolean);
 
-    if (amenityTitle.length > 0) {
-      match["amenities.title"] = { $all: amenityTitle };
+    if (amenityList.length > 0) {
+      match["amenities.title"] = { $all: amenityList };
     }
   }
 

@@ -177,7 +177,7 @@ export const PromotionSchema = new Schema(
   {
     type: {
       type: String,
-      enum: ["normal", "featured", "sponsored"],
+      enum: ["normal", "featured", "prime", "sponsored"],
       default: "normal",
       index: true
     },

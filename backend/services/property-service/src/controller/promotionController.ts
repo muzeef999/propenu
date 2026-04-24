@@ -5,12 +5,13 @@ import FeaturedProject from "../models/featurePropertiesModel";
 import { buildManualPromotion } from "../services/promotionService";
 
 
-type PromotionType = "normal" | "featured" | "sponsored";
+type PromotionType = "normal" | "featured" | "sponsored" | "prime";
 
 const ALLOWED_TYPES: PromotionType[] = [
   "normal",
   "featured",
-  "sponsored"
+  "sponsored",
+  "prime"
 ];
 
 export const promoteProperty = async (req: Request, res: Response) => {

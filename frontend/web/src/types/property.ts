@@ -1,3 +1,5 @@
+import { IPromotion } from "@/app/(pages)/properties/cards/FeaturedPropertyCard";
+
 // types/property.ts
 export interface Meta {
   startedAt?: string;
@@ -34,6 +36,7 @@ export interface Property {
     twoWheeler?: number;
     fourWheeler?: number;
   }
+  promotion?:IPromotion;
   createdAt?: string;
   floorNumber?:number | string;
   totalFloors?:number | string;
