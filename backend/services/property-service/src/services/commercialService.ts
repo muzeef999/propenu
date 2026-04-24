@@ -556,12 +556,25 @@ export const CommercialService = {
     }
 
     const sort: any = {};
-    if (options?.sortBy)
+
+    // 🔥 PRIORITY SORT (MAIN LOGIC)
+    sort["promotion.priority"] = -1;
+
+    // existing logic
+    if (options?.sortBy) {
       sort[options.sortBy] = options.sortOrder === "asc" ? 1 : -1;
-    else sort.createdAt = -1;
+    } else {
+      sort.createdAt = -1;
+    }
 
     const [items, total] = await Promise.all([
-      Commercial.find(filter).sort(sort).populate("createdBy", "name email phone roleId").skip(skip).limit(limit).lean().exec(),
+      Commercial.find(filter)
+        .sort(sort)
+        .populate("createdBy", "name email phone roleId")
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec(),
       Commercial.countDocuments(filter).exec(),
     ]);
 
@@ -611,69 +624,69 @@ export const CommercialService = {
     return null;
   },
 
- async verifyDocument(
-  propertyId: string,
-  documentIndex: number,
-  status: "verified" | "rejected",
-) {
-  // ✅ Validate propertyId
-  if (!mongoose.Types.ObjectId.isValid(propertyId)) {
-    throw new Error("Invalid property ID");
-  }
-
-  const property = await Commercial.findById(propertyId);
-
-  if (!property) {
-    return null;
-  }
-
-  const docs = property.verificationDocuments;
-
-  // ✅ Validate documents existence
-  if (!docs || !Array.isArray(docs)) {
-    throw new Error("Verification documents not found");
-  }
-
-  // ✅ Validate index range
-  if (
-    !Number.isInteger(documentIndex) ||
-    documentIndex < 0 ||
-    documentIndex >= docs.length
+  async verifyDocument(
+    propertyId: string,
+    documentIndex: number,
+    status: "verified" | "rejected",
   ) {
-    throw new Error(`Invalid document index: ${documentIndex}`);
-  }
+    // ✅ Validate propertyId
+    if (!mongoose.Types.ObjectId.isValid(propertyId)) {
+      throw new Error("Invalid property ID");
+    }
 
-  const doc = docs[documentIndex];
+    const property = await Commercial.findById(propertyId);
 
-  // ✅ Double safety (TypeScript + runtime)
-  if (!doc) {
-    throw new Error(`Document not found at index: ${documentIndex}`);
-  }
+    if (!property) {
+      return null;
+    }
 
-  // ✅ Update status
-  doc.status = status;
+    const docs = property.verificationDocuments;
 
-  // ✅ Check if any document is verified
-  const hasVerified = docs.some((d) => d.status === "verified");
+    // ✅ Validate documents existence
+    if (!docs || !Array.isArray(docs)) {
+      throw new Error("Verification documents not found");
+    }
 
-  // ✅ Update property state
-  if (hasVerified) {
-    property.status = "active";
-    property.isPublished = true;
-    property.completion = {
-      percent: 100,
-      step: 5,
-      lastSection: "verification",
-    };
-  } else {
-    property.status = "draft";
-    property.isPublished = false;
-  }
+    // ✅ Validate index range
+    if (
+      !Number.isInteger(documentIndex) ||
+      documentIndex < 0 ||
+      documentIndex >= docs.length
+    ) {
+      throw new Error(`Invalid document index: ${documentIndex}`);
+    }
 
-  await property.save();
+    const doc = docs[documentIndex];
 
-  return property;
-},
+    // ✅ Double safety (TypeScript + runtime)
+    if (!doc) {
+      throw new Error(`Document not found at index: ${documentIndex}`);
+    }
+
+    // ✅ Update status
+    doc.status = status;
+
+    // ✅ Check if any document is verified
+    const hasVerified = docs.some((d) => d.status === "verified");
+
+    // ✅ Update property state
+    if (hasVerified) {
+      property.status = "active";
+      property.isPublished = true;
+      property.completion = {
+        percent: 100,
+        step: 5,
+        lastSection: "verification",
+      };
+    } else {
+      property.status = "draft";
+      property.isPublished = false;
+    }
+
+    await property.save();
+
+    return property;
+  },
 
   model: Commercial,
 
@@ -725,7 +738,10 @@ export const CommercialService = {
           floorNumber: 1,
           totalFloors: 1,
           listingSource: {
-            $ifNull: ["$listingSource", { $ifNull: ["$createdByRole.name", "user"] }],
+            $ifNull: [
+              "$listingSource",
+              { $ifNull: ["$createdByRole.name", "user"] },
+            ],
           },
           price: 1,
           location: 1,

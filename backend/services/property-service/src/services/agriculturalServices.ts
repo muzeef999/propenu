@@ -450,6 +450,8 @@ export const AgriculturalService = {
     q?: string;
     city?: string;
     status?: string;
+    sortBy?: string;               
+    sortOrder?: "asc" | "desc";      
   }) {
     const page = Math.max(1, options?.page ?? 1);
     const limit = Math.min(100, options?.limit ?? 20);
@@ -459,12 +461,20 @@ export const AgriculturalService = {
     if (options?.city) filter.city = options.city;
     if (options?.status) filter.status = options.status;
 
-    const sort: any = {};
-    if (options?.q) sort.createdAt = -1;
-    else sort.createdAt = -1;
+      const sort: any = {};
+
+    // 🔥 PRIORITY SORT (MAIN LOGIC)
+    sort["promotion.priority"] = -1;
+
+    // existing logic
+    if (options?.sortBy) {
+      sort[options.sortBy] = options.sortOrder === "asc" ? 1 : -1;
+    } else {
+      sort.createdAt = -1;
+    }
 
     const [items, total] = await Promise.all([
-      Agricultural.find(filter)        .populate("createdBy", "name email phone roleId")
+      Agricultural.find(filter).populate("createdBy", "name email phone roleId")
         .sort(sort)
         .skip(skip)
         .limit(limit)

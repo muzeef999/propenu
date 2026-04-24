@@ -42,7 +42,7 @@ export const createLand = async (req: Request, res: Response) => {
       soilTestReport: parseMaybeJSON(raw.soilTestReport),
       conversionCertificateFile: parseMaybeJSON(raw.conversionCertificateFile),
       encumbranceCertificateFile: parseMaybeJSON(
-        raw.encumbranceCertificateFile
+        raw.encumbranceCertificateFile,
       ),
     };
 
@@ -85,7 +85,16 @@ export const getAllLands = async (req: Request, res: Response) => {
     if (typeof status === "string") options.status = status;
 
     const result = await LandService.list(options);
-    return res.json(result);
+
+    const formattedItems = result.items.map((item: any) => ({
+      ...item,
+      displayType: item.promotion?.type || "normal",
+    }));
+
+    return res.json({
+      ...result,
+      items: formattedItems,
+    });
   } catch (err: any) {
     console.error("getAllLands:", err);
     return res
@@ -94,11 +103,13 @@ export const getAllLands = async (req: Request, res: Response) => {
   }
 };
 
-export const getMyLandDraft = async(req: AuthRequest, res: Response) => {
+export const getMyLandDraft = async (req: AuthRequest, res: Response) => {
   const draft = await LandPlot.findOne({
     createdBy: req.user!.id,
     status: "draft",
-  }).populate("createdBy", "name email phone").lean();
+  })
+    .populate("createdBy", "name email phone")
+    .lean();
 
   if (!draft) {
     return res.status(404).json({ error: "No draft found for this user" });
@@ -106,7 +117,6 @@ export const getMyLandDraft = async(req: AuthRequest, res: Response) => {
 
   res.json({ data: draft });
 };
-
 
 /** GET BY SLUG */
 export const getLandBySlug = async (req: Request, res: Response) => {
@@ -126,7 +136,7 @@ export const getLandBySlug = async (req: Request, res: Response) => {
     const id = (property as any)._id?.toString?.();
     if (id) {
       LandService.incrementViews(id).catch((e: any) =>
-        console.error("incrementViews error:", e)
+        console.error("incrementViews error:", e),
       );
     }
 
@@ -155,7 +165,7 @@ export const getLandDetail = async (req: Request, res: Response) => {
     if (!doc) return res.status(404).json({ error: "Not found" });
 
     LandService.incrementViews(id).catch((e) =>
-      console.error("incrementViews error:", e)
+      console.error("incrementViews error:", e),
     );
 
     return res.json({ data: doc });
@@ -185,7 +195,7 @@ export const editLand = async (req: Request, res: Response) => {
       soilTestReport: parseMaybeJSON(raw.soilTestReport),
       conversionCertificateFile: parseMaybeJSON(raw.conversionCertificateFile),
       encumbranceCertificateFile: parseMaybeJSON(
-        raw.encumbranceCertificateFile
+        raw.encumbranceCertificateFile,
       ),
     };
 
@@ -228,10 +238,6 @@ export const deleteLand = async (req: Request, res: Response) => {
   }
 };
 
-
-
-
-
 export const createLandDraft = async (req: AuthRequest, res: Response) => {
   try {
     const existing = await LandPlot.findOne({
@@ -263,11 +269,7 @@ export const createLandDraft = async (req: AuthRequest, res: Response) => {
   }
 };
 
-
-export const updateLandBasicStep = async (
-  req: AuthRequest,
-  res: Response
-) => {
+export const updateLandBasicStep = async (req: AuthRequest, res: Response) => {
   const doc = await LandPlot.findById(req.params.id);
   if (!doc) {
     return res.status(404).json({ error: "Land draft not found" });
@@ -287,12 +289,9 @@ export const updateLandBasicStep = async (
   res.json({ data: doc });
 };
 
-
-
-
 export const updateLandLocationStep = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ) => {
   const doc = await LandPlot.findById(req.params.id);
   if (!doc) {
@@ -319,7 +318,6 @@ export const updateLandLocationStep = async (
 
   await doc.save(); // 🔥 title improves with location
 
-  
   if (doc.city && doc.locality) {
     const coordinates = doc.location?.coordinates || [0, 0];
 
@@ -348,8 +346,7 @@ export const updateLandLocationStep = async (
     } else {
       // Step 3 — check if locality exists
       const exists = cityDoc.localities.some(
-        (loc: any) =>
-          loc.name.toLowerCase() === doc.locality.toLowerCase()
+        (loc: any) => loc.name.toLowerCase() === doc.locality.toLowerCase(),
       );
 
       // Step 4 — push new locality if not exists
@@ -370,11 +367,9 @@ export const updateLandLocationStep = async (
   res.json({ data: doc });
 };
 
-
-
 export const updateLandDetailsStep = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ) => {
   try {
     const files = req.files as
@@ -397,7 +392,7 @@ export const updateLandDetailsStep = async (
           lastSection: "details",
         },
       },
-      files
+      files,
     );
 
     if (!updated) {
@@ -411,9 +406,6 @@ export const updateLandDetailsStep = async (
     res.status(500).json({ error: err.message || "Internal server error" });
   }
 };
-
-
-
 
 export const finalizeLand = async (req: AuthRequest, res: Response) => {
   try {
@@ -553,8 +545,6 @@ export const finalizeLand = async (req: AuthRequest, res: Response) => {
   }
 };
 
-
-
 export const getAllLandDraftsForAdmin = async (req: Request, res: Response) => {
   try {
     const { page = "1", limit = "20", q, city, userId } = req.query;
@@ -600,11 +590,7 @@ export const getAllLandDraftsForAdmin = async (req: Request, res: Response) => {
   }
 };
 
-
-export const verifyLandDocument = async (
-  req: AuthRequest,
-  res: Response
-) => {
+export const verifyLandDocument = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { documentIndex, status } = req.body;
@@ -613,11 +599,7 @@ export const verifyLandDocument = async (
       return res.status(400).json({ message: "Invalid status" });
     }
 
-    const updated = await LandService.verifyDocument(
-      id,
-      documentIndex,
-      status
-    );
+    const updated = await LandService.verifyDocument(id, documentIndex, status);
 
     if (!updated) {
       return res.status(404).json({ message: "Property not found" });
@@ -693,7 +675,10 @@ export const approveLandProperty = async (req: Request, res: Response) => {
   }
 };
 
-export const deactivateLandProperty = async (req: AuthRequest, res: Response) => {
+export const deactivateLandProperty = async (
+  req: AuthRequest,
+  res: Response,
+) => {
   try {
     const { id } = req.params;
 
@@ -719,19 +704,18 @@ export const deactivateLandProperty = async (req: AuthRequest, res: Response) =>
 };
 
 export const deleteLandGalleryImage = async (req: Request, res: Response) => {
-  try{
-    const { id, imageIndex} = req.params;
-    if(!id || imageIndex === undefined){
-
-      return res.status(400).json({message: "Missing params"});
-    } 
+  try {
+    const { id, imageIndex } = req.params;
+    if (!id || imageIndex === undefined) {
+      return res.status(400).json({ message: "Missing params" });
+    }
     const property = await LandPlot.findById(id);
-    if(!property){
-      return res.status(404).json({message: "Property not found"});
+    if (!property) {
+      return res.status(404).json({ message: "Property not found" });
     }
     const index = Number(imageIndex);
-    if(!property.gallery?.[index]){
-      return res.status(404).json({message: "Image not found"});
+    if (!property.gallery?.[index]) {
+      return res.status(404).json({ message: "Image not found" });
     }
     const image = property.gallery[index];
     if (image.key) {
@@ -739,11 +723,9 @@ export const deleteLandGalleryImage = async (req: Request, res: Response) => {
     }
     property.gallery.splice(index, 1);
     await property.save();
-    res.json({success: true, data: property.gallery});
-
+    res.json({ success: true, data: property.gallery });
   } catch (err: any) {
     console.error("deleteGalleryImage:", err);
-    res.status(500).json({message: err.message || "Server error"});
-
+    res.status(500).json({ message: err.message || "Server error" });
   }
-}
+};

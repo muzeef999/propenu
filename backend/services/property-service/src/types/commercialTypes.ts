@@ -1,7 +1,7 @@
 import { IFileRef, IVerificationDoc } from "./sharedTypes";
 import { Types } from "mongoose";
 import { PropertyAge } from "./residentialTypes";
-
+import { IPromotion } from "../models/sharedSchemas";
 
 export const PANTRY_TYPES = ["none", "shared", "no-shared"] as const;
 
@@ -89,11 +89,10 @@ export interface IApproval {
   approvalToken?: string | undefined; // ✅ FIX 2
 }
 
-
 export interface IImage {
-  url: string
-  key?: string
-  filename?: string
+  url: string;
+  key?: string;
+  filename?: string;
 }
 
 export interface ICompletion {
@@ -109,13 +108,11 @@ export interface ICommercial {
   buildingName?: String;
   propertyType?: CommercialPropertyType;
   propertySubType?: CommercialPropertySubType;
-
+  promotion?: IPromotion;
   completion?: ICompletion;
-
   verificationDocuments?: IVerificationDoc[];
   status?: string;
   isPublished?: boolean;
-
   wallFinishStatus?: WallFinishStatus;
   flooringType?: FlooringType;
 

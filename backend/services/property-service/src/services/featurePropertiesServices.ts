@@ -149,7 +149,7 @@ async function processBhkPlanUpdates(opts: {
     for (let u = 0; u < incomingBhk.units.length; u++) {
       const incomingUnit = incomingBhk.units[u];
       // const existingUnit = existingBhk.units[u];
-      
+
       const existingUnit = existingBhk.units.find(
         (eu: any) => eu._id?.toString() === incomingUnit._id?.toString(),
       );
@@ -465,7 +465,7 @@ export const FeaturePropertyService = {
     //   throw new Error(
     //     "Too many bhkPlanFiles uploaded for provided bhkSummary entries",
     //   );
-    // }    
+    // }
 
     const totalUnits = (toCreate.bhkSummary || []).reduce(
       (sum: number, b: any) =>
@@ -476,7 +476,7 @@ export const FeaturePropertyService = {
     if (bhkPlanFiles.length > totalUnits) {
       throw new Error("Too many bhkPlanFiles uploaded for provided bhk units");
     }
-    
+
     toCreate.bhkSummary = await processBhkPlanUpdates({
       bhkSummaryExisting: [], // none on create
       bhkSummaryIncoming: toCreate.bhkSummary,
@@ -849,13 +849,13 @@ export const FeaturePropertyService = {
   },
 
   async getMyHightlightProjects(userId: string) {
-    return await FeaturedProject.find({ createdBy: userId, isFeatured: false, })
+    return await FeaturedProject.find({ createdBy: userId })
       .populate("createdBy", "name email")
       .lean();
   },
 
-   async getMyFeaturedProjects(userId: string) {
-    return await FeaturedProject.find({ createdBy: userId, isFeatured: true, })
+  async getMyFeaturedProjects(userId: string) {
+    return await FeaturedProject.find({ createdBy: userId })
       .populate("createdBy", "name email")
       .lean();
   },
@@ -882,8 +882,11 @@ export const FeaturePropertyService = {
 
   async getFeaturesByCity({ locality, city, state }: LocationParams) {
     // 🥇 1. Try LOCALITY
-    const baseFilter = { isFeatured: true }; // ⭐ SINGLE SOURCE OF TRUTH
-
+    const baseFilter = {
+      status: "active",
+      "promotion.type": { $in: ["featured", "sponsored"] },
+      "promotion.boostExpiry": { $gt: new Date() },
+    };
     if (locality) {
       const items = await findFeatured({
         ...baseFilter,
@@ -931,35 +934,82 @@ export const FeaturePropertyService = {
   },
 
   async getAllFeatures(options?: {
-    page?: number;
-    limit?: number;
-    q?: string;
-    status?: string;
-    sortBy?: string;
-    sortOrder?: "asc" | "desc";
-  }) {
-    const page = Math.max(1, options?.page ?? 1);
-    const limit = Math.min(100, options?.limit ?? 20);
-    const skip = (page - 1) * limit;
-    const filter: any = {};
-    if (options?.q) filter.$text = { $search: options.q };
-    if (options?.status) filter.status = options.status;
+  page?: number;
+  limit?: number;
+  q?: string;
+  status?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  type?: string;        // 🔥 NEW
+  city?: string;        // 🔥 NEW
+  state?: string;       // 🔥 NEW
+  locality?: string;    // 🔥 NEW
+}) {
+  const page = Math.max(1, options?.page ?? 1);
+  const limit = Math.min(100, options?.limit ?? 20);
+  const skip = (page - 1) * limit;
 
-    filter.isFeatured = true;
+  const filter: any = {
+    status: "active"
+  };
 
-    const sort: any = {};
-    if (options?.sortBy)
-      sort[options.sortBy] = options.sortOrder === "asc" ? 1 : -1;
-    else sort.createdAt = -1;
-    const [items, total] = await Promise.all([
-      FeaturedProject.find(filter).sort(sort).skip(skip).limit(limit).exec(),
-      FeaturedProject.countDocuments(filter).exec(),
-    ]);
-    return {
-      items,
-      meta: { total, page, limit, pages: Math.ceil(total / limit) },
-    };
-  },
+  // 🔍 SEARCH
+  if (options?.q) {
+    filter.$text = { $search: options.q };
+  }
+
+  // 🔥 PROMOTION TYPE FILTER
+  if (options?.type) {
+    const types = options.type.split(",");
+    filter["promotion.type"] = { $in: types };
+  }
+
+  // 🌍 LOCATION FILTER
+  const makeRegex = (value?: string) =>
+    value ? { $regex: `^${value.trim()}$`, $options: "i" } : undefined;
+
+  if (options?.city) filter.city = makeRegex(options.city);
+  if (options?.state) filter.state = makeRegex(options.state);
+  if (options?.locality) filter.locality = makeRegex(options.locality);
+
+  // 🔥 EXCLUDE EXPIRED PROMOTIONS
+  filter["$or"] = [
+    { "promotion.boostExpiry": { $gt: new Date() } },
+    { "promotion.type": "normal" }
+  ];
+
+  // 🥇 SORT
+  const sort: any = {
+    "promotion.priority": -1
+  };
+
+  if (options?.sortBy) {
+    sort[options.sortBy] = options.sortOrder === "asc" ? 1 : -1;
+  } else {
+    sort.createdAt = -1;
+  }
+
+  const [items, total] = await Promise.all([
+    FeaturedProject.find(filter)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .lean()
+      .exec(),
+
+    FeaturedProject.countDocuments(filter)
+  ]);
+
+  return {
+    items,
+    meta: {
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit)
+    }
+  };
+},
 
   async getHighlightByLocation({
     state,
@@ -971,7 +1021,9 @@ export const FeaturePropertyService = {
     locality?: string;
   }) {
     const baseFilter: any = {
-      isFeatured: false,
+      status: "active",
+      "promotion.type": { $in: ["featured", "sponsored"] },
+      "promotion.boostExpiry": { $gt: new Date() }, // 🔥 NOT expired
     };
 
     const makeRegex = (value?: string) =>
@@ -986,13 +1038,13 @@ export const FeaturePropertyService = {
         ...(locality && { locality: makeRegex(locality) }),
       };
 
-
-
       //checking
       const localityItems = await FeaturedProject.find(localityFilter)
         .select(
           "title heroImage priceFrom priceTo slug city state locality logo amenities bhkSummary",
-        ).sort({ rank: 1 }).limit(5)
+        )
+        .sort({ rank: 1 })
+        .limit(5)
         .lean();
 
       if (localityItems.length > 0) {
@@ -1035,8 +1087,10 @@ export const FeaturePropertyService = {
       };
 
       const stateItems = await FeaturedProject.find(stateFilter)
-        .select("title heroImage priceFrom priceTo slug city state locality").sort({ rank: 1 }).limit(5)
-        .lean();  
+        .select("title heroImage priceFrom priceTo slug city state locality")
+        .sort({ rank: 1 })
+        .limit(5)
+        .lean();
 
       return {
         level: "state",
@@ -1063,13 +1117,19 @@ export const FeaturePropertyService = {
     const page = Math.max(1, options?.page ?? 1);
     const limit = Math.min(100, options?.limit ?? 20);
     const skip = (page - 1) * limit;
-    const filter: any = {};
+    const filter: any = {
+      status: "active",
+    };
     if (options?.q) filter.$text = { $search: options.q };
     if (options?.status) filter.status = options.status;
 
-    filter.isFeatured = false;
+    filter["promotion.type"] = "normal";
 
-    const sort: any = {};
+    const sort: any = {
+      "promotion.priority": -1, // 🔥 MAIN LOGIC
+      rank: -1,
+      createdAt: -1,
+    };
     if (options?.sortBy)
       sort[options.sortBy] = options.sortOrder === "asc" ? 1 : -1;
     else sort.createdAt = -1;
@@ -1090,7 +1150,7 @@ export const FeaturePropertyService = {
     if (!existing) return null;
 
     // delete BHK plan keys
-   if (Array.isArray(existing.bhkSummary)) {
+    if (Array.isArray(existing.bhkSummary)) {
       for (const b of existing.bhkSummary) {
         for (const u of b.units || []) {
           if (u?.plan?.key) {

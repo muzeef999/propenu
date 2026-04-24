@@ -1,3 +1,4 @@
+import { IPromotion } from "../models/sharedSchemas";
 import { IFileRef, IVerificationDoc } from "./sharedTypes";
 import mongoose, { Types } from "mongoose";
 
@@ -80,7 +81,7 @@ export interface IRoadWidth {
 export interface IAgricultural {
   title?: string;
   completion?: ICompletion;
-
+  promotion?: IPromotion;
   verificationDocuments?: IVerificationDoc[];
   status?: string;
   isPublished?: boolean;

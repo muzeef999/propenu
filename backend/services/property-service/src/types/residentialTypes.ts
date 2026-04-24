@@ -2,6 +2,7 @@
 import mongoose from "mongoose";
 import { Types } from "mongoose";
 import { IVerificationDoc } from "./sharedTypes";
+import { IPromotion } from "../models/sharedSchemas";
 
 export const RESIDENTIAL_PROPERTY_TYPES = [
   "apartment",
@@ -95,6 +96,7 @@ export interface IResidential {
   state?: string;
   pincode?: string;
   price?: string;
+  promotion?: IPromotion;
   location?: {
     type: "Point";
     coordinates: [number, number];

@@ -11,6 +11,7 @@ import { validateBody } from "../middlewares/validate";
 import { parseJsonFields } from "../middlewares/parseJsonFields";
 import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
+import { expirePromotion, promoteProperty, resetPromotion } from "../controller/promotionController";
 
 const router = express.Router();
 
@@ -77,5 +78,8 @@ router.delete("/:id/gallery/:imageIndex", authMiddleware, deleteFeatureGalleryIm
 router.delete("/:id", deleteFeatureProperties);
 
 
+router.patch("/:id/promote", authMiddleware, promoteProperty);
+router.patch("/:id/expire", authMiddleware, expirePromotion);
+router.patch("/:id/reset", authMiddleware, resetPromotion);
 
 export default router;

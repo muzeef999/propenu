@@ -7,10 +7,12 @@ import {
   PROPERTY_AGE_BUCKETS,
   RESIDENTIAL_PROPERTY_TYPES,
 } from "../types/residentialTypes";
-import { BaseFields, FileRefSchema } from "./sharedSchemas";
+import { BaseFields, FileRefSchema, PromotionSchema } from "./sharedSchemas";
 import { TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
 import "../models/roleModel";
+ 
+
 
 export interface ResidentialDocument extends Document, IResidential {
   _id: Types.ObjectId;
@@ -31,6 +33,13 @@ const ResidentialSchema = new Schema<IResidential>(
       maxlength: 120,
       index: true,
     },
+
+    promotion: {
+  type: PromotionSchema,
+  default: () => ({
+    source: "subscription"
+  })
+},
 
     carpetArea: {
       type: Number,
@@ -63,6 +72,9 @@ const ResidentialSchema = new Schema<IResidential>(
       type: String,
       enum: ["unfurnished", "semi-furnished", "fully-furnished"],
     },
+
+
+
     parkingType: String,
     facing: {
       type: String,

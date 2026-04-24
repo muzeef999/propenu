@@ -206,7 +206,6 @@ export const getBuilderAnalytics = async (builderId: string) => {
     // ✅ featured count
     FeaturedProject.countDocuments({
       ...match,
-      isFeatured: true
     }),
 
     // ✅ city stats

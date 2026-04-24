@@ -78,7 +78,7 @@ export const getMyFeaturedProjectsController = async (req: AuthRequest, res: Res
 
 export const getAllFeatureProperties = async (req: Request, res: Response) => {
   try {
-    const { page, limit, q, status, sortBy, sortOrder } = req.query;
+    const { page, limit, q, status, sortBy, sortOrder, type, city, state, locality } = req.query;
     const options: any = {};
     if (typeof page === "string") options.page = Number(page);
     if (typeof limit === "string") options.limit = Number(limit);
@@ -86,6 +86,12 @@ export const getAllFeatureProperties = async (req: Request, res: Response) => {
     if (typeof status === "string") options.status = status;
     if (typeof sortBy === "string") options.sortBy = sortBy;
     options.sortOrder = sortOrder === "asc" ? "asc" : "desc";
+
+     if (typeof type === "string") options.type = type;
+    if (typeof city === "string") options.city = city;
+    if (typeof state === "string") options.state = state;
+    if (typeof locality === "string") options.locality = locality;
+
     const result = await FeaturePropertyService.getAllFeatures(options);
     return res.json(result);
   } catch (err: any) {
@@ -96,7 +102,7 @@ export const getAllFeatureProperties = async (req: Request, res: Response) => {
 
 export const getAllHighlightProjects = async (req: Request, res: Response) => {
   try {
-    const { page, limit, q, status, sortBy, sortOrder } = req.query;
+    const { page, limit, q, status, sortBy, sortOrder, type, city, state, locality } = req.query;
     const options: any = {};
     if (typeof page === "string") options.page = Number(page);
     if (typeof limit === "string") options.limit = Number(limit);

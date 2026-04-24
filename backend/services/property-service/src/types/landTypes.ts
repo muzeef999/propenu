@@ -1,3 +1,4 @@
+import { IPromotion } from "../models/sharedSchemas";
 import { IFileRef, IVerificationDoc } from "./sharedTypes";
 import mongoose, { Types } from "mongoose";
 
@@ -74,6 +75,7 @@ export interface ILand {
   cornerPlot?: boolean; 
   fencing?: boolean;
   landUseZone?: string;
+  promotion?: IPromotion;
   conversionCertificateFile?: IFileRef | null;
   encumbranceCertificateFile?: IFileRef | null;
   soilTestReport?: IFileRef | null;

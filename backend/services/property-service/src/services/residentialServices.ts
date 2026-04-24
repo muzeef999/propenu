@@ -157,7 +157,7 @@ export async function findRelatedResidential(property: any) {
   if (property.bhk) {
     query.bhk = { $in: [property.bhk, property.bhk - 1, property.bhk + 1] };
   }
-   // Optional bedroom similarity
+  // Optional bedroom similarity
   if (property.bedrooms) {
     query.bedrooms = {
       $in: [property.bedrooms, property.bedrooms - 1, property.bedrooms + 1],
@@ -472,11 +472,25 @@ export const ResidentialPropertyService = {
     }
 
     const sort: any = {};
-    if (options?.sortBy)
+
+    // 🔥 PRIORITY SORT (MAIN LOGIC)
+    sort["promotion.priority"] = -1;
+
+    // existing logic
+    if (options?.sortBy) {
       sort[options.sortBy] = options.sortOrder === "asc" ? 1 : -1;
-    else sort.createdAt = -1;
+    } else {
+      sort.createdAt = -1;
+    }
+
     const [items, total] = await Promise.all([
-      Residential.find(filter).sort(sort).populate("createdBy", "name email phone roleId").skip(skip).limit(limit).lean().exec(),
+      Residential.find(filter)
+        .sort(sort)
+        .populate("createdBy", "name email phone roleId")
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec(),
       Residential.countDocuments(filter).exec(),
     ]);
     return {
@@ -527,12 +541,12 @@ export const ResidentialPropertyService = {
     if (!property) return null;
 
     if (!property.verificationDocuments?.[documentIndex]) {
-  return {
-    success: false,
-    status: 400,
-    message: "Invalid document index",
-  };
-}
+      return {
+        success: false,
+        status: 400,
+        message: "Invalid document index",
+      };
+    }
 
     // 1️⃣ Update document status
     property.verificationDocuments[documentIndex].status = status;
@@ -589,7 +603,7 @@ export const ResidentialPropertyService = {
           bathrooms: 1,
           slug: 1,
           createdAt: 1,
-          listingSource : 1
+          listingSource: 1,
         },
       },
     ];

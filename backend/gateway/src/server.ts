@@ -4,7 +4,6 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import cors from "cors";
 import { Socket } from "net";
-import { globalLimiter } from "../src/middleware/rateLimiter";
 
 dotenv.config({ quiet: true });
 
@@ -22,9 +21,7 @@ if (!PAYMENT_SERVICE_URL || !PROPERTY_SERVICE_URL || !USER_SERVICE_URL) {
 
 app.set("trust proxy", true);
 
-// =====================
-// CORS CONFIG
-// =====================
+// ===================== CORS CONFIG =====================
 
 const allowed = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
@@ -35,13 +32,10 @@ app.use(
   cors({
     origin(origin, callback) {
       if (!origin) return callback(null, true); // Postman / curl
-
       const clean = origin.replace(/\/+$/, "");
-
       if (!allowed.length || allowed.includes(clean)) {
         return callback(null, true);
       }
-
       return callback(null, false);
     },
     credentials: true,
@@ -52,13 +46,7 @@ app.use(
 
 app.use(morgan("dev"));
 
-
-app.use("/api", globalLimiter);
-
-
-// =====================
-// PROXY HELPER
-// =====================
+// ===================== PROXY HELPER =====================
 
 function proxy(serviceName: string, target: string) {
   return createProxyMiddleware({
@@ -83,18 +71,13 @@ function proxy(serviceName: string, target: string) {
   });
 }
 
-// =====================
-// MICROSERVICE ROUTES
-// =====================
+// ===================== MICROSERVICE ROUTES =====================
 
 app.use("/api/payments", proxy("PAYMENT", PAYMENT_SERVICE_URL));
 app.use("/api/properties", proxy("PROPERTY", PROPERTY_SERVICE_URL));
 app.use("/api/users", proxy("USER", USER_SERVICE_URL));
 
-// =====================
-// SYSTEM ROUTES
-// =====================
-
+// ===================== SYSTEM ROUTES  =====================
 app.get("/", (_req, res) => {
   res.json({ message: "✅ Gateway running" });
 });
@@ -112,9 +95,7 @@ app.get("/health", (_req: Request, res: Response) => {
 
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 
-// =====================
-// START SERVER
-// =====================
+// ===================== START SERVER  =====================
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Gateway running on port ${PORT}`);

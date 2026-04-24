@@ -93,7 +93,16 @@ export const getAllCommercial = async (req: Request, res: Response) => {
     if (typeof maxPrice === "string") options.maxPrice = Number(maxPrice);
 
     const result = await CommercialService.list(options);
-    return res.json(result);
+
+    const formattedItems = result.items.map((item: any) => ({
+      ...item,
+      displayType: item.promotion?.type || "normal",
+    }));
+
+    return res.json({
+      ...result,
+      items: formattedItems,
+    });
   } catch (err: any) {
     console.error("getAllCommercial:", err);
     return res
@@ -753,20 +762,22 @@ export const deactivateCommercialProperty = async (
   }
 };
 
-export const deleteCommercialGalleryImage = async (req: Request, res: Response) => {
-  try{
-    const { id, imageIndex} = req.params;
-    if(!id || imageIndex === undefined){
-
-      return res.status(400).json({message: "Missing params"});
-    } 
+export const deleteCommercialGalleryImage = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const { id, imageIndex } = req.params;
+    if (!id || imageIndex === undefined) {
+      return res.status(400).json({ message: "Missing params" });
+    }
     const property = await Commercial.findById(id);
-    if(!property){
-      return res.status(404).json({message: "Property not found"});
+    if (!property) {
+      return res.status(404).json({ message: "Property not found" });
     }
     const index = Number(imageIndex);
-    if(!property.gallery?.[index]){
-      return res.status(404).json({message: "Image not found"});
+    if (!property.gallery?.[index]) {
+      return res.status(404).json({ message: "Image not found" });
     }
     const image = property.gallery[index];
     if (image.key) {
@@ -774,11 +785,9 @@ export const deleteCommercialGalleryImage = async (req: Request, res: Response) 
     }
     property.gallery.splice(index, 1);
     await property.save();
-    res.json({success: true, data: property.gallery});
-
+    res.json({ success: true, data: property.gallery });
   } catch (err: any) {
     console.error("deleteGalleryImage:", err);
-    res.status(500).json({message: err.message || "Server error"});
-
+    res.status(500).json({ message: err.message || "Server error" });
   }
-}
+};

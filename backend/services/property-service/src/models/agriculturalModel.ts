@@ -4,7 +4,7 @@ import {
   AGRICULTURAL_PROPERTY_TYPES,
   IAgricultural,
 } from "../types/agriculturalTypes";
-import { BaseFields, FileRefSchema } from "./sharedSchemas";
+import { BaseFields, FileRefSchema, PromotionSchema } from "./sharedSchemas";
 import { TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
 import "../models/roleModel";
@@ -26,6 +26,14 @@ const AgriculturalSchema = new Schema<IAgricultural>(
         enum: ["sqft", "sqmt", "acre", "guntha", "cent", "hectare"],
       },
     },
+
+    promotion: {
+      type: PromotionSchema,
+      default: () => ({
+        source: "subscription",
+      }),
+    },
+
     roadWidth: {
       value: Number, // 40
       unit: { type: String, enum: ["ft", "meter"] },
@@ -54,7 +62,6 @@ const AgriculturalSchema = new Schema<IAgricultural>(
   { timestamps: true },
 );
 
-
 AgriculturalSchema.index(
   { slug: 1 },
   {
@@ -62,12 +69,11 @@ AgriculturalSchema.index(
     partialFilterExpression: {
       slug: { $type: "string" },
     },
-  }
+  },
 );
 
 AgriculturalSchema.index(TEXT_INDEX_FIELDS, { name: "Agri_Text" });
 AgriculturalSchema.index({ slug: 1 }, { unique: true });
-
 
 AgriculturalSchema.pre("save", async function (next) {
   if (!this.listingSource && this.createdBy) {
@@ -100,7 +106,6 @@ AgriculturalSchema.pre("save", async function (next) {
   next();
 });
 
-
 AgriculturalSchema.pre("validate", async function (next) {
   try {
     // Always rebuild title
@@ -116,7 +121,7 @@ AgriculturalSchema.pre("validate", async function (next) {
 
       this.slug = await generateUniqueSlug(
         mongoose.model("Agricultural"),
-        baseSlug
+        baseSlug,
       );
     }
 
@@ -125,7 +130,6 @@ AgriculturalSchema.pre("validate", async function (next) {
     next(err as any);
   }
 });
-
 
 export const Agricultural: Model<IAgricultural> =
   (mongoose.models && (mongoose.models as any)["Agricultural"]) ||

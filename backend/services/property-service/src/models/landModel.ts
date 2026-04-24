@@ -1,6 +1,6 @@
 // src/models/property/land.model.ts
 import mongoose, { Schema, Document, Model, Types } from "mongoose";
-import { BaseFields, FileRefSchema } from "./sharedSchemas";
+import { BaseFields, FileRefSchema, PromotionSchema } from "./sharedSchemas";
 import {
   ILand,
   LAND_PROPERTY_SUBTYPES,
@@ -14,6 +14,8 @@ import { create } from "domain";
 export interface LandDocument extends Document, ILand {
   _id: Types.ObjectId;
 }
+
+
 
 const LandSchema = new Schema<ILand>(
   {
@@ -32,6 +34,14 @@ const LandSchema = new Schema<ILand>(
     cornerPlot: Boolean,
     fencing: Boolean,
     landUseZone: String,
+
+    promotion: {
+  type: PromotionSchema,
+  default: () => ({
+    source: "subscription"
+  })
+},
+
     conversionCertificateFile: FileRefSchema,
     encumbranceCertificateFile: FileRefSchema,
     soilTestReport: FileRefSchema,

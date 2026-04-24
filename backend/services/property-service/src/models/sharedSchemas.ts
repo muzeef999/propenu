@@ -57,6 +57,8 @@ export interface IAmenity {
   title?: string;
   description?: string;
 }
+
+
 export const AmenitySchema = new Schema<IAmenity>(
   { key: String, title: String, description: String },
   { _id: false },
@@ -94,6 +96,7 @@ export interface INearbyPlace {
   coordinates?: [number, number];
   order?: number;
 }
+
 export const NearbyPlaceSchema = new Schema<INearbyPlace>(
   {
     name: String,
@@ -111,6 +114,7 @@ export const NearbyPlaceSchema = new Schema<INearbyPlace>(
   { _id: false },
 );
 
+
 /* -------------------------
    UNIT / BHK SUB-SCHEMAS
    ------------------------- */
@@ -122,6 +126,7 @@ export interface IUnit {
   availableCount?: number;
   plan?: IFileRef;
 }
+
 export const UnitSchema = new Schema<IUnit>(
   {
     minSqft: Number,
@@ -141,6 +146,7 @@ export interface IBhkSummary {
   maxPrice?: number;
   units?: IUnit[];
 }
+
 export const BhkSummarySchema = new Schema<IBhkSummary>(
   {
     bhk: { type: Number, required: true },
@@ -152,15 +158,69 @@ export const BhkSummarySchema = new Schema<IBhkSummary>(
   { _id: false },
 );
 
-/* -------------------------
-   BASE FIELDS (reused in each model)
-------------------------- */
+export interface IPromotion {
+  type: "normal" | "featured" | "sponsored";
+  priority: number;
+  source: "manual" | "subscription";
+  startDate?: Date;
+  boostExpiry?: Date;
+  enquiryLimit?: number;
+  enquiriesUsed?: number;
+  features?: {
+    emailPromotion?: boolean;
+    whatsappPromotion?: boolean;
+  };
+}
+
+
+export const PromotionSchema = new Schema(
+  {
+    type: {
+      type: String,
+      enum: ["normal", "featured", "sponsored"],
+      default: "normal",
+      index: true
+    },
+
+    priority: {
+      type: Number,
+      default: 0
+    },
+
+    source: {
+      type: String,
+      enum: ["manual", "subscription"],
+      default: "subscription"
+    },
+
+    startDate: Date,
+
+    boostExpiry: {
+      type: Date,
+      index: true
+    },
+
+    enquiryLimit: {
+      type: Number,
+      default: 0
+    },
+
+    enquiriesUsed: {
+      type: Number,
+      default: 0
+    }
+  },
+  { _id: false }
+);
+
+/* -------------------------   BASE FIELDS (reused in each model)------------------------- */
 export const BaseFields = {
   title: {
     type: String,
     trim: true,
     index: true,
   },
+
   slug: {
     type: String,
     required: true,

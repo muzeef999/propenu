@@ -123,7 +123,13 @@ export const getAllResidential = async (req: Request, res: Response) => {
       options.maxDistance = Number(maxDistance);
 
     const result = await ResidentialPropertyService.list(options);
-    return res.json(result);
+
+    const formattedItems = result.items.map((item: any) => ({
+      ...item,
+      displayType: item.promotion?.type || "normal",
+    }));
+
+    return res.json({ ...result, items: formattedItems });
   } catch (err: any) {
     console.error("getAllResidential:", err);
     return res
@@ -688,14 +694,14 @@ export const verifyResidentialDocument = async (
 
     if (updated.status === "active") {
       try {
-      const user = await User.findById((updated as any).ownerId);
+        const user = await User.findById((updated as any).ownerId);
         if (user?.fcmToken) {
           await sendTemplateNotification({
             token: user.fcmToken,
             templateKey: "PROPERTY_APPROVED",
             data: {
               name: user.name || "User",
-              propertyTitle:  "Your Property",
+              propertyTitle: "Your Property",
             },
           });
         }
@@ -713,7 +719,7 @@ export const verifyResidentialDocument = async (
           templateKey: "PROPERTY_REJECTED",
           data: {
             name: user.name || "User",
-            propertyTitle:  "Your Property",
+            propertyTitle: "Your Property",
           },
         });
       }

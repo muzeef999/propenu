@@ -1,4 +1,5 @@
 import mongoose, { Document, Model, Types } from "mongoose";
+import { IPromotion } from "../models/sharedSchemas";
 
 export interface IBhkPlan {
   url?: string;
@@ -112,6 +113,7 @@ export interface IFeaturedProject {
   propertyType?: string; // default: 'featuredProject'
   categoryType?: "residential" | "land" | "commercial" | "agricultural";
   address: string;
+  promotion?: IPromotion;
   city?: string;
   location?: {
     type: "Point";

@@ -13,6 +13,7 @@ import {
   ISpecification,
   ISpecItem,
 } from "../types/featurePropertiesTypes";
+import { PromotionSchema } from "./sharedSchemas";
 
 function generateSlug(text: string) {
   return text
@@ -39,7 +40,7 @@ const UnitSchema = new Schema(
       mimetype: { type: String },
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const BhkSummarySchema = new Schema<IBhkSummary>(
@@ -48,7 +49,7 @@ const BhkSummarySchema = new Schema<IBhkSummary>(
     bhkLabel: { type: String },
     units: { type: [UnitSchema] },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const GallerySummarySchema = new Schema<IGalleryItem>(
@@ -61,7 +62,7 @@ const GallerySummarySchema = new Schema<IGalleryItem>(
     key: { type: String },
     mimetype: { type: String },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const AboutSummarySchema = new Schema<IAboutSummary>(
@@ -73,10 +74,8 @@ const AboutSummarySchema = new Schema<IAboutSummary>(
     filename: { type: String },
     mimetype: { type: String },
   },
-  { _id: false }
+  { _id: false },
 );
-
-
 
 const brochureSchema = new Schema<Ibrochure>(
   {
@@ -85,7 +84,7 @@ const brochureSchema = new Schema<Ibrochure>(
     filename: { type: String },
     mimetype: { type: String },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const AmenitySchema = new Schema<IAmenity>(
@@ -94,7 +93,7 @@ const AmenitySchema = new Schema<IAmenity>(
     title: { type: String },
     description: { type: String },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const SpecificationItemSchema = new Schema<ISpecItem>(
@@ -102,7 +101,7 @@ const SpecificationItemSchema = new Schema<ISpecItem>(
     title: { type: String },
     description: { type: String },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const SpecificationSchema = new Schema<ISpecification>(
@@ -111,7 +110,7 @@ const SpecificationSchema = new Schema<ISpecification>(
     items: { type: [SpecificationItemSchema] },
     order: { type: Number, default: 0 },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const YoutubeVideoSchema = new Schema(
@@ -120,7 +119,7 @@ const YoutubeVideoSchema = new Schema(
     url: { type: String, required: true },
     order: { type: Number, default: 0 },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const NearbyPlaceSchema = new Schema<INearbyPlace>(
@@ -137,14 +136,14 @@ const NearbyPlaceSchema = new Schema<INearbyPlace>(
     },
     order: { type: Number, default: 0 },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const LogoSchema = new Schema<ILogo>({
   url: { type: String },
   key: { type: String },
   filename: { type: String },
-  mimetype: { type: String }
+  mimetype: { type: String },
 });
 
 /* ------------------------- Main schema  -------------------------*/
@@ -158,7 +157,7 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     heroTagline: { type: String },
     heroSubTagline: { type: String },
     heroDescription: { type: String },
-    color: { type: String }, 
+    color: { type: String },
     metaTitle: { type: String },
     metaDescription: { type: String },
     metaKeywords: { type: String },
@@ -166,15 +165,11 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     address: { type: String, required: true },
     categoryType: {
       type: String,
-      enum: [
-        "residential",
-        "land",
-        "commercial",
-        "agricultural",
-      ],    },
+      enum: ["residential", "land", "commercial", "agricultural"],
+    },
     city: { type: String, index: true, required: true },
     locality: { type: String, index: true, required: true },
-    state: { type: String, index: true, required: true},
+    state: { type: String, index: true, required: true },
     location: {
       type: { type: String, enum: ["Point"], default: "Point" },
       coordinates: { type: [Number], index: "2dsphere" },
@@ -190,7 +185,7 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     },
     possessionDate: { type: String },
     totalTowers: { type: Number },
-    redirectUrl:{type : String, trim : true},
+    redirectUrl: { type: String, trim: true },
     totalFloors: { type: String },
     projectArea: { type: Number },
     totalUnits: { type: Number },
@@ -204,7 +199,6 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     specifications: { type: [SpecificationSchema] },
     amenities: { type: [AmenitySchema] },
     nearbyPlaces: { type: [NearbyPlaceSchema] },
-    isFeatured: { type: Boolean, default: false, index: true },
     rank: { type: Number, default: 0, index: true },
     meta: {
       views: { type: Number, default: 0 },
@@ -223,37 +217,45 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
       required: true,
       index: true,
     },
+
+    promotion: {
+      type: PromotionSchema,
+      default: () => ({
+        type: "normal",
+        priority: 0,
+        source: "manual",
+      }),
+    },
+    
     updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
     relatedProjects: { type: [Schema.Types.ObjectId], ref: "featuredProject" },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 FeaturePropertySchema.index(
   { title: "text", address: "text", city: "text" },
-  { name: "Idx_Text_Search" }
-);
-
-FeaturePropertySchema.index({ isFeatured: 1 }, { name: "Idx_IsFeatured" });
-
-FeaturePropertySchema.index(
-  { isFeatured: 1, status: 1, rank: -1, createdAt: -1 },
-  { name: "Idx_Featured_Status_Rank_CreatedAt" }
+  { name: "Idx_Text_Search" },
 );
 
 FeaturePropertySchema.index(
-  { isFeatured: 1, city: 1, rank: -1 },
-  { name: "Idx_Featured_City_Rank" }
+  { status: 1, rank: -1, createdAt: -1 },
+  { name: "Idx_Featured_Status_Rank_CreatedAt" },
+);
+
+FeaturePropertySchema.index(
+  { city: 1, rank: -1 },
+  { name: "Idx_Featured_City_Rank" },
 );
 
 FeaturePropertySchema.index(
   { priceFrom: 1, priceTo: 1 },
-  { name: "Idx_PriceRange" }
+  { name: "Idx_PriceRange" },
 );
 
 FeaturePropertySchema.index(
   { "location.coordinates": "2dsphere" },
-  { name: "Idx_Location_2dsphere" }
+  { name: "Idx_Location_2dsphere" },
 );
 
 FeaturePropertySchema.pre<IFeaturedProjectDocument>(
@@ -267,15 +269,14 @@ FeaturePropertySchema.pre<IFeaturedProjectDocument>(
     let count = 1;
 
     // check duplicates
-      while (await FeaturedProject.exists({ slug })) {
-    slug = `${baseSlug}-${count++}`;
-  }
+    while (await FeaturedProject.exists({ slug })) {
+      slug = `${baseSlug}-${count++}`;
+    }
 
     this.slug = slug;
     next();
-  }
+  },
 );
-
 
 FeaturePropertySchema.pre<IFeaturedProjectDocument>("save", function (next) {
   try {
@@ -334,7 +335,7 @@ const FeaturedProject: Model<IFeaturedProjectDocument> =
   (mongoose.models && (mongoose.models as any)[featuredModelName]) ||
   mongoose.model<IFeaturedProjectDocument>(
     featuredModelName,
-    FeaturePropertySchema
+    FeaturePropertySchema,
   );
 
 /* Optional: separate Lead model (if you want to scale leads out later) */
@@ -352,7 +353,7 @@ const LeadSchemaFull = new Schema<ILeadDocument>(
     message: { type: String },
     createdAt: { type: Date, default: () => new Date() },
   },
-  { timestamps: false }
+  { timestamps: false },
 );
 LeadSchemaFull.index({ projectId: 1, createdAt: -1 });
 

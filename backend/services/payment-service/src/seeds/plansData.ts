@@ -131,6 +131,7 @@ export const plans = [
       PROPERTY_LISTING_LIMIT: 10,
       ENQUIRY_LIMIT: 10,
       TOP_LISTING_DAYS: 5,
+        PROMOTION_TYPE: "featured"
     },
   },
   {
@@ -145,6 +146,8 @@ export const plans = [
       PROPERTY_LISTING_LIMIT: 15,
       ENQUIRY_LIMIT: 15,
       TOP_LISTING_DAYS: 10,
+          PROMOTION_TYPE: "sponsored" // 🔥 ADD THIS
+
     },
   },
   {

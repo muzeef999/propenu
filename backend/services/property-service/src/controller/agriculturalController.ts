@@ -1,12 +1,16 @@
 // src/controller/agriculturalController.ts
 import { Request, Response } from "express";
 import { ZodError } from "zod";
-import { AgriculturalCreateSchema, AgriculturalUpdateSchema} from "../zod/agriculturalZod";
-import AgriculturalService, { findRelatedAgriculture} from "../services/agriculturalServices";
+import {
+  AgriculturalCreateSchema,
+  AgriculturalUpdateSchema,
+} from "../zod/agriculturalZod";
+import AgriculturalService, {
+  findRelatedAgriculture,
+} from "../services/agriculturalServices";
 import Agricultural from "../models/agriculturalModel";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { uploadFile } from "../utils/uploadFile";
-import { issue } from "zod/v4/core/util.cjs";
 import Location from "../models/locationModel";
 import User from "../models/userModel";
 import { sendManagerApprovalMail } from "../utils/sendManagerMail";
@@ -14,7 +18,7 @@ import mongoose from "mongoose";
 import { deleteS3ObjectIfExists } from "../utils/s3Helpers";
 import { sendListingSubmittedVerification } from "../../../../shared/whatsapp/whatsapp.helper";
 import { sendListingApprovedEmail } from "../../../../shared/email/email.helper";
- 
+
 function parseMaybeJSON<T = any>(value: any): T | undefined {
   if (value === undefined || value === null || value === "") return undefined;
   if (typeof value !== "string") return value as T;
@@ -24,8 +28,7 @@ function parseMaybeJSON<T = any>(value: any): T | undefined {
     return value as T;
   }
 }
- 
- 
+
 export const createAgricultural = async (req: Request, res: Response) => {
   try {
     const raw = { ...(req.body || {}) };
@@ -38,26 +41,24 @@ export const createAgricultural = async (req: Request, res: Response) => {
       leads: parseMaybeJSON(raw.leads),
       location: parseMaybeJSON(raw.location),
     };
- 
+
     const payload = AgriculturalCreateSchema.parse(parsed);
     const files = req.files as
       | { [field: string]: Express.Multer.File[] }
       | undefined;
- 
+
     const created = await AgriculturalService.create(payload as any, files);
     const fresh = created?._id
       ? await AgriculturalService.getById(String(created._id))
       : created;
- 
+
     return res.status(201).json({ data: fresh });
   } catch (err: any) {
     if (err instanceof ZodError) {
-      return res
-        .status(422)
-        .json({
-          message: "Validation failed",
-          issues: err.flatten().fieldErrors,
-        });
+      return res.status(422).json({
+        message: "Validation failed",
+        issues: err.flatten().fieldErrors,
+      });
     }
     if (err && err.code === "SLUG_TAKEN") {
       return res.status(409).json({ error: "Slug already in use" });
@@ -68,7 +69,7 @@ export const createAgricultural = async (req: Request, res: Response) => {
       .json({ error: err.message || "Internal server error" });
   }
 };
- 
+
 /** LIST */
 export const getAllAgricultural = async (req: Request, res: Response) => {
   try {
@@ -82,9 +83,17 @@ export const getAllAgricultural = async (req: Request, res: Response) => {
     if (typeof sortBy === "string") options.sortBy = sortBy;
     if (typeof sortOrder === "string")
       options.sortOrder = sortOrder === "asc" ? "asc" : "desc";
- 
+
     const result = await AgriculturalService.list(options);
-    return res.json(result);
+    const formattedItems = result.items.map((item: any) => ({
+      ...item,
+      displayType: item.promotion?.type || "normal",
+    }));
+
+    return res.json({
+      ...result,
+      items: formattedItems,
+    });
   } catch (err: any) {
     console.error("getAllAgricultural:", err);
     return res
@@ -93,22 +102,24 @@ export const getAllAgricultural = async (req: Request, res: Response) => {
   }
 };
 
-export const getMyAgriculturalDraft = async (req: AuthRequest, res: Response) => {
+export const getMyAgriculturalDraft = async (
+  req: AuthRequest,
+  res: Response,
+) => {
   const draft = await Agricultural.findOne({
     createdBy: req.user!.id,
     status: "draft",
   })
     .populate("createdBy", "name email phone")
     .lean();
- 
+
   if (!draft) {
     return res.status(404).json({ message: "No draft found" });
   }
- 
+
   res.json({ data: draft });
-}
- 
- 
+};
+
 /** GET BY SLUG */
 export const getAgriculturalBySlug = async (req: Request, res: Response) => {
   try {
@@ -123,12 +134,12 @@ export const getAgriculturalBySlug = async (req: Request, res: Response) => {
     const id = (property as any)?._id?.toString?.();
     if (id) {
       AgriculturalService.incrementViews(id).catch((e: any) =>
-        console.error("incrementViews:", e)
+        console.error("incrementViews:", e),
       );
     }
- 
+
     const relatedProjects = await findRelatedAgriculture(property);
- 
+
     return res.json({ data: property, relatedProjects });
   } catch (err: any) {
     console.error("getAgriculturalBySlug:", err);
@@ -137,18 +148,18 @@ export const getAgriculturalBySlug = async (req: Request, res: Response) => {
     });
   }
 };
- 
+
 /** GET DETAIL BY ID */
 export const getAgriculturalDetail = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     if (!id) return res.status(400).json({ error: "Missing id" });
- 
+
     const doc = await AgriculturalService.getById(id);
     if (!doc) return res.status(404).json({ error: "Not found" });
- 
+
     AgriculturalService.incrementViews(id).catch((e) =>
-      console.error("incrementViews:", e)
+      console.error("incrementViews:", e),
     );
     return res.json({ data: doc });
   } catch (err: any) {
@@ -158,15 +169,15 @@ export const getAgriculturalDetail = async (req: Request, res: Response) => {
       .json({ error: err.message || "Internal server error" });
   }
 };
- 
+
 /** UPDATE */
 export const editAgricultural = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     if (!id) return res.status(400).json({ error: "Missing id" });
- 
+
     const raw = { ...(req.body || {}) };
- 
+
     const parsed = {
       ...raw,
       gallery: parseMaybeJSON(raw.gallery),
@@ -176,26 +187,24 @@ export const editAgricultural = async (req: Request, res: Response) => {
       leads: parseMaybeJSON(raw.leads),
       location: parseMaybeJSON(raw.location),
     };
- 
+
     const payload = AgriculturalUpdateSchema.parse(parsed);
     const files = req.files as
       | { [field: string]: Express.Multer.File[] }
       | undefined;
- 
+
     const updated = await AgriculturalService.update(id, payload as any, files);
     if (!updated) return res.status(404).json({ error: "Not found" });
- 
+
     const fresh = await AgriculturalService.getById(id);
- 
+
     return res.json({ data: fresh });
   } catch (err: any) {
     if (err instanceof ZodError) {
-      return res
-        .status(422)
-        .json({
-          message: "Validation failed",
-          issues: err.flatten().fieldErrors,
-        });
+      return res.status(422).json({
+        message: "Validation failed",
+        issues: err.flatten().fieldErrors,
+      });
     }
     if (err && err.code === "SLUG_TAKEN") {
       return res.status(409).json({ error: "Slug already in use" });
@@ -204,24 +213,26 @@ export const editAgricultural = async (req: Request, res: Response) => {
     return res.status(400).json({ error: err.message || "Bad request" });
   }
 };
- 
+
 /** DELETE */
 export const deleteAgricultural = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     if (!id) return res.status(400).json({ error: "Missing id" });
- 
+
     const deleted = await AgriculturalService.delete(id);
     if (!deleted) return res.status(404).json({ error: "Not found" });
- 
+
     return res.json({ data: deleted, message: "Deleted successfully" });
   } catch (err: any) {
     return res.status(400).json({ error: err.message || "Bad request" });
   }
 };
- 
- 
-export const createAgriculturalDraft = async (req: AuthRequest, res: Response) => {
+
+export const createAgriculturalDraft = async (
+  req: AuthRequest,
+  res: Response,
+) => {
   try {
     const existing = await Agricultural.findOne({
       createdBy: req.user!.id,
@@ -251,10 +262,10 @@ export const createAgriculturalDraft = async (req: AuthRequest, res: Response) =
     });
   }
 };
- 
+
 export const updateAgriculturalBasicStep = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ) => {
   const doc = await Agricultural.findById(req.params.id);
   if (!doc) {
@@ -276,10 +287,9 @@ export const updateAgriculturalBasicStep = async (
   res.json({ data: doc });
 };
 
- 
 export const updateAgriculturalLocationStep = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ) => {
   const doc = await Agricultural.findById(req.params.id);
   if (!doc) {
@@ -306,63 +316,58 @@ export const updateAgriculturalLocationStep = async (
 
   await doc.save(); // 🔥 title rebuilds with city + locality
 
+  if (doc.city && doc.locality) {
+    const coordinates = doc.location?.coordinates || [0, 0];
 
-  
-    if (doc.city && doc.locality) {
-      const coordinates = doc.location?.coordinates || [0, 0];
-  
-      // Step 1 — find city doc
-      let cityDoc = await Location.findOne({
+    // Step 1 — find city doc
+    let cityDoc = await Location.findOne({
+      city: doc.city,
+      state: doc.state,
+    });
+
+    // Step 2 — if city not exists → create
+    if (!cityDoc) {
+      await Location.create({
         city: doc.city,
         state: doc.state,
-      });
-  
-      // Step 2 — if city not exists → create
-      if (!cityDoc) {
-        await Location.create({
-          city: doc.city,
-          state: doc.state,
-          category: "agricultural",
-          localities: [
-            {
-              name: doc.locality,
-              location: {
-                type: "Point",
-                coordinates,
-              },
-            },
-          ],
-        });
-      } else {
-        // Step 3 — check if locality exists
-        const exists = cityDoc.localities.some(
-          (loc: any) =>
-            loc.name.toLowerCase() === doc.locality.toLowerCase()
-        );
-  
-        // Step 4 — push new locality if not exists
-        if (!exists) {
-          cityDoc.localities.push({
+        category: "agricultural",
+        localities: [
+          {
             name: doc.locality,
             location: {
               type: "Point",
               coordinates,
             },
-          });
-  
-          await cityDoc.save();
-        }
+          },
+        ],
+      });
+    } else {
+      // Step 3 — check if locality exists
+      const exists = cityDoc.localities.some(
+        (loc: any) => loc.name.toLowerCase() === doc.locality.toLowerCase(),
+      );
+
+      // Step 4 — push new locality if not exists
+      if (!exists) {
+        cityDoc.localities.push({
+          name: doc.locality,
+          location: {
+            type: "Point",
+            coordinates,
+          },
+        });
+
+        await cityDoc.save();
       }
     }
+  }
 
   res.json({ data: doc });
 };
 
- 
- 
 export const updateAgriculturalDetailsStep = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ) => {
   try {
     // 1️⃣ Multer files (DO NOT hardcode)
@@ -396,13 +401,11 @@ export const updateAgriculturalDetailsStep = async (
           lastSection: "details",
         },
       },
-      files
+      files,
     );
 
     if (!updated) {
-      return res
-        .status(404)
-        .json({ error: "Agricultural property not found" });
+      return res.status(404).json({ error: "Agricultural property not found" });
     }
 
     // 5️⃣ Fetch fresh doc (with gallery, title, slug)
@@ -424,8 +427,6 @@ export const updateAgriculturalDetailsStep = async (
   }
 };
 
-
- 
 export const finalizeAgricultural = async (req: AuthRequest, res: Response) => {
   try {
     const property = await Agricultural.findById(req.params.id);
@@ -510,7 +511,7 @@ export const finalizeAgricultural = async (req: AuthRequest, res: Response) => {
             token: property.approval.approvalToken,
           });
         }
-     } else if (hasVerified) {
+      } else if (hasVerified) {
         property.status = "active";
         property.isPublished = true;
         property.completion.percent = 100;
@@ -562,15 +563,17 @@ export const finalizeAgricultural = async (req: AuthRequest, res: Response) => {
   }
 };
 
-
-export const getAllAgriculturalDraftsForAdmin = async (req: Request, res: Response) => {
+export const getAllAgriculturalDraftsForAdmin = async (
+  req: Request,
+  res: Response,
+) => {
   const { page = "1", limit = "20", q, city, userId } = req.query;
- 
+
   const filter: any = { status: "draft" };
- 
+
   if (city) filter.city = city;
   if (userId) filter.createdBy = userId;
- 
+
   if (q) {
     filter.$or = [
       { title: new RegExp(q as string, "i") },
@@ -578,9 +581,9 @@ export const getAllAgriculturalDraftsForAdmin = async (req: Request, res: Respon
       { city: new RegExp(q as string, "i") },
     ];
   }
- 
+
   const skip = (Number(page) - 1) * Number(limit);
- 
+
   const [items, total] = await Promise.all([
     Agricultural.find(filter)
       .populate("createdBy", "name email phone")
@@ -588,10 +591,10 @@ export const getAllAgriculturalDraftsForAdmin = async (req: Request, res: Respon
       .skip(skip)
       .limit(Number(limit))
       .lean(),
- 
+
     Agricultural.countDocuments(filter),
   ]);
- 
+
   res.json({
     items,
     meta: {
@@ -602,30 +605,29 @@ export const getAllAgriculturalDraftsForAdmin = async (req: Request, res: Respon
     },
   });
 };
- 
- 
+
 export const verifyAgricultiralDocument = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ) => {
   try {
     const { id } = req.params;
     const { documentIndex, status } = req.body;
- 
+
     if (!["verified", "rejected"].includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
     }
- 
+
     const updated = await AgriculturalService.verifyDocument(
       id,
       documentIndex,
-      status
+      status,
     );
- 
+
     if (!updated) {
       return res.status(404).json({ message: "Property not found" });
     }
- 
+
     res.json({
       success: true,
       verified: updated.status === "active",
@@ -636,92 +638,101 @@ export const verifyAgricultiralDocument = async (
     res.status(500).json({ message: err.message || "Server error" });
   }
 };
- 
- export const approveAgriculturalProperty = async (req: Request, res: Response) => {
-   try {
-     const { id } = req.params;
-     const { token } = req.body;
- 
-     const property = await Agricultural.findById(id);
-     if (!property)
-       return res.status(404).json({ message: "Property not found" });
- 
-     if (!property.approval?.approvalToken)
-       return res.status(400).json({ message: "No approval required" });
- 
-     if (property.approval.approvalToken !== token)
-       return res.status(400).json({ message: "Invalid approval link" });
- 
-     /* ✅ UPDATE PROPERTY */
-     property.status = "active";
-     property.isPublished = true;
- 
-     /* ✅ UPDATE APPROVAL */
-     property.approval.status = "approved";
-     property.approval.isApprovedByManager = true;
-     property.approval.approvedAt = new Date();
- 
-     /* optional security */
-     property.approval.approvalToken = undefined;
- 
-     await property.save();
 
-     try {
-       const agent = await User.findById(property.createdBy).lean();
+export const approveAgriculturalProperty = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const { id } = req.params;
+    const { token } = req.body;
 
-       if (agent?.email && agent?.name) {
-         await sendListingApprovedEmail(
-           agent.email,
-           agent.name,
-           property.title || "Property",
-           {
-             roleName: "sales_agent",
-             location: property.city || property.locality || "your area",
-             link: `${process.env.FRONTEND_URL || "https://propenu.com"}/agent/my-properties`,
-           },
-         );
-       }
-     } catch (err) {
-       console.error("Approval email sending failed:", err);
-     }
- 
-     res.json({
-       success: true,
-       message: "✅ Property approved successfully",
-       propertyId: property._id,
-     });
-   } catch (err: any) {
-     console.error(err);
-     res.status(500).json({ message: err.message });
-   }
- };
- 
- export const deactivateAgriculturalProperty = async (req: AuthRequest, res: Response) => {
-   try {
-     const { id } = req.params;
- 
-     const property = await Agricultural.findById(id);
-     if (!property) {
-       return res.status(404).json({ message: "Property not found" });
-     }
- 
-     property.status = "deactivated";
-     property.isPublished = false;
-     property.updatedBy = new mongoose.Types.ObjectId(req.user!.id);
-     await property.save();
- 
-     res.json({
-       success: true,
-       message: "Property deactivated",
-       data: property,
-     });
-   } catch (err: any) {
-     console.error(err);
-     res.status(500).json({ message: err.message });
-   }
- };
- 
-export const deleteAgriculturalGalleryImage = async (req: Request, res: Response) => {
+    const property = await Agricultural.findById(id);
+    if (!property)
+      return res.status(404).json({ message: "Property not found" });
+
+    if (!property.approval?.approvalToken)
+      return res.status(400).json({ message: "No approval required" });
+
+    if (property.approval.approvalToken !== token)
+      return res.status(400).json({ message: "Invalid approval link" });
+
+    /* ✅ UPDATE PROPERTY */
+    property.status = "active";
+    property.isPublished = true;
+
+    /* ✅ UPDATE APPROVAL */
+    property.approval.status = "approved";
+    property.approval.isApprovedByManager = true;
+    property.approval.approvedAt = new Date();
+
+    /* optional security */
+    property.approval.approvalToken = undefined;
+
+    await property.save();
+
+    try {
+      const agent = await User.findById(property.createdBy).lean();
+
+      if (agent?.email && agent?.name) {
+        await sendListingApprovedEmail(
+          agent.email,
+          agent.name,
+          property.title || "Property",
+          {
+            roleName: "sales_agent",
+            location: property.city || property.locality || "your area",
+            link: `${process.env.FRONTEND_URL || "https://propenu.com"}/agent/my-properties`,
+          },
+        );
+      }
+    } catch (err) {
+      console.error("Approval email sending failed:", err);
+    }
+
+    res.json({
+      success: true,
+      message: "✅ Property approved successfully",
+      propertyId: property._id,
+    });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const deactivateAgriculturalProperty = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    const { id } = req.params;
+
+    const property = await Agricultural.findById(id);
+    if (!property) {
+      return res.status(404).json({ message: "Property not found" });
+    }
+
+    property.status = "deactivated";
+    property.isPublished = false;
+    property.updatedBy = new mongoose.Types.ObjectId(req.user!.id);
+    await property.save();
+
+    res.json({
+      success: true,
+      message: "Property deactivated",
+      data: property,
+    });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const deleteAgriculturalGalleryImage = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const { id, imageIndex } = req.params;
     if (!id || imageIndex === undefined) {
@@ -748,7 +759,6 @@ export const deleteAgriculturalGalleryImage = async (req: Request, res: Response
     await property.save();
 
     res.json({ success: true, data: property.gallery });
-
   } catch (err: any) {
     console.error("deleteGalleryImage:", err);
     res.status(500).json({ message: err.message });

@@ -538,6 +538,8 @@ export const LandService = {
     q?: string;
     status?: string;
     city?: string;
+    sortBy?: string;                
+  sortOrder?: "asc" | "desc";      
   }) {
     const page = Math.max(1, options?.page ?? 1);
     const limit = Math.min(100, options?.limit ?? 20);
@@ -547,7 +549,17 @@ export const LandService = {
     if (options?.status) filter.status = options.status;
     if (typeof options?.city === "string") filter.city = options.city;
 
-    const sort: any = { createdAt: -1 };
+  const sort: any = {};
+
+    // 🔥 PRIORITY SORT (MAIN LOGIC)
+    sort["promotion.priority"] = -1;
+
+    // existing logic
+    if (options?.sortBy) {
+      sort[options.sortBy] = options.sortOrder === "asc" ? 1 : -1;
+    } else {
+      sort.createdAt = -1;
+    }
 
     const [items, total] = await Promise.all([
       LandPlot.find(filter).sort(sort).populate("createdBy", "name email phone roleId").skip(skip).limit(limit).lean().exec(),

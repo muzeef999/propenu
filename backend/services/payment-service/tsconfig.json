@@ -1,6 +1,7 @@
 {
+
   "compilerOptions": 
-   {
+  {
     "rootDir": "../../..",
     "outDir": "./dist",
     "module": "CommonJS",
@@ -16,12 +17,15 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
   },
+  
   "include": [
     "src/**/*",
     "../../../shared/**/*"
   ],
+
   "exclude": [
     "node_modules",
     "dist"
   ]
+  
 }

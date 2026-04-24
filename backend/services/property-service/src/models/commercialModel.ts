@@ -1,6 +1,6 @@
 // src/models/property/commercial.model.ts
 import mongoose, { Schema, Document, Model, Types } from "mongoose";
-import { BaseFields } from "./sharedSchemas";
+import { BaseFields, PromotionSchema } from "./sharedSchemas";
 import {
   COMMERCIAL_PROPERTY_SUBTYPES,
   COMMERCIAL_PROPERTY_TYPES,
@@ -54,6 +54,13 @@ const CommercialSchema = new Schema<ICommercial>(
       fireAlarmSystem: { type: Boolean },
       fireControlPanel: { type: Boolean },
       emergencyExitSignage: { type: Boolean },
+    },
+
+    promotion: {
+      type: PromotionSchema,
+      default: () => ({
+        source: "subscription",
+      }),
     },
     propertyAge: { type: String, enum: PROPERTY_AGE_BUCKETS },
 
