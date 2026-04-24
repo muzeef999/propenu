@@ -136,7 +136,7 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
 
 const promotionConfig: Record<string, { label: string; className: string }> = {
   sponsored: {
-    label: "🔥 Sponsored",
+    label: "Sponsored",
     className: "bg-red-500/90",
   },
   featured: {

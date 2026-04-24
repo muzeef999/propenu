@@ -48,46 +48,45 @@ function shouldIncludeFeaturedProjects(filter: any) {
   if (filter?.category !== "residential") return false;
 
   const propertyTypes = getPropertyTypeList(filter);
+
+  // ✅ Allow if no propertyType OR includes apartment
   if (propertyTypes.length > 0 && !propertyTypes.includes("apartment")) {
     return false;
   }
 
+  // ✅ Only restrict strict mismatches
   if (filter.listingType && filter.listingType !== "sale") return false;
-  if (filter.transactionType && filter.transactionType !== "new-sale") return false;
 
-  const unsupportedFeaturedFilters = [
-    "listingSource",
-    "furnishing",
-    "facing",
-    "constructionStatus",
-  ];
+  // ❌ REMOVE this (too strict)
+  // if (filter.transactionType && filter.transactionType !== "new-sale") return false;
 
-  return !unsupportedFeaturedFilters.some((key) => filter[key]);
+  // ❌ REMOVE unsupported filters block completely
+  // This is killing your featured results
+
+  return true;
 }
 
 function buildFeaturedProjectMatch(filter: any) {
   const match: any = {
     status: "active",
+    categoryType: "residential",
 
-    // 🔥 EXCLUDE SPONSORED
-    "promotion.type": { $ne: "sponsored" },
-
-    // 🔥 EXPIRY HANDLING
+    // 🔥 INCLUDE ALL VALID PROMOTION TYPES
     $and: [
       {
         $or: [
           { "promotion.boostExpiry": { $gt: new Date() } },
-          { "promotion.type": { $in: ["normal", "featured"] } }
-        ]
+          { "promotion.type": { $in: ["normal", "featured", "prime", "sponsored"] } },
+        ],
       },
       {
         $or: [
           { propertyType: { $exists: false } },
           { propertyType: null },
-          { propertyType: "apartment" } // ✅ important fix
-        ]
-      }
-    ]
+          { propertyType: { $regex: "^apartment$", $options: "i" } } // ✅ important fix
+        ],
+      },
+    ],
   };
 
   // 🌍 LOCATION FILTER
@@ -199,6 +198,7 @@ function getFeaturedProjectPipeline(filter: any) {
         slug: 1,
         createdAt: 1,
         listingSource: { $literal: "featured" },
+        promotion: 1,
       },
     },
   ];
@@ -207,7 +207,8 @@ function getFeaturedProjectPipeline(filter: any) {
 function getSearchPipeline(service: any, filter: any) {
   const pipeline = service.getPipeline(filter);
 
-  if (shouldIncludeFeaturedProjects(filter)) {
+  // ✅ ALWAYS include featured for residential
+  if (filter.category === "residential") {
     pipeline.push({
       $unionWith: {
         coll: FeaturedProject.collection.name,
@@ -217,6 +218,7 @@ function getSearchPipeline(service: any, filter: any) {
   }
 
   pipeline.push({ $sort: { createdAt: -1 } });
+
   return pipeline;
 }
 
