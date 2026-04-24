@@ -26,7 +26,7 @@ export async function getFeaturedProjects(params?: {
   if (params?.city) query.append("city", params.city);
 
   const res = await fetch(
-    `${url}/api/properties/featured-project/city?${query.toString()}`,
+`${url}/api/properties/featured-project?type=prime&${query.toString()}`,
     { cache: "no-store" }, // for dynamic search
   );
 
@@ -50,7 +50,8 @@ export async function getHighlightProjects(params?: {
   if (params?.locality) query.append("locality", params.locality);
 
   const res = await fetch(
-    `${url}/api/properties/highlight-projects/city?${query.toString()}`,
+    `${url}/api/properties/featured-project?type=featured&city=${query.toString()}`,
+    
     { cache: "no-store" }
   );
 
