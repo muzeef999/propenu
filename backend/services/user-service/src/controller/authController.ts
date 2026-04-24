@@ -16,6 +16,14 @@ import DeletedAccount from "../models/deletedAccountModel";
 
 const deletedAccountMessage =
   "This account has been deleted. Please create a new account.";
+const ADMIN_CREATE_ROLES = new Set([
+  "admin",
+  "super_admin",
+  "sales_manager",
+  "sales_agent",
+  "accounts",
+  "customer_care",
+]);
 
 const getDummyLoginConfig = () => ({
   phone: process.env.DUMMY_LOGIN_PHONE?.trim(),
@@ -58,6 +66,30 @@ const findDeletedAccount = async ({
   }
 
   return DeletedAccount.findOne({ $or: lookup }).select("_id").lean();
+};
+
+const createAuthToken = ({
+  user,
+  roleDoc,
+}: {
+  user: any;
+  roleDoc?: any;
+}) => {
+  const payload: any = {
+    sub: String(user._id),
+    email: user.email,
+    name: user.name,
+    roleId: roleDoc ? String(roleDoc._id) : undefined,
+    roleName: roleDoc?.name,
+    permissions: roleDoc?.permissions ?? [],
+    accountStatus: user.accountStatus,
+  };
+
+  if (user.phone) {
+    payload.phone = Number(user.phone);
+  }
+
+  return generateToken(payload);
 };
 
 export const requestOTP = async (req: Request, res: Response) => {
@@ -699,6 +731,209 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
   } catch (error: any) {
     return res.status(500).json({
       message: "Signup failed",
+      error: error.message,
+    });
+  }
+};
+
+export const adminCreateRequestOtp = async (req: Request, res: Response) => {
+  try {
+    let { email } = req.body;
+    email = email?.trim()?.toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({
+        message: "Email is required",
+      });
+    }
+
+    const existingUser = await User.findOne({ email })
+      .select("_id email accountStatus isActive")
+      .lean();
+
+    if (existingUser?.isActive === false) {
+      return res.status(403).json({
+        message: deletedAccountMessage,
+      });
+    }
+
+    if (existingUser?.accountStatus === "active") {
+      return res.status(409).json({
+        message: "Account already registered. Please login.",
+      });
+    }
+
+    const deletedAccount = await findDeletedAccount({ email });
+    if (deletedAccount) {
+      return res.status(403).json({
+        message: deletedAccountMessage,
+      });
+    }
+
+    const otp = genOtp();
+    await saveOtpToRedis(email, otp);
+    await sendOtpEmail(email, otp);
+
+    return res.status(200).json({
+      message: "OTP sent successfully",
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      message: "Failed to send OTP",
+      error: error.message,
+    });
+  }
+};
+
+export const adminCreateVerifyOtp = async (req: Request, res: Response) => {
+  try {
+    let { email, otp, name, role } = req.body;
+
+    email = email?.trim()?.toLowerCase();
+    otp = otp?.trim();
+    name = name?.trim();
+    role = role?.trim()?.toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({
+        message: "Email is required",
+      });
+    }
+
+    if (!otp) {
+      return res.status(400).json({
+        message: "OTP is required",
+      });
+    }
+
+    const isValid = await verifyAndConsumeOtp(email, otp);
+
+    if (!isValid) {
+      return res.status(400).json({
+        message: "Invalid or expired OTP",
+      });
+    }
+
+    let user = await User.findOne({ email }).populate("roleId");
+
+    if (user) {
+      if (user.isActive === false) {
+        return res.status(403).json({
+          message: deletedAccountMessage,
+        });
+      }
+
+      const roleDoc: any = user.roleId;
+      const token = createAuthToken({ user, roleDoc });
+
+      let nextStep = "location";
+      if (user.locality && user.city && user.state && user.pincode) {
+        nextStep = "completed";
+      }
+
+      return res.status(200).json({
+        message:
+          user.accountStatus === "active"
+            ? "Account already registered. Please login."
+            : "Continue signup process",
+        token,
+        nextStep,
+      });
+    }
+
+    if (!name) {
+      return res.status(400).json({
+        message: "Name is required",
+      });
+    }
+
+    if (!role || !ADMIN_CREATE_ROLES.has(role)) {
+      return res.status(400).json({
+        message: "Invalid admin role",
+      });
+    }
+
+    const roleDoc = await Role.findOne({ name: role });
+
+    if (!roleDoc) {
+      return res.status(400).json({
+        message: "Invalid role",
+      });
+    }
+
+    user = await User.create({
+      name,
+      email,
+      roleId: roleDoc._id,
+      accountStatus: "location_pending",
+      kyc: {
+        status: "not_started",
+      },
+    });
+
+    const token = createAuthToken({ user, roleDoc });
+
+    return res.status(201).json({
+      message: "Account created. Continue signup.",
+      token,
+      nextStep: "location",
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      message: "Admin signup failed",
+      error: error.message,
+    });
+  }
+};
+
+export const adminCreateUpdateLocation = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    let { locality, city, state, pincode } = req.body;
+
+    if (!locality || !city || !state || !pincode) {
+      return res.status(400).json({
+        message: "All location fields are required",
+      });
+    }
+
+    const user = await User.findById(req.user.sub).populate("roleId");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const roleDoc: any = user.roleId;
+    if (!ADMIN_CREATE_ROLES.has(roleDoc?.name || "")) {
+      return res.status(403).json({
+        message: "This endpoint is only allowed for admin-created roles",
+      });
+    }
+
+    user.locality = locality.trim();
+    user.city = city.trim();
+    user.state = state.trim();
+    user.pincode = pincode.trim();
+    user.accountStatus = "active";
+
+    await user.save();
+
+    const token = createAuthToken({ user, roleDoc });
+
+    return res.status(200).json({
+      message: "Location updated successfully. Account is now active.",
+      token,
+      user,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      message: "Failed to update location",
       error: error.message,
     });
   }

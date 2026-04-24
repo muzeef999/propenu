@@ -4,7 +4,7 @@ export type UserRole = "admin" | "sales_manager" | "sales_agent" | "user" | "bui
 
 export interface JwtUserPayload extends JwtPayload {
   sub: string;    
-  phone: number;
+  phone?: number;
   name: string;
   roleId?: string | undefined; 
   roleName?: string | undefined;

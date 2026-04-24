@@ -1,5 +1,5 @@
 import express from "express";
-import { assignManager, createRequestOtp,  createVerifyOtp, deleteMyAccount, getAllUsers,  getManagerTeamDetails, me, requestOTP, searchUsers, updateLocationOtp, updateUser, updateUserRole, verifyOtp } from "../controller/authController";
+import { adminCreateRequestOtp, adminCreateUpdateLocation, adminCreateVerifyOtp, assignManager, createRequestOtp,  createVerifyOtp, deleteMyAccount, getAllUsers,  getManagerTeamDetails, me, requestOTP, searchUsers, updateLocationOtp, updateUser, updateUserRole, verifyOtp } from "../controller/authController";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 
 
@@ -13,6 +13,12 @@ authRoute.post("/request-otp/create",  createRequestOtp);
 authRoute.post("/verify-otp/create",  createVerifyOtp);
 
 authRoute.post("/update-location/create", authMiddleware, updateLocationOtp);
+
+authRoute.post("/request-otp/admin-create", adminCreateRequestOtp);
+
+authRoute.post("/verify-otp/admin-create", adminCreateVerifyOtp);
+
+authRoute.post("/update-location/admin-create", authMiddleware, adminCreateUpdateLocation);
 
 
 
