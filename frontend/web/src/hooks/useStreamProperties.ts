@@ -9,6 +9,7 @@ export function useStreamProperties(params: SearchFilterParams) {
   const [items, setItems] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState<number | null>(null);
+  const [sponsored, setSponsored] = useState<Property[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -19,15 +20,14 @@ export function useStreamProperties(params: SearchFilterParams) {
       setItems([]);
       setTotal(null);
 
-      // ðŸ”¥ build query string from params
       const query = new URLSearchParams(
         Object.entries(params)
           .filter(([_, v]) => v !== undefined)
-          .map(([k, v]) => [k, String(v)])
+          .map(([k, v]) => [k, String(v)]),
       ).toString();
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/properties/search?${query}`
+        `${process.env.NEXT_PUBLIC_API_URL}/api/properties/search?${query}`,
       );
 
       if (!res.body) {
@@ -36,9 +36,11 @@ export function useStreamProperties(params: SearchFilterParams) {
         return;
       }
 
-      const reader = res.body
-        .pipeThrough(new TextDecoderStream())
-        .getReader();
+      const sponsoredPromise = fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/properties/sponsored?${query}`,
+      ).then((res) => res.json());
+
+      const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
 
       let buffer = "";
 
@@ -64,7 +66,7 @@ export function useStreamProperties(params: SearchFilterParams) {
             }
 
             // âœ… append one property at a time
-            setItems(prev => [...prev, parsed as Property]);
+            setItems((prev) => [...prev, parsed as Property]);
           } catch (err) {
             console.error("Invalid JSON chunk", line);
           }
@@ -76,7 +78,12 @@ export function useStreamProperties(params: SearchFilterParams) {
         await minDelay(1000 - elapsed);
       }
 
-      if (!cancelled) setLoading(false);
+      const sponsoredRes = await sponsoredPromise;
+
+      if (!cancelled) {
+        setSponsored(sponsoredRes.data || []);
+        setLoading(false);
+      }
     }
 
     start();
@@ -86,5 +93,5 @@ export function useStreamProperties(params: SearchFilterParams) {
     };
   }, [params]);
 
-  return { items, loading, total };
+  return { items, sponsored, loading, total };
 }

@@ -112,6 +112,15 @@ export const searchFilter = async (params: SearchFilterParams) => {
   return res.data;
 };
 
+export const getSponsored = async (params: SearchFilterParams) => {
+  const res = await axiosInstance.get(
+    `${url}/api/sponsored`,   // 🔥 your new API
+    { params }
+  );
+  return res.data;
+};
+
+
 export const requestOtp = async (payload: RequestOtpPayload) => {
   const res = await axiosInstance.post<RequestOtpPayload>(
     `${url}/api/users/auth/request-otp`,

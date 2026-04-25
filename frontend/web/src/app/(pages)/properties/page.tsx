@@ -19,6 +19,7 @@ import AgriculturalCard from "./cards/AgriculturalCard";
 import FeaturedPropertyCard from "./cards/FeaturedPropertyCard";
 import ad from "@/asserts/ad.png";
 import { buildSearchParams } from "./filters/buildSearchParams";
+import { injectSponsored } from "@/utilies/injectSponsored";
 
 const propertySkeletonItems = Array.from({ length: 4 });
 
@@ -41,7 +42,10 @@ function PropertiesListSkeleton() {
 
               <div className="grid grid-cols-2 gap-4 border-t border-gray-200 pt-4 md:grid-cols-4 md:gap-6">
                 {Array.from({ length: 4 }).map((__, metaIndex) => (
-                  <div key={`property-skeleton-meta-${metaIndex}`} className="space-y-2">
+                  <div
+                    key={`property-skeleton-meta-${metaIndex}`}
+                    className="space-y-2"
+                  >
                     <div className="h-4 w-16 animate-pulse rounded bg-gray-200" />
                     <div className="h-4 w-20 animate-pulse rounded bg-gray-200" />
                   </div>
@@ -65,7 +69,7 @@ const Page: React.FC = () => {
   const filters = useAppSelector((s) => s.filters);
   const cityData = useAppSelector(selectCityWithLocalities);
   const params = React.useMemo(() => buildSearchParams(filters), [filters]);
-  const { items, loading, total } = useStreamProperties(params);
+  const { items, sponsored, loading, total } = useStreamProperties(params);
   const [sortBy, setSortBy] = React.useState("newest");
 
   const renderPropertyCard = (type: string, p: Property) => {
@@ -79,7 +83,9 @@ const Page: React.FC = () => {
       case "land":
         return <LandCard key={p.id} p={p as unknown as ILand} />;
       case "agricultural":
-        return <AgriculturalCard key={p.id} p={p as unknown as IAgricultural} />;
+        return (
+          <AgriculturalCard key={p.id} p={p as unknown as IAgricultural} />
+        );
       default:
         return <div>No card found for this category.</div>;
     }
@@ -137,21 +143,31 @@ const Page: React.FC = () => {
       case "oldest":
         return list.sort(
           (a, b) =>
-            new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime()
+            new Date(a.createdAt ?? 0).getTime() -
+            new Date(b.createdAt ?? 0).getTime(),
         );
       case "newest":
       default:
         return list.sort(
           (a, b) =>
-            new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
+            new Date(b.createdAt ?? 0).getTime() -
+            new Date(a.createdAt ?? 0).getTime(),
         );
     }
   }, [items, sortBy]);
 
+  const finalList = React.useMemo(() => {
+    return injectSponsored(sortedItems, sponsored, 5);
+  }, [sortedItems, sponsored]);
+
+  const sidebarAds = sponsored.slice(0, 2);
+
   return (
     <div className="relative min-h-screen">
       <Suspense
-        fallback={<div className="sticky top-0 z-10 h-14 w-full bg-[#D1EFDD] shadow-sm" />}
+        fallback={
+          <div className="sticky top-0 z-10 h-14 w-full bg-[#D1EFDD] shadow-sm" />
+        }
       >
         <FilterBar />
       </Suspense>
@@ -165,7 +181,8 @@ const Page: React.FC = () => {
               )}
               {!loading && (
                 <p className="text-base capitalize leading-snug text-gray-700 wrap-break-word sm:text-lg md:text-xl lg:text-2xl">
-                  <strong>{total ?? items.length}</strong> Properties for {params.listingType} in
+                  <strong>{total ?? items.length}</strong> Properties for{" "}
+                  {params.listingType} in
                   {locationLabel ? ` ${locationLabel}` : " your area"}
                 </p>
               )}
@@ -191,14 +208,28 @@ const Page: React.FC = () => {
             {loading ? (
               <PropertiesListSkeleton />
             ) : (
-              sortedItems.map((p) => renderPropertyCard(p.type ?? filters.category, p))
+              finalList.map((p, index) =>
+                p.isSponsored ? (
+                  <FeaturedPropertyCard key={`ad-${index}`} p={p} />
+                ) : (
+                  renderPropertyCard(p.type ?? filters.category, p)
+                ),
+              )
             )}
-            {!loading && sortedItems.length === 0 && <p>No properties found.</p>}
+            {!loading && sortedItems.length === 0 && (
+              <p>No properties found.</p>
+            )}
           </div>
 
           <div className="w-full lg:w-[20%]">
+            
             <div className="sticky top-24">
-              <Image src={ad} alt="advertisement banner" className="h-auto w-full p-2" />
+          
+              <div className="space-y-4">
+                {sidebarAds.map((p, i) => (
+                  <FeaturedPropertyCard key={`side-${i}`} p={p} />
+                ))}
+              </div>
             </div>
           </div>
         </div>

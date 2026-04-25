@@ -82,4 +82,7 @@ router.patch("/:id/promote", authMiddleware, promoteProperty);
 router.patch("/:id/expire", authMiddleware, expirePromotion);
 router.patch("/:id/reset", authMiddleware, resetPromotion);
 
+
+
+
 export default router;
