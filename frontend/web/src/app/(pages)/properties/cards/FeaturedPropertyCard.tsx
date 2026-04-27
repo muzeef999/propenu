@@ -137,15 +137,15 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
 const promotionConfig: Record<string, { label: string; className: string }> = {
   sponsored: {
     label: "Sponsored",
-    className: "bg-red-500/90",
+    className: "bg-black/50",
   },
   featured: {
-    label: "⭐ Featured",
-    className: "bg-yellow-500/90",
+    label: "Featured",
+    className: "bg-black/50",
   },
   normal: {
     label: "Prime Project",
-    className: "bg-[#27AE60]/80",
+    className: "bg-black/50",
   },
 };
 
@@ -180,7 +180,7 @@ const promotionConfig: Record<string, { label: string; className: string }> = {
           />
 
           <div
-            className={`absolute left-2 top-2 rounded-md px-2 py-1 text-xs font-medium text-white ${
+            className={`absolute left-2 top-2 rounded-md px-2 py-1 text-xs text-white ${
               promotionConfig[promotionType]?.className
             }`}
           >

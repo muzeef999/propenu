@@ -75,7 +75,7 @@ export default function Footer() {
               <div>
                 <p className="font-medium">Registered Office</p>
                 <p className="leading-relaxed text-gray-700">
-                  3-192/3, Near P.No. 192, B-Block,
+                  # 191, 5th Floor, Tagore Towers,
                   <br />
                   Kavuri Hills, Guttala, Madhapur, Shaikpet,
                   <br />
@@ -87,22 +87,23 @@ export default function Footer() {
 
           {/* 3. App Download Column */}
           <div>
-            <h3 className="mb-6 text-lg font-semibold text-gray-900">
+            <h3 className="mb-6 text-lg font-semibold text-gray-900 text-center">
               Experience Propenu on Mobile
             </h3>
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-4 items-center">
+              <div className="flex items-center justify-center gap-3">
                 <PlayStoreBadge />
                 <AppStoreBadge />
               </div>
-              <div className="flex items-start gap-4 mt-2">
-                <div className="bg-white p-1 rounded-md shadow-sm border border-gray-100">
-                  {/* Placeholder for QR Code */}
-                  <div className="w-16 h-16 bg-gray-200 flex items-center justify-center">
-                    <span className="text-[10px] text-center">QR CODE</span>
-                  </div>
+              <div className="flex flex-col items-center justify-center gap-4 mt-2">
+                <div className="rounded-md shadow-sm border border-gray-100">
+                  <img
+                    src="/images/qr.jpeg"
+                    alt="QR Code"
+                    className="w-24 h-24 object-cover"
+                  />
                 </div>
-                <p className="text-[12px] text-gray-600 leading-snug">
+                <p className="text-[12px] text-gray-600 leading-snug text-center">
                   Scan the QR code to
                   <br /> Download the App
                 </p>

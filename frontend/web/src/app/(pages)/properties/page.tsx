@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React, { Suspense, useState } from "react";
 import Image from "next/image";
 import { HiArrowsUpDown } from "react-icons/hi2";
 import FilterBar from "./FilterBar";
@@ -17,6 +17,7 @@ import CommercialCard from "./cards/CommercialCard";
 import { LandCard } from "./cards/LandCard";
 import AgriculturalCard from "./cards/AgriculturalCard";
 import FeaturedPropertyCard from "./cards/FeaturedPropertyCard";
+import AdCard, { type Ad } from "./cards/AdCard";
 import ad from "@/asserts/ad.png";
 import { buildSearchParams } from "./filters/buildSearchParams";
 import { injectSponsored } from "@/utilies/injectSponsored";
@@ -71,6 +72,7 @@ const Page: React.FC = () => {
   const params = React.useMemo(() => buildSearchParams(filters), [filters]);
   const { items, sponsored, loading, total } = useStreamProperties(params);
   const [sortBy, setSortBy] = React.useState("newest");
+  const [dismissedAds, setDismissedAds] = useState<Set<string>>(new Set());
 
   const renderPropertyCard = (type: string, p: Property) => {
     switch (type.toLowerCase()) {
@@ -160,7 +162,29 @@ const Page: React.FC = () => {
     return injectSponsored(sortedItems, sponsored, 5);
   }, [sortedItems, sponsored]);
 
-  const sidebarAds = sponsored.slice(0, 2);
+  const sidebarAds = React.useMemo(() => {
+    return sponsored
+      .slice(0, 2)
+      .filter((ad) => !dismissedAds.has(ad.id || ad._id))
+      .map((property) => ({
+        id: property.id || property._id || "",
+        title: property.title || "Featured Property",
+        description: property.buildingName,
+        imageUrl:
+          property.gallery?.[0]?.url ||
+          property.gallerySummary?.[0]?.url ||
+          ad.src,
+        ctaText: "View Details",
+        ctaLink: `/prime/${property.slug}`,
+        category: property.type || "Featured",
+        featured: property.promotion?.type === "featured",
+        sponsored: true,
+      } as Ad));
+  }, [sponsored, dismissedAds]);
+
+  const handleDismissAd = (adId: string) => {
+    setDismissedAds((prev) => new Set([...prev, adId]));
+  };
 
   return (
     <div className="relative min-h-screen">
@@ -226,9 +250,14 @@ const Page: React.FC = () => {
             <div className="sticky top-24">
           
               <div className="space-y-4">
-                {sidebarAds.map((p, i) => (
-                  <FeaturedPropertyCard key={`side-${i}`} p={p} />
+                {sidebarAds.map((ad) => (
+                  <AdCard key={ad.id} ad={ad} onDismiss={handleDismissAd} />
                 ))}
+                {sidebarAds.length === 0 && (
+                  <div className="rounded-2xl border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500 bg-gray-50">
+                    No sponsored ads available
+                  </div>
+                )}
               </div>
             </div>
           </div>
