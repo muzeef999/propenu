@@ -545,7 +545,6 @@ export const searchUsers = async (req: Request, res: Response) => {
         name: 1,
         email: 1,
         phone: 1,
-
         locality: 1,
         city: 1,
         state: 1,
