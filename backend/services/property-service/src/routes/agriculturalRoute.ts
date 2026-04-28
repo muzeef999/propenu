@@ -33,6 +33,8 @@ const jsonKeys = [
   "leads",
   "location",
   "legalChecks",
+  "approval",
+  "promotion",
 ];
 
 router.post(

@@ -25,6 +25,7 @@ const jsonKeys = [
   "legalChecks",
   "parkingDetails",
   "fireSafety",
+  "approval",
   "promotion",
 ];
 
