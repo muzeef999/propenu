@@ -34,7 +34,7 @@ const AdCard: React.FC<AdCardProps> = ({ ad, onDismiss }) => {
   useEffect(() => {
     if (ad.expiryDate) {
       const expired = new Date(ad.expiryDate) < new Date();
-      setIsExpired(expired || ad.isExpired);
+      setIsExpired(expired || ad.isExpired || false);
     }
   }, [ad.expiryDate, ad.isExpired]);
 
@@ -58,7 +58,7 @@ const AdCard: React.FC<AdCardProps> = ({ ad, onDismiss }) => {
         onMouseLeave={() => setIsHovered(false)}
       >
         {/* Image Container */}
-        <div className="relative h-40 w-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
+        <div className="relative h-40 w-full overflow-hidden bg-linear-to-br from-gray-100 to-gray-200">
           <Image
             src={ad.imageUrl}
             alt={ad.title}

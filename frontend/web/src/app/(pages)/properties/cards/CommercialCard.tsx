@@ -36,9 +36,16 @@ const bgPriceColor = hexToRGBA("#27AE60", 0.1);
 
 const bgPriceColoricon = hexToRGBA("#27AE60", 0.4);
 
-const CommercialCard: React.FC<{ p: ICommercial; vertical?: boolean }> = ({
+type Props = {
+  p: ICommercial;
+  vertical?: boolean;
+  isSponsored?: boolean; // ✅ ADD THIS
+};
+
+const CommercialCard: React.FC<Props> = ({
   p,
   vertical = false,
+  isSponsored = false, 
 }) => {
   const img = p?.gallery?.[0]?.url ?? "/placeholder.jpg";
   const [activeImageIndex, setActiveImageIndex] = useState(0);

@@ -3,6 +3,13 @@ import Commercial from "../../models/commercialModel";
 import LandPlot from "../../models/landModel";
 import Residential from "../../models/residentialModel";
 
+function attachType(data: any[], type: string) {
+  return data.map((item) => ({
+    ...item.toObject?.() || item,
+    type
+  }));
+}
+
 export const getSponsoredProperties = async (filters: any) => {
   const baseFilter: any = {
     status: "active",
@@ -20,16 +27,16 @@ export const getSponsoredProperties = async (filters: any) => {
 
   switch (filters.category?.toLowerCase()) {
     case "residential":
-      data = await Residential.find(baseFilter).limit(10);
+      data = attachType(await Residential.find(baseFilter).limit(10), "residential");
       break;
     case "commercial":
-      data = await Commercial.find(baseFilter).limit(10);
+      data = attachType(await Commercial.find(baseFilter).limit(10), "commercial");
       break;
     case "land":
-      data = await LandPlot.find(baseFilter).limit(10);
+      data = attachType(await LandPlot.find(baseFilter).limit(10), "land");
       break;
     case "agricultural":
-      data = await Agricultural.find(baseFilter).limit(10);
+      data = attachType(await Agricultural.find(baseFilter).limit(10), "agricultural");
       break;
     default:
       const [res, com, land, agri] = await Promise.all([
@@ -38,7 +45,12 @@ export const getSponsoredProperties = async (filters: any) => {
         LandPlot.find(baseFilter),
         Agricultural.find(baseFilter)
       ]);
-      data = [...res, ...com, ...land, ...agri];
+      data = [
+        ...attachType(res, "residential"),
+        ...attachType(com, "commercial"),
+        ...attachType(land, "land"),
+        ...attachType(agri, "agricultural")
+      ];
   }
 
   return data;

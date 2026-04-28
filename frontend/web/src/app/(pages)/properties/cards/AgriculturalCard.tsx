@@ -25,9 +25,16 @@ import RegisterDialog from "@/app/(auth)/Register";
 import { createPortal } from "react-dom";
 import { addLocalShortlist, isLocalShortlisted, removeLocalShortlist } from "@/utilies/shortlistLocal";
 
-const AgriculturalCard: React.FC<{ p: IAgricultural; vertical?: boolean }> = ({
+type Props = {
+  p: IAgricultural;
+  vertical?: boolean;
+  isSponsored?: boolean; // ✅ ADD THIS
+};
+
+const AgriculturalCard: React.FC<Props> = ({
   p,
   vertical = false,
+  isSponsored = false,
 }) => {
   const bgPriceColor = hexToRGBA("#27AE60", 0.1);
   const bgPriceColoricon = hexToRGBA("#27AE60", 0.4);

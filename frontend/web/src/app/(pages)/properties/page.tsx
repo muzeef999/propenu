@@ -1,7 +1,6 @@
 "use client";
 
 import React, { Suspense, useState } from "react";
-import Image from "next/image";
 import { HiArrowsUpDown } from "react-icons/hi2";
 import FilterBar from "./FilterBar";
 import { useAppSelector } from "@/Redux/store";
@@ -23,6 +22,28 @@ import { buildSearchParams } from "./filters/buildSearchParams";
 import { injectSponsored } from "@/utilies/injectSponsored";
 
 const propertySkeletonItems = Array.from({ length: 4 });
+
+
+function getPropertyLink(property: any) {
+
+  const type = (property.type || "").toLowerCase();
+
+  switch (type) {
+    case "residential":
+      return `/properties/residential/${property.slug}`;
+    case "commercial":
+      return `/properties/commercial/${property.slug}`;
+    case "land":
+      return `/properties/landploat/${property.slug}`;
+    case "agricultural":
+      return `/properties/agricultural/${property.slug}`;
+    case "featuredproject":
+      return `/prime/${property.slug}`;
+    default:
+      return "/";
+  }
+}
+
 
 function PropertiesListSkeleton() {
   return (
@@ -74,24 +95,53 @@ const Page: React.FC = () => {
   const [sortBy, setSortBy] = React.useState("newest");
   const [dismissedAds, setDismissedAds] = useState<Set<string>>(new Set());
 
-  const renderPropertyCard = (type: string, p: Property) => {
-    switch (type.toLowerCase()) {
-      case "residential":
-        return <ResidentialCard key={p.id} p={p as unknown as IResidential} />;
-      case "featuredproject":
-        return <FeaturedPropertyCard key={p.id} p={p} />;
-      case "commercial":
-        return <CommercialCard key={p.id} p={p as unknown as ICommercial} />;
-      case "land":
-        return <LandCard key={p.id} p={p as unknown as ILand} />;
-      case "agricultural":
-        return (
-          <AgriculturalCard key={p.id} p={p as unknown as IAgricultural} />
-        );
-      default:
-        return <div>No card found for this category.</div>;
-    }
-  };
+ const renderPropertyCard = (p: Property, index: number) => {
+  const type = (p.type || "").toLowerCase();
+  const isSponsored = p.promotion?.type === "sponsored";
+
+  switch (type) {
+    case "featuredproject":
+      return <FeaturedPropertyCard key={p.id} p={p} />;
+
+    case "residential":
+      return (
+        <ResidentialCard
+          key={p.id}
+          p={p as IResidential}
+          isSponsored={isSponsored}
+        />
+      );
+
+case "commercial":
+  return (
+    <CommercialCard
+      key={p.id}
+      p={p as unknown as ICommercial} // safe after type check
+      isSponsored={isSponsored}
+    />
+  );
+    case "land":
+      return (
+        <LandCard
+          key={p.id}
+          p={p as ILand}
+          isSponsored={isSponsored}
+        />
+      );
+
+    case "agricultural":
+      return (
+        <AgriculturalCard
+          key={p.id}
+          p={p as IAgricultural}
+          isSponsored={isSponsored}
+        />
+      );
+
+    default:
+      return <div>No card found</div>;
+  }
+};
 
   const locality = (() => {
     switch (filters.category) {
@@ -175,7 +225,7 @@ const Page: React.FC = () => {
           property.gallerySummary?.[0]?.url ||
           ad.src,
         ctaText: "View Details",
-        ctaLink: `/prime/${property.slug}`,
+        ctaLink: getPropertyLink(property),
         category: property.type || "Featured",
         featured: property.promotion?.type === "featured",
         sponsored: true,
@@ -232,14 +282,9 @@ const Page: React.FC = () => {
             {loading ? (
               <PropertiesListSkeleton />
             ) : (
-              finalList.map((p, index) =>
-                p.isSponsored ? (
-                  <FeaturedPropertyCard key={`ad-${index}`} p={p} />
-                ) : (
-                  renderPropertyCard(p.type ?? filters.category, p)
-                ),
-              )
+              finalList.map((p, index) => renderPropertyCard(p, index))
             )}
+
             {!loading && sortedItems.length === 0 && (
               <p>No properties found.</p>
             )}

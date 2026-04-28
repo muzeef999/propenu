@@ -34,10 +34,17 @@ import {
   removeLocalShortlist,
 } from "@/utilies/shortlistLocal";
 
-const ResidentialCard: React.FC<{ p: IResidential; vertical?: boolean }> = ({
+type Props = {
+  p: IResidential;
+  vertical?: boolean;
+  isSponsored?: boolean; // ✅ ADD THIS
+};
+
+const ResidentialCard: React.FC<Props> = ({
   p,
   vertical = false,
-}) => {
+  isSponsored = false, // ✅ default value
+}) =>  {
   const bgPriceColor = hexToRGBA("#27AE60", 0.1);
   const bgPriceColoricon = hexToRGBA("#27AE60", 0.4);
 
