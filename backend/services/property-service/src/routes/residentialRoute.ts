@@ -11,7 +11,7 @@ import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
-
+        
 const cpUpload = upload.fields([
     { name: "galleryFiles", maxCount: 5 },
     { name: "verificationDocuments", maxCount: 5 }, 
@@ -55,7 +55,7 @@ router.post("/:id/deactive", authMiddleware, deactivateProperty );
 
 router.delete("/:id/gallery/:imageIndex", authMiddleware, deleteGalleryImage);
 
-router.post("/", authMiddleware,cpUpload,parseJsonFields(jsonKeys), fallbackCoerceDefault, requireActiveSubscription, validateBody(ResidentialCreateSchema), createResidential);
+router.post("/", authMiddleware,cpUpload,parseJsonFields(jsonKeys), fallbackCoerceDefault,  validateBody(ResidentialCreateSchema), createResidential, requireActiveSubscription);
 router.patch("/:id", cpUpload, parseJsonFields(jsonKeys), fallbackCoerceDefault, validateBody(ResidentialUpdateSchema), editResidential );
 router.get("/", getAllResidential);
 router.get("/slug/:slug", getResidentialBySlug);
