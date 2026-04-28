@@ -33,6 +33,7 @@ const jsonKeys = [
   "greenCertification",
   "smartHomeFeatures",
   "relatedProjects", 
+  "promotion",
 ];
 
 
@@ -47,7 +48,7 @@ router.patch("/:id/verify-document", authMiddleware, (req : AuthRequest, res, ne
 if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){
        return res.status(403).json({message:"Forbidden only admin/super_admin can see the users"});
     }
-    next();
+    next(); 
 },  verifyResidentialDocument);
 
 router.post("/:id/approve",  approveProperty);

@@ -25,6 +25,7 @@ const jsonKeys = [
   "legalChecks",
   "parkingDetails",
   "fireSafety",
+  "promotion",
 ];
 
 import {  createCommercial,  editCommercial,  getAllCommercial,  getCommercialBySlug,  getCommercialDetail,  deleteCommercial, createCommercialDraft, updateCommercialBasicStep, updateCommercialLocationStep, updateCommercialDetailsStep, finalizeCommercial, getAllCommercialDraftsForAdmin, verifyCommercialDocument, getMyCommercialDraft, approveCommercialProperty, deactivateCommercialProperty, deleteCommercialGalleryImage} from "../controller/commercialController";
