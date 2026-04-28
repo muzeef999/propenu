@@ -207,7 +207,7 @@ const promotionConfig: Record<string, { label: string; className: string }> = {
                   : "text-lg md:text-md max-w-[600px]"
               }`}
             >
-              {p.title} apartments for Sale in{" "}
+              {p.title} {p.propertyType} for Sale in{" "}
               {[p.locality, p.city].filter(Boolean).join(", ")}
             </h3>
 

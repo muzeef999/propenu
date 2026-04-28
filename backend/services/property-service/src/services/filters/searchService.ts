@@ -12,8 +12,23 @@ export const CATEGORY_SERVICE_MAP: Record<string, any> = {
 };
 
 function normalizePropertyType(value: string) {
-  const normalized = value.trim().toLowerCase();
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, "-");
+
   return normalized === "appartment" ? "apartment" : normalized;
+}
+
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function propertyTypeExactRegex(value: string) {
+  return `^${normalizePropertyType(value)
+    .split("-")
+    .map(escapeRegex)
+    .join("[\\s_-]+")}$`;
 }
 
 function normalizeResidentialFilter(filter: any) {
@@ -35,7 +50,7 @@ function normalizeResidentialFilter(filter: any) {
   };
 }
 
-function getPropertyTypeList(filter: any) {
+function getPropertyTypeList(filter: any): string[] {
   if (typeof filter?.propertyType !== "string") return [];
 
   return filter.propertyType
@@ -47,21 +62,7 @@ function getPropertyTypeList(filter: any) {
 function shouldIncludeFeaturedProjects(filter: any) {
   if (filter?.category !== "residential") return false;
 
-  const propertyTypes = getPropertyTypeList(filter);
-
-  // ✅ Allow if no propertyType OR includes apartment
-  if (propertyTypes.length > 0 && !propertyTypes.includes("apartment")) {
-    return false;
-  }
-
-  // ✅ Only restrict strict mismatches
   if (filter.listingType && filter.listingType !== "sale") return false;
-
-  // ❌ REMOVE this (too strict)
-  // if (filter.transactionType && filter.transactionType !== "new-sale") return false;
-
-  // ❌ REMOVE unsupported filters block completely
-  // This is killing your featured results
 
   return true;
 }
@@ -88,6 +89,20 @@ function buildFeaturedProjectMatch(filter: any) {
       },
     ],
   };
+
+  const propertyTypes = getPropertyTypeList(filter);
+  match.$and = [match.$and[0]];
+
+  if (propertyTypes.length > 0) {
+    match.$and.push({
+      $or: propertyTypes.map((propertyType) => ({
+        propertyType: {
+          $regex: propertyTypeExactRegex(propertyType),
+          $options: "i",
+        },
+      })),
+    });
+  }
 
   // 🌍 LOCATION FILTER
   if (filter.city) {
@@ -174,6 +189,7 @@ function getFeaturedProjectPipeline(filter: any) {
         locality: 1,
         city: 1,
         listingType: { $literal: "sale" },
+        propertyType: 1,
         transactionType: { $literal: "new-sale" },
         builtUpArea: "$sqftRange",
         constructionStatus: { $literal: "under-construction" },
@@ -207,8 +223,7 @@ function getFeaturedProjectPipeline(filter: any) {
 function getSearchPipeline(service: any, filter: any) {
   const pipeline = service.getPipeline(filter);
 
-  // ✅ ALWAYS include featured for residential
-  if (filter.category === "residential") {
+  if (shouldIncludeFeaturedProjects(filter)) {
     pipeline.push({
       $unionWith: {
         coll: FeaturedProject.collection.name,
