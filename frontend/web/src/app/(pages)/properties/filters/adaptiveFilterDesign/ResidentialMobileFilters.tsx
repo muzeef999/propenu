@@ -56,6 +56,9 @@ const POSTED_BY_MAP: Record<(typeof POSTED_BY_OPTIONS)[number], string> = {
   Builders: "Builder",
 };
 
+const getCategoryLabel = (value: categoryOption) =>
+  value === "Land" ? "Plots" : value;
+
 const keyMapping: Record<RESFilterKey, keyof ResidentialFilters> = {
   "Property Type": "propertyType",
   "Sales Type": "transactionType",
@@ -284,7 +287,7 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
                     )}
                   </span>
 
-                  {type}
+                  {getCategoryLabel(type)}
                 </label>
               );
             })}

@@ -55,6 +55,9 @@ const plotAreaOptions = [
   300, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500, 10000,
 ];
 
+const getCategoryLabel = (value: categoryOption) =>
+  value === "Land" ? "Plots" : value;
+
 const formatBudget = (value: number) =>
   value >= 100
     ? `₹${value / 100}${value === 5000 ? "+" : ""} Cr`
@@ -264,7 +267,7 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                     {active && <span className="h-3 w-3 rounded-full bg-green-600" />}
                   </span>
 
-                  {type}
+                  {getCategoryLabel(type)}
                 </label>
               );
             })}

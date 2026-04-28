@@ -68,7 +68,7 @@ const SearchBox = () => {
   const categoryOptions: Array<{ label: string; value: categoryOption }> = [
     { label: "Residential", value: "Residential" },
     { label: "Commercial", value: "Commercial" },
-    { label: "Plot", value: "Land" },
+    { label: "Plots", value: "Land" },
     { label: "Agricultural", value: "Agricultural" },
   ];
   const categoryToType: Record<categoryOption, string> = {
@@ -177,7 +177,7 @@ const SearchBox = () => {
               className="flex items-center gap-2 bg-transparent text-sm text-gray-900 cursor-pointer"
             >
               <span className="md:max-w-24 md:truncate lg:max-w-none">
-                {category === "Land" ? "Plot" : category}
+                {category === "Land" ? "Plots" : category}
               </span>
               <ArrowDropdownIcon
                 size={12}

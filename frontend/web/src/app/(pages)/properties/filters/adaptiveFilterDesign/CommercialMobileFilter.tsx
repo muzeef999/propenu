@@ -58,6 +58,9 @@ const carpetOptions = [
   100, 250, 500, 750, 1000, 1500, 2000, 3000, 4000, 5000, 7500, 10000,
 ];
 
+const getCategoryLabel = (value: categoryOption) =>
+  value === "Land" ? "Plots" : value;
+
 const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
 
 const COMMERCIAL_SUBTYPE_MAP: Record<string, string[]> = {
@@ -329,7 +332,7 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
                     {active && <span className="h-3 w-3 rounded-full bg-green-600" />}
                   </span>
 
-                  {type}
+                  {getCategoryLabel(type)}
                 </label>
               );
             })}

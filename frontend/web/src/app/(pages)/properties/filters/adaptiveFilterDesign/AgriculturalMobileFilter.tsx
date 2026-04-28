@@ -50,6 +50,9 @@ type AgriculturalMobileFilterProps = {
   categoryOptions: readonly categoryOption[];
 };
 
+const getCategoryLabel = (value: categoryOption) =>
+  value === "Land" ? "Plots" : value;
+
 const MULTI_SELECT_KEYS = new Set([
   "agriculturalType",
   "agriculturalSubType",
@@ -283,7 +286,7 @@ const AgriculturalMobileFilter: React.FC<AgriculturalMobileFilterProps> = ({
                     {active && <span className="h-3 w-3 rounded-full bg-green-600" />}
                   </span>
 
-                  {type}
+                  {getCategoryLabel(type)}
                 </label>
               );
             })}

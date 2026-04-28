@@ -47,8 +47,8 @@ interface Property {
 const TAB_KEY_MAP: Record<string, string> = {
   Residential: "residential",
   Commercial: "commercial",
-  Plot: "land",
-  Agriculture: "agricultural",
+  "Open Plot": "land",
+  "Agriculture land": "agricultural",
 };
 
 const categoriesDropdown = [

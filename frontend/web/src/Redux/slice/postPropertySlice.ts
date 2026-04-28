@@ -267,7 +267,7 @@ const postPropertySlice = createSlice({
         listingType,
         city: draft.city,
         buildingName: draft.buildingName,
-        landName: draft.landName ?? draft.layoutName ?? draft.title,
+        landName: draft.landName ?? draft.layoutName,
         locality: draft.locality,
         location: draft.location,
         address: draft.address,
@@ -453,7 +453,7 @@ const postPropertySlice = createSlice({
           approvedBy: draft.approvedBy ?? draft.approvedByAuthority,
           approvedByAuthority: draft.approvedByAuthority ?? draft.approvedBy,
           landUseZone: draft.landUseZone,
-          landName: draft.landName ?? draft.layoutName ?? draft.title,
+          landName: draft.landName ?? draft.layoutName,
           conversionCertificateFile: draft.conversionCertificateFile,
           encumbranceCertificateFile: draft.encumbranceCertificateFile,
           soilTestReport: draft.soilTestReport,
@@ -487,7 +487,7 @@ const postPropertySlice = createSlice({
           irrigationType: draft.irrigationType,
           currentCrop: draft.currentCrop,
           suitableFor: draft.suitableFor,
-          landName: draft.landName ?? draft.layoutName ?? draft.title,
+          landName: draft.landName ?? draft.layoutName,
           landShape: draft.landShape,
           numberOfBorewells: draft.numberOfBorewells,
           borewellDetails: draft.borewellDetails,
@@ -535,7 +535,7 @@ const postPropertySlice = createSlice({
         state.base.listingType ??
         DEFAULT_LISTING_TYPE;
       state.base.landName =
-        draft.landName ?? draft.layoutName ?? draft.title ?? state.base.landName;
+        draft.landName ?? draft.layoutName ?? state.base.landName;
       if (
         state.propertyType === "agricultural" &&
         !state.agricultural.propertyType

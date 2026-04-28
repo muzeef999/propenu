@@ -16,7 +16,10 @@ import User from "../models/userModel";
 import { sendManagerApprovalMail } from "../utils/sendManagerMail";
 import mongoose from "mongoose";
 import { deleteS3ObjectIfExists } from "../utils/s3Helpers";
-import { sendListingSubmittedVerification } from "../../../../shared/whatsapp/whatsapp.helper";
+import {
+  sendListingApprovedAgent,
+  sendListingSubmittedVerification,
+} from "../../../../shared/whatsapp/whatsapp.helper";
 import {
   sendListingApprovedEmail,
   sendListingSubmittedEmail,
@@ -682,6 +685,8 @@ export const verifyResidentialDocument = async (
       return res.status(400).json({ message: "Invalid status" });
     }
 
+    const existingProperty = await Residential.findById(id).select("status");
+
     const updated = await ResidentialPropertyService.verifyDocument(
       id,
       documentIndex,
@@ -692,18 +697,50 @@ export const verifyResidentialDocument = async (
       return res.status(404).json({ message: "Property not found" });
     }
 
-    if (updated.status === "active") {
+    const notificationStatus = {
+      email: false,
+      whatsapp: false,
+      push: false,
+    };
+
+    if (existingProperty?.status !== "active" && updated.status === "active") {
       try {
-        const user = await User.findById((updated as any).ownerId);
+        const userId = (updated as any).createdBy || (updated as any).ownerId;
+        const user = await User.findById(userId).lean();
+        const propertyTitle = (updated as any).title || "Property";
+        const propertyLocation =
+          (updated as any).city || (updated as any).locality || "your area";
+        const propertiesLink = `${process.env.FRONTEND_URL || "https://propenu.com"}/agent/my-properties`;
+
+        if (user?.email && user?.name) {
+          await sendListingApprovedEmail(
+            user.email,
+            user.name,
+            propertyTitle,
+            {
+              roleName: "sales_agent",
+              location: propertyLocation,
+              link: propertiesLink,
+            },
+          );
+          notificationStatus.email = true;
+        }
+
+        if (user?.phone && user?.name) {
+          await sendListingApprovedAgent(user.phone, [user.name, propertyTitle]);
+          notificationStatus.whatsapp = true;
+        }
+
         if (user?.fcmToken) {
           await sendTemplateNotification({
             token: user.fcmToken,
             templateKey: "PROPERTY_APPROVED",
             data: {
               name: user.name || "User",
-              propertyTitle: "Your Property",
+              propertyTitle,
             },
           });
+          notificationStatus.push = true;
         }
       } catch (notifyError) {
         console.error("Notification error:", notifyError);
@@ -711,7 +748,9 @@ export const verifyResidentialDocument = async (
     }
 
     if (status === "rejected") {
-      const user = await User.findById((updated as any).ownerId);
+      const userId = (updated as any).createdBy || (updated as any).ownerId;
+      const user = await User.findById(userId).lean();
+      const propertyTitle = (updated as any).title || "Property";
 
       if (user?.fcmToken) {
         await sendTemplateNotification({
@@ -719,7 +758,7 @@ export const verifyResidentialDocument = async (
           templateKey: "PROPERTY_REJECTED",
           data: {
             name: user.name || "User",
-            propertyTitle: "Your Property",
+            propertyTitle,
           },
         });
       }
@@ -728,6 +767,7 @@ export const verifyResidentialDocument = async (
     res.json({
       success: true,
       verified: updated.status === "active",
+      notifications: notificationStatus,
       data: updated,
     });
   } catch (err: any) {
@@ -765,29 +805,60 @@ export const approveProperty = async (req: Request, res: Response) => {
 
     await property.save();
 
+    const notificationStatus = {
+      email: false,
+      whatsapp: false,
+      push: false,
+    };
+
     try {
       const agent = await User.findById(property.createdBy).lean();
+      const propertyTitle = property.title || "Property";
+      const propertyLocation = property.city || property.locality || "your area";
+      const propertiesLink = `${process.env.FRONTEND_URL || "https://propenu.com"}/agent/my-properties`;
 
       if (agent?.email && agent?.name) {
         await sendListingApprovedEmail(
           agent.email,
           agent.name,
-          property.title || "Property",
+          propertyTitle,
           {
             roleName: "sales_agent",
-            location: property.city || property.locality || "your area",
-            link: `${process.env.FRONTEND_URL || "https://propenu.com"}/agent/my-properties`,
+            location: propertyLocation,
+            link: propertiesLink,
           },
         );
+        notificationStatus.email = true;
+      }
+
+      if (agent?.phone && agent?.name) {
+        await sendListingApprovedAgent(agent.phone, [
+          agent.name,
+          propertyTitle,
+        ]);
+        notificationStatus.whatsapp = true;
+      }
+
+      if (agent?.fcmToken) {
+        await sendTemplateNotification({
+          token: agent.fcmToken,
+          templateKey: "PROPERTY_APPROVED",
+          data: {
+            name: agent.name || "User",
+            propertyTitle,
+          },
+        });
+        notificationStatus.push = true;
       }
     } catch (err) {
-      console.error("Approval email sending failed:", err);
+      console.error("Approval notification sending failed:", err);
     }
 
     res.json({
       success: true,
-      message: "✅ Property approved successfully",
+      message: "Property approved successfully",
       propertyId: property._id,
+      notifications: notificationStatus,
     });
   } catch (err: any) {
     console.error(err);

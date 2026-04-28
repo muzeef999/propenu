@@ -113,7 +113,6 @@ const CommercialProfile = () => {
     setFileStoreFiles("postProperty", localFiles);
   };
 
-
   return (
     <div className="space-y-8">
       {/* ========== PROPERTY BASICS ========== */}
@@ -133,6 +132,11 @@ const CommercialProfile = () => {
               )
             }
           />
+          {fieldErrors?.amenities?.[0] && (
+            <p className="mt-1 text-xs text-red-500">
+              {fieldErrors.amenities[0]}
+            </p>
+          )}
         </div>
         <div className="space-y-3">
           {/* Section Title */}
@@ -159,6 +163,7 @@ const CommercialProfile = () => {
                   }),
                 )
               }
+              error={fieldErrors?.parkingDetails?.[0]}
             />
 
             {/* Four Wheeler */}
@@ -178,6 +183,7 @@ const CommercialProfile = () => {
                   }),
                 )
               }
+              error={fieldErrors?.parkingDetails?.[0]}
             />
           </div>
         </div>
@@ -205,6 +211,7 @@ const CommercialProfile = () => {
                 label: t.replace("-", " "),
               }))}
               placeholder="Select"
+              error={fieldErrors?.flooringType?.[0]}
             />
 
             {/* Floor Number */}
@@ -221,6 +228,7 @@ const CommercialProfile = () => {
                   }),
                 )
               }
+              error={fieldErrors?.floorNumber?.[0]}
             />
 
             {/* Total Floors */}
@@ -237,6 +245,7 @@ const CommercialProfile = () => {
                   }),
                 )
               }
+              error={fieldErrors?.totalFloors?.[0]}
             />
           </div>
         </div>
@@ -253,12 +262,13 @@ const CommercialProfile = () => {
                 }),
               )
             }
-            options={PANTRY_TYPES.map((t) => ({
-              value: t,
-              label: t.replace("-", " "),
-            }))}
-            placeholder="Select"
-          />
+              options={PANTRY_TYPES.map((t) => ({
+                value: t,
+                label: t.replace("-", " "),
+              }))}
+              placeholder="Select"
+              error={fieldErrors?.pantry?.[0]}
+            />
 
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700">
@@ -338,6 +348,7 @@ const CommercialProfile = () => {
                 }),
               )
             }
+            error={fieldErrors?.buildingManagement?.[0]}
           />
 
           <InputField
@@ -356,6 +367,7 @@ const CommercialProfile = () => {
                 }),
               )
             }
+            error={fieldErrors?.buildingManagement?.[0]}
           />
         </div>
       </div>
@@ -377,6 +389,7 @@ const CommercialProfile = () => {
               }),
             )
           }
+          error={fieldErrors?.zoning?.[0]}
         />
       </div>
 
@@ -589,6 +602,11 @@ const CommercialProfile = () => {
             );
           })}
         </div>
+        {fieldErrors?.fireSafety?.[0] && (
+          <p className="mt-1 text-xs text-red-500">
+            {fieldErrors.fireSafety[0]}
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -686,6 +704,7 @@ const CommercialProfile = () => {
             }),
           )
         }
+        error={fieldErrors?.description?.[0]}
       />
 
       <button
@@ -714,6 +733,7 @@ const CommercialProfile = () => {
 
           if (totalImageCount < 5) {
             setFieldErrors({
+              ...fieldErrors,
               images: ["Upload at least 5 images"],
             });
             toast.error("Upload at least 5 images");
@@ -724,6 +744,7 @@ const CommercialProfile = () => {
 
           if (!result.success) {
             const flattened = result.error.flatten();
+            setFieldErrors(flattened.fieldErrors);
 
             console.error("❌ Commercial Profile Validation Failed");
             console.table(flattened.fieldErrors);

@@ -27,6 +27,9 @@ import AgriculturalMobileFilter from "./filters/adaptiveFilterDesign/Agricultura
 import { useSearchParams } from "next/navigation";
 
 const FilterBar: React.FC = () => {
+  const getCategoryLabel = (value: categoryOption) =>
+    value === "Land" ? "Plots" : value;
+
   const typeToCategory: Record<string, categoryOption> = {
     residential: "Residential",
     commercial: "Commercial",
@@ -236,7 +239,9 @@ const FilterBar: React.FC = () => {
                 type="button"
                 className="flex items-center gap-2 bg-transparent text-sm text-gray-900 cursor-pointer"
               >
-                <span className="md:max-w-24 md:truncate lg:max-w-none">{category}</span>
+                <span className="md:max-w-24 md:truncate lg:max-w-none">
+                  {getCategoryLabel(category)}
+                </span>
                 <ArrowDropdownIcon
                   size={12}
                   color="#111827"
@@ -266,7 +271,7 @@ const FilterBar: React.FC = () => {
                           : "hover:bg-gray-100 text-gray-700"
                       }`}
                     >
-                      {type}
+                      {getCategoryLabel(type)}
                     </button>
                   ))}
                 </div>

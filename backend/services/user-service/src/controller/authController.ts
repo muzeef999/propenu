@@ -560,6 +560,34 @@ export const searchUsers = async (req: Request, res: Response) => {
             "$$REMOVE",
           ],
         },
+
+        agentDetails: {
+          $cond: [
+            { $eq: ["$role.name", "agent"] },
+            {
+              _id: "$agent._id",
+              slug: "$agent.slug",
+              name: "$agent.name",
+              bio: "$agent.bio",
+              agencyName: "$agent.agencyName",
+              licenseNumber: "$agent.licenseNumber",
+              licenseValidTill: "$agent.licenseValidTill",
+              areasServed: "$agent.areasServed",
+              city: "$agent.city",
+              experienceYears: "$agent.experienceYears",
+              dealsClosed: "$agent.dealsClosed",
+              languages: "$agent.languages",
+              verificationStatus: "$agent.verificationStatus",
+              avatar: "$agent.avatar",
+              coverImage: "$agent.coverImage",
+              rera: "$agent.rera",
+              stats: "$agent.stats",
+              createdAt: "$agent.createdAt",
+              updatedAt: "$agent.updatedAt",
+            },
+            "$$REMOVE",
+          ],
+        },
       },
     });
 
