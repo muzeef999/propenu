@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { MdClose, MdOpenInNew } from "react-icons/md";
-import { BiHeart, BiSolidHeart } from "react-icons/bi";
+import { GoHeart, GoHeartFill } from "react-icons/go";
+import { useShortlist } from "@/hooks/useShortlist";
 
 export interface Ad {
   id: string;
@@ -25,10 +26,46 @@ interface AdCardProps {
   onDismiss?: (adId: string) => void;
 }
 
+type ShortlistPropertyType =
+  | "Residential"
+  | "Commercial"
+  | "Land"
+  | "Agricultural"
+  | "FeaturedProject";
+
+function getShortlistPropertyType(
+  category?: string,
+): ShortlistPropertyType | undefined {
+  switch (category?.toLowerCase()) {
+    case "residential":
+    case "residentials":
+      return "Residential";
+    case "commercial":
+    case "commercials":
+      return "Commercial";
+    case "land":
+    case "landplot":
+    case "landplots":
+      return "Land";
+    case "agricultural":
+    case "agriculturals":
+      return "Agricultural";
+    case "featured":
+    case "featuredproject":
+    case "featured project":
+      return "FeaturedProject";
+    default:
+      return undefined;
+  }
+}
+
 const AdCard: React.FC<AdCardProps> = ({ ad, onDismiss }) => {
-  const [isSaved, setIsSaved] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
+  const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(
+    ad.id,
+    getShortlistPropertyType(ad.category),
+  );
 
   // Check if ad is expired
   useEffect(() => {
@@ -42,13 +79,12 @@ const AdCard: React.FC<AdCardProps> = ({ ad, onDismiss }) => {
     return null;
   }
 
-  const handleToggleSave = (e: React.MouseEvent) => {
+  const handleToggleShortlist = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsSaved(!isSaved);
+    toggleShortlist();
   };
 
-  
 
   return (
     <Link href={ad.ctaLink} target="_blank" rel="noopener noreferrer">
@@ -83,21 +119,27 @@ const AdCard: React.FC<AdCardProps> = ({ ad, onDismiss }) => {
 
           {/* Featured Badge */}
           {ad.featured && (
-            <div className="absolute top-2 right-2 bg-yellow-500/90 text-white text-xs font-semibold px-2 py-1 rounded-md flex items-center gap-1">
-              ⭐ Featured
+            <div className="absolute top-2 right-2 bg-yellow-500/90 text-white text-xs font-semibold px-2 py-1 rounded-md">
+              Featured
             </div>
           )}
 
           {/* Save/Shortlist Button */}
           <button
-            onClick={handleToggleSave}
-            className="absolute bottom-2 right-2 bg-white/95 hover:bg-white p-2 rounded-full shadow-md transition-all duration-200 z-10"
-            aria-label={isSaved ? "Remove from saved" : "Save ad"}
+            onClick={handleToggleShortlist}
+            disabled={isShortlistLoading}
+            className="absolute bottom-2 right-2 z-10 rounded-full bg-white/95 p-2 shadow-md transition-all duration-200 hover:bg-white hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
+            aria-label={
+              isShortlisted ? "Remove from shortlist" : "Shortlist property"
+            }
+            title={isShortlisted ? "Remove from shortlist" : "Shortlist"}
           >
-            {isSaved ? (
-              <BiSolidHeart className="h-5 w-5 text-red-500" />
+            {isShortlistLoading ? (
+              <span className="block h-5 w-5 animate-pulse rounded-full bg-gray-300" />
+            ) : isShortlisted ? (
+              <GoHeartFill className="h-5 w-5 text-red-500" />
             ) : (
-              <BiHeart className="h-5 w-5 text-gray-600 group-hover:text-red-500 transition-colors" />
+              <GoHeart className="h-5 w-5 text-gray-600 transition-colors group-hover:text-red-500" />
             )}
           </button>
         </div>

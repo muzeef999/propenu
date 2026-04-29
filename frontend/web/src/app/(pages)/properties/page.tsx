@@ -44,6 +44,28 @@ function getPropertyLink(property: any) {
   }
 }
 
+function isOwnerProperty(property: Property) {
+  const type = (property.type || "").toLowerCase();
+  const listingSource = String((property as any)?.listingSource || "user")
+    .trim()
+    .toLowerCase();
+
+  return (
+    type !== "featuredproject" &&
+    listingSource !== "builder" &&
+    listingSource !== "agent"
+  );
+}
+
+function isAgentProperty(property: Property) {
+  const type = (property.type || "").toLowerCase();
+  const listingSource = String((property as any)?.listingSource || "")
+    .trim()
+    .toLowerCase();
+
+  return type !== "featuredproject" && listingSource === "agent";
+}
+
 
 function PropertiesListSkeleton() {
   return (
@@ -94,6 +116,11 @@ const Page: React.FC = () => {
   const { items, sponsored, loading, total } = useStreamProperties(params);
   const [sortBy, setSortBy] = React.useState("newest");
   const [dismissedAds, setDismissedAds] = useState<Set<string>>(new Set());
+  const listingSourceFilter = String((params as any).listingSource || "").toLowerCase();
+  const isOwnerFilterActive =
+    listingSourceFilter === "user";
+  const isAgentFilterActive =
+    listingSourceFilter === "agent";
 
  const renderPropertyCard = (p: Property, index: number) => {
   const type = (p.type || "").toLowerCase();
@@ -181,7 +208,11 @@ case "commercial":
   };
 
   const sortedItems = React.useMemo(() => {
-    const list = [...items];
+    const list = isOwnerFilterActive
+      ? items.filter(isOwnerProperty)
+      : isAgentFilterActive
+        ? items.filter(isAgentProperty)
+        : [...items];
 
     switch (sortBy) {
       case "price-low-high":
@@ -206,14 +237,20 @@ case "commercial":
             new Date(a.createdAt ?? 0).getTime(),
         );
     }
-  }, [items, sortBy]);
+  }, [items, isOwnerFilterActive, isAgentFilterActive, sortBy]);
+
+  const filteredSponsored = React.useMemo(() => {
+    if (isOwnerFilterActive) return sponsored.filter(isOwnerProperty);
+    if (isAgentFilterActive) return sponsored.filter(isAgentProperty);
+    return sponsored;
+  }, [sponsored, isOwnerFilterActive, isAgentFilterActive]);
 
   const finalList = React.useMemo(() => {
-    return injectSponsored(sortedItems, sponsored, 5);
-  }, [sortedItems, sponsored]);
+    return injectSponsored(sortedItems, filteredSponsored, 5);
+  }, [sortedItems, filteredSponsored]);
 
   const sidebarAds = React.useMemo(() => {
-    return sponsored
+    return filteredSponsored
       .slice(0, 2)
       .filter((ad) => !dismissedAds.has(ad.id || ad._id))
       .map((property) => ({
@@ -230,7 +267,7 @@ case "commercial":
         featured: property.promotion?.type === "featured",
         sponsored: true,
       } as Ad));
-  }, [sponsored, dismissedAds]);
+  }, [filteredSponsored, dismissedAds]);
 
   const handleDismissAd = (adId: string) => {
     setDismissedAds((prev) => new Set([...prev, adId]));

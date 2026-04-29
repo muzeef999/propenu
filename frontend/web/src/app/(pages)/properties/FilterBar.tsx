@@ -82,6 +82,60 @@ const FilterBar: React.FC = () => {
     }
   }, [searchParams, dispatch]);
 
+  useEffect(() => {
+    const postedBy = (
+      searchParams.get("postedBy") ||
+      searchParams.get("postedby") ||
+      searchParams.get("listingSource") ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+    const isOwner = postedBy === "owner" || postedBy === "owners" || postedBy === "user";
+    const isAgent = postedBy === "agent" || postedBy === "agents";
+
+    if (!isOwner && !isAgent) {
+      return;
+    }
+
+    if (category === "Residential") {
+      dispatch(
+        setResidentialFilter({
+          key: "listingSource",
+          value: isAgent ? "agent" : "user",
+        }),
+      );
+      return;
+    }
+
+    if (category === "Commercial") {
+      dispatch(
+        setCommercialFilter({
+          key: "listingSource",
+          value: isAgent ? "Agents" : "Owners",
+        }),
+      );
+      return;
+    }
+
+    if (category === "Land") {
+      dispatch(
+        setLandFilter({ key: "postedBy", value: [isAgent ? "Agents" : "Owners"] }),
+      );
+      return;
+    }
+
+    if (category === "Agricultural") {
+      dispatch(
+        setAgriculturalFilter({
+          key: "postedBy",
+          value: [isAgent ? "Agents" : "Owners"],
+        }),
+      );
+    }
+  }, [searchParams, category, dispatch]);
+
   const toggleArrayValue = (arr: string[] = [], value: string) =>
     arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
 

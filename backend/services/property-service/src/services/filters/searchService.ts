@@ -64,6 +64,19 @@ function shouldIncludeFeaturedProjects(filter: any) {
 
   if (filter.listingType && filter.listingType !== "sale") return false;
 
+  if (typeof filter.listingSource === "string" && filter.listingSource.trim()) {
+    const listingSources = filter.listingSource
+      .split(",")
+      .map((source: string) => source.trim().toLowerCase())
+      .filter(Boolean);
+
+    return (
+      listingSources.includes("featured") ||
+      listingSources.includes("builder") ||
+      listingSources.includes("builders")
+    );
+  }
+
   return true;
 }
 
