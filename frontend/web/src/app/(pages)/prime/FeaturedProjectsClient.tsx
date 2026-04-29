@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { FeaturedProject } from "@/types";
 import { ArrowDropdownIcon } from "@/icons/icons";
@@ -30,6 +30,8 @@ export default function FeaturedProjectsClient() {
     () => getHomeSectionCache<FeaturedProject[]>(cacheKey) ?? [],
   );
   const [loading, setLoading] = useState(() => !getHomeSectionCache(cacheKey));
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
 
   useEffect(() => {
@@ -76,6 +78,34 @@ export default function FeaturedProjectsClient() {
     };
   }, [cacheKey, selectedCity]);
 
+  const updateScrollState = useCallback(() => {
+    const el = sliderRef.current;
+    if (!el) return;
+
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth);
+  }, []);
+
+  useEffect(() => {
+    const el = sliderRef.current;
+
+    if (!el || loading || !items.length) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
+
+    updateScrollState();
+
+    el.addEventListener("scroll", updateScrollState);
+    window.addEventListener("resize", updateScrollState);
+
+    return () => {
+      el.removeEventListener("scroll", updateScrollState);
+      window.removeEventListener("resize", updateScrollState);
+    };
+  }, [items, loading, updateScrollState]);
+
 
   const scrollLeft = () =>
     sliderRef.current?.scrollBy({
@@ -106,7 +136,7 @@ export default function FeaturedProjectsClient() {
         </div>
       </div>
 
-      {!loading && hasItems && (
+      {!loading && hasItems && canScrollLeft && (
         <button
           onClick={scrollLeft}
           aria-label="Scroll left"
@@ -195,7 +225,7 @@ export default function FeaturedProjectsClient() {
       )}
 
       {/* Right Arrow */}
-      {!loading && hasItems && (
+      {!loading && hasItems && canScrollRight && (
         <button
           onClick={scrollRight}
           aria-label="Scroll right"

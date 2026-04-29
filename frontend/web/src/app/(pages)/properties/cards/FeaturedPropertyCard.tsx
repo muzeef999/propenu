@@ -17,7 +17,7 @@ import { useShortlist } from "@/hooks/useShortlist";
 
 
 export interface IPromotion {
-  type: "normal" | "featured" | "sponsored";
+  type: "normal" | "featured" | "sponsored" | "prime";
   priority: number;
   source: "manual" | "subscription";
   startDate?: Date;
@@ -134,20 +134,23 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
 
   const promotionType = p?.promotion?.type || "normal";
 
-const promotionConfig: Record<string, { label: string; className: string }> = {
-  sponsored: {
-    label: "Sponsored",
-    className: "bg-black/50",
-  },
-  featured: {
-    label: "Featured",
-    className: "bg-black/50",
-  },
-  normal: {
-    label: "Prime Project",
-    className: "bg-black/50",
-  },
-};
+  const promotionConfig: Partial<
+    Record<IPromotion["type"], { label: string; className: string }>
+  > = {
+    sponsored: {
+      label: "Sponsored",
+      className: "bg-black/50",
+    },
+    featured: {
+      label: "Featured",
+      className: "bg-black/50",
+    },
+    prime: {
+      label: "Prime Project",
+      className: "bg-black/50",
+    },
+  };
+  const promotionBadge = promotionConfig[promotionType];
 
 
 
@@ -179,13 +182,13 @@ const promotionConfig: Record<string, { label: string; className: string }> = {
             onToggleShortlist={toggleShortlist}
           />
 
-          <div
-            className={`absolute left-2 top-2 rounded-md px-2 py-1 text-xs text-white ${
-              promotionConfig[promotionType]?.className
-            }`}
-          >
-            {promotionConfig[promotionType]?.label}
-          </div>
+          {promotionBadge && (
+            <div
+              className={`absolute left-2 top-2 rounded-md px-2 py-1 text-xs text-white ${promotionBadge.className}`}
+            >
+              {promotionBadge.label}
+            </div>
+          )}
 
           <div className="absolute left-2 bottom-2 flex items-center gap-2 text-xs text-white">
             <div className="bg-black/60 px-2 py-1 rounded-md flex items-center gap-1">
