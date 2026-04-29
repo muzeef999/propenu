@@ -32,7 +32,7 @@ function HighlightProjectCard({ project }: { project: FeaturedProject }) {
       href={`/prime/${project.slug}`}
       className="relative shrink-0 snap-start group cursor-pointer transition-all duration-300 hover:-translate-y-2 w-[260px] sm:w-[280px] md:w-[320px]"
     >
-      <div className="mt-5 w-full overflow-hidden rounded-2xl h-[150px] sm:h-[170px] md:h-[180px] shadow-sm transition-shadow duration-300 group-hover:shadow-2xl">
+      <div className="relative mt-5 w-full overflow-hidden rounded-2xl h-[150px] sm:h-[170px] md:h-[180px] shadow-sm transition-shadow duration-300 group-hover:shadow-2xl">
         <img
           src={project.heroImage ?? "/images/placeholder.svg"}
           alt={project.title}
@@ -46,8 +46,9 @@ function HighlightProjectCard({ project }: { project: FeaturedProject }) {
             event.stopPropagation();
             toggleShortlist();
           }}
-          className="absolute right-3 top-3 rounded-full bg-white/90 p-2 shadow transition-all duration-200 hover:scale-110 active:scale-95"
+          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow transition-all duration-200 hover:scale-110 active:scale-95"
           title={isShortlisted ? "Remove from shortlist" : "Shortlist"}
+          aria-label={isShortlisted ? "Remove from shortlist" : "Shortlist"}
         >
           {isShortlistLoading ? (
             <span className="block h-5 w-5 animate-pulse rounded-full bg-gray-300" />
