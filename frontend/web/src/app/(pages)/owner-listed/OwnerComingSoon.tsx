@@ -11,7 +11,7 @@ type OwnerComingSoonProps = {
 const OwnerComingSoon = ({ city }: OwnerComingSoonProps) => {
   return (
     <div
-      className="relative min-h-[276px] overflow-hidden rounded-[22px] border border-[#d6efdf] px-6 py-7 sm:px-8 lg:px-10 mt-4" 
+      className="relative min-h-[276px] overflow-hidden rounded-xl border border-[#d6efdf] px-6 py-7 sm:px-8 lg:px-10 mt-4" 
       style={{
         background:
           "linear-gradient(231.95deg, rgba(241, 252, 245, 0.84) 55.66%, rgba(255, 255, 255, 0.84) 104.47%)",
@@ -96,7 +96,7 @@ const OwnerComingSoon = ({ city }: OwnerComingSoonProps) => {
           </div>
 
           <Link
-            href="/post-property"
+            href="/postproperty"
             className="mt-4 flex h-9 items-center justify-center rounded border border-[#27AE60] text-sm font-semibold text-[#27AE60] transition hover:bg-[#27AE60] hover:text-white"
           >
             Post Property

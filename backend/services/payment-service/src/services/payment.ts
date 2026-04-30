@@ -7,6 +7,7 @@ import { Types } from "mongoose";
 import { SubscriptionHistory } from "../models/subscriptionHistoryModel";
 import { uploadPdfToS3 } from "../utils/uploadPdfToS3";
 import { generateInvoicePdf } from "../utils/generateInvoicePdf";
+import User from "../../../user-service/src/models/userModel";
 
 type VerifyPaymentResult = {
   success: true;
@@ -14,6 +15,11 @@ type VerifyPaymentResult = {
   subscriptionName?: string;
   invoiceUrl?: string;
   message?: string;
+};
+
+type InvoiceCustomer = {
+  name?: string | undefined;
+  phone?: string | undefined;
 };
 
 /* ======================================================
@@ -134,7 +140,8 @@ export async function createPaymentOrder(
 export async function verifyPaymentAndActivate(
   razorpay_order_id: string,
   razorpay_payment_id: string,
-  razorpay_signature: string
+  razorpay_signature: string,
+  invoiceCustomer?: InvoiceCustomer,
 ): Promise<VerifyPaymentResult> {
 
   const body = `${razorpay_order_id}|${razorpay_payment_id}`;
@@ -202,15 +209,21 @@ export async function verifyPaymentAndActivate(
   ====================================================== */
 
   if (!payment.userId) {
-  throw new Error("Invalid payment: userId missing");
-}
+    throw new Error("Invalid payment: userId missing");
+  }
+
+  const user = await User.findById(payment.userId).select("name phone").lean();
 
   const invoiceBuffer = await generateInvoicePdf({
     invoiceNo: `INV-${payment._id}`,
-    userName: payment.userId.toString(),
+    userName:
+      invoiceCustomer?.name?.trim() ||
+      user?.name?.trim() ||
+      payment.userId.toString(),
+    userPhone: invoiceCustomer?.phone || user?.phone,
     planName: plan.name || plan.code,
     amount: plan.price,
-    date: new Date().toISOString().split("T")[0] || ""
+    date: new Date().toISOString().split("T")[0] || "",
   });
 
   const s3Key = `invoices/${payment.userId}/${payment._id}.pdf`;

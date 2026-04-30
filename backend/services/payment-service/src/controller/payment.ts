@@ -116,6 +116,10 @@ export async function verifyPayment(req: AuthRequest, res: Response) {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
+      {
+        name: req.user?.name,
+        phone: req.user?.phone,
+      },
     );
 
     let emailSent = false;

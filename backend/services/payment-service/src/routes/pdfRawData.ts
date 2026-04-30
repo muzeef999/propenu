@@ -9,6 +9,7 @@ pdfRawData.get("/", async (_req, res) => {
     const pdfBuffer = await generateInvoicePdf({
       invoiceNo: "INV-001",
       userName: "Muzeef",
+      userPhone: "+91 98765 43210",
       planName: "Premium Listing Plan",
       amount: 4999,
       date: new Date().toDateString(),

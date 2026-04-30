@@ -5,6 +5,7 @@ import path from "path";
 export async function generateInvoicePdf(data: {
   invoiceNo: string;
   userName: string;
+  userPhone?: string | undefined;
   planName: string;
   amount: number;
   date: string;
@@ -61,7 +62,7 @@ export async function generateInvoicePdf(data: {
     const sectionTop = doc.y + 20;
 
     const leftX = 50;
-    const rightX = doc.page.width - 155;
+    const rightX = doc.page.width - 200;
 
     /* ---------- LEFT: BILL FROM ---------- */
 
@@ -108,9 +109,9 @@ export async function generateInvoicePdf(data: {
       .moveDown(0.3)
       .fontSize(11)
       .font("Helvetica")
-      .text(data.userName, leftX)
+      .text(data.userName || "Customer", leftX)
       .moveDown(0.15)
-      .text("Phone – +91 XXXXX XXXXX");
+      .text(`${data.userPhone || "N/A"}`, leftX);
 
     doc.moveDown(2);
 
@@ -232,9 +233,9 @@ export async function generateInvoicePdf(data: {
     doc
       .fontSize(10)
       .font("Helvetica")
-      .text("GSTIN - 07AA228P1ZR", leftX, blockStartY)
-      .text("PAN Number - AAIC228P", leftX, blockStartY + 18)
-      .text("CIN Number - U7010C256668", leftX, blockStartY + 36);
+      .text("GSTIN - 36AAQCP2952F1Z5", leftX, blockStartY)
+      .text("PAN Number - AAQCP2952F", leftX, blockStartY + 18)
+      .text("CIN Number - U70200TS2025PTC205314", leftX, blockStartY + 36);
 
     /* ---------- RIGHT BLOCK ---------- */
 
@@ -248,13 +249,13 @@ export async function generateInvoicePdf(data: {
     doc
       .fontSize(10)
       .font("Helvetica")
-      .text(`CGST: ₹${cgst.toFixed(2)}`, rightX, blockStartY + 20, {
+      .text(`CGST: Rs.${cgst.toFixed(2)}`, rightX, blockStartY + 20, {
         align: "right",
       })
-      .text(`SGST: ₹${sgst.toFixed(2)}`, rightX, blockStartY + 35, {
+      .text(`SGST: Rs.${sgst.toFixed(2)}`, rightX, blockStartY + 35, {
         align: "right",
       })
-      .text(`Total: ₹${total.toFixed(2)}`, rightX, blockStartY + 50, {
+      .text(`Total: Rs.${total.toFixed(2)}`, rightX, blockStartY + 50, {
         align: "right",
       });
 
@@ -266,7 +267,7 @@ export async function generateInvoicePdf(data: {
       .fontSize(11)
       .font("Helvetica-Bold")
       .text(
-        `Amount Paid: ₹${total.toFixed(2)}`,
+        `Amount Paid: Rs.${total.toFixed(2)}`,
         amountBlockX,
         blockStartY + 70,
         {

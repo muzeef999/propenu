@@ -10,13 +10,13 @@ import { RiArrowRightSLine } from "react-icons/ri";
 import { useCity } from "@/hooks/useCity";
 import { getAgentConnect } from "@/data/ClientData";
 import HomeSectionSkeleton from "@/components/HomeSectionSkeleton";
-import HomeSectionComingSoon from "@/components/HomeSectionComingSoon";
 import { minDelay } from "@/utilies/minDelay";
 import {
   getHomeSectionCache,
   getHomeSectionCacheKey,
   setHomeSectionCache,
 } from "@/utilies/homeSectionCache";
+import AgentsComingSoon from "./AgentsComingSoon";
 
 export default function AgentsList() {
   const sliderRef = useRef<HTMLDivElement | null>(null);
@@ -185,10 +185,7 @@ export default function AgentsList() {
           ))}
         </div>
       ) : (
-        <HomeSectionComingSoon
-          title="Agent Connect Is Coming Soon"
-          description={`We’re onboarding trusted agents for ${selectedCity?.city ?? "your city"}. You’ll see expert profiles here as soon as they’re available.`}
-        />
+        <AgentsComingSoon city={selectedCity?.city} state={selectedCity?.state} />
       )}
     </div>
   );

@@ -17,6 +17,7 @@ import { LandCard } from "./cards/LandCard";
 import AgriculturalCard from "./cards/AgriculturalCard";
 import FeaturedPropertyCard from "./cards/FeaturedPropertyCard";
 import AdCard, { type Ad } from "./cards/AdCard";
+import SponsoreCard from "./cards/SponsoreCard";
 import ad from "@/asserts/ad.png";
 import { buildSearchParams } from "./filters/buildSearchParams";
 import { injectSponsored } from "@/utilies/injectSponsored";
@@ -336,9 +337,7 @@ case "commercial":
                   <AdCard key={ad.id} ad={ad} onDismiss={handleDismissAd} />
                 ))}
                 {sidebarAds.length === 0 && (
-                  <div className="rounded-2xl border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500 bg-gray-50">
-                    No sponsored ads available
-                  </div>
+                  <SponsoreCard />
                 )}
               </div>
             </div>
