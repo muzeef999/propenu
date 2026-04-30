@@ -45,13 +45,13 @@ export async function getHighlightProjects(params?: {
 }) {
   const query = new URLSearchParams();
 
+  query.append("type", "featured");
   if (params?.state) query.append("state", params.state);
   if (params?.city) query.append("city", params.city);
   if (params?.locality) query.append("locality", params.locality);
 
   const res = await fetch(
-    `${url}/api/properties/featured-project?type=featured&city=${query.toString()}`,
-    
+    `${url}/api/properties/featured-project?${query.toString()}`,
     { cache: "no-store" }
   );
 

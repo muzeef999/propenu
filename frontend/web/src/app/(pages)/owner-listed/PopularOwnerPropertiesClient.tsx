@@ -16,13 +16,13 @@ import { IAgricultural } from "@/types/agricultural";
 import { ILand } from "@/types/land";
 import { ICommercial } from "@/types/commercial";
 import HomeSectionSkeleton from "@/components/HomeSectionSkeleton";
-import HomeSectionComingSoon from "@/components/HomeSectionComingSoon";
 import { minDelay } from "@/utilies/minDelay";
 import {
   getHomeSectionCache,
   getHomeSectionCacheKey,
   setHomeSectionCache,
 } from "@/utilies/homeSectionCache";
+import OwnerComingSoon from "./OwnerComingSoon";
 
 type OwnerCardItem = PopularOwnerProperty & {
   id?: string;
@@ -211,10 +211,7 @@ const PopularOwnerPropertiesClient = () => {
           })}
         </div>
       ) : (
-        <HomeSectionComingSoon
-          title="Owner Listings Are Coming Soon"
-          description={`We’re gathering direct owner properties for ${selectedCity?.city ?? "your city"}. This section will light up as new listings go live.`}
-        />
+        <OwnerComingSoon city={selectedCity?.city} />
       )}
 
       {/* Right arrow */}
