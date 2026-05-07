@@ -5,7 +5,7 @@ import { validateBody } from "../middlewares/validate";
 import { parseJsonFields } from "../middlewares/parseJsonFields";
 import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
 import { ResidentialCreateSchema, ResidentialUpdateSchema } from "../zod/residentialZod";
-import {  approveProperty, createResidential, createResidentialDraft, deactivateProperty, deleteGalleryImage, deleteResidential, editResidential, finalizeResidential, getAllResidential, getAllResidentialDraftsForAdmin, getMyResidentialDraft, getResidentialBySlug, getResidentialDetail, updateBasicStep, updateDetailsStep, updateLocationStep, verifyResidentialDocument } from "../controller/residentialController";
+import { approveProperty, createResidential, createResidentialDraft, deactivateProperty, deleteGalleryImage, deleteResidential, editResidential, finalizeResidential, getAllResidential, getAllResidentialDraftsForAdmin, getMyResidentialDraft, getResidentialBySlug, getResidentialDetail, updateBasicStep, updateDetailsStep, updateLocationStep, verifyResidentialDocument } from "../controller/residentialController";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 
@@ -47,15 +47,16 @@ router.patch("/:id/details", authMiddleware, cpUpload, parseJsonFields(jsonKeys)
 router.patch("/:id/verification", authMiddleware, cpUpload, parseJsonFields(jsonKeys), requireActiveSubscription, finalizeResidential);
 router.patch("/:id/verify-document", authMiddleware, (req : AuthRequest, res, next) => {
 if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){
-       return res.status(403).json({message:"Forbidden only admin/super_admin can see the users"});
+       return res.status(403).json({message:"Forbidden only admin/super_admin can see the users"}); 
     }
     next(); 
 },  verifyResidentialDocument);
 
 router.post("/:id/approve",  approveProperty);
 router.post("/:id/deactive", authMiddleware, deactivateProperty );
-
 router.delete("/:id/gallery/:imageIndex", authMiddleware, deleteGalleryImage);
+
+
 
 router.post("/", authMiddleware,cpUpload,parseJsonFields(jsonKeys), fallbackCoerceDefault,  validateBody(ResidentialCreateSchema), createResidential, requireActiveSubscription);
 router.patch("/:id", cpUpload, parseJsonFields(jsonKeys), fallbackCoerceDefault, validateBody(ResidentialUpdateSchema), editResidential );

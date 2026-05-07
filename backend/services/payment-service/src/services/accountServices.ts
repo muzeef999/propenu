@@ -3,29 +3,28 @@ import { SubscriptionHistory } from "../models/subscriptionHistoryModel";
 import { Subscription } from "../models/subscriptionModel";
 
 export const getAccountsSummary = async () => {
-  const [revenueAgg, todayAgg, activeSubs, failedPayments] =
-    await Promise.all([
-      Payment.aggregate([
-        { $match: { status: "paid" } },
-        { $group: { _id: null, total: { $sum: "$amount" } } },
-      ]),
+  const [revenueAgg, todayAgg, activeSubs, failedPayments] = await Promise.all([
+    Payment.aggregate([
+      { $match: { status: "paid" } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]),
 
-      Payment.aggregate([
-        {
-          $match: {
-            status: "paid",
-            createdAt: {
-              $gte: new Date(new Date().setHours(0, 0, 0, 0)),
-            },
+    Payment.aggregate([
+      {
+        $match: {
+          status: "paid",
+          createdAt: {
+            $gte: new Date(new Date().setHours(0, 0, 0, 0)),
           },
         },
-        { $group: { _id: null, total: { $sum: "$amount" } } },
-      ]),
+      },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]),
 
-      Subscription.countDocuments({ status: "active" }),
+    Subscription.countDocuments({ status: "active" }),
 
-      Payment.countDocuments({ status: "failed" }),
-    ]);
+    Payment.countDocuments({ status: "failed" }),
+  ]);
 
   return {
     totalRevenue: revenueAgg[0]?.total || 0,
@@ -34,7 +33,6 @@ export const getAccountsSummary = async () => {
     failedPayments,
   };
 };
-
 
 export const getPayments = async (query: any) => {
   const { status, userType, page = 1, limit = 20 } = query;
@@ -45,7 +43,7 @@ export const getPayments = async (query: any) => {
 
   const payments = await Payment.find(filter)
     .populate("planId", "name tier price")
-    .populate("userId", "name email")
+    .populate("userId", "name email phone locality city state pincode address")
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(Number(limit));
@@ -55,7 +53,6 @@ export const getPayments = async (query: any) => {
   return { data: payments, total };
 };
 
-
 export const getSubscriptions = async (query: any) => {
   const { status } = query;
 
@@ -63,10 +60,9 @@ export const getSubscriptions = async (query: any) => {
   if (status) filter.status = status;
 
   return Subscription.find(filter)
-    .populate("userId", "name email")
+    .populate("userId", "name email phone locality city state pincode address")
     .sort({ createdAt: -1 });
 };
-
 
 export const getSubscriptionHistoryone = async (query: any) => {
   const { userId } = query;
@@ -74,11 +70,12 @@ export const getSubscriptionHistoryone = async (query: any) => {
   const filter: any = {};
   if (userId) filter.userId = userId;
 
-  return SubscriptionHistory.find(filter).sort({
-    purchasedAt: -1,
-  });
+  return SubscriptionHistory.find(filter)
+    .populate("userId", "name email phone locality city state pincode address")
+    .sort({
+      purchasedAt: -1,
+    });
 };
-
 
 export const getRevenueByPlan = async () => {
   return Payment.aggregate([

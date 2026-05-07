@@ -2,8 +2,6 @@ import express from "express";
 import multer from "multer";
 import { parseJsonFields } from "../middlewares/parseJsonFields";
 import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
-import { validateBody } from "../middlewares/validate";
-// import { CommercialCreateSchema, CommercialUpdateSchema } from "../zod/commercialZod"; // optional
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -62,7 +60,7 @@ router.get("/draft/me", authMiddleware, getMyCommercialDraft);
 router.patch("/:id/basic", authMiddleware, cpUpload, parseJsonFields(jsonKeys), updateCommercialBasicStep);
 router.patch("/:id/location", authMiddleware, parseJsonFields(jsonKeys), updateCommercialLocationStep);
 router.patch("/:id/details", authMiddleware, cpUpload, parseJsonFields(jsonKeys), updateCommercialDetailsStep);
-router.patch("/:id/verification", authMiddleware, cpUpload, parseJsonFields(jsonKeys), finalizeCommercial);
+router.patch("/:id/verification", authMiddleware, cpUpload, parseJsonFields(jsonKeys), requireActiveSubscription, finalizeCommercial);
 
 
 export default router;

@@ -103,6 +103,7 @@ router.patch(
   authMiddleware,
   cpUpload, // 🔥 REQUIRED
   parseJsonFields(jsonKeys),
+  requireActiveSubscription,
   finalizeLand
 );
 router.get("/draft/all", getAllLandDraftsForAdmin);

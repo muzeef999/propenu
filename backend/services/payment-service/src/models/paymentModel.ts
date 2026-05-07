@@ -3,13 +3,16 @@ import { Schema, model, Types } from "mongoose";
 
 const PaymentSchema = new Schema(
   {
-    userId: Types.ObjectId,
+    userId: { type: Types.ObjectId, ref: "User", required: true },
     subscriptionId: Types.ObjectId,
     userType: String,
     provider: { type: String, default: "razorpay" },
     orderId: String,
     paymentId: String,
-    planId: Types.ObjectId,
+    planId: {
+      type: Types.ObjectId,
+      ref: "Plan", // 👈 needed for populate
+    },
     razorpayOrderId: String,
     razorpayPaymentId: String,
     razorpaySignature: String,
@@ -21,7 +24,7 @@ const PaymentSchema = new Schema(
       default: "created",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export const Payment = model("Payment", PaymentSchema);

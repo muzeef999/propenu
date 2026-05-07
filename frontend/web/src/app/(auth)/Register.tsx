@@ -1,35 +1,17 @@
-"use client";
-
+"use client"
 import KycButton from "@/app/(account)/settings/KycButton";
-import {
-  createRequestOtp,
-  createVerifyOtp,
-  me,
-  updateLocation,
-} from "@/data/ClientData";
+import { createRequestOtp, createVerifyOtp, me,  updateLocation,} from "@/data/ClientData";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import {
-  MdCheckCircle,
-  MdClose,
-  MdOutlineBadge,
-  MdOutlineLock,
-} from "react-icons/md";
+import {  MdCheckCircle,  MdClose,  MdOutlineBadge,  MdOutlineLock,} from "react-icons/md";
 import { BsBuildings } from "react-icons/bs";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
 import "react-phone-number-input/style.css";
+import { BsShieldCheck } from "react-icons/bs";
+import { HiOutlineIdentification } from "react-icons/hi2";
 import Cookies from "js-cookie";
 import { AiOutlineUser } from "react-icons/ai";
-import { useRouter } from "next/navigation";
-import {
-  accountSchema,
-  FormErrors,
-  locationSchema,
-  mapAuthZodErrors,
-  OTP_LENGTH,
-  otpSchema,
-  phoneSchema,
-} from "./AuthZod";
+import {  accountSchema, FormErrors,  locationSchema,  mapAuthZodErrors,  OTP_LENGTH,  otpSchema,  phoneSchema,} from "./AuthZod";
 
 interface RegisterDialogProps {
   open: boolean;
@@ -55,6 +37,38 @@ type NominatimPincodeResult = {
   };
 };
 
+function validateFullName(
+  name: string,
+  role: "user" | "builder" | "agent",
+): string {
+  const value = name.trim();
+
+  if (!value) return "Full name is required";
+  if (value.length < 3) return "Name must be at least 3 characters";
+
+  // 🚨 Only apply strict rules for KYC users
+  if (role !== "builder") {
+    const words = value.split(" ").filter(Boolean);
+
+    if (words.length < 2) {
+      return "Enter full name as per Aadhaar (first + last name)";
+    }
+
+    const businessWords = ["construction", "builders", "realty", "infra"];
+
+    if (businessWords.some((word) => value.toLowerCase().includes(word))) {
+      return "Please enter your full name as per Aadhaar (not your business name)";
+    }
+  }
+
+  
+  if (/\d/.test(value)) {
+    return "Name cannot contain numbers";
+  }
+
+  return "";
+}
+
 function formatToTitleCase(value: string) {
   if (!value) return "";
 
@@ -68,7 +82,6 @@ function formatToTitleCase(value: string) {
 function normalizePincodeAreaName(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return "";
-
   return trimmed.replace(/^ward\s*\d+[a-z]?\s+/i, "").trim();
 }
 
@@ -86,7 +99,7 @@ const RegisterDialog = ({
   onSwitchToLogin,
   initialStep = "personal",
 }: RegisterDialogProps) => {
-  const router = useRouter();
+
   const [step, setStep] = useState<RegisterStep>(initialStep || "personal");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [formData, setFormData] = useState({
@@ -98,6 +111,12 @@ const RegisterDialog = ({
     city: "",
     state: "",
   });
+
+  const [kycStatus, setKycStatus] = useState<
+    "verified" | "pending" | "rejected" | null
+  >(null);
+
+  const [kycRemark, setKycRemark] = useState("");
 
   const [otpDigits, setOtpDigits] = useState<string[]>(
     Array(OTP_LENGTH).fill(""),
@@ -294,7 +313,6 @@ const RegisterDialog = ({
       }
 
       window.dispatchEvent(new Event("auth-changed"));
-      router.refresh();
 
       if (requiresKyc) {
         toast.success("Location updated");
@@ -457,6 +475,28 @@ const RegisterDialog = ({
     }
   }, [open]);
 
+
+  useEffect(() => {
+  const kyc = sessionStorage.getItem("kycStatus");
+  const remark = sessionStorage.getItem("kycRemark");
+
+  if (kyc === "rejected" || kyc === "pending") {
+    setKycStatus(kyc as any);
+    setKycRemark(remark || "");
+    setStep("kyc");
+
+    // reopen dialog
+    // IMPORTANT
+    if (!open) {
+      onSwitchToLogin(); // remove if unnecessary
+    }
+
+    sessionStorage.removeItem("kycStatus");
+    sessionStorage.removeItem("kycRemark");
+  }
+}, []);
+
+
   useEffect(() => {
     if (step !== "location") return;
 
@@ -600,10 +640,10 @@ const RegisterDialog = ({
                   disabled={!isEnabled}
                   className={`border-b-2 pb-2 text-center transition cursor-pointer ${
                     isCompleted
-                        ? "border-[#1c7b44] text-[#1f8f4d]"
+                      ? "border-[#1c7b44] text-[#1f8f4d]"
                       : isActive
                         ? "border-[#28b463] text-[#28b463]"
-                      : "border-[#b6b8b6] text-[#8d908e]"
+                        : "border-[#b6b8b6] text-[#8d908e]"
                   } ${!isEnabled ? "cursor-not-allowed opacity-60" : ""}`}
                 >
                   {tab.label}
@@ -617,17 +657,66 @@ const RegisterDialog = ({
           {step === "personal" && (
             <div className="space-y-4">
               <div>
-                <label className="font-normal text-[#1e1e1e]">Full Name</label>
+                <label className="mb-2 block font-normal text-[#1e1e1e]">
+                  Are you
+                </label>
+
+                <div className="grid grid-cols-3 gap-2.5">
+                  {[
+                    {
+                      value: "user",
+                      label: "Buyer/Seller",
+                      icon: AiOutlineUser,
+                    },
+                    { value: "agent", label: "Agent", icon: MdOutlineBadge },
+                    { value: "builder", label: "Builder", icon: BsBuildings },
+                  ].map(({ value, label, icon: Icon }) => {
+                    const isActive = formData.role === value;
+
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            role: value as "user" | "builder" | "agent",
+                          }));
+                          setErrors((prev) => ({ ...prev, role: undefined }));
+                        }}
+                        className={`flex min-h-[46px] items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition cursor-pointer ${
+                          isActive
+                            ? "border-[#28b463] bg-[#f2fcf6]  text-[#28b463]"
+                            : "border-transparent bg-[#f2fcf6]  text-[#8a8d8b]"
+                        }`}
+                      >
+                        <Icon size={20} />
+                        <span>{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {errors.role && (
+                  <p className="mt-2 text-xs text-red-600">{errors.role}</p>
+                )}
+              </div>
+              <div>
+                <label className="font-normal text-[#1e1e1e]">Full Name </label>
                 <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-2.5">
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => {
+                      const value = e.target.value;
                       setFormData((prev) => ({
                         ...prev,
-                        name: e.target.value,
+                        name: value,
                       }));
-                      setErrors((prev) => ({ ...prev, name: undefined }));
+                      const error = validateFullName(value, formData.role);
+                      setErrors((prev) => ({
+                        ...prev,
+                        name: error || undefined,
+                      }));
                     }}
                     placeholder="Enter your full name"
                     className="w-full border-none bg-transparent text-base text-[#1f1f1f] outline-none placeholder:text-[#a0a3a0]"
@@ -749,51 +838,6 @@ const RegisterDialog = ({
                 )}
               </div>
 
-              <div>
-                <label className="mb-2 block font-normal text-[#1e1e1e]">
-                  Select Role
-                </label>
-
-                <div className="grid grid-cols-3 gap-2.5">
-                  {[
-                    {
-                      value: "user",
-                      label: "Buyer/Seller",
-                      icon: AiOutlineUser,
-                    },
-                    { value: "agent", label: "Agent", icon: MdOutlineBadge },
-                    { value: "builder", label: "Builder", icon: BsBuildings },
-                  ].map(({ value, label, icon: Icon }) => {
-                    const isActive = formData.role === value;
-
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => {
-                          setFormData((prev) => ({
-                            ...prev,
-                            role: value as "user" | "builder" | "agent",
-                          }));
-                          setErrors((prev) => ({ ...prev, role: undefined }));
-                        }}
-                        className={`flex min-h-[46px] items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition cursor-pointer ${
-                          isActive
-                            ? "border-[#28b463] bg-[#f2fcf6]  text-[#28b463]"
-                            : "border-transparent bg-[#f2fcf6]  text-[#8a8d8b]"
-                        }`}
-                      >
-                        <Icon size={20} />
-                        <span>{label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                {errors.role && (
-                  <p className="mt-2 text-xs text-red-600">{errors.role}</p>
-                )}
-              </div>
-
               <button
                 disabled={loading}
                 onClick={handlePersonalStepNext}
@@ -803,7 +847,6 @@ const RegisterDialog = ({
                   "Verifying..."
                 ) : (
                   <span className="flex items-center justify-center gap-2">
-                    
                     Continue
                   </span>
                 )}
@@ -971,34 +1014,96 @@ const RegisterDialog = ({
                   This number will be used for KYC verification
                 </p>
               </div>
-
-              <div className="space-y-2 py-1">
-                {[
-                  "Real users, verified identities",
-                  "One-time KYC verification",
-                  "Safe & secure platform",
-                  "Zero spam & fake accounts",
-                  "Connect with genuine leads",
-                ].map((item) => (
-                  <div key={item} className="flex items-center gap-3">
-                    <MdCheckCircle className="shrink-0 text-lg text-[#28b463]" />
-                    <span className="text-[1.02rem] text-[#1f1f1f]">
-                      {item}
-                    </span>
+              {kycStatus === "rejected" ? (
+                <div className="relative rounded-xl bg-[#fdeaea] p-5 border border-red-200">
+                  {/* Icon (top-right) */}
+                  <div className="absolute top-4 right-4 text-red-300 text-4xl">
+                    <HiOutlineIdentification />
                   </div>
-                ))}
-              </div>
 
-              <div className="flex items-center gap-2 text-sm text-[#8b8f8c]">
-                <MdOutlineLock className="text-base" />
-                <span>
-                  secure & government approved DigiLocker verification
-                </span>
-              </div>
+                  {/* Title */}
+                  <h2 className="text-lg font-semibold text-red-600">
+                    KYC Verification Failed
+                  </h2>
 
-              <div className="pt-2">
-                <KycButton className="w-full text-center" />
+                  {/* Subtitle */}
+                  <p className="text-gray-700 mt-1">
+                    We couldn’t verify your identity
+                  </p>
+
+                  {/* Reason */}
+                  <p className="mt-2 text-sm">
+                    <span className="text-red-500 font-semibold">Reason:</span>{" "}
+                    <span className="text-gray-700">
+                      {kycRemark || "Name mismatch with Aadhaar card."}
+                    </span>
+                  </p>
+
+                  {/* Divider */}
+                  <div className="border-t border-dashed border-red-200 my-4"></div>
+
+                  {/* How to resolve */}
+                  <h3 className="text-red-600 font-semibold mb-2">
+                    How to resolve:
+                  </h3>
+
+                  <ul className="text-sm text-gray-700 space-y-1 list-disc pl-5">
+                    <li>Enter your full name as per your Aadhaar.</li>
+                    <li>Do not use business or company names.</li>
+                    <li>Check spellings carefully before submitting.</li>
+                  </ul>
+                </div>
+              ) : (
+                <div>
+                  <div className="space-y-2 py-1">
+                    {[
+                      "Real users, verified identities",
+                      "One-time KYC verification",
+                      "Safe & secure platform",
+                      "Zero spam & fake accounts",
+                      "Connect with genuine leads",
+                    ].map((item) => (
+                      <div key={item} className="flex items-center gap-3">
+                        <MdCheckCircle className="shrink-0 text-lg text-[#28b463]" />
+                        <span className="text-[1.02rem] text-[#1f1f1f]">
+                          {item}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="mt-5 rounded-lg bg-green-50 border border-green-100 px-4 py-3">
+                <div className="flex items-start gap-3">
+                  {/* Icon */}
+                  <div className="text-green-600 text-xl mt-0.5">
+                    <BsShieldCheck />
+                  </div>
+
+                  {/* Text */}
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">
+                      Your data is safe and secure with DigiLocker
+                    </p>
+
+                    <p className="text-xs text-gray-500 mt-1">
+                      We don’t store your documents
+                    </p>
+                  </div>
+                </div>
               </div>
+              {kycStatus == "rejected" ? (
+                <button
+                  onClick={() => setStep("personal")}
+                  className="mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                >
+                  Retry KYC
+                </button>
+              ) : (
+                <div className="pt-2">
+                  <KycButton className="w-full text-center" />
+                </div>
+              )}
             </div>
           )}
         </div>

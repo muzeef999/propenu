@@ -23,14 +23,15 @@ const Dropdown = dynamic<DropdownProps>(() => import("@/ui/SingleDropDown"), {
   ssr: false,
 });
 
-const BRAND_GREEN = "#27AE60"; // use your logo color
+const BRAND_GREEN = "#27AE60";
 
 const Navbar = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>(null);
-  const [open, setOpen] = useState(false);
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false); // Separate state for auth dialog
+  const [cityDropdownOpen, setCityDropdownOpen] = useState(false); // Separate state for city dropdown
   const [mobileOpen_city, setMobileOpen_city] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
@@ -65,7 +66,6 @@ const Navbar = () => {
 
         localStorage.setItem("role", data.user.roleName);
 
-        // Resume onboarding based on account status
         if (status === "location_pending") {
           setRegisterStep("location");
         }
@@ -75,6 +75,7 @@ const Navbar = () => {
         }
       } catch (err) {
         // user not logged in
+        console.log("User not logged in");
       }
     }
 
@@ -91,6 +92,19 @@ const Navbar = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const kyc = sessionStorage.getItem("kycStatus");
+    const remark = sessionStorage.getItem("kycRemark");
+
+    if (kyc === "rejected" || kyc === "pending") {
+      setIsAuthDialogOpen(true);
+      setAuthMode("register");
+      setRegisterStep("kyc");
+      sessionStorage.removeItem("kycStatus");
+      sessionStorage.removeItem("kycRemark");
+    }
+  }, []);
+
   const toggleState = (stateName: string) => {
     setOpenState((prev) => (prev === stateName ? null : stateName));
   };
@@ -99,7 +113,7 @@ const Navbar = () => {
 
   function onSelect(item: LocationItem) {
     selectCity(item);
-    setOpen(false);
+    setCityDropdownOpen(false);
     setMobileOpen_city(false);
     btnRef.current?.focus();
   }
@@ -109,6 +123,7 @@ const Navbar = () => {
     localStorage.removeItem("role");
     setUser(null);
     setAuthMode(null);
+    setIsAuthDialogOpen(false);
     setMobileOpen(false);
     window.location.href = "/";
   };
@@ -116,7 +131,7 @@ const Navbar = () => {
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (!rootRef.current) return;
-      if (!rootRef.current.contains(e.target as Node)) setOpen(false);
+      if (!rootRef.current.contains(e.target as Node)) setCityDropdownOpen(false);
 
       if (
         mobileDropdownRef.current &&
@@ -127,7 +142,7 @@ const Navbar = () => {
     }
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        setOpen(false);
+        setCityDropdownOpen(false);
         setMobileOpen_city(false);
       }
     }
@@ -139,11 +154,22 @@ const Navbar = () => {
     };
   }, []);
 
+  // Function to open login dialog
+  const openLoginDialog = () => {
+    setIsAuthDialogOpen(true);
+    setAuthMode("login");
+  };
+
+  // Function to close auth dialog
+  const closeAuthDialog = () => {
+    setIsAuthDialogOpen(false);
+    setAuthMode(null);
+  };
+
   const popularCities = locations.filter(
     (loc) => loc.category?.toLowerCase() === "popular",
   );
 
-  // Group cities by state
   const groupedByState = locations.reduce(
     (acc: Record<string, LocationItem[]>, loc) => {
       if (!acc[loc.state]) acc[loc.state] = [];
@@ -154,28 +180,26 @@ const Navbar = () => {
   );
   const sortedGroupedByState = Object.entries(groupedByState)
     .sort(([stateA], [stateB]) => {
-      // Selected state should come first
       if (stateA === selectedCity?.state) return -1;
       if (stateB === selectedCity?.state) return 1;
       return stateA.localeCompare(stateB);
     })
     .map(([stateName, cities]) => {
-      // If this is the selected state, move selected city to top
       if (stateName === selectedCity?.state) {
         const sortedCities = [...cities].sort((a, b) => {
           if (a.city === selectedCity?.city) return -1;
           if (b.city === selectedCity?.city) return 1;
           return a.city.localeCompare(b.city);
         });
-
         return [stateName, sortedCities] as [string, LocationItem[]];
       }
-
       return [stateName, cities] as [string, LocationItem[]];
     });
+
   return (
     <header>
-      <nav className="w-full bg-white border-b relative z-50 border-gray-200"
+      <nav
+        className="w-full bg-white border-b relative z-50 border-gray-200"
         aria-label="Main navigation"
       >
         <div className="container mx-auto px-1 sm:px-4 lg:px-3">
@@ -187,9 +211,8 @@ const Navbar = () => {
                 aria-expanded={mobileOpen}
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
                 onClick={() => setMobileOpen((s) => !s)}
-                className="lg:hidden inline-flex items-center justify-center  sm:p-2 rounded-md hover:bg-gray-100 shrink-0"
+                className="lg:hidden inline-flex items-center justify-center sm:p-2 rounded-md hover:bg-gray-100 shrink-0"
               >
-                {/* simple hamburger/x */}
                 <svg
                   className="w-5 sm:w-6 h-5 sm:h-6"
                   viewBox="0 0 24 24"
@@ -237,8 +260,8 @@ const Navbar = () => {
               >
                 <div className="relative w-full lg:w-auto">
                   <FilterDropdown
-                    open={open}
-                    onOpenChange={(next) => setOpen(next)}
+                    open={cityDropdownOpen}
+                    onOpenChange={(next) => setCityDropdownOpen(next)}
                     backdropClassName="fixed inset-0 bg-black/45 z-40 transition-all duration-100"
                     triggerLabel={
                       <div className="flex gap-1 items-center justify-center">
@@ -250,7 +273,7 @@ const Navbar = () => {
                           size={12}
                           color="#27AE60"
                           className={`transition-transform duration-200 shrink-0 ${
-                            open ? "rotate-180" : "rotate-0"
+                            cityDropdownOpen ? "rotate-180" : "rotate-0"
                           }`}
                         />
                       </div>
@@ -309,7 +332,7 @@ const Navbar = () => {
               <>
                 {!user || user?.user?.accountStatus !== "active" ? (
                   <button
-                    onClick={() => setAuthMode("login")}
+                    onClick={openLoginDialog}
                     className="text-sm text-gray-700 hover:text-gray-900 transition-colors cursor-pointer"
                   >
                     Login
@@ -360,7 +383,6 @@ const Navbar = () => {
                   align="right"
                   renderContent={(close) => (
                     <div className="max-h-80 overflow-y-auto">
-                      {/* ================= POPULAR ================= */}
                       <h3 className="text-sm font-semibold text-gray-900 mb-2 px-3 pt-2">
                         Popular Cities
                       </h3>
@@ -380,14 +402,12 @@ const Navbar = () => {
                         ))}
                       </div>
 
-                      {/* ================= STATES (ACCORDION) ================= */}
                       <div className="px-3">
                         {sortedGroupedByState.map(([stateName, cities]) => {
                           const isOpen = openState === stateName;
 
                           return (
                             <div key={stateName} className="border-t pt-2 mt-2">
-                              {/* STATE HEADER */}
                               <button
                                 onClick={() => toggleState(stateName)}
                                 className="w-full flex items-center justify-between text-sm font-semibold text-gray-900 px-2 py-2"
@@ -398,7 +418,6 @@ const Navbar = () => {
                                 </span>
                               </button>
 
-                              {/* CITY LIST */}
                               {isOpen && (
                                 <div className="pl-3 mt-1 space-y-1">
                                   {cities.map((c) => (
@@ -423,6 +442,17 @@ const Navbar = () => {
                   )}
                 />
               </div>
+
+              {/* Mobile Login Button */}
+              {(!user || user?.user?.accountStatus !== "active") && (
+                <button
+                  onClick={openLoginDialog}
+                  style={{ backgroundColor: BRAND_GREEN }}
+                  className="text-white text-xs font-semibold px-4 py-1.5 rounded-md shadow-sm whitespace-nowrap transition-all hover:opacity-90 active:scale-95"
+                >
+                  Login
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -430,7 +460,6 @@ const Navbar = () => {
 
       {/* Mobile Menu (Sidebar) & Overlay */}
       <>
-        {/* Overlay backdrop */}
         {mobileOpen && (
           <div
             className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-200"
@@ -439,8 +468,6 @@ const Navbar = () => {
           />
         )}
 
-        {/* Off-canvas menu */}
-        {/* OVERLAY */}
         {mobileOpen && (
           <div
             className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -449,12 +476,11 @@ const Navbar = () => {
           />
         )}
 
-        {/* FLOATING CLOSE BUTTON (OUTSIDE SIDEBAR) */}
         {mobileOpen && (
           <button
             onClick={() => setMobileOpen(false)}
             aria-label="Close menu"
-            className="fixed top-4 left-78 z-60 h-10 w-10 rounded-full  bg-black/70 text-white backdrop-blur flex items-center justify-center shadow-lg  hover:bg-black/90 transition-all lg:hidden"
+            className="fixed top-4 left-78 z-60 h-10 w-10 rounded-full bg-black/70 text-white backdrop-blur flex items-center justify-center shadow-lg hover:bg-black/90 transition-all lg:hidden"
           >
             <svg
               className="w-5 h-5"
@@ -472,19 +498,17 @@ const Navbar = () => {
           </button>
         )}
 
-        {/* SIDEBAR */}
-        <div className={` fixed top-0 left-0 h-[120vh] w-75 max-w-[90vw]  bg-white shadow-lg lg:hidden transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
-  `}
+        <div
+          className={`fixed top-0 left-0 h-[120vh] w-75 max-w-[90vw] bg-white shadow-lg lg:hidden transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${
+            mobileOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
           aria-hidden={!mobileOpen}
           role="dialog"
           aria-modal="true"
         >
-          {/* TOP LOGIN / USER SECTION */}
           <div className="border-b border-gray-200 bg-gray-50">
             {!user ? (
-              /* ---------- GUEST ---------- */
               <div className="flex items-center justify-between gap-3 px-4 py-4 bg-gray-50">
-                {/* TEXT */}
                 <span className="text-xs text-gray-700 leading-snug">
                   Sign in for a <br />
                   <span className="font-semibold">
@@ -492,10 +516,9 @@ const Navbar = () => {
                   </span>
                 </span>
 
-                {/* LOGIN BUTTON */}
                 <button
                   onClick={() => {
-                    setAuthMode("login");
+                    openLoginDialog();
                     setMobileOpen(false);
                   }}
                   style={{ backgroundColor: BRAND_GREEN }}
@@ -505,14 +528,11 @@ const Navbar = () => {
                 </button>
               </div>
             ) : (
-              /* ---------- LOGGED IN ---------- */
               <div className="flex items-center gap-3 px-4 py-4 bg-gray-50">
-                {/* AVATAR */}
                 <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg border border-white shadow-sm shrink-0">
                   {user?.user?.name?.charAt(0)?.toUpperCase() ?? "U"}
                 </div>
 
-                {/* USER INFO */}
                 <div className="flex flex-col min-w-0">
                   <span className="text-sm font-semibold text-gray-900 truncate">
                     Hi, {user?.user?.name?.split(" ")?.[0] ?? "User"}
@@ -522,20 +542,24 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* MAIN NAVIGATION */}
           <div className="flex-1 overflow-y-auto py-2">
-            {/* OTHER LINKS */}
             <nav className="px-2">
               {[
                 {
                   label: "Buy",
                   link: "/properties?type=residential",
-                  listingType: { label: "Buy" as const, value: "sale" as const },
+                  listingType: {
+                    label: "Buy" as const,
+                    value: "sale" as const,
+                  },
                 },
                 {
                   label: "Rent",
                   link: "/properties?type=residential",
-                  listingType: { label: "Rent" as const, value: "rent" as const },
+                  listingType: {
+                    label: "Rent" as const,
+                    value: "rent" as const,
+                  },
                 },
                 { label: "Home Loans", link: "/home-loans" },
                 { label: "Home Interiors", link: "/interior-designer" },
@@ -588,7 +612,6 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* FOOTER CTA */}
           {!isBuilder && (
             <div className="p-2">
               <Link
@@ -606,19 +629,25 @@ const Navbar = () => {
         </div>
       </>
 
-      {authMode === "login" && (
+      {/* Auth Dialogs - Now using separate state */}
+      {isAuthDialogOpen && authMode === "login" && (
         <LoginDialog
-          open={true}
-          onClose={() => setAuthMode(null)}
-          onSwitchToRegister={() => setAuthMode("register")}
+          open={isAuthDialogOpen}
+          onClose={closeAuthDialog}
+          onSwitchToRegister={() => {
+            setAuthMode("register");
+          }}
         />
       )}
-      {authMode === "register" && (
+      
+      {isAuthDialogOpen && authMode === "register" && (
         <RegisterDialog
-          open={true}
+          open={isAuthDialogOpen}
           initialStep={registerStep}
-          onClose={() => setAuthMode(null)}
-          onSwitchToLogin={() => setAuthMode("login")}
+          onClose={closeAuthDialog}
+          onSwitchToLogin={() => {
+            setAuthMode("login");
+          }}
         />
       )}
     </header>

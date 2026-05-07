@@ -3,7 +3,7 @@ import { Schema, model, Types } from "mongoose";
 
 const SubscriptionSchema = new Schema(
   {
-    userId: { type: Types.ObjectId, required: true, index: true },
+    userId: { type: Types.ObjectId, ref: "User", required: true, index: true },
     userType: {
       type: String,
       enum: ["builder", "buyer", "agent", "owner"],

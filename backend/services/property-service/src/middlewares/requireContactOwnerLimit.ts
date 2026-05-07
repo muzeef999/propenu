@@ -4,7 +4,6 @@ import { Subscription } from "../models/subscriptionModel";
 import { Plan } from "../models/planModel";
 import Lead from "../models/LeadModel";
 
-
 // ======================================================
 // CONTACT OWNER LIMIT MIDDLEWARE
 // ======================================================
@@ -28,7 +27,10 @@ export const requireContactOwnerLimit = async (
     const subscription = await Subscription.findOne({
       userId,
       status: "active",
+      expiresAt: { $gt: new Date() }, // ✅ important
     });
+
+    console.log("SUB:", subscription);
 
     if (!subscription) {
       return res.status(403).json({
@@ -52,7 +54,10 @@ export const requireContactOwnerLimit = async (
 
     if (typeof limit === "number") {
       // IMPORTANT: change field if your Lead schema different
-      const used = await Lead.countDocuments({ userId });
+      const used = await Lead.countDocuments({
+        userId,
+        createdAt: { $gte: subscription.createdAt }, // ✅ fix
+      });
 
       if (used >= limit) {
         return res.status(403).json({

@@ -70,7 +70,7 @@ router.post("/draft", authMiddleware, createAgriculturalDraft);
 router.patch("/:id/basic", authMiddleware, updateAgriculturalBasicStep);
 router.patch("/:id/location",authMiddleware,parseJsonFields(jsonKeys),updateAgriculturalLocationStep,);
 router.patch("/:id/details", authMiddleware, cpUpload, parseJsonFields(jsonKeys),updateAgriculturalDetailsStep);
-router.patch("/:id/verification", authMiddleware, cpUpload,parseJsonFields(jsonKeys), finalizeAgricultural);
+router.patch("/:id/verification", authMiddleware, cpUpload,parseJsonFields(jsonKeys),  requireActiveSubscription, finalizeAgricultural);
 
 
 router.patch("/:id/verify-document", authMiddleware, (req : AuthRequest, res, next) => {

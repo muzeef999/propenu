@@ -36,4 +36,5 @@ agentRoute.delete("/:id", deleteAgent);
 
 agentRoute.patch("/admin/verify/:id", authMiddleware, verifyAgentStatus);
 
+
 export default agentRoute;
