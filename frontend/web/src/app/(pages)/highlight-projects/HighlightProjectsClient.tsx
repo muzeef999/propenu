@@ -8,11 +8,11 @@ import { useCity } from "@/hooks/useCity";
 import { RiArrowRightSLine } from "react-icons/ri";
 import { getHighlightProjects } from "@/data/ClientData";
 import HomeSectionSkeleton from "@/components/HomeSectionSkeleton";
-import HomeSectionComingSoon from "@/components/HomeSectionComingSoon";
 import { minDelay } from "@/utilies/minDelay";
 import formatINR from "@/utilies/PriceFormat";
 import { getProjectConfigurationLabel } from "@/utilies/projectConfiguration";
 import { GoHeart, GoHeartFill } from "react-icons/go";
+import Topselllingcomingsoon from "./Topselllingcomingsoon";
 import {
   getHomeSectionCache,
   getHomeSectionCacheKey,
@@ -254,10 +254,7 @@ export default function HighlightProjectsClient() {
           ))}
         </div>
       ) : (
-        <HomeSectionComingSoon
-          title="Top Selling Properties Coming Soon"
-          description={`We’re preparing curated high-demand listings for ${selectedCity?.city ?? "your city"}. New highlights will appear here soon.`}
-        />
+        <Topselllingcomingsoon />
       )}
     </div>
   );

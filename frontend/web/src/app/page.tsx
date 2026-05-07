@@ -17,6 +17,7 @@ import Cookies from "js-cookie";
 
 import { Suspense } from "react";
 import TokenHandler from "@/components/TokenHandler";
+import DiscoverRealestate from "@/components/discoverRealestate/DiscoverRealestate";
 
 
 
@@ -40,6 +41,7 @@ export default function Home() {
         <ExploreOurServices />
         <ExploreMorePropertiesPage />
         <TestomianalHome />
+        <DiscoverRealestate />
       </div>
     </div>
   );
