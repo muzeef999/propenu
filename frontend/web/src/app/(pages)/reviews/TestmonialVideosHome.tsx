@@ -171,10 +171,10 @@ export default function TestimonialCardsMarquee({
   }, [items]);
 
   return (
-    <div className="w-[80%] p-2">
+    <div className="w-full max-w-[360px] p-1.5 sm:w-[80%] sm:max-w-none sm:p-2">
       <div
         ref={wrapRef}
-        className="relative overflow-hidden py-4 px-3"
+        className="relative overflow-hidden px-1.5 py-3 sm:px-3 sm:py-4"
         aria-label="Features carousel"
       >
         <div ref={sliderRef} className="flex flex-col w-full will-change-transform">
@@ -191,7 +191,7 @@ export default function TestimonialCardsMarquee({
               <Link key={key} href={item.link} className="block group">
                 <article
                   data-card
-                  className="relative flex items-center gap-5 rounded-2xl p-3 mb-4 shadow-sm border border-slate-100 transition-transform duration-300 ease-out group-hover:scale-[1.02]"
+                  className="relative mb-3 flex items-center gap-3 rounded-xl border border-slate-100 p-2.5 shadow-sm transition-transform duration-300 ease-out group-hover:scale-[1.02] sm:mb-4 sm:gap-5 sm:rounded-2xl sm:p-3"
                   style={{
                     transform: `rotate(${rotateDeg}deg) translateX(${translateX}px)`,
                     transformOrigin: "center center",
@@ -200,20 +200,20 @@ export default function TestimonialCardsMarquee({
                   {/* Icon Container */}
                   <div 
                     style={{ color: hex }} 
-                    className="shrink-0 w-7 h-7 flex items-center justify-center"
+                    className="flex h-6 w-6 shrink-0 items-center justify-center sm:h-7 sm:w-7"
                   >
                     {item.icon}
                   </div>
 
                   {/* Text Content */}
-                  <div className="flex-1">
+                  <div className="min-w-0 flex-1">
                     <h4
                       style={{ color: hex }}
-                      className="text-[14px] font-semibold leading-tight mb-1"
+                      className="mb-1 truncate text-[13px] font-semibold leading-tight sm:text-[14px]"
                     >
                       {item.title}
                     </h4>
-                    <p className="text-[13px] font-medium text-slate-500 leading-snug">
+                    <p className="line-clamp-2 text-[11px] font-medium leading-snug text-slate-500 sm:text-[13px]">
                       {item.desc}
                     </p>
                   </div>
@@ -224,8 +224,8 @@ export default function TestimonialCardsMarquee({
         </div>
         
         {/* Gradients */}
-        <div className="absolute top-0 left-0 w-full h-8 bg-linear-to-b from-white to-transparent pointer-events-none z-10" />
-        <div className="absolute bottom-0 left-0 w-full h-8 bg-linear-to-t from-white to-transparent pointer-events-none z-10" />
+        <div className="absolute left-0 top-0 z-10 h-6 w-full bg-linear-to-b from-white to-transparent pointer-events-none sm:h-8" />
+        <div className="absolute bottom-0 left-0 z-10 h-6 w-full bg-linear-to-t from-white to-transparent pointer-events-none sm:h-8" />
       </div>
     </div>
   );

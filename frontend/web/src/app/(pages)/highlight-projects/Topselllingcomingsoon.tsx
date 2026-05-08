@@ -6,7 +6,7 @@ import CmgSoonSvg from "@/svg/CmgSoonSvg";
 const Topselllingcomingsoon = () => {
   return (
     <section
-      className="relative mt-4 min-h-[276px] overflow-hidden rounded-xl border border-[#d6efdf] px-6 py-7 shadow-sm sm:px-8 lg:px-10"
+      className="relative mt-4 min-h-[220px] overflow-hidden rounded-xl border border-[#d6efdf] px-4 py-5 shadow-sm sm:min-h-[246px] sm:px-6 sm:py-6 lg:min-h-[260px] lg:px-8"
       style={{
         background:
           "linear-gradient(90deg, rgba(241, 252, 245, 0.84) 0%, rgba(255, 255, 255, 0.84) 100%)",
@@ -23,47 +23,47 @@ const Topselllingcomingsoon = () => {
         }}
       />
 
-      <div className="relative z-10 grid min-h-[220px] items-center gap-6 lg:grid-cols-[240px_minmax(320px,1fr)_300px]">
-        <div className="relative hidden h-[150px] lg:ml-6 lg:block">
+      <div className="relative z-10 grid min-h-[180px] items-center gap-5 sm:min-h-[198px] lg:min-h-52 lg:grid-cols-[210px_minmax(300px,1fr)_260px]">
+        <div className="relative hidden h-[130px] lg:ml-5 lg:block">
           <Image
             src="/images/topselling.png"
             alt=""
             fill
-            className="scale-[2.0] object-contain object-bottom translate-x-[2%] translate-y-[8%]"
-            sizes="280px"
+            className="scale-[1.8] object-contain object-bottom translate-x-[2%] translate-y-[8%]"
+            sizes="240px"
             priority={false}
           />
         </div>
 
-        <div className="mx-auto max-w-[550px] text-center">
-          <h3 className="text-[26px] font-semibold leading-tight text-[#1eae5f] sm:text-[30px]">
+        <div className="mx-auto w-full max-w-[290px] text-center sm:max-w-[500px]">
+          <h3 className="text-lg font-semibold leading-tight text-[#1eae5f] sm:text-[22px] lg:text-[26px]">
             Most In-Demand Properties Coming Up
           </h3>
-          <p className="mx-auto mt-4 max-w-[590px] text-sm leading-6 text-gray-500 sm:text-base">
+          <p className="mx-auto mt-2.5 max-w-[280px] text-xs leading-5 text-gray-500 sm:mt-3 sm:max-w-[520px] sm:text-sm sm:leading-5 lg:text-[15px]">
             We&apos;ll show properties that are getting the most attention from
             buyers and tenants.
           </p>
 
           <button
             type="button"
-            className="mt-6 inline-flex h-10 items-center gap-2 rounded-md bg-[#27AE60] px-8 text-sm font-semibold text-white shadow-sm transition hover:bg-[#219653]"
+            className="mt-4 inline-flex h-9 items-center gap-2 rounded-md bg-[#27AE60] px-5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#219653] sm:mt-5 sm:h-10 sm:px-7 sm:text-sm"
           >
-            <HiOutlineBell className="h-4 w-4" />
+            <HiOutlineBell className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             Get Notified
           </button>
         </div>
 
-        <div className="pointer-events-none relative hidden min-h-[220px] sm:block">
+        <div className="pointer-events-none relative hidden min-h-[198px] sm:block lg:min-h-52">
           <CmgSoonSvg
             aria-hidden="true"
-            className="absolute -bottom-7 -right-24 h-[290px] w-[500px] max-w-none object-contain object-bottom opacity-50 scale-[1.2] translate-x-[-10%] translate-y-[10%]"
+            className="absolute -bottom-7 -right-24 h-[250px] w-[430px] max-w-none object-contain object-bottom opacity-50 scale-[1.15] translate-x-[-10%] translate-y-[10%]"
           />
           <Image
             src="/images/coupleimg.png"
             alt=""
             fill
-            className="z-10 object-contain object-bottom scale-[1.4] translate-x-[10%] translate-y-[10%]"
-            sizes="320px"
+            className="z-10 object-contain object-bottom scale-[1.25] translate-x-[10%] translate-y-[10%]"
+            sizes="280px"
           />
         </div>
       </div>

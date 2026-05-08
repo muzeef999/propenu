@@ -15,8 +15,7 @@ export default function TokenHandler() {
     const kyc = searchParams.get("kyc");
     const remark = searchParams.get("remark");
 
-    if (token && kyc === "verified") {
-
+    if (token && (kyc === "verified" || kyc === "rejected" || kyc === "pending")) {
       Cookies.set("token", token, {
         expires: 7,
         sameSite: "lax",
@@ -24,18 +23,32 @@ export default function TokenHandler() {
       });
 
       window.dispatchEvent(new Event("auth-changed"));
+    }
+
+    if (token && kyc === "verified") {
       router.replace("/");
       return;
     }
 
     if (kyc === "rejected" || kyc === "pending") {
-      
       sessionStorage.setItem("kycStatus", kyc);
 
-       if(remark){
+      if (remark) {
         sessionStorage.setItem("kycRemark", remark);
-       }
-       router.replace("/");
+      } else {
+        sessionStorage.removeItem("kycRemark");
+      }
+
+      window.dispatchEvent(
+        new CustomEvent("kyc-result", {
+          detail: {
+            status: kyc,
+            remark: remark || "",
+          },
+        }),
+      );
+
+      router.replace("/");
     }
   }, [searchParams, router]);
 

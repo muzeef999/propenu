@@ -42,6 +42,10 @@ const Navbar = () => {
   const [registerStep, setRegisterStep] = useState<
     "personal" | "location" | "kyc"
   >("personal");
+  const [registerKycStatus, setRegisterKycStatus] = useState<
+    "verified" | "pending" | "rejected" | null
+  >(null);
+  const [registerKycRemark, setRegisterKycRemark] = useState("");
   const isBuilder = user?.user?.roleName === "builder";
 
   useEffect(() => {
@@ -73,6 +77,18 @@ const Navbar = () => {
         if (status === "kyc_pending") {
           setRegisterStep("kyc");
         }
+
+        if (status === "kyc_rejected") {
+          setRegisterKycStatus("rejected");
+          setRegisterStep("kyc");
+        }
+
+        const kycStatus = data?.user?.kyc?.status;
+
+        if (kycStatus === "rejected" || kycStatus === "pending") {
+          setRegisterKycStatus(kycStatus);
+          setRegisterStep("kyc");
+        }
       } catch (err) {
         // user not logged in
         console.log("User not logged in");
@@ -93,16 +109,35 @@ const Navbar = () => {
   }, []);
 
   useEffect(() => {
-    const kyc = sessionStorage.getItem("kycStatus");
-    const remark = sessionStorage.getItem("kycRemark");
+    const openKycDialog = (kyc: string | null, remark?: string | null) => {
+      if (kyc !== "rejected" && kyc !== "pending") return;
 
-    if (kyc === "rejected" || kyc === "pending") {
       setIsAuthDialogOpen(true);
       setAuthMode("register");
       setRegisterStep("kyc");
+      setRegisterKycStatus(kyc);
+      setRegisterKycRemark(remark || "");
       sessionStorage.removeItem("kycStatus");
       sessionStorage.removeItem("kycRemark");
-    }
+    };
+
+    openKycDialog(
+      sessionStorage.getItem("kycStatus"),
+      sessionStorage.getItem("kycRemark"),
+    );
+
+    const handleKycResult = (event: Event) => {
+      const detail = (event as CustomEvent<{ status?: string; remark?: string }>)
+        .detail;
+
+      openKycDialog(detail?.status || null, detail?.remark || "");
+    };
+
+    window.addEventListener("kyc-result", handleKycResult);
+
+    return () => {
+      window.removeEventListener("kyc-result", handleKycResult);
+    };
   }, []);
 
   const toggleState = (stateName: string) => {
@@ -164,6 +199,8 @@ const Navbar = () => {
   const closeAuthDialog = () => {
     setIsAuthDialogOpen(false);
     setAuthMode(null);
+    setRegisterKycStatus(null);
+    setRegisterKycRemark("");
   };
 
   const popularCities = locations.filter(
@@ -644,6 +681,8 @@ const Navbar = () => {
         <RegisterDialog
           open={isAuthDialogOpen}
           initialStep={registerStep}
+          initialKycStatus={registerKycStatus}
+          initialKycRemark={registerKycRemark}
           onClose={closeAuthDialog}
           onSwitchToLogin={() => {
             setAuthMode("login");

@@ -18,7 +18,7 @@ const ActiveTabs = ({
           <button
             key={cat}
             onClick={() => setActiveTab(cat)}
-            className={`pb-2 text-sm sm:text-base font-medium whitespace-nowrap transition-all relative ${
+            className={`pb-2 text-sm sm:text-base font-medium whitespace-nowrap transition-all relative cursor-pointer ${
               activeTab === cat
                 ? "text-emerald-600"
                 : "text-gray-500 hover:text-gray-700"

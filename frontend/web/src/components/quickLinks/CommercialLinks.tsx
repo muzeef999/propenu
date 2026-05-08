@@ -30,7 +30,6 @@ const getCommercialVariants = (category: string) => {
       "Office",
       "Bare Shell Office",
       "Warm Shell Office",
-      "Furnished Office",
     ];
   }
 
@@ -46,8 +45,8 @@ const getCategoryLinkGroups = (
   const variants = getCommercialVariants(category);
   const formatCityLink = (label: string) =>
     `${label} for ${actionLabel} in ${cityName}`;
-  const formatLocalityLinks = (locality: string) =>
-    variants.map((variant) => `${variant} for ${actionLabel} in ${locality}`);
+  const formatLocalityLink = (locality: string) =>
+    `${category} for ${actionLabel} in ${locality}`;
 
   return [
     {
@@ -56,15 +55,15 @@ const getCategoryLinkGroups = (
     },
     {
       title: `${category}s in Top Localities`,
-      links: localities.slice(0, 2).flatMap(formatLocalityLinks),
+      links: localities.slice(0, 7).map(formatLocalityLink),
     },
     {
       title: `${category}s by Locality`,
-      links: localities.slice(2, 4).flatMap(formatLocalityLinks),
+      links: localities.slice(7, 14).map(formatLocalityLink),
     },
     {
       title: "More Localities",
-      links: localities.slice(4, 6).flatMap(formatLocalityLinks),
+      links: localities.slice(14, 21).map(formatLocalityLink),
     },
   ];
 };
@@ -121,47 +120,49 @@ const CommercialLinks = () => {
 
   return (
     <section className="py-1">
-      <div className="relative inline-flex items-center gap-1 text-2xl font-medium text-[#171717]">
-        <span>
+      <div className="relative inline-block max-w-full text-xl font-medium leading-tight text-[#171717] sm:text-2xl">
+        <span className="min-w-0">
           Find Your Commercial Space in {cityName} to{" "}
-          <span className="text-[#18af5b]">{listingType}</span>
-        </span>
-        <button
-          type="button"
-          onClick={() => setListingOpen((prev) => !prev)}
-          aria-label="Change listing type"
-          className="flex h-7 w-7 items-center justify-center text-[#6b716e]"
-        >
-          <ArrowDropdownIcon
-            size={12}
-            className={`transition-transform ${listingOpen ? "rotate-180" : ""}`}
-          />
-        </button>
+          <span className="relative inline-flex whitespace-nowrap align-baseline">
+            <span className="text-[#18af5b]">{listingType}</span>
+            <button
+              type="button"
+              onClick={() => setListingOpen((prev) => !prev)}
+              aria-label="Change listing type"
+              className="ml-1 inline-flex h-6 w-6 items-center justify-center align-middle text-[#6b716e] sm:h-7 sm:w-7"
+            >
+              <ArrowDropdownIcon
+                size={12}
+                className={`transition-transform cursor-pointer ${listingOpen ? "rotate-180" : ""}`}
+              />
+            </button>
 
-        {listingOpen && (
-          <div className="absolute left-[360px] top-8 z-20 w-28 rounded-lg border border-gray-100 bg-white p-1 shadow-lg">
-            {listingTypes.map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => {
-                  setListingType(type);
-                  setListingOpen(false);
-                }}
-                className={`block w-full rounded-md px-3 py-2 text-left text-sm transition ${
-                  listingType === type
-                    ? "bg-[#effcf4] text-[#18af5b]"
-                    : "text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                {type}
-              </button>
-            ))}
-          </div>
-        )}
+            {listingOpen && (
+              <div className="absolute left-0 top-full z-20 mt-2 w-28 rounded-lg border border-gray-100 bg-white p-1 shadow-lg sm:left-[260px] sm:top-8 sm:mt-0">
+                {listingTypes.map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => {
+                      setListingType(type);
+                      setListingOpen(false);
+                    }}
+                    className={`block w-full rounded-md px-3 py-2 text-left text-sm transition ${
+                      listingType === type
+                        ? "bg-[#effcf4] text-[#18af5b]"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+            )}
+          </span>
+        </span>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-4 sm:mt-6">
         <ActiveTabs
           categories={commercialCategories}
           activeTab={activeTab}
@@ -169,19 +170,19 @@ const CommercialLinks = () => {
         />
       </div>
 
-      <div className="grid gap-8 px-1 pt-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pt-5 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-8 sm:px-1 sm:pt-6 lg:grid-cols-4">
         {activeGroups.map((group) => (
-          <div key={group.title}>
-            <h3 className="text-lg font-medium text-[#171717]">
+          <div key={group.title} className="w-[245px] shrink-0 sm:w-auto sm:shrink">
+            <h3 className="text-base font-medium text-[#171717] sm:text-lg">
               {group.title}
             </h3>
-            <div className="mt-4 space-y-4">
+            <div className="mt-3 space-y-3 sm:mt-4 sm:space-y-4">
               {group.links.map((link) => (
                 <button
                   key={link}
                   type="button"
                   onClick={() => handleQuickLinkClick(link)}
-                  className="block text-left text-sm text-[#3d4541] transition hover:text-[#18af5b]"
+                  className="block text-left text-[13px] leading-snug text-[#3d4541] transition hover:text-[#18af5b] cursor-pointer sm:text-sm"
                 >
                   {link}
                 </button>

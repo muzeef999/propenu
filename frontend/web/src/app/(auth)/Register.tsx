@@ -1,6 +1,12 @@
 "use client"
 import KycButton from "@/app/(account)/settings/KycButton";
-import { createRequestOtp, createVerifyOtp, me,  updateLocation,} from "@/data/ClientData";
+import {
+  createRequestOtp,
+  createVerifyOtp,
+  me,
+  updateKycDetails,
+  updateLocation,
+} from "@/data/ClientData";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {  MdCheckCircle,  MdClose,  MdOutlineBadge,  MdOutlineLock,} from "react-icons/md";
@@ -18,6 +24,8 @@ interface RegisterDialogProps {
   onClose: () => void;
   onSwitchToLogin: () => void;
   initialStep?: "personal" | "location" | "kyc";
+  initialKycStatus?: "verified" | "pending" | "rejected" | null;
+  initialKycRemark?: string;
 }
 
 type RegisterStep = "personal" | "location" | "kyc";
@@ -98,6 +106,8 @@ const RegisterDialog = ({
   onClose,
   onSwitchToLogin,
   initialStep = "personal",
+  initialKycStatus = null,
+  initialKycRemark = "",
 }: RegisterDialogProps) => {
 
   const [step, setStep] = useState<RegisterStep>(initialStep || "personal");
@@ -114,9 +124,12 @@ const RegisterDialog = ({
 
   const [kycStatus, setKycStatus] = useState<
     "verified" | "pending" | "rejected" | null
-  >(null);
+  >(initialKycStatus);
 
-  const [kycRemark, setKycRemark] = useState("");
+  const [kycRemark, setKycRemark] = useState(initialKycRemark);
+  const [isKycEditMode, setIsKycEditMode] = useState(
+    initialKycStatus === "rejected" || initialKycStatus === "pending",
+  );
 
   const [otpDigits, setOtpDigits] = useState<string[]>(
     Array(OTP_LENGTH).fill(""),
@@ -201,18 +214,55 @@ const RegisterDialog = ({
     }
   }
 
-  function handlePersonalStepNext() {
-    const accountValidation = accountSchema.safeParse(formData);
+  function saveAuthToken(token?: string) {
+    if (!token) return;
 
-    if (!accountValidation.success) {
+    Cookies.set("token", token, {
+      expires: 7,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+    });
+    window.dispatchEvent(new Event("auth-changed"));
+  }
+
+  async function handlePersonalStepNext() {
+    const accountValidation = accountSchema.safeParse(formData);
+    const nameError = validateFullName(formData.name, formData.role);
+
+    if (!accountValidation.success || nameError) {
       setErrors((prev) => ({
         ...prev,
-        ...mapAuthZodErrors(accountValidation.error),
+        ...(accountValidation.success
+          ? {}
+          : mapAuthZodErrors(accountValidation.error)),
+        ...(nameError ? { name: nameError } : {}),
       }));
       return;
     }
 
     if (isOtpVerified) {
+      if (requiresKyc && isKycEditMode) {
+        setLoading(true);
+
+        try {
+          const res = await updateKycDetails({
+            name: accountValidation.data.name,
+            email: accountValidation.data.email,
+          });
+
+          saveAuthToken(res?.token);
+          toast.success("Personal details updated");
+          setStep("location");
+        } catch (err: any) {
+          toast.error(
+            err?.response?.data?.message || "Failed to update KYC details",
+          );
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
       setStep("location");
       return;
     }
@@ -261,14 +311,7 @@ const RegisterDialog = ({
       const res = await createVerifyOtp(payload);
 
       // save token
-      if (res?.token) {
-        Cookies.set("token", res.token, {
-          expires: 7,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "Lax",
-        });
-        window.dispatchEvent(new Event("auth-changed"));
-      }
+      saveAuthToken(res?.token);
 
       verifiedPhoneRef.current = phoneValidation.data.phone;
       setIsOtpVerified(true);
@@ -285,10 +328,18 @@ const RegisterDialog = ({
   }
 
   async function handleCompleteLocation() {
+    const accountValidation = accountSchema.safeParse(formData);
     const validation = locationSchema.safeParse(formData);
+    const nameError = validateFullName(formData.name, formData.role);
 
-    if (!validation.success) {
-      setErrors(mapAuthZodErrors(validation.error));
+    if (!accountValidation.success || !validation.success || nameError) {
+      setErrors({
+        ...(accountValidation.success
+          ? {}
+          : mapAuthZodErrors(accountValidation.error)),
+        ...(validation.success ? {} : mapAuthZodErrors(validation.error)),
+        ...(nameError ? { name: nameError } : {}),
+      });
       return;
     }
 
@@ -302,28 +353,38 @@ const RegisterDialog = ({
         pincode: validation.data.pincode,
       };
 
-      const res = await updateLocation(payload);
+      const res =
+        requiresKyc && isKycEditMode
+          ? await updateKycDetails({
+              name: accountValidation.data.name,
+              email: accountValidation.data.email,
+              ...payload,
+            })
+          : await updateLocation(payload);
 
-      if (res?.token) {
-        Cookies.set("token", res.token, {
-          expires: 7,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "Lax",
-        });
-      }
-
-      window.dispatchEvent(new Event("auth-changed"));
+      saveAuthToken(res?.token);
 
       if (requiresKyc) {
-        toast.success("Location updated");
+        if (isKycEditMode) {
+          setKycStatus(null);
+          setKycRemark("");
+          toast.success("Details updated. Please retry KYC.");
+        } else {
+          toast.success("Location updated");
+        }
         setStep("kyc");
         return;
       }
 
       toast.success("Location updated. Builder account is now active.");
       handleClose();
-    } catch {
-      toast.error("Failed to update location");
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.message ||
+          (isKycEditMode
+            ? "Failed to update KYC details"
+            : "Failed to update location"),
+      );
     } finally {
       setLoading(false);
     }
@@ -379,6 +440,9 @@ const RegisterDialog = ({
     setPhoneNumber("");
     setIsOtpVerified(false);
     setResendCooldown(0);
+    setKycStatus(null);
+    setKycRemark("");
+    setIsKycEditMode(false);
     lastOtpRequestedPhoneRef.current = "";
     verifiedPhoneRef.current = "";
     setFormData({
@@ -465,6 +529,19 @@ const RegisterDialog = ({
 
         // important: user already verified OTP
         setIsOtpVerified(Boolean(user.phoneVerified));
+
+        if (user.kyc?.status === "rejected" || user.kyc?.status === "pending") {
+          setKycStatus(user.kyc.status);
+          setKycRemark(user.kyc?.remarks || initialKycRemark || "");
+          setIsKycEditMode(true);
+        } else if (
+          user.roleName !== "builder" &&
+          (user.accountStatus === "kyc_pending" ||
+            user.accountStatus === "kyc_rejected" ||
+            initialStep === "kyc")
+        ) {
+          setIsKycEditMode(true);
+        }
       } catch (err) {
         console.log("Failed to fetch user");
       }
@@ -473,7 +550,26 @@ const RegisterDialog = ({
     if (open) {
       fetchUser();
     }
-  }, [open]);
+  }, [open, initialKycRemark]);
+
+  useEffect(() => {
+    if (!open) return;
+    setStep(initialStep);
+  }, [initialStep, open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    setKycStatus(initialKycStatus);
+    setKycRemark(initialKycRemark);
+    setIsKycEditMode(
+      initialKycStatus === "rejected" || initialKycStatus === "pending",
+    );
+
+    if (initialKycStatus === "rejected" || initialKycStatus === "pending") {
+      setStep("kyc");
+    }
+  }, [initialKycRemark, initialKycStatus, open]);
 
 
   useEffect(() => {
@@ -1094,10 +1190,13 @@ const RegisterDialog = ({
               </div>
               {kycStatus == "rejected" ? (
                 <button
-                  onClick={() => setStep("personal")}
+                  onClick={() => {
+                    setErrors({});
+                    setStep("personal");
+                  }}
                   className="mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
                 >
-                  Retry KYC
+                  Update Details
                 </button>
               ) : (
                 <div className="pt-2">

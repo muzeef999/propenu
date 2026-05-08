@@ -12,7 +12,12 @@ export interface IUser extends mongoose.Document {
   pincode?: string;
   address?: string;
   phoneVerified?: boolean;
-  accountStatus?: "pending" | "location_pending" | "kyc_pending" | "active";
+  accountStatus?:
+    | "pending"
+    | "location_pending"
+    | "kyc_pending"
+    | "kyc_rejected"
+    | "active";
   kyc?: {
     status?: "not_started" | "pending" | "verified" | "rejected";
     provider?: "digilocker" | "pan" | "manual";
@@ -164,7 +169,7 @@ const UserSchema = new mongoose.Schema(
     },
     accountStatus: {
       type: String,
-      enum: ["pending", "location_pending", "kyc_pending", "active"],
+      enum: ["pending", "location_pending", "kyc_pending", "kyc_rejected", "active"],
       default: "location_pending",
     },
     address: {

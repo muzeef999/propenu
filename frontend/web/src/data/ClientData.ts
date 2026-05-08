@@ -591,6 +591,26 @@ export const getFeaturedProjectsDashboard = async () => {
     return res.data;
   }
 
+export const updateKycDetails = async (payload: {
+  name?: string;
+  email?: string;
+  locality?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+}) => {
+  const token = Cookies.get("token");
+  if (!token) return null;
+
+  const res = await axiosInstance.patch(`${url}/api/users/kyc/details`, payload, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.data;
+};
+
   
 
   export const syncShortlist = async (properties: any[]) => {

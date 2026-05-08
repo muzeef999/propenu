@@ -10,13 +10,8 @@ import {
 import crypto from "crypto";
 import { generateToken } from "../utils/jwt";
 import { sendWhatsAppEvent } from "../../../../shared/whatsapp/whatsapp.helper";
-import { sendSignupEmailByRole, sendWelcomeEmail } from "../utils/email";
+import { sendWelcomeEmail } from "../utils/email";
 import stringSimilarity from "string-similarity";
-
-function normalizePhone(phone?: string) {
-  if (!phone) return "";
-  return phone.replace(/\D/g, "").slice(-10);
-}
 
 function normalizeName(name?: string) {
   if (!name) return "";
@@ -73,6 +68,18 @@ function generatePKCE() {
   return { codeVerifier, codeChallenge };
 }
 
+const createKycRetryToken = (user: any, role: any) =>
+  generateToken({
+    sub: String(user._id),
+    email: user.email,
+    phone: user.phone ? Number(user.phone) : undefined,
+    name: user.name ?? "",
+    roleId: role ? String(role._id) : undefined,
+    roleName: role ? role.name : undefined,
+    permissions: role ? role.permissions : [],
+    accountStatus: user.accountStatus,
+  });
+
 export const startKyc = async (req: AuthRequest, res: Response) => {
   if (!req.user?._id) {
     return res.status(401).json({ message: "User not found" });
@@ -93,6 +100,129 @@ export const startKyc = async (req: AuthRequest, res: Response) => {
     `&code_challenge=${codeChallenge}` +
     "&code_challenge_method=S256";
   res.json({ url });
+};
+
+export const updateKycDetails = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user?.sub) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const allowedUpdates = [
+      "name",
+      "email",
+      "address",
+      "locality",
+      "city",
+      "state",
+      "pincode",
+    ];
+    const updates: Record<string, unknown> = {};
+
+    for (const key of allowedUpdates) {
+      if (req.body[key] !== undefined) {
+        if (typeof req.body[key] !== "string") {
+          return res.status(400).json({ message: `${key} must be a string` });
+        }
+
+        const cleaned = req.body[key].trim();
+
+        if (!cleaned) {
+          return res.status(400).json({ message: `${key} cannot be empty` });
+        }
+
+        updates[key] = key === "email" ? cleaned.toLowerCase() : cleaned;
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "No valid fields to update" });
+    }
+
+    const user = await User.findById(req.user.sub);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.kyc?.status === "verified") {
+      return res.status(409).json({
+        message: "KYC is already verified. Details cannot be reset for retry.",
+      });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.sub,
+      {
+        $set: {
+          ...updates,
+          accountStatus: "kyc_pending",
+          "kyc.status": "not_started",
+          "kyc.provider": "digilocker",
+          "kyc.documents": [],
+          "kyc.remarks": "Details updated. Please retry KYC.",
+        },
+        $unset: {
+          "kyc.verifiedName": "",
+          "kyc.verifiedPhone": "",
+          "kyc.verifiedDob": "",
+          "kyc.digilockerId": "",
+          "kyc.verifiedAt": "",
+        },
+      },
+      { new: true, runValidators: true },
+    ).populate("roleId");
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const role: any = updatedUser.roleId;
+    const token = createKycRetryToken(updatedUser, role);
+
+    return res.status(200).json({
+      message: "KYC details updated. Please retry KYC.",
+      token,
+      user: {
+        id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        accountStatus: updatedUser.accountStatus,
+        address: updatedUser.address,
+        locality: updatedUser.locality,
+        city: updatedUser.city,
+        state: updatedUser.state,
+        pincode: updatedUser.pincode,
+        roleId: role ? String(role._id) : null,
+        roleName: role ? role.name : null,
+        permissions: role ? role.permissions : [],
+        kyc: {
+          status: updatedUser.kyc?.status,
+          provider: updatedUser.kyc?.provider,
+          documents: updatedUser.kyc?.documents ?? [],
+          remarks: updatedUser.kyc?.remarks,
+        },
+      },
+    });
+  } catch (error: any) {
+    console.error("Update KYC details error:", error);
+
+    if (error?.code === 11000 && error?.keyPattern?.email) {
+      return res.status(409).json({
+        message: "Email already exists. Please use a different email.",
+      });
+    }
+
+    if (error?.name === "ValidationError") {
+      return res.status(400).json({
+        message: "Invalid user details",
+        error: error.message,
+      });
+    }
+
+    return res.status(500).json({ message: "Failed to update KYC details" });
+  }
 };
 
 export const callbackKyc = async (req: AuthRequest, res: Response) => {
