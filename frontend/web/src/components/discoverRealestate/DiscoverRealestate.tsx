@@ -107,11 +107,8 @@ const DiscoverRealestate = () => {
     }, [visibleCityTabs]);
 
     return (
-        <section className="rounded-[22px] border border-[#dfe8e2] bg-white px-6 py-7 shadow-sm sm:px-7 lg:px-8 mb-10">
+        <section className="mb-10">
             <div className="flex items-center gap-4 border-b border-[#edf1ee] pb-4">
-                <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-lg bg-[#d9f8e5] text-[#27ae60]">
-                    <HiMapPin className="h-8 w-8" />
-                </div>
                 <h2 className="text-[24px] font-medium leading-tight text-[#111111]">
                     Discover more real estate Properties in {stateName}
                 </h2>

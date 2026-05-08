@@ -3,21 +3,22 @@ export const dynamic = "force-dynamic";
 
 import TestomianalHome from "./(pages)/reviews/TestomianalHome";
 import ExploreMorePropertiesPage from "./(pages)/explore-properties/Explore-properties";
-import SearchBox from "@/components/SearchBox";
 import ExploreOurServices from "@/app/(pages)/explore-properties/ExploreOurServices";
 import FeaturedProjectsClient from "./(pages)/prime/FeaturedProjectsClient";
 import HighlightProjectsClient from "./(pages)/highlight-projects/HighlightProjectsClient";
 import AgentsList from "./(pages)/agent-connect/AgentCard";
 import PopularOwnerPropertiesClient from "./(pages)/owner-listed/PopularOwnerPropertiesClient";
 import Banner from "@/components/Banner";
-import { useSearchParams } from "next/navigation";
-import { useEffect } from "react";
-import Cookies from "js-cookie";
+
 
 
 import { Suspense } from "react";
 import TokenHandler from "@/components/TokenHandler";
 import DiscoverRealestate from "@/components/discoverRealestate/DiscoverRealestate";
+import ResidentialLinks from "@/components/quickLinks/ResidentialLinks";
+import CommercialLinks from "@/components/quickLinks/CommercialLinks";
+import LandLinks from "@/components/quickLinks/LandLinks";
+import AgriculturalLinks from "@/components/quickLinks/AgriculturalLinks";
 
 
 
@@ -42,6 +43,10 @@ export default function Home() {
         <ExploreMorePropertiesPage />
         <TestomianalHome />
         <DiscoverRealestate />
+        <ResidentialLinks />
+        <CommercialLinks />
+        <LandLinks />
+        <AgriculturalLinks />
       </div>
     </div>
   );
