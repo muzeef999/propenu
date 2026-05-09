@@ -138,7 +138,7 @@ const CommercialLinks = () => {
             </button>
 
             {listingOpen && (
-              <div className="absolute left-0 top-full z-20 mt-2 w-28 rounded-lg border border-gray-100 bg-white p-1 shadow-lg sm:left-[260px] sm:top-8 sm:mt-0">
+              <div className="absolute left-0 top-full z-20 mt-2 w-28 rounded-lg border border-gray-100 bg-white p-1 shadow-lg">
                 {listingTypes.map((type) => (
                   <button
                     key={type}
