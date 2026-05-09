@@ -133,13 +133,15 @@ export default function AgentsList() {
         </div>
 
         {/* Right: View All */}
-        <Link
-          href="/agent-connect"
-          aria-label="View all featured properties"
-          className="shrink-0 flex items-center gap-1 text-sm sm:text-base text-green-600 hover:text-green-700 font-medium whitespace-nowrap"
-        >
-          View All <RiArrowRightSLine size={18} />
-        </Link>
+        {!loading && hasItems && (
+          <Link
+            href="/agent-connect"
+            aria-label="View all agents"
+            className="shrink-0 flex items-center gap-1 text-sm sm:text-base text-green-600 hover:text-green-700 font-medium whitespace-nowrap"
+          >
+            View All <RiArrowRightSLine size={18} />
+          </Link>
+        )}
       </div>
 
       {/* Navigation Buttons */}

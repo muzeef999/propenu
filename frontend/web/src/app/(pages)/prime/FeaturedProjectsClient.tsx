@@ -8,8 +8,6 @@ import { useCity } from "@/hooks/useCity";
 import Image from "next/image";
 import formatINR from "@/utilies/PriceFormat";
 import { getFeaturedProjects } from "@/data/ClientData";
-import HomeSectionSkeleton from "@/components/HomeSectionSkeleton";
-import HomeSectionComingSoon from "@/components/HomeSectionComingSoon";
 import { minDelay } from "@/utilies/minDelay";
 import { getProjectConfigurationLabel } from "@/utilies/projectConfiguration";
 import {
@@ -120,6 +118,10 @@ export default function FeaturedProjectsClient() {
     });
   const hasItems = items.length > 0;
 
+  if (!hasItems) {
+    return null;
+  }
+
   return (
     <div className="relative w-full">
       {/* Left Arrow */}
@@ -147,14 +149,7 @@ export default function FeaturedProjectsClient() {
       )}
 
       {/* Scrollable Row */}
-      {loading ? (
-        <div
-          ref={sliderRef}
-          className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-1 py-2 snap-x snap-mandatory"
-        >
-          <HomeSectionSkeleton variant="prime" count={2} />
-        </div>
-      ) : hasItems ? (
+      {!loading && hasItems ? (
         <div
           ref={sliderRef}
           className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-1 py-2 snap-x snap-mandatory"
@@ -217,12 +212,7 @@ export default function FeaturedProjectsClient() {
             </div>
           ))}
         </div>
-      ) : (
-        <HomeSectionComingSoon
-          title="Prime Projects Are Coming Soon"
-          description={`We’re lining up premium projects for ${selectedCity?.city ?? "your city"}. Check back shortly for fresh launches and standout listings.`}
-        />
-      )}
+      ) : null}
 
       {/* Right Arrow */}
       {!loading && hasItems && canScrollRight && (

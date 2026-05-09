@@ -371,7 +371,7 @@ const HotspotsPage = () => {
                     {/* Ad banner */}
                     <aside className="w-full sm:max-w-md lg:max-w-none lg:w-[220px] lg:sticky lg:top-24 self-start shrink-0">
                         {isLoading ? (
-                            <div className="h-[320px] w-full animate-pulse rounded-xl bg-slate-200" />
+                            <div className="h-80 w-full animate-pulse rounded-xl bg-slate-200" />
                         ) : (
                             <Image
                                 src={ad}

@@ -57,13 +57,19 @@ const DiscoverRealestate = () => {
             : selectedCity
                 ? [selectedCity]
                 : [];
-    const localities = selectedCity?.localities?.length
-        ? selectedCity.localities.map((locality) => ({
-            name: locality.name,
-        }))
-        : Array.from({ length: 15 }, () => ({
-            name: cityName === "Hyderabad" ? "Gachibowli" : cityName,
-        }));
+    const localities =
+        selectedCity?.localities?.reduce<{ name: string }[]>((items, locality) => {
+            const name = locality.name?.trim();
+            const alreadyAdded = items.some(
+                (item) => item.name.toLowerCase() === name?.toLowerCase(),
+            );
+
+            if (name && !alreadyAdded) {
+                items.push({ name });
+            }
+
+            return items;
+        }, []) ?? [];
     const visibleLocalities = showAllLocalities
         ? localities
         : localities.slice(0, 15);
@@ -191,24 +197,30 @@ const DiscoverRealestate = () => {
                     </h3>
 
                     <div className="mt-4 grid grid-cols-2 gap-2.5 sm:mt-5 sm:grid-cols-2 sm:gap-3 xl:grid-cols-5">
-                        {visibleLocalities.map((locality, index) => (
-                            <button
-                                key={`${locality.name}-${index}`}
-                                type="button"
-                                onClick={() => handleLocalityClick(locality.name)}
-                                className="flex min-h-[54px] items-center gap-2 rounded-lg border border-[#e8e8e8] bg-white px-3 text-left shadow-sm transition hover:border-[#27ae60]/50 hover:bg-[#fbfffc] sm:min-h-[61px]"
-                            >
-                                <HiMapPin className="h-5 w-5 shrink-0 text-[#27ae60]" />
-                                <span className="min-w-0">
-                                    <span className="block truncate text-[14px] font-medium text-[#151515] sm:text-[15px]">
-                                        {locality.name}
+                        {visibleLocalities.length > 0 ? (
+                            visibleLocalities.map((locality) => (
+                                <button
+                                    key={locality.name}
+                                    type="button"
+                                    onClick={() => handleLocalityClick(locality.name)}
+                                    className="flex min-h-[54px] items-center gap-2 rounded-lg border border-[#e8e8e8] bg-white px-3 text-left shadow-sm transition hover:border-[#27ae60]/50 hover:bg-[#fbfffc] sm:min-h-[61px]"
+                                >
+                                    <HiMapPin className="h-5 w-5 shrink-0 text-[#27ae60]" />
+                                    <span className="min-w-0">
+                                        <span className="block truncate text-[14px] font-medium text-[#151515] sm:text-[15px]">
+                                            {locality.name}
+                                        </span>
+                                        <span className="mt-1 block text-[10px] font-medium text-[#7d8480]">
+                                            View Properties
+                                        </span>
                                     </span>
-                                    <span className="mt-1 block text-[10px] font-medium text-[#7d8480]">
-                                        View Properties
-                                    </span>
-                                </span>
-                            </button>
-                        ))}
+                                </button>
+                            ))
+                        ) : (
+                            <div className="col-span-full rounded-lg border border-dashed border-[#d9e8df] bg-white px-4 py-5 text-sm font-medium text-[#66736c]">
+                                Localities coming soon for {cityName}.
+                            </div>
+                        )}
                     </div>
 
                     {canViewMore && (
