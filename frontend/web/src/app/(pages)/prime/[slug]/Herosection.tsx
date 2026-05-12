@@ -27,6 +27,15 @@ export type Hero = {
   heroTagline?: string;
 };
 
+
+export interface ProjectLeadPayload {
+  name: string;
+  phone: string;
+  email?: string;
+  projectId?: string;
+  remarks?: string;
+}
+
 export default function HeroSection({ hero }: Props) {
   if (!hero) return null;
 
@@ -41,20 +50,37 @@ export default function HeroSection({ hero }: Props) {
   });
 
   const leadsMutation = useMutation({
-    mutationFn: (payload: Leads) => projectpostLeads(payload),
-    onSuccess: () => {
-      toast.success("Lead submitted successfully");
-      setForm({
-        name: "",
-        phone: "",
-        email: "",
-        message: "",
-      }); // Reset form
-    },
-    onError: () => {
-      toast.error("Failed to submit lead");
-    },
+  mutationFn: projectpostLeads,
+
+  onSuccess: () => {
+    toast.success("Lead submitted successfully");
+
+    setForm({
+      name: "",
+      phone: "",
+      email: "",
+      message: "",
+    });
+  },
+
+  onError: () => {
+    toast.error("Failed to submit lead");
+  },
+});
+
+ 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+
+  leadsMutation.mutate({
+    name: form.name,
+    phone: form.phone,
+    email: form.email,
+    remarks: form.message,
+    projectId: h.projectId,
   });
+};
+
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -63,55 +89,7 @@ export default function HeroSection({ hero }: Props) {
     setForm((p) => ({ ...p, [name]: value }));
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-
-    if (leadsMutation.isPending) return;
-
-    // Resolve to backend enum values expected by the API.
-    // Backend expects one of: "featuredprojects" | "residentials" | "commercials" | "agriculturals" | "landplots"
-    const rawType = h.propertyType ? h.propertyType.toLowerCase().trim() : "";
-
-    const mapping: Record<string, Leads["propertyType"]> = {
-      residential: "residentials",
-      residentials: "residentials",
-      commercial: "commercials",
-      commercials: "commercials",
-      agricultural: "agriculturals",
-      agriculturals: "agriculturals",
-      land: "landplots",
-      landplots: "landplots",
-      featured: "featuredprojects",
-      featuredproject: "featuredprojects",
-      featuredprojects: "featuredprojects",
-    };
-
-    const resolvedType = mapping[rawType] as Leads["propertyType"] | undefined;
-
-    const allowed = [
-      "featuredprojects",
-      "residentials",
-      "commercials",
-      "agriculturals",
-      "landplots",
-    ];
-
-    if (!resolvedType || !allowed.includes(resolvedType)) {
-      const shown = rawType || h.propertyType || "(missing)";
-      toast.error(`Invalid property type: ${shown}`);
-      console.error("Invalid propertyType:", shown);
-      return;
-    }
-
-    leadsMutation.mutate({
-      name: form.name,
-      phone: form.phone,
-      email: form.email,
-      remarks: form.message,
-      projectId: h.projectId,
-      propertyType: resolvedType,
-    });
-  }
+  
 
 
   return (
