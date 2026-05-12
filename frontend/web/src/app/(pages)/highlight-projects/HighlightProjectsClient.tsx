@@ -25,11 +25,15 @@ function HighlightProjectCard({ project }: { project: FeaturedProject }) {
     project._id,
     "FeaturedProject",
   );
+  const projectHref =
+    project.promotion?.type === "prime"
+      ? `/prime/${project.slug}`
+      : `/project/${project.slug}`;
 
   return (
     <Link
       key={project._id}
-      href={`/prime/${project.slug}`}
+      href={projectHref}
       className="relative shrink-0 snap-start group cursor-pointer transition-all duration-300 hover:-translate-y-2 w-[260px] sm:w-[280px] md:w-[320px]"
     >
       <div className="relative mt-5 w-full overflow-hidden rounded-2xl h-[150px] sm:h-[170px] md:h-[180px] shadow-sm transition-shadow duration-300 group-hover:shadow-2xl">

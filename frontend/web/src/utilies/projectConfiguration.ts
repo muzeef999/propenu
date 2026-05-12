@@ -1,7 +1,11 @@
 import { FeaturedProject } from "@/types";
 
-function extractBhkValue(item: FeaturedProject["bhkSummary"][number]) {
-  const labelMatch = item?.bhkLabel?.match(/\d+(\.\d+)?/);
+type ProjectSummaryItem = NonNullable<
+  FeaturedProject["projectSummary"] | FeaturedProject["bhkSummary"]
+>[number];
+
+function extractBhkValue(item: ProjectSummaryItem) {
+  const labelMatch = (item?.label ?? item?.bhkLabel)?.match(/\d+(\.\d+)?/);
 
   if (labelMatch) {
     return Number(labelMatch[0]);
@@ -11,9 +15,11 @@ function extractBhkValue(item: FeaturedProject["bhkSummary"][number]) {
 }
 
 function getProjectBhkValues(project: FeaturedProject) {
+  const summary = project.projectSummary ?? project.bhkSummary ?? [];
+
   return Array.from(
     new Set(
-      (project.bhkSummary ?? [])
+      summary
         .map(extractBhkValue)
         .filter((bhk): bhk is number => typeof bhk === "number" && !Number.isNaN(bhk)),
     ),

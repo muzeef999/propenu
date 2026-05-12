@@ -1,11 +1,34 @@
 // src/zod/validation.ts
 import { z } from "zod";
 
+const AreaUnitZ = z.enum([
+  "sqft",
+  "sqm",
+  "sqyd",
+  "acre",
+  "hectare",
+  "gunta",
+  "cent",
+  "bigha",
+  "ankanam",
+  "marla",
+  "kanal",
+]);
+
+const AreaSchemaZ = z.object({
+  value: z.number().nonnegative(),
+  unit: AreaUnitZ,
+  sqftValue: z.number().nonnegative(),
+});
+
 export const UnitZ = z.object({
   minSqft: z.number().nonnegative().optional(),
+  maxSqft: z.number().nonnegative().optional(),
+  minPrice: z.number().nonnegative().optional(),
   price: z.number().nonnegative().optional(),
   maxPrice: z.number().nonnegative().optional(),
-  availableCount: z.number().int().nonnegative().optional().default(0),
+  availableCount: z.number().int().nonnegative().optional(),
+  area: AreaSchemaZ.optional(),
   planFileName: z.string().optional(),
   planUrl:z.string().url().optional(),
   redirectUrl: z.string().url().optional(),
@@ -19,8 +42,9 @@ export const UnitZ = z.object({
     .optional(),
 });
 
-export const BhkSummarySchemaZ = z.object({
+export const ProjectSummarySchemaZ = z.object({
   bhk: z.number().int().nonnegative(),
+  label: z.string().optional(),
   bhkLabel: z.string().optional(),
   units: z.array(UnitZ).optional(),
 });
@@ -117,8 +141,10 @@ export const CreateFeaturePropertySchema = z.object({
   currency: z.string().optional().default("INR"),
   priceFrom: z.number().optional(),
   priceTo: z.number().optional(),
+  area: AreaSchemaZ.optional(),
 
-  bhkSummary: z.array(BhkSummarySchemaZ).optional(),
+  projectSummary: z.array(ProjectSummarySchemaZ).optional(),
+  bhkSummary: z.array(ProjectSummarySchemaZ).optional(),
  
   aboutSummary: z.union([AboutSummaryZ, z.array(AboutSummaryZ)]).optional().transform((val) => {
       if (typeof val === "undefined") return [];
@@ -196,7 +222,9 @@ export const UpdateFeaturePropertySchema = z.object({
   currency: z.string().optional(),
   priceFrom: z.number().optional(),
   priceTo: z.number().optional(),
-  bhkSummary: z.array(BhkSummarySchemaZ).optional(),
+  area: AreaSchemaZ.optional(),
+  projectSummary: z.array(ProjectSummarySchemaZ).optional(),
+  bhkSummary: z.array(ProjectSummarySchemaZ).optional(),
   aboutSummary: z.union([AboutSummaryZ, z.array(AboutSummaryZ)]).optional(),
   sqftRange: z
     .object({ min: z.number().optional(), max: z.number().optional() })

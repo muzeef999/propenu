@@ -44,21 +44,25 @@ const DiscoverRealestate = () => {
     const tabScrollRef = useRef<HTMLDivElement | null>(null);
     const dispatch = useDispatch();
     const router = useRouter();
+    const { selectedCity, locations } = useCity();
     const [showAllLocalities, setShowAllLocalities] = useState(false);
     const [canScrollTabsLeft, setCanScrollTabsLeft] = useState(false);
     const [canScrollTabsRight, setCanScrollTabsRight] = useState(false);
-    const { selectedCity, locations, selectCity } = useCity();
-    const stateName = selectedCity?.state ?? "Telangana";
-    const cityName = selectedCity?.city ?? "Hyderabad";
+    const [discoverCityId, setDiscoverCityId] = useState<string | null>(null);
+    const discoverCity =
+        locations.find((location) => location._id === discoverCityId) ??
+        selectedCity;
+    const stateName = discoverCity?.state ?? "Telangana";
+    const cityName = discoverCity?.city ?? "Hyderabad";
     const cityTabs = locations.filter((location) => location.state === stateName);
     const visibleCityTabs =
         cityTabs.length > 0
             ? cityTabs
-            : selectedCity
-                ? [selectedCity]
+            : discoverCity
+                ? [discoverCity]
                 : [];
     const localities =
-        selectedCity?.localities?.reduce<{ name: string }[]>((items, locality) => {
+        discoverCity?.localities?.reduce<{ name: string }[]>((items, locality) => {
             const name = locality.name?.trim();
             const alreadyAdded = items.some(
                 (item) => item.name.toLowerCase() === name?.toLowerCase(),
@@ -86,6 +90,10 @@ const DiscoverRealestate = () => {
         dispatch(setSearchText(""));
         router.push("/properties?focus=search");
     };
+
+    useEffect(() => {
+        setDiscoverCityId(selectedCity?._id ?? null);
+    }, [selectedCity?._id]);
 
     useEffect(() => {
         const tabScroller = tabScrollRef.current;
@@ -167,10 +175,10 @@ const DiscoverRealestate = () => {
                                     key={location._id}
                                     type="button"
                                     onClick={() => {
-                                        selectCity(location);
+                                        setDiscoverCityId(location._id);
                                         setShowAllLocalities(false);
                                     }}
-                                    className={`h-9 shrink-0 rounded-lg border px-4 text-sm shadow-sm transition sm:h-[37px] sm:px-5 sm:text-base ${selectedCity?._id === location._id
+                                    className={`h-9 shrink-0 rounded-lg border px-4 text-sm shadow-sm transition sm:h-[37px] sm:px-5 sm:text-base ${discoverCity?._id === location._id
                                             ? "border-[#27ae60] bg-[#27ae60] text-white"
                                             : "border-[#e0e0e0] bg-white text-[#a6a6a6]"
                                         }`}

@@ -30,10 +30,10 @@ const OwnerComingSoon = ({ city }: OwnerComingSoonProps) => {
 
       <div className="relative z-10 grid min-h-[180px] items-center gap-5 sm:min-h-[200px] sm:grid-cols-[minmax(0,1fr)_300px] lg:min-h-[220px] lg:grid-cols-[minmax(300px,1fr)_330px_350px] lg:gap-6">
         <div className="mx-auto max-w-[300px] text-center sm:mx-0 sm:max-w-[360px] sm:text-left lg:max-w-[430px]">
-          <h3 className="text-lg font-semibold leading-tight text-[#1eae5f] sm:text-[22px] lg:text-[30px]">
+          <h3 className="text-lg font-semibold leading-tight text-[#1eae5f] sm:text-[22px] lg:text-[26px]">
             Built for Better Home Hunting Coming Soon
           </h3>
-          <p className="mx-auto mt-2.5 max-w-[280px] text-xs leading-5 text-gray-500 sm:mx-0 sm:mt-3 sm:max-w-[340px] sm:text-sm lg:mt-4 lg:max-w-[390px] lg:text-base lg:leading-6">
+          <p className="mx-auto mt-2.5 max-w-[280px] text-xs leading-5 text-gray-500 sm:mx-0 sm:mt-3 sm:max-w-[340px] sm:text-sm lg:mt-4 lg:max-w-[390px] lg:text-[15px] lg:leading-6">
             Soon you will be able to explore properties directly listed by
             owners{city ? ` in ${city}` : ""} with better deals and no middlemen.
           </p>

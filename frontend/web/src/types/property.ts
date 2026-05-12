@@ -54,6 +54,7 @@ export interface Property {
   bhk?: number | number[];
   bhkSummary?: {
     bhk: number;
+    label?: string;
     bhkLabel?: string;
     units?: {
       minSqft?: number;

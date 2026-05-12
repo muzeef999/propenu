@@ -3,13 +3,14 @@ import mongoose, { Schema, Document, Model, Types } from "mongoose";
 import {
   IAboutSummary,
   IAmenity,
-  IBhkSummary,
+  IArea,
   Ibrochure,
   IFeaturedProject,
   IGalleryItem,
   ILead,
   ILogo,
   INearbyPlace,
+  IProjectSummary,
   ISpecification,
   ISpecItem,
 } from "../types/featurePropertiesTypes";
@@ -23,16 +24,45 @@ function generateSlug(text: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-export interface IFeaturedProjectDocument extends IFeaturedProject, Document {}
+export interface IFeaturedProjectDocument extends IFeaturedProject, Document { }
 export interface ILeadDocument extends ILead, Document {
   projectId: Types.ObjectId;
 }
 
+const AreaSchema = new Schema<IArea>(
+  {
+    value: { type: Number, required: true },
+    unit: {
+      type: String,
+      enum: [
+        "sqft",
+        "sqm",
+        "sqyd",
+        "acre",
+        "hectare",
+        "gunta",
+        "cent",
+        "bigha",
+        "ankanam",
+        "marla",
+        "kanal",
+      ],
+      required: true,
+    },
+    sqftValue: { type: Number, required: true },
+  },
+  { _id: false },
+);
+
 const UnitSchema = new Schema(
   {
     minSqft: { type: Number },
+    maxSqft: { type: Number },
+    minPrice: { type: Number },
     maxPrice: { type: Number },
     availableCount: { type: Number, default: 0 },
+    area: { type: AreaSchema },
+
     plan: {
       url: { type: String },
       key: { type: String },
@@ -43,10 +73,10 @@ const UnitSchema = new Schema(
   { _id: false },
 );
 
-const BhkSummarySchema = new Schema<IBhkSummary>(
+const ProjectSummarySchema = new Schema<IProjectSummary>(
   {
     bhk: { type: Number, required: true },
-    bhkLabel: { type: String },
+    label: { type: String },
     units: { type: [UnitSchema] },
   },
   { _id: false },
@@ -178,11 +208,7 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     currency: { type: String, default: "INR" },
     priceFrom: { type: Number, index: true },
     priceTo: { type: Number, index: true },
-    bhkSummary: { type: [BhkSummarySchema] },
-    sqftRange: {
-      min: { type: Number },
-      max: { type: Number },
-    },
+    projectSummary: { type: [ProjectSummarySchema] },
     possessionDate: { type: String },
     totalTowers: { type: Number },
     redirectUrl: { type: String, trim: true },
@@ -226,7 +252,7 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
         source: "manual",
       }),
     },
-    
+
     updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
     relatedProjects: { type: [Schema.Types.ObjectId], ref: "featuredProject" },
   },
@@ -258,6 +284,24 @@ FeaturePropertySchema.index(
   { name: "Idx_Location_2dsphere" },
 );
 
+FeaturePropertySchema.pre<IFeaturedProjectDocument>("save", function (next) {
+  const legacySummary = (this as any).bhkSummary;
+  if (
+    (!Array.isArray(this.projectSummary) || this.projectSummary.length === 0) &&
+    Array.isArray(legacySummary)
+  ) {
+    this.projectSummary = legacySummary.map((item: any) => {
+      const { bhkLabel, ...rest } = item;
+      return {
+        ...rest,
+        label: item.label ?? bhkLabel,
+      };
+    });
+  }
+
+  next();
+});
+
 FeaturePropertySchema.pre<IFeaturedProjectDocument>(
   "save",
   async function (next) {
@@ -280,10 +324,12 @@ FeaturePropertySchema.pre<IFeaturedProjectDocument>(
 
 FeaturePropertySchema.pre<IFeaturedProjectDocument>("save", function (next) {
   try {
-    if (Array.isArray(this.bhkSummary) && this.bhkSummary.length) {
+    const projectSummary = this.projectSummary ?? (this as any).bhkSummary;
+
+    if (Array.isArray(projectSummary) && projectSummary.length) {
       const prices: number[] = [];
 
-      for (const b of this.bhkSummary) {
+      for (const b of projectSummary) {
         // include any top-level price fields if present (defensive)
         const maybeMin = (b as any).minPrice;
         const maybeMax = (b as any).maxPrice;

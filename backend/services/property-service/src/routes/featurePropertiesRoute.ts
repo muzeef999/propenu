@@ -29,11 +29,13 @@ const cpUpload = upload.fields([
 
 const jsonKeys = [
   "bhkSummary",
+  "projectSummary",
   "specifications",
   "amenities",
   "nearbyPlaces",
   "gallerySummary",
   "sqftRange",
+  "area",
   "leads",
   "banksApproved",
   "location",

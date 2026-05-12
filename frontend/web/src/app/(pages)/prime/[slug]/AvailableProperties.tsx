@@ -2,7 +2,8 @@
 "use client";
 
 import { hexToRGBA } from "@/ui/hexToRGBA";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { FiMinus, FiPlus } from "react-icons/fi";
 
 type Unit = {
   minSqft?: number;
@@ -13,11 +14,13 @@ type Unit = {
 
 type BhkItem = {
   bhk: number;
+  label?: string;
   bhkLabel?: string;
   units?: Unit[];
 };
 
 type BhkPayload = {
+  projectSummary?: BhkItem[] | null;
   bhkSummary?: BhkItem[] | null;
   color?: string | null;
   reraNumber?: string | null;
@@ -29,6 +32,9 @@ type Props = {
 
 // fallback image — replace with a public asset or import if available
 const DEV_PLAN_URL = "/images/placeholder.jpg";
+const MIN_PLAN_ZOOM = 1;
+const MAX_PLAN_ZOOM = 2.5;
+const PLAN_ZOOM_STEP = 0.25;
 
 /** small helper to format INR numbers */
 function formatINR(v?: number) {
@@ -45,9 +51,17 @@ function formatINR(v?: number) {
 }
 
 export default function AvailableProperties({ bhk }: Props) {
-  // new shape: bhk is an object containing bhkSummary, color, and reraNumber
-  const items: BhkItem[] = Array.isArray(bhk?.bhkSummary)
-    ? bhk!.bhkSummary!
+  const planScrollRef = useRef<HTMLDivElement | null>(null);
+  const dragStartRef = useRef({
+    clientX: 0,
+    clientY: 0,
+    scrollLeft: 0,
+    scrollTop: 0,
+  });
+  const items: BhkItem[] = Array.isArray(bhk?.projectSummary)
+    ? bhk!.projectSummary!
+    : Array.isArray(bhk?.bhkSummary)
+      ? bhk!.bhkSummary!
     : [];
   const color = (bhk?.color ?? "#F59E0B") as string;
   const reraNumber = bhk?.reraNumber ?? "--";
@@ -56,6 +70,8 @@ export default function AvailableProperties({ bhk }: Props) {
   const [activeBhkIndex, setActiveBhkIndex] = useState<number>(0);
   // default to first unit within selected BHK
   const [activeUnitIndex, setActiveUnitIndex] = useState<number>(0);
+  const [planZoom, setPlanZoom] = useState<number>(MIN_PLAN_ZOOM);
+  const [isDraggingPlan, setIsDraggingPlan] = useState(false);
 
   // clamp indices when items length changes
   useEffect(() => {
@@ -72,6 +88,10 @@ export default function AvailableProperties({ bhk }: Props) {
   useEffect(() => {
     setActiveUnitIndex(0);
   }, [activeBhkIndex]);
+
+  useEffect(() => {
+    setPlanZoom(MIN_PLAN_ZOOM);
+  }, [activeBhkIndex, activeUnitIndex]);
 
   const activeBhk = items[activeBhkIndex] ?? null;
   const units = Array.isArray(activeBhk?.units) ? activeBhk!.units! : [];
@@ -96,6 +116,50 @@ export default function AvailableProperties({ bhk }: Props) {
   );
 
   const activeUnit = units[activeUnitIndex];
+  const canZoomIn = planZoom < MAX_PLAN_ZOOM;
+  const canZoomOut = planZoom > MIN_PLAN_ZOOM;
+  const canDragPlan = planZoom > MIN_PLAN_ZOOM;
+
+  const zoomPlan = (direction: "in" | "out") => {
+    setPlanZoom((currentZoom) => {
+      const nextZoom =
+        direction === "in"
+          ? currentZoom + PLAN_ZOOM_STEP
+          : currentZoom - PLAN_ZOOM_STEP;
+
+      return Math.min(MAX_PLAN_ZOOM, Math.max(MIN_PLAN_ZOOM, nextZoom));
+    });
+  };
+
+  const handlePlanPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!canDragPlan || !planScrollRef.current) return;
+
+    const scroller = planScrollRef.current;
+    dragStartRef.current = {
+      clientX: event.clientX,
+      clientY: event.clientY,
+      scrollLeft: scroller.scrollLeft,
+      scrollTop: scroller.scrollTop,
+    };
+
+    setIsDraggingPlan(true);
+    scroller.setPointerCapture(event.pointerId);
+  };
+
+  const handlePlanPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingPlan || !planScrollRef.current) return;
+
+    event.preventDefault();
+
+    const scroller = planScrollRef.current;
+    const dragStart = dragStartRef.current;
+    scroller.scrollLeft = dragStart.scrollLeft - (event.clientX - dragStart.clientX);
+    scroller.scrollTop = dragStart.scrollTop - (event.clientY - dragStart.clientY);
+  };
+
+  const stopPlanDrag = () => {
+    setIsDraggingPlan(false);
+  };
 
   function scrollToHero() {
     const el = document.querySelector('[aria-label="#hero-section"]') as HTMLElement | null;
@@ -139,7 +203,7 @@ export default function AvailableProperties({ bhk }: Props) {
                 }
               >
                 <span className="whitespace-nowrap">
-                  {b.bhkLabel ?? `${b.bhk} BHK`}
+                  {b.label ?? b.bhkLabel ?? `${b.bhk} BHK`}
                 </span>
                 <span className="text-xs  hidden sm:inline">
                   FLAT
@@ -182,15 +246,66 @@ export default function AvailableProperties({ bhk }: Props) {
           <div className="lg:col-span-8">
             <div className="bg-gray-50 rounded-md p-4 flex items-center justify-center">
               {/* image container keeps aspect and responsiveness */}
-              <div className="w-full max-h-[520px] rounded-md overflow-hidden bg-white">
+              <div className="relative w-full max-h-[520px] rounded-md overflow-hidden bg-white">
                 {activeUnit?.plan?.url ?? DEV_PLAN_URL ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={activeUnit?.plan?.url ?? DEV_PLAN_URL}
-                    alt={`Plan ${activeBhk?.bhkLabel ?? activeBhk?.bhk ?? ""}`}
-                    className="w-full h-[420px] object-cover sm:object-contain"
-                    style={{ maxHeight: 520 }}
-                  />
+                  <>
+                    <div
+                      ref={planScrollRef}
+                      onPointerDown={handlePlanPointerDown}
+                      onPointerMove={handlePlanPointerMove}
+                      onPointerUp={stopPlanDrag}
+                      onPointerCancel={stopPlanDrag}
+                      onPointerLeave={stopPlanDrag}
+                      className={`h-[420px] overflow-auto select-none ${
+                        canDragPlan
+                          ? isDraggingPlan
+                            ? "cursor-grabbing"
+                            : "cursor-grab"
+                          : "cursor-default"
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={activeUnit?.plan?.url ?? DEV_PLAN_URL}
+                        alt={`Plan ${activeBhk?.label ?? activeBhk?.bhkLabel ?? activeBhk?.bhk ?? ""}`}
+                        draggable={false}
+                        className="max-w-none object-contain transition-[height,width] duration-200 ease-out"
+                        style={{
+                          width: `${planZoom * 100}%`,
+                          height: `${planZoom * 100}%`,
+                        }}
+                      />
+                    </div>
+
+                    <div className="absolute right-3 top-3 flex items-center gap-1 rounded-md border border-gray-200 bg-white/95 p-1 shadow-sm">
+                      <button
+                        type="button"
+                        aria-label="Zoom out plan"
+                        onClick={() => zoomPlan("out")}
+                        disabled={!canZoomOut}
+                        className="flex h-8 w-8 items-center justify-center rounded text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300"
+                      >
+                        <FiMinus className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Reset plan zoom"
+                        onClick={() => setPlanZoom(MIN_PLAN_ZOOM)}
+                        className="h-8 min-w-12 rounded px-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100"
+                      >
+                        {Math.round(planZoom * 100)}%
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Zoom in plan"
+                        onClick={() => zoomPlan("in")}
+                        disabled={!canZoomIn}
+                        className="flex h-8 w-8 items-center justify-center rounded text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300"
+                      >
+                        <FiPlus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </>
                 ) : (
                   <div className="flex items-center justify-center h-[420px] text-gray-400">
                     No plan available
@@ -246,7 +361,8 @@ export default function AvailableProperties({ bhk }: Props) {
                 <li className="flex items-center justify-between">
                   <span className="text-sm text-gray-500">Unit</span>
                   <span className="font-medium">
-                    {activeBhk?.bhkLabel ??
+                    {activeBhk?.label ??
+                      activeBhk?.bhkLabel ??
                       (activeBhk?.bhk ? `${activeBhk.bhk} BHK` : "—")}
                   </span>
                 </li>

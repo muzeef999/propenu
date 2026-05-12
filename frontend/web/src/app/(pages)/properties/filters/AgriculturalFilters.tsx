@@ -17,6 +17,7 @@ import { useEffect, useRef, useState } from "react";
 import { getTrackBackground, Range } from "react-range";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
+import { FiCheck, FiPlus, FiX } from "react-icons/fi";
 import {
   agriculturalMoreFilterSections,
   BUDGET_MAX,
@@ -85,6 +86,13 @@ const AgriculturalFilters = () => {
   ]);
 
   const { locality, postedBy } = agricultural;
+  const selectedLocalities = Array.isArray(locality) ? locality : [];
+  const localityLabel =
+    selectedLocalities.length === 0
+      ? "Select Locality"
+      : selectedLocalities.length === 1
+        ? selectedLocalities[0]
+        : `${selectedLocalities.length} Localities`;
 
   const budgetLabel =
     budgetRange[0] == null && budgetRange[1] == null
@@ -96,7 +104,7 @@ const AgriculturalFilters = () => {
     agricultural,
     agriculturalKeyMapping
   );
-  const localityCount = locality ? 1 : 0;
+  const localityCount = selectedLocalities.length > 0 ? 1 : 0;
   const listingTypeCount = listingTypeValue ? 1 : 0;
   const moreFiltersBadgeCount =
     selectedMoreFiltersCount + localityCount + listingTypeCount;
@@ -165,14 +173,14 @@ const AgriculturalFilters = () => {
         className="shrink-0"
         triggerLabel={
           <span className="px-4 text-primary font-medium cursor-pointer whitespace-nowrap">
-            {locality || "Select Locality"}
+            {localityLabel}
           </span>
         }
-        width="w-86"
+        width="w-116"
         align="left"
         renderContent={(close) => (
-          <div className="p-2">
-            <h4 className="text-sm font-semibold mb-2">
+          <div className="p-3">
+            <h4 className="text-sm font-semibold mb-3">
               {cityData ? `Localities in ${cityData.city}` : "Select city first"}
             </h4>
 
@@ -183,26 +191,71 @@ const AgriculturalFilters = () => {
             )}
 
             {cityData && (
-              <div className="flex gap-2 flex-wrap">
-                {localities.map((loc: { name: string }) => (
+              <>
+                <div className="flex gap-2 flex-wrap">
+                  {localities.map((loc: { name: string }) => {
+                    const isSelected = selectedLocalities.includes(loc.name);
+
+                    return (
+                      <button
+                        key={loc.name}
+                        onClick={() => {
+                          dispatch(
+                            setAgriculturalFilter({
+                              key: "locality",
+                              value: toggleArrayValue(
+                                selectedLocalities,
+                                loc.name
+                              ),
+                            })
+                          );
+                        }}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm border transition ${
+                          isSelected
+                            ? "bg-green-100 text-green-700 border-green-400"
+                            : "bg-white hover:bg-gray-50 border-gray-300"
+                        }`}
+                      >
+                        {isSelected ? (
+                          <FiCheck className="text-green-600 text-base" />
+                        ) : (
+                          <FiPlus className="text-gray-500 text-base" />
+                        )}
+                        <span>{loc.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex justify-between items-center mt-4">
                   <button
-                    key={loc.name}
                     onClick={() => {
                       dispatch(
                         setAgriculturalFilter({
                           key: "locality",
-                          value: loc.name,
+                          value: [],
                         })
                       );
-                      close?.();
                     }}
-                    className={`px-2 py-1 rounded text-sm hover:bg-gray-100 ${locality === loc.name ? "font-semibold bg-gray-100" : ""
-                      }`}
+                    disabled={selectedLocalities.length === 0}
+                    className={`flex items-center gap-1 text-sm font-medium ${
+                      selectedLocalities.length > 0
+                        ? "text-red-500 hover:underline"
+                        : "text-gray-400 cursor-not-allowed"
+                    }`}
                   >
-                    {loc.name}
+                    <FiX />
+                    Clear All
                   </button>
-                ))}
-              </div>
+
+                  <button
+                    onClick={close}
+                    className="text-green-600 font-semibold text-sm hover:underline"
+                  >
+                    Done
+                  </button>
+                </div>
+              </>
             )}
           </div>
         )}

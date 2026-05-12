@@ -16,6 +16,16 @@ export interface YoutubeVideo {
   url: string;
 }
 
+export interface IPromotion {
+  type: "normal" | "featured" | "prime" | "sponsored";
+  priority: number;
+  source: "manual" | "subscription";
+  startDate?: string | Date;
+  boostExpiry?: string | Date;
+  enquiryLimit?: number;
+  enquiriesUsed?: number;
+}
+
 export interface FeaturedProject {
   // basic
   _id: string;
@@ -53,12 +63,14 @@ export interface FeaturedProject {
   mapEmbedUrl?: string;
   locality?: string;
   state?: string;
+  promotion?: IPromotion;
 
   // pricing / bhk
   currency?: string; // default: 'INR'
   priceFrom?: number; // computed
   priceTo?: number; // computed
-  bhkSummary: IBhkSummary[];
+  projectSummary?: IBhkSummary[];
+  bhkSummary?: IBhkSummary[];
   sqftRange?: { min?: number; max?: number };
 
   // timeline & counts
@@ -165,6 +177,7 @@ export interface AboutItem {
 
 export interface BhkSummary {
   bhk: number;
+  label?: string;
   bhkLabel?: string;
   units?: IBhkUnit[];
 }

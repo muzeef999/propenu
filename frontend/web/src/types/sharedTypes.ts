@@ -143,7 +143,7 @@ export interface LandFilters {
 
   postedSince?: string;
   postedBy?: string[];
-  locality?: string;
+  locality?: string[];
   
 }
 
@@ -173,7 +173,7 @@ export interface AgriculturalFilters {
 
   postedSince?: string;
   postedBy?: string[];
-  locality?: string;
+  locality?: string[];
 }
 
 

@@ -8,6 +8,7 @@ import {
 } from "../zod/validation";
 import dotenv from "dotenv";
 import { uploadFile } from "../utils/uploadFile";
+import { upsertCityAndLocality } from "./locationServices";
 
 dotenv.config({ quiet: true });
 
@@ -27,7 +28,7 @@ function exactCaseInsensitive(value: string) {
 }
 
 async function findFeatured(filter: any) {
-  return FeaturedProject.find(filter)
+  const items = await FeaturedProject.find(filter)
     .select({
       title: 1,
       heroImage: 1,
@@ -38,10 +39,13 @@ async function findFeatured(filter: any) {
       locality: 1,
       state: 1,
       logo: 1,
+      projectSummary: 1,
       bhkSummary: 1,
       amenities: 1,
     })
     .lean();
+
+  return serializeFeaturedProjectList(items);
 }
 
 /** compute price range from bhkSummary */
@@ -117,6 +121,64 @@ function normalizeAmenitiesInputs(amenities?: any[]) {
   });
 }
 
+function normalizeProjectSummaryInput(summary?: any[]) {
+  if (!Array.isArray(summary)) return summary;
+
+  return summary.map((item) => {
+    if (!item || typeof item !== "object") return item;
+
+    const { bhkLabel, ...rest } = item;
+    return {
+      ...rest,
+      label: item.label ?? bhkLabel,
+    };
+  });
+}
+
+function getCanonicalProjectSummary(payload: any) {
+  return normalizeProjectSummaryInput(
+    payload?.projectSummary ?? payload?.bhkSummary,
+  );
+}
+
+function getProjectSummaryKey(item: any, fallbackIndex?: number) {
+  if (!item || typeof item !== "object") return `index:${fallbackIndex ?? 0}`;
+
+  const label = String(item.label ?? item.bhkLabel ?? "").trim().toLowerCase();
+
+  if (label) {
+    return `bhk:${item.bhk ?? ""}|label:${label}`;
+  }
+
+  if (typeof item.bhk !== "undefined") {
+    return `bhk:${item.bhk}`;
+  }
+
+  return `index:${fallbackIndex ?? 0}`;
+}
+
+function serializeFeaturedProject<T extends any>(doc: T): T {
+  if (!doc || typeof doc !== "object") return doc;
+
+  const obj: any =
+    typeof (doc as any).toObject === "function"
+      ? (doc as any).toObject({ virtuals: false, aliases: false })
+      : { ...(doc as any) };
+
+  const projectSummary = getCanonicalProjectSummary(obj);
+  if (Array.isArray(projectSummary)) {
+    obj.projectSummary = projectSummary;
+  }
+
+  delete obj.bhkSummary;
+
+  return obj;
+}
+
+function serializeFeaturedProjectList<T extends any[]>(items: T): T {
+  return items.map((item) => serializeFeaturedProject(item)) as T;
+}
+
 async function processBhkPlanUpdates(opts: {
   bhkSummaryExisting?: any[];
   bhkSummaryIncoming?: any[];
@@ -138,9 +200,11 @@ async function processBhkPlanUpdates(opts: {
   for (let b = 0; b < bhkSummaryIncoming.length; b++) {
     const incomingBhk = bhkSummaryIncoming[b];
     // const existingBhk = existingSummary[b] || { units: [] };
-    const existingBhk = existingSummary.find(
-      (eb) => eb.bhk === incomingBhk.bhk,
-    ) || { units: [] };
+    const incomingKey = getProjectSummaryKey(incomingBhk, b);
+    const existingBhk =
+      existingSummary.find(
+        (eb, index) => getProjectSummaryKey(eb, index) === incomingKey,
+      ) || { units: [] };
 
     if (!Array.isArray(existingBhk.units)) {
       existingBhk.units = [];
@@ -226,16 +290,15 @@ function mergeBhkSummary(existingArr: any[] = [], incomingArr: any[] = []) {
   const result: any[] = existingArr ? existingArr.slice() : [];
   for (let i = 0; i < incomingArr.length; i++) {
     const inc = incomingArr[i];
-    if (typeof inc.bhk !== "undefined") {
-      const idx = result.findIndex((r) => r && r.bhk === inc.bhk);
-      if (idx >= 0) {
-        result[idx] = { ...result[idx], ...inc };
-      } else {
-        result.push(inc);
-      }
+    const incomingKey = getProjectSummaryKey(inc, i);
+    const idx = result.findIndex(
+      (r, index) => getProjectSummaryKey(r, index) === incomingKey,
+    );
+
+    if (idx >= 0) {
+      result[idx] = { ...result[idx], ...inc };
     } else {
-      if (i < result.length) result[i] = { ...result[i], ...inc };
-      else result.push(inc);
+      result.push(inc);
     }
   }
   return result;
@@ -333,16 +396,17 @@ export const FeaturePropertyService = {
       (payload.slug && String(payload.slug).trim()) || payload.title;
 
     // 2) compute prices
-    const { priceFrom, priceTo } = computePriceRangeFromBhk(
-      payload.bhkSummary as any[] | undefined,
-    );
+    const projectSummary = getCanonicalProjectSummary(payload);
+    const { priceFrom, priceTo } = computePriceRangeFromBhk(projectSummary);
 
     // 3) prepare base create payload
     const toCreate: any = {
       ...payload,
+      projectSummary,
       priceFrom,
       priceTo,
     };
+    delete toCreate.bhkSummary;
 
     // create a preliminary doc instance to get _id for S3 key naming (no DB write yet)
     const preliminary = new FeaturedProject(toCreate);
@@ -458,7 +522,7 @@ export const FeaturePropertyService = {
 
     // attach BHK plan files (create flow)
     const bhkPlanFiles = files?.bhkPlanFiles ?? [];
-    toCreate.bhkSummary = toCreate.bhkSummary || [];
+    toCreate.projectSummary = toCreate.projectSummary || [];
     // safety: ensure uploaded files count not greater than provided entries (index matching)
     // if (bhkPlanFiles.length > toCreate.bhkSummary.length) {
     //   // not fatal but probably a client error — reject to avoid mismapping
@@ -467,7 +531,7 @@ export const FeaturePropertyService = {
     //   );
     // }
 
-    const totalUnits = (toCreate.bhkSummary || []).reduce(
+    const totalUnits = (toCreate.projectSummary || []).reduce(
       (sum: number, b: any) =>
         sum + (Array.isArray(b.units) ? b.units.length : 0),
       0,
@@ -477,9 +541,9 @@ export const FeaturePropertyService = {
       throw new Error("Too many bhkPlanFiles uploaded for provided bhk units");
     }
 
-    toCreate.bhkSummary = await processBhkPlanUpdates({
+    toCreate.projectSummary = await processBhkPlanUpdates({
       bhkSummaryExisting: [], // none on create
-      bhkSummaryIncoming: toCreate.bhkSummary,
+      bhkSummaryIncoming: toCreate.projectSummary,
       bhkPlanFiles,
       propertyId: propId,
       deleteOldS3OnExternalUrl: false,
@@ -540,8 +604,24 @@ export const FeaturePropertyService = {
     // }
 
     // finally create document in DB
-    const created = await FeaturedProject.create(toCreate);
-    return created;
+    const createdDoc = await FeaturedProject.create(toCreate);
+
+    if (createdDoc.city && createdDoc.locality) {
+      const coordinates = createdDoc.location?.coordinates;
+      const localityCoordinates =
+        Array.isArray(coordinates) && coordinates.length === 2
+          ? ([coordinates[0], coordinates[1]] as [number, number])
+          : undefined;
+
+      await upsertCityAndLocality({
+        city: createdDoc.city,
+        locality: createdDoc.locality,
+        ...(createdDoc.state && { state: createdDoc.state }),
+        ...(localityCoordinates && { coordinates: localityCoordinates }),
+      });
+    }
+
+    return serializeFeaturedProject(createdDoc);
   },
 
   async updateFeatureProperty(
@@ -557,9 +637,10 @@ export const FeaturePropertyService = {
     normalizeGalleryInput(payload as any);
 
     // ---------- PRICE RANGE (if client provided bhkSummary) ----------
-    if ((payload as any).bhkSummary) {
+    const incomingProjectSummary = getCanonicalProjectSummary(payload);
+    if (Array.isArray(incomingProjectSummary)) {
       const { priceFrom, priceTo } = computePriceRangeFromBhk(
-        (payload as any).bhkSummary,
+        incomingProjectSummary,
       );
       if (priceFrom !== undefined) existing.priceFrom = priceFrom;
       if (priceTo !== undefined) existing.priceTo = priceTo;
@@ -567,6 +648,10 @@ export const FeaturePropertyService = {
 
     // ---------- SAFE APPLY (do not blindly overwrite arrays) ----------
     const safeUpdate = pickDefined(payload as any);
+    if (Array.isArray(incomingProjectSummary)) {
+      (safeUpdate as any).projectSummary = incomingProjectSummary;
+    }
+    delete (safeUpdate as any).bhkSummary;
     if (Array.isArray((safeUpdate as any).amenities)) {
       (safeUpdate as any).amenities = normalizeAmenitiesInputs(
         (safeUpdate as any).amenities,
@@ -583,30 +668,31 @@ export const FeaturePropertyService = {
     const propId = existing._id!.toString();
 
     // --------- process BHK updates (files + planRemove + external URL) ----------
-    const bhkSummaryIncoming = (payload as any).bhkSummary;
     const bhkPlanFiles = files?.bhkPlanFiles ?? [];
 
-    if (Array.isArray(bhkSummaryIncoming)) {
-      if (bhkPlanFiles.length > bhkSummaryIncoming.length) {
+    if (Array.isArray(incomingProjectSummary)) {
+      if (bhkPlanFiles.length > incomingProjectSummary.length) {
         throw new Error(
           "Too many bhkPlanFiles uploaded for provided bhkSummary entries",
         );
       }
 
       const mergedIncoming = mergeBhkSummary(
-        existing.bhkSummary || [],
-        bhkSummaryIncoming,
+        (existing as any).projectSummary || (existing as any).bhkSummary || [],
+        incomingProjectSummary,
       );
 
       const processed = await processBhkPlanUpdates({
-        bhkSummaryExisting: existing.bhkSummary || [],
+        bhkSummaryExisting:
+          (existing as any).projectSummary || (existing as any).bhkSummary || [],
         bhkSummaryIncoming: mergedIncoming,
         bhkPlanFiles,
         propertyId: propId,
         deleteOldS3OnExternalUrl: true,
       });
 
-      existing.bhkSummary = processed;
+      (existing as any).projectSummary = processed;
+      (existing as any).bhkSummary = undefined;
     }
 
     // --------- LOGO replacement ----------
@@ -845,19 +931,23 @@ export const FeaturePropertyService = {
 
     // save and return
     await existing.save();
-    return existing;
+    return serializeFeaturedProject(existing);
   },
 
   async getMyHightlightProjects(userId: string) {
-    return await FeaturedProject.find({ createdBy: userId })
+    const projects = await FeaturedProject.find({ createdBy: userId })
       .populate("createdBy", "name email")
       .lean();
+
+    return serializeFeaturedProjectList(projects);
   },
 
   async getMyFeaturedProjects(userId: string) {
-    return await FeaturedProject.find({ createdBy: userId })
+    const projects = await FeaturedProject.find({ createdBy: userId })
       .populate("createdBy", "name email")
       .lean();
+
+    return serializeFeaturedProjectList(projects);
   },
 
   async getFeatureBySlug(slug: string) {
@@ -865,9 +955,11 @@ export const FeaturePropertyService = {
       throw new Error("Invalid slug");
     }
 
-    return await FeaturedProject.findOne({ slug })
+    const doc = await FeaturedProject.findOne({ slug })
       .populate("createdBy", "name email")
       .lean();
+
+    return serializeFeaturedProject(doc);
   },
 
   async getFeatureById(id: string) {
@@ -875,9 +967,11 @@ export const FeaturePropertyService = {
       throw new Error("Invalid id");
     }
 
-    return await FeaturedProject.findById(id)
+    const doc = await FeaturedProject.findById(id)
       .populate("createdBy", "name email")
       .lean();
+
+    return serializeFeaturedProject(doc);
   },
 
   async getFeaturesByCity({ locality, city, state }: LocationParams) {
@@ -1001,7 +1095,7 @@ export const FeaturePropertyService = {
   ]);
 
   return {
-    items,
+    items: serializeFeaturedProjectList(items),
     meta: {
       total,
       page,
@@ -1041,7 +1135,7 @@ export const FeaturePropertyService = {
       //checking
       const localityItems = await FeaturedProject.find(localityFilter)
         .select(
-          "title heroImage priceFrom priceTo slug city state locality logo amenities bhkSummary",
+          "title heroImage priceFrom priceTo slug city state locality logo amenities projectSummary bhkSummary",
         )
         .sort({ rank: 1 })
         .limit(5)
@@ -1051,7 +1145,7 @@ export const FeaturePropertyService = {
         return {
           level: "locality",
           total: localityItems.length,
-          items: localityItems,
+          items: serializeFeaturedProjectList(localityItems),
         };
       }
     }
@@ -1074,7 +1168,7 @@ export const FeaturePropertyService = {
         return {
           level: "city",
           total: cityItems.length,
-          items: cityItems,
+          items: serializeFeaturedProjectList(cityItems),
         };
       }
     }
@@ -1095,7 +1189,7 @@ export const FeaturePropertyService = {
       return {
         level: "state",
         total: stateItems.length,
-        items: stateItems,
+        items: serializeFeaturedProjectList(stateItems),
       };
     }
 
@@ -1138,7 +1232,7 @@ export const FeaturePropertyService = {
       FeaturedProject.countDocuments(filter).exec(),
     ]);
     return {
-      items,
+      items: serializeFeaturedProjectList(items as any),
       meta: { total, page, limit, pages: Math.ceil(total / limit) },
     };
   },
@@ -1150,8 +1244,9 @@ export const FeaturePropertyService = {
     if (!existing) return null;
 
     // delete BHK plan keys
-    if (Array.isArray(existing.bhkSummary)) {
-      for (const b of existing.bhkSummary) {
+    const projectSummary = (existing as any).projectSummary ?? existing.bhkSummary;
+    if (Array.isArray(projectSummary)) {
+      for (const b of projectSummary) {
         for (const u of b.units || []) {
           if (u?.plan?.key) {
             await deleteS3ObjectIfExists(u.plan.key);

@@ -82,7 +82,7 @@ useEffect(() => {
   };
 
   return (
-    <div className="bg-white p-3 lg:p-3 h-full overflow-y-auto">
+    <div className="min-h-full bg-white p-3 lg:p-3">
       <div className="rounded-xl border lg:p-4 sm:p-1 border-[#EBECF0] space-y-6 p-3">
         {/* --- Enquiry Banner --- */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4 border-b border-gray-50 sm:border-none">

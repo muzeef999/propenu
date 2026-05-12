@@ -13,9 +13,9 @@ const Page = () => {
   return (
     <div
       style={{ background: bgPriceColor }}
-      className="relative min-h-screen w-full pb-10 lg:pb-0"
+      className="relative min-h-screen w-full pb-10 lg:flex lg:h-screen lg:flex-col lg:overflow-hidden lg:pb-3"
     >
-      <header className="mx-auto max-w-5xl px-4 py-3 md:px-6 lg:px-2 lg:pt-1">
+      <header className="mx-auto w-full max-w-5xl shrink-0 px-4 py-3 md:px-6 lg:px-2 lg:pt-1">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link
@@ -43,14 +43,14 @@ const Page = () => {
       </header>
 
       {/* 🔹 Main Card Container */}
-      <main className="relative z-20 mx-auto w-full max-w-5xl overflow-hidden bg-white shadow-xl lg:rounded-xl lg:h-[calc(122vh-120px)]">
+      <main className="relative z-20 mx-auto w-full max-w-5xl overflow-hidden bg-white shadow-xl lg:min-h-0 lg:flex-1 lg:rounded-xl">
        
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] h-full">
+        <div className="grid h-full min-h-0 grid-cols-1 lg:grid-cols-[280px_1fr]">
           
           <Sidebar />
 
           {/* Main Content */}
-          <div className="h-full overflow-y-auto lg:p-0">
+          <div className="min-h-0 overflow-y-auto [-webkit-overflow-scrolling:touch] lg:p-0">
             <MainContent />
           </div>
         </div>

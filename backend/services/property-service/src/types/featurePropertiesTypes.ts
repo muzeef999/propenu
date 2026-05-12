@@ -17,14 +17,18 @@ export interface ILogo {
 
 export interface IBhkUnit {
   minSqft?: number;
+  maxSqft?: number;
+  minPrice?: number;
   price?: number;
   maxPrice?: number;
   availableCount?: number;
+  area?: IArea;
   plan?: IBhkPlan;
 }
 
-export interface IBhkSummary {
+export interface IProjectSummary {
   bhk: number;
+  label?: string;
   bhkLabel?: string;
   units?: IBhkUnit[];
 }
@@ -94,6 +98,25 @@ export interface IYoutubeVideo {
   order?: number;
 }
 
+export type AreaUnit =
+  | "sqft"
+  | "sqm"
+  | "sqyd"
+  | "acre"
+  | "hectare"
+  | "gunta"
+  | "cent"
+  | "bigha"
+  | "ankanam"
+  | "marla"
+  | "kanal";
+
+export interface IArea {
+  value: number;
+  unit: AreaUnit;
+  sqftValue: number;
+}
+
 export interface IFeaturedProject {
   title: string;
   slug: string;
@@ -125,7 +148,9 @@ export interface IFeaturedProject {
   currency?: string; // default: 'INR'
   priceFrom?: number; // computed
   priceTo?: number; // computed
-  bhkSummary: IBhkSummary[];
+  area?: IArea;
+  projectSummary: IProjectSummary[];
+  bhkSummary?: IProjectSummary[];
   sqftRange?: { min?: number; max?: number };
 
   // timeline & counts

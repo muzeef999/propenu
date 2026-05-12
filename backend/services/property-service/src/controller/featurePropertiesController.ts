@@ -26,12 +26,14 @@ export const createFeatureProperties = async (req: Request, res: Response) => {
     // parse known complex fields that clients will send as JSON strings:
     const parsed = {
       ...raw,
-      bhkSummary: parseMaybeJSON(raw.bhkSummary),
+      projectSummary: parseMaybeJSON(raw.projectSummary ?? raw.bhkSummary),
+      bhkSummary: parseMaybeJSON(raw.projectSummary ?? raw.bhkSummary),
       specifications: parseMaybeJSON(raw.specifications),
       amenities: parseMaybeJSON(raw.amenities),
       nearbyPlaces: parseMaybeJSON(raw.nearbyPlaces),
       gallerySummary: parseMaybeJSON(raw.gallerySummary),
       sqftRange: parseMaybeJSON(raw.sqftRange),
+      area: parseMaybeJSON(raw.area),
       leads: parseMaybeJSON(raw.leads),
         youtubeVideos: parseMaybeJSON(raw.youtubeVideos),  // ⭐ ADD
 
@@ -235,12 +237,14 @@ export const editFeatureProperties = async (req: Request, res: Response) => {
     const raw = { ...(req.body || {}) };
     const parsed = {
       ...raw,
-      bhkSummary: parseMaybeJSON(raw.bhkSummary),
+    projectSummary: parseMaybeJSON(raw.projectSummary ?? raw.bhkSummary),
+    bhkSummary: parseMaybeJSON(raw.projectSummary ?? raw.bhkSummary),
       specifications: parseMaybeJSON(raw.specifications),
       amenities: parseMaybeJSON(raw.amenities),
       nearbyPlaces: parseMaybeJSON(raw.nearbyPlaces),
       gallerySummary: parseMaybeJSON(raw.gallerySummary),
       sqftRange: parseMaybeJSON(raw.sqftRange),
+      area: parseMaybeJSON(raw.area),
       leads: parseMaybeJSON(raw.leads),
         youtubeVideos: parseMaybeJSON(raw.youtubeVideos),  // ⭐ ADD
 

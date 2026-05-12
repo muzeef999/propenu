@@ -217,13 +217,13 @@ const CommercialFilters = () => {
       <FilterDropdown
         className="shrink-0"
         triggerLabel={
-          <div className="flex justify-center items-center">
+          <div className="flex items-center justify-center">
             <span className="px-4 text-primary font-medium cursor-pointer whitespace-nowrap">
               {localityLabel}
             </span>
           </div>
         }
-        width="w-86"
+        width="w-116"
         align="left"
         renderContent={(close) => (
           <div className="p-3">
@@ -243,8 +243,7 @@ const CommercialFilters = () => {
               <>
                 <div className="flex gap-2 flex-wrap">
                   {localities.map((loc: { name: string }) => {
-                    const isSelected =
-                      localityList.includes(loc.name);
+                    const isSelected = localityList.includes(loc.name);
 
                     return (
                       <button
@@ -257,9 +256,9 @@ const CommercialFilters = () => {
                             })
                           );
                         }}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm border transition ${isSelected
-                          ? "bg-green-100 text-green-700 border-green-400"
-                          : "bg-white hover:bg-gray-50 border-gray-300"
+                        className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${isSelected
+                            ? "border-green-400 bg-green-100 text-green-700"
+                            : "border-gray-300 bg-white hover:bg-gray-50"
                           }`}
                       >
                         {isSelected ? (
@@ -284,9 +283,10 @@ const CommercialFilters = () => {
                       );
                     }}
                     disabled={localityList.length === 0}
-                    className={`flex items-center gap-1 text-sm font-medium ${localityList.length > 0
-                      ? "text-red-500 hover:underline"
-                      : "text-gray-400 cursor-not-allowed"
+                    className={`flex items-center gap-1 text-sm font-medium ${
+                      localityList.length > 0
+                        ? "text-red-500 hover:underline"
+                        : "text-gray-400 cursor-not-allowed"
                       }`}
                   >
                     <FiX />

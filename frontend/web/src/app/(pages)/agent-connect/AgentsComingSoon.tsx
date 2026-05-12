@@ -32,10 +32,10 @@ const AgentsComingSoon = ({
 
       <div className="relative z-10 grid min-h-52 items-center gap-5 sm:min-h-[238px] sm:grid-cols-[minmax(0,0.9fr)_minmax(300px,1fr)] lg:min-h-[262px] lg:grid-cols-[minmax(300px,0.92fr)_minmax(360px,1fr)] lg:gap-6">
         <div className="mx-auto max-w-[300px] text-center sm:mx-0 sm:max-w-[360px] sm:text-left lg:max-w-[430px]">
-          <h3 className="text-lg font-medium leading-tight text-[#1eae5f] sm:text-[22px] lg:text-[30px]">
+          <h3 className="text-lg font-medium leading-tight text-[#1eae5f] sm:text-[22px] lg:text-[26px]">
             A better way to connect with Agents is on the way
           </h3>
-          <p className="mx-auto mt-2.5 max-w-[280px] text-xs leading-5 text-gray-500 sm:mx-0 sm:mt-3 sm:max-w-[340px] sm:text-sm lg:mt-5 lg:max-w-[390px] lg:leading-6">
+          <p className="mx-auto mt-2.5 max-w-[280px] text-xs leading-5 text-gray-500 sm:mx-0 sm:mt-3 sm:max-w-[340px] sm:text-sm lg:mt-5 lg:max-w-[390px] lg:leading-6 lg:text-[15px]">
             Soon you&apos;ll be able to explore trusted agents in your area with
             verified expertise and faster property decisions.
           </p>

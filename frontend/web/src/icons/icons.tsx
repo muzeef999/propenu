@@ -185,7 +185,7 @@ export const PlayStoreBadge = () => {
 
 export const AppStoreBadge = () => {
   return (
-    <Link href="#" aria-label="Get it on Google Play" className="inline-flex">
+    <Link href="https://apps.apple.com/in/app/propenu/id6762111856" aria-label="Get it on Google Play" className="inline-flex">
       <svg
         width="120"
         height="40"

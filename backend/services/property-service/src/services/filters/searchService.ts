@@ -60,7 +60,7 @@ function getPropertyTypeList(filter: any): string[] {
 }
 
 function shouldIncludeFeaturedProjects(filter: any) {
-  if (filter?.category !== "residential") return false;
+  if (!filter?.category || !CATEGORY_SERVICE_MAP[filter.category]) return false;
 
   if (filter.listingType && filter.listingType !== "sale") return false;
 
@@ -83,7 +83,7 @@ function shouldIncludeFeaturedProjects(filter: any) {
 function buildFeaturedProjectMatch(filter: any) {
   const match: any = {
     status: "active",
-    categoryType: "residential",
+    categoryType: filter.category,
 
     // 🔥 INCLUDE ALL VALID PROMOTION TYPES
     $and: [
@@ -152,7 +152,12 @@ function buildFeaturedProjectMatch(filter: any) {
   // 🏠 BHK FILTER
   const bhk = Number(filter.bhk ?? filter.bedrooms);
   if (!Number.isNaN(bhk)) {
-    match["bhkSummary.bhk"] = bhk;
+    match.$and.push({
+      $or: [
+        { "projectSummary.bhk": bhk },
+        { "bhkSummary.bhk": bhk },
+      ],
+    });
   }
 
   // 💰 PRICE FILTER
@@ -220,9 +225,9 @@ function getFeaturedProjectPipeline(filter: any) {
             $ifNull: ["$amenities", []],
           },
         },
-        bhk: "$bhkSummary.bhk",
-        bhkSummary: 1,
-        bedrooms: "$bhkSummary.bhk",
+        bhk: { $ifNull: ["$projectSummary.bhk", "$bhkSummary.bhk"] },
+        projectSummary: { $ifNull: ["$projectSummary", "$bhkSummary"] },
+        bedrooms: { $ifNull: ["$projectSummary.bhk", "$bhkSummary.bhk"] },
         bathrooms: { $literal: null },
         slug: 1,
         createdAt: 1,

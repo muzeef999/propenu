@@ -116,6 +116,7 @@ export default async function Page({ params }: PageProps) {
   };
 
   const bhkSummary = {
+    projectSummary: project?.projectSummary,
     bhkSummary: project?.bhkSummary,
     color: project?.color?.trim(),
     reraNumber: project?.reraNumber,
