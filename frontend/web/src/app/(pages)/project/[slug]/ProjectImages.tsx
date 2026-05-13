@@ -1,0 +1,242 @@
+"use client";
+
+import { FeaturedProject } from "@/types";
+import { useEffect, useRef, useState } from "react";
+import { HiChevronLeft, HiChevronRight, HiPhoto, HiXMark } from "react-icons/hi2";
+
+type ProjectImagesProps = {
+  project: FeaturedProject;
+};
+
+type GalleryImage = {
+  url: string;
+  title?: string;
+  category?: string;
+  order?: number;
+};
+
+function getGalleryImages(project: FeaturedProject): GalleryImage[] {
+  const images = [
+    ...(project.heroImage ? [{ url: project.heroImage, title: project.title, order: -1 }] : []),
+    ...(project.gallerySummary ?? []).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+  ].filter((item): item is GalleryImage => Boolean(item?.url));
+
+  const seen = new Set<string>();
+  return images.filter((item) => {
+    if (seen.has(item.url)) return false;
+    seen.add(item.url);
+    return true;
+  });
+}
+
+export default function ProjectImages({ project }: ProjectImagesProps) {
+  const images = getGalleryImages(project);
+  const previewImages = images.slice(0, 3);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const startX = useRef<number | null>(null);
+  const originalBodyOverflowRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (openIndex !== null) {
+      if (originalBodyOverflowRef.current === null) {
+        originalBodyOverflowRef.current = document.body.style.overflow;
+      }
+      document.body.style.overflow = "hidden";
+    } else if (originalBodyOverflowRef.current !== null) {
+      document.body.style.overflow = originalBodyOverflowRef.current;
+      originalBodyOverflowRef.current = null;
+    }
+
+    return () => {
+      if (originalBodyOverflowRef.current !== null) {
+        document.body.style.overflow = originalBodyOverflowRef.current;
+        originalBodyOverflowRef.current = null;
+      }
+    };
+  }, [openIndex]);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (openIndex === null) return;
+
+      if (event.key === "Escape") setOpenIndex(null);
+      if (event.key === "ArrowLeft") prev();
+      if (event.key === "ArrowRight") next();
+    }
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  if (!images.length) {
+    return null;
+  }
+
+  const mainImage = previewImages[0];
+  const sideImages = previewImages.slice(1, 3);
+  const activeImage = openIndex !== null ? images[openIndex] : null;
+
+  function prev() {
+    setOpenIndex((index) => (index === null ? null : (index - 1 + images.length) % images.length));
+  }
+
+  function next() {
+    setOpenIndex((index) => (index === null ? null : (index + 1) % images.length));
+  }
+
+  function onTouchStart(event: React.TouchEvent) {
+    startX.current = event.touches[0]?.clientX ?? null;
+  }
+
+  function onTouchEnd(event: React.TouchEvent) {
+    if (startX.current === null || openIndex === null) return;
+
+    const endX = event.changedTouches[0]?.clientX ?? 0;
+    const delta = endX - startX.current;
+    if (Math.abs(delta) > 50) {
+      if (delta > 0) prev();
+      else next();
+    }
+    startX.current = null;
+  }
+
+  return (
+    <section id="project-images" className="scroll-mt-20">
+      <div className="container mx-auto px-1 sm:px-4 lg:px-3">
+        <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
+          <h2 className="border-b border-slate-200 px-5 py-5 text-xl font-medium text-slate-950">
+            Images & Videos
+          </h2>
+
+          <div className="relative grid gap-5 p-5 lg:grid-cols-[1.08fr_1fr]">
+            <button
+              type="button"
+              onClick={() => setOpenIndex(0)}
+              className="absolute bottom-8 right-8 z-10 flex items-center gap-2 rounded-md bg-black/65 px-3 py-2 text-sm font-medium text-white backdrop-blur-sm transition hover:bg-black/75"
+              aria-label={`Open all ${images.length} project images`}
+            >
+              <HiPhoto className="h-4 w-4" />
+              {images.length} Photos
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setOpenIndex(0)}
+              className="group overflow-hidden rounded-md text-left shadow-sm"
+              aria-label="Open project image preview"
+            >
+              <img
+                src={mainImage.url}
+                alt={mainImage.title || `${project.title} image`}
+                className="h-[260px] w-full object-cover transition-transform duration-300 group-hover:scale-105 sm:h-80 lg:h-[326px]"
+              />
+            </button>
+
+            <div className="grid gap-4">
+              {sideImages.map((image, index) => (
+                <button
+                  key={`${image.url}-${index}`}
+                  type="button"
+                  onClick={() => setOpenIndex(index + 1)}
+                  className="group overflow-hidden rounded-md text-left shadow-sm"
+                  aria-label={`Open ${image.title || "project image"} preview`}
+                >
+                  <img
+                    src={image.url}
+                    alt={image.title || `${project.title} image ${index + 2}`}
+                    className="h-[155px] w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {openIndex !== null && activeImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm md:p-6"
+          onClick={() => setOpenIndex(null)}
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+        >
+          <div
+            className="relative w-full max-w-6xl"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <button
+              type="button"
+              onClick={() => setOpenIndex(null)}
+              className="absolute right-0 top-0 z-30 flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/70"
+              aria-label="Close gallery"
+            >
+              <HiXMark size={24} />
+            </button>
+
+            <div className="relative overflow-hidden rounded-2xl bg-black pt-12 shadow-2xl md:pt-0">
+              {images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={prev}
+                    className="absolute left-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md transition hover:bg-black/65 md:left-5"
+                    aria-label="Previous image"
+                  >
+                    <HiChevronLeft size={22} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={next}
+                    className="absolute right-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md transition hover:bg-black/65 md:right-5"
+                    aria-label="Next image"
+                  >
+                    <HiChevronRight size={22} />
+                  </button>
+                </>
+              )}
+
+              <img
+                src={activeImage.url}
+                alt={activeImage.title || `${project.title} image`}
+                className="max-h-[75vh] w-full object-contain"
+              />
+
+              {(activeImage.title || activeImage.category) && (
+                <div className="absolute bottom-0 w-full bg-linear-to-t from-black/80 to-transparent p-6 text-white">
+                  {activeImage.title && <div className="text-lg font-semibold">{activeImage.title}</div>}
+                  {activeImage.category && <div className="text-sm text-white/70">{activeImage.category}</div>}
+                </div>
+              )}
+            </div>
+
+            {images.length > 1 && (
+              <div className="mt-6 flex gap-3 overflow-x-auto pb-2">
+                {images.map((image, index) => (
+                  <button
+                    key={`${image.url}-thumb-${index}`}
+                    type="button"
+                    onClick={() => setOpenIndex(index)}
+                    className={`shrink-0 overflow-hidden rounded-lg transition ${
+                      openIndex === index ? "scale-90 ring-2 ring-white" : "opacity-70 hover:opacity-100"
+                    }`}
+                    style={{ width: 110 }}
+                    aria-label={`Open thumbnail ${index + 1}`}
+                  >
+                    <img
+                      src={image.url}
+                      alt={image.title || `${project.title} thumbnail ${index + 1}`}
+                      className="h-16 w-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}

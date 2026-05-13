@@ -99,7 +99,7 @@ export default function HeroSection({ hero }: Props) {
       style={{ backgroundImage: `url(${h.heroImage})` }}
     >
       {/* DARK OVERLAY */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80" />
+      <div className="absolute inset-0 bg-linear-to-b from-black/70 via-black/50 to-black/80" />
       {/* MAIN CONTENT */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 md:pt-20 pb-48">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">

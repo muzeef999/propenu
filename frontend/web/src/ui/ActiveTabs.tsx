@@ -1,20 +1,50 @@
 "use client";
 
+import { useEffect, useMemo } from "react";
+
 type ActiveTabsProps = {
   categories: string[];
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  visibleCategories?: string[];
+  shouldShowCategory?: (category: string) => boolean;
 };
 
 const ActiveTabs = ({
   categories,
   activeTab,
   setActiveTab,
+  visibleCategories,
+  shouldShowCategory,
 }: ActiveTabsProps) => {
+  const tabs = useMemo(() => {
+    if (visibleCategories) {
+      return categories.filter((category) => visibleCategories.includes(category));
+    }
+
+    if (shouldShowCategory) {
+      return categories.filter(shouldShowCategory);
+    }
+
+    return categories;
+  }, [categories, shouldShowCategory, visibleCategories]);
+
+  useEffect(() => {
+    if (!tabs.length) return;
+
+    if (!tabs.includes(activeTab)) {
+      setActiveTab(tabs[0]);
+    }
+  }, [activeTab, setActiveTab, tabs]);
+
+  if (!tabs.length) {
+    return null;
+  }
+
   return (
-<div className="overflow-x-auto sm:overflow-visible border-b border-gray-100 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex gap-4 sm:gap-8 min-w-max px-1">
-        {categories.map((cat) => (
+    <div className="overflow-x-auto sm:overflow-visible border-b border-gray-100 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex gap-4 sm:gap-8 min-w-max px-1">
+        {tabs.map((cat) => (
           <button
             key={cat}
             onClick={() => setActiveTab(cat)}

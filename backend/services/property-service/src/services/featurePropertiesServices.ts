@@ -745,6 +745,40 @@ export const FeaturePropertyService = {
       existing.heroVideo = up.url;
     }
 
+    // --------- BROCHURE replacement ----------
+    const brochureFiles = files?.brochure;
+    if (brochureFiles && brochureFiles.length > 0) {
+      const bf = brochureFiles[0] as Express.Multer.File;
+      const allowedMimeTypes = ["application/pdf"];
+      const maxSizeBytes = 5 * 1024 * 1024;
+
+      if (!allowedMimeTypes.includes(bf.mimetype)) {
+        throw new Error("Brochure must be a PDF (application/pdf)");
+      }
+
+      if (bf.size && bf.size > maxSizeBytes) {
+        throw new Error("Brochure file too large (max 5MB)");
+      }
+
+      const up = await uploadFile({
+        buffer: bf.buffer,
+        originalName: bf.originalname,
+        mimetype: bf.mimetype,
+        folder: "brochures",
+        propertyId: propId,
+      });
+
+      const oldBrochureKey = (existing as any).brochure?.key;
+      if (oldBrochureKey) await deleteS3ObjectIfExists(oldBrochureKey);
+
+      (existing as any).brochure = {
+        url: up.url,
+        key: up.key,
+        filename: bf.originalname,
+        mimetype: bf.mimetype,
+      };
+    }
+
     // ---------- GALLERY handling (preserve when omitted; clear only when explicit [] ) ----------
     const galleryFiles = files?.galleryFiles ?? [];
 

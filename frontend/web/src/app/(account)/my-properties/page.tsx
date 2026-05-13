@@ -90,6 +90,16 @@ const Page = () => {
     queryFn: getMyProperties,
   });
 
+  const shouldShowCategory = useMemo(() => {
+    if (!data) return undefined;
+
+    return (category: string) => {
+      const key = TAB_KEY_MAP[category];
+      const items = data[key];
+      return Array.isArray(items) && items.length > 0;
+    };
+  }, [data, categories]);
+
   function ResponsesButton({
     propertyId,
     count,
@@ -171,7 +181,7 @@ const Page = () => {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <div className="rounded-2xl border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
+      <div className="rounded-2xl border border-green-100 bg-linear-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
         <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">
           My Properties
         </h1>
@@ -187,6 +197,7 @@ const Page = () => {
           categories={categories}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
+          shouldShowCategory={shouldShowCategory}
         />
 
         {/* Filtered count */}

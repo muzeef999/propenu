@@ -2,11 +2,12 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Download } from "@/icons/icons";
 import Cookies from "js-cookie";
 import LoginDialog from "@/app/(auth)/Login";
 import RegisterDialog from "@/app/(auth)/Register";
+import { FiArrowLeft } from "react-icons/fi";
 
 export type NavLink = {
   title: string;
@@ -40,6 +41,7 @@ export default function MicroSiteNavbar({
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const pathname = usePathname() || "/";
+  const router = useRouter();
   const [activeHash, setActiveHash] = useState("");
 
   useEffect(() => {
@@ -108,35 +110,54 @@ export default function MicroSiteNavbar({
 
     window.open(brochureUrl, "_blank", "noopener,noreferrer");
   };
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.push("/");
+  };
 
   return (
     <>
       <header className={`bg-white shadow-md border-b border-gray-200 sticky top-0 z-9999 ${isGalleryOpen ? "hidden" : ""}`}>
         <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="h-14 flex items-center justify-between">
-          {/* logo */}
-          {isExternalLogoHref ? (
-            <a
-              // href={logoHref}
-              // target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3"
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={handleBack}
+              aria-label="Go back"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
             >
-              <img
-                src={resolvedLogo}
-                alt={logoAlt}
-                className="h-12 w-auto object-contain"
-              />
-            </a>
-          ) : (
-            <Link href={logoHref} className="flex items-center gap-3">
-              <img
-                src={resolvedLogo}
-                alt={logoAlt}
-                className="h-12 w-auto object-contain"
-              />
-            </Link>
-          )}
+              <FiArrowLeft className="h-4 w-4" />
+            </button>
+
+            {/* logo */}
+            {isExternalLogoHref ? (
+              <a
+                // href={logoHref}
+                // target="_blank"
+                rel="noopener noreferrer"
+                className="flex min-w-0 items-center gap-3"
+              >
+                <img
+                  src={resolvedLogo}
+                  alt={logoAlt}
+                  className="h-12 w-auto object-contain"
+                />
+              </a>
+            ) : (
+              <Link href={logoHref} className="flex min-w-0 items-center gap-3">
+                <img
+                  src={resolvedLogo}
+                  alt={logoAlt}
+                  className="h-12 w-auto object-contain"
+                />
+              </Link>
+            )}
+          </div>
 
           {/* desktop links + download icon */}
           <div className="hidden md:flex items-center" style={navAccentStyle}>

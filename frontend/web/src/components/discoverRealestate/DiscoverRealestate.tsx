@@ -178,7 +178,7 @@ const DiscoverRealestate = () => {
                                         setDiscoverCityId(location._id);
                                         setShowAllLocalities(false);
                                     }}
-                                    className={`h-9 shrink-0 rounded-lg border px-4 text-sm shadow-sm transition sm:h-[37px] sm:px-5 sm:text-base ${discoverCity?._id === location._id
+                                    className={`h-9 shrink-0 rounded-lg border px-4 text-sm shadow-sm transition sm:h-[37px] sm:px-5 sm:text-base cursor-pointer ${discoverCity?._id === location._id
                                             ? "border-[#27ae60] bg-[#27ae60] text-white"
                                             : "border-[#e0e0e0] bg-white text-[#a6a6a6]"
                                         }`}
@@ -211,7 +211,7 @@ const DiscoverRealestate = () => {
                                     key={locality.name}
                                     type="button"
                                     onClick={() => handleLocalityClick(locality.name)}
-                                    className="flex min-h-[54px] items-center gap-2 rounded-lg border border-[#e8e8e8] bg-white px-3 text-left shadow-sm transition hover:border-[#27ae60]/50 hover:bg-[#fbfffc] sm:min-h-[61px]"
+                                    className="flex min-h-[54px] items-center gap-2 rounded-lg border border-[#e8e8e8] bg-white px-3 text-left shadow-sm transition hover:border-[#27ae60]/50 cursor-pointer hover:bg-[#fbfffc] sm:min-h-[61px]"
                                 >
                                     <HiMapPin className="h-5 w-5 shrink-0 text-[#27ae60]" />
                                     <span className="min-w-0">

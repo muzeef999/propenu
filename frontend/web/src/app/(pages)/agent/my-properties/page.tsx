@@ -45,7 +45,9 @@ const TAB_KEY_MAP: Record<string, string> = {
   Residential: "residential",
   Commercial: "commercial",
   Plot: "land",
+  "Open Plot": "land",
   Agriculture: "agricultural",
+  "Agriculture Land": "agricultural",
 };
 
 const categories = ["Residential", "Commercial", "Open Plot", "Agriculture Land"];
@@ -84,6 +86,16 @@ const Page = () => {
     queryKey: ["myProperties"],
     queryFn: getMyProperties,
   });
+
+  const shouldShowCategory = useMemo(() => {
+    if (!data) return undefined;
+
+    return (category: string) => {
+      const key = TAB_KEY_MAP[category];
+      const items = data[key];
+      return Array.isArray(items) && items.length > 0;
+    };
+  }, [data]);
 
   /* ================= FILTER LOGIC ================= */
 
@@ -145,7 +157,7 @@ const Page = () => {
     <div className="space-y-5 sm:space-y-6">
       {/* ================= HEADER ================= */}
       <div className="items-start justify-between">
-        <div className="mb-4 rounded-2xl border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
+        <div className="mb-4 rounded-2xl border border-green-100 bg-linear-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
           <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">
             My Properties
           </h1>
@@ -162,6 +174,7 @@ const Page = () => {
               categories={categories}
               activeTab={activeTab}
               setActiveTab={setActiveTab}
+              shouldShowCategory={shouldShowCategory}
             />
           </div>
 

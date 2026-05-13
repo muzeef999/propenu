@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { IoLocationOutline } from "react-icons/io5";
@@ -56,6 +56,33 @@ interface ShortlistedItem {
     property: PropertyDetails;
 }
 
+const normalizeType = (type?: string) => {
+    if (!type) return "";
+    const normalized = type.toLowerCase().trim();
+
+    if (normalized === "land" || normalized === "open plot") {
+        return "open plot";
+    }
+
+    if (
+        normalized === "agricultural" ||
+        normalized === "agriculture" ||
+        normalized === "agriculture land"
+    ) {
+        return "agriculture land";
+    }
+
+    if (
+        normalized === "featuredproject" ||
+        normalized === "featured project" ||
+        normalized === "projects"
+    ) {
+        return "projects";
+    }
+
+    return normalized;
+};
+
 /* ================= COMPONENT ================= */
 
 const Page = () => {
@@ -84,6 +111,14 @@ const Page = () => {
         select: (data) => data?.data ?? [],
     });
 
+    const shouldShowCategory = useCallback(
+        (category: string) =>
+            shortlisted.some(
+                (item) => normalizeType(item.propertyType) === normalizeType(category)
+            ),
+        [shortlisted]
+    );
+
     if (isLoading) {
         return (
             <div className="flex h-64 items-center justify-center text-gray-500">
@@ -99,33 +134,6 @@ const Page = () => {
             </div>
         );
     }
-
-    const normalizeType = (type?: string) => {
-        if (!type) return "";
-        const normalized = type.toLowerCase().trim();
-
-        if (normalized === "land" || normalized === "open plot") {
-            return "open plot";
-        }
-
-        if (
-            normalized === "agricultural" ||
-            normalized === "agriculture" ||
-            normalized === "agriculture land"
-        ) {
-            return "agriculture land";
-        }
-
-        if (
-            normalized === "featuredproject" ||
-            normalized === "featured project" ||
-            normalized === "projects"
-        ) {
-            return "projects";
-        }
-
-        return normalized;
-    };
 
     const filteredProperties = shortlisted.filter(
         (item) => normalizeType(item.propertyType) === normalizeType(activeTab)
@@ -147,6 +155,7 @@ const Page = () => {
                 categories={categories}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
+                shouldShowCategory={shouldShowCategory}
             />
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">

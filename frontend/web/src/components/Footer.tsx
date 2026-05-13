@@ -96,11 +96,11 @@ export default function Footer() {
                 <AppStoreBadge />
               </div>
               <div className="flex flex-col items-center justify-center gap-4 mt-2">
-                <div className="rounded-md shadow-sm border border-gray-100">
+                <div className="rounded-xl border border-emerald-100 bg-white p-1 shadow-sm ring-4 ring-white/60">
                   <img
-                    src="/images/qr.jpeg"
+                    src="/images/qr.png"
                     alt="QR Code"
-                    className="w-24 h-24 object-cover"
+                    className="h-24 w-24 rounded-md object-cover"
                   />
                 </div>
                 <p className="text-[12px] text-gray-600 leading-snug text-center">
