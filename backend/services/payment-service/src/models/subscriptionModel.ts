@@ -11,7 +11,6 @@ const SubscriptionSchema = new Schema(
     },
     planCode: { type: String, required: true },
     tier: { type: String, required: true },
-
     category: {
       type: String,
       enum: ["rent", "sell", "both", "buy", "rent_view"],
@@ -21,7 +20,7 @@ const SubscriptionSchema = new Schema(
       },
     },
 
-            invoiceUrl: {
+      invoiceUrl: {
       type: String,
     },
 

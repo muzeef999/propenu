@@ -4,9 +4,8 @@ import { Subscription } from "../models/subscriptionModel";
 import { Plan } from "../models/planModel";
 import Lead from "../models/LeadModel";
 
-// ======================================================
-// CONTACT OWNER LIMIT MIDDLEWARE
-// ======================================================
+// ===================================================== CONTACT OWNER LIMIT MIDDLEWARE ======================================================
+
 export const requireContactOwnerLimit = async (
   req: AuthRequest,
   res: Response,
@@ -27,10 +26,8 @@ export const requireContactOwnerLimit = async (
     const subscription = await Subscription.findOne({
       userId,
       status: "active",
-      expiresAt: { $gt: new Date() }, // ✅ important
+      endDate: { $gt: new Date() }, // ✅ important
     });
-
-    console.log("SUB:", subscription);
 
     if (!subscription) {
       return res.status(403).json({
@@ -58,6 +55,7 @@ export const requireContactOwnerLimit = async (
         userId,
         createdAt: { $gte: subscription.createdAt }, // ✅ fix
       });
+
 
       if (used >= limit) {
         return res.status(403).json({

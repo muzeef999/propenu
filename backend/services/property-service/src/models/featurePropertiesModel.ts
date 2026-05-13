@@ -1,7 +1,5 @@
-// src/models/featurePropertiesModel.ts
 import mongoose, { Schema, Document, Model, Types } from "mongoose";
-import {
-  IAboutSummary,
+import {IAboutSummary,
   IAmenity,
   IArea,
   Ibrochure,

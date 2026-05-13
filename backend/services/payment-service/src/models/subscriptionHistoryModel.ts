@@ -64,7 +64,17 @@ const SubscriptionHistorySchema = new Schema(
       index: true,
     },
 
-        invoiceUrl: {
+    orderNumber: {
+      type: String,
+      index: true,
+    },
+
+    invoiceNumber: {
+      type: String,
+      index: true,
+    },
+
+    invoiceUrl: {
       type: String,
     },
 
@@ -74,10 +84,10 @@ const SubscriptionHistorySchema = new Schema(
       index: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export const SubscriptionHistory = model(
   "SubscriptionHistory",
-  SubscriptionHistorySchema
+  SubscriptionHistorySchema,
 );

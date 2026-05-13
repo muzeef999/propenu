@@ -8,6 +8,7 @@ import { SubscriptionHistory } from "../models/subscriptionHistoryModel";
 import { uploadPdfToS3 } from "../utils/uploadPdfToS3";
 import { generateInvoicePdf } from "../utils/generateInvoicePdf";
 import User from "../../../user-service/src/models/userModel";
+import { generateBusinessNumber } from "../utils/generateBusinessNumber";
 
 type VerifyPaymentResult = {
   success: true;
@@ -116,10 +117,13 @@ export async function createPaymentOrder(
     }
   });
 
+  const orderNumber = await generateBusinessNumber("ORD");
+
   const payment = await Payment.create({
     userId,
     userType,
     planId: plan._id,
+    orderNumber,
     amount: plan.price,
     razorpayOrderId: order.id,
     status: "created"
@@ -155,9 +159,13 @@ export async function verifyPaymentAndActivate(
     throw new Error("Invalid payment signature");
   }
 
+
   const payment = await Payment.findOne({
     razorpayOrderId: razorpay_order_id
   });
+
+  const invoiceNumber = await generateBusinessNumber("INV");
+
 
   if (!payment) {
     throw new Error("Payment record not found");
@@ -175,13 +183,12 @@ export async function verifyPaymentAndActivate(
     };
   }
 
-  /* ======================================================
-     MARK PAYMENT PAID
-  ====================================================== */
 
   payment.status = "paid";
   payment.razorpayPaymentId = razorpay_payment_id;
   payment.razorpaySignature = razorpay_signature;
+  payment.invoiceNumber = invoiceNumber;
+
 
   await payment.save();
 
@@ -215,7 +222,9 @@ export async function verifyPaymentAndActivate(
   const user = await User.findById(payment.userId).select("name phone").lean();
 
   const invoiceBuffer = await generateInvoicePdf({
-    invoiceNo: `INV-${payment._id}`,
+      invoiceNo: invoiceNumber,
+        orderNo: payment.orderNumber || "N/A",
+
     userName:
       invoiceCustomer?.name?.trim() ||
       user?.name?.trim() ||
@@ -267,6 +276,9 @@ export async function verifyPaymentAndActivate(
     startDate: subscription.startDate,
     endDate: subscription.endDate,
     paymentId: payment._id,
+
+    orderNumber: payment.orderNumber,
+    invoiceNumber,
     invoiceUrl,
     purchasedAt: new Date()
   });

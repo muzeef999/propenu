@@ -7,6 +7,7 @@ const pdfRawData = Router();
 pdfRawData.get("/", async (_req, res) => {
   try {
     const pdfBuffer = await generateInvoicePdf({
+      orderNo: "ORD-202409-0001",
       invoiceNo: "INV-001",
       userName: "Muzeef",
       userPhone: "+91 98765 43210",

@@ -4,6 +4,7 @@ import path from "path";
 
 export async function generateInvoicePdf(data: {
   invoiceNo: string;
+  orderNo: string;
   userName: string;
   userPhone?: string | undefined;
   planName: string;
@@ -48,16 +49,8 @@ export async function generateInvoicePdf(data: {
         align: "right",
       });
 
-    // Reduce spacing below header
-    doc.moveDown(2); // 🔽 reduced from 3
+    doc.moveDown(2); 
 
-    /* =========================
-   BILL FROM + INVOICE INFO
-========================= */
-
-    /* =========================
-   BILLING SECTION
-========================= */
 
     const sectionTop = doc.y + 20;
 
@@ -97,7 +90,7 @@ export async function generateInvoicePdf(data: {
       .moveDown(0.5) // 🔽 reduced spacing
       .text(`DATE: ${data.date}`, rightX)
       .moveDown(0.5)
-      .text(`ORDER ID: ${data.invoiceNo}`, rightX);
+      .text(`ORDER ID: ${data.orderNo}`, rightX);
 
     /* ---------- BILL TO (Below BILL FROM) ---------- */
 

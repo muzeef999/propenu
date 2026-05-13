@@ -9,6 +9,8 @@ const PaymentSchema = new Schema(
     provider: { type: String, default: "razorpay" },
     orderId: String,
     paymentId: String,
+    orderNumber: { type: String, unique: true, index: true},
+    invoiceNumber: { type: String, unique: true, sparse: true, index: true},
     planId: {
       type: Types.ObjectId,
       ref: "Plan", // 👈 needed for populate
