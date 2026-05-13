@@ -79,6 +79,31 @@ export default function Page() {
 
   const agents = data?.items || [];
 
+  async function shareAgent(
+    event: React.MouseEvent<HTMLButtonElement>,
+    agent: AgentConnect,
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const agentUrl = `${window.location.origin}/agent-connect/${agent.slug}`;
+    const shareData = {
+      title: agent.name || "Real estate agent",
+      text: `Connect with ${agent.name || "this real estate agent"} on Propenu`,
+      url: agentUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      await navigator.clipboard.writeText(agentUrl);
+    } catch {
+      // Share can be cancelled by the user; no UI needed here.
+    }
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
@@ -122,7 +147,12 @@ export default function Page() {
                     </div>
 
                     <div className="absolute top-2 right-2 flex gap-2">
-                      <button className="bg-white/90 p-2 rounded-full shadow-sm hover:text-blue-500 transition-colors text-gray-400">
+                      <button
+                        type="button"
+                        onClick={(event) => shareAgent(event, agent)}
+                        className="bg-white/90 p-2 rounded-full shadow-sm hover:text-blue-500 transition-colors text-gray-400"
+                        aria-label={`Share ${agent.name || "agent"}`}
+                      >
                         <IoMdShareAlt size={16} />
                       </button>
                     </div>

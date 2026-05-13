@@ -9,6 +9,11 @@ type Unit = {
   minSqft?: number;
   maxPrice?: number;
   availableCount?: number;
+  area?: {
+    value?: number;
+    unit?: string;
+    sqftValue?: number;
+  };
   plan?: { url?: string };
 };
 
@@ -22,6 +27,8 @@ type BhkItem = {
 type BhkPayload = {
   projectSummary?: BhkItem[] | null;
   bhkSummary?: BhkItem[] | null;
+  categoryType?: string | null;
+  propertyType?: string | null;
   color?: string | null;
   reraNumber?: string | null;
 };
@@ -35,6 +42,31 @@ const DEV_PLAN_URL = "/images/placeholder.jpg";
 const MIN_PLAN_ZOOM = 1;
 const MAX_PLAN_ZOOM = 2.5;
 const PLAN_ZOOM_STEP = 0.25;
+
+function formatAreaUnit(unit?: Unit, isLand = false) {
+  if (isLand) {
+    const areaValue = unit?.area?.value;
+    const areaUnit = unit?.area?.unit;
+
+    if (
+      typeof areaValue === "number" &&
+      Number.isFinite(areaValue) &&
+      areaValue > 0
+    ) {
+      return `${areaValue} ${areaUnit || "sqft"}`;
+    }
+  }
+
+  if (
+    typeof unit?.minSqft === "number" &&
+    Number.isFinite(unit.minSqft) &&
+    unit.minSqft > 0
+  ) {
+    return `${unit.minSqft} sqft`;
+  }
+
+  return "—";
+}
 
 /** small helper to format INR numbers */
 function formatINR(v?: number) {
@@ -62,9 +94,12 @@ export default function AvailableProperties({ bhk }: Props) {
     ? bhk!.projectSummary!
     : Array.isArray(bhk?.bhkSummary)
       ? bhk!.bhkSummary!
-    : [];
+      : [];
   const color = (bhk?.color ?? "#F59E0B") as string;
   const reraNumber = bhk?.reraNumber ?? "--";
+  const category = `${bhk?.categoryType ?? bhk?.propertyType ?? ""}`.toLowerCase();
+  const isLand = category === "land";
+  const showFlatLabel = !isLand;
 
   // default to first BHK group
   const [activeBhkIndex, setActiveBhkIndex] = useState<number>(0);
@@ -109,10 +144,11 @@ export default function AvailableProperties({ bhk }: Props) {
   // readable sqft labels for chips
   const sqftLabels = useMemo(
     () =>
-      units.map((u) =>
-        u.minSqft ? `${u.minSqft} sqft` : u.plan?.url ? "Plan" : "—"
-      ),
-    [units]
+      units.map((u) => {
+        const areaLabel = formatAreaUnit(u, isLand);
+        return areaLabel !== "—" ? areaLabel : u.plan?.url ? "Plan" : "—";
+      }),
+    [units, isLand]
   );
 
   const activeUnit = units[activeUnitIndex];
@@ -171,20 +207,20 @@ export default function AvailableProperties({ bhk }: Props) {
   }
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-     
-            <div  style={{color:color, borderLeft:`5px solid ${color}`}}>
-              <div className="ml-2">
-            <h1 className="text-2xl font-bold">
-              Available properties
-            </h1>
-            <p className="headingDesc">
-             Your next property could be here
-            </p>
-          </div>
-          </div>
-          <br/>
 
-      <div className="bg-white rounded-lg shadow-sm p-4" style={{backgroundColor: hexToRGBA(color, 0.1),}}>
+      <div style={{ color: color, borderLeft: `5px solid ${color}` }}>
+        <div className="ml-2">
+          <h1 className="text-2xl font-bold">
+            Available properties
+          </h1>
+          <p className="headingDesc">
+            Your next property could be here
+          </p>
+        </div>
+      </div>
+      <br />
+
+      <div className="bg-white rounded-lg shadow-sm p-4" style={{ backgroundColor: hexToRGBA(color, 0.1), }}>
         {/* Top row: BHK tabs */}
         <div className="flex flex-wrap items-center gap-3 mb-4">
           {items.length === 0 ? (
@@ -205,9 +241,11 @@ export default function AvailableProperties({ bhk }: Props) {
                 <span className="whitespace-nowrap">
                   {b.label ?? b.bhkLabel ?? `${b.bhk} BHK`}
                 </span>
-                <span className="text-xs  hidden sm:inline">
-                  FLAT
-                </span>
+                {showFlatLabel && (
+                  <span className="text-xs hidden sm:inline">
+                    FLAT
+                  </span>
+                )}
               </button>
             ))
           )}
@@ -225,12 +263,12 @@ export default function AvailableProperties({ bhk }: Props) {
                 className="whitespace-nowrap px-3 py-2 rounded-md text-sm border transition"
                 style={
                   idx === activeUnitIndex
-                    ? {  borderColor: color, backgroundColor:'#FFF', color:color } // sky-600
+                    ? { borderColor: color, backgroundColor: '#FFF', color: color } // sky-600
                     : {
-                        backgroundColor: "#ffffff",
-                        color: "#374151",
-                        borderColor: "#e5e7eb",
-                      } // gray variants
+                      backgroundColor: "#ffffff",
+                      color: "#374151",
+                      borderColor: "#e5e7eb",
+                    } // gray variants
                 }
                 aria-pressed={idx === activeUnitIndex}
               >
@@ -256,13 +294,12 @@ export default function AvailableProperties({ bhk }: Props) {
                       onPointerUp={stopPlanDrag}
                       onPointerCancel={stopPlanDrag}
                       onPointerLeave={stopPlanDrag}
-                      className={`h-[420px] overflow-auto select-none ${
-                        canDragPlan
+                      className={`h-[420px] overflow-auto select-none ${canDragPlan
                           ? isDraggingPlan
                             ? "cursor-grabbing"
                             : "cursor-grab"
                           : "cursor-default"
-                      }`}
+                        }`}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
@@ -326,14 +363,14 @@ export default function AvailableProperties({ bhk }: Props) {
                 <div>
                   <div className="text-xs text-gray-500">Area</div>
                   <div className="text-sm">
-                    {activeUnit?.minSqft ? `${activeUnit.minSqft} sqft` : "—"}
+                    {formatAreaUnit(activeUnit, isLand)}
                   </div>
                 </div>
                 <div className="ml-auto">
                   <button
                     type="button"
                     onClick={scrollToHero}
-                    style={{ backgroundColor: color, color:'#FFF' }}
+                    style={{ backgroundColor: color, color: '#FFF' }}
                     className="px-4 py-2 rounded-md  font-semibold"
                   >
                     Book a Consultation
@@ -370,7 +407,7 @@ export default function AvailableProperties({ bhk }: Props) {
                 <li className="flex items-center justify-between">
                   <span className="text-sm text-gray-500">Area</span>
                   <span className="font-medium">
-                    {activeUnit?.minSqft ? `${activeUnit.minSqft} sqft` : "—"}
+                    {formatAreaUnit(activeUnit, isLand)}
                   </span>
                 </li>
 
@@ -379,7 +416,7 @@ export default function AvailableProperties({ bhk }: Props) {
                   <span className="font-medium">{reraNumber}</span>
                 </li>
 
-              
+
 
                 <li className="flex items-center justify-between">
                   <span className="text-sm text-gray-500">Parking</span>

@@ -9,7 +9,6 @@ import LocateUs from "./LocateUs";
 import Gallery from "./Gallery";
 import AboutUS from "./AboutUs";
 import Specification from "./Specification";
-import { getProjectConfigurationValue } from "@/utilies/projectConfiguration";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -92,11 +91,23 @@ export default async function Page({ params }: PageProps) {
     return "Price on Request";
   }
 
+  function formatProjectArea(projectArea?: number) {
+    if (
+      typeof projectArea === "number" &&
+      Number.isFinite(projectArea) &&
+      projectArea > 0
+    ) {
+      return `${projectArea} Acre`;
+    }
+
+    return "Area on Request";
+  }
+
   const startingPrice = formatCrRange(
     project?.priceFrom,
     project?.priceTo
   );
-  const configurationValue = getProjectConfigurationValue(project);
+  const projectAreaValue = formatProjectArea(project?.projectArea);
   const hero = {
     projectId: project._id,
     subTagline: project?.heroSubTagline,
@@ -107,7 +118,7 @@ export default async function Page({ params }: PageProps) {
     heroImage: project.heroImage,
     stats: [
       { value: startingPrice, label: "Price Range" },
-      { value: configurationValue, label: "Configurations" },
+      { value: projectAreaValue, label: "Project Area" },
       { value: (project?.amenities?.length || 0).toString(), label: "Amenities" },
       { value: "RERA", label: "Approved" },
     ],
@@ -118,6 +129,8 @@ export default async function Page({ params }: PageProps) {
   const bhkSummary = {
     projectSummary: project?.projectSummary,
     bhkSummary: project?.bhkSummary,
+    categoryType: project?.categoryType,
+    propertyType: project?.propertyType,
     color: project?.color?.trim(),
     reraNumber: project?.reraNumber,
   };

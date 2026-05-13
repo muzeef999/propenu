@@ -53,6 +53,51 @@ export async function createLocation(payload: CreateLocationPayload) {
     coordinates = [geo.lng, geo.lat];
   }
 
+  const existingCity = await Location.findOne({
+    city: cityName,
+    state: stateName,
+  });
+
+  if (existingCity && localityName) {
+    const localityIndex = existingCity.localities.findIndex(
+      (item: any) => item.name?.trim().toLowerCase() === localityName.toLowerCase()
+    );
+
+    if (localityIndex >= 0) {
+      const existingLocality = existingCity.localities[localityIndex];
+      if (coordinates) {
+        await Location.updateOne(
+          {
+            _id: existingCity._id,
+            "localities.name": existingLocality?.name,
+          },
+          {
+            $set: {
+              "localities.$.location": {
+                type: "Point",
+                coordinates,
+              },
+            },
+          }
+        );
+      }
+      return Location.findById(existingCity._id);
+    }
+
+    await Location.updateOne(
+      { _id: existingCity._id },
+      {
+        $push: {
+          localities: {
+            name: localityName,
+            location: coordinates ? { type: "Point", coordinates } : undefined,
+          },
+        },
+      }
+    );
+    return Location.findById(existingCity._id);
+  }
+
   return Location.findOneAndUpdate(
     {
       city: cityName,
@@ -198,7 +243,11 @@ export async function removeLocalityFromCity(
   cityId: string,
   localityName: string
 ) {
-  const doc = await Location.findById(cityId);
+  if (!mongoose.Types.ObjectId.isValid(cityId)) {
+    throw new Error("Invalid id");
+  }
+
+  const doc = await Location.findById(cityId).lean();
   if (!doc) return null;
 
   const index = doc.localities.findIndex(
@@ -211,7 +260,16 @@ export async function removeLocalityFromCity(
   }
 
   // ✅ remove ONLY that locality
-  doc.localities.splice(index, 1);
+  await Location.updateOne(
+    { _id: cityId },
+    {
+      $pull: {
+        localities: {
+          name: { $regex: `^${localityName.trim()}$`, $options: "i" },
+        },
+      },
+    }
+  );
 
-  return doc.save();
+  return Location.findById(cityId);
 }

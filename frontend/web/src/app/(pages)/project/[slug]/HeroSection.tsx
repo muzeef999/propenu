@@ -4,21 +4,11 @@ import { FeaturedProject } from "@/types";
 import { getProjectConfigurationValue } from "@/utilies/projectConfiguration";
 import { useEffect, useRef, useState } from "react";
 import { FiCheckCircle, FiHeart, FiMapPin, FiShare2 } from "react-icons/fi";
-import { HiChevronLeft, HiChevronRight, HiXMark } from "react-icons/hi2";
+import { HiChevronLeft, HiChevronRight, HiPhoto, HiXMark } from "react-icons/hi2";
 
 type HeroSectionProps = {
     project: FeaturedProject;
 };
-
-const tabs = [
-    { label: "Overview", href: "#overview" },
-    { label: "Photos & Videos", href: "#project-images" },
-    { label: "Floor Plans", href: "#floor-plans" },
-    { label: "Amenities", href: "#amenities" },
-    { label: "Location", href: "#location" },
-    { label: "Specifications", href: "#specifications" },
-    { label: "About", href: "#about-project" },
-];
 
 function formatCompactPrice(price?: number) {
     if (typeof price !== "number" || !Number.isFinite(price) || price <= 0) {
@@ -71,6 +61,16 @@ function getGalleryImages(project: FeaturedProject): GalleryImage[] {
 }
 
 export default function HeroSection({ project }: HeroSectionProps) {
+    const isLand = project.categoryType?.toLowerCase() === "land";
+    const tabs = [
+        { label: "Overview", href: "#overview" },
+        { label: "Photos & Videos", href: "#project-images" },
+        { label: isLand ? "Layout" : "Floor Plans", href: "#floor-plans" },
+        { label: "Amenities", href: "#amenities" },
+        { label: "Location", href: "#location" },
+        { label: "Specifications", href: "#specifications" },
+        { label: "About", href: "#about-project" },
+    ];
     const locationText = [project.locality, project.city].filter(Boolean).join(", ");
     const galleryImages = getGalleryImages(project);
     const heroImage = galleryImages[0]?.url;
@@ -262,7 +262,7 @@ export default function HeroSection({ project }: HeroSectionProps) {
                                     className="ml-auto h-12 max-w-40 object-contain sm:h-18 sm:max-w-48 border border-gray-200 rounded-md p-1"
                                 />
                             )}
-                            <p className="mt-2 text-sm font-bold text-[#4bbb7b] sm:text-base">
+                            <p className="mt-2 text-md font-bold text-[#4bbb7b] sm:text-xl">
                                 {formatPriceRange(project)}
                             </p>
                         </div>
@@ -298,21 +298,23 @@ export default function HeroSection({ project }: HeroSectionProps) {
                             <button
                                 type="button"
                                 onClick={toggleShortlist}
-                                className={`flex h-8 w-8 items-center justify-center rounded bg-white/90 shadow-sm backdrop-blur transition hover:bg-white ${
-                                    isShortlisted ? "text-rose-500" : "text-slate-700"
+                                className={`flex h-9 items-center gap-2 rounded-lg border border-white/70 bg-white/95 px-3 text-xs font-semibold shadow-sm backdrop-blur transition hover:bg-white ${
+                                    isShortlisted ? "text-rose-500" : "text-slate-700 hover:text-rose-500"
                                 }`}
                                 aria-label="Shortlist project"
                                 aria-pressed={isShortlisted}
                             >
                                 <FiHeart className={`h-4 w-4 ${isShortlisted ? "fill-current" : ""}`} />
+                                <span>{isShortlisted ? "Shortlisted" : "Shortlist"}</span>
                             </button>
                             <button
                                 type="button"
                                 onClick={shareProject}
-                                className="flex h-8 w-8 items-center justify-center rounded bg-white/90 text-slate-700 shadow-sm backdrop-blur transition hover:bg-white"
+                                className="flex h-9 items-center gap-2 rounded-lg border border-white/70 bg-white/95 px-3 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-emerald-600"
                                 aria-label="Share project"
                             >
                                 <FiShare2 className="h-4 w-4" />
+                                <span>Share</span>
                             </button>
                         </div>
 
@@ -320,10 +322,11 @@ export default function HeroSection({ project }: HeroSectionProps) {
                             <button
                                 type="button"
                                 onClick={() => openPreview(0)}
-                                className="absolute bottom-3 right-3 rounded bg-white/90 px-2 py-1 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:bg-white"
+                                className="absolute bottom-3 right-3 flex h-9 items-center gap-2 rounded-lg border border-white/70 bg-white/95 px-3 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-emerald-600"
                                 aria-label={`Open all ${galleryImages.length} project images`}
                             >
-                                {galleryImages.length}+
+                                <HiPhoto className="h-4 w-4" />
+                                <span>{galleryImages.length} Photos</span>
                             </button>
                         )}
                     </div>
@@ -347,8 +350,8 @@ export default function HeroSection({ project }: HeroSectionProps) {
                             onClick={(event) => onTabClick(event, tab.href)}
                             className={`shrink-0 px-7 py-4 text-base font-semibold transition sm:text-lg ${
                                 isActive
-                                    ? "border-b-2 border-emerald-500 text-emerald-600"
-                                    : "border-b-2 border-transparent text-slate-500 hover:text-slate-900"
+                                    ? "border-b-3 border-[#27ae60] text-[#27ae60]"
+                                    : "border-b-3 border-transparent text-[#6C6F79] hover:text-gray-400"
                             }`}
                         >
                             {tab.label}

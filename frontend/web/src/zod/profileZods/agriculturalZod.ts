@@ -95,7 +95,11 @@ export const agriculturalSchema = z
     // ✅ Purchase restriction optional BUT min length if filled
 
     /* ================= BOREWELL CONDITIONAL ================= */
-    if ((data.numberOfBorewells ?? 0) > 0 && !data.borewellDetails) {
+    if (
+      data.waterSource === "bore-well" &&
+      (data.numberOfBorewells ?? 0) > 0 &&
+      !data.borewellDetails
+    ) {
       ctx.addIssue({
         path: ["borewellDetails"],
         code: z.ZodIssueCode.custom,

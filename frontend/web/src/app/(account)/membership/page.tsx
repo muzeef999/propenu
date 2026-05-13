@@ -22,7 +22,7 @@ export const RentView = () => {
 
   return (
     <>
-      <div className="mb-6 rounded-2xl border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
+      <div className="mb-6 rounded-2xl border border-green-100 bg-linear-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
         <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">
           Rent View Plans
         </h1>
@@ -56,7 +56,7 @@ export const BuyView = () => {
 
   return (
     <>
-      <div className="mb-6 rounded-2xl border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
+      <div className="mb-6 rounded-2xl border border-green-100 bg-linear-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
         <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">
           Buy View Plans
         </h1>
@@ -83,7 +83,7 @@ const Page = () => {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
+      <div className="rounded-2xl border border-green-100 bg-linear-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
         <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">
           Membership
         </h1>

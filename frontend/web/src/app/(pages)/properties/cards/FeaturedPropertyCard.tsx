@@ -51,37 +51,6 @@ function getBhkLabel(property: Property) {
   return `${uniqueBhks.join(", ")} BHK`;
 }
 
-function getAreaLabel(property: Property) {
-  const area = property.builtUpArea;
-
-  if (typeof area === "number" && Number.isFinite(area)) {
-    return `${area} sqft`;
-  }
-
-  if (area && typeof area === "object") {
-    const min = area.min;
-    const max = area.max;
-
-    if (typeof min === "number" && typeof max === "number") {
-      return `${min} - ${max} sqft`;
-    }
-
-    if (typeof min === "number") return `From ${min} sqft`;
-    if (typeof max === "number") return `Up to ${max} sqft`;
-  }
-
-  const unitSqft = property.bhkSummary
-    ?.flatMap((item) => item.units ?? [])
-    .map((unit) => unit.minSqft)
-    .filter((value): value is number => typeof value === "number");
-
-  if (unitSqft?.length) {
-    return `From ${Math.min(...unitSqft)} sqft`;
-  }
-
-  return "Area on request";
-}
-
 function getPriceLabel(property: Property) {
   const from = property.priceFrom ?? property.price;
   const to = property.priceTo;
@@ -110,6 +79,24 @@ function getAmenitiesCount(property: Property) {
   }
 
   return 0;
+}
+
+function getProjectAreaLabel(property: Property) {
+  if (
+    typeof property.projectArea === "number" &&
+    Number.isFinite(property.projectArea) &&
+    property.projectArea > 0
+  ) {
+    return `${property.projectArea} Acre`;
+  }
+
+  return "Area on request";
+}
+
+function getFeaturedProjectHref(property: Property) {
+  return property.promotion?.type === "prime"
+    ? `/prime/${property.slug}`
+    : `/project/${property.slug}`;
 }
 
 
@@ -151,6 +138,7 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
     },
   };
   const promotionBadge = promotionConfig[promotionType];
+  const propertyHref = getFeaturedProjectHref(p);
 
 
 
@@ -163,7 +151,7 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
       }`}
     >
       <Link
-        href={`/prime/${p.slug}`}
+        href={propertyHref}
         className={`flex flex-1 min-w-0 ${
           vertical ? "flex-col" : "flex-col md:flex-row"
         }`}
@@ -258,7 +246,7 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
               <SuperBuiitupAraea size={24} color={bgPriceColorIcon} />
               <div className="flex flex-col">
                 <div className="text-xs text-gray-500 tracking-wide">Area</div>
-                <div className="font-medium">{getAreaLabel(p)}</div>
+                <div className="font-medium">{getProjectAreaLabel(p)}</div>
               </div>
             </div>
 

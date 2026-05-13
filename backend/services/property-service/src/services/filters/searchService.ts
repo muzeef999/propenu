@@ -210,6 +210,7 @@ function getFeaturedProjectPipeline(filter: any) {
         propertyType: 1,
         transactionType: { $literal: "new-sale" },
         builtUpArea: "$sqftRange",
+        projectArea: 1,
         constructionStatus: { $literal: "under-construction" },
         furnishing: { $literal: null },
         parkingDetails: { $literal: null },

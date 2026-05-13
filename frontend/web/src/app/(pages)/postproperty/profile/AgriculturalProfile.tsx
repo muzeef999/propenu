@@ -76,6 +76,7 @@ const AgriculturalProfile = () => {
       ? validationResult.error.format()
       : undefined;
 
+  const showBorewellDetails = agricultural.waterSource === "bore-well";
   const fieldErrors = formattedErrors;
   const borewellErrors = formattedErrors?.borewellDetails;
   const validUploads = files.filter(
@@ -231,15 +232,32 @@ const AgriculturalProfile = () => {
           <Dropdownui
             label="Water Source"
             value={agricultural.waterSource || null}
-            onChange={(value) =>
+            onChange={(value) => {
               dispatch(
                 setProfileField({
                   propertyType: "agricultural",
                   key: "waterSource",
                   value,
                 })
-              )
-            }
+              );
+
+              if (value !== "bore-well") {
+                dispatch(
+                  setProfileField({
+                    propertyType: "agricultural",
+                    key: "numberOfBorewells",
+                    value: 0,
+                  }),
+                );
+                dispatch(
+                  setProfileField({
+                    propertyType: "agricultural",
+                    key: "borewellDetails",
+                    value: undefined,
+                  }),
+                );
+              }
+            }}
             options={WATER_SOURCES.map((t) => ({
               value: t,
               label: t.replace("-", " "),
@@ -249,131 +267,133 @@ const AgriculturalProfile = () => {
         </div>
       </div>
 
-      <div className="space-y-6">
-        <div>
-          <p className="text-sm font-semibold text-gray-900">
-            Borewell Details
-          </p>
-          <p className="text-xs text-gray-500">
-            Provide borewell count, depth, yield, and drilling year
-          </p>
+      {showBorewellDetails && (
+        <div className="space-y-6">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">
+              Borewell Details
+            </p>
+            <p className="text-xs text-gray-500">
+              Provide borewell count, depth, yield, and drilling year
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <CounterField
+              label="Number of Borewells"
+              value={agricultural.numberOfBorewells || 0}
+              min={0}
+              onChange={(value) =>
+                dispatch(
+                  setProfileField({
+                    propertyType: "agricultural",
+                    key: "numberOfBorewells",
+                    value,
+                  })
+                )
+              }
+            />
+
+            {agricultural.numberOfBorewells > 0 && (
+              <>
+                {/* ================= DEPTH ================= */}
+                <div>
+                  <InputField
+                    label="Borewell Depth (meters)"
+                    type="number"
+                    value={agricultural.borewellDetails?.depthMeters || ""}
+                    placeholder="e.g. 100"
+                    onChange={(value) =>
+                      dispatch(
+                        setProfileField({
+                          propertyType: "agricultural",
+                          key: "borewellDetails",
+                          value: {
+                            ...agricultural.borewellDetails,
+                            depthMeters: Number(value) || 0,
+                          },
+                        }),
+                      )
+                    }
+                  />
+
+                  {borewellErrors?.depthMeters?._errors?.[0] && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {borewellErrors.depthMeters._errors[0]}
+                    </p>
+                  )}
+
+                </div>
+
+                {/* ================= YIELD ================= */}
+                <div>
+                  <InputField
+                    label="Yield (LPM)"
+                    type="number"
+                    value={agricultural.borewellDetails?.yieldLpm || ""}
+                    placeholder="e.g. 5000"
+                    onChange={(value) =>
+                      dispatch(
+                        setProfileField({
+                          propertyType: "agricultural",
+                          key: "borewellDetails",
+                          value: {
+                            ...agricultural.borewellDetails,
+                            yieldLpm: Number(value) || 0,
+                          },
+                        }),
+                      )
+                    }
+                  />
+
+                  {borewellErrors?.yieldLpm?._errors?.[0] && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {borewellErrors.yieldLpm._errors[0]}
+                    </p>
+                  )}
+
+                </div>
+
+                {/* ================= DRILLED YEAR ================= */}
+                <div>
+                  <InputField
+                    label="Drilled Year"
+                    type="number"
+                    value={agricultural.borewellDetails?.drilledYear || ""}
+                    placeholder="e.g. 2020"
+                    onChange={(value) =>
+                      dispatch(
+                        setProfileField({
+                          propertyType: "agricultural",
+                          key: "borewellDetails",
+                          value: {
+                            ...agricultural.borewellDetails,
+                            drilledYear: Number(value) || 0,
+                          },
+                        }),
+                      )
+                    }
+                  />
+
+                  {borewellErrors?.drilledYear?._errors?.[0] && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {borewellErrors.drilledYear._errors[0]}
+                    </p>
+                  )}
+
+                </div>
+
+                {/* ================= OBJECT LEVEL ERROR ================= */}
+                {Array.isArray(borewellErrors) && borewellErrors[0] && (
+                  <p className="text-red-600 text-xs mt-2">
+                    {borewellErrors[0]}
+                  </p>
+                )}
+              </>
+            )}
+
+          </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <CounterField
-            label="Number of Borewells"
-            value={agricultural.numberOfBorewells || 0}
-            min={0}
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "agricultural",
-                  key: "numberOfBorewells",
-                  value,
-                })
-              )
-            }
-          />
-
-          {agricultural.numberOfBorewells > 0 && (
-            <>
-              {/* ================= DEPTH ================= */}
-              <div>
-                <InputField
-                  label="Borewell Depth (meters)"
-                  type="number"
-                  value={agricultural.borewellDetails?.depthMeters || ""}
-                  placeholder="e.g. 100"
-                  onChange={(value) =>
-                    dispatch(
-                      setProfileField({
-                        propertyType: "agricultural",
-                        key: "borewellDetails",
-                        value: {
-                          ...agricultural.borewellDetails,
-                          depthMeters: Number(value) || 0,
-                        },
-                      }),
-                    )
-                  }
-                />
-
-                {borewellErrors?.depthMeters?._errors?.[0] && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {borewellErrors.depthMeters._errors[0]}
-                  </p>
-                )}
-
-              </div>
-
-              {/* ================= YIELD ================= */}
-              <div>
-                <InputField
-                  label="Yield (LPM)"
-                  type="number"
-                  value={agricultural.borewellDetails?.yieldLpm || ""}
-                  placeholder="e.g. 5000"
-                  onChange={(value) =>
-                    dispatch(
-                      setProfileField({
-                        propertyType: "agricultural",
-                        key: "borewellDetails",
-                        value: {
-                          ...agricultural.borewellDetails,
-                          yieldLpm: Number(value) || 0,
-                        },
-                      }),
-                    )
-                  }
-                />
-
-                {borewellErrors?.yieldLpm?._errors?.[0] && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {borewellErrors.yieldLpm._errors[0]}
-                  </p>
-                )}
-
-              </div>
-
-              {/* ================= DRILLED YEAR ================= */}
-              <div>
-                <InputField
-                  label="Drilled Year"
-                  type="number"
-                  value={agricultural.borewellDetails?.drilledYear || ""}
-                  placeholder="e.g. 2020"
-                  onChange={(value) =>
-                    dispatch(
-                      setProfileField({
-                        propertyType: "agricultural",
-                        key: "borewellDetails",
-                        value: {
-                          ...agricultural.borewellDetails,
-                          drilledYear: Number(value) || 0,
-                        },
-                      }),
-                    )
-                  }
-                />
-
-                {borewellErrors?.drilledYear?._errors?.[0] && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {borewellErrors.drilledYear._errors[0]}
-                  </p>
-                )}
-
-              </div>
-
-              {/* ================= OBJECT LEVEL ERROR ================= */}
-              {Array.isArray(borewellErrors) && borewellErrors[0] && (
-                <p className="text-red-600 text-xs mt-2">
-                  {borewellErrors[0]}
-                </p>
-              )}
-            </>
-          )}
-
-        </div>
-      </div>
+      )}
 
       {/* ========== CROP DETAILS ========== */}
       <div className="space-y-6">

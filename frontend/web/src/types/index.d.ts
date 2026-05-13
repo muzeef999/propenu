@@ -53,6 +53,7 @@ export interface FeaturedProject {
   metaKeywords?: string;
 
   // address & geo
+  categoryType?: string;
   address: string;
   city?: string;
   location?: {
@@ -162,6 +163,11 @@ export interface IBhkUnit {
   price?: number;
   maxPrice?: number;
   availableCount?: number;
+  area?: {
+    value?: number;
+    unit?: string;
+    sqftValue?: number;
+  };
   plan?: IBhkPlan;
 }
 

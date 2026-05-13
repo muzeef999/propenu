@@ -75,6 +75,7 @@ function isHtmlContent(text?: string) {
 
 export default function AboutUS(props: Props) {
   const { aboutSummary: raw, primaryColor, heading: headingProp } = props;
+  const [imageFailed, setImageFailed] = React.useState(false);
   const { items, color, heading } = useMemo(
     () => normalizeAboutProp(raw, primaryColor ?? null, headingProp ?? null),
     [raw, primaryColor, headingProp],
@@ -88,19 +89,7 @@ export default function AboutUS(props: Props) {
   const hasHtmlDescription = isHtmlContent(item?.aboutDescription);
   const hasHtmlRightContent = isHtmlContent(item?.rightContent);
 
-  // safe url decode only if it looks encoded, else use as-is
-  const safeUrl = item?.url
-    ? (() => {
-        try {
-          // decodeURIComponent can throw if not properly encoded; guard it
-          const decoded = decodeURIComponent(item.url);
-          // if decode gives same string or seems plausible, return decoded; else original
-          return decoded || item.url;
-        } catch {
-          return item.url;
-        }
-      })()
-    : undefined;
+  const imageUrl = item?.url?.trim();
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -129,26 +118,23 @@ export default function AboutUS(props: Props) {
       <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-12 mt-6">
         {/* Left: image */}
         <div className="lg:w-2/3 w-full">
-          {safeUrl ? (
-            <div className="mt-0 ">
-              {/* use native img for external URLs; can switch to next/image if configured */}
+          {imageUrl && !imageFailed ? (
+            <div className="w-full overflow-hidden rounded-2xl shadow-lg">
               <img
-                src={safeUrl}
+                src={imageUrl}
                 alt={item?.filename ?? "About image"}
-                className="w-full rounded-2xl shadow-lg object-cover h-56 sm:h-72 md:h-80 lg:h-full"
+                className="h-56 w-full object-cover sm:h-72 md:h-80 lg:h-[420px]"
                 loading="lazy"
+                decoding="async"
                 onError={(e) => {
-                  // fallback to hidden placeholder if image fails
-                  const t = e.currentTarget as HTMLImageElement;
-                  t.onerror = null;
-                  t.style.display = "none";
+                  e.currentTarget.onerror = null;
+                  setImageFailed(true);
                 }}
               />
             </div>
           ) : (
-            // optional placeholder if no url
-            <div className="mt-4 w-full rounded-2xl bg-gray-50 border border-dashed border-gray-200 h-56 flex items-center justify-center text-gray-400">
-              No image provided
+            <div className="flex h-56 w-full items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50 text-gray-400 sm:h-72 md:h-80 lg:h-[420px]">
+              Image not available
             </div>
           )}
         </div>

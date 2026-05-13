@@ -28,6 +28,7 @@ const propertySkeletonItems = Array.from({ length: 4 });
 function getPropertyLink(property: any) {
 
   const type = (property.type || "").toLowerCase();
+  const promotionType = String(property.promotion?.type || "").toLowerCase();
 
   switch (type) {
     case "residential":
@@ -39,7 +40,9 @@ function getPropertyLink(property: any) {
     case "agricultural":
       return `/properties/agricultural/${property.slug}`;
     case "featuredproject":
-      return `/prime/${property.slug}`;
+      return promotionType === "prime"
+        ? `/prime/${property.slug}`
+        : `/project/${property.slug}`;
     default:
       return "/";
   }
@@ -193,6 +196,7 @@ case "commercial":
   const getAreaValue = (property: Property): number => {
     const candidate = [
       property.superBuiltUpArea,
+      property.projectArea,
       (property as any)?.builtUpArea,
       (property as any)?.plotArea,
       (property as any)?.totalArea?.value,

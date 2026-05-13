@@ -1,27 +1,80 @@
+"use client";
+
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { IoMdShareAlt } from "react-icons/io";
 import { AgentDetailsResponse } from "@/types";
 import { getAgentDetails } from "@/data/serverData";
-import { notFound } from "next/navigation";
 import { DetailRow, InfoRow, StatBox } from "@/ui/AgentPageComponents";
 import ResidentialCard from "../../properties/cards/ResidentialCard";
 import CommercialCard from "../../properties/cards/CommercialCard";
 import { LandCard } from "../../properties/cards/LandCard";
 import AgriculturalCard from "../../properties/cards/AgriculturalCard";
 
-interface PageProps {
-    params: {
-        slug: string;
-    };
-}
+export default function Page() {
+    const params = useParams<{ slug: string }>();
+    const slug = params?.slug;
+    const [data, setData] = useState<AgentDetailsResponse | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [hasError, setHasError] = useState(false);
 
-export default async function Page({ params }: PageProps) {
-    const { slug } = await params;
+    useEffect(() => {
+        let isCancelled = false;
 
-    let data: AgentDetailsResponse | null;
-    try {
-        data = await getAgentDetails({ slug });
-    } catch {
+        async function loadAgent() {
+            if (!slug) return;
+
+            try {
+                setIsLoading(true);
+                setHasError(false);
+                const response = await getAgentDetails({ slug });
+                if (!isCancelled) setData(response);
+            } catch {
+                if (!isCancelled) setHasError(true);
+            } finally {
+                if (!isCancelled) setIsLoading(false);
+            }
+        }
+
+        loadAgent();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [slug]);
+
+    async function shareAgent() {
+        if (!data?.agent) return;
+
+        const agentUrl = `${window.location.origin}/agent-connect/${data.agent.slug}`;
+        const shareData = {
+            title: data.agent.name || "Real estate agent",
+            text: `Connect with ${data.agent.name || "this real estate agent"} on Propenu`,
+            url: agentUrl,
+        };
+
+        try {
+            if (navigator.share) {
+                await navigator.share(shareData);
+                return;
+            }
+
+            await navigator.clipboard.writeText(agentUrl);
+        } catch {
+            // Share can be cancelled by the user; no UI needed.
+        }
+    }
+
+    if (isLoading) {
+        return (
+            <main className="p-6">
+                <h1 className="text-xl font-bold">Loading...</h1>
+            </main>
+        );
+    }
+
+    if (hasError) {
         return (
             <main className="p-6">
                 <h1 className="text-xl font-bold">Something went wrong</h1>
@@ -29,7 +82,14 @@ export default async function Page({ params }: PageProps) {
         );
     }
 
-    if (!data) notFound();
+    if (!data) {
+        return (
+            <main className="p-6">
+                <h1 className="text-xl font-bold">Agent not found</h1>
+            </main>
+        );
+    }
+
     const { agent, properties } = data;
 
 
@@ -88,7 +148,12 @@ export default async function Page({ params }: PageProps) {
                             </h3>
                         </div>
 
-                        <button className="p-2 border border-gray-100 rounded-full text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all">
+                        <button
+                            type="button"
+                            onClick={shareAgent}
+                            className="p-2 border border-gray-100 rounded-full text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+                            aria-label={`Share ${agent.name || "agent"}`}
+                        >
                             <IoMdShareAlt size={20} />
                         </button>
                     </div>

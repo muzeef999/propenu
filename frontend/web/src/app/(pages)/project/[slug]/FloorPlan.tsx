@@ -29,9 +29,29 @@ function formatCompactPrice(price?: number) {
   return `\u20b9 ${price.toLocaleString("en-IN")}`;
 }
 
-function formatSqft(unit?: IBhkUnit) {
-  if (!unit?.minSqft) return "--";
-  return `${unit.minSqft} sq.ft`;
+function formatUnitArea(unit?: IBhkUnit, isLand = false) {
+  if (isLand) {
+    const areaValue = unit?.area?.value;
+    const areaUnit = unit?.area?.unit;
+
+    if (
+      typeof areaValue === "number" &&
+      Number.isFinite(areaValue) &&
+      areaValue > 0
+    ) {
+      return `${areaValue} ${areaUnit || "sq.ft"}`;
+    }
+  }
+
+  if (
+    typeof unit?.minSqft === "number" &&
+    Number.isFinite(unit.minSqft) &&
+    unit.minSqft > 0
+  ) {
+    return `${unit.minSqft} sq.ft`;
+  }
+
+  return "--";
 }
 
 function getPlanGroups(project: FeaturedProject): PlanGroup[] {
@@ -42,7 +62,7 @@ function getPlanGroups(project: FeaturedProject): PlanGroup[] {
       const label = item.label ?? item.bhkLabel ?? `${item.bhk} BHK`;
       const cleanLabel = label.toLowerCase().includes("apartment")
         ? label
-        : `${label} Apartment`;
+        : `${label} `;
 
       return {
         label: cleanLabel,
@@ -57,11 +77,13 @@ export default function FloorPlan({ project }: FloorPlanProps) {
   const groups = useMemo(() => getPlanGroups(project), [project]);
   const [activeGroupIndex, setActiveGroupIndex] = useState(0);
   const [activeUnitIndex, setActiveUnitIndex] = useState(0);
+  const isLand = project.categoryType?.toLowerCase() === "land";
+  const sectionTitle = isLand ? "Layout" : "Floor Plans";
 
   const activeGroup = groups[activeGroupIndex];
   const activeUnit = activeGroup?.units[activeUnitIndex] ?? activeGroup?.units[0];
   const planImage = activeUnit?.plan?.url;
-  const sqftLabel = formatSqft(activeUnit);
+  const sqftLabel = formatUnitArea(activeUnit, isLand);
   const priceLabel = formatCompactPrice(activeUnit?.price ?? activeUnit?.maxPrice);
 
   if (!groups.length) {
@@ -73,7 +95,7 @@ export default function FloorPlan({ project }: FloorPlanProps) {
       <div className="container mx-auto px-1 sm:px-4 lg:px-3">
         <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
           <h2 className="border-b border-slate-200 px-5 py-5 text-xl font-medium text-slate-950">
-            {project.title} Floor Plans
+            {project.title} {sectionTitle}
           </h2>
 
           <div className="px-5 py-4">
@@ -109,7 +131,9 @@ export default function FloorPlan({ project }: FloorPlanProps) {
                       : "border-transparent hover:border-slate-300"
                   }`}
                 >
-                  <span className="block text-xs text-slate-500">{formatSqft(unit)}</span>
+                  <span className="block text-xs text-slate-500">
+                    {formatUnitArea(unit, isLand)}
+                  </span>
                   <span className="mt-1 block text-xs font-semibold text-slate-950">
                     {formatCompactPrice(unit.price ?? unit.maxPrice)}
                   </span>
@@ -134,7 +158,7 @@ export default function FloorPlan({ project }: FloorPlanProps) {
             <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h3 className="text-base font-medium text-slate-950">
-                  {activeGroup.bhkLabel} {sqftLabel} Apartment
+                  {activeGroup.bhkLabel} {sqftLabel}
                 </h3>
                 <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
                   <p className="text-xl font-semibold text-emerald-600">{priceLabel}</p>

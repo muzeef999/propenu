@@ -112,11 +112,11 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
             <button
               type="button"
               onClick={() => setOpenIndex(0)}
-              className="absolute bottom-8 right-8 z-10 flex items-center gap-2 rounded-md bg-black/65 px-3 py-2 text-sm font-medium text-white backdrop-blur-sm transition hover:bg-black/75"
+              className="absolute bottom-8 right-8 z-10 flex h-9 items-center gap-2 rounded-lg border border-white/70 bg-white/95 px-3 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-emerald-600"
               aria-label={`Open all ${images.length} project images`}
             >
               <HiPhoto className="h-4 w-4" />
-              {images.length} Photos
+              <span>{images.length} Photos</span>
             </button>
 
             <button

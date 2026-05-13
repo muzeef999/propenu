@@ -38,17 +38,16 @@ export default function Specifications({ project }: SpecificationsProps) {
           </h2>
 
           <div className="px-5 py-4">
-            <div className="flex gap-4 overflow-x-auto border-b border-slate-200 pb-4">
+            <div className="flex gap-3 overflow-x-auto border-b border-slate-200 pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               {specifications.map((spec: Specification, index) => (
                 <button
                   key={`${spec.category}-${index}`}
                   type="button"
                   onClick={() => setActiveIndex(index)}
-                  className={`shrink-0 rounded px-5 py-3 text-sm font-medium transition btn-primary ${
-                    activeIndex === index
-                      ? " text-white"
-                      : ""
-                  }`}
+                  className={`shrink-0 rounded-md border px-5 py-2.5 text-sm font-medium transition ${activeIndex === index
+                      ? "border-emerald-500 bg-[#27ae60] text-white shadow-sm"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                    }`}
                 >
                   {spec.category}
                 </button>

@@ -68,21 +68,10 @@ export default function Overview({ project }: OverviewProps) {
       label: "Property Type",
       value: project.propertyType || "Residential Project",
     },
-    {
-      label: "Avg Price",
-      value: formatAvgPrice(project),
-    },
-    {
-      label: "Sq.ft.",
-      value: formatSqftRange(project),
-    },
+
     {
       label: "Availability",
       value: possessionLabel === "--" ? "--" : "Under Construction",
-    },
-    {
-      label: "BHK",
-      value: formatBhkConfiguration(project),
     },
     {
       label: "Units",
@@ -93,12 +82,10 @@ export default function Overview({ project }: OverviewProps) {
       value: project.projectArea ? `${project.projectArea} Acre` : "--",
     },
     {
-      label: "Towers",
-      value: project.totalTowers ? `${project.totalTowers} Towers` : "--",
-    },
-    {
-      label: "Launch Date",
-      value: possessionLabel,
+      label: "Amenities",
+      value: project.amenities?.length
+        ? `${project.amenities.length} Amenities`
+        : "--",
     },
     {
       label: "Launch Date",
