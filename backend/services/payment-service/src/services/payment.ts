@@ -245,7 +245,7 @@ export async function verifyPaymentAndActivate(
 
   const subscription = await Subscription.create({
     userId: payment.userId,
-    userType: payment.userType,
+    userType: plan.userType,
     category: plan.category || "both",
     planCode: plan.code,
     tier: plan.tier,
