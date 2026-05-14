@@ -1122,6 +1122,7 @@ export const FeaturePropertyService = {
       .sort(sort)
       .skip(skip)
       .limit(limit)
+      .populate("createdBy", "name email phone city state locality pincode")
       .lean()
       .exec(),
 
@@ -1262,7 +1263,12 @@ export const FeaturePropertyService = {
       sort[options.sortBy] = options.sortOrder === "asc" ? 1 : -1;
     else sort.createdAt = -1;
     const [items, total] = await Promise.all([
-      FeaturedProject.find(filter).sort(sort).skip(skip).limit(limit).exec(),
+      FeaturedProject.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .populate("createdBy", "name email phone city state locality pincode")
+        .exec(),
       FeaturedProject.countDocuments(filter).exec(),
     ]);
     return {
