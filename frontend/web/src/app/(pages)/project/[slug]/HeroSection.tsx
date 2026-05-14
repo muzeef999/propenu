@@ -3,7 +3,7 @@
 import { FeaturedProject } from "@/types";
 import { getProjectConfigurationValue } from "@/utilies/projectConfiguration";
 import { useEffect, useRef, useState } from "react";
-import { FiCheckCircle, FiHeart, FiMapPin, FiShare2 } from "react-icons/fi";
+import { FiCheckCircle, FiDownload, FiHeart, FiMapPin, FiShare2 } from "react-icons/fi";
 import { HiChevronLeft, HiChevronRight, HiPhoto, HiXMark } from "react-icons/hi2";
 
 type HeroSectionProps = {
@@ -70,6 +70,7 @@ export default function HeroSection({ project }: HeroSectionProps) {
         { label: "Specifications", href: "#specifications" },
         { label: "Photos & Videos", href: "#project-images" },
         { label: "About", href: "#about-project" },
+        ...(project.brochure?.url ? [{ label: "Download Brochure", href: project.brochure.url, isDownload: true }] : []),
     ];
     const locationText = [project.locality, project.city].filter(Boolean).join(", ");
     const galleryImages = getGalleryImages(project);
@@ -217,7 +218,11 @@ export default function HeroSection({ project }: HeroSectionProps) {
         }
     }
 
-    function onTabClick(event: React.MouseEvent<HTMLAnchorElement>, href: string) {
+    function onTabClick(event: React.MouseEvent<HTMLAnchorElement>, href: string, isDownload?: boolean) {
+        if (isDownload) {
+            return;
+        }
+
         event.preventDefault();
 
         const section = document.getElementById(href.slice(1));
@@ -347,13 +352,17 @@ export default function HeroSection({ project }: HeroSectionProps) {
                         <a
                             key={tab.href}
                             href={tab.href}
-                            onClick={(event) => onTabClick(event, tab.href)}
+                            onClick={(event) => onTabClick(event, tab.href, tab.isDownload)}
+                            target={tab.isDownload ? "_blank" : undefined}
+                            rel={tab.isDownload ? "noopener noreferrer" : undefined}
+                            download={tab.isDownload ? project.brochure?.filename || true : undefined}
                             className={`shrink-0 px-7 py-4 text-base font-semibold transition sm:text-lg ${
                                 isActive
                                     ? "border-b-3 border-[#27ae60] text-[#27ae60]"
                                     : "border-b-3 border-transparent text-[#6C6F79] hover:text-gray-400"
                             }`}
                         >
+                            {tab.isDownload && <FiDownload className="mr-2 inline-block h-4 w-4 align-[-2px]" />}
                             {tab.label}
                         </a>
                         );
