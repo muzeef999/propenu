@@ -343,7 +343,7 @@ export default function HeroSection({ project }: HeroSectionProps) {
             <nav className="sticky top-0 z-40 border-y border-slate-200 bg-white">
                 <div
                     ref={navRef}
-                    className="container mx-auto flex overflow-x-auto px-1 sm:px-4 lg:px-3"
+                    className="mx-3 flex justify-center overflow-x-auto sm:mx-5 lg:mx-8 xl:mx-12 2xl:mx-16"
                 >
                     {tabs.map((tab) => {
                         const isActive = activeTab === tab.href;
