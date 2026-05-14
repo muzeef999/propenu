@@ -40,3 +40,10 @@ roleName: "user" | "agent" | "owner" | "builder",
 
   return Subscription.create(payload);
 }
+
+export async function upgradeSubscription(
+  userId: string,
+  newPlanId: string
+) {
+
+}

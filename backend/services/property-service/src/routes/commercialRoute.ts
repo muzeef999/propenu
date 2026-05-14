@@ -60,7 +60,7 @@ router.get("/draft/me", authMiddleware, getMyCommercialDraft);
 router.patch("/:id/basic", authMiddleware, cpUpload, parseJsonFields(jsonKeys), updateCommercialBasicStep);
 router.patch("/:id/location", authMiddleware, parseJsonFields(jsonKeys), updateCommercialLocationStep);
 router.patch("/:id/details", authMiddleware, cpUpload, parseJsonFields(jsonKeys), updateCommercialDetailsStep);
-router.patch("/:id/verification", authMiddleware, cpUpload, parseJsonFields(jsonKeys), requireActiveSubscription, finalizeCommercial);
+router.patch("/:id/verification", authMiddleware, cpUpload, parseJsonFields(jsonKeys),  finalizeCommercial);
 
 
 export default router;

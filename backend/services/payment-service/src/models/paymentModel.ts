@@ -3,9 +3,28 @@ import { Schema, model, Types } from "mongoose";
 
 const PaymentSchema = new Schema(
   {
+    oldPlanCode: {
+  type: String,
+},
+newPlanCode: {
+  type: String,
+},
+creditAdjusted: {
+  type: Number,
+  default: 0,
+},
+remainingDays: {
+  type: Number,
+  default: 0,
+},
+finalPayable: {
+  type: Number,
+  default: 0,
+},
     userId: { type: Types.ObjectId, ref: "User", required: true },
     subscriptionId: Types.ObjectId,
     userType: String,
+    paymentType: { type: String, enum: ["new", "upgrade", "renewal", "downgrade"], default: "new" },
     provider: { type: String, default: "razorpay" },
     orderId: String,
     paymentId: String,
@@ -26,6 +45,8 @@ const PaymentSchema = new Schema(
       default: "created",
     },
   },
+
+  
   { timestamps: true },
 );
 

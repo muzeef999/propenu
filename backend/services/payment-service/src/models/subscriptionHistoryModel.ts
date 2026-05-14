@@ -53,11 +53,40 @@ const SubscriptionHistorySchema = new Schema(
       required: true,
     },
 
-    status: {
-      type: String,
-      enum: ["active", "expired", "cancelled"],
-      required: true,
-    },
+   status: {
+ type: String,
+ enum: [
+   "active",
+   "expired",
+   "cancelled",
+   "upgraded",
+   "downgraded"
+ ],
+ required: true,
+},
+
+paymentType: {
+  type: String,
+  enum: [
+    "new",
+    "upgrade",
+    "renewal",
+    "downgrade"
+  ],
+  default: "new"
+},
+
+upgradedFrom: String,
+
+creditAdjusted: {
+  type: Number,
+  default: 0,
+},
+
+proratedAmount: {
+  type: Number,
+  default: 0,
+},
 
     paymentId: {
       type: Types.ObjectId,

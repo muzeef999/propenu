@@ -25,12 +25,30 @@ const SubscriptionSchema = new Schema(
     },
 
 
-    status: {
-      type: String,
-      enum: ["active", "expired", "cancelled", "pending"],
-      default: "pending",
-    },
+status: {
+ type: String,
+ enum: [
+   "active",
+   "expired",
+   "cancelled",
+   "pending",
+   "upgraded",
+   "downgraded"
+ ],
+ default: "pending",
+},
 
+upgradedFrom: String,
+
+creditAdjusted: {
+  type: Number,
+  default: 0,
+},
+
+paymentId: {
+  type: Types.ObjectId,
+  ref: "Payment",
+},
     startDate: Date,
     endDate: Date,
   },

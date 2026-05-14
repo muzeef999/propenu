@@ -9,6 +9,7 @@ import { uploadPdfToS3 } from "../utils/uploadPdfToS3";
 import { generateInvoicePdf } from "../utils/generateInvoicePdf";
 import User from "../../../user-service/src/models/userModel";
 import { generateBusinessNumber } from "../utils/generateBusinessNumber";
+import { PLAN_RANK } from "../utils/planRank";
 
 type VerifyPaymentResult = {
   success: true;
@@ -30,7 +31,7 @@ type InvoiceCustomer = {
 export async function createPaymentOrder(
   planId: string,
   userId: string,
-  userType: "buyer" | "owner" | "agent"
+  userType: "buyer" | "owner" | "agent",
 ) {
   if (!Types.ObjectId.isValid(planId)) {
     throw new Error("Invalid planId");
@@ -42,19 +43,86 @@ export async function createPaymentOrder(
     throw new Error("Plan not found");
   }
 
+  const activeSubscription = await Subscription.findOne({
+    userId,
+    status: "active",
+    endDate: { $gt: new Date() },
+  });
+
+  let paymentType: "new" | "upgrade" | "renewal" | "downgrade" = "new";
+
+  let oldPlanCode: string | null = null;
+
+  let creditAdjusted = 0;
+
+  let remainingDays = 0;
+
+  let finalPayable = plan.price;
+
+  if (activeSubscription) {
+    const oldPlan = await Plan.findOne({
+      code: activeSubscription.planCode,
+    }).lean();
+
+    if (oldPlan) {
+      const oldRank = PLAN_RANK[oldPlan.tier];
+
+      const newRank = PLAN_RANK[plan.tier];
+
+      if (newRank > oldRank) {
+        paymentType = "upgrade";
+
+        oldPlanCode = oldPlan.code;
+
+        const totalDays = plan.durationDays || 30;
+
+        const usedMilliseconds =Date.now() - new Date(activeSubscription.startDate!).getTime();
+
+        const usedDays = Math.floor(usedMilliseconds / (1000 * 60 * 60 * 24));
+
+        remainingDays = totalDays - usedDays;
+
+        if (remainingDays < 0) {
+          remainingDays = 0;
+        }
+
+        const oldDailyPrice = oldPlan.price / totalDays;
+
+        creditAdjusted = oldDailyPrice * remainingDays;
+
+        const newDailyPrice = plan.price / totalDays;
+
+        const remainingNewCost = newDailyPrice * remainingDays;
+
+        finalPayable = Math.max(remainingNewCost - creditAdjusted, 0);
+      }
+
+      if (newRank < oldRank) {
+        paymentType = "downgrade";
+
+        throw new Error("Downgrade will activate after current plan expiry");
+      }
+
+      if (newRank === oldRank) {
+        paymentType = "renewal";
+
+        finalPayable = plan.price;
+      }
+    }
+  }
+
   /* ======================================================
      FREE PLAN FLOW
   ====================================================== */
 
   if (plan.price === 0) {
-
     // Check if same plan already active
     const existing = await Subscription.findOne({
       userId,
       userType: plan.userType,
       category: plan.category,
       status: "active",
-      endDate: { $gt: new Date() }
+      endDate: { $gt: new Date() },
     });
 
     if (existing) {
@@ -62,7 +130,7 @@ export async function createPaymentOrder(
         free: true,
         alreadyActive: true,
         subscriptionName: plan.name || plan.code,
-        message: "Free plan already active"
+        message: "Free plan already active",
       };
     }
 
@@ -72,9 +140,9 @@ export async function createPaymentOrder(
         userId,
         userType: plan.userType,
         category: plan.category,
-        status: "active"
+        status: "active",
       },
-      { status: "expired" }
+      { status: "expired" },
     );
 
     // Create subscription
@@ -85,20 +153,18 @@ export async function createPaymentOrder(
       planCode: plan.code,
       tier: plan.tier,
       startDate: new Date(),
-      endDate: new Date(
-        Date.now() + plan.durationDays * 24 * 60 * 60 * 1000
-      ),
+      endDate: new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000),
       status: "active",
       usage: {
         contactUsed: 0,
-        enquiryUsed: 0
-      }
+        enquiryUsed: 0,
+      },
     });
 
     return {
       free: true,
       subscriptionName: plan.name || plan.code,
-      message: "Free plan activated"
+      message: "Free plan activated",
     };
   }
 
@@ -113,8 +179,8 @@ export async function createPaymentOrder(
     notes: {
       planId: plan._id.toString(),
       userId,
-      userType: plan.userType
-    }
+      userType: plan.userType,
+    },
   });
 
   const orderNumber = await generateBusinessNumber("ORD");
@@ -124,16 +190,27 @@ export async function createPaymentOrder(
     userType,
     planId: plan._id,
     orderNumber,
-    amount: plan.price,
+    amount: finalPayable,
+    paymentType,
+    oldPlanCode,
+    newplanCode: plan.code,
+    creditAdjusted,
+    remainingDays,
+    finalPayable,
     razorpayOrderId: order.id,
-    status: "created"
+    status: "created",
   });
 
   return {
     orderId: order.id,
     amount: order.amount,
     currency: order.currency,
-    key: process.env.RAZORPAY_KEY_ID
+    paymentType,
+    oldPlanCode,
+    creditAdjusted,
+    remainingDays,
+    finalPayable,
+    key: process.env.RAZORPAY_KEY_ID!,
   };
 }
 
@@ -147,7 +224,6 @@ export async function verifyPaymentAndActivate(
   razorpay_signature: string,
   invoiceCustomer?: InvoiceCustomer,
 ): Promise<VerifyPaymentResult> {
-
   const body = `${razorpay_order_id}|${razorpay_payment_id}`;
 
   const expectedSignature = crypto
@@ -159,13 +235,11 @@ export async function verifyPaymentAndActivate(
     throw new Error("Invalid payment signature");
   }
 
-
   const payment = await Payment.findOne({
-    razorpayOrderId: razorpay_order_id
+    razorpayOrderId: razorpay_order_id,
   });
 
   const invoiceNumber = await generateBusinessNumber("INV");
-
 
   if (!payment) {
     throw new Error("Payment record not found");
@@ -183,12 +257,10 @@ export async function verifyPaymentAndActivate(
     };
   }
 
-
   payment.status = "paid";
   payment.razorpayPaymentId = razorpay_payment_id;
   payment.razorpaySignature = razorpay_signature;
   payment.invoiceNumber = invoiceNumber;
-
 
   await payment.save();
 
@@ -206,9 +278,9 @@ export async function verifyPaymentAndActivate(
     {
       userId: payment.userId,
       category: plan.category,
-      status: "active"
+      status: "active",
     },
-    { status: "expired" }
+    { status: payment.paymentType === "upgrade" ? "upgraded" : "expired" },
   );
 
   /* ======================================================
@@ -222,8 +294,8 @@ export async function verifyPaymentAndActivate(
   const user = await User.findById(payment.userId).select("name phone").lean();
 
   const invoiceBuffer = await generateInvoicePdf({
-      invoiceNo: invoiceNumber,
-        orderNo: payment.orderNumber || "N/A",
+    invoiceNo: invoiceNumber,
+    orderNo: payment.orderNumber || "N/A",
 
     userName:
       invoiceCustomer?.name?.trim() ||
@@ -250,15 +322,13 @@ export async function verifyPaymentAndActivate(
     planCode: plan.code,
     tier: plan.tier,
     startDate: new Date(),
-    endDate: new Date(
-      Date.now() + plan.durationDays * 24 * 60 * 60 * 1000
-    ),
+    endDate: new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000),
     status: "active",
     invoiceUrl,
     usage: {
       contactUsed: 0,
-      enquiryUsed: 0
-    }
+      enquiryUsed: 0,
+    },
   });
 
   /* ======================================================
@@ -266,6 +336,10 @@ export async function verifyPaymentAndActivate(
   ====================================================== */
 
   await SubscriptionHistory.create({
+    paymentType: payment.paymentType,
+    upgradedFrom:payment.oldPlanCode,
+    creditAdjusted:payment.creditAdjusted,
+     proratedAmount:payment.finalPayable,
     userId: payment.userId,
     userType: plan.userType,
     planCode: plan.code,
@@ -276,11 +350,10 @@ export async function verifyPaymentAndActivate(
     startDate: subscription.startDate,
     endDate: subscription.endDate,
     paymentId: payment._id,
-
     orderNumber: payment.orderNumber,
     invoiceNumber,
     invoiceUrl,
-    purchasedAt: new Date()
+    purchasedAt: new Date(),
   });
 
   console.log("✅ Subscription activated:", subscription._id);
@@ -289,6 +362,6 @@ export async function verifyPaymentAndActivate(
     success: true,
     subscriptionName: plan.name || plan.code,
     invoiceUrl,
-    message: "Payment verified & subscription activated"
+    message: "Payment verified & subscription activated",
   };
 }
