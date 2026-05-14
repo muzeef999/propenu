@@ -64,11 +64,11 @@ export default function HeroSection({ project }: HeroSectionProps) {
     const isLand = project.categoryType?.toLowerCase() === "land";
     const tabs = [
         { label: "Overview", href: "#overview" },
-        { label: "Photos & Videos", href: "#project-images" },
         { label: isLand ? "Layout" : "Floor Plans", href: "#floor-plans" },
         { label: "Amenities", href: "#amenities" },
         { label: "Location", href: "#location" },
         { label: "Specifications", href: "#specifications" },
+        { label: "Photos & Videos", href: "#project-images" },
         { label: "About", href: "#about-project" },
     ];
     const locationText = [project.locality, project.city].filter(Boolean).join(", ");

@@ -43,22 +43,26 @@ const ActiveTabs = ({
 
   return (
     <div className="overflow-x-auto sm:overflow-visible border-b border-gray-100 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-      <div className="flex gap-4 sm:gap-8 min-w-max px-1">
+      <div className="flex gap-3 sm:gap-6 min-w-max px-1">
         {tabs.map((cat) => (
           <button
             key={cat}
             onClick={() => setActiveTab(cat)}
-            className={`pb-2 text-sm sm:text-base font-medium whitespace-nowrap transition-all relative cursor-pointer ${
+            className={`group relative cursor-pointer whitespace-nowrap rounded-t-lg px-2.5 pb-2 pt-1 text-sm font-medium transition-all duration-300 ease-out sm:text-base ${
               activeTab === cat
                 ? "text-emerald-600"
-                : "text-gray-500 hover:text-gray-700"
+                : "text-gray-500 hover:-translate-y-0.5 hover:bg-emerald-50 hover:text-emerald-700"
             }`}
           >
-            {cat}
+            <span className="relative z-10">{cat}</span>
+
+            {!activeTab || activeTab !== cat ? (
+              <span className="absolute inset-x-2 bottom-0 h-0.5 origin-center scale-x-0 rounded-full bg-emerald-300 transition-transform duration-300 ease-out group-hover:scale-x-100" />
+            ) : null}
 
             {/* Active underline */}
             {activeTab === cat && (
-              <span className="absolute -bottom-px left-0 w-full h-0.5 bg-emerald-500 rounded-full" />
+              <span className="absolute -bottom-px left-2 right-2 h-0.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.45)]" />
             )}
           </button>
         ))}

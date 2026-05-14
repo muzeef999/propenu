@@ -54,11 +54,11 @@ export default async function Page({ params }: PageProps) {
         <div className="container mx-auto flex flex-col gap-5 px-1 sm:px-4 lg:flex-row lg:items-start lg:px-3">
           <div className="w-full space-y-4 lg:w-[80%]">
             <Overview project={project} />
-            <ProjectImages project={project} />
             <FloorPlan project={project} />
             <Amenities project={project} />
             <LocationMap project={project} />
             <Specifications project={project} />
+            <ProjectImages project={project} />
             <AboutProject project={project} />
           </div>
 

@@ -98,7 +98,7 @@ const Sidebar = () => {
             <p className="text-gray-500 text-xs mb-5">
               Find Buyers & Tenants easily
             </p>
-            <Link href="/post-property" className=" flex btn-primary ">
+            <Link href="/postproperty" className=" flex btn-primary">
               Post Property
             </Link>
           </div>

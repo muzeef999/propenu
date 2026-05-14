@@ -64,7 +64,7 @@ export default function Footer() {
             </h3>
             <div className="space-y-5 text-sm text-gray-700 font-medium">
               <div>
-                <p>Help Line – +91 9182334233</p>
+                <p>Helpline – +91 9182334233</p>
                 <p className="text-gray-500 font-normal">
                   9:30 AM to 6:30 PM (Mon–Sun)
                 </p>

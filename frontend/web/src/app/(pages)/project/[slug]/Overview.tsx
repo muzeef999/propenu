@@ -109,7 +109,7 @@ export default function Overview({ project }: OverviewProps) {
             {items.map((item, index) => (
               <div key={`${item.label}-${index}`} className="min-w-0">
                 <p className="text-sm font-medium text-slate-950">{item.label}</p>
-                <p className="mt-1 truncate text-sm text-slate-500">{item.value}</p>
+                <p className="mt-1 truncate text-sm text-slate-500  capitalize">{item.value}</p>
               </div>
             ))}
           </div>

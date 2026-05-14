@@ -308,7 +308,7 @@ const ResidentialFilters = () => {
                   <option value="">Min</option>
                   {budgetOptions.map((v) => (
                     <option key={v} value={v}>
-                      ₹ {formatBudget(v)}
+                      {formatBudget(v)}
                     </option>
                   ))}
                 </select>
@@ -334,7 +334,7 @@ const ResidentialFilters = () => {
                   <option value="">Max</option>
                   {budgetOptions.map((v) => (
                     <option key={v} value={v}>
-                      ₹ {formatBudget(v)}
+                      {formatBudget(v)}
                     </option>
                   ))}
                 </select>

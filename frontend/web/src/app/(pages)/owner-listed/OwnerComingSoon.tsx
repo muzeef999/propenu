@@ -91,7 +91,7 @@ const OwnerComingSoon = ({ city }: OwnerComingSoonProps) => {
           <div className="border-b border-dashed border-gray-200 py-2.5 lg:py-3">
             <span className="inline-flex items-center gap-1.5 bg-[#fffdf5] px-2 py-1 text-[11px] text-[#b89400] lg:text-xs">
               <MdSupportAgent className="h-4 w-4" />
-              End to End Support
+              End-to-End Support
             </span>
           </div>
 

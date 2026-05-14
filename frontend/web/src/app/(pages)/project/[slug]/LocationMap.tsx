@@ -29,7 +29,7 @@ type MapplsMapOptions = {
 
 type MapplsMapInstance = {
   remove?: () => void;
-  setCenter?: (center: [number, number]) => void;
+  setCenter?: (center: MapplsPosition | [number, number]) => void;
   panTo?: (position: MapplsPosition) => void;
   flyTo?: (options: { center: [number, number]; zoom?: number }) => void;
   setZoom?: (zoom: number) => void;
@@ -168,20 +168,20 @@ function focusMapOn(map: MapplsMapInstance | null, coords: [number, number]) {
   if (!map) return;
 
   const [lng, lat] = coords;
-  if (typeof map.panTo === "function") {
-    map.panTo({ lat, lng });
-    if (typeof map.setZoom === "function") map.setZoom(14);
-    return;
-  }
+  const target = { lat, lng };
 
-  if (typeof map.flyTo === "function") {
-    map.flyTo({ center: [lat, lng], zoom: 14 });
-    return;
-  }
+  try {
+    if (typeof map.setCenter === "function") {
+      map.setCenter(target);
+    } else if (typeof map.panTo === "function") {
+      map.panTo(target);
+    } else if (typeof map.flyTo === "function") {
+      map.flyTo({ center: [lat, lng], zoom: 14 });
+    }
 
-  if (typeof map.setCenter === "function") {
-    map.setCenter([lat, lng]);
     if (typeof map.setZoom === "function") map.setZoom(14);
+  } catch (error) {
+    console.warn("Mappls focus error:", error);
   }
 }
 
@@ -308,7 +308,7 @@ export default function LocationMap({ project }: LocationMapProps) {
               icon: createMarkerIconDataUrl(color),
               width: 32,
               height: 32,
-              popupHtml: `<div style="font-weight:600">${escapeHtml(place.name ?? "Nearby place")}</div><div style="font-size:12px;color:#444;margin-top:4px">${escapeHtml(place.type ?? "Place")} - ${escapeHtml(place.distanceText ?? "")}</div>`,
+              popupHtml: `<div style="font-weight:600">${escapeHtml(place.name ?? "Nearby place")}</div><div style="font-size:12px;color:#444;margin-top:4px">${escapeHtml([place.type ?? "Place", place.distanceText].filter(Boolean).join(" - "))}</div>`,
             });
 
             const markerAny = marker as MapplsMarkerInstance;
@@ -437,8 +437,7 @@ export default function LocationMap({ project }: LocationMapProps) {
                               {place.name?.split(",")[0] ?? "Nearby place"}
                             </span>
                             <span className="mt-1 block truncate text-xs text-slate-500">
-                              {place.type ?? "Place"}
-                              {place.distanceText ? ` - ${place.distanceText}` : ""}
+                              {place.distanceText ?? ""}
                             </span>
                           </span>
                         </button>
