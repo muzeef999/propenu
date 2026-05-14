@@ -31,7 +31,7 @@ function getGalleryImages(project: FeaturedProject): GalleryImage[] {
 
 export default function ProjectImages({ project }: ProjectImagesProps) {
   const images = getGalleryImages(project);
-  const previewImages = images.slice(0, 3);
+  const previewImages = images.slice(0, 5);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const startX = useRef<number | null>(null);
   const originalBodyOverflowRef = useRef<string | null>(null);
@@ -72,8 +72,6 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
     return null;
   }
 
-  const mainImage = previewImages[0];
-  const sideImages = previewImages.slice(1, 3);
   const activeImage = openIndex !== null ? images[openIndex] : null;
 
   function prev() {
@@ -108,7 +106,7 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
             Images & Videos
           </h2>
 
-          <div className="relative grid gap-5 p-5 lg:grid-cols-[1.08fr_1fr]">
+          <div className="relative grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3">
             <button
               type="button"
               onClick={() => setOpenIndex(0)}
@@ -119,36 +117,29 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
               <span>{images.length} Photos</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => setOpenIndex(0)}
-              className="group overflow-hidden rounded-md text-left shadow-sm"
-              aria-label="Open project image preview"
-            >
-              <img
-                src={mainImage.url}
-                alt={mainImage.title || `${project.title} image`}
-                className="h-[260px] w-full object-cover transition-transform duration-300 group-hover:scale-105 sm:h-80 lg:h-[326px]"
-              />
-            </button>
+            {previewImages.map((image, index) => {
+              const isMainImage = index === 0;
 
-            <div className="grid gap-4">
-              {sideImages.map((image, index) => (
+              return (
                 <button
                   key={`${image.url}-${index}`}
                   type="button"
-                  onClick={() => setOpenIndex(index + 1)}
-                  className="group overflow-hidden rounded-md text-left shadow-sm"
+                  onClick={() => setOpenIndex(index)}
+                  className={`group overflow-hidden rounded-xl text-left shadow-sm ${
+                    isMainImage ? "sm:row-span-2" : ""
+                  }`}
                   aria-label={`Open ${image.title || "project image"} preview`}
                 >
                   <img
                     src={image.url}
-                    alt={image.title || `${project.title} image ${index + 2}`}
-                    className="h-[155px] w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    alt={image.title || `${project.title} image ${index + 1}`}
+                    className={`w-full object-cover transition-transform duration-300 group-hover:scale-105 ${
+                      isMainImage ? "h-[260px] sm:h-full lg:h-[310px]" : "h-[150px]"
+                    }`}
                   />
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </div>
       </div>

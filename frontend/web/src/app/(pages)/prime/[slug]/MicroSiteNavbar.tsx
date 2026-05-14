@@ -110,14 +110,7 @@ export default function MicroSiteNavbar({
 
     window.open(brochureUrl, "_blank", "noopener,noreferrer");
   };
-  const handleBack = () => {
-    if (window.history.length > 1) {
-      router.back();
-      return;
-    }
-
-    router.push("/");
-  };
+ 
 
   return (
     <>
@@ -125,14 +118,7 @@ export default function MicroSiteNavbar({
         <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="h-14 flex items-center justify-between">
           <div className="flex min-w-0 items-center gap-3">
-            <button
-              type="button"
-              onClick={handleBack}
-              aria-label="Go back"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-            >
-              <FiArrowLeft className="h-4 w-4" />
-            </button>
+          
 
             {/* logo */}
             {isExternalLogoHref ? (
