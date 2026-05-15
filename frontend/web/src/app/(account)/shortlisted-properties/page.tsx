@@ -2,14 +2,15 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { IoLocationOutline } from "react-icons/io5";
-
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FiShare2 } from "react-icons/fi";
+import { toast } from "sonner";
 
 import ActiveTabs from "@/ui/ActiveTabs";
-import { getUserShortlist } from "@/data/ClientData";
+import { getUserShortlist, removeShortlistProperty } from "@/data/ClientData";
 import NopropertiesSvg from "@/svg/NopropertiesSvg";
 import { GoHeartFill } from "react-icons/go";
+import formatINR from "@/utilies/PriceFormat";
 
 /* ================= TYPES ================= */
 
@@ -21,12 +22,18 @@ interface PropertyDetails {
   priceFrom?: number;
   priceTo?: number;
   pricePerSqft?: number;
+  carpetArea?: number;
+  builtUpArea?: number;
+  plotArea?: number;
   slug?: string;
   gallery?: { url: string }[];
   gallerySummary?: { url: string }[];
   heroImage?: string;
   locality?: string;
   city?: string;
+  bedrooms?: number;
+  propertyType?: string;
+  listingType?: string;
 }
 // Use backend's naming convention for the raw data type for type safety
 type PropertyType =
@@ -69,10 +76,60 @@ const normalizeType = (type?: string) => {
   return normalized;
 };
 
+const formatPrice = (property?: PropertyDetails) => {
+  const price = property?.price ?? property?.priceFrom ?? property?.priceTo;
+  if (!price) return "—";
+
+  if (property?.priceFrom && property?.priceTo) {
+    return `${formatINR(property.priceFrom)} - ${formatINR(property.priceTo)}`;
+  }
+
+  return formatINR(price);
+};
+
+const getArea = (property?: PropertyDetails) => {
+  const explicitArea =
+    property?.carpetArea ?? property?.builtUpArea ?? property?.plotArea;
+
+  if (explicitArea) return explicitArea;
+
+  if (property?.price && property?.pricePerSqft) {
+    return Math.round(property.price / property.pricePerSqft);
+  }
+
+  return null;
+};
+
+const getTitle = (item: ShortlistedItem) => {
+  const property = item.property;
+  if (property?.title) return property.title;
+
+  const listingLabel =
+    property?.listingType?.toLowerCase() === "rent" ? "rent" : "sale";
+
+  if (item.propertyType === "Residential" && property?.bedrooms) {
+    return `${property.bedrooms} BHK Apartment for ${listingLabel}`;
+  }
+
+  return "Untitled Property";
+};
+
+const shareProperty = async (title: string, href: string) => {
+  const url = `${window.location.origin}${href}`;
+
+  if (navigator.share) {
+    await navigator.share({ title, url });
+    return;
+  }
+
+  await navigator.clipboard?.writeText(url);
+};
+
 /* ================= COMPONENT ================= */
 
 const Page = () => {
   const [activeTab, setActiveTab] = useState("Residential");
+  const queryClient = useQueryClient();
 
   const categories = [
     "Residential",
@@ -95,6 +152,45 @@ const Page = () => {
     queryKey: ["user-shortlist"],
     queryFn: getUserShortlist,
     select: (data) => data?.data ?? [],
+  });
+
+  const removeShortlistMutation = useMutation({
+    mutationFn: removeShortlistProperty,
+    onMutate: async (propertyId: string) => {
+      await queryClient.cancelQueries({ queryKey: ["user-shortlist"] });
+
+      const previousShortlist = queryClient.getQueryData<{
+        data: ShortlistedItem[];
+      }>(["user-shortlist"]);
+
+      queryClient.setQueryData<{ data: ShortlistedItem[] }>(
+        ["user-shortlist"],
+        (old) => ({
+          ...old,
+          data: (old?.data ?? []).filter(
+            (item) => item.property?._id !== propertyId
+          ),
+        })
+      );
+
+      return { previousShortlist };
+    },
+    onSuccess: () => {
+      toast.success("Removed from shortlist");
+    },
+    onError: (_error, _propertyId, context) => {
+      if (context?.previousShortlist) {
+        queryClient.setQueryData(
+          ["user-shortlist"],
+          context.previousShortlist
+        );
+      }
+
+      toast.error("Failed to remove from shortlist");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-shortlist"] });
+    },
   });
 
   const shouldShowCategory = useCallback(
@@ -146,104 +242,100 @@ const Page = () => {
       />
 
       {/* CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {filteredProperties.length ? (
           filteredProperties.map((item) => {
             const image =
               item.property?.gallery?.[0]?.url ||
               item.property?.gallerySummary?.[0]?.url ||
-              item.property?.heroImage;
-
-            const pricePerSqft =
-              item.property?.price && item.property?.pricePerSqft
-                ? Math.round(item.property.price / item.property.pricePerSqft)
-                : null;
+              item.property?.heroImage ||
+              "/placeholder.jpg";
 
             const href =
               item.propertyType === "FeaturedProject"
                 ? `/prime/${item.property?.slug}`
                 : `/properties/${item.propertyType?.toLowerCase()}/${item.property?.slug}`;
 
-            const price =
-              item.property?.price ??
-              item.property?.priceFrom ??
-              item.property?.priceTo;
-
             const location =
-              item.property?.address ||
               [item.property?.locality, item.property?.city]
                 .filter(Boolean)
-                .join(", ");
+                .join(", ") ||
+              item.property?.address;
+
+            const area = getArea(item.property);
+            const pricePerSqft = item.property?.pricePerSqft;
 
             return (
               <Link
                 key={item._id}
                 href={href}
-                className="card bg-white rounded-xl overflow-hidden flex flex-col"
+                className="group flex min-h-[145px] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
               >
                 {/* IMAGE */}
-                <div className="relative h-44">
+                <div className="relative w-[34%] min-w-[120px] shrink-0 bg-gray-100">
                   <img
                     src={image}
                     alt={item.property?.title || "Property"}
                     className="h-full w-full object-cover"
                   />
 
-                  <div className="absolute top-3 right-3 bg-white p-2 rounded-full shadow">
-                    <GoHeartFill className="w-5 h-5 text-red-500" />
-                  </div>
-                </div>
-
-                {/* CONTENT */}
-                <div className="p-4 space-y-3 flex-1 flex flex-col">
-                  <h3 className="text-base font-semibold text-gray-800 line-clamp-1">
-                    {item.property?.title || "Untitled Property"}
-                  </h3>
-
-                  <div className="flex items-center gap-1 text-sm text-gray-500 truncate">
-                    <IoLocationOutline  className="w-4 h-4 text-green-500" />
-                    {location || "Location not specified"}
-                  </div>
-                </div>
-
-                {/* ASIDE */}
-                <aside className="mt-auto mx-1.5 mb-1.5 p-2 flex items-center justify-between bg-[#E9F7EF] rounded-xl">
-                  {/* PRICE */}
-                  <div className="flex flex-col pl-2 leading-tight">
-                    <span className="text-[#21884B] font-semibold text-md">
-                      ₹{" "}
-                      {price
-                        ? `${Math.round(
-                            price / 100000
-                          )} L`
-                        : "—"}
-                    </span>
-
-                    <span className="text-xs text-gray-600">
-                      {pricePerSqft
-                        ? `₹ ${pricePerSqft.toLocaleString(
-                            "en-IN"
-                          )}/sqft`
-                        : "—"}
-                    </span>
-                  </div>
-
-                  {/* BUTTON */}
                   <button
-                    className="bg-[#26ad5f] text-white text-sm font-medium px-4 py-2 rounded-md"
+                    type="button"
+                    aria-label="Remove from shortlist"
+                    className="absolute left-2 top-2 grid h-7 w-7 place-items-center cursor-pointer rounded-full bg-white/95 text-red-500 shadow-sm transition hover:bg-white"
+                    disabled={removeShortlistMutation.isPending}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      alert(
-                        `Contact owner for ${
-                          item.property?.title ?? "Property"
-                        }`
-                      );
+                      removeShortlistMutation.mutate(item.property._id);
                     }}
                   >
-                    Contact Owner
+                    <GoHeartFill className="h-3.5 w-3.5" />
                   </button>
-                </aside>
+
+                  <button
+                    type="button"
+                    aria-label="Share property"
+                    className="absolute right-2 top-2 grid h-7 w-7 place-items-center cursor-pointer rounded-full bg-white/95 text-gray-700 shadow-sm transition hover:bg-white hover:text-[#27AE60]"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      shareProperty(getTitle(item), href);
+                    }}
+                  >
+                    <FiShare2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                {/* CONTENT */}
+                <div className="flex min-w-0 flex-1 flex-col justify-between p-3">
+                  <div className="min-w-0">
+                    <p className="text-base font-semibold leading-none text-gray-950">
+                      {formatPrice(item.property)}
+                    </p>
+
+                    <h3 className="mt-2 line-clamp-2 text-sm font-semibold leading-snug text-gray-900">
+                      {getTitle(item)}
+                    </h3>
+
+                    <p className="mt-5 truncate text-xs text-gray-500">
+                      {location || "Location not specified"}
+                    </p>
+                  </div>
+
+                  <div className="mt-2 flex items-center justify-between gap-3 rounded-md bg-gray-50 px-3 py-2">
+                    <p className="min-w-0 truncate text-xs text-gray-700">
+                      {area ? `${area.toLocaleString("en-IN")} sqft` : "Area —"}
+                      {pricePerSqft
+                        ? ` (₹ ${pricePerSqft.toLocaleString("en-IN")}/sqft)`
+                        : ""}
+                    </p>
+
+                    <span className="inline-flex shrink-0 items-center rounded-full bg-[#27AE60]/10 px-2 py-1 text-[11px] font-semibold text-[#27AE60]">
+                      Details
+                    </span>
+                  </div>
+                </div>
               </Link>
             );
           })

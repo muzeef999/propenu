@@ -9,17 +9,29 @@ type PricingDetailsProps = {
   propertyType: "residential" | "commercial" | "land" | "agricultural";
   data: any;
   fieldErrors: any;
+  listingType?: string;
 };
+
+function formatIndianNumber(value?: string | number) {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  if (!digits) return "";
+
+  return Number(digits).toLocaleString("en-IN");
+}
 
 export default function PricingDetails({
   propertyType,
   data,
   fieldErrors,
+  listingType,
 }: PricingDetailsProps) {
 
   const dispatch = useDispatch();
   const isAgricultural = propertyType === "agricultural";
   const isLand = propertyType === "land";
+  const isRentOrLease = ["rent", "lease"].includes(
+    String(listingType ?? data.listingType ?? "").toLowerCase(),
+  );
 
   /* ================= AREA KEYS ================= */
   const areaValue =
@@ -55,8 +67,8 @@ export default function PricingDetails({
       {/* ================= TOTAL PRICE ================= */}
       <div className="flex flex-col">
         <InputField
-          label="Total Price"
-          value={data.price || ""}
+          label={isRentOrLease ? "Price per month" : "Total Price"}
+          value={formatIndianNumber(data.price)}
           placeholder="e.g. 75,00,000"
           error={fieldErrors.price?.[0]}
           onChange={(value) =>

@@ -41,7 +41,7 @@ export const KITCHEN_TYPES = [
   "l-shaped",
 ] as const;
 
-export const FACING_TYPES = ["North", "South", "East", "West"] as const;
+export const FACING_TYPES = ["North", "South", "East", "West", "North-East", "North-West", "South-East", "South-West"] as const;
 
 export const ParkingTypes = ["open", "closed", "both"] as const;
 

@@ -48,6 +48,7 @@ export default function ContactOwnerButton({
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const [showLeadDialog, setShowLeadDialog] = useState(false);
+  const [leadDetails, setLeadDetails] = useState<any>(null);
   const router = useRouter();
   const normalizeListingType = (
     value?: string,
@@ -99,7 +100,8 @@ export default function ContactOwnerButton({
   const user = userData?.user;
   const { mutate: postLead, isPending: isLeadPosting } = useMutation({
     mutationFn: postLeads,
-    onSuccess: () => {
+    onSuccess: (response) => {
+      setLeadDetails(response?.data ?? null);
       setShowLeadDialog(true);
     },
     onError: (error: any) => {
@@ -200,13 +202,18 @@ export default function ContactOwnerButton({
           <LeadDialog
             open={showLeadDialog}
             onClose={() => setShowLeadDialog(false)}
-            ownerName={ownerName}
+            ownerName={ownerName ?? leadDetails?.ownerId?.name}
             ownerRole={getContactPerson()}
-            phone={ownerPhone}
-            email={ownerEmail}
-            postedOn={postedOn}
-            price={price}
-            propertyLabel={propertyLabel}
+            phone={ownerPhone ?? leadDetails?.ownerId?.phone}
+            email={ownerEmail ?? leadDetails?.ownerId?.email}
+            postedOn={postedOn ?? leadDetails?.projectId?.createdAt}
+            price={
+              price ??
+              leadDetails?.projectId?.price ??
+              leadDetails?.projectId?.priceFrom ??
+              leadDetails?.projectId?.priceTo
+            }
+            propertyLabel={propertyLabel ?? leadDetails?.projectId?.title}
           />,
           document.body,
         )}

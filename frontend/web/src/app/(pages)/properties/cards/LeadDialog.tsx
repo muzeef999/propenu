@@ -52,6 +52,7 @@ export default function LeadDialog({
 
   const formattedPostedOn = formatPostedOn(postedOn);
   const summary = joinSummary(price, propertyLabel);
+  const hasContactDetails = Boolean(phone || email);
 
   return (
     <div className="fixed inset-0 z-9999 bg-black/35 p-4">
@@ -96,25 +97,27 @@ export default function LeadDialog({
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 border-b border-[#E6E6E6] pb-4 text-[#303030] sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">
-              {phone ? (
-                <div className="flex items-center gap-3 text-[16px]">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F2F2F2] text-[#7B7B7B]">
-                    <FiPhone className="h-4 w-4" />
-                  </span>
-                  <span>{phone}</span>
-                </div>
-              ) : null}
+            {hasContactDetails ? (
+              <div className="flex flex-col gap-3 border-b border-[#E6E6E6] pb-4 text-[#303030] sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">
+                {phone ? (
+                  <div className="flex items-center gap-3 text-[16px]">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F2F2F2] text-[#7B7B7B]">
+                      <FiPhone className="h-4 w-4" />
+                    </span>
+                    <span>{phone}</span>
+                  </div>
+                ) : null}
 
-              {email ? (
-                <div className="flex items-center gap-3 text-[16px] break-all">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F2F2F2] text-[#7B7B7B]">
-                    <FiMail className="h-4 w-4" />
-                  </span>
-                  <span>{email}</span>
-                </div>
-              ) : null}
-            </div>
+                {email ? (
+                  <div className="flex items-center gap-3 text-[16px] break-all">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F2F2F2] text-[#7B7B7B]">
+                      <FiMail className="h-4 w-4" />
+                    </span>
+                    <span>{email}</span>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="flex items-start gap-3 rounded-xl bg-[#EEF7F1] px-4 py-3 text-[15px] text-[#2F4736]">
               <IoWarning  className="mt-0.5 h-5 w-5 shrink-0 text-[#F0A53B]" />

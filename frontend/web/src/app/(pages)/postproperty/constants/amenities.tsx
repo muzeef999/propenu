@@ -41,8 +41,8 @@ export const RESIDENTIAL_AMENITIES = [
 
   // 🏢 Convenience
   {
-    key: "elevator",
-    title: "Elevator",
+    key: "elevator/lift",
+    title: "Elevator / Lift",
     category: "Convenience",
     icon: "/icons/amenities/elevator.svg ",
   },
@@ -99,10 +99,10 @@ export const RESIDENTIAL_AMENITIES = [
     icon: "/icons/amenities/Park.svg",
   },
   {
-    key: "rain_water_harvesting",
-    title: "Rain water Harvesting",
+    key: "rainwater_harvesting",
+    title: "Rainwater Harvesting",
     category: "Environment",
-    icon: "/icons/amenities/rain_water_harvesting.svg",
+    icon: "/icons/amenities/rainwater_harvesting.svg",
   },
   {
     key: "solar_lighting",

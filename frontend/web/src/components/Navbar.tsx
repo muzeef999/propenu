@@ -15,7 +15,14 @@ import FilterDropdown from "@/ui/FilterDropdown";
 import { useCity } from "@/hooks/useCity";
 import { LocationItem } from "@/types";
 import { useAppDispatch } from "@/Redux/store";
-import { setListingType } from "@/Redux/slice/filterSlice";
+import {
+  setAgriculturalFilter,
+  setCommercialFilter,
+  setLandFilter,
+  setListingType,
+  setResidentialFilter,
+  setSearchText,
+} from "@/Redux/slice/filterSlice";
 
 type AuthMode = "login" | "register" | null;
 
@@ -36,7 +43,6 @@ const Navbar = () => {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const mobileDropdownRef = useRef<HTMLDivElement | null>(null);
-  const [mobileUserMenuOpen, setMobileUserMenuOpen] = useState(false);
   const [openState, setOpenState] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [registerStep, setRegisterStep] = useState<
@@ -148,6 +154,11 @@ const Navbar = () => {
 
   function onSelect(item: LocationItem) {
     selectCity(item);
+    dispatch(setResidentialFilter({ key: "locality", value: [] }));
+    dispatch(setCommercialFilter({ key: "locality", value: [] }));
+    dispatch(setLandFilter({ key: "locality", value: "" }));
+    dispatch(setAgriculturalFilter({ key: "locality", value: "" }));
+    dispatch(setSearchText(""));
     setCityDropdownOpen(false);
     setMobileOpen_city(false);
     btnRef.current?.focus();

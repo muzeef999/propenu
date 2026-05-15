@@ -116,7 +116,14 @@ function PropertiesListSkeleton() {
 const Page: React.FC = () => {
   const filters = useAppSelector((s) => s.filters);
   const cityData = useAppSelector(selectCityWithLocalities);
-  const params = React.useMemo(() => buildSearchParams(filters), [filters]);
+  const params = React.useMemo(
+    () => ({
+      ...buildSearchParams(filters),
+      city: cityData?.city,
+      state: cityData?.state,
+    }),
+    [filters, cityData?.city, cityData?.state],
+  );
   const { items, sponsored, loading, total } = useStreamProperties(params);
   const [sortBy, setSortBy] = React.useState("newest");
   const [dismissedAds, setDismissedAds] = useState<Set<string>>(new Set());
@@ -126,53 +133,53 @@ const Page: React.FC = () => {
   const isAgentFilterActive =
     listingSourceFilter === "agent";
 
- const renderPropertyCard = (p: Property, index: number) => {
-  const type = (p.type || "").toLowerCase();
-  const isSponsored = p.promotion?.type === "sponsored";
+  const renderPropertyCard = (p: Property, index: number) => {
+    const type = (p.type || "").toLowerCase();
+    const isSponsored = p.promotion?.type === "sponsored";
 
-  switch (type) {
-    case "featuredproject":
-      return <FeaturedPropertyCard key={p.id} p={p} />;
+    switch (type) {
+      case "featuredproject":
+        return <FeaturedPropertyCard key={p.id} p={p} />;
 
-    case "residential":
-      return (
-        <ResidentialCard
-          key={p.id}
-          p={p as IResidential}
-          isSponsored={isSponsored}
-        />
-      );
+      case "residential":
+        return (
+          <ResidentialCard
+            key={p.id}
+            p={p as IResidential}
+            isSponsored={isSponsored}
+          />
+        );
 
-case "commercial":
-  return (
-    <CommercialCard
-      key={p.id}
-      p={p as unknown as ICommercial} // safe after type check
-      isSponsored={isSponsored}
-    />
-  );
-    case "land":
-      return (
-        <LandCard
-          key={p.id}
-          p={p as ILand}
-          isSponsored={isSponsored}
-        />
-      );
+      case "commercial":
+        return (
+          <CommercialCard
+            key={p.id}
+            p={p as unknown as ICommercial} // safe after type check
+            isSponsored={isSponsored}
+          />
+        );
+      case "land":
+        return (
+          <LandCard
+            key={p.id}
+            p={p as ILand}
+            isSponsored={isSponsored}
+          />
+        );
 
-    case "agricultural":
-      return (
-        <AgriculturalCard
-          key={p.id}
-          p={p as IAgricultural}
-          isSponsored={isSponsored}
-        />
-      );
+      case "agricultural":
+        return (
+          <AgriculturalCard
+            key={p.id}
+            p={p as IAgricultural}
+            isSponsored={isSponsored}
+          />
+        );
 
-    default:
-      return <div>No card found</div>;
-  }
-};
+      default:
+        return <div>No card found</div>;
+    }
+  };
 
   const locality = (() => {
     switch (filters.category) {
@@ -333,9 +340,9 @@ case "commercial":
           </div>
 
           <div className="w-full lg:w-[20%]">
-            
+
             <div className="sticky top-24">
-          
+
               <div className="space-y-4">
                 {sidebarAds.map((ad) => (
                   <AdCard key={ad.id} ad={ad} onDismiss={handleDismissAd} />

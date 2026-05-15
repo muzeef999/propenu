@@ -370,7 +370,7 @@ const LocationDetailsStep = () => {
         />
 
         <InputField
-          label="Pincode"
+          label="PIN Code"
           value={base.pincode || ""}
           placeholder="e.g. 500033"
           onChange={handlePincodeChange}

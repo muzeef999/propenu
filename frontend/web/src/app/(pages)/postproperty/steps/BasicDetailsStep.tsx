@@ -356,8 +356,8 @@ export default function BasicDetailsStep() {
                     <div className="flex flex-wrap gap-3">
                       {[
                         { label: "Furnished", value: "fully-furnished" },
-                        { label: "Semi furnished", value: "semi-furnished" },
-                        { label: "Un-furnished", value: "unfurnished" },
+                        { label: "Semi-Furnished", value: "semi-furnished" },
+                        { label: "Unfurnished", value: "unfurnished" },
                       ].map((item) => {
                         const active = residential.furnishing === item.value;
 
@@ -574,6 +574,7 @@ export default function BasicDetailsStep() {
               propertyType="commercial"
               data={commercial}
               fieldErrors={fieldErrors}
+              listingType={base.listingType}
             />
           )}
         </>
@@ -733,6 +734,7 @@ export default function BasicDetailsStep() {
           propertyType="residential"
           data={residential}
           fieldErrors={fieldErrors}
+          listingType={base.listingType}
         />
       )}
       {propertyType === "land" && land.landSubType && (
@@ -740,6 +742,7 @@ export default function BasicDetailsStep() {
           propertyType="land"
           data={land}
           fieldErrors={fieldErrors}
+          listingType={base.listingType}
         />
       )}
 
@@ -748,6 +751,7 @@ export default function BasicDetailsStep() {
           propertyType="agricultural"
           data={agricultural}
           fieldErrors={fieldErrors}
+          listingType={base.listingType}
         />
       )}
 

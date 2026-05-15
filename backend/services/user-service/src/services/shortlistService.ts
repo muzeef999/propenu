@@ -153,6 +153,8 @@ export const getUserShortlistService = async (userId: Types.ObjectId) => {
           price: { $ifNull: ["$all.property.price", "$all.property.priceFrom"] },
           priceFrom: "$all.property.priceFrom",
           priceTo: "$all.property.priceTo",
+          builtUpArea: "$all.property.builtUpArea",
+          pricePerSqft: "$all.property.pricePerSqft",
           slug: "$all.property.slug",
         },
       },

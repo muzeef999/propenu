@@ -17,6 +17,15 @@ const PROPERTY_MODEL_MAP: Record<string, any> = {
   landplots: LandPlot,
 };
 
+const getLeadWithDialogDetails = (leadId: Types.ObjectId) =>
+  Lead.findById(leadId)
+    .populate("ownerId", "name phone email")
+    .populate(
+      "projectId",
+      "title price priceFrom priceTo bedrooms propertyType listingType createdAt"
+    )
+    .lean();
+
 /** CREATE LEAD **/
 export const createLead = async (data: any, userId: string | null) => {
   const { propertyType, projectId } = data;
@@ -68,13 +77,15 @@ export const createLead = async (data: any, userId: string | null) => {
 
   // Featured projects skip subscription checks.
   if (propertyType === "featuredprojects") {
-    return await Lead.create({
+    const lead = await Lead.create({
       ...data,
       propertyModel: "FeaturedProject",
       createdBy: userId,
       ownerId,
       listingType,
     });
+
+    return getLeadWithDialogDetails(lead._id);
   }
 
   const requiredViewerCategory = listingType === "sale" ? "buy" : "rent_view";
@@ -124,7 +135,7 @@ export const createLead = async (data: any, userId: string | null) => {
   viewerSub.usage.contactUsed += 1;
   await viewerSub.save();
 
-  return lead;
+  return getLeadWithDialogDetails(lead._id);
 };
 
 /** ASSIGN LEAD TO SALES **/

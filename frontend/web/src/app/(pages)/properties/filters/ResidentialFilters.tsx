@@ -102,13 +102,16 @@ const ResidentialFilters = () => {
     value === "6+ BHK" ? 6 : Number(value.split(" ")[0]);
 
   const selectedBedrooms = Array.isArray(bedrooms) ? bedrooms : [];
+  const formatBedroomValue = (value: number) => `${value}${value === 6 ? "+" : ""}`;
 
   const bedroomLabel =
     selectedBedrooms.length === 0
       ? "BHK"
       : selectedBedrooms.length === 1
-        ? `${selectedBedrooms[0]}${selectedBedrooms[0] === 6 ? "+" : ""} BHK`
-        : `${selectedBedrooms.length} BHK Selected`;
+        ? `${formatBedroomValue(selectedBedrooms[0])} BHK`
+        : selectedBedrooms.length === 2
+          ? `${selectedBedrooms.map(formatBedroomValue).join(", ")} BHK`
+          : `${selectedBedrooms.slice(0, 2).map(formatBedroomValue).join(", ")} +${selectedBedrooms.length - 2} BHK`;
 
   /* -------------------- BUDGET -------------------- */
   const [budgetRange, setBudgetRange] = useState<

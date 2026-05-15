@@ -70,8 +70,7 @@ const VerificationStep = () => {
             Verification & Compliance
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            Complete legal verification and compliance details for your
-            property
+            Complete the verification process to improve your property's trust and visibility
           </p>
         </div>
       )}
