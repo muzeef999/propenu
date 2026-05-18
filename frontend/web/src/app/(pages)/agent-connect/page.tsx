@@ -4,19 +4,26 @@ import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { MdLocationOn } from "react-icons/md";
-import { HiOutlineOfficeBuilding } from "react-icons/hi";
+import { HiOutlineLocationMarker, HiOutlineOfficeBuilding } from "react-icons/hi";
 import { IoMdShareAlt } from "react-icons/io";
+import { FiArrowLeft, FiArrowRight } from "react-icons/fi";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AgentConnect } from "@/types";
 import { getAgentConnect } from "@/data/ClientData";
 import { useCity } from "@/hooks/useCity";
 import { minDelay } from "@/utilies/minDelay";
+import ad from "@/asserts/ad.png";
 
 const agentSkeletonItems = Array.from({ length: 4 });
 
+function getAgentLocality(agent: AgentConnect) {
+  return agent.locality || agent.areasServed?.filter(Boolean).join(", ");
+}
+
 function AgentListSkeleton() {
   return (
-    <div className="w-full lg:w-[80%] space-y-6">
+    <div className="w-full space-y-6">
       {agentSkeletonItems.map((_, index) => (
         <div
           key={`agent-skeleton-${index}`}
@@ -64,6 +71,16 @@ function AgentListSkeleton() {
 
 export default function Page() {
   const { selectedCity } = useCity(); // ✅ hook at top level
+  const [selectedLocality, setSelectedLocality] = useState("");
+  const localitiesRef = useRef<HTMLDivElement>(null);
+  const [hasLocalityOverflow, setHasLocalityOverflow] = useState(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  useEffect(() => {
+    setSelectedLocality("");
+  }, [selectedCity?.city]);
+
   const { data, isLoading } = useQuery<{ items?: AgentConnect[] }>({
     queryKey: ["agent-connect", selectedCity?.city],
     enabled: Boolean(selectedCity?.city),
@@ -78,6 +95,60 @@ export default function Page() {
   });
 
   const agents = data?.items || [];
+  const filteredAgents = useMemo(() => {
+    if (!selectedLocality) return agents;
+
+    const selected = selectedLocality.trim().toLowerCase();
+    return agents.filter((agent) =>
+      agent.locality?.trim().toLowerCase() === selected ||
+      agent.areasServed?.some((area) => area.trim().toLowerCase() === selected),
+    );
+  }, [agents, selectedLocality]);
+
+  useEffect(() => {
+    const el = localitiesRef.current;
+    if (isLoading || !el) {
+      setHasLocalityOverflow(false);
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
+
+    const checkScroll = () => {
+      const { scrollLeft, scrollWidth, clientWidth } = el;
+      const maxScrollLeft = scrollWidth - clientWidth;
+      const hasOverflow = maxScrollLeft > 1;
+
+      setHasLocalityOverflow(hasOverflow);
+      setCanScrollLeft(hasOverflow && scrollLeft > 1);
+      setCanScrollRight(hasOverflow && scrollLeft < maxScrollLeft - 1);
+    };
+
+    el.scrollLeft = 0;
+
+    const frameId = window.requestAnimationFrame(checkScroll);
+    const resizeObserver = new ResizeObserver(checkScroll);
+
+    el.addEventListener("scroll", checkScroll);
+    window.addEventListener("resize", checkScroll);
+    resizeObserver.observe(el);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      el.removeEventListener("scroll", checkScroll);
+      window.removeEventListener("resize", checkScroll);
+      resizeObserver.disconnect();
+    };
+  }, [isLoading, selectedCity?.city, selectedCity?.localities?.length]);
+
+  const scrollLocalities = (direction: "left" | "right") => {
+    if (!localitiesRef.current) return;
+
+    localitiesRef.current.scrollBy({
+      left: direction === "left" ? -280 : 280,
+      behavior: "smooth",
+    });
+  };
 
   async function shareAgent(
     event: React.MouseEvent<HTMLButtonElement>,
@@ -106,8 +177,10 @@ export default function Page() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
-      <div className="space-y-2 text-center sm:text-left">
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <div className="w-full min-w-0 space-y-6">
+          <div className="space-y-2 text-center sm:text-left">
         {isLoading ? (
           <div className="h-9 w-56 animate-pulse rounded bg-gray-200 sm:w-72" />
         ) : (
@@ -122,15 +195,91 @@ export default function Page() {
         <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto sm:mx-0">
           Connect with trusted real estate agents in your area
         </p>
-      </div>
+          </div>
 
-      {isLoading ? (
-        <AgentListSkeleton />
-      ) : (
-        <div className="w-full lg:w-[80%] space-y-6">
-          {agents.map((agent: AgentConnect) => (
-            <Link key={agent._id} href={`/agent-connect/${agent.slug}`}>
-              <div className="card bg-base-100 p-4 lg:p-2 flex flex-col lg:flex-row items-start lg:items-center gap-6 lg:gap-4 rounded-xl">
+          {!isLoading && Boolean(selectedCity?.localities?.length) && (
+            <div className="relative mb-3 sm:mb-5">
+              {hasLocalityOverflow && canScrollLeft && (
+                <button
+                  type="button"
+                  onClick={() => scrollLocalities("left")}
+                  className="hidden md:block absolute left-0 lg:-left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-2 text-slate-600 shadow hover:bg-slate-50"
+                  aria-label="Scroll localities left"
+                >
+                  <FiArrowLeft size={16} />
+                </button>
+              )}
+
+          <div
+            ref={localitiesRef}
+            className="flex gap-3 sm:gap-4 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-1 py-4 sm:py-5"
+          >
+            {selectedCity?.localities?.map((locality: any, index: number) => (
+              <button
+                key={`${locality.name}-${index}`}
+                type="button"
+                onClick={() =>
+                  setSelectedLocality((prev) =>
+                    prev === locality.name ? "" : locality.name,
+                  )
+                }
+                className={`group min-w-[150px] sm:min-w-40 rounded-xl border bg-white p-3.5 sm:p-4 shadow-[10px_10px_10px_rgba(0,0,0,0.10)] transition cursor-pointer text-left ${
+                  selectedLocality === locality.name
+                    ? "border-emerald-500 ring-1 ring-emerald-200"
+                    : "border-slate-200 hover:border-emerald-300"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                      selectedLocality === locality.name
+                        ? "bg-emerald-50 text-emerald-600"
+                        : "bg-slate-100 text-slate-500 group-hover:bg-emerald-50 group-hover:text-emerald-600"
+                    }`}
+                  >
+                    <HiOutlineLocationMarker size={18} />
+                  </div>
+                  <h3 className="truncate text-sm font-medium text-slate-900">
+                    {locality.name}
+                  </h3>
+                </div>
+              </button>
+            ))}
+          </div>
+
+              {hasLocalityOverflow && canScrollRight && (
+                <button
+                  type="button"
+                  onClick={() => scrollLocalities("right")}
+                  className="hidden md:block absolute right-0 lg:-right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-2 text-slate-600 shadow hover:bg-slate-50"
+                  aria-label="Scroll localities right"
+                >
+                  <FiArrowRight size={16} />
+                </button>
+              )}
+            </div>
+          )}
+
+          {isLoading ? (
+            <AgentListSkeleton />
+          ) : (
+            <div className="w-full space-y-6">
+            <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">
+              {filteredAgents.length} Agents in{" "}
+              {selectedLocality
+                ? `${selectedLocality}, ${selectedCity?.city || ""}`
+                : selectedCity?.city || ""}
+            </h2>
+
+            {filteredAgents.length === 0 && (
+              <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
+                No agents found for this locality.
+              </div>
+            )}
+
+            {filteredAgents.map((agent: AgentConnect) => (
+              <Link key={agent._id} href={`/agent-connect/${agent.slug}`}>
+                <div className="card bg-base-100 p-4 lg:p-2 flex flex-col lg:flex-row items-start lg:items-center gap-6 lg:gap-4 rounded-xl">
 
                 {/* Agent Info */}
                 <div className="flex-1 flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -190,10 +339,12 @@ export default function Page() {
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex items-center gap-1 shrink-0 min-w-0">
                           <MdLocationOn className="text-slate-400" size={20} />
-                          <span className="text-sm sm:text-base">
-                            {agent.city || "Kokapet, Hyderabad"}
+                          <span className="truncate text-sm sm:text-base">
+                            {[getAgentLocality(agent), agent.city]
+                              .filter(Boolean)
+                              .join(", ") || "Location unavailable"}
                           </span>
                         </div>
                       </div>
@@ -242,11 +393,23 @@ export default function Page() {
                   </button>
                 </div>
 
-              </div>
-            </Link>
-          ))}
+                </div>
+              </Link>
+              
+            ))}
+            
+            </div>
+          )}
         </div>
-      )}
+
+        <aside className="w-full shrink-0 lg:w-[260px] sticky top-20 self-start">
+          <Image
+            src={ad}
+            alt="advertisement banner"
+            className="w-full h-auto p-6"
+          />
+        </aside>
+      </div>
     </div>
   );
 }

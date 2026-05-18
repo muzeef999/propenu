@@ -41,6 +41,7 @@ export interface Agent {
   licenseValidTill?: Date | string;
 
   areasServed?: string[];
+  locality?: string;
   city?: string;
   experienceYears?: number;
   dealsClosed?: number;

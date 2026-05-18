@@ -4,12 +4,13 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { FiArrowUpRight, FiMail, FiPhone, FiShare2 } from "react-icons/fi";
+import { FiMail, FiPhone } from "react-icons/fi";
 import { HiOutlineLocationMarker } from "react-icons/hi";
 
 import { getMyContactedProperties } from "@/data/ClientData";
 import ActiveTabs from "@/ui/ActiveTabs";
 import formatINR from "@/utilies/PriceFormat";
+import { IoIosShareAlt } from "react-icons/io";
 
 const PROPERTY_TYPE_ROUTE_MAP: Record<string, string> = {
   residentials: "residential",
@@ -147,6 +148,12 @@ const Page = () => {
                       {property.listingType === "rent" ? "Rent" : "Sale"}
                     </span>
 
+                    {/* {contactedOn ? (
+                      <span className="absolute left-2 top-8 rounded bg-black/50 px-2 py-1 text-[10px] font-medium text-white">
+                        {contactedOn}
+                      </span>
+                    ) : null} */}
+
                     {detailHref ? (
                       <button
                         type="button"
@@ -158,28 +165,22 @@ const Page = () => {
                         }}
                         className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-white/95 text-gray-700 shadow-sm transition hover:bg-white hover:text-[#27AE60]"
                       >
-                        <FiShare2 className="h-3.5 w-3.5" />
+                        <IoIosShareAlt className="h-3.5 w-3.5" />
                       </button>
                     ) : null}
+
+                    <div className="absolute inset-x-0 bottom-0 bg-black/30 px-3 py-2 backdrop-blur-[1px]">
+                      <p className="min-w-0 truncate text-xl font-semibold leading-none text-white drop-shadow md:text-lg">
+                        {property.price
+                          ? formatINR(property.price)
+                          : "Price on request"}
+                      </p>
+                    </div>
                   </div>
 
                   <div className="flex min-w-0 flex-1 flex-col justify-between p-3">
                     <div className="min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-base font-semibold leading-none text-gray-950">
-                          {property.price
-                            ? formatINR(property.price)
-                            : "Price on request"}
-                        </p>
-
-                        {contactedOn ? (
-                          <span className="shrink-0 text-[11px] text-gray-500">
-                            {contactedOn}
-                          </span>
-                        ) : null}
-                      </div>
-
-                      <h3 className="mt-2 line-clamp-1 text-sm font-semibold leading-snug text-gray-900">
+                      <h3 className="line-clamp-1 text-sm font-semibold leading-snug text-gray-900">
                         {property.title}
                       </h3>
 

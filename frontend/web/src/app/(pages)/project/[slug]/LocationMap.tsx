@@ -393,24 +393,24 @@ export default function LocationMap({ project }: LocationMapProps) {
     <section id="location" className="scroll-mt-20">
       <div className="container mx-auto px-1 sm:px-4 lg:px-3">
         <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
-          <h2 className="border-b border-slate-200 px-5 py-5 text-xl font-medium text-slate-950">
+          <h2 className="border-b border-slate-200 px-4 py-4 text-lg font-medium text-slate-950 sm:px-5 sm:py-5 sm:text-xl">
             Location
           </h2>
-          <div className="p-5">
-            <div className="space-y-5">
+          <div className="p-3 sm:p-5">
+            <div className="space-y-4 sm:space-y-5">
               <div className="overflow-hidden rounded-md border border-slate-100 shadow-sm">
                 {mapError ? (
-                  <div className="flex h-[360px] w-full items-center justify-center px-4 text-center text-sm text-slate-500 sm:h-[420px]">
+                  <div className="flex h-[260px] w-full items-center justify-center px-4 text-center text-sm text-slate-500 sm:h-[420px]">
                     {mapError}
                   </div>
                 ) : (
-                  <div id={mapContainerId} ref={mapRef} className="h-[360px] w-full sm:h-[420px]" />
+                  <div id={mapContainerId} ref={mapRef} className="h-[260px] w-full sm:h-[420px]" />
                 )}
               </div>
 
               {placesWithDistance.length > 0 && (
                 <div className="rounded-md">
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 xl:grid-cols-3">
                     {placesWithDistance.map((place, index) => {
                       const isActive = activePlaceIndex === index;
 
@@ -419,24 +419,24 @@ export default function LocationMap({ project }: LocationMapProps) {
                           key={`${place.name ?? "place"}-${index}`}
                           type="button"
                           onClick={() => onNearbyPlaceClick(index, place.coords)}
-                          className={`flex w-full items-start gap-3 rounded-md border bg-white p-3 text-left transition ${
+                          className={`flex w-full items-start gap-2 rounded-md border bg-white p-2 text-left transition sm:gap-3 sm:p-3 ${
                             isActive
                               ? "border-emerald-400 shadow-sm"
                               : "border-slate-100 hover:border-slate-200 hover:bg-slate-50"
                           }`}
                         >
                           <span
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md sm:h-9 sm:w-9"
                             style={{ backgroundColor: `${color}14`, color }}
                           >
                             <FiMapPin className="h-4 w-4" />
                           </span>
 
                           <span className="min-w-0">
-                            <span className="block truncate text-sm font-medium text-slate-950">
+                            <span className="block truncate text-xs font-medium text-slate-950 sm:text-sm">
                               {place.name?.split(",")[0] ?? "Nearby place"}
                             </span>
-                            <span className="mt-1 block truncate text-xs text-slate-500">
+                            <span className="mt-1 block truncate text-[11px] text-slate-500 sm:text-xs">
                               {place.distanceText ?? ""}
                             </span>
                           </span>

@@ -53,6 +53,8 @@ export interface Agent {
   verificationDocuments?: { type: string; url: string; status?: string; providerResponse?: any }[];
   rera?: { reraAgentId?: string; providerResponse?: any; isVerified?: boolean };
   areasServed?: string[];
+  locality?: string;
+  city?: string;
   experienceYears?: number;
   stats?: { totalProperties?: number; publishedCount?: number; rating?: number; reviews?: number };
   createdAt?: Date;

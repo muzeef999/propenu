@@ -3,7 +3,6 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FiShare2 } from "react-icons/fi";
 import { toast } from "sonner";
 
 import ActiveTabs from "@/ui/ActiveTabs";
@@ -11,6 +10,7 @@ import { getUserShortlist, removeShortlistProperty } from "@/data/ClientData";
 import NopropertiesSvg from "@/svg/NopropertiesSvg";
 import { GoHeartFill } from "react-icons/go";
 import formatINR from "@/utilies/PriceFormat";
+import { IoIosShareAlt } from "react-icons/io";
 
 /* ================= TYPES ================= */
 
@@ -303,7 +303,7 @@ const Page = () => {
                       shareProperty(getTitle(item), href);
                     }}
                   >
-                    <FiShare2 className="h-3.5 w-3.5" />
+                    <IoIosShareAlt className="h-3.5 w-3.5" />
                   </button>
                 </div>
 

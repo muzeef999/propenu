@@ -182,7 +182,7 @@ export const CreateFeaturePropertySchema = z.object({
   nearbyPlaces: z.array(NearbyPlaceSchema).optional(),
   leads: z.array(LeadSchema).optional(),
   isFeatured: z.boolean().optional().default(false),
-  rank: z.number().int().optional().default(1),
+  rank: z.coerce.number().int().optional().default(1),
   meta: z
     .object({
       views: z.number().int().optional().default(0),
@@ -257,7 +257,7 @@ export const UpdateFeaturePropertySchema = z.object({
   nearbyPlaces: z.array(NearbyPlaceSchema).optional(),
   leads: z.array(LeadSchema).optional(),
   isFeatured: z.boolean().optional(),
-  rank: z.number().int().optional(),
+  rank: z.coerce.number().int().optional(),
   meta: z
     .object({
       views: z.number().int().optional(),

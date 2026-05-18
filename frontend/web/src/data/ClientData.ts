@@ -91,10 +91,11 @@ export async function getOwnerProperties(params?: {
   return res.json();
 }
 
-export async function getAgentConnect(params?: { city?: string }) {
+export async function getAgentConnect(params?: { city?: string; locality?: string }) {
   const query = new URLSearchParams();
 
   if (params?.city) query.append("city", params.city);
+  if (params?.locality) query.append("locality", params.locality);
 
   const res = await fetch(`${url}/api/users/agent/city?${query.toString()}`, {
     cache: "no-store",

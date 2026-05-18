@@ -52,6 +52,7 @@ export const createAgentSchema = z
 
     areasServed: z.array(z.string()).optional(),
 
+    locality: z.string().optional(),
     city: z.string().optional(),
 
     // FIXED ↓

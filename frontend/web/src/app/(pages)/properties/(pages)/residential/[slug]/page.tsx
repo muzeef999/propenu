@@ -13,11 +13,9 @@ import RelatedPropertiesCarousel from "./RelatedPropertiesCarousel";
 import ResidentialNearbySection from "./ResidentialNearbySection";
 import { RESIDENTIAL_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
 
-import { FaCarAlt, FaCarSide, FaRegCalendarCheck } from "react-icons/fa";
 import { GiKnifeFork, GiMoneyStack } from "react-icons/gi";
-import { RiCarLine, RiEBikeLine, RiParkingFill } from "react-icons/ri";
-import { ImCompass2 } from "react-icons/im";
-import { KitchenIcons, TilesIcons } from "../../MoreDetailsIcons";
+import { RiCarLine } from "react-icons/ri";
+import { TilesIcons } from "../../MoreDetailsIcons";
 import { HiOutlineUser } from "react-icons/hi2";
 import { LuSquareParking } from "react-icons/lu";
 import { PiCalendarBlank, PiCompass, PiMotorcycle } from "react-icons/pi";

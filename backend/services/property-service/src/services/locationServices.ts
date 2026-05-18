@@ -1,5 +1,13 @@
 import Location from "../models/locationModel";
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function exactCaseInsensitive(value: string) {
+  return { $regex: `^${escapeRegex(value)}$`, $options: "i" };
+}
+
 export async function upsertCityAndLocality({
   city,
   state,
@@ -16,9 +24,13 @@ export async function upsertCityAndLocality({
   const cityName = city.trim();
   const stateName = state?.trim() ?? null;
   const localityName = locality.trim();
+  if (!cityName || !localityName) return;
+
   const existingCity = await Location.findOne({
-    city: cityName,
-    state: stateName,
+    city: exactCaseInsensitive(cityName),
+    ...(stateName === null
+      ? { $or: [{ state: null }, { state: "" }, { state: { $exists: false } }] }
+      : { state: exactCaseInsensitive(stateName) }),
   });
 
   if (existingCity) {
@@ -48,7 +60,14 @@ export async function upsertCityAndLocality({
     }
 
     await Location.updateOne(
-      { _id: existingCity._id },
+      {
+        _id: existingCity._id,
+        localities: {
+          $not: {
+            $elemMatch: { name: exactCaseInsensitive(localityName) },
+          },
+        },
+      },
       {
         $push: {
           localities: {
@@ -68,8 +87,10 @@ export async function upsertCityAndLocality({
 
   await Location.findOneAndUpdate(
     {
-      city: cityName,
-      state: stateName,
+      city: exactCaseInsensitive(cityName),
+      ...(stateName === null
+        ? { $or: [{ state: null }, { state: "" }, { state: { $exists: false } }] }
+        : { state: exactCaseInsensitive(stateName) }),
     },
     {
       $setOnInsert: {

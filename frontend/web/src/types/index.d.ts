@@ -128,6 +128,7 @@ export interface AgentConnect {
   agencyName: string;
   licenseValidTill: string;
   areasServed: string[];
+  locality?: string;
   city: string;
   experienceYears: number;
   dealsClosed: number;

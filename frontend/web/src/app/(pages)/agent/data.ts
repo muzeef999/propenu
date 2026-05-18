@@ -77,6 +77,7 @@ export const registerAgency = async (
     licenseNumber: string;
     licenseValidTill: string;
     city: string;
+    locality?: string;
     experienceYears: number;
     dealsClosed: number;
     areasServed: string[];
@@ -109,6 +110,9 @@ export const registerAgency = async (
   formData.append("licenseNumber", payload.licenseNumber);
   formData.append("licenseValidTill", payload.licenseValidTill);
   formData.append("city", payload.city);
+  if (payload.locality) {
+    formData.append("locality", payload.locality);
+  }
   formData.append("experienceYears", String(payload.experienceYears));
   formData.append("dealsClosed", String(payload.dealsClosed));
   formData.append("verificationStatus", payload.verificationStatus);

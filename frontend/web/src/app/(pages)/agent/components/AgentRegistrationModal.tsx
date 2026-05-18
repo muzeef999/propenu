@@ -24,6 +24,7 @@ type AgentFormState = {
   agencyName: string;
   licenseNumber: string;
   licenseValidTill: string;
+  locality: string;
   city: string;
   experienceYears: string;
   dealsClosed: string;
@@ -53,6 +54,7 @@ export default function AgentRegistrationModal({
     agencyName: "",
     licenseNumber: "",
     licenseValidTill: "",
+    locality: "",
     city: "",
     experienceYears: "0",
     dealsClosed: "0",
@@ -96,6 +98,7 @@ export default function AgentRegistrationModal({
           agencyName: form.agencyName,
           licenseNumber: form.licenseNumber,
           licenseValidTill: form.licenseValidTill,
+          locality: form.locality,
           city: form.city,
           experienceYears: Number(form.experienceYears),
           dealsClosed: Number(form.dealsClosed),
@@ -159,6 +162,11 @@ export default function AgentRegistrationModal({
               label="City"
               value={form.city}
               onChange={(v) => update("city", v)}
+            />
+            <InputFiled
+              label="Locality"
+              value={form.locality}
+              onChange={(v) => update("locality", v)}
             />
             <InputFiled
               label="License number"

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type MouseEvent } from "react";
 import Image from "next/image";
-import { FiImage, FiShare2, FiX, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { FiImage, FiX, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { GoHeart, GoHeartFill } from "react-icons/go";
 import { GalleryItem } from "@/types/agricultural";
 import { getUserShortlist, me, postShortlistProperty, removeShortlistProperty } from "@/data/ClientData";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import LoginDialog from "@/app/(auth)/Login";
 import RegisterDialog from "@/app/(auth)/Register";
 import { createPortal } from "react-dom";
+import { IoIosShareAlt } from "react-icons/io";
 
 type GalleryFileProps = {
   gallery?: GalleryItem[];
@@ -272,7 +273,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({
             onClick={handleShare}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow cursor-pointer"
           >
-            <FiShare2 className="h-4 w-4" />
+            <IoIosShareAlt className="h-4 w-4" />
           </button>
         </div>
       </div>

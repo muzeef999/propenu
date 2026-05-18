@@ -16,6 +16,7 @@ import { HiOutlineLocationMarker } from "react-icons/hi";
 import Image from "next/image";
 import ad from "@/asserts/ad.png";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type HighlightProjectsResponse = {
     items?: FeaturedProject[];
@@ -23,8 +24,32 @@ type HighlightProjectsResponse = {
 
 const skeletonItems = Array.from({ length: 3 });
 
+const getPromotionLabel = (type?: string) => {
+    if (type === "prime") return "Prime";
+    if (type === "featured") return "Featured";
+    if (type === "sponsored") return "Sponsored";
+    return null;
+};
+
+const formatProjectCategoryLabel = (project: FeaturedProject) => {
+    if (project.categoryType?.toLowerCase() === "land") {
+        return project.propertyType || "Land";
+    }
+
+    return project.projectSummary?.[0]?.name || project.bhkSummary?.[0]?.name || "2, 3 BHK";
+};
+
+const formatProjectConfigurationCount = (project: FeaturedProject) => {
+    if (project.categoryType?.toLowerCase() === "land") {
+        return project.propertyType || "Land details available";
+    }
+
+    return `${project.projectSummary?.length || project.bhkSummary?.length || 0} unit configurations`;
+};
+
 const HotspotsPage = () => {
     const { selectedCity } = useCity();
+    const router = useRouter();
 
     const [showBanner, setShowBanner] = useState(true);
     const [selectedLocality, setSelectedLocality] = useState<string>("");
@@ -292,78 +317,106 @@ const HotspotsPage = () => {
                                 </h2>
 
                                 <div className="grid grid-cols-1 gap-4 sm:gap-6">
-                                    {items.map((project) => (
-                                        <Link
-                                            key={project._id}
-                                            href={`/prime/${project.slug}`}
-                                            className="block"
-                                        >
-                                            <div className="flex flex-col lg:flex-row card rounded-xl p-2 sm:p-3 gap-3 sm:gap-4">
-                                                {/* Image */}
-                                                <div className="relative w-full h-52 sm:h-56 lg:h-48 lg:w-[220px] xl:w-60 xl:h-[220px] shrink-0">
-                                                    <img
-                                                        src={project.heroImage ?? "/images/placeholder.svg"}
-                                                        alt={project.title}
-                                                        className="w-full h-full object-cover rounded-xl"
-                                                    />
-                                                </div>
+                                    {items.map((project) => {
+                                        const projectHref = `/project/${project.slug}`;
+                                        const promotionLabel = getPromotionLabel(
+                                            project.promotion?.type
+                                        );
 
-                                                {/* Content */}
-                                                <div className="grow min-w-0 space-y-3 sm:space-y-4">
-                                                    <div>
-                                                        <h3 className="text-lg sm:text-xl font-semibold text-slate-900 line-clamp-2">
-                                                            {project.title}, {project.city}
-                                                        </h3>
-                                                        <p className="text-sm text-slate-500 mt-1">
-                                                            {project.bhkSummary?.[0]?.name || "2, 3 BHK"} | Ready To
-                                                            Move
-                                                        </p>
+                                        return (
+                                            <Link
+                                                key={project._id}
+                                                href={projectHref}
+                                                className="block"
+                                            >
+                                                <div className="flex flex-col lg:flex-row card rounded-xl p-2 sm:p-3 gap-3 sm:gap-4">
+                                                    {/* Image */}
+                                                    <div className="relative w-full h-52 sm:h-56 lg:h-48 lg:w-[220px] xl:w-60 xl:h-[220px] shrink-0">
+                                                        <img
+                                                            src={project.heroImage ?? "/images/placeholder.svg"}
+                                                            alt={project.title}
+                                                            className="w-full h-full object-cover rounded-xl"
+                                                        />
+
+                                                        {promotionLabel && (
+                                                            <span className="absolute left-3 top-3 rounded-md bg-black/60 px-2.5 py-1 text-xs font-semibold text-white">
+                                                                {promotionLabel}
+                                                            </span>
+                                                        )}
                                                     </div>
 
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                                                        <div className="bg-[#F1FCF5] p-4 rounded-xl space-y-2">
-                                                            <p className="text-emerald-700 font-semibold text-sm">
-                                                                Floor Plans
+                                                    {/* Content */}
+                                                    <div className="grow min-w-0 space-y-3 sm:space-y-4">
+                                                        <div>
+                                                            <h3 className="text-lg sm:text-xl font-semibold text-slate-900 line-clamp-2">
+                                                                {project.title}, {project.city}
+                                                            </h3>
+                                                            <p className="text-sm text-slate-500 mt-1">
+                                                                {formatProjectCategoryLabel(project)} | Ready To Move
                                                             </p>
-                                                            <p className="text-slate-600 text-sm">
-                                                                {project.bhkSummary?.length || 0} unit configurations
-                                                            </p>
-                                                            <button className="flex items-center gap-1 text-emerald-600 text-sm font-semibold hover:underline">
-                                                                View Plans <FiChevronRight />
-                                                            </button>
                                                         </div>
 
-                                                        <div className="bg-[#F1FCF5] p-4 rounded-xl space-y-2">
-                                                            <p className="text-emerald-700 font-semibold text-sm">
-                                                                Amenities
-                                                            </p>
-                                                            <p className="text-slate-600 text-sm">
-                                                                {project.amenities?.length || 0} amenities in the
-                                                                project
-                                                            </p>
-                                                            <button className="flex items-center gap-1 text-emerald-600 text-sm font-semibold hover:underline">
-                                                                View All <FiChevronRight />
-                                                            </button>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                                            <div className="bg-[#F1FCF5] p-4 rounded-xl space-y-2">
+                                                                <p className="text-emerald-700 font-semibold text-sm">
+                                                                    Floor Plans
+                                                                </p>
+                                                                <p className="text-slate-600 text-sm">
+                                                                    {formatProjectConfigurationCount(project)}
+                                                                </p>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(event) => {
+                                                                        event.preventDefault();
+                                                                        event.stopPropagation();
+                                                                        router.push(projectHref);
+                                                                    }}
+                                                                    className="flex items-center gap-1 text-emerald-600 text-sm font-semibold hover:underline"
+                                                                >
+                                                                    View Plans <FiChevronRight />
+                                                                </button>
+                                                            </div>
+
+                                                            <div className="bg-[#F1FCF5] p-4 rounded-xl space-y-2">
+                                                                <p className="text-emerald-700 font-semibold text-sm">
+                                                                    Amenities
+                                                                </p>
+                                                                <p className="text-slate-600 text-sm">
+                                                                    {project.amenities?.length || 0} amenities in the
+                                                                    project
+                                                                </p>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(event) => {
+                                                                        event.preventDefault();
+                                                                        event.stopPropagation();
+                                                                        router.push(projectHref);
+                                                                    }}
+                                                                    className="flex items-center gap-1 text-emerald-600 text-sm font-semibold hover:underline"
+                                                                >
+                                                                    View All <FiChevronRight />
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
 
-                                                {/* Pricing */}
-                                                <div className="w-full lg:w-[220px] lg:border-l border-slate-50 flex flex-col justify-center space-y-3 sm:space-y-4 bg-[#F1FCF5] p-4 rounded-xl items-stretch lg:items-center">
-                                                    <div className="text-lg sm:text-xl font-semibold text-[#26ad5f] text-left lg:text-center">
-                                                        ₹ {formatPrice(project.priceFrom)} -{" "}
-                                                        {formatPrice(project.priceTo)} Cr
+                                                    {/* Pricing */}
+                                                    <div className="w-full lg:w-[220px] lg:border-l border-slate-50 flex flex-col justify-center space-y-3 sm:space-y-4 bg-[#F1FCF5] p-4 rounded-xl items-stretch lg:items-center">
+                                                        <div className="text-lg sm:text-xl font-semibold text-[#26ad5f] text-left lg:text-center">
+                                                            ₹ {formatPrice(project.priceFrom)} -{" "}
+                                                            {formatPrice(project.priceTo)} Cr
+                                                        </div>
+                                                        <button className="w-full btn-primary text-white py-2 rounded-lg font-semibold text-sm sm:text-base">
+                                                            Contact Owner
+                                                        </button>
+                                                        <button className="w-full border border-[#26ad5f] text-[#26ad5f] py-2 rounded-lg font-semibold text-sm sm:text-base flex items-center justify-center gap-2 hover:bg-emerald-50">
+                                                            <FiDownload /> Brochure
+                                                        </button>
                                                     </div>
-                                                    <button className="w-full btn-primary text-white py-2 rounded-lg font-semibold text-sm sm:text-base">
-                                                        Contact Owner
-                                                    </button>
-                                                    <button className="w-full border border-[#26ad5f] text-[#26ad5f] py-2 rounded-lg font-semibold text-sm sm:text-base flex items-center justify-center gap-2 hover:bg-emerald-50">
-                                                        <FiDownload /> Brochure
-                                                    </button>
                                                 </div>
-                                            </div>
-                                        </Link>
-                                    ))}
+                                            </Link>
+                                        );
+                                    })}
                                 </div>
                             </>
                         )}

@@ -516,19 +516,18 @@ const Navbar = () => {
           />
         )}
 
-        {mobileOpen && (
-          <div
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-            onClick={() => setMobileOpen(false)}
-            aria-hidden="true"
-          />
-        )}
-
-        {mobileOpen && (
+        <div
+          className={`fixed top-0 left-0 h-[120vh] w-75 max-w-[90vw] bg-white shadow-lg lg:hidden transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${
+            mobileOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+          aria-hidden={!mobileOpen}
+          role="dialog"
+          aria-modal="true"
+        >
           <button
             onClick={() => setMobileOpen(false)}
             aria-label="Close menu"
-            className="fixed top-4 left-78 z-60 h-10 w-10 rounded-full bg-black/70 text-white backdrop-blur flex items-center justify-center shadow-lg hover:bg-black/90 transition-all lg:hidden"
+            className="absolute top-4 right-3 z-10 h-9 w-9 rounded-full bg-black/70 text-white backdrop-blur flex items-center justify-center shadow-lg hover:bg-black/90 transition-all"
           >
             <svg
               className="w-5 h-5"
@@ -544,19 +543,10 @@ const Navbar = () => {
               />
             </svg>
           </button>
-        )}
 
-        <div
-          className={`fixed top-0 left-0 h-[120vh] w-75 max-w-[90vw] bg-white shadow-lg lg:hidden transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${
-            mobileOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-          aria-hidden={!mobileOpen}
-          role="dialog"
-          aria-modal="true"
-        >
           <div className="border-b border-gray-200 bg-gray-50">
             {!user ? (
-              <div className="flex items-center justify-between gap-3 px-4 py-4 bg-gray-50">
+              <div className="flex items-center justify-between gap-3 px-4 py-4 pr-14 bg-gray-50">
                 <span className="text-xs text-gray-700 leading-snug">
                   Sign in for a <br />
                   <span className="font-semibold">
@@ -576,7 +566,7 @@ const Navbar = () => {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-3 px-4 py-4 bg-gray-50">
+              <div className="flex items-center gap-3 px-4 py-4 pr-14 bg-gray-50">
                 <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg border border-white shadow-sm shrink-0">
                   {user?.user?.name?.charAt(0)?.toUpperCase() ?? "U"}
                 </div>

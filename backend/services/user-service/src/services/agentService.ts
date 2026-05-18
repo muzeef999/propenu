@@ -198,13 +198,17 @@ const AgentService = {
 },
 
   async getAgentsByLocationService(
-    location: { city?: string; state?: string },
+    location: { city?: string; state?: string; locality?: string },
     page = 1,
     limit = 20,
   ) {
     const filter: any = { verificationStatus: "approved" };
 
     if (location.city) filter.city = new RegExp(`^${location.city}$`, "i");
+
+    if (location.locality) {
+      filter.locality = new RegExp(`^${location.locality}$`, "i");
+    }
 
     if (location.state) filter.state = new RegExp(`^${location.state}$`, "i");
 
@@ -213,7 +217,7 @@ const AgentService = {
     const [items, total] = await Promise.all([
       Agent.find(filter)
         .select(
-          "name slug avatar coverImage agencyName bio areasServed stats dealsClosed city state rera experienceYears",
+          "name slug avatar coverImage agencyName bio areasServed locality stats dealsClosed city state rera experienceYears",
         )
         .skip(skip)
         .limit(limit)

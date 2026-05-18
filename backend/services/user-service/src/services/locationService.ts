@@ -2,6 +2,14 @@ import mongoose from "mongoose";
 import Location from "../models/locationModel";
 import { geocode } from "../utils/geocode";
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function exactCaseInsensitive(value: string) {
+  return { $regex: `^${escapeRegex(value)}$`, $options: "i" };
+}
+
 /* ------------------------------------
    TYPES
 ------------------------------------ */
@@ -54,8 +62,10 @@ export async function createLocation(payload: CreateLocationPayload) {
   }
 
   const existingCity = await Location.findOne({
-    city: cityName,
-    state: stateName,
+    city: exactCaseInsensitive(cityName),
+    ...(stateName === null
+      ? { $or: [{ state: null }, { state: "" }, { state: { $exists: false } }] }
+      : { state: exactCaseInsensitive(stateName) }),
   });
 
   if (existingCity && localityName) {
@@ -85,7 +95,14 @@ export async function createLocation(payload: CreateLocationPayload) {
     }
 
     await Location.updateOne(
-      { _id: existingCity._id },
+      {
+        _id: existingCity._id,
+        localities: {
+          $not: {
+            $elemMatch: { name: exactCaseInsensitive(localityName) },
+          },
+        },
+      },
       {
         $push: {
           localities: {
@@ -100,8 +117,10 @@ export async function createLocation(payload: CreateLocationPayload) {
 
   return Location.findOneAndUpdate(
     {
-      city: cityName,
-      state: stateName,
+      city: exactCaseInsensitive(cityName),
+      ...(stateName === null
+        ? { $or: [{ state: null }, { state: "" }, { state: { $exists: false } }] }
+        : { state: exactCaseInsensitive(stateName) }),
     },
     {
       $setOnInsert: {
@@ -250,26 +269,31 @@ export async function removeLocalityFromCity(
   const doc = await Location.findById(cityId).lean();
   if (!doc) return null;
 
-  const index = doc.localities.findIndex(
-    (l) => l.name.toLowerCase() === localityName.toLowerCase()
-  );
+  const localities = [...doc.localities];
+  const matchingIndexes = localities
+    .map((locality, localityIndex) => ({ locality, localityIndex }))
+    .filter(
+      ({ locality }) =>
+        locality.name.trim().toLowerCase() ===
+        localityName.trim().toLowerCase()
+    );
+  const removeIndex =
+    matchingIndexes.length > 0
+      ? matchingIndexes[matchingIndexes.length - 1]?.localityIndex
+      : undefined;
 
-  // ❌ locality not found
-  if (index === -1) {
+  if (typeof removeIndex !== "number") {
     return null;
   }
 
-  // ✅ remove ONLY that locality
+  localities.splice(removeIndex, 1);
+
+  // Remove only one matching locality. $pull removes every duplicate with the same name.
   await Location.updateOne(
     { _id: cityId },
-    {
-      $pull: {
-        localities: {
-          name: { $regex: `^${localityName.trim()}$`, $options: "i" },
-        },
-      },
-    }
+    { $set: { localities } }
   );
 
   return Location.findById(cityId);
 }
+

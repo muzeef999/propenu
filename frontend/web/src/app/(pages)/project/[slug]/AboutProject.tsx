@@ -26,12 +26,12 @@ export default function AboutProject({ project }: AboutProjectProps) {
     <section id="about-project" className="scroll-mt-20">
       <div className="container mx-auto px-1 sm:px-4 lg:px-3">
         <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
-          <h2 className="border-b border-slate-200 px-5 py-5 text-xl font-medium text-slate-950">
+          <h2 className="border-b border-slate-200 px-4 py-4 text-lg font-medium text-slate-950 sm:px-5 sm:py-5 sm:text-xl">
             About Project
           </h2>
 
           <div
-            className={`grid gap-5 px-5 py-5 ${
+            className={`grid gap-4 px-4 py-4 sm:gap-5 sm:px-5 sm:py-5 ${
               imageUrl ? "md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]" : ""
             }`}
           >
@@ -39,13 +39,13 @@ export default function AboutProject({ project }: AboutProjectProps) {
               <img
                 src={imageUrl}
                 alt={`${project.title} overview`}
-                className="h-44 w-full rounded-md object-cover md:h-[200px]"
+                className="h-40 w-full rounded-md object-cover sm:h-44 md:h-[200px]"
               />
             )}
 
             <div className="space-y-4 text-sm leading-6 text-slate-500 sm:text-base">
               {description ? (
-                <p className="line-clamp-6">{description}</p>
+                <p className="line-clamp-8 sm:line-clamp-6">{description}</p>
               ) : (
                 <p>Project details coming soon.</p>
               )}

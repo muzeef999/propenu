@@ -572,6 +572,7 @@ export const searchUsers = async (req: Request, res: Response) => {
               licenseNumber: "$agent.licenseNumber",
               licenseValidTill: "$agent.licenseValidTill",
               areasServed: "$agent.areasServed",
+              locality: "$agent.locality",
               city: "$agent.city",
               experienceYears: "$agent.experienceYears",
               dealsClosed: "$agent.dealsClosed",

@@ -178,9 +178,10 @@ const DiscoverRealestate = () => {
                                         setDiscoverCityId(location._id);
                                         setShowAllLocalities(false);
                                     }}
-                                    className={`h-9 shrink-0 rounded-lg border px-4 text-sm shadow-sm transition sm:h-[37px] sm:px-5 sm:text-base cursor-pointer ${discoverCity?._id === location._id
+                                    className={`h-9 shrink-0 rounded-lg border px-4 text-sm sm:h-[37px] sm:px-5 sm:text-base cursor-pointer transition-colors duration-200
+    ${discoverCity?._id === location._id
                                             ? "border-[#27ae60] bg-[#27ae60] text-white"
-                                            : "border-[#e0e0e0] bg-white text-[#a6a6a6]"
+                                            : "border-[#e0e0e0] bg-white text-[#7a7a7a] hover:bg-[#f5f5f5] hover:border-[#cfcfcf] hover:text-[#333]"
                                         }`}
                                 >
                                     {location.city}

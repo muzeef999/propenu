@@ -1,10 +1,10 @@
 "use client";
 
 import { FeaturedProject } from "@/types";
-import { getProjectConfigurationValue } from "@/utilies/projectConfiguration";
 import { useEffect, useRef, useState } from "react";
-import { FiCheckCircle, FiDownload, FiHeart, FiMapPin, FiShare2 } from "react-icons/fi";
+import { FiCheckCircle, FiDownload, FiHeart, FiMapPin } from "react-icons/fi";
 import { HiChevronLeft, HiChevronRight, HiPhoto, HiXMark } from "react-icons/hi2";
+import { IoIosShareAlt } from "react-icons/io";
 
 type HeroSectionProps = {
     project: FeaturedProject;
@@ -318,7 +318,7 @@ export default function HeroSection({ project }: HeroSectionProps) {
                                 className="flex h-9 items-center gap-2 rounded-lg border border-white/70 bg-white/95 px-3 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-emerald-600"
                                 aria-label="Share project"
                             >
-                                <FiShare2 className="h-4 w-4" />
+                                <IoIosShareAlt className="h-4 w-4" />
                                 <span>Share</span>
                             </button>
                         </div>

@@ -77,11 +77,14 @@ export const getAgentsByCity = async (req: Request, res: Response) => {
     const state =
       typeof req.query.state === "string" ? req.query.state.trim() : "";
 
+    const locality =
+      typeof req.query.locality === "string" ? req.query.locality.trim() : "";
+
     const page = Number(req.query.page || 1);
     const limit = Number(req.query.limit || 20);
 
     const result = await AgentService.getAgentsByLocationService(
-      { city, state },
+      { city, state, locality },
       page,
       limit
     );

@@ -51,7 +51,7 @@ export default async function Page({ params }: PageProps) {
     <main className="min-h-screen bg-white">
       <HeroSection project={project} />
       <section className="bg-emerald-50/60 py-5">
-        <div className="mx-10 flex flex-col gap-5 sm:mx-5 lg:mx-8 lg:flex-row lg:items-start xl:mx-33 2xl:mx-44">
+        <div className="mx-0 flex flex-col gap-5 sm:mx-5 lg:mx-8 lg:flex-row lg:items-start xl:mx-33 2xl:mx-44">
           <div className="w-full space-y-4 lg:w-[80%]">
             <Overview project={project} />
             <FloorPlan project={project} />

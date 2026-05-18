@@ -102,15 +102,15 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
     <section id="project-images" className="scroll-mt-20">
       <div className="container mx-auto px-1 sm:px-4 lg:px-3">
         <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
-          <h2 className="border-b border-slate-200 px-5 py-5 text-xl font-medium text-slate-950">
+          <h2 className="border-b border-slate-200 px-4 py-4 text-lg font-medium text-slate-950 sm:px-5 sm:py-5 sm:text-xl">
             Images & Videos
           </h2>
 
-          <div className="relative grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="relative grid grid-cols-2 gap-2 p-3 sm:grid-cols-2 sm:gap-3 sm:p-5 lg:grid-cols-3">
             <button
               type="button"
               onClick={() => setOpenIndex(0)}
-              className="absolute bottom-8 right-8 z-10 flex h-9 items-center gap-2 rounded-lg border border-white/70 bg-white/95 px-3 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-emerald-600"
+              className="absolute bottom-5 right-5 z-10 flex h-8 items-center gap-1.5 rounded-lg border border-white/70 bg-white/95 px-2.5 text-[11px] font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-emerald-600 sm:bottom-8 sm:right-8 sm:h-9 sm:gap-2 sm:px-3 sm:text-xs"
               aria-label={`Open all ${images.length} project images`}
             >
               <HiPhoto className="h-4 w-4" />
@@ -126,7 +126,7 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
                   type="button"
                   onClick={() => setOpenIndex(index)}
                   className={`group overflow-hidden rounded-xl text-left shadow-sm ${
-                    isMainImage ? "sm:row-span-2" : ""
+                    isMainImage ? "col-span-2 sm:col-span-1 sm:row-span-2" : ""
                   }`}
                   aria-label={`Open ${image.title || "project image"} preview`}
                 >
@@ -134,7 +134,7 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
                     src={image.url}
                     alt={image.title || `${project.title} image ${index + 1}`}
                     className={`w-full object-cover transition-transform duration-300 group-hover:scale-105 ${
-                      isMainImage ? "h-[260px] sm:h-full lg:h-[310px]" : "h-[150px]"
+                      isMainImage ? "h-[220px] sm:h-full lg:h-[310px]" : "h-[120px] sm:h-[150px]"
                     }`}
                   />
                 </button>
@@ -146,7 +146,7 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
 
       {openIndex !== null && activeImage && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm md:p-6"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-3 backdrop-blur-sm md:p-6"
           onClick={() => setOpenIndex(null)}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
@@ -160,19 +160,19 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
             <button
               type="button"
               onClick={() => setOpenIndex(null)}
-              className="absolute right-0 top-0 z-30 flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/70"
+              className="absolute right-2 top-2 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/70 md:right-0 md:top-0 md:h-11 md:w-11"
               aria-label="Close gallery"
             >
               <HiXMark size={24} />
             </button>
 
-            <div className="relative overflow-hidden rounded-2xl bg-black pt-12 shadow-2xl md:pt-0">
+            <div className="relative overflow-hidden rounded-xl bg-black pt-12 shadow-2xl md:rounded-2xl md:pt-0">
               {images.length > 1 && (
                 <>
                   <button
                     type="button"
                     onClick={prev}
-                    className="absolute left-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md transition hover:bg-black/65 md:left-5"
+                    className="absolute left-2 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md transition hover:bg-black/65 md:left-5 md:h-11 md:w-11"
                     aria-label="Previous image"
                   >
                     <HiChevronLeft size={22} />
@@ -181,7 +181,7 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
                   <button
                     type="button"
                     onClick={next}
-                    className="absolute right-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md transition hover:bg-black/65 md:right-5"
+                    className="absolute right-2 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md transition hover:bg-black/65 md:right-5 md:h-11 md:w-11"
                     aria-label="Next image"
                   >
                     <HiChevronRight size={22} />
@@ -192,34 +192,33 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
               <img
                 src={activeImage.url}
                 alt={activeImage.title || `${project.title} image`}
-                className="max-h-[75vh] w-full object-contain"
+                className="max-h-[70vh] w-full object-contain md:max-h-[75vh]"
               />
 
               {(activeImage.title || activeImage.category) && (
-                <div className="absolute bottom-0 w-full bg-linear-to-t from-black/80 to-transparent p-6 text-white">
-                  {activeImage.title && <div className="text-lg font-semibold">{activeImage.title}</div>}
+                <div className="absolute bottom-0 w-full bg-linear-to-t from-black/80 to-transparent p-4 text-white md:p-6">
+                  {activeImage.title && <div className="text-base font-semibold md:text-lg">{activeImage.title}</div>}
                   {activeImage.category && <div className="text-sm text-white/70">{activeImage.category}</div>}
                 </div>
               )}
             </div>
 
             {images.length > 1 && (
-              <div className="mt-6 flex gap-3 overflow-x-auto pb-2">
+              <div className="mt-4 flex gap-2 overflow-x-auto pb-2 md:mt-6 md:gap-3">
                 {images.map((image, index) => (
                   <button
                     key={`${image.url}-thumb-${index}`}
                     type="button"
                     onClick={() => setOpenIndex(index)}
-                    className={`shrink-0 overflow-hidden rounded-lg transition ${
+                    className={`w-[88px] shrink-0 overflow-hidden rounded-lg transition md:w-[110px] ${
                       openIndex === index ? "scale-90 ring-2 ring-white" : "opacity-70 hover:opacity-100"
                     }`}
-                    style={{ width: 110 }}
                     aria-label={`Open thumbnail ${index + 1}`}
                   >
                     <img
                       src={image.url}
                       alt={image.title || `${project.title} thumbnail ${index + 1}`}
-                      className="h-16 w-full object-cover"
+                      className="h-14 w-full object-cover md:h-16"
                     />
                   </button>
                 ))}

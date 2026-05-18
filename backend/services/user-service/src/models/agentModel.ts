@@ -42,6 +42,11 @@ const AgentSchema = new Schema<Agent>(
 
     areasServed: [String],
 
+    locality: {
+      type: String,
+      trim: true,
+    },
+
     city: {
       type: String,
       trim: true,

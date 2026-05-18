@@ -128,9 +128,9 @@ export default function Page() {
                             )}
                         </div>
 
-                        <button className="mt-6 w-full btn-primary py-2.5 rounded-md font-medium">
+                        {/* <button className="mt-6 w-full btn-primary py-2.5 rounded-md font-medium">
                             Contact Agent
-                        </button>
+                        </button> */}
                     </div>
                 </aside>
 

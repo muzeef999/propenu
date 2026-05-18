@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import { FiMinus, FiPlus } from "react-icons/fi";
 import { FeaturedProject, IBhkUnit } from "@/types";
 
 type FloorPlanProps = {
@@ -12,6 +13,10 @@ type PlanGroup = {
   bhkLabel: string;
   units: IBhkUnit[];
 };
+
+const MIN_PLAN_ZOOM = 1;
+const MAX_PLAN_ZOOM = 2.5;
+const PLAN_ZOOM_STEP = 0.25;
 
 function formatCompactPrice(price?: number) {
   if (typeof price !== "number" || !Number.isFinite(price) || price <= 0) {
@@ -75,8 +80,17 @@ function getPlanGroups(project: FeaturedProject): PlanGroup[] {
 
 export default function FloorPlan({ project }: FloorPlanProps) {
   const groups = useMemo(() => getPlanGroups(project), [project]);
+  const planScrollRef = useRef<HTMLDivElement | null>(null);
+  const dragStartRef = useRef({
+    clientX: 0,
+    clientY: 0,
+    scrollLeft: 0,
+    scrollTop: 0,
+  });
   const [activeGroupIndex, setActiveGroupIndex] = useState(0);
   const [activeUnitIndex, setActiveUnitIndex] = useState(0);
+  const [planZoom, setPlanZoom] = useState(MIN_PLAN_ZOOM);
+  const [isDraggingPlan, setIsDraggingPlan] = useState(false);
   const isLand = project.categoryType?.toLowerCase() === "land";
   const sectionTitle = isLand ? "Layout" : "Floor Plans";
 
@@ -85,6 +99,58 @@ export default function FloorPlan({ project }: FloorPlanProps) {
   const planImage = activeUnit?.plan?.url;
   const sqftLabel = formatUnitArea(activeUnit, isLand);
   const priceLabel = formatCompactPrice(activeUnit?.price ?? activeUnit?.maxPrice);
+  const canZoomIn = planZoom < MAX_PLAN_ZOOM;
+  const canZoomOut = planZoom > MIN_PLAN_ZOOM;
+  const canDragPlan = planZoom > MIN_PLAN_ZOOM;
+
+  useEffect(() => {
+    setPlanZoom(MIN_PLAN_ZOOM);
+    if (planScrollRef.current) {
+      planScrollRef.current.scrollLeft = 0;
+      planScrollRef.current.scrollTop = 0;
+    }
+  }, [activeGroupIndex, activeUnitIndex]);
+
+  const zoomPlan = (direction: "in" | "out") => {
+    setPlanZoom((currentZoom) => {
+      const nextZoom =
+        direction === "in"
+          ? currentZoom + PLAN_ZOOM_STEP
+          : currentZoom - PLAN_ZOOM_STEP;
+
+      return Math.min(MAX_PLAN_ZOOM, Math.max(MIN_PLAN_ZOOM, nextZoom));
+    });
+  };
+
+  const handlePlanPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (!canDragPlan || !planScrollRef.current) return;
+
+    const scroller = planScrollRef.current;
+    dragStartRef.current = {
+      clientX: event.clientX,
+      clientY: event.clientY,
+      scrollLeft: scroller.scrollLeft,
+      scrollTop: scroller.scrollTop,
+    };
+
+    setIsDraggingPlan(true);
+    scroller.setPointerCapture(event.pointerId);
+  };
+
+  const handlePlanPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingPlan || !planScrollRef.current) return;
+
+    event.preventDefault();
+
+    const scroller = planScrollRef.current;
+    const dragStart = dragStartRef.current;
+    scroller.scrollLeft = dragStart.scrollLeft - (event.clientX - dragStart.clientX);
+    scroller.scrollTop = dragStart.scrollTop - (event.clientY - dragStart.clientY);
+  };
+
+  const stopPlanDrag = () => {
+    setIsDraggingPlan(false);
+  };
 
   if (!groups.length) {
     return null;
@@ -94,12 +160,12 @@ export default function FloorPlan({ project }: FloorPlanProps) {
     <section id="floor-plans">
       <div className="container mx-auto px-1 sm:px-4 lg:px-3">
         <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
-          <h2 className="border-b border-slate-200 px-5 py-5 text-xl font-medium text-slate-950">
+          <h2 className="border-b border-slate-200 px-4 py-4 text-lg font-medium text-slate-950 sm:px-5 sm:py-5 sm:text-xl">
             {project.title} {sectionTitle}
           </h2>
 
-          <div className="px-5 py-4">
-            <div className="flex gap-4 overflow-x-auto pb-1">
+          <div className="px-4 py-4 sm:px-5">
+            <div className="flex gap-2 overflow-x-auto pb-1 sm:gap-4">
               {groups.map((group, index) => (
                 <button
                   key={`${group.label}-${index}`}
@@ -108,7 +174,7 @@ export default function FloorPlan({ project }: FloorPlanProps) {
                     setActiveGroupIndex(index);
                     setActiveUnitIndex(0);
                   }}
-                  className={`shrink-0 rounded-md px-5 py-3 text-sm font-medium transition ${
+                  className={`shrink-0 rounded-md px-4 py-2.5 text-xs font-medium transition sm:px-5 sm:py-3 sm:text-sm ${
                     activeGroupIndex === index
                       ? "bg-emerald-50 text-slate-950"
                       : "bg-slate-100 text-slate-500 hover:bg-slate-200"
@@ -119,7 +185,7 @@ export default function FloorPlan({ project }: FloorPlanProps) {
               ))}
             </div>
 
-            <div className="mt-4 flex gap-7 overflow-x-auto border-b border-slate-200">
+            <div className="mt-4 flex gap-4 overflow-x-auto border-b border-slate-200 sm:gap-7">
               {activeGroup.units.map((unit, index) => (
                 <button
                   key={`${unit.minSqft}-${unit.price}-${index}`}
@@ -141,27 +207,81 @@ export default function FloorPlan({ project }: FloorPlanProps) {
               ))}
             </div>
 
-            <div className="mt-4 flex min-h-[420px] items-center justify-center rounded-md border border-dashed border-slate-300 bg-slate-50 p-6">
+            <div className="mt-4 rounded-md p-1">
               {planImage ? (
-                <img
-                  src={planImage}
-                  alt={`${activeGroup.bhkLabel} floor plan`}
-                  className="max-h-[380px] w-full object-contain"
-                />
+                <div className="relative overflow-hidden rounded-md border border-slate-200 bg-white">
+                  <div
+                    ref={planScrollRef}
+                    onPointerDown={handlePlanPointerDown}
+                    onPointerMove={handlePlanPointerMove}
+                    onPointerUp={stopPlanDrag}
+                    onPointerCancel={stopPlanDrag}
+                    onPointerLeave={stopPlanDrag}
+                    className={`flex h-[260px] items-center justify-center overflow-auto select-none sm:h-[420px] ${
+                      canDragPlan
+                        ? isDraggingPlan
+                          ? "cursor-grabbing"
+                          : "cursor-grab"
+                        : "cursor-default"
+                    }`}
+                  >
+                    <img
+                      src={planImage}
+                      alt={`${activeGroup.bhkLabel} floor plan`}
+                      draggable={false}
+                      className="max-w-none object-contain transition-[height,width] duration-200 ease-out"
+                      style={{
+                        width: `${planZoom * 100}%`,
+                        height: `${planZoom * 100}%`,
+                      }}
+                    />
+                  </div>
+
+                  <div className="absolute right-3 top-3 flex items-center gap-1 rounded-md border border-slate-200 bg-white/95 p-1 shadow-sm">
+                    <button
+                      type="button"
+                      aria-label="Zoom out plan"
+                      onClick={() => zoomPlan("out")}
+                      disabled={!canZoomOut}
+                      className="flex h-8 w-8 items-center justify-center rounded text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+                    >
+                      <FiMinus className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Reset plan zoom"
+                      onClick={() => setPlanZoom(MIN_PLAN_ZOOM)}
+                      className="h-8 min-w-12 rounded px-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+                    >
+                      {Math.round(planZoom * 100)}%
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Zoom in plan"
+                      onClick={() => zoomPlan("in")}
+                      disabled={!canZoomIn}
+                      className="flex h-8 w-8 items-center justify-center rounded text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+                    >
+                      <FiPlus className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
               ) : (
-                <p className="text-sm font-medium text-slate-500">
-                  Floor plan image coming soon
-                </p>
+                <div className="flex min-h-[260px] items-center justify-center rounded-md border border-dashed border-slate-300 bg-white px-4 text-center sm:min-h-[420px]">
+                  <p className="text-sm font-medium text-slate-500">
+                    Floor plan image coming soon
+                  </p>
+                </div>
               )}
             </div>
 
             <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h3 className="text-base font-medium text-slate-950">
+                <h3 className="text-sm font-medium text-slate-950 sm:text-base">
                   {activeGroup.bhkLabel} {sqftLabel}
                 </h3>
                 <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
-                  <p className="text-xl font-semibold text-emerald-600">{priceLabel}</p>
+                  <p className="text-lg font-semibold text-emerald-600 sm:text-xl">{priceLabel}</p>
                   <p className="text-xs text-slate-500">Ready to move</p>
                   <p className="text-xs text-slate-500">
                     {project.possessionDate
@@ -176,7 +296,7 @@ export default function FloorPlan({ project }: FloorPlanProps) {
 
               <button
                 type="button"
-                className="rounded btn-primary px-10 py-3 text-sm font-semibold text-white shadow-sm transition sm:min-w-56"
+                className="w-full rounded btn-primary px-10 py-3 text-sm font-semibold text-white shadow-sm transition sm:w-auto sm:min-w-56"
               >
                 Request Callback
               </button>
