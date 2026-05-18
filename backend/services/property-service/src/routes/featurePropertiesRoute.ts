@@ -48,9 +48,9 @@ const jsonKeys = [
 
 router.post("/",  cpUpload, parseJsonFields(jsonKeys), authMiddleware, fallbackCoerceDefault, validateBody(CreateFeaturePropertySchema),  
 (req: AuthRequest, res, next) => {
-    if (!req.user || !["super_admin", "admin", "builder"].includes(req.user.roleName || "") ) {
+    if (!req.user || !["super_admin", "admin", "builder", "sales_manager"].includes(req.user.roleName || "") ) {
       return res.status(403).json({
-          message: "only admin/super_admin/builder can post the project",
+          message: "only admin/super_admin/builder/sales_manager can post the project",
         });
     }
     next();
