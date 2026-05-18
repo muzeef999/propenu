@@ -42,7 +42,6 @@ const MULTI_SELECT_KEYS = new Set([
   "plantationAge",
   "roadWidth",
   "accessRoadType",
-  "postedBy",
 ]);
 
 const BOOLEAN_KEYS = new Set([
@@ -399,9 +398,10 @@ const AgriculturalFilters = () => {
                   dispatch(
                     setAgriculturalFilter({
                       key: "postedBy",
-                      value: toggleArrayValue(postedBy || [], opt),
+                      value: [opt],
                     })
                   );
+                  close?.();
                 }}
                 className={`px-2 py-1 rounded block w-full text-left hover:bg-gray-100 ${postedBy?.includes(opt) ? "font-semibold bg-gray-100" : ""
                   }`}
@@ -561,9 +561,11 @@ const AgriculturalFilters = () => {
                 const mappedKey = agriculturalKeyMapping[section.key];
                 const currentValue = agricultural[mappedKey];
                 const isBooleanFilter = BOOLEAN_KEYS.has(mappedKey);
+                const isPostedByFilter = mappedKey === "postedBy";
                 const isMultiSelect =
-                  section.selectionType === "multiple" ||
-                  MULTI_SELECT_KEYS.has(mappedKey);
+                  !isPostedByFilter &&
+                  (section.selectionType === "multiple" ||
+                    MULTI_SELECT_KEYS.has(mappedKey));
 
                 return (
                   <div
@@ -662,6 +664,9 @@ const AgriculturalFilters = () => {
 
                           const isActive = isStateRestrictions
                             ? currentValue === stateRestrictionValue
+                            : isPostedByFilter
+                              ? Array.isArray(currentValue) &&
+                                currentValue.includes(opt)
                             : isBooleanFilter
                               ? Boolean(currentValue)
                               : isMultiSelect
@@ -681,6 +686,8 @@ const AgriculturalFilters = () => {
                                     key: mappedKey,
                                     value: isStateRestrictions
                                       ? stateRestrictionValue
+                                      : isPostedByFilter
+                                        ? [opt]
                                       : isBooleanFilter
                                         ? !Boolean(currentValue)
                                         : isMultiSelect

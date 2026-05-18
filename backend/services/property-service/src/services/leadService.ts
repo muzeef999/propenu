@@ -26,6 +26,25 @@ const getLeadWithDialogDetails = (leadId: Types.ObjectId) =>
     )
     .lean();
 
+const getExistingLeadWithDialogDetails = async (lead: any) => {
+  if (lead.propertyType === "featuredprojects") {
+    const [owner, project] = await Promise.all([
+      mongoose.model("User").findById(lead.ownerId).select("name phone email").lean(),
+      FeaturedProject.findById(lead.projectId)
+        .select("title price priceFrom priceTo propertyType createdAt")
+        .lean(),
+    ]);
+
+    return {
+      ...lead.toObject(),
+      ownerId: owner,
+      projectId: project,
+    };
+  }
+
+  return getLeadWithDialogDetails(lead._id);
+};
+
 /** CREATE LEAD **/
 export const createLead = async (data: any, userId: string | null) => {
   const { propertyType, projectId } = data;
@@ -48,7 +67,7 @@ export const createLead = async (data: any, userId: string | null) => {
     createdBy: userId,
   });
   if (existingLead) {
-    throw new Error("You have already contacted for this property");
+    return getExistingLeadWithDialogDetails(existingLead);
   }
 
   const property = await PropertyModel.findById(projectId);
@@ -66,7 +85,9 @@ export const createLead = async (data: any, userId: string | null) => {
     throw new Error("This is your own property");
   }
 
-  const listingType = (property as any).listingType as
+  const listingType = (
+    propertyType === "featuredprojects" ? "sale" : (property as any).listingType
+  ) as
     | "sale"
     | "rent"
     | "lease"
@@ -79,7 +100,7 @@ export const createLead = async (data: any, userId: string | null) => {
   if (propertyType === "featuredprojects") {
     const lead = await Lead.create({
       ...data,
-      propertyModel: "FeaturedProject",
+      propertyModel: PropertyModel.modelName,
       createdBy: userId,
       ownerId,
       listingType,

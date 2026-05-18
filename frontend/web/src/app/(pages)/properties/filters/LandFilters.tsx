@@ -428,9 +428,10 @@ const LandFilters = () => {
                   dispatch(
                     setLandFilter({
                       key: "postedBy",
-                      value: toggleArrayValue(postedBy || [], opt),
+                      value: [opt],
                     })
                   );
+                  close?.();
                 }}
                 className={`px-2 py-1 rounded block w-full text-left hover:bg-gray-100 ${postedBy?.includes(opt) ? "font-semibold bg-gray-100" : ""
                   }`}
@@ -594,6 +595,7 @@ const LandFilters = () => {
               {landMoreFilterSections.map((section) => {
                 const mappedKey = landKeyMapping[section.key];
                 const currentValue = land[mappedKey];
+                const isPostedByFilter = mappedKey === "postedBy";
 
                 return (
                   <div
@@ -756,6 +758,9 @@ const LandFilters = () => {
                           const isActive =
                             isBooleanFilter
                               ? Boolean(currentValue)
+                              : isPostedByFilter
+                                ? Array.isArray(currentValue) &&
+                                  currentValue.includes(opt)
                               : section.selectionType === "multiple"
                                 ? Array.isArray(currentValue) &&
                                 currentValue.includes(opt)
@@ -774,6 +779,8 @@ const LandFilters = () => {
                                     value:
                                       isBooleanFilter
                                         ? !Boolean(currentValue)
+                                        : isPostedByFilter
+                                          ? [opt]
                                         : section.selectionType === "multiple"
                                           ? toggleArrayValue(
                                             (currentValue as string[]) || [],

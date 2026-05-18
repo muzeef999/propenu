@@ -86,7 +86,7 @@ export const moreFilterSections: MoreFilterSection[] = [
     {
       key: "Facing",
       label: "Facing",
-      options: ["East", "West", "North", "South"],
+      options: ["East", "West", "North", "South", "North-East", "North-West", "South-East", "South-West"],
       selectionType: "multiple",
     },
     {
@@ -368,9 +368,9 @@ export const agriculturalMoreFilterSections: MoreFilterSectionAGR[] = [
       key: "Agricultural Type",
       label: "Agricultural Type",
       options: [
-        "Farm Land",
-        "Wet Land",
-        "Dry Land",
+        "Farmland",
+        "Wetland",
+        "Dryland",
         "Dairy Farm",
       ],
       selectionType: "multiple",

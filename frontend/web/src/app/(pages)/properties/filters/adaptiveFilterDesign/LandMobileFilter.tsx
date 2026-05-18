@@ -500,7 +500,7 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                   dispatch(
                     setLandFilter({
                       key: "postedBy",
-                      value: toggleArrayValue(selectedPostedBy, option),
+                      value: [option],
                     }),
                   )
                 }
@@ -554,6 +554,7 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                     .map((section) => {
                       const mappedKey = landKeyMapping[section.key];
                       const currentValue = land[mappedKey];
+                      const isPostedByFilter = mappedKey === "postedBy";
 
                       return (
                         <div key={section.key} className="space-y-3">
@@ -707,6 +708,9 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                                 const isBooleanFilter = booleanLandKeys.has(mappedKey);
                                 const active = isBooleanFilter
                                   ? Boolean(currentValue)
+                                  : isPostedByFilter
+                                    ? Array.isArray(currentValue) &&
+                                      currentValue.includes(opt)
                                   : section.selectionType === "multiple"
                                     ? Array.isArray(currentValue) && currentValue.includes(opt)
                                     : currentValue === opt;
@@ -723,6 +727,8 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                                           key: mappedKey,
                                           value: isBooleanFilter
                                             ? !Boolean(currentValue)
+                                            : isPostedByFilter
+                                              ? [opt]
                                             : section.selectionType === "multiple"
                                               ? toggleArrayValue(
                                                 Array.isArray(currentValue) ? currentValue : [],

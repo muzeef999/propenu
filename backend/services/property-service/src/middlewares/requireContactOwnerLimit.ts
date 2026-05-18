@@ -17,6 +17,9 @@ export const requireContactOwnerLimit = async (
     }
 
     const { id: userId, roleName } = req.user;
+    const { propertyType } = req.body;
+
+    if (propertyType === "featuredprojects") return next();
 
     // admin skip
     const freeRoles = ["admin", "super_admin"];
@@ -52,7 +55,7 @@ export const requireContactOwnerLimit = async (
     if (typeof limit === "number") {
       // IMPORTANT: change field if your Lead schema different
       const used = await Lead.countDocuments({
-        userId,
+        createdBy: userId,
         createdAt: { $gte: subscription.createdAt }, // ✅ fix
       });
 

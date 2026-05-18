@@ -64,7 +64,6 @@ const MULTI_SELECT_KEYS = new Set([
   "plantationAge",
   "roadWidth",
   "accessRoadType",
-  "postedBy",
 ]);
 
 const BOOLEAN_KEYS = new Set([
@@ -511,7 +510,7 @@ const AgriculturalMobileFilter: React.FC<AgriculturalMobileFilterProps> = ({
                   dispatch(
                     setAgriculturalFilter({
                       key: "postedBy",
-                      value: toggleArrayValue(selectedPostedBy, option),
+                      value: [option],
                     }),
                   )
                 }
@@ -568,9 +567,11 @@ const AgriculturalMobileFilter: React.FC<AgriculturalMobileFilterProps> = ({
                       const mappedKey = agriculturalKeyMapping[section.key];
                       const currentValue = agricultural[mappedKey];
                       const isBooleanFilter = BOOLEAN_KEYS.has(mappedKey);
+                      const isPostedByFilter = mappedKey === "postedBy";
                       const isMultiSelect =
-                        section.selectionType === "multiple" ||
-                        MULTI_SELECT_KEYS.has(mappedKey);
+                        !isPostedByFilter &&
+                        (section.selectionType === "multiple" ||
+                          MULTI_SELECT_KEYS.has(mappedKey));
 
                       return (
                         <div key={section.key} className="space-y-3">
@@ -667,6 +668,9 @@ const AgriculturalMobileFilter: React.FC<AgriculturalMobileFilterProps> = ({
                                 const stateRestrictionValue = opt === "Applicable";
                                 const active = isStateRestrictions
                                   ? currentValue === stateRestrictionValue
+                                  : isPostedByFilter
+                                    ? Array.isArray(currentValue) &&
+                                      currentValue.includes(opt)
                                   : isBooleanFilter
                                     ? Boolean(currentValue)
                                     : isMultiSelect
@@ -685,6 +689,8 @@ const AgriculturalMobileFilter: React.FC<AgriculturalMobileFilterProps> = ({
                                           key: mappedKey,
                                           value: isStateRestrictions
                                             ? stateRestrictionValue
+                                            : isPostedByFilter
+                                              ? [opt]
                                             : isBooleanFilter
                                               ? !Boolean(currentValue)
                                               : isMultiSelect

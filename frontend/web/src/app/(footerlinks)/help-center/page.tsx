@@ -658,7 +658,7 @@ const Page = () => {
                             </button>
                             <button className="flex items-center gap-2 text-[#1f2d27] hover:opacity-80">
                                 <IoLogoWhatsapp className="text-lg text-[#27AE60]" />
-                                <span className="text-sm font-medium">Whatsapp</span>
+                                <span className="text-sm font-medium">WhatsApp</span>
                             </button>
                             <button className="flex items-center gap-2 text-[#1f2d27] hover:opacity-80">
                                 <IoMailOutline className="text-lg text-[#27AE60]" />

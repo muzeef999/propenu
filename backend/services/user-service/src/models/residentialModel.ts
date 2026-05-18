@@ -62,7 +62,7 @@ const ResidentialSchema = new Schema<IResidential>(
     parkingType: String,
     facing: {
       type: String,
-      enum: ["east", "west", "north", "south"],
+      enum: ["east", "west", "north", "south", "northeast", "northwest", "southeast", "southwest"],
       lowercase: true,
       trim: true,
     },

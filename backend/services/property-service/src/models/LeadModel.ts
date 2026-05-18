@@ -43,6 +43,7 @@ const LeadSchema = new Schema<LeadSchemaShape>(
     propertyModel: {
       type: String,
       enum: [
+        "featuredProject",
         "FeaturedProject",
         "Residential",
         "Commercial",
