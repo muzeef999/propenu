@@ -7,10 +7,7 @@ import { Request, Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { sendOtpWhatsApp } from "../utils/whatsapp";
 import { sendOtpEmail } from "../utils/email";
-import {
-  getOtpLoginRestrictionMessage,
-  requiresKycForLogin,
-} from "../utils/accessPolicy";
+import { getOtpLoginRestrictionMessage, requiresKycForLogin } from "../utils/accessPolicy";
 import mongoose from "mongoose";
 import DeletedAccount from "../models/deletedAccountModel";
 
@@ -93,7 +90,9 @@ const createAuthToken = ({
 };
 
 export const requestOTP = async (req: Request, res: Response) => {
+  
   try {
+  
     let { email, phone } = req.body;
 
     email = email?.trim()?.toLowerCase();
@@ -164,6 +163,7 @@ export const requestOTP = async (req: Request, res: Response) => {
 
     const key = email || phone;
     await saveOtpToRedis(key, otp);
+
 
     // ⭐ Send OTP based on input
     if (email) {
