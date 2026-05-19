@@ -1,60 +1,106 @@
-import { geminiModel } from "../config/gemini";
-import { searchProperties } from "../services/propertySearch.service";
-import { extractFilters } from "../utils/extractFilters";
-import { sendNDJSON
-} from "../utils/ndjson";
-import { Request, Response } from "express";
+import { Request, Response }
+from "express";
+
+import { geminiModel }
+from "../config/gemini";
+
+import { searchProperties }
+from "../services/propertySearch.service";
+
+import { sendNDJSON }
+from "../utils/ndjson";
+
+import { updateMemory }
+from "../utils/updateMemory";
+
+import { getNextStep }
+from "../services/conversation.service";
 
 export async function chatController(
-  req:Request,
-  res:Response
+  req: Request,
+  res: Response
 ) {
 
-  res.setHeader(
-    "Content-Type",
-    "application/x-ndjson"
-  );
+  try {
 
-  res.setHeader(
-    "Transfer-Encoding",
-    "chunked"
-  );
+    // STREAM HEADERS
+    res.setHeader(
+      "Content-Type",
+      "application/x-ndjson"
+    );
 
-  // STEP 1
-  sendNDJSON(res, {
-    type: "status",
-    message: "Analyzing query..."
-  });
+    res.setHeader(
+      "Transfer-Encoding",
+      "chunked"
+    );
 
-  // STEP 2
-  const filters =
-    extractFilters(req.body.message);
+    // USER MESSAGE
+    const message =
+      req.body.message || "";
 
-  // STEP 3
-  sendNDJSON(res, {
-    type: "status",
-    message: "Searching properties..."
-  });
+    // MEMORY
+    req.memory =
+      updateMemory(
+        req.memory || {},
+        message
+      );
 
-  // STEP 4
-  const properties =
-    await searchProperties(filters);
+    // ASK NEXT QUESTION
+    const nextStep =
+      getNextStep(req.memory);
 
-  // STEP 5
-  for (const property of properties) {
+    // IF FLOW NOT COMPLETE
+    if (nextStep) {
 
+      sendNDJSON(res, {
+        type: "question",
+        ...nextStep,
+      });
+
+      return res.end();
+    }
+
+    // STATUS
     sendNDJSON(res, {
-      type: "property",
-      property,
+      type: "status",
+      message:
+        "Searching properties..."
     });
-  }
 
-const prompt = `
+    // SEARCH
+    const properties =
+      await searchProperties(
+        req.memory
+      );
+
+    // NO RESULTS
+    if (!properties.length) {
+
+      sendNDJSON(res, {
+        type: "message",
+        content:
+          "No matching properties found.",
+      });
+
+      return res.end();
+    }
+
+    // STREAM PROPERTY CARDS
+    for (const property of properties) {
+
+      sendNDJSON(res, {
+        type: "property",
+        property,
+      });
+    }
+
+    // AI PROMPT
+    const prompt = `
 You are Propenu AI,
 an intelligent Indian real estate assistant.
 
-User Query:
-${req.body.message}
+User Preferences:
+${JSON.stringify(req.memory)}
 
 Matching Properties:
 ${JSON.stringify(properties)}
@@ -62,24 +108,54 @@ ${JSON.stringify(properties)}
 Rules:
 - Recommend properties naturally
 - Mention city and locality
-- Keep response concise
+- Mention investment potential
+- Keep concise
 - Sound like property consultant
 `;
 
-  // STEP 6
-  const result =
-    await geminiModel.generateContent(
-      prompt
+    // GEMINI
+    const result =
+      await geminiModel.generateContent(
+        prompt
+      );
+
+    const aiText =
+      result.response.text();
+
+    // STREAM AI RESPONSE
+    sendNDJSON(res, {
+      type: "message",
+      content: aiText,
+    });
+
+    // RECOMMENDATION OPTIONS
+    sendNDJSON(res, {
+      type: "suggestions",
+
+      options: [
+        "Compare Properties",
+        "Explore Nearby",
+        "Show Investment Areas",
+        "Contact Builder",
+      ],
+    });
+
+    res.end();
+
+  } catch (error) {
+
+    console.error(
+      "CHAT CONTROLLER ERROR:",
+      error
     );
 
-  const text =
-    result.response.text();
+    sendNDJSON(res, {
+      type: "error",
 
-  // STEP 7
-  sendNDJSON(res, {
-    type: "message",
-    content: text
-  });
+      message:
+        "AI search failed.",
+    });
 
-  res.end();
+    res.end();
+  }
 }

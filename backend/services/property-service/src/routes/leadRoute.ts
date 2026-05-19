@@ -9,9 +9,7 @@ import { requireContactOwnerLimit } from '../middlewares/requireContactOwnerLimi
 const router = Router();
 
 
-router.post(
-  '/',
-  (req, res, next) => {
+router.post('/', (req, res, next) => {
     console.log("🧪 ROUTE HIT /leads");
     console.log("🧪 req.body BEFORE validation:", req.body);
     next();
