@@ -31,6 +31,31 @@ function propertyTypeExactRegex(value: string) {
     .join("[\\s_-]+")}$`;
 }
 
+function parseBedroomTokens(value: unknown) {
+  if (typeof value !== "string" && typeof value !== "number") {
+    return { exact: [] as number[], plus: undefined as number | undefined };
+  }
+
+  const exact: number[] = [];
+  let plus: number | undefined;
+
+  String(value)
+    .split(",")
+    .map((token) => token.trim().toLowerCase())
+    .filter(Boolean)
+    .forEach((token) => {
+      if (token === "6plus" || token === "6+") {
+        plus = 6;
+        return;
+      }
+
+      const parsed = Number(token.replace(/[^\d.]/g, ""));
+      if (Number.isFinite(parsed)) exact.push(parsed);
+    });
+
+  return { exact, plus };
+}
+
 function normalizeResidentialFilter(filter: any) {
   if (
     filter?.category !== "residential" ||
@@ -150,14 +175,25 @@ function buildFeaturedProjectMatch(filter: any) {
   }
 
   // 🏠 BHK FILTER
-  const bhk = Number(filter.bhk ?? filter.bedrooms);
-  if (!Number.isNaN(bhk)) {
-    match.$and.push({
-      $or: [
-        { "projectSummary.bhk": bhk },
-        { "bhkSummary.bhk": bhk },
-      ],
-    });
+  const bhk = parseBedroomTokens(filter.bhk ?? filter.bedrooms);
+  if (bhk.exact.length > 0 || bhk.plus !== undefined) {
+    const bedroomConditions: any[] = [];
+
+    if (bhk.exact.length > 0) {
+      bedroomConditions.push(
+        { "projectSummary.bhk": { $in: bhk.exact } },
+        { "bhkSummary.bhk": { $in: bhk.exact } },
+      );
+    }
+
+    if (bhk.plus !== undefined) {
+      bedroomConditions.push(
+        { "projectSummary.bhk": { $gte: bhk.plus } },
+        { "bhkSummary.bhk": { $gte: bhk.plus } },
+      );
+    }
+
+    match.$and.push({ $or: bedroomConditions });
   }
 
   // 💰 PRICE FILTER

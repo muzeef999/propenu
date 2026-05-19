@@ -1,5 +1,9 @@
 import { RESFilterKey } from ".";
-import { BaseSearchParams, ResidentialFilters } from "./sharedTypes";
+import {
+  BaseSearchParams,
+  BedroomFilterValue,
+  ResidentialFilters,
+} from "./sharedTypes";
 import type { ReactNode } from "react";
 
 export type AmenitiesItems = {
@@ -120,7 +124,7 @@ export type PostedByOption = "Owners" | "Agents" | "Builders";
 
 export type ResidentialSearchParams = BaseSearchParams & {
   category: "Residential";
-  bedrooms?: number[];
+  bedrooms?: BedroomFilterValue[];
 };
 
 export const residentialKeyMapping: Record<

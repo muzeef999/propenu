@@ -30,8 +30,6 @@ const RESIDENTIAL_ALLOWED_FILTERS = [
 ];
 
 const RESIDENTIAL_NUMERIC_FILTERS = new Set([
-  "bedrooms",
-  "bhk",
   "minPrice",
   "maxPrice",
   "batchSize",

@@ -63,6 +63,8 @@ export type BaseSearchParams = {
   search?: string;
 };
 
+export type BedroomFilterValue = number | "6+";
+
 export interface ResidentialFilters {
   // ---------- SINGLE ----------
   propertyType?: string;
@@ -86,7 +88,7 @@ export interface ResidentialFilters {
   verifiedOnly?: boolean;
 
   // ---------- OTHERS ----------
-  bedrooms?: number[];
+  bedrooms?: BedroomFilterValue[];
   locality?: string[];
 }
 

@@ -1,6 +1,31 @@
 import { BaseFilters, ResidentialQuery } from "../../types/filterTypes";
 import parseNumber from "../../utils/parseNumber";
 
+function parseBedroomTokens(value: unknown) {
+  if (typeof value !== "string" && typeof value !== "number") {
+    return { exact: [] as number[], plus: undefined as number | undefined };
+  }
+
+  const exact: number[] = [];
+  let plus: number | undefined;
+
+  String(value)
+    .split(",")
+    .map((token) => token.trim().toLowerCase())
+    .filter(Boolean)
+    .forEach((token) => {
+      if (token === "6plus" || token === "6+") {
+        plus = 6;
+        return;
+      }
+
+      const parsed = parseNumber(token);
+      if (parsed !== undefined) exact.push(parsed);
+    });
+
+  return { exact, plus };
+}
+
 export function extendResidentialFilters(
   query: ResidentialQuery = {},
   baseFilter: Partial<BaseFilters> = {},
@@ -67,15 +92,34 @@ export function extendResidentialFilters(
     }
   }
 
-  const bhk = parseNumber(q.bhk);
-  const bedrooms = parseNumber(q.bedrooms) ?? parseNumber(q.bhk);
-  
-  if (bhk !== undefined) {
-    f.bhk = bhk;
-  }
+  const bhk = parseBedroomTokens(q.bhk);
+  const bedrooms = parseBedroomTokens(q.bedrooms ?? q.bhk);
 
-  if (bedrooms !== undefined) {
-    f.bedrooms = bedrooms;
+  const addBedroomFilter = (field: "bhk" | "bedrooms", exact: number[], plus?: number) => {
+    if (exact.length === 0 && plus === undefined) return;
+
+    if (exact.length > 0 && plus === undefined) {
+      f[field] = exact.length === 1 ? exact[0] : { $in: exact };
+      return;
+    }
+
+    f.$and = f.$and ?? [];
+    const conditions: any[] = [];
+
+    if (exact.length > 0) {
+      conditions.push({ [field]: { $in: exact } });
+    }
+
+    if (plus !== undefined) {
+      conditions.push({ [field]: { $gte: plus } });
+    }
+
+    f.$and.push({ $or: conditions });
+  };
+
+  addBedroomFilter("bhk", bhk.exact, bhk.plus);
+  if (q.bedrooms !== undefined || q.bhk !== undefined) {
+    addBedroomFilter("bedrooms", bedrooms.exact, bedrooms.plus);
   }
 
   if (q.transactionType) {

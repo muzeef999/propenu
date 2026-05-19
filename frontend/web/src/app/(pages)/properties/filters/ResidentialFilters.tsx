@@ -4,6 +4,7 @@ import { getTrackBackground, Range } from "react-range";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/Redux/store";
 import { setBudget, setResidentialFilter } from "@/Redux/slice/filterSlice";
+import { BedroomFilterValue } from "@/types/sharedTypes";
 import FilterDropdown from "@/ui/FilterDropdown";
 import {
   BedroomOption,
@@ -98,11 +99,23 @@ const ResidentialFilters = () => {
     "6+ BHK",
   ];
 
-  const getBedroomNumber = (value: BedroomOption) =>
-    value === "6+ BHK" ? 6 : Number(value.split(" ")[0]);
+  const getBedroomValue = (value: BedroomOption): BedroomFilterValue =>
+    value === "6+ BHK" ? "6+" : Number(value.split(" ")[0]);
 
   const selectedBedrooms = Array.isArray(bedrooms) ? bedrooms : [];
-  const formatBedroomValue = (value: number) => `${value}${value === 6 ? "+" : ""}`;
+  const formatBedroomValue = (value: BedroomFilterValue) => String(value);
+  const isBedroomSelected = (value: BedroomFilterValue) =>
+    selectedBedrooms.some((selected) => String(selected) === String(value));
+  const toggleBedroomValue = (value: BedroomFilterValue) => {
+    const currentValues = selectedBedrooms.map(String);
+    const nextValues = currentValues.includes(String(value))
+      ? currentValues.filter((selected) => selected !== String(value))
+      : [...currentValues, String(value)];
+
+    return nextValues.map((token) =>
+      token === "6+" ? token : Number(token),
+    ) as BedroomFilterValue[];
+  };
 
   const bedroomLabel =
     selectedBedrooms.length === 0
@@ -419,8 +432,8 @@ const ResidentialFilters = () => {
               <h4 className="text-sm font-semibold mb-2">Bedrooms</h4>
               <div className="flex gap-2 flex-wrap">
                 {bedroomOptions.map((opt) => {
-                  const value = getBedroomNumber(opt);
-                  const isSelected = selectedBedrooms.includes(value);
+                  const value = getBedroomValue(opt);
+                  const isSelected = isBedroomSelected(value);
                   return (
                     <SelectableButton
                       key={opt}
@@ -431,10 +444,7 @@ const ResidentialFilters = () => {
                         dispatch(
                           setResidentialFilter({
                             key: "bedrooms",
-                            value: toggleArrayValue(
-                              selectedBedrooms.map(String),
-                              String(value),
-                            ).map(Number),
+                            value: toggleBedroomValue(value),
                           }),
                         );
                       }}

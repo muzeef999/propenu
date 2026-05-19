@@ -61,12 +61,18 @@ function formatBhkConfiguration(project: FeaturedProject) {
   return `${values.join(", ")} Configuration`;
 }
 
+function formatPropertyType(value?: string) {
+  if (!value) return "Residential Project";
+
+  return value.replace(/[-_]+/g, " ");
+}
+
 export default function Overview({ project }: OverviewProps) {
   const possessionLabel = formatDate(project.possessionDate);
   const items = [
     {
       label: "Property Type",
-      value: project.propertyType || "Residential Project",
+      value: formatPropertyType(project.propertyType),
     },
 
     {

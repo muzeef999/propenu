@@ -146,6 +146,10 @@ function normalizeListingSourceToken(token: string) {
   return normalized;
 }
 
+function normalizeBedroomToken(token: string) {
+  return token.trim() === "6+" ? "6plus" : token.trim();
+}
+
 export function buildSearchParams(filters: FilterState) {
   const base = {
     category: filters.category,
@@ -175,6 +179,13 @@ export function buildSearchParams(filters: FilterState) {
           normalized.listingSource = mapCsv(
             normalized.listingSource,
             normalizeListingSourceToken
+          );
+        }
+
+        if (normalized.bedrooms !== undefined) {
+          normalized.bedrooms = mapCsv(
+            normalized.bedrooms,
+            normalizeBedroomToken
           );
         }
 
