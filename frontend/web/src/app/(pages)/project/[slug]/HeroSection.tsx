@@ -31,12 +31,73 @@ function formatPriceRange(project: FeaturedProject) {
     const to = formatCompactPrice(project.priceTo);
 
     if (from && to && project.priceFrom !== project.priceTo) {
-        return `Rs. ${from} - ${to}`;
+        return `₹ ${from} - ${to}`;
     }
 
-    if (from) return `Rs. ${from}`;
-    if (to) return `Rs. ${to}`;
+    if (from) return `₹ ${from}`;
+    if (to) return `₹ ${to}`;
     return "Price on Request";
+}
+
+function normalizeAreaUnit(unit?: string) {
+    const normalized = unit?.trim().toLowerCase();
+
+    if (!normalized || ["sqft", "sq.ft", "sq ft", "square feet", "square foot"].includes(normalized)) {
+        return "sq.ft";
+    }
+
+    if (["sqmt", "sq.mt", "sq m", "sqm", "square meter", "square metre"].includes(normalized)) {
+        return "sq.mt";
+    }
+
+    if (["gunta", "guntas", "gunta(s)", "guntha", "gunthas"].includes(normalized)) {
+        return "guntas";
+    }
+
+    return unit?.trim() || "sq.ft";
+}
+
+function getMinUnitArea(project: FeaturedProject) {
+    const units = (project.projectSummary ?? project.bhkSummary ?? []).flatMap((item) => item.units ?? []);
+    const unitAreas = units
+        .map((unit) => {
+            if (typeof unit.area?.value === "number" && Number.isFinite(unit.area.value) && unit.area.value > 0) {
+                return { value: unit.area.value, unit: normalizeAreaUnit(unit.area.unit) };
+            }
+
+            if (typeof unit.area?.sqftValue === "number" && Number.isFinite(unit.area.sqftValue) && unit.area.sqftValue > 0) {
+                return { value: unit.area.sqftValue, unit: "sq.ft" };
+            }
+
+            if (typeof unit.minSqft === "number" && Number.isFinite(unit.minSqft) && unit.minSqft > 0) {
+                return { value: unit.minSqft, unit: "sq.ft" };
+            }
+
+            return null;
+        })
+        .filter((area): area is { value: number; unit: string } => Boolean(area));
+
+    if (unitAreas.length > 0) {
+        return unitAreas.reduce((smallest, current) => (current.value < smallest.value ? current : smallest));
+    }
+
+    const minSqft = project.sqftRange?.min;
+    if (typeof minSqft === "number" && Number.isFinite(minSqft) && minSqft > 0) {
+        return { value: minSqft, unit: "sq.ft" };
+    }
+
+    return null;
+}
+
+function formatPricePerUnit(project: FeaturedProject) {
+    const minPrice = project.priceFrom ?? project.priceTo;
+    const minArea = getMinUnitArea(project);
+
+    if (typeof minPrice !== "number" || !Number.isFinite(minPrice) || minPrice <= 0 || !minArea) {
+        return null;
+    }
+
+    return `₹ ${Math.round(minPrice / minArea.value).toLocaleString("en-IN")}/${minArea.unit}`;
 }
 
 type GalleryImage = {
@@ -75,6 +136,7 @@ export default function HeroSection({ project }: HeroSectionProps) {
     const locationText = [project.locality, project.city].filter(Boolean).join(", ");
     const galleryImages = getGalleryImages(project);
     const heroImage = galleryImages[0]?.url;
+    const pricePerUnitLabel = formatPricePerUnit(project);
     const [isShortlisted, setIsShortlisted] = useState(false);
     const [openIndex, setOpenIndex] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState(tabs[0].href);
@@ -270,6 +332,14 @@ export default function HeroSection({ project }: HeroSectionProps) {
                             <p className="mt-2 text-md font-bold text-[#4bbb7b] sm:text-xl">
                                 {formatPriceRange(project)}
                             </p>
+                            {pricePerUnitLabel && (
+                                <p className="mt-1 text-xs font-medium text-[#6C6F79] sm:text-sm">
+                                    {pricePerUnitLabel}
+                                </p>
+                            )}
+                            <p className="mt-0.5 text-[10px] font-medium text-[#8A8D96] sm:text-xs">
+                                Govt Charges &amp; Tax (Negotiable)
+                            </p>
                         </div>
                     </div>
 
@@ -343,7 +413,7 @@ export default function HeroSection({ project }: HeroSectionProps) {
             <nav className="sticky top-0 z-40 border-y border-slate-200 bg-white">
                 <div
                     ref={navRef}
-                    className="mx-3 flex justify-center overflow-x-auto sm:mx-5 lg:mx-8 xl:mx-12 2xl:mx-16"
+                    className="no-scrollbar flex w-full justify-start overflow-x-auto scroll-smooth px-3 sm:px-5 lg:px-8 xl:justify-center xl:px-12 2xl:px-16"
                 >
                     {tabs.map((tab) => {
                         const isActive = activeTab === tab.href;
@@ -356,13 +426,14 @@ export default function HeroSection({ project }: HeroSectionProps) {
                             target={tab.isDownload ? "_blank" : undefined}
                             rel={tab.isDownload ? "noopener noreferrer" : undefined}
                             download={tab.isDownload ? project.brochure?.filename || true : undefined}
-                            className={`shrink-0 px-7 py-4 text-base font-semibold transition sm:text-lg ${
+                            aria-current={isActive ? "page" : undefined}
+                            className={`flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap border-b-[3px] px-3 py-3 text-sm font-semibold transition sm:px-5 sm:py-4 sm:text-base lg:px-7 lg:text-lg ${
                                 isActive
-                                    ? "border-b-3 border-[#27ae60] text-[#27ae60]"
-                                    : "border-b-3 border-transparent text-[#6C6F79] hover:text-gray-400"
+                                    ? "border-[#27ae60] text-[#27ae60]"
+                                    : "border-transparent text-[#6C6F79] hover:text-gray-400"
                             }`}
                         >
-                            {tab.isDownload && <FiDownload className="mr-2 inline-block h-4 w-4 align-[-2px]" />}
+                            {tab.isDownload && <FiDownload className="h-4 w-4 shrink-0" />}
                             {tab.label}
                         </a>
                         );

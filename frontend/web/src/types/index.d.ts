@@ -161,6 +161,8 @@ export interface IBhkPlan {
 
 export interface IBhkUnit {
   minSqft?: number;
+  maxSqft?: number;
+  minPrice?: number;
   price?: number;
   maxPrice?: number;
   availableCount?: number;

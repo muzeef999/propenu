@@ -59,6 +59,63 @@ function formatUnitArea(unit?: IBhkUnit, isLand = false) {
   return "--";
 }
 
+function normalizeAreaUnit(unit?: string) {
+  const normalized = unit?.trim().toLowerCase();
+
+  if (!normalized || ["sqft", "sq.ft", "sq ft", "square feet", "square foot"].includes(normalized)) {
+    return "sq.ft";
+  }
+
+  if (["gunta", "guntas", "guntha", "gunthas"].includes(normalized)) {
+    return "guntas";
+  }
+
+  return unit?.trim() || "sq.ft";
+}
+
+function getUnitAreaForRate(unit?: IBhkUnit, isLand = false) {
+  if (isLand && typeof unit?.area?.value === "number" && Number.isFinite(unit.area.value) && unit.area.value > 0) {
+    return {
+      value: unit.area.value,
+      unit: normalizeAreaUnit(unit.area.unit),
+    };
+  }
+
+  if (typeof unit?.area?.sqftValue === "number" && Number.isFinite(unit.area.sqftValue) && unit.area.sqftValue > 0) {
+    return {
+      value: unit.area.sqftValue,
+      unit: "sq.ft",
+    };
+  }
+
+  if (typeof unit?.area?.value === "number" && Number.isFinite(unit.area.value) && unit.area.value > 0) {
+    return {
+      value: unit.area.value,
+      unit: normalizeAreaUnit(unit.area.unit),
+    };
+  }
+
+  if (typeof unit?.minSqft === "number" && Number.isFinite(unit.minSqft) && unit.minSqft > 0) {
+    return {
+      value: unit.minSqft,
+      unit: "sq.ft",
+    };
+  }
+
+  return null;
+}
+
+function formatPricePerUnit(unit?: IBhkUnit, isLand = false) {
+  const minPrice = unit?.minPrice ?? unit?.price;
+  const area = getUnitAreaForRate(unit, isLand);
+
+  if (typeof minPrice !== "number" || !Number.isFinite(minPrice) || minPrice <= 0 || !area) {
+    return null;
+  }
+
+  return `\u20b9 ${Math.round(minPrice / area.value).toLocaleString("en-IN")}/${area.unit}`;
+}
+
 function getPlanGroups(project: FeaturedProject): PlanGroup[] {
   const summary = project.projectSummary ?? project.bhkSummary ?? [];
 
@@ -98,7 +155,8 @@ export default function FloorPlan({ project }: FloorPlanProps) {
   const activeUnit = activeGroup?.units[activeUnitIndex] ?? activeGroup?.units[0];
   const planImage = activeUnit?.plan?.url;
   const sqftLabel = formatUnitArea(activeUnit, isLand);
-  const priceLabel = formatCompactPrice(activeUnit?.price ?? activeUnit?.maxPrice);
+  const priceLabel = formatCompactPrice(activeUnit?.minPrice ?? activeUnit?.price);
+  const pricePerUnitLabel = formatPricePerUnit(activeUnit, isLand);
   const canZoomIn = planZoom < MAX_PLAN_ZOOM;
   const canZoomOut = planZoom > MIN_PLAN_ZOOM;
   const canDragPlan = planZoom > MIN_PLAN_ZOOM;
@@ -155,7 +213,6 @@ export default function FloorPlan({ project }: FloorPlanProps) {
   if (!groups.length) {
     return null;
   }
-
   return (
     <section id="floor-plans">
       <div className="container mx-auto px-1 sm:px-4 lg:px-3">
@@ -185,23 +242,24 @@ export default function FloorPlan({ project }: FloorPlanProps) {
               ))}
             </div>
 
-            <div className="mt-4 flex gap-4 overflow-x-auto border-b border-slate-200 sm:gap-7">
+            <div className="no-scrollbar mt-4 flex overflow-x-auto border-b border-slate-200">
               {activeGroup.units.map((unit, index) => (
                 <button
                   key={`${unit.minSqft}-${unit.price}-${index}`}
                   type="button"
                   onClick={() => setActiveUnitIndex(index)}
-                  className={`shrink-0 border-b-2 pb-2 text-left transition ${
+                  className={`shrink-0 border-b-2 px-5 pb-3 text-center transition sm:px-8 ${
                     activeUnitIndex === index
                       ? "border-emerald-500"
                       : "border-transparent hover:border-slate-300"
                   }`}
                 >
-                  <span className="block text-xs text-slate-500">
+                  <span
+                    className={`block whitespace-nowrap text-xs font-medium ${
+                      activeUnitIndex === index ? "text-slate-900" : "text-slate-400"
+                    }`}
+                  >
                     {formatUnitArea(unit, isLand)}
-                  </span>
-                  <span className="mt-1 block text-xs font-semibold text-slate-950">
-                    {formatCompactPrice(unit.price ?? unit.maxPrice)}
                   </span>
                 </button>
               ))}
@@ -282,15 +340,9 @@ export default function FloorPlan({ project }: FloorPlanProps) {
                 </h3>
                 <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
                   <p className="text-lg font-semibold text-emerald-600 sm:text-xl">{priceLabel}</p>
-                  <p className="text-xs text-slate-500">Ready to move</p>
-                  <p className="text-xs text-slate-500">
-                    {project.possessionDate
-                      ? `${new Date(project.possessionDate).toLocaleString("en-US", {
-                          month: "short",
-                          year: "2-digit",
-                        })} Possession`
-                      : "Possession on request"}
-                  </p>
+                  {pricePerUnitLabel && (
+                    <p className="text-sm font-semibold text-slate-600 sm:text-base">{pricePerUnitLabel}</p>
+                  )}
                 </div>
               </div>
 
