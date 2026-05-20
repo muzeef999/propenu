@@ -9,7 +9,12 @@ import Agricultural from "../models/agriculturalModel";
 import { SubscriptionHistory } from "../models/subscriptionHistoryModel";
 
 export async function getMySubscription(req: AuthRequest, res: Response) {
-  const userId = req.user!.id;
+  
+  let userId = req.user!.id;
+
+  if (req.user?.roleName === "super_admin" && req.query.userId) {
+  userId = req.query.userId as string;
+ }
 
   const subscriptions = await Subscription.find({
     userId,

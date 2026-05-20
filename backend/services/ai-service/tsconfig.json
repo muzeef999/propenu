@@ -2,19 +2,39 @@
   "compilerOptions": {
     "rootDir": "../../",
     "outDir": "./dist",
+
     "module": "CommonJS",
     "target": "ES2020",
-    "types": ["node"],
+
+    "types": ["node", "express"],
+
+    "typeRoots": [
+      "./src/types",
+      "../../node_modules/@types"
+    ],
+
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
+
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-     "strict": true, 
+
+    "strict": true,
+
     "noUncheckedSideEffectImports": true,
+
     "skipLibCheck": true,
-    "esModuleInterop": true,
+    "esModuleInterop": true
   },
-  "include": ["src", "../../shared"],
-  "exclude": ["node_modules", "dist"]
+
+  "include": [
+    "src",
+    "../../shared"
+  ],
+
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }
