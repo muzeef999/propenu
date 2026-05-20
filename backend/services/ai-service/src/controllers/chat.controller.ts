@@ -52,10 +52,7 @@ export async function chatController(
     // IF FLOW NOT COMPLETE
     if (nextStep) {
 
-      sendNDJSON(res, {
-        type: "question",
-        ...nextStep,
-      });
+      sendNDJSON(res, nextStep);
 
       return res.end();
     }
