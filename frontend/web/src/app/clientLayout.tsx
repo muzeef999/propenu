@@ -104,11 +104,11 @@ function ClientProvidersContent({
         duration={3000} />
       {!hideLayout && !isAgentRegistrationModalOpen && (
         <div className="fixed bottom-5 right-5 z-50 max-sm:bottom-4 max-sm:left-1/2 max-sm:right-auto max-sm:-translate-x-1/2">
-          <HomeMateChatbot
+          {/* <HomeMateChatbot
             isOpen={isChatbotOpen}
             onOpen={() => setIsChatbotOpen(true)}
             onClose={() => setIsChatbotOpen(false)}
-          />
+          /> */}
         </div>
       )}
          {!hideLayout && <Footer />}
