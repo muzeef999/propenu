@@ -140,42 +140,13 @@ const HomeMateChatbot = ({
   if (!isOpen) {
     return (
       <>
-        <style jsx global>{`
-          @keyframes homemate-launcher-in {
-            from {
-              opacity: 0;
-              transform: translateY(10px) scale(0.86);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0) scale(1);
-            }
-          }
-
-          @keyframes homemate-ring {
-            0%,
-            100% {
-              transform: scale(1);
-              opacity: 0.28;
-            }
-            50% {
-              transform: scale(1.22);
-              opacity: 0.08;
-            }
-          }
-        `}</style>
-
         <button
           type="button"
           aria-label="Open HomeMate chatbot"
           onClick={onOpen}
           className="group relative grid h-16 w-16 place-items-center rounded-full bg-[#20b35c] text-white shadow-[0_14px_30px_rgba(32,179,92,0.35)] transition hover:-translate-y-0.5 hover:bg-[#1aa552] hover:shadow-[0_18px_38px_rgba(32,179,92,0.42)]"
-          style={{ animation: "homemate-launcher-in 220ms ease-out both" }}
         >
-          <span
-            className="absolute inset-0 rounded-full bg-[#20b35c]"
-            style={{ animation: "homemate-ring 1800ms ease-in-out infinite" }}
-          />
+          <span className="absolute inset-0 animate-ping rounded-full bg-[#20b35c] opacity-20" />
           <span className="absolute right-1 top-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-300" />
           <span className="relative">
             <ChatbotIcon />
