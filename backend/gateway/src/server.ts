@@ -14,9 +14,9 @@ const PORT = Number(process.env.PORT ?? 4000);
 const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL || "";
 const PROPERTY_SERVICE_URL = process.env.PROPERTY_SERVICE_URL || "";
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL || "";
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "";
+// const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "";
 
-if (!PAYMENT_SERVICE_URL || !PROPERTY_SERVICE_URL || !USER_SERVICE_URL || !AI_SERVICE_URL) {
+if (!PAYMENT_SERVICE_URL || !PROPERTY_SERVICE_URL || !USER_SERVICE_URL) {
   console.error("❌ Missing service URL(s). Check your .env");
   process.exit(1);
 }
@@ -78,7 +78,7 @@ function proxy(serviceName: string, target: string) {
 app.use("/api/payments", proxy("PAYMENT", PAYMENT_SERVICE_URL));
 app.use("/api/properties", proxy("PROPERTY", PROPERTY_SERVICE_URL));
 app.use("/api/users", proxy("USER", USER_SERVICE_URL));
-app.use("/api/chat", proxy("AI", process.env.AI_SERVICE_URL || ""));
+
 
 // ===================== SYSTEM ROUTES  =====================
 app.get("/", (_req, res) => {
@@ -92,7 +92,6 @@ app.get("/health", (_req: Request, res: Response) => {
       payments: PAYMENT_SERVICE_URL,
       properties: PROPERTY_SERVICE_URL,
       users: USER_SERVICE_URL,
-      ai: AI_SERVICE_URL,
     },
   });
 });
@@ -107,7 +106,6 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log("Services:", {
     PAYMENT_SERVICE_URL,
     PROPERTY_SERVICE_URL,
-    USER_SERVICE_URL,
-    AI_SERVICE_URL,
+    USER_SERVICE_URL
   });
 });
