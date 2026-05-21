@@ -1,5 +1,8 @@
 import { Request, Response } from "express";
-import { createPaymentOrder,  verifyPaymentAndActivate,} from "../services/payment";
+import {
+  createPaymentOrder,
+  verifyPaymentAndActivate,
+} from "../services/payment";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { sendSubscriptionActivatedEmail } from "../../../../shared/email/email.helper";
 import {
@@ -49,23 +52,22 @@ async function sendSubscriptionWhatsAppNotification(
 
 export async function createPayment(req: AuthRequest, res: Response) {
   try {
-    const { planId } = req.body;
+    const { planId, userId } = req.body;
 
     if (!planId) {
       return res.status(400).json({ message: "planId is required" });
     }
 
-const role = req.user!.roleName;
+    const role = req.user!.roleName;
 
-const userType =
-  role === "user"
-    ? "buyer"
-    : role === "builder"
-      ? "owner"
-      : role === "agent"
-        ? "agent"
-        : "buyer";
-    const userId = req.user!.id;
+    const userType =
+      role === "user"
+        ? "buyer"
+        : role === "builder"
+          ? "owner"
+          : role === "agent"
+            ? "agent"
+            : "buyer";
 
     const result = await createPaymentOrder(planId, userId, userType);
 
@@ -106,11 +108,8 @@ const userType =
 
 export async function verifyPayment(req: AuthRequest, res: Response) {
   try {
-    const {
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
-    } = req.body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
+      req.body;
 
     const result = await verifyPaymentAndActivate(
       razorpay_order_id,
@@ -139,12 +138,15 @@ export async function verifyPayment(req: AuthRequest, res: Response) {
 
         emailSent = true;
       } catch (emailError: any) {
-        console.error("[payment] failed to send subscription activation email", {
-          email: req.user.email,
-          subscriptionName: result.subscriptionName,
-          error: emailError?.message,
-          response: emailError?.response,
-        });
+        console.error(
+          "[payment] failed to send subscription activation email",
+          {
+            email: req.user.email,
+            subscriptionName: result.subscriptionName,
+            error: emailError?.message,
+            response: emailError?.response,
+          },
+        );
       }
     }
 

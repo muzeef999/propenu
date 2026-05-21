@@ -20,6 +20,15 @@ type Props = {
   userType: "buyer" | "builder" | "agent" | "owner";
 };
 
+type User = {
+  user: {
+    id: string;
+    fullName?: string;
+    email?: string;
+    roleName?: string;
+  };
+};
+
 function getRedirectAfterPlan(plan: Plan, user: any) {
   const code = plan.code?.toLowerCase();
 
@@ -50,10 +59,11 @@ export default function PricingComparisonTable({
 }: Props) {
   // ✅ Hooks must be here
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
+
 
   // ✅ Fetch user once
   useEffect(() => {
@@ -81,6 +91,7 @@ export default function PricingComparisonTable({
       const order = await createPaymentOrder({
         planId: plan._id,
         userType,
+        userId: user.user.id,
       });
 
       if (order?.free) {
@@ -113,8 +124,8 @@ export default function PricingComparisonTable({
         description: `${plan.name} Plan Subscription (${userType})`,
 
         prefill: {
-          name: user?.fullName || "",
-          email: user?.email || "",
+          name: user?.user.fullName || "",
+          email: user?.user.email || "",
         },
 
         handler: async (response: any) => {
@@ -131,18 +142,25 @@ export default function PricingComparisonTable({
             builder: "/builder/dashboard",
           };
 
-          router.replace(
-            redirectMap[user?.roleName?.toLowerCase()] || "/postproperty",
-          );
+          const roleName = user?.user.roleName?.toLowerCase();
+          router.replace(redirectMap[roleName ?? ""] || "/postproperty");
         },
 
         theme: { color: "#27AE60" },
       });
 
       rzp.open();
-    } catch (err) {
-      console.error(err);
-      alert("Payment failed");
+    } catch (err: any) {
+      const message = err?.response?.data?.message || "Something went wrong";
+      if (message.includes("Downgrade")) {
+        toast.info("Downgrade Scheduled", {
+          description: message,
+        });
+      } else {
+        toast.error("Payment Failed", {
+          description: message,
+        });
+      }
     } finally {
       setLoadingPlan(null);
     }
@@ -221,7 +239,6 @@ export default function PricingComparisonTable({
                   </span>
                 )}
               </div>
-
 
               {/* Validity */}
               <p className="text-sm text-gray-500 mb-6">

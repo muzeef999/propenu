@@ -35,10 +35,12 @@ export const getAccountsSummary = async () => {
 };
 
 export const getPayments = async (query: any) => {
-  const { status, userType, page = 1, limit = 20 } = query;
+  const { status, userType,userId, page = 1, limit = 20 } = query;
+
 
   const filter: any = {};
   if (status) filter.status = status;
+  if (userId) filter.userId = userId;
   if (userType) filter.userType = userType;
 
   const payments = await Payment.find(filter)

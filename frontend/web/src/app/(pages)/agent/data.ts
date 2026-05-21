@@ -24,20 +24,7 @@ export const getPlans = async (params: {
   return res.data;
 };
 
-export const createPaymentOrder = async (payload: {
-  planId: string;
-  userType: "buyer" | "builder" | "agent";
-}) => {
-  const token = Cookies.get("token");
-  if (!token) return null;
 
-  const res = await axiosInstance.post(`${url}/api/payments/create`, payload, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  return res.data;
-};
 
 export const verifyPayment = async (payload: {
   razorpay_order_id: string;

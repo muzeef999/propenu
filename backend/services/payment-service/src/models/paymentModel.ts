@@ -3,33 +3,38 @@ import { Schema, model, Types } from "mongoose";
 
 const PaymentSchema = new Schema(
   {
-    oldPlanCode: {
-  type: String,
-},
-newPlanCode: {
-  type: String,
-},
-creditAdjusted: {
-  type: Number,
-  default: 0,
-},
-remainingDays: {
-  type: Number,
-  default: 0,
-},
-finalPayable: {
-  type: Number,
-  default: 0,
-},
+    
     userId: { type: Types.ObjectId, ref: "User", required: true },
     subscriptionId: Types.ObjectId,
     userType: String,
-    paymentType: { type: String, enum: ["new", "upgrade", "renewal", "downgrade"], default: "new" },
+    paymentType: {
+      type: String,
+      enum: ["new", "upgrade", "renewal", "downgrade"],
+      default: "new",
+    },
+    oldPlanCode: {
+      type: String,
+    },
+    newPlanCode: {
+      type: String,
+    },
+    creditAdjusted: {
+      type: Number,
+      default: 0,
+    },
+    remainingDays: {
+      type: Number,
+      default: 0,
+    },
+    finalPayable: {
+      type: Number,
+      default: 0,
+    },
     provider: { type: String, default: "razorpay" },
     orderId: String,
     paymentId: String,
-    orderNumber: { type: String, unique: true, index: true},
-    invoiceNumber: { type: String, unique: true, sparse: true, index: true},
+    orderNumber: { type: String, unique: true, index: true },
+    invoiceNumber: { type: String, unique: true, sparse: true, index: true },
     planId: {
       type: Types.ObjectId,
       ref: "Plan", // 👈 needed for populate
@@ -46,7 +51,6 @@ finalPayable: {
     },
   },
 
-  
   { timestamps: true },
 );
 

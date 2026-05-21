@@ -13,7 +13,9 @@ export const getPlans = async (params: {
 export const createPaymentOrder = async (payload: {
   planId: string;
   userType: "buyer" | "builder" | "agent" | "owner";
+  userId: string;
 }) => {
+  
   const token = Cookies.get("token");
   if (!token) return null;
 

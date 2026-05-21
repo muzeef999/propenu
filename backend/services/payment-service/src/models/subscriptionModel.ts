@@ -20,39 +20,40 @@ const SubscriptionSchema = new Schema(
       },
     },
 
-      invoiceUrl: {
+    invoiceUrl: {
       type: String,
     },
 
+    status: {
+      type: String,
+      enum: [
+        "active",
+        "expired",
+        "cancelled",
+        "pending",
+        "upgraded",
+        "downgraded",
+      ],
+      default: "pending",
+    },
 
-status: {
- type: String,
- enum: [
-   "active",
-   "expired",
-   "cancelled",
-   "pending",
-   "upgraded",
-   "downgraded"
- ],
- default: "pending",
-},
+    upgradedFrom: {
+      type: String,
+    },
+    
+    creditAdjusted: {
+      type: Number,
+      default: 0,
+    },
 
-upgradedFrom: String,
-
-creditAdjusted: {
-  type: Number,
-  default: 0,
-},
-
-paymentId: {
-  type: Types.ObjectId,
-  ref: "Payment",
-},
+    paymentId: {
+      type: Types.ObjectId,
+      ref: "Payment",
+    },
     startDate: Date,
     endDate: Date,
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export const Subscription = model("Subscription", SubscriptionSchema);

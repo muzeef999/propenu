@@ -76,7 +76,8 @@ export async function createPaymentOrder(
 
         const totalDays = plan.durationDays || 30;
 
-        const usedMilliseconds =Date.now() - new Date(activeSubscription.startDate!).getTime();
+        const usedMilliseconds =
+          Date.now() - new Date(activeSubscription.startDate!).getTime();
 
         const usedDays = Math.floor(usedMilliseconds / (1000 * 60 * 60 * 24));
 
@@ -153,7 +154,9 @@ export async function createPaymentOrder(
       planCode: plan.code,
       tier: plan.tier,
       startDate: new Date(),
-      endDate: new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000),
+      endDate: new Date(
+        Date.now() + (plan.durationDays || 30) * 24 * 60 * 60 * 1000,
+      ),
       status: "active",
       usage: {
         contactUsed: 0,
@@ -173,7 +176,7 @@ export async function createPaymentOrder(
   ====================================================== */
 
   const order = await razorpay.orders.create({
-    amount: plan.price * 100,
+    amount: Math.round(finalPayable * 100),
     currency: "INR",
     receipt: `pl_${plan._id.toString().slice(-6)}_${Date.now()}`,
     notes: {
@@ -193,7 +196,7 @@ export async function createPaymentOrder(
     amount: finalPayable,
     paymentType,
     oldPlanCode,
-    newplanCode: plan.code,
+    newPlanCode: plan.code,
     creditAdjusted,
     remainingDays,
     finalPayable,
@@ -318,11 +321,19 @@ export async function verifyPaymentAndActivate(
   const subscription = await Subscription.create({
     userId: payment.userId,
     userType: plan.userType,
+    upgradedFrom: payment.oldPlanCode,
+
+    creditAdjusted: payment.creditAdjusted,
+
+    
+    paymentId: payment._id,
     category: plan.category || "both",
     planCode: plan.code,
     tier: plan.tier,
     startDate: new Date(),
-    endDate: new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000),
+    endDate: new Date(
+      Date.now() + (plan.durationDays || 30) * 24 * 60 * 60 * 1000,
+    ),
     status: "active",
     invoiceUrl,
     usage: {
@@ -337,9 +348,9 @@ export async function verifyPaymentAndActivate(
 
   await SubscriptionHistory.create({
     paymentType: payment.paymentType,
-    upgradedFrom:payment.oldPlanCode,
-    creditAdjusted:payment.creditAdjusted,
-     proratedAmount:payment.finalPayable,
+    upgradedFrom: payment.oldPlanCode,
+    creditAdjusted: payment.creditAdjusted,
+    proratedAmount: payment.finalPayable,
     userId: payment.userId,
     userType: plan.userType,
     planCode: plan.code,
