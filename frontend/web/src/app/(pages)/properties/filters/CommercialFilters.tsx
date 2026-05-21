@@ -257,8 +257,8 @@ const CommercialFilters = () => {
                           );
                         }}
                         className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${isSelected
-                            ? "border-green-400 bg-green-100 text-green-700"
-                            : "border-gray-300 bg-white hover:bg-gray-50"
+                          ? "border-green-400 bg-green-100 text-green-700"
+                          : "border-gray-300 bg-white hover:bg-gray-50"
                           }`}
                       >
                         {isSelected ? (
@@ -283,8 +283,7 @@ const CommercialFilters = () => {
                       );
                     }}
                     disabled={localityList.length === 0}
-                    className={`flex items-center gap-1 text-sm font-medium ${
-                      localityList.length > 0
+                    className={`flex items-center gap-1 text-sm font-medium ${localityList.length > 0
                         ? "text-red-500 hover:underline"
                         : "text-gray-400 cursor-not-allowed"
                       }`}
@@ -341,7 +340,7 @@ const CommercialFilters = () => {
                 <option value="">Min</option>
                 {budgetOptions.map((v) => (
                   <option key={v} value={v}>
-                    ₹ {formatBudget(v)}
+                    {formatBudget(v)}
                   </option>
                 ))}
               </select>
@@ -367,7 +366,7 @@ const CommercialFilters = () => {
                 <option value="">Max</option>
                 {budgetOptions.map((v) => (
                   <option key={v} value={v}>
-                    ₹ {formatBudget(v)}
+                    {formatBudget(v)}
                   </option>
                 ))}
               </select>
@@ -482,11 +481,10 @@ const CommercialFilters = () => {
                 close?.();
               }}
               disabled={!listingSource}
-              className={`mt-2 px-2 py-1 rounded block w-full text-left ${
-                listingSource
+              className={`mt-2 px-2 py-1 rounded block w-full text-left ${listingSource
                   ? "text-red-500 hover:bg-red-50"
                   : "text-gray-400 cursor-not-allowed"
-              }`}
+                }`}
             >
               Clear
             </button>
@@ -534,8 +532,8 @@ const CommercialFilters = () => {
                       );
                     }}
                     className={`rounded-full border px-3 py-1.5 text-sm transition ${isActive
-                        ? "border-green-400 bg-green-100 text-green-700"
-                        : "border-gray-300 bg-white hover:bg-gray-50"
+                      ? "border-green-400 bg-green-100 text-green-700"
+                      : "border-gray-300 bg-white hover:bg-gray-50"
                       }`}
                   >
                     {option}
@@ -556,8 +554,8 @@ const CommercialFilters = () => {
                 }
                 disabled={selectedCommercialTypes.length === 0}
                 className={`text-sm font-medium ${selectedCommercialTypes.length > 0
-                    ? "text-red-500 hover:underline"
-                    : "cursor-not-allowed text-gray-400"
+                  ? "text-red-500 hover:underline"
+                  : "cursor-not-allowed text-gray-400"
                   }`}
               >
                 Clear All

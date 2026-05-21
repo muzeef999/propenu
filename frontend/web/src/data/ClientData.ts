@@ -674,3 +674,9 @@ export const sendTokenToBackend = async (userId: string, token: string) => {
     token,
   });
 };
+
+// chatbot related APIs
+export const getChatbotResponse = async (message: string) => {
+  const res = await axiosInstance.post(`${url}/api/chatbot`, { message });
+  return res.data;
+};

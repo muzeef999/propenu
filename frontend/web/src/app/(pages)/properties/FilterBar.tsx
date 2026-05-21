@@ -24,7 +24,9 @@ import ResidentialMobileFilters from "./filters/adaptiveFilterDesign/Residential
 import CommercialMobileFilter from "./filters/adaptiveFilterDesign/CommercialMobileFilter";
 import LandMobileFilter from "./filters/adaptiveFilterDesign/LandMobileFilter";
 import AgriculturalMobileFilter from "./filters/adaptiveFilterDesign/AgriculturalMobileFilter";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+
+const LAST_PROPERTY_CATEGORY_KEY = "properties:lastCategory";
 
 const FilterBar: React.FC = () => {
   const getCategoryLabel = (value: categoryOption) =>
@@ -36,6 +38,13 @@ const FilterBar: React.FC = () => {
     land: "Land",
     plot: "Land",
     agricultural: "Agricultural",
+  };
+
+  const categoryToType: Record<categoryOption, string> = {
+    Residential: "residential",
+    Commercial: "commercial",
+    Land: "plot",
+    Agricultural: "agricultural",
   };
 
   const listingOptions = [
@@ -57,8 +66,11 @@ const FilterBar: React.FC = () => {
   const [showCommercialAdvanced, setShowCommercialAdvanced] = useState(false);
   const [showLandAdvanced, setShowLandAdvanced] = useState(false);
   const [showAgriculturalAdvanced, setShowAgriculturalAdvanced] = useState(false);
+  const [hasRestoredCategory, setHasRestoredCategory] = useState(false);
 
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const dispatch = useDispatch();
   const {
     listingTypeLabel,
@@ -74,13 +86,41 @@ const FilterBar: React.FC = () => {
 
   useEffect(() => {
     const type = searchParams.get("type")?.toLowerCase();
-    if (!type) return;
+    if (!type) {
+      const savedCategory = window.sessionStorage.getItem(
+        LAST_PROPERTY_CATEGORY_KEY,
+      ) as categoryOption | null;
+
+      if (savedCategory && categoryOptions.includes(savedCategory)) {
+        dispatch(setCategory(savedCategory));
+      }
+
+      setHasRestoredCategory(true);
+      return;
+    }
 
     const nextCategory = typeToCategory[type];
     if (nextCategory) {
       dispatch(setCategory(nextCategory));
+      window.sessionStorage.setItem(LAST_PROPERTY_CATEGORY_KEY, nextCategory);
     }
+
+    setHasRestoredCategory(true);
   }, [searchParams, dispatch]);
+
+  useEffect(() => {
+    if (!hasRestoredCategory) return;
+
+    window.sessionStorage.setItem(LAST_PROPERTY_CATEGORY_KEY, category);
+
+    const nextType = categoryToType[category];
+    const currentType = searchParams.get("type")?.toLowerCase();
+    if (currentType === nextType) return;
+
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("type", nextType);
+    router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
+  }, [category, hasRestoredCategory, pathname, router, searchParams]);
 
   useEffect(() => {
     const postedBy = (
@@ -317,6 +357,10 @@ const FilterBar: React.FC = () => {
                       type="button"
                       onClick={() => {
                         dispatch(setCategory(type));
+                        window.sessionStorage.setItem(
+                          LAST_PROPERTY_CATEGORY_KEY,
+                          type,
+                        );
                         close();
                       }}
                       className={`rounded px-3 py-2 text-left text-sm cursor-pointer transition-colors ${

@@ -311,7 +311,7 @@ const LandFilters = () => {
                 <option value="">Min</option>
                 {budgetOptions.map((v) => (
                   <option key={v} value={v}>
-                    ₹ {formatBudget(v)}
+                    {formatBudget(v)}
                   </option>
                 ))}
               </select>
@@ -337,7 +337,7 @@ const LandFilters = () => {
                 <option value="">Max</option>
                 {budgetOptions.map((v) => (
                   <option key={v} value={v}>
-                    ₹ {formatBudget(v)}
+                    {formatBudget(v)}
                   </option>
                 ))}
               </select>

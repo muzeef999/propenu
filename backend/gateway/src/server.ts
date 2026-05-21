@@ -4,8 +4,9 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import cors from "cors";
 import { Socket } from "net";
+import path from "path";
 
-dotenv.config({ quiet: true });
+dotenv.config({ path: path.resolve(__dirname, "../.env"), quiet: true });
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 4000);

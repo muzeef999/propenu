@@ -177,8 +177,17 @@ export const getMyContactedProperties = async (
 
         city: property?.city || "",
         locality: property?.locality || "",
-        price: property?.price || property?.expectedPrice || null,
+        price:
+          property?.price ||
+          property?.expectedPrice ||
+          property?.priceFrom ||
+          null,
+        priceFrom: property?.priceFrom || null,
+        priceTo: property?.priceTo || null,
+        heroImage: property?.heroImage || null,
         gallery: property?.gallery?.[0]?.url || null,
+        gallerySummary: property?.gallerySummary || [],
+        promotion: property?.promotion || null,
 
         // 🔥 owner info
         owner: {

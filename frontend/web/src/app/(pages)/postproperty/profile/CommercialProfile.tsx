@@ -55,6 +55,9 @@ const CommercialProfile = () => {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [showErrors, setShowErrors] = useState(false);
+  const showTenantInformation = ["rent", "lease"].includes(
+    String(commercial.listingType ?? "").toLowerCase(),
+  );
 
   // const localFiles = files
   //   .map((f) => f.file)
@@ -317,7 +320,7 @@ const CommercialProfile = () => {
             <div className="relative group">
               <InfoIcon size={16} color="#9CA3AF" />
 
-              <div className="absolute left-1/2 bottom-full z-50 mb-2 min-w-[205px] max-w-[320px] -translate-x-1/2 rounded-md bg-gray-900 px-3 py-2 text-xs text-white opacity-0 invisible transition-all duration-200 whitespace-normal break-words group-hover:opacity-100 group-hover:visible">
+              <div className="absolute left-1/2 bottom-full z-50 mb-2 min-w-[205px] max-w-[320px] -translate-x-1/2 rounded-md bg-gray-900 px-3 py-2 text-xs text-white opacity-0 invisible transition-all duration-200 whitespace-normal wrap-break-word group-hover:opacity-100 group-hover:visible">
                 Add details about how the building is operated or maintained,
                 such as maintenance responsibility, staffing, or common
                 facility management.
@@ -394,156 +397,160 @@ const CommercialProfile = () => {
       </div>
 
       {/* ========== TENANT INFORMATION ========== */}
-      <div className="space-y-4">
-        <div>
-          <div className="flex items-center gap-1">
-            <p className="text-sm font-semibold text-gray-900">
-              Tenant Information
-            </p>
+      {showTenantInformation ? (
+        <div className="space-y-4">
+          <div>
+            <div className="flex items-center gap-1">
+              <p className="text-sm font-semibold text-gray-900">
+                Tenant Information
+              </p>
 
-            <div className="relative group">
-              <InfoIcon size={16} color="#9CA3AF" />
+              <div className="relative group">
+                <InfoIcon size={16} color="#9CA3AF" />
 
-              <div className="absolute left-1/2 bottom-full z-50 mb-2 min-w-[205px] max-w-[320px] -translate-x-1/2 rounded-md bg-gray-900 px-3 py-2 text-xs text-white opacity-0 invisible transition-all duration-200 whitespace-normal break-words group-hover:opacity-100 group-hover:visible">
-                Include relevant details about the current or past tenants,
-                such as occupancy status, business type, or lease background.
+                <div className="absolute left-1/2 bottom-full z-50 mb-2 min-w-[205px] max-w-[320px] -translate-x-1/2 rounded-md bg-gray-900 px-3 py-2 text-xs text-white opacity-0 invisible transition-all duration-200 whitespace-normal wrap-break-word group-hover:opacity-100 group-hover:visible">
+                  Include relevant details about the current or past tenants,
+                  such as occupancy status, business type, or lease background.
 
-                <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                  <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                </div>
               </div>
             </div>
+            <p className="text-xs text-gray-500">
+              Add details about current or previous tenants
+            </p>
           </div>
-          <p className="text-xs text-gray-500">
-            Add details about current or previous tenants
-          </p>
-        </div>
 
-        {(commercial.tenantInfo || []).map((tenant: any, index: number) => (
-          <div
-            key={index}
-            className="border rounded-lg p-4 border-gray-300 px-4 shadow-sm transition hover:border-gray-400 mt-2"
+          {(commercial.tenantInfo || []).map((tenant: any, index: number) => (
+            <div
+              key={index}
+              className="border rounded-lg p-4 border-gray-300 px-4 shadow-sm transition hover:border-gray-400 mt-2"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-medium text-gray-700">
+                  Tenant #{index + 1}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updatedTenants =
+                      commercial.tenantInfo?.filter(
+                        (_: any, i: number) => i !== index,
+                      ) || [];
+                    dispatch(
+                      setProfileField({
+                        propertyType: "commercial",
+                        key: "tenantInfo",
+                        value: updatedTenants,
+                      }),
+                    );
+                  }}
+                  className="text-xs text-red-600 hover:text-red-700 font-medium"
+                >
+                  Remove
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
+                <InputField
+                  label="Tenant Name"
+                  value={tenant.currentTenant || ""}
+                  placeholder="e.g. ABC Corporation"
+                  onChange={(value) => {
+                    const updatedTenants = [...(commercial.tenantInfo || [])];
+                    updatedTenants[index] = { ...tenant, currentTenant: value };
+                    dispatch(
+                      setProfileField({
+                        propertyType: "commercial",
+                        key: "tenantInfo",
+                        value: updatedTenants,
+                      }),
+                    );
+                  }}
+                />
+
+                <InputField
+                  label="Monthly Rent"
+                  value={tenant.rent || ""}
+                  placeholder="e.g. 50,000"
+                  onChange={(value) => {
+                    const updatedTenants = [...(commercial.tenantInfo || [])];
+                    updatedTenants[index] = {
+                      ...tenant,
+                      rent: value.replace(/\D/g, ""),
+                    };
+                    dispatch(
+                      setProfileField({
+                        propertyType: "commercial",
+                        key: "tenantInfo",
+                        value: updatedTenants,
+                      }),
+                    );
+                  }}
+                />
+
+                <InputField
+                  label="Lease Start Date"
+                  type="date"
+                  value={
+                    tenant.leaseStart ? tenant.leaseStart.split("T")[0] : ""
+                  }
+                  onChange={(value) => {
+                    const updatedTenants = [...(commercial.tenantInfo || [])];
+                    updatedTenants[index] = { ...tenant, leaseStart: value };
+                    dispatch(
+                      setProfileField({
+                        propertyType: "commercial",
+                        key: "tenantInfo",
+                        value: updatedTenants,
+                      }),
+                    );
+                  }}
+                />
+
+                <InputField
+                  label="Lease End Date"
+                  type="date"
+                  value={tenant.leaseEnd ? tenant.leaseEnd.split("T")[0] : ""}
+                  onChange={(value) => {
+                    const updatedTenants = [...(commercial.tenantInfo || [])];
+                    updatedTenants[index] = { ...tenant, leaseEnd: value };
+                    dispatch(
+                      setProfileField({
+                        propertyType: "commercial",
+                        key: "tenantInfo",
+                        value: updatedTenants,
+                      }),
+                    );
+                  }}
+                />
+              </div>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={() => {
+              const newTenant = {
+                currentTenant: "",
+                leaseStart: "",
+                leaseEnd: "",
+                rent: "",
+              };
+              dispatch(
+                setProfileField({
+                  propertyType: "commercial",
+                  key: "tenantInfo",
+                  value: [...(commercial.tenantInfo || []), newTenant],
+                }),
+              );
+            }}
+            className="w-full py-2 px-4 border border-dashed border-gray-300 rounded-md text-sm text-gray-600 hover:text-gray-700 hover:border-gray-400 transition"
           >
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-gray-700">
-                Tenant #{index + 1}
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  const updatedTenants =
-                    commercial.tenantInfo?.filter(
-                      (_: any, i: number) => i !== index,
-                    ) || [];
-                  dispatch(
-                    setProfileField({
-                      propertyType: "commercial",
-                      key: "tenantInfo",
-                      value: updatedTenants,
-                    }),
-                  );
-                }}
-                className="text-xs text-red-600 hover:text-red-700 font-medium"
-              >
-                Remove
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
-              <InputField
-                label="Tenant Name"
-                value={tenant.currentTenant || ""}
-                placeholder="e.g. ABC Corporation"
-                onChange={(value) => {
-                  const updatedTenants = [...(commercial.tenantInfo || [])];
-                  updatedTenants[index] = { ...tenant, currentTenant: value };
-                  dispatch(
-                    setProfileField({
-                      propertyType: "commercial",
-                      key: "tenantInfo",
-                      value: updatedTenants,
-                    }),
-                  );
-                }}
-              />
-
-              <InputField
-                label="Monthly Rent"
-                value={tenant.rent || ""}
-                placeholder="e.g. 50,000"
-                onChange={(value) => {
-                  const updatedTenants = [...(commercial.tenantInfo || [])];
-                  updatedTenants[index] = {
-                    ...tenant,
-                    rent: value.replace(/\D/g, ""),
-                  };
-                  dispatch(
-                    setProfileField({
-                      propertyType: "commercial",
-                      key: "tenantInfo",
-                      value: updatedTenants,
-                    }),
-                  );
-                }}
-              />
-
-              <InputField
-                label="Lease Start Date"
-                type="date"
-                value={tenant.leaseStart ? tenant.leaseStart.split("T")[0] : ""}
-                onChange={(value) => {
-                  const updatedTenants = [...(commercial.tenantInfo || [])];
-                  updatedTenants[index] = { ...tenant, leaseStart: value };
-                  dispatch(
-                    setProfileField({
-                      propertyType: "commercial",
-                      key: "tenantInfo",
-                      value: updatedTenants,
-                    }),
-                  );
-                }}
-              />
-
-              <InputField
-                label="Lease End Date"
-                type="date"
-                value={tenant.leaseEnd ? tenant.leaseEnd.split("T")[0] : ""}
-                onChange={(value) => {
-                  const updatedTenants = [...(commercial.tenantInfo || [])];
-                  updatedTenants[index] = { ...tenant, leaseEnd: value };
-                  dispatch(
-                    setProfileField({
-                      propertyType: "commercial",
-                      key: "tenantInfo",
-                      value: updatedTenants,
-                    }),
-                  );
-                }}
-              />
-            </div>
-          </div>
-        ))}
-
-        <button
-          type="button"
-          onClick={() => {
-            const newTenant = {
-              currentTenant: "",
-              leaseStart: "",
-              leaseEnd: "",
-              rent: "",
-            };
-            dispatch(
-              setProfileField({
-                propertyType: "commercial",
-                key: "tenantInfo",
-                value: [...(commercial.tenantInfo || []), newTenant],
-              }),
-            );
-          }}
-          className="w-full py-2 px-4 border border-dashed border-gray-300 rounded-md text-sm text-gray-600 hover:text-gray-700 hover:border-gray-400 transition"
-        >
-          + Add Tenant
-        </button>
-      </div>
+            + Add Tenant
+          </button>
+        </div>
+      ) : null}
 
       <div className="space-y-4">
         {/* Section Header */}

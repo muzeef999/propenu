@@ -11,6 +11,7 @@ import { Toaster } from "sonner";
 import { usePathname } from "next/navigation";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import { HomeMateChatbot } from "@/app/(pages)/chatbot";
 import { ModalProvider, useModal } from "@/app/context/ModalContext";
 import { getFcmToken } from "@/utilies/getFcmToken";
 
@@ -42,6 +43,7 @@ function ClientProvidersContent({
 
   const pathname = usePathname(); // 👈 get current path
   const [user, setUser] = useState<any>(null);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const { isAgentRegistrationModalOpen } = useModal();
 
   const hideLayout = HIDE_LAYOUT_ROUTES.some((route) =>
@@ -100,6 +102,15 @@ function ClientProvidersContent({
         richColors
         expand={true}
         duration={3000} />
+      {!hideLayout && !isAgentRegistrationModalOpen && (
+        <div className="fixed bottom-5 right-5 z-50 max-sm:bottom-4 max-sm:left-1/2 max-sm:right-auto max-sm:-translate-x-1/2">
+          <HomeMateChatbot
+            isOpen={isChatbotOpen}
+            onOpen={() => setIsChatbotOpen(true)}
+            onClose={() => setIsChatbotOpen(false)}
+          />
+        </div>
+      )}
          {!hideLayout && <Footer />}
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>

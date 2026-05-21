@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -13,24 +13,101 @@ import formatINR from "@/utilies/PriceFormat";
 import { IoIosShareAlt } from "react-icons/io";
 
 const PROPERTY_TYPE_ROUTE_MAP: Record<string, string> = {
+  residential: "residential",
   residentials: "residential",
+  commercial: "commercial",
   commercials: "commercial",
+  land: "land",
+  plot: "land",
   landplots: "land",
+  agricultural: "agricultural",
   agriculturals: "agricultural",
+  featuredproject: "featured",
   featuredprojects: "featured",
+  project: "featured",
+  projects: "featured",
 };
 
-const formatContactedOn = (value?: string | Date) => {
-  if (!value) return null;
+const PROPERTY_TYPE_TAB_MAP: Record<string, string> = {
+  Residential: "residential",
+  Commercial: "commercial",
+  Plot: "land",
+  Agricultural: "agricultural",
+  Project: "featured",
+};
 
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
+const normalizePropertyType = (type?: string) => {
+  if (!type) return "";
 
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
+  const normalized = type.toLowerCase().trim();
+
+  return PROPERTY_TYPE_ROUTE_MAP[normalized] ?? normalized;
+};
+
+const getPropertyImage = (property: any) => {
+  if (typeof property.heroImage === "string" && property.heroImage) {
+    return property.heroImage;
+  }
+
+  if (Array.isArray(property.gallerySummary) && property.gallerySummary[0]?.url) {
+    return property.gallerySummary[0].url;
+  }
+
+  if (Array.isArray(property.gallery) && property.gallery[0]?.url) {
+    return property.gallery[0].url;
+  }
+
+  if (typeof property.gallery === "string" && property.gallery) {
+    return property.gallery;
+  }
+
+  return "/placeholder.jpg";
+};
+
+const getPriceLabel = (property: any) => {
+  const price = Number(property.price);
+  const priceFrom = Number(property.priceFrom);
+  const priceTo = Number(property.priceTo);
+
+  if (Number.isFinite(price) && price > 0) {
+    return formatINR(price);
+  }
+
+  if (
+    Number.isFinite(priceFrom) &&
+    priceFrom > 0 &&
+    Number.isFinite(priceTo) &&
+    priceTo > 0 &&
+    priceFrom !== priceTo
+  ) {
+    return `${formatINR(priceFrom)} - ${formatINR(priceTo)}`;
+  }
+
+  if (Number.isFinite(priceFrom) && priceFrom > 0) {
+    return `From ${formatINR(priceFrom)}`;
+  }
+
+  if (Number.isFinite(priceTo) && priceTo > 0) {
+    return `Up to ${formatINR(priceTo)}`;
+  }
+
+  return "Price on request";
+};
+
+const getDetailHref = (property: any) => {
+  if (!property.slug) return null;
+
+  const propertyRoute = normalizePropertyType(property.propertyType);
+
+  if (propertyRoute === "featured") {
+    return property.promotion?.type === "prime"
+      ? `/prime/${property.slug}`
+      : `/project/${property.slug}`;
+  }
+
+  if (!propertyRoute) return null;
+
+  return `/properties/${propertyRoute}/${property.slug}`;
 };
 
 const shareProperty = async (title: string, href: string) => {
@@ -45,7 +122,7 @@ const shareProperty = async (title: string, href: string) => {
 };
 
 const Page = () => {
-  const [activeTab, setActiveTab] = useState("All");
+  const [activeTab, setActiveTab] = useState("Residential");
   const router = useRouter();
 
   const { data, isLoading } = useQuery({
@@ -54,16 +131,34 @@ const Page = () => {
   });
 
   const properties = data?.properties ?? [];
-  const categories = ["All", "Sale", "Rent"];
+  const categories = [
+    "Residential",
+    "Commercial",
+    "Plot",
+    "Agricultural",
+    "Project",
+  ];
 
   const filteredProperties = useMemo(() => {
-    if (activeTab === "All") return properties;
+    const activeType = PROPERTY_TYPE_TAB_MAP[activeTab];
 
     return properties.filter(
       (property: any) =>
-        property.listingType?.toLowerCase() === activeTab.toLowerCase(),
+        normalizePropertyType(property.propertyType) === activeType,
     );
   }, [activeTab, properties]);
+
+  const shouldShowCategory = useCallback(
+    (category: string) => {
+      const categoryType = PROPERTY_TYPE_TAB_MAP[category];
+
+      return properties.some(
+        (property: any) =>
+          normalizePropertyType(property.propertyType) === categoryType,
+      );
+    },
+    [properties],
+  );
 
   if (isLoading) {
     return <p className="p-6 text-center text-sm text-gray-500">Loading...</p>;
@@ -82,17 +177,18 @@ const Page = () => {
       </div>
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <p className="text-sm text-gray-500">
-          Properties you have contacted ({properties.length})
-        </p>
-
         <div className="w-full md:w-auto">
           <ActiveTabs
             categories={categories}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
+            shouldShowCategory={shouldShowCategory}
           />
         </div>
+
+        <p className="shrink-0 text-sm text-gray-500">
+          Properties you have contacted ({properties.length})
+        </p>
       </div>
 
       {filteredProperties.length === 0 ? (
@@ -108,12 +204,7 @@ const Page = () => {
                     property.locality && property.city ? ", " : ""
                   }${property.city || ""}`
                 : "Location unavailable";
-            const propertyRoute = PROPERTY_TYPE_ROUTE_MAP[property.propertyType];
-            const detailHref =
-              property.slug && propertyRoute
-                ? `/properties/${propertyRoute}/${property.slug}`
-                : null;
-            const contactedOn = formatContactedOn(property.contactedAt);
+            const detailHref = getDetailHref(property);
 
             return (
               <article
@@ -137,7 +228,7 @@ const Page = () => {
                 <div className="flex min-h-[145px]">
                   <div className="relative w-[34%] min-w-[120px] bg-gray-100">
                     <Image
-                      src={property.gallery || "/placeholder.jpg"}
+                      src={getPropertyImage(property)}
                       alt={property.title || "Property"}
                       fill
                       sizes="(max-width: 768px) 40vw, 240px"
@@ -171,9 +262,7 @@ const Page = () => {
 
                     <div className="absolute inset-x-0 bottom-0 bg-black/30 px-3 py-2 backdrop-blur-[1px]">
                       <p className="min-w-0 truncate text-xl font-semibold leading-none text-white drop-shadow md:text-lg">
-                        {property.price
-                          ? formatINR(property.price)
-                          : "Price on request"}
+                        {getPriceLabel(property)}
                       </p>
                     </div>
                   </div>
