@@ -13,7 +13,10 @@ import TextArea from "@/ui/TextArae";
 import { useAppDispatch } from "@/Redux/store";
 import Toggle from "@/ui/ToggleSwitch";
 import { toast } from "sonner";
-import { submitDetailsThunk } from "@/Redux/thunks/submitPropertyApi";
+import {
+  getMyDraftThunk,
+  submitDetailsThunk,
+} from "@/Redux/thunks/submitPropertyApi";
 import FileUpload, { UploadedFile } from "@/ui/FileUpload";
 import { validateResidentialProfile } from "@/zod/profileZods/residentialProfileZod";
 import { setFileStoreFiles } from "@/utilies/fileStore";
@@ -399,7 +402,8 @@ const ResidentialProfile = () => {
             }
           }}
           accept="image/*"
-          maxFiles={5}
+          minFiles={5}
+          maxFiles={10}
           maxSizeMB={5}
           error={fieldErrors?.images?.[0]}
         />
@@ -522,7 +526,8 @@ const ResidentialProfile = () => {
             }),
           )
             .unwrap()
-            .then(() => {
+            .then(async () => {
+              await dispatch(getMyDraftThunk(propertyType)).unwrap();
               dispatch(nextStep());
             })
             .catch((error: any) => {

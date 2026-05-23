@@ -10,6 +10,7 @@ import LocationMap from "./LocationMap";
 import Specifications from "./Specifications";
 import AboutProject from "./AboutProject";
 import ContactSeller from "./ContactSeller";
+import ProjectVideos from "./ProjectVideos";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -59,6 +60,7 @@ export default async function Page({ params }: PageProps) {
             <LocationMap project={project} />
             <Specifications project={project} />
             <ProjectImages project={project} />
+            <ProjectVideos project={project} />
             <AboutProject project={project} />
           </div>
 

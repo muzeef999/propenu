@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-export const residentialProfileSchema = z.object({
+export const residentialProfileSchema = z
+  .object({
    amenities: z
   .array(
     z.union([
@@ -55,8 +56,20 @@ export const residentialProfileSchema = z.object({
     }),
 
     
-  images: z.array(z.instanceof(File)).default([]),
-});
+    images: z.array(z.instanceof(File)).default([]),
+  })
+  .superRefine((data, ctx) => {
+    const floorNumber = data.floorNumber ?? 0;
+    const totalFloors = data.totalFloors ?? 0;
+
+    if (floorNumber > totalFloors) {
+      ctx.addIssue({
+        path: ["floorNumber"],
+        code: z.ZodIssueCode.custom,
+        message: "Floor number cannot be greater than total floors",
+      });
+    }
+  });
 
 
 

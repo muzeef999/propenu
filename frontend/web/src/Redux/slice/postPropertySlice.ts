@@ -1,5 +1,9 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { createDraftThunk, getMyDraftThunk } from "../thunks/submitPropertyApi";
+import {
+  createDraftThunk,
+  getMyDraftThunk,
+  submitDetailsThunk,
+} from "../thunks/submitPropertyApi";
 
 /* ======================================================
    TYPES
@@ -130,6 +134,14 @@ const mapServerGallery = (gallery: any) =>
         source: "server",
       }))
     : [];
+
+const getResponseDraft = (payload: any) =>
+  payload?.data?.property ??
+  payload?.data?.draft ??
+  payload?.data ??
+  payload?.property ??
+  payload?.draft ??
+  payload;
 
 const mapAmenities = (amenities: any) =>
   Array.isArray(amenities) ? amenities : [];
@@ -544,6 +556,25 @@ const postPropertySlice = createSlice({
           draft.propertyType ?? DEFAULT_AGRICULTURAL_PROPERTY_TYPE;
       }
       state.currentStep = 1;
+    });
+
+    builder.addCase(submitDetailsThunk.fulfilled, (state, action) => {
+      const draft = getResponseDraft(action.payload);
+      const category = action.meta.arg?.category as PropertyCategory | undefined;
+      const gallery = mapServerGallery(draft?.gallery);
+
+      if (!category || gallery.length === 0) return;
+
+      state[category].gallery = gallery;
+      state.base.galleryFiles = gallery.map((img: any) => ({
+        name: img.filename ?? "",
+        source: "server",
+        preview: img.url,
+      }));
+
+      if (draft?.completion?.percent !== undefined) {
+        state.progressPercent = draft.completion.percent;
+      }
     });
   },
 });

@@ -101,17 +101,24 @@ export const submitDetailsThunk = createAsyncThunk(
       }
     });
 
-    if (Array.isArray(files) && files.length > 0) {
+    const hasFiles = Array.isArray(files) && files.length > 0;
+
+    if (hasFiles) {
       files.forEach((file) => {
         formData.append("galleryFiles", file);
       });
-      clearFileStore("postProperty");
     }
 
     for (let pair of formData.entries()) {
     }
 
-    return await updateDetailsApi(category, id, formData);
+    const response = await updateDetailsApi(category, id, formData);
+
+    if (hasFiles) {
+      clearFileStore("postProperty");
+    }
+
+    return response;
   },
 );
 

@@ -24,6 +24,7 @@ type FileUploadProps = {
     currentFiles: UploadedFile[],
   ) => Promise<boolean | void> | boolean | void;
   accept?: string;
+  minFiles?: number;
   maxFiles?: number;
   maxSizeMB?: number;
   error?: string;
@@ -44,6 +45,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   onChange,
   onRemove,
   accept = "*/*",
+  minFiles = 0,
   maxFiles = 5,
   maxSizeMB = 5,
   error,
@@ -107,11 +109,19 @@ const FileUpload: React.FC<FileUploadProps> = ({
     const selectedFiles = Array.from(e.target.files);
     const remainingSlots = maxFiles - value.length;
     if (remainingSlots <= 0) {
+      setLocalError(`You can upload up to ${maxFiles} files.`);
       e.target.value = "";
       return;
     }
 
     const limitedFiles = selectedFiles.slice(0, remainingSlots);
+    if (selectedFiles.length > remainingSlots) {
+      setLocalError(
+        `Only ${remainingSlots} more ${
+          remainingSlots === 1 ? "file" : "files"
+        } can be uploaded.`,
+      );
+    }
 
     try {
       const preparedFiles = await Promise.all(
@@ -261,7 +271,9 @@ const FileUpload: React.FC<FileUploadProps> = ({
           ${
             error
               ? "border-red-500 bg-red-50"
-              : "border-gray-300 hover:border-green-500 hover:bg-gray-50"
+              : value.length >= maxFiles
+                ? "border-gray-300 bg-gray-50"
+                : "border-gray-300 hover:border-green-500 hover:bg-gray-50"
           }
         `}
       >
@@ -284,8 +296,14 @@ const FileUpload: React.FC<FileUploadProps> = ({
         </p>
 
         <p className="text-xs text-gray-500 mt-1">
-          Max {maxFiles} {maxFiles === 1 ? "file" : "files"} • Up to{" "}
-          {maxSizeMB}MB each
+          {minFiles > 0
+            ? `Min ${minFiles} and max ${maxFiles}`
+            : `Max ${maxFiles}`}{" "}
+          {maxFiles === 1 ? "file" : "files"} • Up to {maxSizeMB}MB each
+        </p>
+
+        <p className="text-xs text-gray-500 mt-1">
+          {value.length}/{maxFiles} selected
         </p>
 
         <input

@@ -7,7 +7,10 @@ import type { AppDispatch } from "@/Redux/store";
 import { useEffect, useRef, useState } from "react";
 
 import { setBaseField, nextStep } from "@/Redux/slice/postPropertySlice";
-import { validateLocationDetails, getLocationFieldError } from "@/zod/locationDetailsZod";
+import {
+  getLocationFieldError,
+  validateLocationDetails,
+} from "@/zod/locationDetailsZod";
 import InputField from "@/ui/InputField";
 import TextArea from "@/ui/TextArae";
 
@@ -16,7 +19,7 @@ import { submitLocationThunk } from "@/Redux/thunks/submitPropertyApi";
 const OpenStreetPinMap = dynamic<OpenStreetPinMapProps>(
   () =>
     import("@/components/location/OpenStreetPinMap").then(
-      (mod) => mod.default
+      (mod) => mod.default,
     ),
   {
     ssr: false,
@@ -27,7 +30,6 @@ const OpenStreetPinMap = dynamic<OpenStreetPinMapProps>(
     ),
   }
 );
-
 
 type OpenStreetPinMapProps = {
   coordinates?: [number, number];
@@ -81,6 +83,94 @@ const normalizePincodeAreaName = (value: string) => {
   return trimmed.replace(/^ward\s*\d+[a-z]?\s+/i, "").trim();
 };
 
+const getLocalityFromAddress = (address: NominatimPincodeResult["address"]) =>
+  formatToTitleCase(
+    normalizePincodeAreaName(
+      address?.suburb ||
+        address?.neighbourhood ||
+        address?.hamlet ||
+        address?.village ||
+        address?.town ||
+        address?.city_district ||
+        address?.county ||
+        "",
+    ),
+  );
+
+const getCityFromAddress = (address: NominatimPincodeResult["address"]) =>
+  formatToTitleCase(
+    address?.city ||
+      address?.town ||
+      address?.village ||
+      address?.city_district ||
+      address?.state_district ||
+      address?.county ||
+      "",
+  );
+
+const lookupPincodeWithPostalApi = async (
+  pincode: string,
+  signal: AbortSignal,
+) => {
+  try {
+    const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`, {
+      signal,
+    });
+
+    if (!res.ok) {
+      console.error("Postal pincode lookup failed:", res.status);
+      return { city: "", state: "" };
+    }
+
+    const data: PostalPincodeResponse[] = await res.json();
+    const firstPostalOffice = data?.[0]?.PostOffice?.[0];
+
+    return {
+      city: formatToTitleCase(firstPostalOffice?.District || ""),
+      state: formatToTitleCase(firstPostalOffice?.State || ""),
+    };
+  } catch (err) {
+    if ((err as { name?: string })?.name !== "AbortError") {
+      console.error("Postal pincode lookup error:", err);
+    }
+
+    return { city: "", state: "" };
+  }
+};
+
+const lookupPincodeWithOpenStreet = async (
+  pincode: string,
+  signal: AbortSignal,
+) => {
+  const urls = [
+    `https://nominatim.openstreetmap.org/search?postalcode=${pincode}&country=India&format=json&addressdetails=1&limit=1&accept-language=en`,
+    `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&accept-language=en&q=${encodeURIComponent(
+      `${pincode}, India`,
+    )}`,
+  ];
+
+  for (const url of urls) {
+    const res = await fetch(url, {
+      signal,
+      headers: {
+        "Accept-Language": "en",
+      },
+    });
+
+    if (!res.ok) {
+      console.error("Pincode lookup failed:", res.status);
+      continue;
+    }
+
+    const data: NominatimPincodeResult[] = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      return data[0];
+    }
+  }
+
+  return null;
+};
+
 const LocationDetailsStep = () => {
   const { propertyType, base, draftId } = useSelector(
     (state: any) => state.postProperty,
@@ -91,69 +181,69 @@ const LocationDetailsStep = () => {
   const skipNextFieldGeocodeRef = useRef(false);
 
   useEffect(() => {
-  if (skipNextFieldGeocodeRef.current) {
-    skipNextFieldGeocodeRef.current = false;
-    return;
-  }
-
-  if (!base.locality || !base.city || !base.state) return;
-
-  const controller = new AbortController();
-
-  const fetchCoordinates = async () => {
-    try {
-      const query = `${base.locality}, ${base.city}, ${base.state}`;
-
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          query
-        )}&limit=1`,
-        {
-          signal: controller.signal,
-          headers: {
-            "Accept-Language": "en",
-          },
-        }
-      );
-
-      if (!res.ok) {
-        console.error("Geocoding failed:", res.status);
-        return;
-      }
-
-      let data;
-
-      try {
-        data = await res.json();
-      } catch {
-        console.warn("Invalid JSON from Nominatim");
-        return;
-      }
-
-      if (!Array.isArray(data) || data.length === 0) return;
-
-      const { lat, lon } = data[0];
-
-      dispatch(
-        setBaseField({
-          key: "location",
-          value: {
-            type: "Point",
-            coordinates: [Number(lon), Number(lat)],
-          },
-        })
-      );
-    } catch (err) {
-      if ((err as any).name !== "AbortError") {
-        console.error("Geocoding error", err);
-      }
+    if (skipNextFieldGeocodeRef.current) {
+      skipNextFieldGeocodeRef.current = false;
+      return;
     }
-  };
 
-  fetchCoordinates();
+    if (!base.locality || !base.city || !base.state) return;
 
-  return () => controller.abort();
-}, [base.locality, base.city, base.state, dispatch]);
+    const controller = new AbortController();
+
+    const fetchCoordinates = async () => {
+      try {
+        const query = `${base.locality}, ${base.city}, ${base.state}`;
+
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+            query,
+          )}&limit=1`,
+          {
+            signal: controller.signal,
+            headers: {
+              "Accept-Language": "en",
+            },
+          },
+        );
+
+        if (!res.ok) {
+          console.error("Geocoding failed:", res.status);
+          return;
+        }
+
+        let data;
+
+        try {
+          data = await res.json();
+        } catch {
+          console.warn("Invalid JSON from Nominatim");
+          return;
+        }
+
+        if (!Array.isArray(data) || data.length === 0) return;
+
+        const { lat, lon } = data[0];
+
+        dispatch(
+          setBaseField({
+            key: "location",
+            value: {
+              type: "Point",
+              coordinates: [Number(lon), Number(lat)],
+            },
+          }),
+        );
+      } catch (err) {
+        if ((err as any).name !== "AbortError") {
+          console.error("Geocoding error", err);
+        }
+      }
+    };
+
+    fetchCoordinates();
+
+    return () => controller.abort();
+  }, [base.locality, base.city, base.state, dispatch]);
 
   useEffect(() => {
     const pincode = (base.pincode || "").replace(/\D/g, "");
@@ -165,62 +255,23 @@ const LocationDetailsStep = () => {
 
     const timeout = setTimeout(async () => {
       try {
-        const postalApiUrl = `https://api.postalpincode.in/pincode/${pincode}`;
-        const nominatimUrl = `https://nominatim.openstreetmap.org/search?postalcode=${pincode}&country=India&format=json&addressdetails=1&limit=1&accept-language=en`;
-
-        const [postalRes, nominatimRes] = await Promise.all([
-          fetch(postalApiUrl, { signal: controller.signal }),
-          fetch(nominatimUrl, {
-            signal: controller.signal,
-            headers: {
-              "Accept-Language": "en",
-            },
-          }),
+        const [postalResult, best] = await Promise.all([
+          lookupPincodeWithPostalApi(pincode, controller.signal),
+          lookupPincodeWithOpenStreet(pincode, controller.signal),
         ]);
 
-        let postalCity = "";
-
-        if (postalRes.ok) {
-          const postalData: PostalPincodeResponse[] = await postalRes.json();
-          const firstPostalOffice = postalData?.[0]?.PostOffice?.[0];
-          postalCity = formatToTitleCase(firstPostalOffice?.District || "");
-        } else {
-          console.error("Postal pincode lookup failed:", postalRes.status);
-        }
-
-        if (!nominatimRes.ok) {
-          console.error("Pincode lookup failed:", nominatimRes.status);
-          return;
-        }
-
-        const data: NominatimPincodeResult[] = await nominatimRes.json();
-
-        if (!Array.isArray(data) || data.length === 0) {
+        if (!best) {
           console.warn("No pincode result found");
           return;
         }
 
-        const best = data[0];
         const address = best?.address;
 
-        if (!address) return;
+        const locality = getLocalityFromAddress(address);
 
-        const locality = formatToTitleCase(
-          normalizePincodeAreaName(
-            address.suburb ||
-              address.neighbourhood ||
-              address.hamlet ||
-              address.village ||
-              address.town ||
-              address.city_district ||
-              address.county ||
-              "",
-          ),
-        );
-
-        const city = postalCity;
-
-        const state = formatToTitleCase(address.state || "");
+        const city = postalResult.city || getCityFromAddress(address);
+        const state =
+          postalResult.state || formatToTitleCase(address?.state || "");
 
         const lat = Number(best?.lat);
         const lon = Number(best?.lon);
@@ -229,7 +280,7 @@ const LocationDetailsStep = () => {
         // immediately re-geocoding with locality + district + state.
         skipNextFieldGeocodeRef.current = true;
 
-        // update redux fields
+        // Update redux fields.
         if (state) {
           dispatch(setBaseField({ key: "state", value: state }));
         }
@@ -250,7 +301,7 @@ const LocationDetailsStep = () => {
                 type: "Point",
                 coordinates: [lon, lat],
               },
-            })
+            }),
           );
         }
       } catch (err) {
@@ -279,8 +330,7 @@ const LocationDetailsStep = () => {
     return getLocationFieldError(fieldErrors, key);
   };
 
-
-  // Keep only numeric pincode input, without auto-filling location fields.
+  // Keep only numeric pincode input.
   const handlePincodeChange = (value: string) => {
     const numericValue = value.replace(/\D/g, "").slice(0, 6);
     dispatch(setBaseField({ key: "pincode", value: numericValue }));
@@ -364,9 +414,7 @@ const LocationDetailsStep = () => {
               }),
             )
           }
-          error={getError(
-            isLandOrAgri ? "landName" : "buildingName"
-          )}
+          error={getError(isLandOrAgri ? "landName" : "buildingName")}
         />
 
         <InputField
@@ -399,8 +447,7 @@ const LocationDetailsStep = () => {
           label="City"
           value={base.city || ""}
           placeholder="Enter city"
-            disabled
-
+          disabled
           onChange={(value) =>
             dispatch(
               setBaseField({
@@ -470,7 +517,7 @@ const LocationDetailsStep = () => {
               category: propertyType,
               id: draftId,
               data: base,
-            })
+            }),
           )
             .unwrap()
             .then(() => {

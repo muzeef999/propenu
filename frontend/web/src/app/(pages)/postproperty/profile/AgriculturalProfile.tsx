@@ -623,7 +623,8 @@ const AgriculturalProfile = () => {
             }
           }}
           accept="image/*"
-          maxFiles={5}
+          minFiles={5}
+          maxFiles={10}
           maxSizeMB={5}
           error={fieldErrors?.images?._errors?.[0]}
         />
