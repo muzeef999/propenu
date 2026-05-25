@@ -36,6 +36,8 @@ export default function Amenities({ project }: AmenitiesProps) {
     ? amenities
     : amenities.slice(0, INITIAL_VISIBLE_COUNT);
 
+  console.log("Amenities:", amenities);
+
   return (
     <section id="amenities">
       <div className="container mx-auto px-1 sm:px-4 lg:px-3">

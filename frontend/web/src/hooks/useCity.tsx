@@ -13,7 +13,7 @@ import {
 } from "@/Redux/slice/citySlice";
 import { LocationItem } from "@/types";
 
-const DEFAULT_CITY_NAME = "Hyderabad";
+const DEFAULT_CITY_NAME = "";
 
 export function useCity() {
   const dispatch = useAppDispatch();
