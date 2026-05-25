@@ -14,7 +14,6 @@ const PORT = Number(process.env.PORT ?? 4000);
 const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL || "";
 const PROPERTY_SERVICE_URL = process.env.PROPERTY_SERVICE_URL || "";
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL || "";
-// const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "";
 
 if (!PAYMENT_SERVICE_URL || !PROPERTY_SERVICE_URL || !USER_SERVICE_URL) {
   console.error("❌ Missing service URL(s). Check your .env");
