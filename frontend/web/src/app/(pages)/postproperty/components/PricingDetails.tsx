@@ -25,7 +25,6 @@ export default function PricingDetails({
   fieldErrors,
   listingType,
 }: PricingDetailsProps) {
-
   const dispatch = useDispatch();
   const isAgricultural = propertyType === "agricultural";
   const isLand = propertyType === "land";
@@ -147,14 +146,14 @@ export default function PricingDetails({
               ? "Total land size"
               : "Usable space inside the property."
           }
-tooltipPosition="center"     
-     onChange={(value) =>
+          tooltipPosition="center"
+          onChange={(value) =>
             dispatch(
               setProfileField({
                 propertyType,
                 key: isLand ? "plotArea" : "carpetArea",
-                value: value.replace(/[^0-9]/g, ""), // only numbers
-              })
+                value: value.replace(/[^0-9]/g, ""),
+              }),
             )
           }
         />
@@ -230,8 +229,8 @@ tooltipPosition="center"
               setProfileField({
                 propertyType,
                 key: isLand ? "roadWidthFt" : "builtUpArea",
-                value: value.replace(/[^0-9]/g, ""), // only numbers
-              })
+                value: value.replace(/[^0-9]/g, ""),
+              }),
             )
           }
         />

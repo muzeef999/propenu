@@ -72,6 +72,7 @@ export const basicDetailsSchema = z
       propertyAge,
       price,
       carpetArea,
+      builtUpArea,
       plotArea,
       totalArea,
       commercialSubType,
@@ -228,6 +229,28 @@ export const basicDetailsSchema = z
           code: z.ZodIssueCode.custom,
           path: ["carpetArea"],
           message: "Carpet area is required",
+        });
+      }
+
+      if (!builtUpArea || Number(builtUpArea) <= 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["builtUpArea"],
+          message: "Built-up area is required",
+        });
+      }
+
+      if (
+        carpetArea &&
+        builtUpArea &&
+        Number(carpetArea) > 0 &&
+        Number(builtUpArea) > 0 &&
+        Number(builtUpArea) < Number(carpetArea)
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["builtUpArea"],
+          message: "Built-up area cannot be less than carpet area",
         });
       }
     }
