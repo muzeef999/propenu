@@ -6,6 +6,60 @@ import { IResidential } from "@/types/residential";
 
 const url = process.env.NEXT_PUBLIC_API_URL
 
+export type BlogDetail = {
+  _id?: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  featuredImage: string;
+  imageAlt?: string;
+  content: string;
+  articleSections?: {
+    heading?: string;
+    content?: string;
+  }[];
+  author?: {
+    name?: string;
+    profileImage?: string;
+    designation?: string;
+    description?: string;
+  };
+  category: string;
+  tags?: string[];
+  faqs?: {
+    question: string;
+    answer: string;
+  }[];
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string[];
+  canonicalUrl?: string;
+  publishedAt?: string;
+  createdAt?: string;
+  readTime?: number;
+  views?: number;
+};
+
+export async function getBlogBySlug({ slug }: { slug: string }) {
+  const res = await fetch(
+    `${url}/api/properties/blogs/slug/${encodeURIComponent(slug)}`,
+    {
+      next: { revalidate: 10 },
+    }
+  );
+
+  if (res.status === 404) {
+    return null;
+  }
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch blog");
+  }
+
+  const json = await res.json();
+  return json.data as BlogDetail;
+}
+
 
 export async function getFeaturedSlugProjects({ slug }: { slug: string }) {
   const res = await fetch(`${url}/api/properties/featured-project/slug/${encodeURIComponent( slug )}`,

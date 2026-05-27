@@ -106,6 +106,38 @@ export async function getAgentConnect(params?: { city?: string; locality?: strin
   return res.json();
 }
 
+export type BlogListParams = {
+  page?: number;
+  limit?: number;
+  q?: string;
+  category?: string;
+  tag?: string;
+  published?: boolean;
+  featured?: boolean;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+};
+
+export async function getBlogs(params: BlogListParams = {}) {
+  const query = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      query.append(key, String(value));
+    }
+  });
+
+  const res = await fetch(`${url}/api/properties/blogs?${query.toString()}`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch blogs");
+  }
+
+  return res.json();
+}
+
 export const searchFilter = async (params: SearchFilterParams) => {
   const res = await axiosInstance.get<ApiResponse>(
     `${url}/api/properties/search`,

@@ -17,6 +17,7 @@ import ResidentialLinks from "@/components/quickLinks/ResidentialLinks";
 import CommercialLinks from "@/components/quickLinks/CommercialLinks";
 import LandLinks from "@/components/quickLinks/LandLinks";
 import AgriculturalLinks from "@/components/quickLinks/AgriculturalLinks";
+import BlogsClient from "./(pages)/blogs/BlogsClient";
 
 export default function Home() {
   return (
@@ -37,6 +38,7 @@ export default function Home() {
         <ExploreMorePropertiesPage />
         <TestomianalHome />
         <DiscoverRealestate />
+        <BlogsClient />
         <ResidentialLinks />
         <CommercialLinks />
         <LandLinks />
