@@ -107,6 +107,7 @@ export default function HighlightProjectsClient() {
   const [loading, setLoading] = useState(() => !getHomeSectionCache(cacheKey));
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [hasHiddenProjects, setHasHiddenProjects] = useState(false);
 
   useEffect(() => {
     if (!selectedCity) return;
@@ -157,6 +158,7 @@ export default function HighlightProjectsClient() {
     if (!slider || loading || items.length === 0) {
       setCanScrollLeft(false);
       setCanScrollRight(false);
+      setHasHiddenProjects(false);
       return;
     }
 
@@ -165,13 +167,15 @@ export default function HighlightProjectsClient() {
 
       setCanScrollLeft(slider.scrollLeft > 1);
       setCanScrollRight(slider.scrollLeft < maxScrollLeft - 1);
+      setHasHiddenProjects(maxScrollLeft > 1);
     };
 
-    updateScrollButtons();
+    const frameId = window.requestAnimationFrame(updateScrollButtons);
     slider.addEventListener("scroll", updateScrollButtons);
     window.addEventListener("resize", updateScrollButtons);
 
     return () => {
+      window.cancelAnimationFrame(frameId);
       slider.removeEventListener("scroll", updateScrollButtons);
       window.removeEventListener("resize", updateScrollButtons);
     };
@@ -191,6 +195,7 @@ export default function HighlightProjectsClient() {
       behavior: "smooth",
     });
   const hasItems = items.length > 0;
+  const showViewAll = !loading && hasItems && hasHiddenProjects;
 
   return (
     <div className="relative w-full">
@@ -206,7 +211,7 @@ export default function HighlightProjectsClient() {
             Investment-worthy in {selectedCity?.city ?? "Hyderabad"}
           </p>
         </div>
-        {!loading && hasItems && (
+        {showViewAll && (
           <Link
             href="/highlight-projects"
             aria-label="View all featured properties"

@@ -44,6 +44,7 @@ const PopularOwnerPropertiesClient = () => {
   const [loading, setLoading] = useState(() => !getHomeSectionCache(cacheKey));
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [hasHiddenProperties, setHasHiddenProperties] = useState(false);
 
   useEffect(() => {
     if (!selectedCity) return;
@@ -98,6 +99,7 @@ const PopularOwnerPropertiesClient = () => {
     if (!slider || loading || items.length === 0) {
       setCanScrollLeft(false);
       setCanScrollRight(false);
+      setHasHiddenProperties(false);
       return;
     }
 
@@ -106,13 +108,15 @@ const PopularOwnerPropertiesClient = () => {
 
       setCanScrollLeft(slider.scrollLeft > 1);
       setCanScrollRight(slider.scrollLeft < maxScrollLeft - 1);
+      setHasHiddenProperties(maxScrollLeft > 1);
     };
 
-    updateScrollButtons();
+    const frameId = window.requestAnimationFrame(updateScrollButtons);
     slider.addEventListener("scroll", updateScrollButtons);
     window.addEventListener("resize", updateScrollButtons);
 
     return () => {
+      window.cancelAnimationFrame(frameId);
       slider.removeEventListener("scroll", updateScrollButtons);
       window.removeEventListener("resize", updateScrollButtons);
     };
@@ -125,6 +129,7 @@ const PopularOwnerPropertiesClient = () => {
     el.scrollBy({ left: dir === "left" ? -step : step, behavior: "smooth" });
   };
   const hasItems = items.length > 0;
+  const showViewAll = !loading && hasItems && hasHiddenProperties;
 
   return (
     <section className="relative w-full">
@@ -142,7 +147,7 @@ const PopularOwnerPropertiesClient = () => {
         </div>
 
         {/* Right: View All */}
-        {!loading && hasItems && (
+        {showViewAll && (
           <Link
             href="/properties?postedBy=owner"
             aria-label="View all owner properties"
