@@ -1,0 +1,1 @@
+const checkone = "hello world";
