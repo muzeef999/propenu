@@ -61,6 +61,10 @@ export function useCity() {
       return true;
     };
 
+    if (setSavedCity()) {
+      return;
+    }
+
     const setMatchedCity = (cityName?: string | null) => {
       if (!cityName) return false;
 
@@ -126,9 +130,7 @@ export function useCity() {
     };
 
     const setFallbackCity = () => {
-      if (!setSavedCity()) {
-        setDefaultCity();
-      }
+      setDefaultCity();
     };
 
     if (!navigator.geolocation) {

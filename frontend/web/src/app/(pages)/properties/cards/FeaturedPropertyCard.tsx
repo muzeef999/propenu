@@ -192,7 +192,7 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
             className={`min-w-0 flex ${vertical ? "flex-col gap-1" : "flex-col"}`}
           >
             <h3
-              className={`font-semibold leading-snug line-clamp-2 ${
+              className={`font-semibold leading-snug line-clamp-2 capitalize ${
                 vertical
                   ? "text-base max-w-[250px] truncate"
                   : "text-lg md:text-md max-w-[600px]"

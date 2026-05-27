@@ -30,6 +30,7 @@ export default function AgentsList() {
   const [loading, setLoading] = useState(() => !getHomeSectionCache(cacheKey));
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [hasHiddenAgents, setHasHiddenAgents] = useState(false);
 
   useEffect(() => {
     if (!selectedCity) return;
@@ -79,6 +80,7 @@ export default function AgentsList() {
     if (!slider || loading || agents.length === 0) {
       setCanScrollLeft(false);
       setCanScrollRight(false);
+      setHasHiddenAgents(false);
       return;
     }
 
@@ -87,6 +89,7 @@ export default function AgentsList() {
 
       setCanScrollLeft(slider.scrollLeft > 1);
       setCanScrollRight(slider.scrollLeft < maxScrollLeft - 1);
+      setHasHiddenAgents(maxScrollLeft > 1);
     };
 
     setCanScrollLeft(false);
@@ -115,6 +118,7 @@ export default function AgentsList() {
       behavior: "smooth",
     });
   const hasItems = agents.length > 0;
+  const showViewAll = !loading && hasItems && hasHiddenAgents;
 
 
   return (
@@ -133,7 +137,7 @@ export default function AgentsList() {
         </div>
 
         {/* Right: View All */}
-        {!loading && hasItems && (
+        {showViewAll && (
           <Link
             href="/agent-connect"
             aria-label="View all agents"
