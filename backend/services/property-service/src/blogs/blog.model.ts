@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Model } from "mongoose";
 
 const { Schema } = mongoose;
 
@@ -210,7 +210,7 @@ blogSchema.pre("validate", function (next) {
 
 /* ---------------- MODEL ---------------- */
 
-let Blog;
+let Blog: Model<any>;
 
 try {
   Blog = mongoose.model("blog");

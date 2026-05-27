@@ -13,6 +13,7 @@ import leadRoute from "./routes/leadRoute";
 import "./models"; 
 import analyticsRouter from "./routes/analyticsRoute";
 import sponsoredRoute from "./features/sponsored/sponsored.route";
+import blogRoute from "./blogs/blog.route";
 
 dotenv.config({ quiet: true });
 
@@ -42,6 +43,7 @@ async function start() {
     app.use('/api/properties/leads', leadRoute);
     app.use('/api/properties', analyticsRouter);
     app.use("/api/properties/sponsored", sponsoredRoute);
+    app.use("/api/properties/blogs", blogRoute);
 
     
 
