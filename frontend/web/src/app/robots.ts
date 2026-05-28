@@ -1,14 +1,20 @@
 import { MetadataRoute } from "next";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://yourdomain.com";
+const BASE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  "https://propenu.com";
 
-export default function robots(): MetadataRoute.Robots {
+export default function robots():
+MetadataRoute.Robots {
+
   return {
     rules: {
       userAgent: "*",
+
       allow: "/",
     },
 
-    sitemap: `${BASE_URL}/sitemap.xml`,
+    sitemap:
+      `${BASE_URL}/sitemap.xml`,
   };
 }
