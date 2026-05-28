@@ -144,7 +144,9 @@ function getCanonicalProjectSummary(payload: any) {
 function getProjectSummaryKey(item: any, fallbackIndex?: number) {
   if (!item || typeof item !== "object") return `index:${fallbackIndex ?? 0}`;
 
-  const label = String(item.label ?? item.bhkLabel ?? "").trim().toLowerCase();
+  const label = String(item.label ?? item.bhkLabel ?? "")
+    .trim()
+    .toLowerCase();
 
   if (label) {
     return `bhk:${item.bhk ?? ""}|label:${label}`;
@@ -201,10 +203,9 @@ async function processBhkPlanUpdates(opts: {
     const incomingBhk = bhkSummaryIncoming[b];
     // const existingBhk = existingSummary[b] || { units: [] };
     const incomingKey = getProjectSummaryKey(incomingBhk, b);
-    const existingBhk =
-      existingSummary.find(
-        (eb, index) => getProjectSummaryKey(eb, index) === incomingKey,
-      ) || { units: [] };
+    const existingBhk = existingSummary.find(
+      (eb, index) => getProjectSummaryKey(eb, index) === incomingKey,
+    ) || { units: [] };
 
     if (!Array.isArray(existingBhk.units)) {
       existingBhk.units = [];
@@ -384,6 +385,7 @@ export const FeaturePropertyService = {
   async createFeatureProperty(
     payload: CreateFeaturePropertyDTO,
     files?: MulterFiles,
+    user?: any,
   ) {
     if (Array.isArray((payload as any).amenities)) {
       (payload as any).amenities = normalizeAmenitiesInputs(
@@ -405,6 +407,26 @@ export const FeaturePropertyService = {
       projectSummary,
       priceFrom,
       priceTo,
+      postedBy: user
+        ? {
+            userId: user.id,
+            name: user.name,
+            email: user.email,
+            roleName: user.roleName,
+          }
+        : undefined,
+
+      updateHistory: user
+        ? [
+            {
+              userId: user.id,
+              name: user.name,
+              email: user.email,
+              roleName: user.roleName,
+              updatedAt: new Date(),
+            },
+          ]
+        : [],
     };
     delete toCreate.bhkSummary;
 
@@ -628,6 +650,7 @@ export const FeaturePropertyService = {
     id: string,
     payload: UpdateFeaturePropertyDTO,
     files?: MulterFiles,
+    user?: any,
   ) {
     if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
     const existing = await FeaturedProject.findById(id);
@@ -665,6 +688,31 @@ export const FeaturePropertyService = {
     // apply other fields (shallow)
     Object.assign(existing, safeUpdate);
 
+    if (user) {
+  existing.lastUpdatedBy = {
+    userId: user.id,
+    name: user.name,
+    email: user.email,
+    roleName: user.roleName,
+    updatedAt: new Date(),
+  };
+
+  existing.updateCount =
+    (existing.updateCount || 0) + 1;
+
+  existing.updateHistory = [
+    ...(existing.updateHistory || []),
+
+    {
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      roleName: user.roleName,
+      updatedAt: new Date(),
+    },
+  ];
+}
+
     const propId = existing._id!.toString();
 
     // --------- process BHK updates (files + planRemove + external URL) ----------
@@ -684,7 +732,9 @@ export const FeaturePropertyService = {
 
       const processed = await processBhkPlanUpdates({
         bhkSummaryExisting:
-          (existing as any).projectSummary || (existing as any).bhkSummary || [],
+          (existing as any).projectSummary ||
+          (existing as any).bhkSummary ||
+          [],
         bhkSummaryIncoming: mergedIncoming,
         bhkPlanFiles,
         propertyId: propId,
@@ -1062,83 +1112,83 @@ export const FeaturePropertyService = {
   },
 
   async getAllFeatures(options?: {
-  page?: number;
-  limit?: number;
-  q?: string;
-  status?: string;
-  sortBy?: string;
-  sortOrder?: "asc" | "desc";
-  type?: string;        // 🔥 NEW
-  city?: string;        // 🔥 NEW
-  state?: string;       // 🔥 NEW
-  locality?: string;    // 🔥 NEW
-}) {
-  const page = Math.max(1, options?.page ?? 1);
-  const limit = Math.min(100, options?.limit ?? 20);
-  const skip = (page - 1) * limit;
+    page?: number;
+    limit?: number;
+    q?: string;
+    status?: string;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+    type?: string; // 🔥 NEW
+    city?: string; // 🔥 NEW
+    state?: string; // 🔥 NEW
+    locality?: string; // 🔥 NEW
+  }) {
+    const page = Math.max(1, options?.page ?? 1);
+    const limit = Math.min(100, options?.limit ?? 20);
+    const skip = (page - 1) * limit;
 
-  const filter: any = {
-    status: "active"
-  };
+    const filter: any = {
+      status: "active",
+    };
 
-  // 🔍 SEARCH
-  if (options?.q) {
-    filter.$text = { $search: options.q };
-  }
-
-  // 🔥 PROMOTION TYPE FILTER
-  if (options?.type) {
-    const types = options.type.split(",");
-    filter["promotion.type"] = { $in: types };
-  }
-
-  // 🌍 LOCATION FILTER
-  const makeRegex = (value?: string) =>
-    value ? { $regex: `^${value.trim()}$`, $options: "i" } : undefined;
-
-  if (options?.city) filter.city = makeRegex(options.city);
-  if (options?.state) filter.state = makeRegex(options.state);
-  if (options?.locality) filter.locality = makeRegex(options.locality);
-
-  // 🔥 EXCLUDE EXPIRED PROMOTIONS
-  filter["$or"] = [
-    { "promotion.boostExpiry": { $gt: new Date() } },
-    { "promotion.type": "normal" }
-  ];
-
-  // 🥇 SORT
-  const sort: any = {
-    "promotion.priority": -1
-  };
-
-  if (options?.sortBy) {
-    sort[options.sortBy] = options.sortOrder === "asc" ? 1 : -1;
-  } else {
-    sort.createdAt = -1;
-  }
-
-  const [items, total] = await Promise.all([
-    FeaturedProject.find(filter)
-      .sort(sort)
-      .skip(skip)
-      .limit(limit)
-      .populate("createdBy", "name email phone city state locality pincode")
-      .lean()
-      .exec(),
-
-    FeaturedProject.countDocuments(filter)
-  ]);
-
-  return {
-    items: serializeFeaturedProjectList(items),
-    meta: {
-      total,
-      page,
-      limit,
-      pages: Math.ceil(total / limit)
+    // 🔍 SEARCH
+    if (options?.q) {
+      filter.$text = { $search: options.q };
     }
-  };
-},
+
+    // 🔥 PROMOTION TYPE FILTER
+    if (options?.type) {
+      const types = options.type.split(",");
+      filter["promotion.type"] = { $in: types };
+    }
+
+    // 🌍 LOCATION FILTER
+    const makeRegex = (value?: string) =>
+      value ? { $regex: `^${value.trim()}$`, $options: "i" } : undefined;
+
+    if (options?.city) filter.city = makeRegex(options.city);
+    if (options?.state) filter.state = makeRegex(options.state);
+    if (options?.locality) filter.locality = makeRegex(options.locality);
+
+    // 🔥 EXCLUDE EXPIRED PROMOTIONS
+    filter["$or"] = [
+      { "promotion.boostExpiry": { $gt: new Date() } },
+      { "promotion.type": "normal" },
+    ];
+
+    // 🥇 SORT
+    const sort: any = {
+      "promotion.priority": -1,
+    };
+
+    if (options?.sortBy) {
+      sort[options.sortBy] = options.sortOrder === "asc" ? 1 : -1;
+    } else {
+      sort.createdAt = -1;
+    }
+
+    const [items, total] = await Promise.all([
+      FeaturedProject.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .populate("createdBy", "name email phone city state locality pincode")
+        .lean()
+        .exec(),
+
+      FeaturedProject.countDocuments(filter),
+    ]);
+
+    return {
+      items: serializeFeaturedProjectList(items),
+      meta: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  },
 
   async getHighlightByLocation({
     state,
@@ -1284,7 +1334,8 @@ export const FeaturePropertyService = {
     if (!existing) return null;
 
     // delete BHK plan keys
-    const projectSummary = (existing as any).projectSummary ?? existing.bhkSummary;
+    const projectSummary =
+      (existing as any).projectSummary ?? existing.bhkSummary;
     if (Array.isArray(projectSummary)) {
       for (const b of projectSummary) {
         for (const u of b.units || []) {

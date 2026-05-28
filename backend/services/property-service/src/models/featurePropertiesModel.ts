@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document, Model, Types } from "mongoose";
-import {IAboutSummary,
+import {
+  IAboutSummary,
   IAmenity,
   IArea,
   Ibrochure,
@@ -22,7 +23,7 @@ function generateSlug(text: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-export interface IFeaturedProjectDocument extends IFeaturedProject, Document { }
+export interface IFeaturedProjectDocument extends IFeaturedProject, Document {}
 export interface ILeadDocument extends ILead, Document {
   projectId: Types.ObjectId;
 }
@@ -250,6 +251,59 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
         source: "manual",
       }),
     },
+
+    postedBy: {
+      userId: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+      },
+
+      name: String,
+      email: String,
+      roleName: String,
+
+      postedAt: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+
+    lastUpdatedBy: {
+      userId: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+
+      name: String,
+      email: String,
+      roleName: String,
+
+      updatedAt: Date,
+    },
+
+    updateCount: {
+      type: Number,
+      default: 0,
+    },
+
+    updateHistory: [
+      {
+        userId: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+        },
+
+        name: String,
+        email: String,
+        roleName: String,
+
+        updatedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
 
     updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
     relatedProjects: { type: [Schema.Types.ObjectId], ref: "featuredProject" },

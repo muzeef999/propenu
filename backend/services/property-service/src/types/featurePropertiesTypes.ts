@@ -117,6 +117,33 @@ export interface IArea {
   sqftValue: number;
 }
 
+export interface IPostedBy {
+  userId: Types.ObjectId | string;
+  name?: string;
+  email?: string;
+  roleName?: string;
+  postedAt?: Date;
+}
+
+
+export interface ILastUpdatedBy {
+  userId: Types.ObjectId | string;
+  name?: string;
+  email?: string;
+  roleName?: string;
+  updatedAt?: Date;
+}
+
+export interface IUpdateHistory {
+  userId: Types.ObjectId | string;
+  name?: string;
+  email?: string;
+  roleName?: string;
+  updatedAt?: Date;
+  action?: "created" | "updated" | "deleted";
+}
+
+
 export interface IFeaturedProject {
   title: string;
   slug: string;
@@ -160,20 +187,13 @@ export interface IFeaturedProject {
   projectArea?: number;
   totalUnits?: number;
   availableUnits?: number;
- 
   locality?:string;
-  // legal / banks
   reraNumber?: string;
   banksApproved?: string[];
-
-  // media & gallery
   gallerySummary: IGalleryItem[];
   brochure: Ibrochure;
-  // specifications & amenities
   specifications: ISpecification[];
   amenities: IAmenity[];
-
-  // nearby places
   nearbyPlaces: INearbyPlace[];
 
   // leads (embedded) — small volume only; each entry follows ILead
@@ -190,7 +210,13 @@ export interface IFeaturedProject {
 
   // status & audit
   status?: "active" | "inactive" | "archived";
+  
   createdBy?: Types.ObjectId | string;
+    postedBy?: IPostedBy;
+  lastUpdatedBy?: ILastUpdatedBy;
+  updateCount?: number;
+  updateHistory?: IUpdateHistory[];
+
   updatedBy?: Types.ObjectId | string;
   relatedProjects?: Array<Types.ObjectId | string>;
 }

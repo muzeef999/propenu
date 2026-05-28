@@ -1,20 +1,24 @@
 import { Request, Response } from "express";
-import { CreateFeaturePropertyDTO, UpdateFeaturePropertyDTO, CreateFeaturePropertySchema, UpdateFeaturePropertySchema } from "../zod/validation";
+import {
+  CreateFeaturePropertyDTO,
+  UpdateFeaturePropertyDTO,
+  CreateFeaturePropertySchema,
+  UpdateFeaturePropertySchema,
+} from "../zod/validation";
 import { FeaturePropertyService } from "../services/featurePropertiesServices";
 import { ZodError } from "zod";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import FeatureProperty from "../models/featurePropertiesModel";
 import { deleteS3ObjectIfExists } from "../utils/s3Helpers";
 
-
 function parseMaybeJSON<T = any>(value: any): T | undefined {
   if (value === undefined || value === null || value === "") return undefined;
   if (typeof value !== "string") return value as T;
-  try { 
+  try {
     return JSON.parse(value) as T;
-  } catch { 
+  } catch {
     // not JSON — return as string
-    return (value as unknown) as T;
+    return value as unknown as T;
   }
 }
 
@@ -35,44 +39,62 @@ export const createFeatureProperties = async (req: Request, res: Response) => {
       sqftRange: parseMaybeJSON(raw.sqftRange),
       area: parseMaybeJSON(raw.area),
       leads: parseMaybeJSON(raw.leads),
-        youtubeVideos: parseMaybeJSON(raw.youtubeVideos),  // ⭐ ADD
+      youtubeVideos: parseMaybeJSON(raw.youtubeVideos), // ⭐ ADD
 
       // add others as needed
     };
 
     // Validate with Zod (throws if invalid)
-    const payload = CreateFeaturePropertySchema.parse(parsed) as CreateFeaturePropertyDTO;
+    const payload = CreateFeaturePropertySchema.parse(
+      parsed,
+    ) as CreateFeaturePropertyDTO;
 
     // files: multer puts them in req.files
     // heroImage: single file 'heroImage', galleryFiles: array
-    const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+    const files = req.files as
+      | { [fieldname: string]: Express.Multer.File[] }
+      | undefined;
 
-    const created = await FeaturePropertyService.createFeatureProperty(payload, files);
+    const created = await FeaturePropertyService.createFeatureProperty(
+      payload,
+      files,
+      (req as AuthRequest).user,
+    );
+
     return res.status(201).json({ data: created });
   } catch (err: any) {
     if (err instanceof ZodError) {
       return res.status(422).json({ errors: err.flatten() });
     }
     console.error("createFeatureProperties:", err);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+    return res
+      .status(500)
+      .json({ error: err.message || "Internal server error" });
   }
-};    
+};
 
-export const getMyHightlightProjectsController = async (req: AuthRequest, res: Response) => {
+export const getMyHightlightProjectsController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
   try {
-    const userId = req.user!.id; 
-    const projects = await FeaturePropertyService.getMyHightlightProjects(userId);
-    res.status(200).json({success: true,data: projects});
+    const userId = req.user!.id;
+    const projects =
+      await FeaturePropertyService.getMyHightlightProjects(userId);
+    res.status(200).json({ success: true, data: projects });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-export const getMyFeaturedProjectsController = async (req: AuthRequest, res: Response) => {
+export const getMyFeaturedProjectsController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
   try {
-    const userId = req.user!.id; 
+    const userId = req.user!.id;
     const projects = await FeaturePropertyService.getMyFeaturedProjects(userId);
-    res.status(200).json({success: true,data: projects});
+    res.status(200).json({ success: true, data: projects });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -80,7 +102,18 @@ export const getMyFeaturedProjectsController = async (req: AuthRequest, res: Res
 
 export const getAllFeatureProperties = async (req: Request, res: Response) => {
   try {
-    const { page, limit, q, status, sortBy, sortOrder, type, city, state, locality } = req.query;
+    const {
+      page,
+      limit,
+      q,
+      status,
+      sortBy,
+      sortOrder,
+      type,
+      city,
+      state,
+      locality,
+    } = req.query;
     const options: any = {};
     if (typeof page === "string") options.page = Number(page);
     if (typeof limit === "string") options.limit = Number(limit);
@@ -89,7 +122,7 @@ export const getAllFeatureProperties = async (req: Request, res: Response) => {
     if (typeof sortBy === "string") options.sortBy = sortBy;
     options.sortOrder = sortOrder === "asc" ? "asc" : "desc";
 
-     if (typeof type === "string") options.type = type;
+    if (typeof type === "string") options.type = type;
     if (typeof city === "string") options.city = city;
     if (typeof state === "string") options.state = state;
     if (typeof locality === "string") options.locality = locality;
@@ -98,13 +131,26 @@ export const getAllFeatureProperties = async (req: Request, res: Response) => {
     return res.json(result);
   } catch (err: any) {
     console.error("getAllFeatureProperties:", err);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+    return res
+      .status(500)
+      .json({ error: err.message || "Internal server error" });
   }
 };
 
 export const getAllHighlightProjects = async (req: Request, res: Response) => {
   try {
-    const { page, limit, q, status, sortBy, sortOrder, type, city, state, locality } = req.query;
+    const {
+      page,
+      limit,
+      q,
+      status,
+      sortBy,
+      sortOrder,
+      type,
+      city,
+      state,
+      locality,
+    } = req.query;
     const options: any = {};
     if (typeof page === "string") options.page = Number(page);
     if (typeof limit === "string") options.limit = Number(limit);
@@ -112,24 +158,29 @@ export const getAllHighlightProjects = async (req: Request, res: Response) => {
     if (typeof status === "string") options.status = status;
     if (typeof sortBy === "string") options.sortBy = sortBy;
     options.sortOrder = sortOrder === "asc" ? "asc" : "desc";
-    const result = await FeaturePropertyService.getAllHighlightProjects(options);
+    const result =
+      await FeaturePropertyService.getAllHighlightProjects(options);
     return res.json(result);
   } catch (err: any) {
     console.error("getAllFeatureProperties:", err);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+    return res
+      .status(500)
+      .json({ error: err.message || "Internal server error" });
   }
 };
- 
-export const getHighlightProjectsByLocation = async(req: Request, res: Response) => {
+
+export const getHighlightProjectsByLocation = async (
+  req: Request,
+  res: Response,
+) => {
   try {
-      
     const { state, city, locality } = req.query as {
       state?: string;
       city?: string;
       locality?: string;
     };
 
-     if (!state && !city && !locality) {
+    if (!state && !city && !locality) {
       return res.status(400).json({
         error: "At least one of state, city, or locality is required",
       });
@@ -142,31 +193,29 @@ export const getHighlightProjectsByLocation = async(req: Request, res: Response)
     });
 
     return res.json(result);
-  
-  }catch(err:any) {
-     console.error("getAllFeatureProperties:", err);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+  } catch (err: any) {
+    console.error("getAllFeatureProperties:", err);
+    return res
+      .status(500)
+      .json({ error: err.message || "Internal server error" });
   }
-}
+};
 
-
-export const getCityFeatureProperties = async(req: Request, res: Response) => {
+export const getCityFeatureProperties = async (req: Request, res: Response) => {
   try {
-
-     let { locality, city, state } = req.query as {
+    let { locality, city, state } = req.query as {
       locality?: string;
       city?: string;
       state?: string;
     };
 
-      if (!locality && !city && !state) {
+    if (!locality && !city && !state) {
       return res.status(400).json({
         error: "At least one of locality, city, or state is required",
       });
     }
 
-    const clean = (v?: string) =>
-      v?.replace(/^['"]|['"]$/g, "").trim();
+    const clean = (v?: string) => v?.replace(/^['"]|['"]$/g, "").trim();
 
     locality = clean(locality);
     city = clean(city);
@@ -178,22 +227,25 @@ export const getCityFeatureProperties = async(req: Request, res: Response) => {
       ...(state && { state }),
     });
     return res.json(result);
-  
-  }catch(err:any) {
-    return res.status(500).json({ error: err.message || "Internal server error" });
+  } catch (err: any) {
+    return res
+      .status(500)
+      .json({ error: err.message || "Internal server error" });
   }
-}
+};
 
-
-
-export const getSearchFeatureProperties = async(req: Request, res: Response) => {
+export const getSearchFeatureProperties = async (
+  req: Request,
+  res: Response,
+) => {
   try {
-
-  }catch(err:any) {
-     console.error("getAllFeatureProperties:", err);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+  } catch (err: any) {
+    console.error("getAllFeatureProperties:", err);
+    return res
+      .status(500)
+      .json({ error: err.message || "Internal server error" });
   }
-}
+};
 
 export const getFeatureBySlug = async (req: Request, res: Response) => {
   try {
@@ -204,24 +256,32 @@ export const getFeatureBySlug = async (req: Request, res: Response) => {
     if (!doc) return res.status(404).json({ error: "Property not found" });
 
     // increment view count async
-    FeaturePropertyService.incrementViews((doc as any)._id.toString()).catch((e) =>
-      console.error("incrementViews error:", e)
+    FeaturePropertyService.incrementViews((doc as any)._id.toString()).catch(
+      (e) => console.error("incrementViews error:", e),
     );
 
     return res.json({ data: doc });
   } catch (err: any) {
     console.error("getFeatureBySlug:", err);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+    return res
+      .status(500)
+      .json({ error: err.message || "Internal server error" });
   }
 };
 
-export const getIndetailFeatureProperties = async (req: Request, res: Response) => {
+export const getIndetailFeatureProperties = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const { id } = req.params;
     if (!id) return res.status(400).json({ error: "Missing property ID" });
     const doc = await FeaturePropertyService.getFeatureById(id);
-    if (!doc) return res.status(404).json({ error: "Feature property not found" });
-    FeaturePropertyService.incrementViews(id).catch((e) => console.error("incrementViews error:", e));
+    if (!doc)
+      return res.status(404).json({ error: "Feature property not found" });
+    FeaturePropertyService.incrementViews(id).catch((e) =>
+      console.error("incrementViews error:", e),
+    );
     return res.json({ data: doc });
   } catch (err: any) {
     console.error("getIndetailFeatureProperties:", err);
@@ -237,8 +297,8 @@ export const editFeatureProperties = async (req: Request, res: Response) => {
     const raw = { ...(req.body || {}) };
     const parsed = {
       ...raw,
-    projectSummary: parseMaybeJSON(raw.projectSummary ?? raw.bhkSummary),
-    bhkSummary: parseMaybeJSON(raw.projectSummary ?? raw.bhkSummary),
+      projectSummary: parseMaybeJSON(raw.projectSummary ?? raw.bhkSummary),
+      bhkSummary: parseMaybeJSON(raw.projectSummary ?? raw.bhkSummary),
       specifications: parseMaybeJSON(raw.specifications),
       amenities: parseMaybeJSON(raw.amenities),
       nearbyPlaces: parseMaybeJSON(raw.nearbyPlaces),
@@ -246,15 +306,24 @@ export const editFeatureProperties = async (req: Request, res: Response) => {
       sqftRange: parseMaybeJSON(raw.sqftRange),
       area: parseMaybeJSON(raw.area),
       leads: parseMaybeJSON(raw.leads),
-        youtubeVideos: parseMaybeJSON(raw.youtubeVideos),  // ⭐ ADD
-
+      youtubeVideos: parseMaybeJSON(raw.youtubeVideos), // ⭐ ADD
     };
 
-    const payload = UpdateFeaturePropertySchema.parse(parsed) as UpdateFeaturePropertyDTO;
-    const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+    const payload = UpdateFeaturePropertySchema.parse(
+      parsed,
+    ) as UpdateFeaturePropertyDTO;
+    const files = req.files as
+      | { [fieldname: string]: Express.Multer.File[] }
+      | undefined;
 
-    const updated = await FeaturePropertyService.updateFeatureProperty(id, payload, files);
-    if (!updated) return res.status(404).json({ error: "Feature property not found" });
+    const updated = await FeaturePropertyService.updateFeatureProperty(
+      id,
+      payload,
+      files,
+      (req as AuthRequest).user,
+    );
+    if (!updated)
+      return res.status(404).json({ error: "Feature property not found" });
     return res.json({ data: updated });
   } catch (err: any) {
     if (err instanceof ZodError) {
@@ -270,7 +339,8 @@ export const deleteFeatureProperties = async (req: Request, res: Response) => {
     const { id } = req.params;
     if (!id) return res.status(400).json({ error: "Missing property ID" });
     const deleted = await FeaturePropertyService.deleteFeatureProperty(id);
-    if (!deleted) return res.status(404).json({ error: "Feature property not found" });
+    if (!deleted)
+      return res.status(404).json({ error: "Feature property not found" });
     return res.json({ data: deleted, message: "Deleted successfully" });
   } catch (err: any) {
     console.error("deleteFeatureProperties:", err);
@@ -278,7 +348,10 @@ export const deleteFeatureProperties = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteFeatureGalleryImage = async (req: Request, res: Response) => {
+export const deleteFeatureGalleryImage = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const { id, imageIndex } = req.params;
 
