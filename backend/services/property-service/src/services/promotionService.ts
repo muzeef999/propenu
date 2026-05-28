@@ -1,9 +1,10 @@
-type PromotionType = "normal" | "featured" | "sponsored";
+type PromotionType = "normal" | "featured" | "sponsored" | "prime";
 
 const PRIORITY: Record<PromotionType, number> = {
   normal: 0,
   featured: 1,
-  sponsored: 2
+  sponsored: 2,
+  prime: 3
 };
 
 export function buildManualPromotion(type: PromotionType) {

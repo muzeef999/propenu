@@ -159,7 +159,7 @@ export const BhkSummarySchema = new Schema<IBhkSummary>(
 );
 
 export interface IPromotion {
-  type: "normal" | "featured" | "sponsored";
+  type: "normal" | "featured" | "sponsored" | "prime";
   priority: number;
   source: "manual" | "subscription";
   startDate?: Date;

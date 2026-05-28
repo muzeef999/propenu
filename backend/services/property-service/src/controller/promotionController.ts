@@ -3,7 +3,7 @@
 import { Request, Response } from "express";
 import FeaturedProject from "../models/featurePropertiesModel";
 import { buildManualPromotion } from "../services/promotionService";
-
+import { IPromotion } from "../models/sharedSchemas";
 
 type PromotionType = "normal" | "featured" | "sponsored" | "prime";
 
@@ -11,7 +11,7 @@ const ALLOWED_TYPES: PromotionType[] = [
   "normal",
   "featured",
   "sponsored",
-  "prime"
+  "prime",
 ];
 
 export const promoteProperty = async (req: Request, res: Response) => {
@@ -22,7 +22,7 @@ export const promoteProperty = async (req: Request, res: Response) => {
     if (!type || !ALLOWED_TYPES.includes(type)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid promotion type"
+        message: "Invalid promotion type",
       });
     }
 
@@ -32,25 +32,20 @@ export const promoteProperty = async (req: Request, res: Response) => {
     if (!property) {
       return res.status(404).json({
         success: false,
-        message: "Property not found"
+        message: "Property not found",
       });
     }
 
     // ✅ 3. BUILD PROMOTION
-    const promotion = buildManualPromotion(type);
-
+    const promotion: IPromotion = buildManualPromotion(type);
+  
     // ✅ 4. OPTIONAL CUSTOM DAYS
     if (days && typeof days === "number") {
-      promotion.boostExpiry = new Date(
-        Date.now() + days * 24 * 60 * 60 * 1000
-      );
+      promotion.boostExpiry = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
     }
 
     // ✅ 5. SAFE MERGE (VERY IMPORTANT)
-    property.promotion = {
-      ...(property.promotion || {}), // prevent undefined crash
-      ...promotion
-    };
+    property.promotion = promotion as any;
 
     // ✅ 6. SAVE
     await property.save();
@@ -58,14 +53,13 @@ export const promoteProperty = async (req: Request, res: Response) => {
     return res.status(200).json({
       success: true,
       message: "Property promoted successfully",
-      data: property
+      data: property,
     });
-
   } catch (err) {
     console.error("❌ promoteProperty error:", err);
     return res.status(500).json({
       success: false,
-      message: "Promotion failed"
+      message: "Promotion failed",
     });
   }
 };
@@ -81,7 +75,7 @@ export const expirePromotion = async (req: Request, res: Response) => {
     // ✅ 1. CHECK IF PROMOTION EXISTS
     if (!property.promotion) {
       return res.status(400).json({
-        message: "No promotion found for this property"
+        message: "No promotion found for this property",
       });
     }
 
@@ -92,15 +86,13 @@ export const expirePromotion = async (req: Request, res: Response) => {
 
     return res.json({
       success: true,
-      message: "Promotion expired"
+      message: "Promotion expired",
     });
-
   } catch (err) {
     console.error("❌ expirePromotion error:", err);
     res.status(500).json({ message: "Expire failed" });
   }
 };
-
 
 export const resetPromotion = async (req: Request, res: Response) => {
   try {
@@ -114,7 +106,7 @@ export const resetPromotion = async (req: Request, res: Response) => {
       type: "normal",
       priority: 0,
       source: "manual",
-      startDate: new Date()
+      startDate: new Date(),
     };
 
     await property.save();

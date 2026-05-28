@@ -256,7 +256,6 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
       userId: {
         type: Schema.Types.ObjectId,
         ref: "User",
-        required: true,
       },
 
       name: String,
