@@ -52,8 +52,8 @@ export interface IAmenity {
 export interface Ibrochure {
   key?: string;
   url?: string;
-  filename?: string,
-  mimetype?: string,
+  filename?: string;
+  mimetype?: string;
 }
 
 export interface IAboutSummary {
@@ -125,7 +125,6 @@ export interface IPostedBy {
   postedAt?: Date;
 }
 
-
 export interface ILastUpdatedBy {
   userId: Types.ObjectId | string;
   name?: string;
@@ -143,7 +142,6 @@ export interface IUpdateHistory {
   action?: "created" | "updated" | "deleted";
 }
 
-
 export interface IFeaturedProject {
   title: string;
   slug: string;
@@ -154,9 +152,9 @@ export interface IFeaturedProject {
   heroTagline?: string;
   heroSubTagline?: string;
   heroDescription?: string;
-  color?: string; 
+  color?: string;
   youtubeVideos?: IYoutubeVideo[];
-  redirectUrl?:string;
+  redirectUrl?: string;
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string;
@@ -170,7 +168,7 @@ export interface IFeaturedProject {
     coordinates: [number, number] | number[];
   };
   mapEmbedUrl?: string;
-  state?:string;
+  state?: string;
   aboutSummary?: IAboutSummary;
   currency?: string; // default: 'INR'
   priceFrom?: number; // computed
@@ -187,7 +185,7 @@ export interface IFeaturedProject {
   projectArea?: number;
   totalUnits?: number;
   availableUnits?: number;
-  locality?:string;
+  locality?: string;
   reraNumber?: string;
   banksApproved?: string[];
   gallerySummary: IGalleryItem[];
@@ -209,14 +207,28 @@ export interface IFeaturedProject {
   };
 
   // status & audit
-  status?: "active" | "inactive" | "archived";
-  
+  status?:
+    | "draft"
+    | "pending"
+    | "active"
+    | "inactive"
+    | "archived"
+    | "rejected";
+
   createdBy?: Types.ObjectId | string;
-    postedBy?: IPostedBy;
+  postedBy?: IPostedBy;
   lastUpdatedBy?: ILastUpdatedBy;
   updateCount?: number;
   updateHistory?: IUpdateHistory[];
 
   updatedBy?: Types.ObjectId | string;
   relatedProjects?: Array<Types.ObjectId | string>;
+
+  approvalStatus?: "pending" | "approved" | "rejected";
+
+  approvedBy?: Types.ObjectId;
+
+  approvedAt?: Date;
+
+  rejectedReason?: string;
 }

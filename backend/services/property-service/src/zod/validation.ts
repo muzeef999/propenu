@@ -30,7 +30,7 @@ export const UnitZ = z.object({
   availableCount: z.number().int().nonnegative().optional(),
   area: AreaSchemaZ.optional(),
   planFileName: z.string().optional(),
-  planUrl:z.string().url().optional(),
+  planUrl: z.string().url().optional(),
   redirectUrl: z.string().url().optional(),
   plan: z
     .object({
@@ -49,13 +49,14 @@ export const ProjectSummarySchemaZ = z.object({
   units: z.array(UnitZ).optional(),
 });
 
-export const BrochureSchema = z.object({
-  key: z.string().optional(),
-  url: z.string().url().optional(),
-  filename: z.string().optional(),
-  mimetype: z.string().optional()
-}).optional();
-
+export const BrochureSchema = z
+  .object({
+    key: z.string().optional(),
+    url: z.string().url().optional(),
+    filename: z.string().optional(),
+    mimetype: z.string().optional(),
+  })
+  .optional();
 
 export const AboutSummaryZ = z.object({
   aboutDescription: z.string().optional(),
@@ -67,7 +68,7 @@ const GallerySummarySchema = z.object({
   title: z.string().optional(),
   url: z.string().url().optional(),
   category: z.string().optional(),
-  filename: z.string().optional(), 
+  filename: z.string().optional(),
   order: z.number().int().optional(),
 });
 
@@ -93,7 +94,7 @@ const NearbyPlaceSchema = z.object({
   name: z.string().optional(),
   type: z.string().optional(),
   distanceText: z.string().optional(),
-  coordinates: z.tuple([z.number(), z.number()]).optional(), 
+  coordinates: z.tuple([z.number(), z.number()]).optional(),
   order: z.number().int().optional().default(0),
 });
 
@@ -112,7 +113,7 @@ export const FileMetaZ = z.object({
   mimetype: z.string().optional(),
 });
 
- export const YoutubeVideoSchema = z.object({
+export const YoutubeVideoSchema = z.object({
   title: z.string().optional(),
   url: z.string().url().optional(),
   order: z.number().int().optional().default(0),
@@ -145,14 +146,19 @@ export const CreateFeaturePropertySchema = z.object({
 
   projectSummary: z.array(ProjectSummarySchemaZ).optional(),
   bhkSummary: z.array(ProjectSummarySchemaZ).optional(),
- 
-  aboutSummary: z.union([AboutSummaryZ, z.array(AboutSummaryZ)]).optional().transform((val) => {
+
+  aboutSummary: z
+    .union([AboutSummaryZ, z.array(AboutSummaryZ)])
+    .optional()
+    .transform((val) => {
       if (typeof val === "undefined") return [];
       return Array.isArray(val) ? val : [val];
     }),
 
-  sqftRange: z.object({ min: z.number().optional(), max: z.number().optional() }).optional(),
- 
+  sqftRange: z
+    .object({ min: z.number().optional(), max: z.number().optional() })
+    .optional(),
+
   possessionDate: z.string().optional(),
   totalTowers: z.number().int().optional(),
   totalFloors: z.string().optional(),
@@ -190,84 +196,115 @@ export const CreateFeaturePropertySchema = z.object({
       clicks: z.number().int().optional().default(0),
     })
     .optional()
-    .default(() => ({ views: 0, inquiries: 0, clicks: 0 } as const)),
+    .default(() => ({ views: 0, inquiries: 0, clicks: 0 }) as const),
 
-  status: z.enum(["active", "inactive", "archived"]).optional().default("active"),
+  status: z
+    .enum(["draft", "pending", "active", "inactive", "archived", "rejected"])
+    .optional()
+    .default("pending"),
 
+  approvalStatus: z
+    .enum(["pending", "approved", "rejected"])
+    .optional()
+    .default("pending"),
+
+  approvedBy: z.string().optional(),
+
+  approvedAt: z.date().optional(),
+
+  rejectedReason: z.string().optional(),
   createdBy: z.string().optional(),
   updatedBy: z.string().optional(),
 });
- 
+
 /* --------------------------- Update schema (for PATCH)- This prevents Zod from inserting [] into the validated payload. --------------------------- */
 
-export const UpdateFeaturePropertySchema = z.object({
-  title: z.string().min(1).optional(),
-  slug: z.string().optional(),
-  logo: FileMetaZ.optional(),
-  featuredTagline: z.string().optional(),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  locality: z.string().optional(),
-  redirectUrl: z.string().url().optional(),
+export const UpdateFeaturePropertySchema = z
+  .object({
+    title: z.string().min(1).optional(),
+    slug: z.string().optional(),
+    logo: FileMetaZ.optional(),
+    featuredTagline: z.string().optional(),
+    address: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    locality: z.string().optional(),
+    redirectUrl: z.string().url().optional(),
     youtubeVideos: z.array(YoutubeVideoSchema).optional(),
 
-  location: z
-    .object({
-      type: z.literal("Point").optional(),
-      coordinates: z.tuple([z.number(), z.number()]).optional(),
-    })
-    .optional(),
-  mapEmbedUrl: z.string().url().optional(),
-  currency: z.string().optional(),
-  priceFrom: z.number().optional(),
-  priceTo: z.number().optional(),
-  area: AreaSchemaZ.optional(),
-  projectSummary: z.array(ProjectSummarySchemaZ).optional(),
-  bhkSummary: z.array(ProjectSummarySchemaZ).optional(),
-  aboutSummary: z.union([AboutSummaryZ, z.array(AboutSummaryZ)]).optional(),
-  sqftRange: z
-    .object({ min: z.number().optional(), max: z.number().optional() })
-    .optional(),
-  possessionDate: z.string().optional(),
-  totalTowers: z.number().int().optional(),
-  totalFloors: z.string().optional(),
-  projectArea: z.number().optional(),
-  totalUnits: z.number().int().optional(),
-  availableUnits: z.number().int().optional(),
-  reraNumber: z.string().optional(),
-  banksApproved: z.array(z.string()).optional(),
-  heroImage: z.string().url().optional(),
-  heroVideo: z.string().url().optional(),
-  heroTagline: z.string().optional(),
-  heroSubTagline: z.string().optional(),
-  heroDescription: z.string().optional(),
-  color: z.string().optional(),
-  metaTitle: z.string().optional(),
-  metaDescription: z.string().optional(),
-  metaKeywords: z.string().optional(),
-  propertyType: z.string().optional(),
-  categoryType: z
-    .enum(["residential", "land", "commercial", "agricultural"])
-    .optional(),
-  gallerySummary: z.array(GallerySummarySchema).optional(),
-  brochure: z.object(BrochureSchema).optional(),
-  specifications: z.array(SpecificationSchema).optional(),
-  amenities: z.array(AmenitySchema).optional(),
-  nearbyPlaces: z.array(NearbyPlaceSchema).optional(),
-  leads: z.array(LeadSchema).optional(),
-  isFeatured: z.boolean().optional(),
-  rank: z.coerce.number().int().optional(),
-  meta: z
-    .object({
-      views: z.number().int().optional(),
-      inquiries: z.number().int().optional(),
-      clicks: z.number().int().optional(),
-    })
-    .optional(),
-  status: z.enum(["active", "inactive", "archived"]).optional(),
-  createdBy: z.string().optional(),
-  updatedBy: z.string().optional(),
-}).partial(); 
-export type CreateFeaturePropertyDTO = z.infer<typeof CreateFeaturePropertySchema>;
-export type UpdateFeaturePropertyDTO = z.infer<typeof UpdateFeaturePropertySchema>;
+    status: z
+      .enum(["draft", "pending", "active", "inactive", "archived", "rejected"])
+      .optional(),
+
+    approvalStatus: z.enum(["pending", "approved", "rejected"]).optional(),
+
+    approvedBy: z.string().optional(),
+
+    approvedAt: z.date().optional(),
+
+    rejectedReason: z.string().optional(),
+
+    location: z
+      .object({
+        type: z.literal("Point").optional(),
+        coordinates: z.tuple([z.number(), z.number()]).optional(),
+      })
+      .optional(),
+    mapEmbedUrl: z.string().url().optional(),
+    currency: z.string().optional(),
+    priceFrom: z.number().optional(),
+    priceTo: z.number().optional(),
+    area: AreaSchemaZ.optional(),
+    projectSummary: z.array(ProjectSummarySchemaZ).optional(),
+    bhkSummary: z.array(ProjectSummarySchemaZ).optional(),
+    aboutSummary: z.union([AboutSummaryZ, z.array(AboutSummaryZ)]).optional(),
+    sqftRange: z
+      .object({ min: z.number().optional(), max: z.number().optional() })
+      .optional(),
+    possessionDate: z.string().optional(),
+    totalTowers: z.number().int().optional(),
+    totalFloors: z.string().optional(),
+    projectArea: z.number().optional(),
+    totalUnits: z.number().int().optional(),
+    availableUnits: z.number().int().optional(),
+    reraNumber: z.string().optional(),
+    banksApproved: z.array(z.string()).optional(),
+    heroImage: z.string().url().optional(),
+    heroVideo: z.string().url().optional(),
+    heroTagline: z.string().optional(),
+    heroSubTagline: z.string().optional(),
+    heroDescription: z.string().optional(),
+    color: z.string().optional(),
+    metaTitle: z.string().optional(),
+    metaDescription: z.string().optional(),
+    metaKeywords: z.string().optional(),
+    propertyType: z.string().optional(),
+    categoryType: z
+      .enum(["residential", "land", "commercial", "agricultural"])
+      .optional(),
+    gallerySummary: z.array(GallerySummarySchema).optional(),
+    brochure: z.object(BrochureSchema).optional(),
+    specifications: z.array(SpecificationSchema).optional(),
+    amenities: z.array(AmenitySchema).optional(),
+    nearbyPlaces: z.array(NearbyPlaceSchema).optional(),
+    leads: z.array(LeadSchema).optional(),
+    isFeatured: z.boolean().optional(),
+    rank: z.coerce.number().int().optional(),
+    meta: z
+      .object({
+        views: z.number().int().optional(),
+        inquiries: z.number().int().optional(),
+        clicks: z.number().int().optional(),
+      })
+      .optional(),
+
+    createdBy: z.string().optional(),
+    updatedBy: z.string().optional(),
+  })
+  .partial();
+export type CreateFeaturePropertyDTO = z.infer<
+  typeof CreateFeaturePropertySchema
+>;
+export type UpdateFeaturePropertyDTO = z.infer<
+  typeof UpdateFeaturePropertySchema
+>;

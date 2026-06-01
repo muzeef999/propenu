@@ -11,8 +11,8 @@ export interface AuthRequest extends Request {
 
 export async function authMiddleware(
   req: AuthRequest,
-  res: Response, 
-  next: NextFunction
+  res: Response,
+  next: NextFunction,
 ) {
   const authHeader = req.headers.authorization;
 
@@ -30,18 +30,17 @@ export async function authMiddleware(
   try {
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET as string
+      process.env.JWT_SECRET as string,
     ) as unknown as JwtUserPayload;
-  
-     if (!decoded.sub) {
+
+    if (!decoded.sub) {
       return res.status(401).json({ message: "Invalid token payload" });
     }
-    
-     let roleName: string | undefined;
+
+    let roleName: string | undefined;
     let permissions: string[] = [];
 
-
-     if (decoded.roleId) {
+    if (decoded.roleId) {
       const role = await Role.findById(decoded.roleId)
         .select("name permissions")
         .lean();
@@ -54,14 +53,22 @@ export async function authMiddleware(
       permissions = role.permissions ?? [];
     }
 
-    const activeUser = await User.findById(decoded.sub).select("_id isActive").lean();
+    const activeUser = await User.findById(decoded.sub)
+      .select("_id isActive")
+      .lean();
 
     if (!activeUser || activeUser.isActive === false) {
       return res.status(401).json({ message: "Account is no longer active" });
     }
 
-    req.user = { ...decoded, _id : decoded.sub, roleName, permissions }
-    
+    req.user = {
+      ...decoded,
+      _id: decoded.sub,
+      id: decoded.sub,
+      roleName,
+      permissions,
+    };
+
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid token" });

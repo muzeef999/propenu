@@ -919,48 +919,103 @@ export const adminCreateUpdateLocation = async (
   res: Response
 ) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized" });
+    // check auth
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
     }
 
     let { locality, city, state, pincode } = req.body;
 
+    // validation
     if (!locality || !city || !state || !pincode) {
       return res.status(400).json({
+        success: false,
         message: "All location fields are required",
       });
     }
 
-    const user = await User.findById(req.user.sub).populate("roleId");
+    // trim values
+    locality = locality.trim();
+    city = city.trim();
+    state = state.trim();
+    pincode = pincode.trim();
+
+    // fetch user
+    const user = await User.findById(req.user.id).populate("roleId");
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    const roleDoc: any = user.roleId;
-    if (!ADMIN_CREATE_ROLES.has(roleDoc?.name || "")) {
-      return res.status(403).json({
-        message: "This endpoint is only allowed for admin-created roles",
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
       });
     }
 
-    user.locality = locality.trim();
-    user.city = city.trim();
-    user.state = state.trim();
-    user.pincode = pincode.trim();
+    // role document
+    const roleDoc: any = user.roleId;
+
+    console.log("ROLE DOC:", roleDoc);
+    console.log("ROLE NAME:", roleDoc?.name);
+
+    // check role exists
+    if (!roleDoc?.name) {
+      return res.status(400).json({
+        success: false,
+        message: "Role not assigned to user",
+      });
+    }
+
+    // check allowed roles
+    if (!ADMIN_CREATE_ROLES.has(roleDoc.name)) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "This endpoint is only allowed for admin-created roles",
+      });
+    }
+
+    // prevent duplicate onboarding
+    if (user.accountStatus === "active") {
+      return res.status(400).json({
+        success: false,
+        message: "Location already updated",
+      });
+    }
+
+    // update user location
+    user.locality = locality;
+    user.city = city;
+    user.state = state;
+    user.pincode = pincode;
+
+    // activate account
     user.accountStatus = "active";
 
     await user.save();
 
-    const token = createAuthToken({ user, roleDoc });
+    // create fresh token
+    const token = createAuthToken({
+      user,
+      roleDoc,
+    });
 
     return res.status(200).json({
-      message: "Location updated successfully. Account is now active.",
+      success: true,
+      message:
+        "Location updated successfully. Account is now active.",
       token,
       user,
     });
   } catch (error: any) {
+    console.error(
+      "ADMIN CREATE UPDATE LOCATION ERROR:",
+      error
+    );
+
     return res.status(500).json({
+      success: false,
       message: "Failed to update location",
       error: error.message,
     });

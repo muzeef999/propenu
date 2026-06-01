@@ -232,8 +232,8 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
     },
     status: {
       type: String,
-      enum: ["active", "inactive", "archived"],
-      default: "active",
+      enum: ["draft", "pending", "active", "inactive", "archived", "rejected"],
+      default: "pending",
       index: true,
     },
     createdBy: {
@@ -250,6 +250,26 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
         priority: 0,
         source: "manual",
       }),
+    },
+
+    approvalStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+      index: true,
+    },
+
+    approvedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+
+    approvedAt: {
+      type: Date,
+    },
+
+    rejectedReason: {
+      type: String,
     },
 
     postedBy: {
@@ -277,7 +297,6 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
       name: String,
       email: String,
       roleName: String,
-
       updatedAt: Date,
     },
 

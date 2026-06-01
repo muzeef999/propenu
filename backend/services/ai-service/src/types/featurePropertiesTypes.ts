@@ -52,8 +52,8 @@ export interface IAmenity {
 export interface Ibrochure {
   key?: string;
   url?: string;
-  filename?: string,
-  mimetype?: string,
+  filename?: string;
+  mimetype?: string;
 }
 
 export interface IAboutSummary {
@@ -127,9 +127,9 @@ export interface IFeaturedProject {
   heroTagline?: string;
   heroSubTagline?: string;
   heroDescription?: string;
-  color?: string; 
+  color?: string;
   youtubeVideos?: IYoutubeVideo[];
-  redirectUrl?:string;
+  redirectUrl?: string;
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string;
@@ -143,7 +143,7 @@ export interface IFeaturedProject {
     coordinates: [number, number] | number[];
   };
   mapEmbedUrl?: string;
-  state?:string;
+  state?: string;
   aboutSummary?: IAboutSummary;
   currency?: string; // default: 'INR'
   priceFrom?: number; // computed
@@ -160,8 +160,8 @@ export interface IFeaturedProject {
   projectArea?: number;
   totalUnits?: number;
   availableUnits?: number;
- 
-  locality?:string;
+
+  locality?: string;
   // legal / banks
   reraNumber?: string;
   banksApproved?: string[];
@@ -189,7 +189,13 @@ export interface IFeaturedProject {
   };
 
   // status & audit
-  status?: "active" | "inactive" | "archived";
+  status?:
+    | "draft"
+    | "pending"
+    | "active"
+    | "inactive"
+    | "archived"
+    | "rejected";
   createdBy?: Types.ObjectId | string;
   updatedBy?: Types.ObjectId | string;
   relatedProjects?: Array<Types.ObjectId | string>;

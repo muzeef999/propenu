@@ -49,6 +49,24 @@ export const createFeatureProperties = async (req: Request, res: Response) => {
       parsed,
     ) as CreateFeaturePropertyDTO;
 
+    const authUser = (req as AuthRequest).user;
+
+    const roleName = authUser?.roleName;
+
+    if (roleName === "sales_agent") {
+      payload.status = "pending";
+
+      payload.approvalStatus = "pending";
+    } else {
+      payload.status = "active";
+
+      payload.approvalStatus = "approved";
+
+      payload.approvedBy = authUser?.id;
+
+      payload.approvedAt = new Date();
+    }
+
     // files: multer puts them in req.files
     // heroImage: single file 'heroImage', galleryFiles: array
     const files = req.files as
