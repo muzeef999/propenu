@@ -51,6 +51,10 @@ export interface Property {
   locality?: string;
   priceFrom?: number;
   priceTo?: number;
+  sqftRange?: {
+    min?: number;
+    max?: number;
+  };
   projectArea?: number;
   bhk?: number | number[];
   bhkSummary?: {
@@ -59,6 +63,9 @@ export interface Property {
     bhkLabel?: string;
     units?: {
       minSqft?: number;
+      maxSqft?: number;
+      minPrice?: number;
+      price?: number;
       maxPrice?: number;
       availableCount?: number;
       area?: {

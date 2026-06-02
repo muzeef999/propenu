@@ -18,6 +18,8 @@ const allowedSortFields = new Set([
   "updatedAt",
   "publishedAt",
   "views",
+  "likes",
+  "shares",
   "title",
   "readTime",
 ]);
@@ -82,6 +84,10 @@ async function ensureUniqueSlug(slug: string, excludeId?: string) {
   return candidate;
 }
 
+const sidebarArticleLimit = 5;
+const articlePreviewFields =
+  "title slug featuredImage imageAlt category views likes shares";
+
 export const BlogService = {
   async createBlog(payload: Record<string, any>) {
     const next = withPublishDate(payload);
@@ -129,17 +135,29 @@ export const BlogService = {
       : "createdAt";
     const sortDirection: SortOrder = options.sortOrder === "asc" ? 1 : -1;
 
-    const [items, total] = await Promise.all([
+    const [items, total, recentArticles, popularArticles] = await Promise.all([
       Blog.find(filter)
         .sort({ [sortField]: sortDirection })
         .skip(skip)
         .limit(limit)
         .lean(),
       Blog.countDocuments(filter),
+      Blog.find(filter)
+        .sort({ publishedAt: -1, createdAt: -1 })
+        .select(articlePreviewFields)
+        .limit(sidebarArticleLimit)
+        .lean(),
+      Blog.find(filter)
+        .sort({ views: -1, publishedAt: -1, createdAt: -1 })
+        .select(articlePreviewFields)
+        .limit(sidebarArticleLimit)
+        .lean(),
     ]);
 
     return {
       items,
+      recentArticles,
+      popularArticles,
       total,
       page,
       limit,
@@ -180,5 +198,23 @@ export const BlogService = {
   async incrementViews(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
     return Blog.findByIdAndUpdate(id, { $inc: { views: 1 } });
+  },
+
+  async incrementLikes(id: string) {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    return Blog.findByIdAndUpdate(
+      id,
+      { $inc: { likes: 1 } },
+      { new: true },
+    ).select("likes shares views");
+  },
+
+  async incrementShares(id: string) {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    return Blog.findByIdAndUpdate(
+      id,
+      { $inc: { shares: 1 } },
+      { new: true },
+    ).select("likes shares views");
   },
 };

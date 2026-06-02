@@ -15,6 +15,9 @@ import {
 import { Property } from "@/types/property";
 import { useShortlist } from "@/hooks/useShortlist";
 
+type ProjectSummaryUnit = NonNullable<
+  NonNullable<Property["bhkSummary"]>[number]["units"]
+>[number];
 
 export interface IPromotion {
   type: "normal" | "featured" | "sponsored" | "prime";
@@ -33,8 +36,8 @@ export interface IPromotion {
 function getBhkLabel(property: Property) {
   const bhks = Array.isArray(property.bhkSummary)
     ? property.bhkSummary
-        .map((item) => item.bhk)
-        .filter((value) => typeof value === "number" && Number.isFinite(value))
+      .map((item) => item.bhk)
+      .filter((value) => typeof value === "number" && Number.isFinite(value))
     : [];
 
   if (!bhks.length && Array.isArray(property.bhk)) {
@@ -64,6 +67,153 @@ function getPriceLabel(property: Property) {
   }
 
   return "Price on request";
+}
+
+function normalizeAreaUnit(unit?: string) {
+  const normalized = unit?.trim().toLowerCase();
+
+  if (
+    !normalized ||
+    ["sqft", "sq.ft", "sq ft", "square feet", "square foot"].includes(
+      normalized,
+    )
+  ) {
+    return "sq.ft";
+  }
+
+  if (["sqyd", "sq.yd", "sq yd", "square yard", "square yards"].includes(normalized)) {
+    return "sq.yd";
+  }
+
+  if (
+    ["sqmt", "sq.mt", "sq m", "sqm", "square meter", "square metre"].includes(
+      normalized,
+    )
+  ) {
+    return "sq.mt";
+  }
+
+  if (["gunta", "guntas", "gunta(s)", "guntha", "gunthas"].includes(normalized)) {
+    return "guntas";
+  }
+
+  return unit?.trim() || "sq.ft";
+}
+
+function getUnitAreaForRate(unit?: ProjectSummaryUnit) {
+  if (
+    typeof unit?.area?.value === "number" &&
+    Number.isFinite(unit.area.value) &&
+    unit.area.value > 0
+  ) {
+    return {
+      value: unit.area.value,
+      unit: normalizeAreaUnit(unit.area.unit),
+    };
+  }
+
+  if (
+    typeof unit?.area?.sqftValue === "number" &&
+    Number.isFinite(unit.area.sqftValue) &&
+    unit.area.sqftValue > 0
+  ) {
+    return {
+      value: unit.area.sqftValue,
+      unit: "sq.ft",
+    };
+  }
+
+  if (
+    typeof unit?.minSqft === "number" &&
+    Number.isFinite(unit.minSqft) &&
+    unit.minSqft > 0
+  ) {
+    return {
+      value: unit.minSqft,
+      unit: "sq.ft",
+    };
+  }
+
+  return null;
+}
+
+function formatPricePerUnit(pricePerUnit: number, unit: string) {
+  if (
+    typeof pricePerUnit !== "number" ||
+    !Number.isFinite(pricePerUnit) ||
+    pricePerUnit <= 0
+  ) {
+    return null;
+  }
+
+  return `\u20b9${Math.round(pricePerUnit).toLocaleString("en-IN")}/${unit}`;
+}
+
+function getPricePerSqftLabel(property: Property) {
+  const units = (property.projectSummary ?? property.bhkSummary ?? []).flatMap(
+    (item) => item.units ?? [],
+  );
+  const unitRates = units
+    .map((unit) => {
+      const price = unit.minPrice ?? unit.price;
+      const area = getUnitAreaForRate(unit);
+
+      if (
+        typeof price !== "number" ||
+        !Number.isFinite(price) ||
+        price <= 0 ||
+        !area
+      ) {
+        return null;
+      }
+
+      return {
+        price,
+        pricePerUnit: price / area.value,
+        unit: area.unit,
+      };
+    })
+    .filter(
+      (rate): rate is { price: number; pricePerUnit: number; unit: string } =>
+        Boolean(rate),
+    )
+    .sort((a, b) => a.price - b.price);
+  const unitRateLabel = unitRates[0]
+    ? formatPricePerUnit(unitRates[0].pricePerUnit, unitRates[0].unit)
+    : null;
+
+  if (unitRateLabel) return unitRateLabel;
+
+  const minArea = units
+    .map(getUnitAreaForRate)
+    .filter((area): area is { value: number; unit: string } => Boolean(area))
+    .sort((a, b) => a.value - b.value)[0];
+  const derivedPricePerUnit =
+    typeof property.priceFrom === "number" && minArea
+      ? {
+        value: property.priceFrom / minArea.value,
+        unit: minArea.unit,
+      }
+      : undefined;
+  const derivedPricePerSqft =
+    typeof property.priceFrom === "number" &&
+      typeof property.sqftRange?.min === "number" &&
+      property.sqftRange.min > 0
+      ? {
+        value: property.priceFrom / property.sqftRange.min,
+        unit: "sq.ft",
+      }
+      : undefined;
+  const directPricePerSqft =
+    typeof property.pricePerSqft === "number"
+      ? {
+        value: property.pricePerSqft,
+        unit: "sq.ft",
+      }
+      : undefined;
+  const rate = derivedPricePerUnit ?? derivedPricePerSqft ?? directPricePerSqft;
+
+  return rate ? formatPricePerUnit(rate.value, rate.unit) ?? "--" : "--";
 }
 
 function getAmenitiesCount(property: Property) {
@@ -144,22 +294,19 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
 
   return (
     <div
-      className={`card p-2 h-auto flex overflow-hidden ${
-        vertical
-          ? "w-[min(100vw-2rem,360px)] flex-col"
-          : "flex-col md:flex-row md:h-[220px]"
-      }`}
+      className={`card p-2 h-auto flex overflow-hidden ${vertical
+        ? "w-[min(100vw-2rem,360px)] flex-col"
+        : "flex-col md:flex-row md:h-[220px]"
+        }`}
     >
       <Link
         href={propertyHref}
-        className={`flex flex-1 min-w-0 ${
-          vertical ? "flex-col" : "flex-col md:flex-row"
-        }`}
+        className={`flex flex-1 min-w-0 ${vertical ? "flex-col" : "flex-col md:flex-row"
+          }`}
       >
         <div
-          className={`rounded-xl relative shrink-0 ${
-            vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"
-          }`}
+          className={`rounded-xl relative shrink-0 ${vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"
+            }`}
         >
           <ImageAutoCarousel
             images={images}
@@ -192,11 +339,10 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
             className={`min-w-0 flex ${vertical ? "flex-col gap-1" : "flex-col"}`}
           >
             <h3
-              className={`font-semibold leading-snug line-clamp-2 capitalize ${
-                vertical
-                  ? "text-base max-w-[250px] truncate"
-                  : "text-lg md:text-md max-w-[600px]"
-              }`}
+              className={`font-semibold leading-snug line-clamp-2 capitalize ${vertical
+                ? "text-base max-w-[250px] truncate"
+                : "text-lg md:text-md max-w-[600px]"
+                }`}
             >
               {p.title} {p.propertyType} for Sale in{" "}
               {[p.locality, p.city].filter(Boolean).join(", ")}
@@ -223,11 +369,10 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
           </div>
 
           <div
-            className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200 ${
-              vertical
-                ? "grid grid-cols-2 gap-4"
-                : "grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6"
-            }`}
+            className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200 ${vertical
+              ? "grid grid-cols-2 gap-4"
+              : "grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6"
+              }`}
           >
             <div className="items-center gap-2 flex">
               <AmenitiesIcon className="h-7 w-7 shrink-0 text-[#27AE60]" />
@@ -264,37 +409,44 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
       </Link>
 
       <aside
-        className={`rounded-xl ${
-          vertical
-            ? "w-full px-3 py-2 flex items-center justify-between gap-3"
-            : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-60 md:p-3 md:flex-col md:justify-center md:mt-0"
-        }`}
+        className={`rounded-xl ${vertical
+          ? "w-full px-3 py-2 flex items-center justify-between gap-3"
+          : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-60 md:p-3 md:flex-col md:justify-center md:mt-0"
+          }`}
         style={{ backgroundColor: bgPriceColor }}
       >
         <div
-          className={`${
-            vertical
-              ? "flex flex-col"
-              : "flex flex-col md:items-center md:text-center"
-          }`}
+          className={`${vertical
+            ? "flex min-w-0 flex-col gap-1"
+            : "flex min-w-0 flex-col gap-2 md:w-full md:items-center md:text-center"
+            }`}
         >
           <div
-            className={`whitespace-nowrap text-green-700 font-semibold ${
-              vertical
-                ? "text-lg leading-tight"
-                : "text-lg leading-tight md:text-xl lg:text-2xl"
-            }`}
+            className={`inline-flex items-center justify-center rounded-lg bg-[#BEf4d4] px-4 py-2 min-w-[190px] text-center font-semibold text-gray-800 shadow-sm ring-1 ring-green-200/80
+      ${vertical
+                ? "self-start text-base"
+                : "self-start md:self-center md:text-lg"
+              }`}
+          >
+            <span className="truncate whitespace-nowrap">
+              {getPricePerSqftLabel(p)}
+            </span>
+          </div>
+          <div
+            className={`whitespace-nowrap font-medium text-green-700 ${vertical
+              ? "text-sm leading-tight"
+              : "text-sm leading-tight md:text-base"
+              }`}
           >
             {getPriceLabel(p)}
           </div>
         </div>
 
         <div
-          className={`${
-            vertical
-              ? "shrink-0"
-              : "shrink-0 md:w-full md:mt-4 flex justify-center"
-          }`}
+          className={`${vertical
+            ? "shrink-0"
+            : "shrink-0 md:w-full md:mt-4 flex justify-center"
+            }`}
         >
           <ContactOwnerButton
             projectId={projectId}
@@ -304,11 +456,10 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
             postedOn={p.createdAt}
             price={p.priceFrom ?? p.price}
             propertyLabel={p.title}
-            className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${
-              vertical
-                ? "px-4 py-1.5 text-sm"
-                : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base"
-            }`}
+            className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${vertical
+              ? "px-4 py-1.5 text-sm"
+              : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base"
+              }`}
           >
             Contact Builder
           </ContactOwnerButton>

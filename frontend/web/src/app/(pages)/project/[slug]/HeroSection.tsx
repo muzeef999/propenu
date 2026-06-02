@@ -329,12 +329,12 @@ export default function HeroSection({ project }: HeroSectionProps) {
                                     className="ml-auto h-12 max-w-40 object-contain sm:h-18 sm:max-w-48 border border-gray-200 rounded-md p-1"
                                 />
                             )}
-                            <p className="mt-2 text-md font-bold text-[#4bbb7b] sm:text-xl">
-                                {formatPriceRange(project)}
+                            <p className="mt-2 text-md font-bold  text-[#6C6F79] sm:text-xl">
+                                    {pricePerUnitLabel}
                             </p>
                             {pricePerUnitLabel && (
-                                <p className="mt-1 text-xs font-medium text-[#6C6F79] sm:text-sm">
-                                    {pricePerUnitLabel}
+                                <p className="mt-1 text-xs font-medium text-[#4bbb7b] sm:text-sm">
+                                {formatPriceRange(project)}
                                 </p>
                             )}
                             <p className="mt-0.5 text-[10px] font-medium text-[#8A8D96] sm:text-xs">

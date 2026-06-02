@@ -214,6 +214,11 @@ const Navbar = () => {
     setRegisterKycRemark("");
   };
 
+  const getInitial = (name?: string) => {
+    if (!name) return "U";
+    return name.charAt(0).toUpperCase();
+  };
+
   const popularCities = locations.filter(
     (loc) => loc.category?.toLowerCase() === "popular",
   );
@@ -567,8 +572,8 @@ const Navbar = () => {
               </div>
             ) : (
               <div className="flex items-center gap-3 px-4 py-4 pr-14 bg-gray-50">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg border border-white shadow-sm shrink-0">
-                  {user?.user?.name?.charAt(0)?.toUpperCase() ?? "U"}
+                <div className="h-9 w-9 rounded-full border border-[#27AE60] text-[#26ad5f] flex items-center justify-center font-semibold text-sm shadow shrink-0">
+                  {getInitial(user?.user?.name)}
                 </div>
 
                 <div className="flex flex-col min-w-0">

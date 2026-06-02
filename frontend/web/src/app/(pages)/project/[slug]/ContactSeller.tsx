@@ -111,7 +111,7 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
 
   return (
     <aside className="w-full rounded-md border border-slate-200 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.08)] lg:sticky lg:top-20 lg:max-w-[390px] lg:p-5">
-      <h2 className="text-lg font-medium text-slate-950 sm:text-xl">Contact Seller</h2>
+      <h2 className="text-lg font-medium text-slate-950 sm:text-xl">Contact builder</h2>
 
       <div className="mt-4 flex items-center gap-3">
         <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-100 bg-white sm:h-18 sm:w-18">

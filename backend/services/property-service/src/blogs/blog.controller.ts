@@ -119,3 +119,33 @@ export const deleteBlog = async (req: Request, res: Response) => {
     return res.status(500).json({ message: err.message || "Internal server error" });
   }
 };
+
+export const likeBlog = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ message: "Missing blog id" });
+
+    const blog = await BlogService.incrementLikes(id);
+    if (!blog) return res.status(404).json({ message: "Blog not found" });
+
+    return res.json({ data: blog });
+  } catch (err: any) {
+    console.error("likeBlog:", err);
+    return res.status(500).json({ message: err.message || "Internal server error" });
+  }
+};
+
+export const shareBlog = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ message: "Missing blog id" });
+
+    const blog = await BlogService.incrementShares(id);
+    if (!blog) return res.status(404).json({ message: "Blog not found" });
+
+    return res.json({ data: blog });
+  } catch (err: any) {
+    console.error("shareBlog:", err);
+    return res.status(500).json({ message: err.message || "Internal server error" });
+  }
+};

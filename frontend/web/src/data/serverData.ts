@@ -6,6 +6,7 @@ import { IResidential } from "@/types/residential";
 
 const url = process.env.NEXT_PUBLIC_API_URL
 
+
 export type BlogDetail = {
   _id?: string;
   title: string;
@@ -38,6 +39,20 @@ export type BlogDetail = {
   createdAt?: string;
   readTime?: number;
   views?: number;
+  likes?: number;
+  shares?: number;
+};
+
+export type BlogPreview = {
+  _id?: string;
+  title: string;
+  slug: string;
+  featuredImage?: string;
+  imageAlt?: string;
+  category?: string;
+  views?: number;
+  likes?: number;
+  shares?: number;
 };
 
 export async function getBlogBySlug({ slug }: { slug: string }) {
@@ -58,6 +73,23 @@ export async function getBlogBySlug({ slug }: { slug: string }) {
 
   const json = await res.json();
   return json.data as BlogDetail;
+}
+
+export async function getBlogArticleLists() {
+  const res = await fetch(`${url}/api/properties/blogs?published=true&limit=1`, {
+    next: { revalidate: 10 },
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch blog article lists");
+  }
+
+  const json = await res.json();
+
+  return {
+    recentArticles: (json.recentArticles ?? []) as BlogPreview[],
+    popularArticles: (json.popularArticles ?? []) as BlogPreview[],
+  };
 }
 
 
