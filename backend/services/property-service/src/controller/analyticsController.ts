@@ -53,7 +53,15 @@ export const projectAnalytics = async (
   res: Response
 ): Promise<void> => {
   try {
+    /**
+     * =========================================
+     * QUERY PARAMS
+     * =========================================
+     */
+
+    const state = req.query.state as string;
     const city = req.query.city as string;
+    const locality = req.query.locality as string;
 
     /**
      * =========================================
@@ -63,14 +71,21 @@ export const projectAnalytics = async (
 
     const matchFilter: any = {};
 
-    // Optional city filter
+    if (state) {
+      matchFilter.state = state;
+    }
+
     if (city) {
       matchFilter.city = city;
     }
 
+    if (locality) {
+      matchFilter.locality = locality;
+    }
+
     /**
      * =========================================
-     * OVERVIEW COUNTS
+     * OVERVIEW ANALYTICS
      * =========================================
      */
 
@@ -131,9 +146,7 @@ export const projectAnalytics = async (
           featuredProjects: {
             $sum: {
               $cond: [
-                {
-                  $eq: ["$promotion.type", "featured"],
-                },
+                { $eq: ["$promotion.type", "featured"] },
                 1,
                 0,
               ],
@@ -143,9 +156,7 @@ export const projectAnalytics = async (
           primeProjects: {
             $sum: {
               $cond: [
-                {
-                  $eq: ["$promotion.type", "prime"],
-                },
+                { $eq: ["$promotion.type", "prime"] },
                 1,
                 0,
               ],
@@ -155,9 +166,7 @@ export const projectAnalytics = async (
           sponsoredProjects: {
             $sum: {
               $cond: [
-                {
-                  $eq: ["$promotion.type", "sponsored"],
-                },
+                { $eq: ["$promotion.type", "sponsored"] },
                 1,
                 0,
               ],
@@ -168,13 +177,94 @@ export const projectAnalytics = async (
             $sum: "$meta.views",
           },
 
-          totalInquiries: {
-            $sum: "$meta.inquiries",
-          },
-
           totalClicks: {
             $sum: "$meta.clicks",
           },
+
+          totalInquiries: {
+            $sum: "$meta.inquiries",
+          },
+        },
+      },
+    ]);
+
+    /**
+     * =========================================
+     * STATE WISE
+     * =========================================
+     */
+
+    const stateWisePromise = FeaturedProject.aggregate([
+      {
+        $match: matchFilter,
+      },
+
+      {
+        $group: {
+          _id: "$state",
+
+          total: {
+            $sum: 1,
+          },
+
+          active: {
+            $sum: {
+              $cond: [{ $eq: ["$status", "active"] }, 1, 0],
+            },
+          },
+
+          normal: {
+            $sum: {
+              $cond: [
+                {
+                  $eq: [
+                    {
+                      $ifNull: ["$promotion.type", "normal"],
+                    },
+                    "normal",
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+
+          featured: {
+            $sum: {
+              $cond: [
+                { $eq: ["$promotion.type", "featured"] },
+                1,
+                0,
+              ],
+            },
+          },
+
+          prime: {
+            $sum: {
+              $cond: [
+                { $eq: ["$promotion.type", "prime"] },
+                1,
+                0,
+              ],
+            },
+          },
+
+          sponsored: {
+            $sum: {
+              $cond: [
+                { $eq: ["$promotion.type", "sponsored"] },
+                1,
+                0,
+              ],
+            },
+          },
+        },
+      },
+
+      {
+        $sort: {
+          total: -1,
         },
       },
     ]);
@@ -193,6 +283,170 @@ export const projectAnalytics = async (
       {
         $group: {
           _id: "$city",
+
+          total: {
+            $sum: 1,
+          },
+
+          active: {
+            $sum: {
+              $cond: [{ $eq: ["$status", "active"] }, 1, 0],
+            },
+          },
+
+          normal: {
+            $sum: {
+              $cond: [
+                {
+                  $eq: [
+                    {
+                      $ifNull: ["$promotion.type", "normal"],
+                    },
+                    "normal",
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+
+          featured: {
+            $sum: {
+              $cond: [
+                { $eq: ["$promotion.type", "featured"] },
+                1,
+                0,
+              ],
+            },
+          },
+
+          prime: {
+            $sum: {
+              $cond: [
+                { $eq: ["$promotion.type", "prime"] },
+                1,
+                0,
+              ],
+            },
+          },
+
+          sponsored: {
+            $sum: {
+              $cond: [
+                { $eq: ["$promotion.type", "sponsored"] },
+                1,
+                0,
+              ],
+            },
+          },
+        },
+      },
+
+      {
+        $sort: {
+          total: -1,
+        },
+      },
+    ]);
+
+    /**
+     * =========================================
+     * LOCALITY WISE
+     * =========================================
+     */
+
+    const localityWisePromise = FeaturedProject.aggregate([
+      {
+        $match: matchFilter,
+      },
+
+      {
+        $group: {
+          _id: "$locality",
+
+          total: {
+            $sum: 1,
+          },
+
+          active: {
+            $sum: {
+              $cond: [{ $eq: ["$status", "active"] }, 1, 0],
+            },
+          },
+
+          normal: {
+            $sum: {
+              $cond: [
+                {
+                  $eq: [
+                    {
+                      $ifNull: ["$promotion.type", "normal"],
+                    },
+                    "normal",
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+
+          featured: {
+            $sum: {
+              $cond: [
+                { $eq: ["$promotion.type", "featured"] },
+                1,
+                0,
+              ],
+            },
+          },
+
+          prime: {
+            $sum: {
+              $cond: [
+                { $eq: ["$promotion.type", "prime"] },
+                1,
+                0,
+              ],
+            },
+          },
+
+          sponsored: {
+            $sum: {
+              $cond: [
+                { $eq: ["$promotion.type", "sponsored"] },
+                1,
+                0,
+              ],
+            },
+          },
+        },
+      },
+
+      {
+        $sort: {
+          total: -1,
+        },
+      },
+    ]);
+
+    /**
+     * =========================================
+     * CATEGORY WISE
+     * =========================================
+     */
+
+    const categoryWisePromise = FeaturedProject.aggregate([
+      {
+        $match: matchFilter,
+      },
+
+      {
+        $group: {
+          _id: {
+            $ifNull: ["$categoryType", "unknown"],
+          },
 
           total: {
             $sum: 1,
@@ -236,9 +490,7 @@ export const projectAnalytics = async (
           featured: {
             $sum: {
               $cond: [
-                {
-                  $eq: ["$promotion.type", "featured"],
-                },
+                { $eq: ["$promotion.type", "featured"] },
                 1,
                 0,
               ],
@@ -248,9 +500,7 @@ export const projectAnalytics = async (
           prime: {
             $sum: {
               $cond: [
-                {
-                  $eq: ["$promotion.type", "prime"],
-                },
+                { $eq: ["$promotion.type", "prime"] },
                 1,
                 0,
               ],
@@ -260,92 +510,7 @@ export const projectAnalytics = async (
           sponsored: {
             $sum: {
               $cond: [
-                {
-                  $eq: ["$promotion.type", "sponsored"],
-                },
-                1,
-                0,
-              ],
-            },
-          },
-        },
-      },
-
-      {
-        $sort: {
-          total: -1,
-        },
-      },
-    ]);
-
-    /**
-     * =========================================
-     * CATEGORY WISE
-     * =========================================
-     */
-
-    const categoryWisePromise = FeaturedProject.aggregate([
-      {
-        $match: matchFilter,
-      },
-
-      {
-        $group: {
-          _id: {
-            $ifNull: ["$categoryType", "unknown"],
-          },
-
-          total: {
-            $sum: 1,
-          },
-
-          normal: {
-            $sum: {
-              $cond: [
-                {
-                  $eq: [
-                    {
-                      $ifNull: ["$promotion.type", "normal"],
-                    },
-                    "normal",
-                  ],
-                },
-                1,
-                0,
-              ],
-            },
-          },
-
-          featured: {
-            $sum: {
-              $cond: [
-                {
-                  $eq: ["$promotion.type", "featured"],
-                },
-                1,
-                0,
-              ],
-            },
-          },
-
-          prime: {
-            $sum: {
-              $cond: [
-                {
-                  $eq: ["$promotion.type", "prime"],
-                },
-                1,
-                0,
-              ],
-            },
-          },
-
-          sponsored: {
-            $sum: {
-              $cond: [
-                {
-                  $eq: ["$promotion.type", "sponsored"],
-                },
+                { $eq: ["$promotion.type", "sponsored"] },
                 1,
                 0,
               ],
@@ -400,9 +565,7 @@ export const projectAnalytics = async (
           featured: {
             $sum: {
               $cond: [
-                {
-                  $eq: ["$promotion.type", "featured"],
-                },
+                { $eq: ["$promotion.type", "featured"] },
                 1,
                 0,
               ],
@@ -412,9 +575,7 @@ export const projectAnalytics = async (
           prime: {
             $sum: {
               $cond: [
-                {
-                  $eq: ["$promotion.type", "prime"],
-                },
+                { $eq: ["$promotion.type", "prime"] },
                 1,
                 0,
               ],
@@ -424,14 +585,18 @@ export const projectAnalytics = async (
           sponsored: {
             $sum: {
               $cond: [
-                {
-                  $eq: ["$promotion.type", "sponsored"],
-                },
+                { $eq: ["$promotion.type", "sponsored"] },
                 1,
                 0,
               ],
             },
           },
+        },
+      },
+
+      {
+        $sort: {
+          total: -1,
         },
       },
     ]);
@@ -449,10 +614,65 @@ export const projectAnalytics = async (
 
       {
         $group: {
-          _id: "$propertyType",
+          _id: {
+            $ifNull: ["$propertyType", "unknown"],
+          },
 
           total: {
             $sum: 1,
+          },
+
+          active: {
+            $sum: {
+              $cond: [{ $eq: ["$status", "active"] }, 1, 0],
+            },
+          },
+
+          normal: {
+            $sum: {
+              $cond: [
+                {
+                  $eq: [
+                    {
+                      $ifNull: ["$promotion.type", "normal"],
+                    },
+                    "normal",
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+
+          featured: {
+            $sum: {
+              $cond: [
+                { $eq: ["$promotion.type", "featured"] },
+                1,
+                0,
+              ],
+            },
+          },
+
+          prime: {
+            $sum: {
+              $cond: [
+                { $eq: ["$promotion.type", "prime"] },
+                1,
+                0,
+              ],
+            },
+          },
+
+          sponsored: {
+            $sum: {
+              $cond: [
+                { $eq: ["$promotion.type", "sponsored"] },
+                1,
+                0,
+              ],
+            },
           },
         },
       },
@@ -466,144 +686,86 @@ export const projectAnalytics = async (
 
     /**
      * =========================================
-     * PRICE ANALYTICS
+     * PROMOTION WISE
      * =========================================
      */
 
-    const priceAnalyticsPromise = FeaturedProject.aggregate([
+    const promotionWisePromise = FeaturedProject.aggregate([
       {
         $match: matchFilter,
       },
 
       {
         $group: {
-          _id: null,
+          _id: {
+            promotionType: {
+              $ifNull: ["$promotion.type", "normal"],
+            },
 
-          avgPriceFrom: {
-            $avg: "$priceFrom",
+            category: {
+              $ifNull: ["$categoryType", "unknown"],
+            },
           },
 
-          avgPriceTo: {
-            $avg: "$priceTo",
+          total: {
+            $sum: 1,
           },
 
-          minPrice: {
-            $min: "$priceFrom",
+          active: {
+            $sum: {
+              $cond: [{ $eq: ["$status", "active"] }, 1, 0],
+            },
           },
 
-          maxPrice: {
-            $max: "$priceTo",
+          pending: {
+            $sum: {
+              $cond: [{ $eq: ["$status", "pending"] }, 1, 0],
+            },
           },
+
+          inactive: {
+            $sum: {
+              $cond: [{ $eq: ["$status", "inactive"] }, 1, 0],
+            },
+          },
+        },
+      },
+
+      {
+        $group: {
+          _id: "$_id.promotionType",
+
+          total: {
+            $sum: "$total",
+          },
+
+          active: {
+            $sum: "$active",
+          },
+
+          pending: {
+            $sum: "$pending",
+          },
+
+          inactive: {
+            $sum: "$inactive",
+          },
+
+          categories: {
+            $push: {
+              category: "$_id.category",
+              count: "$total",
+            },
+          },
+        },
+      },
+
+      {
+        $sort: {
+          total: -1,
         },
       },
     ]);
-
-    /**
-     * =========================================
-     * PROMOTION WISE
-     * =========================================
-     */
-
-const promotionWisePromise = FeaturedProject.aggregate([
-  {
-    $match: matchFilter,
-  },
-
-  /**
-   * =========================================
-   * GROUP BY PROMOTION + CATEGORY
-   * =========================================
-   */
-
-  {
-    $group: {
-      _id: {
-        promotionType: {
-          $ifNull: ["$promotion.type", "normal"],
-        },
-
-        category: {
-          $ifNull: ["$categoryType", "unknown"],
-        },
-      },
-
-      total: {
-        $sum: 1,
-      },
-
-      active: {
-        $sum: {
-          $cond: [{ $eq: ["$status", "active"] }, 1, 0],
-        },
-      },
-
-      pending: {
-        $sum: {
-          $cond: [{ $eq: ["$status", "pending"] }, 1, 0],
-        },
-      },
-
-      inactive: {
-        $sum: {
-          $cond: [{ $eq: ["$status", "inactive"] }, 1, 0],
-        },
-      },
-    },
-  },
-
-  /**
-   * =========================================
-   * REGROUP BY PROMOTION TYPE
-   * =========================================
-   */
-
-  {
-    $group: {
-      _id: "$_id.promotionType",
-
-      total: {
-        $sum: "$total",
-      },
-
-      active: {
-        $sum: "$active",
-      },
-
-      pending: {
-        $sum: "$pending",
-      },
-
-      inactive: {
-        $sum: "$inactive",
-      },
-
-      categories: {
-        $push: {
-          k: {
-            $toString: "$_id.category",
-          },
-
-          v: "$total",
-        },
-      },
-    },
-  },
-
-  /**
-   * =========================================
-   * ARRAY TO OBJECT
-   * =========================================
-   */
-
-  {
-    $addFields: {
-      categories: {
-        $arrayToObject: "$categories",
-      },
-    },
-  },
-]);
-
 
     /**
      * =========================================
@@ -613,19 +775,21 @@ const promotionWisePromise = FeaturedProject.aggregate([
 
     const [
       overview,
+      stateWise,
       cityWise,
+      localityWise,
       categoryWise,
       statusWise,
       propertyTypeWise,
-      priceAnalytics,
       promotionWise,
     ] = await Promise.all([
       overviewPromise,
+      stateWisePromise,
       cityWisePromise,
+      localityWisePromise,
       categoryWisePromise,
       statusWisePromise,
       propertyTypeWisePromise,
-      priceAnalyticsPromise,
       promotionWisePromise,
     ]);
 
@@ -639,13 +803,19 @@ const promotionWisePromise = FeaturedProject.aggregate([
       success: true,
 
       filters: {
+        state: state || null,
         city: city || null,
+        locality: locality || null,
       },
 
       data: {
         overview: overview[0] || {},
 
+        stateWise,
+
         cityWise,
+
+        localityWise,
 
         categoryWise,
 
@@ -654,8 +824,6 @@ const promotionWisePromise = FeaturedProject.aggregate([
         propertyTypeWise,
 
         promotionWise,
-
-        priceAnalytics: priceAnalytics[0] || {},
       },
     });
   } catch (error) {
@@ -667,7 +835,6 @@ const promotionWisePromise = FeaturedProject.aggregate([
     });
   }
 };
-
 
 
 /* =====================================================
