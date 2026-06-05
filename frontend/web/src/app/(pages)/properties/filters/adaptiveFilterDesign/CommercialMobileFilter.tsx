@@ -62,6 +62,11 @@ const getCategoryLabel = (value: categoryOption) =>
   value === "Land" ? "Plots" : value;
 
 const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
+const postedByLabelMap: Record<PostedByOption, string> = {
+  Owners: "User",
+  Agents: "Agent",
+  Builders: "Builder",
+};
 
 const COMMERCIAL_SUBTYPE_MAP: Record<string, string[]> = {
   office: ["BARE SHELL", "WARM SHELL", "BUSINESS CENTER"],
@@ -556,7 +561,7 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
                     : "border-gray-300 bg-white"
                 }`}
               >
-                {option}
+                {postedByLabelMap[option]}
               </button>
             ))}
           </div>
@@ -711,7 +716,11 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
                                 return (
                                   <SelectableButton
                                     key={opt}
-                                    label={opt}
+                                    label={
+                                      mappedKey === "listingSource"
+                                        ? postedByLabelMap[opt as PostedByOption] ?? opt
+                                        : opt
+                                    }
                                     active={active}
                                     selectionType={section.selectionType ?? "single"}
                                     onClick={() =>

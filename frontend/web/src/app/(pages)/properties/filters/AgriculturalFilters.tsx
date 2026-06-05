@@ -51,6 +51,11 @@ const BOOLEAN_KEYS = new Set([
 ]);
 
 const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
+const postedByLabelMap: Record<PostedByOption, string> = {
+  Owners: "User",
+  Agents: "Agent",
+  Builders: "Builder",
+};
 
 const normalizeBudgetRange = (
   min: number | null,
@@ -406,7 +411,7 @@ const AgriculturalFilters = () => {
                 className={`px-2 py-1 rounded block w-full text-left hover:bg-gray-100 ${postedBy?.includes(opt) ? "font-semibold bg-gray-100" : ""
                   }`}
               >
-                {opt}
+                {postedByLabelMap[opt]}
               </button>
             ))}
             <button
@@ -677,7 +682,7 @@ const AgriculturalFilters = () => {
                           return (
                             <SelectableButton
                               key={opt}
-                              label={opt}
+                              label={postedByLabelMap[opt as PostedByOption] ?? opt}
                               active={isActive}
                               selectionType={isMultiSelect ? "multiple" : "single"}
                               onClick={() => {

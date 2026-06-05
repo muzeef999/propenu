@@ -16,7 +16,7 @@ interface UserGreetingProps {
   onClose?: () => void;
 }
 
-const GreetingOptions = [
+export const GreetingOptions = [
   { label: "Account & Settings", link: "/settings" },
   { label: "My Properties", link: "/my-properties" },
   { label: "Shortlisted Properties", link: "/shortlisted-properties" },
@@ -25,7 +25,7 @@ const GreetingOptions = [
   { label: "Logout", link: "/logout" },
 ];
 
-const AgentOptions = [
+export const AgentOptions = [
   { label: "Dashboard", link: "/agent" },
   { label: "Leads", link: "/agent/leads" },
   { label: "My Properties", link: "/agent/my-properties" },
@@ -37,7 +37,7 @@ const AgentOptions = [
 
 
 
-const BuilderOptions = [
+export const BuilderOptions = [
   { label: "Dashboard", link: "/builder" },
   { label: "Leads", link: "/builder/leads" },
   { label: "My Shortlists", link: "/builder/my-shortlists" },
@@ -47,21 +47,21 @@ const BuilderOptions = [
   { label: "Logout", link: "/logout" },
 ];
 
+export const getOptionsForRole = (roleName?: string) => {
+  switch (roleName) {
+    case "agent":
+      return AgentOptions;
+    case "builder":
+      return BuilderOptions;
+    default:
+      return GreetingOptions;
+  }
+};
 
 const UserGreeting = ({ user, onClose }: UserGreetingProps) => {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
 
-  const getOptionsForRole = (roleName?: string) => {
-    switch (roleName) {
-      case "agent":
-        return AgentOptions;
-      case "builder":
-        return BuilderOptions;
-      default:
-        return GreetingOptions;
-    }
-  };
   const getInitial = (name?: string) => {
     if (!name) return "U";
     return name.charAt(0).toUpperCase();

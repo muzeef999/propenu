@@ -54,11 +54,10 @@ const ResidentialFilters = () => {
   const sectionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
 
   const POSTED_BY_MAP: Record<PostedByOption, string> = {
-    Owners: "user",
-    Agents: "agent",
-    Builders: "builder",
+    Owners: "User",
+    Agents: "Agent",
+    Builders: "Builder",
   };
-
 
   const keyMapping: Record<RESFilterKey, keyof typeof residential> = {
     "Property Type": "propertyType",
@@ -434,22 +433,22 @@ const ResidentialFilters = () => {
                 {bedroomOptions.map((opt) => {
                   const value = getBedroomValue(opt);
                   const isSelected = isBedroomSelected(value);
-                  return (
-                    <SelectableButton
-                      key={opt}
-                      label={opt}
-                      active={isSelected}
-                      selectionType="multiple"
-                      onClick={() => {
-                        dispatch(
-                          setResidentialFilter({
-                            key: "bedrooms",
-                            value: toggleBedroomValue(value),
-                          }),
-                        );
-                      }}
-                    />
-                  );
+                    return (
+                      <SelectableButton
+                        key={opt}
+                        label={opt}
+                        active={isSelected}
+                        selectionType="multiple"
+                        onClick={() => {
+                          dispatch(
+                            setResidentialFilter({
+                              key: "bedrooms",
+                              value: toggleBedroomValue(value),
+                            }),
+                          );
+                        }}
+                      />
+                    );
                 })}
               </div>
             </div>
@@ -486,7 +485,7 @@ const ResidentialFilters = () => {
                       : ""
                   }`}
                 >
-                  {opt}
+                  {POSTED_BY_MAP[opt]}
                 </button>
               ))}
               <button
@@ -664,16 +663,24 @@ const ResidentialFilters = () => {
                           const currentValues = Array.isArray(currentValue)
                             ? (currentValue as string[])
                             : [];
+                          const filterValue =
+                            mappedKey === "listingSource"
+                              ? POSTED_BY_MAP[opt as PostedByOption] ?? opt
+                              : opt;
 
                           const isActive =
                             section.selectionType === "multiple"
-                              ? currentValues.includes(opt)
-                              : currentValue === opt;
+                              ? currentValues.includes(filterValue)
+                              : currentValue === filterValue;
 
                           return (
                             <SelectableButton
                               key={opt}
-                              label={formatLabel(opt)} // 👈 UI only
+                              label={
+                                mappedKey === "listingSource"
+                                  ? POSTED_BY_MAP[opt as PostedByOption] ?? opt
+                                  : formatLabel(opt)
+                              }
                               active={isActive}
                               selectionType={section.selectionType ?? "single"}
                               onClick={() => {
@@ -682,8 +689,8 @@ const ResidentialFilters = () => {
                                     key: mappedKey,
                                     value:
                                       section.selectionType === "multiple"
-                                        ? toggleArrayValue(currentValues, opt)
-                                        : opt,
+                                        ? toggleArrayValue(currentValues, filterValue)
+                                        : filterValue,
                                   }),
                                 );
                               }}

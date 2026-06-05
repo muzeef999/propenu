@@ -1,4 +1,5 @@
 import { getResidentialSlugProjects } from "@/data/serverData";
+import { Property } from "@/types/property";
 import { IResidential } from "@/types/residential";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import formatINR from "@/utilies/PriceFormat";
@@ -8,10 +9,11 @@ import GalleryFile from "../../../GalleryFile"; // Assuming this is client-side 
 import { Balconies, Bath, Bhk } from "@/icons/icons";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import Image from "next/image";
-import ad from "@/asserts/ad.png";
 import RelatedPropertiesCarousel from "./RelatedPropertiesCarousel";
 import ResidentialNearbySection from "./ResidentialNearbySection";
 import { RESIDENTIAL_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
+import SponsoreCard from "../../../cards/SponsoreCard";
+import AdCard, { type Ad } from "../../../cards/AdCard";
 
 import { GiKnifeFork, GiMoneyStack } from "react-icons/gi";
 import { RiCarLine } from "react-icons/ri";
@@ -25,6 +27,7 @@ type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
 };
 
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 const bgcolor = hexToRGBA("#27AE60", 0.08);
 const amenityIconByKey = new Map(
   RESIDENTIAL_AMENITIES.map((amenity) => [amenity.key, amenity.icon]),
@@ -32,6 +35,73 @@ const amenityIconByKey = new Map(
 const amenityIconByTitle = new Map(
   RESIDENTIAL_AMENITIES.map((amenity) => [amenity.title, amenity.icon]),
 );
+
+function getPropertyLink(property: Property) {
+  const type = (property.type || "").toLowerCase();
+  const promotionType = String(property.promotion?.type || "").toLowerCase();
+
+  switch (type) {
+    case "residential":
+      return `/properties/residential/${property.slug}`;
+    case "commercial":
+      return `/properties/commercial/${property.slug}`;
+    case "land":
+      return `/properties/landploat/${property.slug}`;
+    case "agricultural":
+      return `/properties/agricultural/${property.slug}`;
+    case "featuredproject":
+      return promotionType === "prime"
+        ? `/prime/${property.slug}`
+        : `/project/${property.slug}`;
+    default:
+      return "/";
+  }
+}
+
+async function getSponsoredSidebarAds(project: IResidential): Promise<Ad[]> {
+  if (!apiUrl) return [];
+
+  const query = new URLSearchParams();
+  query.set("category", "Residential");
+
+  if (project.listingType) query.set("listingType", project.listingType);
+  if (project.city) query.set("city", project.city);
+  if ((project as any).state) query.set("state", (project as any).state);
+  if ((project as any).locality) query.set("locality", (project as any).locality);
+
+  try {
+    const res = await fetch(
+      `${apiUrl}/api/properties/sponsored?${query.toString()}`,
+      { next: { revalidate: 10 } },
+    );
+
+    if (!res.ok) return [];
+
+    const json = await res.json();
+    const properties = (json.data ?? []) as Property[];
+
+    return properties
+      .filter((property) => (property.id || property._id) !== project._id)
+      .slice(0, 2)
+      .map((property) => ({
+        id: property.id || property._id || "",
+        title: property.title || "Featured Property",
+        description: property.buildingName,
+        imageUrl:
+          property.gallery?.[0]?.url ||
+          property.gallerySummary?.[0]?.url ||
+          "/images/spronsoreCard.png",
+        ctaText: "View Details",
+        ctaLink: getPropertyLink(property),
+        category: property.type || "Residential",
+        featured: property.promotion?.type === "featured",
+        sponsored: true,
+      }));
+  } catch (err) {
+    console.error("Error fetching sponsored properties:", err);
+    return [];
+  }
+}
 
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
@@ -65,6 +135,7 @@ export default async function Page({ params }: PageProps) {
   if (!project) {
     notFound();
   }
+  const sidebarAds = await getSponsoredSidebarAds(project);
   const priceLabel = formatINR(project.price);
   const nearbyLandmarks = (project.nearbyPlaces ?? [])
     .slice()
@@ -398,11 +469,12 @@ export default async function Page({ params }: PageProps) {
               </div>
             </main>
             <aside className="w-full shrink-0 lg:w-[260px] sticky top-20 self-start">
-              <Image
-                src={ad}
-                alt="advertisement banner"
-                className="w-full h-auto p-6"
-              />
+              <div className="space-y-4">
+                {sidebarAds.map((ad) => (
+                  <AdCard key={ad.id} ad={ad} />
+                ))}
+                {sidebarAds.length === 0 && <SponsoreCard />}
+              </div>
             </aside>
           </div>
         </div>

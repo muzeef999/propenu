@@ -64,6 +64,11 @@ const formatBudget = (value: number) =>
     : `₹${value} Lac`;
 
 const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
+const postedByLabelMap: Record<PostedByOption, string> = {
+  Owners: "User",
+  Agents: "Agent",
+  Builders: "Builder",
+};
 
 const booleanLandKeys = new Set([
   "cornerPlot",
@@ -509,7 +514,7 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                     : "border-gray-300 bg-white"
                   }`}
               >
-                {option}
+                {postedByLabelMap[option]}
               </button>
             ))}
           </div>
@@ -718,7 +723,11 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                                 return (
                                   <SelectableButton
                                     key={opt}
-                                    label={opt}
+                                    label={
+                                      isPostedByFilter
+                                        ? postedByLabelMap[opt as PostedByOption] ?? opt
+                                        : opt
+                                    }
                                     active={active}
                                     selectionType={section.selectionType ?? "single"}
                                     onClick={() =>

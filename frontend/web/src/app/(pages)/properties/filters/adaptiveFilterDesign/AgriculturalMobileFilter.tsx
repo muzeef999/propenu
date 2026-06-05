@@ -73,6 +73,11 @@ const BOOLEAN_KEYS = new Set([
 ]);
 
 const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
+const postedByLabelMap: Record<PostedByOption, string> = {
+  Owners: "User",
+  Agents: "Agent",
+  Builders: "Builder",
+};
 
 const normalizeBudgetRange = (
   min: number | null,
@@ -520,7 +525,7 @@ const AgriculturalMobileFilter: React.FC<AgriculturalMobileFilterProps> = ({
                     : "border-gray-300 bg-white"
                 }`}
               >
-                {option}
+                {postedByLabelMap[option]}
               </button>
             ))}
           </div>
@@ -680,7 +685,11 @@ const AgriculturalMobileFilter: React.FC<AgriculturalMobileFilterProps> = ({
                                 return (
                                   <SelectableButton
                                     key={opt}
-                                    label={opt}
+                                    label={
+                                      isPostedByFilter
+                                        ? postedByLabelMap[opt as PostedByOption] ?? opt
+                                        : opt
+                                    }
                                     active={active}
                                     selectionType={isMultiSelect ? "multiple" : "single"}
                                     onClick={() =>

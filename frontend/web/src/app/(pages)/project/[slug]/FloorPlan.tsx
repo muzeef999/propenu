@@ -116,6 +116,25 @@ function formatPricePerUnit(unit?: IBhkUnit, isLand = false) {
   return `\u20b9 ${Math.round(minPrice / area.value).toLocaleString("en-IN")}/${area.unit}`;
 }
 
+function getComparableArea(unit?: IBhkUnit) {
+  const areaValue =
+    unit?.area?.sqftValue ??
+    unit?.minSqft ??
+    unit?.area?.value ??
+    Number.MAX_SAFE_INTEGER;
+
+  return typeof areaValue === "number" && Number.isFinite(areaValue)
+    ? areaValue
+    : Number.MAX_SAFE_INTEGER;
+}
+
+function getComparableGroupValue(group: PlanGroup) {
+  const value = group.bhkLabel.match(/\d+(\.\d+)?/)?.[0];
+  const numericValue = value ? Number(value) : Number.MAX_SAFE_INTEGER;
+
+  return Number.isFinite(numericValue) ? numericValue : Number.MAX_SAFE_INTEGER;
+}
+
 function getPlanGroups(project: FeaturedProject): PlanGroup[] {
   const summary = project.projectSummary ?? project.bhkSummary ?? [];
 
@@ -129,10 +148,19 @@ function getPlanGroups(project: FeaturedProject): PlanGroup[] {
       return {
         label: cleanLabel,
         bhkLabel: label,
-        units: item.units ?? [],
+        units: [...(item.units ?? [])].sort(
+          (a, b) => getComparableArea(a) - getComparableArea(b),
+        ),
       };
     })
-    .filter((group) => group.units.length > 0);
+    .filter((group) => group.units.length > 0)
+    .sort((a, b) => {
+      const groupSort = getComparableGroupValue(a) - getComparableGroupValue(b);
+
+      if (groupSort !== 0) return groupSort;
+
+      return a.label.localeCompare(b.label);
+    });
 }
 
 export default function FloorPlan({ project }: FloorPlanProps) {

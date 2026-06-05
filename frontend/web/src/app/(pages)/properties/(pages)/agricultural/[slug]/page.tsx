@@ -11,9 +11,9 @@ import { IAgricultural } from "@/types/agricultural";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import RelatedAgriculturalCarousel from "./RelatedAgriculturalCarousel";
 import Image from "next/image";
-import ad from "@/asserts/ad.png";
 import { AGRICULTURAL_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
 import AgriculturalNearbySection from "./AgriculturalNearbySection";
+import SponsoreCard from "../../../cards/SponsoreCard";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -335,11 +335,7 @@ export default async function Page({ params }: PageProps) {
               </div>
             </main>
             <aside className="w-full shrink-0 lg:w-[260px] sticky top-20 self-start">
-              <Image
-                src={ad}
-                alt="advertisement banner"
-                className="w-full h-auto p-6"
-              />
+              <SponsoreCard />
             </aside>
           </div>
         </div>

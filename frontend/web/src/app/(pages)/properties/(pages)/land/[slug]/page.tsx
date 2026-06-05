@@ -11,9 +11,9 @@ import { BiShapeSquare } from "react-icons/bi";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import RelatedLandCarousel from "./RelatedLandCarousel";
 import Image from "next/image";
-import ad from "@/asserts/ad.png";
 import LandNearbySection from "./LandNearbySection";
 import { LAND_PLOT_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
+import SponsoreCard from "../../../cards/SponsoreCard";
 import {
   resolveListingSource,
 } from "@/utilies/resolveListingSource";
@@ -376,11 +376,7 @@ export default async function Page({ params }: PageProps) {
               </div>
             </main>
             <aside className="w-full shrink-0 lg:w-[260px] sticky top-20 self-start">
-              <Image
-                src={ad}
-                alt="advertisement banner"
-                className="w-full h-auto p-6"
-              />
+              <SponsoreCard />
             </aside>
           </div>
         </div>

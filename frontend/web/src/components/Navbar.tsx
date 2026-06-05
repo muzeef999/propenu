@@ -10,7 +10,7 @@ import LoginDialog from "@/app/(auth)/Login";
 import RegisterDialog from "@/app/(auth)/Register";
 import Cookies from "js-cookie";
 import { me } from "@/data/ClientData";
-import UserGreeting from "@/app/(auth)/UserGreeting";
+import UserGreeting, { getOptionsForRole } from "@/app/(auth)/UserGreeting";
 import FilterDropdown from "@/ui/FilterDropdown";
 import { useCity } from "@/hooks/useCity";
 import { LocationItem } from "@/types";
@@ -53,6 +53,7 @@ const Navbar = () => {
   >(null);
   const [registerKycRemark, setRegisterKycRemark] = useState("");
   const isBuilder = user?.user?.roleName === "builder";
+  const mobileUserOptions = user ? getOptionsForRole(user?.user?.roleName) : [];
 
   useEffect(() => {
     if (mobileOpen) {
@@ -604,10 +605,10 @@ const Navbar = () => {
                     value: "rent" as const,
                   },
                 },
-                { label: "Home Loans", link: "/home-loans" },
-                { label: "Home Interiors", link: "/interior-designer" },
-                { label: "Home Care", link: "/home-care" },
-                { label: "Help & Support", link: "/help-center" },
+                // { label: "Home Loans", link: "/home-loans" },
+                // { label: "Home Interiors", link: "/interior-designer" },
+                // { label: "Home Care", link: "/home-care" },
+                // { label: "Help & Support", link: "/help-center" },
               ].map((item) => (
                 <button
                   key={item.label}
@@ -644,13 +645,55 @@ const Navbar = () => {
             </nav>
 
             {user && (
-              <div className="px-2 pt-2">
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left text-sm text-red-600 px-3 py-3 rounded-md hover:bg-red-50 transition-colors"
-                >
-                  Logout
-                </button>
+              <div className="px-2">
+                {/* <p className="px-1 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Account
+                </p> */}
+                {mobileUserOptions.map((item) => {
+                  const isLogout = item.label === "Logout";
+
+                  return (
+                    <button
+                      key={item.label}
+                      onClick={() => {
+                        if (isLogout) {
+                          handleLogout();
+                          return;
+                        }
+
+                        router.push(item.link);
+                        setMobileOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-1 py-3 border-b border-gray-200 transition-colors group ${
+                        isLogout
+                          ? "text-red-600 hover:bg-red-50"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <span className="text-sm font-medium group-hover:text-primary">
+                        {item.label}
+                      </span>
+
+                      <svg
+                        className={`w-4 h-4 ${
+                          isLogout
+                            ? "text-red-300"
+                            : "text-gray-300 group-hover:text-primary"
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

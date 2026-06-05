@@ -93,6 +93,11 @@ const CommercialFilters = () => {
   ]);
 
   const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
+  const postedByLabelMap: Record<PostedByOption, string> = {
+    Owners: "User",
+    Agents: "Agent",
+    Builders: "Builder",
+  };
   const localityLabel =
     localityList.length === 0
       ? "Select Locality"
@@ -467,7 +472,7 @@ const CommercialFilters = () => {
                     : ""
                   }`}
               >
-                {opt}
+                {postedByLabelMap[opt]}
               </button>
             ))}
             <button
@@ -748,7 +753,7 @@ const CommercialFilters = () => {
                           return (
                             <SelectableButton
                               key={opt}
-                              label={opt}
+                              label={postedByLabelMap[opt as PostedByOption] ?? opt}
                               active={isActive}
                               selectionType={section.selectionType ?? "single"}
                               onClick={() => {

@@ -74,6 +74,11 @@ const LandFilters = () => {
       }`;
 
   const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
+  const postedByLabelMap: Record<PostedByOption, string> = {
+    Owners: "User",
+    Agents: "Agent",
+    Builders: "Builder",
+  };
 
   const [open, setOpen] = useState(false);
 
@@ -436,7 +441,7 @@ const LandFilters = () => {
                 className={`px-2 py-1 rounded block w-full text-left hover:bg-gray-100 ${postedBy?.includes(opt) ? "font-semibold bg-gray-100" : ""
                   }`}
               >
-                {opt}
+                {postedByLabelMap[opt]}
               </button>
             ))}
             <button
@@ -769,7 +774,7 @@ const LandFilters = () => {
                           return (
                             <SelectableButton
                               key={opt}
-                              label={opt}
+                              label={postedByLabelMap[opt as PostedByOption] ?? opt}
                               active={isActive}
                               selectionType={section.selectionType ?? "single"}
                               onClick={() => {

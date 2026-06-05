@@ -513,7 +513,7 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
                   : "border-gray-300 bg-white"
                   }`}
               >
-                {option}
+                {POSTED_BY_MAP[option]}
               </button>
             ))}
           </div>
@@ -623,34 +623,42 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
                             />
                           </div>
                         ) : (
-                          <div className="flex flex-wrap gap-2">
-                            {section.options?.map((opt) => {
-                              const mappedKey = keyMapping[section.key];
-                              const currentValue = residential[mappedKey];
-                              const isMulti = section.selectionType === "multiple";
-                              const currentValues = Array.isArray(currentValue)
-                                ? (currentValue as string[])
-                                : [];
-                              const isActive = isMulti
-                                ? currentValues.includes(opt)
-                                : currentValue === opt;
+                <div className="flex flex-wrap gap-2">
+                  {section.options?.map((opt) => {
+                    const mappedKey = keyMapping[section.key];
+                    const currentValue = residential[mappedKey];
+                    const isMulti = section.selectionType === "multiple";
+                    const currentValues = Array.isArray(currentValue)
+                      ? (currentValue as string[])
+                      : [];
+                    const filterValue =
+                      mappedKey === "listingSource"
+                        ? POSTED_BY_MAP[opt as (typeof POSTED_BY_OPTIONS)[number]] ?? opt
+                        : opt;
+                    const isActive = isMulti
+                      ? currentValues.includes(filterValue)
+                      : currentValue === filterValue;
 
                               return (
                                 <SelectableButton
                                   key={opt}
-                                  label={formatLabel(opt)}
+                                  label={
+                                    mappedKey === "listingSource"
+                                      ? POSTED_BY_MAP[opt as (typeof POSTED_BY_OPTIONS)[number]] ?? opt
+                                      : formatLabel(opt)
+                                  }
                                   active={isActive}
                                   selectionType={isMulti ? "multiple" : "single"}
                                   onClick={() =>
                                     dispatch(
                                       setResidentialFilter({
-                                        key: mappedKey,
-                                        value: isMulti
-                                          ? toggleArrayValue(currentValues, opt)
-                                          : opt,
-                                      }),
-                                    )
-                                  }
+                        key: mappedKey,
+                        value: isMulti
+                          ? toggleArrayValue(currentValues, filterValue)
+                          : filterValue,
+                      }),
+                    )
+                  }
                                   className="rounded-xl px-3 py-1.5 text-base"
                                 />
                               );
