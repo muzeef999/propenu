@@ -401,20 +401,19 @@ const ResidentialProfile = () => {
               return false;
             }
           }}
-          accept="image/*"
+          accept=".jpg,.jpeg,.png,image/jpeg,image/png"
           minFiles={5}
           maxFiles={10}
-          maxSizeMB={5}
+          maxSizeMB={1}
           error={fieldErrors?.images?.[0]}
         />
       </div>
 
       <div
-        className={`flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300 ${
-          residential.isPriceNegotiable
+        className={`flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300 ${residential.isPriceNegotiable
             ? "border-green-500 bg-green-50 shadow-sm"
             : ""
-        }`}
+          }`}
       >
         <div>
           <p className="text-sm font-semibold text-gray-800">
@@ -426,9 +425,8 @@ const ResidentialProfile = () => {
         </div>
         <div className="flex items-center gap-3">
           <span
-            className={`text-xs font-medium ${
-              residential.isPriceNegotiable ? "text-green-600" : "text-gray-400"
-            }`}
+            className={`text-xs font-medium ${residential.isPriceNegotiable ? "text-green-600" : "text-gray-400"
+              }`}
           >
             {residential.isPriceNegotiable ? "YES" : "NO"}
           </span>

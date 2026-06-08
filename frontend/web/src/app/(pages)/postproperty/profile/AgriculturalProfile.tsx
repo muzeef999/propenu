@@ -622,10 +622,10 @@ const AgriculturalProfile = () => {
               return false;
             }
           }}
-          accept="image/*"
+          accept=".jpg,.jpeg,.png,image/jpeg,image/png"
           minFiles={5}
           maxFiles={10}
-          maxSizeMB={5}
+          maxSizeMB={1}
           error={fieldErrors?.images?._errors?.[0]}
         />
 

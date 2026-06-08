@@ -176,7 +176,7 @@ export default function BlogsClient({
       setCanScrollRight(false);
       return;
     }
-
+  1
     updateScrollControls();
 
     const element = scrollRef.current;
@@ -226,6 +226,7 @@ export default function BlogsClient({
         >
           {categories.map((category) => {
             const isActive = activeCategory === category;
+         
 
             return (
               <button
