@@ -13,7 +13,7 @@ import {
 } from "@/Redux/slice/citySlice";
 import { LocationItem } from "@/types";
 
-const DEFAULT_CITY_NAME = "";
+const DEFAULT_CITY_NAME = "Hyderabad";
 
 export function useCity() {
   const dispatch = useAppDispatch();
@@ -56,6 +56,12 @@ export function useCity() {
 
     const setSavedCity = () => {
       if (!savedCityId) return false;
+
+      const savedCityExists = locations.some((city) => city._id === savedCityId);
+      if (!savedCityExists) {
+        localStorage.removeItem("selectedCityId");
+        return false;
+      }
 
       dispatch(setCityId(savedCityId));
       return true;
