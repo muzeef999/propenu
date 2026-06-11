@@ -1,8 +1,7 @@
 // components/HeroSection.tsx
 "use client";
 
-import { postLeads, projectpostLeads } from "@/data/ClientData";
-import { Leads } from "@/types/property";
+import { projectpostLeads } from "@/data/ClientData";
 import { useMutation } from "@tanstack/react-query";
 import React, { useState } from "react";
 import { toast } from "sonner";
@@ -21,7 +20,7 @@ export type Hero = {
   subTagline?: string;
   description?: string;
   color?: string;
-  heroImage?: string;
+  heroImage?: string | { url?: string };
   stats?: Stat[];
   propertyType?: string;
   heroTagline?: string;
@@ -41,6 +40,8 @@ export default function HeroSection({ hero }: Props) {
 
   // Type guard: ensure hero is not undefined for the rest of the component
   const h = hero as Hero;
+  const heroImageUrl =
+    typeof h.heroImage === "string" ? h.heroImage : h.heroImage?.url;
 
   const [form, setForm] = useState({
     name: "",
@@ -95,8 +96,10 @@ export default function HeroSection({ hero }: Props) {
   return (
     <section
       aria-label="#hero-section"
-      className="relative min-h-[75vh] md:min-h-[85vh] bg-cover bg-center"
-      style={{ backgroundImage: `url(${h.heroImage})` }}
+      className="relative min-h-[75vh] md:min-h-[85vh] bg-slate-800 bg-cover bg-center"
+      style={{
+        backgroundImage: heroImageUrl ? `url("${heroImageUrl}")` : undefined,
+      }}
     >
       {/* DARK OVERLAY */}
       <div className="absolute inset-0 bg-linear-to-b from-black/70 via-black/50 to-black/80" />

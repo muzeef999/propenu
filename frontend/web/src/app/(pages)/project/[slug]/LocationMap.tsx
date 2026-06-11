@@ -273,7 +273,7 @@ export default function LocationMap({ project }: LocationMapProps) {
         mapInstanceRef.current = new mapplsSdk.Map(mapContainerId, {
           center: [center[1], center[0]],
           zoom: 14,
-          zoomControl: true,
+          zoomControl: false,
           location: false,
         });
 
@@ -398,13 +398,13 @@ export default function LocationMap({ project }: LocationMapProps) {
           </h2>
           <div className="p-3 sm:p-5">
             <div className="space-y-4 sm:space-y-5">
-              <div className="overflow-hidden rounded-md border border-slate-100 shadow-sm">
+              <div className="relative overflow-hidden rounded-md border border-slate-100 shadow-sm contain-paint] isolate">
                 {mapError ? (
                   <div className="flex h-[260px] w-full items-center justify-center px-4 text-center text-sm text-slate-500 sm:h-[420px]">
                     {mapError}
                   </div>
                 ) : (
-                  <div id={mapContainerId} ref={mapRef} className="h-[260px] w-full sm:h-[420px]" />
+                  <div id={mapContainerId} ref={mapRef} className="h-[260px] w-full overflow-hidden sm:h-[420px]" />
                 )}
               </div>
 

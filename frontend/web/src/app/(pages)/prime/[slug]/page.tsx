@@ -10,6 +10,8 @@ import Gallery from "./Gallery";
 import AboutUS from "./AboutUs";
 import Specification from "./Specification";
 
+export const dynamic = "force-dynamic";
+
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
 };

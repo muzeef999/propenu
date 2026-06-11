@@ -27,6 +27,31 @@ function exactCaseInsensitive(value: string) {
   };
 }
 
+function buildPromotionTypeMatch(types: string[]) {
+  const normalizedTypes = types
+    .map((type) => type.trim())
+    .filter(Boolean);
+
+  if (normalizedTypes.length === 0) return undefined;
+
+  const conditions: any[] = [];
+  const explicitTypes = normalizedTypes.filter((type) => type !== "normal");
+
+  if (explicitTypes.length > 0) {
+    conditions.push({ "promotion.type": { $in: explicitTypes } });
+  }
+
+  if (normalizedTypes.includes("normal")) {
+    conditions.push(
+      { "promotion.type": "normal" },
+      { "promotion.type": { $exists: false } },
+      { "promotion.type": null },
+    );
+  }
+
+  return conditions.length === 1 ? conditions[0] : { $or: conditions };
+}
+
 async function findFeatured(filter: any) {
   const items = await FeaturedProject.find(filter)
     .select({
@@ -719,10 +744,14 @@ export const FeaturePropertyService = {
     const bhkPlanFiles = files?.bhkPlanFiles ?? [];
 
     if (Array.isArray(incomingProjectSummary)) {
-      if (bhkPlanFiles.length > incomingProjectSummary.length) {
-        throw new Error(
-          "Too many bhkPlanFiles uploaded for provided bhkSummary entries",
-        );
+      const totalUnits = incomingProjectSummary.reduce(
+        (sum: number, bhk: any) =>
+          sum + (Array.isArray(bhk.units) ? bhk.units.length : 0),
+        0,
+      );
+
+      if (bhkPlanFiles.length > totalUnits) {
+        throw new Error("Too many bhkPlanFiles uploaded for provided bhk units");
       }
 
       const mergedIncoming = mergeBhkSummary(
@@ -1020,7 +1049,7 @@ export const FeaturePropertyService = {
 
   async getMyHightlightProjects(userId: string) {
     const projects = await FeaturedProject.find({ createdBy: userId })
-      .populate("createdBy", "name email")
+      .populate("createdBy", "name email phone")
       .lean();
 
     return serializeFeaturedProjectList(projects);
@@ -1028,7 +1057,7 @@ export const FeaturePropertyService = {
 
   async getMyFeaturedProjects(userId: string) {
     const projects = await FeaturedProject.find({ createdBy: userId })
-      .populate("createdBy", "name email")
+      .populate("createdBy", "name email phone")
       .lean();
 
     return serializeFeaturedProjectList(projects);
@@ -1130,6 +1159,7 @@ export const FeaturePropertyService = {
     const filter: any = {
       status: "active",
     };
+    const andFilters: any[] = [];
 
     // 🔍 SEARCH
     if (options?.q) {
@@ -1138,8 +1168,13 @@ export const FeaturePropertyService = {
 
     // 🔥 PROMOTION TYPE FILTER
     if (options?.type) {
-      const types = options.type.split(",");
-      filter["promotion.type"] = { $in: types };
+      const promotionTypeMatch = buildPromotionTypeMatch(
+        options.type.split(","),
+      );
+
+      if (promotionTypeMatch) {
+        andFilters.push(promotionTypeMatch);
+      }
     }
 
     // 🌍 LOCATION FILTER
@@ -1151,10 +1186,18 @@ export const FeaturePropertyService = {
     if (options?.locality) filter.locality = makeRegex(options.locality);
 
     // 🔥 EXCLUDE EXPIRED PROMOTIONS
-    filter["$or"] = [
-      { "promotion.boostExpiry": { $gt: new Date() } },
-      { "promotion.type": "normal" },
-    ];
+    andFilters.push({
+      $or: [
+        { "promotion.boostExpiry": { $gt: new Date() } },
+        { "promotion.type": "normal" },
+        { "promotion.type": { $exists: false } },
+        { "promotion.type": null },
+      ],
+    });
+
+    if (andFilters.length > 0) {
+      filter.$and = andFilters;
+    }
 
     // 🥇 SORT
     const sort: any = {
@@ -1302,7 +1345,11 @@ export const FeaturePropertyService = {
     if (options?.q) filter.$text = { $search: options.q };
     if (options?.status) filter.status = options.status;
 
-    filter["promotion.type"] = "normal";
+    filter.$or = [
+      { "promotion.type": "normal" },
+      { "promotion.type": { $exists: false } },
+      { "promotion.type": null },
+    ];
 
     const sort: any = {
       "promotion.priority": -1, // 🔥 MAIN LOGIC

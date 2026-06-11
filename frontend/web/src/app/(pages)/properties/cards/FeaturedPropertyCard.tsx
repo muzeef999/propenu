@@ -375,7 +375,7 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
               }`}
           >
             <div className="items-center gap-2 flex">
-              <AmenitiesIcon className="h-7 w-7 shrink-0 text-[#27AE60]" />
+              <AmenitiesIcon size={24} color={bgPriceColorIcon} />
               <div className="flex flex-col">
                 <div className="text-xs text-gray-500 tracking-wide">
                   Amenities

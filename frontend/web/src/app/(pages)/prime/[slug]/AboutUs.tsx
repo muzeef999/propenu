@@ -105,7 +105,7 @@ export default function AboutUS(props: Props) {
       {item?.aboutDescription ? (
         hasHtmlDescription ? (
           <div
-            className={`mt-6 text-base sm:text-lg ${RICH_TEXT_CLASSES}`}
+            className={`mt-6 text-base sm:text-base ${RICH_TEXT_CLASSES}`}
             dangerouslySetInnerHTML={{ __html: item.aboutDescription }}
           />
         ) : (

@@ -80,13 +80,18 @@ export const expirePromotion = async (req: Request, res: Response) => {
     }
 
     // ✅ 2. EXPIRE
-    property.promotion.boostExpiry = new Date();
+    property.promotion = {
+      type: "normal",
+      priority: 0,
+      source: "manual",
+      startDate: new Date(),
+    } as any;
 
     await property.save();
 
     return res.json({
       success: true,
-      message: "Promotion expired",
+      message: "Promotion expired and reset to normal",
     });
   } catch (err) {
     console.error("❌ expirePromotion error:", err);

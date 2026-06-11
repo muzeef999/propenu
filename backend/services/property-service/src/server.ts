@@ -14,6 +14,7 @@ import "./models";
 import analyticsRouter from "./routes/analyticsRoute";
 import sponsoredRoute from "./features/sponsored/sponsored.route";
 import blogRoute from "./blogs/blog.route";
+import { startPromotionExpiryJob } from "./jobs/promotionExpiry.job";
 
 dotenv.config({ quiet: true });
 
@@ -26,6 +27,8 @@ const port = process.env.PORT ?? 4003;
 async function start() {
   try {
     await connectDB();
+    startPromotionExpiryJob();
+
     app.get("/", (req, res) => {
       res.json({ message: "Property Service is running" });
     });

@@ -1,14 +1,29 @@
 "use client";
 
+import LeadDialog from "@/app/(pages)/properties/cards/LeadDialog";
 import { projectpostLeads } from "@/data/ClientData";
 import { FeaturedProject } from "@/types";
 import { useMutation } from "@tanstack/react-query";
+import { createPortal } from "react-dom";
 import React, { useState } from "react";
 import { toast } from "sonner";
 
 type ContactSellerProps = {
   project: FeaturedProject;
 };
+
+type ContactLike = {
+  name?: string;
+  fullName?: string;
+  companyName?: string;
+  phone?: string;
+  contact?: string;
+  email?: string;
+};
+
+function isContactObject(value: unknown): value is ContactLike {
+  return Boolean(value) && typeof value === "object";
+}
 
 function getLeadErrorMessage(error: unknown) {
   const fallback = "Failed to submit lead";
@@ -59,26 +74,37 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
     email: "",
   });
 
-  const developer = project.developer as
-    | {
-        name?: string;
-        fullName?: string;
-        companyName?: string;
-        phone?: string;
-        contact?: string;
-      }
-    | string
-    | undefined;
+  const developer = project.developer as ContactLike | string | null | undefined;
+  const createdBy = project.createdBy as ContactLike | string | null | undefined;
+  const [showLeadDialog, setShowLeadDialog] = useState(false);
 
   const contactName =
-    typeof developer === "object"
-      ? developer.companyName || developer.name || developer.fullName || project.title
-      : project.title;
-  const contactPhone = typeof developer === "object" ? developer.phone || developer.contact : "";
+    isContactObject(developer)
+      ? developer.companyName ||
+        developer.name ||
+        developer.fullName ||
+        (isContactObject(createdBy) ? createdBy.name : undefined) ||
+        project.title
+      : isContactObject(createdBy)
+        ? createdBy.name || project.title
+        : project.title;
+  const contactPhone =
+    isContactObject(developer)
+      ? developer.phone || developer.contact
+      : isContactObject(createdBy)
+        ? createdBy.phone || createdBy.contact
+        : "";
+  const contactEmail =
+    isContactObject(developer)
+      ? developer.email
+      : isContactObject(createdBy)
+        ? createdBy.email
+        : "";
 
   const leadsMutation = useMutation({
     mutationFn: projectpostLeads,
     onSuccess: () => {
+      setShowLeadDialog(true);
       toast.success("Lead submitted successfully");
       setForm({
         name: "",
@@ -174,7 +200,7 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
             placeholder="Enter your Email ID"
             required
             className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
-          />
+          /> 
         </label>
 
         <button
@@ -185,6 +211,22 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
           {leadsMutation.isPending ? "Submitting..." : "Get Contact Details"}
         </button>
       </form>
+
+      {showLeadDialog &&
+        createPortal(
+          <LeadDialog
+            open={showLeadDialog}
+            onClose={() => setShowLeadDialog(false)}
+            ownerName={contactName}
+            ownerRole="Builder"
+            phone={contactPhone}
+            email={contactEmail}
+            postedOn={(project as any).createdAt}
+            price={project.priceFrom ?? project.priceTo}
+            propertyLabel={project.title}
+          />,
+          document.body,
+        )}
     </aside>
   );
 };
