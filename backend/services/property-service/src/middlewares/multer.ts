@@ -94,8 +94,6 @@
 //   });
 // };
 
-
-
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -160,11 +158,7 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
 
-    const fileName =
-      Date.now() +
-      "-" +
-      Math.round(Math.random() * 1e9) +
-      ext;
+    const fileName = Date.now() + "-" + Math.round(Math.random() * 1e9) + ext;
 
     cb(null, fileName);
   },
@@ -189,11 +183,17 @@ const upload = multer({
 export const uploadMedia = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   const handler = upload.fields([
     { name: "images", maxCount: 12 },
     { name: "videos", maxCount: 3 },
+    { name: "heroImage", maxCount: 1 },
+    { name: "logo", maxCount: 1 },
+    { name: "aboutImage", maxCount: 1 },
+    { name: "brochure", maxCount: 1 },
+    { name: "galleryFiles", maxCount: 50 },
+    { name: "bhkPlanFiles", maxCount: 50 },
   ]);
 
   handler(req, res, (err) => {
@@ -221,7 +221,7 @@ export const uploadMedia = (
 
     const totalSize = [...images, ...videos].reduce(
       (sum, file) => sum + file.size,
-      0
+      0,
     );
 
     if (totalSize > MAX_TOTAL_SIZE) {
