@@ -421,7 +421,7 @@ export const FeaturePropertyService = {
     files?: MulterFiles,
     user?: any,
   ) {
-    
+    const uploadedPaths = new Set<string>();
 
     if (Array.isArray((payload as any).amenities)) {
       (payload as any).amenities = normalizeAmenitiesInputs(
@@ -474,6 +474,8 @@ export const FeaturePropertyService = {
     const logoFiles = files?.logo;
     if (logoFiles && logoFiles.length > 0) {
       const lf = logoFiles[0]!;
+      uploadedPaths.add(lf.path);
+
       const up = await uploadFile({
         filePath: lf.path,
 
@@ -666,6 +668,17 @@ export const FeaturePropertyService = {
     // finally create document in DB
     const createdDoc = await FeaturedProject.create(toCreate);
 
+    for (const filePath of uploadedPaths) {
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log("Deleted temp file:", filePath);
+        }
+      } catch (error) {
+        console.error("Failed deleting temp file:", filePath, error);
+      }
+    }
+
     if (createdDoc.city && createdDoc.locality) {
       const coordinates = createdDoc.location?.coordinates;
       const localityCoordinates =
@@ -690,6 +703,10 @@ export const FeaturePropertyService = {
     files?: MulterFiles,
     user?: any,
   ) {
+
+      const uploadedPaths = new Set<string>();
+
+      
     if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
     const existing = await FeaturedProject.findById(id);
     if (!existing) return null;
@@ -828,6 +845,7 @@ export const FeaturePropertyService = {
     const heroVideoFiles = files?.heroVideo;
     if (heroVideoFiles && heroVideoFiles.length > 0) {
       const v = heroVideoFiles[0]!;
+      uploadedPaths.add(v.path);
       const up = await uploadFile({
         filePath: v.path,
         originalName: v.originalname,
@@ -842,6 +860,7 @@ export const FeaturePropertyService = {
     const brochureFiles = files?.brochure;
     if (brochureFiles && brochureFiles.length > 0) {
       const bf = brochureFiles[0] as Express.Multer.File;
+      uploadedPaths.add(bf.path);
       const allowedMimeTypes = ["application/pdf"];
       const maxSizeBytes = 5 * 1024 * 1024;
 
@@ -1015,6 +1034,7 @@ export const FeaturePropertyService = {
       const aboutFiles = files?.aboutImage;
       if (aboutFiles && aboutFiles.length > 0) {
         const f = aboutFiles[0]!;
+        uploadedPaths.add(f.path);
         const up = await uploadFile({
           filePath: f.path,
           originalName: f.originalname,

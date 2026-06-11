@@ -11,6 +11,7 @@ import { Request } from "express";
 import { upsertCityAndLocality } from "./locationServices";
 import { createWatermarkedBuffer } from "../utils/imageProcessing";
 import { ResidentialUpdateSchema } from "../zod/residentialZod";
+import fs from "fs";
 
 type RequestWithResidentialQuery = Request<
   {}, // req.params
@@ -115,8 +116,10 @@ async function mapAndUploadGallery({
     }
     if (matchedIndex === -1) matchedIndex = i;
 
-    const watermarkedBuffer = await createWatermarkedBuffer(file.buffer);
+const imageBuffer = fs.readFileSync(file.path);
 
+const watermarkedBuffer =
+  await createWatermarkedBuffer(imageBuffer);
     // upload into residential folder
     const up = await await uploadFile({
    
