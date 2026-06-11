@@ -1,15 +1,9 @@
 import express from "express";
-import multer from "multer";
 import { parseJsonFields } from "../middlewares/parseJsonFields";
 import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
 
-const cpUpload = upload.fields([
-  { name: "galleryFiles", maxCount: 5 },
-    { name: "verificationDocuments", maxCount: 5 }, 
-]);
 
 const jsonKeys = [
   "location",
@@ -30,10 +24,11 @@ const jsonKeys = [
 import {  createCommercial,  editCommercial,  getAllCommercial,  getCommercialBySlug,  getCommercialDetail,  deleteCommercial, createCommercialDraft, updateCommercialBasicStep, updateCommercialLocationStep, updateCommercialDetailsStep, finalizeCommercial, getAllCommercialDraftsForAdmin, verifyCommercialDocument, getMyCommercialDraft, approveCommercialProperty, deactivateCommercialProperty, deleteCommercialGalleryImage} from "../controller/commercialController";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
+import { uploadMedia } from "../middlewares/multer";
 
 /** POST */
-router.post("/", authMiddleware, cpUpload,  parseJsonFields(jsonKeys), fallbackCoerceDefault, createCommercial,  requireActiveSubscription);
-router.patch("/:id",cpUpload, parseJsonFields(jsonKeys), fallbackCoerceDefault, editCommercial);
+router.post("/", authMiddleware, uploadMedia,  parseJsonFields(jsonKeys), fallbackCoerceDefault, createCommercial,  requireActiveSubscription);
+router.patch("/:id", uploadMedia, parseJsonFields(jsonKeys), fallbackCoerceDefault, editCommercial);
 router.get("/", getAllCommercial);
 router.get("/slug/:slug", getCommercialBySlug);
 router.get("/:id", getCommercialDetail);
@@ -57,10 +52,10 @@ router.delete("/:id/gallery/:imageIndex", authMiddleware, deleteCommercialGaller
 router.get("/draft/all", getAllCommercialDraftsForAdmin);
 router.post("/draft", authMiddleware, createCommercialDraft);
 router.get("/draft/me", authMiddleware, getMyCommercialDraft);
-router.patch("/:id/basic", authMiddleware, cpUpload, parseJsonFields(jsonKeys), updateCommercialBasicStep);
+router.patch("/:id/basic", authMiddleware, uploadMedia, parseJsonFields(jsonKeys), updateCommercialBasicStep);
 router.patch("/:id/location", authMiddleware, parseJsonFields(jsonKeys), updateCommercialLocationStep);
-router.patch("/:id/details", authMiddleware, cpUpload, parseJsonFields(jsonKeys), updateCommercialDetailsStep);
-router.patch("/:id/verification", authMiddleware, cpUpload, parseJsonFields(jsonKeys),  finalizeCommercial);
+router.patch("/:id/details", authMiddleware,  uploadMedia, parseJsonFields(jsonKeys), updateCommercialDetailsStep);
+router.patch("/:id/verification", authMiddleware, uploadMedia, parseJsonFields(jsonKeys),  finalizeCommercial);
 
 
 export default router;

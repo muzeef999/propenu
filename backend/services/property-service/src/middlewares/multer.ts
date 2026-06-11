@@ -194,6 +194,7 @@ export const uploadMedia = (
     { name: "brochure", maxCount: 1 },
     { name: "galleryFiles", maxCount: 50 },
     { name: "bhkPlanFiles", maxCount: 50 },
+    {name:"verificationDocuments", maxCount: 5}
   ]);
 
   handler(req, res, (err) => {

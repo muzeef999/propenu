@@ -466,7 +466,7 @@ export const finalizeResidential = async (req: AuthRequest, res: Response) => {
 
       for (const file of verificationFiles) {
         const up = await uploadFile({
-          buffer: file.buffer,
+          filePath:  file.path,
           originalName: file.originalname,
           mimetype: file.mimetype,
           folder: "residential/verification",

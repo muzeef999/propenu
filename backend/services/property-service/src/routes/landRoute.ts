@@ -25,15 +25,9 @@ import {
 import { CreateLandSchema, UpdateLandSchema } from "../zod/landZod";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
+import { uploadMedia } from "../middlewares/multer";
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
-
-
-const cpUpload = upload.fields([
-  { name: "galleryFiles", maxCount: 5 },
-    { name: "verificationDocuments", maxCount: 5 }, 
-]);
 
 const jsonKeys = [
   "specifications",
@@ -53,7 +47,7 @@ const jsonKeys = [
 router.post(
   "/",
   authMiddleware,
-  cpUpload,
+  uploadMedia,
   parseJsonFields(jsonKeys),
 
   requireActiveSubscription,
@@ -64,7 +58,7 @@ router.post(
 
 router.patch(
   "/:id",
-  cpUpload,
+  uploadMedia,
   parseJsonFields(jsonKeys),
   fallbackCoerceDefault,
   validateBody(UpdateLandSchema),
@@ -95,13 +89,13 @@ router.delete("/:id/gallery/:imageIndex", authMiddleware, deleteLandGalleryImage
 
 
 router.post("/draft", authMiddleware, createLandDraft);
-router.patch("/:id/basic",authMiddleware,cpUpload,parseJsonFields(jsonKeys),updateLandBasicStep);
+router.patch("/:id/basic",authMiddleware, uploadMedia,parseJsonFields(jsonKeys),updateLandBasicStep);
 router.patch("/:id/location", authMiddleware, parseJsonFields(jsonKeys), updateLandLocationStep);
-router.patch("/:id/details", authMiddleware, cpUpload, parseJsonFields(jsonKeys), updateLandDetailsStep);
+router.patch("/:id/details", authMiddleware, uploadMedia, parseJsonFields(jsonKeys), updateLandDetailsStep);
 router.patch(
   "/:id/verification",
   authMiddleware,
-  cpUpload, // 🔥 REQUIRED
+  uploadMedia, // 🔥 REQUIRED
   parseJsonFields(jsonKeys),
   finalizeLand
 );

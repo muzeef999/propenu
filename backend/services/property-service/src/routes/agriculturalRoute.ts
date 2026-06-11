@@ -8,14 +8,10 @@ import { AgriculturalCreateSchema, AgriculturalUpdateSchema } from "../zod/agric
 import { approveAgriculturalProperty, createAgricultural, createAgriculturalDraft, deactivateAgriculturalProperty, deleteAgricultural, deleteAgriculturalGalleryImage, editAgricultural, finalizeAgricultural, getAgriculturalBySlug, getAgriculturalDetail, getAllAgricultural, getAllAgriculturalDraftsForAdmin, getMyAgriculturalDraft, updateAgriculturalBasicStep, updateAgriculturalDetailsStep, updateAgriculturalLocationStep, verifyAgricultiralDocument } from "../controller/agriculturalController";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
+import { uploadMedia } from "../middlewares/multer";
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
 
 
-const cpUpload = upload.fields([
-  { name: "galleryFiles", maxCount: 5 },
-    { name: "verificationDocuments", maxCount: 5 }, 
-]);
 
 /** keys that may arrive as JSON strings (multipart/form-data) */
 const jsonKeys = [
@@ -32,7 +28,7 @@ const jsonKeys = [
 router.post(
   "/",
   authMiddleware,
-  cpUpload,
+  uploadMedia,
   parseJsonFields(jsonKeys),
   fallbackCoerceDefault,
   validateBody(AgriculturalCreateSchema),
@@ -42,7 +38,7 @@ router.post(
 
 router.patch(
   "/:id",
-  cpUpload,
+  uploadMedia,
   parseJsonFields(jsonKeys),
   fallbackCoerceDefault,
   validateBody(AgriculturalUpdateSchema),
@@ -61,8 +57,8 @@ router.get("/draft/all", getAllAgriculturalDraftsForAdmin);
 router.post("/draft", authMiddleware, createAgriculturalDraft);
 router.patch("/:id/basic", authMiddleware, updateAgriculturalBasicStep);
 router.patch("/:id/location",authMiddleware,parseJsonFields(jsonKeys),updateAgriculturalLocationStep,);
-router.patch("/:id/details", authMiddleware, cpUpload, parseJsonFields(jsonKeys),updateAgriculturalDetailsStep);
-router.patch("/:id/verification", authMiddleware, cpUpload,parseJsonFields(jsonKeys),   finalizeAgricultural);
+router.patch("/:id/details", authMiddleware, uploadMedia, parseJsonFields(jsonKeys),updateAgriculturalDetailsStep);
+router.patch("/:id/verification", authMiddleware, uploadMedia,parseJsonFields(jsonKeys),   finalizeAgricultural);
 
 
 router.patch("/:id/verify-document", authMiddleware, (req : AuthRequest, res, next) => {

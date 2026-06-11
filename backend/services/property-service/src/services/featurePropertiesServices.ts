@@ -7,6 +7,7 @@ import {
   UpdateFeaturePropertyDTO,
 } from "../zod/validation";
 import dotenv from "dotenv";
+import fs from "fs";
 import { uploadFile } from "../utils/uploadFile";
 import { upsertCityAndLocality } from "./locationServices";
 
@@ -28,9 +29,7 @@ function exactCaseInsensitive(value: string) {
 }
 
 function buildPromotionTypeMatch(types: string[]) {
-  const normalizedTypes = types
-    .map((type) => type.trim())
-    .filter(Boolean);
+  const normalizedTypes = types.map((type) => type.trim()).filter(Boolean);
 
   if (normalizedTypes.length === 0) return undefined;
 
@@ -251,10 +250,20 @@ async function processBhkPlanUpdates(opts: {
         ? bhkPlanFiles.find((f) => f.originalname === incomingUnit.planFileName)
         : undefined;
 
+      console.log("=================================");
+      console.log("Unit:", incomingUnit.label || incomingUnit._id);
+      console.log("planFileName:", incomingUnit.planFileName);
+      console.log("Matched:", matchedFile?.originalname);
+
       /* 2️⃣ Upload new plan */
       if (matchedFile) {
+        console.log("File Path:", matchedFile.path);
+        console.log("Exists Before Upload:", fs.existsSync(matchedFile.path));
+
+        console.log("=================================");
+
         const up = await uploadFile({
-          buffer: matchedFile.buffer,
+          filePath: matchedFile.path,
           originalName: matchedFile.originalname,
           mimetype: matchedFile.mimetype,
           folder: "plans",
@@ -377,7 +386,7 @@ async function mapAndUploadGallery({
 
     // perform upload
     const up = await uploadFile({
-      buffer: file.buffer,
+      filePath: file.path,
       originalName: file.originalname,
       mimetype: file.mimetype,
       folder: "gallery",
@@ -412,6 +421,8 @@ export const FeaturePropertyService = {
     files?: MulterFiles,
     user?: any,
   ) {
+    
+
     if (Array.isArray((payload as any).amenities)) {
       (payload as any).amenities = normalizeAmenitiesInputs(
         (payload as any).amenities,
@@ -464,7 +475,8 @@ export const FeaturePropertyService = {
     if (logoFiles && logoFiles.length > 0) {
       const lf = logoFiles[0]!;
       const up = await uploadFile({
-        buffer: lf.buffer,
+        filePath: lf.path,
+
         originalName: lf.originalname,
         mimetype: lf.mimetype,
         folder: "logo",
@@ -483,7 +495,8 @@ export const FeaturePropertyService = {
     if (heroFiles && heroFiles.length > 0) {
       const f: Express.Multer.File = heroFiles[0]!;
       const up = await uploadFile({
-        buffer: f.buffer,
+        filePath: f.path,
+
         originalName: f.originalname,
         mimetype: f.mimetype,
         folder: "Builder_hero",
@@ -498,7 +511,7 @@ export const FeaturePropertyService = {
     if (heroVideoFiles && heroVideoFiles.length > 0) {
       const v: Express.Multer.File = heroVideoFiles[0]!;
       const up = await uploadFile({
-        buffer: v.buffer,
+        filePath: v.path,
         originalName: v.originalname,
         mimetype: v.mimetype,
         folder: "video",
@@ -525,7 +538,7 @@ export const FeaturePropertyService = {
 
       // 2) Upload to S3 (using your existing uploadFile util)
       const up = await uploadFile({
-        buffer: bf.buffer,
+        filePath: bf.path,
         originalName: bf.originalname,
         mimetype: bf.mimetype,
         folder: "brochures", // folder/key prefix you want
@@ -614,7 +627,7 @@ export const FeaturePropertyService = {
         if (!f) throw new Error("Uploaded aboutImage file is missing");
 
         const up = await uploadFile({
-          buffer: f.buffer,
+          filePath: f.path,
           originalName: f.originalname,
           mimetype: f.mimetype,
           folder: "about",
@@ -714,29 +727,28 @@ export const FeaturePropertyService = {
     Object.assign(existing, safeUpdate);
 
     if (user) {
-  existing.lastUpdatedBy = {
-    userId: user.id,
-    name: user.name,
-    email: user.email,
-    roleName: user.roleName,
-    updatedAt: new Date(),
-  };
+      existing.lastUpdatedBy = {
+        userId: user.id,
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        updatedAt: new Date(),
+      };
 
-  existing.updateCount =
-    (existing.updateCount || 0) + 1;
+      existing.updateCount = (existing.updateCount || 0) + 1;
 
-  existing.updateHistory = [
-    ...(existing.updateHistory || []),
+      existing.updateHistory = [
+        ...(existing.updateHistory || []),
 
-    {
-      userId: user.id,
-      name: user.name,
-      email: user.email,
-      roleName: user.roleName,
-      updatedAt: new Date(),
-    },
-  ];
-}
+        {
+          userId: user.id,
+          name: user.name,
+          email: user.email,
+          roleName: user.roleName,
+          updatedAt: new Date(),
+        },
+      ];
+    }
 
     const propId = existing._id!.toString();
 
@@ -751,7 +763,9 @@ export const FeaturePropertyService = {
       );
 
       if (bhkPlanFiles.length > totalUnits) {
-        throw new Error("Too many bhkPlanFiles uploaded for provided bhk units");
+        throw new Error(
+          "Too many bhkPlanFiles uploaded for provided bhk units",
+        );
       }
 
       const mergedIncoming = mergeBhkSummary(
@@ -779,7 +793,7 @@ export const FeaturePropertyService = {
     if (logoFiles && logoFiles.length > 0) {
       const lf = logoFiles[0]!;
       const up = await uploadFile({
-        buffer: lf.buffer,
+        filePath: lf.path,
         originalName: lf.originalname,
         mimetype: lf.mimetype,
         folder: "logo",
@@ -802,7 +816,7 @@ export const FeaturePropertyService = {
     if (heroFiles && heroFiles.length > 0) {
       const f = heroFiles[0]!;
       const up = await uploadFile({
-        buffer: f.buffer,
+        filePath: f.path,
         originalName: f.originalname,
         mimetype: f.mimetype,
         folder: "hero",
@@ -815,7 +829,7 @@ export const FeaturePropertyService = {
     if (heroVideoFiles && heroVideoFiles.length > 0) {
       const v = heroVideoFiles[0]!;
       const up = await uploadFile({
-        buffer: v.buffer,
+        filePath: v.path,
         originalName: v.originalname,
         mimetype: v.mimetype,
         folder: "video",
@@ -840,7 +854,7 @@ export const FeaturePropertyService = {
       }
 
       const up = await uploadFile({
-        buffer: bf.buffer,
+        filePath: bf.path,
         originalName: bf.originalname,
         mimetype: bf.mimetype,
         folder: "brochures",
@@ -920,7 +934,7 @@ export const FeaturePropertyService = {
           if (declared && filesByName.has(declared)) {
             const f = filesByName.get(declared)!;
             const up = await uploadFile({
-              buffer: f.buffer,
+              filePath: f.path,
               originalName: f.originalname,
               mimetype: f.mimetype,
               folder: "gallery",
@@ -938,7 +952,7 @@ export const FeaturePropertyService = {
         for (const file of remainingFiles) {
           if (!file) continue;
           const up = await uploadFile({
-            buffer: file.buffer,
+            filePath: file.path,
             originalName: file.originalname,
             mimetype: file.mimetype,
             folder: "gallery",
@@ -1002,7 +1016,7 @@ export const FeaturePropertyService = {
       if (aboutFiles && aboutFiles.length > 0) {
         const f = aboutFiles[0]!;
         const up = await uploadFile({
-          buffer: f.buffer,
+          filePath: f.path,
           originalName: f.originalname,
           mimetype: f.mimetype,
           folder: "about",

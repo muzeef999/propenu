@@ -119,6 +119,7 @@ async function mapAndUploadGallery({
 
     // upload into residential folder
     const up = await await uploadFile({
+   
       buffer: watermarkedBuffer,
       originalName: file.originalname,
       mimetype: file.mimetype,
