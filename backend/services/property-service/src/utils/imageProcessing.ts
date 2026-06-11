@@ -2,15 +2,26 @@ import sharp from "sharp";
 import path from "path";
 import fs from "fs";
 
+export function getUploadedFileBuffer(file: Express.Multer.File): Buffer {
+  if (file.buffer && Buffer.isBuffer(file.buffer)) {
+    return file.buffer;
+  }
+
+  if (file.path && fs.existsSync(file.path)) {
+    return fs.readFileSync(file.path);
+  }
+
+  throw new Error(
+    `Invalid uploaded file received: ${file.originalname || "unknown file"}`,
+  );
+}
+
 export async function createWatermarkedBuffer(imageBuffer: Buffer) {
 
    if (!imageBuffer || !Buffer.isBuffer(imageBuffer)) {
     throw new Error("Invalid image buffer received");
   }
 
-  console.log("Buffer Length:", imageBuffer.length);
-
- 
 const watermarkPath = path.resolve(__dirname, "../assets/watermark.png");
 
   if (!fs.existsSync(watermarkPath)) {

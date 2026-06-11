@@ -3,14 +3,29 @@ import mongoose from "mongoose";
 import s3 from "../config/s3";
 import dotenv from "dotenv";
 import Agricultural from "../models/agriculturalModel";
-import { uploadFile } from "../utils/uploadFile";
+import { cleanupUploadedFile, uploadFile } from "../utils/uploadFile";
 import { extendAgriculturalFilters } from "./filters/agriculturalFilters";
 import { upsertCityAndLocality } from "./locationServices";
-import { createWatermarkedBuffer } from "../utils/imageProcessing";
+import {
+  createWatermarkedBuffer,
+  getUploadedFileBuffer,
+} from "../utils/imageProcessing";
 
 dotenv.config({ quiet: true });
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
+
+function getUploadSource(file: Express.Multer.File) {
+  if (file.buffer && Buffer.isBuffer(file.buffer)) {
+    return { buffer: file.buffer };
+  }
+
+  if (file.path) {
+    return { filePath: file.path };
+  }
+
+  return { buffer: getUploadedFileBuffer(file) };
+}
 
 async function deleteS3ObjectIfExists(key?: string) {
   if (!key) return;
@@ -61,7 +76,8 @@ async function mapAndUploadGallery({
     }
     if (matchedIndex === -1) matchedIndex = i;
 
-    const watermarkedBuffer = await createWatermarkedBuffer(file.buffer);
+    const imageBuffer = getUploadedFileBuffer(file);
+    const watermarkedBuffer = await createWatermarkedBuffer(imageBuffer);
 
     const up = await uploadFile({
       buffer: watermarkedBuffer,
@@ -70,6 +86,7 @@ async function mapAndUploadGallery({
       propertyId,
       folder: "agricultural/gallery",
     });
+    cleanupUploadedFile(file.path);
 
     if (!summary[matchedIndex]) summary[matchedIndex] = {};
     summary[matchedIndex].url = up.url;
@@ -192,7 +209,7 @@ export const AgriculturalService = {
         : [];
       for (const f of documentsFiles) {
         const up = await uploadFile({
-          buffer: f.buffer,
+          ...getUploadSource(f),
           originalName: f.originalname,
           mimetype: f.mimetype,
           propertyId: propId,
@@ -214,7 +231,7 @@ export const AgriculturalService = {
     if (soilFiles && soilFiles.length > 0) {
       const f = soilFiles[0]!;
       const up = await uploadFile({
-        buffer: f.buffer,
+        ...getUploadSource(f),
         originalName: f.originalname,
         mimetype: f.mimetype,
         propertyId: propId,
@@ -321,7 +338,8 @@ export const AgriculturalService = {
         if (declared && filesByName.has(declared)) {
           const f = filesByName.get(declared);
           if (!f) continue;
-          const watermarkedBuffer = await createWatermarkedBuffer(f.buffer);
+          const imageBuffer = getUploadedFileBuffer(f);
+          const watermarkedBuffer = await createWatermarkedBuffer(imageBuffer);
           const up = await uploadFile({
             buffer: watermarkedBuffer,
             originalName: f.originalname,
@@ -329,6 +347,7 @@ export const AgriculturalService = {
             propertyId: propId,
             folder: "agricultural/gallery",
           });
+          cleanupUploadedFile(f.path);
           entry.url = up.url;
           entry.filename = f.originalname;
           filesByName.delete(declared);
@@ -336,7 +355,8 @@ export const AgriculturalService = {
       }
 
       for (const file of Array.from(filesByName.values())) {
-        const watermarkedBuffer = await createWatermarkedBuffer(file.buffer);
+        const imageBuffer = getUploadedFileBuffer(file);
+        const watermarkedBuffer = await createWatermarkedBuffer(imageBuffer);
         const up = await uploadFile({
           buffer: watermarkedBuffer,
           originalName: file.originalname,
@@ -344,6 +364,7 @@ export const AgriculturalService = {
           propertyId: propId,
           folder: "agricultural/gallery",
         });
+        cleanupUploadedFile(file.path);
         (existing as any).gallery.push({
           title: file.originalname,
           url: up.url,
@@ -360,7 +381,7 @@ export const AgriculturalService = {
         : [];
       for (const f of documentFiles) {
         const up = await uploadFile({
-          buffer: f.buffer,
+          ...getUploadSource(f),
           originalName: f.originalname,
           mimetype: f.mimetype,
           propertyId: propId,
@@ -382,7 +403,7 @@ export const AgriculturalService = {
 
     if (firstSoil) {
       const up = await uploadFile({
-        buffer: firstSoil.buffer,
+        ...getUploadSource(firstSoil),
         originalName: firstSoil.originalname,
         mimetype: firstSoil.mimetype,
         propertyId: propId,

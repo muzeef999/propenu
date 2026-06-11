@@ -105,14 +105,17 @@ import { Request, Response, NextFunction } from "express";
 
 const imageDir = path.join(process.cwd(), "uploads/images");
 const videoDir = path.join(process.cwd(), "uploads/videos");
+const documentDir = path.join(process.cwd(), "uploads/documents");
 
-if (!fs.existsSync(imageDir)) {
-  fs.mkdirSync(imageDir, { recursive: true });
+function ensureUploadDir(dir: string) {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
 }
 
-if (!fs.existsSync(videoDir)) {
-  fs.mkdirSync(videoDir, { recursive: true });
-}
+ensureUploadDir(imageDir);
+ensureUploadDir(videoDir);
+ensureUploadDir(documentDir);
 
 /* =========================
    MIME TYPES
@@ -134,6 +137,8 @@ const VIDEO_MIME_TYPES = [
   "video/x-msvideo",
 ];
 
+const DOCUMENT_MIME_TYPES = ["application/pdf"];
+
 /* =========================
    LIMITS
 ========================= */
@@ -148,11 +153,18 @@ const MAX_TOTAL_SIZE = 80 * 1024 * 1024;
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
+    let targetDir = documentDir;
+
     if (IMAGE_MIME_TYPES.includes(file.mimetype)) {
-      cb(null, imageDir);
-    } else {
-      cb(null, videoDir);
+      targetDir = imageDir;
+    } else if (VIDEO_MIME_TYPES.includes(file.mimetype)) {
+      targetDir = videoDir;
+    } else if (DOCUMENT_MIME_TYPES.includes(file.mimetype)) {
+      targetDir = documentDir;
     }
+
+    ensureUploadDir(targetDir);
+    cb(null, targetDir);
   },
 
   filename: (req, file, cb) => {
@@ -171,7 +183,7 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: {
-    files: 15,
+    files: 120,
     fileSize: VIDEO_MAX_BYTES,
   },
 });
@@ -189,16 +201,25 @@ export const uploadMedia = (
     { name: "images", maxCount: 12 },
     { name: "videos", maxCount: 3 },
     { name: "heroImage", maxCount: 1 },
+    { name: "heroVideo", maxCount: 1 },
     { name: "logo", maxCount: 1 },
     { name: "aboutImage", maxCount: 1 },
     { name: "brochure", maxCount: 1 },
+    { name: "documents", maxCount: 20 },
+    { name: "leaseDocuments", maxCount: 20 },
+    { name: "fireNOCFile", maxCount: 1 },
+    { name: "occupancyCertificateFile", maxCount: 1 },
+    { name: "soilTestReport", maxCount: 1 },
+    { name: "conversionCertificateFile", maxCount: 1 },
+    { name: "encumbranceCertificateFile", maxCount: 1 },
     { name: "galleryFiles", maxCount: 50 },
     { name: "bhkPlanFiles", maxCount: 50 },
     {name:"verificationDocuments", maxCount: 5}
   ]);
 
-  handler(req, res, (err) => {
+  handler(req, res, (err: any) => {
     if (err instanceof multer.MulterError) {
+      console.error("Multer upload error:", err);
       return res.status(400).json({
         success: false,
         message: err.message,
@@ -206,9 +227,10 @@ export const uploadMedia = (
     }
 
     if (err) {
+      console.error("Upload failed:", err);
       return res.status(400).json({
         success: false,
-        message: "Upload failed",
+        message: err.message || "Upload failed",
       });
     }
 
@@ -217,10 +239,9 @@ export const uploadMedia = (
         [field: string]: Express.Multer.File[];
       }) || {};
 
-    const images = files.images || [];
-    const videos = files.videos || [];
+    const uploadedFiles = Object.values(files).flat();
 
-    const totalSize = [...images, ...videos].reduce(
+    const totalSize = uploadedFiles.reduce(
       (sum, file) => sum + file.size,
       0,
     );

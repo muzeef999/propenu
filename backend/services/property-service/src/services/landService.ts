@@ -2,15 +2,30 @@ import mongoose from "mongoose";
 import s3 from "../config/s3";
 import dotenv from "dotenv";
 import LandPlot from "../models/landModel";
-import { uploadFile } from "../utils/uploadFile";
+import { cleanupUploadedFile, uploadFile } from "../utils/uploadFile";
 import { extendLandFilters } from "./filters/landFilters";
 import { upsertCityAndLocality } from "./locationServices";
 import { findRelatedProperties } from "./findRelatedProperties";
-import { createWatermarkedBuffer } from "../utils/imageProcessing";
+import {
+  createWatermarkedBuffer,
+  getUploadedFileBuffer,
+} from "../utils/imageProcessing";
 
 dotenv.config({ quiet: true });
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
+
+function getUploadSource(file: Express.Multer.File) {
+  if (file.buffer && Buffer.isBuffer(file.buffer)) {
+    return { buffer: file.buffer };
+  }
+
+  if (file.path) {
+    return { filePath: file.path };
+  }
+
+  return { buffer: getUploadedFileBuffer(file) };
+}
 
 function normalizePayload(obj: any) {
   if (!obj) return obj;
@@ -102,7 +117,8 @@ async function mapAndUploadGallery({
     }
     if (matchedIndex === -1) matchedIndex = i;
 
-    const watermarkedBuffer = await createWatermarkedBuffer(file.buffer);
+    const imageBuffer = getUploadedFileBuffer(file);
+    const watermarkedBuffer = await createWatermarkedBuffer(imageBuffer);
 
     const up = await uploadFile({
       buffer: watermarkedBuffer,
@@ -110,6 +126,7 @@ async function mapAndUploadGallery({
       mimetype: file.mimetype,
       folder: "featured/gallery",
     });
+    cleanupUploadedFile(file.path);
 
     if (!summary[matchedIndex]) summary[matchedIndex] = {};
     summary[matchedIndex].url = up.url;
@@ -214,7 +231,7 @@ export const LandService = {
         : [];
       for (const f of documentsFiles) {
         const up = await uploadFile({
-          buffer: f.buffer,
+          ...getUploadSource(f),
           originalName: f.originalname,
           mimetype: f.mimetype,
           propertyId: propId,
@@ -236,7 +253,7 @@ export const LandService = {
       const f = soilFiles[0];
       if (f) {
         const up = await uploadFile({
-          buffer: f.buffer,
+          ...getUploadSource(f),
           originalName: f.originalname,
           mimetype: f.mimetype,
           propertyId: propId,
@@ -257,7 +274,7 @@ export const LandService = {
       const f = convFiles[0];
       if (f) {
         const up = await uploadFile({
-          buffer: f.buffer,
+          ...getUploadSource(f),
           originalName: f.originalname,
           mimetype: f.mimetype,
           propertyId: propId,
@@ -278,7 +295,7 @@ export const LandService = {
       const f = encFiles[0];
       if (f) {
         const up = await uploadFile({
-          buffer: f.buffer,
+          ...getUploadSource(f),
           originalName: f.originalname,
           mimetype: f.mimetype,
           propertyId: propId,
@@ -363,7 +380,8 @@ export const LandService = {
         if (declared && filesByName.has(declared)) {
           const f = filesByName.get(declared);
           if (!f) continue;
-          const watermarkedBuffer = await createWatermarkedBuffer(f.buffer);
+          const imageBuffer = getUploadedFileBuffer(f);
+          const watermarkedBuffer = await createWatermarkedBuffer(imageBuffer);
           const up = await uploadFile({
             buffer: watermarkedBuffer,
             originalName: f.originalname,
@@ -371,6 +389,7 @@ export const LandService = {
             propertyId: propId,
             folder: "land/gallery",
           });
+          cleanupUploadedFile(f.path);
           entry.url = up.url;
           entry.filename = f.originalname;
           filesByName.delete(declared);
@@ -380,7 +399,8 @@ export const LandService = {
       const remainingFiles = Array.from(filesByName.values());
       for (const file of remainingFiles) {
         if (!file) continue;
-        const watermarkedBuffer = await createWatermarkedBuffer(file.buffer);
+        const imageBuffer = getUploadedFileBuffer(file);
+        const watermarkedBuffer = await createWatermarkedBuffer(imageBuffer);
         const up = await uploadFile({
           buffer: watermarkedBuffer,
           originalName: file.originalname,
@@ -388,6 +408,7 @@ export const LandService = {
           propertyId: propId,
           folder: "land/gallery",
         });
+        cleanupUploadedFile(file.path);
         (existing as any).gallery.push({
           title: file.originalname,
           url: up.url,
@@ -405,7 +426,7 @@ export const LandService = {
         : [];
       for (const f of documentsFiles) {
         const up = await uploadFile({
-          buffer: f.buffer,
+          ...getUploadSource(f),
           originalName: f.originalname,
           mimetype: f.mimetype,
           propertyId: propId,
@@ -427,7 +448,7 @@ export const LandService = {
       const f = soilFiles[0];
       if (f) {
         const up = await uploadFile({
-          buffer: f.buffer,
+          ...getUploadSource(f),
           originalName: f.originalname,
           mimetype: f.mimetype,
           propertyId: propId,
@@ -450,7 +471,7 @@ export const LandService = {
       const f = convFiles[0];
       if (f) {
         const up = await uploadFile({
-          buffer: f.buffer,
+          ...getUploadSource(f),
           originalName: f.originalname,
           mimetype: f.mimetype,
           propertyId: propId,
@@ -473,7 +494,7 @@ export const LandService = {
       const f = encFiles[0];
       if (f) {
         const up = await uploadFile({
-          buffer: f.buffer,
+          ...getUploadSource(f),
           originalName: f.originalname,
           mimetype: f.mimetype,
           propertyId: propId,

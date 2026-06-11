@@ -10,6 +10,23 @@ const s3 = new S3Client({
   region: REGION,
 });
 
+const tempFileBufferCache = new Map<string, Buffer>();
+
+function getTempFileBuffer(filePath: string) {
+  const resolvedPath = path.resolve(filePath);
+  const cached = tempFileBufferCache.get(resolvedPath);
+  if (cached) return cached;
+
+  const body = fs.readFileSync(resolvedPath);
+  tempFileBufferCache.set(resolvedPath, body);
+
+  setTimeout(() => {
+    tempFileBufferCache.delete(resolvedPath);
+  }, 5 * 60 * 1000).unref();
+
+  return body;
+}
+
 export type UploadFileOptions = {
   buffer?: Buffer;
   filePath?: string;
@@ -44,6 +61,27 @@ function buildKey({
   return `${safeFolder}${safeId}/${unique}`.replace(/\/+/g, "/");
 }
 
+export function cleanupUploadedFile(filePath?: string) {
+  if (!filePath) return;
+
+  try {
+    const uploadsRoot = path.resolve(process.cwd(), "uploads");
+    const resolvedPath = path.resolve(filePath);
+    const relativePath = path.relative(uploadsRoot, resolvedPath);
+
+    if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+      console.warn("Skipping temp file cleanup outside uploads:", filePath);
+      return;
+    }
+
+    if (fs.existsSync(resolvedPath)) {
+      fs.unlinkSync(resolvedPath);
+    }
+  } catch (error: any) {
+    console.error("Failed deleting temp upload:", filePath, error?.message || error);
+  }
+}
+
 export async function uploadFile(
   opts: UploadFileOptions,
 ): Promise<UploadResult> {
@@ -61,7 +99,7 @@ export async function uploadFile(
   const key = buildKey(opts);
   const filename = path.basename(key);
 
-  const body = buffer ? buffer : fs.readFileSync(filePath!);
+  const body = buffer ? buffer : getTempFileBuffer(filePath!);
 
   await s3.send(
     new PutObjectCommand({
@@ -77,21 +115,8 @@ export async function uploadFile(
   if (buffer) {
     size = buffer.length;
   } else {
-    const stats = fs.statSync(filePath!);
-    size = stats.size;
-
-    // delete local file after upload
-    // try {
-    //   console.log("DELETE START");
-    //   console.log("Deleting:", filePath);
-    //   console.trace("Delete Trace");
-
-    //   fs.unlinkSync(filePath!);
-
-    //   console.log("DELETE SUCCESS");
-    // } catch (error) {
-    //   console.error(error);
-    // }
+    size = body.length;
+    cleanupUploadedFile(filePath);
   }
 
   const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(

@@ -222,6 +222,10 @@ async function processBhkPlanUpdates(opts: {
   const existingSummary: any[] = Array.isArray(opts.bhkSummaryExisting)
     ? opts.bhkSummaryExisting.map((b) => ({ ...b }))
     : [];
+  const planUploadCache = new Map<
+    string,
+    Awaited<ReturnType<typeof uploadFile>>
+  >();
 
   for (let b = 0; b < bhkSummaryIncoming.length; b++) {
     const incomingBhk = bhkSummaryIncoming[b];
@@ -262,13 +266,19 @@ async function processBhkPlanUpdates(opts: {
 
         console.log("=================================");
 
-        const up = await uploadFile({
-          filePath: matchedFile.path,
-          originalName: matchedFile.originalname,
-          mimetype: matchedFile.mimetype,
-          folder: "plans",
-          propertyId: opts.propertyId,
-        });
+        const cacheKey = matchedFile.path || matchedFile.originalname;
+        let up = planUploadCache.get(cacheKey);
+
+        if (!up) {
+          up = await uploadFile({
+            filePath: matchedFile.path,
+            originalName: matchedFile.originalname,
+            mimetype: matchedFile.mimetype,
+            folder: "plans",
+            propertyId: opts.propertyId,
+          });
+          planUploadCache.set(cacheKey, up);
+        }
 
         if (existingUnit?.plan?.key) {
           await deleteS3ObjectIfExists(existingUnit.plan.key);

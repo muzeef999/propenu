@@ -4,14 +4,16 @@ import s3 from "../config/s3"; // your AWS.S3 v2 client
 import dotenv from "dotenv";
 import Residential from "../models/residentialModel";
 import "../models/userModel";
-import { uploadFile } from "../utils/uploadFile";
+import { cleanupUploadedFile, uploadFile } from "../utils/uploadFile";
 import { extendResidentialFilters } from "./filters/residentialFilters";
 import { ResidentialQuery } from "../types/filterTypes";
 import { Request } from "express";
 import { upsertCityAndLocality } from "./locationServices";
-import { createWatermarkedBuffer } from "../utils/imageProcessing";
+import {
+  createWatermarkedBuffer,
+  getUploadedFileBuffer,
+} from "../utils/imageProcessing";
 import { ResidentialUpdateSchema } from "../zod/residentialZod";
-import fs from "fs";
 
 type RequestWithResidentialQuery = Request<
   {}, // req.params
@@ -51,6 +53,18 @@ function normalizeAmenitiesInput(amenities?: any[]) {
     if (normalizedKey) normalized.key = normalizedKey;
     return normalized;
   });
+}
+
+function getUploadSource(file: Express.Multer.File) {
+  if (file.buffer && Buffer.isBuffer(file.buffer)) {
+    return { buffer: file.buffer };
+  }
+
+  if (file.path) {
+    return { filePath: file.path };
+  }
+
+  return { buffer: getUploadedFileBuffer(file) };
 }
 
 function normalizePayload(obj: any) {
@@ -116,24 +130,17 @@ async function mapAndUploadGallery({
     }
     if (matchedIndex === -1) matchedIndex = i;
 
-    const imageBuffer = fs.readFileSync(file.path);
-
-    console.log("PATH:", file.path);
-console.log("BUFFER SIZE:", imageBuffer.length);
-
+    const imageBuffer = getUploadedFileBuffer(file);
     const watermarkedBuffer = await createWatermarkedBuffer(imageBuffer);
 
-    console.log("FILE OBJECT:", file);
-console.log("BUFFER:", file.buffer);
-console.log("PATH:", file.path);
-
     // upload into residential folder
-    const up = await await uploadFile({
+    const up = await uploadFile({
       buffer: watermarkedBuffer,
       originalName: file.originalname,
       mimetype: file.mimetype,
       folder: "featured/gallery",
     });
+    cleanupUploadedFile(file.path);
 
     if (!summary[matchedIndex]) summary[matchedIndex] = {};
     summary[matchedIndex].url = up.url;
@@ -220,7 +227,7 @@ export const ResidentialPropertyService = {
 
       for (const file of verificationFiles) {
         const up = await uploadFile({
-          buffer: file.buffer,
+          ...getUploadSource(file),
           originalName: file.originalname,
           mimetype: file.mimetype,
           folder: "residential/verification",
@@ -323,7 +330,8 @@ export const ResidentialPropertyService = {
     for (const file of galleryFiles) {
       if (!file) continue;
 
-      const watermarkedBuffer = await createWatermarkedBuffer(file.buffer);
+      const imageBuffer = getUploadedFileBuffer(file);
+      const watermarkedBuffer = await createWatermarkedBuffer(imageBuffer);
       const up = await uploadFile({
         buffer: watermarkedBuffer,
         originalName: file.originalname,
@@ -331,6 +339,7 @@ export const ResidentialPropertyService = {
         folder: "featured/gallery",
         entityId: propId,
       });
+      cleanupUploadedFile(file.path);
 
       // 1️⃣ Find matching gallery item by filename
       const existingIndex = galleryIndexByFilename.get(file.originalname);
@@ -367,7 +376,7 @@ export const ResidentialPropertyService = {
 
       for (const file of verificationFiles) {
         const up = await uploadFile({
-          buffer: file.buffer,
+          ...getUploadSource(file),
           originalName: file.originalname,
           mimetype: file.mimetype,
           folder: "residential/verification",

@@ -373,7 +373,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
                     setRemovingIndex(null);
                   }
                 }}
-                className="absolute top-1 right-1 bg-black/60 hover:bg-red-500 text-white rounded-full p-1 transition-colors"
+                className="absolute top-1 right-1 z-10 bg-black/60 hover:bg-red-500 text-white rounded-full p-1 transition-colors"
               >
                 X
               </button>
@@ -419,18 +419,18 @@ const FileUpload: React.FC<FileUploadProps> = ({
               <button
                 type="button"
                 onClick={() => removeRejectedFile(index)}
-                className="absolute top-1 right-1 bg-black/60 hover:bg-red-500 text-white rounded-full p-1 transition-colors"
+                className="absolute top-1 right-1 z-10 bg-black/60 hover:bg-red-500 text-white rounded-full p-1 transition-colors"
               >
                 X
               </button>
 
-              <div className="absolute inset-x-0 top-1 px-2 pr-8">
+              <div className="pointer-events-none absolute inset-x-0 top-1 px-2 pr-8">
                 <p className="rounded bg-red-100/95 px-1.5 py-1 text-center text-[10px] font-semibold text-red-700 shadow-sm ring-1 ring-red-200">
                   {item.error}
                 </p>
               </div>
 
-              <div className="absolute inset-x-0 bottom-0 bg-red-100/95 px-2 py-1">
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-red-100/95 px-2 py-1">
                 <p className="text-[10px] font-semibold text-red-700">
                   {formatBytes(item.size) ?? "Size unavailable"}
                 </p>

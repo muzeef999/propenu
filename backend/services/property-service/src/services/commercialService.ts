@@ -4,16 +4,31 @@ import dotenv from "dotenv";
 import Commercial from "../models/commercialModel";
 import User from "../models/userModel";
 import Role from "../models/roleModel";
-import { uploadFile } from "../utils/uploadFile";
+import { cleanupUploadedFile, uploadFile } from "../utils/uploadFile";
 import { extendCommercialFilters } from "./filters/commercialFilters";
 import { upsertCityAndLocality } from "./locationServices";
 import { findRelatedProperties } from "./findRelatedProperties";
-import { createWatermarkedBuffer } from "../utils/imageProcessing";
+import {
+  createWatermarkedBuffer,
+  getUploadedFileBuffer,
+} from "../utils/imageProcessing";
 dotenv.config({ quiet: true });
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
 
 /* -------------------- Helpers -------------------- */
+
+function getUploadSource(file: Express.Multer.File) {
+  if (file.buffer && Buffer.isBuffer(file.buffer)) {
+    return { buffer: file.buffer };
+  }
+
+  if (file.path) {
+    return { filePath: file.path };
+  }
+
+  return { buffer: getUploadedFileBuffer(file) };
+}
 
 function normalizePayload(obj: any) {
   if (!obj) return obj;
@@ -139,7 +154,8 @@ async function mapAndUploadGallery({
     }
     if (matchedIndex === -1) matchedIndex = i;
 
-    const watermarkedBuffer = await createWatermarkedBuffer(file.buffer);
+    const imageBuffer = getUploadedFileBuffer(file);
+    const watermarkedBuffer = await createWatermarkedBuffer(imageBuffer);
 
     const up = await uploadFile({
       buffer: watermarkedBuffer,
@@ -148,6 +164,7 @@ async function mapAndUploadGallery({
       propertyId,
       folder: "commercial/gallery",
     });
+    cleanupUploadedFile(file.path);
 
     if (!summary[matchedIndex]) summary[matchedIndex] = {};
     summary[matchedIndex].url = up.url;
@@ -191,7 +208,7 @@ export const CommercialService = {
         : [];
       for (const f of documentsFiles) {
         const up = await uploadFile({
-          buffer: f.buffer,
+          ...getUploadSource(f),
           originalName: f.originalname,
           mimetype: f.mimetype,
           propertyId: propId,
@@ -216,7 +233,7 @@ export const CommercialService = {
         : [];
       for (const f of leaseFiles) {
         const up = await uploadFile({
-          buffer: f.buffer,
+          ...getUploadSource(f),
           originalName: f.originalname,
           mimetype: f.mimetype,
           propertyId: propId,
@@ -237,7 +254,7 @@ export const CommercialService = {
     const firstFire = fireFiles?.[0];
     if (firstFire) {
       const up = await uploadFile({
-        buffer: firstFire.buffer,
+        ...getUploadSource(firstFire),
         originalName: firstFire.originalname,
         mimetype: firstFire.mimetype,
         propertyId: propId,
@@ -256,7 +273,7 @@ export const CommercialService = {
     const firstOcc = occFiles?.[0];
     if (firstOcc) {
       const up = await uploadFile({
-        buffer: firstOcc.buffer,
+        ...getUploadSource(firstOcc),
         originalName: firstOcc.originalname,
         mimetype: firstOcc.mimetype,
         propertyId: propId,
@@ -361,7 +378,8 @@ export const CommercialService = {
         if (declared && filesByName.has(declared)) {
           const f = filesByName.get(declared);
           if (!f) continue;
-          const watermarkedBuffer = await createWatermarkedBuffer(f.buffer);
+          const imageBuffer = getUploadedFileBuffer(f);
+          const watermarkedBuffer = await createWatermarkedBuffer(imageBuffer);
           const up = await uploadFile({
             buffer: watermarkedBuffer,
             originalName: f.originalname,
@@ -369,6 +387,7 @@ export const CommercialService = {
             propertyId: propId,
             folder: "commercial/gallery",
           });
+          cleanupUploadedFile(f.path);
           entry.url = up.url;
           entry.key = up.key;
           entry.filename = f.originalname;
@@ -378,7 +397,8 @@ export const CommercialService = {
 
       const remainingFiles = Array.from(filesByName.values());
       for (const file of remainingFiles) {
-        const watermarkedBuffer = await createWatermarkedBuffer(file.buffer);
+        const imageBuffer = getUploadedFileBuffer(file);
+        const watermarkedBuffer = await createWatermarkedBuffer(imageBuffer);
         const up = await uploadFile({
           buffer: watermarkedBuffer,
           originalName: file.originalname,
@@ -386,6 +406,7 @@ export const CommercialService = {
           propertyId: propId,
           folder: "commercial/gallery",
         });
+        cleanupUploadedFile(file.path);
         const emptySlotIndex = (existing as any).gallery.findIndex(
           (e: any) => !e.url,
         );
@@ -426,7 +447,7 @@ export const CommercialService = {
         : [];
       for (const f of leaseFiles) {
         const up = await uploadFile({
-          buffer: f.buffer,
+          ...getUploadSource(f),
           originalName: f.originalname,
           mimetype: f.mimetype,
           propertyId: propId,
@@ -447,7 +468,7 @@ export const CommercialService = {
     const firstFire2 = fireFiles?.[0];
     if (firstFire2) {
       const up = await uploadFile({
-        buffer: firstFire2.buffer,
+        ...getUploadSource(firstFire2),
         originalName: firstFire2.originalname,
         mimetype: firstFire2.mimetype,
         propertyId: propId,
@@ -468,7 +489,7 @@ export const CommercialService = {
     const firstOcc2 = occFiles?.[0];
     if (firstOcc2) {
       const up = await uploadFile({
-        buffer: firstOcc2.buffer,
+        ...getUploadSource(firstOcc2),
         originalName: firstOcc2.originalname,
         mimetype: firstOcc2.mimetype,
         propertyId: propId,
