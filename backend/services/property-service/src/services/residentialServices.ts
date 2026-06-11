@@ -116,13 +116,19 @@ async function mapAndUploadGallery({
     }
     if (matchedIndex === -1) matchedIndex = i;
 
-const imageBuffer = fs.readFileSync(file.path);
+    const imageBuffer = fs.readFileSync(file.path);
 
-const watermarkedBuffer =
-  await createWatermarkedBuffer(imageBuffer);
+    console.log("PATH:", file.path);
+console.log("BUFFER SIZE:", imageBuffer.length);
+
+    const watermarkedBuffer = await createWatermarkedBuffer(imageBuffer);
+
+    console.log("FILE OBJECT:", file);
+console.log("BUFFER:", file.buffer);
+console.log("PATH:", file.path);
+
     // upload into residential folder
     const up = await await uploadFile({
-   
       buffer: watermarkedBuffer,
       originalName: file.originalname,
       mimetype: file.mimetype,

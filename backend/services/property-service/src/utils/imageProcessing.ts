@@ -3,8 +3,15 @@ import path from "path";
 import fs from "fs";
 
 export async function createWatermarkedBuffer(imageBuffer: Buffer) {
+
+   if (!imageBuffer || !Buffer.isBuffer(imageBuffer)) {
+    throw new Error("Invalid image buffer received");
+  }
+
+  console.log("Buffer Length:", imageBuffer.length);
+
  
-const watermarkPath = path.resolve(__dirname, "../../../../assets/watermark.png");
+const watermarkPath = path.resolve(__dirname, "../assets/watermark.png");
 
   if (!fs.existsSync(watermarkPath)) {
     throw new Error("❌ Watermark not found at: " + watermarkPath);
