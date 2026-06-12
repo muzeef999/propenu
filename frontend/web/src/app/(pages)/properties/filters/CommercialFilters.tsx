@@ -261,7 +261,7 @@ const CommercialFilters = () => {
                             })
                           );
                         }}
-                        className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${isSelected
+                        className={`flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${isSelected
                           ? "border-green-400 bg-green-100 text-green-700"
                           : "border-gray-300 bg-white hover:bg-gray-50"
                           }`}
@@ -289,7 +289,7 @@ const CommercialFilters = () => {
                     }}
                     disabled={localityList.length === 0}
                     className={`flex items-center gap-1 text-sm font-medium ${localityList.length > 0
-                        ? "text-red-500 hover:underline"
+                        ? "cursor-pointer text-red-500 hover:underline"
                         : "text-gray-400 cursor-not-allowed"
                       }`}
                   >
@@ -299,7 +299,7 @@ const CommercialFilters = () => {
 
                   <button
                     onClick={close}
-                    className="text-green-600 font-semibold text-sm hover:underline"
+                    className="cursor-pointer text-green-600 font-semibold text-sm hover:underline"
                   >
                     Done
                   </button>
@@ -338,7 +338,7 @@ const CommercialFilters = () => {
                     budgetRange[1],
                   ]);
                 }}
-                className="w-1/2 border border-gray-400 rounded-md px-3 py-2 text-sm 
+                className="w-1/2 cursor-pointer border border-gray-400 rounded-md px-3 py-2 text-sm 
                focus:outline-none focus:ring-0 focus:border-gray-400
                hover:border-gray-400 active:border-gray-400"
               >
@@ -364,7 +364,7 @@ const CommercialFilters = () => {
                     e.target.value ? Number(e.target.value) : null,
                   ]);
                 }}
-                className="w-1/2 border border-gray-400 rounded-md px-3 py-2 text-sm 
+                className="w-1/2 cursor-pointer border border-gray-400 rounded-md px-3 py-2 text-sm 
                focus:outline-none focus:ring-0 focus:border-gray-400
                hover:border-gray-400 active:border-gray-400"
               >
@@ -424,7 +424,7 @@ const CommercialFilters = () => {
                   <div
                     key={key}
                     {...restProps}
-                    className="h-4 w-4 bg-green-600 rounded-full shadow"
+                    className="h-4 w-4 cursor-pointer bg-green-600 rounded-full shadow"
                   />
                 );
               }}
@@ -463,7 +463,7 @@ const CommercialFilters = () => {
                   );
                   close?.();
                 }}
-                className={`px-2 py-1 rounded block w-full text-left hover:bg-gray-100 ${Array.isArray(listingSource)
+                className={`px-2 py-1 rounded block w-full cursor-pointer text-left hover:bg-gray-100 ${Array.isArray(listingSource)
                   ? listingSource.includes(opt)
                     ? "font-semibold bg-gray-100"
                     : ""
@@ -487,7 +487,7 @@ const CommercialFilters = () => {
               }}
               disabled={!listingSource}
               className={`mt-2 px-2 py-1 rounded block w-full text-left ${listingSource
-                  ? "text-red-500 hover:bg-red-50"
+                  ? "cursor-pointer text-red-500 hover:bg-red-50"
                   : "text-gray-400 cursor-not-allowed"
                 }`}
             >
@@ -536,7 +536,7 @@ const CommercialFilters = () => {
                         })
                       );
                     }}
-                    className={`rounded-full border px-3 py-1.5 text-sm transition ${isActive
+                    className={`cursor-pointer rounded-full border px-3 py-1.5 text-sm transition ${isActive
                       ? "border-green-400 bg-green-100 text-green-700"
                       : "border-gray-300 bg-white hover:bg-gray-50"
                       }`}
@@ -559,7 +559,7 @@ const CommercialFilters = () => {
                 }
                 disabled={selectedCommercialTypes.length === 0}
                 className={`text-sm font-medium ${selectedCommercialTypes.length > 0
-                  ? "text-red-500 hover:underline"
+                  ? "cursor-pointer text-red-500 hover:underline"
                   : "cursor-not-allowed text-gray-400"
                   }`}
               >
@@ -568,7 +568,7 @@ const CommercialFilters = () => {
 
               <button
                 onClick={close}
-                className="text-sm font-semibold text-green-600 hover:underline"
+                className="cursor-pointer text-sm font-semibold text-green-600 hover:underline"
               >
                 Done
               </button>
@@ -679,7 +679,7 @@ const CommercialFilters = () => {
                                 carpetRange[1],
                               ])
                             }
-                            className="w-1/2 border rounded-md px-3 py-2 text-sm"
+                            className="w-1/2 cursor-pointer border rounded-md px-3 py-2 text-sm"
                           >
                             {carpetOptions.map((v) => (
                               <option key={v} value={v}>
@@ -696,7 +696,7 @@ const CommercialFilters = () => {
                                 Number(e.target.value),
                               ])
                             }
-                            className="w-1/2 border rounded-md px-3 py-2 text-sm"
+                            className="w-1/2 cursor-pointer border rounded-md px-3 py-2 text-sm"
                           >
                             {carpetOptions.map((v) => (
                               <option key={v} value={v}>
@@ -725,7 +725,7 @@ const CommercialFilters = () => {
                           renderThumb={({ props }) => (
                             <div
                               {...props}
-                              className="h-4 w-4 bg-green-600 rounded-full shadow"
+                              className="h-4 w-4 cursor-pointer bg-green-600 rounded-full shadow"
                             />
                           )}
                         />

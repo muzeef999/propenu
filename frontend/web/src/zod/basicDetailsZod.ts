@@ -142,6 +142,14 @@ export const basicDetailsSchema = z
       });
     }
 
+    if (category === "commercial" && propertyType && !facing) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["facing"],
+        message: "Please select facing",
+      });
+    }
+
     /* ================= LAND ================= */
     if (category === "land" && !data.landSubType) {
       ctx.addIssue({
@@ -284,7 +292,7 @@ export const basicDetailsSchema = z
     /* ================= AVAILABILITY ================= */
     if (
       (category === "residential" && facing) ||
-      (category === "commercial" && data.wallFinishStatus)
+      (category === "commercial" && facing && data.wallFinishStatus)
     ) {
       if (!constructionStatus) {
         ctx.addIssue({

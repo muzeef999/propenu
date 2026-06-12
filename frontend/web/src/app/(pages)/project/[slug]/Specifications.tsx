@@ -44,7 +44,7 @@ export default function Specifications({ project }: SpecificationsProps) {
                   key={`${spec.category}-${index}`}
                   type="button"
                   onClick={() => setActiveIndex(index)}
-                  className={`shrink-0 rounded-md border px-4 py-2 text-xs font-medium transition sm:px-5 sm:py-2.5 sm:text-sm ${activeIndex === index
+                  className={`shrink-0 rounded-md border px-4 py-2 text-xs font-medium transition sm:px-5 sm:py-2.5 sm:text-sm cursor-pointer ${activeIndex === index
                       ? "border-emerald-500 bg-[#27ae60] text-white shadow-sm"
                       : "border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
                     }`}

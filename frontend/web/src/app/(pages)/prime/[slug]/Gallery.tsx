@@ -281,7 +281,7 @@ export default function Gallery(props: Props) {
               <button
                 type="button"
                 onClick={() => scrollVideos("left")}
-                className="h-9 w-9 rounded-full border border-gray-200 bg-white text-slate-700 hover:bg-slate-50 flex items-center justify-center"
+                className="h-9 w-9 rounded-full border border-gray-200 bg-white text-slate-700 hover:bg-slate-50 flex items-center justify-center cursor-pointer"
                 aria-label="Previous videos"
               >
                 <HiChevronLeft size={18} />
@@ -289,7 +289,7 @@ export default function Gallery(props: Props) {
               <button
                 type="button"
                 onClick={() => scrollVideos("right")}
-                className="h-9 w-9 rounded-full border border-gray-200 bg-white text-slate-700 hover:bg-slate-50 flex items-center justify-center"
+                className="h-9 w-9 rounded-full border border-gray-200 bg-white text-slate-700 hover:bg-slate-50 flex items-center justify-center cursor-pointer"
                 aria-label="Next videos"
               >
                 <HiChevronRight size={18} />
@@ -316,7 +316,7 @@ export default function Gallery(props: Props) {
             {/* Close Button */}
             <button
               onClick={() => setOpenIndex(null)}
-              className="absolute right-0 top-0 z-30 h-11 w-11 rounded-full bg-black/50 text-white hover:bg-black/70 transition flex items-center justify-center"
+              className="absolute right-0 top-0 z-30 h-11 w-11 rounded-full bg-black/50 text-white hover:bg-black/70 transition flex items-center justify-center cursor-pointer"
               aria-label="Close gallery"
             >
               <HiXMark size={24} />
@@ -328,7 +328,7 @@ export default function Gallery(props: Props) {
               {/* Arrows */}
               <button
                 onClick={prev}
-                className="absolute left-3 md:left-5 top-1/2 -translate-y-1/2 z-20 h-11 w-11 rounded-full bg-black/45 hover:bg-black/65 text-white backdrop-blur-md transition flex items-center justify-center"
+                className="absolute left-3 md:left-5 top-1/2 -translate-y-1/2 z-20 h-11 w-11 rounded-full bg-black/45 hover:bg-black/65 text-white backdrop-blur-md transition flex items-center justify-center cursor-pointer"
                 aria-label="Previous"
               >
                 <HiChevronLeft size={22} />
@@ -336,7 +336,7 @@ export default function Gallery(props: Props) {
 
               <button
                 onClick={next}
-                className="absolute right-3 md:right-5 top-1/2 -translate-y-1/2 z-20 h-11 w-11 rounded-full bg-black/45 hover:bg-black/65 text-white backdrop-blur-md transition flex items-center justify-center"
+                className="absolute right-3 md:right-5 top-1/2 -translate-y-1/2 z-20 h-11 w-11 rounded-full bg-black/45 hover:bg-black/65 text-white backdrop-blur-md transition flex items-center justify-center cursor-pointer  "
                 aria-label="Next"
               >
                 <HiChevronRight size={22} />

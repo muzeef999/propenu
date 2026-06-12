@@ -373,7 +373,7 @@ export default function HeroSection({ project }: HeroSectionProps) {
                             <button
                                 type="button"
                                 onClick={toggleShortlist}
-                                className={`flex h-9 items-center gap-2 rounded-lg border border-white/70 bg-white/95 px-3 text-xs font-semibold shadow-sm backdrop-blur transition hover:bg-white ${
+                                className={`flex h-9 items-center gap-2 rounded-lg border border-white/70 bg-white/95 px-3 text-xs font-semibold shadow-sm backdrop-blur transition hover:bg-white cursor-pointer ${
                                     isShortlisted ? "text-rose-500" : "text-slate-700 hover:text-rose-500"
                                 }`}
                                 aria-label="Shortlist project"
@@ -385,7 +385,7 @@ export default function HeroSection({ project }: HeroSectionProps) {
                             <button
                                 type="button"
                                 onClick={shareProject}
-                                className="flex h-9 items-center gap-2 rounded-lg border border-white/70 bg-white/95 px-3 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-emerald-600"
+                                className="flex h-9 items-center gap-2 rounded-lg border border-white/70 bg-white/95 px-3 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-emerald-600 cursor-pointer"
                                 aria-label="Share project"
                             >
                                 <IoIosShareAlt className="h-4 w-4" />

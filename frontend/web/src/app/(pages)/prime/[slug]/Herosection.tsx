@@ -202,7 +202,7 @@ export default function HeroSection({ hero }: Props) {
                   type="submit"
                   disabled={leadsMutation.isPending}
                   style={{ backgroundColor: h.color }}
-                  className="w-full text-white font-bold py-2 rounded-md hover:brightness-95 transition"
+                  className="w-full text-white font-bold py-2 rounded-md hover:brightness-95 transition cursor-pointer"
                 >
                   {leadsMutation.isPending ? "Submitting..." : "Submit"}
                 </button>

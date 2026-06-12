@@ -106,6 +106,7 @@ export interface ICommercial {
   slug: string;
   floorNumber?: number;
   buildingName?: String;
+  facing?: string;
   propertyType?: CommercialPropertyType;
   propertySubType?: CommercialPropertySubType;
   promotion?: IPromotion;

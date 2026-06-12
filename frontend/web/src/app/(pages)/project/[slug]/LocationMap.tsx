@@ -419,7 +419,7 @@ export default function LocationMap({ project }: LocationMapProps) {
                           key={`${place.name ?? "place"}-${index}`}
                           type="button"
                           onClick={() => onNearbyPlaceClick(index, place.coords)}
-                          className={`flex w-full items-start gap-2 rounded-md border bg-white p-2 text-left transition sm:gap-3 sm:p-3 ${
+                          className={`flex w-full items-start gap-2 rounded-md border bg-white p-2 text-left transition sm:gap-3 sm:p-3 cursor-pointer ${
                             isActive
                               ? "border-emerald-400 shadow-sm"
                               : "border-slate-100 hover:border-slate-200 hover:bg-slate-50"

@@ -125,7 +125,7 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
                   key={`${image.url}-${index}`}
                   type="button"
                   onClick={() => setOpenIndex(index)}
-                  className={`group overflow-hidden rounded-xl text-left shadow-sm ${
+                  className={`group overflow-hidden rounded-xl text-left shadow-sm cursor-pointer ${
                     isMainImage ? "col-span-2 sm:col-span-1 sm:row-span-2" : ""
                   }`}
                   aria-label={`Open ${image.title || "project image"} preview`}
@@ -160,7 +160,7 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
             <button
               type="button"
               onClick={() => setOpenIndex(null)}
-              className="absolute right-2 top-2 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/70 md:right-0 md:top-0 md:h-11 md:w-11"
+              className="absolute right-2 top-2 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/70 md:right-0 md:top-0 md:h-11 md:w-11 cursor-pointer"
               aria-label="Close gallery"
             >
               <HiXMark size={24} />
@@ -172,7 +172,7 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
                   <button
                     type="button"
                     onClick={prev}
-                    className="absolute left-2 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md transition hover:bg-black/65 md:left-5 md:h-11 md:w-11"
+                    className="absolute left-2 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md transition  cursor-pointer hover:bg-black/65 md:left-5 md:h-11 md:w-11"
                     aria-label="Previous image"
                   >
                     <HiChevronLeft size={22} />
@@ -181,8 +181,8 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
                   <button
                     type="button"
                     onClick={next}
-                    className="absolute right-2 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md transition hover:bg-black/65 md:right-5 md:h-11 md:w-11"
-                    aria-label="Next image"
+                    className="absolute right-2 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md transition  cursor-pointer hover:bg-black/65 md:right-5 md:h-11 md:w-11"
+                    aria-label="Next image "
                   >
                     <HiChevronRight size={22} />
                   </button>

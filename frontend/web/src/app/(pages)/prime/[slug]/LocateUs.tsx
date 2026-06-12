@@ -487,7 +487,7 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
           <button
             type="button"
             onClick={() => scrollSlider("left")}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900 cursor-pointer"
             aria-label="Previous nearby places"
           >
             <FiChevronLeft className="h-4 w-4" />
@@ -496,7 +496,7 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
           <button
             type="button"
             onClick={() => scrollSlider("right")}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900 cursor-pointer"
             aria-label="Next nearby places"
           >
             <FiChevronRight className="h-4 w-4" />

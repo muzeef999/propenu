@@ -73,7 +73,7 @@ export default function ProjectVideos({ project }: ProjectVideosProps) {
                 <button
                   type="button"
                   onClick={() => scrollVideos("left")}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 hover:text-emerald-600"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 hover:text-emerald-600 cursor-pointer"
                   aria-label="Previous videos"
                 >
                   <HiChevronLeft className="h-5 w-5" />
@@ -81,7 +81,7 @@ export default function ProjectVideos({ project }: ProjectVideosProps) {
                 <button
                   type="button"
                   onClick={() => scrollVideos("right")}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 hover:text-emerald-600"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 hover:text-emerald-600  cursor-pointer"
                   aria-label="Next videos"
                 >
                   <HiChevronRight className="h-5 w-5" />

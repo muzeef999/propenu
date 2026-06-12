@@ -182,6 +182,22 @@ const FireSafetyZ = z.object({
 
 const FlooringTypeZ = coerceEnum(FLOORING_TYPES);
 const WallFinishStatusZ = coerceEnum(WALL_FINISH_STATUS);
+const FacingZ = z.preprocess(
+  (v) =>
+    typeof v === "string"
+      ? v.trim().toLowerCase().replace(/[\s_-]+/g, "")
+      : v,
+  z.enum([
+    "east",
+    "west",
+    "north",
+    "south",
+    "northeast",
+    "northwest",
+    "southeast",
+    "southwest",
+  ]),
+);
 
 function enumPreprocess<T extends readonly [string, ...string[]]>(choices: T) {
   // spread into a mutable tuple for z.enum typing
@@ -258,6 +274,7 @@ export const CreateCommercialSchema = BaseCreate.extend({
   // building/floor
   floorNumber: coerceInt(z.number().int()).optional(),
   totalFloors: coerceInt(z.number().int()).optional(),
+  facing: FacingZ.optional(),
 
   // furnishing
   furnishedStatus: coerceEnum([
@@ -374,6 +391,7 @@ export const UpdateCommercialSchema = z
     // building/floor
     floorNumber: coerceInt(z.number().int()).optional(),
     totalFloors: coerceInt(z.number().int()).optional(),
+    facing: FacingZ.optional(),
 
     furnishedStatus: coerceEnum([
       "unfurnished",

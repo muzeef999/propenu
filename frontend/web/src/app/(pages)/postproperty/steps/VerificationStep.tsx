@@ -54,8 +54,23 @@ const VerificationStep = () => {
   const listingSource = String(
     base?.listingSource ?? profileData?.listingSource ?? ""
   ).toLowerCase();
-  const myPropertiesRoute =
-    listingSource === "agent" ? "/agent/my-properties" : "/my-properties";
+
+  const getMyPropertiesRoute = () => {
+    const roleName =
+      typeof window !== "undefined"
+        ? String(localStorage.getItem("role") ?? "").toLowerCase()
+        : "";
+
+    if (roleName === "agent" || listingSource === "agent") {
+      return "/agent/my-properties";
+    }
+
+    if (roleName === "builder" || listingSource === "builder") {
+      return "/builder/my-properties";
+    }
+
+    return "/my-properties";
+  };
 
   /* =========================================
      RENDER
@@ -83,7 +98,7 @@ const VerificationStep = () => {
             submittedAt={trackerState.submittedAt}
             reviewAt={trackerState.reviewAt}
             approvedAt={trackerState.approvedAt}
-            onGoToMyProperties={() => router.push(myPropertiesRoute)}
+            onGoToMyProperties={() => router.push(getMyPropertiesRoute())}
           />
         ) : (
           <VerifyProperty onVerificationSubmitted={setSubmissionMeta} />

@@ -1,7 +1,11 @@
 import User from "../models/userModel";
 import Role from "../models/roleModel";
 import { genOtp } from "../utils/genOtp";
-import { saveOtpToRedis, verifyAndConsumeOtp } from "../utils/saveOtpRedis";
+import {
+  OtpVerificationResult,
+  saveOtpToRedis,
+  verifyAndConsumeOtpWithReason,
+} from "../utils/saveOtpRedis";
 import { generateToken } from "../utils/jwt";
 import { Request, Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware";
@@ -44,6 +48,44 @@ const isDummyLoginPhone = (phone?: string) => {
     inputDigits === `91${dummyDigits}` ||
     inputDigits.endsWith(dummyDigits)
   );
+};
+
+const getOtpFailureResponse = (
+  result: Extract<OtpVerificationResult, { valid: false }>
+) => {
+  if (result.reason === "expired") {
+    return {
+      message: "OTP has expired or is no longer valid. Please request a new OTP.",
+      reason: "expired",
+      code: "OTP_EXPIRED",
+    };
+  }
+
+  return {
+    message: "Incorrect OTP. Please check the code and try again.",
+    reason: "incorrect",
+    code: "OTP_INCORRECT",
+  };
+};
+
+const verifyDummyOrRedisOtp = async ({
+  phone,
+  key,
+  otp,
+}: {
+  phone?: string;
+  key: string;
+  otp: string;
+}): Promise<OtpVerificationResult> => {
+  const { otp: dummyOtp } = getDummyLoginConfig();
+
+  if (isDummyLoginPhone(phone) && dummyOtp) {
+    return otp === dummyOtp
+      ? { valid: true }
+      : { valid: false, reason: "incorrect" };
+  }
+
+  return verifyAndConsumeOtpWithReason(key, otp);
 };
 
 const findDeletedAccount = async ({
@@ -239,15 +281,11 @@ export const verifyOtp = async (req: Request, res: Response) => {
     }
 
     const key = email || phone;
-    const { otp: dummyOtp } = getDummyLoginConfig();
-    const isValid =
-      isDummyLoginPhone(phone) && dummyOtp
-        ? otp === dummyOtp
-        : await verifyAndConsumeOtp(key, otp);
+    const otpResult = await verifyDummyOrRedisOtp({ phone, key, otp });
 
-    if (!isValid) {
+    if (!otpResult.valid) {
       return res.status(400).json({
-        message: "Invalid or expired OTP",
+        ...getOtpFailureResponse(otpResult),
       });
     }
 
@@ -667,15 +705,11 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
     }
 
     // verify OTP
-    const { otp: dummyOtp } = getDummyLoginConfig();
-    const isValid =
-      isDummyLoginPhone(phone) && dummyOtp
-        ? otp === dummyOtp
-        : await verifyAndConsumeOtp(phone, otp);
+    const otpResult = await verifyDummyOrRedisOtp({ phone, key: phone, otp });
 
-    if (!isValid) {
+    if (!otpResult.valid) {
       return res.status(400).json({
-        message: "Invalid or expired OTP",
+        ...getOtpFailureResponse(otpResult),
       });
     }
 
@@ -834,11 +868,11 @@ export const adminCreateVerifyOtp = async (req: Request, res: Response) => {
       });
     }
 
-    const isValid = await verifyAndConsumeOtp(email, otp);
+    const otpResult = await verifyAndConsumeOtpWithReason(email, otp);
 
-    if (!isValid) {
+    if (!otpResult.valid) {
       return res.status(400).json({
-        message: "Invalid or expired OTP",
+        ...getOtpFailureResponse(otpResult),
       });
     }
 

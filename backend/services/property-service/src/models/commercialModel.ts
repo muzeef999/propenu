@@ -42,6 +42,25 @@ const CommercialSchema = new Schema<ICommercial>(
     powerCapacityKw: Number,
     maintenanceCharges: Number,
     buildingName: String,
+    facing: {
+      type: String,
+      enum: [
+        "east",
+        "west",
+        "north",
+        "south",
+        "northeast",
+        "northwest",
+        "southeast",
+        "southwest",
+      ],
+      lowercase: true,
+      trim: true,
+      set: (value: unknown) =>
+        typeof value === "string"
+          ? value.trim().toLowerCase().replace(/[\s_-]+/g, "")
+          : value,
+    },
     flooringType: { type: String, enum: FLOORING_TYPES },
     wallFinishStatus: { type: String, enum: WALL_FINISH_STATUS },
     title: { type: String, required: true, trim: true },

@@ -81,6 +81,10 @@ const ResidentialSchema = new Schema<IResidential>(
       enum: ["east", "west", "north", "south", "northeast", "northwest", "southeast", "southwest"],
       lowercase: true,
       trim: true,
+      set: (value: unknown) =>
+        typeof value === "string"
+          ? value.trim().toLowerCase().replace(/[\s_-]+/g, "")
+          : value,
     },
     constructionStatus: {
       type: String,

@@ -46,7 +46,7 @@ function makeOtpHtml(otp: string) {
   <div>
     <h2 style={{ color: "#000", marginBottom: "16px" }}>Hi,</h2>
     <p style="font-size: 15px; color: #000;">Use the following one-time password (OTP) to sign in to your Propenu account.<br/>
-    This OTP will be valid for 15 minutes till <b>${ttlInMinutes} seconds</b>.</p>
+    This OTP will be valid for <b>${ttlInMinutes} minutes</b>.</p>
     <div style="font-size: 32px; letter-spacing: 6px; font-weight: bold; margin: 20px 0; padding: 12px 16px; border: 2px dashed #333; display: inline-block;">
       ${otp}
     </div>

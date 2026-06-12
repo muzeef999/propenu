@@ -76,7 +76,7 @@ export default function Amenities({ project }: AmenitiesProps) {
               <button
                 type="button"
                 onClick={() => setShowAll((value) => !value)}
-                className="flex min-h-16 flex-col items-center justify-center rounded-md bg-emerald-50 px-2 text-xs font-medium text-emerald-600 transition hover:bg-emerald-100 sm:min-h-20 sm:px-4 sm:text-sm"
+                className="flex min-h-16 flex-col items-center justify-center rounded-md bg-emerald-50 px-2 text-xs font-medium text-emerald-600 transition hover:bg-emerald-100 sm:min-h-20 sm:px-4 sm:text-sm cursor-pointer"
               >
                 <span>{showAll ? "Show" : `+${hiddenCount}`}</span>
                 <span className="mt-1 inline-flex items-center gap-1">

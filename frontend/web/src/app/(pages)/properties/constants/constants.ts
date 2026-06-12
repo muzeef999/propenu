@@ -107,7 +107,7 @@ export const moreFilterSections: MoreFilterSection[] = [
     {
       key: "Posted By",
       label: "Posted By",
-      options: ["user", "Agents", "Builders"],
+      options: ["User", "Agents", "Builders"],
       selectionType: "multiple",
     },
   ];

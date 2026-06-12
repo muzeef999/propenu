@@ -77,9 +77,9 @@ export default function Footer() {
                 <p className="leading-relaxed text-gray-700">
                   # 191, 5th Floor, Tagore Towers,
                   <br />
-                  Kavuri Hills, Guttala, Madhapur, Shaikpet,
+                  Kavuri Hills, Madhapur,
                   <br />
-                  Hyderabad – 500081, Telangana, India
+                  Hyderabad – 500033, Telangana, India
                 </p>
               </div>
             </div>
@@ -91,16 +91,12 @@ export default function Footer() {
               Experience Propenu on Mobile
             </h3>
             <div className="flex flex-col gap-4 items-center">
-              <div className="flex items-center justify-center gap-3">
-                <PlayStoreBadge />
-                <AppStoreBadge />
-              </div>
               <div className="flex flex-col items-center justify-center gap-4 mt-2">
                 <div className="rounded-xl border border-emerald-100 bg-white p-1 shadow-sm ring-4 ring-white/60">
                   <img
                     src="/images/qr.png"
                     alt="QR Code"
-                    className="h-24 w-24 rounded-md object-cover"
+                    className="h-38 w-38 rounded-md object-cover"
                   />
                 </div>
                 <p className="text-[12px] text-gray-600 leading-snug text-center">
@@ -177,9 +173,15 @@ export default function Footer() {
               </Link>
             </div>
 
-            <p className="text-[12px] text-gray-500">
-              © Copyright 2026 Propenu Solutions Pvt. Ltd
-            </p>
+            <div className="mt-8 flex flex-col items-start gap-4 max-lg:items-center max-lg:text-center">
+              <p className="text-xs leading-5 text-gray-500">
+                © Copyright 2026 Propenu Solutions Pvt. Ltd
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <PlayStoreBadge />
+                <AppStoreBadge />
+              </div>
+            </div>
           </div>
         </div>
       </div>

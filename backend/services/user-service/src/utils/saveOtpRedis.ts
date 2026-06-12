@@ -4,7 +4,7 @@ import { redis } from '../lib/redis';
 
 
 const OTP_ENV_LENGTH = Number(process.env.OTP_CODE_LENGTH || 6);
-const OTP_TTL_SECONDS = Number(process.env.OTP_TTL_SECONDS || 180); // default 3 min
+const OTP_TTL_SECONDS = Number(process.env.OTP_TTL_SECONDS || 300); // default 5 min
 const OTP_HASH_SECRET = process.env.OTP_HASH_SECRET || 'dev-secret';
 
 export function genOtp(length = OTP_ENV_LENGTH): string {
@@ -54,4 +54,29 @@ export async function verifyAndConsumeOtp(key: string, otp: string): Promise<boo
   const ok = stored === hashOtp(otp);
   if (ok) await deleteOtpFromRedis(key); // one-time
   return ok;
+}
+
+export type OtpVerificationResult =
+  | { valid: true }
+  | { valid: false; reason: "expired" | "incorrect" };
+
+/** Verify a raw OTP and explain why it failed; delete on success */
+export async function verifyAndConsumeOtpWithReason(
+  key: string,
+  otp: string
+): Promise<OtpVerificationResult> {
+  const stored = await getOtpHashFromRedis(key);
+
+  if (!stored) {
+    return { valid: false, reason: "expired" };
+  }
+
+  const ok = stored === hashOtp(otp);
+
+  if (!ok) {
+    return { valid: false, reason: "incorrect" };
+  }
+
+  await deleteOtpFromRedis(key); // one-time
+  return { valid: true };
 }

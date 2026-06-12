@@ -231,7 +231,7 @@ export default function AvailableProperties({ bhk }: Props) {
                 key={`${b.bhk}-${i}`}
                 onClick={() => setActiveBhkIndex(i)}
                 aria-pressed={i === activeBhkIndex}
-                className="px-3 py-2 rounded-md text-sm font-medium transition-shadow inline-flex items-center gap-2 shadow"
+                className="px-3 py-2 rounded-md text-sm font-medium transition-shadow inline-flex items-center gap-2 shadow cursor-pointer"
                 style={
                   i === activeBhkIndex
                     ? { backgroundColor: color, color: "#FFF" } // active state
@@ -252,7 +252,7 @@ export default function AvailableProperties({ bhk }: Props) {
         </div>
 
         {/* Sqft chips */}
-        <div className="flex gap-3 overflow-x-auto pb-3 mb-6">
+        <div className="flex gap-3 overflow-x-auto pb-3 mb-6 ">
           {sqftLabels.length === 0 ? (
             <div className="text-sm text-gray-500">No units found</div>
           ) : (
@@ -260,7 +260,7 @@ export default function AvailableProperties({ bhk }: Props) {
               <button
                 key={`${label}-${idx}`}
                 onClick={() => setActiveUnitIndex(idx)}
-                className="whitespace-nowrap px-3 py-2 rounded-md text-sm border transition"
+                className="whitespace-nowrap px-3 py-2 rounded-md text-sm border transition cursor-pointer"
                 style={
                   idx === activeUnitIndex
                     ? { borderColor: color, backgroundColor: '#FFF', color: color } // sky-600
@@ -388,7 +388,7 @@ export default function AvailableProperties({ bhk }: Props) {
                   type="button"
                   onClick={scrollToHero}
                   style={{ backgroundColor: color }}
-                  className="w-full inline-flex justify-center items-center px-4 py-2 rounded-md text-white font-semibold hover:brightness-95 transition"
+                  className="w-full inline-flex justify-center items-center px-4 py-2 rounded-md text-white font-semibold hover:brightness-95 transition cursor-pointer"
                 >
                   Price on Request
                 </button>
@@ -434,7 +434,7 @@ export default function AvailableProperties({ bhk }: Props) {
                   type="button"
                   onClick={scrollToHero}
                   style={{ backgroundColor: color }}
-                  className="w-full inline-flex justify-center items-center px-4 py-2 rounded-md text-white font-semibold hover:brightness-95 transition"
+                  className="w-full inline-flex justify-center items-center px-4 py-2 rounded-md text-white font-semibold hover:brightness-95 transition cursor-pointer"
                 >
                   Book a Consultation
                 </button>

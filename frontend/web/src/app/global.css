@@ -27,6 +27,39 @@ html, body {
   background-color: #FBFFFD;
 }
 
+@layer base {
+  :where(
+    a[href],
+    button:not(:disabled),
+    [role="button"],
+    [role="tab"],
+    [role="menuitem"],
+    [role="option"],
+    summary,
+    label[for],
+    select,
+    input[type="button"],
+    input[type="checkbox"],
+    input[type="file"],
+    input[type="radio"],
+    input[type="range"],
+    input[type="reset"],
+    input[type="submit"]
+  ) {
+    cursor: pointer;
+  }
+
+  :where(
+    button:disabled,
+    input:disabled,
+    select:disabled,
+    textarea:disabled,
+    [aria-disabled="true"]
+  ) {
+    cursor: not-allowed;
+  }
+}
+
 /* Hide scrollbars */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }

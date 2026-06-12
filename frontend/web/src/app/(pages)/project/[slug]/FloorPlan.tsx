@@ -242,15 +242,15 @@ export default function FloorPlan({ project }: FloorPlanProps) {
     return null;
   }
   return (
-    <section id="floor-plans">
-      <div className="container mx-auto px-1 sm:px-4 lg:px-3">
-        <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
+    <section id="floor-plans" className="min-w-0">
+      <div className="container mx-auto min-w-0 px-1 sm:px-4 lg:px-3">
+        <div className="w-full min-w-0 overflow-hidden rounded-md border border-slate-200 bg-white">
           <h2 className="border-b border-slate-200 px-4 py-4 text-lg font-medium text-slate-950 sm:px-5 sm:py-5 sm:text-xl">
             {project.title} {sectionTitle}
           </h2>
 
-          <div className="px-4 py-4 sm:px-5">
-            <div className="flex gap-2 overflow-x-auto pb-1 sm:gap-4">
+          <div className="min-w-0 px-4 py-4 sm:px-5">
+            <div className="flex w-full min-w-0 max-w-full gap-2 overflow-x-auto pb-1 sm:gap-4 ">
               {groups.map((group, index) => (
                 <button
                   key={`${group.label}-${index}`}
@@ -259,7 +259,7 @@ export default function FloorPlan({ project }: FloorPlanProps) {
                     setActiveGroupIndex(index);
                     setActiveUnitIndex(0);
                   }}
-                  className={`shrink-0 rounded-md px-4 py-2.5 text-xs font-medium transition sm:px-5 sm:py-3 sm:text-sm ${
+                  className={`shrink-0 rounded-md px-4 py-2.5 text-xs font-medium transition sm:px-5 sm:py-3 sm:text-sm cursor-pointer ${
                     activeGroupIndex === index
                       ? "bg-emerald-50 text-slate-950"
                       : "bg-slate-100 text-slate-500 hover:bg-slate-200"
@@ -270,13 +270,13 @@ export default function FloorPlan({ project }: FloorPlanProps) {
               ))}
             </div>
 
-            <div className="no-scrollbar mt-4 flex overflow-x-auto border-b border-slate-200">
+            <div className="no-scrollbar mt-4 flex w-full min-w-0 max-w-full overflow-x-auto border-b border-slate-200">
               {activeGroup.units.map((unit, index) => (
                 <button
                   key={`${unit.minSqft}-${unit.price}-${index}`}
                   type="button"
                   onClick={() => setActiveUnitIndex(index)}
-                  className={`shrink-0 border-b-2 px-5 pb-3 text-center transition sm:px-8 ${
+                  className={`shrink-0 border-b-2 px-5 pb-3 text-center transition sm:px-8 cursor-pointer ${
                     activeUnitIndex === index
                       ? "border-emerald-500"
                       : "border-transparent hover:border-slate-300"
@@ -293,7 +293,7 @@ export default function FloorPlan({ project }: FloorPlanProps) {
               ))}
             </div>
 
-            <div className="mt-4 rounded-md p-1">
+            <div className="mt-4 min-w-0 rounded-md p-1">
               {planImage ? (
                 <div className="relative overflow-hidden rounded-md border border-slate-200 bg-white">
                   <div

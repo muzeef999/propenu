@@ -52,8 +52,8 @@ export default async function Page({ params }: PageProps) {
     <main className="min-h-screen bg-white">
       <HeroSection project={project} />
       <section className="bg-emerald-50/60 py-5">
-        <div className="mx-0 flex flex-col gap-5 sm:mx-5 lg:mx-8 lg:flex-row lg:items-start xl:mx-33 2xl:mx-44">
-          <div className="w-full space-y-4 lg:w-[80%]">
+        <div className="mx-0 flex min-w-0 flex-col gap-5 sm:mx-5 lg:mx-8 lg:flex-row lg:items-start xl:mx-33 2xl:mx-44">
+          <div className="w-full min-w-0 flex-1 space-y-4">
             <Overview project={project} />
             <FloorPlan project={project} />
             <Amenities project={project} />
@@ -64,7 +64,7 @@ export default async function Page({ params }: PageProps) {
             <AboutProject project={project} />
           </div>
 
-          <div className="w-full lg:w-[30%] sticky top-20">
+          <div className="w-full shrink-0 lg:sticky lg:top-20 lg:w-80 xl:w-[340px]">
             <ContactSeller project={project} />
           </div>
         </div>

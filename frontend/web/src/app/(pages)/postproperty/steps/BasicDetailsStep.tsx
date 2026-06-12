@@ -174,6 +174,12 @@ export default function BasicDetailsStep() {
       ? (AGRICULTURAL_PROPERTY_SUBTYPES as readonly string[])
       : [];
 
+  const formatFacingForForm = (value?: string) =>
+    value
+      ?.trim()
+      .toLowerCase()
+      .replace(/^(north|south)(east|west)$/, "$1-$2");
+
   // ✅ map redux string → dropdown option
   const facingOption = residential.facing
     ? {
@@ -508,11 +514,12 @@ export default function BasicDetailsStep() {
             </div>
           )}
 
-          {/* Furnishing & Wall Finish - Show only if Cabins or Seats has a value */}
+          {/* Furnishing, Facing & Wall Finish - Show only if Cabins or Seats has a value */}
           {(commercial.cabins > 0 ||
             commercial.seats > 0 ||
+            (showErrors && fieldErrors.facing) ||
             (showErrors && fieldErrors.wallFinishStatus)) && (
-              <div className="grid grid-cols-1 md:grid-cols-[1.2fr_145px] gap-1 items-start">
+              <div className="grid grid-cols-1 md:grid-cols-[1.2fr_145px_145px] gap-4 items-start">
                 {/* Furnishing */}
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-gray-700">Furnishing</p>
@@ -540,6 +547,27 @@ export default function BasicDetailsStep() {
                     ))}
                   </div>
                 </div>
+
+                {/* Facing */}
+                <Dropdownui
+                  label="Facing"
+                  value={formatFacingForForm(commercial.facing) ?? null}
+                  onChange={(value) =>
+                    dispatch(
+                      setProfileField({
+                        propertyType: "commercial",
+                        key: "facing",
+                        value,
+                      }),
+                    )
+                  }
+                  options={FACING_TYPES.map((dir) => ({
+                    label: dir,
+                    value: dir.toLowerCase(),
+                  }))}
+                  placeholder="Select"
+                  error={fieldErrors.facing?.[0]}
+                />
 
                 {/* Wall Finish */}
                 <Dropdownui

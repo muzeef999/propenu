@@ -1,4 +1,4 @@
-import { FeaturedProject } from "@/types";
+import { FeaturedProject, IBhkUnit } from "@/types";
 
 type OverviewProps = {
   project: FeaturedProject;
@@ -67,6 +67,33 @@ function formatPropertyType(value?: string) {
   return value.replace(/[-_]+/g, " ");
 }
 
+function formatAvailableUnits(project: FeaturedProject) {
+  if (
+    typeof project.availableUnits === "number" &&
+    Number.isFinite(project.availableUnits) &&
+    project.availableUnits >= 0
+  ) {
+    return `${project.availableUnits} Units`;
+  }
+
+  const summary = project.projectSummary ?? project.bhkSummary ?? [];
+  const availableUnits = summary.reduce((total: number, item) => {
+    const unitCount = (item.units ?? []).reduce((unitTotal: number, unit: IBhkUnit) => {
+      const availableCount = unit.availableCount;
+
+      return typeof availableCount === "number" &&
+        Number.isFinite(availableCount) &&
+        availableCount > 0
+        ? unitTotal + availableCount
+        : unitTotal;
+    }, 0);
+
+    return total + unitCount;
+  }, 0);
+
+  return availableUnits > 0 ? `${availableUnits} Units` : "--";
+}
+
 export default function Overview({ project }: OverviewProps) {
   const possessionLabel = formatDate(project.possessionDate);
   const items = [
@@ -77,7 +104,7 @@ export default function Overview({ project }: OverviewProps) {
 
     {
       label: "Availability",
-      value: possessionLabel === "--" ? "--" : "Under Construction",
+      value: formatAvailableUnits(project),
     },
     {
       label: "Units",

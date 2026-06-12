@@ -164,6 +164,14 @@ const normalizeTransactionType = (transactionType: any) => {
   return undefined;
 };
 
+const normalizeFacingForForm = (facing: any) =>
+  typeof facing === "string"
+    ? facing
+        .trim()
+        .toLowerCase()
+        .replace(/^(north|south)(east|west)$/, "$1-$2")
+    : facing;
+
 /* ======================================================
    INITIAL STATE
 ====================================================== */
@@ -377,6 +385,7 @@ const postPropertySlice = createSlice({
           amenities: mapAmenities(draft.amenities),
 
           commercialSubType: draft.propertySubType,
+          facing: normalizeFacingForForm(draft.facing),
           transactionType: normalizeTransactionType(draft.transactionType),
           constructionStatus: draft.constructionStatus,
           propertyAge: draft.propertyAge,
