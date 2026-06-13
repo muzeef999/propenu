@@ -10,6 +10,7 @@ import { ZodError } from "zod";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import FeatureProperty from "../models/featurePropertiesModel";
 import { deleteS3ObjectIfExists } from "../utils/s3Helpers";
+import mongoose from "mongoose";
 
 function parseMaybeJSON<T = any>(value: any): T | undefined {
   if (value === undefined || value === null || value === "") return undefined;
@@ -131,6 +132,7 @@ export const getAllFeatureProperties = async (req: Request, res: Response) => {
       city,
       state,
       locality,
+      createdBy,
     } = req.query;
     const options: any = {};
     if (typeof page === "string") options.page = Number(page);
@@ -144,6 +146,12 @@ export const getAllFeatureProperties = async (req: Request, res: Response) => {
     if (typeof city === "string") options.city = city;
     if (typeof state === "string") options.state = state;
     if (typeof locality === "string") options.locality = locality;
+    if (typeof createdBy === "string") {
+      if (!mongoose.Types.ObjectId.isValid(createdBy)) {
+        return res.status(400).json({ error: "Invalid createdBy" });
+      }
+      options.createdBy = createdBy;
+    }
 
     const result = await FeaturePropertyService.getAllFeatures(options);
     return res.json(result);

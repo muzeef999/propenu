@@ -4,6 +4,7 @@ import Role from "./roleModel";
 
 export interface IUser extends mongoose.Document {
   name: string;
+  companyName?: string;
   email?: string;
   phone?: string;
   locality?: string;
@@ -101,7 +102,13 @@ const UserSchema = new mongoose.Schema(
       required: true,
       trim: true,
       minlength: 3,
-      maxlength: 30,
+      maxlength: 42,
+      index: true,
+    },
+    companyName: {
+      type: String,
+      trim: true,
+      maxlength: 80,
       index: true,
     },
     email: {
@@ -132,14 +139,14 @@ const UserSchema = new mongoose.Schema(
       type: String,
       trim: true,
       minlength: 3,
-      maxlength: 30,
+      maxlength: 45,
       index: true,
     },
     city: {
       type: String,
       trim: true,
       minlength: 3,
-      maxlength: 30,
+      maxlength: 45,
       index: true,
     },
     userCode: {
@@ -153,14 +160,14 @@ const UserSchema = new mongoose.Schema(
       type: String,
       trim: true,
       minlength: 3,
-      maxlength: 30,
+      maxlength: 45,
       index: true,
     },
     pincode: {
       type: String,
       trim: true,
       minlength: 3,
-      maxlength: 30,
+      maxlength: 45,
       index: true,
     },
     phoneVerified: {

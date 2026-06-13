@@ -2,6 +2,8 @@ import { isValidPhoneNumber } from "react-phone-number-input";
 import { z } from "zod";
 
 export const OTP_LENGTH = 4;
+export const NAME_MAX_LENGTH = 42;
+export const COMPANY_NAME_MAX_LENGTH = 80;
 
 export const phoneSchema = z.object({
   phone: z.string().refine(isValidPhoneNumber, {
@@ -9,15 +11,38 @@ export const phoneSchema = z.object({
   }),
 });
 
-export const accountSchema = z.object({
-  name: z.string().min(3, { message: "Name must be at least 3 characters." }),
-  email: z
-    .string()
-    .trim()
-    .min(1, { message: "Email is required." })
-    .email({ message: "Invalid email address." }),
-  role: z.enum(["user", "builder", "agent"]),
-});
+export const accountSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(3, { message: "Name must be at least 3 characters." })
+      .max(NAME_MAX_LENGTH, {
+        message: `Full name must not exceed ${NAME_MAX_LENGTH} characters.`,
+      }),
+    companyName: z
+      .string()
+      .trim()
+      .max(COMPANY_NAME_MAX_LENGTH, {
+        message: `Company name must not exceed ${COMPANY_NAME_MAX_LENGTH} characters.`,
+      })
+      .optional(),
+    email: z
+      .string()
+      .trim()
+      .min(1, { message: "Email is required." })
+      .email({ message: "Invalid email address." }),
+    role: z.enum(["user", "builder", "agent"]),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role === "builder" && !data.companyName?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["companyName"],
+        message: "Company name is required for builders.",
+      });
+    }
+  });
 
 export const locationSchema = z.object({
   pincode: z
@@ -36,6 +61,7 @@ export const otpSchema = z
 
 export type FormErrors = {
   name?: string;
+  companyName?: string;
   email?: string;
   phone?: string;
   role?: string;

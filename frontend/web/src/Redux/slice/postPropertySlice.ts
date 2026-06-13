@@ -38,6 +38,8 @@ interface PostPropertyState {
 
 const DEFAULT_AGRICULTURAL_PROPERTY_TYPE = "farm-land";
 const DEFAULT_LISTING_TYPE = "sale";
+const MIN_STEP = 1;
+const MAX_STEP = 4;
 
 /* ======================================================
    DRAFT → CATEGORY DETECTOR (🔥 IMPORTANT)
@@ -206,15 +208,15 @@ const postPropertySlice = createSlice({
     },
 
     nextStep(state) {
-      state.currentStep += 1;
+      state.currentStep = Math.min((state.currentStep || MIN_STEP) + 1, MAX_STEP);
     },
 
     prevStep(state) {
-      state.currentStep -= 1;
+      state.currentStep = Math.max((state.currentStep || MIN_STEP) - 1, MIN_STEP);
     },
 
     setStep(state, action: PayloadAction<number>) {
-      state.currentStep = action.payload;
+      state.currentStep = Math.min(Math.max(action.payload, MIN_STEP), MAX_STEP);
     },
 
     /* -------- Property category -------- */
@@ -268,7 +270,10 @@ const postPropertySlice = createSlice({
       state.draftId = draft._id;
 
       // resume step
-      state.currentStep = draft.completion?.step ?? 1;
+      state.currentStep = Math.min(
+        Math.max(draft.completion?.step ?? MIN_STEP, MIN_STEP),
+        MAX_STEP,
+      );
 
       state.progressPercent = draft.completion?.percent ?? 0;
 

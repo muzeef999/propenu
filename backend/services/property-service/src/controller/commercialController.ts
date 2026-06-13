@@ -20,6 +20,10 @@ import {
   sendListingSubmittedEmail,
 } from "../../../../shared/email/email.helper";
 import { sendTemplateNotification } from "../../../../shared/notifications/push.service";
+import {
+  isDirectAgentRole,
+  submitAgentListingForReview,
+} from "../utils/agentSubmission";
 
 function parseMaybeJSON<T = any>(value: any): T | undefined {
   if (value === undefined || value === null || value === "") return undefined;
@@ -84,6 +88,7 @@ export const getAllCommercial = async (req: Request, res: Response) => {
       city,
       minPrice,
       maxPrice,
+      createdBy,
     } = req.query;
     if (typeof page === "string") options.page = Number(page);
     if (typeof limit === "string") options.limit = Number(limit);
@@ -95,6 +100,12 @@ export const getAllCommercial = async (req: Request, res: Response) => {
     if (typeof city === "string") options.city = city;
     if (typeof minPrice === "string") options.minPrice = Number(minPrice);
     if (typeof maxPrice === "string") options.maxPrice = Number(maxPrice);
+    if (typeof createdBy === "string") {
+      if (!mongoose.Types.ObjectId.isValid(createdBy)) {
+        return res.status(400).json({ error: "Invalid createdBy" });
+      }
+      options.createdBy = createdBy;
+    }
 
     const result = await CommercialService.list(options);
 
@@ -403,7 +414,15 @@ export const updateCommercialDetailsStep = async (
       await doc.save(); // triggers validate → slug sync
     }
 
-    res.json({ data: doc ?? updated });
+    if (isDirectAgentRole(req.user?.roleName)) {
+      const submitted = await submitAgentListingForReview(
+        Commercial,
+        req.params.id,
+      );
+      return res.json({ data: submitted ?? doc ?? updated });
+    }
+
+    return res.json({ data: doc ?? updated });
   } catch (err: any) {
     console.error("updateCommercialDetailsStep:", err);
     res.status(500).json({ error: err.message || "Internal server error" });

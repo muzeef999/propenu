@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/Redux/store";
 import VerifyProperty from "../verifyproperty/VerifyProperty";
@@ -27,6 +27,11 @@ const VerificationStep = () => {
     reviewAt?: string;
     approvedAt?: string;
   } | null>(null);
+  const [roleName, setRoleName] = useState("");
+
+  useEffect(() => {
+    setRoleName(String(localStorage.getItem("role") ?? "").toLowerCase());
+  }, []);
 
   /* =========================================
      FALLBACK DATA (From Draft)
@@ -50,17 +55,25 @@ const VerificationStep = () => {
     approvedAt: fallbackApproved ? base?.updatedAt : undefined,
   };
 
-  const showTracker = trackerState.isSubmitted;
   const listingSource = String(
     base?.listingSource ?? profileData?.listingSource ?? ""
   ).toLowerCase();
+  const isAgentPosting =
+    roleName === "agent" ||
+    listingSource === "agent";
+
+  const showTracker = trackerState.isSubmitted || isAgentPosting;
+  const resolvedTrackerState = isAgentPosting
+    ? {
+        isSubmitted: true,
+        isApproved: fallbackApproved,
+        submittedAt: trackerState.submittedAt,
+        reviewAt: trackerState.reviewAt,
+        approvedAt: trackerState.approvedAt,
+      }
+    : trackerState;
 
   const getMyPropertiesRoute = () => {
-    const roleName =
-      typeof window !== "undefined"
-        ? String(localStorage.getItem("role") ?? "").toLowerCase()
-        : "";
-
     if (roleName === "agent" || listingSource === "agent") {
       return "/agent/my-properties";
     }
@@ -94,10 +107,10 @@ const VerificationStep = () => {
       <div className="">
         {showTracker ? (
           <TrackPropertyStatus
-            isApproved={trackerState.isApproved}
-            submittedAt={trackerState.submittedAt}
-            reviewAt={trackerState.reviewAt}
-            approvedAt={trackerState.approvedAt}
+            isApproved={resolvedTrackerState.isApproved}
+            submittedAt={resolvedTrackerState.submittedAt}
+            reviewAt={resolvedTrackerState.reviewAt}
+            approvedAt={resolvedTrackerState.approvedAt}
             onGoToMyProperties={() => router.push(getMyPropertiesRoute())}
           />
         ) : (

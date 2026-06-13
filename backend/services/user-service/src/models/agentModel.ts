@@ -89,30 +89,43 @@ const AgentSchema = new Schema<Agent>(
 
 // ================= SLUG GENERATION =================
 
+const slugify = (value?: string) =>
+  (value ?? "")
+    ?.toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
 AgentSchema.pre("save", function (next) {
-  if (this.isModified("name") || !this.slug) {
-    this.slug = this.name
-      ?.toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, "")
-      .replace(/\s+/g, "-");
+  if (!this.slug) {
+    this.slug = slugify(this.name) || `agent-${this._id}`;
+  } else {
+    this.slug = slugify(this.slug) || `agent-${this._id}`;
   }
   next();
 });
 
-// ================= SAFE UNIQUE CHECK =================
+// ================= SAFE UNIQUE SLUG =================
 
 AgentSchema.pre("save", async function (next) {
   if (!this.slug) return next();
 
-  const existing = await (this.constructor as any).findOne({
-    slug: this.slug,
-    _id: { $ne: this._id },
-  });
+  const baseSlug = this.slug;
+  let candidate = baseSlug;
+  let suffix = 2;
 
-  if (existing) {
-    return next(new Error("Slug already exists"));
+  while (
+    await (this.constructor as any).exists({
+      slug: candidate,
+      _id: { $ne: this._id },
+    })
+  ) {
+    candidate = `${baseSlug}-${suffix}`;
+    suffix += 1;
   }
+
+  this.slug = candidate;
 
   next();
 });

@@ -25,6 +25,10 @@ import {
   sendListingSubmittedEmail,
 } from "../../../../shared/email/email.helper";
 import { sendTemplateNotification } from "../../../../shared/notifications/push.service";
+import {
+  isDirectAgentRole,
+  submitAgentListingForReview,
+} from "../utils/agentSubmission";
 
 /** Helper: parse values that might be JSON strings (multipart sends arrays/objects as strings). */
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -107,6 +111,7 @@ export const getAllResidential = async (req: Request, res: Response) => {
       bathrooms,
       near,
       maxDistance,
+      createdBy,
     } = req.query;
 
     if (typeof page === "string") options.page = Number(page);
@@ -124,6 +129,12 @@ export const getAllResidential = async (req: Request, res: Response) => {
     if (typeof near === "string") options.near = near;
     if (typeof maxDistance === "string")
       options.maxDistance = Number(maxDistance);
+    if (typeof createdBy === "string") {
+      if (!mongoose.Types.ObjectId.isValid(createdBy)) {
+        return res.status(400).json({ error: "Invalid createdBy" });
+      }
+      options.createdBy = createdBy;
+    }
 
     const result = await ResidentialPropertyService.list(options);
 
@@ -440,7 +451,15 @@ export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: "Residential property not found" });
     }
 
-    res.json({ data: updated });
+    if (isDirectAgentRole(req.user?.roleName)) {
+      const submitted = await submitAgentListingForReview(
+        Residential,
+        req.params.id,
+      );
+      return res.json({ data: submitted ?? updated });
+    }
+
+    return res.json({ data: updated });
   } catch (err: any) {
     console.error("updateDetailsStep:", err);
     res.status(500).json({ error: err.message || "Internal server error" });

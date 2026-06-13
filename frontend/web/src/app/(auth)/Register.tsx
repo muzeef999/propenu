@@ -17,7 +17,8 @@ import { BsShieldCheck } from "react-icons/bs";
 import { HiOutlineIdentification } from "react-icons/hi2";
 import Cookies from "js-cookie";
 import { AiOutlineUser } from "react-icons/ai";
-import {  accountSchema, FormErrors,  locationSchema,  mapAuthZodErrors,  OTP_LENGTH,  otpSchema,  phoneSchema,} from "./AuthZod";
+import {  accountSchema, COMPANY_NAME_MAX_LENGTH, FormErrors,  locationSchema,  mapAuthZodErrors, NAME_MAX_LENGTH,  OTP_LENGTH,  otpSchema,  phoneSchema,} from "./AuthZod";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 interface RegisterDialogProps {
   open: boolean;
@@ -53,6 +54,9 @@ function validateFullName(
 
   if (!value) return "Full name is required";
   if (value.length < 3) return "Name must be at least 3 characters";
+  if (value.length > NAME_MAX_LENGTH) {
+    return `Full name must not exceed ${NAME_MAX_LENGTH} characters`;
+  }
 
   // 🚨 Only apply strict rules for KYC users
   if (role !== "builder") {
@@ -114,6 +118,7 @@ const RegisterDialog = ({
   const [phoneNumber, setPhoneNumber] = useState("");
   const [formData, setFormData] = useState({
     name: "",
+    companyName: "",
     email: "",
     role: "user" as "user" | "builder" | "agent",
     pincode: "",
@@ -145,6 +150,7 @@ const RegisterDialog = ({
   const shouldShowOtpInputs = isPhoneValid && !isOtpVerified;
   const isPersonalDetailsFilled =
     formData.name.trim().length > 0 &&
+    (formData.role !== "builder" || formData.companyName.trim().length > 0) &&
     phoneNumber.trim().length > 0 &&
     formData.email.trim().length > 0 &&
     Boolean(formData.role);
@@ -161,6 +167,8 @@ const RegisterDialog = ({
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const lastOtpRequestedPhoneRef = useRef("");
   const verifiedPhoneRef = useRef("");
+
+  useBodyScrollLock(open);
 
   function normalizePhone(value: string) {
     const validation = phoneSchema.safeParse({ phone: value });
@@ -245,7 +253,7 @@ const RegisterDialog = ({
         setLoading(true);
 
         try {
-          const res = await updateKycDetails({
+        const res = await updateKycDetails({
             name: accountValidation.data.name,
             email: accountValidation.data.email,
           });
@@ -302,6 +310,10 @@ const RegisterDialog = ({
     try {
       const payload = {
         name: accountValidation.data.name,
+        companyName:
+          accountValidation.data.role === "builder"
+            ? accountValidation.data.companyName
+            : undefined,
         email: accountValidation.data.email,
         role: accountValidation.data.role,
         phone: phoneValidation.data.phone,
@@ -321,7 +333,20 @@ const RegisterDialog = ({
 
       toast.success("OTP verified successfully");
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || "OTP verification failed");
+      const errorData = err?.response?.data;
+      if (errorData?.field === "name") {
+        setErrors((prev) => ({
+          ...prev,
+          name: errorData.message || "Invalid name",
+        }));
+      }
+      if (errorData?.field === "companyName") {
+        setErrors((prev) => ({
+          ...prev,
+          companyName: errorData.message || "Invalid company name",
+        }));
+      }
+      toast.error(errorData?.message || "OTP verification failed");
     } finally {
       setLoading(false);
     }
@@ -447,6 +472,7 @@ const RegisterDialog = ({
     verifiedPhoneRef.current = "";
     setFormData({
       name: "",
+      companyName: "",
       email: "",
       role: "user",
       pincode: "",
@@ -516,6 +542,7 @@ const RegisterDialog = ({
         setFormData((prev) => ({
           ...prev,
           name: user.name || "",
+          companyName: user.companyName || "",
           email: user.email || "",
           role:
             user.roleName === "builder" || user.roleName === "agent"
@@ -700,7 +727,7 @@ const RegisterDialog = ({
         aria-hidden="true"
       />
 
-      <div className="relative z-50 w-full max-w-[440px] overflow-hidden rounded-xl bg-[#f2fcf6]  shadow-2xl">
+      <div className="relative z-50 max-h-[calc(100vh-2rem)] w-full max-w-[440px] overflow-y-auto rounded-xl bg-[#f2fcf6] shadow-2xl">
         <button
           onClick={handleClose}
           className="absolute right-5 top-5 rounded-full p-1 cursor-pointer text-[#8d908e] transition-colors hover:text-[#5e635f]"
@@ -778,7 +805,11 @@ const RegisterDialog = ({
                             ...prev,
                             role: value as "user" | "builder" | "agent",
                           }));
-                          setErrors((prev) => ({ ...prev, role: undefined }));
+                          setErrors((prev) => ({
+                            ...prev,
+                            role: undefined,
+                            companyName: undefined,
+                          }));
                         }}
                         className={`flex min-h-[46px] items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition cursor-pointer ${
                           isActive
@@ -802,6 +833,7 @@ const RegisterDialog = ({
                   <input
                     type="text"
                     value={formData.name}
+                    maxLength={NAME_MAX_LENGTH}
                     onChange={(e) => {
                       const value = e.target.value;
                       setFormData((prev) => ({
@@ -822,6 +854,38 @@ const RegisterDialog = ({
                   <p className="mt-1 text-xs text-red-600">{errors.name}</p>
                 )}
               </div>
+
+              {formData.role === "builder" && (
+                <div>
+                  <label className="font-normal text-[#1e1e1e]">
+                    Company Name
+                  </label>
+                  <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-2.5">
+                    <input
+                      type="text"
+                      value={formData.companyName}
+                      maxLength={COMPANY_NAME_MAX_LENGTH}
+                      onChange={(e) => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          companyName: e.target.value,
+                        }));
+                        setErrors((prev) => ({
+                          ...prev,
+                          companyName: undefined,
+                        }));
+                      }}
+                      placeholder="Enter your company name"
+                      className="w-full border-none bg-transparent text-base text-[#1f1f1f] outline-none placeholder:text-[#a0a3a0]"
+                    />
+                  </div>
+                  {errors.companyName && (
+                    <p className="mt-1 text-xs text-red-600">
+                      {errors.companyName}
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="font-normal text-[#1e1e1e]">

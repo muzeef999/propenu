@@ -10,6 +10,7 @@ import { LuPencilLine } from "react-icons/lu";
 import { MdClose, MdOutlineWhatsapp } from "react-icons/md";
 import PhoneInput from "react-phone-number-input";
 import { z } from "zod";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import "react-phone-number-input/style.css";
 interface LoginDialogProps {
   open: boolean;
@@ -49,6 +50,8 @@ const LoginDialog = ({
   const [error, setError] = useState<string | null>(null);
   const [phone, setPhone] = useState(INDIA_COUNTRY_CODE);
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+
+  useBodyScrollLock(open);
 
   useEffect(() => {
     if (!open || step !== "verify" || resendCooldown <= 0) return;
@@ -254,7 +257,7 @@ if (localShortlist.length > 0) {
         aria-hidden="true"
       />
 
-      <div className="relative z-50 w-full max-w-[440px] overflow-hidden rounded-xl bg-[#f2fcf6] shadow-2xl">
+      <div className="relative z-50 max-h-[calc(100vh-2rem)] w-full max-w-[440px] overflow-y-auto rounded-xl bg-[#f2fcf6] shadow-2xl">
         <button
           onClick={handleClose}
           className="absolute right-5 top-5 rounded-full p-1 text-[#8d908e] transition-colors hover:text-[#5e635f] cursor-pointer"

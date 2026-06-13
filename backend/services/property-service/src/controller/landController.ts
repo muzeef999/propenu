@@ -16,6 +16,10 @@ import {
 } from "../../../../shared/whatsapp/whatsapp.helper";
 import { sendListingApprovedEmail } from "../../../../shared/email/email.helper";
 import { sendTemplateNotification } from "../../../../shared/notifications/push.service";
+import {
+  isDirectAgentRole,
+  submitAgentListingForReview,
+} from "../utils/agentSubmission";
 
 /** helper to parse JSON-like values already handled by middleware; keep for safety */
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -81,12 +85,18 @@ export const getAllLands = async (req: Request, res: Response) => {
   try {
     // simple pagination/filtering
     const options: any = {};
-    const { page, limit, q, city, status } = req.query;
+    const { page, limit, q, city, status, createdBy } = req.query;
     if (typeof page === "string") options.page = Number(page);
     if (typeof limit === "string") options.limit = Number(limit);
     if (typeof q === "string") options.q = q;
     if (typeof city === "string") options.city = city;
     if (typeof status === "string") options.status = status;
+    if (typeof createdBy === "string") {
+      if (!mongoose.Types.ObjectId.isValid(createdBy)) {
+        return res.status(400).json({ error: "Invalid createdBy" });
+      }
+      options.createdBy = createdBy;
+    }
 
     const result = await LandService.list(options);
 
@@ -404,7 +414,15 @@ export const updateLandDetailsStep = async (
     }
 
     const fresh = await LandService.getById(req.params.id);
-    res.json({ data: fresh });
+    if (isDirectAgentRole(req.user?.roleName)) {
+      const submitted = await submitAgentListingForReview(
+        LandPlot,
+        req.params.id,
+      );
+      return res.json({ data: submitted ?? fresh });
+    }
+
+    return res.json({ data: fresh });
   } catch (err: any) {
     console.error("updateLandDetailsStep:", err);
     res.status(500).json({ error: err.message || "Internal server error" });

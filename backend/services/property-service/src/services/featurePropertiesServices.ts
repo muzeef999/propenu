@@ -51,6 +51,36 @@ function buildPromotionTypeMatch(types: string[]) {
   return conditions.length === 1 ? conditions[0] : { $or: conditions };
 }
 
+const emptyPromotionCounts = () => ({
+  prime: 0,
+  featured: 0,
+  normal: 0,
+  sponsored: 0,
+});
+
+async function countPromotionTypes(filter: any) {
+  const counts = emptyPromotionCounts();
+
+  const grouped = await FeaturedProject.aggregate([
+    { $match: filter },
+    {
+      $group: {
+        _id: { $ifNull: ["$promotion.type", "normal"] },
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  for (const item of grouped) {
+    const key = String(item._id || "normal");
+    if (key in counts) {
+      counts[key as keyof ReturnType<typeof emptyPromotionCounts>] = item.count;
+    }
+  }
+
+  return counts;
+}
+
 async function findFeatured(filter: any) {
   const items = await FeaturedProject.find(filter)
     .select({
@@ -1228,6 +1258,9 @@ export const FeaturePropertyService = {
     if (options?.city) filter.city = makeRegex(options.city);
     if (options?.state) filter.state = makeRegex(options.state);
     if (options?.locality) filter.locality = makeRegex(options.locality);
+    if ((options as any)?.createdBy) {
+      filter.createdBy = new mongoose.Types.ObjectId((options as any).createdBy);
+    }
 
     // 🔥 EXCLUDE EXPIRED PROMOTIONS
     andFilters.push({
@@ -1254,7 +1287,7 @@ export const FeaturePropertyService = {
       sort.createdAt = -1;
     }
 
-    const [items, total] = await Promise.all([
+    const [items, total, promotionCounts] = await Promise.all([
       FeaturedProject.find(filter)
         .sort(sort)
         .skip(skip)
@@ -1264,6 +1297,10 @@ export const FeaturePropertyService = {
         .exec(),
 
       FeaturedProject.countDocuments(filter),
+
+      (options as any)?.createdBy
+        ? countPromotionTypes(filter)
+        : Promise.resolve(undefined),
     ]);
 
     return {
@@ -1273,6 +1310,7 @@ export const FeaturePropertyService = {
         page,
         limit,
         pages: Math.ceil(total / limit),
+        ...(promotionCounts ? { promotionCounts } : {}),
       },
     };
   },

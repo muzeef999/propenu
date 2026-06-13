@@ -11,8 +11,9 @@ export default function StepRenderer() {
   const step = useSelector(
     (state: any) => state.postProperty.currentStep
   )
+  const safeStep = Math.min(Math.max(step || 1, 1), 4)
 
-  switch (step) {
+  switch (safeStep) {
     case 1:
       return <BasicDetailsStep />
     case 2:

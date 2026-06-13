@@ -471,6 +471,7 @@ export const AgriculturalService = {
     q?: string;
     city?: string;
     status?: string;
+    createdBy?: string;
     sortBy?: string;               
     sortOrder?: "asc" | "desc";      
   }) {
@@ -481,6 +482,9 @@ export const AgriculturalService = {
     if (options?.q) filter.$text = { $search: options.q };
     if (options?.city) filter.city = options.city;
     if (options?.status) filter.status = options.status;
+    if (options?.createdBy) {
+      filter.createdBy = new mongoose.Types.ObjectId(options.createdBy);
+    }
 
       const sort: any = {};
 

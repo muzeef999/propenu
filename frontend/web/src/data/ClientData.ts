@@ -205,6 +205,7 @@ export const me = async () => {
 
 export const updateUser = async (payload: {
   name?: string;
+  companyName?: string;
   email?: string;
   address?: string;
   locality?: string;

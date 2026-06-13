@@ -37,6 +37,25 @@ function normalizePayload(obj: any) {
   return obj;
 }
 
+const SERVER_MANAGED_UPDATE_FIELDS = [
+  "_id",
+  "id",
+  "__v",
+  "createdBy",
+  "updatedBy",
+  "createdAt",
+  "updatedAt",
+];
+
+function sanitizeUpdatePayload(payload: any) {
+  if (!payload || typeof payload !== "object") return {};
+  const sanitized = { ...payload };
+  for (const field of SERVER_MANAGED_UPDATE_FIELDS) {
+    delete sanitized[field];
+  }
+  return sanitized;
+}
+
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -336,20 +355,22 @@ export const LandService = {
     if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
     const existing = await LandPlot.findById(id);
     if (!existing) return null;
-    if (Array.isArray(payload?.amenities)) {
-      payload.amenities = normalizeAmenitiesInput(payload.amenities);
+
+    const safePayload = normalizePayload(sanitizeUpdatePayload(payload));
+    if (Array.isArray(safePayload?.amenities)) {
+      safePayload.amenities = normalizeAmenitiesInput(safePayload.amenities);
     }
 
     // shallow copy incoming fields
-    Object.keys(payload || {}).forEach((k) => {
-      (existing as any)[k] = (payload as any)[k];
+    Object.keys(safePayload || {}).forEach((k) => {
+      (existing as any)[k] = (safePayload as any)[k];
     });
 
     const propId = existing._id ? existing._id.toString() : String(Date.now());
 
     // gallery merge + upload (merge by index)
     const galleryFiles = files?.galleryFiles ?? [];
-    const incomingGallery = (payload as any).gallery;
+    const incomingGallery = (safePayload as any).gallery;
     (existing as any).gallery = Array.isArray((existing as any).gallery)
       ? (existing as any).gallery
       : [];
@@ -559,6 +580,7 @@ export const LandService = {
     q?: string;
     status?: string;
     city?: string;
+    createdBy?: string;
     sortBy?: string;                
   sortOrder?: "asc" | "desc";      
   }) {
@@ -569,6 +591,9 @@ export const LandService = {
     if (options?.q) filter.$text = { $search: options.q };
     if (options?.status) filter.status = options.status;
     if (typeof options?.city === "string") filter.city = options.city;
+    if (options?.createdBy) {
+      filter.createdBy = new mongoose.Types.ObjectId(options.createdBy);
+    }
 
   const sort: any = {};
 

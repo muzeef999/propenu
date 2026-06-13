@@ -78,6 +78,7 @@ const InputField = ({
       <input
         type={type}
         value={value}
+        required={required}
         disabled={disabled}
         placeholder={placeholder}
         onChange={(e) => onChange?.(e.target.value)}

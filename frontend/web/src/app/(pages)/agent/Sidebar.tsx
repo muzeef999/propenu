@@ -110,7 +110,7 @@ const Sidebar = () => {
               with us for <span className="text-[#27A361]">Free</span>
             </h3>
             <p className="text-gray-500 text-xs mb-5">Find Buyers & Tenants easily</p>
-            <Link href="/post-property" className="flex btn-primary">
+            <Link href="/postproperty" className="flex btn-primary">
               Post Property
             </Link>
           </div>

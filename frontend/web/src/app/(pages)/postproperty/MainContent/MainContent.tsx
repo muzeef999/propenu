@@ -16,6 +16,7 @@ const MainContent = () => {
 const { currentStep, propertyType, draftId } = useAppSelector(
   (state) => state.postProperty
 );
+const safeCurrentStep = Math.min(Math.max(currentStep || 1, 1), 4);
 
 useEffect(() => {
   if (typeof window === "undefined") return;
@@ -97,7 +98,7 @@ useEffect(() => {
         {/* --- Title & Help Button --- */}
         <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4">
           <p className="text-xl md:text-2xl font-semibold text-gray-900">
-            {STEP_TITLES[currentStep]}
+            {STEP_TITLES[safeCurrentStep]}
           </p>
         </div>
 

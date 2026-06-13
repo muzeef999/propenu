@@ -453,6 +453,7 @@ export const ResidentialPropertyService = {
     bathrooms?: number;
     near?: string;
     maxDistance?: number;
+    createdBy?: string;
   }) {
     const page = Math.max(1, options?.page ?? 1);
     const limit = Math.min(100, options?.limit ?? 20);
@@ -460,6 +461,9 @@ export const ResidentialPropertyService = {
     const filter: any = {};
     if (options?.q) filter.$text = { $search: options.q };
     if (options?.status) filter.status = options.status;
+    if (options?.createdBy) {
+      filter.createdBy = new mongoose.Types.ObjectId(options.createdBy);
+    }
     if (typeof options?.city === "string") filter.city = options.city;
     if (
       typeof options?.minPrice === "number" ||

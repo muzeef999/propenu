@@ -132,6 +132,7 @@ export interface createRequestOtpPayload {
 
 export interface createVerifyOtpPayload {
   name: string
+  companyName?: string
   email?: string
   role: "user" | "builder" | "agent"
   phone: string

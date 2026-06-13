@@ -22,6 +22,10 @@ import {
 } from "../../../../shared/whatsapp/whatsapp.helper";
 import { sendListingApprovedEmail } from "../../../../shared/email/email.helper";
 import { sendTemplateNotification } from "../../../../shared/notifications/push.service";
+import {
+  isDirectAgentRole,
+  submitAgentListingForReview,
+} from "../utils/agentSubmission";
 
 function parseMaybeJSON<T = any>(value: any): T | undefined {
   if (value === undefined || value === null || value === "") return undefined;
@@ -78,7 +82,8 @@ export const createAgricultural = async (req: Request, res: Response) => {
 export const getAllAgricultural = async (req: Request, res: Response) => {
   try {
     const options: any = {};
-    const { page, limit, q, status, city, sortBy, sortOrder } = req.query;
+    const { page, limit, q, status, city, sortBy, sortOrder, createdBy } =
+      req.query;
     if (typeof page === "string") options.page = Number(page);
     if (typeof limit === "string") options.limit = Number(limit);
     if (typeof q === "string") options.q = q;
@@ -87,6 +92,12 @@ export const getAllAgricultural = async (req: Request, res: Response) => {
     if (typeof sortBy === "string") options.sortBy = sortBy;
     if (typeof sortOrder === "string")
       options.sortOrder = sortOrder === "asc" ? "asc" : "desc";
+    if (typeof createdBy === "string") {
+      if (!mongoose.Types.ObjectId.isValid(createdBy)) {
+        return res.status(400).json({ error: "Invalid createdBy" });
+      }
+      options.createdBy = createdBy;
+    }
 
     const result = await AgriculturalService.list(options);
     const formattedItems = result.items.map((item: any) => ({
@@ -271,13 +282,41 @@ export const updateAgriculturalBasicStep = async (
   req: AuthRequest,
   res: Response,
 ) => {
-  const doc = await Agricultural.findById(req.params.id);
+  const doc = await Agricultural.findOne({
+    _id: req.params.id,
+    createdBy: req.user!.id,
+    status: "draft",
+  });
   if (!doc) {
     return res.status(404).json({ error: "Agricultural draft not found" });
   }
 
-  // assign only basic fields
-  Object.assign(doc, req.body);
+  const allowedBasicFields = [
+    "listingType",
+    "landName",
+    "propertyType",
+    "propertySubType",
+    "price",
+    "currency",
+    "totalArea",
+    "roadWidth",
+    "areaUnit",
+    "landShape",
+    "boundaryWall",
+    "soilType",
+    "irrigationType",
+    "currentCrop",
+    "numberOfBorewells",
+    "waterSource",
+    "accessRoadType",
+    "electricityConnection",
+  ];
+
+  for (const field of allowedBasicFields) {
+    if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+      doc.set(field, req.body[field]);
+    }
+  }
 
   doc.completion = {
     ...doc.completion,
@@ -414,6 +453,14 @@ export const updateAgriculturalDetailsStep = async (
 
     // 5️⃣ Fetch fresh doc (with gallery, title, slug)
     // const fresh = await Agricultural.findById(req.params.id)
+
+    if (isDirectAgentRole(req.user?.roleName)) {
+      const submitted = await submitAgentListingForReview(
+        Agricultural,
+        req.params.id,
+      );
+      return res.json({ data: submitted ?? updated });
+    }
 
     return res.json({ data: updated });
   } catch (err: any) {

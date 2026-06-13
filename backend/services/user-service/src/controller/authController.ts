@@ -25,6 +25,8 @@ const ADMIN_CREATE_ROLES = new Set([
   "accounts",
   "customer_care",
 ]);
+const NAME_MAX_LENGTH = 42;
+const COMPANY_NAME_MAX_LENGTH = 80;
 
 const getDummyLoginConfig = () => ({
   phone: process.env.DUMMY_LOGIN_PHONE?.trim(),
@@ -66,6 +68,38 @@ const getOtpFailureResponse = (
     reason: "incorrect",
     code: "OTP_INCORRECT",
   };
+};
+
+const validateSignupName = (name?: string) => {
+  const value = name?.trim();
+
+  if (!value) {
+    return "Name is required";
+  }
+
+  if (value.length < 3) {
+    return "Name must be at least 3 characters";
+  }
+
+  if (value.length > NAME_MAX_LENGTH) {
+    return `Name must be ${NAME_MAX_LENGTH} characters or less`;
+  }
+
+  return "";
+};
+
+const validateCompanyName = (companyName?: string) => {
+  const value = companyName?.trim();
+
+  if (!value) {
+    return "Company name is required for builders";
+  }
+
+  if (value.length > COMPANY_NAME_MAX_LENGTH) {
+    return `Company name must be ${COMPANY_NAME_MAX_LENGTH} characters or less`;
+  }
+
+  return "";
 };
 
 const verifyDummyOrRedisOtp = async ({
@@ -118,6 +152,7 @@ const createAuthToken = ({
     sub: String(user._id),
     email: user.email,
     name: user.name,
+    companyName: user.companyName,
     roleId: roleDoc ? String(roleDoc._id) : undefined,
     roleName: roleDoc?.name,
     permissions: roleDoc?.permissions ?? [],
@@ -306,6 +341,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
       email: user.email,
       phone: Number(user.phone),
       name: user.name,
+      companyName: user.companyName,
       roleId: role ? String(role._id) : undefined,
       roleName: role ? role.name : undefined,
       permissions: role ? role.permissions : [],
@@ -366,6 +402,7 @@ export const me = async (req: AuthRequest, res: Response) => {
       user: {
         id: user._id,
         name: user.name,
+        companyName: user.companyName,
         email: user.email,
         phone: user.phone,
         accountStatus: user.accountStatus,
@@ -686,11 +723,12 @@ export const createRequestOtp = async (req: Request, res: Response) => {
 
 export const createVerifyOtp = async (req: Request, res: Response) => {
   try {
-    let { email, phone, otp, name, role } = req.body;
+    let { email, phone, otp, name, role, companyName } = req.body;
 
     email = email?.trim()?.toLowerCase();
     phone = phone?.trim();
     otp = otp?.trim();
+    companyName = companyName?.trim();
 
     if (!phone) {
       return res.status(400).json({
@@ -704,6 +742,37 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       });
     }
 
+    name = name?.trim();
+    role = role?.trim()?.toLowerCase();
+    let user = await User.findOne({ phone }).populate("roleId");
+
+    const nameError = user ? "" : validateSignupName(name);
+    if (!user && nameError) {
+      return res.status(400).json({
+        message: nameError,
+        field: "name",
+        code: "VALIDATION_ERROR",
+      });
+    }
+
+    if (!role) {
+      return res.status(400).json({
+        message: "Role is required",
+        field: "role",
+        code: "VALIDATION_ERROR",
+      });
+    }
+
+    const companyNameError =
+      !user && role === "builder" ? validateCompanyName(companyName) : "";
+    if (companyNameError) {
+      return res.status(400).json({
+        message: companyNameError,
+        field: "companyName",
+        code: "VALIDATION_ERROR",
+      });
+    }
+
     // verify OTP
     const otpResult = await verifyDummyOrRedisOtp({ phone, key: phone, otp });
 
@@ -712,8 +781,6 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
         ...getOtpFailureResponse(otpResult),
       });
     }
-
-    let user = await User.findOne({ phone }).populate("roleId");
 
     // USER EXISTS
     if (user) {
@@ -730,6 +797,7 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
         email: user.email,
         phone: Number(user.phone),
         name: user.name,
+        companyName: user.companyName,
         roleId: String(roleDoc._id),
         roleName: roleDoc.name,
         permissions: roleDoc.permissions,
@@ -752,7 +820,7 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
 
     // NEW USER
     const roleDoc = await Role.findOne({
-      name: role.toLowerCase(),
+      name: role,
     });
 
     if (!roleDoc) {
@@ -763,6 +831,7 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
 
     user = await User.create({
       name,
+      companyName: role === "builder" ? companyName : undefined,
       email: email || undefined,
       phone,
       roleId: roleDoc._id,
@@ -776,6 +845,7 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
     const token = generateToken({
       sub: String(user._id),
       email: user.email,
+      companyName: user.companyName,
       phone: Number(user.phone),
       name: user.name,
       roleId: String(roleDoc._id),
@@ -791,6 +861,15 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       kycStatus: "not_started",
     });
   } catch (error: any) {
+    if (error?.name === "ValidationError") {
+      const firstError = Object.values(error.errors || {})[0] as any;
+      return res.status(400).json({
+        message: firstError?.message || "Validation failed",
+        field: firstError?.path,
+        code: "VALIDATION_ERROR",
+      });
+    }
+
     return res.status(500).json({
       message: "Signup failed",
       error: error.message,
@@ -868,6 +947,17 @@ export const adminCreateVerifyOtp = async (req: Request, res: Response) => {
       });
     }
 
+    let user = await User.findOne({ email }).populate("roleId");
+
+    const nameError = user ? "" : validateSignupName(name);
+    if (!user && nameError) {
+      return res.status(400).json({
+        message: nameError,
+        field: "name",
+        code: "VALIDATION_ERROR",
+      });
+    }
+
     const otpResult = await verifyAndConsumeOtpWithReason(email, otp);
 
     if (!otpResult.valid) {
@@ -875,8 +965,6 @@ export const adminCreateVerifyOtp = async (req: Request, res: Response) => {
         ...getOtpFailureResponse(otpResult),
       });
     }
-
-    let user = await User.findOne({ email }).populate("roleId");
 
     if (user) {
       if (user.isActive === false) {
@@ -900,12 +988,6 @@ export const adminCreateVerifyOtp = async (req: Request, res: Response) => {
             : "Continue signup process",
         token,
         nextStep,
-      });
-    }
-
-    if (!name) {
-      return res.status(400).json({
-        message: "Name is required",
       });
     }
 
@@ -941,6 +1023,15 @@ export const adminCreateVerifyOtp = async (req: Request, res: Response) => {
       nextStep: "location",
     });
   } catch (error: any) {
+    if (error?.name === "ValidationError") {
+      const firstError = Object.values(error.errors || {})[0] as any;
+      return res.status(400).json({
+        message: firstError?.message || "Validation failed",
+        field: firstError?.path,
+        code: "VALIDATION_ERROR",
+      });
+    }
+
     return res.status(500).json({
       message: "Admin signup failed",
       error: error.message,
@@ -1099,6 +1190,7 @@ export const updateLocationOtp = async (req: AuthRequest, res: Response) => {
       email: updatedUser.email,
       phone: Number(updatedUser.phone),
       name: updatedUser.name,
+      companyName: updatedUser.companyName,
       roleId: roleDoc ? String(roleDoc._id) : undefined,
       roleName: roleDoc?.name,
       permissions: roleDoc?.permissions ?? [],
@@ -1130,6 +1222,7 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
     // ✅ Allow only safe fields
     const allowedUpdates = [
       "name",
+      "companyName",
       "email",
       "address",
       "locality",
@@ -1170,6 +1263,7 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
       user: {
         id: user._id,
         name: user.name,
+        companyName: user.companyName,
         email: user.email,
         phone: user.phone,
         address: user.address,

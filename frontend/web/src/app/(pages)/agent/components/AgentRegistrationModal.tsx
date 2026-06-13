@@ -88,6 +88,12 @@ export default function AgentRegistrationModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!files.avatar) {
+      toast.error("Avatar image is required");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -162,11 +168,13 @@ export default function AgentRegistrationModal({
               label="City"
               value={form.city}
               onChange={(v) => update("city", v)}
+              required
             />
             <InputFiled
               label="Locality"
               value={form.locality}
               onChange={(v) => update("locality", v)}
+              required
             />
             <InputFiled
               label="License number"
@@ -190,6 +198,7 @@ export default function AgentRegistrationModal({
               type="number"
               value={form.dealsClosed}
               onChange={(v) => update("dealsClosed", v)}
+              required
             />
             <InputFiled
               label="Areas served (comma-separated)"
@@ -209,7 +218,7 @@ export default function AgentRegistrationModal({
             {/* Avatar Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Avatar Image
+                Avatar Image <span className="text-red-500">*</span>
               </label>
               <div className="flex items-center gap-2">
                 {files.avatar && (
@@ -224,6 +233,7 @@ export default function AgentRegistrationModal({
                 <input
                   type="file"
                   accept="image/*"
+                  required
                   className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
                   onChange={(e) => handleFileChange(e, "avatar")}
                 />
