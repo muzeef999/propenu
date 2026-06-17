@@ -13,6 +13,7 @@ import {
   createWatermarkedBuffer,
   getUploadedFileBuffer,
 } from "../utils/imageProcessing";
+import { restoreCreatedById } from "../utils/agentSubmission";
 import { ResidentialUpdateSchema } from "../zod/residentialZod";
 
 type RequestWithResidentialQuery = Request<
@@ -24,6 +25,13 @@ type RequestWithResidentialQuery = Request<
 dotenv.config();
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
+
+const auditUserPopulate = [
+  { path: "approvedBy", select: "name email phone role roleId" },
+  { path: "postedBy.userId", select: "name email phone role roleId" },
+  { path: "lastUpdatedBy.userId", select: "name email phone role roleId" },
+  { path: "updateHistory.userId", select: "name email phone role roleId" },
+];
 
 /* -------------------- Helpers -------------------- */
 function pickDefined<T extends Record<string, any>>(obj: T) {
@@ -75,6 +83,37 @@ function normalizePayload(obj: any) {
   if (Array.isArray(obj.amenities))
     obj.amenities = normalizeAmenitiesInput(obj.amenities);
   return obj;
+}
+
+const SERVER_MANAGED_UPDATE_FIELDS = [
+  "_id",
+  "id",
+  "__v",
+  "createdBy",
+  "updatedBy",
+  "createdAt",
+  "updatedAt",
+  "postedBy",
+  "lastUpdatedBy",
+  "updateHistory",
+  "updateCount",
+  "approvedBy",
+  "approvedAt",
+  "approval",
+  "approvalStatus",
+  "isPublished",
+  "meta",
+  "promotion",
+  "slug",
+];
+
+function sanitizeUpdatePayload(payload: any) {
+  if (!payload || typeof payload !== "object") return {};
+  const sanitized = { ...payload };
+  for (const field of SERVER_MANAGED_UPDATE_FIELDS) {
+    delete sanitized[field];
+  }
+  return sanitized;
 }
 
 async function deleteS3ObjectIfExists(key?: string) {
@@ -276,7 +315,8 @@ export const ResidentialPropertyService = {
     const existing: any = existingRaw;
 
     // Validate using your UpdateFeaturePropertySchema (assumes you exported it)
-    const parsed = ResidentialUpdateSchema.safeParse(payload);
+    const sanitizedPayload = normalizePayload(sanitizeUpdatePayload(payload));
+    const parsed = ResidentialUpdateSchema.safeParse(sanitizedPayload);
     if (!parsed.success) {
       // handle validation error (return or throw)
       throw new Error(
@@ -423,20 +463,25 @@ export const ResidentialPropertyService = {
     return this.getById(id);
   },
 
-  async getById(id: string) {
+  async getById(id: string, includeAudit = false) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    return Residential.findById(id)
-      .populate("createdBy", "name email phone roleId")
-      .lean()
-      .exec();
+    const original = await Residential.findById(id).select("createdBy").lean();
+    const query = Residential.findById(id)
+      .populate("createdBy", "name email phone roleId");
+    if (includeAudit) query.populate(auditUserPopulate);
+    const doc = await query.lean().exec();
+    return restoreCreatedById(doc, original?.createdBy);
   },
 
   async getBySlug(slug: string) {
     if (!slug || typeof slug !== "string") throw new Error("Invalid slug");
-    return Residential.findOne({ slug })
+    const original = await Residential.findOne({ slug }).select("createdBy").lean();
+    const doc = await Residential.findOne({ slug })
       .populate("createdBy", "name email phone roleId")
+      .populate(auditUserPopulate)
       .lean()
       .exec();
+    return restoreCreatedById(doc, original?.createdBy);
   },
 
   async list(options?: {
@@ -506,10 +551,18 @@ export const ResidentialPropertyService = {
       sort.createdAt = -1;
     }
 
-    const [items, total] = await Promise.all([
+    const [items, rawItems, total] = await Promise.all([
       Residential.find(filter)
         .sort(sort)
         .populate("createdBy", "name email phone roleId")
+        .populate(auditUserPopulate)
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec(),
+      Residential.find(filter)
+        .sort(sort)
+        .select("createdBy")
         .skip(skip)
         .limit(limit)
         .lean()
@@ -517,7 +570,9 @@ export const ResidentialPropertyService = {
       Residential.countDocuments(filter).exec(),
     ]);
     return {
-      items: items as any[],
+      items: (items as any[]).map((item, index) =>
+        restoreCreatedById(item, rawItems[index]?.createdBy),
+      ),
       meta: { total, page, limit, pages: Math.ceil(total / limit) },
     };
   },

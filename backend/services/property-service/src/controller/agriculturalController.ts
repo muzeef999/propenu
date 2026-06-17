@@ -23,6 +23,7 @@ import {
 import { sendListingApprovedEmail } from "../../../../shared/email/email.helper";
 import { sendTemplateNotification } from "../../../../shared/notifications/push.service";
 import {
+  buildPostedByAudit,
   isDirectAgentRole,
   submitAgentListingForReview,
 } from "../utils/agentSubmission";
@@ -37,6 +38,13 @@ function parseMaybeJSON<T = any>(value: any): T | undefined {
   }
 }
 
+const auditUserPopulate = [
+  { path: "approvedBy", select: "name email phone role roleId" },
+  { path: "postedBy.userId", select: "name email phone role roleId" },
+  { path: "lastUpdatedBy.userId", select: "name email phone role roleId" },
+  { path: "updateHistory.userId", select: "name email phone role roleId" },
+];
+
 export const createAgricultural = async (req: Request, res: Response) => {
   try {
     const raw = { ...(req.body || {}) };
@@ -50,7 +58,17 @@ export const createAgricultural = async (req: Request, res: Response) => {
       location: parseMaybeJSON(raw.location),
     };
 
-    const payload = AgriculturalCreateSchema.parse(parsed);
+    const payload = AgriculturalCreateSchema.parse(parsed) as any;
+    const authUser = (req as AuthRequest).user;
+    if (authUser?.id) {
+      payload.createdBy ??= authUser.id;
+      payload.postedBy = await buildPostedByAudit(
+        Agricultural,
+        payload.createdBy,
+        payload.postedBy,
+        authUser,
+      );
+    }
     const files = req.files as
       | { [field: string]: Express.Multer.File[] }
       | undefined;
@@ -121,11 +139,16 @@ export const getMyAgriculturalDraft = async (
   req: AuthRequest,
   res: Response,
 ) => {
+  const statusFilter = isDirectAgentRole(req.user?.roleName)
+    ? "draft"
+    : { $in: ["draft", "pending"] };
+
   const draft = await Agricultural.findOne({
     createdBy: req.user!.id,
-    status: "draft",
+    status: statusFilter,
   })
     .populate("createdBy", "name email phone")
+    .populate(auditUserPopulate)
     .lean();
 
   if (!draft) {
@@ -170,7 +193,7 @@ export const getAgriculturalDetail = async (req: Request, res: Response) => {
     const { id } = req.params;
     if (!id) return res.status(400).json({ error: "Missing id" });
 
-    const doc = await AgriculturalService.getById(id);
+    const doc = await AgriculturalService.getById(id, true);
     if (!doc) return res.status(404).json({ error: "Not found" });
 
     AgriculturalService.incrementViews(id).catch((e) =>
@@ -249,9 +272,13 @@ export const createAgriculturalDraft = async (
   res: Response,
 ) => {
   try {
+    const statusFilter = isDirectAgentRole(req.user?.roleName)
+      ? "draft"
+      : { $in: ["draft", "pending"] };
+
     const existing = await Agricultural.findOne({
       createdBy: req.user!.id,
-      status: "draft",
+      status: statusFilter,
     }).lean();
 
     if (existing) {
@@ -292,6 +319,7 @@ export const updateAgriculturalBasicStep = async (
   }
 
   const allowedBasicFields = [
+    "createdBy",
     "listingType",
     "landName",
     "propertyType",
@@ -458,6 +486,7 @@ export const updateAgriculturalDetailsStep = async (
       const submitted = await submitAgentListingForReview(
         Agricultural,
         req.params.id,
+        req.user,
       );
       return res.json({ data: submitted ?? updated });
     }
@@ -516,8 +545,13 @@ export const finalizeAgricultural = async (req: AuthRequest, res: Response) => {
     }
 
     // ---------- Check verified ----------
-    const hasVerified = property.verificationDocuments?.some(
-      (doc: any) => doc.status === "verified",
+    const hasVerified = Boolean(
+      property.verificationDocuments?.some(
+        (doc: any) => doc.status === "verified",
+      ),
+    );
+    const hasVerificationDocuments = Boolean(
+      property.verificationDocuments?.length,
     );
 
     property.completion ??= {
@@ -534,6 +568,8 @@ export const finalizeAgricultural = async (req: AuthRequest, res: Response) => {
       if (role === "sales_agent") {
         property.status = "pending";
         property.isPublished = false;
+        property.completion.percent = 80;
+        property.completion.step = 4;
 
         property.approval ??= {};
         property.approval.isApprovedByManager = false;
@@ -568,16 +604,30 @@ export const finalizeAgricultural = async (req: AuthRequest, res: Response) => {
         property.completion.percent = 100;
         property.completion.step = 5;
       } else {
-        property.status = "draft";
+        property.status = "pending";
         property.isPublished = false;
         property.completion.percent = 80;
         property.completion.step = 4;
       }
+    } else if (hasVerificationDocuments) {
+      property.status = hasVerified ? "active" : "pending";
+      property.isPublished = hasVerified;
+      property.completion.percent = hasVerified ? 100 : 80;
+      property.completion.step = hasVerified ? 5 : 4;
     } else {
       property.status = "draft";
       property.isPublished = false;
       property.completion.percent = 80;
       property.completion.step = 4;
+    }
+
+    if (property.status !== "draft") {
+      property.postedBy = await buildPostedByAudit(
+        Agricultural,
+        property.createdBy,
+        property.postedBy,
+        req.user,
+      );
     }
 
     await property.save();
@@ -638,6 +688,7 @@ export const getAllAgriculturalDraftsForAdmin = async (
   const [items, total] = await Promise.all([
     Agricultural.find(filter)
       .populate("createdBy", "name email phone")
+      .populate(auditUserPopulate)
       .sort({ updatedAt: -1 })
       .skip(skip)
       .limit(Number(limit))

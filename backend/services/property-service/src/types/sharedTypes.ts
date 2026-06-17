@@ -82,3 +82,26 @@ export interface IImage {
   order?: number;
   caption?: string;
 }
+
+export interface IUserAuditInfo {
+  userId?: Types.ObjectId;
+  name?: string;
+  email?: string;
+  roleName?: string;
+}
+
+export interface IListingAuditFields {
+  approvedBy?: Types.ObjectId;
+  approvedAt?: Date;
+  rejectedReason?: string;
+  postedBy?: IUserAuditInfo & {
+    postedAt?: Date;
+  };
+  lastUpdatedBy?: IUserAuditInfo & {
+    updatedAt?: Date;
+  };
+  updateCount?: number;
+  updateHistory?: (IUserAuditInfo & {
+    updatedAt?: Date;
+  })[];
+}

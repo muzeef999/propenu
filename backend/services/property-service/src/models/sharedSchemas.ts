@@ -299,6 +299,58 @@ export const BaseFields = {
     approvalComment: String,
     approvalToken: String, // ⭐ email approval link token
   },
+  approvedBy: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+  },
+  approvedAt: {
+    type: Date,
+  },
+  rejectedReason: {
+    type: String,
+  },
+  postedBy: {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    name: String,
+    email: String,
+    roleName: String,
+    postedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  lastUpdatedBy: {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    name: String,
+    email: String,
+    roleName: String,
+    updatedAt: Date,
+  },
+  updateCount: {
+    type: Number,
+    default: 0,
+  },
+  updateHistory: [
+    {
+      userId: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+      name: String,
+      email: String,
+      roleName: String,
+      updatedAt: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+  ],
   createdBy: {
     type: Schema.Types.ObjectId,
     ref: "User",

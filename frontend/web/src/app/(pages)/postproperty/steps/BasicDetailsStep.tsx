@@ -12,6 +12,7 @@ import FileUpload, { UploadedFile } from "@/ui/FileUpload";
 import { useEffect, useState } from "react";
 import { validateBasicDetails } from "@/zod/basicDetailsZod";
 import Cookies from "js-cookie";
+import { useSearchParams } from "next/navigation";
 import {
   RESIDENTIAL_PROPERTY_OPTIONS,
   COMMERCIAL_PROPERTY_OPTIONS,
@@ -37,6 +38,8 @@ import { useAppDispatch, useAppSelector } from "@/Redux/store";
 import RegisterDialog from "@/app/(auth)/Register";
 
 export default function BasicDetailsStep() {
+  const searchParams = useSearchParams();
+  const isEditMode = Boolean(searchParams.get("editId"));
   const {
     propertyType,
     base,
@@ -222,17 +225,27 @@ export default function BasicDetailsStep() {
       <h2 className="text-sm font-medium text-gray-700">Property Type</h2>
 
       <div className="mb-2 flex flex-wrap items-center gap-3 sm:gap-6">
-        {["residential", "commercial", "land", "agricultural"].map((type) => (
+        {["residential", "commercial", "land", "agricultural"]
+          .filter((type) => !isEditMode || propertyType === type)
+          .map((type) => (
           <label
             key={type}
-            className="flex items-center justify-center gap-2 cursor-pointer"
+            className={`flex items-center justify-center gap-2 ${
+              isEditMode
+                  ? "cursor-default"
+                  : "cursor-pointer"
+            }`}
           >
             <input
               type="radio"
               name="propertyType"
               className="scale-125"
               checked={propertyType === type}
-              onChange={() => handleSelect(type)}
+              disabled={isEditMode}
+              onChange={() => {
+                if (isEditMode) return;
+                handleSelect(type);
+              }}
             />
             <span className="capitalize text-sm font-normal text-gray-700">
               {type === "land" ? "Plot / Land" : type}

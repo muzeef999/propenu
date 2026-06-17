@@ -87,7 +87,7 @@ export function useShortlist(
 
         return {
           ...old,
-          data: [...oldData, { property: { _id: propertyId } }],
+          data: [...oldData, { propertyType, property: { _id: propertyId } }],
         };
       });
 

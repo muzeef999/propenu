@@ -4,6 +4,7 @@ import { getFileStoreFiles, clearFileStore } from "@/utilies/fileStore";
 
 import {
   createDraftApi,
+  getPropertyByIdApi,
   finalizeApi,
   getMyDraftApi,
   updateBasicApi,
@@ -24,8 +25,18 @@ export const createDraftThunk = createAsyncThunk(
 
 export const getMyDraftThunk = createAsyncThunk(
   "postProperty/getMyDraft",
-  async (category: string, { rejectWithValue }) => {
+  async (
+    arg: string | { category: string; id?: string; startStep?: number },
+    { rejectWithValue },
+  ) => {
     try {
+      const category = typeof arg === "string" ? arg : arg.category;
+      const id = typeof arg === "string" ? undefined : arg.id;
+
+      if (id) {
+        return await getPropertyByIdApi(category, id);
+      }
+
       return await getMyDraftApi(category);
     } catch (err: any) {
       return rejectWithValue(err);
@@ -65,6 +76,20 @@ export const submitDetailsThunk = createAsyncThunk(
     const {
       verificationDocuments: _verificationDocuments,
       verificationDocument: _verificationDocument,
+      _id: _id,
+      __v: _version,
+      createdBy: _createdBy,
+      updatedBy: _updatedBy,
+      createdAt: _createdAt,
+      updatedAt: _updatedAt,
+      status: _status,
+      approval: _approval,
+      completion: _completion,
+      isPublished: _isPublished,
+      slug: _slug,
+      listingSource: _listingSource,
+      promotion: _promotion,
+      meta: _meta,
       ...detailsPayload
     } = payload ?? {};
 

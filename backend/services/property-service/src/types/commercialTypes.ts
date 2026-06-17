@@ -1,4 +1,4 @@
-import { IFileRef, IVerificationDoc } from "./sharedTypes";
+import { IFileRef, IListingAuditFields, IVerificationDoc } from "./sharedTypes";
 import { Types } from "mongoose";
 import { PropertyAge } from "./residentialTypes";
 import { IPromotion } from "../models/sharedSchemas";
@@ -101,7 +101,7 @@ export interface ICompletion {
   lastSection?: string;
 }
 
-export interface ICommercial {
+export interface ICommercial extends IListingAuditFields {
   title: string;
   slug: string;
   floorNumber?: number;

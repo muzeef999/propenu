@@ -2,14 +2,16 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { IoLocationOutline } from "react-icons/io5";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { GoHeartFill } from "react-icons/go";
+import { toast } from "sonner";
 
 import ActiveTabs from "@/ui/ActiveTabs";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
-import { getUserShortlist } from "@/data/ClientData";
+import { getUserShortlist, removeShortlistProperty } from "@/data/ClientData";
 import NopropertiesSvg from "@/svg/NopropertiesSvg";
+import formatINR from "@/utilies/PriceFormat";
+import { IoIosShareAlt } from "react-icons/io";
 
 /* ================= TYPES ================= */
 
@@ -22,12 +24,31 @@ interface PropertyDetails {
     priceFrom?: number;
     priceTo?: number;
     pricePerSqft?: number;
+    carpetArea?: number;
+    builtUpArea?: number;
+    plotArea?: number;
+    projectArea?: number;
+    sqftRange?: { min?: number; max?: number };
+    projectSummary?: ProjectSummaryItem[];
+    bhkSummary?: ProjectSummaryItem[];
     slug?: string;
     gallery?: { url: string }[];
     gallerySummary?: { url: string }[];
     heroImage?: string;
     locality?: string;
+    bedrooms?: number;
+    listingType?: string;
 }
+
+type ProjectSummaryItem = {
+    units?: {
+        minSqft?: number;
+        area?: {
+            value?: number;
+            sqftValue?: number;
+        };
+    }[];
+};
 
 type PropertyType =
     | "Residential"
@@ -83,10 +104,72 @@ const normalizeType = (type?: string) => {
     return normalized;
 };
 
+const formatPrice = (property?: PropertyDetails) => {
+    const price = property?.price ?? property?.priceFrom ?? property?.priceTo;
+    if (!price) return "—";
+
+    if (property?.priceFrom && property?.priceTo) {
+        return `${formatINR(property.priceFrom)} - ${formatINR(property.priceTo)}`;
+    }
+
+    return formatINR(price);
+};
+
+const getArea = (property?: PropertyDetails) => {
+    const explicitArea =
+        property?.carpetArea ??
+        property?.builtUpArea ??
+        property?.plotArea ??
+        property?.sqftRange?.min;
+
+    if (explicitArea) return explicitArea;
+
+    const projectUnitAreas = (property?.projectSummary ?? property?.bhkSummary ?? [])
+        .flatMap((item) => item.units ?? [])
+        .map((unit) => unit.area?.sqftValue ?? unit.minSqft ?? unit.area?.value)
+        .filter((area): area is number => typeof area === "number" && Number.isFinite(area) && area > 0);
+
+    if (projectUnitAreas.length > 0) {
+        return Math.min(...projectUnitAreas);
+    }
+
+    if (property?.price && property?.pricePerSqft) {
+        return Math.round(property.price / property.pricePerSqft);
+    }
+
+    return null;
+};
+
+const getTitle = (item: ShortlistedItem) => {
+    const property = item.property;
+    if (property?.title) return property.title;
+
+    const listingLabel =
+        property?.listingType?.toLowerCase() === "rent" ? "rent" : "sale";
+
+    if (item.propertyType === "Residential" && property?.bedrooms) {
+        return `${property.bedrooms} BHK Apartment for ${listingLabel}`;
+    }
+
+    return "Untitled Property";
+};
+
+const shareProperty = async (title: string, href: string) => {
+    const url = `${window.location.origin}${href}`;
+
+    if (navigator.share) {
+        await navigator.share({ title, url });
+        return;
+    }
+
+    await navigator.clipboard?.writeText(url);
+};
+
 /* ================= COMPONENT ================= */
 
 const Page = () => {
     const [activeTab, setActiveTab] = useState("Residential");
+    const queryClient = useQueryClient();
 
     const categories = [
         "Residential",
@@ -109,6 +192,45 @@ const Page = () => {
         queryKey: ["user-shortlist"],
         queryFn: getUserShortlist,
         select: (data) => data?.data ?? [],
+    });
+
+    const removeShortlistMutation = useMutation({
+        mutationFn: removeShortlistProperty,
+        onMutate: async (propertyId: string) => {
+            await queryClient.cancelQueries({ queryKey: ["user-shortlist"] });
+
+            const previousShortlist = queryClient.getQueryData<{
+                data: ShortlistedItem[];
+            }>(["user-shortlist"]);
+
+            queryClient.setQueryData<{ data: ShortlistedItem[] }>(
+                ["user-shortlist"],
+                (old) => ({
+                    ...old,
+                    data: (old?.data ?? []).filter(
+                        (item) => item.property?._id !== propertyId
+                    ),
+                })
+            );
+
+            return { previousShortlist };
+        },
+        onSuccess: () => {
+            toast.success("Removed from shortlist");
+        },
+        onError: (_error, _propertyId, context) => {
+            if (context?.previousShortlist) {
+                queryClient.setQueryData(
+                    ["user-shortlist"],
+                    context.previousShortlist
+                );
+            }
+
+            toast.error("Failed to remove from shortlist");
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["user-shortlist"] });
+        },
     });
 
     const shouldShowCategory = useCallback(
@@ -158,14 +280,14 @@ const Page = () => {
                 shouldShowCategory={shouldShowCategory}
             />
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 {filteredProperties.length ? (
                     filteredProperties.map((item) => {
-                        const image = item.property?.gallery?.[0]?.url;
-                        const shortlistImage =
-                            image ||
+                        const image =
+                            item.property?.gallery?.[0]?.url ||
                             item.property?.gallerySummary?.[0]?.url ||
-                            item.property?.heroImage;
+                            item.property?.heroImage ||
+                            "/placeholder.jpg";
                         const href =
                             item.propertyType === "FeaturedProject"
                                 ? `/prime/${item.property?.slug}`
@@ -175,69 +297,98 @@ const Page = () => {
                             item.property?.priceFrom ??
                             item.property?.priceTo;
                         const location =
-                            item.property?.address ||
                             [item.property?.locality, item.property?.city]
                                 .filter(Boolean)
-                                .join(", ");
+                                .join(", ") ||
+                            item.property?.address;
+                        const area = getArea(item.property);
+                        const pricePerSqft = item.property?.pricePerSqft;
 
                         return (
                             <Link
                                 key={item._id}
                                 href={href}
-                                className="card flex flex-col overflow-hidden rounded-xl bg-white"
+                                className="group flex min-h-[145px] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                             >
-                                <div className="relative h-44">
+                                <div className="relative w-[34%] min-w-[120px] shrink-0 bg-gray-100">
                                     <img
-                                        src={shortlistImage}
+                                        src={image}
                                         alt={item.property?.title || "Property"}
                                         className="h-full w-full object-cover"
                                     />
 
-                                    <div className="absolute right-3 top-3 rounded-full bg-white p-2 shadow">
-                                        <GoHeartFill className="h-5 w-5 text-red-500" />
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-1 flex-col space-y-3 p-4">
-                                    <h3 className="line-clamp-1 text-base font-semibold text-gray-800">
-                                        {item.property?.title || "Untitled Property"}
-                                    </h3>
-
-                                    <div className="flex items-center gap-1 truncate text-sm text-gray-500">
-                                        <IoLocationOutline className="h-4 w-4 text-green-500" />
-                                        {location || "Location not specified"}
-                                    </div>
-                                </div>
-
-                                <aside className="mx-1.5 mb-1.5 mt-auto flex items-center justify-between rounded-xl bg-[#E9F7EF] p-2">
-                                    <div className="flex flex-col pl-2 leading-tight">
-                                        <span className="text-md font-semibold text-[#21884B]">
-                                            {price
-                                                ? `₹ ${price.toLocaleString("en-IN")}`
-                                                : "—"}
-                                        </span>
-
-                                    </div>
-
-                                    <div
+                                    <button
+                                        type="button"
+                                        aria-label="Remove from shortlist"
+                                        className="absolute left-2 top-2 grid h-7 w-7 place-items-center cursor-pointer rounded-full bg-white/95 text-red-500 shadow-sm transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-70"
+                                        disabled={removeShortlistMutation.isPending}
                                         onClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
+                                            removeShortlistMutation.mutate(item.property._id);
                                         }}
                                     >
-                                        <ContactOwnerButton
-                                            projectId={item.property?._id}
-                                            propertyType={PROPERTY_TYPE_MAP[item.propertyType]}
-                                            price={price}
-                                            propertyLabel={item.property?.title}
-                                            className="rounded-md bg-[#26ad5f] px-4 py-2 text-sm font-medium text-white"
-                                        >
-                                            {item.propertyType === "FeaturedProject"
-                                                ? "Contact Builder"
-                                                : "Contact Owner"}
-                                        </ContactOwnerButton>
+                                        <GoHeartFill className="h-3.5 w-3.5" />
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        aria-label="Share property"
+                                        className="absolute right-2 top-2 grid h-7 w-7 place-items-center cursor-pointer rounded-full bg-white/95 text-gray-700 shadow-sm transition hover:bg-white hover:text-[#27AE60]"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            shareProperty(getTitle(item), href);
+                                        }}
+                                    >
+                                        <IoIosShareAlt className="h-3.5 w-3.5" />
+                                    </button>
+                                </div>
+
+                                <div className="flex min-w-0 flex-1 flex-col justify-between p-3">
+                                    <div className="min-w-0">
+                                        <p className="text-base font-semibold leading-none text-gray-950">
+                                            {formatPrice(item.property)}
+                                        </p>
+
+                                        <h3 className="mt-2 line-clamp-2 text-sm font-semibold leading-snug text-gray-900">
+                                            {getTitle(item)}
+                                        </h3>
+
+                                        <p className="mt-5 truncate text-xs text-gray-500">
+                                            {location || "Location not specified"}
+                                        </p>
                                     </div>
-                                </aside>
+
+                                    <div className="mt-2 flex items-center justify-between gap-3 rounded-md bg-gray-50 px-3 py-2">
+                                        <p className="min-w-0 truncate text-xs text-gray-700">
+                                            {area ? `${area.toLocaleString("en-IN")} sqft` : "Area —"}
+                                            {pricePerSqft
+                                                ? ` (₹ ${pricePerSqft.toLocaleString("en-IN")}/sqft)`
+                                                : ""}
+                                        </p>
+
+                                        <div
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                            }}
+                                        >
+                                            <ContactOwnerButton
+                                                projectId={item.property?._id}
+                                                propertyType={PROPERTY_TYPE_MAP[item.propertyType]}
+                                                price={price}
+                                                propertyLabel={item.property?.title}
+                                                className="rounded-full bg-[#27AE60]/10 px-2 py-1 text-[11px] font-semibold text-[#27AE60] transition hover:bg-[#27AE60] hover:text-white"
+                                            >
+                                                {item.propertyType === "FeaturedProject"
+                                                    ? "Builder"
+                                                    : "Contact"}
+                                            </ContactOwnerButton>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </Link>
                         );
                     })

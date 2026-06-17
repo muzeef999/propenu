@@ -2,6 +2,7 @@
 
 import Stepper from "./Stepper";
 import { ArrowDropdownIcon } from "@/icons/icons";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { prevStep } from "@/Redux/slice/postPropertySlice";
 
@@ -10,11 +11,17 @@ const VERIFICATION_STEP_PROGRESS = 90;
 
 export default function Sidebar() {
   const dispatch = useDispatch();
+  const [roleName, setRoleName] = useState("");
+
+  useEffect(() => {
+    setRoleName(String(localStorage.getItem("role") ?? "").toLowerCase());
+  }, []);
 
   const { currentStep } = useSelector(
     (state: any) => state.postProperty
   );
-  const safeTotalSteps = Math.max(1, TOTAL_STEPS);
+  const totalSteps = roleName === "agent" ? 3 : TOTAL_STEPS;
+  const safeTotalSteps = Math.max(1, totalSteps);
   const safeCurrentStep = Math.min(Math.max(currentStep || 1, 1), safeTotalSteps);
   const baseProgress = Math.round(
     ((safeCurrentStep - 1) / (safeTotalSteps - 1 || 1)) * 100
@@ -54,7 +61,7 @@ export default function Sidebar() {
               Post your property
             </h2>
             <p className="text-[10px] text-gray-500">
-              Step {safeCurrentStep} of {TOTAL_STEPS}
+              Step {safeCurrentStep} of {totalSteps}
             </p>
           </div>
 

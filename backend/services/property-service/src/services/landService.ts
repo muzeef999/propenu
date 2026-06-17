@@ -10,10 +10,18 @@ import {
   createWatermarkedBuffer,
   getUploadedFileBuffer,
 } from "../utils/imageProcessing";
+import { restoreCreatedById } from "../utils/agentSubmission";
 
 dotenv.config({ quiet: true });
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
+
+const auditUserPopulate = [
+  { path: "approvedBy", select: "name email phone role roleId" },
+  { path: "postedBy.userId", select: "name email phone role roleId" },
+  { path: "lastUpdatedBy.userId", select: "name email phone role roleId" },
+  { path: "updateHistory.userId", select: "name email phone role roleId" },
+];
 
 function getUploadSource(file: Express.Multer.File) {
   if (file.buffer && Buffer.isBuffer(file.buffer)) {
@@ -45,6 +53,18 @@ const SERVER_MANAGED_UPDATE_FIELDS = [
   "updatedBy",
   "createdAt",
   "updatedAt",
+  "postedBy",
+  "lastUpdatedBy",
+  "updateHistory",
+  "updateCount",
+  "approvedBy",
+  "approvedAt",
+  "approval",
+  "approvalStatus",
+  "isPublished",
+  "meta",
+  "promotion",
+  "slug",
 ];
 
 function sanitizeUpdatePayload(payload: any) {
@@ -536,11 +556,13 @@ export const LandService = {
     return existing.toObject ? existing.toObject() : existing;
   },
 
-  async getById(id: string) {
+  async getById(id: string, includeAudit = false) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    const doc = await LandPlot.findById(id)
+    const original = await LandPlot.findById(id).select("createdBy").lean();
+    const query = LandPlot.findById(id)
       .populate("createdBy", "name email phone roleId")
-      .exec();
+    if (includeAudit) query.populate(auditUserPopulate);
+    const doc = await query.exec();
     if (!doc) return null;
 
     const cleanedTitle = stripLegacyReadyToConstruct(
@@ -552,13 +574,16 @@ export const LandService = {
       await doc.save();
     }
 
-    return doc.toObject ? doc.toObject() : (doc as any);
+    const obj = doc.toObject ? doc.toObject() : (doc as any);
+    return restoreCreatedById(obj, original?.createdBy);
   },
 
   async getBySlug(slug: string) {
     if (!slug || typeof slug !== "string") throw new Error("Invalid slug");
+    const original = await LandPlot.findOne({ slug }).select("createdBy").lean();
     const doc = await LandPlot.findOne({ slug })
       .populate("createdBy", "name email phone roleId")
+      .populate(auditUserPopulate)
       .exec();
     if (!doc) return null;
 
@@ -571,7 +596,8 @@ export const LandService = {
       await doc.save();
     }
 
-    return doc.toObject ? doc.toObject() : (doc as any);
+    const obj = doc.toObject ? doc.toObject() : (doc as any);
+    return restoreCreatedById(obj, original?.createdBy);
   },
 
   async list(options?: {
@@ -607,13 +633,16 @@ export const LandService = {
       sort.createdAt = -1;
     }
 
-    const [items, total] = await Promise.all([
-      LandPlot.find(filter).sort(sort).populate("createdBy", "name email phone roleId").skip(skip).limit(limit).lean().exec(),
+    const [items, rawItems, total] = await Promise.all([
+      LandPlot.find(filter).sort(sort).populate("createdBy", "name email phone roleId").populate(auditUserPopulate).skip(skip).limit(limit).lean().exec(),
+      LandPlot.find(filter).sort(sort).select("createdBy").skip(skip).limit(limit).lean().exec(),
       LandPlot.countDocuments(filter).exec(),
     ]);
 
     return {
-      items,
+      items: (items as any[]).map((item, index) =>
+        restoreCreatedById(item, rawItems[index]?.createdBy),
+      ),
       meta: { total, page, limit, pages: Math.ceil(total / limit) },
     };
   },

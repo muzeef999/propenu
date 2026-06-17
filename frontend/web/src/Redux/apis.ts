@@ -36,6 +36,17 @@ export const getMyDraftApi = async (category: string) => {
   return res.json();
 };
 
+export const getPropertyByIdApi = async (category: string, id: string) => {
+  const res = await fetch(`${url}/api/properties/${category}/${id}`, {
+    method: "GET",
+    headers: authHeader(),
+  });
+
+  if (!res.ok) throw await res.json();
+
+  return res.json();
+};
+
 /* ---------------- BASIC ---------------- */
 
 export const updateBasicApi = async (category: string, id: string, data: any) => {

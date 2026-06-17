@@ -1,5 +1,5 @@
 import { IPromotion } from "../models/sharedSchemas";
-import { IFileRef, IVerificationDoc } from "./sharedTypes";
+import { IFileRef, IListingAuditFields, IVerificationDoc } from "./sharedTypes";
 import mongoose, { Types } from "mongoose";
 
 export const LAND_PROPERTY_TYPES = [
@@ -50,7 +50,7 @@ export interface IImage {
   filename?: string
 }
 
-export interface ILand {
+export interface ILand extends IListingAuditFields {
    title?: string;
   dimensions: {
     length: { type: Number; required: true }; // e.g., 40

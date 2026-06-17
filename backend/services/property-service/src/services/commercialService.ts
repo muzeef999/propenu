@@ -12,9 +12,17 @@ import {
   createWatermarkedBuffer,
   getUploadedFileBuffer,
 } from "../utils/imageProcessing";
+import { restoreCreatedById } from "../utils/agentSubmission";
 dotenv.config({ quiet: true });
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
+
+const auditUserPopulate = [
+  { path: "approvedBy", select: "name email phone role roleId" },
+  { path: "postedBy.userId", select: "name email phone role roleId" },
+  { path: "lastUpdatedBy.userId", select: "name email phone role roleId" },
+  { path: "updateHistory.userId", select: "name email phone role roleId" },
+];
 
 /* -------------------- Helpers -------------------- */
 
@@ -38,6 +46,37 @@ function normalizePayload(obj: any) {
   if (Array.isArray(obj.amenities))
     obj.amenities = normalizeAmenitiesInput(obj.amenities);
   return obj;
+}
+
+const SERVER_MANAGED_UPDATE_FIELDS = [
+  "_id",
+  "id",
+  "__v",
+  "createdBy",
+  "updatedBy",
+  "createdAt",
+  "updatedAt",
+  "postedBy",
+  "lastUpdatedBy",
+  "updateHistory",
+  "updateCount",
+  "approvedBy",
+  "approvedAt",
+  "approval",
+  "approvalStatus",
+  "isPublished",
+  "meta",
+  "promotion",
+  "slug",
+];
+
+function sanitizeUpdatePayload(payload: any) {
+  if (!payload || typeof payload !== "object") return {};
+  const sanitized = { ...payload };
+  for (const field of SERVER_MANAGED_UPDATE_FIELDS) {
+    delete sanitized[field];
+  }
+  return sanitized;
 }
 
 function normalizeAmenityKey(value?: string) {
@@ -312,19 +351,20 @@ export const CommercialService = {
     if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
     const existing = await Commercial.findById(id);
     if (!existing) return null;
-    if (Array.isArray(payload?.amenities)) {
-      payload.amenities = normalizeAmenitiesInput(payload.amenities);
+    const safePayload = normalizePayload(sanitizeUpdatePayload(payload));
+    if (Array.isArray(safePayload?.amenities)) {
+      safePayload.amenities = normalizeAmenitiesInput(safePayload.amenities);
     }
 
     // slug/title changes (use any cast to avoid strict typing issues)
     const exAny: any = existing;
     if (
-      (payload.slug && payload.slug !== exAny.slug) ||
-      (payload.title && payload.title !== exAny.title)
+      (safePayload.slug && safePayload.slug !== exAny.slug) ||
+      (safePayload.title && safePayload.title !== exAny.title)
     ) {
       const slugSource =
-        (payload.slug && String(payload.slug).trim()) ||
-        (payload.title as string);
+        (safePayload.slug && String(safePayload.slug).trim()) ||
+        (safePayload.title as string);
       const slug = slugSource
         .toLowerCase()
         .trim()
@@ -340,15 +380,15 @@ export const CommercialService = {
     }
 
     // shallow merge of payload onto existing
-    Object.keys(payload || {}).forEach((k) => {
-      (existing as any)[k] = (payload as any)[k];
+    Object.keys(safePayload || {}).forEach((k) => {
+      (existing as any)[k] = (safePayload as any)[k];
     });
 
     const propId = existing._id ? existing._id.toString() : String(Date.now());
 
     // gallery merge & upload
     const galleryFiles = files?.galleryFiles ?? [];
-    const incomingGallery = (payload as any).gallery;
+    const incomingGallery = (safePayload as any).gallery;
     (existing as any).gallery = Array.isArray((existing as any).gallery)
       ? (existing as any).gallery
       : [];
@@ -531,20 +571,25 @@ export const CommercialService = {
     return this.getById(id);
   },
 
-  async getById(id: string) {
+  async getById(id: string, includeAudit = false) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    return Commercial.findById(id)
-      .populate("createdBy", "name email phone roleId")
-      .lean()
-      .exec();
+    const original = await Commercial.findById(id).select("createdBy").lean();
+    const query = Commercial.findById(id)
+      .populate("createdBy", "name email phone roleId");
+    if (includeAudit) query.populate(auditUserPopulate);
+    const doc = await query.lean().exec();
+    return restoreCreatedById(doc, original?.createdBy);
   },
 
   async getBySlug(slug: string) {
     if (!slug || typeof slug !== "string") throw new Error("Invalid slug");
-    return Commercial.findOne({ slug })
+    const original = await Commercial.findOne({ slug }).select("createdBy").lean();
+    const doc = await Commercial.findOne({ slug })
       .populate("createdBy", "name email phone roleId")
+      .populate(auditUserPopulate)
       .lean()
       .exec();
+    return restoreCreatedById(doc, original?.createdBy);
   },
 
   async list(options?: {
@@ -592,10 +637,18 @@ export const CommercialService = {
       sort.createdAt = -1;
     }
 
-    const [items, total] = await Promise.all([
+    const [items, rawItems, total] = await Promise.all([
       Commercial.find(filter)
         .sort(sort)
         .populate("createdBy", "name email phone roleId")
+        .populate(auditUserPopulate)
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec(),
+      Commercial.find(filter)
+        .sort(sort)
+        .select("createdBy")
         .skip(skip)
         .limit(limit)
         .lean()
@@ -604,7 +657,9 @@ export const CommercialService = {
     ]);
 
     return {
-      items: items as any[],
+      items: (items as any[]).map((item, index) =>
+        restoreCreatedById(item, rawItems[index]?.createdBy),
+      ),
       meta: { total, page, limit, pages: Math.ceil(total / limit) },
     };
   },

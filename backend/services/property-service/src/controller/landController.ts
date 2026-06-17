@@ -17,6 +17,7 @@ import {
 import { sendListingApprovedEmail } from "../../../../shared/email/email.helper";
 import { sendTemplateNotification } from "../../../../shared/notifications/push.service";
 import {
+  buildPostedByAudit,
   isDirectAgentRole,
   submitAgentListingForReview,
 } from "../utils/agentSubmission";
@@ -30,6 +31,48 @@ function parseMaybeJSON<T = any>(value: any): T | undefined {
   } catch {
     return value as unknown as T;
   }
+}
+
+const auditUserPopulate = [
+  { path: "approvedBy", select: "name email phone role roleId" },
+  { path: "postedBy.userId", select: "name email phone role roleId" },
+  { path: "lastUpdatedBy.userId", select: "name email phone role roleId" },
+  { path: "updateHistory.userId", select: "name email phone role roleId" },
+];
+
+const SERVER_MANAGED_STEP_FIELDS = [
+  "_id",
+  "id",
+  "__v",
+  "approval",
+  "approvalStatus",
+  "approvedBy",
+  "approvedAt",
+  "createdAt",
+  "updatedAt",
+  "deactivatedAt",
+  "deactivatedBy",
+  "isPublished",
+  "lastUpdatedBy",
+  "meta",
+  "postedBy",
+  "promotion",
+  "rejectedReason",
+  "slug",
+  "status",
+  "subscriptionEndDate",
+  "updateCount",
+  "updateHistory",
+  "updatedBy",
+];
+
+function sanitizeStepPayload(payload: any) {
+  if (!payload || typeof payload !== "object") return {};
+  const sanitized = { ...payload };
+  for (const field of SERVER_MANAGED_STEP_FIELDS) {
+    delete sanitized[field];
+  }
+  return sanitized;
 }
 
 /** CREATE */
@@ -55,7 +98,17 @@ export const createLand = async (req: Request, res: Response) => {
     };
 
     // validate (throws ZodError)
-    const payload = CreateLandSchema.parse(parsed);
+    const payload = CreateLandSchema.parse(parsed) as any;
+    const authUser = (req as AuthRequest).user;
+    if (authUser?.id) {
+      payload.createdBy ??= authUser.id;
+      payload.postedBy = await buildPostedByAudit(
+        LandPlot,
+        payload.createdBy,
+        payload.postedBy,
+        authUser,
+      );
+    }
 
     console.log(payload);
     const files = req.files as
@@ -118,11 +171,16 @@ export const getAllLands = async (req: Request, res: Response) => {
 };
 
 export const getMyLandDraft = async (req: AuthRequest, res: Response) => {
+  const statusFilter = isDirectAgentRole(req.user?.roleName)
+    ? "draft"
+    : { $in: ["draft", "pending"] };
+
   const draft = await LandPlot.findOne({
     createdBy: req.user!.id,
-    status: "draft",
+    status: statusFilter,
   })
     .populate("createdBy", "name email phone")
+    .populate(auditUserPopulate)
     .lean();
 
   if (!draft) {
@@ -175,7 +233,7 @@ export const getLandDetail = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     if (!id) return res.status(400).json({ error: "Missing id" });
-    const doc = await LandService.getById(id);
+    const doc = await LandService.getById(id, true);
     if (!doc) return res.status(404).json({ error: "Not found" });
 
     LandService.incrementViews(id).catch((e) =>
@@ -254,9 +312,13 @@ export const deleteLand = async (req: Request, res: Response) => {
 
 export const createLandDraft = async (req: AuthRequest, res: Response) => {
   try {
+    const statusFilter = isDirectAgentRole(req.user?.roleName)
+      ? "draft"
+      : { $in: ["draft", "pending"] };
+
     const existing = await LandPlot.findOne({
       createdBy: req.user!.id,
-      status: "draft",
+      status: statusFilter,
     }).lean();
 
     if (existing) {
@@ -289,7 +351,7 @@ export const updateLandBasicStep = async (req: AuthRequest, res: Response) => {
     return res.status(404).json({ error: "Land draft not found" });
   }
 
-  Object.assign(doc, req.body);
+  Object.assign(doc, sanitizeStepPayload(req.body));
 
   doc.completion = {
     ...doc.completion,
@@ -418,6 +480,7 @@ export const updateLandDetailsStep = async (
       const submitted = await submitAgentListingForReview(
         LandPlot,
         req.params.id,
+        req.user,
       );
       return res.json({ data: submitted ?? fresh });
     }
@@ -468,8 +531,13 @@ export const finalizeLand = async (req: AuthRequest, res: Response) => {
     }
 
     // ---------- Check verified ----------
-    const hasVerified = property.verificationDocuments?.some(
-      (doc: any) => doc.status === "verified",
+    const hasVerified = Boolean(
+      property.verificationDocuments?.some(
+        (doc: any) => doc.status === "verified",
+      ),
+    );
+    const hasVerificationDocuments = Boolean(
+      property.verificationDocuments?.length,
     );
 
     property.completion ??= {
@@ -486,6 +554,8 @@ export const finalizeLand = async (req: AuthRequest, res: Response) => {
       if (role === "sales_agent") {
         property.status = "pending";
         property.isPublished = false;
+        property.completion.percent = 80;
+        property.completion.step = 4;
 
         property.approval ??= {};
         property.approval.isApprovedByManager = false;
@@ -520,16 +590,30 @@ export const finalizeLand = async (req: AuthRequest, res: Response) => {
         property.completion.percent = 100;
         property.completion.step = 5;
       } else {
-        property.status = "draft";
+        property.status = "pending";
         property.isPublished = false;
         property.completion.percent = 80;
         property.completion.step = 4;
       }
+    } else if (hasVerificationDocuments) {
+      property.status = hasVerified ? "active" : "pending";
+      property.isPublished = hasVerified;
+      property.completion.percent = hasVerified ? 100 : 80;
+      property.completion.step = hasVerified ? 5 : 4;
     } else {
       property.status = "draft";
       property.isPublished = false;
       property.completion.percent = 80;
       property.completion.step = 4;
+    }
+
+    if (property.status !== "draft") {
+      property.postedBy = await buildPostedByAudit(
+        LandPlot,
+        property.createdBy,
+        property.postedBy,
+        req.user,
+      );
     }
 
     await property.save();
@@ -589,6 +673,7 @@ export const getAllLandDraftsForAdmin = async (req: Request, res: Response) => {
     const [items, total] = await Promise.all([
       LandPlot.find(filter)
         .populate("createdBy", "name email phone")
+        .populate(auditUserPopulate)
         .sort({ updatedAt: -1 })
         .skip(skip)
         .limit(Number(limit))

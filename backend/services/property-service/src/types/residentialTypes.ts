@@ -1,7 +1,7 @@
 // src/types/residentialTypes.ts
 import mongoose from "mongoose";
 import { Types } from "mongoose";
-import { IVerificationDoc } from "./sharedTypes";
+import { IListingAuditFields, IVerificationDoc } from "./sharedTypes";
 import { IPromotion } from "../models/sharedSchemas";
 
 export const RESIDENTIAL_PROPERTY_TYPES = [
@@ -80,7 +80,7 @@ export interface IImage {
   filename?: string
 }
 
-export interface IResidential {
+export interface IResidential extends IListingAuditFields {
   title?: string;
   slug: string;
   listingSource?: string;

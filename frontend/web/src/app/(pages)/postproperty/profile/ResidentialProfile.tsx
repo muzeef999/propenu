@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import {
   nextStep,
+  resetPostProperty,
   setBaseField,
   setProfileField,
+  showAgentSubmissionSuccess,
 } from "@/Redux/slice/postPropertySlice";
 import Dropdownui from "@/ui/DropDownUI";
 import CounterField from "@/ui/CounterField";
@@ -14,12 +17,13 @@ import { useAppDispatch } from "@/Redux/store";
 import Toggle from "@/ui/ToggleSwitch";
 import { toast } from "sonner";
 import {
+  createDraftThunk,
   getMyDraftThunk,
   submitDetailsThunk,
 } from "@/Redux/thunks/submitPropertyApi";
 import FileUpload, { UploadedFile } from "@/ui/FileUpload";
 import { validateResidentialProfile } from "@/zod/profileZods/residentialProfileZod";
-import { setFileStoreFiles } from "@/utilies/fileStore";
+import { clearFileStore, setFileStoreFiles } from "@/utilies/fileStore";
 import { deleteGalleryImageApi } from "@/Redux/apis";
 
 export const FLOORING_TYPES = [
@@ -49,6 +53,7 @@ export const FACING_TYPES = ["North", "South", "East", "West", "North-East", "No
 export const ParkingTypes = ["open", "closed", "both"] as const;
 
 const ResidentialProfile = () => {
+  const router = useRouter();
   const { residential, draftId, propertyType } = useSelector(
     (state: any) => state.postProperty,
   );
@@ -56,6 +61,18 @@ const ResidentialProfile = () => {
   const [showErrors, setShowErrors] = useState(false);
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [isListedSuccessfully, setIsListedSuccessfully] = useState(false);
+  const [isAgentPosting, setIsAgentPosting] = useState(false);
+
+  useEffect(() => {
+    const normalizedRole = String(localStorage.getItem("role") ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/[-\s]+/g, "_");
+    setIsAgentPosting(
+      normalizedRole === "agent" || normalizedRole === "sales_agent",
+    );
+  }, []);
 
   useEffect(() => {
     if (!residential.gallery || residential.gallery.length === 0) return;
@@ -469,6 +486,11 @@ const ResidentialProfile = () => {
       <button
         type="button"
         onClick={() => {
+          if (isListedSuccessfully) {
+            router.push("/agent/my-properties");
+            return;
+          }
+
           setShowErrors(true);
 
           // ✅ Prepare payload for validation
@@ -525,6 +547,20 @@ const ResidentialProfile = () => {
           )
             .unwrap()
             .then(async () => {
+              if (isAgentPosting) {
+                toast.success("Property listed successfully.");
+                clearFileStore("postProperty");
+                setFiles([]);
+                dispatch(resetPostProperty({ propertyType }));
+                dispatch(showAgentSubmissionSuccess());
+                dispatch(createDraftThunk(propertyType))
+                  .unwrap()
+                  .catch(() => {
+                    toast.error("Property submitted, but new draft creation failed.");
+                  });
+                return;
+              }
+
               await dispatch(getMyDraftThunk(propertyType)).unwrap();
               dispatch(nextStep());
             })
@@ -539,7 +575,11 @@ const ResidentialProfile = () => {
         }}
         className="py-2 btn-primary text-white rounded-md cursor-pointer w-full"
       >
-        Continue
+        {isListedSuccessfully
+          ? "Go to My Properties"
+          : isAgentPosting
+            ? "Submit"
+            : "Continue"}
       </button>
     </div>
   );

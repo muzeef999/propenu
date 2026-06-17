@@ -1,5 +1,5 @@
 import { IPromotion } from "../models/sharedSchemas";
-import { IFileRef, IVerificationDoc } from "./sharedTypes";
+import { IFileRef, IListingAuditFields, IVerificationDoc } from "./sharedTypes";
 import mongoose, { Types } from "mongoose";
 
 export const AGRICULTURAL_PROPERTY_TYPES = [
@@ -78,7 +78,7 @@ export interface IRoadWidth {
   value?: number;
   unit?: "ft" | "meter";
 }
-export interface IAgricultural {
+export interface IAgricultural extends IListingAuditFields {
   title?: string;
   completion?: ICompletion;
   promotion?: IPromotion;

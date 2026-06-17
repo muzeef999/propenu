@@ -14,6 +14,7 @@ import { sendOtpEmail } from "../utils/email";
 import { getOtpLoginRestrictionMessage, requiresKycForLogin } from "../utils/accessPolicy";
 import mongoose from "mongoose";
 import DeletedAccount from "../models/deletedAccountModel";
+import Agent from "../models/agentModel";
 
 const deletedAccountMessage =
   "This account has been deleted. Please create a new account.";
@@ -27,6 +28,38 @@ const ADMIN_CREATE_ROLES = new Set([
 ]);
 const NAME_MAX_LENGTH = 42;
 const COMPANY_NAME_MAX_LENGTH = 80;
+
+const createInitialAgentProfile = async (userId: mongoose.Types.ObjectId) => {
+  return Agent.findOneAndUpdate(
+    { user: userId },
+    {
+      $setOnInsert: {
+        user: userId,
+        name: "",
+        bio: "",
+        agencyName: "",
+        licenseNumber: "",
+        locality: "",
+        city: "",
+        experienceYears: 0,
+        dealsClosed: 0,
+        areasServed: [],
+        languages: [],
+        avatar: null,
+        coverImage: null,
+        rera: {
+          reraAgentId: "",
+          isVerified: false,
+        },
+        stats: {
+          totalProperties: 0,
+          publishedCount: 0,
+        },
+      },
+    },
+    { new: true, upsert: true, setDefaultsOnInsert: true },
+  );
+};
 
 const getDummyLoginConfig = () => ({
   phone: process.env.DUMMY_LOGIN_PHONE?.trim(),
@@ -452,6 +485,10 @@ export const updateUserRole = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    if (role.name === "agent") {
+      await createInitialAgentProfile(user._id);
+    }
+
     res.json({
       message: "User role updated",
       user,
@@ -612,7 +649,7 @@ export const searchUsers = async (req: Request, res: Response) => {
         agentId: {
           $cond: [
             { $eq: ["$role.name", "agent"] },
-            "$agent._id",
+            { $ifNull: ["$agent._id", null] },
             "$$REMOVE",
           ],
         },
@@ -630,7 +667,7 @@ export const searchUsers = async (req: Request, res: Response) => {
         verificationStatus: {
           $cond: [
             { $eq: ["$role.name", "agent"] },
-            "$agent.verificationStatus",
+            { $ifNull: ["$agent.verificationStatus", null] },
             "$$REMOVE",
           ],
         },
@@ -639,26 +676,26 @@ export const searchUsers = async (req: Request, res: Response) => {
           $cond: [
             { $eq: ["$role.name", "agent"] },
             {
-              _id: "$agent._id",
-              slug: "$agent.slug",
-              name: "$agent.name",
-              bio: "$agent.bio",
-              agencyName: "$agent.agencyName",
-              licenseNumber: "$agent.licenseNumber",
-              licenseValidTill: "$agent.licenseValidTill",
-              areasServed: "$agent.areasServed",
-              locality: "$agent.locality",
-              city: "$agent.city",
-              experienceYears: "$agent.experienceYears",
-              dealsClosed: "$agent.dealsClosed",
-              languages: "$agent.languages",
-              verificationStatus: "$agent.verificationStatus",
-              avatar: "$agent.avatar",
-              coverImage: "$agent.coverImage",
-              rera: "$agent.rera",
-              stats: "$agent.stats",
-              createdAt: "$agent.createdAt",
-              updatedAt: "$agent.updatedAt",
+              name: { $ifNull: ["$agent.name", ""] },
+              bio: { $ifNull: ["$agent.bio", ""] },
+              agencyName: { $ifNull: ["$agent.agencyName", ""] },
+              licenseNumber: { $ifNull: ["$agent.licenseNumber", ""] },
+              locality: { $ifNull: ["$agent.locality", ""] },
+              city: { $ifNull: ["$agent.city", ""] },
+              experienceYears: { $ifNull: ["$agent.experienceYears", 0] },
+              dealsClosed: { $ifNull: ["$agent.dealsClosed", 0] },
+              areasServed: { $ifNull: ["$agent.areasServed", []] },
+              languages: { $ifNull: ["$agent.languages", []] },
+              avatar: { $ifNull: ["$agent.avatar", null] },
+              coverImage: { $ifNull: ["$agent.coverImage", null] },
+              rera: {
+                reraAgentId: { $ifNull: ["$agent.rera.reraAgentId", ""] },
+                isVerified: { $ifNull: ["$agent.rera.isVerified", false] },
+              },
+              stats: {
+                totalProperties: { $ifNull: ["$agent.stats.totalProperties", 0] },
+                publishedCount: { $ifNull: ["$agent.stats.publishedCount", 0] },
+              },
             },
             "$$REMOVE",
           ],
@@ -842,6 +879,10 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       },
     });
 
+    if (roleDoc.name === "agent") {
+      await createInitialAgentProfile(user._id);
+    }
+
     const token = generateToken({
       sub: String(user._id),
       email: user.email,
@@ -1014,6 +1055,10 @@ export const adminCreateVerifyOtp = async (req: Request, res: Response) => {
         status: "not_started",
       },
     });
+
+    if (roleDoc.name === "agent") {
+      await createInitialAgentProfile(user._id);
+    }
 
     const token = createAuthToken({ user, roleDoc });
 

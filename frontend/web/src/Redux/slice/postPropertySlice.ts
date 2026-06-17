@@ -29,6 +29,7 @@ interface PostPropertyState {
   progressPercent: number;
   propertyType: PropertyCategory;
   draftId: string | null;
+  agentSubmissionSuccess: boolean;
   base: Record<string, any>;
   residential: Record<string, any>;
   commercial: Record<string, any>;
@@ -183,6 +184,7 @@ const initialState: PostPropertyState = {
   progressPercent: 0,
   propertyType: "residential", // ✅ default selection
   draftId: null,
+  agentSubmissionSuccess: false,
   base: {
     listingType: DEFAULT_LISTING_TYPE,
     nearbyPlaces: [],
@@ -205,6 +207,37 @@ const postPropertySlice = createSlice({
     /* -------- Step control -------- */
     setDraftId(state, action: PayloadAction<string>) {
       state.draftId = action.payload;
+    },
+
+    resetPostProperty(
+      state,
+      action: PayloadAction<{ propertyType?: PropertyCategory } | undefined>,
+    ) {
+      const nextType = action.payload?.propertyType ?? state.propertyType;
+      state.currentStep = 1;
+      state.progressPercent = 0;
+      state.propertyType = nextType;
+      state.draftId = null;
+      state.base = {
+        listingType: DEFAULT_LISTING_TYPE,
+        nearbyPlaces: [],
+      };
+      state.residential = {};
+      state.commercial = {};
+      state.land = {};
+      state.agricultural = {};
+
+      if (nextType === "agricultural") {
+        state.agricultural.propertyType = DEFAULT_AGRICULTURAL_PROPERTY_TYPE;
+      }
+    },
+
+    showAgentSubmissionSuccess(state) {
+      state.agentSubmissionSuccess = true;
+    },
+
+    hideAgentSubmissionSuccess(state) {
+      state.agentSubmissionSuccess = false;
     },
 
     nextStep(state) {
@@ -265,13 +298,15 @@ const postPropertySlice = createSlice({
     builder.addCase(getMyDraftThunk.fulfilled, (state, action) => {
       const draft = action.payload?.data;
       if (!draft) return;
+      const requestedStartStep =
+        typeof action.meta.arg === "string" ? undefined : action.meta.arg.startStep;
 
       // draft id
       state.draftId = draft._id;
 
       // resume step
       state.currentStep = Math.min(
-        Math.max(draft.completion?.step ?? MIN_STEP, MIN_STEP),
+        Math.max(requestedStartStep ?? draft.completion?.step ?? MIN_STEP, MIN_STEP),
         MAX_STEP,
       );
 
@@ -605,6 +640,9 @@ export const {
   prevStep,
   setStep,
   setDraftId,
+  resetPostProperty,
+  showAgentSubmissionSuccess,
+  hideAgentSubmissionSuccess,
 } = postPropertySlice.actions;
 
 export default postPropertySlice.reducer;

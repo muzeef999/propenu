@@ -25,6 +25,10 @@ interface PropertyDetails {
   carpetArea?: number;
   builtUpArea?: number;
   plotArea?: number;
+  projectArea?: number;
+  sqftRange?: { min?: number; max?: number };
+  projectSummary?: ProjectSummaryItem[];
+  bhkSummary?: ProjectSummaryItem[];
   slug?: string;
   gallery?: { url: string }[];
   gallerySummary?: { url: string }[];
@@ -35,6 +39,16 @@ interface PropertyDetails {
   propertyType?: string;
   listingType?: string;
 }
+
+type ProjectSummaryItem = {
+  units?: {
+    minSqft?: number;
+    area?: {
+      value?: number;
+      sqftValue?: number;
+    };
+  }[];
+};
 // Use backend's naming convention for the raw data type for type safety
 type PropertyType =
   | "Residential"
@@ -89,9 +103,21 @@ const formatPrice = (property?: PropertyDetails) => {
 
 const getArea = (property?: PropertyDetails) => {
   const explicitArea =
-    property?.carpetArea ?? property?.builtUpArea ?? property?.plotArea;
+    property?.carpetArea ??
+    property?.builtUpArea ??
+    property?.plotArea ??
+    property?.sqftRange?.min;
 
   if (explicitArea) return explicitArea;
+
+  const projectUnitAreas = (property?.projectSummary ?? property?.bhkSummary ?? [])
+    .flatMap((item) => item.units ?? [])
+    .map((unit) => unit.area?.sqftValue ?? unit.minSqft ?? unit.area?.value)
+    .filter((area): area is number => typeof area === "number" && Number.isFinite(area) && area > 0);
+
+  if (projectUnitAreas.length > 0) {
+    return Math.min(...projectUnitAreas);
+  }
 
   if (property?.price && property?.pricePerSqft) {
     return Math.round(property.price / property.pricePerSqft);

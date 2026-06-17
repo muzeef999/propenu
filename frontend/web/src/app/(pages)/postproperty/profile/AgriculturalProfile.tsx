@@ -1,14 +1,23 @@
 import { useSelector } from "react-redux";
-import { nextStep, setBaseField, setProfileField } from "@/Redux/slice/postPropertySlice";
+import {
+  nextStep,
+  resetPostProperty,
+  setBaseField,
+  setProfileField,
+  showAgentSubmissionSuccess,
+} from "@/Redux/slice/postPropertySlice";
 import CounterField from "@/ui/CounterField";
 import InputField from "@/ui/InputField";
 import TextArea from "@/ui/TextArae";
 import { useAppDispatch } from "@/Redux/store";
 import Dropdownui from "@/ui/DropDownUI";
 import ToggleSwitch from "@/ui/ToggleSwitch";
-import { submitDetailsThunk } from "@/Redux/thunks/submitPropertyApi";
+import {
+  createDraftThunk,
+  submitDetailsThunk,
+} from "@/Redux/thunks/submitPropertyApi";
 import FileUpload, { UploadedFile } from "@/ui/FileUpload";
-import { setFileStoreFiles } from "@/utilies/fileStore";
+import { clearFileStore, setFileStoreFiles } from "@/utilies/fileStore";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -60,10 +69,22 @@ const AgriculturalProfile = () => {
   const [showErrors, setShowErrors] = useState(false);
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const router = useRouter();
+  const [isListedSuccessfully, setIsListedSuccessfully] = useState(false);
+  const [isAgentPosting, setIsAgentPosting] = useState(false);
   const extractFiles = (files: UploadedFile[]): File[] =>
     files
       .map((f) => f.file)
       .filter((file): file is File => file instanceof File);
+
+  useEffect(() => {
+    const normalizedRole = String(localStorage.getItem("role") ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/[-\s]+/g, "_");
+    setIsAgentPosting(
+      normalizedRole === "agent" || normalizedRole === "sales_agent",
+    );
+  }, []);
 
   const serverImageCount = files.filter((f) => f.source === "server").length;
   const localImageCount = files.filter((f) => f.source === "local").length;
@@ -697,6 +718,11 @@ const AgriculturalProfile = () => {
       <button
         type="button"
         onClick={() => {
+          if (isListedSuccessfully) {
+            router.push("/agent/my-properties");
+            return;
+          }
+
           setShowErrors(true);
 
           // ✅ FIX: convert amenities objects → string[] ONLY for validation
@@ -736,6 +762,20 @@ const AgriculturalProfile = () => {
           )
             .unwrap()
             .then((response) => {
+              if (isAgentPosting) {
+                toast.success("Property listed successfully.");
+                clearFileStore("postProperty");
+                setFiles([]);
+                dispatch(resetPostProperty({ propertyType }));
+                dispatch(showAgentSubmissionSuccess());
+                dispatch(createDraftThunk(propertyType))
+                  .unwrap()
+                  .catch(() => {
+                    toast.error("Property submitted, but new draft creation failed.");
+                  });
+                return;
+              }
+
               dispatch(nextStep()); // Move to next step on success
 
 
@@ -769,7 +809,11 @@ const AgriculturalProfile = () => {
         }}
         className="py-2 btn-primary text-white rounded-md cursor-pointer w-full"
       >
-        Continue
+        {isListedSuccessfully
+          ? "Go to My Properties"
+          : isAgentPosting
+            ? "Submit"
+            : "Continue"}
       </button>
     </div>
   );

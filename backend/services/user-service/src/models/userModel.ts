@@ -118,7 +118,6 @@ const UserSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
       sparse: true,
-      index: true,
       match: [/^\S+@\S+\.\S+$/, "Invalid email"],
     },
     phone: {

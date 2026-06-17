@@ -410,7 +410,9 @@ const Page = () => {
                             const category = getCategoryForTab(activeTab);
                             dispatch(setPropertyType(category));
                             setOpenMenuId(null);
-                            router.push("/postproperty");
+                            router.push(
+                              `/postproperty?editCategory=${category}&editId=${property._id}`,
+                            );
                           }}
                           className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
                         >

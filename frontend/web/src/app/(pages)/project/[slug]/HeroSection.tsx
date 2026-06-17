@@ -1,6 +1,7 @@
 "use client";
 
 import { FeaturedProject } from "@/types";
+import { useShortlist } from "@/hooks/useShortlist";
 import { useEffect, useRef, useState } from "react";
 import { FiCheckCircle, FiDownload, FiHeart, FiMapPin } from "react-icons/fi";
 import { HiChevronLeft, HiChevronRight, HiPhoto, HiXMark } from "react-icons/hi2";
@@ -50,18 +51,31 @@ function normalizeAreaUnit(unit?: string) {
         return "sq.mt";
     }
 
-    if (["gunta", "guntas", "gunta(s)", "guntha", "gunthas"].includes(normalized)) {
-        return "guntas";
+    if (["sqyd", "sq.yd", "sq yd", "square yard", "square yards"].includes(normalized)) {
+        return "sq.yd";
     }
+
+    if (["gunta", "guntas", "gunta(s)", "guntha", "gunthas"].includes(normalized)) {
+        return "guntha";
+    }
+
+    if (["acre", "acres"].includes(normalized)) return "acre";
+    if (["hectare", "hectares"].includes(normalized)) return "hectare";
+    if (["cent", "cents"].includes(normalized)) return "cent";
+    if (["kanal", "kanals"].includes(normalized)) return "kanal";
+    if (["bigha", "bighas"].includes(normalized)) return "bigha";
+    if (["ankanam", "ankanams"].includes(normalized)) return "ankanam";
+    if (["marla", "marlas"].includes(normalized)) return "marla";
 
     return unit?.trim() || "sq.ft";
 }
 
 function getMinUnitArea(project: FeaturedProject) {
+    const isLand = project.categoryType?.toLowerCase() === "land";
     const units = (project.projectSummary ?? project.bhkSummary ?? []).flatMap((item) => item.units ?? []);
     const unitAreas = units
         .map((unit) => {
-            if (typeof unit.area?.value === "number" && Number.isFinite(unit.area.value) && unit.area.value > 0) {
+            if (isLand && typeof unit.area?.value === "number" && Number.isFinite(unit.area.value) && unit.area.value > 0) {
                 return { value: unit.area.value, unit: normalizeAreaUnit(unit.area.unit) };
             }
 
@@ -71,6 +85,10 @@ function getMinUnitArea(project: FeaturedProject) {
 
             if (typeof unit.minSqft === "number" && Number.isFinite(unit.minSqft) && unit.minSqft > 0) {
                 return { value: unit.minSqft, unit: "sq.ft" };
+            }
+
+            if (!isLand && typeof unit.area?.value === "number" && Number.isFinite(unit.area.value) && unit.area.value > 0) {
+                return { value: unit.area.value, unit: "sq.ft" };
             }
 
             return null;
@@ -137,22 +155,13 @@ export default function HeroSection({ project }: HeroSectionProps) {
     const galleryImages = getGalleryImages(project);
     const heroImage = galleryImages[0]?.url;
     const pricePerUnitLabel = formatPricePerUnit(project);
-    const [isShortlisted, setIsShortlisted] = useState(false);
     const [openIndex, setOpenIndex] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState(tabs[0].href);
+    const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(project._id, "FeaturedProject");
     const navRef = useRef<HTMLDivElement | null>(null);
     const startX = useRef<number | null>(null);
     const originalBodyOverflowRef = useRef<string | null>(null);
     const activeImage = openIndex !== null ? galleryImages[openIndex] : null;
-
-    useEffect(() => {
-        try {
-            const saved = window.localStorage.getItem(`shortlisted-project:${project._id}`);
-            setIsShortlisted(saved === "true");
-        } catch {
-            setIsShortlisted(false);
-        }
-    }, [project._id]);
 
     useEffect(() => {
         if (openIndex !== null) {
@@ -218,18 +227,6 @@ export default function HeroSection({ project }: HeroSectionProps) {
             inline: "center",
         });
     }, [activeTab]);
-
-    function toggleShortlist() {
-        setIsShortlisted((current) => {
-            const next = !current;
-            try {
-                window.localStorage.setItem(`shortlisted-project:${project._id}`, String(next));
-            } catch {
-                // Ignore storage failures; the button still reflects this session.
-            }
-            return next;
-        });
-    }
 
     async function shareProject() {
         const shareUrl = typeof window !== "undefined" ? window.location.href : "";
@@ -373,14 +370,15 @@ export default function HeroSection({ project }: HeroSectionProps) {
                             <button
                                 type="button"
                                 onClick={toggleShortlist}
+                                disabled={isShortlistLoading}
                                 className={`flex h-9 items-center gap-2 rounded-lg border border-white/70 bg-white/95 px-3 text-xs font-semibold shadow-sm backdrop-blur transition hover:bg-white cursor-pointer ${
                                     isShortlisted ? "text-rose-500" : "text-slate-700 hover:text-rose-500"
-                                }`}
-                                aria-label="Shortlist project"
+                                } disabled:cursor-not-allowed disabled:opacity-70`}
+                                aria-label={isShortlisted ? "Remove project from shortlist" : "Shortlist project"}
                                 aria-pressed={isShortlisted}
                             >
                                 <FiHeart className={`h-4 w-4 ${isShortlisted ? "fill-current" : ""}`} />
-                                <span>{isShortlisted ? "Shortlisted" : "Shortlist"}</span>
+                                <span>{isShortlistLoading ? "Saving..." : isShortlisted ? "Shortlisted" : "Shortlist"}</span>
                             </button>
                             <button
                                 type="button"

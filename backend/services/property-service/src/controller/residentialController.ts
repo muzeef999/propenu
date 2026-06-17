@@ -26,6 +26,7 @@ import {
 } from "../../../../shared/email/email.helper";
 import { sendTemplateNotification } from "../../../../shared/notifications/push.service";
 import {
+  buildPostedByAudit,
   isDirectAgentRole,
   submitAgentListingForReview,
 } from "../utils/agentSubmission";
@@ -39,6 +40,48 @@ function parseMaybeJSON<T = any>(value: any): T | undefined {
   } catch {
     return value as unknown as T;
   }
+}
+
+const auditUserPopulate = [
+  { path: "approvedBy", select: "name email phone role roleId" },
+  { path: "postedBy.userId", select: "name email phone role roleId" },
+  { path: "lastUpdatedBy.userId", select: "name email phone role roleId" },
+  { path: "updateHistory.userId", select: "name email phone role roleId" },
+];
+
+const SERVER_MANAGED_STEP_FIELDS = [
+  "_id",
+  "id",
+  "__v",
+  "approval",
+  "approvalStatus",
+  "approvedBy",
+  "approvedAt",
+  "createdAt",
+  "updatedAt",
+  "deactivatedAt",
+  "deactivatedBy",
+  "isPublished",
+  "lastUpdatedBy",
+  "meta",
+  "postedBy",
+  "promotion",
+  "rejectedReason",
+  "slug",
+  "status",
+  "subscriptionEndDate",
+  "updateCount",
+  "updateHistory",
+  "updatedBy",
+];
+
+function sanitizeStepPayload(payload: any) {
+  if (!payload || typeof payload !== "object") return {};
+  const sanitized = { ...payload };
+  for (const field of SERVER_MANAGED_STEP_FIELDS) {
+    delete sanitized[field];
+  }
+  return sanitized;
 }
 
 /*** CREATE*/
@@ -63,14 +106,21 @@ export const createResidential = async (req: AuthRequest, res: Response) => {
       relatedProjects: parseMaybeJSON(raw.relatedProjects),
     };
 
-    const payload = ResidentialCreateSchema.parse(parsed);
+    const payload = ResidentialCreateSchema.parse(parsed) as any;
+    payload.createdBy ??= req.user!.id;
+    payload.postedBy = await buildPostedByAudit(
+      Residential,
+      payload.createdBy,
+      payload.postedBy,
+      req.user,
+    );
 
     const files = req.files as
       | { [field: string]: Express.Multer.File[] }
       | undefined;
 
     const created = await ResidentialPropertyService.create(
-      { ...payload, createdBy: req.user!.id, status: "active" },
+      { ...payload, status: "active" },
       files,
     );
 
@@ -156,11 +206,16 @@ export const getMyResidentialDraft = async (
   req: AuthRequest,
   res: Response,
 ) => {
+  const statusFilter = isDirectAgentRole(req.user?.roleName)
+    ? "draft"
+    : { $in: ["draft", "pending"] };
+
   const draft = await Residential.findOne({
     createdBy: req.user!.id,
-    status: { $in: ["draft", "pending"] },
+    status: statusFilter,
   })
     .populate("createdBy", "name email phone")
+    .populate(auditUserPopulate)
     .lean();
 
   if (!draft) {
@@ -211,7 +266,7 @@ export const getResidentialDetail = async (req: Request, res: Response) => {
     const { id } = req.params;
     if (!id) return res.status(400).json({ error: "Missing property ID" });
 
-    const doc = await ResidentialPropertyService.getById(id);
+    const doc = await ResidentialPropertyService.getById(id, true);
     if (!doc) return res.status(404).json({ error: "Property not found" });
 
     // increment views (non-blocking)
@@ -332,7 +387,7 @@ export const updateBasicStep = async (req: AuthRequest, res: Response) => {
     return res.status(404).json({ error: "Property not found" });
   }
 
-  const { approval, ...safeBody } = req.body;
+  const safeBody = sanitizeStepPayload(req.body);
 
   Object.assign(doc, safeBody, {
     completion: {
@@ -428,12 +483,30 @@ export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
       | { [field: string]: Express.Multer.File[] }
       | undefined;
 
+    const {
+      _id,
+      __v,
+      approval,
+      completion,
+      createdAt,
+      createdBy,
+      isPublished,
+      listingSource,
+      meta,
+      promotion,
+      slug,
+      status,
+      updatedAt,
+      updatedBy,
+      ...safeBody
+    } = req.body ?? {};
+
     const detailsPayload = {
-      ...req.body,
+      ...safeBody,
       floorNumber:
-        req.body?.floorNumber === undefined ? 0 : req.body.floorNumber,
+        safeBody?.floorNumber === undefined ? 0 : safeBody.floorNumber,
       totalFloors:
-        req.body?.totalFloors === undefined ? 0 : req.body.totalFloors,
+        safeBody?.totalFloors === undefined ? 0 : safeBody.totalFloors,
       completion: {
         percent: 70,
         step: 4,
@@ -451,15 +524,27 @@ export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: "Residential property not found" });
     }
 
+    const fresh = await Residential.findById(req.params.id);
+    if (fresh) {
+      fresh.completion = {
+        ...(fresh.completion ?? {}),
+        percent: 70,
+        step: 4,
+        lastSection: "details",
+      };
+      await fresh.save();
+    }
+
     if (isDirectAgentRole(req.user?.roleName)) {
       const submitted = await submitAgentListingForReview(
         Residential,
         req.params.id,
+        req.user,
       );
       return res.json({ data: submitted ?? updated });
     }
 
-    return res.json({ data: updated });
+    return res.json({ data: fresh ?? updated });
   } catch (err: any) {
     console.error("updateDetailsStep:", err);
     res.status(500).json({ error: err.message || "Internal server error" });
@@ -505,8 +590,13 @@ export const finalizeResidential = async (req: AuthRequest, res: Response) => {
     }
 
     // ---------- Check verified ----------
-    const hasVerified = property.verificationDocuments?.some(
-      (d: any) => d.status === "verified",
+    const hasVerified = Boolean(
+      property.verificationDocuments?.some(
+        (d: any) => d.status === "verified",
+      ),
+    );
+    const hasVerificationDocuments = Boolean(
+      property.verificationDocuments?.length,
     );
 
     property.completion ??= {
@@ -523,6 +613,8 @@ export const finalizeResidential = async (req: AuthRequest, res: Response) => {
       if (role === "sales_agent") {
         property.status = "pending";
         property.isPublished = false;
+        property.completion.percent = 80;
+        property.completion.step = 4;
 
         property.approval ??= {};
         property.approval.isApprovedByManager = false;
@@ -558,16 +650,30 @@ export const finalizeResidential = async (req: AuthRequest, res: Response) => {
         property.completion.percent = 100;
         property.completion.step = 5;
       } else {
-        property.status = "draft";
+        property.status = "pending";
         property.isPublished = false;
         property.completion.percent = 80;
         property.completion.step = 4;
       }
+    } else if (hasVerificationDocuments) {
+      property.status = hasVerified ? "active" : "pending";
+      property.isPublished = hasVerified;
+      property.completion.percent = hasVerified ? 100 : 80;
+      property.completion.step = hasVerified ? 5 : 4;
     } else {
       property.status = "draft";
       property.isPublished = false;
       property.completion.percent = 80;
       property.completion.step = 4;
+    }
+
+    if (property.status !== "draft") {
+      property.postedBy = await buildPostedByAudit(
+        Residential,
+        property.createdBy,
+        property.postedBy,
+        req.user,
+      );
     }
 
     await property.save();
@@ -670,6 +776,7 @@ export const getAllResidentialDraftsForAdmin = async (
     const [items, total] = await Promise.all([
       Residential.find(filter)
         .populate("createdBy", "name email phone")
+        .populate(auditUserPopulate)
         .sort({ updatedAt: -1 })
         .skip(skip)
         .limit(Number(limit))

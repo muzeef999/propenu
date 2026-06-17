@@ -1,5 +1,11 @@
 import { useDispatch, useSelector } from "react-redux";
-import { nextStep, setBaseField, setProfileField } from "@/Redux/slice/postPropertySlice";
+import {
+  nextStep,
+  resetPostProperty,
+  setBaseField,
+  setProfileField,
+  showAgentSubmissionSuccess,
+} from "@/Redux/slice/postPropertySlice";
 import CounterField from "@/ui/CounterField";
 import InputField from "@/ui/InputField";
 import AmenitiesSelect from "./AmenitiesSelect";
@@ -9,12 +15,16 @@ import { useAppDispatch } from "@/Redux/store";
 import Dropdownui from "@/ui/DropDownUI";
 import Toggle from "@/ui/ToggleSwitch";
 import { useEffect, useState } from "react";
-import { submitDetailsThunk } from "@/Redux/thunks/submitPropertyApi";
+import { useRouter } from "next/navigation";
+import {
+  createDraftThunk,
+  submitDetailsThunk,
+} from "@/Redux/thunks/submitPropertyApi";
 import { validateCommercialProfile } from "@/zod/profileZods/commercialProfileZod";
 import { toast } from "sonner";
 import Router from "next/router";
 import FileUpload, { UploadedFile } from "@/ui/FileUpload";
-import { setFileStoreFiles } from "@/utilies/fileStore";
+import { clearFileStore, setFileStoreFiles } from "@/utilies/fileStore";
 import { set } from "zod";
 import { deleteGalleryImageApi } from "@/Redux/apis";
 import { InfoIcon } from "@/icons/icons";
@@ -47,6 +57,7 @@ export const FLOORING_TYPES = [
 ] as const;
 
 const CommercialProfile = () => {
+  const router = useRouter();
   const { commercial, draftId, propertyType } = useSelector(
     (state: any) => state.postProperty,
   );
@@ -55,9 +66,21 @@ const CommercialProfile = () => {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [showErrors, setShowErrors] = useState(false);
+  const [isListedSuccessfully, setIsListedSuccessfully] = useState(false);
+  const [isAgentPosting, setIsAgentPosting] = useState(false);
   const showTenantInformation = ["rent", "lease"].includes(
     String(commercial.listingType ?? "").toLowerCase(),
   );
+
+  useEffect(() => {
+    const normalizedRole = String(localStorage.getItem("role") ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/[-\s]+/g, "_");
+    setIsAgentPosting(
+      normalizedRole === "agent" || normalizedRole === "sales_agent",
+    );
+  }, []);
 
   // const localFiles = files
   //   .map((f) => f.file)
@@ -718,6 +741,11 @@ const CommercialProfile = () => {
       <button
         type="button"
         onClick={() => {
+          if (isListedSuccessfully) {
+            router.push("/agent/my-properties");
+            return;
+          }
+
           setShowErrors(true);
 
           // ✅ FIX: convert amenities objects → string[] ONLY for validation
@@ -773,6 +801,20 @@ const CommercialProfile = () => {
           )
             .unwrap()
             .then(() => {
+              if (isAgentPosting) {
+                toast.success("Property listed successfully.");
+                clearFileStore("postProperty");
+                setFiles([]);
+                dispatch(resetPostProperty({ propertyType }));
+                dispatch(showAgentSubmissionSuccess());
+                dispatch(createDraftThunk(propertyType))
+                  .unwrap()
+                  .catch(() => {
+                    toast.error("Property submitted, but new draft creation failed.");
+                  });
+                return;
+              }
+
               dispatch(nextStep());
             })
             .catch((error: any) => {
@@ -802,7 +844,11 @@ const CommercialProfile = () => {
         }}
         className="py-2 btn-primary text-white rounded-md cursor-pointer w-full"
       >
-        Continue
+        {isListedSuccessfully
+          ? "Go to My Properties"
+          : isAgentPosting
+            ? "Submit"
+            : "Continue"}
       </button>
     </div>
   );

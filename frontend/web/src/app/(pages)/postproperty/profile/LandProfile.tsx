@@ -1,6 +1,12 @@
 import { useSelector } from "react-redux";
 import { useEffect, useState } from "react";
-import { nextStep, setBaseField, setProfileField } from "@/Redux/slice/postPropertySlice";
+import {
+  nextStep,
+  resetPostProperty,
+  setBaseField,
+  setProfileField,
+  showAgentSubmissionSuccess,
+} from "@/Redux/slice/postPropertySlice";
 import InputField from "@/ui/InputField";
 import TextArea from "@/ui/TextArae";
 import AmenitiesSelect from "./AmenitiesSelect";
@@ -9,9 +15,12 @@ import { useAppDispatch } from "@/Redux/store";
 import Dropdownui from "@/ui/DropDownUI";
 import Toggle from "@/ui/ToggleSwitch";
 import InputWithUnit from "@/ui/InputwithUnit";
-import { submitDetailsThunk } from "@/Redux/thunks/submitPropertyApi";
+import {
+  createDraftThunk,
+  submitDetailsThunk,
+} from "@/Redux/thunks/submitPropertyApi";
 import FileUpload, { UploadedFile } from "@/ui/FileUpload";
-import { setFileStoreFiles } from "@/utilies/fileStore";
+import { clearFileStore, setFileStoreFiles } from "@/utilies/fileStore";
 import { validateLandProfile } from "@/zod/profileZods/landProfileZod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -52,8 +61,20 @@ const LandProfile = () => {
   const { land, draftId, propertyType } = useSelector((state: any) => state.postProperty); const [files, setFiles] = useState<UploadedFile[]>([]);
   const router = useRouter();
   const [showErrors, setShowErrors] = useState(false);
+  const [isListedSuccessfully, setIsListedSuccessfully] = useState(false);
+  const [isAgentPosting, setIsAgentPosting] = useState(false);
 
   const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    const normalizedRole = String(localStorage.getItem("role") ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/[-\s]+/g, "_");
+    setIsAgentPosting(
+      normalizedRole === "agent" || normalizedRole === "sales_agent",
+    );
+  }, []);
 
   useEffect(() => {
     // Ensure dimensions exists and are strings to satisfy backend validation
@@ -443,6 +464,11 @@ const LandProfile = () => {
       <button
         type="button"
         onClick={() => {
+          if (isListedSuccessfully) {
+            router.push("/agent/my-properties");
+            return;
+          }
+
           setShowErrors(true);
 
           const payload = {
@@ -487,6 +513,20 @@ const LandProfile = () => {
           )
             .unwrap()
             .then((response) => {
+              if (isAgentPosting) {
+                toast.success("Property listed successfully.");
+                clearFileStore("postProperty");
+                setFiles([]);
+                dispatch(resetPostProperty({ propertyType }));
+                dispatch(showAgentSubmissionSuccess());
+                dispatch(createDraftThunk(propertyType))
+                  .unwrap()
+                  .catch(() => {
+                    toast.error("Property submitted, but new draft creation failed.");
+                  });
+                return;
+              }
+
               dispatch(nextStep()); // Move to next step on success
 
 
@@ -520,7 +560,11 @@ const LandProfile = () => {
         }}
         className="py-2 btn-primary text-white rounded-md cursor-pointer w-full"
       >
-        Continue
+        {isListedSuccessfully
+          ? "Go to My Properties"
+          : isAgentPosting
+            ? "Submit"
+            : "Continue"}
       </button>
     </div>
   );

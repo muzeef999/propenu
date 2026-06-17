@@ -66,6 +66,7 @@ router.patch(
 );
 
 router.get("/draft/me",authMiddleware, getMyLandDraft );
+router.get("/draft/all", getAllLandDraftsForAdmin);
 
 router.get("/", getAllLands);
 router.get("/slug/:slug", getLandBySlug);
@@ -99,7 +100,6 @@ router.patch(
   parseJsonFields(jsonKeys),
   finalizeLand
 );
-router.get("/draft/all", getAllLandDraftsForAdmin);
 
 
 export default router;

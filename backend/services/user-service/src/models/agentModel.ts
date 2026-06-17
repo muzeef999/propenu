@@ -14,7 +14,7 @@ const AgentSchema = new Schema<Agent>(
 
     name: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
     },
 
@@ -26,37 +26,45 @@ const AgentSchema = new Schema<Agent>(
     },
 
     avatar: {
-      url: String,
-      key: String,
+      type: {
+        url: String,
+        key: String,
+      },
+      default: null,
     },
 
     coverImage: {
-      url: String,
-      key: String,
+      type: {
+        url: String,
+        key: String,
+      },
+      default: null,
     },
 
-    bio: String,
-    agencyName: String,
-    licenseNumber: String,
+    bio: { type: String, default: "" },
+    agencyName: { type: String, default: "" },
+    licenseNumber: { type: String, default: "" },
     licenseValidTill: Date,
 
-    areasServed: [String],
+    areasServed: { type: [String], default: [] },
 
     locality: {
       type: String,
       trim: true,
+      default: "",
     },
 
     city: {
       type: String,
       trim: true,
       lowercase: true,
+      default: "",
     },
 
-    experienceYears: Number,
-    dealsClosed: Number,
+    experienceYears: { type: Number, default: 0 },
+    dealsClosed: { type: Number, default: 0 },
 
-    languages: [{ type: String }],
+    languages: { type: [String], default: [] },
 
     verificationStatus: {
       type: String,
@@ -74,9 +82,9 @@ const AgentSchema = new Schema<Agent>(
     ],
 
     rera: {
-      reraAgentId: String,
+      reraAgentId: { type: String, default: "" },
       providerResponse: Schema.Types.Mixed,
-      isVerified: Boolean,
+      isVerified: { type: Boolean, default: false },
     },
 
     stats: {

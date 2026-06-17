@@ -29,6 +29,8 @@ import { uploadMedia } from "../middlewares/multer";
 /** POST */
 router.post("/", authMiddleware, uploadMedia,  parseJsonFields(jsonKeys), fallbackCoerceDefault, createCommercial,  requireActiveSubscription);
 router.patch("/:id", uploadMedia, parseJsonFields(jsonKeys), fallbackCoerceDefault, editCommercial);
+router.get("/draft/all", getAllCommercialDraftsForAdmin);
+router.get("/draft/me", authMiddleware, getMyCommercialDraft);
 router.get("/", getAllCommercial);
 router.get("/slug/:slug", getCommercialBySlug);
 router.get("/:id", getCommercialDetail);
@@ -49,9 +51,7 @@ router.post("/:id/deactive", authMiddleware, deactivateCommercialProperty);
 router.delete("/:id/gallery/:imageIndex", authMiddleware, deleteCommercialGalleryImage);
 
 
-router.get("/draft/all", getAllCommercialDraftsForAdmin);
 router.post("/draft", authMiddleware, createCommercialDraft);
-router.get("/draft/me", authMiddleware, getMyCommercialDraft);
 router.patch("/:id/basic", authMiddleware, uploadMedia, parseJsonFields(jsonKeys), updateCommercialBasicStep);
 router.patch("/:id/location", authMiddleware, parseJsonFields(jsonKeys), updateCommercialLocationStep);
 router.patch("/:id/details", authMiddleware,  uploadMedia, parseJsonFields(jsonKeys), updateCommercialDetailsStep);

@@ -46,14 +46,14 @@ router.patch(
 );
 
 
+router.get("/draft/me", authMiddleware, getMyAgriculturalDraft)
+router.get("/draft/all", getAllAgriculturalDraftsForAdmin);
+
 router.get("/", getAllAgricultural);
 router.get("/slug/:slug", getAgriculturalBySlug);
 router.get("/:id", getAgriculturalDetail);
 router.delete("/:id", deleteAgricultural);
 
-router.get("/draft/me", authMiddleware, getMyAgriculturalDraft)
-
-router.get("/draft/all", getAllAgriculturalDraftsForAdmin);
 router.post("/draft", authMiddleware, createAgriculturalDraft);
 router.patch("/:id/basic", authMiddleware, updateAgriculturalBasicStep);
 router.patch("/:id/location",authMiddleware,parseJsonFields(jsonKeys),updateAgriculturalLocationStep,);

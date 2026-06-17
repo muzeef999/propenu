@@ -32,7 +32,10 @@ interface Property {
   gallery?: { url: string }[];
   propertyType?: string;
   createdAt?: string;
-  status?: "Active" | "Draft";
+  updatedAt?: string;
+  isPublished?: boolean;
+  status?: "Active" | "Draft" | "Approved" | "Pending" | "Under Review" | string;
+  verificationDocuments?: { status?: string }[];
   meta?: {
     views?: number;
     enquiries?: number;
@@ -79,7 +82,7 @@ const Page = () => {
   const [listingType, setListingType] = useState("sale");
   const [isListingTypeOpen, setIsListingTypeOpen] = useState(false);
   const listingTypeRef = useRef<HTMLDivElement | null>(null);
-  const [status, setStatus] = useState<"All" | "Active" | "Draft">("All");
+  const [status, setStatus] = useState<"All" | "Active" | "Pending" | "Draft">("All");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<any>({
@@ -200,7 +203,7 @@ const Page = () => {
 
         {/* Status Filters */}
         <div className="flex flex-wrap gap-2 lg:ml-auto">
-          {(["All", "Active", "Draft"] as const).map((item) => (
+          {(["All", "Active", "Pending", "Draft"] as const).map((item) => (
             <SelectableButton
               key={item}
               label={item}
@@ -252,6 +255,7 @@ const Page = () => {
         {filteredProperties.length ? (
           filteredProperties.map((property) => {
             const image = property.gallery?.[0]?.url ?? "/placeholder.jpg";
+            const tracking = getTrackingState(property);
 
             return (
               <Link
@@ -282,7 +286,6 @@ const Page = () => {
                       </div>
                     </div>
 
-                    {/* STATUS BADGE */}
                     {property.status && (
                       <span
                         className={`w-fit px-3 py-1 text-xs font-medium rounded-full border capitalize ${getStatusStyle(
@@ -337,6 +340,50 @@ const Page = () => {
                       </span>
                     </p>
                   </div>
+
+                  <div className="mt-4 rounded-md border border-gray-100 bg-gray-50 px-3 py-3">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <p className="text-xs font-semibold text-gray-700">
+                        Tracking
+                      </p>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${tracking.badgeClass}`}
+                      >
+                        {tracking.label}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 items-start gap-2">
+                      {tracking.steps.map((step, index) => (
+                        <div key={step.label} className="min-w-0">
+                          <div className="flex items-center">
+                            <span
+                              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold ${step.active
+                                ? "border-green-500 bg-green-500 text-white"
+                                : "border-gray-300 bg-white text-gray-400"
+                                }`}
+                            >
+                              {index + 1}
+                            </span>
+                            {index < tracking.steps.length - 1 && (
+                              <span
+                                className={`mx-1 h-0.5 flex-1 rounded-full ${tracking.steps[index + 1].active
+                                  ? "bg-green-500"
+                                  : "bg-gray-200"
+                                  }`}
+                              />
+                            )}
+                          </div>
+                          <p
+                            className={`mt-1 truncate text-[11px] font-medium ${step.active ? "text-gray-800" : "text-gray-400"
+                              }`}
+                          >
+                            {step.label}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Right Column */}
@@ -369,7 +416,9 @@ const Page = () => {
                             const category = getCategoryForTab(activeTab);
                             dispatch(setPropertyType(category));
                             setOpenMenuId(null);
-                            router.push("/postproperty");
+                            router.push(
+                              `/postproperty?editCategory=${category}&editId=${property._id}`,
+                            );
                           }}
                           className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
                         >
@@ -420,16 +469,59 @@ const Page = () => {
 };
 
 const getStatusStyle = (status?: string) => {
-  switch (status) {
-    case "Active":
+  switch (String(status ?? "").toLowerCase()) {
+    case "active":
       return "bg-green-50 text-green-600 border-green-200";
 
-    case "Draft":
+    case "pending":
+    case "under review":
+    case "under-review":
+      return "bg-amber-50 text-amber-600 border-amber-200";
+
+    case "draft":
       return "bg-yellow-50 text-yellow-600 border-yellow-200";
 
     default:
       return "bg-gray-50 text-gray-600 border-gray-200";
   }
+};
+
+const getTrackingState = (property: Property) => {
+  const status = String(property.status ?? "").toLowerCase();
+  const hasVerifiedDocument = property.verificationDocuments?.some(
+    (doc) => String(doc.status ?? "").toLowerCase() === "verified"
+  );
+  const isApproved =
+    property.isPublished ||
+    hasVerifiedDocument ||
+    ["active", "approved", "verified", "published"].includes(status);
+  const isDraft = status === "draft";
+  const isUnderReview =
+    !isDraft &&
+    !isApproved &&
+    ["pending", "under review", "under-review", "review"].includes(status);
+
+  const currentStep = isApproved ? 3 : isUnderReview || !isDraft ? 2 : 1;
+  const label = isApproved
+    ? "Approved & Live"
+    : currentStep === 2
+      ? "Under Review"
+      : "Draft";
+  const badgeClass = isApproved
+    ? "bg-green-100 text-green-700"
+    : currentStep === 2
+      ? "bg-amber-100 text-amber-700"
+      : "bg-gray-100 text-gray-600";
+
+  return {
+    label,
+    badgeClass,
+    steps: [
+      { label: "Submitted", active: currentStep >= 1 },
+      { label: "Under Review", active: currentStep >= 2 },
+      { label: "Approved & Live", active: currentStep >= 3 },
+    ],
+  };
 };
 
 
