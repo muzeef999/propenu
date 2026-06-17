@@ -38,7 +38,6 @@ function parseMaybeJSON<T = any>(value: any): T | undefined {
 
 const auditUserPopulate = [
   { path: "approvedBy", select: "name email phone role roleId" },
-  { path: "postedBy.userId", select: "name email phone role roleId" },
   { path: "lastUpdatedBy.userId", select: "name email phone role roleId" },
   { path: "updateHistory.userId", select: "name email phone role roleId" },
 ];
@@ -730,13 +729,20 @@ export const verifyCommercialDocument = async (
   try {
     const { id } = req.params;
 
-    let { documentIndex, status } = req.body;
+    let { documentIndex, status, rejectedReason = "" } = req.body;
 
     // ✅ Validate status
     if (!["verified", "rejected"].includes(status)) {
       return res.status(400).json({
         success: false,
         message: "Invalid status (must be verified or rejected)",
+      });
+    }
+
+    if (status === "rejected" && typeof rejectedReason !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Rejected reason must be a string",
       });
     }
 
@@ -758,6 +764,7 @@ export const verifyCommercialDocument = async (
       id,
       documentIndex,
       status,
+      rejectedReason,
     );
 
     if (!updated) {
@@ -821,6 +828,7 @@ export const verifyCommercialDocument = async (
       const userId = (updated as any).createdBy || (updated as any).ownerId;
       const user = await User.findById(userId).lean();
       const propertyTitle = (updated as any).title || "Property";
+      const reason = (updated as any).rejectedReason || "";
 
       if (user?.fcmToken) {
         await sendTemplateNotification({
@@ -829,6 +837,7 @@ export const verifyCommercialDocument = async (
           data: {
             name: user.name || "User",
             propertyTitle,
+            rejectedReason: reason,
           },
         });
       }

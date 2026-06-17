@@ -18,7 +18,6 @@ type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
 
 const auditUserPopulate = [
   { path: "approvedBy", select: "name email phone role roleId" },
-  { path: "postedBy.userId", select: "name email phone role roleId" },
   { path: "lastUpdatedBy.userId", select: "name email phone role roleId" },
   { path: "updateHistory.userId", select: "name email phone role roleId" },
 ];
@@ -493,21 +492,21 @@ export const AgriculturalService = {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
     const original = await Agricultural.findById(id).select("createdBy").lean();
     const query = Agricultural.findById(id)
-      .populate("createdBy", "name email phone roleId");
+      .populate("createdBy", "name email phone");
     if (includeAudit) query.populate(auditUserPopulate);
     const doc = await query.lean().exec();
-    return restoreCreatedById(doc, original?.createdBy);
+    return restoreCreatedById(Agricultural, doc, original?.createdBy);
   },
 
   async getBySlug(slug: string) {
     if (!slug || typeof slug !== "string") throw new Error("Invalid slug");
     const original = await Agricultural.findOne({ slug }).select("createdBy").lean();
     const doc = await Agricultural.findOne({ slug })
-      .populate("createdBy", "name email phone roleId")
+      .populate("createdBy", "name email phone")
       .populate(auditUserPopulate)
       .lean()
       .exec();
-    return restoreCreatedById(doc, original?.createdBy);
+    return restoreCreatedById(Agricultural, doc, original?.createdBy);
   },
 
   async list(options?: {
@@ -544,7 +543,7 @@ export const AgriculturalService = {
     }
 
     const [items, rawItems, total] = await Promise.all([
-      Agricultural.find(filter).populate("createdBy", "name email phone roleId")
+      Agricultural.find(filter).populate("createdBy", "name email phone")
         .populate(auditUserPopulate)
         .sort(sort)
         .skip(skip)
@@ -562,8 +561,10 @@ export const AgriculturalService = {
     ]);
 
     return {
-      items: (items as any[]).map((item, index) =>
-        restoreCreatedById(item, rawItems[index]?.createdBy),
+      items: await Promise.all(
+        (items as any[]).map((item, index) =>
+          restoreCreatedById(Agricultural, item, rawItems[index]?.createdBy),
+        ),
       ),
       meta: { total, page, limit, pages: Math.ceil(total / limit) },
     };
@@ -604,6 +605,7 @@ export const AgriculturalService = {
     propertyId: string,
     documentIndex: number,
     status: "verified" | "rejected",
+    rejectedReason = "",
   ) {
     const property = await Agricultural.findById(propertyId);
     if (!property) return null;
@@ -618,6 +620,7 @@ export const AgriculturalService = {
 
     // 1️⃣ Update document status
     property.verificationDocuments[documentIndex].status = status;
+    property.rejectedReason = status === "rejected" ? rejectedReason.trim() : "";
 
     // 2️⃣ Check if ANY document is verified
     const hasVerified = property.verificationDocuments.some(

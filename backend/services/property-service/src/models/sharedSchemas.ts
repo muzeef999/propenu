@@ -308,6 +308,7 @@ export const BaseFields = {
   },
   rejectedReason: {
     type: String,
+    default: "",
   },
   postedBy: {
     userId: {

@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+
 export const isDirectAgentRole = (roleName?: string) => {
   const normalizedRole = String(roleName ?? "")
     .trim()
@@ -23,12 +25,69 @@ type AuthUserLike = {
   roleName?: string | undefined;
 };
 
-export function restoreCreatedById<T extends { createdBy?: any }>(
+function toObjectId(value: any) {
+  const rawId = value?._id ?? value;
+  const id = rawId?.toString?.() ?? rawId;
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
+  return new mongoose.Types.ObjectId(id);
+}
+
+function formatCreatedBy(user: any) {
+  if (!user) return null;
+
+  return {
+    _id: user._id?.toString?.() ?? user._id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+  };
+}
+
+async function resolveCreatedBy(Model: any, createdBy: any) {
+  const createdById = toObjectId(createdBy);
+  if (!createdById) return null;
+
+  const UserModel = Model.db.model("User");
+
+  const directUser = await UserModel.findById(createdById)
+    .select("name email phone")
+    .lean();
+  if (directUser) return formatCreatedBy(directUser);
+
+  const agentProfile = await Model.db.collection("agents").findOne(
+    { _id: createdById },
+    { projection: { user: 1, name: 1 } },
+  );
+  if (agentProfile?.user) {
+    const agentUser = await UserModel.findById(agentProfile.user)
+      .select("name email phone")
+      .lean();
+    if (agentUser) return formatCreatedBy(agentUser);
+  }
+
+  const builderUser = await UserModel.findOne({ builderId: createdById })
+    .select("name email phone")
+    .lean();
+  if (builderUser) return formatCreatedBy(builderUser);
+
+  return null;
+}
+
+export async function restoreCreatedById<
+  T extends { createdBy?: any; rejectedReason?: string },
+>(
+  Model: any,
   doc: T | null,
   originalCreatedBy: any,
 ) {
-  if (!doc || doc.createdBy || !originalCreatedBy) return doc;
-  doc.createdBy = originalCreatedBy?._id?.toString?.() ?? originalCreatedBy.toString?.() ?? originalCreatedBy;
+  if (!doc) return doc;
+  doc.rejectedReason ??= "";
+  if (doc.createdBy || !originalCreatedBy) return doc;
+  doc.createdBy =
+    (await resolveCreatedBy(Model, originalCreatedBy)) ??
+    (originalCreatedBy?._id?.toString?.() ??
+      originalCreatedBy.toString?.() ??
+      originalCreatedBy);
   return doc;
 }
 
@@ -122,8 +181,5 @@ export async function submitAgentListingForReview(
   const submitted = await Model.findById(id)
     .populate("createdBy", "name email phone")
     .lean();
-  if (submitted && !submitted.createdBy && assignedCreatedBy) {
-    submitted.createdBy = assignedCreatedBy;
-  }
-  return submitted;
+  return restoreCreatedById(Model, submitted, assignedCreatedBy);
 }

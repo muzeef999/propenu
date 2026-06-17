@@ -35,7 +35,6 @@ function parseMaybeJSON<T = any>(value: any): T | undefined {
 
 const auditUserPopulate = [
   { path: "approvedBy", select: "name email phone role roleId" },
-  { path: "postedBy.userId", select: "name email phone role roleId" },
   { path: "lastUpdatedBy.userId", select: "name email phone role roleId" },
   { path: "updateHistory.userId", select: "name email phone role roleId" },
 ];
@@ -700,15 +699,24 @@ export const getAllLandDraftsForAdmin = async (req: Request, res: Response) => {
 export const verifyLandDocument = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { documentIndex, status } = req.body;
+    const { documentIndex, status, rejectedReason = "" } = req.body;
 
     if (!["verified", "rejected"].includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
     }
 
+    if (status === "rejected" && typeof rejectedReason !== "string") {
+      return res.status(400).json({ message: "Rejected reason must be a string" });
+    }
+
     const existingProperty = await LandPlot.findById(id).select("status");
 
-    const updated = await LandService.verifyDocument(id, documentIndex, status);
+    const updated = await LandService.verifyDocument(
+      id,
+      documentIndex,
+      status,
+      rejectedReason,
+    );
 
     if (!updated) {
       return res.status(404).json({ message: "Property not found" });
@@ -768,6 +776,7 @@ export const verifyLandDocument = async (req: AuthRequest, res: Response) => {
       const userId = (updated as any).createdBy || (updated as any).ownerId;
       const user = await User.findById(userId).lean();
       const propertyTitle = (updated as any).title || "Property";
+      const reason = (updated as any).rejectedReason || "";
 
       if (user?.fcmToken) {
         await sendTemplateNotification({
@@ -776,6 +785,7 @@ export const verifyLandDocument = async (req: AuthRequest, res: Response) => {
           data: {
             name: user.name || "User",
             propertyTitle,
+            rejectedReason: reason,
           },
         });
       }

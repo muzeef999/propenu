@@ -18,7 +18,6 @@ type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
 
 const auditUserPopulate = [
   { path: "approvedBy", select: "name email phone role roleId" },
-  { path: "postedBy.userId", select: "name email phone role roleId" },
   { path: "lastUpdatedBy.userId", select: "name email phone role roleId" },
   { path: "updateHistory.userId", select: "name email phone role roleId" },
 ];
@@ -560,7 +559,7 @@ export const LandService = {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
     const original = await LandPlot.findById(id).select("createdBy").lean();
     const query = LandPlot.findById(id)
-      .populate("createdBy", "name email phone roleId")
+      .populate("createdBy", "name email phone")
     if (includeAudit) query.populate(auditUserPopulate);
     const doc = await query.exec();
     if (!doc) return null;
@@ -575,14 +574,14 @@ export const LandService = {
     }
 
     const obj = doc.toObject ? doc.toObject() : (doc as any);
-    return restoreCreatedById(obj, original?.createdBy);
+    return restoreCreatedById(LandPlot, obj, original?.createdBy);
   },
 
   async getBySlug(slug: string) {
     if (!slug || typeof slug !== "string") throw new Error("Invalid slug");
     const original = await LandPlot.findOne({ slug }).select("createdBy").lean();
     const doc = await LandPlot.findOne({ slug })
-      .populate("createdBy", "name email phone roleId")
+      .populate("createdBy", "name email phone")
       .populate(auditUserPopulate)
       .exec();
     if (!doc) return null;
@@ -597,7 +596,7 @@ export const LandService = {
     }
 
     const obj = doc.toObject ? doc.toObject() : (doc as any);
-    return restoreCreatedById(obj, original?.createdBy);
+    return restoreCreatedById(LandPlot, obj, original?.createdBy);
   },
 
   async list(options?: {
@@ -634,14 +633,16 @@ export const LandService = {
     }
 
     const [items, rawItems, total] = await Promise.all([
-      LandPlot.find(filter).sort(sort).populate("createdBy", "name email phone roleId").populate(auditUserPopulate).skip(skip).limit(limit).lean().exec(),
+      LandPlot.find(filter).sort(sort).populate("createdBy", "name email phone").populate(auditUserPopulate).skip(skip).limit(limit).lean().exec(),
       LandPlot.find(filter).sort(sort).select("createdBy").skip(skip).limit(limit).lean().exec(),
       LandPlot.countDocuments(filter).exec(),
     ]);
 
     return {
-      items: (items as any[]).map((item, index) =>
-        restoreCreatedById(item, rawItems[index]?.createdBy),
+      items: await Promise.all(
+        (items as any[]).map((item, index) =>
+          restoreCreatedById(LandPlot, item, rawItems[index]?.createdBy),
+        ),
       ),
       meta: { total, page, limit, pages: Math.ceil(total / limit) },
     };
@@ -688,6 +689,7 @@ export const LandService = {
     propertyId: string,
     documentIndex: number,
     status: "verified" | "rejected",
+    rejectedReason = "",
   ) {
     const property = await LandPlot.findById(propertyId);
     if (!property) return null;
@@ -702,6 +704,7 @@ export const LandService = {
 
     // 1️⃣ Update document status
     property.verificationDocuments[documentIndex].status = status;
+    property.rejectedReason = status === "rejected" ? rejectedReason.trim() : "";
 
     // 2️⃣ Check if ANY document is verified
     const hasVerified = property.verificationDocuments.some(

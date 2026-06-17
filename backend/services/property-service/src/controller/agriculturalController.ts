@@ -40,7 +40,6 @@ function parseMaybeJSON<T = any>(value: any): T | undefined {
 
 const auditUserPopulate = [
   { path: "approvedBy", select: "name email phone role roleId" },
-  { path: "postedBy.userId", select: "name email phone role roleId" },
   { path: "lastUpdatedBy.userId", select: "name email phone role roleId" },
   { path: "updateHistory.userId", select: "name email phone role roleId" },
 ];
@@ -714,10 +713,14 @@ export const verifyAgricultiralDocument = async (
 ) => {
   try {
     const { id } = req.params;
-    const { documentIndex, status } = req.body;
+    const { documentIndex, status, rejectedReason = "" } = req.body;
 
     if (!["verified", "rejected"].includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
+    }
+
+    if (status === "rejected" && typeof rejectedReason !== "string") {
+      return res.status(400).json({ message: "Rejected reason must be a string" });
     }
 
     const existingProperty = await Agricultural.findById(id).select("status");
@@ -726,6 +729,7 @@ export const verifyAgricultiralDocument = async (
       id,
       documentIndex,
       status,
+      rejectedReason,
     );
 
     if (!updated) {
@@ -786,6 +790,7 @@ export const verifyAgricultiralDocument = async (
       const userId = (updated as any).createdBy || (updated as any).ownerId;
       const user = await User.findById(userId).lean();
       const propertyTitle = (updated as any).title || "Property";
+      const reason = (updated as any).rejectedReason || "";
 
       if (user?.fcmToken) {
         await sendTemplateNotification({
@@ -794,6 +799,7 @@ export const verifyAgricultiralDocument = async (
           data: {
             name: user.name || "User",
             propertyTitle,
+            rejectedReason: reason,
           },
         });
       }

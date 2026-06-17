@@ -19,7 +19,6 @@ type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
 
 const auditUserPopulate = [
   { path: "approvedBy", select: "name email phone role roleId" },
-  { path: "postedBy.userId", select: "name email phone role roleId" },
   { path: "lastUpdatedBy.userId", select: "name email phone role roleId" },
   { path: "updateHistory.userId", select: "name email phone role roleId" },
 ];
@@ -575,21 +574,21 @@ export const CommercialService = {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
     const original = await Commercial.findById(id).select("createdBy").lean();
     const query = Commercial.findById(id)
-      .populate("createdBy", "name email phone roleId");
+      .populate("createdBy", "name email phone");
     if (includeAudit) query.populate(auditUserPopulate);
     const doc = await query.lean().exec();
-    return restoreCreatedById(doc, original?.createdBy);
+    return restoreCreatedById(Commercial, doc, original?.createdBy);
   },
 
   async getBySlug(slug: string) {
     if (!slug || typeof slug !== "string") throw new Error("Invalid slug");
     const original = await Commercial.findOne({ slug }).select("createdBy").lean();
     const doc = await Commercial.findOne({ slug })
-      .populate("createdBy", "name email phone roleId")
+      .populate("createdBy", "name email phone")
       .populate(auditUserPopulate)
       .lean()
       .exec();
-    return restoreCreatedById(doc, original?.createdBy);
+    return restoreCreatedById(Commercial, doc, original?.createdBy);
   },
 
   async list(options?: {
@@ -640,7 +639,7 @@ export const CommercialService = {
     const [items, rawItems, total] = await Promise.all([
       Commercial.find(filter)
         .sort(sort)
-        .populate("createdBy", "name email phone roleId")
+        .populate("createdBy", "name email phone")
         .populate(auditUserPopulate)
         .skip(skip)
         .limit(limit)
@@ -657,8 +656,10 @@ export const CommercialService = {
     ]);
 
     return {
-      items: (items as any[]).map((item, index) =>
-        restoreCreatedById(item, rawItems[index]?.createdBy),
+      items: await Promise.all(
+        (items as any[]).map((item, index) =>
+          restoreCreatedById(Commercial, item, rawItems[index]?.createdBy),
+        ),
       ),
       meta: { total, page, limit, pages: Math.ceil(total / limit) },
     };
@@ -708,6 +709,7 @@ export const CommercialService = {
     propertyId: string,
     documentIndex: number,
     status: "verified" | "rejected",
+    rejectedReason = "",
   ) {
     // ✅ Validate propertyId
     if (!mongoose.Types.ObjectId.isValid(propertyId)) {
@@ -745,6 +747,7 @@ export const CommercialService = {
 
     // ✅ Update status
     doc.status = status;
+    property.rejectedReason = status === "rejected" ? rejectedReason.trim() : "";
 
     // ✅ Check if any document is verified
     const hasVerified = docs.some((d) => d.status === "verified");
