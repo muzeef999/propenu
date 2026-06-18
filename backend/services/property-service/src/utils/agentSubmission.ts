@@ -16,6 +16,31 @@ export const isDirectAgentRole = (roleName?: string) => {
   ].includes(normalizedRole);
 };
 
+export const isAgentListingRole = (roleName?: string) => {
+  const normalizedRole = String(roleName ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[-\s]+/g, "_");
+
+  return ["agent", "sales_agent", "sales_manager"].includes(normalizedRole);
+};
+
+export const isAgentReviewProperty = (property: any, roleName?: string) => {
+  if (isAgentListingRole(roleName)) return true;
+  if (isAgentListingRole(property?.postedBy?.roleName)) return true;
+  if (isAgentListingRole(property?.lastUpdatedBy?.roleName)) return true;
+
+  const approvalStatus = String(property?.approval?.status ?? "").toLowerCase();
+  const completionPercent = Number(property?.completion?.percent);
+  const completionStep = Number(property?.completion?.step);
+
+  return (
+    approvalStatus === "pending" ||
+    completionPercent === 70 ||
+    completionStep === 4
+  );
+};
+
 type AuthUserLike = {
   id?: string | undefined;
   sub?: string | undefined;
@@ -32,6 +57,52 @@ function toObjectId(value: any) {
   return new mongoose.Types.ObjectId(id);
 }
 
+export async function getCreatedByRoleName(Model: any, createdBy: any) {
+  const createdById = toObjectId(createdBy);
+  if (!createdById) return undefined;
+
+  const UserModel = Model.db.model("User");
+  const RoleModel = Model.db.models?.Role;
+
+  const resolveUserRole = async (userId: any) => {
+    const user = await UserModel.findById(userId)
+    .select("role roleName roleId")
+    .lean();
+
+    if (!user) return undefined;
+    if (typeof user.roleName === "string") return user.roleName;
+    if (typeof user.role === "string") return user.role;
+
+    if (user.roleId && RoleModel) {
+      const role = await RoleModel.findById(user.roleId).select("name").lean();
+      return role?.name;
+    }
+
+    return undefined;
+  };
+
+  const directRoleName = await resolveUserRole(createdById);
+  if (directRoleName) return directRoleName;
+
+  const agentProfile = await Model.db.collection("agents").findOne(
+    { _id: createdById },
+    { projection: { user: 1 } },
+  );
+  if (agentProfile?.user) {
+    const agentRoleName = await resolveUserRole(agentProfile.user);
+    if (agentRoleName) return agentRoleName;
+  }
+
+  const builderUser = await UserModel.findOne({ builderId: createdById })
+    .select("_id")
+    .lean();
+  if (builderUser?._id) {
+    return resolveUserRole(builderUser._id);
+  }
+
+  return undefined;
+}
+
 function formatCreatedBy(user: any) {
   if (!user) return null;
 
@@ -40,6 +111,8 @@ function formatCreatedBy(user: any) {
     name: user.name,
     email: user.email,
     phone: user.phone,
+    role: user.role,
+    roleId: user.roleId,
   };
 }
 
@@ -50,7 +123,8 @@ async function resolveCreatedBy(Model: any, createdBy: any) {
   const UserModel = Model.db.model("User");
 
   const directUser = await UserModel.findById(createdById)
-    .select("name email phone")
+    .select("name email phone role roleId")
+    .populate("roleId", "name label")
     .lean();
   if (directUser) return formatCreatedBy(directUser);
 
@@ -60,13 +134,15 @@ async function resolveCreatedBy(Model: any, createdBy: any) {
   );
   if (agentProfile?.user) {
     const agentUser = await UserModel.findById(agentProfile.user)
-      .select("name email phone")
+      .select("name email phone role roleId")
+      .populate("roleId", "name label")
       .lean();
     if (agentUser) return formatCreatedBy(agentUser);
   }
 
   const builderUser = await UserModel.findOne({ builderId: createdById })
-    .select("name email phone")
+    .select("name email phone role roleId")
+    .populate("roleId", "name label")
     .lean();
   if (builderUser) return formatCreatedBy(builderUser);
 
@@ -179,7 +255,8 @@ export async function submitAgentListingForReview(
   await property.save();
 
   const submitted = await Model.findById(id)
-    .populate("createdBy", "name email phone")
+    .populate("createdBy", "name email phone role roleId")
+    .populate("createdBy.roleId", "name label")
     .lean();
   return restoreCreatedById(Model, submitted, assignedCreatedBy);
 }

@@ -12,7 +12,11 @@ import {
   createWatermarkedBuffer,
   getUploadedFileBuffer,
 } from "../utils/imageProcessing";
-import { restoreCreatedById } from "../utils/agentSubmission";
+import {
+  getCreatedByRoleName,
+  isAgentReviewProperty,
+  restoreCreatedById,
+} from "../utils/agentSubmission";
 dotenv.config({ quiet: true });
 
 type MulterFiles = { [field: string]: Express.Multer.File[] } | undefined;
@@ -339,6 +343,7 @@ export const CommercialService = {
     }
     const populated = await Commercial.findById(createdDoc._id)
       .populate("createdBy", "name email phone role roleId")
+      .populate("createdBy.roleId", "name label")
       .lean()
       .exec();
     return (
@@ -574,7 +579,8 @@ export const CommercialService = {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
     const original = await Commercial.findById(id).select("createdBy").lean();
     const query = Commercial.findById(id)
-      .populate("createdBy", "name email phone");
+      .populate("createdBy", "name email phone role roleId");
+    query.populate("createdBy.roleId", "name label");
     if (includeAudit) query.populate(auditUserPopulate);
     const doc = await query.lean().exec();
     return restoreCreatedById(Commercial, doc, original?.createdBy);
@@ -584,7 +590,8 @@ export const CommercialService = {
     if (!slug || typeof slug !== "string") throw new Error("Invalid slug");
     const original = await Commercial.findOne({ slug }).select("createdBy").lean();
     const doc = await Commercial.findOne({ slug })
-      .populate("createdBy", "name email phone")
+      .populate("createdBy", "name email phone role roleId")
+      .populate("createdBy.roleId", "name label")
       .populate(auditUserPopulate)
       .lean()
       .exec();
@@ -639,7 +646,8 @@ export const CommercialService = {
     const [items, rawItems, total] = await Promise.all([
       Commercial.find(filter)
         .sort(sort)
-        .populate("createdBy", "name email phone")
+        .populate("createdBy", "name email phone role roleId")
+        .populate("createdBy.roleId", "name label")
         .populate(auditUserPopulate)
         .skip(skip)
         .limit(limit)
@@ -723,6 +731,31 @@ export const CommercialService = {
     }
 
     const docs = property.verificationDocuments;
+    if (documentIndex === 1 && docs?.length === 1 && docs[0]) {
+      documentIndex = 0;
+    }
+
+    if (!docs?.[documentIndex]) {
+      const roleName =
+        (property as any).listingSource ||
+        (await getCreatedByRoleName(Commercial, property.createdBy));
+
+      if (isAgentReviewProperty(property, roleName)) {
+        property.rejectedReason =
+          status === "rejected" ? rejectedReason.trim() : "";
+        property.status = status === "verified" ? "active" : "draft";
+        property.isPublished = status === "verified";
+        if (status === "verified") {
+          property.completion = {
+            percent: 100,
+            step: 5,
+            lastSection: "verification",
+          };
+        }
+        await property.save();
+        return property;
+      }
+    }
 
     // ✅ Validate documents existence
     if (!docs || !Array.isArray(docs)) {

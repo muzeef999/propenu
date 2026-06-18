@@ -187,7 +187,8 @@ export const getMyCommercialDraft = async (req: AuthRequest, res: Response) => {
     createdBy: req.user!.id,
     status: statusFilter,
   })
-    .populate("createdBy", "name email phone")
+    .populate("createdBy", "name email phone role roleId")
+    .populate("createdBy.roleId", "name label")
     .populate(auditUserPopulate)
     .lean();
   if (!draft) {
@@ -624,7 +625,8 @@ export const finalizeCommercial = async (req: AuthRequest, res: Response) => {
     await property.save();
 
     const fresh = await Commercial.findById(property._id)
-      .populate("createdBy", "name email phone")
+      .populate("createdBy", "name email phone role roleId")
+      .populate("createdBy.roleId", "name label")
       .lean();
 
     try {
@@ -701,7 +703,8 @@ export const getAllCommercialDraftsForAdmin = async (
 
   const [items, total] = await Promise.all([
     Commercial.find(filter)
-      .populate("createdBy", "name email phone")
+      .populate("createdBy", "name email phone role roleId")
+      .populate("createdBy.roleId", "name label")
       .populate(auditUserPopulate)
       .sort({ updatedAt: -1 })
       .skip(skip)
@@ -729,7 +732,8 @@ export const verifyCommercialDocument = async (
   try {
     const { id } = req.params;
 
-    let { documentIndex, status, rejectedReason = "" } = req.body;
+    let { documentIndex, status = "verified", rejectedReason = "" } =
+      req.body ?? {};
 
     // ✅ Validate status
     if (!["verified", "rejected"].includes(status)) {
@@ -747,7 +751,10 @@ export const verifyCommercialDocument = async (
     }
 
     // ✅ Convert index to number
-    documentIndex = Number(documentIndex);
+    documentIndex =
+      documentIndex === undefined || documentIndex === null || documentIndex === ""
+        ? 0
+        : Number(documentIndex);
 
     // ✅ Validate index strictly
     if (!Number.isInteger(documentIndex) || documentIndex < 0) {
@@ -772,6 +779,10 @@ export const verifyCommercialDocument = async (
         success: false,
         message: "Property not found",
       });
+    }
+
+    if ((updated as any).success === false) {
+      return res.status((updated as any).status || 400).json(updated);
     }
 
     const notificationStatus = {

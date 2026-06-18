@@ -146,7 +146,8 @@ export const getMyAgriculturalDraft = async (
     createdBy: req.user!.id,
     status: statusFilter,
   })
-    .populate("createdBy", "name email phone")
+    .populate("createdBy", "name email phone role roleId")
+    .populate("createdBy.roleId", "name label")
     .populate(auditUserPopulate)
     .lean();
 
@@ -631,7 +632,8 @@ export const finalizeAgricultural = async (req: AuthRequest, res: Response) => {
 
     await property.save();
     const fresh = await Agricultural.findById(property._id)
-      .populate("createdBy", "name email phone")
+      .populate("createdBy", "name email phone role roleId")
+      .populate("createdBy.roleId", "name label")
       .lean();
 
     try {
@@ -686,7 +688,8 @@ export const getAllAgriculturalDraftsForAdmin = async (
 
   const [items, total] = await Promise.all([
     Agricultural.find(filter)
-      .populate("createdBy", "name email phone")
+      .populate("createdBy", "name email phone role roleId")
+      .populate("createdBy.roleId", "name label")
       .populate(auditUserPopulate)
       .sort({ updatedAt: -1 })
       .skip(skip)
@@ -713,14 +716,33 @@ export const verifyAgricultiralDocument = async (
 ) => {
   try {
     const { id } = req.params;
-    const { documentIndex, status, rejectedReason = "" } = req.body;
+    let { documentIndex, status = "verified", rejectedReason = "" } =
+      req.body ?? {};
 
     if (!["verified", "rejected"].includes(status)) {
-      return res.status(400).json({ message: "Invalid status" });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status (must be verified or rejected)",
+      });
     }
 
     if (status === "rejected" && typeof rejectedReason !== "string") {
-      return res.status(400).json({ message: "Rejected reason must be a string" });
+      return res.status(400).json({
+        success: false,
+        message: "Rejected reason must be a string",
+      });
+    }
+
+    documentIndex =
+      documentIndex === undefined || documentIndex === null || documentIndex === ""
+        ? 0
+        : Number(documentIndex);
+
+    if (!Number.isInteger(documentIndex) || documentIndex < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid document index (must be zero or a positive integer)",
+      });
     }
 
     const existingProperty = await Agricultural.findById(id).select("status");
@@ -733,7 +755,14 @@ export const verifyAgricultiralDocument = async (
     );
 
     if (!updated) {
-      return res.status(404).json({ message: "Property not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Property not found",
+      });
+    }
+
+    if ((updated as any).success === false) {
+      return res.status((updated as any).status || 400).json(updated);
     }
 
     const notificationStatus = {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Suspense } from "react";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import MainContent from "./MainContent/MainContent";
 import Sidebar from "./Sidebar/Sidebar";
@@ -51,7 +52,9 @@ const Page = () => {
 
           {/* Main Content */}
           <div className="min-h-0 overflow-y-auto [-webkit-overflow-scrolling:touch] lg:p-0">
-            <MainContent />
+            <Suspense fallback={null}>
+              <MainContent />
+            </Suspense>
           </div>
         </div>
       </main>

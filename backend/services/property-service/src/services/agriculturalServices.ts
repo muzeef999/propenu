@@ -10,7 +10,11 @@ import {
   createWatermarkedBuffer,
   getUploadedFileBuffer,
 } from "../utils/imageProcessing";
-import { restoreCreatedById } from "../utils/agentSubmission";
+import {
+  getCreatedByRoleName,
+  isAgentReviewProperty,
+  restoreCreatedById,
+} from "../utils/agentSubmission";
 
 dotenv.config({ quiet: true });
 
@@ -299,6 +303,7 @@ export const AgriculturalService = {
 
     const populated = await Agricultural.findById(createdDoc._id)
       .populate("createdBy", "name email phone role roleId")
+      .populate("createdBy.roleId", "name label")
       .lean()
       .exec();
     return (
@@ -492,7 +497,8 @@ export const AgriculturalService = {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
     const original = await Agricultural.findById(id).select("createdBy").lean();
     const query = Agricultural.findById(id)
-      .populate("createdBy", "name email phone");
+      .populate("createdBy", "name email phone role roleId");
+    query.populate("createdBy.roleId", "name label");
     if (includeAudit) query.populate(auditUserPopulate);
     const doc = await query.lean().exec();
     return restoreCreatedById(Agricultural, doc, original?.createdBy);
@@ -502,7 +508,8 @@ export const AgriculturalService = {
     if (!slug || typeof slug !== "string") throw new Error("Invalid slug");
     const original = await Agricultural.findOne({ slug }).select("createdBy").lean();
     const doc = await Agricultural.findOne({ slug })
-      .populate("createdBy", "name email phone")
+      .populate("createdBy", "name email phone role roleId")
+      .populate("createdBy.roleId", "name label")
       .populate(auditUserPopulate)
       .lean()
       .exec();
@@ -543,7 +550,8 @@ export const AgriculturalService = {
     }
 
     const [items, rawItems, total] = await Promise.all([
-      Agricultural.find(filter).populate("createdBy", "name email phone")
+      Agricultural.find(filter).populate("createdBy", "name email phone role roleId")
+        .populate("createdBy.roleId", "name label")
         .populate(auditUserPopulate)
         .sort(sort)
         .skip(skip)
@@ -610,20 +618,47 @@ export const AgriculturalService = {
     const property = await Agricultural.findById(propertyId);
     if (!property) return null;
 
-    if (!property.verificationDocuments?.[documentIndex]) {
-  return {
-    success: false,
-    status: 400,
-    message: "Invalid document index",
-  };
-}
+    const docs = property.verificationDocuments ?? [];
+    if (documentIndex === 1 && docs.length === 1 && docs[0]) {
+      documentIndex = 0;
+    }
+
+    if (!docs[documentIndex]) {
+      const roleName =
+        (property as any).listingSource ||
+        (await getCreatedByRoleName(Agricultural, property.createdBy));
+
+      if (isAgentReviewProperty(property, roleName)) {
+        property.rejectedReason =
+          status === "rejected" ? rejectedReason.trim() : "";
+        property.status = status === "verified" ? "active" : "draft";
+        property.isPublished = status === "verified";
+        if (status === "verified") {
+          property.completion = {
+            percent: 100,
+            step: 5,
+            lastSection: "verification",
+          };
+        }
+        await property.save();
+        return property;
+      }
+
+      return {
+        success: false,
+        status: 400,
+        message: "Invalid document index",
+      };
+    }
+
+    const doc = docs[documentIndex]!;
 
     // 1️⃣ Update document status
-    property.verificationDocuments[documentIndex].status = status;
+    doc.status = status;
     property.rejectedReason = status === "rejected" ? rejectedReason.trim() : "";
 
     // 2️⃣ Check if ANY document is verified
-    const hasVerified = property.verificationDocuments.some(
+    const hasVerified = docs.some(
       (doc) => doc.status === "verified",
     );
 

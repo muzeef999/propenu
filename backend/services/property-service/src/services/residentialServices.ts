@@ -13,7 +13,11 @@ import {
   createWatermarkedBuffer,
   getUploadedFileBuffer,
 } from "../utils/imageProcessing";
-import { restoreCreatedById } from "../utils/agentSubmission";
+import {
+  getCreatedByRoleName,
+  isAgentReviewProperty,
+  restoreCreatedById,
+} from "../utils/agentSubmission";
 import { ResidentialUpdateSchema } from "../zod/residentialZod";
 
 type RequestWithResidentialQuery = Request<
@@ -299,6 +303,7 @@ export const ResidentialPropertyService = {
 
     const populated = await Residential.findById(createdDoc._id)
       .populate("createdBy", "name email phone role roleId")
+      .populate("createdBy.roleId", "name label")
       .lean()
       .exec();
     return (
@@ -466,7 +471,8 @@ export const ResidentialPropertyService = {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
     const original = await Residential.findById(id).select("createdBy").lean();
     const query = Residential.findById(id)
-      .populate("createdBy", "name email phone");
+      .populate("createdBy", "name email phone role roleId");
+    query.populate("createdBy.roleId", "name label");
     if (includeAudit) query.populate(auditUserPopulate);
     const doc = await query.lean().exec();
     return restoreCreatedById(Residential, doc, original?.createdBy);
@@ -476,7 +482,8 @@ export const ResidentialPropertyService = {
     if (!slug || typeof slug !== "string") throw new Error("Invalid slug");
     const original = await Residential.findOne({ slug }).select("createdBy").lean();
     const doc = await Residential.findOne({ slug })
-      .populate("createdBy", "name email phone")
+      .populate("createdBy", "name email phone role roleId")
+      .populate("createdBy.roleId", "name label")
       .populate(auditUserPopulate)
       .lean()
       .exec();
@@ -553,7 +560,8 @@ export const ResidentialPropertyService = {
     const [items, rawItems, total] = await Promise.all([
       Residential.find(filter)
         .sort(sort)
-        .populate("createdBy", "name email phone")
+        .populate("createdBy", "name email phone role roleId")
+        .populate("createdBy.roleId", "name label")
         .populate(auditUserPopulate)
         .skip(skip)
         .limit(limit)
@@ -620,7 +628,32 @@ export const ResidentialPropertyService = {
     const property = await Residential.findById(propertyId);
     if (!property) return null;
 
-    if (!property.verificationDocuments?.[documentIndex]) {
+    const docs = property.verificationDocuments ?? [];
+    if (documentIndex === 1 && docs.length === 1 && docs[0]) {
+      documentIndex = 0;
+    }
+
+    if (!docs[documentIndex]) {
+      const roleName =
+        (property as any).listingSource ||
+        (await getCreatedByRoleName(Residential, property.createdBy));
+
+      if (isAgentReviewProperty(property, roleName)) {
+        property.rejectedReason =
+          status === "rejected" ? rejectedReason.trim() : "";
+        property.status = status === "verified" ? "active" : "draft";
+        property.isPublished = status === "verified";
+        if (status === "verified") {
+          property.completion = {
+            percent: 100,
+            step: 5,
+            lastSection: "verification",
+          };
+        }
+        await property.save();
+        return property;
+      }
+
       return {
         success: false,
         status: 400,
@@ -628,12 +661,14 @@ export const ResidentialPropertyService = {
       };
     }
 
+    const doc = docs[documentIndex]!;
+
     // 1️⃣ Update document status
-    property.verificationDocuments[documentIndex].status = status;
+    doc.status = status;
     property.rejectedReason = status === "rejected" ? rejectedReason.trim() : "";
 
     // 2️⃣ Check if ANY document is verified
-    const hasVerified = property.verificationDocuments.some(
+    const hasVerified = docs.some(
       (doc) => doc.status === "verified",
     );
 
