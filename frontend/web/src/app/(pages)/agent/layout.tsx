@@ -49,6 +49,7 @@ export default function AccountLayout({
         {showAgentModal && (
           <AgentRegistrationModal
             userId={user?.user?.id}
+            userName={user?.user?.name}
             open={true}
             onCompleted={() => {
               setShowAgentModal(false);

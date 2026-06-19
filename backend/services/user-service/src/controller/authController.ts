@@ -664,6 +664,9 @@ export const searchUsers = async (req: Request, res: Response) => {
 
         role: "$role.name",
 
+        kycStatus: { $ifNull: ["$kyc.status", "not_started"] },
+        kycReason: { $ifNull: ["$kyc.remarks", ""] },
+
         verificationStatus: {
           $cond: [
             { $eq: ["$role.name", "agent"] },

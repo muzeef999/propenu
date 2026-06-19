@@ -22,8 +22,7 @@ export async function createWatermarkedBuffer(imageBuffer: Buffer) {
     throw new Error("Invalid image buffer received");
   }
 
-const watermarkPath = path.resolve(__dirname, "../assets/watermark.png");
-
+const watermarkPath = path.resolve(__dirname, "../../../../assets/watermark.png");
   if (!fs.existsSync(watermarkPath)) {
     throw new Error("❌ Watermark not found at: " + watermarkPath);
   }

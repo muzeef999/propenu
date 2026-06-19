@@ -39,7 +39,7 @@ router.get("/draft/me", authMiddleware, getMyResidentialDraft);
 router.patch("/:id/basic", authMiddleware, uploadMedia, parseJsonFields(jsonKeys), updateBasicStep);
 router.patch("/:id/location", authMiddleware, parseJsonFields(jsonKeys), updateLocationStep);
 router.patch("/:id/details", authMiddleware, uploadMedia, parseJsonFields(jsonKeys), updateDetailsStep);
-router.patch("/:id/verification", authMiddleware, uploadMedia, parseJsonFields(jsonKeys), requireActiveSubscription, finalizeResidential);
+router.patch("/:id/verification", authMiddleware, uploadMedia, parseJsonFields(jsonKeys), finalizeResidential);
 router.patch("/:id/verify-document", authMiddleware, (req : AuthRequest, res, next) => {
 if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){
        return res.status(403).json({message:"Forbidden only admin/super_admin can see the users"}); 

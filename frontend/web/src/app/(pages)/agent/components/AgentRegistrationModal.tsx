@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { FiBriefcase, FiCamera, FiImage, FiMapPin, FiUser } from "react-icons/fi";
 import { toast } from "sonner";
 
@@ -17,6 +17,7 @@ type Props = {
   open: boolean;
   onCompleted?: () => void;
   userId: string;
+  userName?: string;
 };
 
 type AgentFormState = {
@@ -135,8 +136,10 @@ export default function AgentRegistrationModal({
   open,
   onCompleted,
   userId,
+  userName,
 }: Props) {
   const [loading, setLoading] = useState(false);
+  const accountName = userName?.trim() ?? "";
 
   const [files, setFiles] = useState<{
     avatar?: File;
@@ -144,7 +147,7 @@ export default function AgentRegistrationModal({
   }>({});
 
   const [form, setForm] = useState<AgentFormState>({
-    name: "",
+    name: accountName,
     bio: "",
     agencyName: "",
     licenseNumber: "",
@@ -159,6 +162,15 @@ export default function AgentRegistrationModal({
     avatar: undefined,
     reraAgentId: "",
   });
+
+  useEffect(() => {
+    if (!open || !accountName) return;
+
+    setForm((current) => {
+      if (current.name.trim()) return current;
+      return { ...current, name: accountName };
+    });
+  }, [accountName, open]);
 
   if (!open) return null;
 
