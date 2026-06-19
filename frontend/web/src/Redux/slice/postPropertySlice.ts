@@ -502,6 +502,7 @@ const postPropertySlice = createSlice({
           plotArea: draft.plotArea,
           plotAreaUnit: draft.plotAreaUnit,
           roadWidthFt: draft.roadWidthFt,
+          roadWidthUnit: draft.roadWidthUnit,
           facing: draft.facing,
           layoutType: draft.layoutType,
           transactionType: normalizeTransactionType(draft.transactionType),

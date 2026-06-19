@@ -661,6 +661,7 @@ export const searchUsers = async (req: Request, res: Response) => {
         city: 1,
         state: 1,
         pincode: 1,
+        createdAt: 1,
 
         role: "$role.name",
 

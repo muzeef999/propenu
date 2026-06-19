@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { FiFileText } from "react-icons/fi";
 
 import { useAppDispatch } from "@/Redux/store";
 import { setProfileField } from "@/Redux/slice/postPropertySlice";
@@ -131,6 +132,15 @@ const VerifyProperty: React.FC<VerifyPropertyProps> = ({
     showErrors && validationResult && !validationResult.success
       ? validationResult.error.flatten().fieldErrors
       : {};
+  const selectedVerificationDoc = VERIFICATION_DOCS.find(
+    (doc) => doc.key === profileData?.verificationDocument,
+  );
+  const selectedDocAccept = selectedVerificationDoc?.showInfo
+    ? "application/pdf,.pdf"
+    : "image/*,.pdf";
+  const selectedDocUploadLabel = selectedVerificationDoc?.showInfo
+    ? "Upload Verification Document (PDF only)"
+    : "Upload Verification Document";
 
   /* =========================
      SUBMIT HANDLER
@@ -167,9 +177,7 @@ const VerifyProperty: React.FC<VerifyPropertyProps> = ({
       return;
     }
 
-    const selectedDoc = VERIFICATION_DOCS.find(
-      (d) => d.key === profileData?.verificationDocument,
-    );
+    const selectedDoc = selectedVerificationDoc;
 
     if (!selectedDoc) {
       toast.error("Invalid verification document selected");
@@ -181,6 +189,17 @@ const VerifyProperty: React.FC<VerifyPropertyProps> = ({
     formData.append("verificationType", selectedDoc.verificationType);
     formData.append("title", selectedDoc.title);
     const localFile = files.find((f) => f.source === "local" && f.file)?.file;
+
+    if (
+      selectedDoc.showInfo &&
+      localFile &&
+      localFile.type !== "application/pdf" &&
+      !localFile.name.toLowerCase().endsWith(".pdf")
+    ) {
+      toast.error(`${selectedDoc.label} must be uploaded as a PDF`);
+      return;
+    }
+
     if (localFile) {
       formData.append("verificationDocuments", localFile);
     }
@@ -255,7 +274,7 @@ const VerifyProperty: React.FC<VerifyPropertyProps> = ({
             return (
               <label
                 key={doc.key}
-                className="flex items-center gap-3 cursor-pointer select-none"
+                className="flex min-h-9 items-center gap-3 cursor-pointer select-none"
               >
                 {/* Native radio */}
                 <input
@@ -275,15 +294,18 @@ const VerifyProperty: React.FC<VerifyPropertyProps> = ({
                 />
 
                 {/* Label text */}
-                <span className="text-sm text-gray-800">{doc.label}</span>
+                <span className="min-w-0 flex-1 text-sm text-gray-800">
+                  {doc.label}
+                </span>
 
-                {/* Optional info icon */}
                 {doc.showInfo && (
                   <span
-                    className="text-gray-400 cursor-pointer"
-                    title="Please Upload in PDF format only"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-semibold text-red-700"
+                    title="Please upload this document in PDF format only"
+                    aria-label="PDF format required"
                   >
-                    ⓘ
+                    <FiFileText size={13} aria-hidden="true" />
+                    PDF only
                   </span>
                 )}
               </label>
@@ -295,10 +317,10 @@ const VerifyProperty: React.FC<VerifyPropertyProps> = ({
       {/* FILE UPLOAD */}
       <div>
         <FileUpload
-          label="Upload Verification Document"
+          label={selectedDocUploadLabel}
           value={files}
           onChange={setFiles}
-          accept="image/*,.pdf"
+          accept={selectedDocAccept}
           maxFiles={1}
           maxSizeMB={5}
         />

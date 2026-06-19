@@ -54,7 +54,7 @@ router.delete("/:id/gallery/:imageIndex", authMiddleware, deleteGalleryImage);
 
 
 router.post("/", authMiddleware, uploadMedia,parseJsonFields(jsonKeys), fallbackCoerceDefault,  validateBody(ResidentialCreateSchema), createResidential, requireActiveSubscription);
-router.patch("/:id",  uploadMedia, parseJsonFields(jsonKeys), fallbackCoerceDefault, validateBody(ResidentialUpdateSchema), editResidential );
+router.patch("/:id", authMiddleware, uploadMedia, parseJsonFields(jsonKeys), fallbackCoerceDefault, validateBody(ResidentialUpdateSchema), editResidential );
 router.get("/", getAllResidential);
 router.get("/slug/:slug", getResidentialBySlug);
 router.get("/:id", getResidentialDetail);

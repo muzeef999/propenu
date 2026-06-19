@@ -23,9 +23,14 @@ const LandSchema = new Schema<ILand>(
     plotArea: Number,
     plotAreaUnit: {
       type: String,
-      enum: ["sqft"],
+      enum: ["sqft", "sqmt", "acre", "guntha", "cent", "kanal", "hectare"],
     },
     roadWidthFt: Number,
+    roadWidthUnit: {
+      type: String,
+      enum: ["ft", "meter"],
+      default: "ft",
+    },
     readyToConstruct: Boolean,
     waterConnection: Boolean,
     electricityConnection: Boolean,

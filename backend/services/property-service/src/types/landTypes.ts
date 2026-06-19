@@ -64,8 +64,9 @@ export interface ILand extends IListingAuditFields {
   verificationDocuments?: IVerificationDoc[];
   completion?: ICompletion;
   plotArea?: number;
-  plotAreaUnit?: "sqft" | "sqmt" | "acre" | "guntha" | "kanal" | "hectare";
+  plotAreaUnit?: "sqft" | "sqmt" | "acre" | "guntha" | "cent" | "kanal" | "hectare";
   roadWidthFt?: number;
+  roadWidthUnit?: "ft" | "meter";
   negotiable?: boolean;
   readyToConstruct?: boolean;
   waterConnection?: boolean;

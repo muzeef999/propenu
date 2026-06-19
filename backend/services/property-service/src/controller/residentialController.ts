@@ -28,6 +28,8 @@ import { sendTemplateNotification } from "../../../../shared/notifications/push.
 import {
   buildPostedByAudit,
   isDirectAgentRole,
+  normalizeListingAuditFields,
+  stampListingUpdateAudit,
   submitAgentListingForReview,
 } from "../utils/agentSubmission";
 
@@ -282,7 +284,7 @@ export const getResidentialDetail = async (req: Request, res: Response) => {
 };
 
 /***  UPDATE  **/
-export const editResidential = async (req: Request, res: Response) => {
+export const editResidential = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     if (!id) return res.status(400).json({ error: "Missing property ID" });
@@ -319,7 +321,13 @@ export const editResidential = async (req: Request, res: Response) => {
     );
     if (!updated) return res.status(404).json({ error: "Property not found" });
 
-    const fresh = await ResidentialPropertyService.getById(id);
+    const doc = await Residential.findById(id);
+    if (doc) {
+      await stampListingUpdateAudit(Residential, doc, req.user);
+      await doc.save();
+    }
+
+    const fresh = await ResidentialPropertyService.getById(id, true);
     return res.json({ data: fresh });
   } catch (err: any) {
     if (err instanceof ZodError) {
@@ -398,6 +406,7 @@ export const updateBasicStep = async (req: AuthRequest, res: Response) => {
     },
   });
 
+  await stampListingUpdateAudit(Residential, doc, req.user);
   await doc.save(); // 🔥 triggers buildResidentialTitle
 
   res.json({ data: doc });
@@ -426,6 +435,7 @@ export const updateLocationStep = async (req: AuthRequest, res: Response) => {
     },
   });
 
+  await stampListingUpdateAudit(Residential, doc, req.user);
   await doc.save();
 
   if (doc.city && doc.locality) {
@@ -524,6 +534,7 @@ export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: "Residential property not found" });
     }
 
+    const shouldSubmitForReview = isDirectAgentRole(req.user?.roleName);
     const fresh = await Residential.findById(req.params.id);
     if (fresh) {
       fresh.completion = {
@@ -532,10 +543,13 @@ export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
         step: 4,
         lastSection: "details",
       };
+      if (!shouldSubmitForReview) {
+        await stampListingUpdateAudit(Residential, fresh, req.user);
+      }
       await fresh.save();
     }
 
-    if (isDirectAgentRole(req.user?.roleName)) {
+    if (shouldSubmitForReview) {
       const submitted = await submitAgentListingForReview(
         Residential,
         req.params.id,
@@ -675,13 +689,15 @@ export const finalizeResidential = async (req: AuthRequest, res: Response) => {
         req.user,
       );
     }
+    await stampListingUpdateAudit(Residential, property, req.user);
 
     await property.save();
 
-    const fresh = await Residential.findById(property._id)
+    const fresh = normalizeListingAuditFields(await Residential.findById(property._id)
       .populate("createdBy", "name email phone role roleId")
       .populate("createdBy.roleId", "name label")
-      .lean();
+      .populate(auditUserPopulate)
+      .lean());
 
     // 📩 Send WhatsApp Listing Submitted message
     // try {

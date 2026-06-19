@@ -116,6 +116,46 @@ function formatCreatedBy(user: any) {
   };
 }
 
+function getRoleNameFromUser(user: any) {
+  return (
+    user?.roleName ??
+    user?.role ??
+    user?.roleId?.name ??
+    user?.roleId?.label
+  );
+}
+
+function flattenAuditUser(entry: any) {
+  if (!entry?.userId || typeof entry.userId !== "object") {
+    return entry;
+  }
+
+  const user = entry.userId;
+  return {
+    ...entry,
+    userId: user._id?.toString?.() ?? user._id,
+    name: entry.name ?? user.name,
+    email: entry.email ?? user.email,
+    roleName: entry.roleName ?? getRoleNameFromUser(user),
+  };
+}
+
+export function normalizeListingAuditFields<T extends Record<string, any> | null>(doc: T) {
+  if (!doc) return doc;
+
+  if (doc.postedBy) {
+    doc.postedBy = flattenAuditUser(doc.postedBy);
+  }
+  if (doc.lastUpdatedBy) {
+    doc.lastUpdatedBy = flattenAuditUser(doc.lastUpdatedBy);
+  }
+  if (Array.isArray(doc.updateHistory)) {
+    doc.updateHistory = doc.updateHistory.map(flattenAuditUser);
+  }
+
+  return doc;
+}
+
 async function resolveCreatedBy(Model: any, createdBy: any) {
   const createdById = toObjectId(createdBy);
   if (!createdById) return null;
@@ -158,13 +198,15 @@ export async function restoreCreatedById<
 ) {
   if (!doc) return doc;
   doc.rejectedReason ??= "";
-  if (doc.createdBy || !originalCreatedBy) return doc;
+  if (doc.createdBy || !originalCreatedBy) {
+    return normalizeListingAuditFields(doc);
+  }
   doc.createdBy =
     (await resolveCreatedBy(Model, originalCreatedBy)) ??
     (originalCreatedBy?._id?.toString?.() ??
       originalCreatedBy.toString?.() ??
       originalCreatedBy);
-  return doc;
+  return normalizeListingAuditFields(doc);
 }
 
 function buildAuditFromAuthUser(authUser?: AuthUserLike, existingPostedBy?: any) {
@@ -226,6 +268,56 @@ export async function buildPostedByAudit(
   };
 }
 
+export async function buildUpdatedByAudit(Model: any, authUser?: AuthUserLike) {
+  const userId = authUser?.id ?? authUser?.sub;
+  if (!userId) return null;
+
+  const fallbackAudit = {
+    userId,
+    name: authUser?.name,
+    email: authUser?.email,
+    roleName: authUser?.roleName,
+    updatedAt: new Date(),
+  };
+
+  const UserModel = Model.db.model("User");
+  const RoleModel = Model.db.models?.Role;
+  const user = await UserModel.findById(userId)
+    .select("name email role roleName roleId")
+    .lean();
+
+  if (!user) return fallbackAudit;
+
+  let roleName =
+    typeof user.roleName === "string"
+      ? user.roleName
+      : typeof user.role === "string"
+        ? user.role
+        : authUser?.roleName;
+
+  if (!roleName && user.roleId && RoleModel) {
+    const role = await RoleModel.findById(user.roleId).select("name").lean();
+    roleName = role?.name;
+  }
+
+  return {
+    userId: user._id,
+    name: user.name,
+    email: user.email,
+    roleName,
+    updatedAt: new Date(),
+  };
+}
+
+export async function stampListingUpdateAudit(Model: any, property: any, authUser?: AuthUserLike) {
+  const audit = await buildUpdatedByAudit(Model, authUser);
+  if (!audit || !property) return;
+
+  property.lastUpdatedBy = audit;
+  property.updateHistory = [...(property.updateHistory || []), audit];
+  property.updateCount = Number(property.updateCount || 0) + 1;
+}
+
 export async function submitAgentListingForReview(
   Model: any,
   id: string,
@@ -251,12 +343,15 @@ export async function submitAgentListingForReview(
     property.postedBy,
     authUser,
   );
+  await stampListingUpdateAudit(Model, property, authUser);
 
   await property.save();
 
   const submitted = await Model.findById(id)
     .populate("createdBy", "name email phone role roleId")
     .populate("createdBy.roleId", "name label")
+    .populate("lastUpdatedBy.userId", "name email phone role roleId")
+    .populate("updateHistory.userId", "name email phone role roleId")
     .lean();
   return restoreCreatedById(Model, submitted, assignedCreatedBy);
 }

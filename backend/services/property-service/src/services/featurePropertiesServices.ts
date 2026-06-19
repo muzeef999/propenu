@@ -10,6 +10,10 @@ import dotenv from "dotenv";
 import fs from "fs";
 import { uploadFile } from "../utils/uploadFile";
 import { upsertCityAndLocality } from "./locationServices";
+import {
+  normalizeListingAuditFields,
+  restoreCreatedById,
+} from "../utils/agentSubmission";
 
 dotenv.config({ quiet: true });
 
@@ -224,6 +228,14 @@ function serializeFeaturedProject<T extends any>(doc: T): T {
   const projectSummary = getCanonicalProjectSummary(obj);
   if (Array.isArray(projectSummary)) {
     obj.projectSummary = projectSummary;
+  }
+
+  normalizeListingAuditFields(obj);
+  if (Array.isArray(obj.updateHistory)) {
+    obj.updateCount = Math.max(
+      Number(obj.updateCount || 0),
+      obj.updateHistory.length,
+    );
   }
 
   delete obj.bhkSummary;
@@ -503,6 +515,7 @@ export const FeaturePropertyService = {
             },
           ]
         : [],
+      updateCount: user ? 1 : 0,
     };
     delete toCreate.bhkSummary;
 
@@ -1142,11 +1155,21 @@ export const FeaturePropertyService = {
       throw new Error("Invalid slug");
     }
 
+    const original = await FeaturedProject.findOne({ slug })
+      .select("createdBy")
+      .lean();
     const doc = await FeaturedProject.findOne({ slug })
-      .populate("createdBy", "name email")
+      .populate("createdBy", "name email phone role roleId")
+      .populate("createdBy.roleId", "name label")
+      .populate("approvedBy", "name email phone role roleId")
+      .populate("approvedBy.roleId", "name label")
+      .populate("lastUpdatedBy.userId", "name email phone role roleId")
+      .populate("updateHistory.userId", "name email phone role roleId")
       .lean();
 
-    return serializeFeaturedProject(doc);
+    return serializeFeaturedProject(
+      await restoreCreatedById(FeaturedProject, doc, original?.createdBy),
+    );
   },
 
   async getFeatureById(id: string) {
@@ -1154,11 +1177,21 @@ export const FeaturePropertyService = {
       throw new Error("Invalid id");
     }
 
+    const original = await FeaturedProject.findById(id)
+      .select("createdBy")
+      .lean();
     const doc = await FeaturedProject.findById(id)
-      .populate("createdBy", "name email")
+      .populate("createdBy", "name email phone role roleId")
+      .populate("createdBy.roleId", "name label")
+      .populate("approvedBy", "name email phone role roleId")
+      .populate("approvedBy.roleId", "name label")
+      .populate("lastUpdatedBy.userId", "name email phone role roleId")
+      .populate("updateHistory.userId", "name email phone role roleId")
       .lean();
 
-    return serializeFeaturedProject(doc);
+    return serializeFeaturedProject(
+      await restoreCreatedById(FeaturedProject, doc, original?.createdBy),
+    );
   },
 
   async getFeaturesByCity({ locality, city, state }: LocationParams) {
