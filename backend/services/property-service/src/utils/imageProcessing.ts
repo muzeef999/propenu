@@ -21,13 +21,17 @@ export async function createWatermarkedBuffer(imageBuffer: Buffer) {
     throw new Error("Invalid image buffer received");
   }
 
-  console.log("__dirname =", __dirname);
-  console.log(
-    "watermarkPath =",
-    path.resolve(__dirname, "../assets/watermark.png"),
-  );
 
-  const watermarkPath = path.resolve(__dirname, "../assets/watermark.png");
+  const watermarkPath = path.join(
+  process.cwd(),
+  "src",
+  "assets",
+  "watermark.png"
+);
+
+console.log("watermarkPath =", watermarkPath);
+console.log("exists =", fs.existsSync(watermarkPath));
+
   if (!fs.existsSync(watermarkPath)) {
     throw new Error("❌ Watermark not found at: " + watermarkPath);
   }
