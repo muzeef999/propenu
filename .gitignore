@@ -25,8 +25,4 @@ firebase-service-account.json
 
 ./ai-service
 
-# github workflows (only if you DON'T want to push workflows)
-.github/workflows/node.js.yml
 
-# local image processing utility
-backend/services/property-service/src/utils/imageProcessing.ts
