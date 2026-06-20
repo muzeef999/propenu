@@ -17,12 +17,17 @@ export function getUploadedFileBuffer(file: Express.Multer.File): Buffer {
 }
 
 export async function createWatermarkedBuffer(imageBuffer: Buffer) {
-
-   if (!imageBuffer || !Buffer.isBuffer(imageBuffer)) {
+  if (!imageBuffer || !Buffer.isBuffer(imageBuffer)) {
     throw new Error("Invalid image buffer received");
   }
 
-const watermarkPath = path.resolve(__dirname, "../assets/watermark.png");
+  console.log("__dirname =", __dirname);
+  console.log(
+    "watermarkPath =",
+    path.resolve(__dirname, "../assets/watermark.png"),
+  );
+
+  const watermarkPath = path.resolve(__dirname, "../assets/watermark.png");
   if (!fs.existsSync(watermarkPath)) {
     throw new Error("❌ Watermark not found at: " + watermarkPath);
   }
@@ -45,10 +50,7 @@ const watermarkPath = path.resolve(__dirname, "../assets/watermark.png");
   // 2. Resize watermark relative to image and preserve transparency
   const resizedWatermark = await sharp(watermarkPath)
     .resize({
-      width: Math.min(
-        finalWidth,
-        Math.max(140, Math.round(finalWidth * 0.22)),
-      ),
+      width: Math.min(finalWidth, Math.max(140, Math.round(finalWidth * 0.22))),
       withoutEnlargement: true,
     })
     .png()
