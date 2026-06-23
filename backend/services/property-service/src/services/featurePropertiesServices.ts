@@ -25,6 +25,117 @@ type LocationParams = {
   state?: string;
 };
 
+type RankScope = {
+  state: string;
+  city: string;
+};
+
+function normalizeScopeValue(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function getRankScope(source: any): RankScope {
+  return {
+    state: normalizeScopeValue(source?.state),
+    city: normalizeScopeValue(source?.city),
+  };
+}
+
+function rankScopesEqual(a: RankScope, b: RankScope) {
+  return (
+    a.state.toLowerCase() === b.state.toLowerCase() &&
+    a.city.toLowerCase() === b.city.toLowerCase()
+  );
+}
+
+function buildRankScopeFilter(scope: RankScope) {
+  const fieldFilter = (value?: string) =>
+    value ? exactCaseInsensitive(value) : null;
+
+  return {
+    state: fieldFilter(scope.state),
+    city: fieldFilter(scope.city),
+  };
+}
+
+function normalizeRank(value: unknown) {
+  const rank = Number(value);
+  return Number.isFinite(rank) ? Math.max(1, Math.trunc(rank)) : 1;
+}
+
+async function reserveFeatureProjectRankForCreate(toCreate: any) {
+  const rank = normalizeRank(toCreate.rank);
+  toCreate.rank = rank;
+
+  await FeaturedProject.updateMany(
+    {
+      ...buildRankScopeFilter(getRankScope(toCreate)),
+      rank: { $gte: rank },
+    },
+    { $inc: { rank: 1 } },
+  );
+}
+
+async function reorderFeatureProjectRank(existing: any, safeUpdate: any) {
+  if (typeof safeUpdate.rank !== "number") return;
+
+  const oldRank = normalizeRank(existing.rank);
+  const newRank = normalizeRank(safeUpdate.rank);
+  safeUpdate.rank = newRank;
+
+  const oldScope = getRankScope(existing);
+  const nextScope = getRankScope({ ...existing.toObject(), ...safeUpdate });
+  const sameScope = rankScopesEqual(oldScope, nextScope);
+
+  if (sameScope && oldRank === newRank) return;
+
+  const idFilter = { _id: { $ne: existing._id } };
+
+  if (sameScope) {
+    const scopeFilter = buildRankScopeFilter(nextScope);
+
+    if (newRank < oldRank) {
+      await FeaturedProject.updateMany(
+        {
+          ...scopeFilter,
+          ...idFilter,
+          rank: { $gte: newRank, $lt: oldRank },
+        },
+        { $inc: { rank: 1 } },
+      );
+      return;
+    }
+
+    await FeaturedProject.updateMany(
+      {
+        ...scopeFilter,
+        ...idFilter,
+        rank: { $gt: oldRank, $lte: newRank },
+      },
+      { $inc: { rank: -1 } },
+    );
+    return;
+  }
+
+  await FeaturedProject.updateMany(
+    {
+      ...buildRankScopeFilter(oldScope),
+      ...idFilter,
+      rank: { $gt: oldRank },
+    },
+    { $inc: { rank: -1 } },
+  );
+
+  await FeaturedProject.updateMany(
+    {
+      ...buildRankScopeFilter(nextScope),
+      ...idFilter,
+      rank: { $gte: newRank },
+    },
+    { $inc: { rank: 1 } },
+  );
+}
+
 function exactCaseInsensitive(value: string) {
   return {
     $regex: `^${value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
@@ -850,6 +961,8 @@ export const FeaturePropertyService = {
     // extract gallerySummary from safeUpdate before removing it so we know client's explicit intent
     const incomingGallerySummary = (safeUpdate as any).gallerySummary;
     delete (safeUpdate as any).gallerySummary;
+
+    await reorderFeatureProjectRank(existing, safeUpdate);
 
     // apply other fields (shallow)
     Object.assign(existing, safeUpdate);

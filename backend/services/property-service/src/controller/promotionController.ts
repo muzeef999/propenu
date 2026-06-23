@@ -114,6 +114,87 @@ export const promoteProperty = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const renewPromotion = async (req: AuthRequest, res: Response) => {
+  try {
+    const { type, days } = req.body;
+    const renewalDays = typeof days === "number" ? days : 10;
+
+    if (!Number.isFinite(renewalDays) || renewalDays <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Renewal days must be a positive number",
+      });
+    }
+
+    if (type && !ALLOWED_TYPES.includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid promotion type",
+      });
+    }
+
+    const property = await FeaturedProject.findById(req.params.id);
+
+    if (!property) {
+      return res.status(404).json({
+        success: false,
+        message: "Property not found",
+      });
+    }
+
+    const currentPromotion = (property.promotion || {}) as Partial<IPromotion>;
+    const currentType = (currentPromotion.type || "normal") as PromotionType;
+    const nextType = (type || currentType) as PromotionType;
+
+    if (nextType === "normal") {
+      return res.status(400).json({
+        success: false,
+        message: "Promotion type is required to renew a normal promotion",
+      });
+    }
+
+    const now = new Date();
+    const currentExpiry = currentPromotion.boostExpiry
+      ? new Date(currentPromotion.boostExpiry)
+      : null;
+    const baseDate =
+      currentExpiry && currentExpiry.getTime() > now.getTime()
+        ? currentExpiry
+        : now;
+
+    const promotion: IPromotion = {
+      ...buildManualPromotion(nextType),
+      startDate: now,
+      boostExpiry: new Date(
+        baseDate.getTime() + renewalDays * 24 * 60 * 60 * 1000,
+      ),
+    };
+
+    appendPromotionHistory(
+      property,
+      req,
+      promotion,
+      `Promotion renewed for ${renewalDays} day${renewalDays === 1 ? "" : "s"}`,
+    );
+
+    property.promotion = promotion as any;
+
+    await property.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Promotion renewed successfully",
+      data: property,
+    });
+  } catch (err) {
+    console.error("renewPromotion error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Promotion renewal failed",
+    });
+  }
+};
+
 export const expirePromotion = async (req: AuthRequest, res: Response) => {
   try {
     const property = await FeaturedProject.findById(req.params.id);

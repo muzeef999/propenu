@@ -200,6 +200,11 @@ export default function AgentRegistrationModal({
       return;
     }
 
+    if (splitCsv(form.areasServed).length === 0) {
+      toast.error("Areas served is required");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -332,6 +337,7 @@ export default function AgentRegistrationModal({
                       value={form.areasServed}
                       onChange={(v) => update("areasServed", v)}
                       placeholder="Madhapur, Gachibowli, Kondapur"
+                      required
                     />
                     <InputFiled
                       label="Languages"
