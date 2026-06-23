@@ -13,7 +13,8 @@ export type PropertyCategory =
   | "residential"
   | "commercial"
   | "land"
-  | "agricultural";
+  | "agricultural"
+  | "project";
 
 interface SetFieldPayload {
   key: string;
@@ -35,6 +36,7 @@ interface PostPropertyState {
   commercial: Record<string, any>;
   land: Record<string, any>;
   agricultural: Record<string, any>;
+  project: Record<string, any>;
 }
 
 const DEFAULT_AGRICULTURAL_PROPERTY_TYPE = "farm-land";
@@ -55,7 +57,10 @@ const detectCategoryFromDraft = (
     if (draft.slug.startsWith("commercial")) return "commercial";
     if (draft.slug.startsWith("land")) return "land";
     if (draft.slug.startsWith("agricultural")) return "agricultural";
+    if (draft.slug.startsWith("project")) return "project";
   }
+
+  if (draft.propertyType === "open-plot") return "project";
 
   if (
     [
@@ -193,6 +198,7 @@ const initialState: PostPropertyState = {
   commercial: {},
   land: {},
   agricultural: {},
+  project: {},
 };
 
 /* ======================================================
@@ -226,6 +232,7 @@ const postPropertySlice = createSlice({
       state.commercial = {};
       state.land = {};
       state.agricultural = {};
+      state.project = {};
 
       if (nextType === "agricultural") {
         state.agricultural.propertyType = DEFAULT_AGRICULTURAL_PROPERTY_TYPE;
@@ -271,6 +278,7 @@ const postPropertySlice = createSlice({
       if (next !== "commercial") state.commercial = {};
       if (next !== "land") state.land = {};
       if (next !== "agricultural") state.agricultural = {};
+      if (next !== "project") state.project = {};
 
       if (next === "agricultural" && !state.agricultural.propertyType) {
         state.agricultural.propertyType = DEFAULT_AGRICULTURAL_PROPERTY_TYPE;

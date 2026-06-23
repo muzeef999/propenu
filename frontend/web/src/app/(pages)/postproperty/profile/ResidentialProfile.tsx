@@ -26,6 +26,10 @@ import { validateResidentialProfile } from "@/zod/profileZods/residentialProfile
 import { clearFileStore, setFileStoreFiles } from "@/utilies/fileStore";
 import { deleteGalleryImageApi } from "@/Redux/apis";
 
+function getSubmitCategory(propertyType?: string) {
+  return propertyType === "project" ? "residential" : propertyType ?? "residential";
+}
+
 export const FLOORING_TYPES = [
   "vitrified",
   "marble",
@@ -536,11 +540,12 @@ const ResidentialProfile = () => {
           }
 
           setFieldErrors({});
+          const submitCategory = getSubmitCategory(propertyType);
 
           // 🚀 Submit to backend
           dispatch(
             submitDetailsThunk({
-              category: propertyType,
+              category: submitCategory,
               id: draftId,
               payload: residential,
             }),
@@ -551,9 +556,9 @@ const ResidentialProfile = () => {
                 toast.success("Property listed successfully.");
                 clearFileStore("postProperty");
                 setFiles([]);
-                dispatch(resetPostProperty({ propertyType }));
+                dispatch(resetPostProperty({ propertyType: submitCategory as any }));
                 dispatch(showAgentSubmissionSuccess());
-                dispatch(createDraftThunk(propertyType))
+                dispatch(createDraftThunk(submitCategory))
                   .unwrap()
                   .catch(() => {
                     toast.error("Property submitted, but new draft creation failed.");
@@ -561,7 +566,7 @@ const ResidentialProfile = () => {
                 return;
               }
 
-              await dispatch(getMyDraftThunk(propertyType)).unwrap();
+              await dispatch(getMyDraftThunk(submitCategory)).unwrap();
               dispatch(nextStep());
             })
             .catch((error: any) => {

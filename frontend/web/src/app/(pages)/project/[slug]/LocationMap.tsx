@@ -3,7 +3,7 @@
 import { LOCATION_ICON_PATH, LOCATION_ICON_VIEWBOX } from "@/icons/icons";
 import { FeaturedProject } from "@/types";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FiMapPin } from "react-icons/fi";
+import { FiCheck, FiMapPin } from "react-icons/fi";
 
 type LocationMapProps = {
   project: FeaturedProject;
@@ -42,7 +42,6 @@ type MapplsGlobal = {
 
 type MarkerRefItem = {
   marker: unknown;
-  listIndex: number | null;
   coords: [number, number];
 };
 
@@ -100,19 +99,18 @@ function normalizeCoords(coords?: [number, number] | number[]): [number, number]
   const lat = Number(coords[1]);
 
   if (!Number.isFinite(lng) || !Number.isFinite(lat)) return undefined;
+  if (lng === 0 && lat === 0) return undefined;
+  if (lng < -180 || lng > 180 || lat < -90 || lat > 90) return undefined;
   return [lng, lat];
 }
 
-function haversine([lng1, lat1]: [number, number], [lng2, lat2]: [number, number]) {
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const R = 6371000;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+function getProjectLocationLabel(project: FeaturedProject) {
+  return (
+    [project.locality, project.city].filter(Boolean).join(", ") ||
+    [project.address, project.city].filter(Boolean).join(", ") ||
+    project.title ||
+    "Project location"
+  );
 }
 
 function createMarkerIconDataUrl(colorHex: string, size = 32, useProjectIcon = false) {
@@ -205,42 +203,25 @@ export default function LocationMap({ project }: LocationMapProps) {
   const mapInstanceRef = useRef<MapplsMapInstance | null>(null);
   const markersRef = useRef<MarkerRefItem[]>([]);
   const [mapError, setMapError] = useState<string | null>(null);
-  const [activePlaceIndex, setActivePlaceIndex] = useState<number | null>(null);
   const [mapReady, setMapReady] = useState(false);
-
-  const hasLocation =
-    Array.isArray(project.location?.coordinates) &&
-    project.location.coordinates.length >= 2;
-  const hasNearbyPlaces =
-    Array.isArray(project.nearbyPlaces) && project.nearbyPlaces.length > 0;
 
   const color = project.color?.trim() || "#10b981";
   const projectCenter = useMemo(
     () => normalizeCoords(project.location?.coordinates),
     [project.location?.coordinates],
   );
-  const nearbyPlaces = useMemo(
+  const projectLocationLabel = useMemo(() => getProjectLocationLabel(project), [project]);
+  const nearbyLocations = useMemo(
     () =>
       (project.nearbyPlaces ?? [])
         .slice()
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-        .map((place) => ({ ...place, coords: normalizeCoords(place.coordinates) }))
-        .filter((place) => place.coords),
+        .map((place) => ({
+          name: place.name?.split(",")[0]?.trim(),
+          distanceText: place.distanceText?.trim(),
+        }))
+        .filter((place) => place.name && place.distanceText),
     [project.nearbyPlaces],
-  );
-
-  const placesWithDistance = useMemo(
-    () =>
-      nearbyPlaces.map((place) => {
-        if (!projectCenter || !place.coords) {
-          return { ...place, distanceText: place.distanceText };
-        }
-
-        const meters = haversine(projectCenter, place.coords);
-        const distanceText = meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${Math.round(meters)} m`;
-        return { ...place, distanceText };
-      }),
-    [nearbyPlaces, projectCenter],
   );
 
   useEffect(() => {
@@ -254,9 +235,8 @@ export default function LocationMap({ project }: LocationMapProps) {
 
       if (!mapRef.current) return;
 
-      const fallbackCenter = placesWithDistance[0]?.coords;
-      const center = projectCenter ?? fallbackCenter;
-      if (!center) return;
+      if (!projectCenter) return;
+      const center = projectCenter;
 
       try {
         setMapError(null);
@@ -283,45 +263,17 @@ export default function LocationMap({ project }: LocationMapProps) {
           cleanupMarkerInstances(map, markersRef.current);
           markersRef.current = [];
 
-          if (projectCenter) {
-            const [lng, lat] = projectCenter;
-            const mainMarker = new mapplsSdk.Marker({
-              map,
-              position: { lat, lng },
-              icon: createMarkerIconDataUrl(color, 36, true),
-              width: 36,
-              height: 36,
-              popupHtml: `<strong>${escapeHtml(project.title || "Project location")}</strong>`,
-            });
-
-            markersRef.current.push({ marker: mainMarker, listIndex: null, coords: projectCenter });
-          }
-
-          placesWithDistance.forEach((place, index) => {
-            if (!place.coords) return;
-
-            const coords = place.coords;
-            const [lng, lat] = coords;
-            const marker = new mapplsSdk.Marker({
-              map,
-              position: { lat, lng },
-              icon: createMarkerIconDataUrl(color),
-              width: 32,
-              height: 32,
-              popupHtml: `<div style="font-weight:600">${escapeHtml(place.name ?? "Nearby place")}</div><div style="font-size:12px;color:#444;margin-top:4px">${escapeHtml([place.type ?? "Place", place.distanceText].filter(Boolean).join(" - "))}</div>`,
-            });
-
-            const markerAny = marker as MapplsMarkerInstance;
-            const selectMarker = () => {
-              setActivePlaceIndex(index);
-              focusMapOn(map, coords);
-            };
-            if (typeof markerAny.on === "function") markerAny.on("click", selectMarker);
-            if (typeof markerAny.addListener === "function") markerAny.addListener("click", selectMarker);
-
-            markersRef.current.push({ marker, listIndex: index, coords });
+          const [lng, lat] = center;
+          const mainMarker = new mapplsSdk.Marker({
+            map,
+            position: { lat, lng },
+            icon: createMarkerIconDataUrl(color, 36, true),
+            width: 36,
+            height: 36,
+            popupHtml: `<div style="font-weight:600">${escapeHtml(project.title || "Project location")}</div><div style="font-size:12px;color:#444;margin-top:4px">${escapeHtml(projectLocationLabel)}</div>`,
           });
 
+          markersRef.current.push({ marker: mainMarker, coords: center });
           focusMapOn(map, center);
         };
 
@@ -359,31 +311,18 @@ export default function LocationMap({ project }: LocationMapProps) {
       mapInstanceRef.current = null;
       setMapReady(false);
     };
-  }, [apiKey, color, mapContainerId, placesWithDistance, project.title, projectCenter]);
+  }, [apiKey, color, mapContainerId, project.title, projectCenter, projectLocationLabel]);
 
-  useEffect(() => {
-    if (!mapReady || activePlaceIndex === null) return;
-
-    const markerItem = markersRef.current.find((item) => item.listIndex === activePlaceIndex);
-    if (!markerItem) return;
-
-    focusMapOn(mapInstanceRef.current, markerItem.coords);
-    window.setTimeout(() => openMarkerPopup(markerItem.marker), 120);
-  }, [activePlaceIndex, mapReady]);
-
-  if (!hasLocation && !hasNearbyPlaces) {
+  if (!projectCenter) {
     return null;
   }
 
-  function onNearbyPlaceClick(index: number, coords?: [number, number]) {
-    setActivePlaceIndex(index);
+  function onProjectLocationClick() {
+    if (!projectCenter) return;
 
-    const markerItem = markersRef.current.find((item) => item.listIndex === index);
-    const targetCoords = coords ?? markerItem?.coords;
-    if (targetCoords) {
-      focusMapOn(mapInstanceRef.current, targetCoords);
-    }
+    focusMapOn(mapInstanceRef.current, projectCenter);
 
+    const markerItem = markersRef.current[0];
     if (mapReady && markerItem) {
       window.setTimeout(() => openMarkerPopup(markerItem.marker), 120);
     }
@@ -398,7 +337,7 @@ export default function LocationMap({ project }: LocationMapProps) {
           </h2>
           <div className="p-3 sm:p-5">
             <div className="space-y-4 sm:space-y-5">
-              <div className="relative overflow-hidden rounded-md border border-slate-100 shadow-sm contain-paint] isolate">
+              <div className="relative overflow-hidden rounded-md border border-slate-100 shadow-sm contain-paint isolate">
                 {mapError ? (
                   <div className="flex h-[260px] w-full items-center justify-center px-4 text-center text-sm text-slate-500 sm:h-[420px]">
                     {mapError}
@@ -408,41 +347,53 @@ export default function LocationMap({ project }: LocationMapProps) {
                 )}
               </div>
 
-              {placesWithDistance.length > 0 && (
-                <div className="rounded-md">
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 xl:grid-cols-3">
-                    {placesWithDistance.map((place, index) => {
-                      const isActive = activePlaceIndex === index;
+              <div className="rounded-md">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 xl:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={onProjectLocationClick}
+                    className="flex w-full cursor-pointer items-start gap-2 rounded-md border border-emerald-400 bg-white p-2 text-left shadow-sm transition sm:gap-3 sm:p-3"
+                  >
+                    <span
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md sm:h-9 sm:w-9"
+                      style={{ backgroundColor: `${color}14`, color }}
+                    >
+                      <FiMapPin className="h-4 w-4" />
+                    </span>
 
-                      return (
-                        <button
-                          key={`${place.name ?? "place"}-${index}`}
-                          type="button"
-                          onClick={() => onNearbyPlaceClick(index, place.coords)}
-                          className={`flex w-full items-start gap-2 rounded-md border bg-white p-2 text-left transition sm:gap-3 sm:p-3 cursor-pointer ${
-                            isActive
-                              ? "border-emerald-400 shadow-sm"
-                              : "border-slate-100 hover:border-slate-200 hover:bg-slate-50"
-                          }`}
+                    <span className="min-w-0">
+                      <span className="block truncate text-xs font-medium text-slate-950 sm:text-sm">
+                        {projectLocationLabel}
+                      </span>
+                      <span className="mt-1 block truncate text-[11px] text-slate-500 sm:text-xs">
+                        Project location
+                      </span>
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {nearbyLocations.length > 0 && (
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-3 sm:p-4">
+                  <h3 className="mb-3 text-sm font-semibold text-slate-950 sm:text-base">Additional locations</h3>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {nearbyLocations.map((place, index) => (
+                      <div
+                        key={`${place.name}-${index}`}
+                        className="flex min-w-0 items-center gap-2 rounded-md border border-slate-100 bg-white px-3 py-2.5 text-sm text-slate-900"
+                      >
+                        <span
+                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border"
+                          style={{ backgroundColor: `${color}10`, borderColor: color, color }}
                         >
-                          <span
-                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md sm:h-9 sm:w-9"
-                            style={{ backgroundColor: `${color}14`, color }}
-                          >
-                            <FiMapPin className="h-4 w-4" />
-                          </span>
-
-                          <span className="min-w-0">
-                            <span className="block truncate text-xs font-medium text-slate-950 sm:text-sm">
-                              {place.name?.split(",")[0] ?? "Nearby place"}
-                            </span>
-                            <span className="mt-1 block truncate text-[11px] text-slate-500 sm:text-xs">
-                              {place.distanceText ?? ""}
-                            </span>
-                          </span>
-                        </button>
-                      );
-                    })}
+                          <FiCheck className="h-3 w-3" />
+                        </span>
+                        <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                          <span className="truncate font-medium text-slate-950">{place.name}</span>
+                          <span className="shrink-0 font-semibold text-slate-700">({place.distanceText})</span>
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

@@ -47,6 +47,10 @@ export interface IResidential {
   description?: string;
   bedrooms?: number;
   price?: number;
+  projectArea?: number;
+  totalTowers?: number;
+  totalUnits?: number;
+  availableUnits?: number;
   bathrooms?: number;
   balconies?: number;
   carpetArea?: number;

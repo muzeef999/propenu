@@ -59,6 +59,18 @@ type NominatimPincodeResult = {
   };
 };
 
+function getProjectBackendCategory(projectPropertyType?: string) {
+  if (["apartment", "villa"].includes(projectPropertyType ?? "")) {
+    return "residential";
+  }
+
+  if (["open-plot", "commercial-plot"].includes(projectPropertyType ?? "")) {
+    return "land";
+  }
+
+  return "project";
+}
+
 type PostalPincodeResponse = {
   Status?: string;
   PostOffice?: Array<{
@@ -172,7 +184,7 @@ const lookupPincodeWithOpenStreet = async (
 };
 
 const LocationDetailsStep = () => {
-  const { propertyType, base, draftId } = useSelector(
+  const { propertyType, base, draftId, project } = useSelector(
     (state: any) => state.postProperty,
   );
 
@@ -336,8 +348,12 @@ const LocationDetailsStep = () => {
     dispatch(setBaseField({ key: "pincode", value: numericValue }));
   };
 
+  const submitCategory =
+    propertyType === "project"
+      ? getProjectBackendCategory(project?.propertyType)
+      : propertyType;
   const isLandOrAgri =
-    propertyType === "land" || propertyType === "agricultural";
+    submitCategory === "land" || propertyType === "agricultural";
   const shouldAutoFocusMap = /^\d{6}$/.test(
     (base.pincode || "").replace(/\D/g, "")
   );
@@ -514,7 +530,7 @@ const LocationDetailsStep = () => {
 
           dispatch(
             submitLocationThunk({
-              category: propertyType,
+              category: submitCategory,
               id: draftId,
               data: base,
             }),

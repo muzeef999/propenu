@@ -100,16 +100,88 @@ function normalizeAreaUnit(unit?: string) {
   return unit?.trim() || "sq.ft";
 }
 
-function getUnitAreaForRate(unit?: ProjectSummaryUnit) {
+function isLandProperty(property: Property) {
+  const categoryType = (property as { categoryType?: string }).categoryType;
+  const category = (property as { category?: string }).category;
+
+  return [property.type, property.propertyType, categoryType, category].some(
+    (value) => {
+      const normalized = value?.trim().toLowerCase();
+      return normalized === "land" || normalized?.includes("plot");
+    },
+  );
+}
+
+function getRateUnitForProperty(property: Property) {
+  if (!isLandProperty(property)) return "sq.ft";
+
+  const units = (property.projectSummary ?? property.bhkSummary ?? []).flatMap(
+    (item) => item.units ?? [],
+  );
+  const areaUnit = units.find((unit) => unit.area?.unit)?.area?.unit;
+
+  return normalizeAreaUnit(areaUnit) || "sq.yd";
+}
+
+function convertAreaValue(value: number, fromUnit: string, toUnit: string) {
+  if (fromUnit === toUnit) return value;
+
+  const sqftValueByUnit: Record<string, number> = {
+    "sq.ft": 1,
+    "sq.yd": 9,
+    "sq.mt": 10.7639,
+    guntas: 1089,
+  };
+
+  const fromSqftMultiplier = sqftValueByUnit[fromUnit];
+  const toSqftMultiplier = sqftValueByUnit[toUnit];
+
+  if (!fromSqftMultiplier || !toSqftMultiplier) return value;
+
+  return (value * fromSqftMultiplier) / toSqftMultiplier;
+}
+
+function convertRateValue(value: number, fromUnit: string, toUnit: string) {
+  if (fromUnit === toUnit) return value;
+
+  const sqftValueByUnit: Record<string, number> = {
+    "sq.ft": 1,
+    "sq.yd": 9,
+    "sq.mt": 10.7639,
+    guntas: 1089,
+  };
+
+  const fromSqftMultiplier = sqftValueByUnit[fromUnit];
+  const toSqftMultiplier = sqftValueByUnit[toUnit];
+
+  if (!fromSqftMultiplier || !toSqftMultiplier) return value;
+
+  return (value * toSqftMultiplier) / fromSqftMultiplier;
+}
+
+function normalizeAreaForRate(
+  area: { value: number; unit: string },
+  rateUnit: string,
+) {
+  return {
+    value: convertAreaValue(area.value, area.unit, rateUnit),
+    unit: rateUnit,
+  };
+}
+
+function getUnitAreaForRate(unit?: ProjectSummaryUnit, rateUnit = "sq.ft") {
   if (
     typeof unit?.area?.value === "number" &&
     Number.isFinite(unit.area.value) &&
     unit.area.value > 0
   ) {
-    return {
-      value: unit.area.value,
-      unit: normalizeAreaUnit(unit.area.unit),
-    };
+    return normalizeAreaForRate(
+      {
+        value: unit.area.value,
+        unit: normalizeAreaUnit(unit.area.unit),
+      },
+      rateUnit,
+    );
   }
 
   if (
@@ -117,10 +189,13 @@ function getUnitAreaForRate(unit?: ProjectSummaryUnit) {
     Number.isFinite(unit.area.sqftValue) &&
     unit.area.sqftValue > 0
   ) {
-    return {
-      value: unit.area.sqftValue,
-      unit: "sq.ft",
-    };
+    return normalizeAreaForRate(
+      {
+        value: unit.area.sqftValue,
+        unit: "sq.ft",
+      },
+      rateUnit,
+    );
   }
 
   if (
@@ -128,10 +203,13 @@ function getUnitAreaForRate(unit?: ProjectSummaryUnit) {
     Number.isFinite(unit.minSqft) &&
     unit.minSqft > 0
   ) {
-    return {
-      value: unit.minSqft,
-      unit: "sq.ft",
-    };
+    return normalizeAreaForRate(
+      {
+        value: unit.minSqft,
+        unit: "sq.ft",
+      },
+      rateUnit,
+    );
   }
 
   return null;
@@ -150,13 +228,14 @@ function formatPricePerUnit(pricePerUnit: number, unit: string) {
 }
 
 function getPricePerSqftLabel(property: Property) {
+  const rateUnit = getRateUnitForProperty(property);
   const units = (property.projectSummary ?? property.bhkSummary ?? []).flatMap(
     (item) => item.units ?? [],
   );
   const unitRates = units
     .map((unit) => {
       const price = unit.minPrice ?? unit.price;
-      const area = getUnitAreaForRate(unit);
+      const area = getUnitAreaForRate(unit, rateUnit);
 
       if (
         typeof price !== "number" ||
@@ -185,7 +264,7 @@ function getPricePerSqftLabel(property: Property) {
   if (unitRateLabel) return unitRateLabel;
 
   const minArea = units
-    .map(getUnitAreaForRate)
+    .map((unit) => getUnitAreaForRate(unit, rateUnit))
     .filter((area): area is { value: number; unit: string } => Boolean(area))
     .sort((a, b) => a.value - b.value)[0];
   const derivedPricePerUnit =
@@ -200,15 +279,20 @@ function getPricePerSqftLabel(property: Property) {
       typeof property.sqftRange?.min === "number" &&
       property.sqftRange.min > 0
       ? {
-        value: property.priceFrom / property.sqftRange.min,
-        unit: "sq.ft",
+        value:
+          property.priceFrom /
+          convertAreaValue(property.sqftRange.min, "sq.ft", rateUnit),
+        unit: rateUnit,
       }
       : undefined;
   const directPricePerSqft =
     typeof property.pricePerSqft === "number"
       ? {
-        value: property.pricePerSqft,
-        unit: "sq.ft",
+        value:
+          rateUnit === "sq.yd"
+            ? convertRateValue(property.pricePerSqft, "sq.ft", rateUnit)
+            : property.pricePerSqft,
+        unit: rateUnit,
       }
       : undefined;
   const rate = derivedPricePerUnit ?? derivedPricePerSqft ?? directPricePerSqft;

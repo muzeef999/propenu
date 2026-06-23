@@ -314,7 +314,7 @@ export async function stampListingUpdateAudit(Model: any, property: any, authUse
   if (!audit || !property) return;
 
   property.lastUpdatedBy = audit;
-  property.updateHistory = [...(property.updateHistory || []), audit];
+  property.updateHistory = [audit];
   property.updateCount = Number(property.updateCount || 0) + 1;
 }
 

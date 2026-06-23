@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   RESIDENTIAL_PROPERTY_KEYS,
   COMMERCIAL_PROPERTY_KEYS,
+  PROJECT_PROPERTY_KEYS,
 } from "@/app/(pages)/postproperty/constants/subTypes";
 
 export const basicDetailsSchema = z
@@ -11,7 +12,7 @@ export const basicDetailsSchema = z
       message: "Listing type is required",
     }),
 
-    category: z.enum(["residential", "commercial", "land", "agricultural"], {
+    category: z.enum(["residential", "commercial", "land", "agricultural", "project"], {
       message: "Property type is required",
     }),
 
@@ -34,6 +35,10 @@ export const basicDetailsSchema = z
     builtUpArea: z.union([z.string(), z.number()]).optional(),
 
     plotArea: z.union([z.string(), z.number()]).optional(),
+    projectArea: z.union([z.string(), z.number()]).optional(),
+    totalTowers: z.union([z.string(), z.number()]).optional(),
+    totalUnits: z.union([z.string(), z.number()]).optional(),
+    availableUnits: z.union([z.string(), z.number()]).optional(),
     totalArea: z.any().optional(),
     roadWidthFt: z.union([z.string(), z.number()]).optional(),
     roadWidth: z.any().optional(),
@@ -79,6 +84,12 @@ export const basicDetailsSchema = z
       cabins,
       seats,
     } = data;
+    const isProjectResidential =
+      category === "project" &&
+      (propertyType === "apartment" || propertyType === "villa");
+    const isProjectLand =
+      category === "project" &&
+      (propertyType === "open-plot" || propertyType === "commercial-plot");
 
     /* ================= PROPERTY TYPE ================= */
     if (
@@ -93,7 +104,7 @@ export const basicDetailsSchema = z
     }
 
     /* ================= RESIDENTIAL COUNTERS ================= */
-    if (category === "residential" && propertyType) {
+    if ((category === "residential" && propertyType) || isProjectResidential) {
       if (data.bedrooms == null) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -112,7 +123,10 @@ export const basicDetailsSchema = z
     }
 
     /* ================= FURNISHING ================= */
-    if (category === "residential" && propertyType && !data.furnishing) {
+    if (
+      ((category === "residential" && propertyType) || isProjectResidential) &&
+      !data.furnishing
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["furnishing"],
@@ -134,11 +148,22 @@ export const basicDetailsSchema = z
     }
 
     /* ================= FACING ================= */
-    if (category === "residential" && propertyType && !facing) {
+    if (
+      ((category === "residential" && propertyType) || isProjectResidential) &&
+      !facing
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["facing"],
         message: "Please select facing",
+      });
+    }
+
+    if (category === "project" && !propertyType) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["propertyType"],
+        message: "Please select a project sub-type",
       });
     }
 
@@ -151,7 +176,7 @@ export const basicDetailsSchema = z
     }
 
     /* ================= LAND ================= */
-    if (category === "land" && !data.landSubType) {
+    if ((category === "land" || isProjectLand) && !data.landSubType) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["landSubType"],
@@ -160,7 +185,7 @@ export const basicDetailsSchema = z
     }
 
     /* ================= LAND DIMENSIONS ================= */
-    if (category === "land" && data.dimensions) {
+    if ((category === "land" || isProjectLand) && data.dimensions) {
       const length = Number(data.dimensions.length);
       const width = Number(data.dimensions.width);
 
@@ -222,8 +247,26 @@ export const basicDetailsSchema = z
       });
     }
 
+    if (
+      category === "project" &&
+      propertyType &&
+      !PROJECT_PROPERTY_KEYS.includes(
+        propertyType as (typeof PROJECT_PROPERTY_KEYS)[number],
+      )
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["propertyType"],
+        message: "Invalid project property type",
+      });
+    }
+
     /* ================= PRICING ================= */
-    if (category === "residential" || category === "commercial") {
+    if (
+      category === "residential" ||
+      category === "commercial" ||
+      isProjectResidential
+    ) {
       if (!price || Number(price) <= 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -263,7 +306,7 @@ export const basicDetailsSchema = z
       }
     }
 
-    if (category === "land") {
+    if (category === "land" || isProjectLand) {
       if (!price || Number(price) <= 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -291,7 +334,7 @@ export const basicDetailsSchema = z
 
     /* ================= AVAILABILITY ================= */
     if (
-      (category === "residential" && facing) ||
+      ((category === "residential" || isProjectResidential) && facing) ||
       (category === "commercial" && facing && data.wallFinishStatus)
     ) {
       if (!constructionStatus) {
@@ -304,7 +347,7 @@ export const basicDetailsSchema = z
     }
 
     if (
-      category === "residential" &&
+      (category === "residential" || isProjectResidential) &&
       constructionStatus === "ready-to-move" &&
       !propertyAge
     ) {
@@ -317,7 +360,9 @@ export const basicDetailsSchema = z
 
     /* ================= TRANSACTION TYPE ================= */
     if (
-      (category === "residential" || category === "commercial") &&
+      (category === "residential" ||
+        category === "commercial" ||
+        isProjectResidential) &&
       constructionStatus &&
       !data.transactionType
     ) {

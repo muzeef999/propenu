@@ -78,6 +78,22 @@ export const COMMERCIAL_SUBTYPE_MAP = {
 export type CommercialSubType =
   (typeof COMMERCIAL_SUBTYPE_MAP)[keyof typeof COMMERCIAL_SUBTYPE_MAP][number];
 
+export const PROJECT_PROPERTY_OPTIONS: PropertyTypeOption[] = [
+  { key: "apartment", label: "Apartment", icon: <AppartmentIcons /> },
+  { key: "villa", label: "Villas", icon: <VillaIcons /> },
+  { key: "open-plot", label: "Openplot", icon: "OP" },
+  { key: "commercial-plot", label: "Commercial Plot", icon: "C" },
+];
+
+export const PROJECT_PROPERTY_KEYS = [
+  "apartment",
+  "villa",
+  "open-plot",
+  "commercial-plot",
+] as const;
+
+export type ProjectPropertyKey = (typeof PROJECT_PROPERTY_KEYS)[number];
+
 
 export const LAND_PROPERTY_OPTIONS: PropertyTypeOption[] = [
   { key: "residential-plot", label: "Residential Plot", icon: "🏠" },

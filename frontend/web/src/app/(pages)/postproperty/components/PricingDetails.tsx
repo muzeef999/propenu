@@ -6,7 +6,7 @@ import InputWithUnit from "@/ui/InputwithUnit";
 import { numberToWords } from "@/utilies/NumberToWord";
 
 type PricingDetailsProps = {
-  propertyType: "residential" | "commercial" | "land" | "agricultural";
+  propertyType: "residential" | "commercial" | "land" | "agricultural" | "project";
   data: any;
   fieldErrors: any;
   listingType?: string;
@@ -41,7 +41,10 @@ export default function PricingDetails({
 }: PricingDetailsProps) {
   const dispatch = useDispatch();
   const isAgricultural = propertyType === "agricultural";
-  const isLand = propertyType === "land";
+  const isProjectLand =
+    propertyType === "project" &&
+    ["open-plot", "commercial-plot"].includes(data.propertyType);
+  const isLand = propertyType === "land" || isProjectLand;
   const isRentOrLease = ["rent", "lease"].includes(
     String(listingType ?? data.listingType ?? "").toLowerCase(),
   );

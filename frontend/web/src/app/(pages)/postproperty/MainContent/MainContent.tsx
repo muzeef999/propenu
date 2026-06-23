@@ -36,10 +36,22 @@ const safeCurrentStep = Math.min(Math.max(currentStep || 1, 1), maxStep);
 useEffect(() => {
   if (typeof window === "undefined") return;
 
-  setRoleName(String(localStorage.getItem("role") ?? "").toLowerCase());
+  const storedRoleName = String(localStorage.getItem("role") ?? "").toLowerCase();
+  const normalizedStoredRoleName = storedRoleName.replace(/[-\s]+/g, "_");
+  const canPostProject =
+    normalizedStoredRoleName === "agent" ||
+    normalizedStoredRoleName === "sales_agent";
+
+  setRoleName(storedRoleName);
 
   const storedType = editCategory ?? localStorage.getItem("postproperty:propertyType");
-  const allowedTypes: PropertyCategory[] = [
+  const allowedTypes: PropertyCategory[] = canPostProject ? [
+    "residential",
+    "commercial",
+    "land",
+    "agricultural",
+    "project",
+  ] : [
     "residential",
     "commercial",
     "land",
@@ -63,6 +75,7 @@ useEffect(() => {
   if (!isBootstrapped) return;
   // property type not selected yet
   if (!propertyType) return;
+  if (propertyType === "project") return;
 
   if (editId) {
     dispatch(

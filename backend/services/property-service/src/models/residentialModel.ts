@@ -33,6 +33,10 @@ const ResidentialSchema = new Schema<IResidential>(
       maxlength: 120,
       index: true,
     },
+    projectArea: { type: Number, min: 0 },
+    totalTowers: { type: Number, min: 0 },
+    totalUnits: { type: Number, min: 0 },
+    availableUnits: { type: Number, min: 0 },
 
     promotion: {
   type: PromotionSchema,

@@ -5,9 +5,7 @@ import LandProfile from "../profile/LandProfile";
 import AgriculturalProfile from "../profile/AgriculturalProfile";
 
 const PropertyProfileStep = () => {
-  const propertyType = useAppSelector(
-    (state) => state.postProperty.propertyType
-  );
+  const { propertyType, project } = useAppSelector((state) => state.postProperty);
 
  
 
@@ -23,6 +21,17 @@ const PropertyProfileStep = () => {
 
     case "agricultural":
       return <AgriculturalProfile />;
+
+    case "project":
+      if (["apartment", "villa"].includes(project.propertyType)) {
+        return <ResidentialProfile />;
+      }
+
+      if (["open-plot", "commercial-plot"].includes(project.propertyType)) {
+        return <LandProfile />;
+      }
+
+      return null;
 
     default:
       return null;

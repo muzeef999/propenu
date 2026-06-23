@@ -107,6 +107,10 @@ export interface IResidential extends IListingAuditFields {
   bhk?: number;
   bedrooms?: number;
   buildingName?: string;
+  projectArea?: number;
+  totalTowers?: number;
+  totalUnits?: number;
+  availableUnits?: number;
   bathrooms?: number;
   balconies?: number;
   carpetArea?: number;

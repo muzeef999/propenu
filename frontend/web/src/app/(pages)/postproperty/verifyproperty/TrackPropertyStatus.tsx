@@ -4,6 +4,7 @@ import React from "react";
 
 type TrackPropertyStatusProps = {
   isApproved: boolean;
+  isUnderReview?: boolean;
   submittedAt?: string;
   reviewAt?: string;
   approvedAt?: string;
@@ -23,14 +24,25 @@ const formatDate = (value?: string) => {
 
 const TrackPropertyStatus: React.FC<TrackPropertyStatusProps> = ({
   isApproved,
+  isUnderReview = false,
   submittedAt,
   reviewAt,
   approvedAt,
   onGoToMyProperties,
 }) => {
   const steps = [
-    { id: 1, label: "Submitted", date: submittedAt, active: true },
-    { id: 2, label: "Under Review", date: reviewAt, active: true }, // Assuming step 2 is always reached if viewing this
+    {
+      id: 1,
+      label: isUnderReview || isApproved ? "Submitted" : "Ongoing",
+      date: submittedAt,
+      active: true,
+    },
+    {
+      id: 2,
+      label: "Under Review",
+      date: reviewAt,
+      active: isUnderReview || isApproved,
+    },
     { id: 3, label: "Approved & Live", date: approvedAt, active: isApproved },
   ];
 

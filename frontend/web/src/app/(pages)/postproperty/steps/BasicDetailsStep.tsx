@@ -4,6 +4,7 @@ import {
   nextStep,
   setBaseField,
   setProfileField,
+  setDraftId,
   setStep,
 } from "@/Redux/slice/postPropertySlice";
 import SelectableButton from "@/ui/SelectableButton";
@@ -17,6 +18,7 @@ import {
   RESIDENTIAL_PROPERTY_OPTIONS,
   COMMERCIAL_PROPERTY_OPTIONS,
   COMMERCIAL_SUBTYPE_MAP,
+  PROJECT_PROPERTY_OPTIONS,
   LAND_PROPERTY_OPTIONS,
   LAND_PROPERTY_SUBTYPES,
   AGRICULTURAL_PROPERTY_OPTIONS,
@@ -25,6 +27,7 @@ import {
 import InputField from "@/ui/InputField";
 import LoginDialog from "@/app/(auth)/Login";
 import { submitBasicThunk } from "@/Redux/thunks/submitPropertyApi";
+import { createDraftApi } from "@/Redux/apis";
 import { AppDispatch } from "@/Redux/store";
 import CounterField from "@/ui/CounterField";
 import Dropdownui from "@/ui/DropDownUI";
@@ -37,6 +40,23 @@ import { InfoIcon } from "@/icons/icons";
 import { useAppDispatch, useAppSelector } from "@/Redux/store";
 import RegisterDialog from "@/app/(auth)/Register";
 
+function getProjectBackendCategory(projectPropertyType?: string) {
+  if (["apartment", "villa"].includes(projectPropertyType ?? "")) {
+    return "residential";
+  }
+
+  if (["open-plot", "commercial-plot"].includes(projectPropertyType ?? "")) {
+    return "land";
+  }
+
+  return "project";
+}
+
+function normalizeProjectPropertyTypeForBackend(projectPropertyType?: string) {
+  if (projectPropertyType === "open-plot") return "residential-plot";
+  return projectPropertyType;
+}
+
 export default function BasicDetailsStep() {
   const searchParams = useSearchParams();
   const isEditMode = Boolean(searchParams.get("editId"));
@@ -47,6 +67,7 @@ export default function BasicDetailsStep() {
     commercial,
     land,
     agricultural,
+    project,
     draftId,
   } = useAppSelector((state) => state.postProperty);
 
@@ -64,6 +85,7 @@ export default function BasicDetailsStep() {
   const [showRoomDetails, setShowRoomDetails] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
+  const [canPostProject, setCanPostProject] = useState(false);
   // const dispatch = useDispatch<AppDispatch>();
 
   const dispatch = useAppDispatch();
@@ -71,7 +93,23 @@ export default function BasicDetailsStep() {
   useEffect(() => {
     const token = Cookies.get("token");
     setIsLoggedIn(!!token);
+
+    if (typeof window !== "undefined") {
+      const normalizedRole = String(localStorage.getItem("role") ?? "")
+        .toLowerCase()
+        .replace(/[-\s]+/g, "_");
+
+      setCanPostProject(
+        normalizedRole === "agent" || normalizedRole === "sales_agent",
+      );
+    }
   }, []);
+
+  useEffect(() => {
+    if (!canPostProject && propertyType === "project") {
+      dispatch(setPropertyType("residential"));
+    }
+  }, [canPostProject, dispatch, propertyType]);
 
   // useEffect(() => {
   //   if (!propertyType) {
@@ -83,12 +121,18 @@ export default function BasicDetailsStep() {
     if (propertyType === "residential") {
       if (residential.propertyType) setShowRoomDetails(true);
       if (residential.facing) setShowPricing(true);
+    } else if (
+      propertyType === "project" &&
+      ["apartment", "villa"].includes(project.propertyType)
+    ) {
+      setShowRoomDetails(true);
+      if (project.facing) setShowPricing(true);
     } else {
       // Reset when switching away from residential
       setShowRoomDetails(false);
       setShowPricing(false);
     }
-  }, [propertyType, residential]);
+  }, [propertyType, residential, project]);
 
   const listingOptions = [
     { label: "Sale", value: "sale" },
@@ -103,7 +147,9 @@ export default function BasicDetailsStep() {
         ? commercial
         : propertyType === "land"
           ? land
-          : agricultural;
+          : propertyType === "agricultural"
+            ? agricultural
+            : project;
 
   const profileData =
     propertyType === "residential"
@@ -112,7 +158,26 @@ export default function BasicDetailsStep() {
         ? commercial
         : propertyType === "land"
           ? land
-          : agricultural;
+          : propertyType === "agricultural"
+            ? agricultural
+            : project;
+
+  const isProjectResidentialFlow =
+    propertyType === "project" &&
+    ["apartment", "villa"].includes(project.propertyType);
+  const residentialFlowData = isProjectResidentialFlow ? project : residential;
+  const residentialFlowPropertyType = isProjectResidentialFlow
+    ? "project"
+    : "residential";
+  const showResidentialFlow =
+    (propertyType === "residential" && showRoomDetails) ||
+    isProjectResidentialFlow;
+  const isProjectLandFlow =
+    propertyType === "project" &&
+    ["open-plot", "commercial-plot"].includes(project.propertyType);
+  const landFlowData = isProjectLandFlow ? project : land;
+  const landFlowPropertyType = isProjectLandFlow ? "project" : "land";
+  const showLandFlow = propertyType === "land" || isProjectLandFlow;
 
   const validationResult = propertyType
     ? validateBasicDetails(
@@ -148,7 +213,9 @@ export default function BasicDetailsStep() {
           ? LAND_PROPERTY_OPTIONS
           : propertyType === "agricultural"
             ? AGRICULTURAL_PROPERTY_OPTIONS
-            : [];
+            : propertyType === "project"
+              ? PROJECT_PROPERTY_OPTIONS
+              : [];
 
   const selectedCommercialType = commercial.propertyType;
   const commercialSubTypes =
@@ -168,7 +235,7 @@ export default function BasicDetailsStep() {
       : "Your contact details for tenants to reach you";
 
   const landSubTypes =
-    propertyType === "land"
+    showLandFlow
       ? (LAND_PROPERTY_SUBTYPES as readonly string[])
       : [];
 
@@ -225,7 +292,8 @@ export default function BasicDetailsStep() {
       <h2 className="text-sm font-medium text-gray-700">Property Type</h2>
 
       <div className="mb-2 flex flex-wrap items-center gap-3 sm:gap-6">
-        {["residential", "commercial", "land", "agricultural"]
+        {["residential", "commercial", "land", "agricultural", "project"]
+          .filter((type) => type !== "project" || canPostProject)
           .filter((type) => !isEditMode || propertyType === type)
           .map((type) => (
           <label
@@ -284,7 +352,11 @@ export default function BasicDetailsStep() {
                               value: sub.key,
                             }),
                           );
-                          if (propertyType === "residential") {
+                          if (
+                            propertyType === "residential" ||
+                            (propertyType === "project" &&
+                              ["apartment", "villa"].includes(sub.key))
+                          ) {
                             setShowRoomDetails(true);
                           }
                         }
@@ -312,19 +384,95 @@ export default function BasicDetailsStep() {
               )}
             </div>
 
+            {propertyType === "project" && project.propertyType && (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {project.propertyType !== "open-plot" && (
+                  <>
+                    <InputField
+                      label="Project Total Area"
+                      type="number"
+                      placeholder="e.g. 5"
+                      value={project.projectArea ?? ""}
+                      error={fieldErrors.projectArea?.[0]}
+                      onChange={(value) =>
+                        dispatch(
+                          setProfileField({
+                            propertyType: "project",
+                            key: "projectArea",
+                            value: value.replace(/[^0-9.]/g, ""),
+                          }),
+                        )
+                      }
+                    />
+
+                    <InputField
+                      label="No. of Towers"
+                      type="number"
+                      placeholder="e.g. 3"
+                      value={project.totalTowers ?? ""}
+                      error={fieldErrors.totalTowers?.[0]}
+                      onChange={(value) =>
+                        dispatch(
+                          setProfileField({
+                            propertyType: "project",
+                            key: "totalTowers",
+                            value: value.replace(/[^0-9]/g, ""),
+                          }),
+                        )
+                      }
+                    />
+                  </>
+                )}
+
+                <InputField
+                  label="Total Units"
+                  type="number"
+                  placeholder="e.g. 240"
+                  value={project.totalUnits ?? ""}
+                  error={fieldErrors.totalUnits?.[0]}
+                  onChange={(value) =>
+                    dispatch(
+                      setProfileField({
+                        propertyType: "project",
+                        key: "totalUnits",
+                        value: value.replace(/[^0-9]/g, ""),
+                      }),
+                    )
+                  }
+                />
+
+                <InputField
+                  label="Available Units"
+                  type="number"
+                  placeholder="e.g. 36"
+                  value={project.availableUnits ?? ""}
+                  error={fieldErrors.availableUnits?.[0]}
+                  onChange={(value) =>
+                    dispatch(
+                      setProfileField({
+                        propertyType: "project",
+                        key: "availableUnits",
+                        value: value.replace(/[^0-9]/g, ""),
+                      }),
+                    )
+                  }
+                />
+              </div>
+            )}
+
             {/* RESIDENTIAL DETAILS */}
-            {propertyType === "residential" && showRoomDetails && (
+            {showResidentialFlow && (
               <div className="space-y-6">
                 {/* Counters */}
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
                   <CounterField
                     label="Bedrooms"
-                    value={residential.bedrooms || 0}
+                    value={residentialFlowData.bedrooms || 0}
                     min={1}
                     onChange={(value) => {
                       dispatch(
                         setProfileField({
-                          propertyType: "residential",
+                          propertyType: residentialFlowPropertyType,
                           key: "bedrooms",
                           value,
                         }),
@@ -335,12 +483,12 @@ export default function BasicDetailsStep() {
 
                   <CounterField
                     label="Bathrooms"
-                    value={residential.bathrooms || 0}
+                    value={residentialFlowData.bathrooms || 0}
                     min={1}
                     onChange={(value) => {
                       dispatch(
                         setProfileField({
-                          propertyType: "residential",
+                          propertyType: residentialFlowPropertyType,
                           key: "bathrooms",
                           value,
                         }),
@@ -351,12 +499,12 @@ export default function BasicDetailsStep() {
 
                   <CounterField
                     label="Balconies"
-                    value={residential.balconies || 0}
+                    value={residentialFlowData.balconies || 0}
                     min={0}
                     onChange={(value) => {
                       dispatch(
                         setProfileField({
-                          propertyType: "residential",
+                          propertyType: residentialFlowPropertyType,
                           key: "balconies",
                           value,
                         }),
@@ -378,7 +526,8 @@ export default function BasicDetailsStep() {
                         { label: "Semi-Furnished", value: "semi-furnished" },
                         { label: "Unfurnished", value: "unfurnished" },
                       ].map((item) => {
-                        const active = residential.furnishing === item.value;
+                        const active =
+                          residentialFlowData.furnishing === item.value;
 
                         return (
                           <button
@@ -387,7 +536,7 @@ export default function BasicDetailsStep() {
                             onClick={() =>
                               dispatch(
                                 setProfileField({
-                                  propertyType: "residential",
+                                  propertyType: residentialFlowPropertyType,
                                   key: "furnishing",
                                   value: item.value,
                                 }),
@@ -415,11 +564,11 @@ export default function BasicDetailsStep() {
                   {/* Facing */}
                   <Dropdownui
                     label="Facing"
-                    value={residential.facing ?? null}
+                    value={residentialFlowData.facing ?? null}
                     onChange={(value: string) => {
                       dispatch(
                         setProfileField({
-                          propertyType: "residential",
+                          propertyType: residentialFlowPropertyType,
                           key: "facing",
                           value, // already lowercase
                         })
@@ -621,7 +770,7 @@ export default function BasicDetailsStep() {
         </>
       )}
 
-      {propertyType === "land" && land.propertyType && (
+      {showLandFlow && landFlowData.propertyType && (
         <div className="mb-6">
           <p className="mb-3 text-sm font-medium text-gray-700">
             Land Details
@@ -629,7 +778,7 @@ export default function BasicDetailsStep() {
 
           <div className="flex flex-wrap gap-3">
             {landSubTypes.map((subType: string) => {
-              const isSelected = land.landSubType === subType;
+              const isSelected = landFlowData.landSubType === subType;
 
               return (
                 <button
@@ -638,7 +787,7 @@ export default function BasicDetailsStep() {
                   onClick={() =>
                     dispatch(
                       setProfileField({
-                        propertyType: "land",
+                        propertyType: landFlowPropertyType,
                         key: "landSubType",
                         value: subType,
                       }),
@@ -663,7 +812,7 @@ export default function BasicDetailsStep() {
           )}
         </div>
       )}
-      {propertyType === "land" && land.landSubType && (
+      {showLandFlow && landFlowData.landSubType && (
         <div className="rounded-md border border-green-500 bg-green-50 p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -682,15 +831,15 @@ export default function BasicDetailsStep() {
               label="Length"
               type="number"
               placeholder="e.g. 40"
-              value={land.dimensions?.length ?? ""}
+              value={landFlowData.dimensions?.length ?? ""}
               onChange={(value) =>
                 dispatch(
                   setProfileField({
-                    propertyType: "land",
+                    propertyType: landFlowPropertyType,
                     key: "dimensions",
                     value: {
                       length: value,
-                      width: land.dimensions?.width || "",
+                      width: landFlowData.dimensions?.width || "",
                     },
                   }),
                 )
@@ -707,14 +856,14 @@ export default function BasicDetailsStep() {
               label="Width"
               type="number"
               placeholder="e.g. 60"
-              value={land.dimensions?.width ?? ""}
+              value={landFlowData.dimensions?.width ?? ""}
               onChange={(value) =>
                 dispatch(
                   setProfileField({
-                    propertyType: "land",
+                    propertyType: landFlowPropertyType,
                     key: "dimensions",
                     value: {
-                      length: land.dimensions?.length || "",
+                      length: landFlowData.dimensions?.length || "",
                       width: value,
                     },
                   }),
@@ -770,18 +919,19 @@ export default function BasicDetailsStep() {
           )}
         </div>
       )}
-      {propertyType === "residential" && showPricing && (
+      {((propertyType === "residential" && showPricing) ||
+        (isProjectResidentialFlow && showPricing)) && (
         <PricingDetails
-          propertyType="residential"
-          data={residential}
+          propertyType={residentialFlowPropertyType}
+          data={residentialFlowData}
           fieldErrors={fieldErrors}
           listingType={base.listingType}
         />
       )}
-      {propertyType === "land" && land.landSubType && (
+      {showLandFlow && landFlowData.landSubType && (
         <PricingDetails
-          propertyType="land"
-          data={land}
+          propertyType={landFlowPropertyType}
+          data={landFlowData}
           fieldErrors={fieldErrors}
           listingType={base.listingType}
         />
@@ -798,9 +948,11 @@ export default function BasicDetailsStep() {
 
       {isLoggedIn &&
         propertyType !== null &&
-        ["residential", "commercial", "land"].includes(propertyType) && (
+        (["residential", "commercial", "land"].includes(propertyType) ||
+          isProjectResidentialFlow ||
+          isProjectLandFlow) && (
           <div className="space-y-6">
-            {propertyType !== "land" && (
+            {!showLandFlow && (
               <>
                 {/* Availability Status */}
                 <div className="space-y-2">
@@ -832,7 +984,8 @@ export default function BasicDetailsStep() {
                             );
 
                             if (
-                              propertyType === "residential" &&
+                              (propertyType === "residential" ||
+                                isProjectResidentialFlow) &&
                               item.value !== "ready-to-move"
                             ) {
                               dispatch(
@@ -1040,10 +1193,10 @@ export default function BasicDetailsStep() {
       <br />
 
       <button
-        onClick={() => {
+        onClick={async () => {
           setShowErrors(true);
 
-          if (!isFormValid || !draftId) {
+          if (!isFormValid) {
             console.error("❌ Validation failed");
             console.table(validationResult.error?.flatten().fieldErrors);
             return;
@@ -1056,15 +1209,27 @@ export default function BasicDetailsStep() {
                 ? commercial
                 : propertyType === "land"
                   ? land
-                  : agricultural;
+                  : propertyType === "agricultural"
+                    ? agricultural
+                    : project;
 
           const basicPayload: Record<string, any> = {
             ...base,
             ...profileData,
           };
+          const submitCategory =
+            propertyType === "project"
+              ? getProjectBackendCategory(project.propertyType)
+              : propertyType;
+
+          if (propertyType === "project") {
+            basicPayload.propertyType = normalizeProjectPropertyTypeForBackend(
+              project.propertyType,
+            );
+          }
 
           if (
-            (propertyType === "land" || propertyType === "agricultural") &&
+            (submitCategory === "land" || propertyType === "agricultural") &&
             base.landName
           ) {
             basicPayload.landName = base.landName;
@@ -1075,7 +1240,7 @@ export default function BasicDetailsStep() {
             delete basicPayload.commercialSubType;
           }
 
-          if (propertyType === "land" && profileData.landSubType) {
+          if (submitCategory === "land" && profileData.landSubType) {
             basicPayload.propertySubType =
               profileData.landSubType === "corner-plot"
                 ? "corner"
@@ -1097,10 +1262,31 @@ export default function BasicDetailsStep() {
             delete basicPayload.agriculturalSubType;
           }
 
+          let activeDraftId = draftId;
+
+          if (!activeDraftId) {
+            try {
+              const draftResponse = await createDraftApi(submitCategory);
+              activeDraftId = draftResponse?.data?._id;
+
+              if (activeDraftId) {
+                dispatch(setDraftId(activeDraftId));
+              }
+            } catch (err) {
+              console.error("Draft creation failed", err);
+              return;
+            }
+          }
+
+          if (!activeDraftId) {
+            console.error("Draft id missing");
+            return;
+          }
+
           dispatch(
             submitBasicThunk({
-              category: propertyType,
-              id: draftId,
+              category: submitCategory,
+              id: activeDraftId,
               data: {
                 ...basicPayload,
               },

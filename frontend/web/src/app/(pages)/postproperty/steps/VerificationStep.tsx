@@ -23,6 +23,7 @@ const VerificationStep = () => {
   const [submissionMeta, setSubmissionMeta] = useState<{
     isSubmitted: boolean;
     isApproved: boolean;
+    isUnderReview?: boolean;
     submittedAt?: string;
     reviewAt?: string;
     approvedAt?: string;
@@ -46,10 +47,22 @@ const VerificationStep = () => {
         (doc: any) => doc?.status === "verified"
       )
     : false;
+  const normalizedStatus = String(
+    base?.status ?? profileData?.status ?? "",
+  ).toLowerCase();
+  const normalizedApprovalStatus = String(
+    base?.approval?.status ?? profileData?.approval?.status ?? "",
+  ).toLowerCase();
+  const fallbackUnderReview =
+    normalizedStatus === "pending" ||
+    normalizedStatus === "active" ||
+    normalizedApprovalStatus === "pending" ||
+    fallbackApproved;
 
   const trackerState = submissionMeta ?? {
     isSubmitted: fallbackHasDocs,
     isApproved: fallbackApproved,
+    isUnderReview: fallbackUnderReview,
     submittedAt: base?.createdAt,
     reviewAt: base?.updatedAt,
     approvedAt: fallbackApproved ? base?.updatedAt : undefined,
@@ -67,6 +80,7 @@ const VerificationStep = () => {
     ? {
         isSubmitted: true,
         isApproved: fallbackApproved,
+        isUnderReview: trackerState.isUnderReview,
         submittedAt: trackerState.submittedAt,
         reviewAt: trackerState.reviewAt,
         approvedAt: trackerState.approvedAt,
@@ -108,6 +122,7 @@ const VerificationStep = () => {
         {showTracker ? (
           <TrackPropertyStatus
             isApproved={resolvedTrackerState.isApproved}
+            isUnderReview={resolvedTrackerState.isUnderReview}
             submittedAt={resolvedTrackerState.submittedAt}
             reviewAt={resolvedTrackerState.reviewAt}
             approvedAt={resolvedTrackerState.approvedAt}

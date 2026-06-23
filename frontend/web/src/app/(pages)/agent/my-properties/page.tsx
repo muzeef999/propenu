@@ -517,7 +517,10 @@ const getTrackingState = (property: Property) => {
     label,
     badgeClass,
     steps: [
-      { label: "Submitted", active: currentStep >= 1 },
+      {
+        label: currentStep >= 2 || isApproved ? "Submitted" : "Ongoing",
+        active: currentStep >= 1,
+      },
       { label: "Under Review", active: currentStep >= 2 },
       { label: "Approved & Live", active: currentStep >= 3 },
     ],

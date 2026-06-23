@@ -27,6 +27,10 @@ import { useRouter } from "next/navigation";
 import { deleteGalleryImageApi } from "@/Redux/apis";
 import { InfoIcon } from "@/icons/icons";
 
+function getSubmitCategory(propertyType?: string) {
+  return propertyType === "project" ? "land" : propertyType ?? "land";
+}
+
 
 
 const FACING_OPTIONS = [
@@ -504,9 +508,11 @@ const LandProfile = () => {
           }
 
           // 🚀 IMPORTANT: send ORIGINAL agricultural object to backend
+          const submitCategory = getSubmitCategory(propertyType);
+
           dispatch(
             submitDetailsThunk({
-              category: propertyType,
+              category: submitCategory,
               id: draftId,
               payload: land, // backend/thunk will format this
             }),
@@ -517,9 +523,9 @@ const LandProfile = () => {
                 toast.success("Property listed successfully.");
                 clearFileStore("postProperty");
                 setFiles([]);
-                dispatch(resetPostProperty({ propertyType }));
+                dispatch(resetPostProperty({ propertyType: submitCategory as any }));
                 dispatch(showAgentSubmissionSuccess());
-                dispatch(createDraftThunk(propertyType))
+                dispatch(createDraftThunk(submitCategory))
                   .unwrap()
                   .catch(() => {
                     toast.error("Property submitted, but new draft creation failed.");

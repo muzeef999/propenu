@@ -175,6 +175,10 @@ export const ResidentialCreateSchema = BaseResidentialCreate.extend({
   carpetArea: z.coerce.number().optional(),
   builtUpArea: z.coerce.number().optional(),
   superBuiltUpArea: z.coerce.number().optional(),
+  projectArea: z.coerce.number().optional(),
+  totalTowers: z.coerce.number().int().optional(),
+  totalUnits: z.coerce.number().int().optional(),
+  availableUnits: z.coerce.number().int().optional(),
 
    propertyType: z.enum(
     RESIDENTIAL_PROPERTY_TYPES as readonly [string, ...string[]]
@@ -267,6 +271,10 @@ export const ResidentialUpdateSchema = z
     currency: z.string().optional(),
     price: z.coerce.number().optional(),
     pricePerSqft: z.coerce.number().optional(),
+    projectArea: z.coerce.number().optional(),
+    totalTowers: z.coerce.number().int().optional(),
+    totalUnits: z.coerce.number().int().optional(),
+    availableUnits: z.coerce.number().int().optional(),
 
     // IMPORTANT: arrays — do NOT overwrite with []
     gallery: optionalNonEmptyArray(GallerySummarySchema),

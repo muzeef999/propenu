@@ -179,16 +179,73 @@ function normalizeAmenitiesInputs(amenities?: any[]) {
   });
 }
 
-function normalizeProjectSummaryInput(summary?: any[]) {
+function isResidentialProjectPayload(payload?: any) {
+  const categoryType = String(payload?.categoryType ?? "")
+    .trim()
+    .toLowerCase();
+  const propertyType = String(payload?.propertyType ?? "")
+    .trim()
+    .toLowerCase();
+
+  if (categoryType === "land") return false;
+  if (categoryType === "residential") return true;
+
+  return ["apartment", "flat", "villa"].some((type) =>
+    propertyType.includes(type),
+  );
+}
+
+function normalizeResidentialUnitArea(unit: any) {
+  if (!unit || typeof unit !== "object") return unit;
+
+  const normalized = { ...unit };
+  const area = normalized.area;
+  const fallbackSqft =
+    typeof normalized.minSqft === "number" && Number.isFinite(normalized.minSqft)
+      ? normalized.minSqft
+      : typeof area?.sqftValue === "number" && Number.isFinite(area.sqftValue)
+        ? area.sqftValue
+        : typeof area?.value === "number" && Number.isFinite(area.value)
+          ? area.value
+          : undefined;
+
+  if (
+    typeof normalized.minSqft !== "number" &&
+    typeof fallbackSqft === "number" &&
+    fallbackSqft > 0
+  ) {
+    normalized.minSqft = fallbackSqft;
+  }
+
+  if (
+    typeof normalized.maxSqft !== "number" &&
+    typeof fallbackSqft === "number" &&
+    fallbackSqft > 0
+  ) {
+    normalized.maxSqft = fallbackSqft;
+  }
+
+  delete normalized.area;
+  return normalized;
+}
+
+function normalizeProjectSummaryInput(summary?: any[], payload?: any) {
   if (!Array.isArray(summary)) return summary;
+  const shouldNormalizeResidentialArea = isResidentialProjectPayload(payload);
 
   return summary.map((item) => {
     if (!item || typeof item !== "object") return item;
 
     const { bhkLabel, ...rest } = item;
+    const units =
+      shouldNormalizeResidentialArea && Array.isArray(rest.units)
+        ? rest.units.map(normalizeResidentialUnitArea)
+        : rest.units;
+
     return {
       ...rest,
       label: item.label ?? bhkLabel,
+      ...(Array.isArray(units) && { units }),
     };
   });
 }
@@ -196,6 +253,7 @@ function normalizeProjectSummaryInput(summary?: any[]) {
 function getCanonicalProjectSummary(payload: any) {
   return normalizeProjectSummaryInput(
     payload?.projectSummary ?? payload?.bhkSummary,
+    payload,
   );
 }
 
@@ -854,7 +912,12 @@ export const FeaturePropertyService = {
         deleteOldS3OnExternalUrl: true,
       });
 
-      (existing as any).projectSummary = processed;
+      (existing as any).projectSummary =
+        getCanonicalProjectSummary({
+          ...existing.toObject(),
+          ...payload,
+          projectSummary: processed,
+        }) ?? processed;
       (existing as any).bhkSummary = undefined;
     }
 

@@ -149,6 +149,10 @@ const BaseCreate = z.object({
    ---------------------- */
 export const CreateLandSchema = BaseCreate.extend({
   plotArea: coerceNumber(z.number()).optional(),
+  projectArea: coerceNumber(z.number()).optional(),
+  totalTowers: coerceInt(z.number().int()).optional(),
+  totalUnits: coerceInt(z.number().int()).optional(),
+  availableUnits: coerceInt(z.number().int()).optional(),
   plotAreaUnit: preprocessEnum([
     "sqft",
     "sqmt",
