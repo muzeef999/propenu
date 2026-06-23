@@ -1,11 +1,12 @@
 import express from "express";
-import { getAdmin, getSuperAdmin, getsuperagent, getsupermanager, projectAnalytics } from "../controller/analyticsController";
+import { getAdmin, getSuperAdmin, getsuperagent, getsupermanager, projectAnalytics, propertyAnalytics } from "../controller/analyticsController";
 import { authMiddleware } from "../middlewares/authMiddleware";
 import { approveProject, getPendingProjects, rejectProject } from "../controller/projectController";
 
 const analyticsRouter = express.Router();
 
 analyticsRouter.get("/analytics/project", projectAnalytics);
+analyticsRouter.get("/analytics/properties", propertyAnalytics);
 
 analyticsRouter.get("/analytics/superadmin", getSuperAdmin);
 analyticsRouter.get("/analytics/admin", getAdmin);

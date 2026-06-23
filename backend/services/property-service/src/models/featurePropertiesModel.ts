@@ -175,6 +175,39 @@ const LogoSchema = new Schema<ILogo>({
   mimetype: { type: String },
 });
 
+const PromotionHistorySchema = new Schema(
+  {
+    fromType: {
+      type: String,
+      enum: ["normal", "featured", "prime", "sponsored"],
+    },
+    toType: {
+      type: String,
+      enum: ["normal", "featured", "prime", "sponsored"],
+      required: true,
+    },
+    source: {
+      type: String,
+      enum: ["manual", "subscription", "system"],
+      default: "manual",
+    },
+    changedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    changedByRole: { type: String },
+    reason: { type: String },
+    startedAt: { type: Date },
+    endedAt: { type: Date, default: null },
+    expiresAt: { type: Date, default: null },
+    metadata: {
+      previousPriority: { type: Number },
+      newPriority: { type: Number },
+    },
+  },
+  { _id: false },
+);
+
 /* ------------------------- Main schema  -------------------------*/
 const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
   {
@@ -252,6 +285,11 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
       }),
     },
 
+    promotionHistory: {
+      type: [PromotionHistorySchema],
+      default: [],
+    },
+
     approvalStatus: {
       type: String,
       enum: ["pending", "approved", "rejected"],
@@ -270,6 +308,11 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
 
     rejectedReason: {
       type: String,
+    },
+
+    lastPromotionType: {
+      type: String,
+      enum: ["normal", "featured", "prime", "sponsored"],
     },
 
     postedBy: {

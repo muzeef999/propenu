@@ -6,32 +6,55 @@ const PROMOTED_TYPES = ["featured", "sponsored", "prime"];
 export async function resetExpiredPromotions() {
   const now = new Date();
 
-  const result = await FeaturedProject.updateMany(
-    {
-      "promotion.type": { $in: PROMOTED_TYPES },
-      $or: [
-        { "promotion.boostExpiry": { $lte: now } },
-        { "promotion.boostExpiry": { $exists: false } },
-        { "promotion.boostExpiry": null },
-      ],
-    },
-    {
-      $set: {
-        "promotion.type": "normal",
-        "promotion.priority": 0,
-        "promotion.source": "manual",
-        "promotion.startDate": now,
-      },
-      $unset: {
-        "promotion.boostExpiry": "",
-        "promotion.enquiryLimit": "",
-        "promotion.enquiriesUsed": "",
-      },
-    },
-  );
+  const expiredProjects = await FeaturedProject.find({
+    "promotion.type": { $in: PROMOTED_TYPES },
+    $or: [
+      { "promotion.boostExpiry": { $lte: now } },
+      { "promotion.boostExpiry": { $exists: false } },
+      { "promotion.boostExpiry": null },
+    ],
+  });
 
-  if (result.modifiedCount > 0) {
-    console.log(`Reset ${result.modifiedCount} expired promotions to normal`);
+  for (const project of expiredProjects) {
+    const projectAny = project as any;
+    const previousPromotion = projectAny.promotion || {};
+    const history = Array.isArray(projectAny.promotionHistory)
+      ? projectAny.promotionHistory
+      : [];
+    const lastHistory = history[history.length - 1];
+
+    if (lastHistory && !lastHistory.endedAt) {
+      lastHistory.endedAt = now;
+    }
+
+    projectAny.promotionHistory = history;
+    projectAny.lastPromotionType = previousPromotion.type || "normal";
+    projectAny.promotionHistory.push({
+      fromType: previousPromotion.type || "normal",
+      toType: "normal",
+      source: "system",
+      reason: "Promotion expired automatically",
+      startedAt: now,
+      endedAt: null,
+      expiresAt: null,
+      metadata: {
+        previousPriority: previousPromotion.priority ?? 0,
+        newPriority: 0,
+      },
+    });
+
+    projectAny.promotion = {
+      type: "normal",
+      priority: 0,
+      source: "manual",
+      startDate: now,
+    };
+
+    await project.save();
+  }
+
+  if (expiredProjects.length > 0) {
+    console.log(`Reset ${expiredProjects.length} expired promotions to normal`);
   }
 }
 

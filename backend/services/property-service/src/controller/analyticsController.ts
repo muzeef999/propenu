@@ -3,6 +3,9 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Residential from "../models/residentialModel";
+import Commercial from "../models/commercialModel";
+import LandPlot from "../models/landModel";
+import Agricultural from "../models/agriculturalModel";
 import User from "../models/userModel";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import FeaturedProject from "../models/featurePropertiesModel";
@@ -13,6 +16,244 @@ import FeaturedProject from "../models/featurePropertiesModel";
 
 
 
+
+const zeroPropertyOverview = {
+  totalProperties: 0,
+  activeProperties: 0,
+  pendingProperties: 0,
+  draftProperties: 0,
+  expiredProperties: 0,
+  deactivatedProperties: 0,
+  archivedProperties: 0,
+  saleProperties: 0,
+  rentProperties: 0,
+  normalProperties: 0,
+  featuredProperties: 0,
+  primeProperties: 0,
+  sponsoredProperties: 0,
+  totalViews: 0,
+  totalClicks: 0,
+  totalInquiries: 0,
+};
+
+const sumFields = [
+  "total",
+  "active",
+  "pending",
+  "draft",
+  "expired",
+  "deactivated",
+  "archived",
+  "sale",
+  "rent",
+  "normal",
+  "featured",
+  "prime",
+  "sponsored",
+] as const;
+
+type GroupRow = {
+  _id: any;
+  category?: string;
+  total?: number;
+  active?: number;
+  pending?: number;
+  draft?: number;
+  expired?: number;
+  deactivated?: number;
+  archived?: number;
+  sale?: number;
+  rent?: number;
+  normal?: number;
+  featured?: number;
+  prime?: number;
+  sponsored?: number;
+};
+
+function propertyAnalyticsFacet(category: string, matchFilter: any): any[] {
+  const countByStatusAndType = {
+    total: { $sum: 1 },
+    active: { $sum: { $cond: [{ $eq: ["$status", "active"] }, 1, 0] } },
+    pending: { $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] } },
+    draft: { $sum: { $cond: [{ $eq: ["$status", "draft"] }, 1, 0] } },
+    expired: { $sum: { $cond: [{ $eq: ["$status", "expired"] }, 1, 0] } },
+    deactivated: { $sum: { $cond: [{ $eq: ["$status", "deactivated"] }, 1, 0] } },
+    archived: { $sum: { $cond: [{ $eq: ["$status", "archived"] }, 1, 0] } },
+    sale: { $sum: { $cond: [{ $eq: ["$listingType", "sale"] }, 1, 0] } },
+    rent: { $sum: { $cond: [{ $eq: ["$listingType", "rent"] }, 1, 0] } },
+    normal: {
+      $sum: {
+        $cond: [{ $eq: [{ $ifNull: ["$promotion.type", "normal"] }, "normal"] }, 1, 0],
+      },
+    },
+    featured: { $sum: { $cond: [{ $eq: ["$promotion.type", "featured"] }, 1, 0] } },
+    prime: { $sum: { $cond: [{ $eq: ["$promotion.type", "prime"] }, 1, 0] } },
+    sponsored: { $sum: { $cond: [{ $eq: ["$promotion.type", "sponsored"] }, 1, 0] } },
+  };
+
+  return [
+    { $match: matchFilter },
+    { $addFields: { __category: category } },
+    {
+      $facet: {
+        overview: [
+          {
+            $group: {
+              _id: null,
+              totalProperties: { $sum: 1 },
+              activeProperties: { $sum: { $cond: [{ $eq: ["$status", "active"] }, 1, 0] } },
+              pendingProperties: { $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] } },
+              draftProperties: { $sum: { $cond: [{ $eq: ["$status", "draft"] }, 1, 0] } },
+              expiredProperties: { $sum: { $cond: [{ $eq: ["$status", "expired"] }, 1, 0] } },
+              deactivatedProperties: { $sum: { $cond: [{ $eq: ["$status", "deactivated"] }, 1, 0] } },
+              archivedProperties: { $sum: { $cond: [{ $eq: ["$status", "archived"] }, 1, 0] } },
+              saleProperties: { $sum: { $cond: [{ $eq: ["$listingType", "sale"] }, 1, 0] } },
+              rentProperties: { $sum: { $cond: [{ $eq: ["$listingType", "rent"] }, 1, 0] } },
+              normalProperties: {
+                $sum: {
+                  $cond: [{ $eq: [{ $ifNull: ["$promotion.type", "normal"] }, "normal"] }, 1, 0],
+                },
+              },
+              featuredProperties: { $sum: { $cond: [{ $eq: ["$promotion.type", "featured"] }, 1, 0] } },
+              primeProperties: { $sum: { $cond: [{ $eq: ["$promotion.type", "prime"] }, 1, 0] } },
+              sponsoredProperties: { $sum: { $cond: [{ $eq: ["$promotion.type", "sponsored"] }, 1, 0] } },
+              totalViews: { $sum: { $ifNull: ["$meta.views", 0] } },
+              totalClicks: { $sum: { $ifNull: ["$meta.clicks", 0] } },
+              totalInquiries: { $sum: { $ifNull: ["$meta.inquiries", 0] } },
+            },
+          },
+        ],
+        categoryWise: [{ $group: { _id: "$__category", ...countByStatusAndType } }, { $sort: { total: -1 } }],
+        stateWise: [{ $group: { _id: "$state", ...countByStatusAndType } }, { $sort: { total: -1 } }],
+        cityWise: [{ $group: { _id: "$city", ...countByStatusAndType } }, { $sort: { total: -1 } }],
+        localityWise: [{ $group: { _id: "$locality", ...countByStatusAndType } }, { $sort: { total: -1 } }],
+        statusWise: [{ $group: { _id: "$status", ...countByStatusAndType } }, { $sort: { total: -1 } }],
+        listingTypeWise: [
+          { $match: { listingType: { $in: ["sale", "rent"] } } },
+          { $group: { _id: "$listingType", ...countByStatusAndType } },
+          { $sort: { total: -1 } },
+        ],
+        propertyTypeWise: [
+          {
+            $group: {
+              _id: { $ifNull: ["$propertyType", "unknown"] },
+              category: { $first: "$__category" },
+              ...countByStatusAndType,
+            },
+          },
+          { $sort: { total: -1 } },
+        ],
+        promotionWise: [
+          {
+            $group: {
+              _id: { $ifNull: ["$promotion.type", "normal"] },
+              ...countByStatusAndType,
+            },
+          },
+          { $sort: { total: -1 } },
+        ],
+      },
+    },
+  ];
+}
+
+function mergeOverview(items: any[]) {
+  return items.reduce(
+    (acc, item) => {
+      for (const key of Object.keys(zeroPropertyOverview)) {
+        acc[key] += Number(item?.[key] ?? 0);
+      }
+      return acc;
+    },
+    { ...zeroPropertyOverview } as Record<string, number>,
+  );
+}
+
+function mergeGroupRows(rows: GroupRow[], keyGetter?: (row: GroupRow) => string) {
+  const map = new Map<string, GroupRow>();
+
+  for (const row of rows) {
+    const key = keyGetter ? keyGetter(row) : String(row._id ?? "unknown");
+    const existing = map.get(key);
+
+    if (!existing) {
+      map.set(key, { ...row, _id: row._id ?? "unknown" });
+      continue;
+    }
+
+    for (const field of sumFields) {
+      existing[field] = Number(existing[field] ?? 0) + Number(row[field] ?? 0);
+    }
+  }
+
+  return Array.from(map.values()).sort((a, b) => Number(b.total ?? 0) - Number(a.total ?? 0));
+}
+
+export const propertyAnalytics = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const state = req.query.state as string;
+    const city = req.query.city as string;
+    const locality = req.query.locality as string;
+
+    const matchFilter: any = {};
+
+    if (state) matchFilter.state = state;
+    if (city) matchFilter.city = city;
+    if (locality) matchFilter.locality = locality;
+
+    const propertyModels = [
+      { category: "residential", model: Residential },
+      { category: "commercial", model: Commercial },
+      { category: "land", model: LandPlot },
+      { category: "agricultural", model: Agricultural },
+    ];
+
+    const results = await Promise.all(
+      propertyModels.map(({ category, model }) =>
+        model.aggregate(propertyAnalyticsFacet(category, matchFilter)),
+      ),
+    );
+
+    const facets = results.map((result) => result[0] || {});
+    const overviewItems = facets.map((facet) => facet.overview?.[0] || zeroPropertyOverview);
+    const collect = (key: string) => facets.flatMap((facet) => facet[key] || []);
+
+    res.status(200).json({
+      success: true,
+
+      filters: {
+        state: state || null,
+        city: city || null,
+        locality: locality || null,
+      },
+
+      data: {
+        overview: mergeOverview(overviewItems),
+        categoryWise: mergeGroupRows(collect("categoryWise")),
+        stateWise: mergeGroupRows(collect("stateWise")),
+        cityWise: mergeGroupRows(collect("cityWise")),
+        localityWise: mergeGroupRows(collect("localityWise")),
+        statusWise: mergeGroupRows(collect("statusWise")),
+        listingTypeWise: mergeGroupRows(collect("listingTypeWise")),
+        propertyTypeWise: mergeGroupRows(
+          collect("propertyTypeWise"),
+          (row) => `${row.category ?? "unknown"}:${row._id ?? "unknown"}`,
+        ),
+        promotionWise: mergeGroupRows(collect("promotionWise")),
+      },
+    });
+  } catch (error) {
+    console.error("Property analytics error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch property analytics",
+    });
+  }
+};
 
 async function propertyStats(match: any = {}) {
   const stats = await Residential.aggregate([

@@ -1,6 +1,24 @@
 import mongoose, { Document, Model, Types } from "mongoose";
 import { IPromotion } from "../models/sharedSchemas";
 
+export type PromotionType = "normal" | "featured" | "sponsored" | "prime";
+
+export interface IPromotionHistory {
+  fromType?: PromotionType;
+  toType: PromotionType;
+  source?: "manual" | "subscription" | "system";
+  changedBy?: Types.ObjectId | string;
+  changedByRole?: string;
+  reason?: string;
+  startedAt?: Date;
+  endedAt?: Date | null;
+  expiresAt?: Date | null;
+  metadata?: {
+    previousPriority?: number;
+    newPriority?: number;
+  };
+}
+
 export interface IBhkPlan {
   url?: string;
   key?: string;
@@ -162,6 +180,7 @@ export interface IFeaturedProject {
   categoryType?: "residential" | "land" | "commercial" | "agricultural";
   address: string;
   promotion?: IPromotion;
+  promotionHistory?: IPromotionHistory[];
   city?: string;
   location?: {
     type: "Point";
@@ -231,4 +250,6 @@ export interface IFeaturedProject {
   approvedAt?: Date;
 
   rejectedReason?: string;
+
+  lastPromotionType?: PromotionType;
 }
