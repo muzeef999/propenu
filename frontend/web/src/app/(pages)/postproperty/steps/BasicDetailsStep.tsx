@@ -368,7 +368,7 @@ export default function BasicDetailsStep() {
                         }
           `}
                     >
-                      <span className="text-2xl text-current [&_svg]:h-9 [&_svg]:w-9 [&_svg]:fill-current [&_svg]:text-current">
+                      <span className="text-2xl text-current [&_svg]:h-7 [&_svg]:w-7 [&_svg]:fill-current [&_svg]:text-current">
                         {sub.icon}
                       </span>
                       <span className="text-xs font-medium">{sub.label}</span>
@@ -386,42 +386,40 @@ export default function BasicDetailsStep() {
 
             {propertyType === "project" && project.propertyType && (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {project.propertyType !== "open-plot" && (
-                  <>
-                    <InputField
-                      label="Project Total Area"
-                      type="number"
-                      placeholder="e.g. 5"
-                      value={project.projectArea ?? ""}
-                      error={fieldErrors.projectArea?.[0]}
-                      onChange={(value) =>
-                        dispatch(
-                          setProfileField({
-                            propertyType: "project",
-                            key: "projectArea",
-                            value: value.replace(/[^0-9.]/g, ""),
-                          }),
-                        )
-                      }
-                    />
+                <InputField
+                  label="Project Total Area"
+                  type="number"
+                  placeholder="e.g. 5"
+                  value={project.projectArea ?? ""}
+                  error={fieldErrors.projectArea?.[0]}
+                  onChange={(value) =>
+                    dispatch(
+                      setProfileField({
+                        propertyType: "project",
+                        key: "projectArea",
+                        value: value.replace(/[^0-9.]/g, ""),
+                      }),
+                    )
+                  }
+                />
 
-                    <InputField
-                      label="No. of Towers"
-                      type="number"
-                      placeholder="e.g. 3"
-                      value={project.totalTowers ?? ""}
-                      error={fieldErrors.totalTowers?.[0]}
-                      onChange={(value) =>
-                        dispatch(
-                          setProfileField({
-                            propertyType: "project",
-                            key: "totalTowers",
-                            value: value.replace(/[^0-9]/g, ""),
-                          }),
-                        )
-                      }
-                    />
-                  </>
+                {project.propertyType !== "open-plot" && (
+                  <InputField
+                    label="No. of Towers"
+                    type="number"
+                    placeholder="e.g. 3"
+                    value={project.totalTowers ?? ""}
+                    error={fieldErrors.totalTowers?.[0]}
+                    onChange={(value) =>
+                      dispatch(
+                        setProfileField({
+                          propertyType: "project",
+                          key: "totalTowers",
+                          value: value.replace(/[^0-9]/g, ""),
+                        }),
+                      )
+                    }
+                  />
                 )}
 
                 <InputField

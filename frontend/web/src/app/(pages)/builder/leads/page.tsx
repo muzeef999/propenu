@@ -3,16 +3,23 @@
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-import { useState, useEffect, useMemo, JSX } from "react";
+import { useState, useEffect, useMemo, useRef, JSX } from "react";
 import {
   downloadLeadsCSV,
   getMyProperties,
   getProjectbuilderLeads,
+  importProjectLeadsCSV,
   updateLeadStatus,
 } from "@/data/ClientData";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FiChevronDown, FiDownloadCloud } from "react-icons/fi";
+import {
+  FiChevronDown,
+  FiChevronLeft,
+  FiChevronRight,
+  FiDownloadCloud,
+  FiUploadCloud,
+} from "react-icons/fi";
 
 /* ================= TYPES ================= */
 
@@ -88,10 +95,32 @@ const getPropertyPriceLabel = (property: any) => {
 
   return "—";
 };
+
+const getStatusClasses = (status: LeadStatus) => {
+  switch (status) {
+    case "new":
+      return "bg-blue-50 text-blue-700 ring-blue-100";
+    case "contacted":
+      return "bg-emerald-50 text-emerald-700 ring-emerald-100";
+    case "follow_up":
+      return "bg-amber-50 text-amber-700 ring-amber-100";
+    case "approved":
+      return "bg-green-50 text-green-700 ring-green-100";
+    case "rejected":
+      return "bg-rose-50 text-rose-700 ring-rose-100";
+    case "closed":
+      return "bg-slate-100 text-slate-700 ring-slate-200";
+    default:
+      return "bg-gray-50 text-gray-700 ring-gray-100";
+  }
+};
+
+const formatStatus = (status: LeadStatus) => status.replace("_", " ");
 /* ================= PAGE ================= */
 
 export default function BuilderLeadsPage(): JSX.Element {
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [fromDate, setFromDate] = useState<Date | null>(null);
   const [toDate, setToDate] = useState<Date | null>(null);
@@ -100,6 +129,8 @@ export default function BuilderLeadsPage(): JSX.Element {
     null,
   );
   const [activeStatus, setActiveStatus] = useState<LeadStatus>("All");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   /* -------- Properties -------- */
   const { data: propertiesData, isLoading: propertiesLoading } = useQuery<
@@ -142,6 +173,25 @@ export default function BuilderLeadsPage(): JSX.Element {
     },
   });
 
+  const importLeadsMutation = useMutation({
+    mutationFn: ({ projectId, file }: { projectId: string; file: File }) =>
+      importProjectLeadsCSV(projectId, file),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({
+        queryKey: ["projectLeadsbuilder", selectedPropertyId],
+      });
+
+      alert(
+        `Imported ${result.imported ?? 0} leads. Skipped ${
+          result.skipped ?? 0
+        } rows.`
+      );
+    },
+    onError: (error: any) => {
+      alert(error?.response?.data?.message || error.message || "Import failed");
+    },
+  });
+
   const filteredLeads = useMemo<Lead[]>(() => {
     const leads = leadsData?.data ?? [];
     if (activeStatus === "All") return leads;
@@ -150,6 +200,23 @@ export default function BuilderLeadsPage(): JSX.Element {
       (lead) => lead.status?.toLowerCase() === activeStatus.toLowerCase(),
     );
   }, [leadsData, activeStatus]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredLeads.length / pageSize));
+
+  const paginatedLeads = useMemo<Lead[]>(() => {
+    const start = (page - 1) * pageSize;
+    return filteredLeads.slice(start, start + pageSize);
+  }, [filteredLeads, page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedPropertyId, activeStatus, fromDate, toDate]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   /* -------- Actions -------- */
 
@@ -166,6 +233,27 @@ export default function BuilderLeadsPage(): JSX.Element {
     const to = toDate?.toISOString().split("T")[0];
 
     downloadLeadsCSV(selectedPropertyId, from, to);
+  };
+
+  const handleImportClick = () => {
+    if (!selectedPropertyId) return alert("Select property first");
+    fileInputRef.current?.click();
+  };
+
+  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) return;
+    if (!selectedPropertyId) return alert("Select property first");
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      return alert("Please upload a CSV file");
+    }
+
+    importLeadsMutation.mutate({
+      projectId: selectedPropertyId,
+      file,
+    });
   };
 
   /* ================= UI ================= */
@@ -246,6 +334,23 @@ export default function BuilderLeadsPage(): JSX.Element {
               <FiDownloadCloud className="w-4 h-4" />
             </button>
 
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={handleImportCSV}
+            />
+
+            <button
+              onClick={handleImportClick}
+              disabled={!selectedPropertyId || importLeadsMutation.isPending}
+              className="h-9 px-4 rounded-md bg-white border border-[#16A34A] text-[#15803D] text-sm font-medium hover:bg-[#ECFDF3] disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400 disabled:bg-gray-100 transition flex items-center justify-center gap-2 w-full sm:w-auto"
+            >
+              {importLeadsMutation.isPending ? "Importing" : "Import"}
+              <FiUploadCloud className="w-4 h-4" />
+            </button>
+
             {(fromDate || toDate || activeStatus !== "All") && (
               <button
                 onClick={clearFilters}
@@ -313,16 +418,119 @@ export default function BuilderLeadsPage(): JSX.Element {
           {leadsLoading ? (
             <div className="text-center py-20">Loading leads…</div>
           ) : filteredLeads.length ? (
-            <LeadsTable
-              leads={filteredLeads}
-              updateStatusMutation={updateStatusMutation}
-            />
+            <div className="space-y-3">
+              <LeadsTable
+                leads={paginatedLeads}
+                updateStatusMutation={updateStatusMutation}
+              />
+              <Pagination
+                page={page}
+                pageSize={pageSize}
+                totalItems={filteredLeads.length}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
+            </div>
           ) : (
             <div className="text-center py-20 text-gray-500">
               No leads found
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function Pagination({
+  page,
+  pageSize,
+  totalItems,
+  totalPages,
+  onPageChange,
+}: {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  const startItem = totalItems ? (page - 1) * pageSize + 1 : 0;
+  const endItem = Math.min(page * pageSize, totalItems);
+  const pages = Array.from({ length: totalPages }, (_, index) => index + 1);
+  const visiblePages = pages.filter(
+    (item) =>
+      item === 1 ||
+      item === totalPages ||
+      Math.abs(item - page) <= 1
+  );
+
+  const pageItems = visiblePages.reduce<Array<number | "dots">>(
+    (items, item) => {
+      const previous = items[items.length - 1];
+      if (typeof previous === "number" && item - previous > 1) {
+        items.push("dots");
+      }
+      items.push(item);
+      return items;
+    },
+    []
+  );
+
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-[#E5E7EB] bg-white px-3 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-4">
+      <p className="text-sm text-[#6B7280]">
+        Showing{" "}
+        <span className="font-semibold text-[#111827]">
+          {startItem}-{endItem}
+        </span>{" "}
+        of <span className="font-semibold text-[#111827]">{totalItems}</span>{" "}
+        responses
+      </p>
+
+      <div className="flex items-center justify-between gap-2 sm:justify-end">
+        <button
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+          disabled={page === 1}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#E5E7EB] bg-white text-[#4B5563] transition hover:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:text-[#D1D5DB]"
+          aria-label="Previous page"
+        >
+          <FiChevronLeft className="h-4 w-4" />
+        </button>
+
+        <div className="flex items-center gap-1">
+          {pageItems.map((item, index) =>
+            item === "dots" ? (
+              <span
+                key={`dots-${index}`}
+                className="flex h-9 w-7 items-center justify-center text-sm text-[#9CA3AF]"
+              >
+                ...
+              </span>
+            ) : (
+              <button
+                key={item}
+                onClick={() => onPageChange(item)}
+                className={`h-9 min-w-9 rounded-md px-3 text-sm font-medium transition ${
+                  page === item
+                    ? "bg-[#16A34A] text-white shadow-sm"
+                    : "border border-[#E5E7EB] bg-white text-[#4B5563] hover:bg-[#F9FAFB]"
+                }`}
+              >
+                {item}
+              </button>
+            )
+          )}
+        </div>
+
+        <button
+          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+          disabled={page === totalPages}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#E5E7EB] bg-white text-[#4B5563] transition hover:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:text-[#D1D5DB]"
+          aria-label="Next page"
+        >
+          <FiChevronRight className="h-4 w-4" />
+        </button>
       </div>
     </div>
   );
@@ -344,18 +552,22 @@ function LeadsTable({
         {leads.map((lead) => (
           <div
             key={lead._id}
-            className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-3"
+            className="rounded-lg border border-[#E5E7EB] bg-white p-4 shadow-sm"
           >
-            <div className="flex items-start justify-between gap-3">
-              <p className="font-medium text-gray-800 truncate">{lead.name}</p>
-              <span className="text-xs text-gray-500 whitespace-nowrap">
+            <div className="flex items-start justify-between gap-3 border-b border-[#F3F4F6] pb-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-[#111827]">
+                  {lead.name}
+                </p>
+                <p className="mt-1 text-sm text-[#6B7280]">{lead.phone}</p>
+              </div>
+              <span className="whitespace-nowrap text-xs font-medium text-[#6B7280]">
                 {new Date(lead.createdAt).toLocaleDateString("en-IN")}
               </span>
             </div>
-            <p className="text-sm text-gray-600">{lead.phone}</p>
-            <div className="relative">
+            <div className="relative mt-3">
               <select
-                className="w-full appearance-none px-3 py-2 pr-8 text-xs rounded-md border border-gray-300 bg-white text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-green-500"
+                className={`w-full appearance-none rounded-md border border-transparent px-3 py-2 pr-8 text-xs font-semibold capitalize ring-1 transition focus:outline-none focus:ring-2 focus:ring-[#16A34A] ${getStatusClasses(lead.status)}`}
                 value={lead.status}
                 onChange={(e) =>
                   updateStatusMutation.mutate({
@@ -366,11 +578,11 @@ function LeadsTable({
               >
                 {LEAD_STATUSES.map((s) => (
                   <option key={s} value={s}>
-                    {s.replace("_", " ")}
+                    {formatStatus(s)}
                   </option>
                 ))}
               </select>
-              <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">
+              <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-[#6B7280]">
                 ▼
               </div>
             </div>
@@ -379,35 +591,39 @@ function LeadsTable({
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-        <div className="grid grid-cols-4 px-6 py-4 text-xs font-semibold text-gray-500 bg-gray-50 border-b uppercase tracking-wide">
-          <span>Name</span>
+      <div className="hidden overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-sm md:block">
+        <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(100px,0.7fr)_minmax(150px,1fr)_minmax(150px,0.9fr)] border-b border-[#E5E7EB] bg-[#F9FAFB] px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-[#6B7280]">
+          <span className="pl-1">Name</span>
           <span>Date</span>
           <span>Contact Number</span>
           <span>Status</span>
         </div>
 
-        {leads.map((lead) => (
+        {leads.map((lead, index) => (
           <div
             key={lead._id}
-            className="grid grid-cols-4 items-center px-6 py-4 bg-[#E6E6E6] text-sm border-b last:border-b-0 hover:bg-gray-50 transition"
+            className={`grid grid-cols-[minmax(0,1.3fr)_minmax(100px,0.7fr)_minmax(150px,1fr)_minmax(150px,0.9fr)] items-center border-b border-[#EEF2F0] px-5 py-3.5 text-sm transition last:border-b-0 hover:bg-[#F7FBF8] ${
+              index % 2 === 0 ? "bg-white" : "bg-[#FCFDFD]"
+            }`}
           >
-            <div className="font-medium text-gray-800 truncate">
-              {lead.name}
+            <div className="min-w-0 pr-4">
+              <p className="truncate pl-1 font-semibold text-[#111827]">
+                {lead.name}
+              </p>
             </div>
 
-            <div className="text-gray-500">
+            <div className="min-w-0 text-sm font-medium text-[#6B7280]">
               {new Date(lead.createdAt).toLocaleDateString("en-IN")}
             </div>
 
-            <div className="text-gray-600">
+            <div className="min-w-0 truncate pr-4 text-sm font-medium text-[#374151]">
               {lead.phone}
             </div>
 
-            <div>
-              <div className="relative inline-block w-full">
+            <div className="min-w-0">
+              <div className="relative inline-block w-full max-w-[180px]">
                 <select
-                  className="w-full appearance-none px-3 py-1.5 pr-8 text-xs rounded-md border border-gray-300 bg-white text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className={`w-full appearance-none rounded-md border border-transparent px-3 py-2 pr-8 text-xs font-semibold capitalize ring-1 transition focus:outline-none focus:ring-2 focus:ring-[#16A34A] ${getStatusClasses(lead.status)}`}
                   value={lead.status}
                   onChange={(e) =>
                     updateStatusMutation.mutate({
@@ -418,12 +634,12 @@ function LeadsTable({
                 >
                   {LEAD_STATUSES.map((s) => (
                     <option key={s} value={s}>
-                      {s.replace("_", " ")}
+                      {formatStatus(s)}
                     </option>
                   ))}
                 </select>
 
-                <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">
+                <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[#6B7280]">
                   ▼
                 </div>
               </div>

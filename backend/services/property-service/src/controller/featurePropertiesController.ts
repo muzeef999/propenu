@@ -133,6 +133,7 @@ export const getAllFeatureProperties = async (req: Request, res: Response) => {
       state,
       locality,
       createdBy,
+      promotionStatus,
     } = req.query;
     const options: any = {};
     if (typeof page === "string") options.page = Number(page);
@@ -146,6 +147,9 @@ export const getAllFeatureProperties = async (req: Request, res: Response) => {
     if (typeof city === "string") options.city = city;
     if (typeof state === "string") options.state = state;
     if (typeof locality === "string") options.locality = locality;
+    if (typeof promotionStatus === "string") {
+      options.promotionStatus = promotionStatus;
+    }
     if (typeof createdBy === "string") {
       if (!mongoose.Types.ObjectId.isValid(createdBy)) {
         return res.status(400).json({ error: "Invalid createdBy" });

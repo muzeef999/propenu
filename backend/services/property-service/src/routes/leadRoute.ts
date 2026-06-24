@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { assignLeadController, checkLeadController, createLeadController, createPublicLeadController, downloadLeadsCSVController, getLeadByIdController, getLeadsController, getMyContactedProperties, getProjectLeadsController, updateLeadStatusController, updateProjectLeadStatusController } from "../controller/leadController"
+import multer from "multer";
+import { assignLeadController, checkLeadController, createLeadController, createPublicLeadController, downloadLeadsCSVController, getLeadByIdController, getLeadsController, getMyContactedProperties, getProjectLeadsController, importProjectLeadsCSVController, updateLeadStatusController, updateProjectLeadStatusController } from "../controller/leadController"
 import { LeadCreateSchema } from '../zod/leadZod';
 import { validateBody } from '../middlewares/validate';
 import { authMiddleware } from '../middlewares/authMiddleware';
@@ -7,6 +8,10 @@ import { requireActiveSubscription } from '../middlewares/requireActiveSubscript
 import { requireContactOwnerLimit } from '../middlewares/requireContactOwnerLimit';
 
 const router = Router();
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+});
 
 
 router.post('/', (req, res, next) => {
@@ -24,6 +29,7 @@ router.post('/', (req, res, next) => {
 
 router.post("/project/lead",  createPublicLeadController);
 router.get("/project/:projectId/leads", getProjectLeadsController);
+router.post("/project/:projectId/leads/import", authMiddleware, upload.single("file"), importProjectLeadsCSVController);
 router.patch("/project/:id/status", updateProjectLeadStatusController);
 router.get("/project/:projectId/leads/csv",downloadLeadsCSVController);
 

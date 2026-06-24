@@ -258,9 +258,19 @@ export const updateLeadStatusService = async (
     { new: true }
   );
 
-  if (!lead) {
+  if (lead) {
+    return lead;
+  }
+
+  const propertyLead = await Lead.findByIdAndUpdate(
+    leadId,
+    { status },
+    { new: true }
+  );
+
+  if (!propertyLead) {
     throw new Error("Lead not found");
   }
 
-  return lead;
+  return propertyLead;
 };

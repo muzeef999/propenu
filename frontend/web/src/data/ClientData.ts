@@ -419,6 +419,30 @@ export const downloadLeadsCSV = async (
   window.open(downloadUrl, "_blank");
 };
 
+export const importProjectLeadsCSV = async (
+  projectId: string,
+  file: File
+) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await axiosInstance.post(
+    `${url}/api/properties/leads/project/${projectId}/leads/import`,
+    formData,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+
+  return res.data;
+};
+
 
 export const updateLeadStatus = async (id: string, status: string) => {
  const res  = await axiosInstance.patch(

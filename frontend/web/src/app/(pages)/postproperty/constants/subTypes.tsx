@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { AppartmentIcons, FarmhouseIcons, IndependentHouseIcons, PenthouseIcons, VillaIcons } from "@/app/(pages)/postproperty/icons/PostPropertyIcons";
+import { AppartmentIcons, ClinicIcons, CommercialPlotIcons, CoWorkingIcons, DairyFarmIcons, DryLandIcons, FarmhouseIcons, FarmLandIcons, IndependentHouseIcons, IndustrialIcons, IndustrialPlotIcons, OfficeIcons, OpenPlotIcons, PenthouseIcons, ResidentialPlotIcons, ResturantIcons, RetailIcons, ShowroomIcons, VillaIcons, WarehouseIcons, WetLandIcons } from "@/app/(pages)/postproperty/icons/PostPropertyIcons";
 
 
 export type PropertyTypeOption = {
@@ -36,15 +36,15 @@ export type ResidentialPropertyKey =
 
 
 export const COMMERCIAL_PROPERTY_OPTIONS: PropertyTypeOption[] = [
-  { key: "office", label: "Office", icon: "🏢" },
-  { key: "retail", label: "Retail", icon: "🏬" },
-  { key: "shop", label: "Shop", icon: "🛒" },
-  { key: "showroom", label: "Showroom", icon: "🏪" },
-  { key: "warehouse", label: "Warehouse", icon: "🏭" },
-  { key: "industrial", label: "Industrial", icon: "🏗️" },
-  { key: "coworking", label: "Co-working", icon: "💼" },
-  { key: "restaurant", label: "Restaurant", icon: "🍽️" },
-  { key: "clinic", label: "Clinic", icon: "🏥" },
+  { key: "office", label: "Office", icon: <OfficeIcons width={10} height={10} /> },
+  { key: "retail", label: "Retail", icon: <RetailIcons /> },
+  { key: "shop", label: "Shop", icon: <ShowroomIcons /> },
+  { key: "showroom", label: "Showroom", icon: <ShowroomIcons /> },
+  { key: "warehouse", label: "Warehouse", icon: <WarehouseIcons /> },
+  { key: "industrial", label: "Industrial", icon: <IndustrialIcons /> },
+  { key: "coworking", label: "Co-working", icon: <CoWorkingIcons /> },
+  { key: "restaurant", label: "Restaurant", icon: <ResturantIcons /> },
+  { key: "clinic", label: "Clinic", icon: <ClinicIcons /> },
 ];
 
 export const COMMERCIAL_PROPERTY_KEYS = [
@@ -81,8 +81,8 @@ export type CommercialSubType =
 export const PROJECT_PROPERTY_OPTIONS: PropertyTypeOption[] = [
   { key: "apartment", label: "Apartment", icon: <AppartmentIcons /> },
   { key: "villa", label: "Villas", icon: <VillaIcons /> },
-  { key: "open-plot", label: "Openplot", icon: "OP" },
-  { key: "commercial-plot", label: "Commercial Plot", icon: "C" },
+  { key: "open-plot", label: "Openplot", icon: <OpenPlotIcons /> },
+  { key: "commercial-plot", label: "Commercial Plot", icon: <CommercialPlotIcons /> },
 ];
 
 export const PROJECT_PROPERTY_KEYS = [
@@ -96,9 +96,9 @@ export type ProjectPropertyKey = (typeof PROJECT_PROPERTY_KEYS)[number];
 
 
 export const LAND_PROPERTY_OPTIONS: PropertyTypeOption[] = [
-  { key: "residential-plot", label: "Residential Plot", icon: "🏠" },
-  { key: "commercial-plot", label: "Commercial Plot", icon: "🏢" },
-  { key: "industrial-plot", label: "Industrial Plot", icon: "🏭" },
+  { key: "residential-plot", label: "Residential Plot", icon: <ResidentialPlotIcons /> },
+  { key: "commercial-plot", label: "Commercial Plot", icon: <CommercialPlotIcons /> },
+  { key: "industrial-plot", label: "Industrial Plot", icon: <IndustrialPlotIcons /> },
 ];
 
 export const LAND_PROPERTY_KEYS = [
@@ -136,10 +136,10 @@ export const LAND_PROPERTY_SUBTYPES = [
 export type LandPropertySubtype = (typeof LAND_PROPERTY_SUBTYPES)[number];
 
 export const AGRICULTURAL_PROPERTY_OPTIONS: PropertyTypeOption[] = [
-  { key: "farm-land", label: "Farm Land", icon: "🚜" },
-  { key: "wet-land", label: "Wet Land", icon: "💧" },
-  { key: "dry-land", label: "Dry Land", icon: "☀️" },
-  { key: "dairy-farm", label: "Dairy Farm", icon: "🥛" },
+  { key: "farm-land", label: "Farm Land", icon: <FarmLandIcons /> },
+  { key: "wet-land", label: "Wet Land", icon: <WetLandIcons /> },
+  { key: "dry-land", label: "Dry Land", icon: <DryLandIcons /> },
+  { key: "dairy-farm", label: "Dairy Farm", icon: <DairyFarmIcons /> },
 ];
 
 export const AGRICULTURAL_PROPERTY_KEYS = [

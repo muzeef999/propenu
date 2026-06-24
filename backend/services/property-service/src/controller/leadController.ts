@@ -14,6 +14,7 @@ import { PublicLeadSchemaZ } from "../zod/publicLeadZod";
 import { createPublicLead } from "../services/publicLeadService";
 import PublicLead from "../models/PublicLead";
 import mongoose, { Types } from "mongoose";
+import FeaturedProject from "../models/featurePropertiesModel";
 
 
 const sendCSV = (leads: any[], res: Response) => {
@@ -33,6 +34,120 @@ const sendCSV = (leads: any[], res: Response) => {
   res.header("Content-Type", "text/csv");
   res.attachment("leads.csv");
   res.send(csv);
+};
+
+const csvHeaderAliases: Record<string, string> = {
+  contact: "phone",
+  contact_number: "phone",
+  contactnumber: "phone",
+  mobile: "phone",
+  mobile_number: "phone",
+  mobilenumber: "phone",
+  phone_number: "phone",
+  phonenumber: "phone",
+  remarks: "message",
+};
+
+const normalizeCsvHeader = (value: string) => {
+  const key = value
+    .replace(/^\uFEFF/, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return csvHeaderAliases[key] ?? key;
+};
+
+const parseCsvLine = (line: string) => {
+  const cells: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const nextChar = line[index + 1];
+
+    if (char === '"' && inQuotes && nextChar === '"') {
+      current += '"';
+      index += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      cells.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  cells.push(current.trim());
+  return cells;
+};
+
+const parseCsvRows = (buffer: Buffer) => {
+  const lines = buffer
+    .toString("utf8")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .filter((line) => line.trim().length > 0);
+
+  if (lines.length < 2) return [];
+
+  const headerLine = lines[0];
+  if (!headerLine) return [];
+
+  const headers = parseCsvLine(headerLine).map(normalizeCsvHeader);
+
+  return lines.slice(1).map((line) => {
+    const cells = parseCsvLine(line);
+    return headers.reduce<Record<string, string>>((row, header, index) => {
+      row[header] = cells[index]?.trim() ?? "";
+      return row;
+    }, {});
+  });
+};
+
+const getProjectLeadQuery = (projectId: string, from?: unknown, to?: unknown) => {
+  const query: any = { projectId };
+
+  if (from || to) {
+    query.createdAt = {};
+
+    if (from) {
+      query.createdAt.$gte = new Date(from as string);
+    }
+
+    if (to) {
+      const toDate = new Date(to as string);
+      toDate.setHours(23, 59, 59, 999);
+      query.createdAt.$lte = toDate;
+    }
+  }
+
+  return query;
+};
+
+const getCombinedProjectLeads = async (query: any) => {
+  const [publicLeads, propertyLeads] = await Promise.all([
+    PublicLead.find(query).lean(),
+    Lead.find(query)
+      .select("name phone email status remarks createdAt updatedAt projectId")
+      .lean(),
+  ]);
+
+  return [...publicLeads, ...propertyLeads].sort(
+    (a: any, b: any) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 };
 
 /*** CREATE LEAD */
@@ -254,26 +369,8 @@ export const getProjectLeadsController = async (
       return res.status(400).json({ message: "Invalid projectId" });
     }
 
-    const query: any = { projectId };
-
-    // ✅ Date filter without any package
-    if (from || to) {
-      query.createdAt = {};
-
-      if (from) {
-        query.createdAt.$gte = new Date(from as string);
-      }
-
-      if (to) {
-        const toDate = new Date(to as string);
-        toDate.setHours(23, 59, 59, 999); // include full day
-        query.createdAt.$lte = toDate;
-      }
-    }
-
-    const leads = await PublicLead.find(query)
-      .sort({ createdAt: -1 })
-      .lean();
+    const query = getProjectLeadQuery(projectId, from, to);
+    const leads = await getCombinedProjectLeads(query);
 
     res.json({
       success: true,
@@ -340,34 +437,154 @@ export const downloadLeadsCSVController = async (
       return res.status(400).json({ message: "Invalid projectId" });
     }
 
-    const query: any = { projectId };
-
-    // ✅ Only apply date filter IF provided
-    if (from || to) {
-      query.createdAt = {};
-
-      if (from) {
-        query.createdAt.$gte = new Date(from as string);
-      }
-
-      if (to) {
-        const toDate = new Date(to as string);
-        toDate.setHours(23, 59, 59, 999);
-        query.createdAt.$lte = toDate;
-      }
-    }
-
-    const leads = await PublicLead.find(query).lean();
-
-    // ✅ If no leads found → still send full file
-    if (!leads.length && !from && !to) {
-      const allLeads = await PublicLead.find({ projectId }).lean();
-      return sendCSV(allLeads, res);
-    }
+    const query = getProjectLeadQuery(projectId, from, to);
+    const leads = await getCombinedProjectLeads(query);
 
     return sendCSV(leads, res);
 
   } catch (err: any) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+export const importProjectLeadsCSVController = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const { projectId } = req.params;
+    const file = req.file;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (!projectId) {
+      return res.status(400).json({ success: false, message: "projectId required" });
+    }
+
+    if (!Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({ success: false, message: "Invalid projectId" });
+    }
+
+    if (!file) {
+      return res.status(400).json({ success: false, message: "CSV file is required" });
+    }
+
+    const project = await FeaturedProject.findById(projectId)
+      .select("createdBy")
+      .lean();
+
+    if (!project) {
+      return res.status(404).json({ success: false, message: "Project not found" });
+    }
+
+    if (String(project.createdBy) !== String(userId)) {
+      return res.status(403).json({
+        success: false,
+        message: "You can import leads only for your own project",
+      });
+    }
+
+    const rows = parseCsvRows(file.buffer);
+    const errors: Array<{ row: number; message: string }> = [];
+    const allowedStatuses = new Set<string>(LEAD_STATUSES);
+    const seenPhones = new Set<string>();
+
+    const normalizedRows = rows.flatMap((row, index) => {
+      const rowNumber = index + 2;
+      const name = row.name?.trim();
+      const phone = row.phone?.trim();
+      const message = row.message?.trim();
+      const status = row.status?.trim().toLowerCase() || "new";
+
+      if (!name || name.length < 2) {
+        errors.push({ row: rowNumber, message: "Name is required" });
+        return [];
+      }
+
+      if (!phone || phone.length < 6) {
+        errors.push({ row: rowNumber, message: "Phone is required" });
+        return [];
+      }
+
+      if (!allowedStatuses.has(status)) {
+        errors.push({ row: rowNumber, message: "Invalid status" });
+        return [];
+      }
+
+      if (seenPhones.has(phone)) {
+        errors.push({ row: rowNumber, message: "Duplicate phone in CSV" });
+        return [];
+      }
+
+      seenPhones.add(phone);
+
+      return [
+        {
+          projectId,
+          name,
+          phone,
+          message: message || undefined,
+          status,
+        },
+      ];
+    });
+
+    if (!normalizedRows.length) {
+      return res.status(400).json({
+        success: false,
+        message: "No valid leads found in CSV",
+        totalRows: rows.length,
+        imported: 0,
+        skipped: rows.length,
+        errors,
+      });
+    }
+
+    const importedPhones = normalizedRows.map((row) => row.phone);
+    const [existingPublicLeads, existingPropertyLeads] = await Promise.all([
+      PublicLead.find({
+        projectId,
+        phone: { $in: importedPhones },
+      })
+        .select("phone")
+        .lean(),
+      Lead.find({
+        projectId,
+        phone: { $in: importedPhones },
+      })
+        .select("phone")
+        .lean(),
+    ]);
+
+    const existingPhones = new Set([
+      ...existingPublicLeads.map((lead) => lead.phone),
+      ...existingPropertyLeads.map((lead) => lead.phone),
+    ]);
+    const leadsToInsert = normalizedRows.filter((row) => {
+      if (!existingPhones.has(row.phone)) return true;
+      errors.push({ row: 0, message: `Skipped existing phone ${row.phone}` });
+      return false;
+    });
+
+    if (leadsToInsert.length) {
+      await PublicLead.insertMany(leadsToInsert, { ordered: false });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Leads imported successfully",
+      totalRows: rows.length,
+      imported: leadsToInsert.length,
+      skipped: rows.length - leadsToInsert.length,
+      errors,
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      message: err.message || "Failed to import leads",
+    });
   }
 };

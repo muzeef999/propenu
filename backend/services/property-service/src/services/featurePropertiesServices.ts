@@ -173,6 +173,8 @@ const emptyPromotionCounts = () => ({
   sponsored: 0,
 });
 
+const promotedPromotionTypes = ["featured", "sponsored", "prime"];
+
 async function countPromotionTypes(filter: any) {
   const counts = emptyPromotionCounts();
 
@@ -1430,6 +1432,7 @@ export const FeaturePropertyService = {
     status?: string;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
+    promotionStatus?: "active" | "expired" | "all";
     type?: string; // 🔥 NEW
     city?: string; // 🔥 NEW
     state?: string; // 🔥 NEW
@@ -1472,14 +1475,48 @@ export const FeaturePropertyService = {
     }
 
     // 🔥 EXCLUDE EXPIRED PROMOTIONS
-    andFilters.push({
-      $or: [
-        { "promotion.boostExpiry": { $gt: new Date() } },
-        { "promotion.type": "normal" },
-        { "promotion.type": { $exists: false } },
-        { "promotion.type": null },
-      ],
-    });
+    const promotionStatus = options?.promotionStatus || "active";
+    const now = new Date();
+
+    if (promotionStatus === "expired") {
+      andFilters.push({
+        $or: [
+          {
+            "promotion.type": { $in: promotedPromotionTypes },
+            "promotion.boostExpiry": { $lte: now },
+          },
+          {
+            $and: [
+              {
+                $or: [
+                  { "promotion.type": "normal" },
+                  { "promotion.type": { $exists: false } },
+                  { "promotion.type": null },
+                ],
+              },
+              {
+                promotionHistory: {
+                  $elemMatch: {
+                    fromType: { $in: promotedPromotionTypes },
+                    toType: "normal",
+                    reason: { $regex: "expired", $options: "i" },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      });
+    } else if (promotionStatus !== "all") {
+      andFilters.push({
+        $or: [
+          { "promotion.boostExpiry": { $gt: now } },
+          { "promotion.type": "normal" },
+          { "promotion.type": { $exists: false } },
+          { "promotion.type": null },
+        ],
+      });
+    }
 
     if (andFilters.length > 0) {
       filter.$and = andFilters;
