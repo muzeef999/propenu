@@ -186,16 +186,11 @@ export const updateLeadStatus = async (
     throw new Error("Invalid lead ID");
   }
 
-  // Manager-only approval
-  if (status === "approved" && user?.role !== "manager") {
-    throw new Error("Only manager can approve leads");
-  }
-
   const lead = await Lead.findByIdAndUpdate(
     leadId,
     {
       status,
-      approvedByManager: status === "approved",
+      approvedByManager: false,
     },
     { new: true }
   );

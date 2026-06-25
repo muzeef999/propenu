@@ -3,7 +3,7 @@
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-import { useState, useEffect, useMemo, useRef, JSX } from "react";
+import { useState, useEffect, useMemo, useRef, JSX, CSSProperties } from "react";
 import {
   downloadLeadsCSV,
   getMyProperties,
@@ -17,6 +17,7 @@ import {
   FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
+  FiCheck,
   FiDownloadCloud,
   FiUploadCloud,
 } from "react-icons/fi";
@@ -24,15 +25,23 @@ import {
 /* ================= TYPES ================= */
 
 export const LEAD_STATUSES = [
-  "new",
-  "contacted",
+  "new_lead",
+  "interested",
+  "not_interested",
   "follow_up",
-  "approved",
-  "rejected",
-  "closed",
+  "site_visit",
+  "sale",
 ] as const;
 
-type LeadStatus = (typeof LEAD_STATUSES)[number] | "All";
+type LeadStatusValue = (typeof LEAD_STATUSES)[number];
+type LeadStatus = LeadStatusValue | "All";
+type StoredLeadStatus =
+  | LeadStatusValue
+  | "new"
+  | "contacted"
+  | "approved"
+  | "rejected"
+  | "closed";
 
 interface Property {
   _id: string;
@@ -50,7 +59,11 @@ interface Lead {
   _id: string;
   name: string;
   phone: string;
-  status: LeadStatus;
+  email?: string;
+  sourceCreatedAt?: string;
+  purchaseTimeline?: string;
+  budgetRange?: string;
+  status: StoredLeadStatus;
   createdAt: string;
 }
 
@@ -96,26 +109,211 @@ const getPropertyPriceLabel = (property: any) => {
   return "—";
 };
 
-const getStatusClasses = (status: LeadStatus) => {
+const getStatusClasses = (status: LeadStatusValue) => {
   switch (status) {
-    case "new":
+    case "new_lead":
       return "bg-blue-50 text-blue-700 ring-blue-100";
-    case "contacted":
+    case "interested":
       return "bg-emerald-50 text-emerald-700 ring-emerald-100";
+    case "not_interested":
+      return "bg-rose-50 text-rose-700 ring-rose-100";
     case "follow_up":
       return "bg-amber-50 text-amber-700 ring-amber-100";
-    case "approved":
+    case "site_visit":
+      return "bg-indigo-50 text-indigo-700 ring-indigo-100";
+    case "sale":
       return "bg-green-50 text-green-700 ring-green-100";
-    case "rejected":
-      return "bg-rose-50 text-rose-700 ring-rose-100";
-    case "closed":
-      return "bg-slate-100 text-slate-700 ring-slate-200";
     default:
       return "bg-gray-50 text-gray-700 ring-gray-100";
   }
 };
 
-const formatStatus = (status: LeadStatus) => status.replace("_", " ");
+const getStatusDotClasses = (status: LeadStatusValue) => {
+  switch (status) {
+    case "new_lead":
+      return "bg-blue-500";
+    case "interested":
+      return "bg-emerald-500";
+    case "not_interested":
+      return "bg-rose-500";
+    case "follow_up":
+      return "bg-amber-500";
+    case "site_visit":
+      return "bg-indigo-500";
+    case "sale":
+      return "bg-green-500";
+    default:
+      return "bg-gray-400";
+  }
+};
+
+const normalizeLeadStatus = (status?: StoredLeadStatus): LeadStatusValue => {
+  switch (status) {
+    case "new":
+      return "new_lead";
+    case "contacted":
+    case "approved":
+      return "interested";
+    case "rejected":
+      return "not_interested";
+    case "closed":
+      return "sale";
+    default:
+      return (status ?? "new_lead") as LeadStatusValue;
+  }
+};
+
+const formatStatus = (status: StoredLeadStatus) =>
+  normalizeLeadStatus(status)
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+const formatLeadDate = (value?: string) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-IN");
+};
+
+const getDisplayValue = (value?: string) => value?.trim() || "—";
+const getLeadTimestamp = (lead: Lead) => {
+  const value = lead.sourceCreatedAt || lead.createdAt;
+  const time = value ? new Date(value).getTime() : 0;
+  return Number.isNaN(time) ? 0 : time;
+};
+
+const StatusSelect = ({
+  lead,
+  updateStatusMutation,
+  className = "",
+}: {
+  lead: Lead;
+  updateStatusMutation: any;
+  className?: string;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<CSSProperties>({});
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const currentStatus = normalizeLeadStatus(lead.status);
+  const isUpdating = Boolean(updateStatusMutation?.isPending);
+
+  const positionMenu = () => {
+    const button = buttonRef.current;
+    if (!button) return;
+
+    const rect = button.getBoundingClientRect();
+    const menuWidth = Math.max(rect.width, 188);
+    const left = Math.min(rect.left, window.innerWidth - menuWidth - 12);
+
+    setMenuStyle({
+      left: Math.max(12, left),
+      top: Math.min(rect.bottom + 8, window.innerHeight - 292),
+      width: menuWidth,
+    });
+  };
+
+  useEffect(() => {
+    if (!open) return;
+
+    positionMenu();
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        buttonRef.current?.contains(target) ||
+        menuRef.current?.contains(target)
+      ) {
+        return;
+      }
+      setOpen(false);
+    };
+
+    const handleReposition = () => positionMenu();
+
+    document.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("resize", handleReposition);
+    window.addEventListener("scroll", handleReposition, true);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("resize", handleReposition);
+      window.removeEventListener("scroll", handleReposition, true);
+    };
+  }, [open]);
+
+  const handleSelect = (status: LeadStatusValue) => {
+    setOpen(false);
+
+    if (status === currentStatus) return;
+
+    updateStatusMutation.mutate({
+      id: lead._id,
+      status,
+    });
+  };
+
+  return (
+    <div className={`relative w-full min-w-[128px] max-w-[150px] ${className}`}>
+      <button
+        ref={buttonRef}
+        type="button"
+        disabled={isUpdating}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className={`flex h-9 w-full items-center justify-between gap-2 rounded-md border border-transparent px-3 text-left text-xs font-semibold leading-none ring-1 transition hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-[#16A34A] disabled:cursor-wait disabled:opacity-70 ${getStatusClasses(currentStatus)}`}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <span
+            className={`h-2 w-2 shrink-0 rounded-full ${getStatusDotClasses(currentStatus)}`}
+          />
+          <span className="truncate">{formatStatus(currentStatus)}</span>
+        </span>
+        <FiChevronDown
+          className={`h-3.5 w-3.5 shrink-0 transition ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {open && (
+        <div
+          ref={menuRef}
+          style={menuStyle}
+          className="fixed z-50 overflow-hidden rounded-lg border border-[#E5E7EB] bg-white p-1.5 shadow-xl shadow-black/10"
+          role="listbox"
+          aria-label="Lead status"
+        >
+          {LEAD_STATUSES.map((status) => {
+            const selected = status === currentStatus;
+
+            return (
+              <button
+                key={status}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onClick={() => handleSelect(status)}
+                className={`flex h-9 w-full items-center justify-between gap-3 rounded-md px-2.5 text-left text-xs font-semibold transition ${
+                  selected
+                    ? "bg-[#F0FDF4] text-[#15803D]"
+                    : "text-[#374151] hover:bg-[#F9FAFB]"
+                }`}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <span
+                    className={`h-2 w-2 shrink-0 rounded-full ${getStatusDotClasses(status)}`}
+                  />
+                  <span className="truncate">{formatStatus(status)}</span>
+                </span>
+                {selected && <FiCheck className="h-3.5 w-3.5 shrink-0" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 /* ================= PAGE ================= */
 
 export default function BuilderLeadsPage(): JSX.Element {
@@ -164,7 +362,7 @@ export default function BuilderLeadsPage(): JSX.Element {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: LeadStatus }) =>
+    mutationFn: ({ id, status }: { id: string; status: LeadStatusValue }) =>
       updateLeadStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -194,10 +392,13 @@ export default function BuilderLeadsPage(): JSX.Element {
 
   const filteredLeads = useMemo<Lead[]>(() => {
     const leads = leadsData?.data ?? [];
-    if (activeStatus === "All") return leads;
+    const matchingLeads =
+      activeStatus === "All"
+        ? leads
+        : leads.filter((lead) => normalizeLeadStatus(lead.status) === activeStatus);
 
-    return leads.filter(
-      (lead) => lead.status?.toLowerCase() === activeStatus.toLowerCase(),
+    return [...matchingLeads].sort(
+      (a, b) => getLeadTimestamp(b) - getLeadTimestamp(a),
     );
   }, [leadsData, activeStatus]);
 
@@ -292,7 +493,7 @@ export default function BuilderLeadsPage(): JSX.Element {
                         : "bg-[#E7E9E8] text-[#4B5563] hover:bg-[#DDE1DE]"
                     }`}
                 >
-                  {status.replace("_", " ")}
+                  {status === "All" ? status : formatStatus(status as LeadStatusValue)}
                 </button>
               );
             })}
@@ -560,49 +761,51 @@ function LeadsTable({
                   {lead.name}
                 </p>
                 <p className="mt-1 text-sm text-[#6B7280]">{lead.phone}</p>
+                <p className="mt-1 truncate text-sm text-[#6B7280]">
+                  {getDisplayValue(lead.email)}
+                </p>
               </div>
               <span className="whitespace-nowrap text-xs font-medium text-[#6B7280]">
-                {new Date(lead.createdAt).toLocaleDateString("en-IN")}
+                {formatLeadDate(lead.sourceCreatedAt || lead.createdAt)}
               </span>
             </div>
-            <div className="relative mt-3">
-              <select
-                className={`w-full appearance-none rounded-md border border-transparent px-3 py-2 pr-8 text-xs font-semibold capitalize ring-1 transition focus:outline-none focus:ring-2 focus:ring-[#16A34A] ${getStatusClasses(lead.status)}`}
-                value={lead.status}
-                onChange={(e) =>
-                  updateStatusMutation.mutate({
-                    id: lead._id,
-                    status: e.target.value,
-                  })
-                }
-              >
-                {LEAD_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {formatStatus(s)}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-[#6B7280]">
-                ▼
-              </div>
+            <div className="mt-3 grid grid-cols-1 gap-2 text-sm text-[#4B5563]">
+              <p>
+                <span className="font-medium text-[#111827]">Purchase: </span>
+                {getDisplayValue(lead.purchaseTimeline)}
+              </p>
+              <p>
+                <span className="font-medium text-[#111827]">Budget: </span>
+                {getDisplayValue(lead.budgetRange)}
+              </p>
+            </div>
+            <div className="mt-3">
+              <StatusSelect
+                lead={lead}
+                updateStatusMutation={updateStatusMutation}
+                className="max-w-none"
+              />
             </div>
           </div>
         ))}
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-sm md:block">
-        <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(100px,0.7fr)_minmax(150px,1fr)_minmax(150px,0.9fr)] border-b border-[#E5E7EB] bg-[#F9FAFB] px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-[#6B7280]">
-          <span className="pl-1">Name</span>
-          <span>Date</span>
-          <span>Contact Number</span>
+      <div className="hidden overflow-x-auto rounded-lg border border-[#E5E7EB] bg-white shadow-sm md:block">
+        <div className="grid min-w-[1080px] grid-cols-[minmax(150px,1.1fr)_minmax(130px,0.9fr)_minmax(180px,1.2fr)_minmax(120px,0.8fr)_minmax(170px,1fr)_minmax(140px,0.9fr)_150px] items-center border-b border-[#E5E7EB] bg-[#F9FAFB] px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-[#6B7280]">
+          <span className="pl-1">Full Name</span>
+          <span>Phone Number</span>
+          <span>Email</span>
+          <span>Lead Time</span>
+          <span>Planning To Purchase</span>
+          <span>Budget Range</span>
           <span>Status</span>
         </div>
 
         {leads.map((lead, index) => (
           <div
             key={lead._id}
-            className={`grid grid-cols-[minmax(0,1.3fr)_minmax(100px,0.7fr)_minmax(150px,1fr)_minmax(150px,0.9fr)] items-center border-b border-[#EEF2F0] px-5 py-3.5 text-sm transition last:border-b-0 hover:bg-[#F7FBF8] ${
+            className={`grid min-w-[1080px] grid-cols-[minmax(150px,1.1fr)_minmax(130px,0.9fr)_minmax(180px,1.2fr)_minmax(120px,0.8fr)_minmax(170px,1fr)_minmax(140px,0.9fr)_150px] items-center border-b border-[#EEF2F0] px-5 py-3.5 text-sm transition last:border-b-0 hover:bg-[#F7FBF8] ${
               index % 2 === 0 ? "bg-white" : "bg-[#FCFDFD]"
             }`}
           >
@@ -612,37 +815,31 @@ function LeadsTable({
               </p>
             </div>
 
-            <div className="min-w-0 text-sm font-medium text-[#6B7280]">
-              {new Date(lead.createdAt).toLocaleDateString("en-IN")}
-            </div>
-
             <div className="min-w-0 truncate pr-4 text-sm font-medium text-[#374151]">
               {lead.phone}
             </div>
 
-            <div className="min-w-0">
-              <div className="relative inline-block w-full max-w-[180px]">
-                <select
-                  className={`w-full appearance-none rounded-md border border-transparent px-3 py-2 pr-8 text-xs font-semibold capitalize ring-1 transition focus:outline-none focus:ring-2 focus:ring-[#16A34A] ${getStatusClasses(lead.status)}`}
-                  value={lead.status}
-                  onChange={(e) =>
-                    updateStatusMutation.mutate({
-                      id: lead._id,
-                      status: e.target.value,
-                    })
-                  }
-                >
-                  {LEAD_STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {formatStatus(s)}
-                    </option>
-                  ))}
-                </select>
+            <div className="min-w-0 truncate pr-4 text-sm font-medium text-[#374151]">
+              {getDisplayValue(lead.email)}
+            </div>
 
-                <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[#6B7280]">
-                  ▼
-                </div>
-              </div>
+            <div className="min-w-0 text-sm font-medium text-[#6B7280]">
+              {formatLeadDate(lead.sourceCreatedAt || lead.createdAt)}
+            </div>
+
+            <div className="min-w-0 truncate pr-4 text-sm font-medium text-[#374151]">
+              {getDisplayValue(lead.purchaseTimeline)}
+            </div>
+
+            <div className="min-w-0 truncate pr-4 text-sm font-medium text-[#374151]">
+              {getDisplayValue(lead.budgetRange)}
+            </div>
+
+            <div className="min-w-0">
+              <StatusSelect
+                lead={lead}
+                updateStatusMutation={updateStatusMutation}
+              />
             </div>
           </div>
         ))}

@@ -33,6 +33,10 @@ export interface ProjectLeadPayload {
   email?: string;
   projectId?: string;
   remarks?: string;
+  sourceCreatedAt?: string;
+  purchaseTimeline?: string;
+  budgetRange?: string;
+  status?: string;
 }
 
 export default function HeroSection({ hero }: Props) {

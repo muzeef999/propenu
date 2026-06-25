@@ -63,7 +63,7 @@ const LeadSchema = new Schema<LeadSchemaShape>(
     status: {
       type: String,
       enum: LEAD_STATUSES,
-      default: "new",
+      default: "new_lead",
     },
 
     assignedTo: {

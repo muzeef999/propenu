@@ -31,12 +31,12 @@ export const LEAD_PROPERTY_TYPES = [
 ] as const;
 
 export const LEAD_STATUSES = [
-  "new",
-  "contacted",
+  "new_lead",
+  "interested",
+  "not_interested",
   "follow_up",
-  "approved",
-  "rejected",
-  "closed",
+  "site_visit",
+  "sale",
 ] as const;
 
 /* ---------------------------------

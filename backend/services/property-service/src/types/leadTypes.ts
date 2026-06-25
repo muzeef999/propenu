@@ -9,12 +9,12 @@ export type LeadPropertyType =
   | "landplots";
 
 export type LeadStatus =
-  | "new"
-  | "contacted"
+  | "new_lead"
+  | "interested"
+  | "not_interested"
   | "follow_up"
-  | "approved"
-  | "rejected"
-  | "closed";
+  | "site_visit"
+  | "sale";
 
 /* ✅ FULL SCHEMA SHAPE (IMPORTANT) */
 export interface LeadSchemaShape {

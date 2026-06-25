@@ -10,13 +10,35 @@ const categories = ["Residential", "Commercial", "Open Plot", "Agriculture Land"
 
 const LEAD_STATUSES = [
     "All",
-    "New",
-    "Contacted",
-    "Follow-up",
+    "New Lead",
+    "Interested",
+    "Not Interested",
+    "Follow Up",
     "Site Visit",
-    "Closed",
-    "Not interested",
+    "Sale",
 ];
+
+const normalizeLeadStatus = (status?: string) => {
+    const normalized = status?.trim().toLowerCase().replace(/[\s-]+/g, "_");
+    const aliases: Record<string, string> = {
+        new: "new_lead",
+        intrested: "interested",
+        not_intrested: "not_interested",
+        contacted: "interested",
+        approved: "interested",
+        rejected: "not_interested",
+        closed: "sale",
+    };
+
+    return normalized ? aliases[normalized] ?? normalized : "";
+};
+
+const formatLeadStatus = (status?: string) =>
+    normalizeLeadStatus(status)
+        .split("_")
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
 
 const TAB_KEY_MAP: Record<string, string> = {
     Residential: "residential",
@@ -91,7 +113,7 @@ const LeadsPage = () => {
             return leadsArray;
         }
         return leadsArray.filter(
-            (lead: any) => lead.status?.toLowerCase() === activeStatus.toLowerCase(),
+            (lead: any) => normalizeLeadStatus(lead.status) === normalizeLeadStatus(activeStatus),
         );
     }, [leadsData, activeStatus]);
 
@@ -227,25 +249,25 @@ const LeadsPage = () => {
 
 const LeadsTable = ({ leads }: any) => {
     const getStatusStyle = (status: string) => {
-        const s = status?.toLowerCase();
+        const normalized = normalizeLeadStatus(status);
 
-        if (s === "new")
+        if (normalized === "new_lead")
             return "bg-blue-50 text-blue-600 border-blue-200";
 
-        if (s === "contacted")
+        if (normalized === "interested")
             return "bg-yellow-50 text-yellow-600 border-yellow-200";
 
-        if (s === "follow-up")
+        if (normalized === "not_interested")
+            return "bg-red-50 text-red-600 border-red-200";
+
+        if (normalized === "follow_up")
             return "bg-purple-50 text-purple-600 border-purple-200";
 
-        if (s === "site visit")
+        if (normalized === "site_visit")
             return "bg-indigo-50 text-indigo-600 border-indigo-200";
 
-        if (s === "closed")
+        if (normalized === "sale")
             return "bg-green-50 text-green-600 border-green-200";
-
-        if (s === "rejected")
-            return "bg-red-50 text-red-600 border-red-200";
 
         return "bg-gray-50 text-gray-600 border-gray-200";
     };
@@ -263,7 +285,7 @@ const LeadsTable = ({ leads }: any) => {
                                     lead.status
                                 )}`}
                             >
-                                {lead.status}
+                                {formatLeadStatus(lead.status)}
                             </span>
                         </div>
                         <p className="text-sm text-gray-500">
@@ -306,7 +328,7 @@ const LeadsTable = ({ leads }: any) => {
                                     lead.status
                                 )}`}
                             >
-                                {lead.status}
+                                {formatLeadStatus(lead.status)}
                             </span>
                         </div>
                     </div>

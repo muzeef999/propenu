@@ -18,14 +18,45 @@ import FeaturedProject from "../models/featurePropertiesModel";
 
 
 const sendCSV = (leads: any[], res: Response) => {
-  const header = "Name,Phone,Status,Date\n";
+  const header = [
+    "Full Name",
+    "Phone Number",
+    "Email",
+    "Lead Created Time",
+    "Planning To Purchase",
+    "Budget Range",
+    "Status",
+    "System Date",
+  ].join(",") + "\n";
+
+  const csvValue = (value: unknown) => {
+    const stringValue = value == null ? "" : String(value);
+    if (!/[",\n\r]/.test(stringValue)) return stringValue;
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  };
+
+  const formatDate = (value?: string | Date) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleDateString("en-IN");
+  };
 
   const rows = leads
     .map(
       (l) =>
-        `${l.name},${l.phone},${l.status},${new Date(
-          l.createdAt
-        ).toLocaleDateString("en-IN")}`
+        [
+          l.name,
+          l.phone,
+          l.email,
+          formatDate(l.sourceCreatedAt),
+          l.purchaseTimeline,
+          l.budgetRange,
+          l.status,
+          formatDate(l.createdAt),
+        ]
+          .map(csvValue)
+          .join(",")
     )
     .join("\n");
 
@@ -37,6 +68,8 @@ const sendCSV = (leads: any[], res: Response) => {
 };
 
 const csvHeaderAliases: Record<string, string> = {
+  full_name: "name",
+  fullname: "name",
   contact: "phone",
   contact_number: "phone",
   contactnumber: "phone",
@@ -45,6 +78,16 @@ const csvHeaderAliases: Record<string, string> = {
   mobilenumber: "phone",
   phone_number: "phone",
   phonenumber: "phone",
+  created_time: "sourceCreatedAt",
+  createdtime: "sourceCreatedAt",
+  lead_created_time: "sourceCreatedAt",
+  when_are_you_planning_to_purchase: "purchaseTimeline",
+  when_are_you_planning_to_purchase_: "purchaseTimeline",
+  planning_to_purchase: "purchaseTimeline",
+  purchase_timeline: "purchaseTimeline",
+  what_is_your_budget_range: "budgetRange",
+  what_is_your_budget_range_: "budgetRange",
+  budget_range: "budgetRange",
   remarks: "message",
 };
 
@@ -114,6 +157,55 @@ const parseCsvRows = (buffer: Buffer) => {
       return row;
     }, {});
   });
+};
+
+const normalizeLeadStatus = (value?: string) => {
+  const normalized = value?.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  const aliases: Record<string, (typeof LEAD_STATUSES)[number]> = {
+    new: "new_lead",
+    intrested: "interested",
+    not_intrested: "not_interested",
+    contacted: "interested",
+    approved: "interested",
+    rejected: "not_interested",
+    closed: "sale",
+  };
+  const status = normalized ? aliases[normalized] ?? normalized : undefined;
+  return status && LEAD_STATUSES.includes(status as any)
+    ? status
+    : undefined;
+};
+
+const cleanOptional = (value: unknown) => {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  return trimmed || undefined;
+};
+
+const normalizePublicLeadPayload = (payload: any) => {
+  const sourceCreatedAt = cleanOptional(
+    payload.sourceCreatedAt ?? payload.created_time
+  );
+
+  return {
+    projectId: payload.projectId,
+    name: cleanOptional(payload.name ?? payload.full_name),
+    phone: cleanOptional(payload.phone ?? payload.phone_number),
+    email: cleanOptional(payload.email),
+    message: cleanOptional(payload.message ?? payload.remarks),
+    sourceCreatedAt,
+    purchaseTimeline: cleanOptional(
+      payload.purchaseTimeline ??
+        payload.when_are_you_planning_to_purchase ??
+        payload["when_are_you_planning_to_purchase?"]
+    ),
+    budgetRange: cleanOptional(
+      payload.budgetRange ??
+        payload.what_is_your_budget_range ??
+        payload["what_is_your_budget_range?"]
+    ),
+    status: normalizeLeadStatus(payload.status),
+  };
 };
 
 const getProjectLeadQuery = (projectId: string, from?: unknown, to?: unknown) => {
@@ -197,7 +289,15 @@ export const updateLeadStatusController = async (
         message: "Lead ID is required",
       });
     }
-    const lead = await updateLeadStatus(id, req.body.status);
+    const status = normalizeLeadStatus(req.body.status);
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status value",
+      });
+    }
+
+    const lead = await updateLeadStatus(id, status);
     res.json({ success: true, data: lead });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -336,7 +436,7 @@ export const createPublicLeadController = async (
   res: Response
 ) => {
   try {
-    const data = PublicLeadSchemaZ.parse(req.body);
+    const data = PublicLeadSchemaZ.parse(normalizePublicLeadPayload(req.body));
     const lead = await createPublicLead(data);
 
     res.status(201).json({
@@ -398,14 +498,16 @@ export const updateProjectLeadStatusController = async (
       });
     }
 
-    if (!status || !LEAD_STATUSES.includes(status)) {
+    const normalizedStatus = normalizeLeadStatus(status);
+
+    if (!normalizedStatus) {
       return res.status(400).json({
         success: false,
         message: "Invalid status value",
       });
     }
 
-    const updatedLead = await updateLeadStatusService(id, status);
+    const updatedLead = await updateLeadStatusService(id, normalizedStatus);
 
     res.json({
       success: true,
@@ -496,8 +598,12 @@ export const importProjectLeadsCSVController = async (
       const rowNumber = index + 2;
       const name = row.name?.trim();
       const phone = row.phone?.trim();
+      const email = row.email?.trim();
       const message = row.message?.trim();
-      const status = row.status?.trim().toLowerCase() || "new";
+      const status = normalizeLeadStatus(row.status) || "new_lead";
+      const sourceCreatedAt = row.sourceCreatedAt?.trim();
+      const purchaseTimeline = row.purchaseTimeline?.trim();
+      const budgetRange = row.budgetRange?.trim();
 
       if (!name || name.length < 2) {
         errors.push({ row: rowNumber, message: "Name is required" });
@@ -526,7 +632,11 @@ export const importProjectLeadsCSVController = async (
           projectId,
           name,
           phone,
+          email: email || undefined,
           message: message || undefined,
+          sourceCreatedAt: sourceCreatedAt || undefined,
+          purchaseTimeline: purchaseTimeline || undefined,
+          budgetRange: budgetRange || undefined,
           status,
         },
       ];
