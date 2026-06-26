@@ -15,6 +15,7 @@ import { createPublicLead } from "../services/publicLeadService";
 import PublicLead from "../models/PublicLead";
 import mongoose, { Types } from "mongoose";
 import FeaturedProject from "../models/featurePropertiesModel";
+import * as XLSX from "xlsx";
 
 
 const sendCSV = (leads: any[], res: Response) => {
@@ -157,6 +158,43 @@ const parseCsvRows = (buffer: Buffer) => {
       return row;
     }, {});
   });
+};
+
+const parseSpreadsheetRows = (buffer: Buffer) => {
+  const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
+  const firstSheetName = workbook.SheetNames[0];
+  if (!firstSheetName) return [];
+
+  const sheet = workbook.Sheets[firstSheetName];
+  if (!sheet) return [];
+
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+    defval: "",
+    raw: false,
+  });
+
+  return rows.map((row) =>
+    Object.entries(row).reduce<Record<string, string>>(
+      (normalizedRow, [header, value]) => {
+        normalizedRow[normalizeCsvHeader(header)] =
+          value == null ? "" : String(value).trim();
+        return normalizedRow;
+      },
+      {}
+    )
+  );
+};
+
+const parseLeadImportRows = (file: Express.Multer.File) => {
+  const filename = file.originalname.toLowerCase();
+  const mimeType = file.mimetype.toLowerCase();
+  const isExcel =
+    filename.endsWith(".xlsx") ||
+    filename.endsWith(".xls") ||
+    mimeType.includes("spreadsheet") ||
+    mimeType.includes("excel");
+
+  return isExcel ? parseSpreadsheetRows(file.buffer) : parseCsvRows(file.buffer);
 };
 
 const normalizeLeadStatus = (value?: string) => {
@@ -582,14 +620,22 @@ export const importProjectLeadsCSVController = async (
       return res.status(404).json({ success: false, message: "Project not found" });
     }
 
-    if (String(project.createdBy) !== String(userId)) {
+    const canImportAnyProjectLeads = [
+      "sales_agent",
+      "sales_manager",
+      "admin",
+      "super_admin",
+      "customer_care",
+    ].includes(req.user?.roleName || "");
+
+    if (!canImportAnyProjectLeads && String(project.createdBy) !== String(userId)) {
       return res.status(403).json({
         success: false,
         message: "You can import leads only for your own project",
       });
     }
 
-    const rows = parseCsvRows(file.buffer);
+    const rows = parseLeadImportRows(file);
     const errors: Array<{ row: number; message: string }> = [];
     const allowedStatuses = new Set<string>(LEAD_STATUSES);
     const seenPhones = new Set<string>();

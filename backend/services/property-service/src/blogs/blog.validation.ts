@@ -55,6 +55,7 @@ export function validateCreateBlog(
   }
 
   if (issues.length > 0) {
+    console.warn("Blog create validation failed:", issues);
     return res.status(400).json({ message: "Validation failed", issues });
   }
 
@@ -88,6 +89,7 @@ export function validateUpdateBlog(
   }
 
   if (issues.length > 0) {
+    console.warn("Blog update validation failed:", issues);
     return res.status(400).json({ message: "Validation failed", issues });
   }
 

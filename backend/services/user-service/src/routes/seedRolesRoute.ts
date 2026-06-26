@@ -23,6 +23,11 @@ router.post("/seed-roles", async (_req, res) => {
       "agent:view",
       "agent:edit",
       "agent:delete",
+
+      "blog:create",
+      "blog:view",
+      "blog:edit",
+      "blog:delete",
     ];
 
     // 2️⃣ Define roles
@@ -98,6 +103,18 @@ router.post("/seed-roles", async (_req, res) => {
         name: "accounts",
         label: "Accounts",
         permissions: ["project:view", "lead:view", "lead:edit"],
+      },
+      {
+        name: "digital_marketing",
+        label: "Digital Marketing",
+        permissions: [
+          "project:view",
+          "lead:view",
+          "blog:create",
+          "blog:view",
+          "blog:edit",
+          "blog:delete",
+        ],
       },
       {
         name: "customer_care",
