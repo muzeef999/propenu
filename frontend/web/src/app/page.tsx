@@ -38,7 +38,7 @@ export default function Home() {
         <ExploreMorePropertiesPage />
         <TestomianalHome />
         <DiscoverRealestate />
-        <BlogsClient />
+        {/* <BlogsClient /> */}
         <ResidentialLinks />
         <CommercialLinks />
         <LandLinks />

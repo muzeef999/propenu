@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { getHighlightProjects } from "@/data/ClientData";
+import { getHighlightProjects, getSponsored } from "@/data/ClientData";
 import { FeaturedProject } from "@/types";
 import { useCity } from "@/hooks/useCity";
 import { minDelay } from "@/utilies/minDelay";
@@ -13,20 +13,36 @@ import {
     FiDownload,
 } from "react-icons/fi";
 import { HiOutlineLocationMarker } from "react-icons/hi";
-import Image from "next/image";
-import ad from "@/asserts/ad.png";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ContactOwnerButton from "@/components/ContactOwnerButton";
+import formatINR from "@/utilies/PriceFormat";
+import AdCard, { type Ad } from "../properties/cards/AdCard";
+import SponsoreCard from "../properties/cards/SponsoreCard";
 
 type HighlightProjectsResponse = {
     items?: FeaturedProject[];
+};
+
+type SponsoredProperty = {
+    id?: string;
+    _id?: string;
+    title?: string;
+    slug?: string;
+    type?: string;
+    city?: string;
+    buildingName?: string;
+    heroImage?: string;
+    gallery?: { url?: string }[];
+    gallerySummary?: { url?: string }[];
+    promotion?: { type?: string };
 };
 
 const skeletonItems = Array.from({ length: 3 });
 
 const getPromotionLabel = (type?: string) => {
     if (type === "prime") return "Prime";
-    if (type === "featured") return "Featured";
+    if (type === "featured") return "Top Selling";
     if (type === "sponsored") return "Sponsored";
     return null;
 };
@@ -47,6 +63,48 @@ const formatProjectConfigurationCount = (project: FeaturedProject) => {
     return `${project.projectSummary?.length || project.bhkSummary?.length || 0} unit configurations`;
 };
 
+const formatProjectPriceRange = (project: FeaturedProject) => {
+    const from = project.priceFrom;
+    const to = project.priceTo;
+
+    if (from && to && from !== to) {
+        return `${formatINR(from)} - ${formatINR(to)}`;
+    }
+
+    if (from) return `${formatINR(from)} onwards`;
+    if (to) return formatINR(to);
+    return "Price on Request";
+};
+
+const getProjectHref = (project: FeaturedProject) =>
+    project.promotion?.type === "prime"
+        ? `/prime/${project.slug}`
+        : `/project/${project.slug}`;
+
+const getSponsoredPropertyHref = (property: SponsoredProperty) => {
+    const type = String(property.type || "").toLowerCase();
+    const slug = property.slug || "";
+
+    if (!slug) return "/";
+
+    switch (type) {
+        case "residential":
+            return `/properties/residential/${slug}`;
+        case "commercial":
+            return `/properties/commercial/${slug}`;
+        case "land":
+            return `/properties/landploat/${slug}`;
+        case "agricultural":
+            return `/properties/agricultural/${slug}`;
+        case "featuredproject":
+            return property.promotion?.type === "prime"
+                ? `/prime/${slug}`
+                : `/project/${slug}`;
+        default:
+            return "/";
+    }
+};
+
 const HotspotsPage = () => {
     const { selectedCity } = useCity();
     const router = useRouter();
@@ -56,6 +114,7 @@ const HotspotsPage = () => {
     const localitiesRef = useRef<HTMLDivElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
+    const [dismissedAds, setDismissedAds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -97,6 +156,39 @@ const HotspotsPage = () => {
 
     const items = data?.items || [];
 
+    const { data: sponsoredData, isLoading: isSponsoredLoading } = useQuery({
+        queryKey: ["highlight-sponsored", selectedCity?.state, selectedCity?.city],
+        enabled: Boolean(selectedCity),
+        queryFn: () =>
+            getSponsored({
+                state: selectedCity?.state,
+                city: selectedCity?.city,
+            }),
+    });
+
+    const sidebarAds: Ad[] = (sponsoredData?.data || [])
+        .slice(0, 2)
+        .filter((property: SponsoredProperty) => !dismissedAds.has(property.id || property._id || ""))
+        .map((property: SponsoredProperty) => ({
+            id: property.id || property._id || "",
+            title: property.title || "Sponsored Property",
+            description: property.buildingName || property.city,
+            imageUrl:
+                property.heroImage ||
+                property.gallery?.[0]?.url ||
+                property.gallerySummary?.[0]?.url ||
+                "/images/placeholder.svg",
+            ctaText: "View Details",
+            ctaLink: getSponsoredPropertyHref(property),
+            category: property.type || "Featured",
+            sponsored: true,
+        }))
+        .filter((ad: Ad) => Boolean(ad.id));
+
+    const handleDismissAd = (adId: string) => {
+        setDismissedAds((prev) => new Set([...prev, adId]));
+    };
+
     useEffect(() => {
         const el = localitiesRef.current;
         if (isLoading || !el) {
@@ -123,12 +215,6 @@ const HotspotsPage = () => {
             window.removeEventListener("resize", checkScroll);
         };
     }, [isLoading, selectedCity?.city, selectedCity?.localities?.length]);
-
-    const formatPrice = (price?: number) => {
-        if (!price || price <= 0) return "N/A";
-        const cr = price / 1_00_00_000;
-        return cr.toFixed(2);
-    };
 
     const scrollLocalities = (direction: "left" | "right") => {
         if (!localitiesRef.current) return;
@@ -241,7 +327,7 @@ const HotspotsPage = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="w-full space-y-3 rounded-xl bg-[#F1FCF5] p-4 lg:w-[220px] sm:space-y-4">
+                                            <div className="w-full space-y-3 rounded-xl bg-[#F1FCF5] p-4 lg:w-[240px] sm:space-y-4">
                                                 <div className="h-7 w-36 animate-pulse rounded bg-emerald-100" />
                                                 <div className="h-10 w-full animate-pulse rounded-lg bg-emerald-200" />
                                                 <div className="h-10 w-full animate-pulse rounded-lg bg-emerald-100" />
@@ -318,7 +404,7 @@ const HotspotsPage = () => {
 
                                 <div className="grid grid-cols-1 gap-4 sm:gap-6">
                                     {items.map((project) => {
-                                        const projectHref = `/project/${project.slug}`;
+                                        const projectHref = getProjectHref(project);
                                         const promotionLabel = getPromotionLabel(
                                             project.promotion?.type
                                         );
@@ -401,17 +487,54 @@ const HotspotsPage = () => {
                                                     </div>
 
                                                     {/* Pricing */}
-                                                    <div className="w-full lg:w-[220px] lg:border-l border-slate-50 flex flex-col justify-center space-y-3 sm:space-y-4 bg-[#F1FCF5] p-4 rounded-xl items-stretch lg:items-center">
-                                                        <div className="text-lg sm:text-xl font-semibold text-[#26ad5f] text-left lg:text-center">
-                                                            ₹ {formatPrice(project.priceFrom)} -{" "}
-                                                            {formatPrice(project.priceTo)} Cr
+                                                    <div className="w-full lg:w-[240px] lg:border-l border-slate-50 flex flex-col justify-center space-y-3 sm:space-y-4 bg-[#F1FCF5] p-4 rounded-xl items-stretch lg:items-center">
+                                                        <div className="w-full text-center text-lg font-semibold leading-snug text-[#26ad5f] sm:text-xl">
+                                                            {formatProjectPriceRange(project)}
                                                         </div>
-                                                        <button className="w-full btn-primary text-white py-2 rounded-lg font-semibold text-sm sm:text-base">
-                                                            Contact Owner
-                                                        </button>
-                                                        <button className="w-full border border-[#26ad5f] text-[#26ad5f] py-2 rounded-lg font-semibold text-sm sm:text-base flex items-center justify-center gap-2 hover:bg-emerald-50">
-                                                            <FiDownload /> Brochure
-                                                        </button>
+                                                        <div
+                                                            className="w-full"
+                                                            onClick={(event) => {
+                                                                event.preventDefault();
+                                                                event.stopPropagation();
+                                                            }}
+                                                        >
+                                                            <ContactOwnerButton
+                                                                projectId={project._id}
+                                                                propertyType="featuredprojects"
+                                                                listingType="sale"
+                                                                listingSource="builder"
+                                                                price={formatProjectPriceRange(project)}
+                                                                propertyLabel={project.title}
+                                                                className="mx-auto flex min-h-11 w-full min-w-[150px] items-center justify-center whitespace-nowrap rounded-lg btn-primary px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70 sm:text-base"
+                                                            >
+                                                                Contact Owner
+                                                            </ContactOwnerButton>
+                                                        </div>
+                                                        {project.brochure?.url ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(event) => {
+                                                                    event.preventDefault();
+                                                                    event.stopPropagation();
+                                                                    window.open(project.brochure?.url, "_blank", "noopener,noreferrer");
+                                                                }}
+                                                                className="w-full border border-[#26ad5f] text-[#26ad5f] py-2 rounded-lg font-semibold text-sm sm:text-base flex items-center justify-center gap-2 hover:bg-emerald-50"
+                                                            >
+                                                                <FiDownload /> Brochure
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                type="button"
+                                                                disabled
+                                                                onClick={(event) => {
+                                                                    event.preventDefault();
+                                                                    event.stopPropagation();
+                                                                }}
+                                                                className="w-full border border-slate-200 text-slate-400 py-2 rounded-lg font-semibold text-sm sm:text-base flex items-center justify-center gap-2 cursor-not-allowed"
+                                                            >
+                                                                <FiDownload /> Brochure
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </Link>
@@ -421,17 +544,21 @@ const HotspotsPage = () => {
                             </>
                         )}
                     </section>
-                    {/* Ad banner */}
-                    <aside className="w-full sm:max-w-md lg:max-w-none lg:w-[220px] lg:sticky lg:top-24 self-start shrink-0">
-                        {isLoading ? (
-                            <div className="h-80 w-full animate-pulse rounded-xl bg-slate-200" />
-                        ) : (
-                            <Image
-                                src={ad}
-                                alt="advertisement banner"
-                                className="w-full h-auto rounded-xl"
-                            />
-                        )}
+                    <aside className="w-full lg:w-[20%]">
+                        <div className="sticky top-24">
+                            {(isLoading || isSponsoredLoading) ? (
+                                <div className="h-80 w-full animate-pulse rounded-xl bg-slate-200" />
+                            ) : (
+                                <div className="space-y-4">
+                                    {sidebarAds.map((ad) => (
+                                        <AdCard key={ad.id} ad={ad} onDismiss={handleDismissAd} />
+                                    ))}
+                                    {sidebarAds.length === 0 && (
+                                        <SponsoreCard />
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </aside>
                 </div>
             </div>
