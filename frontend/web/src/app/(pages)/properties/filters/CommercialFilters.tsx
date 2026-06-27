@@ -91,6 +91,10 @@ const CommercialFilters = () => {
     commercial.carpetArea?.min ?? CARPET_MIN,
     commercial.carpetArea?.max ?? CARPET_MAX,
   ]);
+  const [builtUpRange, setBuiltUpRange] = useState<[number, number]>([
+    commercial.builtUpArea?.min ?? CARPET_MIN,
+    commercial.builtUpArea?.max ?? CARPET_MAX,
+  ]);
 
   const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
   const postedByLabelMap: Record<PostedByOption, string> = {
@@ -195,6 +199,20 @@ const CommercialFilters = () => {
   }, [carpetRange, dispatch]);
 
   useEffect(() => {
+    if (builtUpRange[0] !== CARPET_MIN || builtUpRange[1] !== CARPET_MAX) {
+      dispatch(
+        setCommercialFilter({
+          key: "builtUpArea",
+          value: {
+            min: builtUpRange[0],
+            max: builtUpRange[1],
+          },
+        })
+      );
+    }
+  }, [builtUpRange, dispatch]);
+
+  useEffect(() => {
     const currentSubTypes = Array.isArray(commercial.commercialSubType)
       ? commercial.commercialSubType
       : [];
@@ -246,7 +264,7 @@ const CommercialFilters = () => {
 
             {cityData && (
               <>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex max-h-120 gap-2 overflow-y-auto pr-1 flex-wrap">
                   {localities.map((loc: { name: string }) => {
                     const isSelected = localityList.includes(loc.name);
 
@@ -667,18 +685,30 @@ const CommercialFilters = () => {
                           );
                         }}
                       />
-                    ) : section.key === "Carpet Area" ? (
-                      /* CARPET AREA */
+                    ) : section.key === "Carpet Area" || section.key === "Built-up Area" ? (
+                      /* AREA */
                       <div className="space-y-4">
                         <div className="flex gap-3">
                           <select
-                            value={carpetRange[0]}
-                            onChange={(e) =>
-                              setCarpetRange([
-                                Number(e.target.value),
-                                carpetRange[1],
-                              ])
+                            value={
+                              section.key === "Built-up Area"
+                                ? builtUpRange[0]
+                                : carpetRange[0]
                             }
+                            onChange={(e) => {
+                              const nextRange: [number, number] = [
+                                Number(e.target.value),
+                                section.key === "Built-up Area"
+                                  ? builtUpRange[1]
+                                  : carpetRange[1],
+                              ];
+
+                              if (section.key === "Built-up Area") {
+                                setBuiltUpRange(nextRange);
+                              } else {
+                                setCarpetRange(nextRange);
+                              }
+                            }}
                             className="w-1/2 cursor-pointer border rounded-md px-3 py-2 text-sm"
                           >
                             {carpetOptions.map((v) => (
@@ -689,13 +719,25 @@ const CommercialFilters = () => {
                           </select>
 
                           <select
-                            value={carpetRange[1]}
-                            onChange={(e) =>
-                              setCarpetRange([
-                                carpetRange[0],
-                                Number(e.target.value),
-                              ])
+                            value={
+                              section.key === "Built-up Area"
+                                ? builtUpRange[1]
+                                : carpetRange[1]
                             }
+                            onChange={(e) => {
+                              const nextRange: [number, number] = [
+                                section.key === "Built-up Area"
+                                  ? builtUpRange[0]
+                                  : carpetRange[0],
+                                Number(e.target.value),
+                              ];
+
+                              if (section.key === "Built-up Area") {
+                                setBuiltUpRange(nextRange);
+                              } else {
+                                setCarpetRange(nextRange);
+                              }
+                            }}
                             className="w-1/2 cursor-pointer border rounded-md px-3 py-2 text-sm"
                           >
                             {carpetOptions.map((v) => (
@@ -710,10 +752,19 @@ const CommercialFilters = () => {
                           step={50}
                           min={CARPET_MIN}
                           max={CARPET_MAX}
-                          values={carpetRange}
-                          onChange={(values) =>
-                            setCarpetRange(values as [number, number])
+                          values={
+                            section.key === "Built-up Area"
+                              ? builtUpRange
+                              : carpetRange
                           }
+                          onChange={(values) => {
+                            const nextRange = values as [number, number];
+                            if (section.key === "Built-up Area") {
+                              setBuiltUpRange(nextRange);
+                            } else {
+                              setCarpetRange(nextRange);
+                            }
+                          }}
                           renderTrack={({ props, children }) => (
                             <div
                               {...props}
@@ -731,7 +782,14 @@ const CommercialFilters = () => {
                         />
 
                         <div className="text-xs text-gray-500">
-                          {carpetRange[0]} – {carpetRange[1]} sqft
+                          {section.key === "Built-up Area"
+                            ? builtUpRange[0]
+                            : carpetRange[0]}{" "}
+                          –{" "}
+                          {section.key === "Built-up Area"
+                            ? builtUpRange[1]
+                            : carpetRange[1]}{" "}
+                          sqft
                         </div>
                       </div>
                     ) : (

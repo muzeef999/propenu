@@ -112,7 +112,7 @@ const AgriculturalFilters = () => {
   const listingTypeCount = listingTypeValue ? 1 : 0;
   const moreFiltersBadgeCount =
     selectedMoreFiltersCount + localityCount + listingTypeCount;
-  const displayedMoreFiltersBadgeCount = moreFiltersBadgeCount || 2;
+  const displayedMoreFiltersBadgeCount = moreFiltersBadgeCount;
 
   const handleSectionClick = (key: AgriculturalFilterKey) => {
     const container = rightPanelRef.current;
@@ -196,7 +196,7 @@ const AgriculturalFilters = () => {
 
             {cityData && (
               <>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex max-h-120 gap-2 overflow-y-auto pr-1 flex-wrap">
                   {localities.map((loc: { name: string }) => {
                     const isSelected = selectedLocalities.includes(loc.name);
 

@@ -168,6 +168,7 @@ export const AgriculturalCreateSchema = BaseCreate.extend({
   irrigationType: z.string().optional(),
     locality: z.string().min(1), // ✅ ADD THIS
   currentCrop: z.string().optional(),
+  plantationAge: coerceInt(z.number().int().min(0)).optional(),
   numberOfBorewells: coerceInt(z.number().int()).optional(),
   landName: z.string().trim().optional(),
 

@@ -58,6 +58,47 @@ function normalizeCommercialSubTypeToken(token: string) {
     .replace(/\s+/g, "-");
 }
 
+function normalizeCommercialLabelToken(token: string) {
+  return token
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
+function normalizeCommercialFlooringToken(token: string) {
+  const normalized = token.trim().toLowerCase();
+  if (normalized === "vitrified") return "vitrified-tiles";
+  if (normalized === "concrete") return "bare-cement";
+  return normalizeCommercialLabelToken(token);
+}
+
+function normalizeCommercialWallFinishToken(token: string) {
+  const normalized = token.trim().toLowerCase();
+  if (normalized === "bare") return "no-partitions";
+  if (normalized === "painted") return "plastered-walls";
+  if (normalized === "finished") return "plastered-walls";
+  return normalizeCommercialLabelToken(token);
+}
+
+function normalizeCommercialParkingToken(token: string) {
+  const normalized = token.trim().toLowerCase();
+  if (normalized.includes("visitor")) return "visitorParking";
+  if (normalized.includes("2")) return "twoWheeler";
+  if (normalized.includes("4")) return "fourWheeler";
+  return normalizeCommercialLabelToken(token);
+}
+
+function normalizeCommercialFireSafetyToken(token: string) {
+  const normalized = token.trim().toLowerCase();
+  if (normalized === "fire extinguisher") return "fireExtinguisher";
+  if (normalized === "fire sprinkler") return "fireSprinklerSystem";
+  if (normalized === "smoke detector") return "smokeDetector";
+  if (normalized === "fire alarm") return "fireAlarmSystem";
+  if (normalized === "emergency exit") return "emergencyExitSignage";
+  return token.replace(/[^a-zA-Z0-9]+(.)/g, (_, chr: string) => chr.toUpperCase());
+}
+
 function toTrueQueryValue(value: unknown) {
   if (typeof value === "boolean") return value ? "true" : undefined;
   if (typeof value === "string") {
@@ -106,7 +147,27 @@ function normalizeLandSubTypeToken(token: string) {
   return LAND_SUBTYPE_LABEL_TO_API[normalized] ?? normalized.replace(/[\s_]+/g, "-");
 }
 
+function normalizeLandFacingToken(token: string) {
+  return token.trim().toLowerCase().replace(/[\s_-]+/g, "");
+}
+
 function normalizeAgriculturalTypeToken(token: string) {
+  const normalized = token
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+
+  const map: Record<string, string> = {
+    farmland: "farm-land",
+    wetland: "wet-land",
+    dryland: "dry-land",
+  };
+
+  return map[normalized] ?? normalized;
+}
+
+function normalizeAgriculturalSubTypeToken(token: string) {
   return token
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, "")
@@ -114,7 +175,7 @@ function normalizeAgriculturalTypeToken(token: string) {
     .replace(/\s+/g, "-");
 }
 
-function normalizeAgriculturalSubTypeToken(token: string) {
+function normalizeAgriculturalLabelToken(token: string) {
   return token
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, "")
@@ -148,6 +209,19 @@ function normalizeListingSourceToken(token: string) {
 
 function normalizeBedroomToken(token: string) {
   return token.trim() === "6+" ? "6plus" : token.trim();
+}
+
+function normalizeResidentialFurnishingToken(token: string) {
+  return token.trim().toLowerCase().replace(/\s+/g, "-");
+}
+
+function normalizeResidentialFacingToken(token: string) {
+  return token.trim().toLowerCase().replace(/[\s_-]+/g, "");
+}
+
+function parseMinPlusToken(token: string) {
+  const parsed = Number(token.replace(/[^\d.]/g, ""));
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 export function buildSearchParams(filters: FilterState) {
@@ -189,6 +263,52 @@ export function buildSearchParams(filters: FilterState) {
           );
         }
 
+        if (normalized.bathroom !== undefined) {
+          normalized.bathrooms = normalized.bathroom;
+          delete normalized.bathroom;
+        }
+
+        if (normalized.balcony !== undefined) {
+          normalized.balconies = normalized.balcony;
+          delete normalized.balcony;
+        }
+
+        if (normalized.minCoveredArea !== undefined) {
+          normalized.minCarpetArea = normalized.minCoveredArea;
+          delete normalized.minCoveredArea;
+        }
+
+        if (normalized.maxCoveredArea !== undefined) {
+          normalized.maxCarpetArea = normalized.maxCoveredArea;
+          delete normalized.maxCoveredArea;
+        }
+
+        if (normalized.parking !== undefined) {
+          const parkingValues = String(normalized.parking)
+            .split(",")
+            .map((token) => parseMinPlusToken(token.trim()))
+            .filter((value): value is number => value !== undefined);
+
+          if (parkingValues.length > 0) {
+            normalized.minFourWheeler = Math.min(...parkingValues);
+          }
+          delete normalized.parking;
+        }
+
+        if (normalized.furnishing !== undefined) {
+          normalized.furnishing = mapCsv(
+            normalized.furnishing,
+            normalizeResidentialFurnishingToken
+          );
+        }
+
+        if (normalized.facing !== undefined) {
+          normalized.facing = mapCsv(
+            normalized.facing,
+            normalizeResidentialFacingToken
+          );
+        }
+
         return {
           ...base,
           ...normalized,
@@ -219,6 +339,74 @@ export function buildSearchParams(filters: FilterState) {
           normalized.furnishedStatus = normalized.furnishingStatus;
           delete normalized.furnishingStatus;
         }
+
+        if (normalized.minBuiltUpArea !== undefined) {
+          normalized.minBuiltUpArea = normalized.minBuiltUpArea;
+        }
+
+        if (normalized.maxBuiltUpArea !== undefined) {
+          normalized.maxBuiltUpArea = normalized.maxBuiltUpArea;
+        }
+
+        if (normalized.powerCapacity !== undefined) {
+          const powerValues = String(normalized.powerCapacity)
+            .split(",")
+            .map((token) => parseMinPlusToken(token.trim()))
+            .filter((value): value is number => value !== undefined);
+
+          if (powerValues.length > 0) {
+            normalized.minPowerCapacityKw = Math.min(...powerValues);
+          }
+          delete normalized.powerCapacity;
+        }
+
+        if (normalized.parking !== undefined) {
+          normalized.parking = mapCsv(
+            normalized.parking,
+            normalizeCommercialParkingToken
+          );
+        }
+
+        if (normalized.fireSafety !== undefined) {
+          normalized.fireSafety = mapCsv(
+            normalized.fireSafety,
+            normalizeCommercialFireSafetyToken
+          );
+        }
+
+        if (normalized.flooringType !== undefined) {
+          normalized.flooringType = mapCsv(
+            normalized.flooringType,
+            normalizeCommercialFlooringToken
+          );
+        }
+
+        if (normalized.wallFinish !== undefined) {
+          normalized.wallFinishStatus = mapCsv(
+            normalized.wallFinish,
+            normalizeCommercialWallFinishToken
+          );
+          delete normalized.wallFinish;
+        }
+
+        if (normalized.pantry !== undefined) {
+          const pantry = String(normalized.pantry).trim().toLowerCase();
+          if (pantry.includes("inside")) normalized.pantry = "inside";
+          else if (pantry.includes("shared")) normalized.pantry = "shared";
+        }
+
+        if (normalized.tenantAvailable !== undefined) {
+          normalized.tenantAvailable = toTrueQueryValue(normalized.tenantAvailable);
+          if (!normalized.tenantAvailable) delete normalized.tenantAvailable;
+        }
+
+        const commercialVerified = toTrueQueryValue(normalized.verifiedProperties);
+        if (commercialVerified) normalized.verifiedProperties = commercialVerified;
+        else delete normalized.verifiedProperties;
+
+        const commercialNegotiable = toTrueQueryValue(normalized.priceNegotiable);
+        if (commercialNegotiable) normalized.negotiable = commercialNegotiable;
+        delete normalized.priceNegotiable;
 
         if (normalized.listingSource !== undefined) {
           normalized.listingSource = mapCsv(
@@ -257,6 +445,18 @@ export function buildSearchParams(filters: FilterState) {
         if (normalized.approvedBy !== undefined) {
           normalized.approvedByAuthority = normalized.approvedBy;
           delete normalized.approvedBy;
+        }
+
+        if (normalized.facing !== undefined) {
+          normalized.facing = mapCsv(normalized.facing, normalizeLandFacingToken);
+        }
+
+        if (normalized.roadWidth !== undefined) {
+          const minRoadWidth = parseMinPlusCsv(normalized.roadWidth);
+          if (minRoadWidth !== undefined) {
+            normalized.minRoadWidthFt = minRoadWidth;
+          }
+          delete normalized.roadWidth;
         }
 
         if (normalized.postedBy !== undefined) {
@@ -347,6 +547,49 @@ export function buildSearchParams(filters: FilterState) {
 
         if (normalized.areaUnit !== undefined) {
           normalized.areaUnit = mapCsv(normalized.areaUnit, normalizeAreaUnitToken);
+        }
+
+        if (normalized.soilType !== undefined) {
+          normalized.soilType = mapCsv(
+            normalized.soilType,
+            normalizeAgriculturalLabelToken
+          );
+        }
+
+        if (normalized.irrigationType !== undefined) {
+          normalized.irrigationType = mapCsv(
+            normalized.irrigationType,
+            normalizeAgriculturalLabelToken
+          );
+        }
+
+        if (normalized.waterSource !== undefined) {
+          normalized.waterSource = mapCsv(
+            normalized.waterSource,
+            normalizeAgriculturalLabelToken
+          );
+        }
+
+        if (normalized.currentCrop !== undefined) {
+          normalized.currentCrop = mapCsv(
+            normalized.currentCrop,
+            normalizeAgriculturalLabelToken
+          );
+        }
+
+        if (normalized.accessRoadType !== undefined) {
+          normalized.accessRoadType = mapCsv(
+            normalized.accessRoadType,
+            normalizeAgriculturalLabelToken
+          );
+        }
+
+        if (normalized.plantationAge !== undefined) {
+          const minPlantationAge = parseMinPlusCsv(normalized.plantationAge);
+          if (minPlantationAge !== undefined) {
+            normalized.minPlantationAge = minPlantationAge;
+          }
+          delete normalized.plantationAge;
         }
 
         if (normalized.roadWidth !== undefined) {

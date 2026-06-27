@@ -79,6 +79,19 @@ const ResidentialFilters = () => {
     CARPET_MAX,
   ]);
 
+  const updateCoveredAreaRange = (range: [number, number]) => {
+    setCarpetRange(range);
+    dispatch(
+      setResidentialFilter({
+        key: "coveredArea",
+        value: {
+          min: range[0] === CARPET_MIN ? undefined : range[0],
+          max: range[1] === CARPET_MAX ? undefined : range[1],
+        },
+      }),
+    );
+  };
+
   const localityLabel =
     !locality || locality.length === 0
       ? "Select Locality"
@@ -218,7 +231,7 @@ const ResidentialFilters = () => {
               {cityData && (
                 <>
                   {/* Locality Pills */}
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="flex max-h-120 gap-2 overflow-y-auto pr-1 flex-wrap">
                     {localities.map((loc: { name: string }) => {
                       const isSelected =
                         Array.isArray(locality) && locality.includes(loc.name);
@@ -584,7 +597,7 @@ const ResidentialFilters = () => {
                           <select
                             value={carpetRange[0]}
                             onChange={(e) =>
-                              setCarpetRange([
+                              updateCoveredAreaRange([
                                 Number(e.target.value),
                                 carpetRange[1],
                               ])
@@ -601,7 +614,7 @@ const ResidentialFilters = () => {
                           <select
                             value={carpetRange[1]}
                             onChange={(e) =>
-                              setCarpetRange([
+                              updateCoveredAreaRange([
                                 carpetRange[0],
                                 Number(e.target.value),
                               ])
@@ -623,7 +636,7 @@ const ResidentialFilters = () => {
                           max={CARPET_MAX}
                           values={carpetRange}
                           onChange={(values) =>
-                            setCarpetRange(values as [number, number])
+                            updateCoveredAreaRange(values as [number, number])
                           }
                           renderTrack={({ props, children }) => {
                             const { key, ...restProps } = props as any;

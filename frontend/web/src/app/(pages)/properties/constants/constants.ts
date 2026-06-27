@@ -52,6 +52,12 @@ export const moreFilterSections: MoreFilterSection[] = [
       options: ["new-sale", "resale"],
       selectionType: "single",
     },
+    {
+      key: "Possession Status",
+      label: "Possession Status",
+      options: ["ready-to-move", "under-construction"],
+      selectionType: "single",
+    },
     { key: "Covered Area", label: "Covered Area" },
     {
       key: "Bathroom",
@@ -226,11 +232,6 @@ export const moreFilterSections: MoreFilterSection[] = [
       key: "Tenant Available",
       label: "Tenant Available",
       options: ["Yes"],
-    },
-    {
-      key: "Banks Approved",
-      label: "Banks Approved",
-      options: ["SBI", "HDFC", "ICICI", "Axis"],
     },
     {
       key: "Price Negotiable",

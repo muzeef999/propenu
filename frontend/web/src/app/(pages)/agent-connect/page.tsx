@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { MdLocationOn } from "react-icons/md";
 import { HiOutlineLocationMarker, HiOutlineOfficeBuilding } from "react-icons/hi";
 import { IoMdShareAlt } from "react-icons/io";
@@ -70,6 +71,7 @@ function AgentListSkeleton() {
 }
 
 export default function Page() {
+  const router = useRouter();
   const { selectedCity } = useCity(); // ✅ hook at top level
   const [selectedLocality, setSelectedLocality] = useState("");
   const localitiesRef = useRef<HTMLDivElement>(null);
@@ -174,6 +176,15 @@ export default function Page() {
     } catch {
       // Share can be cancelled by the user; no UI needed here.
     }
+  }
+
+  function openAgentDetails(
+    event: React.MouseEvent<HTMLButtonElement>,
+    agent: AgentConnect,
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+    router.push(`/agent-connect/${agent.slug}`);
   }
 
   return (
@@ -383,11 +394,19 @@ export default function Page() {
 
                     {/* RIGHT SIDE BUTTONS */}
                     <div className="flex flex-col sm:flex-row lg:flex-col gap-3 w-full lg:w-41 bg-[#27AE60]/10 p-4 lg:p-3 rounded-xl h-auto lg:h-[170px] justify-center">
-                      <button className="bg-green-600 text-white py-2 rounded-lg shadow w-full text-sm font-medium">
+                      <button
+                        type="button"
+                        onClick={(event) => openAgentDetails(event, agent)}
+                        className="bg-green-600 text-white py-2 rounded-lg shadow w-full text-sm font-medium"
+                      >
                         Contact Agent
                       </button>
 
-                      <button className="border border-green-600 text-green-600 py-2 rounded-lg w-full text-sm font-medium">
+                      <button
+                        type="button"
+                        onClick={(event) => openAgentDetails(event, agent)}
+                        className="border border-green-600 text-green-600 py-2 rounded-lg w-full text-sm font-medium"
+                      >
                         View Details
                       </button>
                     </div>

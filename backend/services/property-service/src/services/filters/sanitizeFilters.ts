@@ -18,12 +18,20 @@ const RESIDENTIAL_ALLOWED_FILTERS = [
   "furnishing",
   "constructionStatus",
   "propertyType",
+  "amenities",
+  "facing",
+  "postedSince",
 
   // numeric
   "bedrooms",
   "bhk",
+  "bathrooms",
+  "balconies",
   "minPrice",
   "maxPrice",
+  "minCarpetArea",
+  "maxCarpetArea",
+  "minFourWheeler",
 
   // infra
   "batchSize",
@@ -32,6 +40,9 @@ const RESIDENTIAL_ALLOWED_FILTERS = [
 const RESIDENTIAL_NUMERIC_FILTERS = new Set([
   "minPrice",
   "maxPrice",
+  "minCarpetArea",
+  "maxCarpetArea",
+  "minFourWheeler",
   "batchSize",
 ]);
 
@@ -45,6 +56,11 @@ const COMMERCIAL_ALLOWED_FILTERS = [
   "city",
   "locality",
   "constructionStatus",
+  "transactionType",
+  "postedSince",
+  "verifiedProperties",
+  "tenantAvailable",
+  "negotiable",
 
   // property
   "propertyType",
@@ -53,10 +69,17 @@ const COMMERCIAL_ALLOWED_FILTERS = [
   // furnishing / infra
   "furnishedStatus",
   "powerBackup",
+  "pantry",
+  "parking",
+  "fireSafety",
+  "flooringType",
+  "wallFinishStatus",
 
   // numeric
   "minPrice",
   "maxPrice",
+  "minBuiltUpArea",
+  "maxBuiltUpArea",
   "minCarpetArea",
   "maxCarpetArea",
   "floor",
@@ -75,6 +98,8 @@ const COMMERCIAL_ALLOWED_FILTERS = [
 const COMMERCIAL_NUMERIC_FILTERS = new Set([
   "minPrice",
   "maxPrice",
+  "minBuiltUpArea",
+  "maxBuiltUpArea",
   "minCarpetArea",
   "maxCarpetArea",
   "minPowerCapacityKw",
@@ -150,6 +175,8 @@ const AGRICULTURAL_ALLOWED_FILTERS = [
   "soilType",
   "irrigationType",
   "currentCrop",
+  "plantationAge",
+  "minPlantationAge",
   "waterSource",
   "roadWidth",
   "accessRoadType",
@@ -162,6 +189,7 @@ const AGRICULTURAL_ALLOWED_FILTERS = [
   "statePurchaseRestrictions",
   "negotiable",
   "verifiedProperties",
+  "postedSince",
   "listingSource",
   "postedBy",
   "batchSize",
@@ -178,6 +206,7 @@ const AGRICULTURAL_NUMERIC_FILTERS = new Set([
   "minRoadWidthFt",
   "minBorewells",
   "maxBorewells",
+  "minPlantationAge",
   "batchSize",
 ]);
 

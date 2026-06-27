@@ -204,7 +204,7 @@ export default function HighlightProjectsClient() {
 
         <div className="headingSideBar">
           <h1 className="text-base font-bold sm:text-2xl truncate">
-            Top Selling Properties
+            Top Selling Projects
           </h1>
 
           <p className="mt-1 text-xs text-gray-500 sm:text-base truncate">

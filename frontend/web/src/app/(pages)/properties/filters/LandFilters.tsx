@@ -116,7 +116,7 @@ const LandFilters = () => {
   const listingTypeCount = listingTypeValue ? 1 : 0;
   const moreFiltersBadgeCount =
     selectedMoreFiltersCount + localityCount + listingTypeCount;
-  const displayedMoreFiltersBadgeCount = moreFiltersBadgeCount || 2;
+  const displayedMoreFiltersBadgeCount = moreFiltersBadgeCount;
 
   const CARPET_MIN = 300;
   const CARPET_MAX = 10000;
@@ -214,7 +214,7 @@ const LandFilters = () => {
 
             {cityData && (
               <>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex max-h-120 gap-2 overflow-y-auto pr-1 flex-wrap">
                   {localities.map((loc: { name: string }) => {
                     const isSelected = selectedLocalities.includes(loc.name);
 

@@ -26,6 +26,67 @@ function parseBedroomTokens(value: unknown) {
   return { exact, plus };
 }
 
+function parseMinPlusTokens(value: unknown) {
+  if (typeof value !== "string" && typeof value !== "number") {
+    return undefined;
+  }
+
+  const numbers = String(value)
+    .split(",")
+    .map((token) => parseNumber(token))
+    .filter((num): num is number => num !== undefined);
+
+  if (numbers.length === 0) return undefined;
+  return Math.min(...numbers);
+}
+
+function parseCsvTokens(value: unknown, normalize?: (token: string) => string) {
+  if (typeof value !== "string") return [];
+
+  return value
+    .split(",")
+    .map((token) => token.trim())
+    .filter(Boolean)
+    .map((token) => (normalize ? normalize(token) : token));
+}
+
+function addCsvFilter(f: any, field: string, value: unknown, normalize?: (token: string) => string) {
+  const values = parseCsvTokens(value, normalize);
+  if (values.length === 1) {
+    f[field] = values[0];
+  } else if (values.length > 1) {
+    f[field] = { $in: values };
+  }
+}
+
+function normalizeFacingToken(token: string) {
+  return token.trim().toLowerCase().replace(/[\s_-]+/g, "");
+}
+
+function getPostedSinceDate(value: unknown) {
+  if (typeof value !== "string") return undefined;
+
+  const normalized = value.trim().toLowerCase();
+  if (!normalized || normalized === "all") return undefined;
+
+  const daysByLabel: Record<string, number> = {
+    yesterday: 1,
+    "last week": 7,
+    "last 2 weeks": 14,
+    "last 3 weeks": 21,
+    "last month": 30,
+    "last 2 months": 60,
+    "last 4 months": 120,
+  };
+
+  const days = daysByLabel[normalized];
+  if (!days) return undefined;
+
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date;
+}
+
 export function extendResidentialFilters(
   query: ResidentialQuery = {},
   baseFilter: Partial<BaseFilters> = {},
@@ -122,17 +183,53 @@ export function extendResidentialFilters(
     addBedroomFilter("bedrooms", bedrooms.exact, bedrooms.plus);
   }
 
+  const minCarpetArea = parseNumber(q.minCarpetArea);
+  const maxCarpetArea = parseNumber(q.maxCarpetArea);
+
+  if (minCarpetArea !== undefined || maxCarpetArea !== undefined) {
+    f.carpetArea = {};
+
+    if (minCarpetArea !== undefined && maxCarpetArea !== undefined) {
+      if (minCarpetArea <= maxCarpetArea) {
+        f.carpetArea.$gte = minCarpetArea;
+        f.carpetArea.$lte = maxCarpetArea;
+      } else {
+        f.carpetArea.$gte = maxCarpetArea;
+        f.carpetArea.$lte = minCarpetArea;
+      }
+    } else if (minCarpetArea !== undefined) {
+      f.carpetArea.$gte = minCarpetArea;
+    } else if (maxCarpetArea !== undefined) {
+      f.carpetArea.$lte = maxCarpetArea;
+    }
+  }
+
+  const minBathrooms = parseMinPlusTokens(q.bathrooms);
+  if (minBathrooms !== undefined) {
+    f.bathrooms = { $gte: minBathrooms };
+  }
+
+  const minBalconies = parseMinPlusTokens(q.balconies);
+  if (minBalconies !== undefined) {
+    f.balconies = { $gte: minBalconies };
+  }
+
+  const minFourWheeler = parseNumber(q.minFourWheeler);
+  if (minFourWheeler !== undefined) {
+    f["parkingDetails.fourWheeler"] = { $gte: minFourWheeler };
+  }
+
+  const postedSinceDate = getPostedSinceDate(q.postedSince);
+  if (postedSinceDate) {
+    f.createdAt = { $gte: postedSinceDate };
+  }
+
   if (q.transactionType) {
     f.transactionType = q.transactionType;
   }
 
-  if (q.furnishing) {
-    f.furnishing = q.furnishing;
-  }
-
-  if (q.facing) {
-    f.facing = q.facing;
-  }
+  addCsvFilter(f, "furnishing", q.furnishing);
+  addCsvFilter(f, "facing", q.facing, normalizeFacingToken);
 
   if (q.constructionStatus) {
     f.constructionStatus = q.constructionStatus;

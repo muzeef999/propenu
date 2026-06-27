@@ -61,6 +61,27 @@ function normalizeRestrictionToken(value?: string) {
   return undefined;
 }
 
+function getPostedSinceDate(value: unknown) {
+  if (typeof value !== "string") return undefined;
+
+  const normalized = value.trim().toLowerCase();
+  if (!normalized || normalized === "all") return undefined;
+
+  const daysByLabel: Record<string, number> = {
+    yesterday: 1,
+    "last week": 7,
+    "last month": 30,
+    "last 3 months": 90,
+  };
+
+  const days = daysByLabel[normalized];
+  if (!days) return undefined;
+
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date;
+}
+
 export function extendAgriculturalFilters(
   query: AgriculturalQuery = {},
   baseFilter: Partial<BaseFilters> = {}
@@ -172,6 +193,13 @@ export function extendAgriculturalFilters(
     and.push({ currentCrop: { $in: currentCrops } });
   }
 
+  const minPlantationAge =
+    parseNumber(q.minPlantationAge) ??
+    parseMinPlusOption(q.plantationAge as string | undefined);
+  if (minPlantationAge !== undefined) {
+    and.push({ plantationAge: { $gte: minPlantationAge } });
+  }
+
   const propertyTypes = parseCsv(q.propertyType as string | undefined);
   if (propertyTypes.length === 1) and.push({ propertyType: propertyTypes[0] });
   else if (propertyTypes.length > 1) {
@@ -221,9 +249,14 @@ export function extendAgriculturalFilters(
   if (isTruthy(q.electricityConnection)) and.push({ electricityConnection: true });
   if (isTruthy(q.boundaryWall)) and.push({ boundaryWall: true });
 
-  if (isTruthy(q.negotiable)) and.push({ negotiable: true });
+  if (isTruthy(q.negotiable)) and.push({ isPriceNegotiable: true });
   if (isTruthy(q.verifiedProperties)) {
     and.push({ "verificationDocuments.status": "verified" });
+  }
+
+  const postedSinceDate = getPostedSinceDate(q.postedSince);
+  if (postedSinceDate) {
+    and.push({ createdAt: { $gte: postedSinceDate } });
   }
 
   const stateRestriction = normalizeRestrictionToken(

@@ -40,6 +40,28 @@ function parseMinRoadWidth(value?: string) {
   return Math.min(...parsed);
 }
 
+function getPostedSinceDate(value: unknown) {
+  if (typeof value !== "string") return undefined;
+
+  const normalized = value.trim().toLowerCase();
+  if (!normalized || normalized === "all") return undefined;
+
+  const daysByLabel: Record<string, number> = {
+    yesterday: 1,
+    "last week": 7,
+    "last 2 weeks": 14,
+    "last month": 30,
+    "last 3 months": 90,
+  };
+
+  const days = daysByLabel[normalized];
+  if (!days) return undefined;
+
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date;
+}
+
 export function extendLandFilters(
   query: LandQuery = {},
   baseFilter: Partial<BaseFilters> = {},
@@ -160,6 +182,11 @@ export function extendLandFilters(
 
   if (isTruthy(q.verifiedProperties)) {
     f["verificationDocuments.status"] = "verified";
+  }
+
+  const postedSinceDate = getPostedSinceDate(q.postedSince);
+  if (postedSinceDate) {
+    f.createdAt = { $gte: postedSinceDate };
   }
 
   return f;

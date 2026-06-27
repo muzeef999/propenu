@@ -41,6 +41,7 @@ const AgriculturalSchema = new Schema<IAgricultural>(
     soilType: String,
     irrigationType: String,
     currentCrop: String,
+    plantationAge: Number,
     landName: String,
     numberOfBorewells: Number,
     title: { type: String, required: true, trim: true },

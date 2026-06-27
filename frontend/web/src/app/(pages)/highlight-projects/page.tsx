@@ -455,7 +455,7 @@ const HotspotsPage = () => {
                                                                     onClick={(event) => {
                                                                         event.preventDefault();
                                                                         event.stopPropagation();
-                                                                        router.push(projectHref);
+                                                                        router.push(`${projectHref}#floor-plans`);
                                                                     }}
                                                                     className="flex items-center gap-1 text-emerald-600 text-sm font-semibold hover:underline"
                                                                 >
@@ -476,7 +476,7 @@ const HotspotsPage = () => {
                                                                     onClick={(event) => {
                                                                         event.preventDefault();
                                                                         event.stopPropagation();
-                                                                        router.push(projectHref);
+                                                                        router.push(`${projectHref}#amenities`);
                                                                     }}
                                                                     className="flex items-center gap-1 text-emerald-600 text-sm font-semibold hover:underline"
                                                                 >

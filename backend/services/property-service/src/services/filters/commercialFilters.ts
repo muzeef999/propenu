@@ -83,6 +83,50 @@ function applyNumericSelector(
   pushAndCondition(filter, { $or: clauses });
 }
 
+function isTruthy(value: unknown) {
+  if (typeof value === "boolean") return value;
+  if (typeof value !== "string") return false;
+
+  const normalized = value.trim().toLowerCase();
+  return normalized === "true" || normalized === "yes" || normalized === "available";
+}
+
+function parseCsv(value: unknown) {
+  if (typeof value !== "string") return [];
+
+  return value
+    .split(",")
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+function applyCsvSelector(filter: Record<string, any>, field: string, value: unknown) {
+  const values = parseCsv(value);
+  if (values.length === 1) filter[field] = values[0];
+  else if (values.length > 1) filter[field] = { $in: values };
+}
+
+function getPostedSinceDate(value: unknown) {
+  if (typeof value !== "string") return undefined;
+
+  const normalized = value.trim().toLowerCase();
+  if (!normalized || normalized === "all") return undefined;
+
+  const daysByLabel: Record<string, number> = {
+    yesterday: 1,
+    "last week": 7,
+    "last month": 30,
+    "last 3 months": 90,
+  };
+
+  const days = daysByLabel[normalized];
+  if (!days) return undefined;
+
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date;
+}
+
 export function extendCommercialFilters(
   query: CommercialQuery = {},
   baseFilter: Partial<BaseFilters> = {},
@@ -152,20 +196,37 @@ if (typeof q.locality === "string" && q.locality.trim().length > 0) {
     }
   }
 
+  const minBuiltUpArea = parseNumber(q.minBuiltUpArea);
+  const maxBuiltUpArea = parseNumber(q.maxBuiltUpArea);
+
+  if (minBuiltUpArea !== undefined || maxBuiltUpArea !== undefined) {
+    f.builtUpArea = {};
+
+    if (minBuiltUpArea !== undefined && maxBuiltUpArea !== undefined) {
+      f.builtUpArea.$gte = Math.min(minBuiltUpArea, maxBuiltUpArea);
+      f.builtUpArea.$lte = Math.max(minBuiltUpArea, maxBuiltUpArea);
+    } else if (minBuiltUpArea !== undefined) {
+      f.builtUpArea.$gte = minBuiltUpArea;
+    } else {
+      f.builtUpArea.$lte = maxBuiltUpArea;
+    }
+  }
+
   const minArea = parseNumber(q.minCarpetArea);
   const maxArea = parseNumber(q.maxCarpetArea);
 
   if (minArea !== undefined || maxArea !== undefined) {
-  const areaFilter: any = {};
-  if (minArea !== undefined) areaFilter.$gte = minArea;
-  if (maxArea !== undefined) areaFilter.$lte = maxArea;
+    f.carpetArea = {};
 
-  // Use $or to find properties that match the range in EITHER field
-  f.$or = [
-    { carpetArea: areaFilter },
-    { builtUpArea: areaFilter },
-  ];
-}
+    if (minArea !== undefined && maxArea !== undefined) {
+      f.carpetArea.$gte = Math.min(minArea, maxArea);
+      f.carpetArea.$lte = Math.max(minArea, maxArea);
+    } else if (minArea !== undefined) {
+      f.carpetArea.$gte = minArea;
+    } else {
+      f.carpetArea.$lte = maxArea;
+    }
+  }
 
 
   const floorNumberConditions = parseNumericSelector(
@@ -218,6 +279,54 @@ if (typeof q.locality === "string" && q.locality.trim().length > 0) {
 
   if (q.constructionStatus) {
     f.constructionStatus = q.constructionStatus;
+  }
+
+  if (q.transactionType) {
+    f.transactionType = q.transactionType;
+  }
+
+  if (q.pantry) {
+    if (q.pantry === "inside") f["pantry.insidePremises"] = true;
+    else if (q.pantry === "shared") f["pantry.shared"] = true;
+    else f["pantry.type"] = q.pantry;
+  }
+
+  const parkingFields = parseCsv(q.parking);
+  parkingFields.forEach((field) => {
+    if (field === "visitorParking") f["parkingDetails.visitorParking"] = true;
+    if (field === "twoWheeler") f["parkingDetails.twoWheeler"] = { $gt: 0 };
+    if (field === "fourWheeler") f["parkingDetails.fourWheeler"] = { $gt: 0 };
+  });
+
+  parseCsv(q.fireSafety).forEach((field) => {
+    f[`fireSafety.${field}`] = true;
+  });
+
+  applyCsvSelector(f, "flooringType", q.flooringType);
+  applyCsvSelector(f, "wallFinishStatus", q.wallFinishStatus);
+
+  if (isTruthy(q.tenantAvailable)) {
+    f["tenantInfo.0"] = { $exists: true };
+  }
+
+  if (isTruthy(q.negotiable)) {
+    f.isPriceNegotiable = true;
+  }
+
+  if (isTruthy(q.verifiedProperties)) {
+    f["verificationDocuments.status"] = "verified";
+  }
+
+  const postedSinceDate = getPostedSinceDate(q.postedSince);
+  if (postedSinceDate) {
+    f.createdAt = { $gte: postedSinceDate };
+  }
+
+  if (typeof q.amenities === "string") {
+    const amenities = parseCsv(q.amenities);
+    if (amenities.length > 0) {
+      f["amenities.title"] = { $all: amenities };
+    }
   }
 
   if (typeof q.propertyType === "string" && q.propertyType.trim().length > 0) {

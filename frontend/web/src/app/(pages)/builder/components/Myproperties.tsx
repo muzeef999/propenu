@@ -11,11 +11,13 @@ interface ProjectCardProps {
   project?: FeaturedProject;
   title?: string;
   city?: string;
+  detailsBasePath?: "/prime" | "/project";
 }
 
 const Myproperties: React.FC<ProjectCardProps> = ({
   items,
   project,
+  detailsBasePath = "/prime",
 }) => {
   const list = items ?? (project ? [project] : []);
   return (
@@ -24,7 +26,7 @@ const Myproperties: React.FC<ProjectCardProps> = ({
         {list.map((project) => (
           <div key={project._id} className="w-full card">
             <Link
-              href={`/prime/${project.slug}`}
+              href={`${detailsBasePath}/${project.slug}`}
               className="block h-[200px] overflow-hidden rounded-t-md"
             >
               <img

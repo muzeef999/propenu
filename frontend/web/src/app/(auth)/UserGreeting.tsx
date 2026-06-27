@@ -42,7 +42,7 @@ export const BuilderOptions = [
   { label: "Leads", link: "/builder/leads" },
   { label: "My Shortlists", link: "/builder/my-shortlists" },
   { label: "User Shortlists", link: "/builder/user-shortlists" },
-  { label: "My Properties", link: "/builder/my-properties" },
+  { label: "My Projects", link: "/builder/my-projects" },
   { label: "Prime Projects", link: "/builder/prime-projects" },
   { label: "Logout", link: "/logout" },
 ];

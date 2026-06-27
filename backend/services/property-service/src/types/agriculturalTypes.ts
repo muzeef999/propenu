@@ -97,6 +97,7 @@ export interface IAgricultural extends IListingAuditFields {
   soilType?: string;
   irrigationType?: string;
   currentCrop?: string;
+  plantationAge?: number;
   propertyType?: AgriculturalPropertyType;
   propertySubType?: AgriculturalPropertySubType;
   numberOfBorewells?: number;

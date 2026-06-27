@@ -37,7 +37,7 @@ const page = () => {
 
   {projects.length > 0 ? (
     <div className="space-y-2 mt-4">
-      <Myproperties items={projects} />
+      <Myproperties items={projects} detailsBasePath="/project" />
     </div>
   ) : (
     <div className="p-6 text-center text-gray-500">

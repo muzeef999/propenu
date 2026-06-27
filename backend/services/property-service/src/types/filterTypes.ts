@@ -48,26 +48,42 @@ export interface ResidentialQuery extends ParsedQs {
   maxPrice?: string;
   minCarpetArea?: string;
   maxCarpetArea?: string;
+  minFourWheeler?: string;
   furnishing?: string;
   propertyType?: string;
   bedrooms?: string;
   bathrooms?: string;
+  balconies?: string;
   minPricePerSqft?: string;
   maxPricePerSqft?: string;
   amenities?: string;
+  facing?: string;
+  postedSince?: string;
   locality?: string;
 }
 
 export interface CommercialQuery extends ParsedQs {
+  transactionType?: string;
+  postedSince?: string;
   floor?: string;
   floorNumber?: string;
   totalFloors?: string;
+  minBuiltUpArea?: string;
+  maxBuiltUpArea?: string;
   minCarpetArea?: string;
   maxCarpetArea?: string;
   minPowerCapacityKw?: string;
   maxPowerCapacityKw?: string;
   loadingDock?: string;
   furnishedStatus?: string;
+  pantry?: string;
+  parking?: string;
+  fireSafety?: string;
+  flooringType?: string;
+  wallFinishStatus?: string;
+  verifiedProperties?: string;
+  tenantAvailable?: string;
+  negotiable?: string;
   minWashrooms?: string;
   maxWashrooms?: string;
   propertyType?: string;
@@ -111,6 +127,9 @@ export interface AgriculturalQuery extends ParsedQs {
   soilType?: string;
   irrigationType?: string;
   currentCrop?: string;
+  plantationAge?: string;
+  minPlantationAge?: string;
+  postedSince?: string;
   propertyType?: string;
   propertySubType?: string;
   borewellCount?: string;

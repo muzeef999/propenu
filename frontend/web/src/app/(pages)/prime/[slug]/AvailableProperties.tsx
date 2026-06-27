@@ -281,7 +281,7 @@ export default function AvailableProperties({ bhk }: Props) {
         {/* Main grid: large image left, details right */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left: image / plan */}
-          <div className="lg:col-span-8">
+          <div id="layout-section" className="lg:col-span-8 scroll-mt-24">
             <div className="bg-gray-50 rounded-md p-4 flex items-center justify-center">
               {/* image container keeps aspect and responsiveness */}
               <div className="relative w-full max-h-[520px] rounded-md overflow-hidden bg-white">

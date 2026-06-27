@@ -89,6 +89,21 @@ function shouldIncludeFeaturedProjects(filter: any) {
 
   if (filter.listingType && filter.listingType !== "sale") return false;
 
+  if (filter.bathrooms) return false;
+
+  if (
+    filter.balconies ||
+    filter.minCarpetArea ||
+    filter.maxCarpetArea ||
+    filter.minFourWheeler ||
+    filter.furnishing ||
+    filter.facing ||
+    filter.postedSince ||
+    filter.constructionStatus
+  ) {
+    return false;
+  }
+
   if (typeof filter.listingSource === "string" && filter.listingSource.trim()) {
     const listingSources = filter.listingSource
       .split(",")
