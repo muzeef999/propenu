@@ -12,6 +12,7 @@ import userRoutes from "./routes/userRoutes";
 import { startNotificationJob } from "./jobs/notification.job";
 import emailRouter from "./routes/emailRoute";
 import whatsappRouter from "./routes/whatsappRoute";
+import builderAccessRoute from "./routes/builderAccessRoute";
 
 dotenv.config({ quiet: true });
 
@@ -35,6 +36,7 @@ async function start() {
     app.use("/api/users/builder", shortlistRoutes);
     app.use("/api/users/agent", agentRoute);
     app.use("/api/users/roles", roleRoute);
+    app.use("/api/users/builder-access", builderAccessRoute);
     app.use("/api/users/kyc", kycRoutes);
     app.use("/api/users/notifications", userRoutes);
     app.use("/api/users/email", emailRouter);

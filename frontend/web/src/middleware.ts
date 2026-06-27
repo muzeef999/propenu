@@ -46,7 +46,11 @@ export function middleware(req: NextRequest) {
      return new NextResponse(null, { status: 403 });
   }
 
-  if (pathname.startsWith("/builder") && role !== "builder") {
+  if (
+    pathname.startsWith("/builder") &&
+    role !== "builder" &&
+    role !== "builder_staff"
+  ) {
      return new NextResponse(null, { status: 403 });
   }
 
@@ -58,7 +62,7 @@ export function middleware(req: NextRequest) {
     return new NextResponse(null, { status: 403 });
   }
 
-  if (isBuilderRestrictedRoute && role === "builder") {
+  if (isBuilderRestrictedRoute && (role === "builder" || role === "builder_staff")) {
     return new NextResponse(null, { status: 403 });
   }
 

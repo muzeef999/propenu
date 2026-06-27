@@ -1312,16 +1312,34 @@ export const FeaturePropertyService = {
     return serializeFeaturedProject(existing);
   },
 
-  async getMyHightlightProjects(userId: string) {
-    const projects = await FeaturedProject.find({ createdBy: userId })
+  async getMyHightlightProjects(userId: string, projectIds?: string[] | null) {
+    const filter: any = {
+      createdBy: userId,
+      "promotion.type": { $ne: "prime" },
+    };
+
+    if (projectIds) {
+      filter._id = { $in: projectIds };
+    }
+
+    const projects = await FeaturedProject.find(filter)
       .populate("createdBy", "name email phone")
       .lean();
 
     return serializeFeaturedProjectList(projects);
   },
 
-  async getMyFeaturedProjects(userId: string) {
-    const projects = await FeaturedProject.find({ createdBy: userId })
+  async getMyFeaturedProjects(userId: string, projectIds?: string[] | null) {
+    const filter: any = {
+      createdBy: userId,
+      "promotion.type": "prime",
+    };
+
+    if (projectIds) {
+      filter._id = { $in: projectIds };
+    }
+
+    const projects = await FeaturedProject.find(filter)
       .populate("createdBy", "name email phone")
       .lean();
 

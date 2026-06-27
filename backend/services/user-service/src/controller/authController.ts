@@ -15,6 +15,7 @@ import { getOtpLoginRestrictionMessage, requiresKycForLogin } from "../utils/acc
 import mongoose from "mongoose";
 import DeletedAccount from "../models/deletedAccountModel";
 import Agent from "../models/agentModel";
+import { getBuilderAccessForUser } from "../services/builderAccessService";
 
 const deletedAccountMessage =
   "This account has been deleted. Please create a new account.";
@@ -68,6 +69,25 @@ const getDummyLoginConfig = () => ({
 });
 
 const normalizePhoneDigits = (phone?: string) => phone?.replace(/\D/g, "");
+
+const getPhoneLookupValues = (phone?: string) => {
+  const trimmed = phone?.trim();
+  const digits = normalizePhoneDigits(trimmed);
+
+  if (!trimmed || !digits) return [];
+
+  const values = new Set<string>([trimmed, digits]);
+  const withoutIndiaCode =
+    digits.length === 12 && digits.startsWith("91") ? digits.slice(2) : digits;
+
+  if (withoutIndiaCode.length === 10) {
+    values.add(withoutIndiaCode);
+    values.add(`91${withoutIndiaCode}`);
+    values.add(`+91${withoutIndiaCode}`);
+  }
+
+  return [...values];
+};
 
 const isDummyLoginPhone = (phone?: string) => {
   const { phone: dummyPhone } = getDummyLoginConfig();
@@ -175,13 +195,18 @@ const findDeletedAccount = async ({
   return DeletedAccount.findOne({ $or: lookup }).select("_id").lean();
 };
 
-const createAuthToken = ({
+const createAuthToken = async ({
   user,
   roleDoc,
 }: {
   user: any;
   roleDoc?: any;
 }) => {
+  const builderAccess = await getBuilderAccessForUser({
+    _id: user._id,
+    roleName: roleDoc?.name,
+  });
+
   const payload: any = {
     sub: String(user._id),
     email: user.email,
@@ -190,6 +215,7 @@ const createAuthToken = ({
     roleId: roleDoc ? String(roleDoc._id) : undefined,
     roleName: roleDoc?.name,
     permissions: roleDoc?.permissions ?? [],
+    builderAccess,
     accountStatus: user.accountStatus,
   };
 
@@ -217,8 +243,13 @@ export const requestOTP = async (req: Request, res: Response) => {
     }
 
     // ⭐ Find user
+    const phoneValues = getPhoneLookupValues(phone);
+    const normalizedPhone = phoneValues.find((value) => value.length === 10);
     const existingUser = await User.findOne({
-      $or: [...(email ? [{ email }] : []), ...(phone ? [{ phone }] : [])],
+      $or: [
+        ...(email ? [{ email }] : []),
+        ...(phoneValues.length ? [{ phone: { $in: phoneValues } }] : []),
+      ],
     }).select("_id name email phone accountStatus roleId isActive");
 
     if (!existingUser) {
@@ -272,7 +303,7 @@ export const requestOTP = async (req: Request, res: Response) => {
 
     const otp = genOtp();
 
-    const key = email || phone;
+    const key = email || normalizedPhone || phone;
     await saveOtpToRedis(key, otp);
 
 
@@ -311,8 +342,13 @@ export const verifyOtp = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "OTP is required" });
     }
 
+    const phoneValues = getPhoneLookupValues(phone);
+    const normalizedPhone = phoneValues.find((value) => value.length === 10);
     const user = await User.findOne({
-      $or: [...(email ? [{ email }] : []), ...(phone ? [{ phone }] : [])],
+      $or: [
+        ...(email ? [{ email }] : []),
+        ...(phoneValues.length ? [{ phone: { $in: phoneValues } }] : []),
+      ],
     }).populate("roleId");
 
     if (!user) {
@@ -349,7 +385,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
       });
     }
 
-    const key = email || phone;
+    const key = email || normalizedPhone || phone;
     const otpResult = await verifyDummyOrRedisOtp({ phone, key, otp });
 
     if (!otpResult.valid) {
@@ -370,17 +406,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
       }
     }
 
-    const token = generateToken({
-      sub: String(user._id),
-      email: user.email,
-      phone: Number(user.phone),
-      name: user.name,
-      companyName: user.companyName,
-      roleId: role ? String(role._id) : undefined,
-      roleName: role ? role.name : undefined,
-      permissions: role ? role.permissions : [],
-      accountStatus: user.accountStatus,
-    });
+    const token = await createAuthToken({ user, roleDoc: role });
 
     return res.status(200).json({
       message: "OTP verified successfully",
@@ -421,6 +447,10 @@ export const me = async (req: AuthRequest, res: Response) => {
     }
 
     const role: any = user.roleId;
+    const builderAccess = await getBuilderAccessForUser({
+      _id: user._id,
+      roleName: role?.name,
+    });
 
     // 3️⃣ detect location completion
     const locationCompleted =
@@ -449,6 +479,7 @@ export const me = async (req: AuthRequest, res: Response) => {
         roleId: role ? String(role._id) : null,
         roleName: role ? role.name : null,
         permissions: role ? role.permissions : [],
+        builderAccess,
 
         kyc: {
           status: kycStatus,
@@ -725,6 +756,9 @@ export const createRequestOtp = async (req: Request, res: Response) => {
   try {
     let { phone, email } = req.body;
     phone = phone?.trim();
+    const normalizedPhone = getPhoneLookupValues(phone).find(
+      (value) => value.length === 10,
+    );
     email = email?.trim()?.toLowerCase();
 
     // Validate phone
@@ -736,7 +770,7 @@ export const createRequestOtp = async (req: Request, res: Response) => {
 
     const otp = genOtp();
     
-    const key = phone || email;
+    const key = normalizedPhone || phone || email;
 
     if (isDummyLoginPhone(phone)) {
       return res.status(200).json({
@@ -769,6 +803,9 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
 
     email = email?.trim()?.toLowerCase();
     phone = phone?.trim();
+    const normalizedPhone = getPhoneLookupValues(phone).find(
+      (value) => value.length === 10,
+    );
     otp = otp?.trim();
     companyName = companyName?.trim();
 
@@ -786,7 +823,9 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
 
     name = name?.trim();
     role = role?.trim()?.toLowerCase();
-    let user = await User.findOne({ phone }).populate("roleId");
+    let user = await User.findOne({
+      phone: { $in: getPhoneLookupValues(phone) },
+    }).populate("roleId");
 
     const nameError = user ? "" : validateSignupName(name);
     if (!user && nameError) {
@@ -816,7 +855,11 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
     }
 
     // verify OTP
-    const otpResult = await verifyDummyOrRedisOtp({ phone, key: phone, otp });
+    const otpResult = await verifyDummyOrRedisOtp({
+      phone,
+      key: normalizedPhone || phone,
+      otp,
+    });
 
     if (!otpResult.valid) {
       return res.status(400).json({
@@ -834,17 +877,7 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
 
       const roleDoc: any = user.roleId;
 
-      const token = generateToken({
-        sub: String(user._id),
-        email: user.email,
-        phone: Number(user.phone),
-        name: user.name,
-        companyName: user.companyName,
-        roleId: String(roleDoc._id),
-        roleName: roleDoc.name,
-        permissions: roleDoc.permissions,
-        accountStatus: user.accountStatus,
-      });
+      const token = await createAuthToken({ user, roleDoc });
 
       let nextStep = "location";
 
@@ -875,7 +908,7 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       name,
       companyName: role === "builder" ? companyName : undefined,
       email: email || undefined,
-      phone,
+      phone: normalizedPhone || phone,
       roleId: roleDoc._id,
       phoneVerified: true,
       accountStatus: "location_pending",
@@ -888,17 +921,7 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       await createInitialAgentProfile(user._id);
     }
 
-    const token = generateToken({
-      sub: String(user._id),
-      email: user.email,
-      companyName: user.companyName,
-      phone: Number(user.phone),
-      name: user.name,
-      roleId: String(roleDoc._id),
-      roleName: roleDoc.name,
-      permissions: roleDoc.permissions,
-      accountStatus: user.accountStatus,
-    });
+    const token = await createAuthToken({ user, roleDoc });
 
     return res.status(201).json({
       message: "Account created. Continue signup.",
@@ -1020,7 +1043,7 @@ export const adminCreateVerifyOtp = async (req: Request, res: Response) => {
       }
 
       const roleDoc: any = user.roleId;
-      const token = createAuthToken({ user, roleDoc });
+      const token = await createAuthToken({ user, roleDoc });
 
       let nextStep = "location";
       if (user.locality && user.city && user.state && user.pincode) {
@@ -1065,7 +1088,7 @@ export const adminCreateVerifyOtp = async (req: Request, res: Response) => {
       await createInitialAgentProfile(user._id);
     }
 
-    const token = createAuthToken({ user, roleDoc });
+    const token = await createAuthToken({ user, roleDoc });
 
     return res.status(201).json({
       message: "Account created. Continue signup.",
@@ -1171,7 +1194,7 @@ export const adminCreateUpdateLocation = async (
     await user.save();
 
     // create fresh token
-    const token = createAuthToken({
+    const token = await createAuthToken({
       user,
       roleDoc,
     });

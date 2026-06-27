@@ -11,6 +11,39 @@ import { AuthRequest } from "../middlewares/authMiddleware";
 import FeatureProperty from "../models/featurePropertiesModel";
 import { deleteS3ObjectIfExists } from "../utils/s3Helpers";
 import mongoose from "mongoose";
+import BuilderMember from "../models/builderMemberModel";
+
+const getBuilderProjectScope = async (req: AuthRequest) => {
+  if (!req.user?.id) {
+    throw new Error("Unauthorized");
+  }
+
+  if (req.user.roleName !== "builder_staff") {
+    return {
+      createdBy: req.user.id,
+      projectIds: null as string[] | null,
+    };
+  }
+
+  const member = await BuilderMember.findOne({
+    userId: req.user.id,
+    isActive: true,
+  })
+    .select("builderId projectIds")
+    .lean();
+
+  if (!member) {
+    return {
+      createdBy: req.user.id,
+      projectIds: [],
+    };
+  }
+
+  return {
+    createdBy: String((member as any).builderId),
+    projectIds: ((member as any).projectIds ?? []).map(String),
+  };
+};
 
 function parseMaybeJSON<T = any>(value: any): T | undefined {
   if (value === undefined || value === null || value === "") return undefined;
@@ -97,9 +130,12 @@ export const getMyHightlightProjectsController = async (
   res: Response,
 ) => {
   try {
-    const userId = req.user!.id;
+    const scope = await getBuilderProjectScope(req);
     const projects =
-      await FeaturePropertyService.getMyHightlightProjects(userId);
+      await FeaturePropertyService.getMyHightlightProjects(
+        scope.createdBy,
+        scope.projectIds,
+      );
     res.status(200).json({ success: true, data: projects });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -111,8 +147,11 @@ export const getMyFeaturedProjectsController = async (
   res: Response,
 ) => {
   try {
-    const userId = req.user!.id;
-    const projects = await FeaturePropertyService.getMyFeaturedProjects(userId);
+    const scope = await getBuilderProjectScope(req);
+    const projects = await FeaturePropertyService.getMyFeaturedProjects(
+      scope.createdBy,
+      scope.projectIds,
+    );
     res.status(200).json({ success: true, data: projects });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

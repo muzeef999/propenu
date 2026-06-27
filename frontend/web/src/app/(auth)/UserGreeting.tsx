@@ -52,6 +52,7 @@ export const getOptionsForRole = (roleName?: string) => {
     case "agent":
       return AgentOptions;
     case "builder":
+    case "builder_staff":
       return BuilderOptions;
     default:
       return GreetingOptions;

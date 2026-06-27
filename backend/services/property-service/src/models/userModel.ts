@@ -43,6 +43,8 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true, // ✅ make this optional if you're using phone too
       unique: false,
+      // @ts-ignore override legacy required flag for phone-only accounts
+      required: false,
       trim: true,
       lowercase: true,
       sparse: true,

@@ -17,6 +17,48 @@ import Cookies from "js-cookie";
 
 const url = process.env.NEXT_PUBLIC_API_URL;
 
+const getTokenPayload = () => {
+  const token = Cookies.get("token");
+  if (!token) return null;
+
+  try {
+    return JSON.parse(atob(token.split(".")[1] ?? ""));
+  } catch {
+    return null;
+  }
+};
+
+const filterAssignedBuilderProjects = <T extends { _id?: string }>(response: any) => {
+  const payload = getTokenPayload();
+  const roleName = payload?.roleName;
+  const assignedProjectIds = payload?.builderAccess?.projectIds;
+
+  if (
+    roleName !== "builder_staff" ||
+    !Array.isArray(assignedProjectIds) ||
+    assignedProjectIds.includes("*")
+  ) {
+    return response;
+  }
+
+  const allowed = new Set(assignedProjectIds.map(String));
+  const filterProjects = (projects: T[]) =>
+    projects.filter((project) => project?._id && allowed.has(String(project._id)));
+
+  if (Array.isArray(response)) {
+    return filterProjects(response);
+  }
+
+  if (Array.isArray(response?.data)) {
+    return {
+      ...response,
+      data: filterProjects(response.data),
+    };
+  }
+
+  return response;
+};
+
 export async function getFeaturedProjects(params?: {
   state?: string;
   city?: string;
@@ -151,7 +193,7 @@ export const getSponsored = async (params?: Record<string, unknown>) => {
     `${url}/api/properties/sponsored`,
     { params }
   );
-  return res.data;
+  return filterAssignedBuilderProjects(res.data);
 };
 
 
@@ -393,13 +435,21 @@ export const getProjectLeads = async (projectId: string) => {
 
 
 export const getProjectbuilderLeads = async (projectId: string, from?: Date, to?: Date) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
   const params = new URLSearchParams();
   if (from) params.append("from", from.toISOString());
   if (to) params.append("to", to.toISOString());
 
   const res = await axiosInstance.get(
     `${url}/api/properties/leads/project/${projectId}/leads`,
-    { params }
+    {
+      params,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
   );
   return res.data;
 };
@@ -409,14 +459,33 @@ export const downloadLeadsCSV = async (
   from?: string,
   to?: string
 ) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
   const params = new URLSearchParams();
 
   if (from) params.append("from", from);
   if (to) params.append("to", to);
 
-  const downloadUrl = `${url}/api/properties/leads/project/${projectId}/leads/csv?${params.toString()}`;
+  const res = await axiosInstance.get(
+    `${url}/api/properties/leads/project/${projectId}/leads/csv`,
+    {
+      params,
+      responseType: "blob",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
 
-  window.open(downloadUrl, "_blank");
+  const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = "leads.csv";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(blobUrl);
 };
 
 export const importProjectLeadsCSV = async (
@@ -445,12 +514,109 @@ export const importProjectLeadsCSV = async (
 
 
 export const updateLeadStatus = async (id: string, status: string) => {
+ const token = Cookies.get("token");
+ if (!token) throw new Error("Not authenticated");
+
  const res  = await axiosInstance.patch(
     `${url}/api/properties/leads/project/${id}/status`,
     { status },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
   );
   return res.data;
 }
+
+export const getBuilderPermissionCatalog = async () => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(`${url}/api/users/builder-access/permissions`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+};
+
+export const getBuilderRoles = async () => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(`${url}/api/users/builder-access/roles`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+};
+
+export const createBuilderRole = async (payload: {
+  name: string;
+  permissions: string[];
+}) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.post(`${url}/api/users/builder-access/roles`, payload, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+};
+
+export const updateBuilderRole = async (
+  id: string,
+  payload: { name?: string; permissions?: string[]; isActive?: boolean }
+) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.patch(
+    `${url}/api/users/builder-access/roles/${id}`,
+    payload,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return res.data;
+};
+
+export const getBuilderMembers = async () => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(`${url}/api/users/builder-access/members`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+};
+
+export const createBuilderMember = async (payload: {
+  name: string;
+  email?: string;
+  phone?: string;
+  builderRoleId: string;
+  projectIds: string[];
+}) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.post(`${url}/api/users/builder-access/members`, payload, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+};
+
+export const updateBuilderMember = async (
+  id: string,
+  payload: { builderRoleId?: string; projectIds?: string[]; isActive?: boolean }
+) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.patch(
+    `${url}/api/users/builder-access/members/${id}`,
+    payload,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return res.data;
+};
 
 
 export const getHighlightProjectBuilders = async () => {
@@ -644,7 +810,7 @@ export const getFeaturedProjectsDashboard = async () => {
       Authorization: `Bearer ${token}`,
     },
   });
-  return res.data;
+  return filterAssignedBuilderProjects(res.data);
   }
 
 

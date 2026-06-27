@@ -92,6 +92,11 @@ router.post("/seed-roles", async (_req, res) => {
           "agent:edit",
         ],
       },
+      {
+        name: "builder_staff",
+        label: "Builder Staff",
+        permissions: [],
+      },
 
       {
         name: "sales_manager",

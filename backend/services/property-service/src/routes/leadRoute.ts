@@ -6,6 +6,13 @@ import { validateBody } from '../middlewares/validate';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import { requireActiveSubscription } from '../middlewares/requireActiveSubscription';
 import { requireContactOwnerLimit } from '../middlewares/requireContactOwnerLimit';
+import {
+  loadBuilderAccess,
+  loadLeadProjectAccess,
+  requireAssignableBuilderMember,
+  requireBuilderPermission,
+  requireProjectParamAccess,
+} from '../middlewares/builderAccess';
 
 const router = Router();
 const upload = multer({
@@ -28,18 +35,62 @@ router.post('/', (req, res, next) => {
 
 
 router.post("/project/lead",  createPublicLeadController);
-router.get("/project/:projectId/leads", getProjectLeadsController);
-router.post("/project/:projectId/leads/import", authMiddleware, upload.single("file"), importProjectLeadsCSVController);
-router.patch("/project/:id/status", updateProjectLeadStatusController);
-router.get("/project/:projectId/leads/csv",downloadLeadsCSVController);
+router.get(
+  "/project/:projectId/leads",
+  authMiddleware,
+  loadBuilderAccess,
+  requireBuilderPermission("lead:view"),
+  requireProjectParamAccess("projectId"),
+  getProjectLeadsController,
+);
+router.post(
+  "/project/:projectId/leads/import",
+  authMiddleware,
+  loadBuilderAccess,
+  requireBuilderPermission("lead:import"),
+  requireProjectParamAccess("projectId"),
+  upload.single("file"),
+  importProjectLeadsCSVController,
+);
+router.patch(
+  "/project/:id/status",
+  authMiddleware,
+  loadBuilderAccess,
+  requireBuilderPermission("lead:update"),
+  loadLeadProjectAccess("id"),
+  updateProjectLeadStatusController,
+);
+router.get(
+  "/project/:projectId/leads/csv",
+  authMiddleware,
+  loadBuilderAccess,
+  requireBuilderPermission("lead:download"),
+  requireProjectParamAccess("projectId"),
+  downloadLeadsCSVController,
+);
 
 
 
 router.get('/my-contacts', authMiddleware, getMyContactedProperties);
-router.patch('/:id/assign', assignLeadController);
-router.patch('/:id/status', updateLeadStatusController);
+router.get("/check", authMiddleware, checkLeadController);
+router.patch(
+  '/:id/assign',
+  authMiddleware,
+  loadBuilderAccess,
+  requireBuilderPermission("lead:assign"),
+  loadLeadProjectAccess("id"),
+  requireAssignableBuilderMember,
+  assignLeadController,
+);
+router.patch(
+  '/:id/status',
+  authMiddleware,
+  loadBuilderAccess,
+  requireBuilderPermission("lead:update"),
+  loadLeadProjectAccess("id"),
+  updateLeadStatusController,
+);
 router.get('/', getLeadsController);
 router.get('/:id', getLeadByIdController);
-router.get("/check", authMiddleware, checkLeadController);
 
 export default router;

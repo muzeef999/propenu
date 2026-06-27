@@ -8,7 +8,8 @@ export type UserRole =
   | "digital_marketing"
   | "customer_care"
   | "user"
-  | "builder";
+  | "builder"
+  | "builder_staff";
 
 export interface JwtUserPayload extends JwtPayload {
   sub: string;    
@@ -18,5 +19,6 @@ export interface JwtUserPayload extends JwtPayload {
   roleId?: string | undefined; 
   roleName?: string | undefined;
   permissions: string[];
+  builderAccess?: unknown;
   accountStatus?: string | undefined;
 }

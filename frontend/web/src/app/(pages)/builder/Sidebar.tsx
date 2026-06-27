@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import { Building, profile, Subscription } from "@/icons/icons";
 import { FaCrown, FaHeart } from "react-icons/fa";
 import { TbBuildingSkyscraper } from "react-icons/tb";
 import { RiDeleteBin6Line, RiUserHeartLine } from "react-icons/ri";
+import { FiUsers } from "react-icons/fi";
 
 const menuItems = [
   {
@@ -22,6 +24,12 @@ const menuItems = [
     icon: Building,
   },
   {
+    label: "Roles & Team",
+    mobileLabel: "Team",
+    link: "/builder/roles",
+    icon: FiUsers,
+  },
+  {
     label:"My Shortlists",
     mobileLabel: "Shortlists",
     link: "/builder/my-shortlists",
@@ -34,7 +42,7 @@ const menuItems = [
     icon: RiUserHeartLine, 
   },
   {
-    label: "My Properties",
+    label: "My Projects",
     mobileLabel: "Listings",
     link: "/builder/my-projects",
     icon: TbBuildingSkyscraper,
@@ -56,6 +64,20 @@ const menuItems = [
 const Sidebar = () => {
   const bgColor = hexToRGBA("#27AE60", 0.1);
   const pathname = usePathname();
+  const [roleName, setRoleName] = useState("");
+
+  useEffect(() => {
+    setRoleName(String(localStorage.getItem("role") ?? "").toLowerCase());
+  }, []);
+
+  const visibleMenuItems =
+    roleName === "builder_staff"
+      ? menuItems.filter(
+          (item) =>
+            item.link !== "/builder/roles" &&
+            item.link !== "/builder/delete-account",
+        )
+      : menuItems;
 
   const isItemActive = (link: string) => {
     if (link === "/builder") return pathname === "/builder";
@@ -70,7 +92,7 @@ const Sidebar = () => {
       >
         {/* Desktop Menu Navigation */}
         <nav className="px-4 space-y-1.5 mt-10">
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const Icon = item.icon;
             const isActive = isItemActive(item.link);
 
@@ -121,8 +143,8 @@ const Sidebar = () => {
       {/* Mobile/Tablet Bottom Tabs */}
       <nav className="fixed bottom-0 inset-x-0 z-30 border-t border-gray-200 bg-white lg:hidden">
         <div className="container mx-auto px-2">
-          <div className="grid grid-cols-7">
-            {menuItems.map((item) => {
+          <div className="grid grid-cols-8">
+            {visibleMenuItems.map((item) => {
               const Icon = item.icon;
               const isActive = isItemActive(item.link);
 
