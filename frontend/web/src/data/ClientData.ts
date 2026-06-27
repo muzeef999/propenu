@@ -146,9 +146,9 @@ export const searchFilter = async (params: SearchFilterParams) => {
   return res.data;
 };
 
-export const getSponsored = async (params: SearchFilterParams) => {
+export const getSponsored = async (params?: Record<string, unknown>) => {
   const res = await axiosInstance.get(
-    `${url}/api/sponsored`,   // 🔥 your new API
+    `${url}/api/properties/sponsored`,
     { params }
   );
   return res.data;
