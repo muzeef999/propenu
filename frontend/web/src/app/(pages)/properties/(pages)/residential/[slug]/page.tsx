@@ -285,7 +285,7 @@ export default async function Page({ params }: PageProps) {
                         </span>
                       </div>
 
-                      <div className="flex flex-col gap-1">
+                      {/* <div className="flex flex-col gap-1">
                         <span className="text-xs sm:text-sm text-gray-500 font-medium">
                           Project Total Area
                         </span>
@@ -319,7 +319,7 @@ export default async function Page({ params }: PageProps) {
                         <span className="text-sm sm:text-base font-semibold text-gray-900">
                           {project?.availableUnits ?? "—"}
                         </span>
-                      </div>
+                      </div> */}
 
                     </div>
 

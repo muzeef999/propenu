@@ -19,6 +19,7 @@ import { sendTemplateNotification } from "../../../../shared/notifications/push.
 import {
   buildPostedByAudit,
   isDirectAgentRole,
+  populateListingAuditFields,
   submitAgentListingForReview,
 } from "../utils/agentSubmission";
 
@@ -322,7 +323,8 @@ export const createLandDraft = async (req: AuthRequest, res: Response) => {
     }).lean();
 
     if (existing) {
-      return res.status(200).json({ data: existing });
+      const populated = await populateListingAuditFields(LandPlot, existing._id);
+      return res.status(200).json({ data: populated ?? existing });
     }
 
     const draft = await LandPlot.create({
@@ -336,7 +338,8 @@ export const createLandDraft = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    return res.status(201).json({ data: draft });
+    const populated = await populateListingAuditFields(LandPlot, draft._id);
+    return res.status(201).json({ data: populated ?? draft });
   } catch (err: any) {
     console.error("createLandDraft:", err);
     return res.status(500).json({
@@ -362,7 +365,8 @@ export const updateLandBasicStep = async (req: AuthRequest, res: Response) => {
 
   await doc.save(); // 🔥 title + slug build here
 
-  res.json({ data: doc });
+  const fresh = await populateListingAuditFields(LandPlot, doc._id);
+  res.json({ data: fresh ?? doc });
 };
 
 export const updateLandLocationStep = async (
@@ -440,7 +444,8 @@ export const updateLandLocationStep = async (
     }
   }
 
-  res.json({ data: doc });
+  const fresh = await populateListingAuditFields(LandPlot, doc._id);
+  res.json({ data: fresh ?? doc });
 };
 
 export const updateLandDetailsStep = async (
@@ -485,7 +490,8 @@ export const updateLandDetailsStep = async (
       return res.json({ data: submitted ?? fresh });
     }
 
-    return res.json({ data: fresh });
+    const populated = await populateListingAuditFields(LandPlot, req.params.id);
+    return res.json({ data: populated ?? fresh });
   } catch (err: any) {
     console.error("updateLandDetailsStep:", err);
     res.status(500).json({ error: err.message || "Internal server error" });

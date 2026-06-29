@@ -29,6 +29,7 @@ import {
   buildPostedByAudit,
   isDirectAgentRole,
   normalizeListingAuditFields,
+  populateListingAuditFields,
   stampListingUpdateAudit,
   submitAgentListingForReview,
 } from "../utils/agentSubmission";
@@ -366,7 +367,8 @@ export const createResidentialDraft = async (
     }).lean();
 
     if (existing) {
-      return res.status(200).json({ data: existing });
+      const populated = await populateListingAuditFields(Residential, existing._id);
+      return res.status(200).json({ data: populated ?? existing });
     }
 
     const draft = await Residential.create({
@@ -380,7 +382,8 @@ export const createResidentialDraft = async (
       },
     });
 
-    return res.status(201).json({ data: draft });
+    const populated = await populateListingAuditFields(Residential, draft._id);
+    return res.status(201).json({ data: populated ?? draft });
   } catch (err: any) {
     console.error("createResidentialDraft:", err);
     return res.status(500).json({
@@ -409,7 +412,8 @@ export const updateBasicStep = async (req: AuthRequest, res: Response) => {
   await stampListingUpdateAudit(Residential, doc, req.user);
   await doc.save(); // 🔥 triggers buildResidentialTitle
 
-  res.json({ data: doc });
+  const fresh = await populateListingAuditFields(Residential, doc._id);
+  res.json({ data: fresh ?? doc });
 };
 
 export const updateLocationStep = async (req: AuthRequest, res: Response) => {
@@ -484,7 +488,8 @@ export const updateLocationStep = async (req: AuthRequest, res: Response) => {
     }
   }
 
-  res.json({ data: doc });
+  const fresh = await populateListingAuditFields(Residential, doc._id);
+  res.json({ data: fresh ?? doc });
 };
 
 export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
@@ -558,7 +563,8 @@ export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
       return res.json({ data: submitted ?? updated });
     }
 
-    return res.json({ data: fresh ?? updated });
+    const populated = await populateListingAuditFields(Residential, req.params.id);
+    return res.json({ data: populated ?? fresh ?? updated });
   } catch (err: any) {
     console.error("updateDetailsStep:", err);
     res.status(500).json({ error: err.message || "Internal server error" });

@@ -266,6 +266,79 @@ export const updateUser = async (payload: {
   return res.data;
 };
 
+export type BuilderProfilePayload = {
+  name?: string;
+  companyName?: string;
+  email?: string;
+  address?: string;
+  locality?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+};
+
+export const getBuilderProfile = async () => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(`${url}/api/users/builder/profile`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return res.data;
+};
+
+export const updateBuilderProfile = async (payload: BuilderProfilePayload) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.patch(
+    `${url}/api/users/builder/profile`,
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+  return res.data;
+};
+
+export const getBuilderProfileById = async (builderId: string) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(
+    `${url}/api/users/builder/profile/${builderId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+  return res.data;
+};
+
+export const updateBuilderProfileById = async (
+  builderId: string,
+  payload: BuilderProfilePayload,
+) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.patch(
+    `${url}/api/users/builder/profile/${builderId}`,
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+  return res.data;
+};
+
 export const deleteMyAccount = async (payload: {
   reason?: string;
   feedback?: string;

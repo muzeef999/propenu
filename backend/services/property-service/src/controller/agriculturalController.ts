@@ -25,6 +25,7 @@ import { sendTemplateNotification } from "../../../../shared/notifications/push.
 import {
   buildPostedByAudit,
   isDirectAgentRole,
+  populateListingAuditFields,
   submitAgentListingForReview,
 } from "../utils/agentSubmission";
 
@@ -43,6 +44,41 @@ const auditUserPopulate = [
   { path: "lastUpdatedBy.userId", select: "name email phone role roleId" },
   { path: "updateHistory.userId", select: "name email phone role roleId" },
 ];
+
+const SERVER_MANAGED_STEP_FIELDS = [
+  "_id",
+  "id",
+  "__v",
+  "approval",
+  "approvalStatus",
+  "approvedBy",
+  "approvedAt",
+  "createdAt",
+  "updatedAt",
+  "deactivatedAt",
+  "deactivatedBy",
+  "isPublished",
+  "lastUpdatedBy",
+  "meta",
+  "postedBy",
+  "promotion",
+  "rejectedReason",
+  "slug",
+  "status",
+  "subscriptionEndDate",
+  "updateCount",
+  "updateHistory",
+  "updatedBy",
+];
+
+function sanitizeStepPayload(payload: any) {
+  if (!payload || typeof payload !== "object") return {};
+  const sanitized = { ...payload };
+  for (const field of SERVER_MANAGED_STEP_FIELDS) {
+    delete sanitized[field];
+  }
+  return sanitized;
+}
 
 export const createAgricultural = async (req: Request, res: Response) => {
   try {
@@ -282,7 +318,8 @@ export const createAgriculturalDraft = async (
     }).lean();
 
     if (existing) {
-      return res.status(200).json({ data: existing });
+      const populated = await populateListingAuditFields(Agricultural, existing._id);
+      return res.status(200).json({ data: populated ?? existing });
     }
 
     const draft = await Agricultural.create({
@@ -296,7 +333,8 @@ export const createAgriculturalDraft = async (
       },
     });
 
-    return res.status(201).json({ data: draft });
+    const populated = await populateListingAuditFields(Agricultural, draft._id);
+    return res.status(201).json({ data: populated ?? draft });
   } catch (err: any) {
     console.error("createAgriculturalDraft:", err);
     return res.status(500).json({
@@ -309,42 +347,12 @@ export const updateAgriculturalBasicStep = async (
   req: AuthRequest,
   res: Response,
 ) => {
-  const doc = await Agricultural.findOne({
-    _id: req.params.id,
-    createdBy: req.user!.id,
-    status: "draft",
-  });
+  const doc = await Agricultural.findById(req.params.id);
   if (!doc) {
     return res.status(404).json({ error: "Agricultural draft not found" });
   }
 
-  const allowedBasicFields = [
-    "createdBy",
-    "listingType",
-    "landName",
-    "propertyType",
-    "propertySubType",
-    "price",
-    "currency",
-    "totalArea",
-    "roadWidth",
-    "areaUnit",
-    "landShape",
-    "boundaryWall",
-    "soilType",
-    "irrigationType",
-    "currentCrop",
-    "numberOfBorewells",
-    "waterSource",
-    "accessRoadType",
-    "electricityConnection",
-  ];
-
-  for (const field of allowedBasicFields) {
-    if (Object.prototype.hasOwnProperty.call(req.body, field)) {
-      doc.set(field, req.body[field]);
-    }
-  }
+  Object.assign(doc, sanitizeStepPayload(req.body));
 
   doc.completion = {
     ...doc.completion,
@@ -355,7 +363,8 @@ export const updateAgriculturalBasicStep = async (
 
   await doc.save(); // 🔥 title builds here
 
-  res.json({ data: doc });
+  const fresh = await populateListingAuditFields(Agricultural, doc._id);
+  res.json({ data: fresh ?? doc });
 };
 
 export const updateAgriculturalLocationStep = async (
@@ -433,7 +442,8 @@ export const updateAgriculturalLocationStep = async (
     }
   }
 
-  res.json({ data: doc });
+  const fresh = await populateListingAuditFields(Agricultural, doc._id);
+  res.json({ data: fresh ?? doc });
 };
 
 export const updateAgriculturalDetailsStep = async (
@@ -491,7 +501,8 @@ export const updateAgriculturalDetailsStep = async (
       return res.json({ data: submitted ?? updated });
     }
 
-    return res.json({ data: updated });
+    const fresh = await populateListingAuditFields(Agricultural, req.params.id);
+    return res.json({ data: fresh ?? updated });
   } catch (err: any) {
     if (err instanceof ZodError) {
       return res.status(422).json({

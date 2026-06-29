@@ -156,6 +156,51 @@ export function normalizeListingAuditFields<T extends Record<string, any> | null
   return doc;
 }
 
+async function replaceCreatedByRoleIdWithName(Model: any, doc: any) {
+  const createdBy = doc?.createdBy;
+  if (!createdBy || typeof createdBy !== "object") return doc;
+
+  const existingRoleName = getRoleNameFromUser(createdBy);
+  if (existingRoleName) {
+    createdBy.roleName = existingRoleName;
+    delete createdBy.roleId;
+    return doc;
+  }
+
+  const roleId = createdBy.roleId;
+  const roleIdValue = roleId?._id ?? roleId;
+  if (!roleIdValue) return doc;
+
+  const RoleModel = Model.db.models?.Role;
+  const role = RoleModel
+    ? await RoleModel.findById(roleIdValue).select("name label").lean()
+    : null;
+
+  if (role?.name || role?.label) {
+    createdBy.roleName = role.name ?? role.label;
+  }
+
+  delete createdBy.roleId;
+  return doc;
+}
+
+export async function populateListingAuditFields(Model: any, id: any) {
+  if (!id) return null;
+
+  const doc = normalizeListingAuditFields(
+    await Model.findById(id)
+    .populate("createdBy", "name email phone role roleName roleId")
+    .populate("createdBy.roleId", "name label")
+    .populate("approvedBy", "name email phone role roleName roleId")
+    .populate("approvedBy.roleId", "name label")
+    .populate("lastUpdatedBy.userId", "name email phone role roleName roleId")
+    .populate("updateHistory.userId", "name email phone role roleName roleId")
+    .lean(),
+  );
+
+  return replaceCreatedByRoleIdWithName(Model, doc);
+}
+
 async function resolveCreatedBy(Model: any, createdBy: any) {
   const createdById = toObjectId(createdBy);
   if (!createdById) return null;

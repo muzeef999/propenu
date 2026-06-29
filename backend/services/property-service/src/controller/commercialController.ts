@@ -23,6 +23,7 @@ import { sendTemplateNotification } from "../../../../shared/notifications/push.
 import {
   buildPostedByAudit,
   isDirectAgentRole,
+  populateListingAuditFields,
   submitAgentListingForReview,
 } from "../utils/agentSubmission";
 
@@ -320,7 +321,8 @@ export const createCommercialDraft = async (
     }).lean();
 
     if (existing) {
-      return res.status(200).json({ data: existing });
+      const populated = await populateListingAuditFields(Commercial, existing._id);
+      return res.status(200).json({ data: populated ?? existing });
     }
 
     const draft = await Commercial.create({
@@ -334,7 +336,8 @@ export const createCommercialDraft = async (
       },
     });
 
-    return res.status(201).json({ data: draft });
+    const populated = await populateListingAuditFields(Commercial, draft._id);
+    return res.status(201).json({ data: populated ?? draft });
   } catch (err: any) {
     console.error("createCommercialDraft:", err);
     return res.status(500).json({
@@ -363,7 +366,8 @@ export const updateCommercialBasicStep = async (
 
   await doc.save(); // 🔥 triggers validate + title rebuild + slug sync
 
-  res.json({ data: doc });
+  const fresh = await populateListingAuditFields(Commercial, doc._id);
+  res.json({ data: fresh ?? doc });
 };
 
 export const updateCommercialLocationStep = async (
@@ -441,7 +445,8 @@ export const updateCommercialLocationStep = async (
     }
   }
 
-  res.json({ data: doc });
+  const fresh = await populateListingAuditFields(Commercial, doc._id);
+  res.json({ data: fresh ?? doc });
 };
 
 export const updateCommercialDetailsStep = async (
@@ -485,7 +490,8 @@ export const updateCommercialDetailsStep = async (
       return res.json({ data: submitted ?? doc ?? updated });
     }
 
-    return res.json({ data: doc ?? updated });
+    const populated = await populateListingAuditFields(Commercial, req.params.id);
+    return res.json({ data: populated ?? doc ?? updated });
   } catch (err: any) {
     console.error("updateCommercialDetailsStep:", err);
     res.status(500).json({ error: err.message || "Internal server error" });

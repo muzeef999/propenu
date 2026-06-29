@@ -18,6 +18,8 @@ const jsonKeys = [
   "gallery",
   "documents",
   "borewellDetails",
+  "totalArea",
+  "roadWidth",
   "leads",
   "location",
   "legalChecks",
@@ -55,7 +57,13 @@ router.get("/:id", getAgriculturalDetail);
 router.delete("/:id", deleteAgricultural);
 
 router.post("/draft", authMiddleware, createAgriculturalDraft);
-router.patch("/:id/basic", authMiddleware, updateAgriculturalBasicStep);
+router.patch(
+  "/:id/basic",
+  authMiddleware,
+  uploadMedia,
+  parseJsonFields(jsonKeys),
+  updateAgriculturalBasicStep,
+);
 router.patch("/:id/location",authMiddleware,parseJsonFields(jsonKeys),updateAgriculturalLocationStep,);
 router.patch("/:id/details", authMiddleware, uploadMedia, parseJsonFields(jsonKeys),updateAgriculturalDetailsStep);
 router.patch("/:id/verification", authMiddleware, uploadMedia,parseJsonFields(jsonKeys),   finalizeAgricultural);

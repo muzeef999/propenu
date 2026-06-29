@@ -8,7 +8,7 @@ import { Building, profile, Subscription } from "@/icons/icons";
 import { FaCrown, FaHeart } from "react-icons/fa";
 import { TbBuildingSkyscraper } from "react-icons/tb";
 import { RiDeleteBin6Line, RiUserHeartLine } from "react-icons/ri";
-import { FiUsers } from "react-icons/fi";
+import { FiSettings, FiUsers } from "react-icons/fi";
 
 const menuItems = [
   {
@@ -52,6 +52,12 @@ const menuItems = [
     mobileLabel: "Prime",
     link: "/builder/prime-projects",
     icon: FaCrown,
+  },
+  {
+    label: "Account Settings",
+    mobileLabel: "Settings",
+    link: "/builder/account-settings",
+    icon: FiSettings,
   },
   {
     label: "Delete Account",
@@ -143,7 +149,7 @@ const Sidebar = () => {
       {/* Mobile/Tablet Bottom Tabs */}
       <nav className="fixed bottom-0 inset-x-0 z-30 border-t border-gray-200 bg-white lg:hidden">
         <div className="container mx-auto px-2">
-          <div className="grid grid-cols-8">
+          <div className="flex overflow-x-auto">
             {visibleMenuItems.map((item) => {
               const Icon = item.icon;
               const isActive = isItemActive(item.link);
@@ -154,7 +160,7 @@ const Sidebar = () => {
                   href={item.link}
                   aria-label={item.label}
                   title={item.label}
-                  className="flex flex-col items-center justify-center py-2 transition-all duration-300"
+                  className="flex min-w-[76px] flex-col items-center justify-center py-2 transition-all duration-300"
                 >
                   <div
                     className={`p-2 rounded-full transition-all duration-300 ${
