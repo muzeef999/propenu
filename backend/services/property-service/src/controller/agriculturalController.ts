@@ -493,11 +493,12 @@ export const updateAgriculturalDetailsStep = async (
     // const fresh = await Agricultural.findById(req.params.id)
 
     if (isDirectAgentRole(req.user?.roleName)) {
-      const submitted = await submitAgentListingForReview(
+      await submitAgentListingForReview(
         Agricultural,
         req.params.id,
         req.user,
       );
+      const submitted = await populateListingAuditFields(Agricultural, req.params.id);
       return res.json({ data: submitted ?? updated });
     }
 

@@ -482,11 +482,12 @@ export const updateCommercialDetailsStep = async (
     }
 
     if (isDirectAgentRole(req.user?.roleName)) {
-      const submitted = await submitAgentListingForReview(
+      await submitAgentListingForReview(
         Commercial,
         req.params.id,
         req.user,
       );
+      const submitted = await populateListingAuditFields(Commercial, req.params.id);
       return res.json({ data: submitted ?? doc ?? updated });
     }
 

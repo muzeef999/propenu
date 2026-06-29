@@ -163,7 +163,6 @@ async function replaceCreatedByRoleIdWithName(Model: any, doc: any) {
   const existingRoleName = getRoleNameFromUser(createdBy);
   if (existingRoleName) {
     createdBy.roleName = existingRoleName;
-    delete createdBy.roleId;
     return doc;
   }
 
@@ -180,7 +179,6 @@ async function replaceCreatedByRoleIdWithName(Model: any, doc: any) {
     createdBy.roleName = role.name ?? role.label;
   }
 
-  delete createdBy.roleId;
   return doc;
 }
 
@@ -244,14 +242,17 @@ export async function restoreCreatedById<
   if (!doc) return doc;
   doc.rejectedReason ??= "";
   if (doc.createdBy || !originalCreatedBy) {
-    return normalizeListingAuditFields(doc);
+    return replaceCreatedByRoleIdWithName(
+      Model,
+      normalizeListingAuditFields(doc),
+    );
   }
   doc.createdBy =
     (await resolveCreatedBy(Model, originalCreatedBy)) ??
     (originalCreatedBy?._id?.toString?.() ??
       originalCreatedBy.toString?.() ??
       originalCreatedBy);
-  return normalizeListingAuditFields(doc);
+  return replaceCreatedByRoleIdWithName(Model, normalizeListingAuditFields(doc));
 }
 
 function buildAuditFromAuthUser(authUser?: AuthUserLike, existingPostedBy?: any) {

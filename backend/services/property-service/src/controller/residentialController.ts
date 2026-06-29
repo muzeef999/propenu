@@ -555,11 +555,12 @@ export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
     }
 
     if (shouldSubmitForReview) {
-      const submitted = await submitAgentListingForReview(
+      await submitAgentListingForReview(
         Residential,
         req.params.id,
         req.user,
       );
+      const submitted = await populateListingAuditFields(Residential, req.params.id);
       return res.json({ data: submitted ?? updated });
     }
 

@@ -482,11 +482,12 @@ export const updateLandDetailsStep = async (
 
     const fresh = await LandService.getById(req.params.id);
     if (isDirectAgentRole(req.user?.roleName)) {
-      const submitted = await submitAgentListingForReview(
+      await submitAgentListingForReview(
         LandPlot,
         req.params.id,
         req.user,
       );
+      const submitted = await populateListingAuditFields(LandPlot, req.params.id);
       return res.json({ data: submitted ?? fresh });
     }
 
