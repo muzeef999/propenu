@@ -15,6 +15,7 @@ import {
   isAgentReviewProperty,
   restoreCreatedById,
 } from "../utils/agentSubmission";
+import { findRankedRelatedProperties } from "./relatedPropertyUtils";
 
 dotenv.config({ quiet: true });
 
@@ -115,45 +116,15 @@ async function mapAndUploadGallery({
 export async function findRelatedAgriculture(property: any) {
   if (!property?._id) return [];
 
-  const query: any = {
-    _id: { $ne: property._id },
-    status: "active",
-
-    listingType: property.listingType, // sale / lease
-    propertyType: property.propertyType, // agricultural
-    city: property.city,
-  };
-
-  // Optional land area similarity (±25%)
-  if (property.landArea) {
-    query.landArea = {
-      $gte: property.landArea * 0.75,
-      $lte: property.landArea * 1.25,
-    };
-  }
-
-  // Optional crop type similarity
-  if (property.cropType) {
-    query.cropType = property.cropType;
-  }
-
-  // Optional price band (±30%)
-  if (property.price) {
-    query.price = {
-      $gte: property.price * 0.7,
-      $lte: property.price * 1.3,
-    };
-  }
-
-  const related = await Agricultural.find(query)
-    .sort({ createdAt: -1 })
-    .limit(6)
-    .select(
+  return findRankedRelatedProperties(Agricultural, property, {
+    select:
       "title slug price city locality landArea cropType gallery propertyType listingType",
-    )
-    .lean();
-
-  return related;
+    exactFields: [{ field: "cropType", points: 18 }],
+    numericBands: [
+      { field: "price", tolerance: 0.3, points: 20 },
+      { field: "landArea", tolerance: 0.25, points: 18 },
+    ],
+  });
 }
 
 function normalizePayload(obj: any) {

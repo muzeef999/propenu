@@ -47,6 +47,11 @@ export const BuilderOptions = [
   { label: "Logout", link: "/logout" },
 ];
 
+export const AdminOptions = [
+  { label: "Users", link: "/admin/users" },
+  { label: "Logout", link: "/logout" },
+];
+
 export const getOptionsForRole = (roleName?: string) => {
   switch (roleName) {
     case "agent":
@@ -54,6 +59,9 @@ export const getOptionsForRole = (roleName?: string) => {
     case "builder":
     case "builder_staff":
       return BuilderOptions;
+    case "admin":
+    case "super_admin":
+      return AdminOptions;
     default:
       return GreetingOptions;
   }

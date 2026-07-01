@@ -1,9 +1,17 @@
 import express from "express";
-import { adminCreateRequestOtp, adminCreateUpdateLocation, adminCreateVerifyOtp, assignManager, createRequestOtp,  createVerifyOtp, deleteMyAccount, getAllUsers,  getManagerTeamDetails, me, requestOTP, searchUsers, updateLocationOtp, updateUser, updateUserRole, verifyOtp } from "../controller/authController";
+import { adminCreateRequestOtp, adminCreateUpdateLocation, adminCreateVerifyOtp, assignManager, createRequestOtp,  createVerifyOtp, deleteMyAccount, getAllUsers,  getManagerTeamDetails, me, requestAdminUserPhoneChangeOtp, requestOTP, searchUsers, updateLocationOtp, updateUser, updateUserProfileById, updateUserRole, verifyOtp } from "../controller/authController";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 
 
 const authRoute = express.Router();
+
+const requireAdminOrSuperAdmin = (req: AuthRequest, res: express.Response, next: express.NextFunction) => {
+  if (!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")) {
+    return res.status(403).json({ message: "Forbidden: only admin/super_admin allowed" });
+  }
+
+  next();
+};
 
 authRoute.post("/request-otp",  requestOTP);
 authRoute.post("/verify-otp",  verifyOtp);
@@ -19,19 +27,23 @@ authRoute.post("/update-location/admin-create", authMiddleware, adminCreateUpdat
 authRoute.get("/me", authMiddleware, me);
 authRoute.patch("/me/update", authMiddleware, updateUser);
 authRoute.delete("/me", authMiddleware, deleteMyAccount);
-authRoute.get("/search", authMiddleware, searchUsers);
+authRoute.get("/search", authMiddleware, requireAdminOrSuperAdmin, searchUsers);
 authRoute.post("/assign-manager", assignManager);
 authRoute.get("/manager-team-details/:id", getManagerTeamDetails);
-
-
-
+authRoute.post(
+  "/:id/profile/phone/request-otp",
+  authMiddleware,
+  requireAdminOrSuperAdmin,
+  requestAdminUserPhoneChangeOtp
+);
+authRoute.patch(
+  "/:id/profile",
+  authMiddleware,
+  requireAdminOrSuperAdmin,
+  updateUserProfileById
+);
  
-authRoute.get('/all-users', authMiddleware,  (req : AuthRequest, res, next) => {
-    if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){
-       return res.status(403).json({message:"Forbidden only admin/super_admin can see the users"});
-    }
-    next();
-},  getAllUsers);
+authRoute.get("/all-users", authMiddleware, requireAdminOrSuperAdmin, getAllUsers);
 
 authRoute.patch("/:id/role", authMiddleware,  (req: AuthRequest, res, next) => {
     if (!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")) {

@@ -15,7 +15,8 @@ export function middleware(req: NextRequest) {
   const isProtectedRoleRoute =
     pathname.startsWith("/user") ||
     pathname.startsWith("/agent") ||
-    pathname.startsWith("/builder");
+    pathname.startsWith("/builder") ||
+    pathname.startsWith("/admin");
   const isUserOnlyRoute = userOnlyRoutes.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
@@ -58,6 +59,14 @@ export function middleware(req: NextRequest) {
       return new NextResponse(null, { status: 403 });
   }
 
+  if (
+    pathname.startsWith("/admin") &&
+    role !== "admin" &&
+    role !== "super_admin"
+  ) {
+      return new NextResponse(null, { status: 403 });
+  }
+
   if (isUserOnlyRoute && role !== "user") {
     return new NextResponse(null, { status: 403 });
   }
@@ -74,6 +83,7 @@ export const config = {
     "/user/:path*",
     "/agent/:path*",
     "/builder/:path*",
+    "/admin/:path*",
     "/settings/:path*",
     "/my-properties/:path*",
     "/shortlisted-properties/:path*",

@@ -1,6 +1,9 @@
 import { Response } from "express";
 import User from "../models/userModel";
 import { AuthRequest } from "../middlewares/authMiddleware";
+import { genOtp } from "../utils/genOtp";
+import { saveOtpToRedis, verifyAndConsumeOtpWithReason } from "../utils/saveOtpRedis";
+import { sendOtpWhatsApp } from "../utils/whatsapp";
 
 const allowedBuilderProfileFields = [
   "name",
@@ -19,6 +22,7 @@ const formatBuilderProfile = (user: any, role: any) => ({
   companyName: user.companyName,
   email: user.email,
   phone: user.phone,
+  phoneHistory: user.phoneHistory ?? [],
   address: user.address,
   locality: user.locality,
   city: user.city,
@@ -34,6 +38,44 @@ const formatBuilderProfile = (user: any, role: any) => ({
 const isPrimaryBuilder = (req: AuthRequest) => req.user?.roleName === "builder";
 const isBuilderProfileAdmin = (req: AuthRequest) =>
   req.user?.roleName === "admin" || req.user?.roleName === "super_admin";
+
+const normalizePhoneDigits = (phone?: string) => phone?.replace(/\D/g, "");
+
+const getPhoneLookupValues = (phone?: string) => {
+  const trimmed = phone?.trim();
+  const digits = normalizePhoneDigits(trimmed);
+
+  if (!trimmed || !digits) return [];
+
+  const values = new Set<string>([trimmed, digits]);
+  const withoutIndiaCode =
+    digits.length === 12 && digits.startsWith("91") ? digits.slice(2) : digits;
+
+  if (withoutIndiaCode.length === 10) {
+    values.add(withoutIndiaCode);
+    values.add(`91${withoutIndiaCode}`);
+    values.add(`+91${withoutIndiaCode}`);
+  }
+
+  return [...values];
+};
+
+const getPhoneChangeOtpKey = (userId: string, phone: string) =>
+  `builder-phone-change:${userId}:${phone}`;
+
+const validatePhoneForOtp = (phone?: string) => {
+  const trimmed = phone?.trim();
+
+  if (!trimmed) {
+    return "Phone number is required";
+  }
+
+  if (!/^\+?[1-9]\d{6,14}$/.test(trimmed)) {
+    return "Invalid phone number";
+  }
+
+  return "";
+};
 
 const assertTargetIsBuilder = (user: any) => {
   const role: any = user?.roleId;
@@ -146,6 +188,170 @@ export const updateBuilderProfile = async (req: AuthRequest, res: Response) => {
 
     return res.status(500).json({
       message: "Failed to update builder profile",
+      error: error.message,
+    });
+  }
+};
+
+export const requestBuilderPhoneChangeOtp = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    if (!req.user?.sub) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!isPrimaryBuilder(req)) {
+      return res.status(403).json({
+        message: "Only builder accounts can update builder phone number",
+      });
+    }
+
+    const phone = req.body.phone?.toString().trim();
+    const phoneError = validatePhoneForOtp(phone);
+
+    if (phoneError) {
+      return res.status(400).json({ message: phoneError });
+    }
+
+    const user = await User.findById(req.user.sub);
+
+    if (!user) {
+      return res.status(404).json({ message: "Builder profile not found" });
+    }
+
+    if (getPhoneLookupValues(phone).includes(String(user.phone || ""))) {
+      return res.status(400).json({
+        message: "This phone number is already linked to your account",
+      });
+    }
+
+    const existingUser = await User.findOne({
+      _id: { $ne: user._id },
+      phone: { $in: getPhoneLookupValues(phone) },
+    }).select("_id");
+
+    if (existingUser) {
+      return res.status(409).json({
+        message: "Phone number already exists. Please use a different phone number.",
+      });
+    }
+
+    const otp = genOtp();
+    await saveOtpToRedis(getPhoneChangeOtpKey(String(user._id), phone), otp);
+    await sendOtpWhatsApp(phone, otp);
+
+    return res.status(200).json({
+      message: "OTP sent to new phone number",
+      oldPhone: user.phone,
+      phone,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      message: "Failed to send phone verification OTP",
+      error: error.message,
+    });
+  }
+};
+
+export const verifyBuilderPhoneChangeOtp = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    if (!req.user?.sub) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!isPrimaryBuilder(req)) {
+      return res.status(403).json({
+        message: "Only builder accounts can update builder phone number",
+      });
+    }
+
+    const phone = req.body.phone?.toString().trim();
+    const otp = req.body.otp?.toString().trim();
+    const phoneError = validatePhoneForOtp(phone);
+
+    if (phoneError) {
+      return res.status(400).json({ message: phoneError });
+    }
+
+    if (!otp) {
+      return res.status(400).json({ message: "OTP is required" });
+    }
+
+    const user = await User.findById(req.user.sub).populate("roleId");
+
+    if (!user) {
+      return res.status(404).json({ message: "Builder profile not found" });
+    }
+
+    const otpResult = await verifyAndConsumeOtpWithReason(
+      getPhoneChangeOtpKey(String(user._id), phone),
+      otp,
+    );
+
+    if (!otpResult.valid) {
+      return res.status(400).json({
+        message:
+          otpResult.reason === "expired"
+            ? "OTP has expired or is no longer valid. Please request a new OTP."
+            : "Incorrect OTP. Please check the code and try again.",
+        reason: otpResult.reason,
+      });
+    }
+
+    const existingUser = await User.findOne({
+      _id: { $ne: user._id },
+      phone: { $in: getPhoneLookupValues(phone) },
+    }).select("_id");
+
+    if (existingUser) {
+      return res.status(409).json({
+        message: "Phone number already exists. Please use a different phone number.",
+      });
+    }
+
+    const oldPhone = user.phone;
+    if (oldPhone) {
+      user.phoneHistory = [
+        ...((user.phoneHistory as any[]) || []),
+        {
+          phone: oldPhone,
+          changedAt: new Date(),
+          changedBy: user._id,
+        },
+      ] as any;
+    }
+    user.phone = phone;
+    user.phoneVerified = true;
+    await user.save();
+
+    const role: any = user.roleId;
+
+    return res.status(200).json({
+      message: "Phone number updated successfully",
+      oldPhone,
+      profile: formatBuilderProfile(user, role),
+    });
+  } catch (error: any) {
+    if (error?.code === 11000 && error?.keyPattern?.phone) {
+      return res.status(409).json({
+        message: "Phone number already exists. Please use a different phone number.",
+      });
+    }
+
+    if (error?.name === "ValidationError") {
+      const firstError = Object.values(error.errors || {})[0] as any;
+      return res.status(400).json({
+        message: firstError?.message || "Validation failed",
+      });
+    }
+
+    return res.status(500).json({
+      message: "Failed to verify phone number",
       error: error.message,
     });
   }

@@ -19,6 +19,7 @@ import {
   restoreCreatedById,
 } from "../utils/agentSubmission";
 import { ResidentialUpdateSchema } from "../zod/residentialZod";
+import { findRankedRelatedProperties } from "./relatedPropertyUtils";
 
 type RequestWithResidentialQuery = Request<
   {}, // req.params
@@ -202,44 +203,18 @@ async function mapAndUploadGallery({
 export async function findRelatedResidential(property: any) {
   if (!property?._id) return [];
 
-  const query: any = {
-    _id: { $ne: property._id },
-    status: "active",
-
-    // CORE similarity
-    listingType: property.listingType, // buy
-    propertyType: property.propertyType, // apartment
-    city: property.city, // Hyderabad
-  };
-
-  // Optional BHK similarity (SAFE version)
-  if (property.bhk) {
-    query.bhk = { $in: [property.bhk, property.bhk - 1, property.bhk + 1] };
-  }
-  // Optional bedroom similarity
-  if (property.bedrooms) {
-    query.bedrooms = {
-      $in: [property.bedrooms, property.bedrooms - 1, property.bedrooms + 1],
-    };
-  }
-
-  // Optional price band (±30%)
-  if (property.price) {
-    query.price = {
-      $gte: property.price * 0.7,
-      $lte: property.price * 1.3,
-    };
-  }
-
-  const related = await Residential.find(query)
-    .sort({ createdAt: -1 })
-    .limit(6)
-    .select(
+  return findRankedRelatedProperties(Residential, property, {
+    select:
       "title slug price city locality bhk bedrooms gallery propertyType listingType builtUpArea furnishing parkingDetails constructionStatus",
-    )
-    .lean();
-
-  return related;
+    numericBands: [
+      { field: "price", tolerance: 0.3, points: 20 },
+      { field: "builtUpArea", tolerance: 0.25, points: 12 },
+    ],
+    nearbyNumbers: [
+      { field: "bhk", delta: 1, points: 18 },
+      { field: "bedrooms", delta: 1, points: 12 },
+    ],
+  });
 }
 
 /* -------------------- Service API -------------------- */

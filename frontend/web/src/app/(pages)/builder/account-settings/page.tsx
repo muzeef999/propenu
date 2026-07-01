@@ -5,7 +5,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BuilderProfilePayload,
   getBuilderProfile,
+  requestBuilderPhoneChangeOtp,
   updateBuilderProfile,
+  verifyBuilderPhoneChangeOtp,
 } from "@/data/ClientData";
 import { FiBriefcase, FiEdit2, FiMail, FiMapPin, FiPhone, FiSave, FiX } from "react-icons/fi";
 import { toast } from "sonner";
@@ -50,6 +52,9 @@ export default function BuilderAccountSettingsPage() {
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [pendingPhone, setPendingPhone] = useState("");
+  const [phoneOtp, setPhoneOtp] = useState("");
 
   const profileQuery = useQuery<{ profile: BuilderProfile }>({
     queryKey: ["builder-profile"],
@@ -61,19 +66,52 @@ export default function BuilderAccountSettingsPage() {
   useEffect(() => {
     if (profile) {
       setFormData(toForm(profile));
+      setPhoneInput(profile.phone || "");
     }
   }, [profile]);
+
+  const refreshProfile = () => {
+    queryClient.invalidateQueries({ queryKey: ["builder-profile"] });
+    queryClient.invalidateQueries({ queryKey: ["me"] });
+  };
 
   const updateMutation = useMutation({
     mutationFn: updateBuilderProfile,
     onSuccess: () => {
       toast.success("Builder profile updated");
-      queryClient.invalidateQueries({ queryKey: ["builder-profile"] });
-      queryClient.invalidateQueries({ queryKey: ["me"] });
+      refreshProfile();
       setIsEditing(false);
+      setPendingPhone("");
+      setPhoneOtp("");
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || "Failed to update builder profile");
+    },
+  });
+
+  const requestPhoneOtpMutation = useMutation({
+    mutationFn: requestBuilderPhoneChangeOtp,
+    onSuccess: (_data, variables) => {
+      setPendingPhone(variables.phone);
+      setPhoneOtp("");
+      toast.success("OTP sent to new phone number");
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || "Failed to send OTP");
+    },
+  });
+
+  const verifyPhoneOtpMutation = useMutation({
+    mutationFn: verifyBuilderPhoneChangeOtp,
+    onSuccess: () => {
+      toast.success("Phone number verified and updated");
+      refreshProfile();
+      setPendingPhone("");
+      setPhoneOtp("");
+      updateMutation.mutate(formData);
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || "Failed to verify OTP");
     },
   });
 
@@ -86,8 +124,14 @@ export default function BuilderAccountSettingsPage() {
 
   const handleCancel = () => {
     setFormData(toForm(profile));
+    setPhoneInput(profile?.phone || "");
+    setPendingPhone("");
+    setPhoneOtp("");
     setIsEditing(false);
   };
+
+  const phoneChanged =
+    phoneInput.trim() !== (profile?.phone || "").trim();
 
   const handleSave = () => {
     if (!formData.name.trim()) {
@@ -97,6 +141,29 @@ export default function BuilderAccountSettingsPage() {
 
     if (!formData.companyName.trim()) {
       toast.error("Company name is required");
+      return;
+    }
+
+    if (phoneChanged) {
+      if (!phoneInput.trim()) {
+        toast.error("Phone number is required");
+        return;
+      }
+
+      if (pendingPhone !== phoneInput.trim()) {
+        requestPhoneOtpMutation.mutate({ phone: phoneInput.trim() });
+        return;
+      }
+
+      if (!phoneOtp.trim()) {
+        toast.error("Enter OTP to verify the new phone number");
+        return;
+      }
+
+      verifyPhoneOtpMutation.mutate({
+        phone: pendingPhone,
+        otp: phoneOtp.trim(),
+      });
       return;
     }
 
@@ -142,7 +209,7 @@ export default function BuilderAccountSettingsPage() {
                 <button
                   type="button"
                   onClick={handleCancel}
-                  disabled={updateMutation.isPending}
+                  disabled={updateMutation.isPending || requestPhoneOtpMutation.isPending || verifyPhoneOtpMutation.isPending}
                   className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
                 >
                   <FiX className="h-4 w-4" />
@@ -151,11 +218,21 @@ export default function BuilderAccountSettingsPage() {
                 <button
                   type="button"
                   onClick={handleSave}
-                  disabled={updateMutation.isPending}
+                  disabled={updateMutation.isPending || requestPhoneOtpMutation.isPending || verifyPhoneOtpMutation.isPending}
                   className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#16A34A] px-4 text-sm font-semibold text-white transition hover:bg-[#15803D] disabled:opacity-60"
                 >
                   <FiSave className="h-4 w-4" />
-                  {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                  {requestPhoneOtpMutation.isPending
+                    ? "Sending OTP..."
+                    : verifyPhoneOtpMutation.isPending
+                      ? "Verifying..."
+                      : updateMutation.isPending
+                        ? "Saving..."
+                        : phoneChanged && pendingPhone !== phoneInput.trim()
+                          ? "Send OTP"
+                          : phoneChanged
+                            ? "Verify & Save"
+                            : "Save Changes"}
                 </button>
               </div>
             ) : (
@@ -224,7 +301,42 @@ export default function BuilderAccountSettingsPage() {
           {isEditing ? (
             <>
               <EditableField label="Email" name="email" value={formData.email} onChange={handleChange} />
-              <ReadOnlyField label="Phone" value={profile.phone} />
+              <PhoneVerificationField
+                phone={phoneInput}
+                oldPhone={profile.phone}
+                otp={phoneOtp}
+                pendingPhone={pendingPhone}
+                disabled={requestPhoneOtpMutation.isPending || verifyPhoneOtpMutation.isPending}
+                onPhoneChange={(value) => {
+                  setPhoneInput(value);
+                  if (value.trim() !== pendingPhone) {
+                    setPendingPhone("");
+                    setPhoneOtp("");
+                  }
+                }}
+                onOtpChange={setPhoneOtp}
+                onRequestOtp={() => {
+                  if (!phoneInput.trim()) {
+                    toast.error("Phone number is required");
+                    return;
+                  }
+                  requestPhoneOtpMutation.mutate({ phone: phoneInput.trim() });
+                }}
+                onVerifyOtp={() => {
+                  if (!pendingPhone) {
+                    toast.error("Send OTP first");
+                    return;
+                  }
+                  if (!phoneOtp.trim()) {
+                    toast.error("Enter OTP");
+                    return;
+                  }
+                  verifyPhoneOtpMutation.mutate({
+                    phone: pendingPhone,
+                    otp: phoneOtp.trim(),
+                  });
+                }}
+              />
               <EditableField label="Locality" name="locality" value={formData.locality} onChange={handleChange} />
               <EditableField label="City" name="city" value={formData.city} onChange={handleChange} />
               <EditableField label="State" name="state" value={formData.state} onChange={handleChange} />
@@ -308,6 +420,83 @@ function EditableField({
         className="mt-2 h-11 w-full rounded-md border border-gray-300 px-3 text-sm text-gray-900 outline-none transition focus:border-[#16A34A] focus:ring-2 focus:ring-green-100"
       />
     </label>
+  );
+}
+
+function PhoneVerificationField({
+  phone,
+  oldPhone,
+  otp,
+  pendingPhone,
+  disabled,
+  onPhoneChange,
+  onOtpChange,
+  onRequestOtp,
+  onVerifyOtp,
+}: {
+  phone: string;
+  oldPhone?: string | null;
+  otp: string;
+  pendingPhone: string;
+  disabled?: boolean;
+  onPhoneChange: (value: string) => void;
+  onOtpChange: (value: string) => void;
+  onRequestOtp: () => void;
+  onVerifyOtp: () => void;
+}) {
+  const phoneChanged = phone.trim() !== (oldPhone || "").trim();
+
+  return (
+    <div className="md:col-span-2 xl:col-span-1">
+      <label className="block">
+        <span className="text-xs font-semibold uppercase text-gray-500">Phone</span>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+          <input
+            value={phone}
+            onChange={(event) => onPhoneChange(event.target.value)}
+            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm text-gray-900 outline-none transition focus:border-[#16A34A] focus:ring-2 focus:ring-green-100"
+          />
+          {phoneChanged && (
+            <button
+              type="button"
+              onClick={onRequestOtp}
+              disabled={disabled}
+              className="inline-flex h-11 shrink-0 items-center justify-center rounded-md border border-[#16A34A] px-3 text-sm font-semibold text-[#15803D] transition hover:bg-green-50 disabled:opacity-60"
+            >
+              {pendingPhone === phone.trim() ? "Resend OTP" : "Send OTP"}
+            </button>
+          )}
+        </div>
+      </label>
+
+      {phoneChanged && pendingPhone === phone.trim() && (
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <input
+            value={otp}
+            onChange={(event) =>
+              onOtpChange(event.target.value.replace(/\D/g, "").slice(0, 6))
+            }
+            inputMode="numeric"
+            placeholder="Enter OTP"
+            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm text-gray-900 outline-none transition focus:border-[#16A34A] focus:ring-2 focus:ring-green-100"
+          />
+          <button
+            type="button"
+            onClick={onVerifyOtp}
+            disabled={disabled}
+            className="inline-flex h-11 shrink-0 items-center justify-center rounded-md bg-[#16A34A] px-3 text-sm font-semibold text-white transition hover:bg-[#15803D] disabled:opacity-60"
+          >
+            Verify
+          </button>
+        </div>
+      )}
+
+      {phoneChanged && (
+        <p className="mt-2 text-xs text-gray-500">
+          Current phone stays unchanged until the new number is verified.
+        </p>
+      )}
+    </div>
   );
 }
 

@@ -7,6 +7,11 @@ export interface IUser extends mongoose.Document {
   companyName?: string;
   email?: string;
   phone?: string;
+  phoneHistory?: Array<{
+    phone: string;
+    changedAt: Date;
+    changedBy?: Types.ObjectId;
+  }>;
   locality?: string;
   city?: string;
   state?: string;
@@ -130,6 +135,23 @@ const UserSchema = new mongoose.Schema(
       index: true,
       match: [/^\+?[1-9]\d{6,14}$/, "Invalid phone number"],
     },
+    phoneHistory: [
+      {
+        phone: {
+          type: String,
+          trim: true,
+          required: true,
+        },
+        changedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        changedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      },
+    ],
     kyc: {
       type: KycSchema,
       default: () => ({

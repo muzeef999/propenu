@@ -266,6 +266,82 @@ export const updateUser = async (payload: {
   return res.data;
 };
 
+export type AdminUserProfilePayload = {
+  name?: string;
+  companyName?: string;
+  email?: string;
+  phone?: string;
+  phoneOtp?: string;
+  address?: string;
+  locality?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+};
+
+export const getAllUsers = async () => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(`${url}/api/users/auth/all-users`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return res.data;
+};
+
+export const searchUsers = async (params: { q?: string; role?: string }) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(`${url}/api/users/auth/search`, {
+    params,
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return res.data;
+};
+
+export const updateUserProfileById = async (
+  userId: string,
+  payload: AdminUserProfilePayload,
+) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.patch(
+    `${url}/api/users/auth/${userId}/profile`,
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+  return res.data;
+};
+
+export const requestAdminUserPhoneChangeOtp = async (
+  userId: string,
+  payload: { phone: string },
+) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.post(
+    `${url}/api/users/auth/${userId}/profile/phone/request-otp`,
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+  return res.data;
+};
+
 export type BuilderProfilePayload = {
   name?: string;
   companyName?: string;
@@ -275,6 +351,15 @@ export type BuilderProfilePayload = {
   city?: string;
   state?: string;
   pincode?: string;
+};
+
+export type BuilderPhoneOtpPayload = {
+  phone: string;
+};
+
+export type BuilderPhoneVerifyPayload = {
+  phone: string;
+  otp: string;
 };
 
 export const getBuilderProfile = async () => {
@@ -295,6 +380,42 @@ export const updateBuilderProfile = async (payload: BuilderProfilePayload) => {
 
   const res = await axiosInstance.patch(
     `${url}/api/users/builder/profile`,
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+  return res.data;
+};
+
+export const requestBuilderPhoneChangeOtp = async (
+  payload: BuilderPhoneOtpPayload,
+) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.post(
+    `${url}/api/users/builder/profile/phone/request-otp`,
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+  return res.data;
+};
+
+export const verifyBuilderPhoneChangeOtp = async (
+  payload: BuilderPhoneVerifyPayload,
+) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.post(
+    `${url}/api/users/builder/profile/phone/verify-otp`,
     payload,
     {
       headers: {

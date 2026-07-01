@@ -5,7 +5,7 @@ import LandPlot from "../models/landModel";
 import { cleanupUploadedFile, uploadFile } from "../utils/uploadFile";
 import { extendLandFilters } from "./filters/landFilters";
 import { upsertCityAndLocality } from "./locationServices";
-import { findRelatedProperties } from "./findRelatedProperties";
+import { findRankedRelatedProperties } from "./relatedPropertyUtils";
 import {
   createWatermarkedBuffer,
   getUploadedFileBuffer,
@@ -188,46 +188,15 @@ async function mapAndUploadGallery({
 export async function findRelatedLand(property: any) {
   if (!property?._id) return [];
 
-  const query: any = {
-    _id: { $ne: property._id },
-    status: "active",
-
-    // CORE similarity
-    listingType: property.listingType, // sale
-    propertyType: property.propertyType, // land
-    city: property.city,
-  };
-
-  // Optional plot area similarity (±25%)
-  if (property.plotArea) {
-    query.plotArea = {
-      $gte: property.plotArea * 0.75,
-      $lte: property.plotArea * 1.25,
-    };
-  }
-
-  // Optional land-use zone similarity
-  if (property.landUseZone) {
-    query.landUseZone = property.landUseZone;
-  }
-
-  // Optional price band (±30%)
-  if (property.price) {
-    query.price = {
-      $gte: property.price * 0.7,
-      $lte: property.price * 1.3,
-    };
-  }
-
-  const related = await LandPlot.find(query)
-    .sort({ createdAt: -1 })
-    .limit(6)
-    .select(
+  return findRankedRelatedProperties(LandPlot, property, {
+    select:
       "title slug price city locality plotArea landUseZone gallery propertyType listingType",
-    )
-    .lean();
-
-  return related;
+    exactFields: [{ field: "landUseZone", points: 18 }],
+    numericBands: [
+      { field: "price", tolerance: 0.3, points: 20 },
+      { field: "plotArea", tolerance: 0.25, points: 18 },
+    ],
+  });
 }
 
 /** delete S3 object best-effort */

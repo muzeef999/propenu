@@ -30,6 +30,37 @@ const ADMIN_CREATE_ROLES = new Set([
 ]);
 const NAME_MAX_LENGTH = 42;
 const COMPANY_NAME_MAX_LENGTH = 80;
+const ADMIN_PROFILE_UPDATE_FIELDS = [
+  "name",
+  "companyName",
+  "email",
+  "phone",
+  "address",
+  "locality",
+  "city",
+  "state",
+  "pincode",
+] as const;
+
+const getAdminPhoneChangeOtpKey = (
+  adminId: string,
+  userId: string,
+  phone: string
+) => `admin-phone-change:${adminId}:${userId}:${phone}`;
+
+const validatePhoneNumber = (phone?: string) => {
+  const trimmed = phone?.trim();
+
+  if (!trimmed) {
+    return "Phone number is required";
+  }
+
+  if (!/^\+?[1-9]\d{6,14}$/.test(trimmed)) {
+    return "Invalid phone number";
+  }
+
+  return "";
+};
 
 const createInitialAgentProfile = async (userId: mongoose.Types.ObjectId) => {
   return Agent.findOneAndUpdate(
@@ -620,6 +651,7 @@ export const searchUsers = async (req: Request, res: Response) => {
     if (query) {
       match.$or = [
         { name: { $regex: query, $options: "i" } },
+        { companyName: { $regex: query, $options: "i" } },
         { email: { $regex: query, $options: "i" } },
         { phone: { $regex: query, $options: "i" } },
         { locality : { $regex: query, $options: "i"}},
@@ -687,6 +719,7 @@ export const searchUsers = async (req: Request, res: Response) => {
         },
 
         name: 1,
+        companyName: 1,
         email: 1,
         phone: 1,
         locality: 1,
@@ -1359,6 +1392,238 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
     }
 
     return res.status(500).json({ message: "Failed to update profile" });
+  }
+};
+
+export const requestAdminUserPhoneChangeOtp = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    if (!req.user?.sub) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!["admin", "super_admin"].includes(req.user.roleName || "")) {
+      return res.status(403).json({
+        message: "Forbidden: only admin/super_admin can update user profiles",
+      });
+    }
+
+    const { id } = req.params;
+    const phone = req.body.phone?.toString().trim();
+
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user id" });
+    }
+
+    const phoneError = validatePhoneNumber(phone);
+    if (phoneError) {
+      return res.status(400).json({ message: phoneError });
+    }
+
+    const user = await User.findById(id).select("_id phone");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (getPhoneLookupValues(phone).includes(String(user.phone || ""))) {
+      return res.status(400).json({
+        message: "This phone number is already linked to this account",
+      });
+    }
+
+    const existingUser = await User.findOne({
+      _id: { $ne: user._id },
+      phone: { $in: getPhoneLookupValues(phone) },
+    }).select("_id");
+
+    if (existingUser) {
+      return res.status(409).json({
+        message: "Phone number already exists. Please use a different phone number.",
+      });
+    }
+
+    const otp = genOtp();
+    await saveOtpToRedis(
+      getAdminPhoneChangeOtpKey(req.user.sub, String(user._id), phone),
+      otp
+    );
+    await sendOtpWhatsApp(phone, otp);
+
+    return res.status(200).json({
+      message: "OTP sent to new phone number",
+      phone,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      message: "Failed to send phone verification OTP",
+      error: error.message,
+    });
+  }
+};
+
+export const updateUserProfileById = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    if (!req.user?.sub) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!["admin", "super_admin"].includes(req.user.roleName || "")) {
+      return res.status(403).json({
+        message: "Forbidden: only admin/super_admin can update user profiles",
+      });
+    }
+
+    const { id } = req.params;
+
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user id" });
+    }
+
+    const updates: Record<string, unknown> = {};
+
+    for (const key of ADMIN_PROFILE_UPDATE_FIELDS) {
+      if (req.body[key] === undefined) continue;
+
+      if (typeof req.body[key] === "string") {
+        const cleaned = req.body[key].trim();
+        if (key === "email") {
+          updates[key] = cleaned ? cleaned.toLowerCase() : undefined;
+        } else if (key === "phone") {
+          updates[key] = cleaned;
+        } else {
+          updates[key] = cleaned;
+        }
+      } else {
+        updates[key] = req.body[key];
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "No valid fields to update" });
+    }
+
+    if (updates.name !== undefined && String(updates.name).trim().length === 0) {
+      return res.status(400).json({ message: "Name is required" });
+    }
+
+    if (updates.phone !== undefined) {
+      const phoneError = validatePhoneNumber(String(updates.phone));
+      if (phoneError) {
+        return res.status(400).json({ message: phoneError });
+      }
+    }
+
+    const user = await User.findById(id).populate("roleId");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const phoneChanged =
+      updates.phone !== undefined && String(updates.phone) !== String(user.phone || "");
+
+    if (phoneChanged) {
+      const phoneOtp = req.body.phoneOtp?.toString().trim();
+
+      if (!phoneOtp) {
+        return res.status(400).json({
+          message: "OTP is required to update phone number",
+        });
+      }
+
+      const existingUser = await User.findOne({
+        _id: { $ne: user._id },
+        phone: { $in: getPhoneLookupValues(String(updates.phone)) },
+      }).select("_id");
+
+      if (existingUser) {
+        return res.status(409).json({
+          message: "Phone number already exists. Please use a different phone number.",
+        });
+      }
+
+      const otpResult = await verifyAndConsumeOtpWithReason(
+        getAdminPhoneChangeOtpKey(req.user.sub, String(user._id), String(updates.phone)),
+        phoneOtp
+      );
+
+      if (!otpResult.valid) {
+        return res.status(400).json({
+          ...getOtpFailureResponse(otpResult),
+        });
+      }
+    }
+
+    if (phoneChanged && user.phone) {
+      user.phoneHistory = [
+        ...((user.phoneHistory as any[]) || []),
+        {
+          phone: user.phone,
+          changedAt: new Date(),
+          changedBy: new mongoose.Types.ObjectId(req.user.sub),
+        },
+      ] as any;
+    }
+
+    if (phoneChanged) {
+      user.phoneVerified = true;
+    }
+
+    Object.assign(user, updates);
+    await user.save();
+
+    const role: any = user.roleId;
+
+    return res.status(200).json({
+      message: "User profile updated successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        companyName: user.companyName,
+        email: user.email,
+        phone: user.phone,
+        phoneHistory: user.phoneHistory ?? [],
+        address: user.address,
+        locality: user.locality,
+        city: user.city,
+        state: user.state,
+        pincode: user.pincode,
+        accountStatus: user.accountStatus,
+        phoneVerified: user.phoneVerified,
+        roleId: role ? String(role._id) : null,
+        roleName: role ? role.name : null,
+        permissions: role ? role.permissions : [],
+      },
+    });
+  } catch (error: any) {
+    console.error("Admin update profile error:", error);
+
+    if (error?.code === 11000 && error?.keyPattern?.email) {
+      return res.status(409).json({
+        message: "Email already exists. Please use a different email.",
+      });
+    }
+
+    if (error?.code === 11000 && error?.keyPattern?.phone) {
+      return res.status(409).json({
+        message: "Phone number already exists. Please use a different phone number.",
+      });
+    }
+
+    if (error?.name === "ValidationError") {
+      const firstError = Object.values(error.errors || {})[0] as any;
+      return res.status(400).json({
+        message: firstError?.message || "Validation failed",
+      });
+    }
+
+    return res.status(500).json({ message: "Failed to update user profile" });
   }
 };
 

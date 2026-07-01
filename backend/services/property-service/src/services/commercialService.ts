@@ -7,7 +7,7 @@ import Role from "../models/roleModel";
 import { cleanupUploadedFile, uploadFile } from "../utils/uploadFile";
 import { extendCommercialFilters } from "./filters/commercialFilters";
 import { upsertCityAndLocality } from "./locationServices";
-import { findRelatedProperties } from "./findRelatedProperties";
+import { findRankedRelatedProperties } from "./relatedPropertyUtils";
 import {
   createWatermarkedBuffer,
   getUploadedFileBuffer,
@@ -108,41 +108,14 @@ function normalizeAmenitiesInput(amenities?: any[]) {
 export async function findRelatedCommercial(property: any) {
   if (!property?._id) return [];
 
-  const query: any = {
-    _id: { $ne: property._id },
-    status: "active",
-
-    // CORE similarity
-    listingType: property.listingType, // sale / lease
-    propertyType: property.propertyType, // office / shop
-    city: property.city,
-  };
-
-  // Optional built-up area similarity (±25%)
-  if (property.builtUpArea) {
-    query.builtUpArea = {
-      $gte: property.builtUpArea * 0.75,
-      $lte: property.builtUpArea * 1.25,
-    };
-  }
-
-  // Optional price band (±30%)
-  if (property.price) {
-    query.price = {
-      $gte: property.price * 0.7,
-      $lte: property.price * 1.3,
-    };
-  }
-
-  const related = await Commercial.find(query)
-    .sort({ createdAt: -1 })
-    .limit(6)
-    .select(
-      "title slug price city locality builtUpArea gallery propertyType listingType builtUpArea furnishedStatus parkingDetails  constructionStatus",
-    )
-    .lean();
-
-  return related;
+  return findRankedRelatedProperties(Commercial, property, {
+    select:
+      "title slug price city locality builtUpArea gallery propertyType listingType furnishedStatus parkingDetails constructionStatus",
+    numericBands: [
+      { field: "price", tolerance: 0.3, points: 20 },
+      { field: "builtUpArea", tolerance: 0.25, points: 18 },
+    ],
+  });
 }
 
 async function deleteS3ObjectIfExists(key?: string) {
