@@ -27,6 +27,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({
   propertyType,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [isShortlisted, setIsShortlisted] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
@@ -131,7 +132,8 @@ const GalleryFile: React.FC<GalleryFileProps> = ({
     };
   }, [isOpen]);
 
-  const openLightbox = () => {
+  const openLightbox = (index = 0) => {
+    setActiveIndex(index);
     setIsOpen(true);
   };
 
@@ -207,7 +209,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({
         {/* LEFT TOP (70%) */}
         <div
           className="relative cursor-pointer overflow-hidden rounded-2xl"
-          onClick={openLightbox}
+          onClick={() => openLightbox(0)}
         >
           <Image
             src={safeGallery[0].url}
@@ -221,7 +223,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({
         {/* RIGHT TALL (30%) */}
         <div
           className="relative row-span-2 cursor-pointer overflow-hidden rounded-2xl"
-          onClick={openLightbox}
+          onClick={() => openLightbox(1)}
         >
           <Image
             src={safeGallery[1].url}
@@ -234,7 +236,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({
         {/* LEFT BOTTOM (70%) */}
         <div
           className="relative cursor-pointer overflow-hidden rounded-2xl"
-          onClick={openLightbox}
+          onClick={() => openLightbox(2)}
         >
           <Image
             src={safeGallery[2].url}
@@ -299,24 +301,67 @@ const GalleryFile: React.FC<GalleryFileProps> = ({
 
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="mx-auto max-w-7xl columns-1 gap-4 sm:columns-2 md:columns-3 lg:columns-4">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 p-3 sm:p-4">
+            <div className="flex gap-3 overflow-x-auto pb-2">
               {safeGallery.map((item, index) => (
-                <div
-                  key={item.key}
-                  className="relative mb-4 break-inside-avoid cursor-pointer overflow-hidden rounded-lg bg-gray-800"
-                  onClick={() => setPreviewIndex(index)}
+                <button
+                  type="button"
+                  key={`${item.key ?? item.url}-${index}`}
+                  className={`relative h-20 w-32 shrink-0 overflow-hidden rounded-lg border-2 bg-gray-800 transition sm:h-24 sm:w-40 ${
+                    activeIndex === index
+                      ? "border-[#1fab60]"
+                      : "border-transparent hover:border-white/60"
+                  }`}
+                  onClick={() => setActiveIndex(index)}
                 >
                   <Image
                     src={item.url}
                     alt={item.filename ?? title ?? "Preview image"}
-                    width={600}
-                    height={800}
-                    className="h-auto w-full object-cover transition-transform duration-300 hover:scale-110"
+                    fill
+                    sizes="160px"
+                    className="object-cover"
                   />
+                </button>
+              ))}
+            </div>
+
+            <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+              <aside className="order-2 flex flex-col justify-between gap-4 rounded-lg bg-white p-4 text-gray-900 lg:order-1">
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#1fab60]">
+                    Property Images
+                  </p>
+                  <h3 className="text-lg font-semibold leading-snug">
+                    {title ?? "Property gallery"}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Image {activeIndex + 1} of {safeGallery.length}
+                  </p>
                 </div>
 
-              ))}
+                <button
+                  type="button"
+                  className="rounded-md bg-[#1fab60] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#188f4f]"
+                  onClick={() => setPreviewIndex(activeIndex)}
+                >
+                  View Image
+                </button>
+              </aside>
+
+              <button
+                type="button"
+                className="relative order-1 min-h-[45vh] overflow-hidden rounded-lg bg-black lg:order-2 lg:min-h-0"
+                onClick={() => setPreviewIndex(activeIndex)}
+              >
+                <Image
+                  src={safeGallery[activeIndex].url}
+                  alt={safeGallery[activeIndex].filename ?? title ?? "Preview image"}
+                  fill
+                  sizes="(min-width: 1024px) calc(100vw - 360px), 100vw"
+                  className="object-contain"
+                  priority
+                />
+              </button>
             </div>
           </div>
 
