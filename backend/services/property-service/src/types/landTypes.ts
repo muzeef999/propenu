@@ -88,8 +88,9 @@ export interface ILand extends IListingAuditFields {
   layoutType?: string;
   landName: String,
   slug?:string;
-listingSource?:string;
-createdBy?: Types.ObjectId;
+  propertyCode?: string;
+  listingSource?:string;
+  createdBy?: Types.ObjectId;
   locality: string;
      gallery?: IImage[]   // ✅ ADD THIS
   

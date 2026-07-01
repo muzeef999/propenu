@@ -227,6 +227,14 @@ export const BaseFields = {
     trim: true,
   },
 
+  propertyCode: {
+    type: String,
+    unique: true,
+    sparse: true,
+    index: true,
+    trim: true,
+  },
+
   listingType: {
     type: String,
     enum: ["sale", "rent", "lease"],

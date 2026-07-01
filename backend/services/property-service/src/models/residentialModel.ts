@@ -10,6 +10,7 @@ import {
 import { BaseFields, FileRefSchema, PromotionSchema } from "./sharedSchemas";
 import { TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
+import { generatePropertyCode } from "../utils/generatePropertyCode";
 import "../models/roleModel";
  
 
@@ -168,6 +169,14 @@ ResidentialSchema.pre("validate", async function (next) {
         mongoose.model("Residential"),
         baseSlug,
       );
+    }
+    if (!this.propertyCode) {
+      const propertyCode = await generatePropertyCode({
+        city: this.city,
+        locality: this.locality,
+        category: "RES",
+      });
+      if (propertyCode) this.propertyCode = propertyCode;
     }
     next();
   } catch (err) {

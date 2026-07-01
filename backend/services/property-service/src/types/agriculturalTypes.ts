@@ -86,6 +86,7 @@ export interface IAgricultural extends IListingAuditFields {
   status?: string;
   isPublished?: boolean;
   slug?: string;
+  propertyCode?: string;
   price?: string;
   landName: String;
   listingSource?: string;

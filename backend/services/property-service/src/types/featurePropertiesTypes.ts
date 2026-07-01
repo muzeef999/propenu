@@ -163,6 +163,7 @@ export interface IUpdateHistory {
 export interface IFeaturedProject {
   title: string;
   slug: string;
+  propertyCode?: string;
   logo?: ILogo | null;
   developer?: Types.ObjectId | string;
   heroImage?: string;

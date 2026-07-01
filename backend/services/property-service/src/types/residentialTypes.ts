@@ -83,6 +83,7 @@ export interface IImage {
 export interface IResidential extends IListingAuditFields {
   title?: string;
   slug: string;
+  propertyCode?: string;
   listingSource?: string;
   verificationDocuments?: IVerificationDoc[];
   listingType?: "sale" | "rent" | "lease";

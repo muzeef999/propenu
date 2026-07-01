@@ -42,6 +42,7 @@ export const TEXT_INDEX_FIELDS: IndexDefinition = {
 export interface IBaseListing {
   title: string;
   slug?: string;         // optional because you generate it in pre('validate')
+  propertyCode?: string;
   address?: string;
   locality?:string;
   city?: string;

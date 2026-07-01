@@ -14,6 +14,20 @@ import {
   ISpecItem,
 } from "../types/featurePropertiesTypes";
 import { PromotionSchema } from "./sharedSchemas";
+import {
+  generatePropertyCode,
+  PropertyCodeCategory,
+} from "../utils/generatePropertyCode";
+
+const FEATURED_CATEGORY_CODES: Record<
+  NonNullable<IFeaturedProject["categoryType"]>,
+  PropertyCodeCategory
+> = {
+  residential: "RES",
+  commercial: "COM",
+  land: "LAN",
+  agricultural: "AGR",
+};
 
 function generateSlug(text: string) {
   return text
@@ -213,6 +227,13 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
   {
     title: { type: String, required: true, trim: true },
     slug: { type: String, unique: true, index: true },
+    propertyCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+      trim: true,
+    },
     logo: { type: LogoSchema },
     heroImage: { type: String },
     heroVideo: { type: String },
@@ -432,6 +453,33 @@ FeaturePropertySchema.pre<IFeaturedProjectDocument>(
 
     this.slug = slug;
     next();
+  },
+);
+
+FeaturePropertySchema.pre<IFeaturedProjectDocument>(
+  "save",
+  async function (next) {
+    try {
+      if (this.propertyCode) return next();
+
+      const category = this.categoryType
+        ? FEATURED_CATEGORY_CODES[this.categoryType]
+        : undefined;
+
+      if (!category) return next();
+
+      const propertyCode = await generatePropertyCode({
+        city: this.city,
+        locality: this.locality,
+        category,
+      });
+
+      if (propertyCode) this.propertyCode = propertyCode;
+
+      next();
+    } catch (error) {
+      next(error as Error);
+    }
   },
 );
 

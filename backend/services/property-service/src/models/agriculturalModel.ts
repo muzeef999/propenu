@@ -7,6 +7,7 @@ import {
 import { BaseFields, FileRefSchema, PromotionSchema } from "./sharedSchemas";
 import { TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
+import { generatePropertyCode } from "../utils/generatePropertyCode";
 import "../models/roleModel";
 
 export interface AgriculturalDocument extends Document, IAgricultural {
@@ -124,6 +125,14 @@ AgriculturalSchema.pre("validate", async function (next) {
         mongoose.model("Agricultural"),
         baseSlug,
       );
+    }
+    if (!this.propertyCode) {
+      const propertyCode = await generatePropertyCode({
+        city: this.city,
+        locality: this.locality,
+        category: "AGR",
+      });
+      if (propertyCode) this.propertyCode = propertyCode;
     }
 
     next();

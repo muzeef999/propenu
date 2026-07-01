@@ -206,6 +206,7 @@ async function findFeatured(filter: any) {
       priceFrom: 1,
       priceTo: 1,
       slug: 1,
+      propertyCode: 1,
       city: 1,
       locality: 1,
       state: 1,
@@ -1455,6 +1456,7 @@ export const FeaturePropertyService = {
     city?: string; // 🔥 NEW
     state?: string; // 🔥 NEW
     locality?: string; // 🔥 NEW
+    propertyCode?: string;
   }) {
     const page = Math.max(1, options?.page ?? 1);
     const limit = Math.min(100, options?.limit ?? 20);
@@ -1464,10 +1466,22 @@ export const FeaturePropertyService = {
       status: "active",
     };
     const andFilters: any[] = [];
+    const escapeRegex = (value: string) =>
+      value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
     // 🔍 SEARCH
     if (options?.q) {
-      filter.$text = { $search: options.q };
+      andFilters.push({
+        $or: [
+          { $text: { $search: options.q } },
+          {
+            propertyCode: {
+              $regex: escapeRegex(options.q.trim()),
+              $options: "i",
+            },
+          },
+        ],
+      });
     }
 
     // 🔥 PROMOTION TYPE FILTER
@@ -1488,6 +1502,12 @@ export const FeaturePropertyService = {
     if (options?.city) filter.city = makeRegex(options.city);
     if (options?.state) filter.state = makeRegex(options.state);
     if (options?.locality) filter.locality = makeRegex(options.locality);
+    if (options?.propertyCode) {
+      filter.propertyCode = {
+        $regex: escapeRegex(options.propertyCode.trim()),
+        $options: "i",
+      };
+    }
     if ((options as any)?.createdBy) {
       filter.createdBy = new mongoose.Types.ObjectId((options as any).createdBy);
     }
@@ -1609,7 +1629,7 @@ export const FeaturePropertyService = {
       //checking
       const localityItems = await FeaturedProject.find(localityFilter)
         .select(
-          "title heroImage priceFrom priceTo slug city state locality logo amenities projectSummary bhkSummary",
+          "title heroImage priceFrom priceTo slug propertyCode city state locality logo amenities projectSummary bhkSummary",
         )
         .sort({ rank: 1 })
         .limit(5)
@@ -1633,7 +1653,7 @@ export const FeaturePropertyService = {
       };
 
       const cityItems = await FeaturedProject.find(cityFilter)
-        .select("title heroImage priceFrom priceTo slug city state locality")
+        .select("title heroImage priceFrom priceTo slug propertyCode city state locality")
         .sort({ rank: 1 })
         .limit(5)
         .lean();
@@ -1655,7 +1675,7 @@ export const FeaturePropertyService = {
       };
 
       const stateItems = await FeaturedProject.find(stateFilter)
-        .select("title heroImage priceFrom priceTo slug city state locality")
+        .select("title heroImage priceFrom priceTo slug propertyCode city state locality")
         .sort({ rank: 1 })
         .limit(5)
         .lean();

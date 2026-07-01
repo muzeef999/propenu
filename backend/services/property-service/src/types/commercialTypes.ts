@@ -104,6 +104,7 @@ export interface ICompletion {
 export interface ICommercial extends IListingAuditFields {
   title: string;
   slug: string;
+  propertyCode?: string;
   floorNumber?: number;
   buildingName?: String;
   facing?: string;

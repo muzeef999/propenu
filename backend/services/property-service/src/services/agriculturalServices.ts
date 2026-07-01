@@ -157,6 +157,7 @@ const SERVER_MANAGED_UPDATE_FIELDS = [
   "meta",
   "promotion",
   "slug",
+  "propertyCode",
 ];
 
 function sanitizeUpdatePayload(payload: any) {

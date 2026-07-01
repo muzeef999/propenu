@@ -171,6 +171,8 @@ export const getAllFeatureProperties = async (req: Request, res: Response) => {
       city,
       state,
       locality,
+      propertyCode,
+      propertycode,
       createdBy,
       promotionStatus,
     } = req.query;
@@ -186,6 +188,8 @@ export const getAllFeatureProperties = async (req: Request, res: Response) => {
     if (typeof city === "string") options.city = city;
     if (typeof state === "string") options.state = state;
     if (typeof locality === "string") options.locality = locality;
+    if (typeof propertyCode === "string") options.propertyCode = propertyCode;
+    if (typeof propertycode === "string") options.propertyCode = propertycode;
     if (typeof promotionStatus === "string") {
       options.promotionStatus = promotionStatus;
     }

@@ -8,6 +8,7 @@ import {
 } from "../types/landTypes";
 import { TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
+import { generatePropertyCode } from "../utils/generatePropertyCode";
 import "../models/roleModel";
 import { create } from "domain";
 
@@ -131,6 +132,14 @@ LandSchema.pre("validate", async function (next) {
         mongoose.model("LandPlot"),
         baseSlug
       );
+    }
+    if (!this.propertyCode) {
+      const propertyCode = await generatePropertyCode({
+        city: this.city,
+        locality: this.locality,
+        category: "LAN",
+      });
+      if (propertyCode) this.propertyCode = propertyCode;
     }
 
     next();
