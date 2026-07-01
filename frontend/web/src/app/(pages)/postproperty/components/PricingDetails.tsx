@@ -34,6 +34,25 @@ const ROAD_WIDTH_UNITS = [
   { label: "METER", value: "meter" },
 ];
 
+const AREA_TO_SQFT: Record<string, number> = {
+  sqft: 1,
+  sqmt: 10.7639,
+  sqyd: 9,
+  acre: 43560,
+  guntha: 1089,
+  cent: 435.6,
+  hectare: 107639.104,
+};
+
+function convertAreaToSqft(value?: string | number, unit = "sqft") {
+  const area = Number(value);
+  const factor = AREA_TO_SQFT[unit] ?? 1;
+
+  if (!area || area <= 0) return 0;
+
+  return area * factor;
+}
+
 export default function PricingDetails({
   propertyType,
   data,
@@ -49,10 +68,7 @@ export default function PricingDetails({
   const isRentOrLease = ["rent", "lease"].includes(
     String(listingType ?? data.listingType ?? "").toLowerCase(),
   );
-  const landAreaUnitLabel =
-    LAND_AREA_UNITS.find((unit) => unit.value === data.plotAreaUnit)?.label ??
-    "SQ.FT";
-  const rateUnitLabel = isLand ? landAreaUnitLabel.toLowerCase() : "sq.ft";
+  const rateUnitLabel = "sq.ft";
 
   /* ================= AREA KEYS ================= */
   const areaValue =
@@ -61,14 +77,19 @@ export default function PricingDetails({
       : isLand
         ? data.plotArea
         : data.carpetArea;
+  const areaUnit = isAgricultural
+    ? data.totalArea?.unit ?? "acre"
+    : isLand
+      ? data.plotAreaUnit ?? "sqft"
+      : "sqft";
 
   /* ================= AUTO PRICE / SQ FT ================= */
   useEffect(() => {
     const price = Number(data.price);
-    const area = Number(areaValue);
+    const areaInSqft = convertAreaToSqft(areaValue, areaUnit);
 
-    if (price > 0 && area > 0) {
-      const pps = Math.round(price / area).toString();
+    if (price > 0 && areaInSqft > 0) {
+      const pps = Math.round(price / areaInSqft).toString();
 
       if (pps !== data.pricePerSqft) {
         dispatch(
@@ -80,7 +101,7 @@ export default function PricingDetails({
         );
       }
     }
-  }, [data.price, areaValue, data.pricePerSqft, dispatch, propertyType]);
+  }, [data.price, areaValue, areaUnit, data.pricePerSqft, dispatch, propertyType]);
 
   return (
     <div className="grid grid-cols-2 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-start">
@@ -202,7 +223,7 @@ export default function PricingDetails({
 
       {/* ================= PRICE / SQ FT ================= */}
       <InputField
-        label={isLand ? `Price / ${landAreaUnitLabel.toLowerCase()}` : "Price / sq ft"}
+        label="Price / sq ft"
         value={data.pricePerSqft || ""}
         placeholder="Auto calculated"
         disabled
