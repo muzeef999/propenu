@@ -68,7 +68,7 @@ export interface ILand extends IListingAuditFields {
   totalTowers?: number;
   totalUnits?: number;
   availableUnits?: number;
-  plotAreaUnit?: "sqft" | "sqmt" | "acre" | "guntha" | "cent" | "kanal" | "hectare";
+  plotAreaUnit?: "sqft" | "sqmt" | "sqyd" | "acre" | "guntha" | "cent" | "kanal" | "hectare";
   roadWidthFt?: number;
   roadWidthUnit?: "ft" | "meter";
   negotiable?: boolean;

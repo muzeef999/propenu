@@ -22,6 +22,7 @@ function formatIndianNumber(value?: string | number) {
 const LAND_AREA_UNITS = [
   { label: "SQ.FT", value: "sqft" },
   { label: "SQ.MT", value: "sqmt" },
+  { label: "SQ.YD", value: "sqyd" },
   { label: "ACRE", value: "acre" },
   { label: "GUNTHA", value: "guntha" },
   { label: "CENT", value: "cent" },

@@ -35,6 +35,7 @@ export type AgriculturalPropertySubType =
 export type AreaUnit =
   | "sqft"
   | "sqmt"
+  | "sqyd"
   | "acre"
   | "guntha"
   | "cent"
@@ -93,7 +94,7 @@ export interface IAgricultural extends IListingAuditFields {
   totalArea?: IArea;
   roadWidth?: IRoadWidth;
   boundaryWall?: boolean;
-  areaUnit?: "sqft" | "sqmt" | "acre" | "guntha" | "kanal" | "hectare" | string;
+  areaUnit?: "sqft" | "sqmt" | "sqyd" | "acre" | "guntha" | "kanal" | "hectare" | string;
   landShape?: string;
   soilType?: string;
   irrigationType?: string;

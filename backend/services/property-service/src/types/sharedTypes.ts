@@ -7,7 +7,7 @@ import { Types } from 'mongoose';
    COMMON ENUMS / TYPES
    ------------------------- */
 export type ListingType = 'sale' | 'rent' | 'lease';
-export type AreaUnit = 'sqft' | 'sqmt' | 'acre' | 'guntha' | 'kanal' | 'hectare';
+export type AreaUnit = 'sqft' | 'sqmt' | 'sqyd' | 'acre' | 'guntha' | 'kanal' | 'hectare';
 export type FurnishingStatus = 'unfurnished' | 'semi-furnished' | 'fully-furnished';
 export type ConstructionStatus = 'ready-to-move' | 'under-construction';
 export type PropertyStatus = 'active' | 'inactive' | 'archived';

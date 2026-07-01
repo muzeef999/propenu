@@ -24,7 +24,7 @@ const AgriculturalSchema = new Schema<IAgricultural>(
       value: Number,
       unit: {
         type: String,
-        enum: ["sqft", "sqmt", "acre", "guntha", "cent", "hectare"],
+        enum: ["sqft", "sqmt", "sqyd", "acre", "guntha", "cent", "kanal", "hectare"],
       },
     },
 

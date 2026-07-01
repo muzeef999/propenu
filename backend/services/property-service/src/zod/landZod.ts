@@ -156,6 +156,7 @@ export const CreateLandSchema = BaseCreate.extend({
   plotAreaUnit: preprocessEnum([
     "sqft",
     "sqmt",
+    "sqyd",
     "acre",
     "guntha",
     "cent",

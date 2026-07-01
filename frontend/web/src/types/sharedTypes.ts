@@ -12,6 +12,7 @@ export type ListingType = "sale" | "rent" | "lease";
 export type AreaUnit =
   | "sqft"
   | "sqmt"
+  | "sqyd"
   | "acre"
   | "guntha"
   | "kanal"

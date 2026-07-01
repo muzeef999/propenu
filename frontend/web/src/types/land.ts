@@ -23,7 +23,7 @@ export interface ILand {
   totalUnits?: number;
   availableUnits?: number;
   id: string;
-  plotAreaUnit?: 'sqft' | 'sqmt' | 'acre' | 'guntha' | 'cent' | 'kanal' | 'hectare';
+  plotAreaUnit?: 'sqft' | 'sqmt' | 'sqyd' | 'acre' | 'guntha' | 'cent' | 'kanal' | 'hectare';
   roadWidthFt?: number;
   roadWidthUnit?: 'ft' | 'meter';
   isPriceNegotiable?: boolean;

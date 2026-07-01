@@ -33,7 +33,7 @@ export interface IAgricultural {
   _id?: string;
   id: string;
   boundaryWall?: boolean;
-  areaUnit?: "sqft" | "sqmt" | "acre" | "guntha" | "kanal" | "hectare" | string;
+  areaUnit?: "sqft" | "sqmt" | "sqyd" | "acre" | "guntha" | "kanal" | "hectare" | string;
   landShape?: string;
   slug?: string;
   soilType?: string;
