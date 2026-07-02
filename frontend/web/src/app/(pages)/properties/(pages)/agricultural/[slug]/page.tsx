@@ -188,7 +188,7 @@ export default async function Page({ params }: PageProps) {
                         More Details
                       </h2>
 
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+                      <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
                         <div className="flex flex-col gap-1">
                           <p className="font-medium text-gray-900">
                             Price Breakup
@@ -267,7 +267,7 @@ export default async function Page({ params }: PageProps) {
                               return (
                                 <div
                                   key={i.key ?? `${i.title}-${index}`}
-                                  className="flex items-center gap-2 rounded-md border border-gray-100 px-2 py-1"
+                                  className="flex items-center gap-1.5 rounded-md border border-gray-100 px-1.5 py-0.5"
                                 >
                                   {typeof icon === "string" ? (
                                     <Image

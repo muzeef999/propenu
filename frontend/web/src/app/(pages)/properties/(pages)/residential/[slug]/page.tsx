@@ -361,8 +361,8 @@ export default async function Page({ params }: PageProps) {
                         More Details
                       </h2>
 
-                      {/* Changed to 4 columns to match the wide layout in the image */}
-                      <div className="grid grid-cols-1 gap-5 text-sm sm:grid-cols-2 xl:grid-cols-4">
+                      {/* Two columns on mobile, four columns on wide screens */}
+                      <div className="grid grid-cols-2 gap-4 text-sm xl:grid-cols-4">
                         {detailsItems.map((item) => {
                           const Icon = item.icon;
                           return (
@@ -438,7 +438,7 @@ export default async function Page({ params }: PageProps) {
                               return (
                                 <div
                                   key={i.key ?? `${i.title}-${index}`}
-                                  className="flex items-center gap-2 rounded-md border border-gray-100 px-2 py-1"
+                                  className="flex items-center gap-1.5 rounded-md border border-gray-100 px-1.5 py-0.5"
                                 >
                                   {typeof icon === "string" ? (
                                     <Image
@@ -446,16 +446,16 @@ export default async function Page({ params }: PageProps) {
                                       alt={`${i.title} icon`}
                                       width={14}
                                       height={14}
-                                      className="h-6 w-6 opacity-75"
+                                      className="h-4 w-4 opacity-75"
                                     />
                                   ) : icon ? (
                                     <span className="text-gray-600 [&>svg]:h-3.5 [&>svg]:w-3.5">
                                       {icon}
                                     </span>
                                   ) : (
-                                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
                                   )}
-                                  <span className="text-sm">{i.title}</span>
+                                  <span className="text-xs">{i.title}</span>
                                 </div>
                               );
                             })()

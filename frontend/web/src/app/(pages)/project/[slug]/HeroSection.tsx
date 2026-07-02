@@ -327,11 +327,11 @@ export default function HeroSection({ project }: HeroSectionProps) {
                                 />
                             )}
                             <p className="mt-2 text-md font-bold  text-[#6C6F79] sm:text-xl">
-                                    {pricePerUnitLabel}
+                                {pricePerUnitLabel}
                             </p>
                             {pricePerUnitLabel && (
                                 <p className="mt-1 text-xs font-medium text-[#4bbb7b] sm:text-sm">
-                                {formatPriceRange(project)}
+                                    {formatPriceRange(project)}
                                 </p>
                             )}
                             <p className="mt-0.5 text-[10px] font-medium text-[#8A8D96] sm:text-xs">
@@ -371,14 +371,15 @@ export default function HeroSection({ project }: HeroSectionProps) {
                                 type="button"
                                 onClick={toggleShortlist}
                                 disabled={isShortlistLoading}
-                                className={`flex h-9 items-center gap-2 rounded-lg border border-white/70 bg-white/95 px-3 text-xs font-semibold shadow-sm backdrop-blur transition hover:bg-white cursor-pointer ${
-                                    isShortlisted ? "text-rose-500" : "text-slate-700 hover:text-rose-500"
-                                } disabled:cursor-not-allowed disabled:opacity-70`}
+                                className={`flex h-9 items-center gap-2 rounded-lg border border-white/70 bg-white/95 px-3 text-xs font-semibold shadow-sm backdrop-blur transition hover:bg-white cursor-pointer ${isShortlisted ? "text-rose-500" : "text-slate-700 hover:text-rose-500"
+                                    } disabled:cursor-not-allowed disabled:opacity-70`}
                                 aria-label={isShortlisted ? "Remove project from shortlist" : "Shortlist project"}
                                 aria-pressed={isShortlisted}
                             >
                                 <FiHeart className={`h-4 w-4 ${isShortlisted ? "fill-current" : ""}`} />
-                                <span>{isShortlistLoading ? "Saving..." : isShortlisted ? "Shortlisted" : "Shortlist"}</span>
+                                <span className="hidden sm:inline">
+                                    {isShortlistLoading ? "Saving..." : isShortlisted ? "Shortlisted" : "Shortlist"}
+                                </span>
                             </button>
                             <button
                                 type="button"
@@ -387,7 +388,7 @@ export default function HeroSection({ project }: HeroSectionProps) {
                                 aria-label="Share project"
                             >
                                 <IoIosShareAlt className="h-4 w-4" />
-                                <span>Share</span>
+                                <span className="hidden sm:inline">Share</span>
                             </button>
                         </div>
 
@@ -417,23 +418,22 @@ export default function HeroSection({ project }: HeroSectionProps) {
                         const isActive = activeTab === tab.href;
 
                         return (
-                        <a
-                            key={tab.href}
-                            href={tab.href}
-                            onClick={(event) => onTabClick(event, tab.href, tab.isDownload)}
-                            target={tab.isDownload ? "_blank" : undefined}
-                            rel={tab.isDownload ? "noopener noreferrer" : undefined}
-                            download={tab.isDownload ? project.brochure?.filename || true : undefined}
-                            aria-current={isActive ? "page" : undefined}
-                            className={`flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap border-b-[3px] px-3 py-3 text-sm font-semibold transition sm:px-5 sm:py-4 sm:text-base lg:px-7 lg:text-lg ${
-                                isActive
+                            <a
+                                key={tab.href}
+                                href={tab.href}
+                                onClick={(event) => onTabClick(event, tab.href, tab.isDownload)}
+                                target={tab.isDownload ? "_blank" : undefined}
+                                rel={tab.isDownload ? "noopener noreferrer" : undefined}
+                                download={tab.isDownload ? project.brochure?.filename || true : undefined}
+                                aria-current={isActive ? "page" : undefined}
+                                className={`flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap border-b-[3px] px-3 py-3 text-sm font-semibold transition sm:px-5 sm:py-4 sm:text-base lg:px-7 lg:text-lg ${isActive
                                     ? "border-[#27ae60] text-[#27ae60]"
                                     : "border-transparent text-[#6C6F79] hover:text-gray-400"
-                            }`}
-                        >
-                            {tab.isDownload && <FiDownload className="h-4 w-4 shrink-0" />}
-                            {tab.label}
-                        </a>
+                                    }`}
+                            >
+                                {tab.isDownload && <FiDownload className="h-4 w-4 shrink-0" />}
+                                {tab.label}
+                            </a>
                         );
                     })}
                 </div>
@@ -505,9 +505,8 @@ export default function HeroSection({ project }: HeroSectionProps) {
                                         key={`${image.url}-hero-thumb-${index}`}
                                         type="button"
                                         onClick={() => setOpenIndex(index)}
-                                        className={`shrink-0 overflow-hidden rounded-lg transition ${
-                                            openIndex === index ? "scale-90 ring-2 ring-white" : "opacity-70 hover:opacity-100"
-                                        }`}
+                                        className={`shrink-0 overflow-hidden rounded-lg transition ${openIndex === index ? "scale-90 ring-2 ring-white" : "opacity-70 hover:opacity-100"
+                                            }`}
                                         style={{ width: 110 }}
                                         aria-label={`Open thumbnail ${index + 1}`}
                                     >

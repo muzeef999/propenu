@@ -78,6 +78,7 @@ export default function ResidentialNearbySection({
               const placeName = place?.name?.split(",")[0] || "Nearby place";
               const isActive = selectedPlaceIndex === index;
               const distanceText = place?.distanceText ?? "Nearby";
+              const placeType = place?.type ?? "Place";
 
               return (
                 <li
@@ -101,8 +102,13 @@ export default function ResidentialNearbySection({
                       <div className="truncate text-[15px] font-semibold text-slate-900">
                         {placeName}
                       </div>
-                      <div className="mt-1 truncate text-xs text-slate-500">
-                        {placeName} • {distanceText}
+                      <div className="mt-1 flex min-w-0 items-center gap-2">
+                        <span className="truncate text-xs font-medium text-slate-500">
+                          {placeType}
+                        </span>
+                        <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 ring-1 ring-slate-200">
+                          {distanceText}
+                        </span>
                       </div>
                     </div>
                   </div>

@@ -250,7 +250,7 @@ export default function FloorPlan({ project }: FloorPlanProps) {
           </h2>
 
           <div className="min-w-0 px-4 py-4 sm:px-5">
-            <div className="flex w-full min-w-0 max-w-full gap-2 overflow-x-auto pb-1 sm:gap-4 ">
+            <div className="flex w-full min-w-0 max-w-full gap-2 overflow-x-auto whitespace-nowrap pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden">
               {groups.map((group, index) => (
                 <button
                   key={`${group.label}-${index}`}
