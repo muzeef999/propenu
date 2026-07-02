@@ -27,7 +27,7 @@ authRoute.post("/update-location/admin-create", authMiddleware, adminCreateUpdat
 authRoute.get("/me", authMiddleware, me);
 authRoute.patch("/me/update", authMiddleware, updateUser);
 authRoute.delete("/me", authMiddleware, deleteMyAccount);
-authRoute.get("/search", authMiddleware, requireAdminOrSuperAdmin, searchUsers);
+authRoute.get("/search", authMiddleware, searchUsers);
 authRoute.post("/assign-manager", assignManager);
 authRoute.get("/manager-team-details/:id", getManagerTeamDetails);
 authRoute.post(

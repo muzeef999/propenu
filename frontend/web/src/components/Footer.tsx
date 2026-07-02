@@ -16,13 +16,13 @@ import BuildingFooterSvg from "../svg/BuildingFooterSvg";
 export default function Footer() {
   return (
     <footer
-      className="relative text-gray-800 pt-12 pb-0 overflow-hidden"
+      className="relative overflow-hidden pt-8 pb-0 text-gray-800 sm:pt-10 lg:pt-12"
       style={{
         background: "linear-gradient(180deg, #27AE60 -337.72%, #FBFFFD 38.63%)",
       }}
     >
-      <div className="mx-auto w-full max-w-7xl px-6 lg:px-8 relative">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="relative mx-auto w-full max-w-7xl px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0">
           {/* 1. Company Column */}
           <div>
             <h3 className="mb-6 text-lg font-semibold text-gray-900">
@@ -173,7 +173,7 @@ export default function Footer() {
               </Link>
             </div>
 
-            <div className="mt-8 flex flex-col items-start gap-4 max-lg:items-center max-lg:text-center">
+            <div className="mt-6 flex flex-col items-start gap-4 max-lg:items-center max-lg:text-center lg:mt-8">
               <p className="text-xs leading-5 text-gray-500">
                 © Copyright 2026 Propenu Solutions Pvt. Ltd
               </p>
@@ -187,7 +187,7 @@ export default function Footer() {
       </div>
 
       {/* Background Cityscape Svg */}
-      <div className="bottom-0 left-0 w-full flex items-end justify-center pointer-events-none">
+      <div className="pointer-events-none -mt-8 flex w-full items-end justify-center sm:-mt-7 lg:mt-0">
         <div className="flex w-full opacity-60">
           <BuildingFooterSvg />
         </div>

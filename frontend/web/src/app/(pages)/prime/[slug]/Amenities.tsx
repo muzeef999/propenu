@@ -110,10 +110,10 @@ export default function Amenities(props: Props) {
       <div className="mb-4 flex items-center justify-between gap-4">
         <div style={{ color: color, borderLeft: `5px solid ${color}` }}>
           <div className="ml-2">
-            <h1 className="text-2xl font-bold">
+          <h1 className="text-[20px] font-bold lg:text-2xl md:text-4xl">
               Amenities
             </h1>
-            <p className="headingDesc">
+            <p className="headingDesc text-xs lg:text-base md:text-lg">
               Facilities designed for comfortable living
             </p>
           </div>
@@ -138,10 +138,10 @@ export default function Amenities(props: Props) {
               <div
                 key={key}
                 title={title}
-                className="flex items-center gap-3 text-sm text-gray-700 truncate"
+                className="flex items-center gap-2 text-xs text-gray-700 truncate sm:gap-3 sm:text-sm"
               >
                 <span
-                  className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 shrink-0"
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 shrink-0 sm:h-9 sm:w-9"
                 >
                   <img
                     src={iconSrc}
@@ -150,11 +150,11 @@ export default function Amenities(props: Props) {
                       (e.currentTarget as HTMLImageElement).onerror = null;
                       (e.currentTarget as HTMLImageElement).src = "/icons/amenities/default.svg";
                     }}
-                    className="w-6 h-6 object-contain"
+                    className="h-4 w-4 object-contain sm:h-6 sm:w-6"
                   />
                 </span>
 
-                <span className="whitespace-nowrap">{title}</span>
+                <span className="whitespace-nowrap text-xs sm:text-sm">{title}</span>
               </div>
             );
           })

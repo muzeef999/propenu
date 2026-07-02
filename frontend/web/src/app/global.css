@@ -77,6 +77,42 @@ html, body {
 
 }
 
+.prime-responsive-container {
+  width: 100%;
+  max-width: var(--container-width);
+  margin-left: auto;
+  margin-right: auto;
+  /* padding-left: 1px;
+  padding-right: 1px; */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .prime-responsive-container {
+    padding-left: 20px;
+    padding-right: 20px;
+    gap: 0.75rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .prime-responsive-container {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .prime-responsive-container {
+    padding-left: var(--container-padding);
+    padding-right: var(--container-padding);
+    gap: 0.5rem;
+  }
+}
+
 
 
 /* ------------------------------------ */

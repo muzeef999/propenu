@@ -210,10 +210,10 @@ export default function AvailableProperties({ bhk }: Props) {
 
       <div style={{ color: color, borderLeft: `5px solid ${color}` }}>
         <div className="ml-2">
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-[20px] font-bold lg:text-2xl md:text-4xl">
             Available properties
           </h1>
-          <p className="headingDesc">
+          <p className="headingDesc text-xs lg:text-base md:text-lg">
             Your next property could be here
           </p>
         </div>
@@ -222,7 +222,7 @@ export default function AvailableProperties({ bhk }: Props) {
 
       <div className="bg-white rounded-lg shadow-sm p-4" style={{ backgroundColor: hexToRGBA(color, 0.1), }}>
         {/* Top row: BHK tabs */}
-        <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="mb-4 flex items-center gap-2 overflow-x-auto pb-2 sm:gap-3 lg:flex-wrap lg:overflow-visible lg:pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {items.length === 0 ? (
             <div className="text-sm text-gray-500">No BHK data available</div>
           ) : (
@@ -231,7 +231,7 @@ export default function AvailableProperties({ bhk }: Props) {
                 key={`${b.bhk}-${i}`}
                 onClick={() => setActiveBhkIndex(i)}
                 aria-pressed={i === activeBhkIndex}
-                className="px-3 py-2 rounded-md text-sm font-medium transition-shadow inline-flex items-center gap-2 shadow cursor-pointer"
+                className="h-8 shrink-0 px-2.5 py-1.5 rounded-md text-xs font-medium transition-shadow inline-flex items-center gap-1.5 shadow cursor-pointer sm:h-9 sm:px-3 sm:py-2 sm:text-sm sm:gap-2 md:h-10 lg:h-auto lg:px-3 lg:py-2 lg:text-sm"
                 style={
                   i === activeBhkIndex
                     ? { backgroundColor: color, color: "#FFF" } // active state
@@ -252,7 +252,7 @@ export default function AvailableProperties({ bhk }: Props) {
         </div>
 
         {/* Sqft chips */}
-        <div className="flex gap-3 overflow-x-auto pb-3 mb-6 ">
+        <div className="mb-6 flex gap-2 overflow-x-auto pb-3 sm:gap-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {sqftLabels.length === 0 ? (
             <div className="text-sm text-gray-500">No units found</div>
           ) : (
@@ -260,7 +260,7 @@ export default function AvailableProperties({ bhk }: Props) {
               <button
                 key={`${label}-${idx}`}
                 onClick={() => setActiveUnitIndex(idx)}
-                className="whitespace-nowrap px-3 py-2 rounded-md text-sm border transition cursor-pointer"
+                className="h-8 shrink-0 whitespace-nowrap px-2.5 py-1.5 rounded-md text-xs border transition cursor-pointer sm:h-9 sm:px-3 sm:py-2 sm:text-sm md:h-10 lg:h-auto lg:px-3 lg:py-2 lg:text-sm"
                 style={
                   idx === activeUnitIndex
                     ? { borderColor: color, backgroundColor: '#FFF', color: color } // sky-600
@@ -279,10 +279,10 @@ export default function AvailableProperties({ bhk }: Props) {
         </div>
 
         {/* Main grid: large image left, details right */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-12 lg:gap-6 lg:items-start">
           {/* Left: image / plan */}
           <div id="layout-section" className="lg:col-span-8 scroll-mt-24">
-            <div className="bg-gray-50 rounded-md p-4 flex items-center justify-center">
+            <div className="bg-gray-50 rounded-md p-2 sm:p-3 lg:p-4 flex items-center justify-center">
               {/* image container keeps aspect and responsiveness */}
               <div className="relative w-full max-h-[520px] rounded-md overflow-hidden bg-white">
                 {activeUnit?.plan?.url ?? DEV_PLAN_URL ? (
@@ -294,7 +294,7 @@ export default function AvailableProperties({ bhk }: Props) {
                       onPointerUp={stopPlanDrag}
                       onPointerCancel={stopPlanDrag}
                       onPointerLeave={stopPlanDrag}
-                      className={`h-[420px] overflow-auto select-none ${canDragPlan
+                      className={`h-[240px] overflow-auto select-none sm:h-[300px] md:h-[360px] lg:h-[420px] ${canDragPlan
                           ? isDraggingPlan
                             ? "cursor-grabbing"
                             : "cursor-grab"
@@ -314,13 +314,13 @@ export default function AvailableProperties({ bhk }: Props) {
                       />
                     </div>
 
-                    <div className="absolute right-3 top-3 flex items-center gap-1 rounded-md border border-gray-200 bg-white/95 p-1 shadow-sm">
+                    <div className="absolute right-2 top-2 flex items-center gap-1 rounded-md border border-gray-200 bg-white/95 p-1 shadow-sm sm:right-3 sm:top-3">
                       <button
                         type="button"
                         aria-label="Zoom out plan"
                         onClick={() => zoomPlan("out")}
                         disabled={!canZoomOut}
-                        className="flex h-8 w-8 items-center justify-center rounded text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300"
+                        className="flex h-7 w-7 items-center justify-center rounded text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300 sm:h-8 sm:w-8"
                       >
                         <FiMinus className="h-4 w-4" />
                       </button>
@@ -328,7 +328,7 @@ export default function AvailableProperties({ bhk }: Props) {
                         type="button"
                         aria-label="Reset plan zoom"
                         onClick={() => setPlanZoom(MIN_PLAN_ZOOM)}
-                        className="h-8 min-w-12 rounded px-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100"
+                        className="h-7 min-w-10 rounded px-1.5 text-[11px] font-semibold text-gray-700 transition hover:bg-gray-100 sm:h-8 sm:min-w-12 sm:px-2 sm:text-xs"
                       >
                         {Math.round(planZoom * 100)}%
                       </button>
@@ -337,14 +337,14 @@ export default function AvailableProperties({ bhk }: Props) {
                         aria-label="Zoom in plan"
                         onClick={() => zoomPlan("in")}
                         disabled={!canZoomIn}
-                        className="flex h-8 w-8 items-center justify-center rounded text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300"
+                        className="flex h-7 w-7 items-center justify-center rounded text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300 sm:h-8 sm:w-8"
                       >
                         <FiPlus className="h-4 w-4" />
                       </button>
                     </div>
                   </>
                 ) : (
-                  <div className="flex items-center justify-center h-[420px] text-gray-400">
+                  <div className="flex h-[240px] items-center justify-center text-gray-400 sm:h-[300px] md:h-[360px] lg:h-[420px]">
                     No plan available
                   </div>
                 )}
@@ -353,29 +353,29 @@ export default function AvailableProperties({ bhk }: Props) {
 
             {/* On small screens show summary under image */}
             <div className="mt-4 lg:hidden">
-              <div className="flex gap-1 items-center">
+              <div className="grid grid-cols-2 gap-3 rounded-md bg-white/70 p-3 sm:flex sm:items-center sm:gap-5">
                 <div>
                   <div className="text-xs text-gray-500">Price</div>
-                  <div className="text-lg font-bold">
+                  <div className="text-sm font-medium sm:text-base text-green-700">
                     {formatINR(activeUnit?.maxPrice)}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-gray-500">Area</div>
-                  <div className="text-sm">
+                  <div className="text-sm font-medium sm:text-base text-green-700">
                     {formatAreaUnit(activeUnit, isLand)}
                   </div>
                 </div>
-                <div className="ml-auto">
+                {/* <div className="col-span-2 sm:ml-auto">
                   <button
                     type="button"
                     onClick={scrollToHero}
                     style={{ backgroundColor: color, color: '#FFF' }}
-                    className="px-4 py-2 rounded-md  font-semibold"
+                    className="w-full rounded-md px-3 py-2 text-sm font-semibold sm:w-auto sm:px-4"
                   >
                     Book a Consultation
                   </button>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>

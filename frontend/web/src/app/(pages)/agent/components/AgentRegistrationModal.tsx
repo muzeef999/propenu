@@ -195,11 +195,6 @@ export default function AgentRegistrationModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!files.avatar) {
-      toast.error("Avatar image is required");
-      return;
-    }
-
     if (splitCsv(form.areasServed).length === 0) {
       toast.error("Areas served is required");
       return;
@@ -404,7 +399,6 @@ export default function AgentRegistrationModal({
                   icon={<FiCamera size={24} />}
                   label="Avatar image"
                   previewClassName="h-full w-full rounded-lg object-cover"
-                  required
                   onChange={(e) => handleFileChange(e, "avatar")}
                 />
 

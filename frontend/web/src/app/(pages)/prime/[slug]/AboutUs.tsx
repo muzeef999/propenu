@@ -32,10 +32,10 @@ type Props = {
 const DEFAULT_COLOR = "#F59E0B";
 const RICH_TEXT_CLASSES =
   "text-gray-700 leading-relaxed " +
-  "[&_h1]:text-3xl [&_h1]:font-bold [&_h1]:leading-tight [&_h1]:mb-3 " +
-  "[&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:leading-snug [&_h2]:mb-3 " +
-  "[&_h3]:text-xl [&_h3]:font-semibold [&_h3]:mb-2 " +
-  "[&_p]:mb-3 [&_ol]:list-decimal [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5 [&_li]:mb-2";
+  "[&_h1]:mb-2 [&_h1]:text-xl [&_h1]:font-bold [&_h1]:leading-tight sm:[&_h1]:mb-3 sm:[&_h1]:text-2xl lg:[&_h1]:text-3xl " +
+  "[&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:leading-snug sm:[&_h2]:mb-3 sm:[&_h2]:text-xl lg:[&_h2]:text-2xl " +
+  "[&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-semibold sm:[&_h3]:text-lg lg:[&_h3]:text-xl " +
+  "[&_p]:mb-2 sm:[&_p]:mb-3 [&_ol]:list-decimal [&_ul]:list-disc [&_ol]:pl-4 [&_ul]:pl-4 sm:[&_ol]:pl-5 sm:[&_ul]:pl-5 [&_li]:mb-1.5 sm:[&_li]:mb-2";
 
 /** normalize shapes */
 function normalizeAboutProp(
@@ -96,8 +96,12 @@ export default function AboutUS(props: Props) {
       <div className="mb-6 flex items-start justify-between gap-6">
         <div style={{ color: color, borderLeft: `5px solid ${color}` }}>
           <div className="ml-2">
-            <h1 className="text-2xl font-bold">{heading}</h1>
-            <p className="headingDesc">The story behind the project</p>
+          <h1 className="text-[20px] font-bold lg:text-2xl md:text-4xl">
+              {heading}
+              </h1>
+            <p className="headingDesc text-xs lg:text-base md:text-lg">
+              The story behind the project
+            </p>
           </div>
         </div>
       </div>
@@ -105,11 +109,11 @@ export default function AboutUS(props: Props) {
       {item?.aboutDescription ? (
         hasHtmlDescription ? (
           <div
-            className={`mt-6 text-base sm:text-base ${RICH_TEXT_CLASSES}`}
+            className={`mt-4 text-sm sm:mt-5 sm:text-base lg:mt-6 ${RICH_TEXT_CLASSES}`}
             dangerouslySetInnerHTML={{ __html: item.aboutDescription }}
           />
         ) : (
-          <p className="mt-6 text-gray-700 text-base sm:text-lg leading-relaxed">
+          <p className="mt-4 text-sm leading-relaxed text-gray-700 sm:mt-5 sm:text-base lg:mt-6 lg:text-lg">
             {item.aboutDescription}
           </p>
         )

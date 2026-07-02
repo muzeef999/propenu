@@ -476,37 +476,41 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
       <div className="mb-6 flex items-start justify-between gap-6">
         <div style={{ color: color, borderLeft: `5px solid ${color}` }}>
           <div className="ml-2">
-            <h1 className="text-2xl font-bold">{"Near by Places"}</h1>
-            <p className="headingDesc">Find important locations around your property</p>
+            <h1 className="text-[20px] font-bold lg:text-2xl md:text-4xl">
+              {"Near by Places"}
+            </h1>
+            <p className="headingDesc text-xs lg:text-base md:text-lg">
+              Find important locations around your property
+            </p>
           </div>
         </div>
       </div>
 
       <div className="w-full">
-        <div className="mb-3 flex items-center justify-end gap-2">
+        <div className="mb-2 flex items-center justify-end gap-1.5 sm:mb-3 sm:gap-2">
           <button
             type="button"
             onClick={() => scrollSlider("left")}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900 cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900 cursor-pointer sm:h-9 sm:w-9"
             aria-label="Previous nearby places"
           >
-            <FiChevronLeft className="h-4 w-4" />
+            <FiChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </button>
 
           <button
             type="button"
             onClick={() => scrollSlider("right")}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900 cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900 cursor-pointer sm:h-9 sm:w-9"
             aria-label="Next nearby places"
           >
-            <FiChevronRight className="h-4 w-4" />
+            <FiChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </button>
         </div>
 
-        <div className="mb-6 w-full min-w-0 overflow-hidden">
+        <div className="mb-4 w-full min-w-0 overflow-hidden sm:mb-6">
           <ul
             ref={sliderRef}
-            className="flex w-full min-w-0 gap-4 overflow-x-auto scroll-smooth pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex w-full min-w-0 gap-3 overflow-x-auto scroll-smooth pb-2 sm:gap-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {withDistance.length === 0 && (
               <li className="text-sm text-slate-500">No nearby places provided.</li>
@@ -519,27 +523,26 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
                 <li
                   key={`${p.name ?? "place"}-${idx}`}
                   onClick={() => onSelectPlace(idx)}
-                  className={`w-[280px] shrink-0 cursor-pointer rounded-md p-3 transition sm:w-[320px] ${
-                    active ? "ring-2 ring-offset-2" : "hover:bg-[#eef1f3]"
-                  }`}
+                  className={`w-[220px] shrink-0 cursor-pointer rounded-md p-2.5 transition sm:w-[280px] sm:p-3 md:w-[320px] ${active ? "ring-2 ring-offset-2" : "hover:bg-[#eef1f3]"
+                    }`}
                   style={{
                     backgroundColor: "#f1f4f5",
                     boxShadow: active ? `0 6px 20px ${color}22` : undefined,
                   } as React.CSSProperties}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
                     <div
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md"
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md sm:h-11 sm:w-11"
                       style={{ background: isHex ? `${color}11` : "#dde9ee" }}
                     >
                       <NearbyPlaceIcon color={color} />
                     </div>
 
                     <div className="min-w-0">
-                      <div className="truncate text-[15px] font-semibold text-slate-900">
+                      <div className="truncate text-[13px] font-semibold text-slate-900 sm:text-[15px]">
                         {p.name?.split(",")[0] ?? "Nearby place"}
                       </div>
-                      <div className="mt-1 truncate text-xs text-slate-500">
+                      <div className="mt-0.5 truncate text-[11px] text-slate-500 sm:mt-1 sm:text-xs">
                         {p.type ?? "Place"} • {distanceText ?? p.distanceText ?? "-"}
                       </div>
                     </div>
@@ -552,9 +555,9 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
 
         <div className="rounded-lg overflow-hidden border border-slate-100 shadow-sm">
           {mapError ? (
-            <div className="w-full sm:h-[520px] flex items-center justify-center text-slate-500 text-center px-4">{mapError}</div>
+            <div className="flex h-[420px] w-full items-center justify-center px-4 text-center text-slate-500 sm:h-[500px] md:h-[560px] lg:h-[520px]">{mapError}</div>
           ) : (
-            <div id={mapContainerId} ref={mapRef} className="w-full sm:h-[520px]" />
+            <div id={mapContainerId} ref={mapRef} className="h-[420px] w-full sm:h-[500px] md:h-[560px] lg:h-[420px]" />
           )}
         </div>
         <div className="mt-3 text-xs text-slate-500">Click markers to open details. Click a list item to focus that marker.</div>

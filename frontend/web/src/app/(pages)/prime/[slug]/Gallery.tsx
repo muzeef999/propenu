@@ -164,7 +164,8 @@ export default function Gallery(props: Props) {
   if (!items || items.length === 0) {
     return (
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <h2 className="text-2xl font-extrabold">Gallery</h2>
+        <h2 className="text-2xl font-extrabold">
+          Gallery</h2>
         <p className="text-sm text-gray-500">No images available.</p>
       </section>
     );
@@ -192,8 +193,12 @@ export default function Gallery(props: Props) {
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="mb-6 flex items-start justify-between gap-6">
         <div style={{ color: color, borderLeft: `5px solid ${color}` }} className="pl-3">
-          <h1 className="text-2xl font-bold">Gallery</h1>
-          <p className="text-sm text-slate-500">See the space before you step in</p>
+          <h1 className="text-[20px] font-bold lg:text-2xl md:text-4xl">
+            Gallery
+          </h1>
+          <p className="headingDesc text-xs lg:text-base md:text-lg">
+            A glimpse into the project through images and videos
+          </p>
         </div>
       </div>
 
@@ -246,7 +251,7 @@ export default function Gallery(props: Props) {
                 ? "mx-auto max-w-4xl"
                 : hasTwoYoutubeVideos
                   ? "grid grid-cols-1 gap-4 md:grid-cols-2"
-                : "flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory no-scrollbar pb-1"
+                  : "flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory no-scrollbar pb-1"
             }
           >
             {youtubeVideos.map((video, idx) => (
@@ -257,7 +262,7 @@ export default function Gallery(props: Props) {
                     ? "w-full rounded-xl overflow-hidden bg-white shadow-sm border border-gray-100"
                     : hasTwoYoutubeVideos
                       ? "w-full rounded-xl overflow-hidden bg-white shadow-sm border border-gray-100"
-                    : "shrink-0 w-full md:w-1/3 rounded-xl overflow-hidden bg-white shadow-sm border border-gray-100 snap-start"
+                      : "shrink-0 w-full md:w-1/3 rounded-xl overflow-hidden bg-white shadow-sm border border-gray-100 snap-start"
                 }
               >
                 <div className="relative w-full pb-[56.25%]">
@@ -270,7 +275,7 @@ export default function Gallery(props: Props) {
                     allowFullScreen
                   />
                 </div>
-                <div className="p-3 text-sm font-medium text-slate-700 capitalize line-clamp-1">
+                <div className="truncate p-2 text-xs font-medium capitalize text-slate-700 sm:p-3 sm:text-sm">
                   {video.title || `Video ${idx + 1}`}
                 </div>
               </div>
@@ -302,7 +307,7 @@ export default function Gallery(props: Props) {
       {/* Modal */}
       {openIndex !== null && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 md:p-6"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-2 backdrop-blur-sm sm:p-4 md:p-6"
           onClick={() => setOpenIndex(null)}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
@@ -316,30 +321,30 @@ export default function Gallery(props: Props) {
             {/* Close Button */}
             <button
               onClick={() => setOpenIndex(null)}
-              className="absolute right-0 top-0 z-30 h-11 w-11 rounded-full bg-black/50 text-white hover:bg-black/70 transition flex items-center justify-center cursor-pointer"
+              className="absolute right-2 top-2 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white transition hover:bg-black/70 cursor-pointer sm:right-0 sm:top-0 sm:h-11 sm:w-11"
               aria-label="Close gallery"
             >
-              <HiXMark size={24} />
+              <HiXMark className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
 
             {/* Main Media Container */}
-            <div className="relative rounded-2xl overflow-hidden bg-black shadow-2xl pt-12 md:pt-0">
+            <div className="relative overflow-hidden rounded-lg shadow-2xl sm:rounded-2xl md:pt-0">
 
               {/* Arrows */}
               <button
                 onClick={prev}
-                className="absolute left-3 md:left-5 top-1/2 -translate-y-1/2 z-20 h-11 w-11 rounded-full bg-black/45 hover:bg-black/65 text-white backdrop-blur-md transition flex items-center justify-center cursor-pointer"
+                className="absolute left-2 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md transition hover:bg-black/65 cursor-pointer sm:left-3 sm:flex sm:h-11 sm:w-11 md:left-5"
                 aria-label="Previous"
               >
-                <HiChevronLeft size={22} />
+                <HiChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
               </button>
 
               <button
                 onClick={next}
-                className="absolute right-3 md:right-5 top-1/2 -translate-y-1/2 z-20 h-11 w-11 rounded-full bg-black/45 hover:bg-black/65 text-white backdrop-blur-md transition flex items-center justify-center cursor-pointer  "
+                className="absolute right-2 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md transition hover:bg-black/65 cursor-pointer sm:right-3 sm:flex sm:h-11 sm:w-11 md:right-5"
                 aria-label="Next"
               >
-                <HiChevronRight size={22} />
+                <HiChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
               </button>
 
               {/* Media */}
@@ -348,43 +353,42 @@ export default function Gallery(props: Props) {
                   src={items[openIndex]?.url}
                   controls
                   autoPlay
-                  className="w-full max-h-[75vh] object-contain"
+                  className="h-auto max-h-[62vh] w-full object-contain sm:max-h-[70vh] md:max-h-[75vh]"
                 />
               ) : (
                 <img
                   src={items[openIndex]?.url ?? FALLBACK_IMG}
                   alt={items[openIndex]?.title}
-                  className="w-full max-h-[75vh] object-contain"
+                  className="h-auto max-h-[62vh] w-full object-contain sm:max-h-[70vh] md:max-h-[75vh]"
                 />
               )}
 
               {/* Caption Overlay */}
-              <div className="absolute bottom-0 w-full bg-linear-to-t from-black/80 to-transparent p-6 text-white">
+              {/* <div className="absolute bottom-0 w-full bg-linear-to-t from-black/80 to-transparent p-6 text-white">
                 <div className="text-lg font-semibold">
                   {items[openIndex]?.title}
                 </div>
                 <div className="text-sm text-white/70">
                   {items[openIndex]?.category}
                 </div>
-              </div>
+              </div> */}
             </div>
 
             {/* Thumbnail Strip */}
-            <div className="mt-6 flex gap-3 overflow-x-auto pb-2">
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-2 sm:mt-4 sm:gap-3 md:mt-6">
               {items.map((it, idx) => (
                 <button
                   key={idx}
                   onClick={() => setOpenIndex(idx)}
-                  className={`shrink-0 rounded-lg overflow-hidden transition-all duration-200 ${openIndex === idx
+                  className={`w-16 shrink-0 overflow-hidden rounded-md transition-all duration-200 sm:w-24 sm:rounded-lg md:w-[110px] ${openIndex === idx
                     ? "ring-2 ring-white scale-90"
                     : "opacity-70 hover:opacity-100"
                     }`}
-                  style={{ width: 110 }}
                 >
                   <img
                     src={it?.thumbUrl ?? it?.url ?? FALLBACK_IMG}
                     alt={it?.title}
-                    className="w-full h-15 object-cover"
+                    className="h-12 w-full object-cover sm:h-14 md:h-15"
                   />
                 </button>
               ))}

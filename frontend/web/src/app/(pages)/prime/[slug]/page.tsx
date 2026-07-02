@@ -175,7 +175,7 @@ export default async function Page({ params }: PageProps) {
       />
       <Herosection hero={hero} />
       <br />
-      <div className="container mx-auto px-4 space-y-2">
+      <div className="prime-responsive-container">
         <div id="available-properties" className="scroll-mt-20">
           <AvailableProperties bhk={bhkSummary} />
         </div>

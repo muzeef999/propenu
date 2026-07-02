@@ -137,17 +137,17 @@ export default function HeroSection({ hero }: Props) {
             </h2>
 
             <div className="absolute bottom-0 left-0 w-full lg:w-[65%] z-10">
-              <div className=" py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+              <div className="grid grid-cols-2 gap-3 py-4 text-center sm:gap-4 sm:py-6 md:grid-cols-4 md:gap-6 lg:py-8">
                 {h.stats?.map((stat, idx) => (
                   <div key={idx}>
-                    <div className="text-white text-xl md:text-2xl font-bold">
+                    <div className="text-sm font-bold text-white sm:text-lg md:text-2xl">
                       {stat.value}
                     </div>
 
-                    <div className="text-gray-200 text-sm mt-1">{stat.label}</div>
+                    <div className="mt-0.5 text-[10px] text-gray-200 sm:mt-1 sm:text-xs md:text-sm">{stat.label}</div>
 
                     <div
-                      className="w-12 h-0.5 mx-auto mt-2"
+                      className="mx-auto mt-1 h-0.5 w-8 sm:mt-2 sm:w-10 md:w-12"
                       style={{ backgroundColor: h.color }}
                     />
                   </div>
