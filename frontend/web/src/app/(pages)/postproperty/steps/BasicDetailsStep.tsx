@@ -175,6 +175,8 @@ export default function BasicDetailsStep() {
   const isProjectLandFlow =
     propertyType === "project" &&
     ["open-plot", "commercial-plot"].includes(project.propertyType);
+  const isProjectCommercialFlow =
+    propertyType === "project" && project.propertyType === "commercial-space";
   const landFlowData = isProjectLandFlow ? project : land;
   const landFlowPropertyType = isProjectLandFlow ? "project" : "land";
   const showLandFlow = propertyType === "land" || isProjectLandFlow;
@@ -228,6 +230,9 @@ export default function BasicDetailsStep() {
         selectedCommercialType as keyof typeof COMMERCIAL_SUBTYPE_MAP
       ] as readonly string[])
       : [];
+  const projectCommercialSubTypes = isProjectCommercialFlow
+    ? (COMMERCIAL_SUBTYPE_MAP.office as readonly string[])
+    : [];
 
   const contactLabel =
     base.listingType === "sale"
@@ -386,24 +391,28 @@ export default function BasicDetailsStep() {
 
             {propertyType === "project" && project.propertyType && (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <InputField
-                  label="Project Total Area"
-                  type="number"
-                  placeholder="e.g. 5"
-                  value={project.projectArea ?? ""}
-                  error={fieldErrors.projectArea?.[0]}
-                  onChange={(value) =>
-                    dispatch(
-                      setProfileField({
-                        propertyType: "project",
-                        key: "projectArea",
-                        value: value.replace(/[^0-9.]/g, ""),
-                      }),
-                    )
-                  }
-                />
+                {!isProjectCommercialFlow && (
+                  <InputField
+                    label="Project Total Area"
+                    type="number"
+                    placeholder="e.g. 5"
+                    value={project.projectArea ?? ""}
+                    error={fieldErrors.projectArea?.[0]}
+                    onChange={(value) =>
+                      dispatch(
+                        setProfileField({
+                          propertyType: "project",
+                          key: "projectArea",
+                          value: value.replace(/[^0-9.]/g, ""),
+                        }),
+                      )
+                    }
+                  />
+                )}
 
-                {project.propertyType !== "open-plot" && (
+                {!["open-plot", "commercial-space"].includes(
+                  project.propertyType ?? "",
+                ) && (
                   <InputField
                     label="No. of Towers"
                     type="number"
@@ -455,6 +464,164 @@ export default function BasicDetailsStep() {
                     )
                   }
                 />
+              </div>
+            )}
+
+            {isProjectCommercialFlow && (
+              <div className="space-y-6">
+                {projectCommercialSubTypes.length > 0 && (
+                  <div>
+                    <p className="mb-3 text-sm font-medium text-gray-700">
+                      Specific Type for Commercial Space
+                    </p>
+
+                    <div className="flex flex-wrap gap-3">
+                      {projectCommercialSubTypes.map((subType: string) => {
+                        const isSelected = project.commercialSubType === subType;
+
+                        return (
+                          <button
+                            key={subType}
+                            type="button"
+                            onClick={() =>
+                              dispatch(
+                                setProfileField({
+                                  propertyType: "project",
+                                  key: "commercialSubType",
+                                  value: subType,
+                                }),
+                              )
+                            }
+                            className={`px-4 py-2 border rounded-md text-sm shadow-sm focus:outline-none transition-colors ${
+                              isSelected
+                                ? "border-green-500 bg-green-50 text-green-600"
+                                : "border-gray-300 text-gray-700"
+                            }`}
+                          >
+                            {subType.replace(/-/g, " ").toUpperCase()}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 md:grid-cols-4">
+                  <CounterField
+                    label="Cabins"
+                    value={project.cabins || 0}
+                    min={0}
+                    onChange={(value) =>
+                      dispatch(
+                        setProfileField({
+                          propertyType: "project",
+                          key: "cabins",
+                          value,
+                        }),
+                      )
+                    }
+                    error={fieldErrors.cabins?.[0]}
+                  />
+
+                  <CounterField
+                    label="Seats"
+                    value={project.seats || 0}
+                    min={0}
+                    onChange={(value) =>
+                      dispatch(
+                        setProfileField({
+                          propertyType: "project",
+                          key: "seats",
+                          value,
+                        }),
+                      )
+                    }
+                    error={fieldErrors.seats?.[0]}
+                  />
+                </div>
+
+                {(project.cabins > 0 ||
+                  project.seats > 0 ||
+                  (showErrors && fieldErrors.facing) ||
+                  (showErrors && fieldErrors.wallFinishStatus)) && (
+                  <div className="grid grid-cols-1 md:grid-cols-[1.2fr_145px_145px] gap-4 items-start">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-700">
+                        Furnishing
+                      </p>
+
+                      <div className="flex flex-wrap gap-3">
+                        {[
+                          { label: "Furnished", value: "fully-furnished" },
+                          {
+                            label: "Semi furnished",
+                            value: "semi-furnished",
+                          },
+                          { label: "Un-furnished", value: "unfurnished" },
+                        ].map((item) => (
+                          <SelectableButton
+                            key={item.value}
+                            label={item.label}
+                            active={project.furnishedStatus === item.value}
+                            onClick={() =>
+                              dispatch(
+                                setProfileField({
+                                  propertyType: "project",
+                                  key: "furnishedStatus",
+                                  value: item.value,
+                                }),
+                              )
+                            }
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    <Dropdownui
+                      label="Facing"
+                      value={formatFacingForForm(project.facing) ?? null}
+                      onChange={(value) =>
+                        dispatch(
+                          setProfileField({
+                            propertyType: "project",
+                            key: "facing",
+                            value,
+                          }),
+                        )
+                      }
+                      options={FACING_TYPES.map((dir) => ({
+                        label: dir,
+                        value: dir.toLowerCase(),
+                      }))}
+                      placeholder="Select"
+                      error={fieldErrors.facing?.[0]}
+                    />
+
+                    <Dropdownui
+                      label="Wall Finish"
+                      value={
+                        WALL_FINISH_STATUS.find(
+                          (t) => t === project.wallFinishStatus,
+                        ) || null
+                      }
+                      onChange={(value) =>
+                        dispatch(
+                          setProfileField({
+                            propertyType: "project",
+                            key: "wallFinishStatus",
+                            value,
+                          }),
+                        )
+                      }
+                      options={WALL_FINISH_STATUS.map((t) => ({
+                        value: t,
+                        label: t.replace(/-/g, " "),
+                      }))}
+                      placeholder="Select"
+                      error={fieldErrors.wallFinishStatus?.[0]}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -943,12 +1110,21 @@ export default function BasicDetailsStep() {
           listingType={base.listingType}
         />
       )}
+      {isProjectCommercialFlow && project.wallFinishStatus && (
+        <PricingDetails
+          propertyType="project"
+          data={project}
+          fieldErrors={fieldErrors}
+          listingType={base.listingType}
+        />
+      )}
 
       {isLoggedIn &&
         propertyType !== null &&
         (["residential", "commercial", "land"].includes(propertyType) ||
           isProjectResidentialFlow ||
-          isProjectLandFlow) && (
+          isProjectLandFlow ||
+          isProjectCommercialFlow) && (
           <div className="space-y-6">
             {!showLandFlow && (
               <>

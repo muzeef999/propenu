@@ -70,7 +70,7 @@ const CommercialFilters = () => {
 
   const { minPrice, maxPrice, commercial, listingTypeValue } = filtersState;
 
-  const { locality, listingSource } = commercial;
+  const { locality, createdByRole } = commercial;
   const localityList = Array.isArray(locality)
     ? locality
     : locality
@@ -475,17 +475,17 @@ const CommercialFilters = () => {
                 onClick={() => {
                   dispatch(
                     setCommercialFilter({
-                      key: "listingSource", // Use the backend key directly or via mapping
-                      value: opt,
+                      key: "createdByRole",
+                      value: postedByLabelMap[opt],
                     })
                   );
                   close?.();
                 }}
-                className={`px-2 py-1 rounded block w-full cursor-pointer text-left hover:bg-gray-100 ${Array.isArray(listingSource)
-                  ? listingSource.includes(opt)
+                className={`px-2 py-1 rounded block w-full cursor-pointer text-left hover:bg-gray-100 ${Array.isArray(createdByRole)
+                  ? createdByRole.includes(postedByLabelMap[opt])
                     ? "font-semibold bg-gray-100"
                     : ""
-                  : listingSource === opt
+                  : createdByRole === postedByLabelMap[opt]
                     ? "font-semibold bg-gray-100"
                     : ""
                   }`}
@@ -497,14 +497,14 @@ const CommercialFilters = () => {
               onClick={() => {
                 dispatch(
                   setCommercialFilter({
-                    key: "listingSource",
+                    key: "createdByRole",
                     value: "",
                   })
                 );
                 close?.();
               }}
-              disabled={!listingSource}
-              className={`mt-2 px-2 py-1 rounded block w-full text-left ${listingSource
+              disabled={!createdByRole}
+              className={`mt-2 px-2 py-1 rounded block w-full text-left ${createdByRole
                   ? "cursor-pointer text-red-500 hover:bg-red-50"
                   : "text-gray-400 cursor-not-allowed"
                 }`}
@@ -811,7 +811,11 @@ const CommercialFilters = () => {
                           return (
                             <SelectableButton
                               key={opt}
-                              label={postedByLabelMap[opt as PostedByOption] ?? opt}
+                              label={
+                                mappedKey === "createdByRole"
+                                  ? postedByLabelMap[opt as PostedByOption] ?? opt
+                                  : opt
+                              }
                               active={isActive}
                               selectionType={section.selectionType ?? "single"}
                               onClick={() => {
@@ -826,7 +830,9 @@ const CommercialFilters = () => {
                                             : [],
                                           opt
                                         )
-                                        : opt,
+                                        : mappedKey === "createdByRole"
+                                          ? postedByLabelMap[opt as PostedByOption] ?? opt
+                                          : opt,
                                   })
                                 );
                               }}

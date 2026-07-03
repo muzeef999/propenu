@@ -46,7 +46,7 @@ const ResidentialFilters = () => {
   const { minPrice, maxPrice, residential, listingTypeValue } = filtersState;
   const [budgetTouched, setBudgetTouched] = useState(false);
 
-  const { locality, bedrooms, listingSource } = residential;
+  const { locality, bedrooms, createdByRole } = residential;
   const [open, setOpen] = useState(false);
   const [activeFilter, setActiveFilter] =
     useState<RESFilterKey>("Property Type");
@@ -71,7 +71,7 @@ const ResidentialFilters = () => {
     Amenities: "amenities",
     Facing: "facing",
     "Posted Since": "postedSince",
-    "Posted By": "listingSource",
+    "Posted By": "createdByRole",
   };
 
   const [carpetRange, setCarpetRange] = useState<[number, number]>([
@@ -486,14 +486,14 @@ const ResidentialFilters = () => {
                     const mappedValue = POSTED_BY_MAP[opt];
                     dispatch(
                       setResidentialFilter({
-                        key: "listingSource",
-                        value: listingSource === mappedValue ? "" : mappedValue,
+                        key: "createdByRole",
+                        value: createdByRole === mappedValue ? "" : mappedValue,
                       }),
                     );
                     close?.();
                   }}
                   className={`px-2 py-1 rounded block w-full text-left hover:bg-gray-100 cursor-pointer${
-                    listingSource === POSTED_BY_MAP[opt]
+                    createdByRole === POSTED_BY_MAP[opt]
                       ? "font-semibold bg-gray-100"
                       : ""
                   }`}
@@ -505,15 +505,15 @@ const ResidentialFilters = () => {
                 onClick={() => {
                   dispatch(
                     setResidentialFilter({
-                      key: "listingSource",
+                      key: "createdByRole",
                       value: "",
                     }),
                   );
                   close?.();
                 }}
-                disabled={!listingSource}
+                disabled={!createdByRole}
                 className={`mt-2 px-2 py-1 rounded block w-full text-left ${
-                  listingSource
+                  createdByRole
                     ? "text-red-500 hover:bg-red-50"
                     : "text-gray-400 cursor-not-allowed"
                 }`}
@@ -677,7 +677,7 @@ const ResidentialFilters = () => {
                             ? (currentValue as string[])
                             : [];
                           const filterValue =
-                            mappedKey === "listingSource"
+                            mappedKey === "createdByRole"
                               ? POSTED_BY_MAP[opt as PostedByOption] ?? opt
                               : opt;
 
@@ -690,7 +690,7 @@ const ResidentialFilters = () => {
                             <SelectableButton
                               key={opt}
                               label={
-                                mappedKey === "listingSource"
+                                mappedKey === "createdByRole"
                                   ? POSTED_BY_MAP[opt as PostedByOption] ?? opt
                                   : formatLabel(opt)
                               }

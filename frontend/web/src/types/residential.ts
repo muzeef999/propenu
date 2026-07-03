@@ -146,5 +146,5 @@ export const residentialKeyMapping: Record<
   Amenities: "amenities",
   Facing: "facing",
   "Posted Since": "postedSince",
-  "Posted By": "listingSource",
+  "Posted By": "createdByRole",
 };

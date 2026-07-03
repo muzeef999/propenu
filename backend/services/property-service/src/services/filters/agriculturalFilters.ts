@@ -47,6 +47,20 @@ function normalizeListingSourceToken(token: string) {
   return normalized;
 }
 
+function normalizeCreatedByRoleToken(token: string) {
+  const normalized = token.trim().toLowerCase();
+  if (
+    normalized === "owners" ||
+    normalized === "owner" ||
+    normalized === "user"
+  ) {
+    return "user";
+  }
+  if (normalized === "agents" || normalized === "agent") return "agent";
+  if (normalized === "builders" || normalized === "builder") return "builder";
+  return normalized;
+}
+
 function normalizeRestrictionToken(value?: string) {
   if (typeof value !== "string") return undefined;
   const normalized = value.trim().toLowerCase().replace(/[\s_]+/g, "-");
@@ -229,6 +243,17 @@ export function extendAgriculturalFilters(
     parseNumber(q.minRoadWidthFt) ?? parseMinPlusOption(q.roadWidth as string | undefined);
   if (minRoadWidth !== undefined) {
     and.push({ "roadWidth.value": { $gte: minRoadWidth } });
+  }
+
+  const createdByRoleTokens = parseCsv(
+    q.createdByRole as string | undefined
+  )
+    .map((token) => normalizeCreatedByRoleToken(token))
+    .filter(Boolean);
+  if (createdByRoleTokens.length === 1) {
+    and.push({ "createdBy.roleName": createdByRoleTokens[0] });
+  } else if (createdByRoleTokens.length > 1) {
+    and.push({ "createdBy.roleName": { $in: createdByRoleTokens } });
   }
 
   const listingSourceTokens = parseCsv(

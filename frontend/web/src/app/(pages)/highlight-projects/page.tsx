@@ -257,15 +257,15 @@ const HotspotsPage = () => {
 
             <div className="container mx-auto px-4 py-8 space-y-6">
                 {/* Header */}
-                <div className="space-y-2 text-left">
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-slate-900 leading-tight">
+                <div className="space-y-2 text-left md:text-left">
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight leading-tight text-slate-900">
                         Hotspots in{" "}
-                        <span className="text-[#26ad5f]">
+                        <span className="text-[#26ad5f] wrap-break-word">
                             {selectedCity?.city || "Loading..."}
                         </span>
                     </h1>
 
-                    <p className="text-sm sm:text-base text-slate-500 max-w-xl leading-relaxed">
+                    <p className="mx-auto md:mx-0 max-w-md lg:max-w-xl text-sm sm:text-base text-slate-500 leading-relaxed">
                         Popular localities with high demand and growth potential
                     </p>
                 </div>
@@ -283,11 +283,11 @@ const HotspotsPage = () => {
                     <section className="space-y-6 flex-1 min-w-0">
                         {isLoading ? (
                             <div className="space-y-6">
-                                <div className="flex gap-3 sm:gap-4 overflow-x-auto px-1 py-4 sm:py-5">
+                                <div className="flex gap-3 sm:gap-4 overflow-x-auto scroll-smooth px-1 py-4 sm:py-5 snap-x">
                                     {skeletonItems.map((_, index) => (
                                         <div
                                             key={`locality-skeleton-${index}`}
-                                            className="min-w-[150px] sm:min-w-40 rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-[10px_10px_10px_rgba(0,0,0,0.10)]"
+                                            className="snap-start flex-shrink-0 min-w-[120px] sm:min-w-[140px] md:min-w-[150px] rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-[10px_10px_10px_rgba(0,0,0,0.10)]"
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className="h-9 w-9 animate-pulse rounded-lg bg-slate-200" />
@@ -327,7 +327,7 @@ const HotspotsPage = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="w-full space-y-3 rounded-xl bg-[#F1FCF5] p-4 lg:w-[240px] sm:space-y-4">
+                                            <div className="w-full space-y-3 rounded-xl bg-[#F1FCF5] p-4 lg:w-60 sm:space-y-4">
                                                 <div className="h-7 w-36 animate-pulse rounded bg-emerald-100" />
                                                 <div className="h-10 w-full animate-pulse rounded-lg bg-emerald-200" />
                                                 <div className="h-10 w-full animate-pulse rounded-lg bg-emerald-100" />
@@ -344,14 +344,15 @@ const HotspotsPage = () => {
                                         <button
                                             type="button"
                                             onClick={() => scrollLocalities("left")}
-                                            className="hidden md:block absolute left-0 lg:-left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-2 text-slate-600 shadow hover:bg-slate-50"
+                                            aria-label="Scroll localities left"
+                                            className="hidden md:block absolute left-2 md:-left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-2 text-slate-600 shadow hover:bg-slate-50"
                                         >
                                             <FiArrowLeft size={16} />
                                         </button>
                                     )}
                                     <div
                                         ref={localitiesRef}
-                                        className="flex gap-3 sm:gap-4 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-1 py-4 sm:py-5"
+                                        className="flex gap-3 sm:gap-4 overflow-x-auto scroll-smooth px-1 py-4 sm:py-5 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
                                     >
                                         {selectedCity?.localities?.map((locality: any, index: number) => (
                                             <button
@@ -362,7 +363,8 @@ const HotspotsPage = () => {
                                                         prev === locality.name ? "" : locality.name
                                                     )
                                                 }
-                                                className={`group min-w-[150px] sm:min-w-40 rounded-xl border bg-white p-3.5 sm:p-4 shadow-[10px_10px_10px_rgba(0,0,0,0.10)] transition cursor-pointer text-left ${selectedLocality === locality.name
+                                                aria-pressed={selectedLocality === locality.name}
+                                                className={`group snap-start flex-shrink-0 min-w-[120px] sm:min-w-[140px] md:min-w-[150px] lg:min-w-[180px] rounded-xl border bg-white p-3.5 sm:p-4 shadow-[10px_10px_10px_rgba(0,0,0,0.10)] transition cursor-pointer text-left ${selectedLocality === locality.name
                                                     ? "border-emerald-500 ring-1 ring-emerald-200"
                                                     : "border-slate-200 hover:border-emerald-300"
                                                     }`}
@@ -387,7 +389,8 @@ const HotspotsPage = () => {
                                         <button
                                             type="button"
                                             onClick={() => scrollLocalities("right")}
-                                            className="hidden md:block absolute right-0 lg:-right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-2 text-slate-600 shadow hover:bg-slate-50"
+                                            aria-label="Scroll localities right"
+                                            className="hidden md:block absolute right-2 md:-right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-2 text-slate-600 shadow hover:bg-slate-50"
                                         >
                                             <FiArrowRight size={16} />
                                         </button>
@@ -442,7 +445,7 @@ const HotspotsPage = () => {
                                                             </p>
                                                         </div>
 
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                                        <div className="hidden sm:grid sm:grid-cols-2 gap-3 sm:gap-4">
                                                             <div className="bg-[#F1FCF5] p-4 rounded-xl space-y-2">
                                                                 <p className="text-emerald-700 font-semibold text-sm">
                                                                     Floor Plans
@@ -487,7 +490,7 @@ const HotspotsPage = () => {
                                                     </div>
 
                                                     {/* Pricing */}
-                                                    <div className="w-full lg:w-[240px] lg:border-l border-slate-50 flex flex-col justify-center space-y-3 sm:space-y-4 bg-[#F1FCF5] p-4 rounded-xl items-stretch lg:items-center">
+                                                    <div className="w-full lg:w-60 lg:border-l border-slate-50 flex flex-col justify-center space-y-3 sm:space-y-4 bg-[#F1FCF5] p-4 rounded-xl items-stretch lg:items-center">
                                                         <div className="w-full text-center text-lg font-semibold leading-snug text-[#26ad5f] sm:text-xl">
                                                             {formatProjectPriceRange(project)}
                                                         </div>

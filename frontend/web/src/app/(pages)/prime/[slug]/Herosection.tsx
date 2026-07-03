@@ -2,8 +2,11 @@
 "use client";
 
 import { projectpostLeads } from "@/data/ClientData";
+import { useShortlist } from "@/hooks/useShortlist";
 import { useMutation } from "@tanstack/react-query";
 import React, { useState } from "react";
+import { FiHeart } from "react-icons/fi";
+import { IoIosShareAlt } from "react-icons/io";
 import { toast } from "sonner";
 
 type Props = {
@@ -17,6 +20,7 @@ export type Stat = {
 
 export type Hero = {
   projectId: string;
+  title?: string;
   subTagline?: string;
   description?: string;
   color?: string;
@@ -46,6 +50,10 @@ export default function HeroSection({ hero }: Props) {
   const h = hero as Hero;
   const heroImageUrl =
     typeof h.heroImage === "string" ? h.heroImage : h.heroImage?.url;
+  const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(
+    h.projectId,
+    "FeaturedProject",
+  );
 
   const [form, setForm] = useState({
     name: "",
@@ -94,7 +102,27 @@ export default function HeroSection({ hero }: Props) {
     setForm((p) => ({ ...p, [name]: value }));
   }
 
-  
+  async function shareProject() {
+    const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+    const shareData = {
+      title: h.title || h.subTagline || "Prime Project",
+      text: `Check out ${h.title || h.subTagline || "this prime project"}`,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Project link copied");
+    } catch {
+      // Ignore cancelled share / clipboard issues.
+    }
+  }
+
 
 
   return (
@@ -135,6 +163,34 @@ export default function HeroSection({ hero }: Props) {
             >
               {h.description}
             </h2>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={toggleShortlist}
+                disabled={isShortlistLoading}
+                className={`flex h-10 items-center gap-2 rounded-lg border border-white/70 bg-white/95 px-4 text-sm font-semibold shadow-sm backdrop-blur transition hover:bg-white cursor-pointer ${
+                  isShortlisted ? "text-rose-500" : "text-slate-700 hover:text-rose-500"
+                } disabled:cursor-not-allowed disabled:opacity-70`}
+                aria-label={isShortlisted ? "Remove project from shortlist" : "Shortlist project"}
+                aria-pressed={isShortlisted}
+              >
+                <FiHeart className={`h-4 w-4 ${isShortlisted ? "fill-current" : ""}`} />
+                <span>
+                  {isShortlistLoading ? "Saving..." : isShortlisted ? "Shortlisted" : "Shortlist"}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={shareProject}
+                className="flex h-10 items-center gap-2 rounded-lg border border-white/70 bg-white/95 px-4 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-emerald-600 cursor-pointer"
+                aria-label="Share project"
+              >
+                <IoIosShareAlt className="h-4 w-4" />
+                <span>Share</span>
+              </button>
+            </div>
 
             <div className="absolute bottom-0 left-0 w-full lg:w-[65%] z-10">
               <div className="grid grid-cols-2 gap-3 py-4 text-center sm:gap-4 sm:py-6 md:grid-cols-4 md:gap-6 lg:py-8">

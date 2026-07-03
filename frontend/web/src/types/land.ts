@@ -103,6 +103,6 @@ export const landKeyMapping: Record<
   "Verified Properties": "verifiedProperties",
 
   "Posted Since": "postedSince",
-  "Posted By": "postedBy",
+  "Posted By": "createdByRole",
 
 };

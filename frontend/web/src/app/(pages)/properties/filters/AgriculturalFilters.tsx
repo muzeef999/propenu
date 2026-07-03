@@ -89,7 +89,7 @@ const AgriculturalFilters = () => {
     agricultural.totalArea?.max ?? CARPET_MAX,
   ]);
 
-  const { locality, postedBy } = agricultural;
+  const { locality, createdByRole } = agricultural;
   const selectedLocalities = Array.isArray(locality) ? locality : [];
   const localityLabel =
     selectedLocalities.length === 0
@@ -402,13 +402,13 @@ const AgriculturalFilters = () => {
                 onClick={() => {
                   dispatch(
                     setAgriculturalFilter({
-                      key: "postedBy",
-                      value: [opt],
+                      key: "createdByRole",
+                      value: postedByLabelMap[opt],
                     })
                   );
                   close?.();
                 }}
-                className={`px-2 py-1 rounded block w-full cursor-pointer text-left hover:bg-gray-100 ${postedBy?.includes(opt) ? "font-semibold bg-gray-100" : ""
+                className={`px-2 py-1 rounded block w-full cursor-pointer text-left hover:bg-gray-100 ${createdByRole === postedByLabelMap[opt] ? "font-semibold bg-gray-100" : ""
                   }`}
               >
                 {postedByLabelMap[opt]}
@@ -418,15 +418,15 @@ const AgriculturalFilters = () => {
               onClick={() => {
                 dispatch(
                   setAgriculturalFilter({
-                    key: "postedBy",
-                    value: [],
+                    key: "createdByRole",
+                    value: "",
                   })
                 );
                 close?.();
               }}
-              disabled={!postedBy || postedBy.length === 0}
+              disabled={!createdByRole}
               className={`mt-2 px-2 py-1 rounded block w-full text-left ${
-                postedBy && postedBy.length > 0
+                createdByRole
                   ? "cursor-pointer text-red-500 hover:bg-red-50"
                   : "text-gray-400 cursor-not-allowed"
               }`}
@@ -566,7 +566,7 @@ const AgriculturalFilters = () => {
                 const mappedKey = agriculturalKeyMapping[section.key];
                 const currentValue = agricultural[mappedKey];
                 const isBooleanFilter = BOOLEAN_KEYS.has(mappedKey);
-                const isPostedByFilter = mappedKey === "postedBy";
+                const isPostedByFilter = mappedKey === "createdByRole";
                 const isMultiSelect =
                   !isPostedByFilter &&
                   (section.selectionType === "multiple" ||
@@ -682,7 +682,11 @@ const AgriculturalFilters = () => {
                           return (
                             <SelectableButton
                               key={opt}
-                              label={postedByLabelMap[opt as PostedByOption] ?? opt}
+                              label={
+                                isPostedByFilter
+                                  ? postedByLabelMap[opt as PostedByOption] ?? opt
+                                  : opt
+                              }
                               active={isActive}
                               selectionType={isMultiSelect ? "multiple" : "single"}
                               onClick={() => {
@@ -692,7 +696,7 @@ const AgriculturalFilters = () => {
                                     value: isStateRestrictions
                                       ? stateRestrictionValue
                                       : isPostedByFilter
-                                        ? [opt]
+                                        ? postedByLabelMap[opt as PostedByOption] ?? opt
                                       : isBooleanFilter
                                         ? !Boolean(currentValue)
                                         : isMultiSelect

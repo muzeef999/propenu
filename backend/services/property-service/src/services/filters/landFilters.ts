@@ -40,6 +40,10 @@ function parseMinRoadWidth(value?: string) {
   return Math.min(...parsed);
 }
 
+function normalizeCreatedByRoleToken(token: string) {
+  return normalizeListingSourceToken(token);
+}
+
 function getPostedSinceDate(value: unknown) {
   if (typeof value !== "string") return undefined;
 
@@ -167,6 +171,15 @@ export function extendLandFilters(
 
   const banksApprovedList = parseCsv(q.banksApproved as string | undefined);
   if (banksApprovedList.length > 0) f.banksApproved = { $in: banksApprovedList };
+
+  const createdByRoleTokens = parseCsv(
+    q.createdByRole as string | undefined
+  ).map(normalizeCreatedByRoleToken);
+  if (createdByRoleTokens.length === 1) {
+    f["createdBy.roleName"] = createdByRoleTokens[0];
+  } else if (createdByRoleTokens.length > 1) {
+    f["createdBy.roleName"] = { $in: createdByRoleTokens };
+  }
 
   const sourceTokens = parseCsv(
     (q.listingSource ?? q.postedBy) as string | undefined

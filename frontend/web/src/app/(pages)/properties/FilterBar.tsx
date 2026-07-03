@@ -124,6 +124,7 @@ const FilterBar: React.FC = () => {
 
   useEffect(() => {
     const postedBy = (
+      searchParams.get("createdByRole") ||
       searchParams.get("postedBy") ||
       searchParams.get("postedby") ||
       searchParams.get("listingSource") ||
@@ -142,7 +143,7 @@ const FilterBar: React.FC = () => {
     if (category === "Residential") {
       dispatch(
         setResidentialFilter({
-          key: "listingSource",
+          key: "createdByRole",
           value: isAgent ? "agent" : "user",
         }),
       );
@@ -152,8 +153,8 @@ const FilterBar: React.FC = () => {
     if (category === "Commercial") {
       dispatch(
         setCommercialFilter({
-          key: "listingSource",
-          value: isAgent ? "Agents" : "Owners",
+          key: "createdByRole",
+          value: isAgent ? "agent" : "user",
         }),
       );
       return;
@@ -161,7 +162,7 @@ const FilterBar: React.FC = () => {
 
     if (category === "Land") {
       dispatch(
-        setLandFilter({ key: "postedBy", value: [isAgent ? "Agents" : "Owners"] }),
+        setLandFilter({ key: "createdByRole", value: isAgent ? "agent" : "user" }),
       );
       return;
     }
@@ -169,8 +170,8 @@ const FilterBar: React.FC = () => {
     if (category === "Agricultural") {
       dispatch(
         setAgriculturalFilter({
-          key: "postedBy",
-          value: [isAgent ? "Agents" : "Owners"],
+          key: "createdByRole",
+          value: isAgent ? "agent" : "user",
         }),
       );
     }

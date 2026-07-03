@@ -118,8 +118,8 @@ const AgriculturalMobileFilter: React.FC<AgriculturalMobileFilterProps> = ({
   )
     ? agricultural.agriculturalSubType
     : [];
-  const selectedPostedBy = Array.isArray(agricultural.postedBy)
-    ? agricultural.postedBy
+  const selectedPostedBy = agricultural.createdByRole
+    ? [agricultural.createdByRole]
     : [];
 
   useEffect(() => {
@@ -514,13 +514,13 @@ const AgriculturalMobileFilter: React.FC<AgriculturalMobileFilterProps> = ({
                 onClick={() =>
                   dispatch(
                     setAgriculturalFilter({
-                      key: "postedBy",
-                      value: [option],
+                      key: "createdByRole",
+                      value: postedByLabelMap[option],
                     }),
                   )
                 }
                 className={`rounded-xl border px-3 py-2 text-sm ${
-                  selectedPostedBy.includes(option)
+                  selectedPostedBy.includes(postedByLabelMap[option])
                     ? "border-green-600 bg-[#d8ece0] text-green-700"
                     : "border-gray-300 bg-white"
                 }`}
@@ -572,7 +572,7 @@ const AgriculturalMobileFilter: React.FC<AgriculturalMobileFilterProps> = ({
                       const mappedKey = agriculturalKeyMapping[section.key];
                       const currentValue = agricultural[mappedKey];
                       const isBooleanFilter = BOOLEAN_KEYS.has(mappedKey);
-                      const isPostedByFilter = mappedKey === "postedBy";
+                      const isPostedByFilter = mappedKey === "createdByRole";
                       const isMultiSelect =
                         !isPostedByFilter &&
                         (section.selectionType === "multiple" ||
@@ -699,7 +699,7 @@ const AgriculturalMobileFilter: React.FC<AgriculturalMobileFilterProps> = ({
                                           value: isStateRestrictions
                                             ? stateRestrictionValue
                                             : isPostedByFilter
-                                              ? [opt]
+                                              ? postedByLabelMap[opt as PostedByOption] ?? opt
                                             : isBooleanFilter
                                               ? !Boolean(currentValue)
                                               : isMultiSelect

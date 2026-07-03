@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import {
   createBuilderMember,
   createBuilderRole,
@@ -123,6 +124,17 @@ const getRoleTone = (index: number) => {
   return tones[index % tones.length];
 };
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (axios.isAxiosError(error)) {
+    const message =
+      (error.response?.data as { message?: string } | undefined)?.message;
+    if (message) return message;
+  }
+
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+};
+
 function SwitchToggle({
   active,
   disabled,
@@ -157,6 +169,7 @@ export default function BuilderRolesPage() {
   const [roleName, setRoleName] = useState("");
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
+  const [memberFormError, setMemberFormError] = useState<string | null>(null);
   const [memberForm, setMemberForm] = useState({
     name: "",
     email: "",
@@ -193,7 +206,15 @@ export default function BuilderRolesPage() {
   const projects = useMemo(() => {
     const data = propertiesQuery.data;
     if (!data) return [];
-    return Object.values(data).flat();
+    const seen = new Set<string>();
+
+    return Object.values(data)
+      .flat()
+      .filter((project) => {
+        if (!project?._id || seen.has(project._id)) return false;
+        seen.add(project._id);
+        return true;
+      });
   }, [propertiesQuery.data]);
 
   const groupedPermissions = useMemo(() => {
@@ -259,6 +280,7 @@ export default function BuilderRolesPage() {
   const createMemberMutation = useMutation({
     mutationFn: createBuilderMember,
     onSuccess: () => {
+      setMemberFormError(null);
       setMemberForm({
         name: "",
         email: "",
@@ -267,6 +289,15 @@ export default function BuilderRolesPage() {
         projectIds: [],
       });
       queryClient.invalidateQueries({ queryKey: ["builder-members"] });
+      toast.success("Team member added successfully");
+    },
+    onError: (error) => {
+      const message = getErrorMessage(
+        error,
+        "Failed to add team member. Please try again.",
+      );
+      setMemberFormError(message);
+      toast.error(message);
     },
   });
 
@@ -291,6 +322,7 @@ export default function BuilderRolesPage() {
   };
 
   const toggleProject = (projectId: string) => {
+    setMemberFormError(null);
     setMemberForm((current) => ({
       ...current,
       projectIds: current.projectIds.includes(projectId)
@@ -341,6 +373,8 @@ export default function BuilderRolesPage() {
   };
 
   const handleCreateMember = () => {
+    setMemberFormError(null);
+
     if (!memberForm.name.trim()) return toast.error("Member name is required");
     if (!memberForm.phone.trim()) return toast.error("Phone number is required");
     if (!memberForm.email.trim()) return toast.error("Email is required");
@@ -575,9 +609,10 @@ export default function BuilderRolesPage() {
                 <label className="text-sm font-medium text-gray-700">Name</label>
                 <input
                   value={memberForm.name}
-                  onChange={(event) =>
-                    setMemberForm((current) => ({ ...current, name: event.target.value }))
-                  }
+                  onChange={(event) => {
+                    setMemberFormError(null);
+                    setMemberForm((current) => ({ ...current, name: event.target.value }));
+                  }}
                   placeholder="Member name"
                   className="mt-2 h-11 w-full rounded-md border border-gray-300 px-3 text-sm outline-none transition focus:border-[#16A34A] focus:ring-2 focus:ring-green-100"
                 />
@@ -586,9 +621,10 @@ export default function BuilderRolesPage() {
                 <label className="text-sm font-medium text-gray-700">Phone</label>
                 <input
                   value={memberForm.phone}
-                  onChange={(event) =>
-                    setMemberForm((current) => ({ ...current, phone: event.target.value }))
-                  }
+                  onChange={(event) => {
+                    setMemberFormError(null);
+                    setMemberForm((current) => ({ ...current, phone: event.target.value }));
+                  }}
                   placeholder="WhatsApp number"
                   className="mt-2 h-11 w-full rounded-md border border-gray-300 px-3 text-sm outline-none transition focus:border-[#16A34A] focus:ring-2 focus:ring-green-100"
                 />
@@ -597,9 +633,10 @@ export default function BuilderRolesPage() {
                 <label className="text-sm font-medium text-gray-700">Email</label>
                 <input
                   value={memberForm.email}
-                  onChange={(event) =>
-                    setMemberForm((current) => ({ ...current, email: event.target.value }))
-                  }
+                  onChange={(event) => {
+                    setMemberFormError(null);
+                    setMemberForm((current) => ({ ...current, email: event.target.value }));
+                  }}
                   placeholder="Email address"
                   className="mt-2 h-11 w-full rounded-md border border-gray-300 px-3 text-sm outline-none transition focus:border-[#16A34A] focus:ring-2 focus:ring-green-100"
                 />
@@ -608,12 +645,13 @@ export default function BuilderRolesPage() {
                 <label className="text-sm font-medium text-gray-700">Role</label>
                 <select
                   value={memberForm.builderRoleId}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    setMemberFormError(null);
                     setMemberForm((current) => ({
                       ...current,
                       builderRoleId: event.target.value,
-                    }))
-                  }
+                    }));
+                  }}
                   className="mt-2 h-11 w-full rounded-md border border-gray-300 px-3 text-sm outline-none transition focus:border-[#16A34A] focus:ring-2 focus:ring-green-100"
                 >
                   <option value="">Select role</option>
@@ -677,6 +715,12 @@ export default function BuilderRolesPage() {
                 )}
               </div>
             </div>
+
+            {memberFormError && (
+              <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {memberFormError}
+              </div>
+            )}
 
             <button
               onClick={handleCreateMember}

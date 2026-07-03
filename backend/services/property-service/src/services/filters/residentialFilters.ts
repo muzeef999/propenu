@@ -63,6 +63,20 @@ function normalizeFacingToken(token: string) {
   return token.trim().toLowerCase().replace(/[\s_-]+/g, "");
 }
 
+function normalizeCreatedByRoleToken(token: string) {
+  const normalized = token.trim().toLowerCase();
+  if (normalized === "owner" || normalized === "owners" || normalized === "user") {
+    return "user";
+  }
+  if (normalized === "agent" || normalized === "agents") {
+    return "agent";
+  }
+  if (normalized === "builder" || normalized === "builders") {
+    return "builder";
+  }
+  return normalized;
+}
+
 function getPostedSinceDate(value: unknown) {
   if (typeof value !== "string") return undefined;
 
@@ -125,10 +139,6 @@ export function extendResidentialFilters(
 
   if (q.city) {
     f.city = q.city;
-  }
-
-  if (q.listingSource) {
-    f.listingSource = q.listingSource;
   }
 
   const minPrice = parseNumber(q.minPrice);
@@ -253,18 +263,31 @@ export function extendResidentialFilters(
 }
 
 
-if (typeof q.listingSource === "string" && q.listingSource.trim().length > 0) {
-  const sources = q.listingSource
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  if (typeof q.createdByRole === "string" && q.createdByRole.trim().length > 0) {
+    const roles = q.createdByRole
+      .split(",")
+      .map((role) => normalizeCreatedByRoleToken(role))
+      .filter(Boolean);
 
-  if (sources.length === 1) {
-    f.listingSource = sources[0];
-  } else if (sources.length > 1) {
-    f.listingSource = { $in: sources };
+    if (roles.length === 1) {
+      f["createdBy.roleName"] = roles[0];
+    } else if (roles.length > 1) {
+      f["createdBy.roleName"] = { $in: roles };
+    }
   }
-}
+
+  if (typeof q.listingSource === "string" && q.listingSource.trim().length > 0) {
+    const sources = q.listingSource
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    if (sources.length === 1) {
+      f.listingSource = sources[0];
+    } else if (sources.length > 1) {
+      f.listingSource = { $in: sources };
+    }
+  }
 
 
 

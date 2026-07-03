@@ -74,6 +74,7 @@ export interface ResidentialFilters {
   furnishing?: string;
   postedSince?: string;
   listingSource?: string;
+  createdByRole?: string;
    coveredArea?: {
     min?: number;
     max?: number;
@@ -115,6 +116,7 @@ export interface CommercialFilters {
   verifiedProperties?: boolean;
   postedSince?: string;
   listingSource?: string;
+  createdByRole?: string;
   locality?: string[];
 }
 
@@ -146,6 +148,7 @@ export interface LandFilters {
 
   postedSince?: string;
   postedBy?: string[];
+  createdByRole?: string;
   locality?: string[];
   
 }
@@ -176,6 +179,7 @@ export interface AgriculturalFilters {
 
   postedSince?: string;
   postedBy?: string[];
+  createdByRole?: string;
   locality?: string[];
 }
 

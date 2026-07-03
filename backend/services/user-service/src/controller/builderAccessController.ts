@@ -145,8 +145,52 @@ export const createBuilderMember = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const lookup = [...(email ? [{ email }] : []), ...(phone ? [{ phone }] : [])];
-    let user = await User.findOne(lookup.length ? { $or: lookup } : {});
+    const existingPhoneUser = phone
+      ? await User.findOne({ phone }).select("_id name email phone")
+      : null;
+    const existingEmailUser = email
+      ? await User.findOne({ email }).select("_id name email phone")
+      : null;
+
+    if (
+      existingPhoneUser &&
+      existingEmailUser &&
+      String(existingPhoneUser._id) !== String(existingEmailUser._id)
+    ) {
+      return res.status(409).json({
+        message: "Email and phone number belong to different accounts",
+      });
+    }
+
+    if (existingPhoneUser && (!email || existingPhoneUser.email !== email)) {
+      return res.status(409).json({
+        message: "Phone number already exists",
+      });
+    }
+
+    if (existingEmailUser && phone && existingEmailUser.phone && existingEmailUser.phone !== phone) {
+      return res.status(409).json({
+        message: "Email is already linked to a different phone number",
+      });
+    }
+
+    let user = existingEmailUser ?? existingPhoneUser ?? null;
+
+    if (user) {
+      const existingMembership = await BuilderMember.findOne({
+        userId: user._id,
+        builderId: { $ne: new mongoose.Types.ObjectId(builderId) },
+      })
+        .select("_id builderId")
+        .lean();
+
+      if (existingMembership) {
+        return res.status(409).json({
+          message:
+            "This email or phone number is already assigned under another builder account",
+        });
+      }
+    }
 
     if (!user) {
       user = await User.create({
@@ -182,7 +226,7 @@ export const createBuilderMember = async (req: AuthRequest, res: Response) => {
       },
       { new: true, upsert: true, setDefaultsOnInsert: true },
     )
-      .populate("userId", "name email phone")
+      .populate("userId", "name email phone roleName")
       .populate("builderRoleId", "name permissions")
       .lean();
 
@@ -202,7 +246,7 @@ export const getBuilderMembers = async (req: AuthRequest, res: Response) => {
   }
 
   const members = await BuilderMember.find({ builderId })
-    .populate("userId", "name email phone isActive")
+    .populate("userId", "name email phone roleName")
     .populate("builderRoleId", "name permissions isActive")
     .sort({ createdAt: -1 })
     .lean();
@@ -244,7 +288,7 @@ export const updateBuilderMember = async (req: AuthRequest, res: Response) => {
     updates,
     { new: true },
   )
-    .populate("userId", "name email phone isActive")
+    .populate("userId", "name email phone roleName")
     .populate("builderRoleId", "name permissions isActive");
 
   if (!member) {

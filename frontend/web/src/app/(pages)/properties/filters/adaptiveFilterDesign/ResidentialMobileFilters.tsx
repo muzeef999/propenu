@@ -71,7 +71,7 @@ const keyMapping: Record<RESFilterKey, keyof ResidentialFilters> = {
   Amenities: "amenities",
   Facing: "facing",
   "Posted Since": "postedSince",
-  "Posted By": "listingSource",
+  "Posted By": "createdByRole",
 };
 
 const bedroomOptions: BedroomOption[] = [
@@ -166,12 +166,12 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
   }, [cityData, searchText]);
 
   const selectedPostedBy = useMemo(() => {
-    const source = residential.listingSource;
+    const source = residential.createdByRole;
     const sourceList = Array.isArray(source) ? source : source ? [source] : [];
     return POSTED_BY_OPTIONS.filter((option) =>
       sourceList.includes(POSTED_BY_MAP[option]),
     );
-  }, [residential.listingSource]);
+  }, [residential.createdByRole]);
 
   const selectedBedrooms = Array.isArray(residential.bedrooms)
     ? residential.bedrooms
@@ -502,11 +502,11 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
                 type="button"
                 onClick={() =>
                   dispatch(
-                    setResidentialFilter({
-                      key: "listingSource",
-                      value: POSTED_BY_MAP[option],
-                    }),
-                  )
+                      setResidentialFilter({
+                        key: "createdByRole",
+                        value: POSTED_BY_MAP[option],
+                      }),
+                    )
                 }
                 className={`rounded-xl border px-3 py-2 text-sm ${selectedPostedBy.includes(option)
                   ? "border-green-600 bg-[#d8ece0] text-green-700"
@@ -632,7 +632,7 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
                       ? (currentValue as string[])
                       : [];
                     const filterValue =
-                      mappedKey === "listingSource"
+                      mappedKey === "createdByRole"
                         ? POSTED_BY_MAP[opt as (typeof POSTED_BY_OPTIONS)[number]] ?? opt
                         : opt;
                     const isActive = isMulti
@@ -643,7 +643,7 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
                                 <SelectableButton
                                   key={opt}
                                   label={
-                                    mappedKey === "listingSource"
+                                    mappedKey === "createdByRole"
                                       ? POSTED_BY_MAP[opt as (typeof POSTED_BY_OPTIONS)[number]] ?? opt
                                       : formatLabel(opt)
                                   }

@@ -256,6 +256,13 @@ export function buildSearchParams(filters: FilterState) {
           );
         }
 
+        if (normalized.createdByRole !== undefined) {
+          normalized.createdByRole = mapCsv(
+            normalized.createdByRole,
+            normalizeListingSourceToken
+          );
+        }
+
         if (normalized.bedrooms !== undefined) {
           normalized.bedrooms = mapCsv(
             normalized.bedrooms,
@@ -306,6 +313,13 @@ export function buildSearchParams(filters: FilterState) {
           normalized.facing = mapCsv(
             normalized.facing,
             normalizeResidentialFacingToken
+          );
+        }
+
+        if (normalized.createdByRole !== undefined) {
+          normalized.createdByRole = mapCsv(
+            normalized.createdByRole,
+            normalizeListingSourceToken
           );
         }
 
@@ -459,12 +473,11 @@ export function buildSearchParams(filters: FilterState) {
           delete normalized.roadWidth;
         }
 
-        if (normalized.postedBy !== undefined) {
-          normalized.listingSource = mapCsv(
-            normalized.postedBy,
+        if (normalized.createdByRole !== undefined) {
+          normalized.createdByRole = mapCsv(
+            normalized.createdByRole,
             normalizeListingSourceToken
           );
-          delete normalized.postedBy;
         }
 
         const cornerPlot = toTrueQueryValue(normalized.cornerPlot);
@@ -615,12 +628,11 @@ export function buildSearchParams(filters: FilterState) {
           delete normalized.stateRestrictions;
         }
 
-        if (normalized.postedBy !== undefined) {
-          normalized.listingSource = mapCsv(
-            normalized.postedBy,
+        if (normalized.createdByRole !== undefined) {
+          normalized.createdByRole = mapCsv(
+            normalized.createdByRole,
             normalizeListingSourceToken
           );
-          delete normalized.postedBy;
         }
 
         const electricityConnection = toTrueQueryValue(

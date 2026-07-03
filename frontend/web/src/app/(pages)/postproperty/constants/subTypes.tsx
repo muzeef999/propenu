@@ -83,6 +83,7 @@ export const PROJECT_PROPERTY_OPTIONS: PropertyTypeOption[] = [
   { key: "villa", label: "Villas", icon: <VillaIcons /> },
   { key: "open-plot", label: "Openplot", icon: <OpenPlotIcons /> },
   { key: "commercial-plot", label: "Commercial Plot", icon: <CommercialPlotIcons /> },
+  { key: "commercial-space", label: "Commercial Space", icon: <OfficeIcons width={10} height={10} /> },
 ];
 
 export const PROJECT_PROPERTY_KEYS = [
@@ -90,6 +91,7 @@ export const PROJECT_PROPERTY_KEYS = [
   "villa",
   "open-plot",
   "commercial-plot",
+  "commercial-space",
 ] as const;
 
 export type ProjectPropertyKey = (typeof PROJECT_PROPERTY_KEYS)[number];

@@ -15,7 +15,90 @@ import {
   getHomeSectionCacheKey,
   setHomeSectionCache,
 } from "@/utilies/homeSectionCache";
+import { useShortlist } from "@/hooks/useShortlist";
+import { GoHeart, GoHeartFill } from "react-icons/go";
 
+function PrimeProjectCard({ project }: { project: FeaturedProject }) {
+  const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(
+    project._id,
+    "FeaturedProject",
+  );
+
+  return (
+    <div className="shrink-0 w-[90%] sm:w-[calc(50%-0.5rem)] lg:w-[calc(50%-0.5rem)] card snap-start group">
+      <Link
+        href={`/prime/${project.slug}`}
+        className="relative block overflow-hidden rounded-t-md h-40 sm:h-[50px] md:h-[200px] lg:h-[220px]"
+      >
+        <Image
+          src={project.heroImage ?? "/images/placeholder.svg"}
+          alt={project.title}
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-cover transition-transform duration-300 group-hover:scale-105"
+        />
+
+        <button
+          type="button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleShortlist();
+          }}
+          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow transition-all duration-200 hover:scale-110 active:scale-95"
+          title={isShortlisted ? "Remove from shortlist" : "Shortlist"}
+          aria-label={isShortlisted ? "Remove from shortlist" : "Shortlist"}
+        >
+          {isShortlistLoading ? (
+            <span className="block h-5 w-5 animate-pulse rounded-full bg-gray-300" />
+          ) : isShortlisted ? (
+            <GoHeartFill className="h-5 w-5 text-red-500" />
+          ) : (
+            <GoHeart className="h-5 w-5 text-gray-600 hover:text-red-500" />
+          )}
+        </button>
+      </Link>
+
+      <div className="p-3 flex justify-between items-center gap-3">
+        <div className="shrink-0">
+          <Image
+            src={project?.logo?.url ?? "/images/placeholder.svg"}
+            alt={`${project.title} logo`}
+            width={64}
+            height={64}
+            className="object-contain rounded-md w-16 h-16 sm:w-20 sm:h-20"
+          />
+        </div>
+
+        <div className="flex flex-col justify-center grow min-w-0">
+          <h2 className="text-lg md:text-xl font-medium text-left truncate">
+            {project.title}
+          </h2>
+
+          {project.address && (
+            <p className="text-gray-500 text-sm mt-1 truncate">
+              {project.address}
+            </p>
+          )}
+        </div>
+
+        <div className="text-right flex flex-col items-end gap-1 shrink-0">
+          <p className="text-gray-600 font-light text-sm md:text-base">
+            {getProjectConfigurationLabel(project, "Flats")}
+          </p>
+
+          <p className="text-[#26ad5f] text-sm md:text-base font-medium">
+            {formatINR(project?.priceFrom)}
+            <span className="text-[#676666] font-light text-sm">
+              {" "}
+              onwards
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function FeaturedProjectsClient() {
   const sliderRef = useRef<HTMLDivElement | null>(null);
@@ -155,61 +238,7 @@ export default function FeaturedProjectsClient() {
           className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-1 py-2 snap-x snap-mandatory"
         >
           {items.map((project) => (
-            <div
-              key={project._id}
-              className="shrink-0 w-[90%] sm:w-[calc(50%-0.5rem)] lg:w-[calc(50%-0.5rem)] card snap-start group"
-            >
-              <Link
-                href={`/prime/${project.slug}`}
-                className="relative block overflow-hidden rounded-t-md h-40 sm:h-[50px] md:h-[200px] lg:h-[220px]"
-              >
-                <Image
-                  src={project.heroImage ?? "/images/placeholder.svg"}
-                  alt={project.title}
-                  fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                  className="object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-              </Link>
-
-              <div className="p-3 flex justify-between items-center gap-3">
-                <div className="shrink-0">
-                  <Image
-                    src={project?.logo?.url ?? "/images/placeholder.svg"}
-                    alt={`${project.title} logo`}
-                    width={64}
-                    height={64}
-                    className="object-contain rounded-md w-16 h-16 sm:w-20 sm:h-20"
-                  />
-                </div>
-
-                <div className="flex flex-col justify-center grow min-w-0">
-                  <h2 className="text-lg md:text-xl font-medium text-left truncate">
-                    {project.title}
-                  </h2>
-
-                  {project.address && (
-                    <p className="text-gray-500 text-sm mt-1 truncate">
-                      {project.address}
-                    </p>
-                  )}
-                </div>
-
-                <div className="text-right flex flex-col items-end gap-1 shrink-0">
-                  <p className="text-gray-600 font-light text-sm md:text-base">
-                    {getProjectConfigurationLabel(project, "Flats")}
-                  </p>
-
-                  <p className="text-[#26ad5f] text-sm md:text-base font-medium">
-                    {formatINR(project?.priceFrom)}
-                    <span className="text-[#676666] font-light text-sm">
-                      {" "}
-                      onwards
-                    </span>
-                  </p>
-                </div>
-              </div>
-            </div>
+            <PrimeProjectCard key={project._id} project={project} />
           ))}
         </div>
       ) : null}

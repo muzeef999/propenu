@@ -144,5 +144,5 @@ export const commercialKeyMapping: Record<
   "Price Negotiable": "priceNegotiable",
   "Verified Properties": "verifiedProperties",
   "Posted Since": "postedSince",
-  "Posted By": "listingSource",
+  "Posted By": "createdByRole",
 };

@@ -224,10 +224,12 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
   }, [cityData, searchText]);
 
   const selectedPostedBy = useMemo(() => {
-    const source = commercial.listingSource;
+    const source = commercial.createdByRole;
     const sourceList = Array.isArray(source) ? source : source ? [source] : [];
-    return postedByOptions.filter((option) => sourceList.includes(option));
-  }, [commercial.listingSource]);
+    return postedByOptions.filter((option) =>
+      sourceList.includes(postedByLabelMap[option]),
+    );
+  }, [commercial.createdByRole]);
 
   const toggleArrayValue = (arr: string[] = [], value: string) =>
     arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
@@ -553,7 +555,12 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
                 key={option}
                 type="button"
                 onClick={() =>
-                  dispatch(setCommercialFilter({ key: "listingSource", value: option }))
+                  dispatch(
+                    setCommercialFilter({
+                      key: "createdByRole",
+                      value: postedByLabelMap[option],
+                    }),
+                  )
                 }
                 className={`rounded-xl border px-3 py-2 text-sm ${
                   selectedPostedBy.includes(option)
@@ -717,7 +724,7 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
                                   <SelectableButton
                                     key={opt}
                                     label={
-                                      mappedKey === "listingSource"
+                                      mappedKey === "createdByRole"
                                         ? postedByLabelMap[opt as PostedByOption] ?? opt
                                         : opt
                                     }
@@ -734,7 +741,9 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
                                                   : [],
                                                 opt,
                                               )
-                                            : opt,
+                                            : mappedKey === "createdByRole"
+                                              ? postedByLabelMap[opt as PostedByOption] ?? opt
+                                              : opt,
                                         }),
                                       )
                                     }

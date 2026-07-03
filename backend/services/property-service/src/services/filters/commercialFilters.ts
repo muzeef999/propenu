@@ -127,6 +127,16 @@ function getPostedSinceDate(value: unknown) {
   return date;
 }
 
+function normalizeCreatedByRoleToken(token: string) {
+  const normalized = token.trim().toLowerCase();
+  if (normalized === "owner" || normalized === "owners" || normalized === "user") {
+    return "user";
+  }
+  if (normalized === "agent" || normalized === "agents") return "agent";
+  if (normalized === "builder" || normalized === "builders") return "builder";
+  return normalized;
+}
+
 export function extendCommercialFilters(
   query: CommercialQuery = {},
   baseFilter: Partial<BaseFilters> = {},
@@ -164,6 +174,19 @@ if (typeof q.locality === "string" && q.locality.trim().length > 0) {
 
   if (q.listingType) {
     f.listingType = q.listingType;
+  }
+
+  if (
+    typeof q.createdByRole === "string" &&
+    q.createdByRole.trim().length > 0
+  ) {
+    const roles = q.createdByRole
+      .split(",")
+      .map((src) => normalizeCreatedByRoleToken(src))
+      .filter(Boolean);
+
+    if (roles.length === 1) f["createdBy.roleName"] = roles[0];
+    else if (roles.length > 1) f["createdBy.roleName"] = { $in: roles };
   }
 
   if (

@@ -103,7 +103,7 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
   const selectedLocality = land.locality ?? "";
   const selectedLandTypes = Array.isArray(land.landType) ? land.landType : [];
   const selectedLandSubTypes = Array.isArray(land.landSubType) ? land.landSubType : [];
-  const selectedPostedBy = Array.isArray(land.postedBy) ? land.postedBy : [];
+  const selectedPostedBy = land.createdByRole ? [land.createdByRole] : [];
   const dimensionLength = land.dimensions?.length;
   const dimensionWidth = land.dimensions?.width;
 
@@ -504,12 +504,12 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                 onClick={() =>
                   dispatch(
                     setLandFilter({
-                      key: "postedBy",
-                      value: [option],
+                      key: "createdByRole",
+                      value: postedByLabelMap[option],
                     }),
                   )
                 }
-                className={`rounded-xl border px-3 py-2 text-sm ${selectedPostedBy.includes(option)
+                className={`rounded-xl border px-3 py-2 text-sm ${selectedPostedBy.includes(postedByLabelMap[option])
                     ? "border-green-600 bg-[#d8ece0] text-green-700"
                     : "border-gray-300 bg-white"
                   }`}
@@ -559,7 +559,7 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                     .map((section) => {
                       const mappedKey = landKeyMapping[section.key];
                       const currentValue = land[mappedKey];
-                      const isPostedByFilter = mappedKey === "postedBy";
+                      const isPostedByFilter = mappedKey === "createdByRole";
 
                       return (
                         <div key={section.key} className="space-y-3">
@@ -737,7 +737,7 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                                           value: isBooleanFilter
                                             ? !Boolean(currentValue)
                                             : isPostedByFilter
-                                              ? [opt]
+                                              ? postedByLabelMap[opt as PostedByOption] ?? opt
                                             : section.selectionType === "multiple"
                                               ? toggleArrayValue(
                                                 Array.isArray(currentValue) ? currentValue : [],

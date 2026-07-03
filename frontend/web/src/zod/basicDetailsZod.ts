@@ -90,6 +90,8 @@ export const basicDetailsSchema = z
     const isProjectLand =
       category === "project" &&
       (propertyType === "open-plot" || propertyType === "commercial-plot");
+    const isProjectCommercial =
+      category === "project" && propertyType === "commercial-space";
 
     /* ================= PROPERTY TYPE ================= */
     if (
@@ -134,7 +136,7 @@ export const basicDetailsSchema = z
       });
     }
 
-    if (category === "commercial") {
+    if (category === "commercial" || isProjectCommercial) {
       const needsFurnishing = Number(cabins) > 0 || Number(seats) > 0;
       const selectedFurnishing = data.furnishedStatus ?? data.furnishing;
 
@@ -167,7 +169,7 @@ export const basicDetailsSchema = z
       });
     }
 
-    if (category === "commercial" && propertyType && !facing) {
+    if ((category === "commercial" || isProjectCommercial) && propertyType && !facing) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["facing"],
@@ -265,7 +267,8 @@ export const basicDetailsSchema = z
     if (
       category === "residential" ||
       category === "commercial" ||
-      isProjectResidential
+      isProjectResidential ||
+      isProjectCommercial
     ) {
       if (!price || Number(price) <= 0) {
         ctx.addIssue({
@@ -335,7 +338,9 @@ export const basicDetailsSchema = z
     /* ================= AVAILABILITY ================= */
     if (
       ((category === "residential" || isProjectResidential) && facing) ||
-      (category === "commercial" && facing && data.wallFinishStatus)
+      ((category === "commercial" || isProjectCommercial) &&
+        facing &&
+        data.wallFinishStatus)
     ) {
       if (!constructionStatus) {
         ctx.addIssue({
@@ -362,7 +367,8 @@ export const basicDetailsSchema = z
     if (
       (category === "residential" ||
         category === "commercial" ||
-        isProjectResidential) &&
+        isProjectResidential ||
+        isProjectCommercial) &&
       constructionStatus &&
       !data.transactionType
     ) {
@@ -374,25 +380,25 @@ export const basicDetailsSchema = z
     }
 
     /* ================= COMMERCIAL EXTRA ================= */
-    if (category === "commercial") {
-      if (!commercialSubType) {
+    if (category === "commercial" || isProjectCommercial) {
+      if (category === "commercial" && !commercialSubType) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["commercialSubType"],
           message: "Please select a commercial sub-type",
         });
       }
+
       if (
-  category === "commercial" &&
-  commercialSubType &&      // commercial sub-type selected
-  !data.wallFinishStatus    // wall finish not selected
-) {
-  ctx.addIssue({
-    code: z.ZodIssueCode.custom,
-    path: ["wallFinishStatus"],
-    message: "Please select wall finish",
-  });
-}
+        (category === "commercial" ? commercialSubType : true) &&
+        !data.wallFinishStatus
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["wallFinishStatus"],
+          message: "Please select wall finish",
+        });
+      }
 
       if (
         (!cabins || Number(cabins) === 0) &&

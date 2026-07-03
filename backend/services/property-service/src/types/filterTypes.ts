@@ -21,6 +21,7 @@ export interface BaseFilters {
   pincode?: string;
   listingType?: string;
   listingSource?: string;
+  createdByRole?: string;
   status?: string;
   createdBy?: string;
   minPrice?: number;
@@ -41,6 +42,7 @@ export interface BaseFilters {
 export interface ResidentialQuery extends ParsedQs {
   bhk?: string;
   listingType?:string;
+  createdByRole?: string;
   transactionType?: "new-sale" | "resale"; 
   minBedrooms?: string;
   maxBedrooms?: string;
@@ -63,6 +65,7 @@ export interface ResidentialQuery extends ParsedQs {
 }
 
 export interface CommercialQuery extends ParsedQs {
+  createdByRole?: string;
   transactionType?: string;
   postedSince?: string;
   floor?: string;
@@ -91,6 +94,7 @@ export interface CommercialQuery extends ParsedQs {
 }
 
 export interface LandQuery extends ParsedQs {
+  createdByRole?: string;
   minPlotArea?: string;
   maxPlotArea?: string;
   minDimensionLength?: string;
@@ -118,6 +122,7 @@ export interface LandQuery extends ParsedQs {
 }
 
 export interface AgriculturalQuery extends ParsedQs {
+  createdByRole?: string;
   minArea?: string;
   maxArea?: string;
   minTotalArea?: string;

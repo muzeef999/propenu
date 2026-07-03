@@ -49,7 +49,7 @@ const LandFilters = () => {
   const { minPrice, maxPrice, land, listingTypeValue } = filtersState;
   const [budgetTouched, setBudgetTouched] = useState(false);
 
-  const { locality, postedBy } = land;
+  const { locality, createdByRole } = land;
   const dimensionLength = land.dimensions?.length;
   const dimensionWidth = land.dimensions?.width;
   const selectedLocalities = Array.isArray(locality) ? locality : [];
@@ -432,13 +432,13 @@ const LandFilters = () => {
                 onClick={() => {
                   dispatch(
                     setLandFilter({
-                      key: "postedBy",
-                      value: [opt],
+                      key: "createdByRole",
+                      value: postedByLabelMap[opt],
                     })
                   );
                   close?.();
                 }}
-                className={`px-2 py-1 rounded block w-full cursor-pointer text-left hover:bg-gray-100 ${postedBy?.includes(opt) ? "font-semibold bg-gray-100" : ""
+                className={`px-2 py-1 rounded block w-full cursor-pointer text-left hover:bg-gray-100 ${createdByRole === postedByLabelMap[opt] ? "font-semibold bg-gray-100" : ""
                   }`}
               >
                 {postedByLabelMap[opt]}
@@ -448,15 +448,15 @@ const LandFilters = () => {
               onClick={() => {
                 dispatch(
                   setLandFilter({
-                    key: "postedBy",
-                    value: [],
+                    key: "createdByRole",
+                    value: "",
                   })
                 );
                 close?.();
               }}
-              disabled={!postedBy || postedBy.length === 0}
+              disabled={!createdByRole}
               className={`mt-2 px-2 py-1 rounded block w-full text-left ${
-                postedBy && postedBy.length > 0
+                createdByRole
                   ? "cursor-pointer text-red-500 hover:bg-red-50"
                   : "text-gray-400 cursor-not-allowed"
               }`}
@@ -600,7 +600,7 @@ const LandFilters = () => {
               {landMoreFilterSections.map((section) => {
                 const mappedKey = landKeyMapping[section.key];
                 const currentValue = land[mappedKey];
-                const isPostedByFilter = mappedKey === "postedBy";
+                const isPostedByFilter = mappedKey === "createdByRole";
 
                 return (
                   <div
@@ -774,7 +774,11 @@ const LandFilters = () => {
                           return (
                             <SelectableButton
                               key={opt}
-                              label={postedByLabelMap[opt as PostedByOption] ?? opt}
+                              label={
+                                isPostedByFilter
+                                  ? postedByLabelMap[opt as PostedByOption] ?? opt
+                                  : opt
+                              }
                               active={isActive}
                               selectionType={section.selectionType ?? "single"}
                               onClick={() => {
@@ -785,7 +789,7 @@ const LandFilters = () => {
                                       isBooleanFilter
                                         ? !Boolean(currentValue)
                                         : isPostedByFilter
-                                          ? [opt]
+                                          ? postedByLabelMap[opt as PostedByOption] ?? opt
                                         : section.selectionType === "multiple"
                                           ? toggleArrayValue(
                                             (currentValue as string[]) || [],
