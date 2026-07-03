@@ -8,11 +8,34 @@ import TrackPropertyStatus from "../verifyproperty/TrackPropertyStatus";
 
 const VerificationStep = () => {
   const router = useRouter();
-  const { residential, commercial, land, agricultural, propertyType, base } =
+  const {
+    residential,
+    commercial,
+    land,
+    agricultural,
+    project,
+    propertyType,
+    base,
+  } =
     useAppSelector((state) => state.postProperty);
 
+  const isProjectResidentialFlow =
+    propertyType === "project" &&
+    ["apartment", "villa"].includes(project.propertyType);
+  const isProjectLandFlow =
+    propertyType === "project" &&
+    ["open-plot", "commercial-plot"].includes(project.propertyType);
+  const isProjectCommercialFlow =
+    propertyType === "project" && project.propertyType === "commercial-space";
+
   const profileData =
-    propertyType === "residential"
+    isProjectResidentialFlow
+      ? project
+      : isProjectCommercialFlow
+        ? project
+        : isProjectLandFlow
+          ? project
+          : propertyType === "residential"
       ? residential
       : propertyType === "commercial"
         ? commercial

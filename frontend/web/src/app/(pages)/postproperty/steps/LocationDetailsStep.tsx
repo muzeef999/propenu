@@ -64,6 +64,10 @@ function getProjectBackendCategory(projectPropertyType?: string) {
     return "residential";
   }
 
+  if (projectPropertyType === "commercial-space") {
+    return "commercial";
+  }
+
   if (["open-plot", "commercial-plot"].includes(projectPropertyType ?? "")) {
     return "land";
   }

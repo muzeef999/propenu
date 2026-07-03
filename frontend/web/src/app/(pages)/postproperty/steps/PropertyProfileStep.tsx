@@ -27,6 +27,10 @@ const PropertyProfileStep = () => {
         return <ResidentialProfile />;
       }
 
+      if (project.propertyType === "commercial-space") {
+        return <CommercialProfile />;
+      }
+
       if (["open-plot", "commercial-plot"].includes(project.propertyType)) {
         return <LandProfile />;
       }

@@ -45,6 +45,10 @@ function getProjectBackendCategory(projectPropertyType?: string) {
     return "residential";
   }
 
+  if (projectPropertyType === "commercial-space") {
+    return "commercial";
+  }
+
   if (["open-plot", "commercial-plot"].includes(projectPropertyType ?? "")) {
     return "land";
   }
@@ -54,6 +58,7 @@ function getProjectBackendCategory(projectPropertyType?: string) {
 
 function normalizeProjectPropertyTypeForBackend(projectPropertyType?: string) {
   if (projectPropertyType === "open-plot") return "residential-plot";
+  if (projectPropertyType === "commercial-space") return "office";
   return projectPropertyType;
 }
 
@@ -1400,6 +1405,15 @@ export default function BasicDetailsStep() {
             basicPayload.propertyType = normalizeProjectPropertyTypeForBackend(
               project.propertyType,
             );
+          }
+
+          if (
+            propertyType === "project" &&
+            project.propertyType === "commercial-space" &&
+            profileData.commercialSubType
+          ) {
+            basicPayload.propertySubType = profileData.commercialSubType;
+            delete basicPayload.commercialSubType;
           }
 
           if (

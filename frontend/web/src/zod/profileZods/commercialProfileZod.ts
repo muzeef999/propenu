@@ -4,10 +4,25 @@ export const commercialProfileSchema = z.object({
   amenities: z.array(z.string()).optional(),
 
   parkingDetails: z
-    .object({
-      twoWheeler: z.number().min(0),
-      fourWheeler: z.number().min(0),
-    })
+    .preprocess(
+      (value) => {
+        if (!value || typeof value !== "object") return undefined;
+
+        const parking = value as {
+          twoWheeler?: number;
+          fourWheeler?: number;
+        };
+
+        return {
+          twoWheeler: parking.twoWheeler ?? 0,
+          fourWheeler: parking.fourWheeler ?? 0,
+        };
+      },
+      z.object({
+        twoWheeler: z.number().min(0),
+        fourWheeler: z.number().min(0),
+      }),
+    )
     .optional(),
 
   flooringType: z.string().optional(),

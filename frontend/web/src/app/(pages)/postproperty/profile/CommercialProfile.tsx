@@ -56,9 +56,17 @@ export const FLOORING_TYPES = [
   "wooden-laminate",
 ] as const;
 
+function getSubmitCategory(propertyType?: string, projectPropertyType?: string) {
+  if (propertyType === "project" && projectPropertyType === "commercial-space") {
+    return "commercial";
+  }
+
+  return propertyType ?? "commercial";
+}
+
 const CommercialProfile = () => {
   const router = useRouter();
-  const { commercial, draftId, propertyType } = useSelector(
+  const { commercial, project, draftId, propertyType } = useSelector(
     (state: any) => state.postProperty,
   );
   const dispatch = useAppDispatch();
@@ -790,11 +798,15 @@ const CommercialProfile = () => {
           }
 
           setFieldErrors({}); // clear previous errors
+          const submitCategory = getSubmitCategory(
+            propertyType,
+            project?.propertyType,
+          );
 
           // 🚀 IMPORTANT: send ORIGINAL residential object to backend
           dispatch(
             submitDetailsThunk({
-              category: propertyType,
+              category: submitCategory,
               id: draftId,
               payload: commercial, // backend/thunk will format this
             }),
@@ -805,9 +817,9 @@ const CommercialProfile = () => {
                 toast.success("Property listed successfully.");
                 clearFileStore("postProperty");
                 setFiles([]);
-                dispatch(resetPostProperty({ propertyType }));
+                dispatch(resetPostProperty({ propertyType: submitCategory as any }));
                 dispatch(showAgentSubmissionSuccess());
-                dispatch(createDraftThunk(propertyType))
+                dispatch(createDraftThunk(submitCategory))
                   .unwrap()
                   .catch(() => {
                     toast.error("Property submitted, but new draft creation failed.");
