@@ -287,7 +287,7 @@ const HotspotsPage = () => {
                                     {skeletonItems.map((_, index) => (
                                         <div
                                             key={`locality-skeleton-${index}`}
-                                            className="snap-start flex-shrink-0 min-w-[120px] sm:min-w-[140px] md:min-w-[150px] rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-[10px_10px_10px_rgba(0,0,0,0.10)]"
+                                            className="snap-start shrink-0 min-w-[120px] sm:min-w-[140px] md:min-w-[150px] rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-[10px_10px_10px_rgba(0,0,0,0.10)]"
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className="h-9 w-9 animate-pulse rounded-lg bg-slate-200" />
@@ -364,7 +364,7 @@ const HotspotsPage = () => {
                                                     )
                                                 }
                                                 aria-pressed={selectedLocality === locality.name}
-                                                className={`group snap-start flex-shrink-0 min-w-[120px] sm:min-w-[140px] md:min-w-[150px] lg:min-w-[180px] rounded-xl border bg-white p-3.5 sm:p-4 shadow-[10px_10px_10px_rgba(0,0,0,0.10)] transition cursor-pointer text-left ${selectedLocality === locality.name
+                                                className={`group snap-start shrink-0 min-w-[120px] sm:min-w-[140px] md:min-w-[150px] lg:min-w-[180px] rounded-xl border bg-white p-3.5 sm:p-4 shadow-[10px_10px_10px_rgba(0,0,0,0.10)] transition cursor-pointer text-left ${selectedLocality === locality.name
                                                     ? "border-emerald-500 ring-1 ring-emerald-200"
                                                     : "border-slate-200 hover:border-emerald-300"
                                                     }`}
