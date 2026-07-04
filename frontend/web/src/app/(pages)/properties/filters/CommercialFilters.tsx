@@ -210,8 +210,8 @@ const CommercialFilters = () => {
     ...(Array.isArray(commercial.totalFloors) && commercial.totalFloors.length
       ? [`Total floors: ${commercial.totalFloors.join(", ")}`]
       : []),
-    ...(commercial.furnishing
-      ? [`Furnishing: ${formatLabel(commercial.furnishing)}`]
+    ...(commercial.furnishingStatus
+      ? [`Furnishing: ${formatLabel(commercial.furnishingStatus)}`]
       : []),
     ...(commercial.postedSince
       ? [`Posted: ${formatLabel(commercial.postedSince)}`]
