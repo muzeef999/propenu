@@ -173,7 +173,9 @@ const LandFilters = () => {
     ...(selectedLandTypes.length
       ? selectedLandTypes.map((value) => `Type: ${formatLabel(value)}`)
       : []),
-    ...(land.landSubType ? [`Sub type: ${formatLabel(land.landSubType)}`] : []),
+    ...(Array.isArray(land.landSubType) && land.landSubType.length
+      ? land.landSubType.map((value) => `Sub type: ${formatLabel(value)}`)
+      : []),
     ...(land.plotArea?.min || land.plotArea?.max
       ? [
           `Plot: ${land.plotArea?.min ?? CARPET_MIN}-${land.plotArea?.max ?? CARPET_MAX} sqft`,
@@ -185,7 +187,6 @@ const LandFilters = () => {
     ...(Array.isArray(land.roadWidth) && land.roadWidth.length
       ? [`Road width: ${land.roadWidth.join(", ")}`]
       : []),
-    ...(land.gatedCommunity ? ["Gated community"] : []),
     ...(land.cornerPlot ? ["Corner plot"] : []),
     ...(land.readyToConstruct ? ["Ready to construct"] : []),
     ...(land.postedSince ? [`Posted: ${formatLabel(land.postedSince)}`] : []),
