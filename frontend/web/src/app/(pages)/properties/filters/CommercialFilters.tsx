@@ -6,7 +6,11 @@ import {
   selectCityWithLocalities,
   selectLocalitiesByCity,
 } from "@/Redux/slice/citySlice";
-import { setBudget, setCommercialFilter } from "@/Redux/slice/filterSlice";
+import {
+  resetCommercialFilters,
+  setBudget,
+  setCommercialFilter,
+} from "@/Redux/slice/filterSlice";
 import React, { useEffect, useRef, useState } from "react";
 import {
   commercialMoreFilterSections,
@@ -22,6 +26,7 @@ import Toggle from "@/ui/ToggleSwitch";
 import { toast } from "sonner";
 import SelectableButton from "@/ui/SelectableButton";
 import { FiCheck, FiPlus, FiX } from "react-icons/fi";
+import { formatLabel } from "@/utilies/formatLabel";
 
 const BUDGET_MIN = 5;
 const BUDGET_MAX = 5000;
@@ -57,8 +62,12 @@ const normalizeCommercialTypeToken = (value: string) =>
 const CommercialFilters = () => {
   const dispatch = useDispatch();
 
+  const leftPanelRef = useRef<HTMLDivElement | null>(null);
   const rightPanelRef = useRef<HTMLDivElement | null>(null);
+  const programmaticScrollRef = useRef(false);
+  const programmaticScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sectionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+  const leftItemRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
   const [open, setOpen] = useState(false);
   const [activeFilter, setActiveFilter] =
     useState<CommercialFilterKey>("Commercial Type");
@@ -116,14 +125,23 @@ const CommercialFilters = () => {
 
     if (!container || !target) return;
 
+    if (programmaticScrollTimeoutRef.current) {
+      clearTimeout(programmaticScrollTimeoutRef.current);
+    }
+
+    programmaticScrollRef.current = true;
+
     const top = target.offsetTop - container.offsetTop - 12;
 
+    setActiveFilter(key);
     container.scrollTo({
       top,
       behavior: "smooth",
     });
 
-    setActiveFilter(key);
+    programmaticScrollTimeoutRef.current = setTimeout(() => {
+      programmaticScrollRef.current = false;
+    }, 350);
   };
 
   const toggleArrayValue = (arr: string[] = [], value: string) => {
@@ -160,6 +178,57 @@ const CommercialFilters = () => {
         ? { ...section, options: commercialSubTypeOptions }
         : section
     );
+  const appliedFilterChips = [
+    ...(selectedCommercialTypes.length
+      ? selectedCommercialTypes.map((value) => `Type: ${formatLabel(value)}`)
+      : []),
+    ...(Array.isArray(commercial.commercialSubType) &&
+    commercial.commercialSubType.length
+      ? commercial.commercialSubType.map(
+          (value) => `Sub type: ${formatLabel(value)}`,
+        )
+      : []),
+    ...(commercial.transactionType
+      ? [`Sale: ${formatLabel(commercial.transactionType)}`]
+      : []),
+    ...(commercial.constructionStatus
+      ? [`Status: ${formatLabel(commercial.constructionStatus)}`]
+      : []),
+    ...(commercial.builtUpArea?.min || commercial.builtUpArea?.max
+      ? [
+          `Built-up: ${commercial.builtUpArea?.min ?? CARPET_MIN}-${commercial.builtUpArea?.max ?? CARPET_MAX} sqft`,
+        ]
+      : []),
+    ...(commercial.carpetArea?.min || commercial.carpetArea?.max
+      ? [
+          `Carpet: ${commercial.carpetArea?.min ?? CARPET_MIN}-${commercial.carpetArea?.max ?? CARPET_MAX} sqft`,
+        ]
+      : []),
+    ...(Array.isArray(commercial.floorNumber) && commercial.floorNumber.length
+      ? [`Floor: ${commercial.floorNumber.join(", ")}`]
+      : []),
+    ...(Array.isArray(commercial.totalFloors) && commercial.totalFloors.length
+      ? [`Total floors: ${commercial.totalFloors.join(", ")}`]
+      : []),
+    ...(commercial.furnishing
+      ? [`Furnishing: ${formatLabel(commercial.furnishing)}`]
+      : []),
+    ...(commercial.postedSince
+      ? [`Posted: ${formatLabel(commercial.postedSince)}`]
+      : []),
+    ...(Array.isArray(commercial.createdByRole)
+      ? commercial.createdByRole.map((value) => `By: ${formatLabel(value)}`)
+      : commercial.createdByRole
+        ? [`By: ${formatLabel(commercial.createdByRole)}`]
+        : []),
+    ...(localityList.length
+      ? localityList.map((value) => `Locality: ${value}`)
+      : []),
+    ...(minPrice != null || maxPrice != null
+      ? [`Budget: ${budgetLabel}`]
+      : []),
+  ];
+  const visibleAppliedFilterChips = appliedFilterChips.slice(0, 4);
 
   const commercialTypeLabel =
     selectedCommercialTypes.length === 0
@@ -171,6 +240,19 @@ const CommercialFilters = () => {
     commercialMoreFilterSections.find(
       (section) => section.key === "Commercial Type"
     )?.options ?? [];
+  const handleClearAllFilters = () => {
+    dispatch(resetCommercialFilters());
+    dispatch(
+      setBudget({
+        min: null,
+        max: null,
+      }),
+    );
+    setBudgetTouched(false);
+    setBudgetRange([null, null]);
+    setCarpetRange([CARPET_MIN, CARPET_MAX]);
+    setBuiltUpRange([CARPET_MIN, CARPET_MAX]);
+  };
 
   useEffect(() => {
     if (!budgetTouched) return;
@@ -233,6 +315,73 @@ const CommercialFilters = () => {
       );
     }
   }, [commercial.commercialSubType, commercialSubTypeOptions, dispatch]);
+
+  useEffect(() => {
+    const container = rightPanelRef.current;
+    if (!container || !open) return;
+
+    const updateActiveSection = () => {
+      if (programmaticScrollRef.current) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const containerTop = containerRect.top;
+      const containerHeight = containerRect.height;
+      const targetLine = containerTop + Math.min(containerHeight * 0.35, 140);
+      let nextActive = dynamicCommercialSections[0]?.key ?? "Commercial Type";
+      let smallestOffset = Number.POSITIVE_INFINITY;
+
+      dynamicCommercialSections.forEach((section) => {
+        const element = sectionRefs.current[section.key];
+        if (!element) return;
+
+        const rect = element.getBoundingClientRect();
+        const isVisible = rect.bottom > containerTop + 16;
+        if (!isVisible) return;
+
+        const offset = Math.abs(rect.top - targetLine);
+        if (offset < smallestOffset) {
+          smallestOffset = offset;
+          nextActive = section.key;
+        }
+      });
+
+      setActiveFilter((current) =>
+        current === nextActive ? current : nextActive,
+      );
+    };
+
+    updateActiveSection();
+    container.addEventListener("scroll", updateActiveSection, {
+      passive: true,
+    });
+
+    return () => {
+      container.removeEventListener("scroll", updateActiveSection);
+      if (programmaticScrollTimeoutRef.current) {
+        clearTimeout(programmaticScrollTimeoutRef.current);
+        programmaticScrollTimeoutRef.current = null;
+      }
+      programmaticScrollRef.current = false;
+    };
+  }, [open, dynamicCommercialSections]);
+
+  useEffect(() => {
+    const leftPanel = leftPanelRef.current;
+    const activeItem = leftItemRefs.current[activeFilter];
+    if (!open || !leftPanel || !activeItem) return;
+
+    const itemTop = activeItem.offsetTop;
+    const itemBottom = itemTop + activeItem.offsetHeight;
+    const visibleTop = leftPanel.scrollTop;
+    const visibleBottom = visibleTop + leftPanel.clientHeight;
+
+    if (itemTop < visibleTop || itemBottom > visibleBottom) {
+      leftPanel.scrollTo({
+        top: itemTop - leftPanel.clientHeight / 2 + activeItem.offsetHeight / 2,
+        behavior: "smooth",
+      });
+    }
+  }, [activeFilter, open]);
 
   return (
     <div className="flex gap-1 items-center">
@@ -623,15 +772,59 @@ const CommercialFilters = () => {
         width="w-[700px]"
         align="right"
         renderContent={() => (
-          <div className="flex h-[420px]">
+          <div className="flex h-[420px] flex-col">
+            <div className="flex items-center justify-between border-b border-gray-200 bg-linear-to-r from-green-50 to-white px-5 py-3">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  More Filters
+                </h3>
+                
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {visibleAppliedFilterChips.length > 0 ? (
+                    <>
+                      {visibleAppliedFilterChips.map((chip) => (
+                        <span
+                          key={chip}
+                          className="rounded-full border border-green-200 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-green-700"
+                        >
+                          {chip}
+                        </span>
+                      ))}
+                      {appliedFilterChips.length > visibleAppliedFilterChips.length ? (
+                        <span className="rounded-full border border-gray-200 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-gray-600">
+                          +{appliedFilterChips.length - visibleAppliedFilterChips.length} more
+                        </span>
+                      ) : null}
+                    </>
+                  ) : (
+                    <span className="rounded-full border border-dashed border-gray-300 bg-white/80 px-2.5 py-1 text-[11px] text-gray-500">
+                      No filters applied yet
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={handleClearAllFilters}
+                className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 transition hover:border-red-300 hover:bg-red-50"
+              >
+                <FiX className="text-base" />
+                Clear all
+              </button>
+            </div>
+            <div className="flex min-h-0 flex-1">
             {/* Left panel */}
-            <div className="w-1/3 border-r border-gray-200 overflow-y-auto">
+            <div
+              ref={leftPanelRef}
+              className="w-1/3 border-r border-gray-200 overflow-y-auto"
+            >
               {dynamicCommercialSections?.map((section) => (
                 <button
                   key={section.key}
+                  ref={(el) => {
+                    leftItemRefs.current[section.key] = el;
+                  }}
                   onClick={() => {
                     handleSectionClick(section.key);
-                    setActiveFilter(section.key);
                   }}
                   className={`w-full text-left px-4 py-3 border-b border-gray-200 cursor-pointer   ${activeFilter === section.key
                     ? " font-semibold text-primary"
@@ -845,7 +1038,7 @@ const CommercialFilters = () => {
                 );
               })}
             </div>
-
+            </div>
           </div>
         )}
       />

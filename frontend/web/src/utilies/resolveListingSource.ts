@@ -8,12 +8,12 @@ export function resolveListingSource(
   createdBy?: Record<string, unknown>,
 ): CanonicalListingSource {
   const candidates = [
-    listingSource,
     createdBy?.roleName,
     createdBy?.role,
     createdBy?.userType,
     createdBy?.accountType,
     createdBy?.source,
+    listingSource,
     createdBy?.name,
   ];
 

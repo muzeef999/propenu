@@ -5,6 +5,7 @@ import BuilderMember from "../models/builderMemberModel";
 import Lead from "../models/LeadModel";
 import PublicLead from "../models/PublicLead";
 import FeaturedProject from "../models/featurePropertiesModel";
+import { isDirectAgentRole } from "../utils/agentSubmission";
 
 type BuilderAccess = {
   builderId: string;
@@ -50,6 +51,19 @@ export const loadBuilderAccess = async (
       return next();
     }
 
+    if (isDirectAgentRole(req.user.roleName)) {
+      req.builderAccess = {
+        builderId: req.user.id,
+        memberId: null,
+        roleId: null,
+        roleName: req.user.roleName ?? "DirectAccess",
+        permissions: ["*"],
+        projectIds: ["*"],
+        isOwner: false,
+      };
+      return next();
+    }
+
     const member = (await BuilderMember.findOne({
       userId: req.user.id,
       isActive: true,
@@ -84,6 +98,10 @@ export const loadBuilderAccess = async (
 
 export const requireBuilderPermission = (permission: string) => {
   return (req: BuilderAccessRequest, res: Response, next: NextFunction) => {
+    if (isDirectAgentRole(req.user?.roleName)) {
+      return next();
+    }
+
     if (!req.builderAccess) {
       return res.status(403).json({ message: "Builder access required" });
     }
@@ -118,6 +136,11 @@ export const requireProjectParamAccess = (paramName = "projectId") => {
 
     if (!project) {
       return res.status(404).json({ message: "Project not found" });
+    }
+
+    if (isDirectAgentRole(req.user?.roleName)) {
+      req.builderProjectId = projectId;
+      return next();
     }
 
     if (String(project.createdBy) !== req.builderAccess.builderId) {

@@ -361,6 +361,7 @@ export const LandCard: React.FC<Props> = ({
             propertyType="landplots"
             listingType={p?.listingType}
             listingSource={resolvedListingSource}
+            createdBy={p?.createdBy as any}
             ownerName={p?.createdBy?.name}
             ownerPhone={p?.createdBy?.contact ?? (p as any)?.phone}
             ownerEmail={p?.createdBy?.email}

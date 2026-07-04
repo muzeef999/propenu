@@ -230,7 +230,7 @@ export default async function Page({ params }: PageProps) {
 
                       <div className="flex flex-col gap-1">
                         <span className="text-xs sm:text-sm text-gray-500 font-medium">
-                          Built Up Area
+                          Price per sqft
                         </span>
                         <span className="text-sm sm:text-base font-semibold text-gray-900">
                           ₹ {project?.pricePerSqft}/sqft
@@ -412,6 +412,7 @@ export default async function Page({ params }: PageProps) {
                           projectId={project._id}
                           propertyType="residentials"
                           listingSource={project.listingSource}
+                          createdBy={(project as any)?.createdBy}
                           ownerName={(project as any)?.createdBy?.name}
                           ownerPhone={(project as any)?.createdBy?.phone}
                           ownerEmail={(project as any)?.createdBy?.email ?? (project as any)?.email}

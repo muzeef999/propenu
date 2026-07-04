@@ -31,6 +31,7 @@ import {
   isLocalShortlisted,
   removeLocalShortlist,
 } from "@/utilies/shortlistLocal";
+import { resolveListingSource } from "@/utilies/resolveListingSource";
 
 const bgPriceColor = hexToRGBA("#27AE60", 0.1);
 
@@ -138,16 +139,10 @@ const CommercialCard: React.FC<Props> = ({
     (p as any)?.pricePerSqft ??
     Math.round((p?.price ?? 0) / (p as any)?.superBuiltUpArea || 0);
 
-  const listingSourceRaw = (p?.listingSource || "user")
-    ?.toString()
-    .toLowerCase();
-
-  const resolvedListingSource: "User" | "Agent" | "builder" =
-    listingSourceRaw === "agent"
-      ? "Agent"
-      : listingSourceRaw === "builder"
-        ? "builder"
-        : "User";
+  const resolvedListingSource = resolveListingSource(
+    p?.listingSource,
+    p?.createdBy as any,
+  );
 
   return (
     <div
@@ -368,6 +363,7 @@ const CommercialCard: React.FC<Props> = ({
             propertyType="commercials"
             listingType={p?.listingType}
             listingSource={resolvedListingSource}
+            createdBy={p?.createdBy as any}
             ownerName={p?.createdBy?.name}
             ownerPhone={p?.createdBy?.contact ?? (p as any)?.phone}
             ownerEmail={p?.createdBy?.email}

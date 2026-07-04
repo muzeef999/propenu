@@ -33,6 +33,7 @@ import {
   isLocalShortlisted,
   removeLocalShortlist,
 } from "@/utilies/shortlistLocal";
+import { resolveListingSource } from "@/utilies/resolveListingSource";
 
 type Props = {
   p: IResidential;
@@ -52,21 +53,10 @@ const ResidentialCard: React.FC<Props> = ({
   const pricePerSqft =
     (p as any)?.pricePerSqft ??
     Math.round((p?.price ?? 0) / (p as any)?.builtUpArea || 0);
-  const listingSourceRaw = (
-    p?.listingSource ||
-    (p as any)?.createdBy?.roleName ||
-    (p as any)?.createdBy?.role ||
-    "user"
-  )
-    ?.toString()
-    .toLowerCase();
-
-  const resolvedListingSource: "User" | "Agent" | "builder" =
-    listingSourceRaw === "agent"
-      ? "Agent"
-      : listingSourceRaw === "builder"
-        ? "builder"
-        : "User";
+  const resolvedListingSource = resolveListingSource(
+    p?.listingSource,
+    (p as any)?.createdBy,
+  );
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isShortlisted, setIsShortlisted] = useState(false);
 
@@ -399,6 +389,7 @@ const ResidentialCard: React.FC<Props> = ({
             propertyType="residentials"
             listingType={p?.listingType}
             listingSource={resolvedListingSource}
+            createdBy={(p as any)?.createdBy}
             ownerName={(p as any)?.createdBy?.name}
             ownerPhone={(p as any)?.createdBy?.contact ?? (p as any)?.phone}
             ownerEmail={(p as any)?.createdBy?.email ?? (p as any)?.email}

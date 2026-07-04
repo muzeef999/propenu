@@ -4,7 +4,11 @@ import {
   selectCityWithLocalities,
   selectLocalitiesByCity,
 } from "@/Redux/slice/citySlice";
-import { setAgriculturalFilter, setBudget } from "@/Redux/slice/filterSlice";
+import {
+  resetAgriculturalFilters,
+  setAgriculturalFilter,
+  setBudget,
+} from "@/Redux/slice/filterSlice";
 import { RootState } from "@/Redux/store";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import { agriculturalKeyMapping } from "@/types/agricultural";
@@ -30,6 +34,7 @@ import {
   formatBudget,
 } from "../constants/constants";
 import { getSelectedMoreFiltersCount } from "../count-helper/ResSelectedMoreFiltersCount";
+import { formatLabel } from "@/utilies/formatLabel";
 
 const MULTI_SELECT_KEYS = new Set([
   "agriculturalType",
@@ -68,8 +73,12 @@ const normalizeBudgetRange = (
 const AgriculturalFilters = () => {
   const dispatch = useDispatch();
 
+  const leftPanelRef = useRef<HTMLDivElement | null>(null);
   const rightPanelRef = useRef<HTMLDivElement | null>(null);
+  const programmaticScrollRef = useRef(false);
+  const programmaticScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const leftItemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
 
   const cityData = useSelector(selectCityWithLocalities);
@@ -120,9 +129,18 @@ const AgriculturalFilters = () => {
 
     if (!container || !target) return;
 
+    if (programmaticScrollTimeoutRef.current) {
+      clearTimeout(programmaticScrollTimeoutRef.current);
+    }
+
+    programmaticScrollRef.current = true;
+
     const top = target.offsetTop - container.offsetTop - 12;
-    container.scrollTo({ top, behavior: "smooth" });
     setActiveFilter(key);
+    container.scrollTo({ top, behavior: "smooth" });
+    programmaticScrollTimeoutRef.current = setTimeout(() => {
+      programmaticScrollRef.current = false;
+    }, 350);
   };
   const agriculturalTypeOptions =
   agriculturalMoreFilterSections.find(
@@ -130,6 +148,47 @@ const AgriculturalFilters = () => {
   )?.options ?? [];
   const selectedAgriculturalTypes =
   agricultural.agriculturalType ?? [];
+  const appliedFilterChips = [
+    ...(selectedAgriculturalTypes.length
+      ? selectedAgriculturalTypes.map((value) => `Type: ${formatLabel(value)}`)
+      : []),
+    ...(Array.isArray(agricultural.agriculturalSubType) &&
+    agricultural.agriculturalSubType.length
+      ? agricultural.agriculturalSubType.map(
+          (value) => `Sub type: ${formatLabel(value)}`,
+        )
+      : []),
+    ...(agricultural.totalArea?.min || agricultural.totalArea?.max
+      ? [
+          `Area: ${agricultural.totalArea?.min ?? CARPET_MIN}-${agricultural.totalArea?.max ?? CARPET_MAX} sqft`,
+        ]
+      : []),
+    ...(Array.isArray(agricultural.soilType) && agricultural.soilType.length
+      ? agricultural.soilType.map((value) => `Soil: ${formatLabel(value)}`)
+      : []),
+    ...(Array.isArray(agricultural.waterSource) &&
+    agricultural.waterSource.length
+      ? agricultural.waterSource.map(
+          (value) => `Water: ${formatLabel(value)}`,
+        )
+      : []),
+    ...(Array.isArray(agricultural.currentCrop) && agricultural.currentCrop.length
+      ? agricultural.currentCrop.map((value) => `Crop: ${formatLabel(value)}`)
+      : []),
+    ...(agricultural.postedSince
+      ? [`Posted: ${formatLabel(agricultural.postedSince)}`]
+      : []),
+    ...(agricultural.createdByRole
+      ? [`By: ${formatLabel(agricultural.createdByRole)}`]
+      : []),
+    ...(selectedLocalities.length
+      ? selectedLocalities.map((value) => `Locality: ${value}`)
+      : []),
+    ...(minPrice != null || maxPrice != null
+      ? [`Budget: ${budgetLabel}`]
+      : []),
+  ];
+  const visibleAppliedFilterChips = appliedFilterChips.slice(0, 4);
   const propertyTypeLabel =
   selectedAgriculturalTypes.length === 0
     ? "Asset Type"
@@ -152,6 +211,18 @@ const AgriculturalFilters = () => {
       })
     );
   };
+  const handleClearAllFilters = () => {
+    dispatch(resetAgriculturalFilters());
+    dispatch(
+      setBudget({
+        min: null,
+        max: null,
+      }),
+    );
+    setBudgetTouched(false);
+    setBudgetRange([null, null]);
+    setCarpetRange([CARPET_MIN, CARPET_MAX]);
+  };
 
   useEffect(() => {
     setCarpetRange([
@@ -170,6 +241,74 @@ const AgriculturalFilters = () => {
       })
     );
   }, [budgetRange, budgetTouched, dispatch]);
+
+  useEffect(() => {
+    const container = rightPanelRef.current;
+    if (!container || !open) return;
+
+    const updateActiveSection = () => {
+      if (programmaticScrollRef.current) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const containerTop = containerRect.top;
+      const containerHeight = containerRect.height;
+      const targetLine = containerTop + Math.min(containerHeight * 0.35, 140);
+      let nextActive =
+        agriculturalMoreFilterSections[0]?.key ?? "Agricultural Type";
+      let smallestOffset = Number.POSITIVE_INFINITY;
+
+      agriculturalMoreFilterSections.forEach((section) => {
+        const element = sectionRefs.current[section.key];
+        if (!element) return;
+
+        const rect = element.getBoundingClientRect();
+        const isVisible = rect.bottom > containerTop + 16;
+        if (!isVisible) return;
+
+        const offset = Math.abs(rect.top - targetLine);
+        if (offset < smallestOffset) {
+          smallestOffset = offset;
+          nextActive = section.key;
+        }
+      });
+
+      setActiveFilter((current) =>
+        current === nextActive ? current : nextActive,
+      );
+    };
+
+    updateActiveSection();
+    container.addEventListener("scroll", updateActiveSection, {
+      passive: true,
+    });
+
+    return () => {
+      container.removeEventListener("scroll", updateActiveSection);
+      if (programmaticScrollTimeoutRef.current) {
+        clearTimeout(programmaticScrollTimeoutRef.current);
+        programmaticScrollTimeoutRef.current = null;
+      }
+      programmaticScrollRef.current = false;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    const leftPanel = leftPanelRef.current;
+    const activeItem = leftItemRefs.current[activeFilter];
+    if (!open || !leftPanel || !activeItem) return;
+
+    const itemTop = activeItem.offsetTop;
+    const itemBottom = itemTop + activeItem.offsetHeight;
+    const visibleTop = leftPanel.scrollTop;
+    const visibleBottom = visibleTop + leftPanel.clientHeight;
+
+    if (itemTop < visibleTop || itemBottom > visibleBottom) {
+      leftPanel.scrollTo({
+        top: itemTop - leftPanel.clientHeight / 2 + activeItem.offsetHeight / 2,
+        behavior: "smooth",
+      });
+    }
+  }, [activeFilter, open]);
 
   return (
     <div className="flex gap-1 items-center">
@@ -539,14 +678,58 @@ const AgriculturalFilters = () => {
         width="w-[700px]"
         align="right"
         renderContent={() => (
-          <div className="flex h-[420px]">
-            <div className="w-1/3 border-r border-gray-200 overflow-y-auto">
+          <div className="flex h-[420px] flex-col">
+            <div className="flex items-center justify-between border-b border-gray-200 bg-linear-to-r from-green-50 to-white px-5 py-3">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  More Filters
+                </h3>
+              
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {visibleAppliedFilterChips.length > 0 ? (
+                    <>
+                      {visibleAppliedFilterChips.map((chip) => (
+                        <span
+                          key={chip}
+                          className="rounded-full border border-green-200 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-green-700"
+                        >
+                          {chip}
+                        </span>
+                      ))}
+                      {appliedFilterChips.length > visibleAppliedFilterChips.length ? (
+                        <span className="rounded-full border border-gray-200 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-gray-600">
+                          +{appliedFilterChips.length - visibleAppliedFilterChips.length} more
+                        </span>
+                      ) : null}
+                    </>
+                  ) : (
+                    <span className="rounded-full border border-dashed border-gray-300 bg-white/80 px-2.5 py-1 text-[11px] text-gray-500">
+                      No filters applied yet
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={handleClearAllFilters}
+                className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 transition hover:border-red-300 hover:bg-red-50"
+              >
+                <FiX className="text-base" />
+                Clear all
+              </button>
+            </div>
+            <div className="flex min-h-0 flex-1">
+            <div
+              ref={leftPanelRef}
+              className="w-1/3 border-r border-gray-200 overflow-y-auto"
+            >
               {agriculturalMoreFilterSections?.map((section) => (
                 <button
                   key={section.key}
+                  ref={(el) => {
+                    leftItemRefs.current[section.key] = el;
+                  }}
                   onClick={() => {
                     handleSectionClick(section.key);
-                    setActiveFilter(section.key);
                   }}
                   className={`w-full text-left px-4 py-3 border-b border-gray-200 cursor-pointer ${activeFilter === section.key
                       ? "font-semibold text-primary"
@@ -718,6 +901,7 @@ const AgriculturalFilters = () => {
                   </div>
                 );
               })}
+            </div>
             </div>
           </div>
         )}

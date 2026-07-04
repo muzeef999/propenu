@@ -15,6 +15,7 @@ interface ContactOwnerButtonProps {
   listingType?: string;
   projectId: undefined | string;
   listingSource?: "User" | "Agent" | "builder" | string;
+  createdBy?: Record<string, unknown>;
   propertyType?:
     | "residentials"
     | "commercials"
@@ -34,6 +35,7 @@ interface ContactOwnerButtonProps {
 export default function ContactOwnerButton({
   listingType,
   listingSource,
+  createdBy,
   projectId,
   propertyType = "residentials",
   ownerName,
@@ -94,7 +96,7 @@ export default function ContactOwnerButton({
   });
 
   const getContactPerson = () => {
-    return listingSourceToOwnershipLabel(listingSource);
+    return listingSourceToOwnershipLabel(listingSource, createdBy);
   };
 
   const user = userData?.user;

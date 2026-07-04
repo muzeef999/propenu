@@ -3,7 +3,11 @@ import {
   selectCityWithLocalities,
   selectLocalitiesByCity,
 } from "@/Redux/slice/citySlice";
-import { setBudget, setLandFilter } from "@/Redux/slice/filterSlice";
+import {
+  resetLandFilters,
+  setBudget,
+  setLandFilter,
+} from "@/Redux/slice/filterSlice";
 import { RootState } from "@/Redux/store";
 import FilterDropdown from "@/ui/FilterDropdown";
 import { useEffect, useRef, useState } from "react";
@@ -19,6 +23,7 @@ import { landKeyMapping } from "@/types/land";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import SelectableButton from "@/ui/SelectableButton";
 import { FiCheck, FiPlus, FiX } from "react-icons/fi";
+import { formatLabel } from "@/utilies/formatLabel";
 
 /* -------------------- BUDGET CONSTANTS -------------------- */
 const BUDGET_MIN = 5;
@@ -38,8 +43,12 @@ const formatBudget = (value: number) =>
 const LandFilters = () => {
   const dispatch = useDispatch();
 
+  const leftPanelRef = useRef<HTMLDivElement | null>(null);
   const rightPanelRef = useRef<HTMLDivElement | null>(null);
+  const programmaticScrollRef = useRef(false);
+  const programmaticScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const leftItemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [activeFilter, setActiveFilter] = useState<LandFilterKey>("Land Type");
 
   const cityData = useSelector(selectCityWithLocalities);
@@ -88,14 +97,23 @@ const LandFilters = () => {
 
     if (!container || !target) return;
 
+    if (programmaticScrollTimeoutRef.current) {
+      clearTimeout(programmaticScrollTimeoutRef.current);
+    }
+
+    programmaticScrollRef.current = true;
+
     const top = target.offsetTop - container.offsetTop - 12;
 
+    setActiveFilter(key);
     container.scrollTo({
       top,
       behavior: "smooth",
     });
 
-    setActiveFilter(key);
+    programmaticScrollTimeoutRef.current = setTimeout(() => {
+      programmaticScrollRef.current = false;
+    }, 350);
   };
 
 
@@ -151,6 +169,35 @@ const LandFilters = () => {
     landMoreFilterSections.find(
       (section) => section.key === "Land Type"
     )?.options ?? [];
+  const appliedFilterChips = [
+    ...(selectedLandTypes.length
+      ? selectedLandTypes.map((value) => `Type: ${formatLabel(value)}`)
+      : []),
+    ...(land.landSubType ? [`Sub type: ${formatLabel(land.landSubType)}`] : []),
+    ...(land.plotArea?.min || land.plotArea?.max
+      ? [
+          `Plot: ${land.plotArea?.min ?? CARPET_MIN}-${land.plotArea?.max ?? CARPET_MAX} sqft`,
+        ]
+      : []),
+    ...(Array.isArray(land.facing) && land.facing.length
+      ? land.facing.map((value) => `Facing: ${formatLabel(value)}`)
+      : []),
+    ...(Array.isArray(land.roadWidth) && land.roadWidth.length
+      ? [`Road width: ${land.roadWidth.join(", ")}`]
+      : []),
+    ...(land.gatedCommunity ? ["Gated community"] : []),
+    ...(land.cornerPlot ? ["Corner plot"] : []),
+    ...(land.readyToConstruct ? ["Ready to construct"] : []),
+    ...(land.postedSince ? [`Posted: ${formatLabel(land.postedSince)}`] : []),
+    ...(land.createdByRole ? [`By: ${formatLabel(land.createdByRole)}`] : []),
+    ...(selectedLocalities.length
+      ? selectedLocalities.map((value) => `Locality: ${value}`)
+      : []),
+    ...(minPrice != null || maxPrice != null
+      ? [`Budget: ${budgetLabel}`]
+      : []),
+  ];
+  const visibleAppliedFilterChips = appliedFilterChips.slice(0, 4);
 
   const updatePlotArea = (next: [number, number]) => {
     setCarpetRange(next);
@@ -163,6 +210,18 @@ const LandFilters = () => {
         },
       })
     );
+  };
+  const handleClearAllFilters = () => {
+    dispatch(resetLandFilters());
+    dispatch(
+      setBudget({
+        min: null,
+        max: null,
+      }),
+    );
+    setBudgetTouched(false);
+    setBudgetRange([null, null]);
+    setCarpetRange([CARPET_MIN, CARPET_MAX]);
   };
 
   useEffect(() => {
@@ -184,6 +243,73 @@ const LandFilters = () => {
       })
     );
   }, [budgetRange, budgetTouched, dispatch]);
+
+  useEffect(() => {
+    const container = rightPanelRef.current;
+    if (!container || !open) return;
+
+    const updateActiveSection = () => {
+      if (programmaticScrollRef.current) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const containerTop = containerRect.top;
+      const containerHeight = containerRect.height;
+      const targetLine = containerTop + Math.min(containerHeight * 0.35, 140);
+      let nextActive = landMoreFilterSections[0]?.key ?? "Land Type";
+      let smallestOffset = Number.POSITIVE_INFINITY;
+
+      landMoreFilterSections.forEach((section) => {
+        const element = sectionRefs.current[section.key];
+        if (!element) return;
+
+        const rect = element.getBoundingClientRect();
+        const isVisible = rect.bottom > containerTop + 16;
+        if (!isVisible) return;
+
+        const offset = Math.abs(rect.top - targetLine);
+        if (offset < smallestOffset) {
+          smallestOffset = offset;
+          nextActive = section.key;
+        }
+      });
+
+      setActiveFilter((current) =>
+        current === nextActive ? current : nextActive,
+      );
+    };
+
+    updateActiveSection();
+    container.addEventListener("scroll", updateActiveSection, {
+      passive: true,
+    });
+
+    return () => {
+      container.removeEventListener("scroll", updateActiveSection);
+      if (programmaticScrollTimeoutRef.current) {
+        clearTimeout(programmaticScrollTimeoutRef.current);
+        programmaticScrollTimeoutRef.current = null;
+      }
+      programmaticScrollRef.current = false;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    const leftPanel = leftPanelRef.current;
+    const activeItem = leftItemRefs.current[activeFilter];
+    if (!open || !leftPanel || !activeItem) return;
+
+    const itemTop = activeItem.offsetTop;
+    const itemBottom = itemTop + activeItem.offsetHeight;
+    const visibleTop = leftPanel.scrollTop;
+    const visibleBottom = visibleTop + leftPanel.clientHeight;
+
+    if (itemTop < visibleTop || itemBottom > visibleBottom) {
+      leftPanel.scrollTo({
+        top: itemTop - leftPanel.clientHeight / 2 + activeItem.offsetHeight / 2,
+        behavior: "smooth",
+      });
+    }
+  }, [activeFilter, open]);
 
 
   return (
@@ -575,12 +701,57 @@ const LandFilters = () => {
         width="w-[700px]"
         align="right"
         renderContent={() => (
-          <div className="flex h-[420px]">
+          <div className="flex h-[420px] flex-col">
+            <div className="flex items-center justify-between border-b border-gray-200 bg-linear-to-r from-green-50 to-white px-5 py-3">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  More Filters
+                </h3>
+              
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {visibleAppliedFilterChips.length > 0 ? (
+                    <>
+                      {visibleAppliedFilterChips.map((chip) => (
+                        <span
+                          key={chip}
+                          className="rounded-full border border-green-200 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-green-700"
+                        >
+                          {chip}
+                        </span>
+                      ))}
+                      {appliedFilterChips.length > visibleAppliedFilterChips.length ? (
+                        <span className="rounded-full border border-gray-200 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-gray-600">
+                          +{appliedFilterChips.length - visibleAppliedFilterChips.length} more
+                        </span>
+                      ) : null}
+                    </>
+                  ) : (
+                    <span className="rounded-full border border-dashed border-gray-300 bg-white/80 px-2.5 py-1 text-[11px] text-gray-500">
+                      No filters applied yet
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={handleClearAllFilters}
+                className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 transition hover:border-red-300 hover:bg-red-50"
+              >
+                <FiX className="text-base" />
+                Clear all
+              </button>
+            </div>
+            <div className="flex min-h-0 flex-1">
             {/* ================= LEFT PANEL ================= */}
-            <div className="w-1/3 border-r border-gray-200 overflow-y-auto">
+            <div
+              ref={leftPanelRef}
+              className="w-1/3 border-r border-gray-200 overflow-y-auto"
+            >
               {landMoreFilterSections.map((section) => (
                 <button
                   key={section.key}
+                  ref={(el) => {
+                    leftItemRefs.current[section.key] = el;
+                  }}
                   onClick={() => handleSectionClick(section.key)}
                   className={`w-full text-left px-4 py-3 border-b border-gray-200 cursor-pointer ${activeFilter === section.key
                     ? "font-semibold text-primary"
@@ -807,6 +978,7 @@ const LandFilters = () => {
                   </div>
                 );
               })}
+            </div>
             </div>
           </div>
         )}

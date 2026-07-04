@@ -3,7 +3,11 @@ import React, { useEffect, useRef, useState } from "react";
 import { getTrackBackground, Range } from "react-range";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/Redux/store";
-import { setBudget, setResidentialFilter } from "@/Redux/slice/filterSlice";
+import {
+  resetResidentialFilters,
+  setBudget,
+  setResidentialFilter,
+} from "@/Redux/slice/filterSlice";
 import { BedroomFilterValue } from "@/types/sharedTypes";
 import FilterDropdown from "@/ui/FilterDropdown";
 import {
@@ -38,7 +42,10 @@ import { formatLabel } from "@/utilies/formatLabel";
 const ResidentialFilters = () => {
   const dispatch = useDispatch();
 
+  const leftPanelRef = useRef<HTMLDivElement | null>(null);
   const rightPanelRef = useRef<HTMLDivElement | null>(null);
+  const programmaticScrollRef = useRef(false);
+  const programmaticScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const cityData = useSelector(selectCityWithLocalities);
   const localities = useSelector(selectLocalitiesByCity);
@@ -52,6 +59,7 @@ const ResidentialFilters = () => {
     useState<RESFilterKey>("Property Type");
 
   const sectionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+  const leftItemRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
 
   const POSTED_BY_MAP: Record<PostedByOption, string> = {
     Owners: "User",
@@ -90,6 +98,19 @@ const ResidentialFilters = () => {
         },
       }),
     );
+  };
+
+  const handleClearAllFilters = () => {
+    dispatch(resetResidentialFilters());
+    dispatch(
+      setBudget({
+        min: null,
+        max: null,
+      }),
+    );
+    setBudgetTouched(false);
+    setBudgetRange([null, null]);
+    setCarpetRange([CARPET_MIN, CARPET_MAX]);
   };
 
   const localityLabel =
@@ -162,14 +183,23 @@ const ResidentialFilters = () => {
 
     if (!container || !target) return;
 
+    if (programmaticScrollTimeoutRef.current) {
+      clearTimeout(programmaticScrollTimeoutRef.current);
+    }
+
+    programmaticScrollRef.current = true;
+
     const top = target.offsetTop - container.offsetTop - 12;
 
+    setActiveFilter(key);
     container.scrollTo({
       top,
       behavior: "smooth",
     });
 
-    setActiveFilter(key);
+    programmaticScrollTimeoutRef.current = setTimeout(() => {
+      programmaticScrollRef.current = false;
+    }, 350);
   };
 
   const toggleArrayValue = (arr: string[] = [], value: string) => {
@@ -186,6 +216,56 @@ const ResidentialFilters = () => {
   const listingTypeCount = listingTypeValue ? 1 : 0;
   const moreFiltersBadgeCount =
     selectedMoreFiltersCount + localityCount + listingTypeCount;
+  const appliedFilterChips = [
+    ...(Array.isArray(residential.propertyType) && residential.propertyType.length
+      ? residential.propertyType.map((value) => `Type: ${formatLabel(value)}`)
+      : []),
+    ...(residential.transactionType
+      ? [`Sale: ${formatLabel(residential.transactionType)}`]
+      : []),
+    ...(residential.constructionStatus
+      ? [`Status: ${formatLabel(residential.constructionStatus)}`]
+      : []),
+    ...(selectedBedrooms.length
+      ? [`BHK: ${selectedBedrooms.map(formatBedroomValue).join(", ")}`]
+      : []),
+    ...(residential.coveredArea?.min || residential.coveredArea?.max
+      ? [
+          `Area: ${residential.coveredArea?.min ?? CARPET_MIN}-${residential.coveredArea?.max ?? CARPET_MAX} sqft`,
+        ]
+      : []),
+    ...(Array.isArray(residential.bathroom) && residential.bathroom.length
+      ? [`Bath: ${residential.bathroom.join(", ")}`]
+      : []),
+    ...(Array.isArray(residential.balcony) && residential.balcony.length
+      ? [`Balcony: ${residential.balcony.join(", ")}`]
+      : []),
+    ...(Array.isArray(residential.parking) && residential.parking.length
+      ? [`Parking: ${residential.parking.join(", ")}`]
+      : []),
+    ...(residential.furnishing
+      ? [`Furnishing: ${formatLabel(residential.furnishing)}`]
+      : []),
+    ...(Array.isArray(residential.amenities) && residential.amenities.length
+      ? residential.amenities.map((value) => `Amenity: ${formatLabel(value)}`)
+      : []),
+    ...(Array.isArray(residential.facing) && residential.facing.length
+      ? residential.facing.map((value) => `Facing: ${formatLabel(value)}`)
+      : []),
+    ...(residential.postedSince
+      ? [`Posted: ${formatLabel(residential.postedSince)}`]
+      : []),
+    ...(residential.createdByRole
+      ? [`By: ${formatLabel(residential.createdByRole)}`]
+      : []),
+    ...(Array.isArray(locality) && locality.length
+      ? locality.map((value) => `Locality: ${value}`)
+      : []),
+    ...(minPrice != null || maxPrice != null
+      ? [`Budget: ${budgetLabel}`]
+      : []),
+  ];
+  const visibleAppliedFilterChips = appliedFilterChips.slice(0, 4);
   /* -------------------- MORE FILTER CONFIG -------------------- */
 
   useEffect(() => {
@@ -198,6 +278,73 @@ const ResidentialFilters = () => {
       }),
     );
   }, [budgetRange, budgetTouched, dispatch]);
+
+  useEffect(() => {
+    const container = rightPanelRef.current;
+    if (!container || !open) return;
+
+    const updateActiveSection = () => {
+      if (programmaticScrollRef.current) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const containerTop = containerRect.top;
+      const containerHeight = containerRect.height;
+      const targetLine = containerTop + Math.min(containerHeight * 0.35, 140);
+      let nextActive = moreFilterSections[0]?.key ?? "Property Type";
+      let smallestOffset = Number.POSITIVE_INFINITY;
+
+      moreFilterSections.forEach((section) => {
+        const element = sectionRefs.current[section.key];
+        if (!element) return;
+
+        const rect = element.getBoundingClientRect();
+        const isVisible = rect.bottom > containerTop + 16;
+        if (!isVisible) return;
+
+        const offset = Math.abs(rect.top - targetLine);
+        if (offset < smallestOffset) {
+          smallestOffset = offset;
+          nextActive = section.key;
+        }
+      });
+
+      setActiveFilter((current) =>
+        current === nextActive ? current : nextActive,
+      );
+    };
+
+    updateActiveSection();
+    container.addEventListener("scroll", updateActiveSection, {
+      passive: true,
+    });
+
+    return () => {
+      container.removeEventListener("scroll", updateActiveSection);
+      if (programmaticScrollTimeoutRef.current) {
+        clearTimeout(programmaticScrollTimeoutRef.current);
+        programmaticScrollTimeoutRef.current = null;
+      }
+      programmaticScrollRef.current = false;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    const leftPanel = leftPanelRef.current;
+    const activeItem = leftItemRefs.current[activeFilter];
+    if (!open || !leftPanel || !activeItem) return;
+
+    const itemTop = activeItem.offsetTop;
+    const itemBottom = itemTop + activeItem.offsetHeight;
+    const visibleTop = leftPanel.scrollTop;
+    const visibleBottom = visibleTop + leftPanel.clientHeight;
+
+    if (itemTop < visibleTop || itemBottom > visibleBottom) {
+      leftPanel.scrollTo({
+        top: itemTop - leftPanel.clientHeight / 2 + activeItem.offsetHeight / 2,
+        behavior: "smooth",
+      });
+    }
+  }, [activeFilter, open]);
 
   return (
     <>
@@ -546,15 +693,60 @@ const ResidentialFilters = () => {
               />
             </div>
           }
-          width="w-[700px]"
-          align="right"
-          renderContent={() => (
-            <div className="flex h-[420px]">
+        width="w-[700px]"
+        align="right"
+        renderContent={() => (
+            <div className="flex h-[420px] flex-col">
+              <div className="flex items-center justify-between border-b border-gray-200 bg-linear-to-r from-green-50 to-white px-5 py-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    More Filters
+                  </h3>
+                  
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {visibleAppliedFilterChips.length > 0 ? (
+                      <>
+                        {visibleAppliedFilterChips.map((chip) => (
+                          <span
+                            key={chip}
+                            className="rounded-full border border-green-200 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-green-700"
+                          >
+                            {chip}
+                          </span>
+                        ))}
+                        {appliedFilterChips.length > visibleAppliedFilterChips.length ? (
+                          <span className="rounded-full border border-gray-200 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-gray-600">
+                            +{appliedFilterChips.length - visibleAppliedFilterChips.length} more
+                          </span>
+                        ) : null}
+                      </>
+                    ) : (
+                      <span className="rounded-full border border-dashed border-gray-300 bg-white/80 px-2.5 py-1 text-[11px] text-gray-500">
+                        No filters applied yet
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={handleClearAllFilters}
+                  className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 transition hover:border-red-300 hover:bg-red-50"
+                >
+                  <FiX className="text-base" />
+                  Clear all
+                </button>
+              </div>
+              <div className="flex min-h-0 flex-1">
               {/* Left panel */}
-              <div className="w-1/3 border-r border-gray-200 overflow-y-auto">
+              <div
+                ref={leftPanelRef}
+                className="w-1/3 border-r border-gray-200 overflow-y-auto"
+              >
                 {moreFilterSections?.map((section) => (
                   <button
                     key={section.key}
+                    ref={(el) => {
+                      leftItemRefs.current[section.key] = el;
+                    }}
                     onClick={() => {
                       handleSectionClick(section.key);
                       setActiveFilter(section.key);
@@ -714,6 +906,7 @@ const ResidentialFilters = () => {
                     )}
                   </div>
                 ))}
+              </div>
               </div>
             </div>
           )}

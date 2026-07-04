@@ -10,6 +10,7 @@ export const isDirectAgentRole = (roleName?: string) => {
     "agent",
     "sales_agent",
     "sales_manager",
+    "digital_marketing",
     "admin",
     "super_admin",
     "customer_care"
