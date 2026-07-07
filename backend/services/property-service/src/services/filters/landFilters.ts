@@ -90,6 +90,9 @@ export function extendLandFilters(
   if (q.city) {
     f.city = q.city;
   }
+  if (typeof q.state === "string" && q.state.trim().length > 0) {
+    f.state = q.state;
+  }
   if (q.listingType) {
   f.listingType = q.listingType;
 }

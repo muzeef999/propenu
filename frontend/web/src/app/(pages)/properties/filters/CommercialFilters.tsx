@@ -1034,7 +1034,6 @@ const CommercialFilters = () => {
                               }
                               active={isActive}
                               selectionType={section.selectionType ?? "single"}
-                              showIndicator={mappedKey === "createdByRole"}
                               onClick={() => {
                                 const nextValue =
                                   mappedKey === "createdByRole" && isActive

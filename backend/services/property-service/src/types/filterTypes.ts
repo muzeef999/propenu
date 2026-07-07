@@ -41,6 +41,7 @@ export interface BaseFilters {
  */
 export interface ResidentialQuery extends ParsedQs {
   bhk?: string;
+  state?: string;
   listingType?:string;
   createdByRole?: string;
   transactionType?: "new-sale" | "resale"; 
@@ -65,6 +66,7 @@ export interface ResidentialQuery extends ParsedQs {
 }
 
 export interface CommercialQuery extends ParsedQs {
+  state?: string;
   createdByRole?: string;
   transactionType?: string;
   postedSince?: string;
@@ -94,6 +96,7 @@ export interface CommercialQuery extends ParsedQs {
 }
 
 export interface LandQuery extends ParsedQs {
+  state?: string;
   createdByRole?: string;
   minPlotArea?: string;
   maxPlotArea?: string;
@@ -122,6 +125,7 @@ export interface LandQuery extends ParsedQs {
 }
 
 export interface AgriculturalQuery extends ParsedQs {
+  state?: string;
   createdByRole?: string;
   minArea?: string;
   maxArea?: string;

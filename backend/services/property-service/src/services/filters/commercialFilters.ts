@@ -152,6 +152,10 @@ export function extendCommercialFilters(
     f.city = q.city;
   }
 
+  if (typeof q.state === "string" && q.state.trim().length > 0) {
+    f.state = q.state;
+  }
+
 if (typeof q.locality === "string" && q.locality.trim().length > 0) {
     const localities = q.locality
       .split(",")

@@ -5,6 +5,18 @@ import dotenv from "dotenv";
 import Agricultural from "../models/agriculturalModel";
 import { cleanupUploadedFile, uploadFile } from "../utils/uploadFile";
 import { extendAgriculturalFilters } from "./filters/agriculturalFilters";
+
+function normalizeCreatedByRoleFilterToken(token: string) {
+  const normalized = token.trim().toLowerCase();
+
+  if (["owner", "owners", "user"].includes(normalized)) return "user";
+  if (["agent", "agents", "sales_agent", "sales_manager"].includes(normalized)) {
+    return "agent";
+  }
+  if (["builder", "builders"].includes(normalized)) return "builder";
+
+  return normalized;
+}
 import { upsertCityAndLocality } from "./locationServices";
 import {
   createWatermarkedBuffer,
@@ -654,7 +666,21 @@ export const AgriculturalService = {
 
   model: Agricultural,
   getPipeline: (filters: any) => {
-    const match = extendAgriculturalFilters(filters, {});
+    const createdByRoleTokens =
+      typeof filters?.createdByRole === "string"
+        ? filters.createdByRole
+            .split(",")
+            .map((token: string) => normalizeCreatedByRoleFilterToken(token))
+            .filter(Boolean)
+        : [];
+
+    const match = extendAgriculturalFilters(
+      {
+        ...filters,
+        createdByRole: undefined,
+      },
+      {},
+    );
 
     return [
       { $match: match },
@@ -682,8 +708,81 @@ export const AgriculturalService = {
       {
         $addFields: {
           createdByRole: { $arrayElemAt: ["$createdByRole", 0] },
+          createdByRoleRaw: {
+            $ifNull: [
+              "$createdByUser.roleName",
+              {
+                $ifNull: [
+                  "$createdByUser.role",
+                  {
+                    $ifNull: ["$createdByRole.name", "$createdByRole.label"],
+                  },
+                ],
+              },
+            ],
+          },
         },
       },
+      {
+        $addFields: {
+          createdByRoleName: {
+            $toLower: {
+              $cond: [
+                { $isArray: "$createdByRoleRaw" },
+                {
+                  $ifNull: [{ $arrayElemAt: ["$createdByRoleRaw", 0] }, ""],
+                },
+                {
+                  $ifNull: ["$createdByRoleRaw", ""],
+                },
+              ],
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          createdByRoleGroup: {
+            $switch: {
+              branches: [
+                {
+                  case: {
+                    $in: [
+                      "$createdByRoleName",
+                      ["owner", "owners", "user"],
+                    ],
+                  },
+                  then: "user",
+                },
+                {
+                  case: {
+                    $in: [
+                      "$createdByRoleName",
+                      ["agent", "agents", "sales_agent", "sales_manager"],
+                    ],
+                  },
+                  then: "agent",
+                },
+                {
+                  case: {
+                    $in: [
+                      "$createdByRoleName",
+                      ["builder", "builders"],
+                    ],
+                  },
+                  then: "builder",
+                },
+              ],
+              default: "$createdByRoleName",
+            },
+          },
+        },
+      },
+      ...(createdByRoleTokens.length === 1
+        ? [{ $match: { createdByRoleGroup: createdByRoleTokens[0] } }]
+        : createdByRoleTokens.length > 1
+          ? [{ $match: { createdByRoleGroup: { $in: createdByRoleTokens } } }]
+          : []),
       {
         $project: {
           _id: 0,
