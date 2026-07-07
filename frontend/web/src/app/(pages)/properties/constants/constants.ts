@@ -38,11 +38,7 @@ export const moreFilterSections: MoreFilterSection[] = [
         "independent-house",
         "villa",
         "penthouse",
-        "studio",
-        "duplex",
-        "triplex",
         "farmhouse",
-        "independent-builder-floor",
       ],
       selectionType: "multiple",
     },
@@ -50,6 +46,12 @@ export const moreFilterSections: MoreFilterSection[] = [
       key: "Sales Type",
       label: "Sales Type",
       options: ["new-sale", "resale"],
+      selectionType: "single",
+    },
+    {
+      key: "Posted By",
+      label: "Posted By",
+      options: ["User", "Agent", "Builder"],
       selectionType: "single",
     },
     {
@@ -110,12 +112,6 @@ export const moreFilterSections: MoreFilterSection[] = [
       ],
       selectionType: "single",
     },
-    {
-      key: "Posted By",
-      label: "Posted By",
-      options: ["User", "Agents", "Builders"],
-      selectionType: "multiple",
-    },
   ];
 
 
@@ -153,6 +149,12 @@ export const moreFilterSections: MoreFilterSection[] = [
       label: "Transaction Type",
       options: ["new-sale", "resale"],
        selectionType: "single",
+    },
+    {
+      key: "Posted By",
+      label: "Posted By",
+      options: ["Owners", "Agents"],
+      selectionType: "multiple",
     },
     {
       key: "Construction Status",
@@ -244,12 +246,6 @@ export const moreFilterSections: MoreFilterSection[] = [
       options: ["All", "Yesterday", "Last Week", "Last Month", "Last 3 Months"],
       selectionType: "single",
     },
-    {
-      key: "Posted By",
-      label: "Posted By",
-      options: ["Owners", "Agents", "Builders"],
-      selectionType: "multiple",
-    },
   ];
 
 
@@ -282,8 +278,19 @@ export const moreFilterSections: MoreFilterSection[] = [
       selectionType: "multiple",
     },
     {
+      key: "Posted By",
+      label: "Posted By",
+      options: ["Owners", "Agents", "Builders"],
+    },
+    {
       key: "Plot Area",
       label: "Plot Area",
+    },
+    {
+      key: "Area Unit",
+      label: "Area Unit",
+      options: ["sqft", "sqmt", "sqyd", "acre", "guntha", "cent", "kanal", "hectare"],
+      selectionType: "multiple",
     },
     {
       key: "Dimensions",
@@ -354,11 +361,6 @@ export const moreFilterSections: MoreFilterSection[] = [
         "Last 3 Months",
       ],
     },
-    {
-      key: "Posted By",
-      label: "Posted By",
-      options: ["Owners", "Agents", "Builders"],
-    },
   ];
 
 
@@ -394,13 +396,18 @@ export const agriculturalMoreFilterSections: MoreFilterSectionAGR[] = [
       selectionType: "multiple",
     },
     {
+      key: "Posted By",
+      label: "Posted By",
+      options: ["Owners", "Agents"],
+    },
+    {
       key: "Total Area",
       label: "Total Area",
     },
     {
       key: "Area Unit",
       label: "Area Unit",
-      options: ["Acre", "Guntha", "Cent", "Hectare"],
+      options: ["sqft", "sqmt", "sqyd", "acre", "guntha", "cent", "kanal", "hectare"],
     },
     { key: "Verified Properties", label: "Verified Properties" },
     {
@@ -467,10 +474,5 @@ export const agriculturalMoreFilterSections: MoreFilterSectionAGR[] = [
       key: "Posted Since",
       label: "Posted Since",
       options: ["All", "Yesterday", "Last Week", "Last Month", "Last 3 Months"],
-    },
-    {
-      key: "Posted By",
-      label: "Posted By",
-      options: ["Owners", "Agents"],
     },
   ];

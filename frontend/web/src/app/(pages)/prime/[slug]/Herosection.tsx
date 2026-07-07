@@ -43,6 +43,20 @@ export interface ProjectLeadPayload {
   status?: string;
 }
 
+function isValidPhoneNumber(value: string) {
+  const normalized = value.replace(/[^\d+]/g, "");
+  return /^\+?[1-9]\d{9,14}$/.test(normalized);
+}
+
+function sanitizePhoneInput(value: string) {
+  const cleaned = value.replace(/[^\d+]/g, "");
+  if (!cleaned.startsWith("+")) {
+    return cleaned.replace(/\+/g, "");
+  }
+
+  return `+${cleaned.slice(1).replace(/\+/g, "")}`;
+}
+
 export default function HeroSection({ hero }: Props) {
   if (!hero) return null;
 
@@ -85,6 +99,11 @@ export default function HeroSection({ hero }: Props) {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();
 
+  if (!isValidPhoneNumber(form.phone)) {
+    toast.error("Please enter a valid phone number");
+    return;
+  }
+
   leadsMutation.mutate({
     name: form.name,
     phone: form.phone,
@@ -99,7 +118,10 @@ export default function HeroSection({ hero }: Props) {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) {
     const { name, value } = e.target;
-    setForm((p) => ({ ...p, [name]: value }));
+    setForm((p) => ({
+      ...p,
+      [name]: name === "phone" ? sanitizePhoneInput(value) : value,
+    }));
   }
 
   async function shareProject() {
@@ -232,6 +254,10 @@ export default function HeroSection({ hero }: Props) {
 
                 <input
                   name="phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  pattern="^\+?[1-9]\d{9,14}$"
                   value={form.phone}
                   onChange={handleChange}
                   placeholder="Your Mobile Number"

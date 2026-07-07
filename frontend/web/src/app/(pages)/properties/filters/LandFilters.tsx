@@ -557,10 +557,14 @@ const LandFilters = () => {
               <button
                 key={opt}
                 onClick={() => {
+                  const nextValue =
+                    createdByRole === postedByLabelMap[opt]
+                      ? ""
+                      : postedByLabelMap[opt];
                   dispatch(
                     setLandFilter({
                       key: "createdByRole",
-                      value: postedByLabelMap[opt],
+                      value: nextValue,
                     })
                   );
                   close?.();
@@ -852,20 +856,28 @@ const LandFilters = () => {
                           onChange={(values) =>
                             updatePlotArea(values as [number, number])
                           }
-                          renderTrack={({ props, children }) => (
-                            <div
-                              {...props}
-                              className="h-1 w-full bg-gray-200 rounded"
-                            >
-                              {children}
-                            </div>
-                          )}
-                          renderThumb={({ props }) => (
-                            <div
-                              {...props}
-                              className="h-4 w-4 cursor-pointer bg-green-600 rounded-full shadow"
-                            />
-                          )}
+                          renderTrack={({ props, children }) => {
+                            const { key, ...restProps } = props as any;
+                            return (
+                              <div
+                                key={key}
+                                {...restProps}
+                                className="h-1 w-full bg-gray-200 rounded"
+                              >
+                                {children}
+                              </div>
+                            );
+                          }}
+                          renderThumb={({ props }) => {
+                            const { key, ...restProps } = props as any;
+                            return (
+                              <div
+                                key={key}
+                                {...restProps}
+                                className="h-4 w-4 cursor-pointer bg-green-600 rounded-full shadow"
+                              />
+                            );
+                          }}
                         />
 
                         <div className="text-xs text-gray-500">
@@ -932,42 +944,53 @@ const LandFilters = () => {
                       <div className="flex flex-wrap gap-3">
                         {section.options?.map((opt) => {
                           const isBooleanFilter = booleanLandKeys.has(mappedKey);
+                          const postedByValue = isPostedByFilter
+                            ? postedByLabelMap[opt as PostedByOption] ?? opt
+                            : opt;
+                          const selectedValues = Array.isArray(currentValue)
+                            ? (currentValue as string[])
+                            : [];
                           const isActive =
                             isBooleanFilter
                               ? Boolean(currentValue)
                               : isPostedByFilter
-                                ? Array.isArray(currentValue) &&
-                                  currentValue.includes(opt)
-                              : section.selectionType === "multiple"
-                                ? Array.isArray(currentValue) &&
-                                currentValue.includes(opt)
-                                : currentValue === opt;
+                                ? Array.isArray(currentValue)
+                                  ? selectedValues.includes(postedByValue)
+                                  : currentValue === postedByValue
+                                : section.selectionType === "multiple"
+                                  ? Array.isArray(currentValue) &&
+                                    selectedValues.includes(opt)
+                                  : currentValue === opt;
 
                           return (
                             <SelectableButton
                               key={opt}
                               label={
                                 isPostedByFilter
-                                  ? postedByLabelMap[opt as PostedByOption] ?? opt
-                                  : opt
+                                  ? postedByValue
+                                  : formatLabel(opt)
                               }
                               active={isActive}
                               selectionType={section.selectionType ?? "single"}
+                              showIndicator={isPostedByFilter}
                               onClick={() => {
+                                const nextValue =
+                                  isBooleanFilter
+                                    ? !Boolean(currentValue)
+                                    : isPostedByFilter
+                                      ? isActive
+                                        ? ""
+                                        : postedByValue
+                                      : section.selectionType === "multiple"
+                                        ? toggleArrayValue(
+                                          selectedValues,
+                                          opt
+                                        )
+                                        : opt;
                                 dispatch(
                                   setLandFilter({
                                     key: mappedKey,
-                                    value:
-                                      isBooleanFilter
-                                        ? !Boolean(currentValue)
-                                        : isPostedByFilter
-                                          ? postedByLabelMap[opt as PostedByOption] ?? opt
-                                        : section.selectionType === "multiple"
-                                          ? toggleArrayValue(
-                                            (currentValue as string[]) || [],
-                                            opt
-                                          )
-                                          : opt,
+                                    value: nextValue,
                                   })
                                 );
                               }}

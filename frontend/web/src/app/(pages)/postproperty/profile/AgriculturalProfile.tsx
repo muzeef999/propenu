@@ -25,6 +25,7 @@ import { validateAgriculturalProfile } from "@/zod/profileZods/agriculturalZod";
 import AmenitiesSelect from "./AmenitiesSelect";
 import { AGRICULTURAL_AMENITIES } from "../constants/amenities";
 import { deleteGalleryImageApi } from "@/Redux/apis";
+import SelectableButton from "@/ui/SelectableButton";
 
 const SOIL_TYPES = [
   "clay",
@@ -61,6 +62,14 @@ const ACCESS_ROAD_TYPES = [
   "gravel",
   "concrete",
   "earthen",
+] as const;
+
+const CURRENT_CROP_OPTIONS = [
+  "Paddy",
+  "Cotton",
+  "Sugarcane",
+  "Groundnut",
+  "Vegetables",
 ] as const;
 
 const AgriculturalProfile = () => {
@@ -103,6 +112,47 @@ const AgriculturalProfile = () => {
   const validUploads = files.filter(
     (f): f is UploadedFile & { file: File } => f.file instanceof File
   )
+  const [customCrop, setCustomCrop] = useState("");
+
+  const getCurrentCropValues = (value: unknown) =>
+    typeof value === "string"
+      ? value
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : [];
+
+  const currentCropValues = getCurrentCropValues(agricultural.currentCrop);
+
+  const updateCurrentCrop = (values: string[]) => {
+    const uniqueValues = Array.from(
+      new Set(values.map((item) => item.trim()).filter(Boolean)),
+    );
+
+    dispatch(
+      setProfileField({
+        propertyType: "agricultural",
+        key: "currentCrop",
+        value: uniqueValues.join(", "),
+      }),
+    );
+  };
+
+  const toggleCurrentCrop = (value: string) => {
+    updateCurrentCrop(
+      currentCropValues.includes(value)
+        ? currentCropValues.filter((item) => item !== value)
+        : [...currentCropValues, value],
+    );
+  };
+
+  const addCustomCrop = () => {
+    const normalized = customCrop.trim();
+    if (!normalized) return;
+
+    updateCurrentCrop([...currentCropValues, normalized]);
+    setCustomCrop("");
+  };
   useEffect(() => {
     if (!agricultural?.gallery || agricultural.gallery.length === 0) return;
     if (files.length > 0) return; // don't overwrite user-selected files
@@ -425,20 +475,61 @@ const AgriculturalProfile = () => {
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <InputField
-            label="Current Crop"
-            value={agricultural.currentCrop || ""}
-            placeholder="e.g. Sugarcane"
-            onChange={(value) =>
-              dispatch(
-                setProfileField({
-                  propertyType: "agricultural",
-                  key: "currentCrop",
-                  value,
-                })
-              )
-            }
-          />
+          <div className="space-y-3 md:col-span-3">
+            <div>
+              <p className="mb-2 text-sm font-medium text-gray-900">
+                Current Crop
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {CURRENT_CROP_OPTIONS.map((option) => (
+                  <SelectableButton
+                    key={option}
+                    label={option}
+                    active={currentCropValues.includes(option)}
+                    selectionType="multiple"
+                    onClick={() => toggleCurrentCrop(option)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 md:flex-row md:items-end">
+              <div className="flex-1">
+                <InputField
+                  label="Add Custom Crop"
+                  value={customCrop}
+                  placeholder="e.g. Maize"
+                  onChange={setCustomCrop}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={addCustomCrop}
+                className="h-10 rounded-md border border-green-200 px-4 text-sm font-medium text-green-700 transition hover:bg-green-50"
+              >
+                Add Crop
+              </button>
+            </div>
+
+            {currentCropValues.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {currentCropValues.map((crop) => (
+                  <button
+                    key={crop}
+                    type="button"
+                    onClick={() =>
+                      updateCurrentCrop(
+                        currentCropValues.filter((item) => item !== crop),
+                      )
+                    }
+                    className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700"
+                  >
+                    {crop} x
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
 
           <InputField
             label="Suitable For"

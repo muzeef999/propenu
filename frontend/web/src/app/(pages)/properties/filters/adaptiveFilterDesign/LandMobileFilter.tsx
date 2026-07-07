@@ -27,6 +27,7 @@ import { landMoreFilterSections } from "../../constants/constants";
 import Toggle from "@/ui/ToggleSwitch";
 import { toast } from "sonner";
 import SelectableButton from "@/ui/SelectableButton";
+import { formatLabel } from "@/utilies/formatLabel";
 
 type ListingOption = {
   label: "Buy" | "Rent";
@@ -711,13 +712,19 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                             <div className="flex flex-wrap gap-2">
                               {section.options?.map((opt) => {
                                 const isBooleanFilter = booleanLandKeys.has(mappedKey);
+                                const postedByValue = isPostedByFilter
+                                  ? postedByLabelMap[opt as PostedByOption] ?? opt
+                                  : opt;
+                                const selectedValues = Array.isArray(currentValue)
+                                  ? (currentValue as string[])
+                                  : [];
                                 const active = isBooleanFilter
                                   ? Boolean(currentValue)
                                   : isPostedByFilter
                                     ? Array.isArray(currentValue) &&
-                                      currentValue.includes(opt)
+                                      selectedValues.includes(postedByValue)
                                   : section.selectionType === "multiple"
-                                    ? Array.isArray(currentValue) && currentValue.includes(opt)
+                                    ? Array.isArray(currentValue) && selectedValues.includes(opt)
                                     : currentValue === opt;
 
                                 return (
@@ -725,11 +732,12 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                                     key={opt}
                                     label={
                                       isPostedByFilter
-                                        ? postedByLabelMap[opt as PostedByOption] ?? opt
-                                        : opt
+                                        ? postedByValue
+                                        : formatLabel(opt)
                                     }
                                     active={active}
                                     selectionType={section.selectionType ?? "single"}
+                                    showIndicator={isPostedByFilter}
                                     onClick={() =>
                                       dispatch(
                                         setLandFilter({
@@ -737,10 +745,12 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                                           value: isBooleanFilter
                                             ? !Boolean(currentValue)
                                             : isPostedByFilter
-                                              ? postedByLabelMap[opt as PostedByOption] ?? opt
+                                              ? active
+                                                ? ""
+                                                : postedByValue
                                             : section.selectionType === "multiple"
                                               ? toggleArrayValue(
-                                                Array.isArray(currentValue) ? currentValue : [],
+                                                selectedValues,
                                                 opt,
                                               )
                                               : opt,

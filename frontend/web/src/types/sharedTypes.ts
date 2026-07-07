@@ -127,6 +127,7 @@ export interface LandFilters {
   landSubType?: string[];
 
   plotArea?: { min?: number; max?: number };
+  plotAreaUnit?: ("sqft" | "sqmt" | "sqyd" | "acre" | "guntha" | "cent" | "kanal" | "hectare")[];
   dimensions?: {
     length?: number;
     width?: number;
@@ -158,7 +159,7 @@ export interface AgriculturalFilters {
   agriculturalSubType?: string[];
 
   totalArea?: { min?: number; max?: number };
-  areaUnit?: "Acre" | "Guntha" | "Cent" | "Hectare";
+  areaUnit?: "sqft" | "sqmt" | "sqyd" | "acre" | "guntha" | "cent" | "kanal" | "hectare";
 
   soilType?: string[];
   irrigationType?: string[];

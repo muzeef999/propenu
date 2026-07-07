@@ -17,7 +17,6 @@ import {
   formatBudget,
 } from "../constants/constants";
 import { getTrackBackground, Range } from "react-range";
-import { PostedByOption } from "@/types/residential";
 import { CommercialFilterKey, MoreFilterSectionCom } from "@/types";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import { getSelectedMoreFiltersCount } from "../count-helper/ResSelectedMoreFiltersCount";
@@ -58,6 +57,8 @@ const COMMERCIAL_SUBTYPE_MAP: Record<string, string[]> = {
 
 const normalizeCommercialTypeToken = (value: string) =>
   value.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+type CommercialPostedByOption = "Owners" | "Agents";
 
 const CommercialFilters = () => {
   const dispatch = useDispatch();
@@ -105,11 +106,10 @@ const CommercialFilters = () => {
     commercial.builtUpArea?.max ?? CARPET_MAX,
   ]);
 
-  const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
-  const postedByLabelMap: Record<PostedByOption, string> = {
+  const postedByOptions: CommercialPostedByOption[] = ["Owners", "Agents"];
+  const postedByLabelMap: Record<CommercialPostedByOption, string> = {
     Owners: "User",
     Agents: "Agent",
-    Builders: "Builder",
   };
   const localityLabel =
     localityList.length === 0
@@ -622,10 +622,14 @@ const CommercialFilters = () => {
               <button
                 key={opt}
                 onClick={() => {
+                  const nextValue =
+                    createdByRole === postedByLabelMap[opt]
+                      ? ""
+                      : postedByLabelMap[opt];
                   dispatch(
                     setCommercialFilter({
                       key: "createdByRole",
-                      value: postedByLabelMap[opt],
+                      value: nextValue,
                     })
                   );
                   close?.();
@@ -958,20 +962,28 @@ const CommercialFilters = () => {
                               setCarpetRange(nextRange);
                             }
                           }}
-                          renderTrack={({ props, children }) => (
-                            <div
-                              {...props}
-                              className="h-1 w-full bg-gray-200 rounded"
-                            >
-                              {children}
-                            </div>
-                          )}
-                          renderThumb={({ props }) => (
-                            <div
-                              {...props}
-                              className="h-4 w-4 cursor-pointer bg-green-600 rounded-full shadow"
-                            />
-                          )}
+                          renderTrack={({ props, children }) => {
+                            const { key, ...restProps } = props as any;
+                            return (
+                              <div
+                                key={key}
+                                {...restProps}
+                                className="h-1 w-full bg-gray-200 rounded"
+                              >
+                                {children}
+                              </div>
+                            );
+                          }}
+                          renderThumb={({ props }) => {
+                            const { key, ...restProps } = props as any;
+                            return (
+                              <div
+                                key={key}
+                                {...restProps}
+                                className="h-4 w-4 cursor-pointer bg-green-600 rounded-full shadow"
+                              />
+                            );
+                          }}
                         />
 
                         <div className="text-xs text-gray-500">
@@ -995,37 +1007,52 @@ const CommercialFilters = () => {
                           </p>
                         ) : null}
                         {section.options?.map((opt) => {
+                          const postedByValue =
+                            mappedKey === "createdByRole"
+                              ? postedByLabelMap[opt as CommercialPostedByOption] ?? opt
+                              : opt;
+                          const selectedValues = Array.isArray(currentValue)
+                            ? (currentValue as string[])
+                            : [];
                           const isActive =
-                            section.selectionType === "multiple"
-                              ? Array.isArray(currentValue) &&
-                              currentValue.includes(opt)
-                              : currentValue === opt;
+                            mappedKey === "createdByRole"
+                              ? Array.isArray(currentValue)
+                                ? selectedValues.includes(postedByValue)
+                                : currentValue === postedByValue
+                              : section.selectionType === "multiple"
+                                ? Array.isArray(currentValue) &&
+                                  selectedValues.includes(opt)
+                                : currentValue === opt;
 
                           return (
                             <SelectableButton
                               key={opt}
                               label={
                                 mappedKey === "createdByRole"
-                                  ? postedByLabelMap[opt as PostedByOption] ?? opt
-                                  : opt
+                                  ? postedByValue
+                                  : formatLabel(opt)
                               }
                               active={isActive}
                               selectionType={section.selectionType ?? "single"}
+                              showIndicator={mappedKey === "createdByRole"}
                               onClick={() => {
+                                const nextValue =
+                                  mappedKey === "createdByRole" && isActive
+                                    ? ""
+                                    : section.selectionType === "multiple"
+                                      ? toggleArrayValue(
+                                        Array.isArray(currentValue)
+                                          ? currentValue
+                                          : [],
+                                        opt
+                                      )
+                                      : mappedKey === "createdByRole"
+                                        ? postedByValue
+                                        : opt;
                                 dispatch(
                                   setCommercialFilter({
                                     key: mappedKey,
-                                    value:
-                                      section.selectionType === "multiple"
-                                        ? toggleArrayValue(
-                                          Array.isArray(currentValue)
-                                            ? currentValue
-                                            : [],
-                                          opt
-                                        )
-                                        : mappedKey === "createdByRole"
-                                          ? postedByLabelMap[opt as PostedByOption] ?? opt
-                                          : opt,
+                                    value: nextValue,
                                   })
                                 );
                               }}

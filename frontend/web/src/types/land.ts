@@ -84,6 +84,7 @@ export const landKeyMapping: Record<
   "Land Type": "landType",
   "Land Sub Type": "landSubType",
   "Plot Area": "plotArea",
+  "Area Unit": "plotAreaUnit",
   "Dimensions": "dimensions",
 
   "Road Width": "roadWidth",

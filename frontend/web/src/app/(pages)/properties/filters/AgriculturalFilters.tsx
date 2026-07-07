@@ -539,10 +539,14 @@ const AgriculturalFilters = () => {
               <button
                 key={opt}
                 onClick={() => {
+                  const nextValue =
+                    createdByRole === postedByLabelMap[opt]
+                      ? ""
+                      : postedByLabelMap[opt];
                   dispatch(
                     setAgriculturalFilter({
                       key: "createdByRole",
-                      value: postedByLabelMap[opt],
+                      value: nextValue,
                     })
                   );
                   close?.();
@@ -824,20 +828,28 @@ const AgriculturalFilters = () => {
                           onChange={(values) =>
                             updateTotalArea(values as [number, number])
                           }
-                          renderTrack={({ props, children }) => (
-                            <div
-                              {...props}
-                              className="h-1 w-full bg-gray-200 rounded"
-                            >
-                              {children}
-                            </div>
-                          )}
-                          renderThumb={({ props }) => (
-                            <div
-                              {...props}
-                              className="h-4 w-4 cursor-pointer bg-green-600 rounded-full shadow"
-                            />
-                          )}
+                          renderTrack={({ props, children }) => {
+                            const { key, ...restProps } = props as any;
+                            return (
+                              <div
+                                key={key}
+                                {...restProps}
+                                className="h-1 w-full bg-gray-200 rounded"
+                              >
+                                {children}
+                              </div>
+                            );
+                          }}
+                          renderThumb={({ props }) => {
+                            const { key, ...restProps } = props as any;
+                            return (
+                              <div
+                                key={key}
+                                {...restProps}
+                                className="h-4 w-4 cursor-pointer bg-green-600 rounded-full shadow"
+                              />
+                            );
+                          }}
                         />
 
                         <div className="text-xs text-gray-500">
@@ -849,47 +861,56 @@ const AgriculturalFilters = () => {
                         {section.options?.map((opt) => {
                           const isStateRestrictions = mappedKey === "stateRestrictions";
                           const stateRestrictionValue = opt === "Applicable";
+                          const postedByValue = isPostedByFilter
+                            ? postedByLabelMap[opt as PostedByOption] ?? opt
+                            : opt;
+                          const selectedValues = Array.isArray(currentValue)
+                            ? (currentValue as string[])
+                            : [];
 
                           const isActive = isStateRestrictions
                             ? currentValue === stateRestrictionValue
                             : isPostedByFilter
-                              ? Array.isArray(currentValue) &&
-                                currentValue.includes(opt)
-                            : isBooleanFilter
-                              ? Boolean(currentValue)
-                              : isMultiSelect
-                                ? Array.isArray(currentValue) &&
-                                currentValue.includes(opt)
-                                : currentValue === opt;
+                              ? Array.isArray(currentValue)
+                                ? selectedValues.includes(postedByValue)
+                                : currentValue === postedByValue
+                              : isBooleanFilter
+                                ? Boolean(currentValue)
+                                : isMultiSelect
+                                  ? Array.isArray(currentValue) &&
+                                    selectedValues.includes(opt)
+                                  : currentValue === opt;
 
                           return (
                             <SelectableButton
                               key={opt}
                               label={
                                 isPostedByFilter
-                                  ? postedByLabelMap[opt as PostedByOption] ?? opt
-                                  : opt
+                                  ? postedByValue
+                                  : formatLabel(opt)
                               }
                               active={isActive}
                               selectionType={isMultiSelect ? "multiple" : "single"}
+                              showIndicator={isPostedByFilter}
                               onClick={() => {
+                                const nextValue = isStateRestrictions
+                                  ? stateRestrictionValue
+                                  : isPostedByFilter
+                                    ? isActive
+                                      ? ""
+                                      : postedByValue
+                                    : isBooleanFilter
+                                      ? !Boolean(currentValue)
+                                      : isMultiSelect
+                                        ? toggleArrayValue(
+                                          selectedValues,
+                                          opt
+                                        )
+                                        : opt;
                                 dispatch(
                                   setAgriculturalFilter({
                                     key: mappedKey,
-                                    value: isStateRestrictions
-                                      ? stateRestrictionValue
-                                      : isPostedByFilter
-                                        ? postedByLabelMap[opt as PostedByOption] ?? opt
-                                      : isBooleanFilter
-                                        ? !Boolean(currentValue)
-                                        : isMultiSelect
-                                          ? toggleArrayValue(
-                                            Array.isArray(currentValue)
-                                              ? currentValue
-                                              : [],
-                                            opt
-                                          )
-                                          : opt,
+                                    value: nextValue,
                                   })
                                 );
                               }}
