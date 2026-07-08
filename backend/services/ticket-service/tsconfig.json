@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "rootDir": "../../",
+    "rootDir": ".",
     "outDir": "./dist",
     "module": "CommonJS",
     "target": "ES2020",
@@ -15,6 +15,6 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
   },
-  "include": ["src", "../../shared", "../payment-service/src/planRank.ts"],
+  "include": ["src", "modules", "config"],
   "exclude": ["node_modules", "dist"]
 }

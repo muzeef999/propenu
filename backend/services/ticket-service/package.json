@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/src/server.js"
   },
   "keywords": [],
   "author": "",
@@ -22,6 +22,12 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "compression": "^1.8.1"
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "mongoose": "^8.19.2",
+    "morgan": "^1.10.1"
   }
 }
