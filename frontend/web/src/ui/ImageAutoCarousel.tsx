@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { HiChevronLeft, HiChevronRight } from "react-icons/hi2";
 import { GoHeart, GoHeartFill } from "react-icons/go";
+import { IoMdShareAlt } from "react-icons/io";
 
 type ImageAutoCarouselProps = {
   images: string[];
@@ -11,11 +12,10 @@ type ImageAutoCarouselProps = {
   interval?: number;
   className?: string;
   onIndexChange?: (index: number) => void;
-
-  /* SHORTLIST */
   isShortlisted?: boolean;
   onToggleShortlist?: () => void;
   isShortlistLoading?: boolean;
+  onShare?: () => void;
 };
 
 const ImageAutoCarousel = ({
@@ -24,14 +24,13 @@ const ImageAutoCarousel = ({
   interval = 3000,
   className = "",
   onIndexChange,
-
   isShortlisted,
   onToggleShortlist,
   isShortlistLoading,
+  onShare,
 }: ImageAutoCarouselProps) => {
-  // Filter out any null, undefined, or empty strings from the images array
   const filteredImages = images.filter(
-    (src) => typeof src === 'string' && src.trim() !== ''
+    (src) => typeof src === "string" && src.trim() !== "",
   );
   const safeImages = filteredImages.length ? filteredImages : ["/placeholder.jpg"];
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -39,12 +38,10 @@ const ImageAutoCarousel = ({
 
   const total = safeImages.length;
 
-  /* notify parent */
   useEffect(() => {
     onIndexChange?.(currentIndex);
   }, [currentIndex, onIndexChange]);
 
-  /* auto slide */
   useEffect(() => {
     if (paused || total <= 1) return;
 
@@ -65,17 +62,16 @@ const ImageAutoCarousel = ({
 
   return (
     <div
-      className={`relative h-full w-full group rounded-md overflow-hidden ${className}`}
+      className={`group relative h-full w-full overflow-hidden rounded-md ${className}`}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* SLIDER TRACK */}
       <div
         className="flex h-full w-full transition-transform duration-700 ease-in-out"
         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
       >
         {safeImages.map((src, idx) => (
-          <div key={idx} className="relative h-full w-full shrink-0 ">
+          <div key={idx} className="relative h-full w-full shrink-0">
             <Image
               src={src}
               alt={alt}
@@ -88,50 +84,63 @@ const ImageAutoCarousel = ({
         ))}
       </div>
 
-
-
-       short
-      {/* ❤️ SHORTLIST ICON */}
-      {onToggleShortlist && (
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            onToggleShortlist();
-          }}
-          className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer"
-          title={isShortlisted ? "Remove from shortlist" : "Shortlist"}
-        >
-          {isShortlistLoading ? (
-            <span className="w-5 h-5 block animate-pulse bg-gray-300 rounded-full" />
-          ) : isShortlisted ? (
-            <GoHeartFill className="w-5 h-5 text-red-500" />
-          ) : (
-            <GoHeart className="w-5 h-5 text-gray-600 hover:text-red-500" />
+      {(onShare || onToggleShortlist) && (
+        <div className="absolute right-2 top-2 z-10 flex items-center gap-2">
+          {onShare && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                onShare();
+              }}
+              className="cursor-pointer rounded-full bg-white/90 p-1.5 shadow transition-all duration-200 hover:scale-110 active:scale-95"
+              title="Share property"
+              aria-label="Share property"
+            >
+              <IoMdShareAlt className="h-5 w-5 text-gray-700" />
+            </button>
           )}
-        </button>
+
+          {onToggleShortlist && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                onToggleShortlist();
+              }}
+              className="cursor-pointer rounded-full bg-white/90 p-1.5 shadow transition-all duration-200 hover:scale-110 active:scale-95"
+              title={isShortlisted ? "Remove from shortlist" : "Shortlist"}
+              aria-label={isShortlisted ? "Remove from shortlist" : "Shortlist"}
+            >
+              {isShortlistLoading ? (
+                <span className="block h-5 w-5 animate-pulse rounded-full bg-gray-300" />
+              ) : isShortlisted ? (
+                <GoHeartFill className="h-5 w-5 text-red-500" />
+              ) : (
+                <GoHeart className="h-5 w-5 text-gray-600 hover:text-red-500" />
+              )}
+            </button>
+          )}
+        </div>
       )}
 
-      {/* LEFT ARROW */}
       {total > 1 && (
         <button
           onClick={(e) => {
             e.preventDefault();
             prev();
           }}
-          className="absolute left-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white opacity-0 -translate-x-2 transition-all duration-300 ease-out group-hover:opacity-100 group-hover:translate-x-0 hover:bg-black/50"
+          className="absolute left-2 top-1/2 flex h-8 w-8 -translate-x-2 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-white opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100 hover:bg-black/50"
         >
           <HiChevronLeft className="h-5 w-5" />
         </button>
       )}
 
-      {/* RIGHT ARROW */}
       {total > 1 && (
         <button
           onClick={(e) => {
             e.preventDefault();
             next();
           }}
-          className="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white opacity-0 translate-x-2 transition-all duration-300 ease-out group-hover:opacity-100 group-hover:translate-x-0 hover:bg-black/50"
+          className="absolute right-2 top-1/2 flex h-8 w-8 translate-x-2 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-white opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100 hover:bg-black/50"
         >
           <HiChevronRight className="h-5 w-5" />
         </button>

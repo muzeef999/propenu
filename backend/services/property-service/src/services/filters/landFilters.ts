@@ -124,7 +124,7 @@ export function extendLandFilters(
   const maxPlot = parseNumber(q.maxPlotArea);
   const minDimensionLength = parseNumber(q.minDimensionLength);
   const minDimensionWidth = parseNumber(q.minDimensionWidth);
-  const plotUnit = (q.plotAreaUnit as string | undefined)?.trim();
+  const plotUnitList = parseCsv(q.plotAreaUnit as string | undefined);
 
   if (minPlot !== undefined || maxPlot !== undefined) {
     f.plotArea = {};
@@ -132,7 +132,11 @@ export function extendLandFilters(
     if (maxPlot !== undefined) f.plotArea.$lte = maxPlot;
   }
 
-  if (plotUnit) f.plotAreaUnit = plotUnit;
+  if (plotUnitList.length === 1) {
+    f.plotAreaUnit = plotUnitList[0];
+  } else if (plotUnitList.length > 1) {
+    f.plotAreaUnit = { $in: plotUnitList };
+  }
   if (minDimensionLength !== undefined) {
     f["dimensions.length"] = { $gte: minDimensionLength };
   }

@@ -103,8 +103,11 @@ export const getShortlistStatus = async (req: AuthRequest, res: Response) => {
 export const getProjectAnalytics = async (req: AuthRequest, res: Response) => {
   try {
     const builderId = req.user!.sub;   // from JWT token
+    const range = (req.query.range as string) || "30d";
+    const state = (req.query.state as string) || undefined;
+    const city = (req.query.city as string) || undefined;
 
-    const data = await getBuilderAnalytics(builderId);
+    const data = await getBuilderAnalytics(builderId, range, state, city);
 
     res.json(data);
   } catch (e: any) {

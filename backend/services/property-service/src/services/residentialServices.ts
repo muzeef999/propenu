@@ -827,6 +827,7 @@ export const ResidentialPropertyService = {
           bhk: 1,
           bedrooms: 1,
           bathrooms: 1,
+          balconies: 1,
           slug: 1,
           createdAt: 1,
           listingSource: 1,

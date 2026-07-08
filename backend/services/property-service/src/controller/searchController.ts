@@ -3,6 +3,7 @@
 import type { RequestHandler } from "express";
 import createStreamingHandler from "../factory/streamingFactory";
 import buildSearchCursor, {
+  analyzeSearchScope,
   CATEGORY_SERVICE_MAP,
   countSearchResults,
 } from "../services/filters/searchService";
@@ -69,8 +70,17 @@ const streamSearchHandler: RequestHandler = createStreamingHandler(
       }
 
       const total = await countSearchResults({ filter: actual });
+      const scope = analyzeSearchScope(actual);
 
-      return { total };
+      return {
+        total,
+        includeFeaturedProjects: scope.includeFeaturedProjects,
+        resultMode: scope.mode,
+        searchScopeReason: scope.reason,
+        commonFilterKeys: scope.classification.commonKeys,
+        propertyOnlyFilterKeys: scope.classification.propertyOnlyKeys,
+        featuredOnlyFilterKeys: scope.classification.featuredOnlyKeys,
+      };
     },
 
   }

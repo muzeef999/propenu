@@ -12,6 +12,7 @@ import { minDelay } from "@/utilies/minDelay";
 import formatINR from "@/utilies/PriceFormat";
 import { getProjectConfigurationLabel } from "@/utilies/projectConfiguration";
 import { GoHeart, GoHeartFill } from "react-icons/go";
+import { FiShare2 } from "react-icons/fi";
 import Topselllingcomingsoon from "./Topselllingcomingsoon";
 import {
   getHomeSectionCache,
@@ -19,6 +20,7 @@ import {
   setHomeSectionCache,
 } from "@/utilies/homeSectionCache";
 import { useShortlist } from "@/hooks/useShortlist";
+import { IoMdShareAlt } from "react-icons/io";
 
 function HighlightProjectCard({ project }: { project: FeaturedProject }) {
   const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(
@@ -29,6 +31,29 @@ function HighlightProjectCard({ project }: { project: FeaturedProject }) {
     project.promotion?.type === "prime"
       ? `/prime/${project.slug}`
       : `/project/${project.slug}`;
+
+  const shareProject = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const shareUrl =
+      typeof window !== "undefined" ? new URL(projectHref, window.location.origin).toString() : "";
+    const shareData = {
+      title: project.title,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      await navigator.clipboard.writeText(shareUrl);
+    } catch {
+      // Ignore cancelled share or clipboard errors.
+    }
+  };
 
   return (
     <Link
@@ -43,25 +68,37 @@ function HighlightProjectCard({ project }: { project: FeaturedProject }) {
           className="h-full w-full object-cover"
         />
 
-        <button
-          type="button"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            toggleShortlist();
-          }}
-          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow transition-all duration-200 hover:scale-110 active:scale-95"
-          title={isShortlisted ? "Remove from shortlist" : "Shortlist"}
-          aria-label={isShortlisted ? "Remove from shortlist" : "Shortlist"}
-        >
-          {isShortlistLoading ? (
-            <span className="block h-5 w-5 animate-pulse rounded-full bg-gray-300" />
-          ) : isShortlisted ? (
-            <GoHeartFill className="h-5 w-5 text-red-500" />
-          ) : (
-            <GoHeart className="h-5 w-5 text-gray-600 hover:text-red-500" />
-          )}
-        </button>
+        <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={shareProject}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow transition-all duration-200 hover:scale-110 active:scale-95"
+            title="Share project"
+            aria-label="Share project"
+          >
+            <IoMdShareAlt className="h-4.5 w-4.5 text-gray-700" />
+          </button>
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              toggleShortlist();
+            }}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow transition-all duration-200 hover:scale-110 active:scale-95"
+            title={isShortlisted ? "Remove from shortlist" : "Shortlist"}
+            aria-label={isShortlisted ? "Remove from shortlist" : "Shortlist"}
+          >
+            {isShortlistLoading ? (
+              <span className="block h-5 w-5 animate-pulse rounded-full bg-gray-300" />
+            ) : isShortlisted ? (
+              <GoHeartFill className="h-5 w-5 text-red-500" />
+            ) : (
+              <GoHeart className="h-5 w-5 text-gray-600 hover:text-red-500" />
+            )}
+          </button>
+        </div>
       </div>
 
       <div className="absolute left-3 right-3 top-[130px] sm:top-[140px] md:top-[150px] bg-white rounded-xl p-3 shadow-sm transition-shadow duration-300 group-hover:shadow-md">

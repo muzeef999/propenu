@@ -490,10 +490,9 @@ export default function HeroSection({ project }: HeroSectionProps) {
                                 className="max-h-[75vh] w-full object-contain"
                             />
 
-                            {(activeImage.title || activeImage.category) && (
+                            {activeImage.category && (
                                 <div className="absolute bottom-0 w-full bg-linear-to-t from-black/80 to-transparent p-6 text-white">
-                                    {activeImage.title && <div className="text-lg font-semibold">{activeImage.title}</div>}
-                                    {activeImage.category && <div className="text-sm text-white/70">{activeImage.category}</div>}
+                                    <div className="text-sm text-white/70">{activeImage.category}</div>
                                 </div>
                             )}
                         </div>

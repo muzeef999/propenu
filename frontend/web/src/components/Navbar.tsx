@@ -98,7 +98,6 @@ const Navbar = () => {
         }
       } catch (err) {
         // user not logged in
-        console.log("User not logged in");
       }
     }
 

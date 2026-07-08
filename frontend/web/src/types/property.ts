@@ -6,6 +6,13 @@ export interface Meta {
   defaultsApplied?: {
     category?: string;
   };
+  total?: number;
+  includeFeaturedProjects?: boolean;
+  resultMode?: "listings-only" | "mixed-results" | "projects-only";
+  searchScopeReason?: string;
+  commonFilterKeys?: string[];
+  propertyOnlyFilterKeys?: string[];
+  featuredOnlyFilterKeys?: string[];
 }
 
 

@@ -17,17 +17,42 @@ import {
 } from "@/utilies/homeSectionCache";
 import { useShortlist } from "@/hooks/useShortlist";
 import { GoHeart, GoHeartFill } from "react-icons/go";
+import { IoMdShareAlt } from "react-icons/io";
 
 function PrimeProjectCard({ project }: { project: FeaturedProject }) {
   const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(
     project._id,
     "FeaturedProject",
   );
+  const projectHref = `/prime/${project.slug}`;
+
+  const shareProject = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const shareUrl =
+      typeof window !== "undefined" ? new URL(projectHref, window.location.origin).toString() : "";
+    const shareData = {
+      title: project.title,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      await navigator.clipboard.writeText(shareUrl);
+    } catch {
+      // Ignore cancelled share or clipboard errors.
+    }
+  };
 
   return (
     <div className="shrink-0 w-[90%] sm:w-[calc(50%-0.5rem)] lg:w-[calc(50%-0.5rem)] card snap-start group">
       <Link
-        href={`/prime/${project.slug}`}
+        href={projectHref}
         className="relative block overflow-hidden rounded-t-md h-40 sm:h-[50px] md:h-[200px] lg:h-[220px]"
       >
         <Image
@@ -38,25 +63,37 @@ function PrimeProjectCard({ project }: { project: FeaturedProject }) {
           className="object-cover transition-transform duration-300 group-hover:scale-105"
         />
 
-        <button
-          type="button"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            toggleShortlist();
-          }}
-          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow transition-all duration-200 hover:scale-110 active:scale-95"
-          title={isShortlisted ? "Remove from shortlist" : "Shortlist"}
-          aria-label={isShortlisted ? "Remove from shortlist" : "Shortlist"}
-        >
-          {isShortlistLoading ? (
-            <span className="block h-5 w-5 animate-pulse rounded-full bg-gray-300" />
-          ) : isShortlisted ? (
-            <GoHeartFill className="h-5 w-5 text-red-500" />
-          ) : (
-            <GoHeart className="h-5 w-5 text-gray-600 hover:text-red-500" />
-          )}
-        </button>
+        <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={shareProject}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow transition-all duration-200 hover:scale-110 active:scale-95"
+            title="Share project"
+            aria-label="Share project"
+          >
+            <IoMdShareAlt className="h-5 w-5 text-gray-700" />
+          </button>
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              toggleShortlist();
+            }}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow transition-all duration-200 hover:scale-110 active:scale-95"
+            title={isShortlisted ? "Remove from shortlist" : "Shortlist"}
+            aria-label={isShortlisted ? "Remove from shortlist" : "Shortlist"}
+          >
+            {isShortlistLoading ? (
+              <span className="block h-5 w-5 animate-pulse rounded-full bg-gray-300" />
+            ) : isShortlisted ? (
+              <GoHeartFill className="h-5 w-5 text-red-500" />
+            ) : (
+              <GoHeart className="h-5 w-5 text-gray-600 hover:text-red-500" />
+            )}
+          </button>
+        </div>
       </Link>
 
       <div className="p-3 flex justify-between items-center gap-3">

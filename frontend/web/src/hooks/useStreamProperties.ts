@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Property } from "@/types/property";
+import { Meta, Property } from "@/types/property";
 import { SearchFilterParams } from "@/types/sharedTypes";
 import { minDelay } from "@/utilies/minDelay";
 
@@ -10,6 +10,7 @@ export function useStreamProperties(params: SearchFilterParams) {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState<number | null>(null);
   const [sponsored, setSponsored] = useState<Property[]>([]);
+  const [meta, setMeta] = useState<Meta | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -19,6 +20,7 @@ export function useStreamProperties(params: SearchFilterParams) {
       setLoading(true);
       setItems([]);
       setTotal(null);
+      setMeta(null);
 
       const query = new URLSearchParams(
         Object.entries(params)
@@ -59,6 +61,7 @@ export function useStreamProperties(params: SearchFilterParams) {
             const parsed = JSON.parse(line) as any;
 
             if (parsed && parsed.__meta) {
+              setMeta(parsed.__meta as Meta);
               if (typeof parsed.__meta.total === "number") {
                 setTotal(parsed.__meta.total);
               }
@@ -93,5 +96,5 @@ export function useStreamProperties(params: SearchFilterParams) {
     };
   }, [params]);
 
-  return { items, sponsored, loading, total };
+  return { items, sponsored, loading, total, meta };
 }

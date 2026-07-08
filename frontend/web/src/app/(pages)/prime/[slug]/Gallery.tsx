@@ -36,11 +36,25 @@ type YoutubeVideoItem = {
 
 function normalizeGallery(incoming?: GalleryItem[] | GalleryPayload | null, explicitColor?: string | null) {
   if (Array.isArray(incoming)) {
-    return { items: incoming.slice(), youtubeVideos: [] as YoutubeVideoItem[], color: explicitColor ?? "#F59E0B" };
+    return {
+      items: incoming.map((item) => ({
+        ...item,
+        title: undefined,
+        category: item.category ?? "Gallery",
+      })),
+      youtubeVideos: [] as YoutubeVideoItem[],
+      color: explicitColor ?? "#F59E0B",
+    };
   }
   const obj = (incoming || {}) as GalleryPayload;
   return {
-    items: Array.isArray(obj.gallerySummary) ? obj.gallerySummary.slice() : [],
+    items: Array.isArray(obj.gallerySummary)
+      ? obj.gallerySummary.map((item) => ({
+          ...item,
+          title: undefined,
+          category: item.category ?? "Gallery",
+        }))
+      : [],
     youtubeVideos: Array.isArray(obj.youtubeVideos) ? obj.youtubeVideos.slice() : [],
     color: explicitColor ?? obj.color ?? "#F59E0B",
   };

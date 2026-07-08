@@ -937,11 +937,19 @@ export const getMyContactedProperties = async () => {
   return res.data;
 };
 
-export const getBuilderDashboards = async () => {
+export const getBuilderDashboards = async (
+  range: string = "30d",
+  filters?: { state?: string; city?: string },
+) => {
   const token = Cookies.get("token");
   if (!token) return null;
 
   const res = await axiosInstance.get(`${url}/api/users/builder/analytics`, {
+    params: {
+      range,
+      ...(filters?.state ? { state: filters.state } : {}),
+      ...(filters?.city ? { city: filters.city } : {}),
+    },
     headers: {
       Authorization: `Bearer ${token}`,
     },

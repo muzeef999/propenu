@@ -11,6 +11,98 @@ export const CATEGORY_SERVICE_MAP: Record<string, any> = {
   agricultural: AgriculturalService,
 };
 
+const COMMON_FILTERS = new Set([
+  "category",
+  "listingType",
+  "search",
+  "city",
+  "state",
+  "locality",
+  "minPrice",
+  "maxPrice",
+  "propertyType",
+  "bedrooms",
+  "bhk",
+  "amenities",
+]);
+
+const PROPERTY_ONLY_FILTERS = new Set([
+  "listingSource",
+  "createdByRole",
+  "transactionType",
+  "constructionStatus",
+  "furnishing",
+  "furnishedStatus",
+  "facing",
+  "postedSince",
+  "bathrooms",
+  "balconies",
+  "minCarpetArea",
+  "maxCarpetArea",
+  "minBuiltUpArea",
+  "maxBuiltUpArea",
+  "minFourWheeler",
+  "parking",
+  "fireSafety",
+  "flooringType",
+  "wallFinishStatus",
+  "floor",
+  "floorNumber",
+  "totalFloors",
+  "tenantAvailable",
+  "negotiable",
+  "verifiedProperties",
+  "powerBackup",
+  "pantry",
+  "minPowerCapacityKw",
+  "maxPowerCapacityKw",
+  "propertySubType",
+  "landType",
+  "landSubType",
+  "minPlotArea",
+  "maxPlotArea",
+  "minDimensionLength",
+  "minDimensionWidth",
+  "plotAreaUnit",
+  "roadWidth",
+  "minRoadWidthFt",
+  "readyToConstruct",
+  "waterConnection",
+  "electricityConnection",
+  "approvedBy",
+  "approvedByAuthority",
+  "landUseZone",
+  "banksApproved",
+  "postedBy",
+  "cornerPlot",
+  "minArea",
+  "maxArea",
+  "minTotalArea",
+  "maxTotalArea",
+  "areaUnit",
+  "soilType",
+  "irrigationType",
+  "currentCrop",
+  "plantationAge",
+  "minPlantationAge",
+  "waterSource",
+  "accessRoadType",
+  "borewellCount",
+  "minBorewells",
+  "maxBorewells",
+  "boundaryWall",
+  "stateRestrictions",
+  "statePurchaseRestrictions",
+]);
+
+const FEATURED_ONLY_FILTERS = new Set([
+  "promotionType",
+  "projectStatus",
+  "builderName",
+]);
+
+const BUILDER_DISCOVERY_VALUES = new Set(["builder", "builders", "featured"]);
+
 function normalizePropertyType(value: string) {
   const normalized = value
     .trim()
@@ -105,6 +197,15 @@ function getCreatedByRoleTokens(filter: any): string[] {
     .filter(Boolean);
 }
 
+function getListingSourceTokens(filter: any): string[] {
+  if (typeof filter?.listingSource !== "string") return [];
+
+  return filter.listingSource
+    .split(",")
+    .map((token: string) => token.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 function hasActiveBrowseFilter(value: unknown): boolean {
   if (value == null) return false;
   if (typeof value === "string") return value.trim().length > 0;
@@ -137,36 +238,146 @@ function hasAppliedPropertyFilters(filter: any): boolean {
   });
 }
 
-function shouldIncludeFeaturedProjects(filter: any) {
-  if (!filter?.category || !CATEGORY_SERVICE_MAP[filter.category]) return false;
+function getActiveFilterEntries(filter: any) {
+  if (!filter || typeof filter !== "object") return [] as Array<[string, unknown]>;
 
-  if (filter.listingType && filter.listingType !== "sale") return false;
+  return Object.entries(filter).filter(([key, value]) => {
+    if (key === "batchSize") return false;
+    return hasActiveBrowseFilter(value);
+  });
+}
+
+function classifySearchFilters(filter: any) {
+  const activeEntries = getActiveFilterEntries(filter);
+  const commonKeys: string[] = [];
+  const propertyOnlyKeys: string[] = [];
+  const featuredOnlyKeys: string[] = [];
+  const unknownKeys: string[] = [];
+
+  for (const [key] of activeEntries) {
+    if (COMMON_FILTERS.has(key)) {
+      commonKeys.push(key);
+      continue;
+    }
+
+    if (PROPERTY_ONLY_FILTERS.has(key)) {
+      propertyOnlyKeys.push(key);
+      continue;
+    }
+
+    if (FEATURED_ONLY_FILTERS.has(key)) {
+      featuredOnlyKeys.push(key);
+      continue;
+    }
+
+    unknownKeys.push(key);
+  }
+
+  return {
+    activeKeys: activeEntries.map(([key]) => key),
+    commonKeys,
+    propertyOnlyKeys,
+    featuredOnlyKeys,
+    unknownKeys,
+  };
+}
+
+export function analyzeSearchScope(rawFilter: any) {
+  const filter = normalizeResidentialFilter(rawFilter);
+  const classification = classifySearchFilters(filter);
+
+  const response = {
+    classification,
+    includeFeaturedProjects: false,
+    mode: "listings-only" as "listings-only" | "mixed-results" | "projects-only",
+    reason:
+      "Showing listing matches only." as string,
+  };
+
+  if (!filter?.category || !CATEGORY_SERVICE_MAP[filter.category]) {
+    return response;
+  }
+
+  if (filter.listingType && filter.listingType !== "sale") {
+    return {
+      ...response,
+      reason: "Projects are only shown for sale searches.",
+    };
+  }
 
   const createdByRoleTokens = getCreatedByRoleTokens(filter);
-  if (createdByRoleTokens.length > 0) {
-    const hasBuilder = createdByRoleTokens.includes("builder");
-    const hasNonBuilder = createdByRoleTokens.some((token) => token !== "builder");
+  const listingSourceTokens = getListingSourceTokens(filter);
+  const builderOnlyRoleFilter =
+    createdByRoleTokens.length > 0 &&
+    createdByRoleTokens.every((token) => token === "builder");
+  const ownerOrAgentRoleFilter = createdByRoleTokens.some(
+    (token) => token === "user" || token === "agent",
+  );
+  const builderDiscoverySourceFilter =
+    listingSourceTokens.length > 0 &&
+    listingSourceTokens.every((token) => BUILDER_DISCOVERY_VALUES.has(token));
+  const ownerOrAgentSourceFilter = listingSourceTokens.some(
+    (token) => token === "user" || token === "agent" || token === "owner" || token === "owners",
+  );
 
-    if (hasBuilder && !hasNonBuilder) return true;
-    return false;
+  const nonBuilderPropertyOnlyKeys = classification.propertyOnlyKeys.filter(
+    (key) => key !== "createdByRole" && key !== "listingSource",
+  );
+
+  if (classification.featuredOnlyKeys.length > 0 && classification.propertyOnlyKeys.length === 0) {
+    return {
+      ...response,
+      includeFeaturedProjects: true,
+      mode: "projects-only",
+      reason: "Showing project-led matches for project-specific filters.",
+    };
   }
 
-  if (typeof filter.listingSource === "string" && filter.listingSource.trim()) {
-    const listingSources = filter.listingSource
-      .split(",")
-      .map((source: string) => source.trim().toLowerCase())
-      .filter(Boolean);
-
-    return (
-      listingSources.includes("featured") ||
-      listingSources.includes("builder") ||
-      listingSources.includes("builders")
-    );
+  if (ownerOrAgentRoleFilter || ownerOrAgentSourceFilter) {
+    return {
+      ...response,
+      reason: "Projects are hidden because the active source filter targets owner or agent listings.",
+    };
   }
 
-  if (hasAppliedPropertyFilters(filter)) return false;
+  if (builderOnlyRoleFilter || builderDiscoverySourceFilter) {
+    if (nonBuilderPropertyOnlyKeys.length === 0) {
+      return {
+        ...response,
+        includeFeaturedProjects: true,
+        mode: "mixed-results",
+        reason: "Showing builder listings and featured projects together.",
+      };
+    }
 
-  return true;
+    return {
+      ...response,
+      reason:
+        "Projects are hidden because some active filters only apply to individual listings.",
+    };
+  }
+
+  if (
+    classification.propertyOnlyKeys.length === 0 &&
+    classification.unknownKeys.length === 0
+  ) {
+    return {
+      ...response,
+      includeFeaturedProjects: true,
+      mode: "mixed-results",
+      reason: "Showing matching listings and featured projects for broad discovery filters.",
+    };
+  }
+
+  return {
+    ...response,
+    reason:
+      "Projects are hidden because some active filters only apply to individual listings.",
+  };
+}
+
+function shouldIncludeFeaturedProjects(filter: any) {
+  return analyzeSearchScope(filter).includeFeaturedProjects;
 }
 
 function buildFeaturedProjectMatch(filter: any) {

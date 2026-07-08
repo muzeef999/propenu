@@ -36,7 +36,6 @@ export default function Amenities({ project }: AmenitiesProps) {
     ? amenities
     : amenities.slice(0, INITIAL_VISIBLE_COUNT);
 
-  console.log("Amenities:", amenities);
 
   return (
     <section id="amenities">

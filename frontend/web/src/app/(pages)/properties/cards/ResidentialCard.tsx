@@ -164,6 +164,25 @@ const ResidentialCard: React.FC<Props> = ({
     }
   }, [shortlistData, p.id, user]);
 
+  const shareProperty = async () => {
+    const href =
+      typeof window !== "undefined"
+        ? new URL(`/properties/residential/${p.slug}`, window.location.origin).toString()
+        : "";
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: p.title, url: href });
+        return;
+      }
+
+      await navigator.clipboard.writeText(href);
+      toast.success("Property link copied");
+    } catch {
+      // Ignore cancelled share or clipboard errors.
+    }
+  };
+
   return (
     <div
       className={`card p-2 h-auto flex overflow-hidden ${
@@ -184,6 +203,7 @@ const ResidentialCard: React.FC<Props> = ({
             images={p?.gallery?.map((g) => g.url) ?? []}
             alt={p?.title}
             onIndexChange={setActiveImageIndex}
+            onShare={shareProperty}
             isShortlisted={isShortlisted}
             isShortlistLoading={
               addShortlistMutation.isPending ||

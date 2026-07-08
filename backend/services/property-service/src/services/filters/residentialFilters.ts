@@ -33,7 +33,10 @@ function parseMinPlusTokens(value: unknown) {
 
   const numbers = String(value)
     .split(",")
-    .map((token) => parseNumber(token))
+    .map((token) => {
+      const normalized = token.trim().replace(/[^\d.]/g, "");
+      return parseNumber(normalized);
+    })
     .filter((num): num is number => num !== undefined);
 
   if (numbers.length === 0) return undefined;

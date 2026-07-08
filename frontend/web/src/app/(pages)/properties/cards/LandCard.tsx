@@ -87,6 +87,25 @@ export const LandCard: React.FC<Props> = ({
         setIsShortlisted(local);
       }
     }, [shortlistData, p.id, user]);
+
+  const shareProperty = async () => {
+    const href =
+      typeof window !== "undefined"
+        ? new URL(`/properties/land/${p.slug}`, window.location.origin).toString()
+        : "";
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: p.title, url: href });
+        return;
+      }
+
+      await navigator.clipboard.writeText(href);
+      toast.success("Property link copied");
+    } catch {
+      // Ignore cancelled share or clipboard errors.
+    }
+  };
   
 
   const addShortlistMutation = useMutation({
@@ -161,6 +180,7 @@ export const LandCard: React.FC<Props> = ({
             images={p?.gallery?.map((g) => g.url) ?? []}
             alt={p?.title}
             onIndexChange={setActiveImageIndex}
+            onShare={shareProperty}
             isShortlisted={isShortlisted}
             isShortlistLoading={
               addShortlistMutation.isPending ||

@@ -17,8 +17,15 @@ type GalleryImage = {
 
 function getGalleryImages(project: FeaturedProject): GalleryImage[] {
   const images = [
-    ...(project.heroImage ? [{ url: project.heroImage, title: project.title, order: -1 }] : []),
-    ...(project.gallerySummary ?? []).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    ...(project.heroImage ? [{ url: project.heroImage, title: undefined, category: "Gallery", order: -1 }] : []),
+    ...(project.gallerySummary ?? [])
+      .slice()
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((item) => ({
+        ...item,
+        title: undefined,
+        category: item.category ?? "Gallery",
+      })),
   ].filter((item): item is GalleryImage => Boolean(item?.url));
 
   const seen = new Set<string>();
@@ -195,9 +202,8 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
                 className="max-h-[70vh] w-full object-contain md:max-h-[75vh]"
               />
 
-              {(activeImage.title || activeImage.category) && (
+              {activeImage.category && (
                 <div className="absolute bottom-0 w-full bg-linear-to-t from-black/80 to-transparent p-4 text-white md:p-6">
-                  {activeImage.title && <div className="text-base font-semibold md:text-lg">{activeImage.title}</div>}
                   {activeImage.category && <div className="text-sm text-white/70">{activeImage.category}</div>}
                 </div>
               )}
