@@ -235,6 +235,28 @@ html, body {
     box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.4);
   }
 
+  .support-input {
+    margin-top: 0.5rem;
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: #374151;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .support-input::placeholder {
+    color: #9ca3af;
+  }
+
+  .support-input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.16);
+  }
+
 }
 
 

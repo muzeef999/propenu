@@ -6,6 +6,7 @@ import { FaChartLine, FaHeart, FaUserPlus } from "react-icons/fa";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import { Building, Subscription } from "@/icons/icons";
 import { RiAccountCircle2Fill, RiDeleteBin6Line } from "react-icons/ri";
+import { BiSupport } from "react-icons/bi";
 
 const menuItems = [
   {
@@ -37,6 +38,12 @@ const menuItems = [
     mobileLabel: "Plan",
     link: "/agent/my-plan",
     icon: Subscription,
+  },
+  {
+    label: "Support",
+    mobileLabel: "Support",
+    link: "/agent/support",
+    icon: BiSupport,
   },
   {
     label: "Account & Settings",
@@ -120,7 +127,7 @@ const Sidebar = () => {
       {/* Mobile/Tablet Bottom Tabs */}
       <nav className="fixed bottom-0 inset-x-0 z-30 border-t border-gray-200 bg-white lg:hidden">
         <div className="container mx-auto px-2">
-          <div className="grid grid-cols-7">
+          <div className="grid grid-cols-8">
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = isItemActive(item.link);

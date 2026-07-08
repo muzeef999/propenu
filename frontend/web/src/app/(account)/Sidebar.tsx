@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MdOutlinePhoneInTalk } from "react-icons/md";
+import { BiSupport } from "react-icons/bi";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import {
   Building,
@@ -35,6 +36,12 @@ const menuItems = [
     mobileLabel: "Contacted",
     link: "/contacted-properties",
     icon: MdOutlinePhoneInTalk,
+  },
+  {
+    label: "Support",
+    mobileLabel: "Support",
+    link: "/support",
+    icon: BiSupport,
   },
   {
     label: "Membership",
@@ -108,7 +115,7 @@ const Sidebar = () => {
       {/* Mobile/Tablet bottom tabs: icons only */}
       <nav className="fixed bottom-0 inset-x-0 z-30 border-t border-gray-200 bg-white lg:hidden">
         <div className="container mx-auto px-2">
-          <div className="grid grid-cols-5">
+          <div className="grid grid-cols-6">
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.link;

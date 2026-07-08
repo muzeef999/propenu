@@ -9,6 +9,7 @@ import { FaCrown, FaHeart } from "react-icons/fa";
 import { TbBuildingSkyscraper } from "react-icons/tb";
 import { RiDeleteBin6Line, RiUserHeartLine } from "react-icons/ri";
 import { FiSettings, FiUsers } from "react-icons/fi";
+import { BiSupport } from "react-icons/bi";
 
 const menuItems = [
   {
@@ -52,6 +53,12 @@ const menuItems = [
     mobileLabel: "Prime",
     link: "/builder/prime-projects",
     icon: FaCrown,
+  },
+  {
+    label: "Support",
+    mobileLabel: "Support",
+    link: "/builder/support",
+    icon: BiSupport,
   },
   {
     label: "Account Settings",

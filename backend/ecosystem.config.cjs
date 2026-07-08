@@ -33,6 +33,13 @@ module.exports = {
       script: 'dist/backend/services/payment-service/src/server.js',
       instances: 1,
       exec_mode: 'cluster'
+    },
+    {
+      name: 'ticket-service',
+      cwd: __dirname + '/services/ticket-service',
+      script: 'dist/src/server.js',
+      instances: 1,
+      exec_mode: 'cluster'
     }
   ]
 };
