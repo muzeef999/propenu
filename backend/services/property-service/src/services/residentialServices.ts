@@ -89,6 +89,18 @@ function normalizePayload(obj: any) {
   return obj;
 }
 
+function normalizeCreatedByRoleFilterToken(token: string) {
+  const normalized = token.trim().toLowerCase().replace(/[-\s]+/g, "_");
+
+  if (["owner", "owners", "user"].includes(normalized)) return "user";
+  if (["agent", "agents", "sales_agent", "sales_manager"].includes(normalized)) {
+    return "agent";
+  }
+  if (["builder", "builders"].includes(normalized)) return "builder";
+
+  return normalized;
+}
+
 const SERVER_MANAGED_UPDATE_FIELDS = [
   "_id",
   "id",
@@ -669,9 +681,131 @@ export const ResidentialPropertyService = {
   model: Residential,
 
   getPipeline(filters: any) {
-    const match = extendResidentialFilters(filters, {});
-    return [
+    const createdByRoleTokens =
+      typeof filters?.createdByRole === "string"
+        ? filters.createdByRole
+            .split(",")
+            .map((token: string) => normalizeCreatedByRoleFilterToken(token))
+            .filter(Boolean)
+        : [];
+
+    const match = extendResidentialFilters(
+      {
+        ...filters,
+        createdByRole: undefined,
+      },
+      {},
+    );
+
+    const pipeline: any[] = [
       { $match: match },
+      {
+        $lookup: {
+          from: "users",
+          localField: "createdBy",
+          foreignField: "_id",
+          as: "createdByUser",
+        },
+      },
+      {
+        $addFields: {
+          createdByUser: { $arrayElemAt: ["$createdByUser", 0] },
+        },
+      },
+      {
+        $lookup: {
+          from: "roles",
+          localField: "createdByUser.roleId",
+          foreignField: "_id",
+          as: "createdByRoleDoc",
+        },
+      },
+      {
+        $addFields: {
+          createdByRoleDoc: { $arrayElemAt: ["$createdByRoleDoc", 0] },
+          createdByRoleRaw: {
+            $ifNull: [
+              "$createdByUser.roleName",
+              {
+                $ifNull: [
+                  "$createdByUser.role",
+                  {
+                    $ifNull: ["$createdByRoleDoc.name", "$createdByRoleDoc.label"],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+      {
+        $addFields: {
+          createdByRoleName: {
+            $toLower: {
+              $cond: [
+                { $isArray: "$createdByRoleRaw" },
+                {
+                  $ifNull: [{ $arrayElemAt: ["$createdByRoleRaw", 0] }, ""],
+                },
+                {
+                  $ifNull: ["$createdByRoleRaw", ""],
+                },
+              ],
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          createdByRoleGroup: {
+            $switch: {
+              branches: [
+                {
+                  case: {
+                    $in: [
+                      "$createdByRoleName",
+                      ["owner", "owners", "user"],
+                    ],
+                  },
+                  then: "user",
+                },
+                {
+                  case: {
+                    $in: [
+                      "$createdByRoleName",
+                      ["agent", "agents", "sales_agent", "sales_manager"],
+                    ],
+                  },
+                  then: "agent",
+                },
+                {
+                  case: {
+                    $in: [
+                      "$createdByRoleName",
+                      ["builder", "builders"],
+                    ],
+                  },
+                  then: "builder",
+                },
+              ],
+              default: "$createdByRoleName",
+            },
+          },
+        },
+      },
+    ];
+
+    if (createdByRoleTokens.length === 1) {
+      pipeline.push({
+        $match: { createdByRoleGroup: createdByRoleTokens[0] },
+      });
+    } else if (createdByRoleTokens.length > 1) {
+      pipeline.push({
+        $match: { createdByRoleGroup: { $in: createdByRoleTokens } },
+      });
+    }
+
+    pipeline.push(
       {
         $project: {
           _id: 0,
@@ -696,9 +830,19 @@ export const ResidentialPropertyService = {
           slug: 1,
           createdAt: 1,
           listingSource: 1,
+          createdBy: {
+            _id: "$createdByUser._id",
+            name: "$createdByUser.name",
+            email: "$createdByUser.email",
+            phone: "$createdByUser.phone",
+            roleId: "$createdByUser.roleId",
+            roleName: "$createdByRoleGroup",
+          },
         },
       },
-    ];
+    );
+
+    return pipeline;
   },
 };
 

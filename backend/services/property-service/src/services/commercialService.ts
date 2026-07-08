@@ -106,6 +106,18 @@ function normalizeAmenitiesInput(amenities?: any[]) {
   });
 }
 
+function normalizeCreatedByRoleFilterToken(token: string) {
+  const normalized = token.trim().toLowerCase().replace(/[-\s]+/g, "_");
+
+  if (["owner", "owners", "user"].includes(normalized)) return "user";
+  if (["agent", "agents", "sales_agent", "sales_manager"].includes(normalized)) {
+    return "agent";
+  }
+  if (["builder", "builders"].includes(normalized)) return "builder";
+
+  return normalized;
+}
+
 export async function findRelatedCommercial(property: any) {
   if (!property?._id) return [];
 
@@ -781,7 +793,21 @@ export const CommercialService = {
   model: Commercial,
 
   getPipeline(filters: any) {
-    const match = extendCommercialFilters(filters, {});
+    const createdByRoleTokens =
+      typeof filters?.createdByRole === "string"
+        ? filters.createdByRole
+            .split(",")
+            .map((token: string) => normalizeCreatedByRoleFilterToken(token))
+            .filter(Boolean)
+        : [];
+
+    const match = extendCommercialFilters(
+      {
+        ...filters,
+        createdByRole: undefined,
+      },
+      {},
+    );
     return [
       { $match: match },
       {
@@ -808,8 +834,81 @@ export const CommercialService = {
       {
         $addFields: {
           createdByRole: { $arrayElemAt: ["$createdByRole", 0] },
+          createdByRoleRaw: {
+            $ifNull: [
+              "$createdByUser.roleName",
+              {
+                $ifNull: [
+                  "$createdByUser.role",
+                  {
+                    $ifNull: ["$createdByRole.name", "$createdByRole.label"],
+                  },
+                ],
+              },
+            ],
+          },
         },
       },
+      {
+        $addFields: {
+          createdByRoleName: {
+            $toLower: {
+              $cond: [
+                { $isArray: "$createdByRoleRaw" },
+                {
+                  $ifNull: [{ $arrayElemAt: ["$createdByRoleRaw", 0] }, ""],
+                },
+                {
+                  $ifNull: ["$createdByRoleRaw", ""],
+                },
+              ],
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          createdByRoleGroup: {
+            $switch: {
+              branches: [
+                {
+                  case: {
+                    $in: [
+                      "$createdByRoleName",
+                      ["owner", "owners", "user"],
+                    ],
+                  },
+                  then: "user",
+                },
+                {
+                  case: {
+                    $in: [
+                      "$createdByRoleName",
+                      ["agent", "agents", "sales_agent", "sales_manager"],
+                    ],
+                  },
+                  then: "agent",
+                },
+                {
+                  case: {
+                    $in: [
+                      "$createdByRoleName",
+                      ["builder", "builders"],
+                    ],
+                  },
+                  then: "builder",
+                },
+              ],
+              default: "$createdByRoleName",
+            },
+          },
+        },
+      },
+      ...(createdByRoleTokens.length === 1
+        ? [{ $match: { createdByRoleGroup: createdByRoleTokens[0] } }]
+        : createdByRoleTokens.length > 1
+          ? [{ $match: { createdByRoleGroup: { $in: createdByRoleTokens } } }]
+          : []),
       {
         $project: {
           _id: 0,
@@ -836,6 +935,14 @@ export const CommercialService = {
           price: 1,
           location: 1,
           createdAt: 1,
+          createdBy: {
+            _id: "$createdByUser._id",
+            name: "$createdByUser.name",
+            email: "$createdByUser.email",
+            phone: "$createdByUser.phone",
+            roleId: "$createdByUser.roleId",
+            roleName: "$createdByRoleGroup",
+          },
         },
       },
     ];

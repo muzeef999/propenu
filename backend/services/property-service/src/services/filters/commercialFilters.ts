@@ -127,16 +127,6 @@ function getPostedSinceDate(value: unknown) {
   return date;
 }
 
-function normalizeCreatedByRoleToken(token: string) {
-  const normalized = token.trim().toLowerCase();
-  if (normalized === "owner" || normalized === "owners" || normalized === "user") {
-    return "user";
-  }
-  if (normalized === "agent" || normalized === "agents") return "agent";
-  if (normalized === "builder" || normalized === "builders") return "builder";
-  return normalized;
-}
-
 export function extendCommercialFilters(
   query: CommercialQuery = {},
   baseFilter: Partial<BaseFilters> = {},
@@ -162,6 +152,10 @@ export function extendCommercialFilters(
     f.city = q.city;
   }
 
+  if (typeof q.state === "string" && q.state.trim().length > 0) {
+    f.state = q.state;
+  }
+
 if (typeof q.locality === "string" && q.locality.trim().length > 0) {
     const localities = q.locality
       .split(",")
@@ -174,19 +168,6 @@ if (typeof q.locality === "string" && q.locality.trim().length > 0) {
 
   if (q.listingType) {
     f.listingType = q.listingType;
-  }
-
-  if (
-    typeof q.createdByRole === "string" &&
-    q.createdByRole.trim().length > 0
-  ) {
-    const roles = q.createdByRole
-      .split(",")
-      .map((src) => normalizeCreatedByRoleToken(src))
-      .filter(Boolean);
-
-    if (roles.length === 1) f["createdBy.roleName"] = roles[0];
-    else if (roles.length > 1) f["createdBy.roleName"] = { $in: roles };
   }
 
   if (

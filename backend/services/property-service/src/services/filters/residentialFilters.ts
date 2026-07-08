@@ -141,6 +141,10 @@ export function extendResidentialFilters(
     f.city = q.city;
   }
 
+  if (typeof q.state === "string" && q.state.trim().length > 0) {
+    f.state = q.state;
+  }
+
   const minPrice = parseNumber(q.minPrice);
   const maxPrice = parseNumber(q.maxPrice);
 
@@ -262,19 +266,6 @@ export function extendResidentialFilters(
   }
 }
 
-
-  if (typeof q.createdByRole === "string" && q.createdByRole.trim().length > 0) {
-    const roles = q.createdByRole
-      .split(",")
-      .map((role) => normalizeCreatedByRoleToken(role))
-      .filter(Boolean);
-
-    if (roles.length === 1) {
-      f["createdBy.roleName"] = roles[0];
-    } else if (roles.length > 1) {
-      f["createdBy.roleName"] = { $in: roles };
-    }
-  }
 
   if (typeof q.listingSource === "string" && q.listingSource.trim().length > 0) {
     const sources = q.listingSource

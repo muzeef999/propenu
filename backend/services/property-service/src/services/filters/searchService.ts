@@ -84,23 +84,70 @@ function getPropertyTypeList(filter: any): string[] {
     .filter(Boolean);
 }
 
+function normalizePostedByToken(token: string) {
+  const normalized = token.trim().toLowerCase().replace(/[-\s]+/g, "_");
+
+  if (["owner", "owners", "user"].includes(normalized)) return "user";
+  if (["agent", "agents", "sales_agent", "sales_manager"].includes(normalized)) {
+    return "agent";
+  }
+  if (["builder", "builders"].includes(normalized)) return "builder";
+
+  return normalized;
+}
+
+function getCreatedByRoleTokens(filter: any): string[] {
+  if (typeof filter?.createdByRole !== "string") return [];
+
+  return filter.createdByRole
+    .split(",")
+    .map(normalizePostedByToken)
+    .filter(Boolean);
+}
+
+function hasActiveBrowseFilter(value: unknown): boolean {
+  if (value == null) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value === "number") return !Number.isNaN(value);
+  if (typeof value === "boolean") return value;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).some((entry) =>
+      hasActiveBrowseFilter(entry),
+    );
+  }
+
+  return false;
+}
+
+function hasAppliedPropertyFilters(filter: any): boolean {
+  if (!filter || typeof filter !== "object") return false;
+
+  const ignoredKeys = new Set([
+    "category",
+    "listingType",
+    "city",
+    "state",
+    "listingSource",
+  ]);
+
+  return Object.entries(filter).some(([key, value]) => {
+    if (ignoredKeys.has(key)) return false;
+    return hasActiveBrowseFilter(value);
+  });
+}
+
 function shouldIncludeFeaturedProjects(filter: any) {
   if (!filter?.category || !CATEGORY_SERVICE_MAP[filter.category]) return false;
 
   if (filter.listingType && filter.listingType !== "sale") return false;
 
-  if (filter.bathrooms) return false;
+  const createdByRoleTokens = getCreatedByRoleTokens(filter);
+  if (createdByRoleTokens.length > 0) {
+    const hasBuilder = createdByRoleTokens.includes("builder");
+    const hasNonBuilder = createdByRoleTokens.some((token) => token !== "builder");
 
-  if (
-    filter.balconies ||
-    filter.minCarpetArea ||
-    filter.maxCarpetArea ||
-    filter.minFourWheeler ||
-    filter.furnishing ||
-    filter.facing ||
-    filter.postedSince ||
-    filter.constructionStatus
-  ) {
+    if (hasBuilder && !hasNonBuilder) return true;
     return false;
   }
 
@@ -116,6 +163,8 @@ function shouldIncludeFeaturedProjects(filter: any) {
       listingSources.includes("builders")
     );
   }
+
+  if (hasAppliedPropertyFilters(filter)) return false;
 
   return true;
 }

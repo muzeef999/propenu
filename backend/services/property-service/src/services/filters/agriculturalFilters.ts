@@ -130,6 +130,10 @@ export function extendAgriculturalFilters(
     });
   }
 
+  if (typeof q.state === "string" && q.state.trim()) {
+    and.push({ state: q.state });
+  }
+
   /* ---------------- LOCALITY (SAFE) ---------------- */
   if (typeof q.locality === "string" && q.locality.trim()) {
     const localities = q.locality.split(",").map(l => l.trim());
@@ -243,17 +247,6 @@ export function extendAgriculturalFilters(
     parseNumber(q.minRoadWidthFt) ?? parseMinPlusOption(q.roadWidth as string | undefined);
   if (minRoadWidth !== undefined) {
     and.push({ "roadWidth.value": { $gte: minRoadWidth } });
-  }
-
-  const createdByRoleTokens = parseCsv(
-    q.createdByRole as string | undefined
-  )
-    .map((token) => normalizeCreatedByRoleToken(token))
-    .filter(Boolean);
-  if (createdByRoleTokens.length === 1) {
-    and.push({ "createdBy.roleName": createdByRoleTokens[0] });
-  } else if (createdByRoleTokens.length > 1) {
-    and.push({ "createdBy.roleName": { $in: createdByRoleTokens } });
   }
 
   const listingSourceTokens = parseCsv(

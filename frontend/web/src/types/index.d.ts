@@ -418,6 +418,7 @@ export type LandFilterKey =
   | "Land Type"
   | "Land Sub Type"
   | "Plot Area"
+  | "Area Unit"
   | "Dimensions"
   | "Road Width"
   | "Facing"

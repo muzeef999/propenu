@@ -67,6 +67,20 @@ function getLeadErrorMessage(error: unknown) {
   return fallback;
 }
 
+function isValidPhoneNumber(value: string) {
+  const normalized = value.replace(/[^\d+]/g, "");
+  return /^\+?[1-9]\d{9,14}$/.test(normalized);
+}
+
+function sanitizePhoneInput(value: string) {
+  const cleaned = value.replace(/[^\d+]/g, "");
+  if (!cleaned.startsWith("+")) {
+    return cleaned.replace(/\+/g, "");
+  }
+
+  return `+${cleaned.slice(1).replace(/\+/g, "")}`;
+}
+
 const ContactSeller = ({ project }: ContactSellerProps) => {
   const [form, setForm] = useState({
     name: "",
@@ -120,6 +134,11 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    if (!isValidPhoneNumber(form.phone)) {
+      toast.error("Please enter a valid phone number");
+      return;
+    }
+
     leadsMutation.mutate({
       name: form.name,
       phone: form.phone,
@@ -132,7 +151,10 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) {
     const { name, value } = e.target;
-    setForm((current) => ({ ...current, [name]: value }));
+    setForm((current) => ({
+      ...current,
+      [name]: name === "phone" ? sanitizePhoneInput(value) : value,
+    }));
   }
 
   return (
@@ -182,6 +204,10 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
           <span className="text-sm text-slate-600">Mobile</span>
           <input
             name="phone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            pattern="^\+?[1-9]\d{9,14}$"
             value={form.phone}
             onChange={handleChange}
             placeholder="Enter Mobile Number"
