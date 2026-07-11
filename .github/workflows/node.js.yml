@@ -1,4 +1,4 @@
-name:  Backend CI/CD vi
+name:  Backend CI/CD 
 
 on: 
   push:
@@ -30,6 +30,7 @@ jobs:
           echo "${{ secrets.PRPPENU_PAYMENT_ENV }}" > backend/services/payment-service/.env
           echo "${{ secrets.PRPPENU_PROPERTY_ENV }}" > backend/services/property-service/.env
           echo "${{ secrets.PRPPENU_USER_ENV }}" > backend/services/user-service/.env
+          echo "${{ secrets.PRPPENU_TICKET_ENV }}" > backend/services/ticket-service/.env
 
       # 4) Install root dependencies (monorepo)
       - name: Install dependencies
@@ -54,3 +55,4 @@ jobs:
             backend/services/payment-service/dist
             backend/services/property-service/dist
             backend/services/user-service/dist
+            backend/services/ticket-service/dist
