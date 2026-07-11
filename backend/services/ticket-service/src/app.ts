@@ -42,7 +42,7 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => {
   res.status(200).json({
     success: true,
-    status: "Running",
+    status: "Running data",
     service: "Ticket Service",
     timestamp: new Date(),
   });
