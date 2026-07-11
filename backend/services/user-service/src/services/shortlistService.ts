@@ -190,14 +190,14 @@ export const getBuilderAnalytics = async (
     ...(normalizedCity ? { city: normalizedCity } : {}),
   };
   const rangeMatch = { ...match, ...locationMatch, createdAt: { $gte: fromDate } };
-  const featuredMatch = { ...match, isFeatured: true };
-  const featuredRangeMatch = { ...rangeMatch, isFeatured: true };
+  const portfolioMatch = { ...match, ...locationMatch };
+  const featuredPortfolioMatch = { ...portfolioMatch, isFeatured: true };
 
   const labels = Array.from({ length: range === "1d" ? 24 : range === "7d" ? 7 : 30 }, (_, index) => {
     if (range === "1d") {
       const date = new Date(fromDate.getTime() + index * 60 * 60 * 1000);
       return {
-        key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`,
+        key: `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}-${date.getHours()}`,
         label: date.toLocaleString("en-US", { hour: "numeric" }),
       };
     }
@@ -205,7 +205,7 @@ export const getBuilderAnalytics = async (
     const date = new Date(fromDate);
     date.setDate(fromDate.getDate() + index);
     return {
-      key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
+      key: `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`,
       label:
         range === "7d"
           ? date.toLocaleString("en-US", { weekday: "short" })
@@ -283,20 +283,23 @@ export const getBuilderAnalytics = async (
     shortlistTrend,
     leadTrend,
   ] = await Promise.all([
-    FeaturedProject.countDocuments(rangeMatch),
+    FeaturedProject.countDocuments(portfolioMatch),
     FeaturedProject.aggregate([
-      { $match: rangeMatch },
+      { $match: portfolioMatch },
       {
         $group: {
           _id: null,
           totalViews: { $sum: { $ifNull: ["$meta.views", 0] } },
           totalInquiries: { $sum: { $ifNull: ["$meta.inquiries", 0] } },
+          totalClicks: { $sum: { $ifNull: ["$meta.clicks", 0] } },
+          totalUnits: { $sum: { $ifNull: ["$totalUnits", 0] } },
+          availableUnits: { $sum: { $ifNull: ["$availableUnits", 0] } },
         },
       },
     ]),
-    FeaturedProject.countDocuments(featuredRangeMatch),
+    FeaturedProject.countDocuments(featuredPortfolioMatch),
     FeaturedProject.aggregate([
-      { $match: rangeMatch },
+      { $match: portfolioMatch },
       {
         $group: {
           _id: "$city",
@@ -306,7 +309,7 @@ export const getBuilderAnalytics = async (
       { $sort: { count: -1, _id: 1 } },
     ]),
     FeaturedProject.aggregate([
-      { $match: rangeMatch },
+      { $match: portfolioMatch },
       {
         $group: {
           _id: "$state",
@@ -315,13 +318,15 @@ export const getBuilderAnalytics = async (
       },
       { $sort: { count: -1, _id: 1 } },
     ]),
-    FeaturedProject.find(rangeMatch)
+    FeaturedProject.find(portfolioMatch)
       .sort({ "meta.views": -1, createdAt: -1 })
       .limit(5)
-      .select("title city state status isFeatured meta.views meta.inquiries createdAt")
+      .select(
+        "title city state status isFeatured heroImage image gallerySummary meta.views meta.inquiries meta.clicks meta.shortlists createdAt",
+      )
       .lean(),
     FeaturedProject.aggregate([
-      { $match: rangeMatch },
+      { $match: portfolioMatch },
       {
         $group: {
           _id: "$status",
@@ -501,6 +506,11 @@ export const getBuilderAnalytics = async (
 
   const totalViews = totals[0]?.totalViews || 0;
   const totalInquiries = totals[0]?.totalInquiries || 0;
+  const totalClicks = totals[0]?.totalClicks || 0;
+  const totalUnits = totals[0]?.totalUnits || 0;
+  const availableUnits = totals[0]?.availableUnits || 0;
+  const soldUnits = Math.max(0, totalUnits - availableUnits);
+  const inventorySoldShare = totalUnits > 0 ? Number(((soldUnits / totalUnits) * 100).toFixed(1)) : 0;
   const totalShortlists = shortlistTotal[0]?.total || 0;
   const totalLeads =
     (leadTotal[0]?.[0]?.total || 0) +
@@ -594,10 +604,17 @@ export const getBuilderAnalytics = async (
     .reverse()
     .find((point) => point.projects > 0 || point.shortlists > 0 || point.leads > 0);
 
+  const conversionRates = {
+    viewsToShortlists: totalViews > 0 ? Number(((totalShortlists / totalViews) * 100).toFixed(2)) : 0,
+    shortlistsToLeads: totalShortlists > 0 ? Number(((totalLeads / totalShortlists) * 100).toFixed(2)) : 0,
+    overallConversion: totalViews > 0 ? Number(((totalLeads / totalViews) * 100).toFixed(2)) : 0,
+  };
+
   return {
     builderSummary: {
       totalProjects,
       totalViews,
+      totalClicks,
       featuredProjects,
       primeProjects: 0,
       sponsoredProjects: 0,
@@ -607,6 +624,11 @@ export const getBuilderAnalytics = async (
       averageViewsPerProject,
       averageShortlistsPerProject,
       averageLeadsPerProject,
+      totalUnits,
+      availableUnits,
+      soldUnits,
+      inventorySoldShare,
+      conversionRates,
     },
     statusSummary,
     engagementSummary: {
@@ -617,6 +639,12 @@ export const getBuilderAnalytics = async (
       averageViewsPerProject,
       averageShortlistsPerProject,
       averageLeadsPerProject,
+      totalClicks,
+      totalUnits,
+      availableUnits,
+      soldUnits,
+      inventorySoldShare,
+      conversionRates,
     },
     locationStats: {
       cities: cityStats,

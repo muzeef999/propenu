@@ -97,13 +97,11 @@ router.post("/seed-roles", async (_req, res) => {
         label: "Builder Staff",
         permissions: [],
       },
-
       {
         name: "sales_manager",
         label: "Sales Manager",
         permissions: ["project:view", "lead:view", "lead:edit"],
       },
-
       {
         name: "accounts",
         label: "Accounts",
@@ -114,7 +112,13 @@ router.post("/seed-roles", async (_req, res) => {
         label: "Digital Marketing",
         permissions: [
           "project:view",
+          "lead:create",
           "lead:view",
+          "lead:edit",
+          "lead:delete",
+          "lead:assign",
+          "lead:import",
+          "lead:download",
           "blog:create",
           "blog:view",
           "blog:edit",

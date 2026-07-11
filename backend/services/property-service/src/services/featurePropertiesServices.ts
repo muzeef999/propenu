@@ -1778,4 +1778,11 @@ export const FeaturePropertyService = {
       $inc: { "meta.views": 1 },
     }).exec();
   },
+
+  async incrementClicks(id: string) {
+    if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
+    await FeaturedProject.findByIdAndUpdate(id, {
+      $inc: { "meta.clicks": 1 },
+    }).exec();
+  },
 };

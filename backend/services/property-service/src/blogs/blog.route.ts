@@ -12,6 +12,7 @@ import {
   updateBlog,
 } from "./blog.controller";
 import { authMiddleware } from "../middlewares/authMiddleware";
+import { requirePermission } from "../middlewares/requirePermission";
 import { parseJsonFields } from "../middlewares/parseJsonFields";
 import { uploadFile } from "../utils/uploadFile";
 import { validateCreateBlog, validateUpdateBlog } from "./blog.validation";
@@ -91,6 +92,7 @@ router.get("/:id", getBlogById);
 router.post(
   "/",
   authMiddleware,
+  requirePermission("blog:create"),
   uploadBlogFeaturedImage,
   parseJsonFields(blogJsonFields),
   validateCreateBlog,
@@ -101,11 +103,12 @@ router.post("/:id/share", shareBlog);
 router.patch(
   "/:id",
   authMiddleware,
+  requirePermission("blog:edit"),
   uploadBlogFeaturedImage,
   parseJsonFields(blogJsonFields),
   validateUpdateBlog,
   updateBlog,
 );
-router.delete("/:id", authMiddleware, deleteBlog);
+router.delete("/:id", authMiddleware, requirePermission("blog:delete"), deleteBlog);
 
 export default router;

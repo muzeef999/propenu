@@ -2,9 +2,9 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { getHighlightProjectBuilders, getMyProperties } from "@/data/ClientData";
+import { ArrowDropdownIcon } from "@/icons/icons";
 import {
   FiAlertCircle,
-  FiChevronDown,
   FiClock,
   FiFilter,
   FiPaperclip,
@@ -234,7 +234,14 @@ export default function TicketSupportHub({ role }: { role: Role }) {
     relatedId: "",
     priority: "medium" as Priority,
   });
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [priorityOpen, setPriorityOpen] = useState(false);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+
   const relatedDropdownRef = useRef<HTMLDivElement | null>(null);
+  const categoryDropdownRef = useRef<HTMLDivElement | null>(null);
+  const priorityDropdownRef = useRef<HTMLDivElement | null>(null);
+  const statusDropdownRef = useRef<HTMLDivElement | null>(null);
 
   const selected = useMemo(
     () => tickets.find((ticket) => ticket._id === selectedId) || tickets[0],
@@ -299,16 +306,36 @@ export default function TicketSupportHub({ role }: { role: Role }) {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        relatedDropdownRef.current &&
-        !relatedDropdownRef.current.contains(event.target as Node)
-      ) {
+      const target = event.target as Node;
+      if (relatedDropdownRef.current && !relatedDropdownRef.current.contains(target)) {
         setRelatedOpen(false);
+      }
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(target)) {
+        setCategoryOpen(false);
+      }
+      if (priorityDropdownRef.current && !priorityDropdownRef.current.contains(target)) {
+        setPriorityOpen(false);
+      }
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(target)) {
+        setStatusDropdownOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setRelatedOpen(false);
+        setCategoryOpen(false);
+        setPriorityOpen(false);
+        setStatusDropdownOpen(false);
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, []);
 
   useEffect(() => {
@@ -454,7 +481,7 @@ export default function TicketSupportHub({ role }: { role: Role }) {
 
   return (
     <div className="space-y-4">
-      <section className="overflow-visible rounded-[10px] border border-emerald-100 bg-gradient-to-br from-white via-white to-emerald-50/70 shadow-sm">
+      <section className="overflow-visible rounded-[10px] border border-emerald-100 bg-linear-to-br from-white via-white to-emerald-50/70 shadow-sm">
         <div className="grid items-start gap-5 p-4 lg:grid-cols-[minmax(0,1fr)_440px] lg:p-5 xl:grid-cols-[minmax(0,1fr)_520px]">
           <div className="rounded-[10px] p-1">
             <div>
@@ -469,15 +496,15 @@ export default function TicketSupportHub({ role }: { role: Role }) {
               <Metric label="Resolved" value={metrics.resolved} icon={<FiShield />} />
             </div>
             <div className="mt-5 grid gap-3 text-sm text-gray-600 lg:grid-cols-3">
-              <div className="rounded-[8px] border border-emerald-100 bg-white/75 p-3">
+              <div className="rounded-lg border border-emerald-100 bg-white/75 p-3">
                 <p className="font-semibold text-gray-900">Smart routing</p>
                 <p className="mt-1 text-xs leading-5">Tickets are linked to the right property or project.</p>
               </div>
-              <div className="rounded-[8px] border border-emerald-100 bg-white/75 p-3">
+              <div className="rounded-lg border border-emerald-100 bg-white/75 p-3">
                 <p className="font-semibold text-gray-900">Clear proof</p>
                 <p className="mt-1 text-xs leading-5">Upload screenshots or files with every request.</p>
               </div>
-              <div className="rounded-[8px] border border-emerald-100 bg-white/75 p-3">
+              <div className="rounded-lg border border-emerald-100 bg-white/75 p-3">
                 <p className="font-semibold text-gray-900">Fast updates</p>
                 <p className="mt-1 text-xs leading-5">Track replies, status, and ownership in one view.</p>
               </div>
@@ -496,17 +523,97 @@ export default function TicketSupportHub({ role }: { role: Role }) {
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Category">
-                <select value={form.category} onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))} className="support-input">
-                  {copy.categories.map((item) => <option key={item}>{item}</option>)}
-                </select>
+                <div ref={categoryDropdownRef} className="relative mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCategoryOpen((prev) => !prev)}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-[#ECECEC] bg-[#F3F3F3] px-4 text-sm text-gray-700 outline-none transition hover:border-[#D7E7DC] focus:border-[#16A34A] focus:bg-white"
+                  >
+                    <span className="truncate">{form.category || "Select Category"}</span>
+                    <ArrowDropdownIcon
+                      size={12}
+                      color="#111827"
+                      className={`transition-transform duration-200 ${
+                        categoryOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {categoryOpen && (
+                    <div className="absolute left-0 top-[calc(100%+8px)] z-60 w-full rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
+                      <div className="pointer-events-none absolute -top-2 left-6">
+                        <div className="h-3 w-3 rotate-45 border-l border-t border-gray-200 bg-white" />
+                      </div>
+                      <h4 className="mb-2 text-sm font-semibold">Select Category</h4>
+                      <div className="flex flex-col gap-1">
+                        {copy.categories.map((item) => (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => {
+                              setForm((p) => ({ ...p, category: item }));
+                              setCategoryOpen(false);
+                            }}
+                            className={`rounded px-3 py-2 text-left text-sm transition-colors ${
+                              form.category === item
+                                ? "bg-[#D1EFDD] font-medium text-[#15803D]"
+                                : "text-gray-700 hover:bg-gray-100"
+                            }`}
+                          >
+                            {item}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </Field>
+
               <Field label="Priority">
-                <select value={form.priority} onChange={(e) => setForm((p) => ({ ...p, priority: e.target.value as Priority }))} className="support-input">
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
-                </select>
+                <div ref={priorityDropdownRef} className="relative mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setPriorityOpen((prev) => !prev)}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-[#ECECEC] bg-[#F3F3F3] px-4 text-sm text-gray-700 outline-none transition hover:border-[#D7E7DC] focus:border-[#16A34A] focus:bg-white"
+                  >
+                    <span className="truncate capitalize">{form.priority || "Select Priority"}</span>
+                    <ArrowDropdownIcon
+                      size={12}
+                      color="#111827"
+                      className={`transition-transform duration-200 ${
+                        priorityOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {priorityOpen && (
+                    <div className="absolute left-0 top-[calc(100%+8px)] z-60 w-full rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
+                      <div className="pointer-events-none absolute -top-2 left-6">
+                        <div className="h-3 w-3 rotate-45 border-l border-t border-gray-200 bg-white" />
+                      </div>
+                      <h4 className="mb-2 text-sm font-semibold">Select Priority</h4>
+                      <div className="flex flex-col gap-1">
+                        {(["low", "medium", "high", "urgent"] as const).map((item) => (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => {
+                              setForm((p) => ({ ...p, priority: item }));
+                              setPriorityOpen(false);
+                            }}
+                            className={`rounded px-3 py-2 text-left text-sm transition-colors capitalize ${
+                              form.priority === item
+                                ? "bg-[#D1EFDD] font-medium text-[#15803D]"
+                                : "text-gray-700 hover:bg-gray-100"
+                            }`}
+                          >
+                            {item}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </Field>
             </div>
             <Field label={copy.relatedLabel}>
@@ -517,36 +624,28 @@ export default function TicketSupportHub({ role }: { role: Role }) {
                     setRelatedOpen((prev) => !prev);
                     setRelatedSearch("");
                   }}
-                  className={cx(
-                    "flex min-h-11 w-full items-center justify-between gap-3 rounded-[8px] border bg-white px-3 py-2 text-left shadow-sm transition",
-                    relatedOpen
-                      ? "border-[#27A361] ring-2 ring-[#27A361]/10"
-                      : "border-gray-200 hover:border-emerald-200",
-                  )}
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-[#ECECEC] bg-[#F3F3F3] px-4 text-sm text-gray-700 outline-none transition hover:border-[#D7E7DC] focus:border-[#16A34A] focus:bg-white"
                 >
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-gray-900">
-                      {relatedLoading
-                        ? "Loading related items..."
-                        : selectedRelated?.label || "General support ticket"}
-                    </span>
-                    <span className="mt-0.5 block truncate text-xs text-gray-500">
-                      {selectedRelated
-                        ? selectedRelated.meta || selectedRelated.kind
-                        : "Choose a related item for faster support"}
-                    </span>
+                  <span className="truncate">
+                    {relatedLoading
+                      ? "Loading related items..."
+                      : selectedRelated?.label || "General support ticket"}
                   </span>
-                  <FiChevronDown
-                    className={cx(
-                      "shrink-0 text-gray-400 transition",
-                      relatedOpen && "rotate-180 text-[#27A361]",
-                    )}
+                  <ArrowDropdownIcon
+                    size={12}
+                    color="#111827"
+                    className={`transition-transform duration-200 shrink-0 ${
+                      relatedOpen ? "rotate-180" : ""
+                    }`}
                   />
                 </button>
 
                 {relatedOpen && (
-                  <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-[8px] border border-gray-200 bg-white shadow-xl">
-                    <div className="border-b border-gray-100 p-2">
+                  <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-60 w-full rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
+                    <div className="pointer-events-none absolute -top-2 left-6">
+                      <div className="h-3 w-3 rotate-45 border-l border-t border-gray-200 bg-white" />
+                    </div>
+                    <div className="border-b border-gray-100 pb-2 mb-2">
                       <label className="relative block">
                         <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                         <input
@@ -554,7 +653,7 @@ export default function TicketSupportHub({ role }: { role: Role }) {
                           onChange={(event) => setRelatedSearch(event.target.value)}
                           autoFocus
                           placeholder={`Search ${copy.relatedLabel.toLowerCase()}`}
-                          className="w-full rounded-[6px] border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#27A361] focus:bg-white"
+                          className="w-full rounded-md border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#27A361] focus:bg-white"
                           onKeyDown={(event) => {
                             if (event.key === "Escape") setRelatedOpen(false);
                           }}
@@ -562,7 +661,7 @@ export default function TicketSupportHub({ role }: { role: Role }) {
                       </label>
                     </div>
 
-                    <div className="max-h-64 overflow-y-auto p-2">
+                    <div className="max-h-64 overflow-y-auto flex flex-col gap-1">
                       <button
                         type="button"
                         onClick={() => {
@@ -570,17 +669,18 @@ export default function TicketSupportHub({ role }: { role: Role }) {
                           setRelatedOpen(false);
                           setRelatedSearch("");
                         }}
-                        className={cx(
-                          "mb-1 flex w-full items-start gap-3 rounded-[6px] px-3 py-2 text-left hover:bg-emerald-50",
-                          !form.relatedId && "bg-emerald-50",
-                        )}
+                        className={`rounded px-3 py-2 text-left transition-colors flex items-start gap-3 ${
+                          !form.relatedId
+                            ? "bg-[#D1EFDD] font-medium text-[#15803D]"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
                       >
-                        <span className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full bg-[#27A361]" />
+                        <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[#27A361]" />
                         <span className="min-w-0">
-                          <span className="block text-sm font-semibold text-gray-900">
+                          <span className="block text-sm font-semibold">
                             General support ticket
                           </span>
-                          <span className="block text-xs text-gray-500">
+                          <span className="block text-xs opacity-80">
                             Use this when the issue is not linked to a specific item.
                           </span>
                         </span>
@@ -600,10 +700,11 @@ export default function TicketSupportHub({ role }: { role: Role }) {
                               setRelatedOpen(false);
                               setRelatedSearch("");
                             }}
-                            className={cx(
-                              "flex w-full items-start gap-3 rounded-[6px] px-3 py-2 text-left transition hover:bg-emerald-50",
-                              form.relatedId === item.id && "bg-emerald-50",
-                            )}
+                            className={`rounded px-3 py-2 text-left transition-colors flex items-start gap-3 ${
+                              form.relatedId === item.id
+                                ? "bg-[#D1EFDD] font-medium text-[#15803D]"
+                                : "text-gray-700 hover:bg-gray-100"
+                            }`}
                           >
                             <span
                               className={cx(
@@ -616,10 +717,10 @@ export default function TicketSupportHub({ role }: { role: Role }) {
                               {item.kind}
                             </span>
                             <span className="min-w-0">
-                              <span className="block truncate text-sm font-semibold text-gray-900">
+                              <span className="block truncate text-sm font-semibold">
                                 {item.label}
                               </span>
-                              <span className="block truncate text-xs text-gray-500">
+                              <span className="block truncate text-xs opacity-80">
                                 {item.meta || item.id}
                               </span>
                             </span>
@@ -655,8 +756,8 @@ export default function TicketSupportHub({ role }: { role: Role }) {
               <textarea required rows={3} value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Tell us what happened and what you need." className="support-input resize-none" />
             </Field>
             <Field label="Attachments">
-              <div className="mt-2 rounded-[8px] border border-dashed border-emerald-200 bg-white p-2">
-                <label className="flex cursor-pointer flex-col items-center justify-center rounded-[6px] bg-emerald-50/60 px-4 py-3 text-center transition hover:bg-emerald-50">
+              <div className="mt-2 rounded-lg border border-dashed border-emerald-200 bg-white p-2">
+                <label className="flex cursor-pointer flex-col items-center justify-center rounded-md bg-emerald-50/60 px-4 py-3 text-center transition hover:bg-emerald-50">
                   <FiPaperclip className="mb-2 text-[#27A361]" size={20} />
                   <span className="text-sm font-semibold text-gray-800">
                     Upload screenshots or documents
@@ -682,7 +783,7 @@ export default function TicketSupportHub({ role }: { role: Role }) {
                     {files.map((file, index) => (
                       <div
                         key={`${file.name}-${file.lastModified}-${index}`}
-                        className="flex items-center justify-between gap-3 rounded-[6px] border border-gray-100 bg-gray-50 px-3 py-2"
+                        className="flex items-center justify-between gap-3 rounded-md border border-gray-100 bg-gray-50 px-3 py-2"
                       >
                         <div className="min-w-0">
                           <p className="truncate text-xs font-semibold text-gray-800">
@@ -708,14 +809,14 @@ export default function TicketSupportHub({ role }: { role: Role }) {
                 )}
               </div>
             </Field>
-            <button disabled={submitting} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-[6px] bg-[#27A361] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#208650] disabled:opacity-60">
+            <button disabled={submitting} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#27A361] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#208650] disabled:opacity-60">
               <FiSend /> {submitting ? "Submitting..." : "Submit Ticket"}
             </button>
           </form>
         </div>
       </section>
 
-      {error && <div className="rounded-[8px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{error}</div>}
+      {error && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{error}</div>}
 
       <section className="grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)] 2xl:grid-cols-[460px_minmax(0,1fr)]">
         <div className="overflow-hidden rounded-[10px] border border-gray-100 bg-white shadow-sm">
@@ -725,22 +826,76 @@ export default function TicketSupportHub({ role }: { role: Role }) {
                 <h2 className="text-lg font-semibold text-gray-950">{copy.listTitle}</h2>
                 <p className="text-sm text-gray-500">{tickets.length} ticket{tickets.length === 1 ? "" : "s"} found</p>
               </div>
-              <button onClick={loadTickets} className="inline-flex items-center gap-2 rounded-[6px] border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm hover:border-[#27A361] hover:text-[#27A361]">
+              <button onClick={loadTickets} className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm hover:border-[#27A361] hover:text-[#27A361]">
                 <FiRefreshCw /> Refresh
               </button>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_180px]">
               <label className="relative block">
                 <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === "Enter" && loadTickets()} placeholder="Search tickets" className="w-full rounded-[6px] border border-gray-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#27A361]" />
+                <input value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === "Enter" && loadTickets()} placeholder="Search tickets" className="w-full rounded-md border border-gray-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#27A361]" />
               </label>
-              <label className="relative block">
-                <FiFilter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full rounded-[6px] border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-[#27A361]">
-                  <option value="all">All Status</option>
-                  {Object.entries(statusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </select>
-              </label>
+              <div ref={statusDropdownRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setStatusDropdownOpen((prev) => !prev)}
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-gray-200 bg-white px-4 text-sm text-gray-700 outline-none transition hover:border-[#D7E7DC] focus:border-[#16A34A]"
+                >
+                  <span className="flex items-center gap-2 truncate">
+                    <FiFilter className="text-gray-400 shrink-0" />
+                    {status === "all" ? "All Status" : statusLabel[status as Status]}
+                  </span>
+                  <ArrowDropdownIcon
+                    size={12}
+                    color="#111827"
+                    className={`transition-transform duration-200 shrink-0 ${
+                      statusDropdownOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {statusDropdownOpen && (
+                  <div className="absolute right-0 top-[calc(100%+8px)] z-60 w-48 rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
+                    <div className="pointer-events-none absolute -top-2 right-6">
+                      <div className="h-3 w-3 rotate-45 border-l border-t border-gray-200 bg-white" />
+                    </div>
+                    <h4 className="mb-2 text-sm font-semibold">Filter Status</h4>
+                    <div className="flex flex-col gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStatus("all");
+                          setStatusDropdownOpen(false);
+                        }}
+                        className={`rounded px-3 py-2 text-left text-sm transition-colors ${
+                          status === "all"
+                            ? "bg-[#D1EFDD] font-medium text-[#15803D]"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
+                      >
+                        All Status
+                      </button>
+                      {Object.entries(statusLabel).map(([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => {
+                            setStatus(value);
+                            setStatusDropdownOpen(false);
+                          }}
+                          className={`rounded px-3 py-2 text-left text-sm transition-colors ${
+                            status === value
+                              ? "bg-[#D1EFDD] font-medium text-[#15803D]"
+                              : "text-gray-700 hover:bg-gray-100"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <div className="max-h-[680px] overflow-y-auto">
@@ -774,7 +929,7 @@ function Metric({ label, value, icon }: { label: string; value: number; icon: Re
     <div className="rounded-[10px] border border-emerald-100 bg-white/90 p-3 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <div><p className="text-xs text-gray-500">{label}</p><p className="mt-1 text-2xl font-semibold text-gray-950">{value}</p></div>
-        <span className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-emerald-50 text-[#27A361]">{icon}</span>
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-[#27A361]">{icon}</span>
       </div>
     </div>
   );
@@ -805,7 +960,7 @@ function Detail({ role, ticket, reply, note, submitting, setReply, setNote, send
 
   return (
     <div className="overflow-hidden rounded-[10px] border border-gray-100 bg-white shadow-sm">
-      <div className="border-b border-gray-100 bg-gradient-to-br from-white to-emerald-50/50 p-5">
+      <div className="border-b border-gray-100 bg-linear-to-br from-white to-emerald-50/50 p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#27A361]">Ticket Detail</p>
@@ -835,8 +990,8 @@ function Detail({ role, ticket, reply, note, submitting, setReply, setNote, send
         <div className="p-5">
           <h3 className="text-sm font-semibold text-gray-950">Conversation</h3>
           <div className="mt-3 space-y-3">
-            {publicComments.length === 0 ? <div className="rounded-[8px] bg-gray-50 p-4 text-sm text-gray-500">No public replies yet.</div> : publicComments.map((comment, index) => (
-              <div key={comment._id || index} className="rounded-[8px] bg-gray-50 p-4">
+            {publicComments.length === 0 ? <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-500">No public replies yet.</div> : publicComments.map((comment, index) => (
+              <div key={comment._id || index} className="rounded-lg bg-gray-50 p-4">
                 <div className="mb-1 flex items-center justify-between gap-2">
                   <p className="text-xs font-semibold text-gray-700">{comment.author?.name || "Support"}</p>
                   <span className="text-[11px] text-gray-400">{dateLabel(comment.createdAt)}</span>
@@ -848,27 +1003,27 @@ function Detail({ role, ticket, reply, note, submitting, setReply, setNote, send
           <div className="mt-5 rounded-[10px] border border-gray-100 bg-[#FBFFFD] p-4">
             <label className="text-xs font-semibold text-gray-600">Public Reply</label>
             <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={3} placeholder="Write a clear update..." className="support-input resize-none" />
-            <button onClick={() => sendComment("public")} disabled={submitting || !reply.trim()} className="mt-3 inline-flex items-center gap-2 rounded-[6px] bg-[#27A361] px-4 py-2 text-sm font-semibold text-white hover:bg-[#208650] disabled:opacity-60"><FiSend /> Send Reply</button>
+            <button onClick={() => sendComment("public")} disabled={submitting || !reply.trim()} className="mt-3 inline-flex items-center gap-2 rounded-md bg-[#27A361] px-4 py-2 text-sm font-semibold text-white hover:bg-[#208650] disabled:opacity-60"><FiSend /> Send Reply</button>
           </div>
           {role === "agent" && (
-            <div className="mt-4 rounded-[8px] border border-amber-100 bg-amber-50/40 p-4">
+            <div className="mt-4 rounded-lg border border-amber-100 bg-amber-50/40 p-4">
               <label className="text-xs font-semibold text-amber-800">Internal Note</label>
-              <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Visible only to support team." className="mt-2 w-full resize-none rounded-[6px] border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400" />
-              <button onClick={() => sendComment("internal")} disabled={submitting || !note.trim()} className="mt-3 rounded-[6px] bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60">Save Internal Note</button>
-              {internalComments.length > 0 && <div className="mt-4 space-y-2">{internalComments.map((comment, index) => <p key={comment._id || index} className="rounded-[6px] bg-white px-3 py-2 text-xs leading-5 text-amber-900">{comment.message}</p>)}</div>}
+              <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Visible only to support team." className="mt-2 w-full resize-none rounded-md border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400" />
+              <button onClick={() => sendComment("internal")} disabled={submitting || !note.trim()} className="mt-3 rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60">Save Internal Note</button>
+              {internalComments.length > 0 && <div className="mt-4 space-y-2">{internalComments.map((comment, index) => <p key={comment._id || index} className="rounded-md bg-white px-3 py-2 text-xs leading-5 text-amber-900">{comment.message}</p>)}</div>}
             </div>
           )}
         </div>
         <aside className="border-t border-gray-100 bg-gray-50/50 p-5 xl:border-l xl:border-t-0">
           <div className="mb-3 flex items-center gap-2"><FiPaperclip className="text-[#27A361]" /><h3 className="text-sm font-semibold text-gray-950">Attachments</h3></div>
           <div className="space-y-2">
-            {ticket.attachments?.length ? ticket.attachments.map((item, index) => <a key={`${item.url}-${index}`} href={item.url} target="_blank" rel="noreferrer" className="block rounded-[6px] border border-gray-100 px-3 py-2 text-xs text-gray-700 hover:border-[#27A361] hover:text-[#27A361]">{item.name || "Attachment"}</a>) : <p className="rounded-[6px] bg-gray-50 px-3 py-2 text-xs text-gray-500">No attachments</p>}
+            {ticket.attachments?.length ? ticket.attachments.map((item, index) => <a key={`${item.url}-${index}`} href={item.url} target="_blank" rel="noreferrer" className="block rounded-md border border-gray-100 px-3 py-2 text-xs text-gray-700 hover:border-[#27A361] hover:text-[#27A361]">{item.name || "Attachment"}</a>) : <p className="rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-500">No attachments</p>}
           </div>
           <div className="mt-6 space-y-2 text-xs text-gray-600">
             <h3 className="text-sm font-semibold text-gray-950">Ownership</h3>
-            <p className="rounded-[6px] bg-gray-50 px-3 py-2">Assigned: {ticket.assignedTo?.name || "Not assigned"}</p>
-            <p className="rounded-[6px] bg-gray-50 px-3 py-2">Category: {ticket.category || "General"}</p>
-            <p className="rounded-[6px] bg-gray-50 px-3 py-2">Created: {dateLabel(ticket.createdAt)}</p>
+            <p className="rounded-md bg-gray-50 px-3 py-2">Assigned: {ticket.assignedTo?.name || "Not assigned"}</p>
+            <p className="rounded-md bg-gray-50 px-3 py-2">Category: {ticket.category || "General"}</p>
+            <p className="rounded-md bg-gray-50 px-3 py-2">Created: {dateLabel(ticket.createdAt)}</p>
           </div>
         </aside>
       </div>
@@ -877,9 +1032,9 @@ function Detail({ role, ticket, reply, note, submitting, setReply, setNote, send
 }
 
 function Info({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-[8px] border border-gray-100 bg-white px-3 py-2 shadow-sm"><p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</p><p className="mt-1 truncate text-sm font-semibold text-gray-800">{value}</p></div>;
+  return <div className="rounded-lg border border-gray-100 bg-white px-3 py-2 shadow-sm"><p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</p><p className="mt-1 truncate text-sm font-semibold text-gray-800">{value}</p></div>;
 }
 
 function Action({ label, disabled, onClick }: { label: string; disabled: boolean; onClick: () => void }) {
-  return <button onClick={onClick} disabled={disabled} className="rounded-[6px] border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">{label}</button>;
+  return <button onClick={onClick} disabled={disabled} className="rounded-md border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">{label}</button>;
 }

@@ -1,11 +1,16 @@
 "use client";
 
+import LoginDialog from "@/app/(auth)/Login";
+import RegisterDialog from "@/app/(auth)/Register";
 import { FeaturedProject } from "@/types";
 import { useShortlist } from "@/hooks/useShortlist";
 import { useEffect, useRef, useState } from "react";
 import { FiCheckCircle, FiDownload, FiHeart, FiMapPin } from "react-icons/fi";
 import { HiChevronLeft, HiChevronRight, HiPhoto, HiXMark } from "react-icons/hi2";
 import { IoIosShareAlt } from "react-icons/io";
+import Cookies from "js-cookie";
+
+type AuthMode = "login" | "register" | null;
 
 type HeroSectionProps = {
     project: FeaturedProject;
@@ -157,6 +162,8 @@ export default function HeroSection({ project }: HeroSectionProps) {
     const pricePerUnitLabel = formatPricePerUnit(project);
     const [openIndex, setOpenIndex] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState(tabs[0].href);
+    const [authMode, setAuthMode] = useState<AuthMode>(null);
+    const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
     const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(project._id, "FeaturedProject");
     const navRef = useRef<HTMLDivElement | null>(null);
     const startX = useRef<number | null>(null);
@@ -277,8 +284,37 @@ export default function HeroSection({ project }: HeroSectionProps) {
         }
     }
 
+    function closeAuthDialog() {
+        setIsAuthDialogOpen(false);
+        setAuthMode(null);
+    }
+
+    function openLoginDialog() {
+        setIsAuthDialogOpen(true);
+        setAuthMode("login");
+    }
+
+    function downloadBrochure(url: string) {
+        const link = document.createElement("a");
+        link.href = url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.download = project.brochure?.filename || "";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    }
+
     function onTabClick(event: React.MouseEvent<HTMLAnchorElement>, href: string, isDownload?: boolean) {
         if (isDownload) {
+            event.preventDefault();
+
+            if (!Cookies.get("token")) {
+                openLoginDialog();
+                return;
+            }
+
+            downloadBrochure(href);
             return;
         }
 
@@ -520,6 +556,26 @@ export default function HeroSection({ project }: HeroSectionProps) {
                         )}
                     </div>
                 </div>
+            )}
+
+            {isAuthDialogOpen && authMode === "login" && (
+                <LoginDialog
+                    open={isAuthDialogOpen}
+                    onClose={closeAuthDialog}
+                    onSwitchToRegister={() => {
+                        setAuthMode("register");
+                    }}
+                />
+            )}
+
+            {isAuthDialogOpen && authMode === "register" && (
+                <RegisterDialog
+                    open={isAuthDialogOpen}
+                    onClose={closeAuthDialog}
+                    onSwitchToLogin={() => {
+                        setAuthMode("login");
+                    }}
+                />
             )}
         </>
     );

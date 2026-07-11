@@ -460,3 +460,15 @@ export const deleteFeatureGalleryImage = async (
     return res.status(500).json({ message: err.message });
   }
 };
+
+export const incrementFeatureClicks = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ error: "Missing property ID" });
+    await FeaturePropertyService.incrementClicks(id);
+    return res.json({ success: true, message: "Click recorded successfully" });
+  } catch (err: any) {
+    console.error("incrementFeatureClicks error:", err);
+    return res.status(500).json({ error: err.message || "Internal server error" });
+  }
+};

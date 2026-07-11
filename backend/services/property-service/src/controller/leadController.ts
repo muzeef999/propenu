@@ -620,21 +620,6 @@ export const importProjectLeadsCSVController = async (
       return res.status(404).json({ success: false, message: "Project not found" });
     }
 
-    const canImportAnyProjectLeads = [
-      "sales_agent",
-      "sales_manager",
-      "admin",
-      "super_admin",
-      "customer_care",
-    ].includes(req.user?.roleName || "");
-
-    if (!canImportAnyProjectLeads && String(project.createdBy) !== String(userId)) {
-      return res.status(403).json({
-        success: false,
-        message: "You can import leads only for your own project",
-      });
-    }
-
     interface CsvRow {
       [key: string]: string;
     }

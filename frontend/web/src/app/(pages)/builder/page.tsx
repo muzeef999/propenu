@@ -8,10 +8,8 @@ import Dropdownui from "@/ui/DropDownUI";
 import { HiHome, HiTrendingUp } from "react-icons/hi";
 import { HiBuildingOffice2, HiCheckCircle } from "react-icons/hi2";
 import { MdOutlineStar } from "react-icons/md";
-import { FiEye, FiMapPin, FiUsers, FiTarget } from "react-icons/fi";
+import { FiEye, FiImage, FiMapPin, FiUsers, FiTarget, FiMousePointer } from "react-icons/fi";
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
@@ -30,12 +28,18 @@ type TopViewedItem = {
   title: string;
   city: string;
   state?: string;
+  heroImage?: string;
+  image?: string;
+  gallerySummary?: Array<{
+    url?: string;
+  }>;
   status?: string;
   createdAt?: string;
   meta?: {
     views?: number;
     inquiries?: number;
     clicks?: number;
+    shortlists?: number;
   };
 };
 
@@ -53,6 +57,7 @@ type BuilderDashboardResponse = {
   builderSummary: {
     totalProjects: number;
     totalViews: number;
+    totalClicks?: number;
     featuredProjects: number;
     primeProjects?: number;
     sponsoredProjects?: number;
@@ -62,6 +67,15 @@ type BuilderDashboardResponse = {
     averageViewsPerProject: number;
     averageShortlistsPerProject: number;
     averageLeadsPerProject: number;
+    totalUnits?: number;
+    availableUnits?: number;
+    soldUnits?: number;
+    inventorySoldShare?: number;
+    conversionRates?: {
+      viewsToShortlists: number;
+      shortlistsToLeads: number;
+      overallConversion: number;
+    };
   };
   statusSummary?: {
     active: number;
@@ -76,6 +90,16 @@ type BuilderDashboardResponse = {
     averageViewsPerProject: number;
     averageShortlistsPerProject: number;
     averageLeadsPerProject: number;
+    totalClicks?: number;
+    totalUnits?: number;
+    availableUnits?: number;
+    soldUnits?: number;
+    inventorySoldShare?: number;
+    conversionRates?: {
+      viewsToShortlists: number;
+      shortlistsToLeads: number;
+      overallConversion: number;
+    };
   };
   locationStats: {
     cities: LocationBucket[];
@@ -107,8 +131,26 @@ const DATE_RANGE_OPTIONS = [
 ];
 const ALL_STATES_VALUE = "__all_states__";
 const ALL_CITIES_VALUE = "__all_cities__";
+const PROJECT_IMAGE_FALLBACK = "/images/placeholder.svg";
 
-const formatNumber = (value: number) => value.toLocaleString();
+const formatNumber = (value?: number | null) => {
+  const normalized = typeof value === "number" && Number.isFinite(value) ? value : 0;
+  return normalized.toLocaleString();
+};
+
+const getInitials = (value?: string) =>
+  (value || "Project")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+
+const getProjectImage = (item: TopViewedItem) =>
+  item.heroImage ||
+  item.image ||
+  item.gallerySummary?.[0]?.url ||
+  PROJECT_IMAGE_FALLBACK;
 
 const sortByCountDesc = <T extends { count?: number; total?: number; listings?: number }>(items: T[]) =>
   [...items].sort((a, b) => {
@@ -216,12 +258,16 @@ const Dashboard = () => {
       const views = item.meta?.views ?? 0;
       const inquiries = item.meta?.inquiries ?? 0;
       const clicks = item.meta?.clicks ?? 0;
+      const shortlists = item.meta?.shortlists ?? 0;
+      const image = getProjectImage(item);
 
       return {
         ...item,
+        image,
         views,
         clicks,
         inquiries,
+        shortlists,
         viewShare: totalViews > 0 ? Math.round((views / totalViews) * 100) : 0,
       };
     }) ?? [];
@@ -273,9 +319,9 @@ const Dashboard = () => {
       iconBgColor: "#FFE1E8",
     },
     {
-      title: "Prime Projects",
-      value: primeProjects,
-      icon: <MdOutlineStar size={22} className="text-fuchsia-600" />,
+      title: "Total Clicks",
+      value: summary?.totalClicks ?? 0,
+      icon: <FiMousePointer size={22} className="text-fuchsia-600" />,
       bgColor: "#FCF4FF",
       iconBgColor: "#F4E1FF",
     },
@@ -667,145 +713,141 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-5 flex items-center gap-2">
-            <span className="rounded-full bg-emerald-50 p-2 text-emerald-600">
-              <HiTrendingUp size={18} />
-            </span>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Top Viewed Projects</h2>
-              <p className="text-sm text-gray-500">
-                Project-level visibility leaderboard for the selected range.
-              </p>
-            </div>
-          </div>
-
-          {topViewedProjects.length > 0 ? (
-            <div className="space-y-4">
-              {topViewedProjects.map((item, index) => (
-                <div key={item._id} className="rounded-xl border border-gray-100 p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex min-w-0 items-start gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 font-medium text-gray-700">
-                        {index + 1}
-                      </div>
-
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="line-clamp-1 font-medium text-gray-900">{item.title}</h3>
-                          {item.status && (
-                            <span
-                              className="rounded-full px-2 py-0.5 text-xs font-medium"
-                              style={{
-                                backgroundColor:
-                                  item.status === "active"
-                                    ? "#DCFCE7"
-                                    : item.status === "inactive"
-                                      ? "#FEF3C7"
-                                      : "#E2E8F0",
-                                color:
-                                  item.status === "active"
-                                    ? "#166534"
-                                    : item.status === "inactive"
-                                      ? "#92400E"
-                                      : "#334155",
-                              }}
-                            >
-                              {item.status}
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-1 text-sm text-gray-500">
-                          {[item.city, item.state].filter(Boolean).join(", ") || "Unknown location"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="font-semibold text-gray-900">{formatNumber(item.views)}</p>
-                      <p className="text-sm text-gray-500">views</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-                    <div className="rounded-lg bg-gray-50 px-3 py-2">
-                      <p className="text-xs text-gray-500">Clicks</p>
-                      <p className="mt-1 font-semibold text-gray-900">{formatNumber(item.clicks)}</p>
-                    </div>
-                    <div className="rounded-lg bg-gray-50 px-3 py-2">
-                      <p className="text-xs text-gray-500">Inquiries</p>
-                      <p className="mt-1 font-semibold text-gray-900">{formatNumber(item.inquiries)}</p>
-                    </div>
-                    <div className="rounded-lg bg-gray-50 px-3 py-2">
-                      <p className="text-xs text-gray-500">View Share</p>
-                      <p className="mt-1 font-semibold text-gray-900">{item.viewShare}%</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-3">
-                    {hasViewData ? (
-                      <>
-                        <div className="mb-1 flex items-center justify-between text-xs text-gray-500">
-                          <span>Share of total views</span>
-                          <span>{item.viewShare}%</span>
-                        </div>
-                        <div className="h-2 rounded-full bg-gray-100">
-                          <div
-                            className="h-2 rounded-full bg-emerald-500"
-                            style={{ width: `${Math.min(item.viewShare, 100)}%` }}
-                          />
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-xs text-gray-500">
-                        No recorded project views yet, so visibility share is not available.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyChartState message="No top viewed projects are available yet." />
-          )}
-        </div>
       </div>
 
       <div className="mt-8 rounded-xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Pipeline Momentum</h2>
           <p className="text-sm text-gray-500">
-            Shortlists and leads moving through your builder funnel.
+            Project-level momentum across leads, shortlists, clicks, and views.
           </p>
         </div>
 
-        <div className="h-80">
-          {hasTrendData ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trendData}>
-                <defs>
-                  <linearGradient id="shortlistGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0EA5E9" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#0EA5E9" stopOpacity={0.03} />
-                  </linearGradient>
-                  <linearGradient id="leadGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#F43F5E" stopOpacity={0.03} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                <XAxis dataKey="label" tickLine={false} axisLine={false} />
-                <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
-                <Tooltip />
-                <Legend />
-                <Area type="monotone" dataKey="shortlists" stroke="#0EA5E9" fill="url(#shortlistGradient)" strokeWidth={2.5} name="Shortlists" />
-                <Area type="monotone" dataKey="leads" stroke="#F43F5E" fill="url(#leadGradient)" strokeWidth={2.5} name="Leads" />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <EmptyChartState message="No shortlist or lead movement is available for this date range yet." />
-          )}
-        </div>
+        {topViewedProjects.length > 0 ? (
+          <div className="overflow-hidden rounded-2xl border border-gray-100">
+            <div className="hidden grid-cols-[minmax(0,2.7fr)_0.8fr_0.9fr_0.8fr_0.8fr_1fr] gap-4 border-b border-gray-100 bg-slate-50 px-5 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-gray-500 md:grid">
+              <p>Project</p>
+              <p className="text-center">Leads</p>
+              <p className="text-center">Shortlists</p>
+              <p className="text-center">Clicks</p>
+              <p className="text-center">Views</p>
+              <p className="text-center">Status</p>
+            </div>
+
+            <div className="divide-y divide-gray-100">
+              {topViewedProjects.map((item, index) => (
+                <div
+                  key={item._id}
+                  className="grid gap-4 px-4 py-4 md:grid-cols-[minmax(0,2.7fr)_0.8fr_0.9fr_0.8fr_0.8fr_1fr] md:items-center md:px-5"
+                >
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700 ring-1 ring-slate-200">
+                      {index + 1}
+                    </div>
+
+                    <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-linear-to-br from-slate-50 via-white to-emerald-50 shadow-sm">
+                      {item.image !== PROJECT_IMAGE_FALLBACK ? (
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          className="h-full w-full object-cover"
+                          onError={(event) => {
+                            event.currentTarget.style.display = "none";
+                            const fallback = event.currentTarget.nextElementSibling as HTMLElement | null;
+                            if (fallback) fallback.style.display = "flex";
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        className="absolute inset-0 hidden items-center justify-center"
+                        style={{ display: item.image === PROJECT_IMAGE_FALLBACK ? "flex" : "none" }}
+                      >
+                        <div className="flex flex-col items-center gap-2 text-center">
+                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-200">
+                            {getInitials(item.title)}
+                          </div>
+                          <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.16em] text-slate-500">
+                            <FiImage size={12} />
+                            <span>No Visual</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="line-clamp-1 text-base font-semibold text-slate-900">{item.title}</h3>
+                        {hasViewData && (
+                          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-100">
+                            {item.viewShare}% share
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {[item.city, item.state].filter(Boolean).join(", ") || "Unknown location"}
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                          Rank #{index + 1}
+                        </span>
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                          {hasViewData ? `${formatNumber(item.views)} views` : "No recorded views"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 md:contents">
+                    <div className="rounded-xl bg-rose-50 px-3 py-2 text-center md:rounded-none md:bg-transparent md:px-0 md:py-0">
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-gray-500 md:hidden">Leads</p>
+                      <p className="font-semibold text-gray-900">{formatNumber(item.inquiries)}</p>
+                    </div>
+
+                    <div className="rounded-xl bg-sky-50 px-3 py-2 text-center md:rounded-none md:bg-transparent md:px-0 md:py-0">
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-gray-500 md:hidden">Shortlists</p>
+                      <p className="font-semibold text-gray-900">{formatNumber(item.shortlists)}</p>
+                    </div>
+
+                    <div className="rounded-xl bg-fuchsia-50 px-3 py-2 text-center md:rounded-none md:bg-transparent md:px-0 md:py-0">
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-gray-500 md:hidden">Clicks</p>
+                      <p className="font-semibold text-gray-900">{formatNumber(item.clicks)}</p>
+                    </div>
+
+                    <div className="rounded-xl bg-emerald-50 px-3 py-2 text-center md:rounded-none md:bg-transparent md:px-0 md:py-0">
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-gray-500 md:hidden">Views</p>
+                      <p className="font-semibold text-gray-900">{formatNumber(item.views)}</p>
+                    </div>
+
+                    <div className="col-span-2 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 md:col-span-1 md:justify-center md:rounded-none md:bg-transparent md:px-0 md:py-0">
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-gray-500 md:hidden">Status</p>
+                      <span
+                        className="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
+                        style={{
+                          backgroundColor:
+                            item.status === "active"
+                              ? "#DCFCE7"
+                              : item.status === "inactive"
+                                ? "#FEF3C7"
+                                : "#E2E8F0",
+                          color:
+                            item.status === "active"
+                              ? "#166534"
+                              : item.status === "inactive"
+                                ? "#92400E"
+                                : "#334155",
+                        }}
+                      >
+                        {item.status ?? "unknown"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <EmptyChartState message="No project momentum data is available for this date range yet." />
+        )}
       </div>
     </div>
   );

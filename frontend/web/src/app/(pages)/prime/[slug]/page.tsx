@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getFeaturedSlugProjects } from "@/data/serverData";
+import { getFeaturedSlugProjects, incrementProjectClicks } from "@/data/serverData";
 import { FeaturedProject } from "@/types";
 import MicroSiteNavbar from "./MicroSiteNavbar";
 import Herosection from "./Herosection";
@@ -53,6 +53,12 @@ export default async function Page({ params }: PageProps) {
 
   if (!project) {
     notFound();
+  }
+
+  if (project._id) {
+    incrementProjectClicks(project._id).catch((e) =>
+      console.error("Failed to increment project clicks:", e)
+    );
   }
 
   const links = [

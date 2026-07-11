@@ -109,6 +109,20 @@ export async function getFeaturedSlugProjects({ slug }: { slug: string }) {
   return json.data as FeaturedProject;
 }
 
+export async function incrementProjectClicks(id: string) {
+  try {
+    const res = await fetch(`${url}/api/properties/featured-project/${id}/click`, {
+      method: "POST",
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      console.error("Failed to increment project clicks:", await res.text());
+    }
+  } catch (err) {
+    console.error("Error incrementing project clicks:", err);
+  }
+}
+
 
 
 

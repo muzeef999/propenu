@@ -786,7 +786,7 @@ export const createBuilderMember = async (payload: {
   email?: string;
   phone?: string;
   builderRoleId: string;
-  projectIds: string[];
+  projectIds?: string[];
 }) => {
   const token = Cookies.get("token");
   if (!token) throw new Error("Not authenticated");
