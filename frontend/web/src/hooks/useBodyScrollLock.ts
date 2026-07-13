@@ -5,25 +5,26 @@ export function useBodyScrollLock(locked: boolean) {
     if (!locked || typeof window === "undefined") return;
 
     const scrollY = window.scrollY;
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousBodyPosition = document.body.style.position;
-    const previousBodyTop = document.body.style.top;
-    const previousBodyWidth = document.body.style.width;
-    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const scrollbarWidth =
+      window.innerWidth - document.documentElement.clientWidth;
+
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyPaddingRight = document.body.style.paddingRight;
 
     document.documentElement.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = "100%";
+
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    // Re-apply scroll position — some browsers reset scrollTop when overflow changes
+    document.documentElement.scrollTop = scrollY;
 
     return () => {
-      document.documentElement.style.overflow = previousHtmlOverflow;
-      document.body.style.overflow = previousBodyOverflow;
-      document.body.style.position = previousBodyPosition;
-      document.body.style.top = previousBodyTop;
-      document.body.style.width = previousBodyWidth;
-      window.scrollTo(0, scrollY);
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.paddingRight = prevBodyPaddingRight;
+      document.documentElement.scrollTop = scrollY;
     };
   }, [locked]);
 }
+
