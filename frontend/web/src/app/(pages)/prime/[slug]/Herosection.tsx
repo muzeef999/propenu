@@ -66,9 +66,9 @@ function isValidEmail(value: string) {
 }
 
 function getFieldValidationMessage(
-  e: React.InvalidEvent<HTMLInputElement | HTMLTextAreaElement>,
+  field: HTMLInputElement | HTMLTextAreaElement,
 ) {
-  const { name, validity } = e.target;
+  const { name, validity } = field;
 
   if (validity.valueMissing) {
     if (name === "name") return "Please enter your name";
@@ -172,9 +172,9 @@ export default function HeroSection({ hero }: Props) {
   }
 
   function handleInvalid(
-    e: React.InvalidEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) {
-    e.target.setCustomValidity(getFieldValidationMessage(e));
+    e.currentTarget.setCustomValidity(getFieldValidationMessage(e.currentTarget));
   }
 
   function handleFieldInput(
