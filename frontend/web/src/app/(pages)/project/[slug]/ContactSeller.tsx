@@ -81,6 +81,42 @@ function sanitizePhoneInput(value: string) {
   return `+${cleaned.slice(1).replace(/\+/g, "")}`;
 }
 
+function sanitizeNameInput(value: string) {
+  return value.replace(/[^A-Za-z\s]/g, "");
+}
+
+function isValidName(value: string) {
+  return /^[A-Za-z\s]+$/.test(value.trim());
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function getFieldValidationMessage(
+  field: HTMLInputElement | HTMLTextAreaElement,
+) {
+  const { name, validity } = field;
+
+  if (validity.valueMissing) {
+    if (name === "name") return "Please enter your full name";
+    if (name === "phone") return "Please enter your mobile number";
+    if (name === "email") return "Please enter your email address";
+  }
+
+  if (validity.patternMismatch) {
+    if (name === "name") return "Full Name should contain letters only";
+    if (name === "phone") return "Please enter a valid phone number";
+    if (name === "email") return "Please enter a valid email address";
+  }
+
+  if (validity.typeMismatch && name === "email") {
+    return "Please enter a valid email address";
+  }
+
+  return "Please check this field";
+}
+
 const ContactSeller = ({ project }: ContactSellerProps) => {
   const [form, setForm] = useState({
     name: "",
@@ -134,15 +170,25 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    if (!isValidName(form.name)) {
+      toast.error("Full Name should contain letters only");
+      return;
+    }
+
     if (!isValidPhoneNumber(form.phone)) {
       toast.error("Please enter a valid phone number");
       return;
     }
 
+    if (!isValidEmail(form.email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
     leadsMutation.mutate({
-      name: form.name,
+      name: form.name.trim(),
       phone: form.phone,
-      email: form.email,
+      email: form.email.trim(),
       projectId: project._id,
     });
   };
@@ -153,8 +199,25 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
     const { name, value } = e.target;
     setForm((current) => ({
       ...current,
-      [name]: name === "phone" ? sanitizePhoneInput(value) : value,
+      [name]:
+        name === "phone"
+          ? sanitizePhoneInput(value)
+          : name === "name"
+            ? sanitizeNameInput(value)
+            : value,
     }));
+  }
+
+  function handleInvalid(
+    e: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) {
+    e.currentTarget.setCustomValidity(getFieldValidationMessage(e.currentTarget));
+  }
+
+  function handleFieldInput(
+    e: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) {
+    e.currentTarget.setCustomValidity("");
   }
 
   return (
@@ -194,7 +257,12 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
             name="name"
             value={form.name}
             onChange={handleChange}
+            onInvalid={handleInvalid}
+            onInput={handleFieldInput}
             placeholder="Enter Name"
+            inputMode="text"
+            pattern="[A-Za-z\s]+"
+            title="Full Name should contain letters only"
             required
             className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
           />
@@ -210,6 +278,9 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
             pattern="^\+?[1-9]\d{9,14}$"
             value={form.phone}
             onChange={handleChange}
+            onInvalid={handleInvalid}
+            onInput={handleFieldInput}
+            title="Please enter a valid phone number"
             placeholder="Enter Mobile Number"
             required
             className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
@@ -223,6 +294,11 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
             type="email"
             value={form.email}
             onChange={handleChange}
+            onInvalid={handleInvalid}
+            onInput={handleFieldInput}
+            autoComplete="email"
+            pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
+            title="Please enter a valid email address"
             placeholder="Enter your Email ID"
             required
             className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"

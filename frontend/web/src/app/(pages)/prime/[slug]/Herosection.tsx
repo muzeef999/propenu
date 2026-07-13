@@ -57,6 +57,43 @@ function sanitizePhoneInput(value: string) {
   return `+${cleaned.slice(1).replace(/\+/g, "")}`;
 }
 
+function sanitizeNameInput(value: string) {
+  return value.replace(/[^A-Za-z\s]/g, "");
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function getFieldValidationMessage(
+  e: React.InvalidEvent<HTMLInputElement | HTMLTextAreaElement>,
+) {
+  const { name, validity } = e.target;
+
+  if (validity.valueMissing) {
+    if (name === "name") return "Please enter your name";
+    if (name === "phone") return "Please enter your mobile number";
+    if (name === "email") return "Please enter your email address";
+    if (name === "message") return "Please enter your message";
+  }
+
+  if (validity.patternMismatch) {
+    if (name === "name") return "Name should contain letters only";
+    if (name === "phone") return "Please enter a valid phone number";
+    if (name === "email") return "Please enter a valid email address";
+  }
+
+  if (validity.typeMismatch && name === "email") {
+    return "Please enter a valid email address";
+  }
+
+  if (validity.tooShort && name === "message") {
+    return "Message must be at least 10 characters";
+  }
+
+  return "Please check this field";
+}
+
 export default function HeroSection({ hero }: Props) {
   if (!hero) return null;
 
@@ -104,10 +141,15 @@ export default function HeroSection({ hero }: Props) {
     return;
   }
 
+  if (!isValidEmail(form.email)) {
+    toast.error("Please enter a valid email address");
+    return;
+  }
+
   leadsMutation.mutate({
     name: form.name,
     phone: form.phone,
-    email: form.email,
+    email: form.email.trim(),
     remarks: form.message,
     projectId: h.projectId,
   });
@@ -120,8 +162,25 @@ export default function HeroSection({ hero }: Props) {
     const { name, value } = e.target;
     setForm((p) => ({
       ...p,
-      [name]: name === "phone" ? sanitizePhoneInput(value) : value,
+      [name]:
+        name === "phone"
+          ? sanitizePhoneInput(value)
+          : name === "name"
+            ? sanitizeNameInput(value)
+            : value,
     }));
+  }
+
+  function handleInvalid(
+    e: React.InvalidEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) {
+    e.target.setCustomValidity(getFieldValidationMessage(e));
+  }
+
+  function handleFieldInput(
+    e: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) {
+    e.currentTarget.setCustomValidity("");
   }
 
   async function shareProject() {
@@ -247,6 +306,11 @@ export default function HeroSection({ hero }: Props) {
                   name="name"
                   value={form.name}
                   onChange={handleChange}
+                  onInvalid={handleInvalid}
+                  onInput={handleFieldInput}
+                  inputMode="text"
+                  pattern="[A-Za-z\s]+"
+                  title="Name should contain letters only"
                   placeholder="Your Name"
                   required
                   className="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2 text-sm text-white placeholder-white/70 focus:ring-2 focus:ring-yellow-400 outline-none"
@@ -260,6 +324,9 @@ export default function HeroSection({ hero }: Props) {
                   pattern="^\+?[1-9]\d{9,14}$"
                   value={form.phone}
                   onChange={handleChange}
+                  onInvalid={handleInvalid}
+                  onInput={handleFieldInput}
+                  title="Please enter a valid phone number"
                   placeholder="Your Mobile Number"
                   required
                   className="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2 text-sm text-white placeholder-white/70 focus:ring-2 focus:ring-yellow-400 outline-none"
@@ -269,7 +336,12 @@ export default function HeroSection({ hero }: Props) {
                   name="email"
                   value={form.email}
                   onChange={handleChange}
+                  onInvalid={handleInvalid}
+                  onInput={handleFieldInput}
                   type="email"
+                  autoComplete="email"
+                  pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
+                  title="Please enter a valid email address"
                   placeholder="Your Email"
                   required
                   className="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2 text-sm text-white placeholder-white/70 focus:ring-2 focus:ring-yellow-400 outline-none"
@@ -279,8 +351,12 @@ export default function HeroSection({ hero }: Props) {
                   name="message"
                   value={form.message}
                   onChange={handleChange}
+                  onInvalid={handleInvalid}
+                  onInput={handleFieldInput}
                   rows={3}
+                  minLength={10}
                   placeholder="Message"
+                  required
                   className="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2 text-sm text-white placeholder-white/70 focus:ring-2 focus:ring-yellow-400 outline-none"
                 />
 
