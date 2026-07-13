@@ -269,3 +269,40 @@ export const updateLeadStatusService = async (
 
   return propertyLead;
 };
+
+export const deleteLeadService = async (leadId: string) => {
+  if (!mongoose.Types.ObjectId.isValid(leadId)) {
+    throw new Error("Invalid Lead ID");
+  }
+
+  const publicLead = await PublicLead.findByIdAndDelete(leadId);
+  if (publicLead) {
+    return publicLead;
+  }
+
+  const propertyLead = await Lead.findByIdAndDelete(leadId);
+  if (propertyLead) {
+    return propertyLead;
+  }
+
+  throw new Error("Lead not found");
+};
+
+export const deleteProjectLeadsService = async (projectId: string) => {
+  if (!mongoose.Types.ObjectId.isValid(projectId)) {
+    throw new Error("Invalid projectId");
+  }
+
+  const [publicLeadResult, propertyLeadResult] = await Promise.all([
+    PublicLead.deleteMany({ projectId }),
+    Lead.deleteMany({ projectId }),
+  ]);
+
+  return {
+    deletedCount:
+      (publicLeadResult.deletedCount ?? 0) +
+      (propertyLeadResult.deletedCount ?? 0),
+    publicLeadDeletedCount: publicLeadResult.deletedCount ?? 0,
+    propertyLeadDeletedCount: propertyLeadResult.deletedCount ?? 0,
+  };
+};

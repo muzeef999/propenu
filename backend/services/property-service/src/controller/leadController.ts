@@ -2,6 +2,8 @@ import { Request, RequestHandler, Response } from "express";
 import {
   assignLead,
   createLead,
+  deleteLeadService,
+  deleteProjectLeadsService,
   getLeadById,
   getLeads,
   updateLeadStatus,
@@ -554,6 +556,69 @@ export const updateProjectLeadStatusController = async (
     });
   } catch (error: any) {
     res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const deleteLeadController = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Lead ID is required",
+      });
+    }
+
+    await deleteLeadService(id);
+
+    res.json({
+      success: true,
+      message: "Lead deleted successfully",
+    });
+  } catch (error: any) {
+    const statusCode =
+      error?.message === "Lead not found"
+        ? 404
+        : error?.message === "Invalid Lead ID"
+          ? 400
+          : 500;
+
+    res.status(statusCode).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const deleteProjectLeadsController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { projectId } = req.params;
+
+    if (!projectId) {
+      return res.status(400).json({
+        success: false,
+        message: "projectId is required",
+      });
+    }
+
+    const result = await deleteProjectLeadsService(projectId);
+
+    res.json({
+      success: true,
+      message: "Project leads deleted successfully",
+      data: result,
+    });
+  } catch (error: any) {
+    const statusCode = error?.message === "Invalid projectId" ? 400 : 500;
+
+    res.status(statusCode).json({
       success: false,
       message: error.message,
     });

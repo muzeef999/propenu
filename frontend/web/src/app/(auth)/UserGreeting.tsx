@@ -22,6 +22,7 @@ export const GreetingOptions = [
   { label: "Shortlisted Properties", link: "/shortlisted-properties" },
   { label: "Contacted Properties", link: "/contacted-properties" },
   { label: "Membership", link: "/membership" },
+  { label: "Support", link: "/agent/support" },
   { label: "Logout", link: "/logout" },
 ];
 
@@ -32,6 +33,7 @@ export const AgentOptions = [
   { label: "Shortlisted Properties", link: "/agent/shortlisted-properties" },
   { label: "My Plans", link: "/agent/my-plan" },
   { label: "Account & Settings", link: "/agent/account-settings" },
+  { label: "Support", link: "/agent/support" },
   { label: "Logout", link: "/logout" },
 ];
 
@@ -40,10 +42,13 @@ export const AgentOptions = [
 export const BuilderOptions = [
   { label: "Dashboard", link: "/builder" },
   { label: "Leads", link: "/builder/leads" },
-  { label: "My Shortlists", link: "/builder/my-shortlists" },
+  { label: "Roles & Team", link: "/builder/roles" },
+  // { label: "My Shortlists", link: "/builder/my-shortlists" },
   { label: "User Shortlists", link: "/builder/user-shortlists" },
   { label: "My Projects", link: "/builder/my-projects" },
   { label: "Prime Projects", link: "/builder/prime-projects" },
+  { label: "Account & Settings", link: "/builder/account-settings" },
+  { label: "Support", link: "/builder/support" },
   { label: "Logout", link: "/logout" },
 ];
 

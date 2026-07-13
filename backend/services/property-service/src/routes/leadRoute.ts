@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from "multer";
-import { assignLeadController, checkLeadController, createLeadController, createPublicLeadController, downloadLeadsCSVController, getLeadByIdController, getLeadsController, getMyContactedProperties, getProjectLeadsController, importProjectLeadsCSVController, updateLeadStatusController, updateProjectLeadStatusController } from "../controller/leadController"
+import { assignLeadController, checkLeadController, createLeadController, createPublicLeadController, deleteLeadController, deleteProjectLeadsController, downloadLeadsCSVController, getLeadByIdController, getLeadsController, getMyContactedProperties, getProjectLeadsController, importProjectLeadsCSVController, updateLeadStatusController, updateProjectLeadStatusController } from "../controller/leadController"
 import { LeadCreateSchema } from '../zod/leadZod';
 import { validateBody } from '../middlewares/validate';
 import { authMiddleware } from '../middlewares/authMiddleware';
@@ -68,6 +68,14 @@ router.get(
   requireProjectParamAccess("projectId"),
   downloadLeadsCSVController,
 );
+router.delete(
+  "/project/:projectId/leads",
+  authMiddleware,
+  loadBuilderAccess,
+  requireBuilderPermission("lead:delete"),
+  requireProjectParamAccess("projectId"),
+  deleteProjectLeadsController,
+);
 
 
 
@@ -89,6 +97,14 @@ router.patch(
   requireBuilderPermission("lead:update"),
   loadLeadProjectAccess("id"),
   updateLeadStatusController,
+);
+router.delete(
+  '/:id',
+  authMiddleware,
+  loadBuilderAccess,
+  requireBuilderPermission("lead:delete"),
+  loadLeadProjectAccess("id"),
+  deleteLeadController,
 );
 router.get('/', getLeadsController);
 router.get('/:id', getLeadByIdController);

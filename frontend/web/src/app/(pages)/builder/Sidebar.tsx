@@ -30,12 +30,12 @@ const menuItems = [
     link: "/builder/roles",
     icon: FiUsers,
   },
-  {
-    label:"My Shortlists",
-    mobileLabel: "Shortlists",
-    link: "/builder/my-shortlists",
-    icon: FaHeart,
-  },
+  // {
+  //   label:"My Shortlists",
+  //   mobileLabel: "Shortlists",
+  //   link: "/builder/my-shortlists",
+  //   icon: FaHeart,
+  // },
   {
     label: "User Shortlists",
     mobileLabel: "Shortlists",
@@ -55,16 +55,16 @@ const menuItems = [
     icon: FaCrown,
   },
   {
-    label: "Support",
-    mobileLabel: "Support",
-    link: "/builder/support",
-    icon: BiSupport,
-  },
-  {
     label: "Account Settings",
     mobileLabel: "Settings",
     link: "/builder/account-settings",
     icon: FiSettings,
+  },
+  {
+    label: "Support",
+    mobileLabel: "Support",
+    link: "/builder/support",
+    icon: BiSupport,
   },
   {
     label: "Delete Account",

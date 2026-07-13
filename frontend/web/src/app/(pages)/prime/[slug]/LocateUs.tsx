@@ -2,7 +2,7 @@
 
 import { LOCATION_ICON_PATH, LOCATION_ICON_VIEWBOX } from "@/icons/icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { FiCheck } from "react-icons/fi";
 
 type NearbyPlace = {
   name?: string;
@@ -183,24 +183,6 @@ function createMarkerIconDataUrl(colorHex: string, size = 32, useProjectIcon = f
   return `data:image/svg+xml;utf8,${svg}`;
 }
 
-function NearbyPlaceIcon({ color }: { color: string }) {
-  return (
-    <svg viewBox="0 0 32 32" className="h-5 w-5" fill="none" aria-hidden="true">
-      <path
-        d="M16 3.5C10.75 3.5 6.5 7.75 6.5 13c0 6.94 7.39 13.34 8.93 14.59a.9.9 0 0 0 1.14 0C18.11 26.34 25.5 19.94 25.5 13c0-5.25-4.25-9.5-9.5-9.5Z"
-        fill={color}
-      />
-      <path
-        d="M16 5.25c4.28 0 7.75 3.47 7.75 7.75 0 5.37-5.3 10.87-7.75 12.99-2.45-2.12-7.75-7.62-7.75-12.99 0-4.28 3.47-7.75 7.75-7.75Z"
-        fill="#ffffff"
-        fillOpacity="0.18"
-      />
-      <circle cx="16" cy="13" r="4.25" fill="#ffffff" />
-      <circle cx="16" cy="13" r="2.1" fill={color} />
-    </svg>
-  );
-}
-
 function escapeHtml(value: string) {
   return value
     .replaceAll("&", "&amp;")
@@ -262,7 +244,7 @@ function focusMapOn(map: MapplsMapInstance | null, coords: [number, number]) {
 }
 
 export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: explicitLocation, heading: headingProp }: Props) {
-  const { places, location, color, heading } = useMemo(
+  const { places, location, color } = useMemo(
     () => normalizeIncoming(raw, explicitLocation ?? null, primaryColor ?? null, headingProp ?? null),
     [raw, primaryColor, explicitLocation, headingProp]
   );
@@ -270,7 +252,6 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
   const apiKey = process.env.NEXT_PUBLIC_MAPPLS_MAP_SDK_KEY || process.env.NEXT_MAPPLS_MAP_SDK_KEY;
   const mapContainerId = "locate-us-mappls-map";
   const mapRef = useRef<HTMLDivElement | null>(null);
-  const sliderRef = useRef<HTMLUListElement | null>(null);
   const mapInstanceRef = useRef<MapplsMapInstance | null>(null);
   const markersRef = useRef<MarkerRefItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -290,7 +271,16 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
   const withDistance = useMemo(() => {
     return normalizedPlaces.map((item) => {
       const coords = (item as NearbyPlace & { __coordsTuple?: [number, number] }).__coordsTuple;
-      if (!projectCenter || !coords) return { p: item as NearbyPlace, distance: undefined, distanceText: item.distanceText };
+      const savedDistanceText = item.distanceText?.trim();
+
+      if (!projectCenter || !coords) {
+        return { p: item as NearbyPlace, distance: undefined, distanceText: savedDistanceText };
+      }
+
+      if (savedDistanceText) {
+        return { p: item as NearbyPlace, distance: undefined, distanceText: savedDistanceText, coords };
+      }
+
       const meters = haversine(projectCenter, coords);
       const dt = meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${Math.round(meters)} m`;
       return { p: item as NearbyPlace, distance: meters, distanceText: dt, coords };
@@ -323,7 +313,6 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
           throw new Error("Map Container div not found, please check timing of your map div initialization");
         }
 
-        // Clear leftover SDK DOM before creating a fresh map instance.
         mapRef.current.replaceChildren();
 
         mapInstanceRef.current = new mapplsSdk.Map(mapContainerId, {
@@ -368,7 +357,7 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
               icon: createMarkerIconDataUrl(color, 32, false),
               width: 32,
               height: 32,
-              popupHtml: `<div style="font-weight:600">${escapeHtml(item.p.name ?? "Place")}</div><div style="font-size:12px;color:#444;margin-top:4px">${escapeHtml(item.p.type ?? "")} • ${escapeHtml(item.distanceText ?? "")}</div>`,
+              popupHtml: `<div style="font-weight:600">${escapeHtml(item.p.name ?? "Place")}</div><div style="font-size:12px;color:#444;margin-top:4px">${escapeHtml(item.p.type ?? "")} - ${escapeHtml(item.distanceText ?? "")}</div>`,
             });
 
             const markerAny = marker as MapplsMarkerInstance;
@@ -453,65 +442,22 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
     setSelectedIndex(index);
   }
 
-  function scrollSlider(direction: "left" | "right") {
-    if (!sliderRef.current) return;
-
-    const firstCard = sliderRef.current.querySelector("li");
-    if (!firstCard) return;
-
-    const gap = 16;
-    const cardWidth = firstCard.clientWidth + gap;
-
-    sliderRef.current.scrollBy({
-      left: direction === "left" ? -cardWidth : cardWidth,
-      behavior: "smooth",
-    });
-  }
-
-  const isHex = typeof color === "string" && color.startsWith("#");
-
-
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="mb-6 flex items-start justify-between gap-6">
-        <div style={{ color: color, borderLeft: `5px solid ${color}` }}>
+        <div style={{ color, borderLeft: `5px solid ${color}` }}>
           <div className="ml-2">
-            <h1 className="text-[20px] font-bold lg:text-2xl md:text-4xl">
-              {"Near by Places"}
-            </h1>
-            <p className="headingDesc text-xs lg:text-base md:text-lg">
-              Find important locations around your property
-            </p>
+            <h1 className="text-[20px] font-bold lg:text-2xl md:text-4xl">{"Near by Places"}</h1>
+            <p className="headingDesc text-xs lg:text-base md:text-lg">Find important locations around your property</p>
           </div>
         </div>
       </div>
 
       <div className="w-full">
-        <div className="mb-2 flex items-center justify-end gap-1.5 sm:mb-3 sm:gap-2">
-          <button
-            type="button"
-            onClick={() => scrollSlider("left")}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900 cursor-pointer sm:h-9 sm:w-9"
-            aria-label="Previous nearby places"
-          >
-            <FiChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          </button>
+        <div className="sm:p-2">
+          <h2 className="mb-3 text-lg font-semibold text-slate-950">Additional locations</h2>
 
-          <button
-            type="button"
-            onClick={() => scrollSlider("right")}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900 cursor-pointer sm:h-9 sm:w-9"
-            aria-label="Next nearby places"
-          >
-            <FiChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          </button>
-        </div>
-
-        <div className="mb-4 w-full min-w-0 overflow-hidden sm:mb-6">
-          <ul
-            ref={sliderRef}
-            className="flex w-full min-w-0 gap-3 overflow-x-auto scroll-smooth pb-2 sm:gap-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
+          <ul className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-3">
             {withDistance.length === 0 && (
               <li className="text-sm text-slate-500">No nearby places provided.</li>
             )}
@@ -523,29 +469,31 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
                 <li
                   key={`${p.name ?? "place"}-${idx}`}
                   onClick={() => onSelectPlace(idx)}
-                  className={`w-[220px] shrink-0 cursor-pointer rounded-md p-2.5 transition sm:w-[280px] sm:p-3 md:w-[320px] ${active ? "ring-2 ring-offset-2" : "hover:bg-[#eef1f3]"
-                    }`}
+                  className={`cursor-pointer rounded-xl border bg-white px-4 py-3 transition ${
+                    active ? "ring-2 ring-offset-2" : "hover:border-slate-300 hover:shadow-sm"
+                  }`}
                   style={{
-                    backgroundColor: "#f1f4f5",
+                    borderColor: active ? color : "#e2e8f0",
                     boxShadow: active ? `0 6px 20px ${color}22` : undefined,
                   } as React.CSSProperties}
                 >
-                  <div className="flex items-center gap-2.5 sm:gap-3">
-                    <div
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md sm:h-11 sm:w-11"
-                      style={{ background: isHex ? `${color}11` : "#dde9ee" }}
-                    >
-                      <NearbyPlaceIcon color={color} />
-                    </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span
+                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border"
+                        style={{ borderColor: color, color }}
+                      >
+                        <FiCheck className="h-3.5 w-3.5" />
+                      </span>
 
-                    <div className="min-w-0">
-                      <div className="truncate text-[13px] font-semibold text-slate-900 sm:text-[15px]">
+                      <div className="truncate text-[15px] font-semibold text-slate-950">
                         {p.name?.split(",")[0] ?? "Nearby place"}
                       </div>
-                      <div className="mt-0.5 truncate text-[11px] text-slate-500 sm:mt-1 sm:text-xs">
-                        {p.type ?? "Place"} • {distanceText ?? p.distanceText ?? "-"}
-                      </div>
                     </div>
+
+                    <span className="shrink-0 text-base font-semibold text-slate-700">
+                      ({distanceText ?? p.distanceText ?? "-"})
+                    </span>
                   </div>
                 </li>
               );
@@ -555,7 +503,9 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
 
         <div className="rounded-lg overflow-hidden border border-slate-100 shadow-sm">
           {mapError ? (
-            <div className="flex h-[420px] w-full items-center justify-center px-4 text-center text-slate-500 sm:h-[500px] md:h-[560px] lg:h-[520px]">{mapError}</div>
+            <div className="flex h-[420px] w-full items-center justify-center px-4 text-center text-slate-500 sm:h-[500px] md:h-[560px] lg:h-[520px]">
+              {mapError}
+            </div>
           ) : (
             <div id={mapContainerId} ref={mapRef} className="h-[420px] w-full sm:h-[500px] md:h-[560px] lg:h-[420px]" />
           )}

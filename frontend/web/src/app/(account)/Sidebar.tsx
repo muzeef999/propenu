@@ -38,16 +38,16 @@ const menuItems = [
     icon: MdOutlinePhoneInTalk,
   },
   {
-    label: "Support",
-    mobileLabel: "Support",
-    link: "/support",
-    icon: BiSupport,
-  },
-  {
     label: "Membership",
     mobileLabel: "Plans",
     link: "/membership",
     icon: Subscription,
+  },
+  {
+    label: "Support",
+    mobileLabel: "Support",
+    link: "/support",
+    icon: BiSupport,
   },
 ];
 

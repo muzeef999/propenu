@@ -40,16 +40,16 @@ const menuItems = [
     icon: Subscription,
   },
   {
-    label: "Support",
-    mobileLabel: "Support",
-    link: "/agent/support",
-    icon: BiSupport,
-  },
-  {
     label: "Account & Settings",
     mobileLabel: "Account",
     link: "/agent/account-settings",
     icon: RiAccountCircle2Fill,
+  },
+  {
+    label: "Support",
+    mobileLabel: "Support",
+    link: "/agent/support",
+    icon: BiSupport,
   },
   {
     label: "Delete Account",
