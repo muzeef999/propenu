@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { getHighlightProjectBuilders, getMyProperties } from "@/data/ClientData";
 import { ArrowDropdownIcon } from "@/icons/icons";
+import { useAuth } from "@/hooks/useAuth";
 import {
   FiAlertCircle,
   FiClock,
@@ -18,6 +19,7 @@ import {
 } from "react-icons/fi";
 
 type Role = "user" | "builder" | "agent";
+type ViewerRole = Role | "customer_care";
 type Priority = "low" | "medium" | "high" | "urgent";
 type Status =
   | "open"
@@ -144,15 +146,6 @@ const apiUrl = (path: string) => {
   return `${raw.replace(/\/$/, "")}${path}`;
 };
 
-const readUser = () => {
-  if (typeof window === "undefined") return { id: "guest-user", name: "Propenu User", email: "" };
-  return {
-    id: localStorage.getItem("userId") || localStorage.getItem("id") || localStorage.getItem("_id") || "guest-user",
-    name: localStorage.getItem("name") || localStorage.getItem("userName") || "Propenu User",
-    email: localStorage.getItem("email") || "",
-  };
-};
-
 const dateLabel = (value?: string) => {
   if (!value) return "Not set";
   return new Intl.DateTimeFormat("en-IN", {
@@ -212,7 +205,14 @@ const normalizeProjects = (data: any): RelatedItem[] => {
 
 export default function TicketSupportHub({ role }: { role: Role }) {
   const copy = config[role];
-  const user = useMemo(readUser, []);
+  const { user, isLoading: authLoading } = useAuth();
+
+  const currentUser = useMemo(() => {
+    return user || { id: "guest-user", name: "Propenu User", email: "", role: "user" as ViewerRole };
+  }, [user]);
+
+  const isCustomerCareViewer = currentUser.role === "customer_care";
+  const isAgentWorkspace = role === "agent";
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [status, setStatus] = useState("all");
@@ -277,12 +277,14 @@ export default function TicketSupportHub({ role }: { role: Role }) {
   }, [relatedItems, relatedSearch]);
 
   const loadTickets = async () => {
+    if (authLoading) return;
     setLoading(true);
     setError("");
     try {
       const params = new URLSearchParams({ limit: "30", sortBy: "updatedAt" });
-      if (role === "agent") params.set("assignedTo", user.id);
-      else params.set("requesterId", user.id);
+      if (isCustomerCareViewer) params.set("department", "customer-care");
+      else if (isAgentWorkspace) params.set("assignedOrRequested", currentUser.id);
+      else params.set("requesterId", currentUser.id);
       if (status !== "all") params.set("status", status);
       if (search.trim()) params.set("q", search.trim());
 
@@ -300,9 +302,10 @@ export default function TicketSupportHub({ role }: { role: Role }) {
   };
 
   useEffect(() => {
+    if (authLoading) return;
     loadTickets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [role, status]);
+  }, [role, status, authLoading, currentUser.id]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -407,7 +410,7 @@ export default function TicketSupportHub({ role }: { role: Role }) {
         body: JSON.stringify({
           title: form.title,
           description: form.description,
-          requester: { userId: user.id, name: user.name, email: user.email },
+          requester: { userId: currentUser.id, name: currentUser.name, email: currentUser.email },
           category: form.category,
           department: copy.department,
           propertyId: form.relatedId || undefined,
@@ -444,9 +447,9 @@ export default function TicketSupportHub({ role }: { role: Role }) {
           message,
           visibility,
           author: {
-            userId: user.id,
-            name: user.name,
-            role: visibility === "internal" ? "agent" : copy.requesterRole,
+            userId: currentUser.id,
+            name: currentUser.name,
+            role: visibility === "internal" ? currentUser.role : isCustomerCareViewer ? "customer_care" : copy.requesterRole,
           },
         }),
       });
@@ -468,7 +471,10 @@ export default function TicketSupportHub({ role }: { role: Role }) {
       const response = await fetch(apiUrl(`/api/tickets/${selected._id}/status`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: nextStatus, actor: { userId: user.id, name: user.name, role } }),
+        body: JSON.stringify({
+          status: nextStatus,
+          actor: { userId: currentUser.id, name: currentUser.name, role: isCustomerCareViewer ? "customer_care" : role },
+        }),
       });
       if (!response.ok) throw new Error("Status could not be updated");
       await loadTickets();
@@ -918,7 +924,7 @@ export default function TicketSupportHub({ role }: { role: Role }) {
           </div>
         </div>
 
-        <Detail role={role} ticket={selected} reply={reply} note={note} submitting={submitting} setReply={setReply} setNote={setNote} sendComment={sendComment} changeStatus={changeStatus} />
+        <Detail role={role} viewerRole={currentUser.role} ticket={selected} reply={reply} note={note} submitting={submitting} setReply={setReply} setNote={setNote} sendComment={sendComment} changeStatus={changeStatus} />
       </section>
     </div>
   );
@@ -943,8 +949,9 @@ function EmptyText({ text }: { text: string }) {
   return <div className="p-6 text-sm text-gray-500">{text}</div>;
 }
 
-function Detail({ role, ticket, reply, note, submitting, setReply, setNote, sendComment, changeStatus }: {
+function Detail({ role, viewerRole, ticket, reply, note, submitting, setReply, setNote, sendComment, changeStatus }: {
   role: Role;
+  viewerRole: ViewerRole;
   ticket?: Ticket;
   reply: string;
   note: string;
@@ -955,6 +962,7 @@ function Detail({ role, ticket, reply, note, submitting, setReply, setNote, send
   changeStatus: (status: Status) => void;
 }) {
   if (!ticket) return <div className="rounded-[10px] border border-gray-100 bg-white p-6 text-sm text-gray-500 shadow-sm">Select a ticket to see details.</div>;
+  const isSupportOperator = role === "agent" || viewerRole === "customer_care";
   const publicComments = ticket.comments?.filter((item) => item.visibility === "public") ?? [];
   const internalComments = ticket.comments?.filter((item) => item.visibility === "internal") ?? [];
 
@@ -978,7 +986,7 @@ function Detail({ role, ticket, reply, note, submitting, setReply, setNote, send
           <Info label="Property" value={ticket.propertyId || "Not linked"} />
           <Info label="Due" value={dateLabel(ticket.dueAt)} />
         </div>
-        {role === "agent" && (
+        {isSupportOperator && (
           <div className="mt-4 flex flex-wrap gap-2">
             <Action onClick={() => changeStatus("in_progress")} disabled={submitting} label="Start Progress" />
             <Action onClick={() => changeStatus("waiting_for_customer")} disabled={submitting} label="Wait Customer" />
@@ -1005,7 +1013,7 @@ function Detail({ role, ticket, reply, note, submitting, setReply, setNote, send
             <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={3} placeholder="Write a clear update..." className="support-input resize-none" />
             <button onClick={() => sendComment("public")} disabled={submitting || !reply.trim()} className="mt-3 inline-flex items-center gap-2 rounded-md bg-[#27A361] px-4 py-2 text-sm font-semibold text-white hover:bg-[#208650] disabled:opacity-60"><FiSend /> Send Reply</button>
           </div>
-          {role === "agent" && (
+          {isSupportOperator && (
             <div className="mt-4 rounded-lg border border-amber-100 bg-amber-50/40 p-4">
               <label className="text-xs font-semibold text-amber-800">Internal Note</label>
               <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Visible only to support team." className="mt-2 w-full resize-none rounded-md border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400" />

@@ -43,12 +43,20 @@ const requesterActor = (input: CreateTicketInput): TicketActor => {
 
 export class TicketService {
   static createTicket(input: CreateTicketInput) {
+    const requestedDepartment = input.department;
+
     return TicketRepository.create({
       ...input,
+      department: "customer-care",
       priority: input.priority ?? "medium",
       source: input.source ?? "web",
       tags: cleanTags(input.tags),
       attachments: input.attachments ?? [],
+      metadata: {
+        ...(input.metadata ?? {}),
+        requestedDepartment,
+        intakeDepartment: "customer-care",
+      },
       activities: [activity("ticket.created", "Ticket created", requesterActor(input))],
     });
   }

@@ -37,13 +37,13 @@ export function middleware(req: NextRequest) {
     const payload = JSON.parse(
       Buffer.from(token.split(".")[1], "base64").toString()
     );
-    role = payload.roleName; // user | agent | builder
+    role = payload.roleName; // user | agent | builder | customer_care
   } catch {
     return new NextResponse(null, { status: 403 });
   }
 
   // 3. Role rules
-  if (pathname.startsWith("/agent") && role !== "agent") {
+  if (pathname.startsWith("/agent") && role !== "agent" && role !== "customer_care") {
      return new NextResponse(null, { status: 403 });
   }
 

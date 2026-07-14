@@ -78,6 +78,8 @@ export const getTickets = async (req: Request, res: Response) => {
     if (typeof req.query.category === "string") options.category = req.query.category;
     if (typeof req.query.department === "string") options.department = req.query.department;
     if (typeof req.query.assignedTo === "string") options.assignedTo = req.query.assignedTo;
+    if (typeof req.query.assignedRole === "string") options.assignedRole = req.query.assignedRole;
+    if (typeof req.query.assignedOrRequested === "string") options.assignedOrRequested = req.query.assignedOrRequested;
     if (typeof req.query.requesterId === "string") options.requesterId = req.query.requesterId;
     if (typeof req.query.requesterEmail === "string") options.requesterEmail = req.query.requesterEmail;
     if (typeof req.query.propertyId === "string") options.propertyId = req.query.propertyId;

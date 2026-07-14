@@ -55,6 +55,12 @@ function ClientProvidersContent({
       try {
         const data = await me();
         setUser(data);
+        if (data?.user) {
+          localStorage.setItem("role", data.user.roleName || "user");
+          localStorage.setItem("userId", data.user.id || data.user._id || "");
+          localStorage.setItem("name", data.user.name || "");
+          localStorage.setItem("email", data.user.email || "");
+        }
       } catch (e) {
         // ignore
       }

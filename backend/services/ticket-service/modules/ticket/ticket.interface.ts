@@ -92,6 +92,8 @@ export interface TicketListQuery {
   category?: string;
   department?: string;
   assignedTo?: string;
+  assignedRole?: string;
+  assignedOrRequested?: string;
   requesterId?: string;
   requesterEmail?: string;
   propertyId?: string;

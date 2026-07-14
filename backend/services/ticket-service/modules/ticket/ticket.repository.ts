@@ -36,6 +36,13 @@ export class TicketRepository {
     if (query.category) filter.category = query.category;
     if (query.department) filter.department = query.department;
     if (query.assignedTo) filter["assignedTo.userId"] = query.assignedTo;
+    if (query.assignedRole) filter["assignedTo.role"] = query.assignedRole;
+    if (query.assignedOrRequested) {
+      filter.$or = [
+        { "assignedTo.userId": query.assignedOrRequested },
+        { "requester.userId": query.assignedOrRequested }
+      ];
+    }
     if (query.requesterId) filter["requester.userId"] = query.requesterId;
     if (query.requesterEmail) filter["requester.email"] = query.requesterEmail;
     if (query.propertyId) filter.propertyId = query.propertyId;
