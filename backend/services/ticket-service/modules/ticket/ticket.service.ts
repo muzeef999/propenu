@@ -2,6 +2,7 @@ import { closedTicketStatuses } from "./ticket.constants";
 import { TicketRepository } from "./ticket.repository";
 import type {
   CreateTicketInput,
+  CreateRequestCallInput,
   TicketActor,
   TicketAttachment,
   TicketActivity,
@@ -34,7 +35,7 @@ const activity = (
   return item;
 };
 
-const requesterActor = (input: CreateTicketInput): TicketActor => {
+const requesterActor = (input: { requester: CreateTicketInput["requester"] }): TicketActor => {
   const actor: TicketActor = { name: input.requester.name, role: "requester" };
   if (input.requester.userId) actor.userId = input.requester.userId;
   if (input.requester.email) actor.email = input.requester.email;
@@ -58,6 +59,42 @@ export class TicketService {
         intakeDepartment: "customer-care",
       },
       activities: [activity("ticket.created", "Ticket created", requesterActor(input))],
+    });
+  }
+
+  static createRequestCall(input: CreateRequestCallInput) {
+    const scheduledAt = new Date(input.date);
+
+    return TicketRepository.create({
+      title: `Request a Call - ${input.category}`,
+      description: input.subject,
+      requester: input.requester,
+      category: "request_call",
+      priority: "medium",
+      source: input.source ?? "web",
+      tags: cleanTags(["request_call", input.category, input.timeSlot]),
+      metadata: {
+        module: "relationship_manager",
+        requestType: "call_request",
+        requestCategory: input.category,
+        relatedProjectId: input.relatedProjectId,
+        relatedProjectName: input.relatedProjectName,
+        scheduledDate: input.date,
+        timeSlot: input.timeSlot,
+        subject: input.subject,
+        notes: input.notes,
+        relationshipManagerName: input.relationshipManagerName,
+        relationshipManagerId: input.relationshipManagerId,
+      },
+      dueAt: scheduledAt,
+      attachments: [],
+      activities: [
+        activity(
+          "ticket.request_call_created",
+          `Call request created for ${input.timeSlot}`,
+          requesterActor({ requester: input.requester }),
+        ),
+      ],
     });
   }
 

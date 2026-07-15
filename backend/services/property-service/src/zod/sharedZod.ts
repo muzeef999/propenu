@@ -174,6 +174,15 @@ export const BaseCreateSchema = z.object({
     .default("active"),
 
   createdBy: z.string().optional(),
+  relationshipManager: z
+    .object({
+      userId: z.string().optional().nullable(),
+      designation: z.string().optional(),
+      availability: z.string().optional(),
+      responseTime: z.string().optional(),
+    })
+    .optional()
+    .nullable(),
   relationshipManagerId: z.string().optional(),
   updatedBy: z.string().optional(),
   relatedProjects: z.array(z.string()).optional().default([]),

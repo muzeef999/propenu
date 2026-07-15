@@ -97,7 +97,10 @@ export interface TicketListQuery {
   requesterId?: string;
   requesterEmail?: string;
   propertyId?: string;
+  relatedProjectId?: string;
   tag?: string;
+  module?: string;
+  requestType?: string;
   overdue?: boolean;
   createdFrom?: Date;
   createdTo?: Date;
@@ -120,6 +123,20 @@ export interface CreateTicketInput {
   dueAt?: Date;
   attachments?: TicketAttachment[];
   metadata?: Record<string, unknown>;
+}
+
+export interface CreateRequestCallInput {
+  requester: TicketRequester;
+  date: Date;
+  timeSlot: string;
+  category: string;
+  subject: string;
+  relationshipManagerName?: string;
+  relationshipManagerId?: string;
+  notes?: string;
+  relatedProjectId?: string;
+  relatedProjectName?: string;
+  source?: TicketSource;
 }
 
 export type UpdateTicketInput = Partial<

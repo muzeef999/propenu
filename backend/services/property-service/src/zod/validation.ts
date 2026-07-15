@@ -214,6 +214,15 @@ export const CreateFeaturePropertySchema = z.object({
 
   rejectedReason: z.string().optional(),
   createdBy: z.string().optional(),
+  relationshipManager: z
+    .object({
+      userId: z.string().optional().nullable(),
+      designation: z.string().optional(),
+      availability: z.string().optional(),
+      responseTime: z.string().optional(),
+    })
+    .optional()
+    .nullable(),
   relationshipManagerId: z.string().optional(),
   updatedBy: z.string().optional(),
 });
@@ -300,6 +309,15 @@ export const UpdateFeaturePropertySchema = z
       .optional(),
 
     createdBy: z.string().optional(),
+    relationshipManager: z
+      .object({
+        userId: z.string().optional().nullable(),
+        designation: z.string().optional(),
+        availability: z.string().optional(),
+        responseTime: z.string().optional(),
+      })
+      .optional()
+      .nullable(),
     relationshipManagerId: z.string().optional(),
     updatedBy: z.string().optional(),
   })

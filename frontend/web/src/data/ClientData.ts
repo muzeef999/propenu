@@ -1105,3 +1105,111 @@ export const getChatbotResponse = async (message: string) => {
   const res = await axiosInstance.post(`${url}/api/chatbot`, { message });
   return res.data;
 };
+
+export type RequestCallTicketPayload = {
+  requester: {
+    userId?: string;
+    name: string;
+    email?: string;
+    phone?: string;
+  };
+  date: string;
+  timeSlot: string;
+  category: string;
+  subject: string;
+  relationshipManagerName?: string;
+  relationshipManagerId?: string;
+  notes?: string;
+  relatedProjectId?: string;
+  relatedProjectName?: string;
+  source?: "web" | "email" | "phone" | "chat" | "admin";
+};
+
+export const createRequestCallTicket = async (
+  payload: RequestCallTicketPayload,
+) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.post(
+    `${url}/api/tickets/request-call`,
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  return res.data;
+};
+
+export type CreateSupportTicketPayload = {
+  title: string;
+  description: string;
+  requester: {
+    userId?: string;
+    name: string;
+    email?: string;
+    phone?: string;
+  };
+  category?: string;
+  propertyId?: string;
+  priority?: "low" | "medium" | "high" | "urgent";
+  source?: "web" | "email" | "phone" | "chat" | "admin";
+  metadata?: Record<string, unknown>;
+};
+
+export const createSupportTicket = async (
+  payload: CreateSupportTicketPayload,
+) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.post(`${url}/api/tickets`, payload, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.data;
+};
+
+export type GetTicketsParams = {
+  requesterId?: string;
+  category?: string;
+  module?: string;
+  requestType?: string;
+  relatedProjectId?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: "createdAt" | "updatedAt" | "priority" | "dueAt" | "status";
+  sortOrder?: "asc" | "desc";
+};
+
+export const getTickets = async (params: GetTicketsParams = {}) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(`${url}/api/tickets`, {
+    params,
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.data;
+};
+
+export const deleteTicket = async (ticketId: string) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.delete(`${url}/api/tickets/${ticketId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.data;
+};

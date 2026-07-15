@@ -114,6 +114,21 @@ export const NearbyPlaceSchema = new Schema<INearbyPlace>(
   { _id: false },
 );
 
+export const RelationshipManagerAssignmentSchema = new Schema(
+  {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      index: true,
+      default: null,
+    },
+    designation: { type: String, trim: true },
+    availability: { type: String, trim: true },
+    responseTime: { type: String, trim: true },
+  },
+  { _id: false },
+);
+
 
 /* -------------------------
    UNIT / BHK SUB-SCHEMAS
@@ -366,6 +381,10 @@ export const BaseFields = {
     index: true,
     required: true,
   },
+  relationshipManager: {
+    type: RelationshipManagerAssignmentSchema,
+    default: null,
+  },
   relationshipManagerId: {
     type: Schema.Types.ObjectId,
     ref: "User",
@@ -380,6 +399,7 @@ export default {
   AmenitySchema,
   SpecificationSchema,
   NearbyPlaceSchema,
+  RelationshipManagerAssignmentSchema,
   BhkSummarySchema,
   UnitSchema,
   BaseFields,

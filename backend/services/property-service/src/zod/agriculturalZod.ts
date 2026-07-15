@@ -155,6 +155,15 @@ const BaseCreate = z.object({
 
   // status: normalize then validate
   status: preprocessEnumString(["active", "inactive", "archived"]).optional().default("active"),
+  relationshipManager: z
+    .object({
+      userId: z.string().optional().nullable(),
+      designation: z.string().optional(),
+      availability: z.string().optional(),
+      responseTime: z.string().optional(),
+    })
+    .optional()
+    .nullable(),
   relationshipManagerId: z.string().optional(),
 });
 

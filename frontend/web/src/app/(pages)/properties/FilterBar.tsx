@@ -8,7 +8,12 @@ import { useAppSelector } from "@/Redux/store";
 import { selectCityWithLocalities, setCityId } from "@/Redux/slice/citySlice";
 import {
   categoryOption,
+  resetAgriculturalFilters,
+  resetCommercialFilters,
+  resetLandFilters,
+  resetResidentialFilters,
   setAgriculturalFilter,
+  setBudget,
   setCategory,
   setCommercialFilter,
   setLandFilter,
@@ -26,20 +31,13 @@ import LandMobileFilter from "./filters/adaptiveFilterDesign/LandMobileFilter";
 import AgriculturalMobileFilter from "./filters/adaptiveFilterDesign/AgriculturalMobileFilter";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { buildSearchParams } from "./filters/buildSearchParams";
+import { hydrateFiltersFromSearchParams } from "./filters/hydrateFiltersFromSearchParams";
 
 const LAST_PROPERTY_CATEGORY_KEY = "properties:lastCategory";
 
 const FilterBar: React.FC = () => {
   const getCategoryLabel = (value: categoryOption) =>
     value === "Land" ? "Plots" : value;
-
-  const typeToCategory: Record<string, categoryOption> = {
-    residential: "Residential",
-    commercial: "Commercial",
-    land: "Land",
-    plot: "Land",
-    agricultural: "Agricultural",
-  };
 
   const categoryToType: Record<categoryOption, string> = {
     Residential: "residential",
@@ -123,10 +121,12 @@ const FilterBar: React.FC = () => {
   );
 
   useEffect(() => {
-    const type = searchParams.get("type")?.toLowerCase();
+    const hydrated = hydrateFiltersFromSearchParams(
+      new URLSearchParams(searchParams.toString()),
+    );
     let resolvedCategory: categoryOption | null = null;
 
-    if (!type) {
+    if (!hydrated.category) {
       const savedCategory = window.sessionStorage.getItem(
         LAST_PROPERTY_CATEGORY_KEY,
       ) as categoryOption | null;
@@ -136,48 +136,78 @@ const FilterBar: React.FC = () => {
         resolvedCategory = savedCategory;
       }
     } else {
-      const nextCategory = typeToCategory[type];
-      if (nextCategory) {
-        dispatch(setCategory(nextCategory));
-        window.sessionStorage.setItem(LAST_PROPERTY_CATEGORY_KEY, nextCategory);
-        resolvedCategory = nextCategory;
-      }
+      dispatch(setCategory(hydrated.category));
+      window.sessionStorage.setItem(LAST_PROPERTY_CATEGORY_KEY, hydrated.category);
+      resolvedCategory = hydrated.category;
     }
 
-    const listingType = searchParams.get("listingType")?.toLowerCase();
-    if (listingType === "sale" || listingType === "rent" || listingType === "lease") {
+    if (hydrated.listingType) {
       dispatch(
         setListingType({
-          label: listingType === "sale" ? "Buy" : listingType === "rent" ? "Rent" : "Lease",
-          value: listingType,
+          label:
+            hydrated.listingType === "sale"
+              ? "Buy"
+              : hydrated.listingType === "rent"
+                ? "Rent"
+                : "Lease",
+          value: hydrated.listingType,
         }),
       );
     }
 
-    dispatch(setSearchText(searchParams.get("search") ?? ""));
-
-    const localityValues = (searchParams.get("locality") ?? "")
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean);
-    const bedroomsValues = (searchParams.get("bedrooms") ?? "")
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean)
-      .map((value) => (value === "6plus" || value === "6+" ? "6+" : Number(value)))
-      .filter((value) => value === "6+" || Number.isFinite(value)) as Array<number | "6+">;
+    dispatch(setSearchText(hydrated.searchText));
+    dispatch(setBudget({ min: hydrated.minPrice, max: hydrated.maxPrice }));
+    dispatch(resetResidentialFilters());
+    dispatch(resetCommercialFilters());
+    dispatch(resetLandFilters());
+    dispatch(resetAgriculturalFilters());
 
     const activeCategory = resolvedCategory ?? category;
 
     if (activeCategory === "Residential") {
-      dispatch(setResidentialFilter({ key: "locality", value: localityValues }));
-      dispatch(setResidentialFilter({ key: "bedrooms", value: bedroomsValues }));
+      Object.entries(hydrated.residential).forEach(([key, value]) => {
+        if (value !== undefined) {
+          dispatch(
+            setResidentialFilter({
+              key: key as keyof typeof hydrated.residential,
+              value,
+            }),
+          );
+        }
+      });
     } else if (activeCategory === "Commercial") {
-      dispatch(setCommercialFilter({ key: "locality", value: localityValues }));
+      Object.entries(hydrated.commercial).forEach(([key, value]) => {
+        if (value !== undefined) {
+          dispatch(
+            setCommercialFilter({
+              key: key as keyof typeof hydrated.commercial,
+              value,
+            }),
+          );
+        }
+      });
     } else if (activeCategory === "Land") {
-      dispatch(setLandFilter({ key: "locality", value: localityValues[0] ?? "" }));
+      Object.entries(hydrated.land).forEach(([key, value]) => {
+        if (value !== undefined) {
+          dispatch(
+            setLandFilter({
+              key: key as keyof typeof hydrated.land,
+              value,
+            }),
+          );
+        }
+      });
     } else if (activeCategory === "Agricultural") {
-      dispatch(setAgriculturalFilter({ key: "locality", value: localityValues[0] ?? "" }));
+      Object.entries(hydrated.agricultural).forEach(([key, value]) => {
+        if (value !== undefined) {
+          dispatch(
+            setAgriculturalFilter({
+              key: key as keyof typeof hydrated.agricultural,
+              value,
+            }),
+          );
+        }
+      });
     }
 
     const city = (searchParams.get("city") ?? "").trim().toLowerCase();

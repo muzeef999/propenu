@@ -158,6 +158,35 @@ export const validateCreateTicket = (
   return next();
 };
 
+export const validateRequestCall = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  if (!isRecord(req.body)) {
+    return sendValidationErrors(res, ["Request body must be an object"]);
+  }
+
+  const errors: string[] = [];
+
+  validateRequester(req.body.requester, "requester", errors);
+  requiredString(req.body.timeSlot, "timeSlot", errors);
+  requiredString(req.body.category, "category", errors);
+  requiredString(req.body.subject, "subject", errors);
+  optionalString(req.body.relationshipManagerName, "relationshipManagerName", errors);
+  optionalString(req.body.relationshipManagerId, "relationshipManagerId", errors);
+  optionalString(req.body.notes, "notes", errors);
+  validateEnum(req.body.source, "source", ticketSources, errors);
+  normalizeDate(req.body, "date", errors);
+
+  if (!(req.body.date instanceof Date)) {
+    errors.push("date is required");
+  }
+
+  if (errors.length) return sendValidationErrors(res, errors);
+  return next();
+};
+
 export const validateUpdateTicket = (
   req: Request,
   res: Response,
