@@ -51,12 +51,12 @@ const menuItems = [
     link: "/agent/support",
     icon: BiSupport,
   },
-  {
-    label: "Delete Account",
-    mobileLabel: "Delete",
-    link: "/agent/delete-account",
-    icon: RiDeleteBin6Line,
-  },
+  // {
+  //   label: "Delete Account",
+  //   mobileLabel: "Delete",
+  //   link: "/agent/delete-account",
+  //   icon: RiDeleteBin6Line,
+  // },
 ];
 
 const Sidebar = () => {

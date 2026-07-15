@@ -296,6 +296,12 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
       required: true,
       index: true,
     },
+    relationshipManagerId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      index: true,
+      default: null,
+    },
 
     promotion: {
       type: PromotionSchema,

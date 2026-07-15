@@ -151,7 +151,9 @@ const parseCsvRows = (buffer: Buffer) => {
   const headerLine = lines[0];
   if (!headerLine) return [];
 
-  const headers = parseCsvLine(headerLine).map(normalizeCsvHeader);
+  const headers = parseCsvLine(headerLine).map((header) =>
+    header.replace(/^\uFEFF/, "").trim()
+  );
 
   return lines.slice(1).map((line) => {
     const cells = parseCsvLine(line);
@@ -176,14 +178,10 @@ const parseSpreadsheetRows = (buffer: Buffer) => {
   });
 
   return rows.map((row: Record<string, unknown>) =>
-    Object.entries(row).reduce<Record<string, string>>(
-      (normalizedRow, [header, value]) => {
-        normalizedRow[normalizeCsvHeader(header)] =
-          value == null ? "" : String(value).trim();
-        return normalizedRow;
-      },
-      {}
-    )
+    Object.entries(row).reduce<Record<string, string>>((normalizedRow, [header, value]) => {
+      normalizedRow[header.trim()] = value == null ? "" : String(value).trim();
+      return normalizedRow;
+    }, {})
   );
 };
 
@@ -276,10 +274,137 @@ const getCombinedProjectLeads = async (query: any) => {
       .lean(),
   ]);
 
-  return [...publicLeads, ...propertyLeads].sort(
+  const normalizedPublicLeads = publicLeads.map((lead: any) => ({
+    ...lead,
+    source: lead.source ?? "site",
+  }));
+
+  const normalizedPropertyLeads = propertyLeads.map((lead: any) => ({
+    ...lead,
+    source: "direct",
+  }));
+
+  return [...normalizedPublicLeads, ...normalizedPropertyLeads].sort(
     (a: any, b: any) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
+};
+
+const buildProjectLeadsHeader = (leads: any[]) => {
+  const sourceCounts = leads.reduce(
+    (counts, lead: any) => {
+      const source = lead?.source;
+      if (source === "site") counts.site += 1;
+      else if (source === "imported") counts.imported += 1;
+      else counts.direct += 1;
+      return counts;
+    },
+    { site: 0, imported: 0, direct: 0 }
+  );
+
+  let title = "All Leads";
+  let type: "all" | "site" | "imported" | "direct" = "all";
+
+  if (sourceCounts.site > 0 && sourceCounts.imported === 0 && sourceCounts.direct === 0) {
+    title = "Leads From Our Site";
+    type = "site";
+  } else if (sourceCounts.imported > 0 && sourceCounts.site === 0 && sourceCounts.direct === 0) {
+    title = "Imported Leads";
+    type = "imported";
+  } else if (sourceCounts.direct > 0 && sourceCounts.site === 0 && sourceCounts.imported === 0) {
+    title = "Direct Leads";
+    type = "direct";
+  }
+
+  return {
+    title,
+    type,
+    counts: sourceCounts,
+  };
+};
+
+const standardLeadColumns = [
+  { key: "name", label: "Full Name" },
+  { key: "email", label: "Email" },
+  { key: "phone", label: "Phone Number" },
+  { key: "status", label: "Status" },
+  { key: "leadTime", label: "Lead Time" },
+  { key: "purchaseTimeline", label: "Planning To Purchase" },
+  { key: "budgetRange", label: "Budget Range" },
+];
+
+const getColumnKeyFromLabel = (label: string) => {
+  const normalized = normalizeCsvHeader(label);
+
+  switch (normalized) {
+    case "name":
+      return "name";
+    case "phone":
+      return "phone";
+    case "email":
+      return "email";
+    case "status":
+      return "status";
+    case "sourceCreatedAt":
+      return "leadTime";
+    case "purchaseTimeline":
+      return "purchaseTimeline";
+    case "budgetRange":
+      return "budgetRange";
+    case "message":
+      return "message";
+    default:
+      return `extra:${label}`;
+  }
+};
+
+const buildProjectLeadColumns = (leads: any[]) => {
+  const importedColumnLabels: string[] = [];
+  const seenImportedLabels = new Set<string>();
+
+  leads.forEach((lead: any) => {
+    const extraFields = lead?.extraFields ?? {};
+    Object.keys(extraFields).forEach((label) => {
+      if (seenImportedLabels.has(label)) return;
+      seenImportedLabels.add(label);
+      importedColumnLabels.push(label);
+    });
+  });
+
+  const columns: Array<{ key: string; label: string }> = [...standardLeadColumns];
+  const standardKeys = new Set(columns.map((column) => column.key));
+  const importedOnly =
+    leads.length > 0 && leads.every((lead: any) => lead.source === "imported");
+
+  if (importedOnly) {
+    const importedCanonicalKeys = new Set(
+      importedColumnLabels.map((label) => getColumnKeyFromLabel(label))
+    );
+
+    const canonicalColumns = standardLeadColumns.filter((column) =>
+      importedCanonicalKeys.has(column.key)
+    );
+    const canonicalKeys = new Set(canonicalColumns.map((column) => column.key));
+
+    importedColumnLabels.forEach((label) => {
+      const key = getColumnKeyFromLabel(label);
+      if (canonicalKeys.has(key)) return;
+      canonicalColumns.push({ key, label });
+      canonicalKeys.add(key);
+    });
+
+    return canonicalColumns;
+  }
+
+  importedColumnLabels.forEach((label) => {
+    const key = getColumnKeyFromLabel(label);
+    if (standardKeys.has(key)) return;
+
+    columns.push({ key, label });
+    standardKeys.add(key);
+  });
+
+  return columns;
 };
 
 /*** CREATE LEAD */
@@ -511,10 +636,14 @@ export const getProjectLeadsController = async (
 
     const query = getProjectLeadQuery(projectId, from, to);
     const leads = await getCombinedProjectLeads(query);
+    const header = buildProjectLeadsHeader(leads);
+    const columns = buildProjectLeadColumns(leads);
 
     res.json({
       success: true,
       count: leads.length,
+      header,
+      columns,
       data: leads,
     });
 
@@ -695,6 +824,8 @@ export const importProjectLeadsCSVController = async (
       phone: string;
       email?: string;
       message?: string;
+      source: "imported";
+      extraFields: Record<string, string>;
       sourceCreatedAt?: string;
       purchaseTimeline?: string;
       budgetRange?: string;
@@ -718,14 +849,21 @@ export const importProjectLeadsCSVController = async (
     const normalizedRows = rows.flatMap(
       (row: CsvRow, index: number): NormalizedLeadRow[] => {
         const rowNumber = index + 2;
-        const name = row.name?.trim();
-        const phone = row.phone?.trim();
-        const email = row.email?.trim();
-        const message = row.message?.trim();
-        const status = normalizeLeadStatus(row.status) || "new_lead";
-        const sourceCreatedAt = row.sourceCreatedAt?.trim();
-        const purchaseTimeline = row.purchaseTimeline?.trim();
-        const budgetRange = row.budgetRange?.trim();
+        const normalizedRow = Object.entries(row).reduce<Record<string, string>>(
+          (result, [header, value]) => {
+            result[normalizeCsvHeader(header)] = value?.trim() ?? "";
+            return result;
+          },
+          {}
+        );
+        const name = normalizedRow.name?.trim();
+        const phone = normalizedRow.phone?.trim();
+        const email = normalizedRow.email?.trim();
+        const message = normalizedRow.message?.trim();
+        const status = normalizeLeadStatus(normalizedRow.status) || "new_lead";
+        const sourceCreatedAt = normalizedRow.sourceCreatedAt?.trim();
+        const purchaseTimeline = normalizedRow.purchaseTimeline?.trim();
+        const budgetRange = normalizedRow.budgetRange?.trim();
 
         if (!name || name.length < 2) {
           errors.push({ row: rowNumber, message: "Name is required" });
@@ -756,6 +894,8 @@ export const importProjectLeadsCSVController = async (
             phone,
             email: email || "",
             message: message || "",
+            source: "imported",
+            extraFields: row,
             sourceCreatedAt: sourceCreatedAt || "",
             purchaseTimeline: purchaseTimeline || "",
             budgetRange: budgetRange || "",

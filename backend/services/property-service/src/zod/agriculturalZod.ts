@@ -155,6 +155,7 @@ const BaseCreate = z.object({
 
   // status: normalize then validate
   status: preprocessEnumString(["active", "inactive", "archived"]).optional().default("active"),
+  relationshipManagerId: z.string().optional(),
 });
 
 /* ----------------------

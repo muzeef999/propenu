@@ -67,6 +67,21 @@ router.post("/seed-roles", async (_req, res) => {
         ],
       },
       {
+        name: "regional_manager",
+        label: "Regional Manager",
+        permissions: [
+          "project:view",
+          "project:edit",
+          "project:create",
+          "lead:view",
+          "lead:edit",
+          "lead:delete",
+          "lead:assign",
+          "agent:view",
+          "agent:edit",
+        ],
+      },
+      {
         name: "sales_agent",
         label: "Sales Agent",
         permissions: ["project:view", "lead:view", "lead:edit", "lead:delete"],
@@ -100,11 +115,6 @@ router.post("/seed-roles", async (_req, res) => {
         permissions: [],
       },
       {
-        name: "sales_manager",
-        label: "Sales Manager",
-        permissions: ["project:view", "lead:view", "lead:edit", "lead:delete"],
-      },
-      {
         name: "accounts",
         label: "Accounts",
         permissions: ["project:view", "lead:view", "lead:edit"],
@@ -131,6 +141,17 @@ router.post("/seed-roles", async (_req, res) => {
         name: "customer_care",
         label: "Customer Care",
         permissions: ["project:view", "lead:view", "lead:edit"],
+      },
+      {
+        name: "relationship_manager",
+        label: "Relationship Manager",
+        permissions: [
+          "project:view",
+          "lead:view",
+          "lead:edit",
+          "lead:assign",
+          "agent:view",
+        ],
       },
     ];
 

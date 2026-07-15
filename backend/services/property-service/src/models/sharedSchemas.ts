@@ -366,6 +366,12 @@ export const BaseFields = {
     index: true,
     required: true,
   },
+  relationshipManagerId: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+    index: true,
+    default: null,
+  },
   updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
 } as const;
 export default {

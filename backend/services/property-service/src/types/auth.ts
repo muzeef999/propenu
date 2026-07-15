@@ -5,6 +5,7 @@ export type UserRole =
   | "super_admin"
   | "admin"
   | "sales_manager"
+  | "regional_manager"
   | "sales_agent"
   | "accounts"
   | "digital_marketing"

@@ -23,10 +23,12 @@ const ADMIN_CREATE_ROLES = new Set([
   "admin",
   "super_admin",
   "sales_manager",
+  "regional_manager",
   "sales_agent",
   "accounts",
   "digital_marketing",
   "customer_care",
+  "relationship_manager",
 ]);
 const NAME_MAX_LENGTH = 42;
 const COMPANY_NAME_MAX_LENGTH = 80;

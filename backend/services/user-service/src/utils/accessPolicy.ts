@@ -2,6 +2,7 @@ const ADMIN_DASHBOARD_ROLES = new Set([
   "admin",
   "super_admin",
   "sales_manager",
+  "regional_manager",
   "sales_agent",
   "accounts",
   "customer_care",
@@ -10,6 +11,7 @@ const PHONE_OTP_ONLY_LOGIN_ROLES = new Set(["agent", "builder", "user"]);
 const EMAIL_OTP_ONLY_LOGIN_ROLES = new Set([
   "admin",
   "sales_manager",
+  "regional_manager",
   "sales_agent",
   "super_admin",
   "accounts",

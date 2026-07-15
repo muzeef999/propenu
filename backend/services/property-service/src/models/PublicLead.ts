@@ -8,6 +8,8 @@ export interface IPublicLead extends Document {
   phone: string;
   email?: string;
   message?: string;
+  source?: "site" | "imported";
+  extraFields?: Record<string, string>;
   sourceCreatedAt?: Date;
   purchaseTimeline?: string;
   budgetRange?: string;
@@ -27,6 +29,17 @@ const PublicLeadSchema = new Schema<IPublicLead>(
     phone: { type: String, required: true, trim: true },
     email: { type: String, trim: true },
     message: { type: String },
+    source: {
+      type: String,
+      enum: ["site", "imported"],
+      default: "site",
+      index: true,
+    },
+    extraFields: {
+      type: Map,
+      of: String,
+      default: undefined,
+    },
     sourceCreatedAt: { type: Date },
     purchaseTimeline: { type: String, trim: true },
     budgetRange: { type: String, trim: true },

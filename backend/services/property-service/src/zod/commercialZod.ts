@@ -263,6 +263,7 @@ const BaseCreate = z.object({
     .optional()
     .default("active"),
   createdBy: z.string().optional(),
+  relationshipManagerId: z.string().optional(),
   updatedBy: z.string().optional(),
 });
 

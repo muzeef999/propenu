@@ -5,7 +5,7 @@ import { IoIosSearch } from "react-icons/io";
 import { useDispatch } from "react-redux";
 import FilterDropdown from "@/ui/FilterDropdown";
 import { useAppSelector } from "@/Redux/store";
-import { selectCityWithLocalities } from "@/Redux/slice/citySlice";
+import { selectCityWithLocalities, setCityId } from "@/Redux/slice/citySlice";
 import {
   categoryOption,
   setAgriculturalFilter,
@@ -25,6 +25,7 @@ import CommercialMobileFilter from "./filters/adaptiveFilterDesign/CommercialMob
 import LandMobileFilter from "./filters/adaptiveFilterDesign/LandMobileFilter";
 import AgriculturalMobileFilter from "./filters/adaptiveFilterDesign/AgriculturalMobileFilter";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { buildSearchParams } from "./filters/buildSearchParams";
 
 const LAST_PROPERTY_CATEGORY_KEY = "properties:lastCategory";
 
@@ -67,6 +68,7 @@ const FilterBar: React.FC = () => {
   const [showLandAdvanced, setShowLandAdvanced] = useState(false);
   const [showAgriculturalAdvanced, setShowAgriculturalAdvanced] = useState(false);
   const [hasRestoredCategory, setHasRestoredCategory] = useState(false);
+  const [hasHydratedFromUrl, setHasHydratedFromUrl] = useState(false);
 
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -74,8 +76,11 @@ const FilterBar: React.FC = () => {
   const dispatch = useDispatch();
   const {
     listingTypeLabel,
+    listingTypeValue,
     category,
     searchText,
+    minPrice,
+    maxPrice,
     residential,
     commercial,
     land,
@@ -83,9 +88,44 @@ const FilterBar: React.FC = () => {
   } =
     useAppSelector((s) => s.filters);
   const cityData = useAppSelector(selectCityWithLocalities);
+  const locations = useAppSelector((s) => s.city.locations);
+  const urlSearchPayload = useMemo(
+    () => ({
+      ...buildSearchParams({
+        listingTypeLabel,
+        listingTypeValue,
+        category,
+        searchText,
+        minPrice,
+        maxPrice,
+        residential,
+        commercial,
+        land,
+        agricultural,
+      }),
+      city: cityData?.city || undefined,
+      state: cityData?.state || undefined,
+    }),
+    [
+      listingTypeLabel,
+      listingTypeValue,
+      category,
+      searchText,
+      minPrice,
+      maxPrice,
+      residential,
+      commercial,
+      land,
+      agricultural,
+      cityData?.city,
+      cityData?.state,
+    ],
+  );
 
   useEffect(() => {
     const type = searchParams.get("type")?.toLowerCase();
+    let resolvedCategory: categoryOption | null = null;
+
     if (!type) {
       const savedCategory = window.sessionStorage.getItem(
         LAST_PROPERTY_CATEGORY_KEY,
@@ -93,34 +133,90 @@ const FilterBar: React.FC = () => {
 
       if (savedCategory && categoryOptions.includes(savedCategory)) {
         dispatch(setCategory(savedCategory));
+        resolvedCategory = savedCategory;
       }
-
-      setHasRestoredCategory(true);
-      return;
+    } else {
+      const nextCategory = typeToCategory[type];
+      if (nextCategory) {
+        dispatch(setCategory(nextCategory));
+        window.sessionStorage.setItem(LAST_PROPERTY_CATEGORY_KEY, nextCategory);
+        resolvedCategory = nextCategory;
+      }
     }
 
-    const nextCategory = typeToCategory[type];
-    if (nextCategory) {
-      dispatch(setCategory(nextCategory));
-      window.sessionStorage.setItem(LAST_PROPERTY_CATEGORY_KEY, nextCategory);
+    const listingType = searchParams.get("listingType")?.toLowerCase();
+    if (listingType === "sale" || listingType === "rent" || listingType === "lease") {
+      dispatch(
+        setListingType({
+          label: listingType === "sale" ? "Buy" : listingType === "rent" ? "Rent" : "Lease",
+          value: listingType,
+        }),
+      );
+    }
+
+    dispatch(setSearchText(searchParams.get("search") ?? ""));
+
+    const localityValues = (searchParams.get("locality") ?? "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const bedroomsValues = (searchParams.get("bedrooms") ?? "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .map((value) => (value === "6plus" || value === "6+" ? "6+" : Number(value)))
+      .filter((value) => value === "6+" || Number.isFinite(value)) as Array<number | "6+">;
+
+    const activeCategory = resolvedCategory ?? category;
+
+    if (activeCategory === "Residential") {
+      dispatch(setResidentialFilter({ key: "locality", value: localityValues }));
+      dispatch(setResidentialFilter({ key: "bedrooms", value: bedroomsValues }));
+    } else if (activeCategory === "Commercial") {
+      dispatch(setCommercialFilter({ key: "locality", value: localityValues }));
+    } else if (activeCategory === "Land") {
+      dispatch(setLandFilter({ key: "locality", value: localityValues[0] ?? "" }));
+    } else if (activeCategory === "Agricultural") {
+      dispatch(setAgriculturalFilter({ key: "locality", value: localityValues[0] ?? "" }));
+    }
+
+    const city = (searchParams.get("city") ?? "").trim().toLowerCase();
+    const state = (searchParams.get("state") ?? "").trim().toLowerCase();
+    if (city && locations.length > 0) {
+      const matchedCity = locations.find(
+        (item) =>
+          item.city?.trim().toLowerCase() === city &&
+          (!state || item.state?.trim().toLowerCase() === state),
+      );
+
+      if (matchedCity?._id) {
+        dispatch(setCityId(matchedCity._id));
+      }
     }
 
     setHasRestoredCategory(true);
-  }, [searchParams, dispatch]);
+    setHasHydratedFromUrl(true);
+  }, [searchParams, dispatch, locations]);
 
   useEffect(() => {
-    if (!hasRestoredCategory) return;
+    if (!hasRestoredCategory || !hasHydratedFromUrl) return;
 
     window.sessionStorage.setItem(LAST_PROPERTY_CATEGORY_KEY, category);
 
-    const nextType = categoryToType[category];
-    const currentType = searchParams.get("type")?.toLowerCase();
-    if (currentType === nextType) return;
+    const nextParams = new URLSearchParams();
 
-    const nextParams = new URLSearchParams(searchParams.toString());
-    nextParams.set("type", nextType);
-    router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
-  }, [category, hasRestoredCategory, pathname, router, searchParams]);
+    Object.entries(urlSearchPayload).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === "") return;
+      nextParams.set(key, String(value));
+    });
+
+    const nextQuery = nextParams.toString();
+    const currentQuery = searchParams.toString();
+
+    if (nextQuery === currentQuery) return;
+
+    router.replace(`${pathname}?${nextQuery}`, { scroll: false });
+  }, [category, hasRestoredCategory, hasHydratedFromUrl, pathname, router, searchParams, urlSearchPayload]);
 
   useEffect(() => {
     const postedBy = (

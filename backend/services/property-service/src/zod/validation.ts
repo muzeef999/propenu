@@ -214,6 +214,7 @@ export const CreateFeaturePropertySchema = z.object({
 
   rejectedReason: z.string().optional(),
   createdBy: z.string().optional(),
+  relationshipManagerId: z.string().optional(),
   updatedBy: z.string().optional(),
 });
 
@@ -299,6 +300,7 @@ export const UpdateFeaturePropertySchema = z
       .optional(),
 
     createdBy: z.string().optional(),
+    relationshipManagerId: z.string().optional(),
     updatedBy: z.string().optional(),
   })
   .partial();

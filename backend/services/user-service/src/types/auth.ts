@@ -3,6 +3,7 @@ import { JwtPayload } from "jsonwebtoken";
 export type UserRole =
   | "admin"
   | "sales_manager"
+  | "regional_manager"
   | "sales_agent"
   | "accounts"
   | "digital_marketing"

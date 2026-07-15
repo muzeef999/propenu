@@ -50,6 +50,7 @@ const roleFilters = [
   { label: "Agents", value: "agent" },
   { label: "Builders", value: "builder" },
   { label: "Admins", value: "admin" },
+  { label: "Regional managers", value: "regional_manager" },
   { label: "Super admins", value: "super_admin" },
 ];
 

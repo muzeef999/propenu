@@ -66,6 +66,7 @@ export const getOptionsForRole = (roleName?: string) => {
       return BuilderOptions;
     case "admin":
     case "super_admin":
+    case "regional_manager":
       return AdminOptions;
     default:
       return GreetingOptions;

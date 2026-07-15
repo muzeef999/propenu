@@ -30,6 +30,12 @@ const menuItems = [
     link: "/builder/roles",
     icon: FiUsers,
   },
+  {
+    label: "Relationship Manager",
+    mobileLabel: "RM",
+    link: "/builder/relationship-manager",
+    icon: FiUsers,
+  },
   // {
   //   label:"My Shortlists",
   //   mobileLabel: "Shortlists",
@@ -66,12 +72,12 @@ const menuItems = [
     link: "/builder/support",
     icon: BiSupport,
   },
-  {
-    label: "Delete Account",
-    mobileLabel: "Delete",
-    link: "/builder/delete-account",
-    icon: RiDeleteBin6Line,
-  },
+  // {
+  //   label: "Delete Account",
+  //   mobileLabel: "Delete",
+  //   link: "/builder/delete-account",
+  //   icon: RiDeleteBin6Line,
+  // },
 ];
 
 const Sidebar = () => {

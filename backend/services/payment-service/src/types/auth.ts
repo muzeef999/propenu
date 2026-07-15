@@ -1,6 +1,11 @@
 import { JwtPayload } from "jsonwebtoken";
 
-export type UserRole = "admin" | "sales_manager" | "sales_agent" | "user";
+export type UserRole =
+  | "admin"
+  | "sales_manager"
+  | "regional_manager"
+  | "sales_agent"
+  | "user";
 
 export interface JwtUserPayload extends JwtPayload {
    _id: string;
@@ -9,6 +14,13 @@ export interface JwtUserPayload extends JwtPayload {
   name: string;
   phone?: string;
   roleId?: string | undefined; 
-  roleName: "buyer" | "builder" | "agent" | "user" | "admin" | "super_admin";
+  roleName:
+    | "buyer"
+    | "builder"
+    | "agent"
+    | "user"
+    | "admin"
+    | "super_admin"
+    | "regional_manager";
   permissions: string[];
 }

@@ -236,6 +236,7 @@ export interface IFeaturedProject {
     | "rejected";
 
   createdBy?: Types.ObjectId | string;
+  relationshipManagerId?: Types.ObjectId | string | null;
   postedBy?: IPostedBy;
   lastUpdatedBy?: ILastUpdatedBy;
   updateCount?: number;

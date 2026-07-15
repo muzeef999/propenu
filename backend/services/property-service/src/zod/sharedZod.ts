@@ -174,6 +174,7 @@ export const BaseCreateSchema = z.object({
     .default("active"),
 
   createdBy: z.string().optional(),
+  relationshipManagerId: z.string().optional(),
   updatedBy: z.string().optional(),
   relatedProjects: z.array(z.string()).optional().default([]),
 });

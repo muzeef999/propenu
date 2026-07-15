@@ -62,7 +62,8 @@ export function middleware(req: NextRequest) {
   if (
     pathname.startsWith("/admin") &&
     role !== "admin" &&
-    role !== "super_admin"
+    role !== "super_admin" &&
+    role !== "regional_manager"
   ) {
       return new NextResponse(null, { status: 403 });
   }

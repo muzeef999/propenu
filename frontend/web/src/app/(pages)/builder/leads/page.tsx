@@ -19,6 +19,7 @@ import {
   FiChevronRight,
   FiCheck,
   FiDownloadCloud,
+  FiSearch,
   FiUploadCloud,
 } from "react-icons/fi";
 
@@ -60,6 +61,8 @@ interface Lead {
   name: string;
   phone: string;
   email?: string;
+  source?: "site" | "imported" | "direct";
+  extraFields?: Record<string, string>;
   sourceCreatedAt?: string;
   purchaseTimeline?: string;
   budgetRange?: string;
@@ -67,7 +70,22 @@ interface Lead {
   createdAt: string;
 }
 
+interface LeadColumn {
+  key: string;
+  label: string;
+}
+
 interface LeadsResponse {
+  header?: {
+    title: string;
+    type: "all" | "site" | "imported" | "direct";
+    counts: {
+      site: number;
+      imported: number;
+      direct: number;
+    };
+  };
+  columns?: LeadColumn[];
   data: Lead[];
 }
 
@@ -172,8 +190,47 @@ const formatLeadDate = (value?: string) => {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString("en-IN");
+  return date.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+  });
 };
+
+const formatLeadTime = (value?: string) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
+const LeadTimestamp = ({ value }: { value?: string }) => {
+  if (!value) {
+    return <span className="text-sm font-medium text-[#6B7280]">—</span>;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return <span className="text-sm font-medium text-[#6B7280]">—</span>;
+  }
+
+  return (
+    <div className="flex flex-col leading-tight">
+      <span className="text-sm font-medium text-[#374151]">
+        {formatLeadDate(value)}
+      </span>
+      <span className="mt-1 text-xs font-medium uppercase tracking-wide text-[#9CA3AF]">
+        {formatLeadTime(value)}
+      </span>
+    </div>
+  );
+};
+
+const getLeadDateTimeValue = (lead: Lead) => lead.sourceCreatedAt || lead.createdAt;
 
 const getDisplayValue = (value?: string) => value?.trim() || "—";
 const getLeadTimestamp = (lead: Lead) => {
@@ -181,6 +238,81 @@ const getLeadTimestamp = (lead: Lead) => {
   const time = value ? new Date(value).getTime() : 0;
   return Number.isNaN(time) ? 0 : time;
 };
+
+const getColumnDisplayValue = (lead: Lead, column: LeadColumn) => {
+  switch (column.key) {
+    case "name":
+      return getDisplayValue(lead.name);
+    case "phone":
+      return getDisplayValue(lead.phone);
+    case "email":
+      return getDisplayValue(lead.email);
+    case "purchaseTimeline":
+      return getDisplayValue(lead.purchaseTimeline);
+    case "budgetRange":
+      return getDisplayValue(lead.budgetRange);
+    case "message":
+      return getDisplayValue(lead.extraFields?.Remarks || lead.extraFields?.Message);
+    case "status":
+      return formatStatus(lead.status);
+    default:
+      if (column.key.startsWith("extra:")) {
+        const label = column.key.slice("extra:".length);
+        return getDisplayValue(lead.extraFields?.[label]);
+      }
+      return "—";
+  }
+};
+
+const getDesktopColumnMinWidth = (column: LeadColumn) => {
+  switch (column.key) {
+    case "name":
+      return 160;
+    case "email":
+      return 190;
+    case "phone":
+      return 145;
+    case "status":
+      return 145;
+    case "leadTime":
+      return 135;
+    case "purchaseTimeline":
+      return 180;
+    case "budgetRange":
+      return 145;
+    default:
+      return column.label.length > 14 ? 155 : 125;
+  }
+};
+
+const getDesktopColumnMaxWidth = (column: LeadColumn) => {
+  switch (column.key) {
+    case "name":
+      return 200;
+    case "email":
+      return 220;
+    case "phone":
+      return 170;
+    case "status":
+      return 165;
+    case "leadTime":
+      return 150;
+    case "purchaseTimeline":
+      return 200;
+    case "budgetRange":
+      return 155;
+    default:
+      return column.label.length > 14 ? 180 : 145;
+  }
+};
+
+const getDesktopGridTemplate = (columns: LeadColumn[]) =>
+  columns
+    .map(
+      (column) =>
+        `minmax(${getDesktopColumnMinWidth(column)}px, ${getDesktopColumnMaxWidth(column)}px)`
+    )
+    .join(" ");
 
 const StatusSelect = ({
   lead,
@@ -327,6 +459,7 @@ export default function BuilderLeadsPage(): JSX.Element {
     null,
   );
   const [activeStatus, setActiveStatus] = useState<LeadStatus>("All");
+  const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -397,10 +530,49 @@ export default function BuilderLeadsPage(): JSX.Element {
         ? leads
         : leads.filter((lead) => normalizeLeadStatus(lead.status) === activeStatus);
 
-    return [...matchingLeads].sort(
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const searchedLeads = normalizedSearch
+      ? matchingLeads.filter((lead) => {
+          const searchableValues = [
+            lead.name,
+            lead.phone,
+            lead.email,
+            formatStatus(lead.status),
+            lead.purchaseTimeline,
+            lead.budgetRange,
+            ...(lead.extraFields ? Object.values(lead.extraFields) : []),
+          ];
+
+          return searchableValues.some((value) =>
+            String(value ?? "").toLowerCase().includes(normalizedSearch)
+          );
+        })
+      : matchingLeads;
+
+    return [...searchedLeads].sort(
       (a, b) => getLeadTimestamp(b) - getLeadTimestamp(a),
     );
-  }, [leadsData, activeStatus]);
+  }, [leadsData, activeStatus, searchTerm]);
+
+  const leadCountsByStatus = useMemo(() => {
+    const leads = leadsData?.data ?? [];
+    const counts: Record<LeadStatus, number> = {
+      All: leads.length,
+      new_lead: 0,
+      interested: 0,
+      not_interested: 0,
+      follow_up: 0,
+      site_visit: 0,
+      sale: 0,
+    };
+
+    leads.forEach((lead) => {
+      const normalizedStatus = normalizeLeadStatus(lead.status);
+      counts[normalizedStatus] += 1;
+    });
+
+    return counts;
+  }, [leadsData]);
 
   const totalPages = Math.max(1, Math.ceil(filteredLeads.length / pageSize));
 
@@ -411,7 +583,7 @@ export default function BuilderLeadsPage(): JSX.Element {
 
   useEffect(() => {
     setPage(1);
-  }, [selectedPropertyId, activeStatus, fromDate, toDate]);
+  }, [selectedPropertyId, activeStatus, fromDate, toDate, searchTerm]);
 
   useEffect(() => {
     if (page > totalPages) {
@@ -425,6 +597,7 @@ export default function BuilderLeadsPage(): JSX.Element {
     setFromDate(null);
     setToDate(null);
     setActiveStatus("All");
+    setSearchTerm("");
   };
 
   const handleDownloadCSV = () => {
@@ -467,7 +640,9 @@ export default function BuilderLeadsPage(): JSX.Element {
     <div className="space-y-5 sm:space-y-6">
       {/* HEADER */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1">My Leads</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1">
+          {leadsData?.header?.title || "My Leads"}
+        </h1>
         <p className="text-sm sm:text-base text-gray-600">
           View enquiries received on your properties
         </p>
@@ -493,7 +668,10 @@ export default function BuilderLeadsPage(): JSX.Element {
                         : "bg-[#E7E9E8] text-[#4B5563] hover:bg-[#DDE1DE]"
                     }`}
                 >
-                  {status === "All" ? status : formatStatus(status as LeadStatusValue)}
+                  {status === "All" ? status : formatStatus(status as LeadStatusValue)}{" "}
+                  <span className="font-semibold">
+                    ({leadCountsByStatus[status as LeadStatus] ?? 0})
+                  </span>
                 </button>
               );
             })}
@@ -505,6 +683,17 @@ export default function BuilderLeadsPage(): JSX.Element {
 
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2">
+            <div className="relative w-full sm:w-[230px]">
+              <FiSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search leads"
+                className="h-9 w-full rounded-md border border-[#DCE1DD] bg-white pl-9 pr-3 text-sm text-[#374151] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#16A34A] focus:ring-2 focus:ring-[#DCFCE7]"
+              />
+            </div>
+
             <div className="relative w-full sm:w-auto">
               <DatePicker
                 selected={fromDate}
@@ -563,7 +752,7 @@ export default function BuilderLeadsPage(): JSX.Element {
           </div>
 
           <span className="text-sm text-[#6B7280]">
-            {filteredLeads.length} Responses
+            Total Leads: {filteredLeads.length}
           </span>
         </div>
       </div>
@@ -621,6 +810,7 @@ export default function BuilderLeadsPage(): JSX.Element {
           ) : filteredLeads.length ? (
             <div className="space-y-3">
               <LeadsTable
+                columns={leadsData?.columns ?? []}
                 leads={paginatedLeads}
                 updateStatusMutation={updateStatusMutation}
               />
@@ -740,12 +930,27 @@ function Pagination({
 /* ================= TABLE ================= */
 
 function LeadsTable({
+  columns,
   leads,
   updateStatusMutation,
 }: {
+  columns: LeadColumn[];
   leads: Lead[];
   updateStatusMutation: any;
 }) {
+  const visibleColumns = columns.length
+    ? columns
+    : [
+        { key: "name", label: "Full Name" },
+        { key: "phone", label: "Phone Number" },
+        { key: "email", label: "Email" },
+        { key: "leadTime", label: "Lead Time" },
+        { key: "purchaseTimeline", label: "Planning To Purchase" },
+        { key: "budgetRange", label: "Budget Range" },
+        { key: "status", label: "Status" },
+      ];
+  const desktopGridTemplate = getDesktopGridTemplate(visibleColumns);
+
   return (
     <>
       {/* Mobile Cards */}
@@ -765,19 +970,17 @@ function LeadsTable({
                   {getDisplayValue(lead.email)}
                 </p>
               </div>
-              <span className="whitespace-nowrap text-xs font-medium text-[#6B7280]">
-                {formatLeadDate(lead.sourceCreatedAt || lead.createdAt)}
-              </span>
+              <LeadTimestamp value={getLeadDateTimeValue(lead)} />
             </div>
             <div className="mt-3 grid grid-cols-1 gap-2 text-sm text-[#4B5563]">
-              <p>
-                <span className="font-medium text-[#111827]">Purchase: </span>
-                {getDisplayValue(lead.purchaseTimeline)}
-              </p>
-              <p>
-                <span className="font-medium text-[#111827]">Budget: </span>
-                {getDisplayValue(lead.budgetRange)}
-              </p>
+              {visibleColumns
+                .filter((column) => !["name", "phone", "email", "leadTime", "status"].includes(column.key))
+                .map((column) => (
+                  <p key={`${lead._id}-${column.key}`}>
+                    <span className="font-medium text-[#111827]">{column.label}: </span>
+                    {getColumnDisplayValue(lead, column)}
+                  </p>
+                ))}
             </div>
             <div className="mt-3">
               <StatusSelect
@@ -792,55 +995,48 @@ function LeadsTable({
 
       {/* Desktop Table */}
       <div className="hidden overflow-x-auto rounded-lg border border-[#E5E7EB] bg-white shadow-sm md:block">
-        <div className="grid min-w-[1080px] grid-cols-[minmax(150px,1.1fr)_minmax(130px,0.9fr)_minmax(180px,1.2fr)_minmax(120px,0.8fr)_minmax(170px,1fr)_minmax(140px,0.9fr)_150px] items-center border-b border-[#E5E7EB] bg-[#F9FAFB] px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-[#6B7280]">
-          <span className="pl-1">Full Name</span>
-          <span>Phone Number</span>
-          <span>Email</span>
-          <span>Lead Time</span>
-          <span>Planning To Purchase</span>
-          <span>Budget Range</span>
-          <span>Status</span>
+        <div
+          className="grid min-w-max items-center gap-x-2 border-b border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#6B7280]"
+          style={{ gridTemplateColumns: desktopGridTemplate }}
+        >
+          {visibleColumns.map((column) => (
+            <span
+              key={column.key}
+              className="truncate pl-1 leading-4"
+              title={column.label}
+            >
+              {column.label}
+            </span>
+          ))}
         </div>
 
         {leads.map((lead, index) => (
           <div
             key={lead._id}
-            className={`grid min-w-[1080px] grid-cols-[minmax(150px,1.1fr)_minmax(130px,0.9fr)_minmax(180px,1.2fr)_minmax(120px,0.8fr)_minmax(170px,1fr)_minmax(140px,0.9fr)_150px] items-center border-b border-[#EEF2F0] px-5 py-3.5 text-sm transition last:border-b-0 hover:bg-[#F7FBF8] ${
+            className={`grid min-w-max items-center gap-x-2 border-b border-[#EEF2F0] px-3 py-2.5 text-sm transition last:border-b-0 hover:bg-[#F7FBF8] ${
               index % 2 === 0 ? "bg-white" : "bg-[#FCFDFD]"
             }`}
+            style={{ gridTemplateColumns: desktopGridTemplate }}
           >
-            <div className="min-w-0 pr-4">
-              <p className="truncate pl-1 font-semibold text-[#111827]">
-                {lead.name}
-              </p>
-            </div>
-
-            <div className="min-w-0 truncate pr-4 text-sm font-medium text-[#374151]">
-              {lead.phone}
-            </div>
-
-            <div className="min-w-0 truncate pr-4 text-sm font-medium text-[#374151]">
-              {getDisplayValue(lead.email)}
-            </div>
-
-            <div className="min-w-0 text-sm font-medium text-[#6B7280]">
-              {formatLeadDate(lead.sourceCreatedAt || lead.createdAt)}
-            </div>
-
-            <div className="min-w-0 truncate pr-4 text-sm font-medium text-[#374151]">
-              {getDisplayValue(lead.purchaseTimeline)}
-            </div>
-
-            <div className="min-w-0 truncate pr-4 text-sm font-medium text-[#374151]">
-              {getDisplayValue(lead.budgetRange)}
-            </div>
-
-            <div className="min-w-0">
-              <StatusSelect
-                lead={lead}
-                updateStatusMutation={updateStatusMutation}
-              />
-            </div>
+            {visibleColumns.map((column) => (
+              <div key={`${lead._id}-${column.key}`} className="min-w-0 pr-1">
+                {column.key === "leadTime" ? (
+                  <LeadTimestamp value={getLeadDateTimeValue(lead)} />
+                ) : column.key === "status" ? (
+                  <StatusSelect
+                    lead={lead}
+                    updateStatusMutation={updateStatusMutation}
+                  />
+                ) : (
+                  <p
+                    className="truncate pl-1 text-sm font-medium text-[#374151]"
+                    title={String(getColumnDisplayValue(lead, column))}
+                  >
+                    {getColumnDisplayValue(lead, column)}
+                  </p>
+                )}
+              </div>
+            ))}
           </div>
         ))}
       </div>

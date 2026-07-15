@@ -151,6 +151,7 @@ const BaseResidentialCreate = z.object({
     .optional()
     .default("active"),
   createdBy: z.string().optional(),
+  relationshipManagerId: z.string().optional(),
   updatedBy: z.string().optional(),
 });
 
@@ -345,6 +346,7 @@ export const ResidentialUpdateSchema = z
       .enum(["draft", "pending", "active", "inactive", "archived"])
       .optional(),
     createdBy: z.string().optional(),
+    relationshipManagerId: z.string().optional(),
     updatedBy: z.string().optional(),
   })
   .partial();
