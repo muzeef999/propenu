@@ -259,27 +259,7 @@ export default async function Page({ params }: PageProps) {
               />
             </div>
 
-            {articleContext.length > 0 && (
-              <div className="mt-5 border-b border-gray-200 pb-5">
-                <h2 className="text-lg font-semibold text-gray-950">
-                  Article Context
-                </h2>
-
-                <ul className="mt-3 space-y-2">
-                  {articleContext.map((item, index) => (
-                    <li key={`${item.id}-${index}`}>
-                      <a
-                        href={`#${item.id}`}
-                        className="group flex items-start gap-2 text-sm leading-6 text-gray-500 transition hover:text-[#26ad5f] focus:outline-none focus-visible:text-[#26ad5f]"
-                      >
-                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gray-400 transition group-hover:bg-[#26ad5f]" />
-                        <span>{item.heading}</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+  
 
             <div className="mt-6">
               {blog.excerpt && (
@@ -422,6 +402,31 @@ export default async function Page({ params }: PageProps) {
                 Post Property
               </Link>
             </div>
+
+            
+            {articleContext.length > 0 && (
+              <div className="mt-5 border-b border-gray-200 pb-5">
+                <h2 className="text-lg font-semibold text-gray-950">
+                  Article Context
+                </h2>
+
+                <ul className="mt-3 space-y-2">
+                  {articleContext.map((item, index) => (
+                    <li key={`${item.id}-${index}`}>
+                      <a
+                        href={`#${item.id}`}
+                        className="group flex items-start gap-2 text-sm leading-6 text-gray-500 transition hover:text-[#26ad5f] focus:outline-none focus-visible:text-[#26ad5f]"
+                      >
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gray-400 transition group-hover:bg-[#26ad5f]" />
+                        <span>{item.heading}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+
 
             {popularArticles.length > 0 && (
               <div className="border-t border-gray-200 pt-5">

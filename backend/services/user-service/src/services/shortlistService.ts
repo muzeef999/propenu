@@ -179,9 +179,20 @@ export const getBuilderAnalytics = async (
   range: string = "30d",
   state?: string,
   city?: string,
+  fromDateInput?: string,
+  toDateInput?: string,
 ) => {
   const builderObjectId = new mongoose.Types.ObjectId(builderId);
-  const fromDate = getBuilderFromDate(range);
+  const isCustomRange =
+    range === "custom" && typeof fromDateInput === "string" && typeof toDateInput === "string";
+  const fromDate = isCustomRange ? new Date(fromDateInput) : getBuilderFromDate(range);
+  const toDate = isCustomRange ? new Date(toDateInput) : null;
+
+  if (isCustomRange && toDate) {
+    fromDate.setHours(0, 0, 0, 0);
+    toDate.setHours(23, 59, 59, 999);
+  }
+
   const match = { createdBy: builderObjectId };
   const normalizedState = state?.trim();
   const normalizedCity = city?.trim();
@@ -189,12 +200,23 @@ export const getBuilderAnalytics = async (
     ...(normalizedState ? { state: normalizedState } : {}),
     ...(normalizedCity ? { city: normalizedCity } : {}),
   };
-  const rangeMatch = { ...match, ...locationMatch, createdAt: { $gte: fromDate } };
+  const createdAtFilter =
+    isCustomRange && toDate ? { $gte: fromDate, $lte: toDate } : { $gte: fromDate };
+  const rangeMatch = { ...match, ...locationMatch, createdAt: createdAtFilter };
   const portfolioMatch = { ...match, ...locationMatch };
   const featuredPortfolioMatch = { ...portfolioMatch, isFeatured: true };
 
-  const labels = Array.from({ length: range === "1d" ? 24 : range === "7d" ? 7 : 30 }, (_, index) => {
-    if (range === "1d") {
+  const useHourlyTrend = range === "1d" && !isCustomRange;
+  const labelLength = isCustomRange && toDate
+    ? Math.max(1, Math.floor((toDate.getTime() - fromDate.getTime()) / 86400000) + 1)
+    : range === "1d"
+      ? 24
+      : range === "7d"
+        ? 7
+        : 30;
+
+  const labels = Array.from({ length: labelLength }, (_, index) => {
+    if (useHourlyTrend) {
       const date = new Date(fromDate.getTime() + index * 60 * 60 * 1000);
       return {
         key: `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}-${date.getHours()}`,
@@ -218,7 +240,7 @@ export const getBuilderAnalytics = async (
   ) => {
     const countMap = new Map<string, number>(
       rows.map((row) => {
-        if (range === "1d") {
+        if (useHourlyTrend) {
           return [
             `${row._id.year}-${row._id.month}-${row._id.day}-${row._id.hour}`,
             row.count,
@@ -335,7 +357,7 @@ export const getBuilderAnalytics = async (
       },
     ]),
     Shortlist.aggregate([
-      { $match: { propertyType: "FeaturedProject", createdAt: { $gte: fromDate } } },
+      { $match: { propertyType: "FeaturedProject", createdAt: createdAtFilter } },
       {
         $lookup: {
           from: "featuredprojects",
@@ -350,7 +372,7 @@ export const getBuilderAnalytics = async (
     ]),
     Promise.all([
       Lead.aggregate([
-        { $match: { createdAt: { $gte: fromDate } } },
+        { $match: { createdAt: createdAtFilter } },
         {
           $lookup: {
             from: "featuredprojects",
@@ -365,7 +387,7 @@ export const getBuilderAnalytics = async (
       ]),
       publicLeadsCollection
         .aggregate([
-          { $match: { createdAt: { $gte: fromDate } } },
+          { $match: { createdAt: createdAtFilter } },
           {
             $lookup: {
               from: "featuredprojects",
@@ -385,7 +407,7 @@ export const getBuilderAnalytics = async (
       {
         $group: {
           _id:
-            range === "1d"
+            useHourlyTrend
               ? {
                   year: { $year: "$createdAt" },
                   month: { $month: "$createdAt" },
@@ -403,7 +425,7 @@ export const getBuilderAnalytics = async (
       { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1, "_id.hour": 1 } },
     ]),
     Shortlist.aggregate([
-      { $match: { propertyType: "FeaturedProject", createdAt: { $gte: fromDate } } },
+      { $match: { propertyType: "FeaturedProject", createdAt: createdAtFilter } },
       {
         $lookup: {
           from: "featuredprojects",
@@ -417,7 +439,7 @@ export const getBuilderAnalytics = async (
       {
         $group: {
           _id:
-            range === "1d"
+            useHourlyTrend
               ? {
                   year: { $year: "$createdAt" },
                   month: { $month: "$createdAt" },
@@ -436,7 +458,7 @@ export const getBuilderAnalytics = async (
     ]),
     Promise.all([
       Lead.aggregate([
-        { $match: { createdAt: { $gte: fromDate } } },
+        { $match: { createdAt: createdAtFilter } },
         {
           $lookup: {
             from: "featuredprojects",
@@ -450,7 +472,7 @@ export const getBuilderAnalytics = async (
         {
           $group: {
             _id:
-              range === "1d"
+              useHourlyTrend
                 ? {
                     year: { $year: "$createdAt" },
                     month: { $month: "$createdAt" },
@@ -469,7 +491,7 @@ export const getBuilderAnalytics = async (
       ]),
       publicLeadsCollection
         .aggregate([
-          { $match: { createdAt: { $gte: fromDate } } },
+          { $match: { createdAt: createdAtFilter } },
           {
             $lookup: {
               from: "featuredprojects",
@@ -483,7 +505,7 @@ export const getBuilderAnalytics = async (
           {
             $group: {
               _id:
-                range === "1d"
+                useHourlyTrend
                   ? {
                       year: { $year: "$createdAt" },
                       month: { $month: "$createdAt" },

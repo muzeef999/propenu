@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getBuilderDashboards } from "@/data/ClientData";
 import { useQuery } from "@tanstack/react-query";
 import KpiCard from "../agent/ui/KpiCard";
@@ -8,7 +8,7 @@ import Dropdownui from "@/ui/DropDownUI";
 import { HiHome, HiTrendingUp } from "react-icons/hi";
 import { HiBuildingOffice2, HiCheckCircle } from "react-icons/hi2";
 import { MdOutlineStar } from "react-icons/md";
-import { FiEye, FiImage, FiMapPin, FiUsers, FiTarget, FiMousePointer } from "react-icons/fi";
+import { FiCalendar, FiChevronDown, FiEye, FiImage, FiMapPin, FiUsers, FiTarget, FiMousePointer } from "react-icons/fi";
 import {
   Bar,
   BarChart,
@@ -128,10 +128,12 @@ const DATE_RANGE_OPTIONS = [
   { label: "Today", value: "1d" },
   { label: "This Week", value: "7d" },
   { label: "This Month", value: "30d" },
+  { label: "Custom Date", value: "custom" },
 ];
 const ALL_STATES_VALUE = "__all_states__";
 const ALL_CITIES_VALUE = "__all_cities__";
 const PROJECT_IMAGE_FALLBACK = "/images/placeholder.svg";
+const MOMENTUM_PAGE_SIZE = 5;
 
 const formatNumber = (value?: number | null) => {
   const normalized = typeof value === "number" && Number.isFinite(value) ? value : 0;
@@ -183,27 +185,38 @@ const StatusCard = ({
   </div>
 );
 
+const getDateRangeLabel = (value: string) =>
+  DATE_RANGE_OPTIONS.find((option) => option.value === value)?.label || "Select range";
+
 const Dashboard = () => {
   const [dateRange, setDateRange] = useState("30d");
+  const [customFromDate, setCustomFromDate] = useState("");
+  const [customToDate, setCustomToDate] = useState("");
   const [selectedState, setSelectedState] = useState(ALL_STATES_VALUE);
   const [selectedCity, setSelectedCity] = useState(ALL_CITIES_VALUE);
+  const [momentumPage, setMomentumPage] = useState(1);
+  const [dateRangeOpen, setDateRangeOpen] = useState(false);
+  const dateRangeRef = useRef<HTMLDivElement | null>(null);
   const { data, error, isLoading, isError } = useQuery<BuilderDashboardResponse | null>({
-    queryKey: ["builder-dashboard", dateRange, selectedState, selectedCity],
+    queryKey: [
+      "builder-dashboard",
+      dateRange,
+      customFromDate,
+      customToDate,
+      selectedState,
+      selectedCity,
+    ],
     queryFn: () =>
       getBuilderDashboards(dateRange, {
         state: selectedState !== ALL_STATES_VALUE ? selectedState : undefined,
         city: selectedCity !== ALL_CITIES_VALUE ? selectedCity : undefined,
+        fromDate: dateRange === "custom" ? customFromDate || undefined : undefined,
+        toDate: dateRange === "custom" ? customToDate || undefined : undefined,
       }),
+    enabled:
+      dateRange !== "custom" || Boolean(customFromDate && customToDate),
     staleTime: 1000 * 60 * 5,
   });
-
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center text-gray-500">
-        Loading dashboard...
-      </div>
-    );
-  }
 
   const summary = data?.builderSummary;
   const statusSummary = data?.statusSummary ?? { active: 0, inactive: 0, archived: 0 };
@@ -272,6 +285,15 @@ const Dashboard = () => {
       };
     }) ?? [];
 
+  const momentumPageCount = Math.max(
+    1,
+    Math.ceil(topViewedProjects.length / MOMENTUM_PAGE_SIZE),
+  );
+  const paginatedTopViewedProjects = topViewedProjects.slice(
+    (momentumPage - 1) * MOMENTUM_PAGE_SIZE,
+    momentumPage * MOMENTUM_PAGE_SIZE,
+  );
+
   const totalClicks = topViewedProjects.reduce((sum, item) => sum + item.clicks, 0);
 
   const topCity = cityChartData[0];
@@ -339,8 +361,39 @@ const Dashboard = () => {
     setSelectedCity(ALL_CITIES_VALUE);
   };
 
+  const handleDateRangeChange = (value: string) => {
+    setDateRange(value);
+    setDateRangeOpen(value === "custom");
+    if (value !== "custom") {
+      setCustomFromDate("");
+      setCustomToDate("");
+    }
+  };
+
+  const handleMomentumPageChange = (page: number) => {
+    setMomentumPage(page);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (dateRangeRef.current && !dateRangeRef.current.contains(target)) {
+        setDateRangeOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <div className="mx-auto w-full">
+      {isLoading ? (
+        <div className="flex h-64 items-center justify-center text-gray-500">
+          Loading dashboard...
+        </div>
+      ) : (
+        <>
       {isError && error && (
         <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           Unable to load builder dashboard data: {(error as Error).message}
@@ -352,88 +405,92 @@ const Dashboard = () => {
         </div>
       )}
       <div className="mb-6 sm:mb-8">
-        <div className="min-w-0">
-          <h1 className="mb-1 text-xl font-semibold text-gray-900 sm:text-2xl">
-            Builder Analytics Dashboard
-          </h1>
-          <p className="text-sm text-gray-600 sm:text-base">
-            Monitor project reach, engagement signals, and portfolio health across your builder inventory.
-          </p>
-          <div className="mt-5 grid w-full gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] xl:items-start">
-            <div className="overflow-hidden rounded-3xl border border-sky-100 bg-linear-to-br from-sky-50 via-white to-emerald-50 shadow-[0_12px_32px_rgba(14,165,233,0.08)]">
-              <div className="border-b border-white/70 px-5 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700/80">
-                  Market Snapshot
-                </p>
-              </div>
-              <div className="grid gap-4 px-5 py-4 sm:grid-cols-3">
-                <div className="rounded-2xl bg-white/75 p-3 shadow-sm ring-1 ring-white/70">
-                  <div className="mb-2 flex items-center gap-2 text-sky-700">
-                    <FiMapPin size={15} />
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">
-                      Primary City
-                    </p>
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div className="min-w-0">
+            <h1 className="mb-1 text-xl font-semibold text-gray-900 sm:text-2xl">
+              Builder Analytics Dashboard
+            </h1>
+            <p className="text-sm text-gray-600 sm:text-base">
+              Monitor project reach, engagement signals, and portfolio health across your builder inventory.
+            </p>
+          </div>
+
+          <div className="w-full rounded-md p-2  xl:max-w-60">
+            <div ref={dateRangeRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setDateRangeOpen((current) => !current)}
+                className="flex h-[42px] w-full items-center justify-between rounded-[14px] border border-[#d8ebe0] px-3 text-left shadow-sm transition hover:border-[#bde2ca] focus:outline-none focus:ring-4 focus:ring-[#22c06f]/10"
+              >
+                <div>
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#5e8b70]">
+                    Date Range
+                  </p>
+                  <p className="mt-0.5 text-[14px] font-semibold leading-none text-[#163322]">
+                    {getDateRangeLabel(dateRange)}
+                  </p>
+                </div>
+                <FiChevronDown
+                  className={`h-4 w-4 text-[#1f7a4d] transition ${dateRangeOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {dateRangeOpen ? (
+                <div className="absolute right-0 top-[48px] z-20 w-full overflow-hidden rounded-[16px] border border-[#d8ebe0] bg-white p-2 shadow-[0_18px_40px_rgba(22,51,34,0.14)]">
+                  <div className="grid grid-cols-1 gap-2">
+                    {DATE_RANGE_OPTIONS.map((option) => {
+                      const active = dateRange === option.value;
+
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => handleDateRangeChange(option.value)}
+                          className={`rounded-[12px] border px-2.5 py-2 text-left transition ${
+                            active
+                              ? "border-[#22c06f] bg-[#ebfff3] text-[#166534]"
+                              : "border-[#e3efe8] bg-[#fbfefc] text-[#355846] hover:border-[#cfe5d8] hover:bg-[#f3fbf6]"
+                          }`}
+                        >
+                          <p className="text-[12px] font-semibold leading-tight">{option.label}</p>
+                        </button>
+                      );
+                    })}
                   </div>
-                  <p className="text-lg font-semibold text-gray-900">{topCity?.city ?? "No data"}</p>
-                </div>
 
-                <div className="rounded-2xl bg-white/75 p-3 shadow-sm ring-1 ring-white/70">
-                  <div className="mb-2 flex items-center gap-2 text-emerald-700">
-                    <HiBuildingOffice2 size={15} />
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">
-                      Primary State
-                    </p>
-                  </div>
-                  <p className="text-lg font-semibold text-gray-900">{topState?.state ?? "No data"}</p>
-                </div>
+                  {dateRange === "custom" ? (
+                    <div className="mt-2.5 grid gap-2 sm:grid-cols-2">
+                      <label className="relative block">
+                        <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#5e8b70]">
+                          From
+                        </span>
+                        <input
+                          type="date"
+                          max={customToDate || undefined}
+                          value={customFromDate}
+                          onChange={(event) => setCustomFromDate(event.target.value)}
+                          className="h-[38px] w-full rounded-[12px] border border-[#d8ebe0] bg-[#f9fffc] px-2.5 pr-8 text-[12px] font-semibold text-[#163322] outline-none transition focus:border-[#22c06f] focus:ring-4 focus:ring-[#22c06f]/10"
+                        />
+                        <FiCalendar className="pointer-events-none absolute right-2.5 top-[calc(50%+9px)] h-3.5 w-3.5 -translate-y-1/2 text-[#1f7a4d]" />
+                      </label>
 
-                <div className="rounded-2xl bg-white/75 p-3 shadow-sm ring-1 ring-white/70">
-                  <div className="mb-2 flex items-center gap-2 text-rose-600">
-                    <FiTarget size={15} />
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">
-                      Total Leads
-                    </p>
-                  </div>
-                  <p className="text-lg font-semibold text-gray-900">{formatNumber(totalLeads)}</p>
+                      <label className="relative block">
+                        <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#5e8b70]">
+                          To
+                        </span>
+                        <input
+                          type="date"
+                          min={customFromDate || undefined}
+                          value={customToDate}
+                          onChange={(event) => setCustomToDate(event.target.value)}
+                          className="h-[38px] w-full rounded-[12px] border border-[#d8ebe0] bg-[#f9fffc] px-2.5 pr-8 text-[12px] font-semibold text-[#163322] outline-none transition focus:border-[#22c06f] focus:ring-4 focus:ring-[#22c06f]/10"
+                        />
+                        <FiCalendar className="pointer-events-none absolute right-2.5 top-[calc(50%+9px)] h-3.5 w-3.5 -translate-y-1/2 text-[#1f7a4d]" />
+                      </label>
+                    </div>
+                  ) : null}
                 </div>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-gray-200 bg-white/95 p-4 shadow-[0_10px_28px_rgba(15,23,42,0.06)]">
-              <div className="mb-3">
-                <p className="text-sm font-semibold text-gray-900">Filter Insights</p>
-                <p className="text-xs text-gray-500">Narrow analytics by market and time range.</p>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="w-full">
-                  <Dropdownui
-                    label="State"
-                    value={selectedState}
-                    onChange={handleStateChange}
-                    placeholder="Select state"
-                    options={stateOptions}
-                  />
-                </div>
-                <div className="w-full">
-                  <Dropdownui
-                    label="City"
-                    value={selectedCity}
-                    onChange={setSelectedCity}
-                    placeholder="Select city"
-                    options={cityOptions}
-                  />
-                </div>
-                <div className="w-full">
-                  <Dropdownui
-                    label="Range"
-                    value={dateRange}
-                    onChange={setDateRange}
-                    placeholder="Select range"
-                    options={DATE_RANGE_OPTIONS}
-                  />
-                </div>
-              </div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -455,7 +512,7 @@ const Dashboard = () => {
           iconBgColor="#DFF4E8"
         />
         <KpiCard
-          title="Featured Projects"
+          title="Top selling Projects"
           value={formatNumber(featuredProjects)}
           icon={<MdOutlineStar size={22} className="text-amber-600" />}
           bgColor="#FFF7ED"
@@ -484,138 +541,6 @@ const Dashboard = () => {
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-3">
-        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Portfolio Snapshot</h2>
-              <p className="text-sm text-gray-500">
-                Builder overview for the selected date range.
-              </p>
-            </div>
-            <span className="rounded-full bg-blue-50 p-2 text-blue-600">
-              <HiBuildingOffice2 size={18} />
-            </span>
-          </div>
-
-          <div className="space-y-4">
-            <div className="rounded-xl bg-gray-50 p-4">
-              <p className="text-sm text-gray-500">Featured Coverage</p>
-              <div className="mt-2 flex items-end justify-between gap-3">
-                <p className="text-2xl font-semibold text-gray-900">{featuredShare}%</p>
-                <p className="text-sm text-gray-500">
-                  {formatNumber(featuredProjects)} of {formatNumber(totalProjects)} projects
-                </p>
-              </div>
-              <div className="mt-3 h-2 rounded-full bg-gray-200">
-                <div
-                  className="h-2 rounded-full bg-amber-400"
-                  style={{ width: `${Math.min(featuredShare, 100)}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-1">
-              <div className="rounded-xl border border-gray-100 p-4">
-                <div className="mb-2 flex items-center gap-2 text-gray-500">
-                  <FiMapPin size={15} />
-                  <p className="text-sm">Primary Market</p>
-                </div>
-                <p className="text-base font-semibold text-gray-900">{primaryMarket}</p>
-                <p className="mt-1 text-sm text-gray-500">
-                  {topCity
-                    ? `${formatNumber(topCity.listings)} project${topCity.listings === 1 ? "" : "s"} in the top city`
-                    : "No location analytics available"}
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-gray-100 p-4">
-                <div className="mb-2 flex items-center gap-2 text-gray-500">
-                  <HiTrendingUp size={15} />
-                  <p className="text-sm">Visibility Leader</p>
-                </div>
-                <p className="line-clamp-1 text-base font-semibold text-gray-900">
-                  {leadingProject?.title ?? "No data"}
-                </p>
-                <p className="mt-1 text-sm text-gray-500">
-                  {leadingProject
-                    ? hasViewData
-                      ? `${formatNumber(leadingProject.views)} views in ${leadingProject.city}`
-                      : `Listed in ${leadingProject.city} with no recorded views yet`
-                    : "No project visibility data available"}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              <StatusCard label="Active" value={statusSummary.active} color={STATUS_COLORS.active} />
-              <StatusCard label="Inactive" value={statusSummary.inactive} color={STATUS_COLORS.inactive} />
-              <StatusCard label="Archived" value={statusSummary.archived} color={STATUS_COLORS.archived} />
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6 xl:col-span-2">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Engagement Trend</h2>
-            <p className="text-sm text-gray-500">
-              Compare project creation, shortlist activity, and lead generation across the selected range.
-            </p>
-          </div>
-
-          <div className="h-80">
-            {hasTrendData ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <XAxis dataKey="label" tickLine={false} axisLine={false} />
-                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="projects" stroke="#2563EB" strokeWidth={3} dot={false} name="Projects" />
-                  <Line type="monotone" dataKey="shortlists" stroke="#0EA5E9" strokeWidth={3} dot={false} name="Shortlists" />
-                  <Line type="monotone" dataKey="leads" stroke="#F43F5E" strokeWidth={3} dot={false} name="Leads" />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <EmptyChartState message="No trend activity is available for this date range yet." />
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-8 grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-3">
-        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6 xl:col-span-2">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Projects by City</h2>
-            <p className="text-sm text-gray-500">
-              Geographic concentration of your builder inventory.
-            </p>
-          </div>
-
-          <div className="h-80">
-            {cityChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={cityChartData} barSize={42}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                  <XAxis dataKey="city" tickLine={false} axisLine={false} />
-                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
-                  <Tooltip cursor={{ fill: "#F9FAFB" }} />
-                  <Bar dataKey="listings" radius={[8, 8, 0, 0]}>
-                    {cityChartData.map((entry, index) => (
-                      <Cell
-                        key={`${entry.city}-${index}`}
-                        fill={CITY_BAR_COLORS[index % CITY_BAR_COLORS.length]}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <EmptyChartState message="No city distribution data is available for this builder yet." />
-            )}
-          </div>
-        </div>
-
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Engagement Mix</h2>
@@ -679,9 +604,70 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+    
+
+        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6 xl:col-span-2">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Engagement Trend</h2>
+            <p className="text-sm text-gray-500">
+              Compare project creation, shortlist activity, and lead generation across the selected range.
+            </p>
+          </div>
+
+          <div className="h-80">
+            {hasTrendData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis dataKey="label" tickLine={false} axisLine={false} />
+                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="projects" stroke="#2563EB" strokeWidth={3} dot={false} name="Projects" />
+                  <Line type="monotone" dataKey="shortlists" stroke="#0EA5E9" strokeWidth={3} dot={false} name="Shortlists" />
+                  <Line type="monotone" dataKey="leads" stroke="#F43F5E" strokeWidth={3} dot={false} name="Leads" />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyChartState message="No trend activity is available for this date range yet." />
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-2">
+        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Projects by City</h2>
+            <p className="text-sm text-gray-500">
+              Geographic concentration of your builder inventory.
+            </p>
+          </div>
+
+          <div className="h-80">
+            {cityChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={cityChartData} barSize={42}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                  <XAxis dataKey="city" tickLine={false} axisLine={false} />
+                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
+                  <Tooltip cursor={{ fill: "#F9FAFB" }} />
+                  <Bar dataKey="listings" radius={[8, 8, 0, 0]}>
+                    {cityChartData.map((entry, index) => (
+                      <Cell
+                        key={`${entry.city}-${index}`}
+                        fill={CITY_BAR_COLORS[index % CITY_BAR_COLORS.length]}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyChartState message="No city distribution data is available for this builder yet." />
+            )}
+          </div>
+        </div>
+
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Projects by State</h2>
@@ -712,7 +698,6 @@ const Dashboard = () => {
             )}
           </div>
         </div>
-
       </div>
 
       <div className="mt-8 rounded-xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
@@ -724,8 +709,8 @@ const Dashboard = () => {
         </div>
 
         {topViewedProjects.length > 0 ? (
-          <div className="overflow-hidden rounded-2xl border border-gray-100">
-            <div className="hidden grid-cols-[minmax(0,2.7fr)_0.8fr_0.9fr_0.8fr_0.8fr_1fr] gap-4 border-b border-gray-100 bg-slate-50 px-5 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-gray-500 md:grid">
+          <div className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-[0_12px_28px_rgba(15,23,42,0.05)]">
+            <div className="hidden grid-cols-[minmax(0,3fr)_0.65fr_0.8fr_0.7fr_0.7fr_0.85fr] gap-3 border-b border-slate-200 bg-linear-to-r from-slate-50 to-white px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 md:grid">
               <p>Project</p>
               <p className="text-center">Leads</p>
               <p className="text-center">Shortlists</p>
@@ -734,18 +719,18 @@ const Dashboard = () => {
               <p className="text-center">Status</p>
             </div>
 
-            <div className="divide-y divide-gray-100">
-              {topViewedProjects.map((item, index) => (
+            <div className="divide-y divide-slate-100">
+              {paginatedTopViewedProjects.map((item, index) => (
                 <div
                   key={item._id}
-                  className="grid gap-4 px-4 py-4 md:grid-cols-[minmax(0,2.7fr)_0.8fr_0.9fr_0.8fr_0.8fr_1fr] md:items-center md:px-5"
+                  className="grid gap-2.5 px-3 py-3 transition hover:bg-slate-50/60 md:grid-cols-[minmax(0,3fr)_0.6fr_0.75fr_0.65fr_0.65fr_0.8fr] md:items-center md:px-4"
                 >
-                  <div className="flex min-w-0 items-start gap-3">
+                  <div className="flex min-w-0 items-start gap-2.5">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700 ring-1 ring-slate-200">
-                      {index + 1}
+                      {(momentumPage - 1) * MOMENTUM_PAGE_SIZE + index + 1}
                     </div>
 
-                    <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-linear-to-br from-slate-50 via-white to-emerald-50 shadow-sm">
+                    <div className="relative h-[72px] w-[88px] shrink-0 overflow-hidden rounded-[18px] border border-slate-200 bg-linear-to-br from-slate-50 via-white to-emerald-50 shadow-sm">
                       {item.image !== PROJECT_IMAGE_FALLBACK ? (
                         <img
                           src={item.image}
@@ -774,23 +759,20 @@ const Dashboard = () => {
                       </div>
                     </div>
 
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="line-clamp-1 text-base font-semibold text-slate-900">{item.title}</h3>
-                        {hasViewData && (
-                          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-100">
-                            {item.viewShare}% share
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-1 text-sm text-slate-500">
+                    <div className="min-w-0 space-y-1">
+                      <h3 className="line-clamp-1 text-sm font-semibold text-slate-950">
+                        {item.title}
+                      </h3>
+                      {hasViewData && (
+                        <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-100">
+                          {item.viewShare}% share
+                        </span>
+                      )}
+                      <p className="text-[13px] text-slate-500">
                         {[item.city, item.state].filter(Boolean).join(", ") || "Unknown location"}
                       </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-                          Rank #{index + 1}
-                        </span>
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
                           {hasViewData ? `${formatNumber(item.views)} views` : "No recorded views"}
                         </span>
                       </div>
@@ -800,28 +782,28 @@ const Dashboard = () => {
                   <div className="grid grid-cols-2 gap-3 md:contents">
                     <div className="rounded-xl bg-rose-50 px-3 py-2 text-center md:rounded-none md:bg-transparent md:px-0 md:py-0">
                       <p className="text-[11px] uppercase tracking-[0.12em] text-gray-500 md:hidden">Leads</p>
-                      <p className="font-semibold text-gray-900">{formatNumber(item.inquiries)}</p>
+                      <p className="text-[15px] font-semibold text-slate-900">{formatNumber(item.inquiries)}</p>
                     </div>
 
                     <div className="rounded-xl bg-sky-50 px-3 py-2 text-center md:rounded-none md:bg-transparent md:px-0 md:py-0">
                       <p className="text-[11px] uppercase tracking-[0.12em] text-gray-500 md:hidden">Shortlists</p>
-                      <p className="font-semibold text-gray-900">{formatNumber(item.shortlists)}</p>
+                      <p className="text-[15px] font-semibold text-slate-900">{formatNumber(item.shortlists)}</p>
                     </div>
 
                     <div className="rounded-xl bg-fuchsia-50 px-3 py-2 text-center md:rounded-none md:bg-transparent md:px-0 md:py-0">
                       <p className="text-[11px] uppercase tracking-[0.12em] text-gray-500 md:hidden">Clicks</p>
-                      <p className="font-semibold text-gray-900">{formatNumber(item.clicks)}</p>
+                      <p className="text-[15px] font-semibold text-slate-900">{formatNumber(item.clicks)}</p>
                     </div>
 
                     <div className="rounded-xl bg-emerald-50 px-3 py-2 text-center md:rounded-none md:bg-transparent md:px-0 md:py-0">
                       <p className="text-[11px] uppercase tracking-[0.12em] text-gray-500 md:hidden">Views</p>
-                      <p className="font-semibold text-gray-900">{formatNumber(item.views)}</p>
+                      <p className="text-[15px] font-semibold text-slate-900">{formatNumber(item.views)}</p>
                     </div>
 
                     <div className="col-span-2 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 md:col-span-1 md:justify-center md:rounded-none md:bg-transparent md:px-0 md:py-0">
                       <p className="text-[11px] uppercase tracking-[0.12em] text-gray-500 md:hidden">Status</p>
                       <span
-                        className="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
+                        className="inline-flex min-w-[84px] justify-center rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize"
                         style={{
                           backgroundColor:
                             item.status === "active"
@@ -844,11 +826,40 @@ const Dashboard = () => {
                 </div>
               ))}
             </div>
+            {momentumPageCount > 1 ? (
+              <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/70 px-4 py-3">
+                <p className="text-xs font-medium text-slate-500">
+                  Showing {(momentumPage - 1) * MOMENTUM_PAGE_SIZE + 1}-
+                  {Math.min(momentumPage * MOMENTUM_PAGE_SIZE, topViewedProjects.length)} of {topViewedProjects.length}
+                </p>
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: momentumPageCount }, (_, index) => {
+                    const page = index + 1;
+                    return (
+                      <button
+                        key={page}
+                        type="button"
+                        onClick={() => handleMomentumPageChange(page)}
+                        className={`flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-xs font-semibold transition ${
+                          momentumPage === page
+                            ? "bg-slate-900 text-white"
+                            : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : (
           <EmptyChartState message="No project momentum data is available for this date range yet." />
         )}
       </div>
+        </>
+      )}
     </div>
   );
 };

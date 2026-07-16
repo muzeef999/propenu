@@ -8,6 +8,7 @@ import {
   createSupportTicket,
   createRequestCallTicket,
   deleteTicket,
+  getFeaturedProjectsDashboard,
   getTickets,
   getHighlightProjectBuilders,
   me,
@@ -20,7 +21,6 @@ import {
   FiEdit2,
   FiFileText,
   FiPaperclip,
-  FiSearch,
   FiShield,
   FiTrash2,
   FiX,
@@ -83,7 +83,6 @@ const TIME_SLOTS = [
   "06:00 PM",
 ];
 
-const GENERAL_SUPPORT_ID = "general-support";
 const GENERAL_SUPPORT_NAME = "General support ticket";
 const DEFAULT_MANAGER_NAME = "Relationship Manager";
 const DEFAULT_MANAGER_ROLE = "Relationship Manager";
@@ -105,12 +104,6 @@ const getProjectId = (project: BuilderProject) =>
 
 const getProjectName = (project: BuilderProject) =>
   project.title || project.projectName || project.name || "Untitled Project";
-
-const getProjectMeta = (project: BuilderProject) => {
-  const category = project.categoryType || project.propertyType || "project";
-  const city = project.city || project.locality || "Hyderabad";
-  return `${category.toLowerCase()} • ${city}`;
-};
 
 const getRelationshipManager = (project?: BuilderProject | null) => {
   if (project?.relationshipManagerId) {
@@ -170,11 +163,6 @@ const page = () => {
     (typeof REQUEST_CATEGORIES)[number]
   >("Verification");
   const [categoryOpen, setCategoryOpen] = useState(false);
-  const [projectOpen, setProjectOpen] = useState(false);
-  const [projectSearch, setProjectSearch] = useState("");
-  const [selectedProjectId, setSelectedProjectId] = useState(GENERAL_SUPPORT_ID);
-  const [selectedProjectName, setSelectedProjectName] =
-    useState(GENERAL_SUPPORT_NAME);
   const [selectedDate, setSelectedDate] = useState("");
   const [subject, setSubject] = useState("");
 
@@ -187,7 +175,17 @@ const page = () => {
 
   const projectsQuery = useQuery({
     queryKey: ["highlight-projects-builder"],
-    queryFn: getHighlightProjectBuilders,
+    queryFn: async () => {
+      const [regularProjects, primeProjects] = await Promise.all([
+        getHighlightProjectBuilders(),
+        getFeaturedProjectsDashboard(),
+      ]);
+
+      return {
+        regularProjects,
+        primeProjects,
+      };
+    },
   });
 
   const ticketsQuery = useQuery({
@@ -211,9 +209,28 @@ const page = () => {
 
   const projects = useMemo<BuilderProject[]>(() => {
     const data = projectsQuery.data;
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.data)) return data.data;
-    return [];
+    const regularProjects = Array.isArray(data?.regularProjects)
+      ? data.regularProjects
+      : Array.isArray(data?.regularProjects?.data)
+        ? data.regularProjects.data
+        : [];
+
+    const primeProjects = Array.isArray(data?.primeProjects)
+      ? data.primeProjects
+      : Array.isArray(data?.primeProjects?.data)
+        ? data.primeProjects.data
+        : [];
+
+    const uniqueProjects = new Map<string, BuilderProject>();
+
+    [...primeProjects, ...regularProjects].forEach((project) => {
+      const projectId = getProjectId(project);
+      if (projectId) {
+        uniqueProjects.set(projectId, project);
+      }
+    });
+
+    return Array.from(uniqueProjects.values());
   }, [projectsQuery.data]);
 
   const hasProjects = projects.length > 0;
@@ -237,13 +254,6 @@ const page = () => {
     [activeProject],
   );
 
-  useEffect(() => {
-    if (activeProject) {
-      setSelectedProjectId(getProjectId(activeProject));
-      setSelectedProjectName(getProjectName(activeProject));
-    }
-  }, [activeProject]);
-
   const hasAssignedManager = Boolean(activeRelationshipManager);
 
   const managerName = activeRelationshipManager?.name || DEFAULT_MANAGER_NAME;
@@ -258,26 +268,6 @@ const page = () => {
     activeRelationshipManager?.profileImage ||
     activeRelationshipManager?.avatar ||
     "/images/UserPlaceholder.webp";
-
-  const filteredProjects = useMemo(() => {
-    const normalized = projectSearch.trim().toLowerCase();
-    if (!normalized) return projects;
-
-    return projects.filter((project) => {
-      const haystack = [
-        getProjectName(project),
-        project.city,
-        project.locality,
-        project.categoryType,
-        project.propertyType,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return haystack.includes(normalized);
-    });
-  }, [projectSearch, projects]);
 
   const ticketRows = useMemo<TicketRow[]>(() => {
     const data = ticketsQuery.data?.data;
@@ -310,10 +300,6 @@ const page = () => {
       setSelectedTime("12:00 PM");
       setSelectedCategory("Verification");
       setCategoryOpen(false);
-      setProjectOpen(false);
-      setProjectSearch("");
-      setSelectedProjectId(GENERAL_SUPPORT_ID);
-      setSelectedProjectName(GENERAL_SUPPORT_NAME);
       setSelectedDate("");
       setSubject("");
     },
@@ -412,16 +398,13 @@ const page = () => {
       relationshipManagerName: managerName,
       relationshipManagerId:
         activeRelationshipManager?._id || activeRelationshipManager?.id,
-      relatedProjectId:
-        selectedProjectId === GENERAL_SUPPORT_ID ? undefined : selectedProjectId,
-      relatedProjectName:
-        selectedProjectId === GENERAL_SUPPORT_ID
-          ? undefined
-          : selectedProjectName,
-      notes:
-        selectedProjectId === GENERAL_SUPPORT_ID
-          ? "General support ticket"
-          : `Related project: ${selectedProjectName}`,
+      relatedProjectId: selectedDisplayProjectId || undefined,
+      relatedProjectName: activeProject
+        ? getProjectName(activeProject)
+        : undefined,
+      notes: activeProject
+        ? `Related project: ${getProjectName(activeProject)}`
+        : "General support ticket",
       source: "web",
     });
   };
@@ -453,6 +436,17 @@ const page = () => {
         email: requester.email || undefined,
         phone: requester.phone || undefined,
       },
+      assignedTo:
+        activeRelationshipManager?._id || activeRelationshipManager?.id
+          ? {
+              userId:
+                activeRelationshipManager?._id ||
+                activeRelationshipManager?.id,
+              name: managerName,
+              email: activeRelationshipManager?.email || undefined,
+              role: "relationship_manager",
+            }
+          : undefined,
       category: selectedTicketCategory,
       propertyId: selectedDisplayProjectId || undefined,
       priority: selectedTicketPriority.toLowerCase() as
@@ -467,6 +461,8 @@ const page = () => {
         relatedProjectId: selectedDisplayProjectId || undefined,
         relatedProjectName: activeProject ? getProjectName(activeProject) : undefined,
         selectedManagerName: managerName,
+        selectedManagerId:
+          activeRelationshipManager?._id || activeRelationshipManager?.id,
         attachmentName: ticketAttachmentName || undefined,
       },
     });
@@ -492,7 +488,7 @@ const page = () => {
       ) : (
       <div className="space-y-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-600">
               Dedicated Support
             </p>
@@ -505,9 +501,7 @@ const page = () => {
             </p>
           </div>
 
-        </div>
-
-          <div className="w-full lg:max-w-[320px]">
+          <div className="w-full lg:max-w-[320px] lg:self-start">
             <label className="block">
               <span className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
                 Select Project
@@ -533,6 +527,8 @@ const page = () => {
               </div>
             </label>
           </div>
+        </div>
+
         <section className="rounded-md bg-[#f4fffb] p-4 sm:p-5">
           {hasAssignedManager ? (
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -1023,7 +1019,6 @@ const page = () => {
           onClick={() => {
             setIsRequestCallOpen(false);
             setCategoryOpen(false);
-            setProjectOpen(false);
           }}
         >
           <div
@@ -1059,18 +1054,19 @@ const page = () => {
               <div className="rounded-xl bg-white p-4">
                 <div className="space-y-3">
                   <label className="block">
-                    <span className="text-sm font-medium text-gray-800">
+                    <span className="text-[15px] font-semibold text-[#0f172a]">
                       Select Date
                     </span>
                     <div className="relative mt-2">
+                      <FiCalendar className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748b]" />
                       <input
                         type="date"
                         value={selectedDate}
                         min={new Date().toISOString().split("T")[0]}
                         onChange={(event) => setSelectedDate(event.target.value)}
-                        className="h-10 w-full rounded-lg border border-gray-200 px-3.5 pr-10 text-sm text-gray-700 outline-none focus:border-[#22c06f]"
+                        className="h-[50px] w-full rounded-[14px] border border-[#d8e1ea] bg-white pl-11 pr-12 text-[15px] font-medium text-[#0f172a] outline-none transition focus:border-[#22c06f] focus:ring-4 focus:ring-[#22c06f]/10 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-4 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
                       />
-                      <FiCalendar className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                      <FiCalendar className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#0f172a]" />
                     </div>
                   </label>
 
@@ -1141,109 +1137,18 @@ const page = () => {
                     ) : null}
                   </div>
 
-                  <div className="relative">
+                  <label className="block">
                     <span className="text-sm font-medium text-gray-800">
                       Related project
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setProjectOpen((prev) => !prev)}
-                      className="mt-2 flex h-10 w-full items-center justify-between rounded-lg border border-gray-200 px-3.5 text-left text-gray-700"
-                    >
-                      <span className="truncate text-sm">
-                        {selectedProjectName}
+                    <div className="mt-2 flex h-10 w-full items-center rounded-lg border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-700">
+                      <span className="truncate">
+                        {activeProject
+                          ? getProjectName(activeProject)
+                          : GENERAL_SUPPORT_NAME}
                       </span>
-                      <FiChevronDown
-                        className={`h-4 w-4 text-gray-500 transition ${
-                          projectOpen ? "rotate-180" : ""
-                        }`}
-                      />
-                    </button>
-
-                    {projectOpen ? (
-                      <div className="absolute left-0 top-full z-20 mt-1.5 w-full rounded-lg border border-gray-100 bg-white p-2.5 shadow-lg">
-                        <div className="relative">
-                          <FiSearch className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                          <input
-                            type="text"
-                            value={projectSearch}
-                            onChange={(event) =>
-                              setProjectSearch(event.target.value)
-                            }
-                            placeholder="Search related project"
-                            className="h-10 w-full rounded-lg border border-[#22c06f] px-10 text-sm text-gray-700 outline-none placeholder:text-gray-400"
-                          />
-                        </div>
-
-                        <div className="mt-2.5 max-h-[190px] space-y-1.5 overflow-y-auto pr-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedProjectId(GENERAL_SUPPORT_ID);
-                              setSelectedProjectName(GENERAL_SUPPORT_NAME);
-                              setProjectOpen(false);
-                              setProjectSearch("");
-                            }}
-                            className={`block w-full rounded-md px-3 py-2 text-left transition ${
-                              selectedProjectId === GENERAL_SUPPORT_ID
-                                ? "bg-[#d9f8e7]"
-                                : "bg-gray-50 hover:bg-gray-100"
-                            }`}
-                          >
-                            <div className="flex items-start gap-3">
-                              <span className="mt-1 h-2.5 w-2.5 rounded-full bg-[#22c06f]" />
-                              <div>
-                                <p className="text-sm font-semibold text-[#1b8b50]">
-                                  {GENERAL_SUPPORT_NAME}
-                                </p>
-                                <p className="text-xs text-[#4e8c65]">
-                                  Use this when the issue is not linked to a
-                                  specific item.
-                                </p>
-                              </div>
-                            </div>
-                          </button>
-
-                          {filteredProjects.map((project) => {
-                            const projectId = getProjectId(project);
-                            const projectName = getProjectName(project);
-
-                            return (
-                              <button
-                                key={projectId}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedProjectId(projectId);
-                                  setSelectedProjectName(projectName);
-                                  setProjectOpen(false);
-                                  setProjectSearch("");
-                                }}
-                                className="flex w-full items-start gap-2 rounded-md px-3 py-2 text-left transition hover:bg-gray-50"
-                              >
-                                <span className="rounded-full bg-[#e8f0ff] px-2.5 py-1 text-[11px] font-semibold text-[#316cff]">
-                                  PROJECT
-                                </span>
-                                <div>
-                                  <p className="text-sm font-semibold text-gray-700">
-                                    {projectName}
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    {getProjectMeta(project)}
-                                  </p>
-                                </div>
-                              </button>
-                            );
-                          })}
-
-                          {!filteredProjects.length ? (
-                            <div className="rounded-lg bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
-                              No related projects found.
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
+                    </div>
+                  </label>
 
                   <label className="block">
                     <span className="text-sm font-medium text-gray-800">

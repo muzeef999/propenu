@@ -45,10 +45,15 @@ const requesterActor = (input: { requester: CreateTicketInput["requester"] }): T
 export class TicketService {
   static createTicket(input: CreateTicketInput) {
     const requestedDepartment = input.department;
+    const isRelationshipManagerTicket =
+      input.metadata?.module === "relationship_manager" &&
+      input.assignedTo?.role === "relationship_manager";
 
     return TicketRepository.create({
       ...input,
-      department: "customer-care",
+      department: isRelationshipManagerTicket
+        ? "relationship-manager"
+        : "customer-care",
       priority: input.priority ?? "medium",
       source: input.source ?? "web",
       tags: cleanTags(input.tags),
@@ -56,7 +61,9 @@ export class TicketService {
       metadata: {
         ...(input.metadata ?? {}),
         requestedDepartment,
-        intakeDepartment: "customer-care",
+        intakeDepartment: isRelationshipManagerTicket
+          ? "relationship-manager"
+          : "customer-care",
       },
       activities: [activity("ticket.created", "Ticket created", requesterActor(input))],
     });
@@ -64,12 +71,22 @@ export class TicketService {
 
   static createRequestCall(input: CreateRequestCallInput) {
     const scheduledAt = new Date(input.date);
+    const assignedTo =
+      input.relationshipManagerId || input.relationshipManagerName
+        ? {
+            userId: input.relationshipManagerId,
+            name: input.relationshipManagerName,
+            role: "relationship_manager",
+          }
+        : undefined;
 
     return TicketRepository.create({
       title: `Request a Call - ${input.category}`,
       description: input.subject,
       requester: input.requester,
       category: "request_call",
+      department: assignedTo ? "relationship-manager" : "customer-care",
+      assignedTo,
       priority: "medium",
       source: input.source ?? "web",
       tags: cleanTags(["request_call", input.category, input.timeSlot]),
@@ -85,6 +102,7 @@ export class TicketService {
         notes: input.notes,
         relationshipManagerName: input.relationshipManagerName,
         relationshipManagerId: input.relationshipManagerId,
+        intakeDepartment: assignedTo ? "relationship-manager" : "customer-care",
       },
       dueAt: scheduledAt,
       attachments: [],

@@ -939,7 +939,7 @@ export const getMyContactedProperties = async () => {
 
 export const getBuilderDashboards = async (
   range: string = "30d",
-  filters?: { state?: string; city?: string },
+  filters?: { state?: string; city?: string; fromDate?: string; toDate?: string },
 ) => {
   const token = Cookies.get("token");
   if (!token) return null;
@@ -949,6 +949,8 @@ export const getBuilderDashboards = async (
       range,
       ...(filters?.state ? { state: filters.state } : {}),
       ...(filters?.city ? { city: filters.city } : {}),
+      ...(filters?.fromDate ? { fromDate: filters.fromDate } : {}),
+      ...(filters?.toDate ? { toDate: filters.toDate } : {}),
     },
     headers: {
       Authorization: `Bearer ${token}`,
@@ -1152,6 +1154,12 @@ export type CreateSupportTicketPayload = {
     name: string;
     email?: string;
     phone?: string;
+  };
+  assignedTo?: {
+    userId?: string;
+    name?: string;
+    email?: string;
+    role?: string;
   };
   category?: string;
   propertyId?: string;

@@ -1,7 +1,11 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { getHighlightProjectBuilders, getMyProperties } from "@/data/ClientData";
+import {
+  getFeaturedProjectsDashboard,
+  getHighlightProjectBuilders,
+  getMyProperties,
+} from "@/data/ClientData";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -19,7 +23,7 @@ import {
 } from "react-icons/fi";
 
 type Role = "user" | "builder" | "agent";
-type ViewerRole = Role | "customer_care";
+type ViewerRole = Role | "customer_care" | "relationship_manager";
 type Priority = "low" | "medium" | "high" | "urgent";
 type Status =
   | "open"
@@ -203,6 +207,16 @@ const normalizeProjects = (data: any): RelatedItem[] => {
     }));
 };
 
+const mergeRelatedItems = (...groups: RelatedItem[][]) => {
+  const unique = new Map<string, RelatedItem>();
+
+  groups.flat().forEach((item) => {
+    unique.set(`${item.kind}:${item.id}`, item);
+  });
+
+  return Array.from(unique.values());
+};
+
 export default function TicketSupportHub({ role }: { role: Role }) {
   const copy = config[role];
   const { user, isLoading: authLoading } = useAuth();
@@ -212,7 +226,10 @@ export default function TicketSupportHub({ role }: { role: Role }) {
   }, [user]);
 
   const isCustomerCareViewer = currentUser.role === "customer_care";
-  const isAgentWorkspace = role === "agent";
+  const isRelationshipManagerViewer =
+    currentUser.role === "relationship_manager";
+  const isAgentWorkspace =
+    role === "agent" || isRelationshipManagerViewer;
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [status, setStatus] = useState("all");
@@ -348,15 +365,33 @@ export default function TicketSupportHub({ role }: { role: Role }) {
       setRelatedLoading(true);
       try {
         if (role === "builder") {
-          const projects = normalizeProjects(await getHighlightProjectBuilders());
-          if (mounted) setRelatedItems(projects);
+          const [regularProjectsResult, primeProjectsResult] =
+            await Promise.allSettled([
+              getHighlightProjectBuilders(),
+              getFeaturedProjectsDashboard(),
+            ]);
+
+          const regularProjects =
+            regularProjectsResult.status === "fulfilled"
+              ? normalizeProjects(regularProjectsResult.value)
+              : [];
+          const primeProjects =
+            primeProjectsResult.status === "fulfilled"
+              ? normalizeProjects(primeProjectsResult.value)
+              : [];
+
+          if (mounted) {
+            setRelatedItems(mergeRelatedItems(primeProjects, regularProjects));
+          }
           return;
         }
 
         if (role === "agent") {
-          const [propertiesResult, projectsResult] = await Promise.allSettled([
+          const [propertiesResult, projectsResult, primeProjectsResult] =
+            await Promise.allSettled([
             getMyProperties(),
             getHighlightProjectBuilders(),
+            getFeaturedProjectsDashboard(),
           ]);
 
           const properties =
@@ -367,12 +402,15 @@ export default function TicketSupportHub({ role }: { role: Role }) {
             projectsResult.status === "fulfilled"
               ? normalizeProjects(projectsResult.value)
               : [];
-
-          const unique = new Map<string, RelatedItem>();
-          [...properties, ...projects].forEach((item) => {
-            unique.set(`${item.kind}:${item.id}`, item);
-          });
-          if (mounted) setRelatedItems(Array.from(unique.values()));
+          const primeProjects =
+            primeProjectsResult.status === "fulfilled"
+              ? normalizeProjects(primeProjectsResult.value)
+              : [];
+          if (mounted) {
+            setRelatedItems(
+              mergeRelatedItems(properties, primeProjects, projects),
+            );
+          }
           return;
         }
 
@@ -473,7 +511,15 @@ export default function TicketSupportHub({ role }: { role: Role }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status: nextStatus,
-          actor: { userId: currentUser.id, name: currentUser.name, role: isCustomerCareViewer ? "customer_care" : role },
+          actor: {
+            userId: currentUser.id,
+            name: currentUser.name,
+            role: isCustomerCareViewer
+              ? "customer_care"
+              : isRelationshipManagerViewer
+                ? "relationship_manager"
+                : role,
+          },
         }),
       });
       if (!response.ok) throw new Error("Status could not be updated");
@@ -962,7 +1008,10 @@ function Detail({ role, viewerRole, ticket, reply, note, submitting, setReply, s
   changeStatus: (status: Status) => void;
 }) {
   if (!ticket) return <div className="rounded-[10px] border border-gray-100 bg-white p-6 text-sm text-gray-500 shadow-sm">Select a ticket to see details.</div>;
-  const isSupportOperator = role === "agent" || viewerRole === "customer_care";
+  const isSupportOperator =
+    role === "agent" ||
+    viewerRole === "customer_care" ||
+    viewerRole === "relationship_manager";
   const publicComments = ticket.comments?.filter((item) => item.visibility === "public") ?? [];
   const internalComments = ticket.comments?.filter((item) => item.visibility === "internal") ?? [];
 

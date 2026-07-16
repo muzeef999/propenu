@@ -5,7 +5,7 @@ import Cookies from "js-cookie";
 import { me } from "@/data/ClientData";
 
 export type Role = "user" | "builder" | "agent";
-export type ViewerRole = Role | "customer_care";
+export type ViewerRole = Role | "customer_care" | "relationship_manager";
 
 export interface AuthUser {
   id: string;
