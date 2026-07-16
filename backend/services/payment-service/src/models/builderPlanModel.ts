@@ -55,12 +55,6 @@ const BuilderPlanSchema = new Schema(
       type: Boolean,
       default: true,
     },
-
-    features: {
-      type: Map,
-      of: mongoose.Schema.Types.Mixed,
-      default: {},
-    },
   },
   { timestamps: true },
 );

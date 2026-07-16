@@ -142,10 +142,13 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
   }, [land.plotArea?.min, land.plotArea?.max]);
 
   const localitySuggestions = useMemo(() => {
-    const names =
-      cityData?.localities
-        ?.map((loc) => loc?.name?.trim())
-        .filter((name): name is string => Boolean(name)) ?? [];
+    const names = Array.from(
+      new Set(
+        cityData?.localities
+          ?.map((loc) => loc?.name?.trim())
+          .filter((name): name is string => Boolean(name)) ?? [],
+      ),
+    );
 
     const query = searchText.trim().toLowerCase();
     if (!query) return names.slice(0, 8);

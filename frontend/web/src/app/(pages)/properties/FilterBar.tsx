@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { IoIosSearch } from "react-icons/io";
 import { useDispatch } from "react-redux";
 import FilterDropdown from "@/ui/FilterDropdown";
@@ -67,6 +67,7 @@ const FilterBar: React.FC = () => {
   const [showAgriculturalAdvanced, setShowAgriculturalAdvanced] = useState(false);
   const [hasRestoredCategory, setHasRestoredCategory] = useState(false);
   const [hasHydratedFromUrl, setHasHydratedFromUrl] = useState(false);
+  const pendingInitialUrlCategoryRef = useRef<categoryOption | null>(null);
 
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -118,6 +119,13 @@ const FilterBar: React.FC = () => {
       cityData?.city,
       cityData?.state,
     ],
+  );
+  const hydratedUrlCategory = useMemo(
+    () =>
+      hydrateFiltersFromSearchParams(
+        new URLSearchParams(searchParams.toString()),
+      ).category,
+    [searchParams],
   );
 
   useEffect(() => {
@@ -229,7 +237,19 @@ const FilterBar: React.FC = () => {
   }, [searchParams, dispatch, locations]);
 
   useEffect(() => {
+    if (!hasHydratedFromUrl) return;
+    pendingInitialUrlCategoryRef.current = hydratedUrlCategory ?? null;
+  }, [hasHydratedFromUrl, hydratedUrlCategory]);
+
+  useEffect(() => {
     if (!hasRestoredCategory || !hasHydratedFromUrl) return;
+
+    // Protect only the first hydration pass. After the initial URL category
+    // has been respected once, user-driven category changes should update URL normally.
+    if (pendingInitialUrlCategoryRef.current) {
+      if (category !== pendingInitialUrlCategoryRef.current) return;
+      pendingInitialUrlCategoryRef.current = null;
+    }
 
     window.sessionStorage.setItem(LAST_PROPERTY_CATEGORY_KEY, category);
 
@@ -246,7 +266,15 @@ const FilterBar: React.FC = () => {
     if (nextQuery === currentQuery) return;
 
     router.replace(`${pathname}?${nextQuery}`, { scroll: false });
-  }, [category, hasRestoredCategory, hasHydratedFromUrl, pathname, router, searchParams, urlSearchPayload]);
+  }, [
+    category,
+    hasRestoredCategory,
+    hasHydratedFromUrl,
+    pathname,
+    router,
+    searchParams,
+    urlSearchPayload,
+  ]);
 
   useEffect(() => {
     const postedBy = (
@@ -372,10 +400,13 @@ const FilterBar: React.FC = () => {
   };
 
   const localitySuggestions = useMemo(() => {
-    const names =
-      cityData?.localities
-        ?.map((loc) => loc?.name?.trim())
-        .filter((name): name is string => Boolean(name)) ?? [];
+    const names = Array.from(
+      new Set(
+        cityData?.localities
+          ?.map((loc) => loc?.name?.trim())
+          .filter((name): name is string => Boolean(name)) ?? [],
+      ),
+    );
 
     const query = searchText.trim().toLowerCase();
     if (!query) return names.slice(0, 8);

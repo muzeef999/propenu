@@ -130,6 +130,13 @@ const LandFilters = () => {
     land,
     landKeyMapping
   );
+  const uniqueLocalities = Array.from(
+    new Map(
+      (localities ?? [])
+        .filter((loc): loc is { name: string } => Boolean(loc?.name?.trim()))
+        .map((loc) => [loc.name.trim(), { ...loc, name: loc.name.trim() }]),
+    ).values(),
+  );
   const localityCount = selectedLocalities.length > 0 ? 1 : 0;
   const listingTypeCount = listingTypeValue ? 1 : 0;
   const moreFiltersBadgeCount =
@@ -342,7 +349,7 @@ const LandFilters = () => {
             {cityData && (
               <>
                 <div className="flex max-h-120 gap-2 overflow-y-auto pr-1 flex-wrap">
-                  {localities.map((loc: { name: string }) => {
+                  {uniqueLocalities.map((loc: { name: string }) => {
                     const isSelected = selectedLocalities.includes(loc.name);
 
                     return (
