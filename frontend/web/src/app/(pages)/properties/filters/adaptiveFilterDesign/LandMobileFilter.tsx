@@ -101,7 +101,7 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
     land.plotArea?.max ?? PLOT_AREA_MAX,
   ]);
 
-  const selectedLocality = land.locality ?? "";
+  const selectedLocalities = Array.isArray(land.locality) ? land.locality : [];
   const selectedLandTypes = Array.isArray(land.landType) ? land.landType : [];
   const selectedLandSubTypes = Array.isArray(land.landSubType) ? land.landSubType : [];
   const selectedPostedBy = land.createdByRole ? [land.createdByRole] : [];
@@ -166,7 +166,12 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
     arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
 
   const handleLocalitySelect = (name: string) => {
-    dispatch(setLandFilter({ key: "locality", value: name }));
+    dispatch(
+      setLandFilter({
+        key: "locality",
+        value: toggleArrayValue(selectedLocalities, name),
+      }),
+    );
     dispatch(setSearchText(""));
   };
 
@@ -305,7 +310,7 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                 key={name}
                 type="button"
                 onClick={() => handleLocalitySelect(name)}
-                className={`rounded-xl px-3 py-2 text-sm ${selectedLocality === name
+                className={`rounded-xl px-3 py-2 text-sm ${selectedLocalities.includes(name)
                     ? "bg-[#d8ece0] text-green-700"
                     : "bg-[#e1eae4] text-gray-900"
                   }`}

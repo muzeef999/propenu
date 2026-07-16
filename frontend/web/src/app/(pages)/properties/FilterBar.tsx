@@ -376,12 +376,24 @@ const FilterBar: React.FC = () => {
         }),
       );
     } else if (category === "Land") {
-      dispatch(setLandFilter({ key: "locality", value: name }));
+      dispatch(
+        setLandFilter({
+          key: "locality",
+          value: toggleArrayValue(selectedLocalities, name),
+        }),
+      );
     } else {
-      dispatch(setAgriculturalFilter({ key: "locality", value: name }));
+      dispatch(
+        setAgriculturalFilter({
+          key: "locality",
+          value: toggleArrayValue(selectedLocalities, name),
+        }),
+      );
     }
 
-    dispatch(setSearchText(""));
+    if (!selectedLocalities.includes(name)) {
+      dispatch(setSearchText(""));
+    }
     setSearchOpen(true);
   };
 
@@ -393,9 +405,9 @@ const FilterBar: React.FC = () => {
     } else if (category === "Commercial") {
       dispatch(setCommercialFilter({ key: "locality", value: next }));
     } else if (category === "Land") {
-      dispatch(setLandFilter({ key: "locality", value: "" }));
+      dispatch(setLandFilter({ key: "locality", value: next }));
     } else {
-      dispatch(setAgriculturalFilter({ key: "locality", value: "" }));
+      dispatch(setAgriculturalFilter({ key: "locality", value: next }));
     }
   };
 
