@@ -1,8 +1,10 @@
 export const ticketStatuses = [
   "open",
+  "assigned",
+  "under_review",
+  "awaiting_user_response",
   "in_progress",
-  "waiting_for_customer",
-  "waiting_for_internal_team",
+  "escalated",
   "resolved",
   "closed",
   "reopened",

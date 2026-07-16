@@ -177,9 +177,13 @@ export class TicketService {
     return TicketRepository.updateById(id, update);
   }
 
-  static assignTicket(id: string, assignedTo: TicketActor, actor?: TicketActor) {
+  static async assignTicket(id: string, assignedTo: TicketActor, actor?: TicketActor) {
+    const existing = await TicketRepository.findById(id);
+    if (!existing) return null;
+
     return TicketRepository.updateById(id, {
       assignedTo,
+      ...(existing.status === "open" ? { status: "assigned" } : {}),
       $push: {
         activities: activity(
           "ticket.assigned",

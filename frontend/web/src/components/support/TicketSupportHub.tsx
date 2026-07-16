@@ -27,9 +27,11 @@ type ViewerRole = Role | "customer_care" | "relationship_manager";
 type Priority = "low" | "medium" | "high" | "urgent";
 type Status =
   | "open"
+  | "assigned"
+  | "under_review"
+  | "awaiting_user_response"
   | "in_progress"
-  | "waiting_for_customer"
-  | "waiting_for_internal_team"
+  | "escalated"
   | "resolved"
   | "closed"
   | "reopened";
@@ -114,9 +116,11 @@ const config = {
 
 const statusLabel: Record<Status, string> = {
   open: "Open",
+  assigned: "Assigned",
+  under_review: "Under Review",
+  awaiting_user_response: "Awaiting User Response",
   in_progress: "In Progress",
-  waiting_for_customer: "Waiting Customer",
-  waiting_for_internal_team: "Internal Team",
+  escalated: "Escalated",
   resolved: "Resolved",
   closed: "Closed",
   reopened: "Reopened",
@@ -124,12 +128,20 @@ const statusLabel: Record<Status, string> = {
 
 const statusTone: Record<Status, string> = {
   open: "bg-emerald-50 text-emerald-700",
+  assigned: "bg-indigo-50 text-indigo-700",
+  under_review: "bg-violet-50 text-violet-700",
+  awaiting_user_response: "bg-amber-50 text-amber-700",
   in_progress: "bg-blue-50 text-blue-700",
-  waiting_for_customer: "bg-amber-50 text-amber-700",
-  waiting_for_internal_team: "bg-violet-50 text-violet-700",
+  escalated: "bg-red-50 text-red-700",
   resolved: "bg-green-50 text-green-700",
   closed: "bg-slate-100 text-slate-600",
   reopened: "bg-red-50 text-red-700",
+};
+
+const normalizeStatus = (status: string): Status => {
+  if (status === "waiting_for_customer") return "awaiting_user_response";
+  if (status === "waiting_for_internal_team") return "under_review";
+  return status as Status;
 };
 
 const priorityTone: Record<Priority, string> = {
@@ -308,7 +320,10 @@ export default function TicketSupportHub({ role }: { role: Role }) {
       const response = await fetch(apiUrl(`/api/tickets?${params.toString()}`), { cache: "no-store" });
       if (!response.ok) throw new Error("Ticket service is not reachable");
       const result = await response.json();
-      const data = (result.data ?? []) as Ticket[];
+      const data = ((result.data ?? []) as Ticket[]).map((ticket) => ({
+        ...ticket,
+        status: normalizeStatus(ticket.status),
+      }));
       setTickets(data);
       setSelectedId((current) => current || data[0]?._id || "");
     } catch (err: any) {
@@ -1038,7 +1053,7 @@ function Detail({ role, viewerRole, ticket, reply, note, submitting, setReply, s
         {isSupportOperator && (
           <div className="mt-4 flex flex-wrap gap-2">
             <Action onClick={() => changeStatus("in_progress")} disabled={submitting} label="Start Progress" />
-            <Action onClick={() => changeStatus("waiting_for_customer")} disabled={submitting} label="Wait Customer" />
+            <Action onClick={() => changeStatus("awaiting_user_response")} disabled={submitting} label="Await User" />
             <Action onClick={() => changeStatus("resolved")} disabled={submitting} label="Resolve Ticket" />
           </div>
         )}
