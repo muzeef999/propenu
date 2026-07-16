@@ -13,6 +13,14 @@ const requireAdminOrSuperAdmin = (req: AuthRequest, res: express.Response, next:
   next();
 };
 
+const requireRoleTransferAccess = (req: AuthRequest, res: express.Response, next: express.NextFunction) => {
+  if (!req.user || !["super_admin", "admin", "regional_manager"].includes(req.user.roleName || "")) {
+    return res.status(403).json({ message: "Forbidden: role transfer access denied" });
+  }
+
+  next();
+};
+
 authRoute.post("/request-otp",  requestOTP);
 authRoute.post("/verify-otp",  verifyOtp);
 authRoute.post("/request-otp/create",  createRequestOtp);
@@ -45,12 +53,7 @@ authRoute.patch(
  
 authRoute.get("/all-users", authMiddleware, requireAdminOrSuperAdmin, getAllUsers);
 
-authRoute.patch("/:id/role", authMiddleware,  (req: AuthRequest, res, next) => {
-    if (!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")) {
-      return res.status(403).json({ message: "Forbidden: only admin/super_admin can change roles" });
-    }
-    next();
-  },
+authRoute.patch("/:id/role", authMiddleware, requireRoleTransferAccess,
   updateUserRole
 );
 

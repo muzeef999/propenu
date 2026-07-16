@@ -526,18 +526,50 @@ export const me = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const updateUserRole = async (req: Request, res: Response) => {
+const REGIONAL_MANAGER_TRANSFER_ROLES = new Set([
+  "sales_manager",
+  "sales_agent",
+  "relationship_manager",
+]);
+
+export const updateUserRole = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.params.id;
-    const { roleName } = req.body; // e.g. "admin", "sales_manager"
+    const roleName = String(req.body?.roleName || "").trim().toLowerCase();
 
     if (!roleName) {
       return res.status(400).json({ message: "roleName is required" });
     }
 
+    if (
+      req.user?.roleName === "regional_manager" &&
+      !REGIONAL_MANAGER_TRANSFER_ROLES.has(roleName)
+    ) {
+      return res.status(403).json({
+        message:
+          "Regional Manager can transfer only Sales Managers, Sales Executives, and Relationship Managers",
+      });
+    }
+
     const role = await Role.findOne({ name: roleName });
     if (!role) {
       return res.status(400).json({ message: `Role '${roleName}' not found` });
+    }
+
+    if (req.user?.roleName === "regional_manager") {
+      const sourceUser = await User.findById(userId).populate("roleId", "name");
+      const sourceRole = (sourceUser?.roleId as any)?.name;
+
+      if (!sourceUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (!REGIONAL_MANAGER_TRANSFER_ROLES.has(sourceRole)) {
+        return res.status(403).json({
+          message:
+            "Regional Manager can transfer only Sales Managers, Sales Executives, and Relationship Managers",
+        });
+      }
     }
 
     const user = await User.findByIdAndUpdate(
