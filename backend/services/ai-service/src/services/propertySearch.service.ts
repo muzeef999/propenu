@@ -1,90 +1,280 @@
+import mongoose from "mongoose";
 import Agricultural from "../models/agriculturalModel";
 import Commercial from "../models/commercialModel";
 import FeaturedProject from "../models/featurePropertiesModel";
 import LandPlot from "../models/landModel";
 import Residential from "../models/residentialModel";
+import { connectDB } from "../config/db";
 
-export async function searchProperties(
-  filters: any
-) {
+const activeQuery = {
+  status: "active",
+};
 
+async function ensureDB() {
+  if (mongoose.connection.readyState === 0) {
+    await connectDB();
+  }
+}
+
+function textRegex(value?: string) {
+  return value ? new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") : undefined;
+}
+
+function keywordQuery(keyword?: string) {
+  const words = keyword
+    ?.split(/\s+/)
+    .map((word) => word.trim())
+    .filter((word) => word.length >= 2);
+
+  if (!words?.length) return undefined;
+
+  return words.map((word) => ({
+    $or: [
+      { title: textRegex(word) },
+      { buildingName: textRegex(word) },
+      { landName: textRegex(word) },
+      { address: textRegex(word) },
+      { description: textRegex(word) },
+      { locality: textRegex(word) },
+      { city: textRegex(word) },
+    ],
+  }));
+}
+
+function projectKeywordQuery(keyword?: string) {
+  const words = keyword
+    ?.split(/\s+/)
+    .map((word) => word.trim())
+    .filter((word) => word.length >= 2);
+
+  if (!words?.length) return undefined;
+
+  return words.map((word) => ({
+    $or: [
+      { title: textRegex(word) },
+      { propertyType: textRegex(word) },
+      { address: textRegex(word) },
+      { heroTagline: textRegex(word) },
+      { heroSubTagline: textRegex(word) },
+      { heroDescription: textRegex(word) },
+      { locality: textRegex(word) },
+      { city: textRegex(word) },
+    ],
+  }));
+}
+
+function buildBaseQuery(filters: any) {
+  const query: any = { ...activeQuery };
+
+  if (filters.city) query.city = textRegex(filters.city);
+  if (filters.locality) query.locality = textRegex(filters.locality);
+  if (filters.listingType) query.listingType = filters.listingType;
+  if (filters.maxPrice) query.price = { $lte: Number(filters.maxPrice) };
+  if (filters.isPriceNegotiable) query.isPriceNegotiable = true;
+  if (filters.facing) query.facing = filters.facing;
+  if (filters.keyword) {
+    const conditions = keywordQuery(filters.keyword);
+    if (conditions) query.$and = [...(query.$and || []), ...conditions];
+  }
+
+  return query;
+}
+
+function buildProjectQuery(filters: any) {
   const query: any = {
     status: "active",
-    isPublished: true,
   };
 
-  // CITY
-  if (filters.city) {
-    query.city =
-      new RegExp(filters.city, "i");
-  }
-
-  // PRICE
+  if (filters.city) query.city = textRegex(filters.city);
+  if (filters.locality) query.locality = textRegex(filters.locality);
+  if (filters.propertyCategory) query.categoryType = filters.propertyCategory;
+  if (filters.propertyType && filters.propertyType !== "apartment") query.propertyType = textRegex(filters.propertyType);
+  if (filters.bhk) query["projectSummary.bhk"] = Number(filters.bhk);
   if (filters.maxPrice) {
-    query.price = {
-      $lte: filters.maxPrice,
-    };
+    query.$or = [
+      { priceFrom: { $lte: Number(filters.maxPrice) } },
+      { priceTo: { $lte: Number(filters.maxPrice) } },
+      { "projectSummary.units.minPrice": { $lte: Number(filters.maxPrice) } },
+      { "projectSummary.units.maxPrice": { $lte: Number(filters.maxPrice) } },
+    ];
+  }
+  if (filters.keyword) {
+    const keywordConditions = projectKeywordQuery(filters.keyword);
+    if (keywordConditions) {
+      query.$and = [
+        ...(query.$and || []),
+        ...keywordConditions,
+      ];
+    }
   }
 
-  // BHK
-  if (filters.bhk) {
-    query.bhk = filters.bhk;
-  }
+  return query;
+}
 
-  // PROPERTY TYPE
+function residentialQuery(filters: any) {
+  const query = buildBaseQuery(filters);
+  if (filters.bhk) query.$and = [...(query.$and || []), { $or: [{ bhk: Number(filters.bhk) }, { bedrooms: Number(filters.bhk) }] }];
+  if (filters.propertyType && filters.propertyType !== "plot" && !filters.keyword) query.propertyType = textRegex(filters.propertyType);
+  if (filters.constructionStatus) query.constructionStatus = filters.constructionStatus;
+  if (filters.furnishing) query.furnishing = filters.furnishing;
+  return query;
+}
+
+function landQuery(filters: any) {
+  const query = buildBaseQuery(filters);
+  if (filters.readyToConstruct) query.readyToConstruct = true;
+  if (filters.propertyType && filters.propertyType !== "plot") query.propertyType = textRegex(filters.propertyType);
+  return query;
+}
+
+function commercialQuery(filters: any) {
+  const query = buildBaseQuery(filters);
   if (filters.propertyType) {
-    query.propertyType =
-      new RegExp(
-        filters.propertyType,
-        "i"
-      );
+    query.$and = [
+      ...(query.$and || []),
+      {
+        $or: [
+          { propertyType: textRegex(filters.propertyType) },
+          { propertySubType: textRegex(filters.propertyType) },
+        ],
+      },
+    ];
+  }
+  if (filters.constructionStatus) query.constructionStatus = filters.constructionStatus;
+  if (filters.furnishing) query.furnishedStatus = filters.furnishing;
+  return query;
+}
+
+function agriculturalQuery(filters: any) {
+  const query = buildBaseQuery(filters);
+  if (filters.propertyType && filters.propertyType !== "plot") query.propertyType = textRegex(filters.propertyType);
+  return query;
+}
+
+function sortByRelevance(query: any) {
+  return query
+    .sort({
+      "promotion.priority": -1,
+      rank: -1,
+      "meta.inquiries": -1,
+      createdAt: -1,
+    })
+    .limit(10)
+    .lean();
+}
+
+function sortProjectsByRelevance(query: any) {
+  return query
+    .sort({
+      "promotion.priority": -1,
+      rank: -1,
+      "meta.inquiries": -1,
+      createdAt: -1,
+    })
+    .limit(10)
+    .lean();
+}
+
+export async function searchProperties(filters: any) {
+  await ensureDB();
+
+  const category = filters.propertyCategory;
+
+  async function relaxedLocationSearch() {
+    const relaxedFilters = {
+      city: filters.city,
+      locality: filters.locality,
+      propertyCategory: filters.propertyCategory,
+      listingType: filters.listingType,
+    };
+
+    if (category === "residential") {
+      return sortByRelevance(Residential.find(residentialQuery(relaxedFilters)));
+    }
+
+    if (category === "commercial") {
+      return sortByRelevance(Commercial.find(commercialQuery(relaxedFilters)));
+    }
+
+    if (category === "land") {
+      return sortByRelevance(LandPlot.find(landQuery(relaxedFilters)));
+    }
+
+    if (category === "agricultural") {
+      return sortByRelevance(Agricultural.find(agriculturalQuery(relaxedFilters)));
+    }
+
+    const [residential, commercial, land, agricultural] = await Promise.all([
+      sortByRelevance(Residential.find(residentialQuery(relaxedFilters)).limit(4)),
+      sortByRelevance(Commercial.find(commercialQuery(relaxedFilters)).limit(4)),
+      sortByRelevance(LandPlot.find(landQuery(relaxedFilters)).limit(4)),
+      sortByRelevance(Agricultural.find(agriculturalQuery(relaxedFilters)).limit(4)),
+    ]);
+
+    return [...residential, ...commercial, ...land, ...agricultural].slice(0, 12);
   }
 
-  // RESIDENTIAL
-  if (
-    filters.propertyType === "villa" ||
-    filters.propertyType === "apartment"
-  ) {
-    return await Residential.find(query)
-      .limit(10)
-      .lean();
+  if (filters.keyword) {
+    const [residential, land, commercial, agricultural, projects] = await Promise.all([
+      sortByRelevance(Residential.find(residentialQuery(filters))),
+      sortByRelevance(LandPlot.find(landQuery(filters))),
+      sortByRelevance(Commercial.find(commercialQuery(filters))),
+      sortByRelevance(Agricultural.find(agriculturalQuery(filters))),
+      sortProjectsByRelevance(FeaturedProject.find(buildProjectQuery(filters))),
+    ]);
+
+    const strictResults = [
+      ...residential,
+      ...projects,
+      ...commercial,
+      ...land,
+      ...agricultural,
+    ].slice(0, 12);
+
+    if (strictResults.length) return strictResults;
+
+    return relaxedLocationSearch();
   }
 
-  // LAND
-  if (
-    filters.propertyCategory ===
-    "land"
-  ) {
-    return await LandPlot.find(query)
-      .limit(10)
-      .lean();
+  if (category === "residential") {
+    const [properties, projects] = await Promise.all([
+      sortByRelevance(Residential.find(residentialQuery(filters))),
+      sortProjectsByRelevance(FeaturedProject.find(buildProjectQuery(filters))),
+    ]);
+
+    return [...properties, ...projects].slice(0, 12);
   }
 
-  // AGRICULTURE
-  if (
-    filters.propertyCategory ===
-    "agricultural"
-  ) {
- 
-    return await Agricultural.find(query)
-      .limit(10)
-      .lean();
+  if (category === "land") {
+    return sortByRelevance(LandPlot.find(landQuery(filters)));
   }
 
-  // MIXED SEARCH
-  const [
-    residential,
-    commercial,
-    projects,
-  ] = await Promise.all([
-    Residential.find(query).limit(5),
-    Commercial.find(query).limit(5),
-    FeaturedProject.find(query).limit(5),
+  if (category === "agricultural") {
+    return sortByRelevance(Agricultural.find(agriculturalQuery(filters)));
+  }
+
+  if (category === "commercial") {
+    const [properties, projects] = await Promise.all([
+      sortByRelevance(Commercial.find(commercialQuery(filters))),
+      sortProjectsByRelevance(FeaturedProject.find(buildProjectQuery(filters))),
+    ]);
+
+    return [...properties, ...projects].slice(0, 12);
+  }
+
+  const [residential, land, commercial, agricultural, projects] = await Promise.all([
+    sortByRelevance(Residential.find(residentialQuery(filters)).limit(4)),
+    sortByRelevance(LandPlot.find(landQuery(filters)).limit(4)),
+    sortByRelevance(Commercial.find(commercialQuery(filters)).limit(4)),
+    sortByRelevance(Agricultural.find(agriculturalQuery(filters)).limit(4)),
+    sortProjectsByRelevance(FeaturedProject.find(buildProjectQuery(filters)).limit(4)),
   ]);
 
   return [
     ...residential,
+    ...land,
     ...commercial,
+    ...agricultural,
     ...projects,
-  ];
+  ].slice(0, 12);
 }

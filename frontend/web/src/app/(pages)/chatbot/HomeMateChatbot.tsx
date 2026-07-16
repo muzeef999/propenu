@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { IoClose, IoSend } from "react-icons/io5";
 
-import { getChatbotResponse } from "@/data/ClientData";
+import { getChatbotResponse, getChatbotSuggestions } from "@/data/ClientData";
+import { useCity } from "@/hooks/useCity";
 import { ChatbotIcon } from "@/icons/icons";
-
-const quickPrompts = ["2 BHK", "Plots", "Near metro"];
 
 type HomeMateChatbotProps = {
   isOpen?: boolean;
@@ -19,6 +18,35 @@ type ChatMessage = {
   id: string;
   role: "assistant" | "user";
   text: string;
+  options?: string[];
+  properties?: ChatProperty[];
+  analytics?: ChatAnalytics;
+};
+
+type ChatSuggestion = {
+  label: string;
+  value: string;
+};
+
+type ChatProperty = {
+  id?: string;
+  title?: string;
+  price?: string | null;
+  location?: string;
+  bhk?: number;
+  propertyType?: string;
+  listingType?: string;
+  area?: string;
+  category?: string;
+  constructionStatus?: string;
+  slug?: string;
+};
+
+type ChatAnalytics = {
+  metrics?: { label: string; value: number | string; tone?: string }[];
+  highlights?: string[];
+  counts?: Record<string, number>;
+  topLocalities?: Record<string, { _id: string; count: number; avgPrice?: number }[]>;
 };
 
 const initialMessages: ChatMessage[] = [
@@ -29,11 +57,22 @@ const initialMessages: ChatMessage[] = [
   },
 ];
 
-const getResponseText = (data: any) => {
-  if (!data) return "I could not find a response. Please try again.";
+const getWelcomeMessage = (city?: string) =>
+  city
+    ? `Hi, I can help you find verified homes, plots, and commercial spaces in ${city}. What are you looking for today?`
+    : "Hi, I can help you find verified homes, plots, and commercial spaces. What are you looking for today?";
+
+const parseChatbotResponse = (
+  data: any
+): Pick<ChatMessage, "text" | "options" | "properties" | "analytics"> => {
+  const fallback = {
+    text: "I could not find a response. Please try again.",
+  };
+
+  if (!data) return fallback;
 
   if (typeof data === "string") {
-    const messages = data
+    const events = data
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean)
@@ -45,22 +84,57 @@ const getResponseText = (data: any) => {
         }
       })
       .filter(Boolean)
-      .filter((event) => event.type === "message" || event.type === "error")
-      .map((event) => event.content || event.message)
-      .filter(Boolean);
+      .filter((event) =>
+        ["message", "error", "question", "suggestions", "property", "analytics"].includes(event.type)
+      );
 
-    return messages.at(-1) || data;
+    const question = events.findLast((event) => event.type === "question");
+    if (question) {
+      return {
+        text: question.question || fallback.text,
+        options: Array.isArray(question.options) ? question.options : undefined,
+      };
+    }
+
+    const suggestions = events.findLast((event) => event.type === "suggestions");
+    const analytics = events.findLast((event) => event.type === "analytics");
+    const properties = events
+      .filter((event) => event.type === "property" && event.property)
+      .map((event) => event.property);
+    const message = events.findLast((event) =>
+      event.type === "message" || event.type === "error"
+    );
+
+    return {
+      text: message?.content || message?.message || fallback.text,
+      options: Array.isArray(suggestions?.options) ? suggestions.options : undefined,
+      properties: properties.length ? properties : undefined,
+      analytics: analytics?.analytics,
+    };
   }
 
-  return (
-    data.content ||
-    data.message ||
-    data.response ||
-    data.answer ||
-    data.data?.content ||
-    data.data?.message ||
-    "I could not find a response. Please try again."
-  );
+  return {
+    text:
+      data.content ||
+      data.message ||
+      data.question ||
+      data.response ||
+      data.answer ||
+      data.data?.content ||
+      data.data?.message ||
+      fallback.text,
+    options: Array.isArray(data.options) ? data.options : undefined,
+    properties: Array.isArray(data.properties) ? data.properties : undefined,
+    analytics: data.analytics,
+  };
+};
+
+const metricToneClasses: Record<string, string> = {
+  emerald: "border-emerald-100 bg-emerald-50 text-emerald-700",
+  blue: "border-sky-100 bg-sky-50 text-sky-700",
+  amber: "border-amber-100 bg-amber-50 text-amber-700",
+  violet: "border-violet-100 bg-violet-50 text-violet-700",
+  lime: "border-lime-100 bg-lime-50 text-lime-700",
 };
 
 const HomeMateChatbot = ({
@@ -72,26 +146,60 @@ const HomeMateChatbot = ({
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [isPanelVisible, setIsPanelVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const { selectedCity } = useCity();
+
+  const suggestionsQuery = useQuery<ChatSuggestion[]>({
+    queryKey: ["homemate-chatbot-suggestions", selectedCity?.city],
+    queryFn: () => getChatbotSuggestions(selectedCity?.city),
+    staleTime: 5 * 60 * 1000,
+    enabled: isOpen,
+  });
 
   const chatbotMutation = useMutation({
-    mutationFn: getChatbotResponse,
+    mutationFn: (nextMessage: string) =>
+      getChatbotResponse(nextMessage, {
+        city: selectedCity?.city,
+        state: selectedCity?.state,
+        localities: selectedCity?.localities
+          ?.map((locality: any) =>
+            typeof locality === "string"
+              ? locality
+              : locality?.name || locality?.locality || locality?.title
+          )
+          .filter(Boolean),
+      }),
     onSuccess: (data) => {
+      const response = parseChatbotResponse(data);
+
       setMessages((currentMessages) => [
         ...currentMessages,
         {
           id: `assistant-${Date.now()}`,
           role: "assistant",
-          text: getResponseText(data),
+          text: response.text,
+          options: response.options,
+          properties: response.properties,
+          analytics: response.analytics,
         },
       ]);
     },
-    onError: () => {
+    onError: (error: any) => {
+      const errorMessage =
+        error?.response?.status === 429
+          ? error?.response?.data?.message ||
+            "HomeMate is receiving too many messages. Please try again in a few minutes."
+          : error?.response?.data?.message ||
+            error?.response?.data?.error ||
+            error?.message ||
+            "Sorry, I could not connect right now. Please try again.";
+
       setMessages((currentMessages) => [
         ...currentMessages,
         {
           id: `assistant-error-${Date.now()}`,
           role: "assistant",
-          text: "Sorry, I could not connect right now. Please try again.",
+          text: errorMessage,
         },
       ]);
     },
@@ -110,6 +218,37 @@ const HomeMateChatbot = ({
 
     return () => cancelAnimationFrame(frame);
   }, [isOpen]);
+
+  useEffect(() => {
+    setMessages((currentMessages) => {
+      const [firstMessage, ...restMessages] = currentMessages;
+
+      if (firstMessage?.id !== "welcome") {
+        return currentMessages;
+      }
+
+      return [
+        {
+          ...firstMessage,
+          text: getWelcomeMessage(selectedCity?.city),
+        },
+        ...restMessages,
+      ];
+    });
+  }, [selectedCity?.city]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const frame = requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [messages, chatbotMutation.isPending, isOpen]);
 
   const handleClose = () => {
     setIsClosing(true);
@@ -197,13 +336,113 @@ const HomeMateChatbot = ({
             {messages.map((chatMessage) => (
               <div
                 key={chatMessage.id}
-                className={`max-w-[260px] rounded-2xl px-4 py-3 text-xs leading-5 shadow-sm backdrop-blur ${
+                className={`rounded-2xl px-4 py-3 text-xs leading-5 shadow-sm backdrop-blur ${
                   chatMessage.role === "user"
-                    ? "ml-auto rounded-tr-md bg-[#dff9eb] text-gray-800"
-                    : "rounded-tl-md bg-white/80 text-gray-700"
+                    ? "ml-auto max-w-[260px] rounded-tr-md bg-[#dff9eb] text-gray-800"
+                    : "max-w-[312px] rounded-tl-md bg-white/90 text-gray-700"
                 }`}
               >
-                {chatMessage.text}
+                <p>{chatMessage.text}</p>
+                {chatMessage.role === "assistant" && chatMessage.analytics ? (
+                  <div className="mt-3 space-y-3">
+                    {chatMessage.analytics.metrics?.length ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        {chatMessage.analytics.metrics.slice(0, 4).map((metric) => (
+                          <div
+                            key={metric.label}
+                            className={`rounded-xl border px-3 py-2 ${
+                              metricToneClasses[metric.tone || ""] ||
+                              "border-gray-100 bg-gray-50 text-gray-700"
+                            }`}
+                          >
+                            <div className="text-[16px] font-bold leading-none">
+                              {metric.value}
+                            </div>
+                            <div className="mt-1 text-[10px] font-medium leading-3">
+                              {metric.label}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    {chatMessage.analytics.highlights?.length ? (
+                      <div className="space-y-1.5 rounded-xl border border-emerald-100 bg-white px-3 py-2">
+                        {chatMessage.analytics.highlights.slice(1, 4).map((highlight) => (
+                          <div key={highlight} className="flex gap-2 text-[11px] leading-4 text-gray-600">
+                            <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#20b35c]" />
+                            <span>{highlight}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+                {chatMessage.role === "assistant" && chatMessage.properties?.length ? (
+                  <div className="mt-3 space-y-2">
+                    {chatMessage.properties.map((property) => (
+                      <div
+                        key={property.id || property.slug || property.title}
+                        className="rounded-xl border border-emerald-100 bg-white px-3 py-2 shadow-[0_4px_12px_rgba(15,82,45,0.08)]"
+                      >
+                        <div className="line-clamp-2 text-[12px] font-semibold leading-4 text-gray-800">
+                          {property.title || "Verified property"}
+                        </div>
+                        {property.location ? (
+                          <div className="mt-1 truncate text-[11px] text-gray-500">
+                            {property.location}
+                          </div>
+                        ) : null}
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          {property.category ? (
+                            <span className="rounded-full bg-[#eefbf4] px-2 py-0.5 text-[11px] font-semibold text-[#168a48]">
+                              {property.category}
+                            </span>
+                          ) : null}
+                          {property.price ? (
+                            <span className="rounded-full bg-gray-50 px-2 py-0.5 text-[11px] font-semibold text-gray-700">
+                              {property.price}
+                            </span>
+                          ) : null}
+                          {property.area ? (
+                            <span className="rounded-full bg-gray-50 px-2 py-0.5 text-[11px] text-gray-600">
+                              {property.area}
+                            </span>
+                          ) : null}
+                          {property.bhk ? (
+                            <span className="rounded-full bg-gray-50 px-2 py-0.5 text-[11px] text-gray-600">
+                              {property.bhk} BHK
+                            </span>
+                          ) : null}
+                          {property.listingType ? (
+                            <span className="rounded-full bg-gray-50 px-2 py-0.5 text-[11px] text-gray-600">
+                              {property.listingType}
+                            </span>
+                          ) : null}
+                          {property.constructionStatus ? (
+                            <span className="rounded-full bg-gray-50 px-2 py-0.5 text-[11px] text-gray-600">
+                              {property.constructionStatus}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {chatMessage.role === "assistant" && chatMessage.options?.length ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {chatMessage.options.map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => sendMessage(option)}
+                        disabled={chatbotMutation.isPending}
+                        className="rounded-full border border-[#20b35c]/20 bg-[#eefbf4] px-2.5 py-1 text-[11px] font-medium text-[#166c3b] transition hover:border-[#20b35c]/45 hover:bg-[#dcf7e8] disabled:opacity-60"
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ))}
 
@@ -212,21 +451,24 @@ const HomeMateChatbot = ({
                 Thinking...
               </div>
             ) : null}
+            <div ref={messagesEndRef} className="h-px" aria-hidden="true" />
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {quickPrompts.map((prompt) => (
-              <button
-                key={prompt}
-                type="button"
-                onClick={() => sendMessage(prompt)}
-                disabled={chatbotMutation.isPending}
-                className="rounded-full border border-[#20b35c]/15 bg-white/85 px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition hover:border-[#20b35c]/35 hover:text-[#168a48]"
-              >
-                {prompt}
-              </button>
-            ))}
-          </div>
+          {suggestionsQuery.data?.length ? (
+            <div className="flex flex-wrap gap-2">
+              {suggestionsQuery.data.slice(0, 4).map((suggestion) => (
+                <button
+                  key={suggestion.value}
+                  type="button"
+                  onClick={() => sendMessage(suggestion.value)}
+                  disabled={chatbotMutation.isPending}
+                  className="rounded-full border border-[#20b35c]/15 bg-white/85 px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition hover:border-[#20b35c]/35 hover:text-[#168a48]"
+                >
+                  {suggestion.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
 
           <form
             className="mt-auto flex h-12 items-center rounded-full border border-gray-100 bg-white px-4 shadow-[0_8px_24px_rgba(15,23,42,0.16)]"

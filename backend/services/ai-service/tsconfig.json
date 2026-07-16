@@ -10,7 +10,7 @@
 
     "typeRoots": [
       "./src/types",
-      "../../node_modules/@types"
+      "../../../node_modules/@types"
     ],
 
     "sourceMap": true,
@@ -29,8 +29,7 @@
   },
 
   "include": [
-    "src",
-    "../../shared"
+    "src"
   ],
 
   "exclude": [

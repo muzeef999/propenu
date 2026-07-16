@@ -30,7 +30,7 @@ export const connectDB = async () => {
     console.log(`✅ MongoDB connected: ${dbName}`);
   } catch (error) {
     console.error("❌ MongoDB connection error:", error);
-    process.exit(1); // stop app if DB fails
+    throw error;
   }
 
   mongoose.connection.on("disconnected", () => {

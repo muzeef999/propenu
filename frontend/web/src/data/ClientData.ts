@@ -1101,7 +1101,40 @@ export const sendTokenToBackend = async (userId: string, token: string) => {
 };
 
 // chatbot related APIs
-export const getChatbotResponse = async (message: string) => {
-  const res = await axiosInstance.post(`${url}/api/chatbot`, { message });
+export const getChatbotResponse = async (
+  message: string,
+  context?: {
+    city?: string;
+    state?: string;
+    localities?: string[];
+  }
+) => {
+  const sessionIdKey = "homemate_chat_session_id_v4";
+  const sessionId =
+    typeof window !== "undefined"
+      ? window.localStorage.getItem(sessionIdKey) || crypto.randomUUID()
+      : "guest";
+
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem("homemate_chat_session_id");
+    window.localStorage.removeItem("homemate_chat_session_id_v2");
+    window.localStorage.removeItem("homemate_chat_session_id_v3");
+    window.localStorage.setItem(sessionIdKey, sessionId);
+  }
+
+  const res = await axiosInstance.post(`${url}/api/chatbot`, { message, context }, {
+    headers: {
+      "x-session-id": sessionId,
+    },
+    responseType: "text",
+  });
   return res.data;
+};
+
+export const getChatbotSuggestions = async (city?: string) => {
+  const res = await axiosInstance.get(`${url}/api/chatbot/suggestions`, {
+    params: city ? { city } : undefined,
+  });
+
+  return res.data?.suggestions || [];
 };

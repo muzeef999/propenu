@@ -1,20 +1,20 @@
 import dotenv from "dotenv";
-dotenv.config();
+import path from "path";
+
+dotenv.config({ path: path.resolve(process.cwd(), ".env"), quiet: true });
 
 import app from "./app";
-import { connectDB } from "./config/db";
 
 const PORT = process.env.PORT ?? 4006;
 
-async function start() {
-  try {
-    await connectDB();
-    app.listen(Number(PORT), "0.0.0.0", () => {
-      console.log(`🌍 AI SERVICE RUNNING on 0.0.0.0:${PORT}`);
-    });
-  } catch (error) {
-    console.error("Failed to connect to MongoDB:", error);
-    process.exit(1); // Exit if DB connection fails
-  }
-}
-start();
+process.on("uncaughtException", (error) => {
+  console.error("AI service uncaught exception:", error);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("AI service unhandled rejection:", reason);
+});
+
+app.listen(Number(PORT), "0.0.0.0", () => {
+  console.log(`AI SERVICE RUNNING on 0.0.0.0:${PORT}`);
+});

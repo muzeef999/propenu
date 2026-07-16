@@ -35,6 +35,13 @@ module.exports = {
       exec_mode: 'cluster'
     },
     {
+      name: 'ai-service',
+      cwd: __dirname + '/services/ai-service',
+      script: 'dist/services/ai-service/src/server.js',
+      instances: 1,
+      exec_mode: 'cluster'
+    },
+    {
       name: 'ticket-service',
       cwd: __dirname + '/services/ticket-service',
       script: 'dist/src/server.js',

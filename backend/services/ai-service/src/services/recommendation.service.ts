@@ -1,14 +1,19 @@
+import Residential from "../models/residentialModel";
+
 export async function getRecommendations(
-  property
+  property: { city?: string; price?: number }
 ) {
-
-  return await Residential.find({
+  const query: any = {
     city: property.city,
+  };
 
-    price: {
+  if (typeof property.price === "number") {
+    query.price = {
       $gte: property.price * 0.8,
 
       $lte: property.price * 1.2
-    }
-  }).limit(5);
+    };
+  }
+
+  return await Residential.find(query).limit(5);
 }

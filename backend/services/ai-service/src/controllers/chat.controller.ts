@@ -1,20 +1,29 @@
 import { Request, Response }
 from "express";
 
-import { geminiModel }
-from "../config/gemini";
-
 import { searchProperties }
 from "../services/propertySearch.service";
 
 import { sendNDJSON }
 from "../utils/ndjson";
 
+import { toPropertyCard }
+from "../utils/chatPresentation";
+
 import { updateMemory }
 from "../utils/updateMemory";
 
 import { getNextStep }
 from "../services/conversation.service";
+
+import { saveMemory }
+from "../memory/conversation.memory";
+
+import { getStarterSuggestions }
+from "../services/suggestion.service";
+
+import { getCityAnalytics }
+from "../services/analytics.service";
 
 export async function chatController(
   req: Request,
@@ -38,16 +47,68 @@ export async function chatController(
     const message =
       req.body.message || "";
 
+    const lowerMessage =
+      String(message).toLowerCase();
+
+    const currentMessageWantsAnalytics =
+      /\b(analytics?|market|trends?|insights?|dashboard|data)\b/.test(lowerMessage) &&
+      !/\b(home|homes|property|properties|apartment|apartments|flat|flats|bhk|bk|villa|villas|plot|plots|land|commercial|office|shop|warehouse|showroom|retail|project|projects)\b/.test(lowerMessage);
+
+    const context =
+      req.body.context || {};
+
+    const sessionId =
+      typeof req.headers["x-session-id"] === "string"
+        ? req.headers["x-session-id"]
+        : "guest";
+
     // MEMORY
-    req.memory =
+    const memory =
       updateMemory(
         req.memory || {},
         message
       );
 
+    if (context.city && !memory.city) {
+      memory.city = context.city;
+    }
+
+    if (context.state && !memory.state) {
+      memory.state = context.state;
+    }
+
+    req.memory = memory;
+
+    saveMemory(sessionId, memory);
+
+    if (currentMessageWantsAnalytics) {
+      const analytics =
+        await getCityAnalytics(memory.city);
+
+      sendNDJSON(res, {
+        type: "message",
+        content: analytics.summary ||
+          `I do not have enough active listing data for ${memory.city || "this city"} yet.`,
+      });
+
+      sendNDJSON(res, {
+        type: "analytics",
+        analytics,
+      });
+
+      sendNDJSON(res, {
+        type: "suggestions",
+        options: analytics.options.length
+          ? analytics.options
+          : ["Show homes", "Show plots", "Show commercial"],
+      });
+
+      return res.end();
+    }
+
     // ASK NEXT QUESTION
     const nextStep =
-      getNextStep(req.memory);
+      await getNextStep(req.memory);
 
     // IF FLOW NOT COMPLETE
     if (nextStep) {
@@ -72,18 +133,36 @@ export async function chatController(
 
     // NO RESULTS
     if (!properties.length) {
+      const locationLabel =
+        memory.locality || memory.city || "your selected area";
+
+      const optionLocation =
+        memory.locality || memory.city || "Hyderabad";
 
       sendNDJSON(res, {
         type: "message",
         content:
-          "No matching properties found.",
+          `I could not find matching property cards for ${locationLabel}. Try one of these property searches.`,
+      });
+
+      sendNDJSON(res, {
+        type: "suggestions",
+        options: [
+          `Homes in ${optionLocation}`,
+          `Plots in ${optionLocation}`,
+          `Commercial in ${optionLocation}`,
+          memory.city ? `Show analytics for ${memory.city}` : "Show market analytics",
+        ],
       });
 
       return res.end();
     }
 
+    const topProperties =
+      properties.slice(0, 3).map(toPropertyCard);
+
     // STREAM PROPERTY CARDS
-    for (const property of properties) {
+    for (const property of topProperties) {
 
       sendNDJSON(res, {
         type: "property",
@@ -91,33 +170,11 @@ export async function chatController(
       });
     }
 
-    // AI PROMPT
-    const prompt = `
-You are Propenu AI,
-an intelligent Indian real estate assistant.
-
-User Preferences:
-${JSON.stringify(req.memory)}
-
-Matching Properties:
-${JSON.stringify(properties)}
-
-Rules:
-- Recommend properties naturally
-- Mention city and locality
-- Mention investment potential
-- Keep concise
-- Sound like property consultant
-`;
-
-    // GEMINI
-    const result =
-      await geminiModel.generateContent(
-        prompt
-      );
+    const cityLabel =
+      memory.city ? ` in ${memory.city}` : "";
 
     const aiText =
-      result.response.text();
+      `I found ${properties.length} matching verified ${properties.length === 1 ? "property" : "properties"}${cityLabel}. Here are the best matches to start with.`;
 
     // STREAM AI RESPONSE
     sendNDJSON(res, {
@@ -130,10 +187,10 @@ Rules:
       type: "suggestions",
 
       options: [
-        "Compare Properties",
-        "Explore Nearby",
-        "Show Investment Areas",
-        "Contact Builder",
+        "Show more matches",
+        "Compare these",
+        "Explore nearby areas",
+        memory.city ? `Show analytics for ${memory.city}` : "Show market analytics",
       ],
     });
 
@@ -154,5 +211,35 @@ Rules:
     });
 
     res.end();
+  }
+}
+
+export async function suggestionsController(
+  req: Request,
+  res: Response
+) {
+  try {
+    const city =
+      typeof req.query.city === "string"
+        ? req.query.city
+        : undefined;
+
+    const suggestions =
+      await getStarterSuggestions(city);
+
+    return res.json({
+      success: true,
+      suggestions,
+    });
+  } catch (error) {
+    console.error(
+      "SUGGESTIONS CONTROLLER ERROR:",
+      error
+    );
+
+    return res.json({
+      success: true,
+      suggestions: [],
+    });
   }
 }

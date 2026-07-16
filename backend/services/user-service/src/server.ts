@@ -1,6 +1,7 @@
 import express from "express";
 import authRoute from "./routes/authRoute";
 import dotenv from "dotenv";
+import path from "path";
 import { connectDB } from "./config/db";
 import agentRoute from "./routes/agentRoute";
 import nominatimRoute from "./routes/nominatimRoute";
@@ -15,7 +16,7 @@ import whatsappRouter from "./routes/whatsappRoute";
 import builderAccessRoute from "./routes/builderAccessRoute";
 import builderProfileRoute from "./routes/builderProfileRoute";
 
-dotenv.config({ quiet: true });
+dotenv.config({ path: path.resolve(process.cwd(), ".env"), quiet: true });
 
 const app = express();
 app.use(express.json());

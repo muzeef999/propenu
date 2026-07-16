@@ -1,289 +1,228 @@
-export function updateMemory(
-  memory: any,
-  message: string
-) {
+const knownCities = ["hyderabad", "bangalore", "bengaluru", "mumbai", "pune", "chennai", "delhi"];
+const knownLocalities = ["orr", "kokapet", "tellapur", "whitefield", "jubilee hills", "ameerpet", "venkateshwara colony"];
+const requestWords = [
+  "i want",
+  "want",
+  "show",
+  "search",
+  "find",
+  "looking for",
+  "need",
+  "please",
+  "property",
+  "properties",
+  "home",
+  "homes",
+  "commercial",
+  "residential",
+  "buy",
+  "sale",
+  "rent",
+  "lease",
+];
 
-  const lower =
-    message.toLowerCase();
+function titleCase(value: string) {
+  return value
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .replace(/\bOrr\b/i, "ORR");
+}
 
-  // =========================
-  // INTENT
-  // =========================
+function parseMoney(amount: string, unit: string) {
+  const value = Number(amount);
+  if (!value || Number.isNaN(value)) return undefined;
+  return /cr|crore/.test(unit) ? value * 10000000 : value * 100000;
+}
 
-  if (
-    lower.includes("buy")
-  ) {
+function extractKeyword(message: string) {
+  let keyword = message.toLowerCase();
 
-    memory.intent = "buy";
+  for (const city of knownCities) {
+    keyword = keyword.replace(new RegExp(`\\b${city}\\b`, "gi"), " ");
   }
 
-  if (
-    lower.includes("rent")
-  ) {
-
-    memory.intent = "rent";
+  for (const locality of knownLocalities) {
+    keyword = keyword.replace(new RegExp(`\\b${locality}\\b`, "gi"), " ");
   }
 
-  if (
-    lower.includes("lease")
-  ) {
-
-    memory.intent = "lease";
+  for (const word of requestWords) {
+    keyword = keyword.replace(new RegExp(`\\b${word}\\b`, "gi"), " ");
   }
 
-  // =========================
-  // PROPERTY TYPE
-  // =========================
+  keyword = keyword
+    .replace(/\b(?:in|near|around|at|for|under|below|upto|up to|max|within)\b/gi, " ")
+    .replace(/\b\d+(?:\.\d+)?\s*(?:cr|crore|crores|l|lac|lakh|lakhs|k|bhk|bk|bed|bedroom)\b/gi, " ")
+    .replace(/[^a-z0-9\s-]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-  if (
-    lower.includes("villa") ||
-    lower.includes("villas")
-  ) {
+  return keyword.length >= 3 ? titleCase(keyword) : undefined;
+}
 
-    memory.propertyType =
-      "villa";
+export function updateMemory(memory: any, message: string) {
+  const lower = message.toLowerCase();
+  const hasPropertyRequest =
+    /\b(home|homes|property|properties|apartment|apartments|flat|flats|bhk|bk|villa|villas|plot|plots|land|commercial|office|shop|warehouse|showroom|retail|project|projects)\b/.test(lower);
 
-    memory.propertyCategory =
-      "residential";
+  const next = hasPropertyRequest
+    ? {
+        city: memory.city,
+        state: memory.state,
+        analytics: false,
+        quickSearch: true,
+      }
+    : { ...memory, analytics: false, quickSearch: false };
+
+  const keyword = extractKeyword(message);
+  if (keyword) {
+    next.keyword = keyword;
+    next.intent = next.intent || "buy";
+    next.listingType = next.listingType || "sale";
+    next.quickSearch = true;
   }
 
-  if (
-    lower.includes("apartment") ||
-    lower.includes("apartments") ||
-    lower.includes("flat") ||
-    lower.includes("flats")
-  ) {
-
-    memory.propertyType =
-      "apartment";
-
-    memory.propertyCategory =
-      "residential";
+  if (/\b(buy|purchase|sale)\b/.test(lower)) {
+    next.intent = "buy";
+    next.listingType = "sale";
   }
 
-  if (
-    lower.includes("plot") ||
-    lower.includes("plots")
-  ) {
-
-    memory.propertyType =
-      "plot";
-
-    memory.propertyCategory =
-      "land";
+  if (/\brent\b/.test(lower)) {
+    next.intent = "rent";
+    next.listingType = "rent";
   }
 
-  if (
-    lower.includes("commercial")
-  ) {
-
-    memory.propertyCategory =
-      "commercial";
+  if (/\blease\b/.test(lower)) {
+    next.intent = "lease";
+    next.listingType = "lease";
   }
 
-  if (
-    lower.includes("office")
-  ) {
-
-    memory.propertyType =
-      "office";
-
-    memory.propertyCategory =
-      "commercial";
+  if (!hasPropertyRequest && /\b(analytics?|market|trends?|insights?|dashboard|data)\b/.test(lower)) {
+    next.analytics = true;
   }
 
-  if (
-    lower.includes("shop")
-  ) {
-
-    memory.propertyType =
-      "shop";
-
-    memory.propertyCategory =
-      "commercial";
+  if (/\b(villa|villas)\b/.test(lower)) {
+    next.propertyType = "villa";
+    next.propertyCategory = "residential";
   }
 
-  // =========================
-  // CITY
-  // =========================
-
-  if (
-    lower.includes("hyderabad")
-  ) {
-
-    memory.city =
-      "Hyderabad";
+  if (/\b(home|homes|property|properties)\b/.test(lower)) {
+    next.intent = next.intent || "buy";
+    next.listingType = next.listingType || "sale";
+    next.propertyCategory = "residential";
+    next.quickSearch = true;
   }
 
-  if (
-    lower.includes("bangalore")
-  ) {
-
-    memory.city =
-      "Bangalore";
+  if (/\b(apartment|apartments|flat|flats|bhk|bk)\b/.test(lower)) {
+    next.intent = next.intent || "buy";
+    next.listingType = next.listingType || "sale";
+    next.propertyType = "apartment";
+    next.propertyCategory = "residential";
+    next.quickSearch = true;
   }
 
-  if (
-    lower.includes("mumbai")
-  ) {
-
-    memory.city =
-      "Mumbai";
+  if (/\b(independent house|house)\b/.test(lower)) {
+    next.propertyType = "independent_house";
+    next.propertyCategory = "residential";
   }
 
-  if (
-    lower.includes("pune")
-  ) {
-
-    memory.city =
-      "Pune";
+  if (/\b(plot|plots|land)\b/.test(lower)) {
+    next.intent = next.intent || "buy";
+    next.listingType = next.listingType || "sale";
+    next.propertyType = "plot";
+    next.propertyCategory = "land";
+    next.quickSearch = true;
   }
 
-  // =========================
-  // LOCALITY
-  // =========================
-
-  if (
-    lower.includes("orr")
-  ) {
-
-    memory.locality =
-      "ORR";
+  if (/\b(farm|agriculture|agricultural)\b/.test(lower)) {
+    next.intent = next.intent || "buy";
+    next.listingType = next.listingType || "sale";
+    next.propertyCategory = "agricultural";
+    next.quickSearch = true;
   }
 
-  if (
-    lower.includes("kokapet")
-  ) {
-
-    memory.locality =
-      "Kokapet";
+  if (/\b(commercial|office|shop|warehouse|showroom|retail)\b/.test(lower)) {
+    next.intent = next.intent || "buy";
+    next.listingType = next.listingType || "sale";
+    next.propertyCategory = "commercial";
+    next.quickSearch = true;
+    if (lower.includes("office")) next.propertyType = "office";
+    if (lower.includes("shop")) next.propertyType = "shop";
+    if (lower.includes("warehouse")) next.propertyType = "warehouse";
+    if (lower.includes("showroom")) next.propertyType = "showroom";
+    if (lower.includes("retail")) next.propertyType = "retail";
   }
 
-  if (
-    lower.includes("tellapur")
-  ) {
-
-    memory.locality =
-      "Tellapur";
+  for (const city of knownCities) {
+    if (lower.includes(city)) {
+      next.city = city === "bengaluru" ? "Bangalore" : titleCase(city);
+    }
   }
 
-  if (
-    lower.includes("whitefield")
-  ) {
+  const cityMatch = message.match(/\bcity\s+([a-z][a-z\s-]{2,})/i);
+  if (cityMatch?.[1]) next.city = titleCase(cityMatch[1]);
 
-    memory.locality =
-      "Whitefield";
+  for (const locality of knownLocalities) {
+    if (lower.includes(locality)) next.locality = titleCase(locality);
   }
 
-  // =========================
-  // BHK
-  // =========================
-
-  if (
-    lower.includes("1bhk")
-  ) {
-
-    memory.bhk = 1;
+  const localityMatch = message.match(/\b(?:in|near|around|at)\s+([a-z][a-z\s-]{2,})(?:\s+(?:under|below|upto|up to|for|with|ready|east|west|north|south)\b|$)/i);
+  if (localityMatch?.[1]) {
+    const candidate = titleCase(localityMatch[1]);
+    if (!knownCities.includes(candidate.toLowerCase())) next.locality = candidate;
   }
 
-  if (
-    lower.includes("2bhk")
-  ) {
+  const bhkMatch = lower.match(/\b([1-9])\s*(?:bhk|bk|bed|bedroom)\b/);
+  if (bhkMatch?.[1]) next.bhk = Number(bhkMatch[1]);
 
-    memory.bhk = 2;
+  const priceMatch = lower.match(/\b(?:under|below|upto|up to|max|within)\s*(\d+(?:\.\d+)?)\s*(cr|crore|crores|l|lac|lakh|lakhs)\b/);
+  if (priceMatch?.[1] && priceMatch?.[2]) {
+    next.maxPrice = parseMoney(priceMatch[1], priceMatch[2]);
+    next.budget = /cr|crore/.test(priceMatch[2])
+      ? `Under ${priceMatch[1]}Cr`
+      : `Under ${priceMatch[1]}L`;
   }
 
-  if (
-    lower.includes("3bhk")
-  ) {
-
-    memory.bhk = 3;
+  if (/under\s*50\s*(l|lac|lakh)/.test(lower)) {
+    next.budget = "Under 50L";
+    next.maxPrice = 5000000;
+  } else if (/50\s*(l|lac|lakh)\s*-\s*1\s*(cr|crore)|\b1\s*(cr|crore)\b/.test(lower)) {
+    next.budget = "50L - 1Cr";
+    next.maxPrice = 10000000;
+  } else if (/1\s*(cr|crore)\s*-\s*2\s*(cr|crore)|\b2\s*(cr|crore)\b/.test(lower)) {
+    next.budget = "1Cr - 2Cr";
+    next.maxPrice = 20000000;
+  } else if (/2\s*(cr|crore)\+|3\s*(cr|crore)/.test(lower)) {
+    next.budget = "2Cr - 3Cr";
+    next.maxPrice = 30000000;
   }
 
-  if (
-    lower.includes("4bhk")
-  ) {
-
-    memory.bhk = 4;
+  if (/under\s*25\s*k/.test(lower)) {
+    next.budget = "Under 25K";
+    next.maxPrice = 25000;
+  } else if (/25\s*k\s*-\s*50\s*k/.test(lower)) {
+    next.budget = "25K - 50K";
+    next.maxPrice = 50000;
+  } else if (/50\s*k\s*-\s*1\s*l/.test(lower)) {
+    next.budget = "50K - 1L";
+    next.maxPrice = 100000;
   }
 
-  // =========================
-  // BUDGET
-  // =========================
+  if (/ready[\s-]to[\s-]move/.test(lower)) next.constructionStatus = "ready-to-move";
+  if (/under[\s-]construction/.test(lower)) next.constructionStatus = "under-construction";
+  if (/new[\s-]launch|new[\s-]lanch/.test(lower)) next.constructionStatus = "new-lanch";
 
-  if (
-    lower.includes("under 50l") ||
-    lower.includes("under 50 l") ||
-    lower.includes("50l") ||
-    lower.includes("50 l")
-  ) {
+  if (lower.includes("east facing")) next.facing = "east";
+  if (lower.includes("west facing")) next.facing = "west";
+  if (lower.includes("north facing")) next.facing = "north";
+  if (lower.includes("south facing")) next.facing = "south";
 
-    memory.budget =
-      "Under 50L";
+  if (lower.includes("fully furnished")) next.furnishing = "fully-furnished";
+  if (lower.includes("semi furnished") || lower.includes("semi-furnished")) next.furnishing = "semi-furnished";
+  if (lower.includes("unfurnished")) next.furnishing = "unfurnished";
 
-    memory.maxPrice =
-      5000000;
-  }
+  if (lower.includes("negotiable")) next.isPriceNegotiable = true;
+  if (/ready[\s-]to[\s-]construct/.test(lower)) next.readyToConstruct = true;
 
-  else if (
-    lower.includes("1cr") ||
-    lower.includes("1 cr")
-  ) {
-
-    memory.budget =
-      "50L - 1Cr";
-
-    memory.maxPrice =
-      10000000;
-  }
-
-  else if (
-    lower.includes("2cr") ||
-    lower.includes("2 cr")
-  ) {
-
-    memory.budget =
-      "1Cr - 2Cr";
-
-    memory.maxPrice =
-      20000000;
-  }
-
-  else if (
-    lower.includes("3cr") ||
-    lower.includes("3 cr")
-  ) {
-
-    memory.budget =
-      "2Cr - 3Cr";
-
-    memory.maxPrice =
-      30000000;
-  }
-
-  // =========================
-  // PROPERTY STATUS
-  // =========================
-
-  if (
-    lower.includes("new launch")
-  ) {
-
-    memory.status =
-      "new_launch";
-  }
-
-  if (
-    lower.includes("ready to move")
-  ) {
-
-    memory.status =
-      "ready_to_move";
-  }
-
-  // =========================
-  // RETURN MEMORY
-  // =========================
-
-  return memory;
+  return next;
 }
