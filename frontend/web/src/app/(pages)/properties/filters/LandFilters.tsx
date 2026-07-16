@@ -25,6 +25,14 @@ import SelectableButton from "@/ui/SelectableButton";
 import { FiCheck, FiPlus, FiX } from "react-icons/fi";
 import { formatLabel } from "@/utilies/formatLabel";
 
+function normalizeLocalityName(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function getLocalityDedupKey(value: string) {
+  return normalizeLocalityName(value).toLowerCase();
+}
+
 /* -------------------- BUDGET CONSTANTS -------------------- */
 const BUDGET_MIN = 5;
 const BUDGET_MAX = 5000;
@@ -134,7 +142,13 @@ const LandFilters = () => {
     new Map(
       (localities ?? [])
         .filter((loc): loc is { name: string } => Boolean(loc?.name?.trim()))
-        .map((loc) => [loc.name.trim(), { ...loc, name: loc.name.trim() }]),
+        .map((loc) => {
+          const normalizedName = normalizeLocalityName(loc.name);
+          return [
+            getLocalityDedupKey(normalizedName),
+            { ...loc, name: normalizedName },
+          ] as const;
+        }),
     ).values(),
   );
   const localityCount = selectedLocalities.length > 0 ? 1 : 0;

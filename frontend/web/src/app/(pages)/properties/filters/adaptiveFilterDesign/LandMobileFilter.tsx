@@ -29,6 +29,14 @@ import { toast } from "sonner";
 import SelectableButton from "@/ui/SelectableButton";
 import { formatLabel } from "@/utilies/formatLabel";
 
+function normalizeLocalityName(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function getLocalityDedupKey(value: string) {
+  return normalizeLocalityName(value).toLowerCase();
+}
+
 type ListingOption = {
   label: "Buy" | "Rent";
   value: "sale" | "rent";
@@ -143,11 +151,15 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
 
   const localitySuggestions = useMemo(() => {
     const names = Array.from(
-      new Set(
-        cityData?.localities
-          ?.map((loc) => loc?.name?.trim())
-          .filter((name): name is string => Boolean(name)) ?? [],
-      ),
+      new Map(
+        (cityData?.localities ?? [])
+          .map((loc) => loc?.name)
+          .filter((name): name is string => Boolean(name?.trim()))
+          .map((name) => {
+            const normalizedName = normalizeLocalityName(name);
+            return [getLocalityDedupKey(normalizedName), normalizedName] as const;
+          }),
+      ).values(),
     );
 
     const query = searchText.trim().toLowerCase();

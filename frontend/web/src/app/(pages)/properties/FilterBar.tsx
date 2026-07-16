@@ -35,6 +35,14 @@ import { hydrateFiltersFromSearchParams } from "./filters/hydrateFiltersFromSear
 
 const LAST_PROPERTY_CATEGORY_KEY = "properties:lastCategory";
 
+function normalizeLocalityName(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function getLocalityDedupKey(value: string) {
+  return normalizeLocalityName(value).toLowerCase();
+}
+
 const FilterBar: React.FC = () => {
   const getCategoryLabel = (value: categoryOption) =>
     value === "Land" ? "Plots" : value;
@@ -413,11 +421,15 @@ const FilterBar: React.FC = () => {
 
   const localitySuggestions = useMemo(() => {
     const names = Array.from(
-      new Set(
-        cityData?.localities
-          ?.map((loc) => loc?.name?.trim())
-          .filter((name): name is string => Boolean(name)) ?? [],
-      ),
+      new Map(
+        (cityData?.localities ?? [])
+          .map((loc) => loc?.name)
+          .filter((name): name is string => Boolean(name?.trim()))
+          .map((name) => {
+            const normalizedName = normalizeLocalityName(name);
+            return [getLocalityDedupKey(normalizedName), normalizedName] as const;
+          }),
+      ).values(),
     );
 
     const query = searchText.trim().toLowerCase();
