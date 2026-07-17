@@ -17,7 +17,10 @@ function getRoleNameFromUser(user: any) {
 async function validateBuilderAndProject(params: {
   builder?: string;
   project?: string;
-}) {
+}): Promise<
+  | { ok: true }
+  | { ok: false; status: number; message: string }
+> {
   const { builder, project } = params;
 
   if (!builder || !Types.ObjectId.isValid(builder)) {
