@@ -37,6 +37,12 @@ function hasHtml(value: string) {
   return /<\/?[a-z][\s\S]*>/i.test(value);
 }
 
+function stripHtml(value?: string) {
+  if (!value) return "";
+
+  return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 function getArticleSectionId(heading: string, index: number) {
   const slug = heading
     .toLowerCase()
@@ -263,9 +269,9 @@ export default async function Page({ params }: PageProps) {
 
             <div className="mt-6">
               {blog.excerpt && (
-                <p className="mb-6 text-[15px] leading-7 text-gray-500 sm:text-base">
-                  {blog.excerpt}
-                </p>
+                <div className="mb-6">
+                  <ContentBlock content={blog.excerpt} />
+                </div>
               )}
 
               <ContentBlock content={blog.content} />
@@ -302,15 +308,15 @@ export default async function Page({ params }: PageProps) {
                         className="group py-4"
                       >
                         <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[15px] font-normal text-gray-600 marker:hidden [&::-webkit-details-marker]:hidden">
-                          <span>{faq.question}</span>
+                          <span>{stripHtml(faq.question)}</span>
                           <FiChevronDown
                             size={16}
                             className="shrink-0 text-gray-600 transition group-open:rotate-180"
                           />
                         </summary>
-                        <p className="mt-3 pr-8 text-sm leading-6 text-gray-500 sm:text-[15px]">
-                          {faq.answer}
-                        </p>
+                        <div className="mt-3 pr-8">
+                          <ContentBlock content={faq.answer} />
+                        </div>
                       </details>
                     ))}
                   </div>
@@ -339,9 +345,9 @@ export default async function Page({ params }: PageProps) {
                       )}
 
                       {blog.author.description && (
-                        <p className="mt-3 text-sm leading-6 text-gray-600">
-                          {blog.author.description}
-                        </p>
+                        <div className="mt-3 text-sm leading-6 text-gray-600">
+                          <ContentBlock content={blog.author.description} />
+                        </div>
                       )}
                     </div>
                   </div>

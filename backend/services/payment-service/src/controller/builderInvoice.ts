@@ -31,6 +31,15 @@ function buildBuilderDetails(user: any) {
   };
 }
 
+function toNumberOrUndefined(value: unknown) {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 async function resolveInvoiceDependencies(params: {
   userId?: string;
   propertyId?: string;
@@ -52,7 +61,7 @@ async function resolveInvoiceDependencies(params: {
 
   const [targetUser, propertyDoc, planDoc] = await Promise.all([
     User.findById(userId).populate("roleId", "name"),
-    FeaturedProject.findById(propertyId).select("title createdBy"),
+    FeaturedProject.findById(propertyId).select("title createdBy propertyCode"),
     BuilderPlan.findById(servicePlanId),
   ]);
 
@@ -188,13 +197,33 @@ export async function createBuilderInvoice(req: AuthRequest, res: Response) {
       builderDetails: buildBuilderDetails(resolved.targetUser),
       propertyId: String(resolved.propertyDoc._id),
       propertyTitle: req.body.propertyTitle || resolved.propertyDoc.title,
+      projectCode: req.body.projectCode || (resolved.propertyDoc as any).propertyCode,
       servicePlanId: String(resolved.planDoc._id),
       servicePlanName: req.body.servicePlanName || resolved.planDoc.title,
       serviceType: req.body.serviceType || resolved.planDoc.promotionType,
+      subtotalAmount:
+        toNumberOrUndefined(req.body.subtotalAmount) ??
+        toNumberOrUndefined(req.body.totalAmount) ??
+        resolved.planDoc.price,
       totalAmount:
-        req.body.totalAmount ?? resolved.planDoc.finalPrice ?? resolved.planDoc.price,
-      discountValue: req.body.discountValue ?? resolved.planDoc.discount ?? 0,
-      discountAmount: req.body.discountAmount ?? resolved.planDoc.discount ?? 0,
+        toNumberOrUndefined(req.body.totalAmount) ??
+        resolved.planDoc.finalPrice ??
+        resolved.planDoc.price,
+      discountValue:
+        toNumberOrUndefined(req.body.discountValue) ??
+        resolved.planDoc.discount ??
+        0,
+      discountAmount:
+        toNumberOrUndefined(req.body.discountAmount) ??
+        resolved.planDoc.discount ??
+        0,
+      gstRate: toNumberOrUndefined(req.body.gstRate) ?? 0,
+      gstAmount: toNumberOrUndefined(req.body.gstAmount) ?? 0,
+      paidAmount:
+        toNumberOrUndefined(req.body.paidAmount) ??
+        toNumberOrUndefined(req.body.totalAmount) ??
+        resolved.planDoc.finalPrice ??
+        resolved.planDoc.price,
     };
 
     const invoice = await BuilderInvoice.create(payload);
@@ -257,9 +286,42 @@ export async function updateBuilderInvoice(req: AuthRequest, res: Response) {
       builderDetails: buildBuilderDetails(resolved.targetUser),
       propertyId: String(resolved.propertyDoc._id),
       propertyTitle: req.body.propertyTitle ?? (invoice as any).propertyTitle ?? resolved.propertyDoc.title,
+      projectCode:
+        req.body.projectCode ??
+        (invoice as any).projectCode ??
+        (resolved.propertyDoc as any).propertyCode,
       servicePlanId: String(resolved.planDoc._id),
       servicePlanName: req.body.servicePlanName ?? (invoice as any).servicePlanName ?? resolved.planDoc.title,
       serviceType: req.body.serviceType ?? (invoice as any).serviceType ?? resolved.planDoc.promotionType,
+      subtotalAmount:
+        toNumberOrUndefined(req.body.subtotalAmount) ??
+        (invoice as any).subtotalAmount ??
+        (invoice as any).totalAmount ??
+        resolved.planDoc.price,
+      totalAmount:
+        toNumberOrUndefined(req.body.totalAmount) ??
+        (invoice as any).totalAmount ??
+        resolved.planDoc.finalPrice ??
+        resolved.planDoc.price,
+      discountValue:
+        toNumberOrUndefined(req.body.discountValue) ??
+        (invoice as any).discountValue ??
+        resolved.planDoc.discount ??
+        0,
+      discountAmount:
+        toNumberOrUndefined(req.body.discountAmount) ??
+        (invoice as any).discountAmount ??
+        resolved.planDoc.discount ??
+        0,
+      gstRate: toNumberOrUndefined(req.body.gstRate) ?? (invoice as any).gstRate ?? 0,
+      gstAmount:
+        toNumberOrUndefined(req.body.gstAmount) ?? (invoice as any).gstAmount ?? 0,
+      paidAmount:
+        toNumberOrUndefined(req.body.paidAmount) ??
+        (invoice as any).paidAmount ??
+        (invoice as any).totalAmount ??
+        resolved.planDoc.finalPrice ??
+        resolved.planDoc.price,
     });
     await invoice.save();
 

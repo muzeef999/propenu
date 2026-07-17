@@ -5,6 +5,7 @@ import { connectDB } from "./config/db";
 import planRoutes from "./routes/planRoute";
 import subscriptionRoutes from "./routes/subscriptionRoute"
 import pdfRawData from "./routes/pdfRawData";
+import builderPlanPdfPreview from "./routes/builderPlanPdfPreview";
 import accountRoutes from "./routes/accountRoutes";
 import builderPlanRoutes from "./routes/builderPlanRoute";
 import builderInvoiceRoutes from "./routes/builderInvoiceRoute";
@@ -35,6 +36,7 @@ async function start() {
     app.use("/api/payments/subscriptions", subscriptionRoutes);
     app.use('/api/payments/accounts', accountRoutes)
     app.use("/api/payments/pdf/preview", pdfRawData);
+    app.use("/api/payments/pdf/builder-plan-preview", builderPlanPdfPreview);
 
 
     app.listen(Number(PORT), "0.0.0.0", () => {

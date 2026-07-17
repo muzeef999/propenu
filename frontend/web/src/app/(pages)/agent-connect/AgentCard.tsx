@@ -221,7 +221,7 @@ function AgentCard({ data }: { data: AgentConnect }) {
           {/* Profile Picture */}
           <div className="absolute left-5 -bottom-10 h-20 w-20 rounded-full border-4 border-white shadow-md overflow-hidden bg-gray-100">
             <Image
-              src={data.avatar?.url || "/placeholder.jpg"}
+              src={data.avatar?.url || "/images/UserPlaceholder.webp"}
               alt={data.name}
               fill
               className="object-cover"
@@ -230,7 +230,7 @@ function AgentCard({ data }: { data: AgentConnect }) {
         </div>
 
         {/* Content */}
-        <div className="pt-12 pb-5 px-5 flex flex-col justify-between min-h-[210px]">
+        <div className="pt-12 pb-5 px-5 flex flex-col justify-between min-h-[200px]">
           {/* Title + Headline */}
           <div>
             <h2 className="text-lg font-bold text-gray-900 leading-tight">
@@ -251,7 +251,7 @@ function AgentCard({ data }: { data: AgentConnect }) {
           </div>
 
           {/* Stats */}
-          <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
+          {/* <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
             <div className="text-center">
               <p className="text-xl font-medium text-green-600 leading-none">
                 {data.stats?.publishedCount}
@@ -272,7 +272,7 @@ function AgentCard({ data }: { data: AgentConnect }) {
               </p>
               <p className="text-sm text-gray-500 mt-1">Deal Closed</p>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </Link>

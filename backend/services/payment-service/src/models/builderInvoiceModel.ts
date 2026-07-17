@@ -87,6 +87,12 @@ const BuilderInvoiceSchema = new Schema(
       trim: true,
     },
 
+    projectCode: {
+      type: String,
+      trim: true,
+      index: true,
+    },
+
     servicePlanId: {
       type: Types.ObjectId,
       ref: "BuilderPlan",
@@ -126,6 +132,11 @@ const BuilderInvoiceSchema = new Schema(
       min: 0,
     },
 
+    subtotalAmount: {
+      type: Number,
+      min: 0,
+    },
+
     discountType: {
       type: String,
       default: "percentage",
@@ -139,6 +150,18 @@ const BuilderInvoiceSchema = new Schema(
     },
 
     discountAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    gstRate: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    gstAmount: {
       type: Number,
       default: 0,
       min: 0,
