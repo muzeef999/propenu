@@ -7,6 +7,7 @@ import subscriptionRoutes from "./routes/subscriptionRoute"
 import pdfRawData from "./routes/pdfRawData";
 import accountRoutes from "./routes/accountRoutes";
 import builderPlanRoutes from "./routes/builderPlanRoute";
+import builderInvoiceRoutes from "./routes/builderInvoiceRoute";
 
 
 dotenv.config({ quiet: true });
@@ -30,6 +31,7 @@ async function start() {
     app.use("/api/payments", paymentRoutes);
     app.use("/api/payments/plans", planRoutes);
     app.use("/api/payments/builder-plans", builderPlanRoutes);
+    app.use("/api/payments/builder-invoices", builderInvoiceRoutes);
     app.use("/api/payments/subscriptions", subscriptionRoutes);
     app.use('/api/payments/accounts', accountRoutes)
     app.use("/api/payments/pdf/preview", pdfRawData);
