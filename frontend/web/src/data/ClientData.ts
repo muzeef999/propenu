@@ -362,6 +362,30 @@ export type BuilderPhoneVerifyPayload = {
   otp: string;
 };
 
+export type BuilderInvoiceListItem = {
+  _id: string;
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  startDate?: string;
+  endDate?: string;
+  propertyTitle?: string;
+  projectCode?: string;
+  propertyId?:
+    | string
+    | {
+        _id?: string;
+        propertyCode?: string;
+        title?: string;
+      };
+  servicePlanName?: string;
+  totalAmount?: number;
+  discountType?: string;
+  discountValue?: number;
+  discountAmount?: number;
+  paidAmount?: number;
+  paymentStatus?: string;
+};
+
 export const getBuilderProfile = async () => {
   const token = Cookies.get("token");
   if (!token) throw new Error("Not authenticated");
@@ -372,6 +396,47 @@ export const getBuilderProfile = async () => {
     },
   });
   return res.data;
+};
+
+export const getBuilderInvoices = async (userId: string) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(`${url}/api/payments/builder-invoices`, {
+    params: { userId },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.data as { success: boolean; invoices: BuilderInvoiceListItem[] };
+};
+
+export const downloadBuilderInvoicePdf = async (
+  invoiceId: string,
+  invoiceNumber?: string,
+) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(
+    `${url}/api/payments/builder-invoices/${invoiceId}/pdf`,
+    {
+      responseType: "blob",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = `${invoiceNumber || "builder-invoice"}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(blobUrl);
 };
 
 export const updateBuilderProfile = async (payload: BuilderProfilePayload) => {
