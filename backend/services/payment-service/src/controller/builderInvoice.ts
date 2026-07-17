@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import { Types } from "mongoose";
 import { BuilderInvoice } from "../models/builderInvoiceModel";
 import User from "../../../user-service/src/models/userModel";
+import FeaturedProject from "../../../user-service/src/models/featurePropertiesModel";
+import { BuilderPlan } from "../models/builderPlanModel";
 import { AuthRequest } from "../middlewares/authMiddleware";
 
 function getRoleNameFromUser(user: any) {
@@ -26,6 +28,64 @@ function buildBuilderDetails(user: any) {
     state: user?.state,
     pincode: user?.pincode,
     address: user?.address,
+  };
+}
+
+async function resolveInvoiceDependencies(params: {
+  userId?: string;
+  propertyId?: string;
+  servicePlanId?: string;
+}) {
+  const { userId, propertyId, servicePlanId } = params;
+
+  if (!userId || !Types.ObjectId.isValid(String(userId))) {
+    return { ok: false as const, status: 400, message: "A valid builder userId is required" };
+  }
+
+  if (!propertyId || !Types.ObjectId.isValid(String(propertyId))) {
+    return { ok: false as const, status: 400, message: "A valid propertyId is required" };
+  }
+
+  if (!servicePlanId || !Types.ObjectId.isValid(String(servicePlanId))) {
+    return { ok: false as const, status: 400, message: "A valid servicePlanId is required" };
+  }
+
+  const [targetUser, propertyDoc, planDoc] = await Promise.all([
+    User.findById(userId).populate("roleId", "name"),
+    FeaturedProject.findById(propertyId).select("title createdBy"),
+    BuilderPlan.findById(servicePlanId),
+  ]);
+
+  if (!targetUser) {
+    return { ok: false as const, status: 404, message: "Selected builder user not found" };
+  }
+
+  const targetRoleName = getRoleNameFromUser(targetUser);
+  if (targetRoleName !== "builder") {
+    return { ok: false as const, status: 400, message: "Selected user is not a builder" };
+  }
+
+  if (!propertyDoc) {
+    return { ok: false as const, status: 404, message: "Selected project not found" };
+  }
+
+  if (String(propertyDoc.createdBy) !== String(targetUser._id)) {
+    return {
+      ok: false as const,
+      status: 400,
+      message: "Selected project does not belong to the selected builder",
+    };
+  }
+
+  if (!planDoc) {
+    return { ok: false as const, status: 404, message: "Selected builder plan not found" };
+  }
+
+  return {
+    ok: true as const,
+    targetUser,
+    propertyDoc,
+    planDoc,
   };
 }
 
@@ -109,37 +169,32 @@ export async function createBuilderInvoice(req: AuthRequest, res: Response) {
       });
     }
 
-    const targetUserId = req.body.userId;
+    const resolved = await resolveInvoiceDependencies({
+      userId: req.body.userId,
+      propertyId: req.body.propertyId,
+      servicePlanId: req.body.servicePlanId,
+    });
 
-    if (!targetUserId || !Types.ObjectId.isValid(String(targetUserId))) {
-      return res.status(400).json({
+    if (!resolved.ok) {
+      return res.status(resolved.status).json({
         success: false,
-        message: "A valid builder userId is required",
-      });
-    }
-
-    const targetUser = await User.findById(targetUserId).populate("roleId", "name");
-
-    if (!targetUser) {
-      return res.status(404).json({
-        success: false,
-        message: "Selected builder user not found",
-      });
-    }
-
-    const targetRoleName = getRoleNameFromUser(targetUser);
-
-    if (targetRoleName !== "builder") {
-      return res.status(400).json({
-        success: false,
-        message: "Selected user is not a builder",
+        message: resolved.message,
       });
     }
 
     const payload = {
       ...req.body,
-      userId: String(targetUser._id),
-      builderDetails: buildBuilderDetails(targetUser),
+      userId: String(resolved.targetUser._id),
+      builderDetails: buildBuilderDetails(resolved.targetUser),
+      propertyId: String(resolved.propertyDoc._id),
+      propertyTitle: req.body.propertyTitle || resolved.propertyDoc.title,
+      servicePlanId: String(resolved.planDoc._id),
+      servicePlanName: req.body.servicePlanName || resolved.planDoc.title,
+      serviceType: req.body.serviceType || resolved.planDoc.promotionType,
+      totalAmount:
+        req.body.totalAmount ?? resolved.planDoc.finalPrice ?? resolved.planDoc.price,
+      discountValue: req.body.discountValue ?? resolved.planDoc.discount ?? 0,
+      discountAmount: req.body.discountAmount ?? resolved.planDoc.discount ?? 0,
     };
 
     const invoice = await BuilderInvoice.create(payload);
@@ -179,7 +234,33 @@ export async function updateBuilderInvoice(req: AuthRequest, res: Response) {
       });
     }
 
-    Object.assign(invoice, req.body);
+    const nextUserId = req.body.userId ?? String((invoice as any).userId);
+    const nextPropertyId = req.body.propertyId ?? String((invoice as any).propertyId);
+    const nextPlanId = req.body.servicePlanId ?? String((invoice as any).servicePlanId);
+
+    const resolved = await resolveInvoiceDependencies({
+      userId: nextUserId,
+      propertyId: nextPropertyId,
+      servicePlanId: nextPlanId,
+    });
+
+    if (!resolved.ok) {
+      return res.status(resolved.status).json({
+        success: false,
+        message: resolved.message,
+      });
+    }
+
+    Object.assign(invoice, {
+      ...req.body,
+      userId: String(resolved.targetUser._id),
+      builderDetails: buildBuilderDetails(resolved.targetUser),
+      propertyId: String(resolved.propertyDoc._id),
+      propertyTitle: req.body.propertyTitle ?? (invoice as any).propertyTitle ?? resolved.propertyDoc.title,
+      servicePlanId: String(resolved.planDoc._id),
+      servicePlanName: req.body.servicePlanName ?? (invoice as any).servicePlanName ?? resolved.planDoc.title,
+      serviceType: req.body.serviceType ?? (invoice as any).serviceType ?? resolved.planDoc.promotionType,
+    });
     await invoice.save();
 
     return res.json({

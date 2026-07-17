@@ -2,22 +2,9 @@ import mongoose, { Schema } from "mongoose";
 
 const BuilderPlanSchema = new Schema(
   {
-    builder: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true,
-    },
-
-    project: {
-      type: Schema.Types.ObjectId,
-      ref: "featuredProject",
-      required: true,
-      index: true,
-    },
-
     code: {
       type: String,
+      unique: true,
       required: true,
       trim: true,
     },
@@ -68,19 +55,8 @@ const BuilderPlanSchema = new Schema(
       type: Boolean,
       default: true,
     },
-
-    features: {
-      type: Map,
-      of: Schema.Types.Mixed,
-      default: () => ({}),
-    },
   },
   { timestamps: true },
-);
-
-BuilderPlanSchema.index(
-  { builder: 1, project: 1, code: 1 },
-  { unique: true },
 );
 
 BuilderPlanSchema.pre("validate", function () {

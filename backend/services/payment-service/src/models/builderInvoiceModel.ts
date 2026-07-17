@@ -2,10 +2,6 @@ import mongoose, { Schema, Types } from "mongoose";
 
 const BuilderDetailsSchema = new Schema(
   {
-    builderId: {
-      type: Types.ObjectId,
-      ref: "Builder",
-    },
     name: {
       type: String,
       trim: true,
@@ -104,12 +100,11 @@ const BuilderInvoiceSchema = new Schema(
       trim: true,
     },
 
-    // serviceType: {
-    //   type: String,
-    //   required: true,
-    //   enum: ["listing", "promotion", "subscription"],
-    //   trim: true,
-    // },
+    serviceType: {
+      type: String,
+      required: true,
+      trim: true,
+    },
 
     timePeriod: {
       type: String,
