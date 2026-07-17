@@ -5,6 +5,7 @@ import User from "../../../user-service/src/models/userModel";
 import FeaturedProject from "../../../user-service/src/models/featurePropertiesModel";
 import { BuilderPlan } from "../models/builderPlanModel";
 import { AuthRequest } from "../middlewares/authMiddleware";
+import { generateBuilderPlanInvoicePdf } from "../utils/generateBuilderPlanInvoicePdf";
 
 function getRoleNameFromUser(user: any) {
   const role = user?.roleId;
@@ -166,6 +167,56 @@ export async function getBuilderInvoiceById(req: Request, res: Response) {
       success: false,
       message: "Failed to fetch builder invoice",
     });
+  }
+}
+
+export async function getBuilderInvoicePdf(req: Request, res: Response) {
+  try {
+    const invoice = await BuilderInvoice.findById(req.params.id)
+      .populate("userId")
+      .populate("propertyId")
+      .populate("servicePlanId");
+
+    if (!invoice) {
+      return res.status(404).json({ success: false, message: "Builder invoice not found" });
+    }
+
+    const data: any = invoice.toObject();
+    const builder = data.builderDetails || data.userId || {};
+    const property = data.propertyId || {};
+    const plan = data.servicePlanId || {};
+    const address = builder.address || [builder.locality, builder.city, builder.state, builder.pincode]
+      .filter(Boolean).join(", ");
+    const pdf = await generateBuilderPlanInvoicePdf({
+      invoiceNumber: data.invoiceNumber,
+      invoiceDate: new Date(data.invoiceDate).toLocaleDateString("en-IN"),
+      orderId: data.orderId,
+      builderName: builder.name || builder.companyName || "Builder",
+      companyName: builder.companyName,
+      builderPhone: builder.phone,
+      builderEmail: builder.email,
+      builderAddress: address,
+      propertyTitle: data.propertyTitle || property.title || "Project",
+      projectCode: data.projectCode || property.propertyCode,
+      servicePlanName: data.servicePlanName || plan.title || "Builder plan",
+      timePeriod: data.timePeriod,
+      paymentMethod: data.paymentMethod,
+      paymentStatus: data.paymentStatus,
+      subtotalAmount: data.subtotalAmount ?? data.totalAmount,
+      gstRate: data.gstRate ?? 0,
+      gstAmount: data.gstAmount ?? 0,
+      totalAmount: data.totalAmount,
+      discountAmount: data.discountAmount ?? 0,
+      paidAmount: data.paidAmount,
+    });
+
+    const disposition = req.query.download === "true" ? "attachment" : "inline";
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `${disposition}; filename="${data.invoiceNumber}.pdf"`);
+    return res.send(pdf);
+  } catch (error) {
+    console.error("[builder-invoice] PDF generation failed", error);
+    return res.status(500).json({ success: false, message: "Failed to generate builder invoice PDF" });
   }
 }
 
