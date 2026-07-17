@@ -18,6 +18,7 @@ import PublicLead from "../models/PublicLead";
 import mongoose, { Types } from "mongoose";
 import FeaturedProject from "../models/featurePropertiesModel";
 import * as XLSX from "xlsx";
+import { getAdminLeadDashboard } from "../services/adminLeadService";
 
 
 const sendCSV = (leads: any[], res: Response) => {
@@ -476,6 +477,54 @@ export const getLeadsController = async (req: Request, res: Response) => {
     res.json({ success: true, data: leads });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+export const getAdminLeadsController = async (req: Request, res: Response) => {
+  try {
+    const data = await getAdminLeadDashboard(req.query);
+    res.json({ success: true, data });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+export const exportAdminLeadsController = async (req: Request, res: Response) => {
+  try {
+    const data = await getAdminLeadDashboard(req.query, true);
+    const rows = data.leads.map((lead: any) => ({
+      "Lead Name": lead.name,
+      Phone: lead.phone,
+      Email: lead.email,
+      "Project / Property": lead.project.title,
+      "Property Code": lead.project.code,
+      Category: lead.project.category,
+      State: lead.project.state,
+      City: lead.project.city,
+      Locality: lead.project.locality,
+      Source: lead.source,
+      Status: lead.status,
+      "Purchase Timeline": lead.purchaseTimeline,
+      "Budget Range": lead.budgetRange,
+      Message: lead.message,
+      "Created At": new Date(lead.createdAt).toLocaleString("en-IN"),
+    }));
+    const format = String(req.query.format || "csv").toLowerCase();
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    if (format === "xlsx" || format === "excel") {
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", `attachment; filename="leads-${Date.now()}.xlsx"`);
+      return res.send(buffer);
+    }
+    const csv = XLSX.utils.sheet_to_csv(worksheet);
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="leads-${Date.now()}.csv"`);
+    return res.send(`\uFEFF${csv}`);
+  } catch (error: any) {
+    return res.status(400).json({ success: false, message: error.message });
   }
 };
 
