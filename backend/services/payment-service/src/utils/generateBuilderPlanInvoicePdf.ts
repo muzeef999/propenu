@@ -2,14 +2,27 @@ import PDFDocument from "pdfkit";
 import { Buffer } from "buffer";
 import path from "path";
 
-export async function generateInvoicePdf(data: {
-  invoiceNo: string;
-  orderNo: string;
-  userName: string;
-  userPhone?: string | undefined;
-  planName: string;
-  amount: number;
-  date: string;
+export async function generateBuilderPlanInvoicePdf(data: {
+  invoiceNumber: string;
+  invoiceDate: string;
+  orderId?: string;
+  builderName: string;
+  companyName?: string;
+  builderPhone?: string;
+  builderEmail?: string;
+  builderAddress?: string;
+  propertyTitle: string;
+  projectCode?: string;
+  servicePlanName: string;
+  timePeriod: string;
+  paymentMethod: string;
+  paymentStatus: string;
+  subtotalAmount?: number;
+  gstRate?: number;
+  gstAmount?: number;
+  totalAmount: number;
+  discountAmount?: number;
+  paidAmount: number;
 }): Promise<Buffer> {
   return new Promise((resolve) => {
     const doc = new PDFDocument({ size: "A4", margin: 50 });
@@ -22,10 +35,10 @@ export async function generateInvoicePdf(data: {
     const pageWidth = doc.page.width;
     const margin = 50;
     const headerY = 35;
+    const leftX = 50;
+    const rightX = doc.page.width - 220;
 
-    doc.image(logoPath, margin, headerY, {
-      width: 110,
-    });
+    doc.image(logoPath, margin, headerY, { width: 110 });
 
     doc
       .moveTo(margin + 130, headerY + 15)
@@ -45,9 +58,6 @@ export async function generateInvoicePdf(data: {
     doc.moveDown(2);
 
     const sectionTop = doc.y + 20;
-
-    const leftX = 50;
-    const rightX = doc.page.width - 200;
 
     doc.fontSize(11).font("Helvetica-Bold").text("BILL FROM", leftX, sectionTop);
 
@@ -71,11 +81,15 @@ export async function generateInvoicePdf(data: {
     doc
       .fontSize(11)
       .font("Helvetica")
-      .text(`INVOICE: ${data.invoiceNo}`, rightX, sectionTop)
+      .text(`INVOICE: ${data.invoiceNumber}`, rightX, sectionTop)
       .moveDown(0.5)
-      .text(`DATE: ${data.date}`, rightX)
+      .text(`DATE: ${data.invoiceDate}`, rightX)
       .moveDown(0.5)
-      .text(`ORDER ID: ${data.orderNo}`, rightX);
+      .text(`ORDER ID: ${data.orderId || "N/A"}`, rightX)
+      .moveDown(0.5)
+      .text(`PROJECT CODE: ${data.projectCode || "N/A"}`, rightX)
+      .moveDown(0.5)
+      .text(`STATUS: ${data.paymentStatus}`, rightX);
 
     const billToY = sectionTop + 140;
 
@@ -85,9 +99,15 @@ export async function generateInvoicePdf(data: {
       .moveDown(0.3)
       .fontSize(11)
       .font("Helvetica")
-      .text(data.userName || "Customer", leftX)
-      .moveDown(0.15)
-      .text(`${data.userPhone || "N/A"}`, leftX);
+      .text(data.builderName || "Builder", leftX);
+
+    if (data.companyName) doc.text(data.companyName, leftX);
+    if (data.builderPhone) doc.text(data.builderPhone, leftX);
+    if (data.builderEmail) doc.text(data.builderEmail, leftX);
+
+    if (data.builderAddress) {
+      doc.text(data.builderAddress, leftX, undefined, { width: 260 });
+    }
 
     doc.moveDown(2);
 
@@ -98,35 +118,34 @@ export async function generateInvoicePdf(data: {
 
     const colWidths = {
       sno: tableWidth * 0.08,
-      plan: tableWidth * 0.32,
-      hsn: tableWidth * 0.15,
-      qty: tableWidth * 0.05,
-      price: tableWidth * 0.15,
-      amount: tableWidth * 0.2,
+      plan: tableWidth * 0.24,
+      property: tableWidth * 0.24,
+      period: tableWidth * 0.14,
+      amount: tableWidth * 0.12,
+      paid: tableWidth * 0.18,
     };
 
     const colX = {
       sno: tableLeft,
       plan: tableLeft + colWidths.sno,
-      hsn: tableLeft + colWidths.sno + colWidths.plan,
-      qty: tableLeft + colWidths.sno + colWidths.plan + colWidths.hsn,
-      price:
-        tableLeft +
-        colWidths.sno +
-        colWidths.plan +
-        colWidths.hsn +
-        colWidths.qty,
+      property: tableLeft + colWidths.sno + colWidths.plan,
+      period: tableLeft + colWidths.sno + colWidths.plan + colWidths.property,
       amount:
         tableLeft +
         colWidths.sno +
         colWidths.plan +
-        colWidths.hsn +
-        colWidths.qty +
-        colWidths.price,
+        colWidths.property +
+        colWidths.period,
+      paid:
+        tableLeft +
+        colWidths.sno +
+        colWidths.plan +
+        colWidths.property +
+        colWidths.period +
+        colWidths.amount,
     };
 
     doc.lineWidth(0.6).strokeColor("#e0e0e0");
-
     doc.moveTo(tableLeft, tableTop).lineTo(tableLeft + tableWidth, tableTop).stroke();
     doc
       .moveTo(tableLeft, tableTop + rowHeight)
@@ -136,38 +155,34 @@ export async function generateInvoicePdf(data: {
     doc.fillColor("#333333").fontSize(9).font("Helvetica-Bold");
 
     const tableHeaderY = tableTop + 10;
-
     doc.text("S.No", colX.sno + 5, tableHeaderY, { width: colWidths.sno });
     doc.text("Plan", colX.plan + 5, tableHeaderY, { width: colWidths.plan });
-    doc.text("HSN Code", colX.hsn + 5, tableHeaderY, { width: colWidths.hsn });
-    doc.text("Qty", colX.qty + 5, tableHeaderY, { width: colWidths.qty });
-    doc.text("Price", colX.price + 5, tableHeaderY, {
-      width: colWidths.price,
-      align: "right",
-    });
+    doc.text("Project", colX.property + 5, tableHeaderY, { width: colWidths.property });
+    doc.text("Period", colX.period + 5, tableHeaderY, { width: colWidths.period });
     doc.text("Amount", colX.amount + 5, tableHeaderY, {
       width: colWidths.amount,
       align: "right",
     });
+    doc.text("Paid", colX.paid + 5, tableHeaderY, {
+      width: colWidths.paid,
+      align: "right",
+    });
 
     const dataRowY = tableTop + rowHeight;
-
     doc.rect(tableLeft, dataRowY, tableWidth, rowHeight).fill("#f4fdf8");
-
     doc.fillColor("#444444").fontSize(9).font("Helvetica");
 
     const textY = dataRowY + 10;
-
     doc.text("01", colX.sno + 5, textY, { width: colWidths.sno });
-    doc.text(data.planName, colX.plan + 5, textY, { width: colWidths.plan });
-    doc.text("7654", colX.hsn + 5, textY, { width: colWidths.hsn });
-    doc.text("01", colX.qty + 5, textY, { width: colWidths.qty });
-    doc.text(`${data.amount}`, colX.price + 5, textY, {
-      width: colWidths.price,
+    doc.text(data.servicePlanName, colX.plan + 5, textY, { width: colWidths.plan });
+    doc.text(data.propertyTitle, colX.property + 5, textY, { width: colWidths.property });
+    doc.text(data.timePeriod, colX.period + 5, textY, { width: colWidths.period });
+    doc.text(`${data.totalAmount.toFixed(2)}`, colX.amount + 5, textY, {
+      width: colWidths.amount,
       align: "right",
     });
-    doc.text(`${(data.amount * 1.18).toFixed(2)}`, colX.amount + 5, textY, {
-      width: colWidths.amount,
+    doc.text(`${data.paidAmount.toFixed(2)}`, colX.paid + 5, textY, {
+      width: colWidths.paid,
       align: "right",
     });
 
@@ -176,13 +191,11 @@ export async function generateInvoicePdf(data: {
       .lineTo(tableLeft + tableWidth, dataRowY + rowHeight)
       .stroke();
 
-    doc.moveDown(4);
-
-    const cgst = data.amount * 0.09;
-    const sgst = data.amount * 0.09;
-    const total = data.amount + cgst + sgst;
-
-    const blockStartY = doc.y + 20;
+    const discountAmount = data.discountAmount || 0;
+    const subtotal = data.subtotalAmount ?? data.totalAmount + discountAmount;
+    const gstRate = data.gstRate || 0;
+    const gstAmount = data.gstAmount || 0;
+    const blockStartY = dataRowY + 80;
 
     doc.fillColor("#000000");
 
@@ -191,42 +204,46 @@ export async function generateInvoicePdf(data: {
       .font("Helvetica")
       .text("GSTIN - 36AAQCP2952F1Z5", leftX, blockStartY)
       .text("PAN Number - AAQCP2952F", leftX, blockStartY + 18)
-      .text("CIN Number - U70200TS2025PTC205314", leftX, blockStartY + 36);
+      .text("CIN Number - U70200TS2025PTC205314", leftX, blockStartY + 36)
+      .text(`Payment Method - ${data.paymentMethod}`, leftX, blockStartY + 54);
 
     doc
       .fontSize(12)
       .font("Helvetica-Bold")
-      .text("AMOUNT PAID", rightX, blockStartY, { align: "right" });
+      .text("Amount Summary", rightX, blockStartY, {
+        align: "right",
+        width: 170,
+      });
 
     doc
       .fontSize(10)
       .font("Helvetica")
-      .text(`CGST: Rs.${cgst.toFixed(2)}`, rightX, blockStartY + 20, {
+      .text(`Subtotal: Rs.${subtotal.toFixed(2)}`, rightX, blockStartY + 20, {
         align: "right",
+        width: 170,
       })
-      .text(`SGST: Rs.${sgst.toFixed(2)}`, rightX, blockStartY + 35, {
+      .text(`Discount: Rs.${discountAmount.toFixed(2)}`, rightX, blockStartY + 35, {
         align: "right",
+        width: 170,
       })
-      .text(`Total: Rs.${total.toFixed(2)}`, rightX, blockStartY + 50, {
+      .text(`GST (${gstRate}%): Rs.${gstAmount.toFixed(2)}`, rightX, blockStartY + 50, {
         align: "right",
+        width: 170,
+      })
+      .text(`Total: Rs.${data.totalAmount.toFixed(2)}`, rightX, blockStartY + 65, {
+        align: "right",
+        width: 170,
       });
-
-    const amountBlockWidth = 180;
-    const amountBlockX = doc.page.width - 50 - amountBlockWidth;
 
     doc
       .fontSize(11)
       .font("Helvetica-Bold")
-      .text(`Amount Paid: Rs.${total.toFixed(2)}`, amountBlockX, blockStartY + 70, {
-        width: amountBlockWidth,
+      .text(`Amount Paid: Rs.${data.paidAmount.toFixed(2)}`, rightX, blockStartY + 92, {
+        width: 170,
         align: "right",
       });
 
-    doc.moveDown(10);
-    doc.y = blockStartY + 100;
-    doc.moveDown(8);
-
-    const signatureY = doc.y + 30;
+    const signatureY = blockStartY + 155;
 
     doc
       .fontSize(11)
@@ -240,16 +257,14 @@ export async function generateInvoicePdf(data: {
       .fillColor("#444444")
       .text("Propenu Authorized", leftX, signatureY + 16);
 
-    doc.y = signatureY + 60;
-
     doc
       .fontSize(11)
       .font("Helvetica")
       .fillColor("#777777")
       .text(
-        "Congratulations, & thank you for Trusting Propenu.com. Your Subscription is active, & your journey to property connections begins now",
+        "Thank you for choosing Propenu. Your builder promotion invoice has been generated successfully.",
         50,
-        doc.y,
+        signatureY + 70,
         {
           align: "center",
           width: doc.page.width - 100,

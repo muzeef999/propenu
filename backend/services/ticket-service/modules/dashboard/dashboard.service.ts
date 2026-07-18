@@ -19,7 +19,7 @@ export class DashboardService {
       if (to) (dateMatch.createdAt as Record<string, Date>).$lte = to;
     }
 
-    const openStatuses = ["open", "in_progress", "waiting_for_customer", "waiting_for_internal_team", "reopened"];
+    const openStatuses = ["open", "assigned", "under_review", "awaiting_user_response", "in_progress", "escalated", "reopened", "waiting_for_customer", "waiting_for_internal_team"];
     const now = new Date();
 
     const [
@@ -112,7 +112,7 @@ export class DashboardService {
           total: { $sum: 1 },
           open: {
             $sum: {
-              $cond: [{ $in: ["$status", ["open", "in_progress", "waiting_for_customer", "waiting_for_internal_team", "reopened"]] }, 1, 0],
+              $cond: [{ $in: ["$status", ["open", "assigned", "under_review", "awaiting_user_response", "in_progress", "escalated", "reopened", "waiting_for_customer", "waiting_for_internal_team"]] }, 1, 0],
             },
           },
           resolved: { $sum: { $cond: [{ $in: ["$status", ["resolved", "closed"]] }, 1, 0] } },

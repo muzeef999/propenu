@@ -362,6 +362,30 @@ export type BuilderPhoneVerifyPayload = {
   otp: string;
 };
 
+export type BuilderInvoiceListItem = {
+  _id: string;
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  startDate?: string;
+  endDate?: string;
+  propertyTitle?: string;
+  projectCode?: string;
+  propertyId?:
+    | string
+    | {
+        _id?: string;
+        propertyCode?: string;
+        title?: string;
+      };
+  servicePlanName?: string;
+  totalAmount?: number;
+  discountType?: string;
+  discountValue?: number;
+  discountAmount?: number;
+  paidAmount?: number;
+  paymentStatus?: string;
+};
+
 export const getBuilderProfile = async () => {
   const token = Cookies.get("token");
   if (!token) throw new Error("Not authenticated");
@@ -372,6 +396,47 @@ export const getBuilderProfile = async () => {
     },
   });
   return res.data;
+};
+
+export const getBuilderInvoices = async (userId: string) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(`${url}/api/payments/builder-invoices`, {
+    params: { userId },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.data as { success: boolean; invoices: BuilderInvoiceListItem[] };
+};
+
+export const downloadBuilderInvoicePdf = async (
+  invoiceId: string,
+  invoiceNumber?: string,
+) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(
+    `${url}/api/payments/builder-invoices/${invoiceId}/pdf`,
+    {
+      responseType: "blob",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = `${invoiceNumber || "builder-invoice"}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(blobUrl);
 };
 
 export const updateBuilderProfile = async (payload: BuilderProfilePayload) => {
@@ -939,7 +1004,7 @@ export const getMyContactedProperties = async () => {
 
 export const getBuilderDashboards = async (
   range: string = "30d",
-  filters?: { state?: string; city?: string },
+  filters?: { state?: string; city?: string; fromDate?: string; toDate?: string },
 ) => {
   const token = Cookies.get("token");
   if (!token) return null;
@@ -949,6 +1014,8 @@ export const getBuilderDashboards = async (
       range,
       ...(filters?.state ? { state: filters.state } : {}),
       ...(filters?.city ? { city: filters.city } : {}),
+      ...(filters?.fromDate ? { fromDate: filters.fromDate } : {}),
+      ...(filters?.toDate ? { toDate: filters.toDate } : {}),
     },
     headers: {
       Authorization: `Bearer ${token}`,
@@ -1137,4 +1204,118 @@ export const getChatbotSuggestions = async (city?: string) => {
   });
 
   return res.data?.suggestions || [];
+};
+
+export type RequestCallTicketPayload = {
+  requester: {
+    userId?: string;
+    name: string;
+    email?: string;
+    phone?: string;
+  };
+  date: string;
+  timeSlot: string;
+  category: string;
+  subject: string;
+  relationshipManagerName?: string;
+  relationshipManagerId?: string;
+  notes?: string;
+  relatedProjectId?: string;
+  relatedProjectName?: string;
+  source?: "web" | "email" | "phone" | "chat" | "admin";
+};
+
+export const createRequestCallTicket = async (
+  payload: RequestCallTicketPayload,
+) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.post(
+    `${url}/api/tickets/request-call`,
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  return res.data;
+};
+
+export type CreateSupportTicketPayload = {
+  title: string;
+  description: string;
+  requester: {
+    userId?: string;
+    name: string;
+    email?: string;
+    phone?: string;
+  };
+  assignedTo?: {
+    userId?: string;
+    name?: string;
+    email?: string;
+    role?: string;
+  };
+  category?: string;
+  propertyId?: string;
+  priority?: "low" | "medium" | "high" | "urgent";
+  source?: "web" | "email" | "phone" | "chat" | "admin";
+  metadata?: Record<string, unknown>;
+};
+
+export const createSupportTicket = async (
+  payload: CreateSupportTicketPayload,
+) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.post(`${url}/api/tickets`, payload, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.data;
+};
+
+export type GetTicketsParams = {
+  requesterId?: string;
+  category?: string;
+  module?: string;
+  requestType?: string;
+  relatedProjectId?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: "createdAt" | "updatedAt" | "priority" | "dueAt" | "status";
+  sortOrder?: "asc" | "desc";
+};
+
+export const getTickets = async (params: GetTicketsParams = {}) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(`${url}/api/tickets`, {
+    params,
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.data;
+};
+
+export const deleteTicket = async (ticketId: string) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.delete(`${url}/api/tickets/${ticketId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.data;
 };

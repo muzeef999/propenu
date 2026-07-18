@@ -77,7 +77,6 @@ const blogSchema = new Schema(
 
     excerpt: {
       type: String,
-      required: true,
       trim: true,
       maxlength: 300,
     },
@@ -98,7 +97,6 @@ const blogSchema = new Schema(
 
     content: {
       type: String,
-      required: true,
     },
 
     /* ARTICLE CONTENT SECTIONS */

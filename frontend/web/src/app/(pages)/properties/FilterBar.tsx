@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { IoIosSearch } from "react-icons/io";
 import { useDispatch } from "react-redux";
 import FilterDropdown from "@/ui/FilterDropdown";
@@ -8,7 +8,12 @@ import { useAppSelector } from "@/Redux/store";
 import { selectCityWithLocalities, setCityId } from "@/Redux/slice/citySlice";
 import {
   categoryOption,
+  resetAgriculturalFilters,
+  resetCommercialFilters,
+  resetLandFilters,
+  resetResidentialFilters,
   setAgriculturalFilter,
+  setBudget,
   setCategory,
   setCommercialFilter,
   setLandFilter,
@@ -26,20 +31,21 @@ import LandMobileFilter from "./filters/adaptiveFilterDesign/LandMobileFilter";
 import AgriculturalMobileFilter from "./filters/adaptiveFilterDesign/AgriculturalMobileFilter";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { buildSearchParams } from "./filters/buildSearchParams";
+import { hydrateFiltersFromSearchParams } from "./filters/hydrateFiltersFromSearchParams";
 
 const LAST_PROPERTY_CATEGORY_KEY = "properties:lastCategory";
+
+function normalizeLocalityName(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function getLocalityDedupKey(value: string) {
+  return normalizeLocalityName(value).toLowerCase();
+}
 
 const FilterBar: React.FC = () => {
   const getCategoryLabel = (value: categoryOption) =>
     value === "Land" ? "Plots" : value;
-
-  const typeToCategory: Record<string, categoryOption> = {
-    residential: "Residential",
-    commercial: "Commercial",
-    land: "Land",
-    plot: "Land",
-    agricultural: "Agricultural",
-  };
 
   const categoryToType: Record<categoryOption, string> = {
     Residential: "residential",
@@ -69,6 +75,7 @@ const FilterBar: React.FC = () => {
   const [showAgriculturalAdvanced, setShowAgriculturalAdvanced] = useState(false);
   const [hasRestoredCategory, setHasRestoredCategory] = useState(false);
   const [hasHydratedFromUrl, setHasHydratedFromUrl] = useState(false);
+  const pendingInitialUrlCategoryRef = useRef<categoryOption | null>(null);
 
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -121,12 +128,21 @@ const FilterBar: React.FC = () => {
       cityData?.state,
     ],
   );
+  const hydratedUrlCategory = useMemo(
+    () =>
+      hydrateFiltersFromSearchParams(
+        new URLSearchParams(searchParams.toString()),
+      ).category,
+    [searchParams],
+  );
 
   useEffect(() => {
-    const type = searchParams.get("type")?.toLowerCase();
+    const hydrated = hydrateFiltersFromSearchParams(
+      new URLSearchParams(searchParams.toString()),
+    );
     let resolvedCategory: categoryOption | null = null;
 
-    if (!type) {
+    if (!hydrated.category) {
       const savedCategory = window.sessionStorage.getItem(
         LAST_PROPERTY_CATEGORY_KEY,
       ) as categoryOption | null;
@@ -136,48 +152,78 @@ const FilterBar: React.FC = () => {
         resolvedCategory = savedCategory;
       }
     } else {
-      const nextCategory = typeToCategory[type];
-      if (nextCategory) {
-        dispatch(setCategory(nextCategory));
-        window.sessionStorage.setItem(LAST_PROPERTY_CATEGORY_KEY, nextCategory);
-        resolvedCategory = nextCategory;
-      }
+      dispatch(setCategory(hydrated.category));
+      window.sessionStorage.setItem(LAST_PROPERTY_CATEGORY_KEY, hydrated.category);
+      resolvedCategory = hydrated.category;
     }
 
-    const listingType = searchParams.get("listingType")?.toLowerCase();
-    if (listingType === "sale" || listingType === "rent" || listingType === "lease") {
+    if (hydrated.listingType) {
       dispatch(
         setListingType({
-          label: listingType === "sale" ? "Buy" : listingType === "rent" ? "Rent" : "Lease",
-          value: listingType,
+          label:
+            hydrated.listingType === "sale"
+              ? "Buy"
+              : hydrated.listingType === "rent"
+                ? "Rent"
+                : "Lease",
+          value: hydrated.listingType,
         }),
       );
     }
 
-    dispatch(setSearchText(searchParams.get("search") ?? ""));
-
-    const localityValues = (searchParams.get("locality") ?? "")
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean);
-    const bedroomsValues = (searchParams.get("bedrooms") ?? "")
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean)
-      .map((value) => (value === "6plus" || value === "6+" ? "6+" : Number(value)))
-      .filter((value) => value === "6+" || Number.isFinite(value)) as Array<number | "6+">;
+    dispatch(setSearchText(hydrated.searchText));
+    dispatch(setBudget({ min: hydrated.minPrice, max: hydrated.maxPrice }));
+    dispatch(resetResidentialFilters());
+    dispatch(resetCommercialFilters());
+    dispatch(resetLandFilters());
+    dispatch(resetAgriculturalFilters());
 
     const activeCategory = resolvedCategory ?? category;
 
     if (activeCategory === "Residential") {
-      dispatch(setResidentialFilter({ key: "locality", value: localityValues }));
-      dispatch(setResidentialFilter({ key: "bedrooms", value: bedroomsValues }));
+      Object.entries(hydrated.residential).forEach(([key, value]) => {
+        if (value !== undefined) {
+          dispatch(
+            setResidentialFilter({
+              key: key as keyof typeof hydrated.residential,
+              value,
+            }),
+          );
+        }
+      });
     } else if (activeCategory === "Commercial") {
-      dispatch(setCommercialFilter({ key: "locality", value: localityValues }));
+      Object.entries(hydrated.commercial).forEach(([key, value]) => {
+        if (value !== undefined) {
+          dispatch(
+            setCommercialFilter({
+              key: key as keyof typeof hydrated.commercial,
+              value,
+            }),
+          );
+        }
+      });
     } else if (activeCategory === "Land") {
-      dispatch(setLandFilter({ key: "locality", value: localityValues[0] ?? "" }));
+      Object.entries(hydrated.land).forEach(([key, value]) => {
+        if (value !== undefined) {
+          dispatch(
+            setLandFilter({
+              key: key as keyof typeof hydrated.land,
+              value,
+            }),
+          );
+        }
+      });
     } else if (activeCategory === "Agricultural") {
-      dispatch(setAgriculturalFilter({ key: "locality", value: localityValues[0] ?? "" }));
+      Object.entries(hydrated.agricultural).forEach(([key, value]) => {
+        if (value !== undefined) {
+          dispatch(
+            setAgriculturalFilter({
+              key: key as keyof typeof hydrated.agricultural,
+              value,
+            }),
+          );
+        }
+      });
     }
 
     const city = (searchParams.get("city") ?? "").trim().toLowerCase();
@@ -199,7 +245,19 @@ const FilterBar: React.FC = () => {
   }, [searchParams, dispatch, locations]);
 
   useEffect(() => {
+    if (!hasHydratedFromUrl) return;
+    pendingInitialUrlCategoryRef.current = hydratedUrlCategory ?? null;
+  }, [hasHydratedFromUrl, hydratedUrlCategory]);
+
+  useEffect(() => {
     if (!hasRestoredCategory || !hasHydratedFromUrl) return;
+
+    // Protect only the first hydration pass. After the initial URL category
+    // has been respected once, user-driven category changes should update URL normally.
+    if (pendingInitialUrlCategoryRef.current) {
+      if (category !== pendingInitialUrlCategoryRef.current) return;
+      pendingInitialUrlCategoryRef.current = null;
+    }
 
     window.sessionStorage.setItem(LAST_PROPERTY_CATEGORY_KEY, category);
 
@@ -216,7 +274,15 @@ const FilterBar: React.FC = () => {
     if (nextQuery === currentQuery) return;
 
     router.replace(`${pathname}?${nextQuery}`, { scroll: false });
-  }, [category, hasRestoredCategory, hasHydratedFromUrl, pathname, router, searchParams, urlSearchPayload]);
+  }, [
+    category,
+    hasRestoredCategory,
+    hasHydratedFromUrl,
+    pathname,
+    router,
+    searchParams,
+    urlSearchPayload,
+  ]);
 
   useEffect(() => {
     const postedBy = (
@@ -318,12 +384,24 @@ const FilterBar: React.FC = () => {
         }),
       );
     } else if (category === "Land") {
-      dispatch(setLandFilter({ key: "locality", value: name }));
+      dispatch(
+        setLandFilter({
+          key: "locality",
+          value: toggleArrayValue(selectedLocalities, name),
+        }),
+      );
     } else {
-      dispatch(setAgriculturalFilter({ key: "locality", value: name }));
+      dispatch(
+        setAgriculturalFilter({
+          key: "locality",
+          value: toggleArrayValue(selectedLocalities, name),
+        }),
+      );
     }
 
-    dispatch(setSearchText(""));
+    if (!selectedLocalities.includes(name)) {
+      dispatch(setSearchText(""));
+    }
     setSearchOpen(true);
   };
 
@@ -335,17 +413,24 @@ const FilterBar: React.FC = () => {
     } else if (category === "Commercial") {
       dispatch(setCommercialFilter({ key: "locality", value: next }));
     } else if (category === "Land") {
-      dispatch(setLandFilter({ key: "locality", value: "" }));
+      dispatch(setLandFilter({ key: "locality", value: next }));
     } else {
-      dispatch(setAgriculturalFilter({ key: "locality", value: "" }));
+      dispatch(setAgriculturalFilter({ key: "locality", value: next }));
     }
   };
 
   const localitySuggestions = useMemo(() => {
-    const names =
-      cityData?.localities
-        ?.map((loc) => loc?.name?.trim())
-        .filter((name): name is string => Boolean(name)) ?? [];
+    const names = Array.from(
+      new Map(
+        (cityData?.localities ?? [])
+          .map((loc) => loc?.name)
+          .filter((name): name is string => Boolean(name?.trim()))
+          .map((name) => {
+            const normalizedName = normalizeLocalityName(name);
+            return [getLocalityDedupKey(normalizedName), normalizedName] as const;
+          }),
+      ).values(),
+    );
 
     const query = searchText.trim().toLowerCase();
     if (!query) return names.slice(0, 8);

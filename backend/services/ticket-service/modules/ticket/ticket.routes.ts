@@ -4,6 +4,7 @@ import {
   assignTicket,
   changeTicketPriority,
   changeTicketStatus,
+  createRequestCall,
   createTicket,
   deleteTicket,
   getTicketById,
@@ -17,6 +18,7 @@ import {
   validateComment,
   validateCreateTicket,
   validatePriorityChange,
+  validateRequestCall,
   validateStatusChange,
   validateUpdateTicket,
 } from "./ticket.validation";
@@ -25,6 +27,7 @@ const router = express.Router();
 
 router.get("/summary", getTicketSummary);
 router.get("/", getTickets);
+router.post("/request-call", validateRequestCall, createRequestCall);
 router.post("/", validateCreateTicket, createTicket);
 router.get("/:id", getTicketById);
 router.patch("/:id", validateUpdateTicket, updateTicket);

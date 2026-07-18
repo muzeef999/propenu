@@ -57,6 +57,16 @@ export const createTicket = async (req: Request, res: Response) => {
   }
 };
 
+export const createRequestCall = async (req: Request, res: Response) => {
+  try {
+    const ticket = await TicketService.createRequestCall(req.body);
+    return res.status(201).json({ success: true, data: ticket });
+  } catch (err: any) {
+    console.error("createRequestCall:", err);
+    return res.status(500).json({ success: false, message: err.message || "Internal server error" });
+  }
+};
+
 export const getTickets = async (req: Request, res: Response) => {
   try {
     const sortBy =
@@ -83,7 +93,10 @@ export const getTickets = async (req: Request, res: Response) => {
     if (typeof req.query.requesterId === "string") options.requesterId = req.query.requesterId;
     if (typeof req.query.requesterEmail === "string") options.requesterEmail = req.query.requesterEmail;
     if (typeof req.query.propertyId === "string") options.propertyId = req.query.propertyId;
+    if (typeof req.query.relatedProjectId === "string") options.relatedProjectId = req.query.relatedProjectId;
     if (typeof req.query.tag === "string") options.tag = req.query.tag;
+    if (typeof req.query.module === "string") options.module = req.query.module;
+    if (typeof req.query.requestType === "string") options.requestType = req.query.requestType;
 
     const overdue = toBoolean(req.query.overdue);
     if (overdue !== undefined) options.overdue = overdue;

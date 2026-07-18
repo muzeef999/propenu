@@ -46,7 +46,12 @@ export class TicketRepository {
     if (query.requesterId) filter["requester.userId"] = query.requesterId;
     if (query.requesterEmail) filter["requester.email"] = query.requesterEmail;
     if (query.propertyId) filter.propertyId = query.propertyId;
+    if (query.relatedProjectId) {
+      filter["metadata.relatedProjectId"] = query.relatedProjectId;
+    }
     if (query.tag) filter.tags = query.tag;
+    if (query.module) filter["metadata.module"] = query.module;
+    if (query.requestType) filter["metadata.requestType"] = query.requestType;
     if (query.overdue) {
       filter.dueAt = { $lt: new Date() };
       filter.status = { $nin: ["resolved", "closed"] };

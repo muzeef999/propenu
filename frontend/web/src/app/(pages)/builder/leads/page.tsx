@@ -461,7 +461,9 @@ export default function BuilderLeadsPage(): JSX.Element {
   const [activeStatus, setActiveStatus] = useState<LeadStatus>("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
+  const [propertyPage, setPropertyPage] = useState(1);
   const pageSize = 10;
+  const propertyPageSize = 6;
 
   /* -------- Properties -------- */
   const { data: propertiesData, isLoading: propertiesLoading } = useQuery<
@@ -481,6 +483,16 @@ export default function BuilderLeadsPage(): JSX.Element {
       setSelectedPropertyId(properties[0]._id);
     }
   }, [properties, selectedPropertyId]);
+
+  const totalPropertyPages = Math.max(
+    1,
+    Math.ceil(properties.length / propertyPageSize),
+  );
+
+  const paginatedProperties = useMemo<Property[]>(() => {
+    const start = (propertyPage - 1) * propertyPageSize;
+    return properties.slice(start, start + propertyPageSize);
+  }, [properties, propertyPage]);
 
   /* -------- Leads -------- */
   const { data: leadsData, isLoading: leadsLoading } = useQuery<LeadsResponse>({
@@ -586,10 +598,20 @@ export default function BuilderLeadsPage(): JSX.Element {
   }, [selectedPropertyId, activeStatus, fromDate, toDate, searchTerm]);
 
   useEffect(() => {
+    setPropertyPage(1);
+  }, [activeTab]);
+
+  useEffect(() => {
     if (page > totalPages) {
       setPage(totalPages);
     }
   }, [page, totalPages]);
+
+  useEffect(() => {
+    if (propertyPage > totalPropertyPages) {
+      setPropertyPage(totalPropertyPages);
+    }
+  }, [propertyPage, totalPropertyPages]);
 
   /* -------- Actions -------- */
 
@@ -760,8 +782,9 @@ export default function BuilderLeadsPage(): JSX.Element {
       {/* GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* PROPERTY LIST */}
-        <div className="lg:col-span-4 space-y-2 max-h-[60vh] overflow-y-auto pr-1">
-          {properties.map((property: any) => {
+        <div className="lg:col-span-4 space-y-3">
+          <div className="space-y-2 pr-1">
+          {paginatedProperties.map((property: any) => {
             const image = property.gallery?.[0]?.url || "/placeholder.jpg";
             const active = property._id === selectedPropertyId;
 
@@ -801,6 +824,18 @@ export default function BuilderLeadsPage(): JSX.Element {
               </button>
             );
           })}
+          </div>
+
+          {properties.length > propertyPageSize ? (
+            <Pagination
+              page={propertyPage}
+              pageSize={propertyPageSize}
+              totalItems={properties.length}
+              totalPages={totalPropertyPages}
+              onPageChange={setPropertyPage}
+              itemLabel="properties"
+            />
+          ) : null}
         </div>
 
         {/* LEADS TABLE */}
@@ -839,12 +874,14 @@ function Pagination({
   totalItems,
   totalPages,
   onPageChange,
+  itemLabel = "responses",
 }: {
   page: number;
   pageSize: number;
   totalItems: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  itemLabel?: string;
 }) {
   const startItem = totalItems ? (page - 1) * pageSize + 1 : 0;
   const endItem = Math.min(page * pageSize, totalItems);
@@ -876,7 +913,7 @@ function Pagination({
           {startItem}-{endItem}
         </span>{" "}
         of <span className="font-semibold text-[#111827]">{totalItems}</span>{" "}
-        responses
+        {itemLabel}
       </p>
 
       <div className="flex items-center justify-between gap-2 sm:justify-end">

@@ -37,6 +37,12 @@ function hasHtml(value: string) {
   return /<\/?[a-z][\s\S]*>/i.test(value);
 }
 
+function stripHtml(value?: string) {
+  if (!value) return "";
+
+  return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 function getArticleSectionId(heading: string, index: number) {
   const slug = heading
     .toLowerCase()
@@ -259,33 +265,13 @@ export default async function Page({ params }: PageProps) {
               />
             </div>
 
-            {articleContext.length > 0 && (
-              <div className="mt-5 border-b border-gray-200 pb-5">
-                <h2 className="text-lg font-semibold text-gray-950">
-                  Article Context
-                </h2>
-
-                <ul className="mt-3 space-y-2">
-                  {articleContext.map((item, index) => (
-                    <li key={`${item.id}-${index}`}>
-                      <a
-                        href={`#${item.id}`}
-                        className="group flex items-start gap-2 text-sm leading-6 text-gray-500 transition hover:text-[#26ad5f] focus:outline-none focus-visible:text-[#26ad5f]"
-                      >
-                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gray-400 transition group-hover:bg-[#26ad5f]" />
-                        <span>{item.heading}</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+  
 
             <div className="mt-6">
               {blog.excerpt && (
-                <p className="mb-6 text-[15px] leading-7 text-gray-500 sm:text-base">
-                  {blog.excerpt}
-                </p>
+                <div className="mb-6">
+                  <ContentBlock content={blog.excerpt} />
+                </div>
               )}
 
               <ContentBlock content={blog.content} />
@@ -322,15 +308,15 @@ export default async function Page({ params }: PageProps) {
                         className="group py-4"
                       >
                         <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[15px] font-normal text-gray-600 marker:hidden [&::-webkit-details-marker]:hidden">
-                          <span>{faq.question}</span>
+                          <span>{stripHtml(faq.question)}</span>
                           <FiChevronDown
                             size={16}
                             className="shrink-0 text-gray-600 transition group-open:rotate-180"
                           />
                         </summary>
-                        <p className="mt-3 pr-8 text-sm leading-6 text-gray-500 sm:text-[15px]">
-                          {faq.answer}
-                        </p>
+                        <div className="mt-3 pr-8">
+                          <ContentBlock content={faq.answer} />
+                        </div>
                       </details>
                     ))}
                   </div>
@@ -359,9 +345,9 @@ export default async function Page({ params }: PageProps) {
                       )}
 
                       {blog.author.description && (
-                        <p className="mt-3 text-sm leading-6 text-gray-600">
-                          {blog.author.description}
-                        </p>
+                        <div className="mt-3 text-sm leading-6 text-gray-600">
+                          <ContentBlock content={blog.author.description} />
+                        </div>
                       )}
                     </div>
                   </div>
@@ -422,6 +408,31 @@ export default async function Page({ params }: PageProps) {
                 Post Property
               </Link>
             </div>
+
+            
+            {articleContext.length > 0 && (
+              <div className="mt-5 border-b border-gray-200 pb-5">
+                <h2 className="text-lg font-semibold text-gray-950">
+                  Article Context
+                </h2>
+
+                <ul className="mt-3 space-y-2">
+                  {articleContext.map((item, index) => (
+                    <li key={`${item.id}-${index}`}>
+                      <a
+                        href={`#${item.id}`}
+                        className="group flex items-start gap-2 text-sm leading-6 text-gray-500 transition hover:text-[#26ad5f] focus:outline-none focus-visible:text-[#26ad5f]"
+                      >
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gray-400 transition group-hover:bg-[#26ad5f]" />
+                        <span>{item.heading}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+
 
             {popularArticles.length > 0 && (
               <div className="border-t border-gray-200 pt-5">

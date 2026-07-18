@@ -5,26 +5,19 @@ import { minDelay } from "@/utilies/minDelay";
 import { notFound } from "next/navigation";
 import { ILand } from "@/types/land";
 import GalleryFile from "../../../GalleryFile";
-import { GiCompass, GiRoad } from "react-icons/gi";
+import { GiCompass, GiRoad, GiMoneyStack } from "react-icons/gi";
 import { FaRoad } from "react-icons/fa";
-import { BiShapeSquare } from "react-icons/bi";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import RelatedLandCarousel from "./RelatedLandCarousel";
 import Image from "next/image";
 import LandNearbySection from "./LandNearbySection";
 import { LAND_PLOT_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
 import SponsoreCard from "../../../cards/SponsoreCard";
-import {
-  resolveListingSource,
-} from "@/utilies/resolveListingSource";
-import { FiGrid, FiHash, FiZap } from "react-icons/fi";
-import { GiMoneyStack } from "react-icons/gi";
+import { resolveListingSource } from "@/utilies/resolveListingSource";
+import { FiZap } from "react-icons/fi";
 import { IoSparklesOutline, IoWaterOutline } from "react-icons/io5";
-import { MdOutlineElectricBolt, MdOutlineLayers } from "react-icons/md";
-import { RiSurveyLine } from "react-icons/ri";
-import { TbMapSearch } from "react-icons/tb";
+import { MdOutlineLayers } from "react-icons/md";
 import { PiMapTrifold } from "react-icons/pi";
-import { HiOutlineViewGrid } from "react-icons/hi";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -38,15 +31,30 @@ const amenityIconByTitle = new Map(
   LAND_PLOT_AMENITIES.map((amenity) => [amenity.title, amenity.icon]),
 );
 
+function formatAreaUnit(unit?: string) {
+  if (!unit) return "sqft";
+
+  const normalized = unit.toLowerCase();
+  const supportedUnits = [
+    "sqft",
+    "sqmt",
+    "sqyd",
+    "acre",
+    "guntha",
+    "cent",
+    "kanal",
+    "hectare",
+  ];
+
+  return supportedUnits.includes(normalized) ? normalized : "sqft";
+}
+
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
 
   let project: ILand | null;
   try {
-    [project] = await Promise.all([
-      getLandSlugProjects({ slug }),
-      minDelay(1500),
-    ]);
+    [project] = await Promise.all([getLandSlugProjects({ slug }), minDelay(1500)]);
   } catch (err) {
     console.error("Error fetching project:", err);
     return (
@@ -60,7 +68,9 @@ export default async function Page({ params }: PageProps) {
   if (!project) {
     notFound();
   }
+
   const priceLabel = formatINR(project?.price);
+  const plotAreaUnit = formatAreaUnit((project as any)?.plotAreaUnit);
   const resolvedListingSource = resolveListingSource(
     project?.listingSource,
     project?.createdBy as any,
@@ -72,6 +82,7 @@ export default async function Page({ params }: PageProps) {
         (a.order ?? Number.MAX_SAFE_INTEGER) -
         (b.order ?? Number.MAX_SAFE_INTEGER),
     );
+
   const detailsItems = [
     {
       label: "Negotiable",
@@ -105,30 +116,22 @@ export default async function Page({ params }: PageProps) {
     },
   ];
 
-
   return (
-    <div
-      className="min-h-screen py-6 overflow-hidden"
-    >
+    <div className="min-h-screen overflow-hidden py-6">
       <div className="container">
         <div className="w-full">
-          {/* Top: Price + Title + CTA */}
           <header className="flex flex-col justify-between gap-2 p-2">
-            <div className="text-lg sm:text-2xl md:text-2xl font-semibold leading-snug">
+            <div className="text-lg font-semibold leading-snug sm:text-2xl md:text-2xl">
               <span className="text-primary whitespace-nowrap align-top">
                 {priceLabel}
               </span>
-              <span className="ml-2 text-gray-900 font-medium">
-                {project.title}
-              </span>
+              <span className="ml-2 font-medium text-gray-900">{project.title}</span>
             </div>
           </header>
 
           <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch">
             <main className="flex-1">
               <div className="flex flex-col gap-2 lg:flex-row lg:items-stretch">
-
-                {/* Gallery */}
                 <div className="w-full lg:w-[58%]">
                   <GalleryFile
                     gallery={project?.gallery}
@@ -137,128 +140,95 @@ export default async function Page({ params }: PageProps) {
                     propertyType="Land"
                   />
                 </div>
-                <div className="flex flex-1 self-stretch min-h-0">
-                  <div className="flex-1 p-4 sm:p-2 flex flex-col justify-between h-full gap-8">
 
-                    {/* PART 1 */}
+                <div className="flex min-h-0 flex-1 self-stretch">
+                  <div className="flex h-full flex-1 flex-col justify-between gap-8 p-4 sm:p-2">
                     <div className="grid grid-cols-2 gap-8 pl-1">
-
                       <div className="flex flex-col gap-1">
-                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                        <span className="text-xs font-medium text-gray-500 sm:text-sm">
                           Plot Area
                         </span>
-                        <span className="text-sm sm:text-base font-semibold text-gray-900">
-                          {project?.plotArea ?? "—"} sqft
+                        <span className="text-sm font-semibold text-gray-900 sm:text-base">
+                          {project?.plotArea ?? "—"} {plotAreaUnit}
                         </span>
                       </div>
 
                       <div className="flex flex-col gap-1">
-                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
-                          Price Per Sqft
+                        <span className="text-xs font-medium text-gray-500 sm:text-sm">
+                          Price Per {plotAreaUnit}
                         </span>
-                        <span className="text-sm sm:text-base font-semibold text-gray-900">
-                          ₹ {project?.pricePerSqft}/sqft
+                        <span className="text-sm font-semibold text-gray-900 sm:text-base">
+                          ₹ {project?.pricePerSqft ?? "—"}/{plotAreaUnit}
                         </span>
                       </div>
 
                       <div className="flex flex-col gap-1">
-                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                        <span className="text-xs font-medium text-gray-500 sm:text-sm">
                           Sale Type
                         </span>
-                        <span className="text-sm sm:text-base font-semibold text-gray-900 capitalize">
+                        <span className="text-sm font-semibold capitalize text-gray-900 sm:text-base">
                           {project?.listingType ?? "—"}
                         </span>
                       </div>
 
                       <div className="flex flex-col gap-1">
-                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                        <span className="text-xs font-medium text-gray-500 sm:text-sm">
                           Availability Status
                         </span>
-                        <span className="text-sm sm:text-base font-semibold text-gray-900">
-                          {project?.readyToConstruct ? "Ready to Construct" : "Under Construction"}
+                        <span className="text-sm font-semibold text-gray-900 sm:text-base">
+                          {project?.readyToConstruct
+                            ? "Ready to Construct"
+                            : "Under Construction"}
                         </span>
                       </div>
 
                       <div className="flex flex-col gap-1">
-                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                        <span className="text-xs font-medium text-gray-500 sm:text-sm">
                           Layout type
                         </span>
-                        <span className="capitalize text-sm sm:text-base font-semibold text-gray-900">
+                        <span className="text-sm font-semibold capitalize text-gray-900 sm:text-base">
                           {project?.layoutType ?? "—"}
                         </span>
                       </div>
 
                       <div className="flex flex-col gap-1">
-                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                        <span className="text-xs font-medium text-gray-500 sm:text-sm">
                           Fencing
                         </span>
-                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                        <span className="text-sm font-semibold text-gray-900 sm:text-base">
                           {project?.fencing ? "Available" : "Unavailable"}
                         </span>
                       </div>
-
-                      {/* <div className="flex flex-col gap-1">
-                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
-                          Project Total Area
-                        </span>
-                        <span className="text-sm sm:text-base font-semibold text-gray-900">
-                          {project?.projectArea ? `${project.projectArea} Acre` : "—"}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
-                          No. of Towers
-                        </span>
-                        <span className="text-sm sm:text-base font-semibold text-gray-900">
-                          {project?.totalTowers ?? "—"}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
-                          Total Units
-                        </span>
-                        <span className="text-sm sm:text-base font-semibold text-gray-900">
-                          {project?.totalUnits ?? "—"}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
-                          Available Units
-                        </span>
-                        <span className="text-sm sm:text-base font-semibold text-gray-900">
-                          {project?.availableUnits ?? "—"}
-                        </span>
-                      </div> */}
-
                     </div>
 
-                    {/* ICON STATS */}
                     <div
-                      className="grid grid-cols-3 border border-gray-200 rounded-md overflow-hidden shadow-sm"
+                      className="grid grid-cols-3 overflow-hidden rounded-md border border-gray-200 shadow-sm"
                       style={{ background: bgcolor }}
                     >
-                      <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4">
+                      <div className="flex flex-col items-center justify-center gap-1 py-3 sm:flex-row sm:gap-2 sm:py-4">
                         <GiCompass color="#6B7280" />
-                        <span className="font-semibold text-gray-900 text-sm sm:text-base">{project?.facing ?? "—"}</span>
-                        <span className="text-xs sm:text-sm text-gray-500">Facing</span>
+                        <span className="text-sm font-semibold text-gray-900 sm:text-base">
+                          {project?.facing ?? "—"}
+                        </span>
+                        <span className="text-xs text-gray-500 sm:text-sm">Facing</span>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 border-x border-gray-200">
+                      <div className="flex flex-col items-center justify-center gap-1 border-x border-gray-200 py-3 sm:flex-row sm:gap-2 sm:py-4">
                         <FaRoad color="#6B7280" />
-                        <span className="font-semibold text-gray-900 text-sm sm:text-base">{project?.roadWidthFt ?? "—"} ft</span>
-                        <span className="text-xs sm:text-sm text-gray-500">Road Width</span>
+                        <span className="text-sm font-semibold text-gray-900 sm:text-base">
+                          {project?.roadWidthFt ?? "—"} ft
+                        </span>
+                        <span className="text-xs text-gray-500 sm:text-sm">Road Width</span>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4">
-                        <IoSparklesOutline  color="#6B7280" />
-                        <span className="font-semibold text-gray-900 text-sm sm:text-base">{project?.amenities?.length ?? 0}</span>
-                        <span className="text-xs sm:text-sm text-gray-500">Amenities</span>
+                      <div className="flex flex-col items-center justify-center gap-1 py-3 sm:flex-row sm:gap-2 sm:py-4">
+                        <IoSparklesOutline color="#6B7280" />
+                        <span className="text-sm font-semibold text-gray-900 sm:text-base">
+                          {project?.amenities?.length ?? 0}
+                        </span>
+                        <span className="text-xs text-gray-500 sm:text-sm">Amenities</span>
                       </div>
                     </div>
-
                   </div>
                 </div>
               </div>
@@ -268,7 +238,7 @@ export default async function Page({ params }: PageProps) {
               <div className="min-w-0 w-full">
                 <div className="grid gap-4">
                   <section className="min-w-0 space-y-4">
-                    <section className="rounded-lg p-6 shadow-sm bg-[#f7f9fa]">
+                    <section className="rounded-lg bg-[#f7f9fa] p-6 shadow-sm">
                       <h2 className="mb-6 text-xl font-semibold text-gray-900">
                         More Details
                       </h2>
@@ -279,7 +249,7 @@ export default async function Page({ params }: PageProps) {
                           return (
                             <div
                               key={item.label}
-                              className="grid grid-cols-[32px_1fr] grid-rows-2 gap-x-3 items-center"
+                              className="grid grid-cols-[32px_1fr] grid-rows-2 items-center gap-x-3"
                             >
                               <div className="row-span-2 flex items-center justify-center text-gray-500">
                                 <Icon size={25} />
@@ -287,28 +257,22 @@ export default async function Page({ params }: PageProps) {
                               <p className="text-sm font-medium text-gray-900">
                                 {item.label}
                               </p>
-                              <p className="text-gray-500 wrap-break-word">
-                                {item.value}
-                              </p>
+                              <p className="wrap-break-word text-gray-500">{item.value}</p>
                             </div>
                           );
                         })}
                       </div>
 
-                      {/* ADDRESS */}
                       <div className="mt-8">
                         <p className="font-medium text-gray-900">Address</p>
-                        <p className="text-gray-500 mt-1 leading-relaxed">
+                        <p className="mt-1 leading-relaxed text-gray-500">
                           {project.address}
                         </p>
                       </div>
 
-                      {/* DESCRIPTION */}
                       <div className="mt-6">
-                        <p className="font-medium text-gray-900">
-                          Description:
-                        </p>
-                        <p className="text-gray-500 mt-1 leading-relaxed">
+                        <p className="font-medium text-gray-900">Description:</p>
+                        <p className="mt-1 leading-relaxed text-gray-500">
                           {project.description}
                         </p>
                       </div>
@@ -320,7 +284,9 @@ export default async function Page({ params }: PageProps) {
                           propertyType="landplots"
                           listingSource={resolvedListingSource}
                           ownerName={project?.createdBy?.name}
-                          ownerPhone={project?.createdBy?.contact ?? (project as any)?.phone}
+                          ownerPhone={
+                            project?.createdBy?.contact ?? (project as any)?.phone
+                          }
                           ownerEmail={project?.createdBy?.email}
                           postedOn={(project as any)?.createdAt}
                           price={project?.price}
@@ -329,14 +295,13 @@ export default async function Page({ params }: PageProps) {
                       </div>
                     </section>
 
-                    {/* Amenities */}
-                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa]">
+                    <section className="rounded-lg bg-[#f7f9fa] p-4 shadow-sm">
                       <h2 className="mb-3 text-xl font-semibold text-gray-900">
                         Amenities
                       </h2>
                       {project.amenities && project.amenities.length > 0 ? (
                         <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 sm:grid-cols-3">
-                          {project.amenities.map((i: any, index) => (
+                          {project.amenities.map((i: any, index) =>
                             (() => {
                               const icon =
                                 amenityIconByKey.get(i.key) ??
@@ -365,8 +330,8 @@ export default async function Page({ params }: PageProps) {
                                   <span>{i.title}</span>
                                 </div>
                               );
-                            })()
-                          ))}
+                            })(),
+                          )}
                         </div>
                       ) : (
                         <p className="text-sm text-gray-500">
@@ -375,7 +340,7 @@ export default async function Page({ params }: PageProps) {
                       )}
                     </section>
 
-                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa]">
+                    <section className="rounded-lg bg-[#f7f9fa] p-4 shadow-sm">
                       <h2 className="mb-3 text-xl font-semibold text-gray-900">
                         Popular Landmarks Nearby
                       </h2>
@@ -393,13 +358,12 @@ export default async function Page({ params }: PageProps) {
                       )}
                     </section>
 
-                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa]">
+                    <section className="rounded-lg bg-[#f7f9fa] p-4 shadow-sm">
                       <h2 className="mb-1 text-xl font-semibold text-gray-900">
                         More Similar Properties for you
                       </h2>
 
-                      {project.relatedProjects &&
-                        project.relatedProjects.length > 0 ? (
+                      {project.relatedProjects && project.relatedProjects.length > 0 ? (
                         <RelatedLandCarousel projects={project.relatedProjects} />
                       ) : (
                         <p className="text-sm text-gray-500">
@@ -411,7 +375,8 @@ export default async function Page({ params }: PageProps) {
                 </div>
               </div>
             </main>
-            <aside className="w-full shrink-0 lg:w-[260px] sticky top-20 self-start">
+
+            <aside className="sticky top-20 w-full shrink-0 self-start lg:w-[260px]">
               <SponsoreCard />
             </aside>
           </div>
@@ -419,4 +384,4 @@ export default async function Page({ params }: PageProps) {
       </div>
     </div>
   );
-};
+}

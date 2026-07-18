@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BuilderProfilePayload,
+  BuilderInvoiceListItem,
+  downloadBuilderInvoicePdf,
+  getBuilderInvoices,
   getBuilderProfile,
   requestBuilderPhoneChangeOtp,
   updateBuilderProfile,
   verifyBuilderPhoneChangeOtp,
 } from "@/data/ClientData";
-import { FiBriefcase, FiEdit2, FiMail, FiMapPin, FiPhone, FiSave, FiX } from "react-icons/fi";
+import { FiBriefcase, FiDownload, FiEdit2, FiMail, FiMapPin, FiPhone, FiSave, FiX } from "react-icons/fi";
 import { toast } from "sonner";
 
 type BuilderProfile = {
@@ -62,6 +65,12 @@ export default function BuilderAccountSettingsPage() {
   });
 
   const profile = profileQuery.data?.profile;
+
+  const invoicesQuery = useQuery<{ success: boolean; invoices: BuilderInvoiceListItem[] }>({
+    queryKey: ["builder-invoices", profile?.id],
+    queryFn: () => getBuilderInvoices(profile!.id),
+    enabled: Boolean(profile?.id),
+  });
 
   useEffect(() => {
     if (profile) {
@@ -362,8 +371,172 @@ export default function BuilderAccountSettingsPage() {
           )}
         </div>
       </section>
+
+      <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-gray-950">Invoices</h2>
+            <p className="mt-1 text-sm text-gray-500">Billing records for builder plans assigned to your projects.</p>
+          </div>
+        </div>
+
+        {invoicesQuery.isLoading ? (
+          <div className="py-10 text-center text-sm text-gray-500">Loading invoices...</div>
+        ) : invoicesQuery.isError ? (
+          <div className="rounded-md border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+            Failed to load invoices.
+          </div>
+        ) : !invoicesQuery.data?.invoices?.length ? (
+          <div className="rounded-md border border-dashed border-gray-200 px-4 py-10 text-center text-sm text-gray-500">
+            No invoices available.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-separate border-spacing-0">
+              <thead>
+                <tr className="bg-[#F4FAF6] text-left">
+                  <th className="px-4 py-4 text-sm font-semibold text-gray-900">Invoice ID</th>
+                  <th className="px-4 py-4 text-sm font-semibold text-gray-900">Project Code</th>
+                  <th className="px-4 py-4 text-sm font-semibold text-gray-900">Service/Plan</th>
+                  <th className="px-4 py-4 text-sm font-semibold text-gray-900">Activated</th>
+                  <th className="px-4 py-4 text-sm font-semibold text-gray-900">Validity</th>
+                  <th className="px-4 py-4 text-sm font-semibold text-gray-900">Total Amount</th>
+                  <th className="px-4 py-4 text-sm font-semibold text-gray-900">Offer Applied</th>
+                  <th className="px-4 py-4 text-sm font-semibold text-gray-900">Paid Amount</th>
+                  <th className="px-4 py-4 text-sm font-semibold text-gray-900">Payment Status</th>
+                  <th className="px-4 py-4 text-sm font-semibold text-gray-900">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoicesQuery.data.invoices.map((invoice) => (
+                  <tr key={invoice._id} className="border-b border-gray-100">
+                    <td className="px-4 py-4 text-sm text-gray-700">{invoice.invoiceNumber || "-"}</td>
+                    <td className="px-4 py-4 text-sm text-gray-700">{getProjectCode(invoice)}</td>
+                    <td className="px-4 py-4 text-sm text-gray-700">{invoice.servicePlanName || "-"}</td>
+                    <td className="px-4 py-4 text-sm text-gray-700">{formatCompactDate(invoice.startDate || invoice.invoiceDate)}</td>
+                    <td className="px-4 py-4 text-sm text-gray-700">{formatCompactDate(invoice.endDate)}</td>
+                    <td className="px-4 py-4 text-sm text-gray-700">{formatCurrency(invoice.totalAmount)}</td>
+                    <td className="px-4 py-4 text-sm text-gray-700">{formatOffer(invoice)}</td>
+                    <td className="px-4 py-4 text-sm text-gray-700">{formatCurrency(invoice.paidAmount)}</td>
+                    <td className="px-4 py-4 text-sm text-gray-700">{formatStatus(invoice.paymentStatus)}</td>
+                    <td className="px-4 py-4 text-sm text-gray-700">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          downloadBuilderInvoicePdf(invoice._id, invoice.invoiceNumber).catch(
+                            (error: any) => {
+                              toast.error(
+                                error?.response?.data?.message ||
+                                  "Failed to download invoice PDF",
+                              );
+                            },
+                          )
+                        }
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-700 transition hover:bg-gray-100"
+                        aria-label={`Download ${invoice.invoiceNumber || "invoice"}`}
+                      >
+                        <FiDownload className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   );
+}
+
+function formatCompactDate(value?: string) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  }).format(date);
+}
+
+function formatCurrency(value?: number) {
+  if (typeof value !== "number") return "-";
+  return `${value.toLocaleString("en-IN")}/-`;
+}
+
+function formatOffer(invoice: BuilderInvoiceListItem) {
+  const discountValue = invoice.discountValue;
+  const discountAmount = invoice.discountAmount;
+  const totalAmount = invoice.totalAmount;
+
+  if (
+    typeof discountValue !== "number" &&
+    typeof discountAmount !== "number"
+  ) {
+    return "No Offer";
+  }
+
+  if (typeof discountValue === "number" && discountValue > 0) {
+    if (invoice.discountType === "percentage") {
+      return `${discountValue}% OFF`;
+    }
+
+    if (
+      typeof discountAmount === "number" &&
+      discountAmount > 0 &&
+      typeof totalAmount === "number" &&
+      totalAmount > 0
+    ) {
+      const baseAmount = totalAmount + discountAmount;
+      const derivedPercentage = Math.round((discountAmount / baseAmount) * 100);
+
+      if (derivedPercentage > 0) {
+        return `${derivedPercentage}% OFF`;
+      }
+    }
+  }
+
+  if (
+    typeof discountAmount === "number" &&
+    discountAmount > 0 &&
+    typeof totalAmount === "number" &&
+    totalAmount > 0
+  ) {
+    const baseAmount = totalAmount + discountAmount;
+    const derivedPercentage = Math.round((discountAmount / baseAmount) * 100);
+
+    if (derivedPercentage > 0) {
+      return `${derivedPercentage}% OFF`;
+    }
+  }
+
+  if (typeof discountValue === "number" && discountValue > 0) {
+    return `${discountValue.toLocaleString("en-IN")}/- OFF`;
+  }
+
+  if (typeof discountAmount === "number" && discountAmount > 0) {
+    return `${discountAmount.toLocaleString("en-IN")}/- OFF`;
+  }
+
+  return "No Offer";
+}
+
+function formatStatus(value?: string) {
+  if (!value) return "-";
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function getProjectCode(invoice: BuilderInvoiceListItem) {
+  if (invoice.projectCode) return invoice.projectCode;
+
+  if (invoice.propertyId && typeof invoice.propertyId === "object") {
+    return invoice.propertyId.propertyCode || "-";
+  }
+
+  return "-";
 }
 
 function SummaryItem({

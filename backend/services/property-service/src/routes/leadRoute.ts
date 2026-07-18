@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from "multer";
-import { assignLeadController, checkLeadController, createLeadController, createPublicLeadController, deleteLeadController, deleteProjectLeadsController, downloadLeadsCSVController, getLeadByIdController, getLeadsController, getMyContactedProperties, getProjectLeadsController, importProjectLeadsCSVController, updateLeadStatusController, updateProjectLeadStatusController } from "../controller/leadController"
+import { assignLeadController, checkLeadController, createLeadController, createPublicLeadController, deleteLeadController, deleteProjectLeadsController, downloadLeadsCSVController, exportAdminLeadsController, getAdminLeadsController, getLeadByIdController, getLeadsController, getMyContactedProperties, getProjectLeadsController, importProjectLeadsCSVController, updateLeadStatusController, updateProjectLeadStatusController } from "../controller/leadController"
 import { LeadCreateSchema } from '../zod/leadZod';
 import { validateBody } from '../middlewares/validate';
 import { authMiddleware } from '../middlewares/authMiddleware';
@@ -81,6 +81,19 @@ router.delete(
 
 router.get('/my-contacts', authMiddleware, getMyContactedProperties);
 router.get("/check", authMiddleware, checkLeadController);
+const requireAdminLeadAccess = (req: any, res: any, next: any) => {
+  if (!["super_admin", "admin"].includes(req.user?.roleName)) {
+    return res.status(403).json({ success: false, message: "Admin access required" });
+  }
+  next();
+};
+router.get(
+  "/admin/overview",
+  authMiddleware,
+  requireAdminLeadAccess,
+  getAdminLeadsController,
+);
+router.get("/admin/export", authMiddleware, requireAdminLeadAccess, exportAdminLeadsController);
 router.patch(
   '/:id/assign',
   authMiddleware,

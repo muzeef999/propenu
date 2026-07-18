@@ -29,6 +29,14 @@ import { toast } from "sonner";
 import SelectableButton from "@/ui/SelectableButton";
 import { formatLabel } from "@/utilies/formatLabel";
 
+function normalizeLocalityName(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function getLocalityDedupKey(value: string) {
+  return normalizeLocalityName(value).toLowerCase();
+}
+
 type ListingOption = {
   label: "Buy" | "Rent";
   value: "sale" | "rent";
@@ -101,7 +109,7 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
     land.plotArea?.max ?? PLOT_AREA_MAX,
   ]);
 
-  const selectedLocality = land.locality ?? "";
+  const selectedLocalities = Array.isArray(land.locality) ? land.locality : [];
   const selectedLandTypes = Array.isArray(land.landType) ? land.landType : [];
   const selectedLandSubTypes = Array.isArray(land.landSubType) ? land.landSubType : [];
   const selectedPostedBy = land.createdByRole ? [land.createdByRole] : [];
@@ -142,10 +150,17 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
   }, [land.plotArea?.min, land.plotArea?.max]);
 
   const localitySuggestions = useMemo(() => {
-    const names =
-      cityData?.localities
-        ?.map((loc) => loc?.name?.trim())
-        .filter((name): name is string => Boolean(name)) ?? [];
+    const names = Array.from(
+      new Map(
+        (cityData?.localities ?? [])
+          .map((loc) => loc?.name)
+          .filter((name): name is string => Boolean(name?.trim()))
+          .map((name) => {
+            const normalizedName = normalizeLocalityName(name);
+            return [getLocalityDedupKey(normalizedName), normalizedName] as const;
+          }),
+      ).values(),
+    );
 
     const query = searchText.trim().toLowerCase();
     if (!query) return names.slice(0, 8);
@@ -163,7 +178,12 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
     arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
 
   const handleLocalitySelect = (name: string) => {
-    dispatch(setLandFilter({ key: "locality", value: name }));
+    dispatch(
+      setLandFilter({
+        key: "locality",
+        value: toggleArrayValue(selectedLocalities, name),
+      }),
+    );
     dispatch(setSearchText(""));
   };
 
@@ -302,7 +322,7 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                 key={name}
                 type="button"
                 onClick={() => handleLocalitySelect(name)}
-                className={`rounded-xl px-3 py-2 text-sm ${selectedLocality === name
+                className={`rounded-xl px-3 py-2 text-sm ${selectedLocalities.includes(name)
                     ? "bg-[#d8ece0] text-green-700"
                     : "bg-[#e1eae4] text-gray-900"
                   }`}

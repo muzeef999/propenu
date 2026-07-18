@@ -13,7 +13,10 @@ import {
   ISpecification,
   ISpecItem,
 } from "../types/featurePropertiesTypes";
-import { PromotionSchema } from "./sharedSchemas";
+import {
+  PromotionSchema,
+  RelationshipManagerAssignmentSchema,
+} from "./sharedSchemas";
 import {
   generatePropertyCode,
   PropertyCodeCategory,
@@ -295,6 +298,10 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
       ref: "User",
       required: true,
       index: true,
+    },
+    relationshipManager: {
+      type: RelationshipManagerAssignmentSchema,
+      default: null,
     },
     relationshipManagerId: {
       type: Schema.Types.ObjectId,

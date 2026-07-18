@@ -56,6 +56,12 @@ export interface IBaseListing {
   listingType: 'sale' | 'rent' | 'lease';
   listingSource?: string;
   createdBy?: Types.ObjectId;
+  relationshipManager?: {
+    userId?: Types.ObjectId | string | null;
+    designation?: string;
+    availability?: string;
+    responseTime?: string;
+  } | null;
   relationshipManagerId?: Types.ObjectId | string | null;
 }
 

@@ -1325,6 +1325,8 @@ export const FeaturePropertyService = {
 
     const projects = await FeaturedProject.find(filter)
       .populate("createdBy", "name email phone")
+      .populate("relationshipManagerId", "name email phone")
+      .populate("relationshipManager.userId", "name email phone")
       .lean();
 
     return serializeFeaturedProjectList(projects);
@@ -1342,6 +1344,8 @@ export const FeaturePropertyService = {
 
     const projects = await FeaturedProject.find(filter)
       .populate("createdBy", "name email phone")
+      .populate("relationshipManagerId", "name email phone")
+      .populate("relationshipManager.userId", "name email phone")
       .lean();
 
     return serializeFeaturedProjectList(projects);
@@ -1357,6 +1361,8 @@ export const FeaturePropertyService = {
       .lean();
     const doc = await FeaturedProject.findOne({ slug })
       .populate("createdBy", "name email phone role roleId")
+      .populate("relationshipManagerId", "name email phone")
+      .populate("relationshipManager.userId", "name email phone")
       .populate("createdBy.roleId", "name label")
       .populate("approvedBy", "name email phone role roleId")
       .populate("approvedBy.roleId", "name label")
