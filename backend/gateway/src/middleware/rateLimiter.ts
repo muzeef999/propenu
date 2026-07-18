@@ -4,6 +4,15 @@ const commonOptions = {
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req: any) => req.path === "/health",
+  handler: (req: any, res: any, _next: any, options: any) => {
+    const resetTime = req.rateLimit?.resetTime?.getTime?.();
+    const retryAfter = resetTime
+      ? Math.max(1, Math.ceil((resetTime - Date.now()) / 1000))
+      : Math.max(1, Math.ceil((options.windowMs || 60 * 1000) / 1000));
+
+    res.setHeader("Retry-After", String(retryAfter));
+    res.status(options.statusCode).json(options.message);
+  },
 };
 
 export const globalApiLimiter = rateLimit({

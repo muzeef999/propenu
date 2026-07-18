@@ -10,17 +10,25 @@ export const fetchLocations = createAsyncThunk<LocationItem[]>(
     const res = await fetch(`${url}/api/users/location`);
     const data = await res.json();
     return data.locations || [];
+  },
+  {
+    condition: (_arg, { getState }) => {
+      const state = getState() as { city: CityState };
+      return state.city.status !== "loading" && state.city.status !== "succeeded";
+    },
   }
 );
 
 interface CityState {
   locations: LocationItem[];
   selectedCityId: string | null;
+  status: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: CityState = {
   locations: [],
   selectedCityId: null,
+  status: "idle",
 };
 
 /* ---------------- SLICE ---------------- */
@@ -36,9 +44,17 @@ const citySlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(fetchLocations.fulfilled, (state, action) => {
-      state.locations = action.payload;
-    });
+    builder
+      .addCase(fetchLocations.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(fetchLocations.fulfilled, (state, action) => {
+        state.locations = action.payload;
+        state.status = "succeeded";
+      })
+      .addCase(fetchLocations.rejected, (state) => {
+        state.status = "failed";
+      });
   },
 });
 

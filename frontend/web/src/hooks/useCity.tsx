@@ -12,6 +12,7 @@ import {
   selectLocalitiesByCity,
 } from "@/Redux/slice/citySlice";
 import { LocationItem } from "@/types";
+import { RATE_LIMIT_RECOVERED_EVENT } from "@/utilies/requestMonitor";
 
 const DEFAULT_CITY_NAME = "Hyderabad";
 
@@ -36,6 +37,15 @@ export function useCity() {
 
   useEffect(() => {
     dispatch(fetchLocations());
+  }, [dispatch]);
+
+  useEffect(() => {
+    const retryLocations = () => {
+      dispatch(fetchLocations());
+    };
+
+    window.addEventListener(RATE_LIMIT_RECOVERED_EVENT, retryLocations);
+    return () => window.removeEventListener(RATE_LIMIT_RECOVERED_EVENT, retryLocations);
   }, [dispatch]);
 
   useEffect(() => {

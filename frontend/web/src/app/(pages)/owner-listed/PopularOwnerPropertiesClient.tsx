@@ -23,6 +23,7 @@ import {
   setHomeSectionCache,
 } from "@/utilies/homeSectionCache";
 import OwnerComingSoon from "./OwnerComingSoon";
+import { RATE_LIMIT_RECOVERED_EVENT } from "@/utilies/requestMonitor";
 
 type OwnerCardItem = PopularOwnerProperty & {
   id?: string;
@@ -45,6 +46,13 @@ const PopularOwnerPropertiesClient = () => {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [hasHiddenProperties, setHasHiddenProperties] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+
+  useEffect(() => {
+    const retryAfterRateLimit = () => setRetryKey((value) => value + 1);
+    window.addEventListener(RATE_LIMIT_RECOVERED_EVENT, retryAfterRateLimit);
+    return () => window.removeEventListener(RATE_LIMIT_RECOVERED_EVENT, retryAfterRateLimit);
+  }, []);
 
   useEffect(() => {
     if (!selectedCity) return;
@@ -92,7 +100,7 @@ const PopularOwnerPropertiesClient = () => {
     return () => {
       isActive = false;
     };
-  }, [cacheKey, selectedCity]);
+  }, [cacheKey, selectedCity, retryKey]);
 
   useEffect(() => {
     const slider = sliderRef.current;

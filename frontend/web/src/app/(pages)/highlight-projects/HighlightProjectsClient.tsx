@@ -21,6 +21,7 @@ import {
 } from "@/utilies/homeSectionCache";
 import { useShortlist } from "@/hooks/useShortlist";
 import { IoMdShareAlt } from "react-icons/io";
+import { RATE_LIMIT_RECOVERED_EVENT } from "@/utilies/requestMonitor";
 
 function HighlightProjectCard({ project }: { project: FeaturedProject }) {
   const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(
@@ -145,6 +146,13 @@ export default function HighlightProjectsClient() {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [hasHiddenProjects, setHasHiddenProjects] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+
+  useEffect(() => {
+    const retryAfterRateLimit = () => setRetryKey((value) => value + 1);
+    window.addEventListener(RATE_LIMIT_RECOVERED_EVENT, retryAfterRateLimit);
+    return () => window.removeEventListener(RATE_LIMIT_RECOVERED_EVENT, retryAfterRateLimit);
+  }, []);
 
   useEffect(() => {
     if (!selectedCity) return;
@@ -188,7 +196,7 @@ export default function HighlightProjectsClient() {
     return () => {
       isActive = false;
     };
-  }, [cacheKey, selectedCity]);
+  }, [cacheKey, selectedCity, retryKey]);
 
   useEffect(() => {
     const slider = sliderRef.current;

@@ -18,6 +18,7 @@ import {
 import { useShortlist } from "@/hooks/useShortlist";
 import { GoHeart, GoHeartFill } from "react-icons/go";
 import { IoMdShareAlt } from "react-icons/io";
+import { RATE_LIMIT_RECOVERED_EVENT } from "@/utilies/requestMonitor";
 
 function PrimeProjectCard({ project }: { project: FeaturedProject }) {
   const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(
@@ -150,7 +151,13 @@ export default function FeaturedProjectsClient() {
   const [loading, setLoading] = useState(() => !getHomeSectionCache(cacheKey));
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
 
+  useEffect(() => {
+    const retryAfterRateLimit = () => setRetryKey((value) => value + 1);
+    window.addEventListener(RATE_LIMIT_RECOVERED_EVENT, retryAfterRateLimit);
+    return () => window.removeEventListener(RATE_LIMIT_RECOVERED_EVENT, retryAfterRateLimit);
+  }, []);
 
   useEffect(() => {
     if (!selectedCity) return;
@@ -194,7 +201,7 @@ export default function FeaturedProjectsClient() {
     return () => {
       isActive = false;
     };
-  }, [cacheKey, selectedCity]);
+  }, [cacheKey, selectedCity, retryKey]);
 
   const updateScrollState = useCallback(() => {
     const el = sliderRef.current;
