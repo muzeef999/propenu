@@ -20,7 +20,6 @@ const url = process.env.NEXT_PUBLIC_API_URL;
 const getTokenPayload = () => {
   const token = Cookies.get("token");
   if (!token) return null;
-
   try {
     return JSON.parse(atob(token.split(".")[1] ?? ""));
   } catch {
@@ -32,7 +31,6 @@ const filterAssignedBuilderProjects = <T extends { _id?: string }>(response: any
   const payload = getTokenPayload();
   const roleName = payload?.roleName;
   const assignedProjectIds = payload?.builderAccess?.projectIds;
-
   if (
     roleName !== "builder_staff" ||
     !Array.isArray(assignedProjectIds) ||
@@ -44,18 +42,15 @@ const filterAssignedBuilderProjects = <T extends { _id?: string }>(response: any
   const allowed = new Set(assignedProjectIds.map(String));
   const filterProjects = (projects: T[]) =>
     projects.filter((project) => project?._id && allowed.has(String(project._id)));
-
   if (Array.isArray(response)) {
     return filterProjects(response);
   }
-
   if (Array.isArray(response?.data)) {
     return {
       ...response,
       data: filterProjects(response.data),
     };
   }
-
   return response;
 };
 
@@ -64,7 +59,6 @@ export async function getFeaturedProjects(params?: {
   city?: string;
 }) {
   const query = new URLSearchParams();
-
   if (params?.state) query.append("state", params.state);
   if (params?.city) query.append("city", params.city);
 
@@ -76,7 +70,6 @@ export async function getFeaturedProjects(params?: {
   if (!res.ok) {
     throw new Error("Failed to fetch featured projects");
   }
-
   return res.json();
 }
 
@@ -87,7 +80,6 @@ export async function getHighlightProjects(params?: {
   locality?: string;
 }) {
   const query = new URLSearchParams();
-
   query.append("type", "featured");
   if (params?.state) query.append("state", params.state);
   if (params?.city) query.append("city", params.city);
@@ -101,7 +93,6 @@ export async function getHighlightProjects(params?: {
   if (!res.ok) {
     throw new Error("Failed to fetch highlight projects");
   }
-
   return res.json();
 }
 
@@ -112,8 +103,9 @@ export async function getHighlightProjects(params?: {
 //       throw new Error('Failed to fetch Agent Connect data');
 //   }
 //   return res.json();
-
 // }
+
+
 export async function getOwnerProperties(params?: {
   state?: string;
   city?: string;
@@ -229,7 +221,6 @@ export const createVerifyOtp = async (
     `${url}/api/users/auth/verify-otp/create`,
     payload,
   );
-
   return res.data;
 };
 

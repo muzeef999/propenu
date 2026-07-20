@@ -19,7 +19,6 @@ axiosInstance.interceptors.request.use((config) => {
   const startedAt = Date.now();
   const requestUrl = `${config.baseURL || ""}${config.url || ""}`;
 
-  config.headers.set?.("x-request-monitor-id", requestId);
   (config as any).metadata = { requestId, startedAt, requestUrl };
 
   if (typeof window !== "undefined") {
