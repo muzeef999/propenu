@@ -116,6 +116,9 @@ export interface FeaturedProject {
   status?: "active" | "inactive" | "archived";
   createdBy?: Types.ObjectId | string;
   updatedBy?: Types.ObjectId | string;
+  createdAt?: string;
+  updatedAt?: string;
+  updateCount?: number;
   relatedProjects?: Array<Types.ObjectId | string>;
   propertyType?: string;
   youtubeVideos?: YoutubeVideo[];

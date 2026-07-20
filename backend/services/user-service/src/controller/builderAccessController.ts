@@ -146,10 +146,10 @@ export const createBuilderMember = async (req: AuthRequest, res: Response) => {
     }
 
     const existingPhoneUser = phone
-      ? await User.findOne({ phone }).select("_id name email phone")
+      ? await User.findOne({ phone }).select("_id name email phone roleId builderId")
       : null;
     const existingEmailUser = email
-      ? await User.findOne({ email }).select("_id name email phone")
+      ? await User.findOne({ email }).select("_id name email phone roleId builderId")
       : null;
 
     if (
@@ -177,6 +177,37 @@ export const createBuilderMember = async (req: AuthRequest, res: Response) => {
     let user = existingEmailUser ?? existingPhoneUser ?? null;
 
     if (user) {
+      const userRoleId =
+        user.roleId instanceof mongoose.Types.ObjectId
+          ? user.roleId
+          : user.roleId
+            ? new mongoose.Types.ObjectId(String(user.roleId))
+            : null;
+      const userBuilderId =
+        user.builderId instanceof mongoose.Types.ObjectId
+          ? user.builderId
+          : user.builderId
+            ? new mongoose.Types.ObjectId(String(user.builderId))
+            : null;
+      const isExistingBuilderStaff =
+        !!userRoleId && String(userRoleId) === String(staffRole._id);
+      const belongsToSameBuilder =
+        !!userBuilderId && String(userBuilderId) === String(builderId);
+
+      if (!isExistingBuilderStaff) {
+        return res.status(409).json({
+          message:
+            "This email or phone number is already registered with another account role",
+        });
+      }
+
+      if (!belongsToSameBuilder) {
+        return res.status(409).json({
+          message:
+            "This builder staff account is already assigned under another builder account",
+        });
+      }
+
       const existingMembership = await BuilderMember.findOne({
         userId: user._id,
         builderId: { $ne: new mongoose.Types.ObjectId(builderId) },

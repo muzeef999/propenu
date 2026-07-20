@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "rootDir": ".",
+    "rootDir": "../..",
     "outDir": "./dist",
     "module": "CommonJS",
     "target": "ES2020",
@@ -15,6 +15,12 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
   },
-  "include": ["src", "modules", "config"],
+  "include": [
+    "src",
+    "modules",
+    "config",
+    "../../shared/email/email.service.ts",
+    "../../shared/email/templates/ticketTemplates/**/*.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

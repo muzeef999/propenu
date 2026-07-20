@@ -289,7 +289,6 @@ const FilterBar: React.FC = () => {
       searchParams.get("createdByRole") ||
       searchParams.get("postedBy") ||
       searchParams.get("postedby") ||
-      searchParams.get("listingSource") ||
       ""
     )
       .trim()

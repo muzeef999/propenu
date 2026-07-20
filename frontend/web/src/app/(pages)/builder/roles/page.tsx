@@ -148,6 +148,46 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
+const INDIA_DIAL_CODE = "+91";
+const NAME_REGEX = /^[A-Za-z]+(?:[A-Za-z\s'.-]*[A-Za-z])?$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^[6-9]\d{9}$/;
+
+const normalizePhoneInput = (value: string) =>
+  value.replace(/\D/g, "").slice(-10);
+
+const getPhoneDigits = (value?: string) => {
+  const digits = normalizePhoneInput(value ?? "");
+  return digits.length > 10 ? digits.slice(-10) : digits;
+};
+
+const validateMemberForm = (memberForm: {
+  name: string;
+  email: string;
+  phone: string;
+  builderRoleId: string;
+}) => {
+  const trimmedName = memberForm.name.trim();
+  const trimmedEmail = memberForm.email.trim().toLowerCase();
+  const phoneDigits = getPhoneDigits(memberForm.phone);
+
+  if (!trimmedName) return "Member name is required";
+  if (trimmedName.length < 2) return "Member name must be at least 2 characters";
+  if (!NAME_REGEX.test(trimmedName)) return "Enter a valid member name";
+
+  if (!trimmedEmail) return "Email is required";
+  if (!EMAIL_REGEX.test(trimmedEmail)) return "Enter a valid email address";
+
+  if (!phoneDigits) return "Phone number is required";
+  if (!PHONE_REGEX.test(phoneDigits)) {
+    return "Enter a valid 10-digit Indian mobile number";
+  }
+
+  if (!memberForm.builderRoleId) return "Select a role";
+
+  return null;
+};
+
 function SwitchToggle({
   active,
   disabled,
@@ -450,7 +490,7 @@ export default function BuilderRolesPage() {
     setMemberForm({
       name: member.userId?.name || "",
       email: member.userId?.email || "",
-      phone: member.userId?.phone || "",
+      phone: getPhoneDigits(member.userId?.phone),
       builderRoleId: member.builderRoleId?._id || "",
       projectIds: (member.projectIds ?? []).map(String),
     });
@@ -503,11 +543,15 @@ export default function BuilderRolesPage() {
 
   const handleCreateMember = () => {
     setMemberFormError(null);
+    const validationError = validateMemberForm(memberForm);
+    if (validationError) {
+      setMemberFormError(validationError);
+      return toast.error(validationError);
+    }
 
-    if (!memberForm.name.trim()) return toast.error("Member name is required");
-    if (!memberForm.phone.trim()) return toast.error("Phone number is required");
-    if (!memberForm.email.trim()) return toast.error("Email is required");
-    if (!memberForm.builderRoleId) return toast.error("Select a role");
+    const trimmedName = memberForm.name.trim();
+    const trimmedEmail = memberForm.email.trim().toLowerCase();
+    const phoneDigits = getPhoneDigits(memberForm.phone);
 
     if (editingMemberId) {
       editMemberMutation.mutate({
@@ -519,9 +563,9 @@ export default function BuilderRolesPage() {
     }
 
     createMemberMutation.mutate({
-      name: memberForm.name.trim(),
-      email: memberForm.email.trim() || undefined,
-      phone: memberForm.phone.trim() || undefined,
+      name: trimmedName,
+      email: trimmedEmail || undefined,
+      phone: phoneDigits || undefined,
       builderRoleId: memberForm.builderRoleId,
     });
   };
@@ -650,19 +694,19 @@ export default function BuilderRolesPage() {
         </div>
       </div>
 
-      <div className="sticky top-0 z-30 bg-white">
-        <div className="grid overflow-hidden border border-[#E2F0E6] bg-[#F4FCF6] sm:grid-cols-3">
-          <div className={`px-5 py-4 transition ${activeStep === 1 ? "bg-[#F4FCF6]" : "bg-[#F8FCF9]"}`}>
+      <div className="bg-white md:sticky md:top-0 md:z-30">
+        <div className="grid gap-2 rounded-md bg-white sm:gap-3 md:grid-cols-3">
+          <div className={`rounded-md border border-[#E2F0E6] px-4 py-3 transition sm:px-5 sm:py-4 ${activeStep === 1 ? "bg-[#F4FCF6] shadow-[0_8px_18px_rgba(39,174,96,0.08)]" : "bg-[#F8FCF9]"}`}>
             <p className={`text-xs font-semibold uppercase tracking-wide ${activeStep === 1 ? "text-gray-500" : "text-gray-400"}`}>Step 1</p>
-            <p className={`mt-3 text-[1.1rem] ${activeStep === 1 ? "font-semibold text-gray-950" : "font-medium text-gray-400"}`}>Create Roles &amp; Permissions</p>
+            <p className={`mt-2 text-base leading-6 sm:mt-3 sm:text-[1.1rem] ${activeStep === 1 ? "font-semibold text-gray-950" : "font-medium text-gray-400"}`}>Create Roles &amp; Permissions</p>
           </div>
-          <div className={`border-t border-[#E2F0E6] px-5 py-4 transition sm:border-l sm:border-t-0 ${activeStep === 2 ? "bg-[#F4FCF6]" : "bg-[#F8FCF9]"}`}>
+          <div className={`rounded-md border border-[#E2F0E6] px-4 py-3 transition sm:px-5 sm:py-4 ${activeStep === 2 ? "bg-[#F4FCF6] shadow-[0_8px_18px_rgba(39,174,96,0.08)]" : "bg-[#F8FCF9]"}`}>
             <p className={`text-xs font-semibold uppercase tracking-wide ${activeStep === 2 ? "text-gray-500" : "text-gray-400"}`}>Step 2</p>
-            <p className={`mt-3 text-[1.1rem] ${activeStep === 2 ? "font-semibold text-gray-950" : "font-medium text-gray-400"}`}>Add Team Member</p>
+            <p className={`mt-2 text-base leading-6 sm:mt-3 sm:text-[1.1rem] ${activeStep === 2 ? "font-semibold text-gray-950" : "font-medium text-gray-400"}`}>Add Team Member</p>
           </div>
-          <div className={`border-t border-[#E2F0E6] px-5 py-4 transition sm:border-l sm:border-t-0 ${activeStep === 3 ? "bg-[#F4FCF6]" : "bg-[#F8FCF9]"}`}>
+          <div className={`rounded-md border border-[#E2F0E6] px-4 py-3 transition sm:px-5 sm:py-4 ${activeStep === 3 ? "bg-[#F4FCF6] shadow-[0_8px_18px_rgba(39,174,96,0.08)]" : "bg-[#F8FCF9]"}`}>
             <p className={`text-xs font-semibold uppercase tracking-wide ${activeStep === 3 ? "text-gray-500" : "text-gray-400"}`}>Step 3</p>
-            <p className={`mt-3 text-[1.1rem] ${activeStep === 3 ? "font-semibold text-gray-950" : "font-medium text-gray-400"}`}>Assign Project</p>
+            <p className={`mt-2 text-base leading-6 sm:mt-3 sm:text-[1.1rem] ${activeStep === 3 ? "font-semibold text-gray-950" : "font-medium text-gray-400"}`}>Assign Project</p>
           </div>
         </div>
       </div>
@@ -681,7 +725,7 @@ export default function BuilderRolesPage() {
                 Create a role and assign permissions for your team.
               </p>
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto">
               <input
                 value={roleName}
                 onChange={(event) => setRoleName(event.target.value)}
@@ -807,14 +851,18 @@ export default function BuilderRolesPage() {
             </div>
           </div>
 
-          <div className="mt-7 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <div>
               <input
                 value={memberForm.name}
                 onChange={(event) => {
                   setMemberFormError(null);
-                  setMemberForm((current) => ({ ...current, name: event.target.value }));
+                  setMemberForm((current) => ({
+                    ...current,
+                    name: event.target.value.replace(/\s{2,}/g, " "),
+                  }));
                 }}
+                maxLength={60}
                 placeholder="Enter Member Name"
                 className="h-10 w-full rounded-md border border-[#ECECEC] bg-[#F3F3F3] px-4 text-sm text-gray-800 outline-none placeholder:text-gray-500 focus:border-[#16A34A] focus:bg-white"
               />
@@ -824,22 +872,39 @@ export default function BuilderRolesPage() {
                 value={memberForm.email}
                 onChange={(event) => {
                   setMemberFormError(null);
-                  setMemberForm((current) => ({ ...current, email: event.target.value }));
+                  setMemberForm((current) => ({
+                    ...current,
+                    email: event.target.value.replace(/\s/g, ""),
+                  }));
                 }}
+                inputMode="email"
+                autoCapitalize="none"
+                autoCorrect="off"
                 placeholder="Enter Email Address"
                 className="h-10 w-full rounded-md border border-[#ECECEC] bg-[#F3F3F3] px-4 text-sm text-gray-800 outline-none placeholder:text-gray-500 focus:border-[#16A34A] focus:bg-white"
               />
             </div>
             <div>
-              <input
-                value={memberForm.phone}
-                onChange={(event) => {
-                  setMemberFormError(null);
-                  setMemberForm((current) => ({ ...current, phone: event.target.value }));
-                }}
-                placeholder="Enter Whatsapp Number"
-                className="h-10 w-full rounded-md border border-[#ECECEC] bg-[#F3F3F3] px-4 text-sm text-gray-800 outline-none placeholder:text-gray-500 focus:border-[#16A34A] focus:bg-white"
-              />
+              <div className="flex h-10 overflow-hidden rounded-md border border-[#ECECEC] bg-[#F3F3F3] focus-within:border-[#16A34A] focus-within:bg-white">
+                <span className="inline-flex items-center border-r border-[#E5E7EB] bg-[#EBF7EF] px-3 text-sm font-semibold text-[#15803D]">
+                  {INDIA_DIAL_CODE}
+                </span>
+                <input
+                  value={memberForm.phone}
+                  onChange={(event) => {
+                    setMemberFormError(null);
+                    setMemberForm((current) => ({
+                      ...current,
+                      phone: normalizePhoneInput(event.target.value),
+                    }));
+                  }}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={10}
+                  placeholder="Enter WhatsApp Number"
+                  className="h-full w-full bg-transparent px-4 text-sm text-gray-800 outline-none placeholder:text-gray-500"
+                />
+              </div>
             </div>
             <div ref={memberRoleDropdownRef} className="relative">
               <button
@@ -921,9 +986,9 @@ export default function BuilderRolesPage() {
             </p>
           </div>
 
-          <div className="mt-7">
-            <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="grid gap-3 md:grid-cols-2 lg:min-w-[585px]">
+          <div className="mt-6 sm:mt-7">
+            <div className="mb-5 flex flex-col gap-3 sm:mb-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[585px]">
                 <div ref={assignRoleDropdownRef} className="relative">
                   <button
                     type="button"
@@ -952,7 +1017,7 @@ export default function BuilderRolesPage() {
 
                   {assignRoleOpen && (
                     <div
-                      className="absolute left-0 top-[calc(100%+8px)] z-60 w-full rounded-xl border border-gray-200 bg-white p-3 shadow-lg"
+                      className="absolute left-0 top-[calc(100%+8px)] z-60 max-h-72 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white p-3 shadow-lg"
                       onClick={(event) => event.stopPropagation()}
                     >
                       <div className="pointer-events-none absolute -top-2 left-6">
@@ -1015,7 +1080,7 @@ export default function BuilderRolesPage() {
 
                   {assignMemberOpen && (
                     <div
-                      className="absolute left-0 top-[calc(100%+8px)] z-60 w-full rounded-xl border border-gray-200 bg-white p-3 shadow-lg"
+                      className="absolute left-0 top-[calc(100%+8px)] z-60 max-h-72 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white p-3 shadow-lg"
                       onClick={(event) => event.stopPropagation()}
                     >
                       <div className="pointer-events-none absolute -top-2 left-6">
@@ -1048,15 +1113,15 @@ export default function BuilderRolesPage() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="inline-flex h-10 items-center justify-center rounded-md bg-gray-100 px-4 text-sm font-semibold text-gray-500">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:justify-end">
+                <span className="inline-flex h-10 w-full items-center justify-center rounded-md bg-gray-100 px-4 text-sm font-semibold text-gray-500 sm:w-auto">
                   {memberForm.projectIds.length} selected
                 </span>
                 <button
                   type="button"
                   onClick={handleAssignProjects}
                   disabled={assignProjectsMutation.isPending}
-                  className="inline-flex h-10 items-center justify-center rounded-md bg-[#27AE60] px-4 text-sm font-semibold text-white transition hover:bg-[#1f9752] disabled:opacity-60"
+                  className="inline-flex h-10 w-full items-center justify-center rounded-md bg-[#27AE60] px-4 text-sm font-semibold text-white transition hover:bg-[#1f9752] disabled:opacity-60 sm:w-auto"
                 >
                   {assignProjectsMutation.isPending ? "Assigning..." : "Assign Project"}
                 </button>
@@ -1064,7 +1129,7 @@ export default function BuilderRolesPage() {
             </div>
             <div className="max-h-[430px] overflow-y-auto">
               {projects.length ? (
-                <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {projects.map((project) => {
                     const active = memberForm.projectIds.includes(project._id);
                     const projectTitle = project.title || project.projectName || "Project";
@@ -1074,7 +1139,7 @@ export default function BuilderRolesPage() {
                         key={project._id}
                         type="button"
                         onClick={() => toggleProject(project._id)}
-                        className={`group flex min-h-[108px] w-full items-start gap-3 rounded-xl border px-3 py-3 text-left text-sm transition ${
+                        className={`group flex min-h-[108px] w-full flex-col gap-3 rounded-xl border p-3 text-left text-sm transition sm:flex-row sm:items-start ${
                           active
                             ? "border-[#BFE6CB] bg-[#F4FCF6] text-gray-800 shadow-[0_8px_18px_rgba(39,174,96,0.08)]"
                             : "border-[#E7E7E7] bg-white text-gray-700 hover:border-[#CFE3D6] hover:bg-[#FBFDFC]"
@@ -1083,13 +1148,13 @@ export default function BuilderRolesPage() {
                         <img
                           src={project.heroImage || "/images/placeholder.svg"}
                           alt={projectTitle}
-                          className="h-[82px] w-[104px] shrink-0 rounded-lg object-cover"
+                          className="h-40 w-full rounded-lg object-cover sm:h-[82px] sm:w-[104px] sm:shrink-0"
                         />
                         <span className="min-w-0 flex-1 pt-0.5">
-                          <span className="inline-flex max-w-full rounded-full bg-[#F3F6F4] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5F6F66]">
+                          <span className="inline-flex max-w-full rounded-full bg-[#F3F6F4] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#5F6F66] sm:text-[11px]">
                             Code: {project.propertyCode || project._id.slice(-8).toUpperCase()}
                           </span>
-                          <span className="mt-2 line-clamp-2 block text-[0.98rem] font-semibold leading-6 text-gray-900">
+                          <span className="mt-2 line-clamp-2 block text-[0.95rem] font-semibold leading-6 text-gray-900 sm:text-[0.98rem]">
                             {projectTitle}
                           </span>
                           <span className="mt-1 block text-xs font-medium text-[#7B8A82]">
@@ -1097,7 +1162,7 @@ export default function BuilderRolesPage() {
                           </span>
                         </span>
                         <span
-                          className={`mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition ${
+                          className={`mt-1 flex h-6 w-6 shrink-0 items-center justify-center self-end rounded-md border transition sm:self-auto ${
                             active
                               ? "border-[#27AE60] bg-[#27AE60] text-white"
                               : "border-[#CFCFCF] bg-white text-transparent group-hover:border-[#A9D5B6]"
@@ -1117,8 +1182,7 @@ export default function BuilderRolesPage() {
             </div>
           </div>
         </section>
-      </div>
-
+      </div>     
       <div className="border-t border-[#E6EFE9]" />
 
       <section className="bg-white">
@@ -1128,7 +1192,7 @@ export default function BuilderRolesPage() {
             <p className="mt-2 text-sm text-gray-600">View and manage your existing roles.</p>
           </div>
         </div>
-        <div className="mt-7 space-y-2">
+        <div className="mt-7 hidden space-y-2 md:block">
           {roles.map((role) => (
             <div
               key={role._id}
@@ -1170,6 +1234,56 @@ export default function BuilderRolesPage() {
             </div>
           ))}
         </div>
+        <div className="mt-7 space-y-3 md:hidden">
+          {roles.map((role, index) => (
+            <div
+              key={role._id}
+              className="rounded-xl border border-[#E6E6E6] bg-[#FAFAFA] p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">{role.name}</h3>
+                  <span className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getRoleTone(index)}`}>
+                    {role.permissions.length} permissions
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-800">
+                  <button
+                    type="button"
+                    onClick={() => handleEditRole(role)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[#27AE60] transition hover:bg-[#F4FCF6]"
+                    aria-label={`Edit ${role.name}`}
+                  >
+                    <FiEdit2 className="h-4.5 w-4.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      toggleRoleMutation.mutate({
+                        id: role._id,
+                        isActive: role.isActive === false,
+                      })
+                    }
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[#D92D20] transition hover:bg-[#FEF3F2]"
+                    aria-label={`${role.isActive === false ? "Activate" : "Deactivate"} ${role.name}`}
+                  >
+                    <FiTrash2 className="h-4.5 w-4.5" />
+                  </button>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {role.permissions.map((permission) => (
+                  <span
+                    key={permission}
+                    className="rounded-full bg-[#EAF8EF] px-2.5 py-1 text-xs font-medium text-[#1D8E4A]"
+                  >
+                    {permissionLabels[permission] ?? permission}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="bg-white">
@@ -1179,7 +1293,7 @@ export default function BuilderRolesPage() {
             <p className="mt-2 text-sm text-gray-600">People who can access this builder workspace.</p>
           </div>
         </div>
-        <div className="mt-7 overflow-x-auto rounded-md border border-[#E3E3E3]">
+        <div className="mt-7 hidden overflow-x-auto rounded-md border border-[#E3E3E3] md:block">
           <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="bg-[#F4FCF6] text-[1rem] text-[#6B7280]">
               <tr>
@@ -1241,6 +1355,65 @@ export default function BuilderRolesPage() {
               )}
             </tbody>
           </table>
+        </div>
+        <div className="mt-7 space-y-3 md:hidden">
+          {members.map((member) => (
+            <div
+              key={member._id}
+              className="rounded-xl border border-[#E3E3E3] bg-white p-4 shadow-[0_4px_14px_rgba(15,23,42,0.04)]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="truncate text-base font-semibold text-gray-900">
+                    {member.userId?.name || "Member"}
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {member.builderRoleId?.name || "-"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleEditMember(member)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[#27AE60] transition hover:bg-[#F4FCF6]"
+                    aria-label={`Edit ${member.userId?.name || "member"}`}
+                  >
+                    <FiEdit2 className="h-4.5 w-4.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      toggleMemberMutation.mutate({
+                        id: member._id,
+                        isActive: member.isActive === false,
+                      })
+                    }
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[#D92D20] transition hover:bg-[#FEF3F2]"
+                    aria-label={`${member.isActive === false ? "Activate" : "Deactivate"} ${member.userId?.name || "member"}`}
+                  >
+                    <FiTrash2 className="h-4.5 w-4.5" />
+                  </button>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-3 rounded-lg bg-[#F8FBF9] p-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Email</p>
+                  <p className="mt-1 break-all text-sm text-gray-700">{member.userId?.email || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Number</p>
+                  <p className="mt-1 text-sm text-gray-700">
+                    {member.userId?.phone ? `${INDIA_DIAL_CODE} ${getPhoneDigits(member.userId.phone)}` : "-"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+          {!members.length && (
+            <div className="rounded-xl border border-dashed border-[#DADADA] px-4 py-8 text-center text-gray-500">
+              No team members yet
+            </div>
+          )}
         </div>
       </section>
     </div>

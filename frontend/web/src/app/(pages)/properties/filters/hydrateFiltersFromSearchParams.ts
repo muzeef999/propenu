@@ -111,11 +111,9 @@ export function hydrateFiltersFromSearchParams(
   const createdByRole =
     getString(params, "createdByRole") ??
     getString(params, "postedBy") ??
-    getString(params, "postedby") ??
-    getString(params, "listingSource");
+    getString(params, "postedby");
 
-  const listingSource =
-    getString(params, "listingSource") ?? getString(params, "createdByRole");
+  const listingSource = getString(params, "listingSource");
 
   residential.propertyType = getString(params, "propertyType");
   residential.transactionType = getString(params, "transactionType");

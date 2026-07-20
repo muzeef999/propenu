@@ -71,7 +71,7 @@ function ContentBlock({ content }: { content?: string }) {
   if (hasHtml(content)) {
     return (
       <div
-        className="text-[15px] leading-7 text-gray-700 sm:text-base sm:leading-8 [&_a]:text-[#26ad5f] [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-gray-950 sm:[&_h2]:text-2xl [&_h3]:mb-2 [&_h3]:mt-6 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:text-gray-950 sm:[&_h3]:text-xl [&_li]:mb-2 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-5 [&_strong]:text-gray-950 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5"
+        className="text-[15px] leading-7 text-gray-700 sm:text-base sm:leading-8 [&_a]:font-semibold [&_a]:text-[#26ad5f] [&_a]:underline [&_blockquote]:my-6 [&_blockquote]:border-l-4 [&_blockquote]:border-[#27AE60] [&_blockquote]:bg-[#f7fcf8] [&_blockquote]:pl-4 [&_blockquote]:pr-3 [&_blockquote]:py-2 [&_blockquote]:italic [&_blockquote]:text-gray-600 [&_em]:italic [&_h1]:mb-4 [&_h1]:mt-8 [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:leading-tight [&_h1]:text-gray-950 sm:[&_h1]:text-3xl [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-gray-950 sm:[&_h2]:text-2xl [&_h3]:mb-2 [&_h3]:mt-6 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:text-gray-950 sm:[&_h3]:text-xl [&_img]:my-6 [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-2xl [&_img]:border [&_img]:border-gray-200 [&_img]:shadow-sm [&_li]:mb-2 [&_mark]:rounded [&_mark]:bg-yellow-200 [&_mark]:px-1 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-5 [&_p.has-text-align-center]:text-center [&_p.has-text-align-right]:text-right [&_strong]:font-semibold [&_strong]:text-gray-950 [&_sub]:align-sub [&_sup]:align-super [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_.has-text-align-center]:text-center [&_.has-text-align-left]:text-left [&_.has-text-align-right]:text-right"
         dangerouslySetInnerHTML={{ __html: content }}
       />
     );
@@ -411,7 +411,7 @@ export default async function Page({ params }: PageProps) {
 
             
             {articleContext.length > 0 && (
-              <div className="mt-5 border-b border-gray-200 pb-5">
+              <div className="mt-5 pb-2">
                 <h2 className="text-lg font-semibold text-gray-950">
                   Article Context
                 </h2>
