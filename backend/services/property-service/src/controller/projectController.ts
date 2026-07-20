@@ -5,19 +5,6 @@ import mongoose from "mongoose";
 
 export const getPendingProjects = async (req: AuthRequest, res: Response) => {
   try {
-    // allow only manager/admin
-    if (
-      !req.user ||
-      !["sales_manager", "admin", "super_admin"].includes(
-        req.user.roleName || "",
-      )
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied",
-      });
-    }
-
     const projects = await FeaturedProject.find({
       approvalStatus: "pending",
       status: "pending",
@@ -42,17 +29,8 @@ export const getPendingProjects = async (req: AuthRequest, res: Response) => {
 
 export const approveProject = async (req: AuthRequest, res: Response) => {
   try {
-    // allow only manager/admin
-    if (
-      !req.user ||
-      !["sales_manager", "admin", "super_admin"].includes(
-        req.user.roleName || "",
-      )
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied",
-      });
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
     const project = await FeaturedProject.findById(req.params.id);
@@ -92,18 +70,6 @@ export const approveProject = async (req: AuthRequest, res: Response) => {
 
 export const rejectProject = async (req: AuthRequest, res: Response) => {
   try {
-    if (
-      !req.user ||
-      !["sales_manager", "admin", "super_admin"].includes(
-        req.user.roleName || "",
-      )
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied",
-      });
-    }
-
     const { reason } = req.body;
 
     const project = await FeaturedProject.findById(req.params.id);

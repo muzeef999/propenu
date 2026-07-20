@@ -16,6 +16,7 @@ import mongoose from "mongoose";
 import DeletedAccount from "../models/deletedAccountModel";
 import Agent from "../models/agentModel";
 import { getBuilderAccessForUser } from "../services/builderAccessService";
+import { canAssignDashboardRole, OPERATIONS_MANAGED_ROLE_NAMES } from "../utils/roleManagementPolicy";
 
 const deletedAccountMessage =
   "This account has been deleted. Please create a new account.";
@@ -646,9 +647,24 @@ export const deleteMyAccount = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getAllUsers = async (_req: Request, res: Response) => {
+export const getAllUsers = async (req: AuthRequest, res: Response) => {
   try {
-    const users = await User.find()
+    const userFilter: any = {};
+    if (["operations_head", "operation_head"].includes(req.user?.roleName || "")) {
+      const managedRoles = await Role.find({ name: { $in: [...OPERATIONS_MANAGED_ROLE_NAMES] } })
+        .select("_id")
+        .lean();
+      userFilter.roleId = { $in: managedRoles.map((role) => role._id) };
+
+      const operator = await User.findById(req.user?.sub)
+        .select("state city locality pincode")
+        .lean();
+      for (const field of ["state", "city", "locality", "pincode"] as const) {
+        if (operator?.[field]) userFilter[field] = operator[field];
+      }
+    }
+
+    const users = await User.find(userFilter)
       .select("-token")
       .populate("roleId", "name")
       .lean();
@@ -1064,9 +1080,10 @@ export const adminCreateRequestOtp = async (req: Request, res: Response) => {
   }
 };
 
-export const adminCreateVerifyOtp = async (req: Request, res: Response) => {
+export const adminCreateVerifyOtp = async (req: AuthRequest, res: Response) => {
   try {
     let { email, otp, name, role } = req.body;
+    const createPrivateRole = req.body?.createPrivateRole === true;
 
     email = email?.trim()?.toLowerCase();
     otp = otp?.trim();
@@ -1126,21 +1143,58 @@ export const adminCreateVerifyOtp = async (req: Request, res: Response) => {
             : "Continue signup process",
         token,
         nextStep,
+        role: roleDoc
+          ? { _id: String(roleDoc._id), name: roleDoc.name, label: roleDoc.label }
+          : null,
       });
     }
 
-    if (!role || !ADMIN_CREATE_ROLES.has(role)) {
+    if (!role && !createPrivateRole) {
       return res.status(400).json({
         message: "Invalid admin role",
       });
     }
 
-    const roleDoc = await Role.findOne({ name: role });
+    let roleDoc: any;
+
+    if (createPrivateRole) {
+      const baseName = String(name || email.split("@")[0] || "team_member")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .slice(0, 36) || "team_member";
+
+      roleDoc = await Role.create({
+        name: `staff_${baseName}_${Date.now().toString(36)}`,
+        label: `${name} Access`,
+        permissions: [],
+        roleType: "custom",
+        isProtected: false,
+        isActive: true,
+      });
+    } else {
+      // Older seeded roles may not have an isActive field. Treat them as active
+      // unless they have been explicitly disabled, matching the assignable list.
+      roleDoc = await Role.findOne({ name: role, isActive: { $ne: false } });
+    }
 
     if (!roleDoc) {
       return res.status(400).json({
         message: "Invalid role",
       });
+    }
+
+    if (req.user) {
+      if (!canAssignDashboardRole(req.user.roleName, roleDoc.name)) {
+        return res.status(403).json({
+          message: `You cannot create credentials for the '${roleDoc.label || roleDoc.name}' role. Operations Head can assign only roles within Operations.`,
+        });
+      }
+    }
+
+    if (!createPrivateRole && !ADMIN_CREATE_ROLES.has(role) && roleDoc.roleType !== "custom") {
+      return res.status(400).json({ message: "Role cannot be used for Admin Dashboard credentials" });
     }
 
     user = await User.create({
@@ -1163,6 +1217,7 @@ export const adminCreateVerifyOtp = async (req: Request, res: Response) => {
       message: "Account created. Continue signup.",
       token,
       nextStep: "location",
+      role: { _id: String(roleDoc._id), name: roleDoc.name, label: roleDoc.label },
     });
   } catch (error: any) {
     if (error?.name === "ValidationError") {
@@ -1235,7 +1290,7 @@ export const adminCreateUpdateLocation = async (
     }
 
     // check allowed roles
-    if (!ADMIN_CREATE_ROLES.has(roleDoc.name)) {
+    if (!ADMIN_CREATE_ROLES.has(roleDoc.name) && roleDoc.roleType !== "custom") {
       return res.status(403).json({
         success: false,
         message:

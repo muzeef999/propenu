@@ -9,6 +9,7 @@ import { approveProperty, createResidential, createResidentialDraft, deactivateP
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 import { uploadMedia } from "../middlewares/multer";
+import { requirePermission } from "../middlewares/requirePermission";
 
 const router = express.Router();
 
@@ -40,12 +41,7 @@ router.patch("/:id/basic", authMiddleware, uploadMedia, parseJsonFields(jsonKeys
 router.patch("/:id/location", authMiddleware, parseJsonFields(jsonKeys), updateLocationStep);
 router.patch("/:id/details", authMiddleware, uploadMedia, parseJsonFields(jsonKeys), updateDetailsStep);
 router.patch("/:id/verification", authMiddleware, uploadMedia, parseJsonFields(jsonKeys), finalizeResidential);
-router.patch("/:id/verify-document", authMiddleware, (req : AuthRequest, res, next) => {
-if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){
-       return res.status(403).json({message:"Forbidden only admin/super_admin can see the users"}); 
-    }
-    next(); 
-},  verifyResidentialDocument);
+router.patch("/:id/verify-document", authMiddleware, requirePermission("residential:verify_document"), verifyResidentialDocument);
 
 router.post("/:id/approve",  approveProperty);
 router.post("/:id/deactive", authMiddleware, deactivateProperty );

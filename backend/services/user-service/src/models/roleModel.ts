@@ -21,6 +21,15 @@ const roleSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    roleType: {
+      type: String,
+      enum: ["system", "custom"],
+      default: "custom",
+    },
+    isProtected: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

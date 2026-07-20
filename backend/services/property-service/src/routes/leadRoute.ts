@@ -6,6 +6,7 @@ import { validateBody } from '../middlewares/validate';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import { requireActiveSubscription } from '../middlewares/requireActiveSubscription';
 import { requireContactOwnerLimit } from '../middlewares/requireContactOwnerLimit';
+import { requirePermission } from '../middlewares/requirePermission';
 import {
   loadBuilderAccess,
   loadLeadProjectAccess,
@@ -81,19 +82,13 @@ router.delete(
 
 router.get('/my-contacts', authMiddleware, getMyContactedProperties);
 router.get("/check", authMiddleware, checkLeadController);
-const requireAdminLeadAccess = (req: any, res: any, next: any) => {
-  if (!["super_admin", "admin"].includes(req.user?.roleName)) {
-    return res.status(403).json({ success: false, message: "Admin access required" });
-  }
-  next();
-};
 router.get(
   "/admin/overview",
   authMiddleware,
-  requireAdminLeadAccess,
+  requirePermission("lead:view"),
   getAdminLeadsController,
 );
-router.get("/admin/export", authMiddleware, requireAdminLeadAccess, exportAdminLeadsController);
+router.get("/admin/export", authMiddleware, requirePermission("lead:export"), exportAdminLeadsController);
 router.patch(
   '/:id/assign',
   authMiddleware,
