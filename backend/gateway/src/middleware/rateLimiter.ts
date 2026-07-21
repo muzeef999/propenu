@@ -17,8 +17,8 @@ const commonOptions = {
 
 export const globalApiLimiter = rateLimit({
   ...commonOptions,
-  windowMs: 15 * 60 * 1000,
-  max: 300,
+  windowMs: 5 * 60 * 1000,
+  max: 2000,
   message: {
     success: false,
     message: "Too many requests. Please slow down and try again shortly.",
