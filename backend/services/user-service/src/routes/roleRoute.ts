@@ -1,23 +1,28 @@
 import express from "express";
 import { authMiddleware } from "../middlewares/authMiddleware";
-import { createRole, getAllRoles, getRoleById, updateRolePermissions, updateRoleStatus } from "../controller/roleController";
-import { adminOnly } from "../middlewares/adminOnly";
+import { createRole, deleteRole, getAllRoles, getAssignableRoles, getPermissionCatalog, getRoleById, getTeamDirectoryRoles, updateRolePermissions, updateRoleStatus } from "../controller/roleController";
+import { requirePermission } from "../middlewares/requirePermission";
+import { superAdminOnly } from "../middlewares/superAdminOnly";
 
 
 const roleRoute = express.Router();
 
 
-roleRoute.post("/", authMiddleware, adminOnly, createRole);
-roleRoute.get("/", authMiddleware, adminOnly, getAllRoles);
-roleRoute.get("/:id", authMiddleware, adminOnly, getRoleById);
+roleRoute.get("/permissions/catalog", authMiddleware, requirePermission("role:view"), getPermissionCatalog);
+roleRoute.get("/assignable", authMiddleware, requirePermission("user:create"), getAssignableRoles);
+roleRoute.get("/team-directory", authMiddleware, requirePermission("user:view"), getTeamDirectoryRoles);
+roleRoute.post("/", authMiddleware, requirePermission("role:create"), createRole);
+roleRoute.get("/", authMiddleware, requirePermission("role:view"), getAllRoles);
+roleRoute.get("/:id", authMiddleware, requirePermission("role:view"), getRoleById);
+roleRoute.delete("/:id", authMiddleware, superAdminOnly, requirePermission("role:delete"), deleteRole);
 roleRoute.patch("/:id/permissions",
   authMiddleware,
-  adminOnly,
+  requirePermission("role:update_permissions"),
   updateRolePermissions
 );
 roleRoute.patch("/:id/status",
   authMiddleware,
-  adminOnly,
+  requirePermission("role:update"),
   updateRoleStatus
 );
 

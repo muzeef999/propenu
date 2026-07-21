@@ -25,6 +25,7 @@ import {  createCommercial,  editCommercial,  getAllCommercial,  getCommercialBy
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 import { uploadMedia } from "../middlewares/multer";
+import { requirePermission } from "../middlewares/requirePermission";
 
 /** POST */
 router.post("/", authMiddleware, uploadMedia,  parseJsonFields(jsonKeys), fallbackCoerceDefault, createCommercial,  requireActiveSubscription);
@@ -37,12 +38,7 @@ router.get("/:id", getCommercialDetail);
 router.delete("/:id", deleteCommercial);
 
 
-router.patch("/:id/verify-document", authMiddleware, (req : AuthRequest, res, next) => {
-if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){
-       return res.status(403).json({message:"Forbidden only admin/super_admin can see the users"});
-    }
-    next();
-},  verifyCommercialDocument);
+router.patch("/:id/verify-document", authMiddleware, requirePermission("commercial:verify_document"), verifyCommercialDocument);
 
 
 router.post("/:id/approve",  approveCommercialProperty);

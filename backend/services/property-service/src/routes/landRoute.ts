@@ -26,6 +26,7 @@ import { CreateLandSchema, UpdateLandSchema } from "../zod/landZod";
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 import { uploadMedia } from "../middlewares/multer";
+import { requirePermission } from "../middlewares/requirePermission";
 
 const router = express.Router();
 
@@ -74,12 +75,7 @@ router.get("/:id", getLandDetail);
 router.delete("/:id", deleteLand);
 
 
-router.patch("/:id/verify-document", authMiddleware, (req : AuthRequest, res, next) => {
-if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){
-       return res.status(403).json({message:"Forbidden only admin/super_admin can see the users"});
-    }
-    next();
-},  verifyLandDocument);
+router.patch("/:id/verify-document", authMiddleware, requirePermission("land:verify_document"), verifyLandDocument);
 
 
 

@@ -1582,7 +1582,7 @@ export const FeaturePropertyService = {
         .sort(sort)
         .skip(skip)
         .limit(limit)
-        .populate("createdBy", "name email phone city state locality pincode")
+        .populate("createdBy", "name email phone city state locality pincode roleName")
         .lean()
         .exec(),
 
@@ -1736,7 +1736,7 @@ export const FeaturePropertyService = {
         .sort(sort)
         .skip(skip)
         .limit(limit)
-        .populate("createdBy", "name email phone city state locality pincode")
+        .populate("createdBy", "name email phone city state locality pincode roleName")
         .exec(),
       FeaturedProject.countDocuments(filter).exec(),
     ]);

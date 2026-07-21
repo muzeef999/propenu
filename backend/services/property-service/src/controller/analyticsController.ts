@@ -197,12 +197,21 @@ export const propertyAnalytics = async (
     const state = req.query.state as string;
     const city = req.query.city as string;
     const locality = req.query.locality as string;
+    const from = req.query.from as string;
+    const to = req.query.to as string;
+    const creatorIds = String(req.query.creatorIds || "").split(",").filter((id) => mongoose.Types.ObjectId.isValid(id));
 
     const matchFilter: any = {};
 
     if (state) matchFilter.state = state;
     if (city) matchFilter.city = city;
     if (locality) matchFilter.locality = locality;
+    if (from || to) {
+      matchFilter.createdAt = {};
+      if (from) matchFilter.createdAt.$gte = new Date(`${from}T00:00:00.000Z`);
+      if (to) matchFilter.createdAt.$lte = new Date(`${to}T23:59:59.999Z`);
+    }
+    if (creatorIds.length) matchFilter.createdBy = { $in: creatorIds.map((id) => new mongoose.Types.ObjectId(id)) };
 
     const propertyModels = [
       { category: "residential", model: Residential },
@@ -303,6 +312,9 @@ export const projectAnalytics = async (
     const state = req.query.state as string;
     const city = req.query.city as string;
     const locality = req.query.locality as string;
+    const from = req.query.from as string;
+    const to = req.query.to as string;
+    const creatorIds = String(req.query.creatorIds || "").split(",").filter((id) => mongoose.Types.ObjectId.isValid(id));
 
     /**
      * =========================================
@@ -323,6 +335,12 @@ export const projectAnalytics = async (
     if (locality) {
       matchFilter.locality = locality;
     }
+    if (from || to) {
+      matchFilter.createdAt = {};
+      if (from) matchFilter.createdAt.$gte = new Date(`${from}T00:00:00.000Z`);
+      if (to) matchFilter.createdAt.$lte = new Date(`${to}T23:59:59.999Z`);
+    }
+    if (creatorIds.length) matchFilter.createdBy = { $in: creatorIds.map((id) => new mongoose.Types.ObjectId(id)) };
 
     /**
      * =========================================

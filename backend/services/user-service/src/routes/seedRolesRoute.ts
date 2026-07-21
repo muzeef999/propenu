@@ -1,12 +1,13 @@
 import express from "express";
 import Role from "../models/roleModel";
+import { ALL_PERMISSIONS } from "../constants/permissionCatalog";
 
 const router = express.Router();
 
 router.post("/seed-roles", async (_req, res) => {
   try {
     // 1️⃣ Define all permissions in one place
-    const ALL_PERMISSIONS = [
+    const LEGACY_PERMISSIONS = [
       "project:create",
       "project:view",
       "project:edit",
@@ -49,7 +50,9 @@ router.post("/seed-roles", async (_req, res) => {
       {
         name: "super_admin",
         label: "Super Admin",
-        permissions: ALL_PERMISSIONS, // all permissions
+        permissions: ALL_PERMISSIONS,
+        roleType: "system",
+        isProtected: true,
       },
       {
         name: "admin",
@@ -67,6 +70,8 @@ router.post("/seed-roles", async (_req, res) => {
           "agent:view",
           "agent:edit",
         ],
+        roleType: "system",
+        isProtected: true,
       },
       {
         name: "sales_manager",
@@ -94,11 +99,15 @@ router.post("/seed-roles", async (_req, res) => {
         name: "user",
         label: "User",
         permissions: ["project:view", "project:create"],
+        roleType: "system",
+        isProtected: true,
       },
       {
         name: "agent",
         label: "Agent",
         permissions: ["project:view", "lead:view", "lead:edit", "agent:view"],
+        roleType: "system",
+        isProtected: true,
       },
       {
         name: "builder",
@@ -112,11 +121,15 @@ router.post("/seed-roles", async (_req, res) => {
           "agent:view",
           "agent:edit",
         ],
+        roleType: "system",
+        isProtected: true,
       },
       {
         name: "builder_staff",
         label: "Builder Staff",
         permissions: [],
+        roleType: "system",
+        isProtected: true,
       },
       {
         name: "accounts",

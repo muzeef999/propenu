@@ -10,7 +10,8 @@ import {
 import { validateBody } from "../middlewares/validate";
 import { parseJsonFields } from "../middlewares/parseJsonFields";
 import fallbackCoerceDefault from "../middlewares/fallbackCoerce";
-import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
+import { authMiddleware } from "../middlewares/authMiddleware";
+import { requirePermission } from "../middlewares/requirePermission";
 import { expirePromotion, promoteProperty, renewPromotion, resetPromotion } from "../controller/promotionController";
 import { uploadMedia } from "../middlewares/multer";
 
@@ -47,27 +48,11 @@ const jsonKeys = [
 
 
 
-router.post("/",  uploadMedia, parseJsonFields(jsonKeys), authMiddleware, fallbackCoerceDefault, validateBody(CreateFeaturePropertySchema),  
-(req: AuthRequest, res, next) => {
-    if (!req.user || !["super_admin", "admin", "builder", "sales_manager", "sales_agent"].includes(req.user.roleName || "") ) {
-      return res.status(403).json({
-          message: "only admin/super_admin/builder/sales_manager can post the project",
-        });
-    }
-    next();
-  },
+router.post("/",  uploadMedia, parseJsonFields(jsonKeys), authMiddleware, requirePermission("project:create", ["builder", "sales_manager", "sales_agent"]), fallbackCoerceDefault, validateBody(CreateFeaturePropertySchema),
   createFeatureProperties
 );
 
-router.patch("/:id", uploadMedia, parseJsonFields(jsonKeys), authMiddleware, fallbackCoerceDefault, validateBody(UpdateFeaturePropertySchema), 
-(req: AuthRequest, res, next)=> {
-if (!req.user || !["super_admin", "admin", "builder", "sales_manager"].includes(req.user.roleName || "") ) {
-      return res.status(403).json({
-          message: "only admin/super_admin/builder/sales_manager can edit the project",
-        });
-    }
-    next();
-},
+router.patch("/:id", uploadMedia, parseJsonFields(jsonKeys), authMiddleware, requirePermission("project:edit", ["builder", "sales_manager"]), fallbackCoerceDefault, validateBody(UpdateFeaturePropertySchema),
 editFeatureProperties
 );
 

@@ -9,6 +9,7 @@ import { approveAgriculturalProperty, createAgricultural, createAgriculturalDraf
 import { requireActiveSubscription } from "../middlewares/requireActiveSubscription";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 import { uploadMedia } from "../middlewares/multer";
+import { requirePermission } from "../middlewares/requirePermission";
 const router = express.Router();
 
 
@@ -69,12 +70,7 @@ router.patch("/:id/details", authMiddleware, uploadMedia, parseJsonFields(jsonKe
 router.patch("/:id/verification", authMiddleware, uploadMedia,parseJsonFields(jsonKeys),   finalizeAgricultural);
 
 
-router.patch("/:id/verify-document", authMiddleware, (req : AuthRequest, res, next) => {
-if(!req.user || !["super_admin", "admin"].includes(req.user.roleName || "")){
-       return res.status(403).json({message:"Forbidden only admin/super_admin can see the users"});
-    }
-    next();
-},  verifyAgricultiralDocument);
+router.patch("/:id/verify-document", authMiddleware, requirePermission("agricultural:verify_document"), verifyAgricultiralDocument);
 
 
 router.post("/:id/approve",  approveAgriculturalProperty);

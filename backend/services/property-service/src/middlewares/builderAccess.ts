@@ -15,6 +15,7 @@ type BuilderAccess = {
   permissions: string[];
   projectIds: string[];
   isOwner: boolean;
+  isGlobalScope: boolean;
 };
 
 type BuilderAccessRequest = AuthRequest & {
@@ -47,6 +48,7 @@ export const loadBuilderAccess = async (
         permissions: ["*"],
         projectIds: ["*"],
         isOwner: true,
+        isGlobalScope: false,
       };
       return next();
     }
@@ -60,6 +62,28 @@ export const loadBuilderAccess = async (
         permissions: ["*"],
         projectIds: ["*"],
         isOwner: false,
+        isGlobalScope: false,
+      };
+      return next();
+    }
+
+    // Admin-dashboard roles are governed by the dynamically assigned lead:*
+    // permissions. They are not builder members, so give them cross-project
+    // scope while requireBuilderPermission still validates each action.
+    const dashboardPermissions = req.user.permissions ?? [];
+    const hasDashboardLeadAccess =
+      ["super_admin", "admin"].includes(req.user.roleName || "") ||
+      dashboardPermissions.some((permission) => permission === "*" || permission.startsWith("lead:"));
+    if (req.user.roleName !== "builder_staff" && hasDashboardLeadAccess) {
+      req.builderAccess = {
+        builderId: "*",
+        memberId: null,
+        roleId: null,
+        roleName: req.user.roleName ?? "DashboardRole",
+        permissions: ["super_admin", "admin"].includes(req.user.roleName || "") ? ["*"] : dashboardPermissions,
+        projectIds: ["*"],
+        isOwner: false,
+        isGlobalScope: true,
       };
       return next();
     }
@@ -88,6 +112,7 @@ export const loadBuilderAccess = async (
       permissions: role.permissions ?? [],
       projectIds: (member.projectIds ?? []).map(String),
       isOwner: false,
+      isGlobalScope: false,
     };
 
     next();
@@ -107,7 +132,12 @@ export const requireBuilderPermission = (permission: string) => {
     }
 
     if (!hasPermission(req.builderAccess, permission)) {
-      return res.status(403).json({ message: "Missing builder permission" });
+      return res.status(403).json({
+        success: false,
+        code: "PERMISSION_REQUIRED",
+        message: `You do not have permission for this action. Please request the '${permission}' permission from a Super Admin.`,
+        requiredPermission: permission,
+      });
     }
 
     next();
@@ -138,7 +168,7 @@ export const requireProjectParamAccess = (paramName = "projectId") => {
       return res.status(404).json({ message: "Project not found" });
     }
 
-    if (isDirectAgentRole(req.user?.roleName)) {
+    if (isDirectAgentRole(req.user?.roleName) || req.builderAccess.isGlobalScope) {
       req.builderProjectId = projectId;
       return next();
     }
@@ -187,6 +217,11 @@ export const loadLeadProjectAccess = (paramName = "id") => {
 
     if (!project) {
       return res.status(404).json({ message: "Project not found" });
+    }
+
+    if (req.builderAccess.isGlobalScope) {
+      req.builderProjectId = projectId;
+      return next();
     }
 
     if (String(project.createdBy) !== req.builderAccess.builderId) {

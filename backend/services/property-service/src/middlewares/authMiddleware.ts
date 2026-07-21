@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { JwtUserPayload } from "../types/auth";
 import { verifyToken } from "../utils/jwt";
+import mongoose from "mongoose";
+import Role from "../models/roleModel";
 
 export interface AuthRequest extends Request<
   any,
@@ -11,7 +13,7 @@ export interface AuthRequest extends Request<
   user?: JwtUserPayload & { id: string };
 }
 
-export function authMiddleware(
+export async function authMiddleware(
   req: AuthRequest,
   res: Response,
   next: NextFunction
@@ -31,9 +33,25 @@ export function authMiddleware(
 
   try {
     const decoded = verifyToken(token);
+    let roleName = decoded.roleName;
+    let permissions = decoded.permissions ?? [];
+
+    // Refresh permissions so role changes take effect without another login.
+    if (decoded.roleId && mongoose.Types.ObjectId.isValid(decoded.roleId)) {
+      const currentRole = await Role.findById(decoded.roleId)
+        .select("name permissions")
+        .lean();
+
+      if (currentRole) {
+        roleName = currentRole.name;
+        permissions = currentRole.permissions ?? [];
+      }
+    }
 
     req.user = {
       ...decoded,
+      roleName,
+      permissions,
       id: decoded.sub, // ✅ standardized user id
     };
 

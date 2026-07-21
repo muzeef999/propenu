@@ -26,3 +26,6 @@ firebase-service-account.json
 ./ai-service
 
 
+
+backend/services/property-service/uploads/documents/*
+backend/services/property-service/uploads/videos/*
