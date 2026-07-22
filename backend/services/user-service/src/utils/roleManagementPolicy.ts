@@ -30,6 +30,11 @@ export const OPERATIONS_MANAGED_ROLE_NAMES = new Set([
   "technical_support_team",
 ]);
 
+export const BUSINESS_DEVELOPMENT_MANAGED_ROLE_NAMES = new Set([
+  "regional_manager", "regional_managers", "business_development_manager",
+  "sales_manager", "sales_executive", "sales_executives", "sales_agent",
+]);
+
 export const canAssignDashboardRole = (
   actorRoleName?: string | null,
   targetRoleName?: string | null,
@@ -38,6 +43,9 @@ export const canAssignDashboardRole = (
   if (actorRoleName === "super_admin") return true;
   if (OPERATIONS_HEAD_ROLES.has(actorRoleName)) {
     return OPERATIONS_MANAGED_ROLE_NAMES.has(targetRoleName);
+  }
+  if (actorRoleName === "business_development_head") {
+    return BUSINESS_DEVELOPMENT_MANAGED_ROLE_NAMES.has(targetRoleName);
   }
   return false;
 };

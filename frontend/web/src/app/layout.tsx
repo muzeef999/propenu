@@ -5,6 +5,7 @@ import "leaflet/dist/leaflet.css";
 import ClientProviders from "@/app/clientLayout"; // client component – used inside <body>
 import Script from "next/script";
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import UserJourneyTracker from "@/components/tracking/UserJourneyTracker";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -61,7 +62,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             style={{ display: "none", visibility: "hidden" }}
           />
         </noscript>
-        <ClientProviders>{children}</ClientProviders>
+        <ClientProviders><UserJourneyTracker />{children}</ClientProviders>
           <SpeedInsights />
       </body>
     </html>

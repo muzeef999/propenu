@@ -2,12 +2,12 @@ import express from "express";
 import { getAdmin, getSuperAdmin, getsuperagent, getsupermanager, projectAnalytics, propertyAnalytics } from "../controller/analyticsController";
 import { authMiddleware } from "../middlewares/authMiddleware";
 import { approveProject, getPendingProjects, rejectProject } from "../controller/projectController";
-import { requirePermission } from "../middlewares/requirePermission";
+import { requireAnyPermission, requirePermission } from "../middlewares/requirePermission";
 
 const analyticsRouter = express.Router();
 
-analyticsRouter.get("/analytics/project", authMiddleware, requirePermission("dashboard:view_reports"), projectAnalytics);
-analyticsRouter.get("/analytics/properties", authMiddleware, requirePermission("dashboard:view_reports"), propertyAnalytics);
+analyticsRouter.get("/analytics/project", authMiddleware, requireAnyPermission(["dashboard:view", "dashboard:view_reports"]), projectAnalytics);
+analyticsRouter.get("/analytics/properties", authMiddleware, requireAnyPermission(["dashboard:view", "dashboard:view_reports"]), propertyAnalytics);
 
 analyticsRouter.get("/analytics/superadmin", getSuperAdmin);
 analyticsRouter.get("/analytics/admin", getAdmin);

@@ -10,6 +10,7 @@ import { FiCheckCircle, FiDownload, FiHeart, FiMapPin } from "react-icons/fi";
 import { HiChevronLeft, HiChevronRight, HiPhoto, HiXMark } from "react-icons/hi2";
 import { IoIosShareAlt } from "react-icons/io";
 import Cookies from "js-cookie";
+import { trackInteraction } from "@/services/trackingService";
 
 type AuthMode = "login" | "register" | null;
 
@@ -296,6 +297,14 @@ export default function HeroSection({ project }: HeroSectionProps) {
     }
 
     function downloadBrochure(url: string) {
+        trackInteraction({
+            eventType: "brochure_downloaded",
+            eventCategory: "conversion",
+            entityType: "project",
+            projectId: project._id,
+            source: "project_detail",
+            metadata: { title: project.title },
+        });
         const link = document.createElement("a");
         link.href = url;
         link.target = "_blank";

@@ -32,6 +32,7 @@ import {
   removeLocalShortlist,
 } from "@/utilies/shortlistLocal";
 import { resolveListingSource } from "@/utilies/resolveListingSource";
+import { trackInteraction } from "@/services/trackingService";
 
 const bgPriceColor = hexToRGBA("#27AE60", 0.1);
 
@@ -171,6 +172,19 @@ const CommercialCard: React.FC<Props> = ({
     >
       <Link
         href={`/properties/commercial/${p.slug}`}
+        onClick={() => {
+          const property = p as any;
+          trackInteraction({
+            eventType: "property_click",
+            eventCategory: "property_engagement",
+            entityType: "property",
+            propertyId: property._id || property.id,
+            promotionType: property.promotion?.type || (isSponsored ? "sponsored" : "normal"),
+            source: "property_listing",
+            placement: "commercial_property_card",
+            metadata: { propertyType: "commercial", propertyTitle: property.title, propertySlug: property.slug },
+          });
+        }}
         className={`flex flex-1 min-w-0 ${vertical ? "flex-col" : "flex-col md:flex-row"}`}
       >
         {/* Left: image */}

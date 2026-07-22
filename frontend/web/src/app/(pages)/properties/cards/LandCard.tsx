@@ -30,6 +30,7 @@ import LoginDialog from "@/app/(auth)/Login";
 import RegisterDialog from "@/app/(auth)/Register";
 import { createPortal } from "react-dom";
 import { addLocalShortlist, isLocalShortlisted, removeLocalShortlist } from "@/utilies/shortlistLocal";
+import { trackInteraction } from "@/services/trackingService";
 
 type Props = {
   p: ILand;
@@ -168,6 +169,19 @@ export const LandCard: React.FC<Props> = ({
     >
       <Link
         href={`/properties/land/${p.slug}`}
+        onClick={() => {
+          const property = p as any;
+          trackInteraction({
+            eventType: "property_click",
+            eventCategory: "property_engagement",
+            entityType: "property",
+            propertyId: property._id || property.id,
+            promotionType: property.promotion?.type || (isSponsored ? "sponsored" : "normal"),
+            source: "property_listing",
+            placement: "land_property_card",
+            metadata: { propertyType: "land", propertyTitle: property.title, propertySlug: property.slug },
+          });
+        }}
         className={`flex flex-1 min-w-0 ${vertical ? "flex-col" : "flex-col md:flex-row"}`}
       >
         {/* Left: image */}

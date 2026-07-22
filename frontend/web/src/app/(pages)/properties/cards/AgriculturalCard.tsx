@@ -25,6 +25,7 @@ import RegisterDialog from "@/app/(auth)/Register";
 import { createPortal } from "react-dom";
 import { addLocalShortlist, isLocalShortlisted, removeLocalShortlist } from "@/utilies/shortlistLocal";
 import { resolveListingSource } from "@/utilies/resolveListingSource";
+import { trackInteraction } from "@/services/trackingService";
 
 type Props = {
   p: IAgricultural;
@@ -159,7 +160,23 @@ const AgriculturalCard: React.FC<Props> = ({
       className={`card p-2 h-auto flex overflow-hidden ${vertical ? "w-[min(100vw-2rem,360px)] flex-col" : "flex-col md:flex-row md:h-[220px]"
         }`}
     >
-      <Link href={`/properties/agricultural/${p.slug}`} className={`flex flex-1 min-w-0 ${vertical ? "flex-col" : "flex-col md:flex-row"}`}>
+      <Link
+        href={`/properties/agricultural/${p.slug}`}
+        onClick={() => {
+          const property = p as any;
+          trackInteraction({
+            eventType: "property_click",
+            eventCategory: "property_engagement",
+            entityType: "property",
+            propertyId: property._id || property.id,
+            promotionType: property.promotion?.type || (isSponsored ? "sponsored" : "normal"),
+            source: "property_listing",
+            placement: "agricultural_property_card",
+            metadata: { propertyType: "agricultural", propertyTitle: property.title, propertySlug: property.slug },
+          });
+        }}
+        className={`flex flex-1 min-w-0 ${vertical ? "flex-col" : "flex-col md:flex-row"}`}
+      >
         {/* Left: image */}
         <div
           className={`rounded-xl relative shrink-0 ${vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"

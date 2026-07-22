@@ -22,6 +22,7 @@ import {
 import { useShortlist } from "@/hooks/useShortlist";
 import { IoMdShareAlt } from "react-icons/io";
 import { RATE_LIMIT_RECOVERED_EVENT } from "@/utilies/requestMonitor";
+import { trackInteraction } from "@/services/trackingService";
 
 function HighlightProjectCard({ project }: { project: FeaturedProject }) {
   const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(
@@ -60,6 +61,18 @@ function HighlightProjectCard({ project }: { project: FeaturedProject }) {
     <Link
       key={project._id}
       href={projectHref}
+      onClick={() => {
+        trackInteraction({
+          eventType: "project_click",
+          eventCategory: "project_engagement",
+          entityType: "project",
+          projectId: project._id,
+          promotionType: project.promotion?.type || "featured",
+          source: "homepage",
+          placement: "featured_projects",
+          metadata: { projectName: project.title, projectSlug: project.slug },
+        });
+      }}
       className="relative shrink-0 snap-start group cursor-pointer transition-all duration-300 hover:-translate-y-2 w-[260px] sm:w-[280px] md:w-[320px]"
     >
       <div className="relative mt-5 w-full overflow-hidden rounded-2xl h-[150px] sm:h-[170px] md:h-[180px] shadow-sm transition-shadow duration-300 group-hover:shadow-2xl">

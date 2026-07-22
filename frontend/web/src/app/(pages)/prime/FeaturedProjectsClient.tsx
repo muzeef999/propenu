@@ -19,6 +19,7 @@ import { useShortlist } from "@/hooks/useShortlist";
 import { GoHeart, GoHeartFill } from "react-icons/go";
 import { IoMdShareAlt } from "react-icons/io";
 import { RATE_LIMIT_RECOVERED_EVENT } from "@/utilies/requestMonitor";
+import { trackInteraction } from "@/services/trackingService";
 
 function PrimeProjectCard({ project }: { project: FeaturedProject }) {
   const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(
@@ -54,6 +55,18 @@ function PrimeProjectCard({ project }: { project: FeaturedProject }) {
     <div className="shrink-0 w-[90%] sm:w-[calc(50%-0.5rem)] lg:w-[calc(50%-0.5rem)] card snap-start group">
       <Link
         href={projectHref}
+        onClick={() => {
+          trackInteraction({
+            eventType: "project_click",
+            eventCategory: "project_engagement",
+            entityType: "project",
+            projectId: project._id,
+            promotionType: project.promotion?.type || "prime",
+            source: "homepage",
+            placement: "prime_projects",
+            metadata: { projectName: project.title, projectSlug: project.slug },
+          });
+        }}
         className="relative block overflow-hidden rounded-t-md h-40 sm:h-[50px] md:h-[200px] lg:h-[220px]"
       >
         <Image

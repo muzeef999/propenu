@@ -16,7 +16,7 @@ import mongoose from "mongoose";
 import DeletedAccount from "../models/deletedAccountModel";
 import Agent from "../models/agentModel";
 import { getBuilderAccessForUser } from "../services/builderAccessService";
-import { canAssignDashboardRole, OPERATIONS_MANAGED_ROLE_NAMES } from "../utils/roleManagementPolicy";
+import { BUSINESS_DEVELOPMENT_MANAGED_ROLE_NAMES, canAssignDashboardRole, OPERATIONS_MANAGED_ROLE_NAMES } from "../utils/roleManagementPolicy";
 
 const deletedAccountMessage =
   "This account has been deleted. Please create a new account.";
@@ -650,8 +650,12 @@ export const deleteMyAccount = async (req: AuthRequest, res: Response) => {
 export const getAllUsers = async (req: AuthRequest, res: Response) => {
   try {
     const userFilter: any = {};
-    if (["operations_head", "operation_head"].includes(req.user?.roleName || "")) {
-      const managedRoles = await Role.find({ name: { $in: [...OPERATIONS_MANAGED_ROLE_NAMES] } })
+    const actorRole = req.user?.roleName || "";
+    const managedRoleNames = ["operations_head", "operation_head"].includes(actorRole)
+      ? OPERATIONS_MANAGED_ROLE_NAMES
+      : actorRole === "business_development_head" ? BUSINESS_DEVELOPMENT_MANAGED_ROLE_NAMES : null;
+    if (managedRoleNames) {
+      const managedRoles = await Role.find({ name: { $in: [...managedRoleNames] } })
         .select("_id")
         .lean();
       userFilter.roleId = { $in: managedRoles.map((role) => role._id) };

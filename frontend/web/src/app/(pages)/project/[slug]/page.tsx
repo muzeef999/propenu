@@ -12,6 +12,7 @@ import AboutProject from "./AboutProject";
 import ContactSeller from "./ContactSeller";
 import ProjectVideos from "./ProjectVideos";
 import ProjectViewDurationTracker from "../../prime/[slug]/ProjectViewDurationTracker";
+import ProjectViewTracker from "@/components/tracking/ProjectViewTracker";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -57,6 +58,8 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <main className="min-h-screen bg-white">
+      <ProjectViewDurationTracker projectId={project._id} />
+      <ProjectViewTracker projectId={project._id} title={project.title} slug={project.slug} locality={project.locality} city={project.city} state={project.state} promotionType={project.promotion?.type || "normal"} />
       <ProjectViewDurationTracker projectId={project._id} />
       <HeroSection project={project} />
       <section className="bg-emerald-50/60 py-5">

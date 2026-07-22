@@ -34,6 +34,7 @@ import {
   removeLocalShortlist,
 } from "@/utilies/shortlistLocal";
 import { resolveListingSource } from "@/utilies/resolveListingSource";
+import { trackInteraction } from "@/services/trackingService";
 
 type Props = {
   p: IResidential;
@@ -191,6 +192,19 @@ const ResidentialCard: React.FC<Props> = ({
     >
       <Link
         href={`/properties/residential/${p.slug}`}
+        onClick={() => {
+          const property = p as any;
+          trackInteraction({
+            eventType: "property_click",
+            eventCategory: "property_engagement",
+            entityType: "property",
+            propertyId: property._id || property.id,
+            promotionType: property.promotion?.type || (property.isSponsored ? "sponsored" : "normal"),
+            source: "property_listing",
+            placement: "residential_property_card",
+            metadata: { propertyType: "residential", propertyTitle: property.title, propertySlug: property.slug },
+          });
+        }}
         className={`flex flex-1 min-w-0 ${vertical ? "flex-col" : "flex-col md:flex-row"}`}
       >
         {/* Left: image */}

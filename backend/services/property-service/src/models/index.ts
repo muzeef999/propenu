@@ -8,4 +8,5 @@ import "./roleModel";
 // shared models
 import "./userModel";
 import "./LeadModel";
+import "./userInteractionModel";
 

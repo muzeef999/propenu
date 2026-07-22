@@ -9,6 +9,7 @@ import Cookies from "js-cookie";
 import LoginDialog from "@/app/(auth)/Login";
 import RegisterDialog from "@/app/(auth)/Register";
 import { FiArrowLeft } from "react-icons/fi";
+import { trackInteraction } from "@/services/trackingService";
 
 export type NavLink = {
   title: string;
@@ -24,6 +25,7 @@ type Props = {
   // optional brochure URL to download when clicking the download icon
   brochureUrl?: string | null;
   projectId?: string | null;
+  projectTitle?: string;
   // optional aria label for logo (defaults to "Site logo")
   logoAlt?: string;
   redirectUrl?: string;
@@ -36,6 +38,7 @@ export default function MicroSiteNavbar({
   color = "#FFAC1D",
   brochureUrl,
   projectId,
+  projectTitle,
   logoAlt = "Site logo",
   redirectUrl,
 }: Props) {
@@ -119,6 +122,14 @@ export default function MicroSiteNavbar({
       }
     }
 
+    trackInteraction({
+      eventType: "brochure_downloaded",
+      eventCategory: "conversion",
+      entityType: "project",
+      projectId: projectId || undefined,
+      source: "prime_microsite",
+      metadata: { title: projectTitle, brochureUrl },
+    });
     window.open(brochureUrl, "_blank", "noopener,noreferrer");
   };
  

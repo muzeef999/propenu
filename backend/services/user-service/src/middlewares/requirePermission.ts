@@ -2,6 +2,9 @@
 import { Response, NextFunction } from "express";
 import { AuthRequest } from "./authMiddleware";
 
+const normalizeRoleName = (value?: string) =>
+  String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+
 export function requirePermission(required: string, legacyRoles: string[] = []) {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
@@ -9,11 +12,12 @@ export function requirePermission(required: string, legacyRoles: string[] = []) 
     }
 
     // 👇 super_admin bypass: always allow
-    if (req.user.roleName === "super_admin" || req.user.roleName === "admin") {
+    const roleName = normalizeRoleName(req.user.roleName);
+    if (roleName === "super_admin" || roleName === "admin") {
       return next();
     }
 
-    if (req.user.roleName && legacyRoles.includes(req.user.roleName)) {
+    if (roleName && legacyRoles.map(normalizeRoleName).includes(roleName)) {
       return next();
     }
 

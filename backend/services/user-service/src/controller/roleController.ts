@@ -4,7 +4,7 @@ import User from "../models/userModel";
 import mongoose from "mongoose";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { ALL_PERMISSIONS, PERMISSION_CATALOG, PERMISSION_SET } from "../constants/permissionCatalog";
-import { OPERATIONS_MANAGED_ROLE_NAMES } from "../utils/roleManagementPolicy";
+import { BUSINESS_DEVELOPMENT_MANAGED_ROLE_NAMES, OPERATIONS_MANAGED_ROLE_NAMES } from "../utils/roleManagementPolicy";
 
 const PROTECTED_ROLE_NAMES = new Set(["super_admin", "admin"]);
 
@@ -34,10 +34,13 @@ export const getAssignableRoles = async (req: AuthRequest, res: Response) => {
 
     if (["operations_head", "operation_head"].includes(req.user?.roleName || "")) {
       roleFilter.name = { $in: [...OPERATIONS_MANAGED_ROLE_NAMES] };
+    } else if (req.user?.roleName === "business_development_head") {
+      roleFilter.name = { $in: [...BUSINESS_DEVELOPMENT_MANAGED_ROLE_NAMES] };
     }
 
     const roles = await Role.find(roleFilter)
-      .select("name label permissions roleType isProtected")
+      .select("name label permissions roleType isProtected parentRoleId")
+      .populate("parentRoleId", "name label")
       .sort({ label: 1 })
       .lean();
     return res.json({ success: true, roles });
@@ -58,10 +61,13 @@ export const getTeamDirectoryRoles = async (req: AuthRequest, res: Response) => 
 
     if (["operations_head", "operation_head"].includes(req.user?.roleName || "")) {
       roleFilter.name = { $in: [...OPERATIONS_MANAGED_ROLE_NAMES].filter((name) => !excluded.includes(name)) };
+    } else if (req.user?.roleName === "business_development_head") {
+      roleFilter.name = { $in: [...BUSINESS_DEVELOPMENT_MANAGED_ROLE_NAMES].filter((name) => !excluded.includes(name)) };
     }
 
     const roles = await Role.find(roleFilter)
-      .select("name label")
+      .select("name label parentRoleId")
+      .populate("parentRoleId", "name label")
       .sort({ label: 1 })
       .lean();
 
@@ -111,7 +117,7 @@ const rejectProtectedRoleForRegionalManager = (
 
 export const createRole = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, label, permissions } = req.body;
+    const { name, label, permissions, parentRoleId } = req.body;
 
     if (!name || !label) {
       return res.status(400).json({
@@ -133,6 +139,23 @@ export const createRole = async (req: AuthRequest, res: Response) => {
 
     if (rejectProtectedRoleForRegionalManager(req, res, normalizedName)) return;
 
+    let parentRole = null;
+    if (parentRoleId) {
+      if (!mongoose.Types.ObjectId.isValid(parentRoleId)) {
+        return res.status(400).json({ message: "Invalid parent role" });
+      }
+      parentRole = await Role.findById(parentRoleId).select("_id name label isActive");
+      if (!parentRole) {
+        return res.status(404).json({ message: "Parent role not found" });
+      }
+      if (parentRole.isActive === false) {
+        return res.status(409).json({ message: "Select an active parent role" });
+      }
+      if (["user", "builder", "builder_staff", "agent"].includes(parentRole.name)) {
+        return res.status(400).json({ message: "System account roles cannot be hierarchy parents" });
+      }
+    }
+
     const exists = await Role.findOne({ name: normalizedName });
     if (exists) {
       return res.status(409).json({
@@ -146,6 +169,7 @@ export const createRole = async (req: AuthRequest, res: Response) => {
       permissions: normalizedPermissions,
       roleType: "custom",
       isProtected: false,
+      parentRoleId: parentRole?._id || null,
     });
 
     return res.status(201).json({
@@ -166,7 +190,7 @@ export const getAllRoles = async (req: AuthRequest, res: Response) => {
     const filter = isOperationsHead(req)
       ? { name: { $in: [...OPERATIONS_MANAGED_ROLE_NAMES] } }
       : {};
-    const roles = await Role.find(filter).sort({ createdAt: -1 }).lean();
+    const roles = await Role.find(filter).populate("parentRoleId", "name label").sort({ createdAt: -1 }).lean();
     const roleIds = roles.map((role) => role._id);
     const assignmentCounts = await User.aggregate([
       { $match: { roleId: { $in: roleIds } } },
@@ -206,7 +230,7 @@ export const getRoleById = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: "Invalid role id" });
     }
 
-    const role = await Role.findById(id);
+    const role = await Role.findById(id).populate("parentRoleId", "name label");
     if (!role) {
       return res.status(404).json({ message: "Role not found" });
     }
@@ -350,6 +374,15 @@ export const deleteRole = async (req: AuthRequest, res: Response) => {
         code: "ROLE_IN_USE",
         assignedUsers,
         message: `This role is assigned to ${assignedUsers} ${assignedUsers === 1 ? "user" : "users"}. Reassign them before deleting the role.`,
+      });
+    }
+
+    const childRoles = await Role.countDocuments({ parentRoleId: role._id });
+    if (childRoles > 0) {
+      return res.status(409).json({
+        code: "ROLE_HAS_CHILDREN",
+        childRoles,
+        message: `This role has ${childRoles} child ${childRoles === 1 ? "role" : "roles"}. Reassign or delete the child roles first.`,
       });
     }
 

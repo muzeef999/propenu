@@ -15,6 +15,7 @@ import analyticsRouter from "./routes/analyticsRoute";
 import sponsoredRoute from "./features/sponsored/sponsored.route";
 import blogRoute from "./blogs/blog.route";
 import { startPromotionExpiryJob } from "./jobs/promotionExpiry.job";
+import userInteractionRoute from "./routes/userInteractionRoute";
 
 dotenv.config({ quiet: true });
 
@@ -47,6 +48,7 @@ async function start() {
     app.use('/api/properties', analyticsRouter);
     app.use("/api/properties/sponsored", sponsoredRoute);
     app.use("/api/properties/blogs", blogRoute);
+    app.use("/api/properties/interactions", userInteractionRoute);
 
     
 

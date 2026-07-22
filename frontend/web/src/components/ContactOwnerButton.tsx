@@ -10,6 +10,7 @@ import RegisterDialog from "@/app/(auth)/Register";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { listingSourceToOwnershipLabel } from "@/utilies/resolveListingSource";
+import { trackInteraction } from "@/services/trackingService";
 
 interface ContactOwnerButtonProps {
   listingType?: string;
@@ -103,6 +104,14 @@ export default function ContactOwnerButton({
   const { mutate: postLead, isPending: isLeadPosting } = useMutation({
     mutationFn: postLeads,
     onSuccess: (response) => {
+      trackInteraction({
+        eventType: "contact_owner_clicked",
+        eventCategory: "conversion",
+        entityType: propertyType === "featuredprojects" ? "project" : "property",
+        ...(propertyType === "featuredprojects" ? { projectId } : { propertyId: projectId }),
+        source: "contact_owner",
+        metadata: { title: propertyLabel, propertyType, listingType: resolvedListingType },
+      });
       setLeadDetails(response?.data ?? null);
       setShowLeadDialog(true);
     },
@@ -143,6 +152,15 @@ export default function ContactOwnerButton({
       toast.error("Property ID missing");
       return;
     }
+
+    trackInteraction({
+      eventType: "lead_form_started",
+      eventCategory: "conversion",
+      entityType: propertyType === "featuredprojects" ? "project" : "property",
+      ...(propertyType === "featuredprojects" ? { projectId } : { propertyId: projectId }),
+      source: "contact_owner",
+      metadata: { title: propertyLabel, propertyType, listingType: resolvedListingType },
+    });
 
     postLead({
       name: user.name || "Guest User",
