@@ -7,7 +7,7 @@ import { hexToRGBA } from "@/ui/hexToRGBA";
 import { Building, profile } from "@/icons/icons";
 import { TbBuildingSkyscraper } from "react-icons/tb";
 import { RiUserHeartLine } from "react-icons/ri";
-import { FiSettings, FiUsers } from "react-icons/fi";
+import { FiBell, FiBriefcase, FiSettings, FiUsers } from "react-icons/fi";
 import { BiSupport } from "react-icons/bi";
 
 const menuItems = [
@@ -24,6 +24,12 @@ const menuItems = [
     icon: Building,
   },
   {
+    label: "My Projects",
+    mobileLabel: "Listings",
+    link: "/builder/my-projects",
+    icon: TbBuildingSkyscraper,
+  },
+  {
     label: "Roles & Team",
     mobileLabel: "Team",
     link: "/builder/roles",
@@ -33,19 +39,13 @@ const menuItems = [
     label: "Relationship Manager",
     mobileLabel: "RM",
     link: "/builder/relationship-manager",
-    icon: FiUsers,
+    icon: FiBriefcase,
   },
   {
-    label: "User Shortlists",
-    mobileLabel: "Shortlists",
-    link: "/builder/user-shortlists",
-    icon: RiUserHeartLine,
-  },
-  {
-    label: "My Projects",
-    mobileLabel: "Listings",
-    link: "/builder/my-projects",
-    icon: TbBuildingSkyscraper,
+    label: "Notifications",
+    mobileLabel: "Notifications",
+    link: "/builder/notifications",
+    icon: FiBell,
   },
   {
     label: "Account Settings",
@@ -83,7 +83,7 @@ const Sidebar = () => {
   return (
     <>
       <aside
-        className="sticky top-0 hidden h-screen w-72 border-r border-gray-100 card lg:flex lg:flex-col"
+        className="card sticky top-0 hidden h-screen w-72 shrink-0 border-r border-gray-100 lg:flex lg:flex-col"
         style={{ backgroundColor: bgColor }}
       >
         <nav className="mt-10 space-y-1.5 px-4">
@@ -95,18 +95,16 @@ const Sidebar = () => {
               <Link
                 key={item.link}
                 href={item.link}
-                className={`group flex items-center gap-3.5 rounded-xl px-4 py-3 text-[15px] transition-all duration-200 ${
-                  isActive
+                className={`group flex items-center gap-3.5 rounded-xl px-4 py-3 text-[15px] transition-all duration-200 ${isActive
                     ? "bg-white font-semibold text-[#27A361] shadow-sm"
                     : "text-gray-500 hover:bg-white/50 hover:text-[#27A361]"
-                }`}
+                  }`}
               >
                 <span
-                  className={`transition-colors ${
-                    isActive
+                  className={`transition-colors ${isActive
                       ? "text-[#27A361]"
                       : "text-gray-400 group-hover:text-[#27A361]"
-                  }`}
+                    }`}
                 >
                   <Icon size={22} color="currentColor" />
                 </span>

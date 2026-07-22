@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Download } from "@/icons/icons";
+import { trackProjectBrochureDownload } from "@/data/ClientData";
 import Cookies from "js-cookie";
 import LoginDialog from "@/app/(auth)/Login";
 import RegisterDialog from "@/app/(auth)/Register";
@@ -22,6 +23,7 @@ type Props = {
   color?: string | null;
   // optional brochure URL to download when clicking the download icon
   brochureUrl?: string | null;
+  projectId?: string | null;
   // optional aria label for logo (defaults to "Site logo")
   logoAlt?: string;
   redirectUrl?: string;
@@ -33,6 +35,7 @@ export default function MicroSiteNavbar({
   logoUrl = "/logo.png",
   color = "#FFAC1D",
   brochureUrl,
+  projectId,
   logoAlt = "Site logo",
   redirectUrl,
 }: Props) {
@@ -97,7 +100,7 @@ export default function MicroSiteNavbar({
   };
   const logoHref = redirectUrl?.trim() || "/";
   const isExternalLogoHref = /^https?:\/\//i.test(logoHref);
-  const handleBrochureDownload = () => {
+  const handleBrochureDownload = async () => {
     if (!brochureUrl) return;
 
     const token = Cookies.get("token")?.trim();
@@ -106,6 +109,14 @@ export default function MicroSiteNavbar({
       setShowRegisterDialog(false);
       setShowLoginDialog(true);
       return;
+    }
+
+    if (projectId) {
+      try {
+        await trackProjectBrochureDownload(projectId);
+      } catch {
+        // Do not block the actual download if tracking fails.
+      }
     }
 
     window.open(brochureUrl, "_blank", "noopener,noreferrer");

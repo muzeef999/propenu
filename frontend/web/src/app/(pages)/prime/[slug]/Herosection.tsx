@@ -65,6 +65,48 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
+function getLeadErrorMessage(error: unknown) {
+  const fallback = "Failed to submit lead";
+  const maybeAxiosError = error as {
+    response?: {
+      data?: {
+        message?: string;
+        error?: string;
+        errors?: string[] | Record<string, string | string[]>;
+      };
+    };
+    message?: string;
+  };
+
+  const data = maybeAxiosError.response?.data;
+
+  if (typeof data?.message === "string" && data.message.trim()) {
+    return data.message;
+  }
+
+  if (typeof data?.error === "string" && data.error.trim()) {
+    return data.error;
+  }
+
+  if (Array.isArray(data?.errors) && data.errors.length > 0) {
+    return data.errors.join(", ");
+  }
+
+  if (data?.errors && typeof data.errors === "object") {
+    const firstError = Object.values(data.errors)
+      .flat()
+      .find((value) => typeof value === "string" && value.trim());
+
+    if (firstError) return firstError;
+  }
+
+  if (typeof maybeAxiosError.message === "string" && maybeAxiosError.message.trim()) {
+    return maybeAxiosError.message;
+  }
+
+  return fallback;
+}
+
 function getFieldValidationMessage(
   field: HTMLInputElement | HTMLTextAreaElement,
 ) {
@@ -127,8 +169,8 @@ export default function HeroSection({ hero }: Props) {
     });
   },
 
-  onError: () => {
-    toast.error("Failed to submit lead");
+  onError: (error) => {
+    toast.error(getLeadErrorMessage(error));
   },
 });
 

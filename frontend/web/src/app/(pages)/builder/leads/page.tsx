@@ -68,6 +68,12 @@ interface Lead {
   budgetRange?: string;
   status: StoredLeadStatus;
   createdAt: string;
+  activity?: {
+    leadSubmitted?: boolean;
+    shortlisted?: boolean;
+    brochureDownloaded?: boolean;
+    timeSpentMinutes?: number | null;
+  };
 }
 
 interface LeadColumn {
@@ -208,6 +214,13 @@ const formatLeadTime = (value?: string) => {
   });
 };
 
+const formatSpentMinutes = (value?: number | null) => {
+  if (!value || value <= 0) return null;
+  if (value < 1) return "< 1 min";
+  if (Number.isInteger(value)) return `${value} min`;
+  return `${value.toFixed(1)} min`;
+};
+
 const LeadTimestamp = ({ value }: { value?: string }) => {
   if (!value) {
     return <span className="text-sm font-medium text-[#6B7280]">—</span>;
@@ -253,6 +266,8 @@ const getColumnDisplayValue = (lead: Lead, column: LeadColumn) => {
       return getDisplayValue(lead.budgetRange);
     case "message":
       return getDisplayValue(lead.extraFields?.Remarks || lead.extraFields?.Message);
+    case "activity":
+      return "Lead activity";
     case "status":
       return formatStatus(lead.status);
     default:
@@ -268,6 +283,8 @@ const getDesktopColumnMinWidth = (column: LeadColumn) => {
   switch (column.key) {
     case "name":
       return 160;
+    case "activity":
+      return 240;
     case "email":
       return 190;
     case "phone":
@@ -289,6 +306,8 @@ const getDesktopColumnMaxWidth = (column: LeadColumn) => {
   switch (column.key) {
     case "name":
       return 200;
+    case "activity":
+      return 320;
     case "email":
       return 220;
     case "phone":
@@ -313,6 +332,33 @@ const getDesktopGridTemplate = (columns: LeadColumn[]) =>
         `minmax(${getDesktopColumnMinWidth(column)}px, ${getDesktopColumnMaxWidth(column)}px)`
     )
     .join(" ");
+
+const LeadActivityBadges = ({ lead }: { lead: Lead }) => {
+  const timeSpent = formatSpentMinutes(lead.activity?.timeSpentMinutes);
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 ring-1 ring-slate-200">
+        Lead
+      </span>
+      {lead.activity?.shortlisted ? (
+        <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700 ring-1 ring-blue-100">
+          Shortlisted
+        </span>
+      ) : null}
+      {lead.activity?.brochureDownloaded ? (
+        <span className="inline-flex rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-700 ring-1 ring-violet-100">
+          Brochure
+        </span>
+      ) : null}
+      {timeSpent ? (
+        <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 ring-1 ring-amber-100">
+          {timeSpent}
+        </span>
+      ) : null}
+    </div>
+  );
+};
 
 const StatusSelect = ({
   lead,
@@ -1011,13 +1057,19 @@ function LeadsTable({
             </div>
             <div className="mt-3 grid grid-cols-1 gap-2 text-sm text-[#4B5563]">
               {visibleColumns
-                .filter((column) => !["name", "phone", "email", "leadTime", "status"].includes(column.key))
+                .filter((column) => !["name", "phone", "email", "leadTime", "status", "activity"].includes(column.key))
                 .map((column) => (
                   <p key={`${lead._id}-${column.key}`}>
                     <span className="font-medium text-[#111827]">{column.label}: </span>
                     {getColumnDisplayValue(lead, column)}
                   </p>
                 ))}
+            </div>
+            <div className="mt-3">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+                Activity
+              </p>
+              <LeadActivityBadges lead={lead} />
             </div>
             <div className="mt-3">
               <StatusSelect
@@ -1059,6 +1111,8 @@ function LeadsTable({
               <div key={`${lead._id}-${column.key}`} className="min-w-0 pr-1">
                 {column.key === "leadTime" ? (
                   <LeadTimestamp value={getLeadDateTimeValue(lead)} />
+                ) : column.key === "activity" ? (
+                  <LeadActivityBadges lead={lead} />
                 ) : column.key === "status" ? (
                   <StatusSelect
                     lead={lead}

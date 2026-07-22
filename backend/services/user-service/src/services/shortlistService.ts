@@ -820,3 +820,554 @@ export const getBuilderFeaturedProjectShortlists = async (builderId: string) => 
     },
   ]);
 };
+
+export const getBuilderProjectActivity = async (
+  builderId: string,
+  projectId: string,
+  accessibleProjectIds?: string[],
+) => {
+  if (!mongoose.Types.ObjectId.isValid(builderId)) {
+    throw new Error("Invalid builderId");
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(projectId)) {
+    throw new Error("Invalid projectId");
+  }
+
+  const builderObjectId = new mongoose.Types.ObjectId(builderId);
+  const projectObjectId = new mongoose.Types.ObjectId(projectId);
+
+  if (
+    Array.isArray(accessibleProjectIds) &&
+    accessibleProjectIds.length > 0 &&
+    !accessibleProjectIds.includes("*") &&
+    !accessibleProjectIds.includes(String(projectId))
+  ) {
+    const accessError = new Error("Project access denied");
+    (accessError as any).statusCode = 403;
+    throw accessError;
+  }
+
+  const project = await FeaturedProject.findOne({
+    _id: projectObjectId,
+    createdBy: builderObjectId,
+  })
+    .select(
+      "_id title slug heroImage address locality city state priceFrom priceTo brochure meta",
+    )
+    .lean();
+
+  if (!project) {
+    const notFoundError = new Error("Project not found");
+    (notFoundError as any).statusCode = 404;
+    throw notFoundError;
+  }
+
+  const shortlistRows = await Shortlist.aggregate([
+    {
+      $match: {
+        propertyType: "FeaturedProject",
+        propertyId: projectObjectId,
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "user",
+      },
+    },
+    {
+      $unwind: {
+        path: "$user",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "roles",
+        localField: "user.roleId",
+        foreignField: "_id",
+        as: "role",
+      },
+    },
+    {
+      $unwind: {
+        path: "$role",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        userId: "$user._id",
+        shortlisted: { $literal: true },
+        shortlistedAt: "$createdAt",
+        name: "$user.name",
+        phone: "$user.phone",
+        email: "$user.email",
+        role: { $ifNull: ["$role.label", "$role.name"] },
+        userCode: "$user.userCode",
+      },
+    },
+  ]);
+  const userMap = new Map<string, any>();
+
+  for (const row of shortlistRows) {
+    if (!row?.userId) continue;
+    const key = String(row.userId);
+    userMap.set(key, {
+      userId: key,
+      name: row.name || "Unknown user",
+      phone: row.phone || undefined,
+      email: row.email || undefined,
+      role: row.role || "User",
+      userCode: row.userCode || undefined,
+      shortlisted: true,
+      shortlistedAt: row.shortlistedAt || null,
+      brochureDownloaded: false,
+      brochureDownloadCount: 0,
+      lastBrochureDownloadedAt: null,
+      timeSpentMinutes: null,
+    });
+  }
+
+  const leadCollection = mongoose.connection.collection("propertyleads");
+  const brochureRows = await leadCollection
+    .aggregate([
+      {
+        $match: {
+          ownerId: builderObjectId,
+          projectId: projectObjectId,
+          $or: [{ source: "brochure" }, { source: "brochure_download" }],
+        },
+      },
+      {
+        $sort: {
+          createdAt: -1,
+        },
+      },
+      {
+        $group: {
+          _id: "$createdBy",
+          brochureDownloadCount: { $sum: 1 },
+          lastBrochureDownloadedAt: { $first: "$createdAt" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          userId: "$_id",
+          brochureDownloadCount: 1,
+          lastBrochureDownloadedAt: 1,
+        },
+      },
+    ])
+    .toArray();
+
+  for (const row of brochureRows) {
+    if (!row?.userId) continue;
+    const key = String(row.userId);
+    const existing = userMap.get(key);
+    if (!existing) continue;
+
+    userMap.set(key, {
+      ...existing,
+      brochureDownloaded: (row.brochureDownloadCount ?? 0) > 0,
+      brochureDownloadCount: row.brochureDownloadCount ?? 0,
+      lastBrochureDownloadedAt: row.lastBrochureDownloadedAt || null,
+    });
+  }
+
+  const projectViewDurationCollection = mongoose.connection.collection("projectviewdurations");
+  const durationRows = await projectViewDurationCollection
+    .aggregate([
+      {
+        $match: {
+          projectId: projectObjectId,
+          builderId: builderObjectId,
+        },
+      },
+      {
+        $group: {
+          _id: "$userId",
+          totalDurationMs: { $sum: { $ifNull: ["$durationMs", 0] } },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          userId: "$_id",
+          totalDurationMs: 1,
+        },
+      },
+    ])
+    .toArray();
+
+  for (const row of durationRows) {
+    if (!row?.userId) continue;
+    const key = String(row.userId);
+    const existing = userMap.get(key);
+    if (!existing) continue;
+
+    userMap.set(key, {
+      ...existing,
+      timeSpentMinutes: Number(((row.totalDurationMs ?? 0) / 60000).toFixed(1)),
+    });
+  }
+
+  const users = Array.from(userMap.values()).sort((a, b) => {
+    const aShortlist = a.shortlistedAt ? new Date(a.shortlistedAt).getTime() : 0;
+    const bShortlist = b.shortlistedAt ? new Date(b.shortlistedAt).getTime() : 0;
+
+    return bShortlist - aShortlist;
+  });
+
+  const shortlistedUsers = users.filter((user) => user.shortlisted).length;
+
+  return {
+    success: true,
+    project: {
+      _id: String(project._id),
+      title: project.title,
+      slug: project.slug,
+      heroImage: project.heroImage,
+      address: project.address,
+      locality: project.locality,
+      city: project.city,
+      state: project.state,
+      priceFrom: project.priceFrom,
+      priceTo: project.priceTo,
+      brochure: project.brochure
+        ? {
+            url: project.brochure.url,
+            filename: project.brochure.filename,
+          }
+        : null,
+    },
+    summary: {
+      totalUsers: users.length,
+      shortlistedUsers,
+    },
+    users,
+  };
+};
+
+export const getBuilderNotificationsFeed = async (
+  builderId: string,
+  accessibleProjectIds?: string[],
+) => {
+  if (!mongoose.Types.ObjectId.isValid(builderId)) {
+    throw new Error("Invalid builderId");
+  }
+
+  const builderObjectId = new mongoose.Types.ObjectId(builderId);
+  const projectMatch: Record<string, unknown> = {
+    createdBy: builderObjectId,
+  };
+
+  if (
+    Array.isArray(accessibleProjectIds) &&
+    accessibleProjectIds.length > 0 &&
+    !accessibleProjectIds.includes("*")
+  ) {
+    const validProjectIds = accessibleProjectIds
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+
+    projectMatch._id = { $in: validProjectIds };
+  }
+
+  const projects = await FeaturedProject.find(projectMatch)
+    .select("_id title slug heroImage meta")
+    .lean();
+
+  if (!projects.length) {
+    return {
+      success: true,
+      data: [],
+      summary: {
+        total: 0,
+        shortlists: 0,
+        brochureDownloads: 0,
+        timeSpent: 0,
+      },
+    };
+  }
+
+  const projectIds = projects.map((project) => project._id);
+  const projectMap = new Map(
+    projects.map((project) => [String(project._id), project]),
+  );
+
+  const shortlistRows = await Shortlist.aggregate([
+    {
+      $match: {
+        propertyType: "FeaturedProject",
+        propertyId: { $in: projectIds },
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "user",
+      },
+    },
+    {
+      $unwind: {
+        path: "$user",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "roles",
+        localField: "user.roleId",
+        foreignField: "_id",
+        as: "role",
+      },
+    },
+    {
+      $unwind: {
+        path: "$role",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        createdAt: 1,
+        propertyId: 1,
+        userId: "$user._id",
+        userName: "$user.name",
+        userPhone: "$user.phone",
+        userEmail: "$user.email",
+        userCode: "$user.userCode",
+        userRole: { $ifNull: ["$role.label", "$role.name"] },
+      },
+    },
+    { $sort: { createdAt: -1 } },
+  ]);
+
+  const brochureCollection = mongoose.connection.collection("brochuredownloads");
+  const brochureRows = await brochureCollection
+    .aggregate([
+      {
+        $match: {
+          projectId: { $in: projectIds },
+          source: "brochure_download",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $unwind: {
+          path: "$user",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "roles",
+          localField: "user.roleId",
+          foreignField: "_id",
+          as: "role",
+        },
+      },
+      {
+        $unwind: {
+          path: "$role",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          createdAt: 1,
+          projectId: "$projectId",
+          userId: "$user._id",
+          userName: "$user.name",
+          userPhone: "$user.phone",
+          userEmail: "$user.email",
+          userCode: "$user.userCode",
+          userRole: { $ifNull: ["$role.label", "$role.name"] },
+        },
+      },
+      { $sort: { createdAt: -1 } },
+    ])
+    .toArray();
+
+  const projectViewDurationCollection = mongoose.connection.collection("projectviewdurations");
+  const timeSpentRows = await projectViewDurationCollection
+    .aggregate([
+      {
+        $match: {
+          builderId: builderObjectId,
+          projectId: { $in: projectIds },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            projectId: "$projectId",
+            userId: "$userId",
+          },
+          totalDurationMs: { $sum: { $ifNull: ["$durationMs", 0] } },
+          lastViewedAt: { $max: "$createdAt" },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id.userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $unwind: {
+          path: "$user",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "roles",
+          localField: "user.roleId",
+          foreignField: "_id",
+          as: "role",
+        },
+      },
+      {
+        $unwind: {
+          path: "$role",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          projectId: "$_id.projectId",
+          userId: "$user._id",
+          userName: "$user.name",
+          userPhone: "$user.phone",
+          userEmail: "$user.email",
+          userCode: "$user.userCode",
+          userRole: { $ifNull: ["$role.label", "$role.name"] },
+          totalDurationMs: 1,
+          lastViewedAt: 1,
+        },
+      },
+      { $sort: { lastViewedAt: -1 } },
+    ])
+    .toArray();
+
+  const notifications: Array<Record<string, unknown>> = [];
+
+  shortlistRows.forEach((row) => {
+    const project = projectMap.get(String(row.propertyId));
+    if (!project) return;
+    const resolvedUser = {
+      id: row.userId ? String(row.userId) : "",
+      name: row.userName || "Unknown user",
+      phone: row.userPhone || "No phone",
+      email: row.userEmail || "No email",
+      role: row.userRole || "User",
+      userCode: row.userCode || "No code",
+    };
+
+    notifications.push({
+      id: `shortlist-${row._id}`,
+      type: "project_shortlisted",
+      createdAt: row.createdAt ?? null,
+      user: resolvedUser,
+      project: {
+        id: String(project._id),
+        title: project.title || "Untitled Project",
+        slug: project.slug,
+      },
+      message: `${row.userName || "Unknown user"} shortlisted ${project.title || "Untitled Project"}`,
+      timeSpentMinutes: null,
+    });
+  });
+
+  timeSpentRows.forEach((row) => {
+    const project = projectMap.get(String(row.projectId));
+    if (!project) return;
+
+    const timeSpentMinutes = Number(((row.totalDurationMs ?? 0) / 60000).toFixed(1));
+    if (!(timeSpentMinutes > 0)) return;
+
+    notifications.push({
+      id: `time-${String(row.projectId)}-${String(row.userId || "unknown")}`,
+      type: "high_time_spent",
+      createdAt: row.lastViewedAt ?? null,
+      user: {
+        id: row.userId ? String(row.userId) : "",
+        name: row.userName || "Unknown user",
+        phone: row.userPhone || "No phone",
+        email: row.userEmail || "No email",
+        role: row.userRole || "User",
+        userCode: row.userCode || "No code",
+      },
+      project: {
+        id: String(project._id),
+        title: project.title || "Untitled Project",
+        slug: project.slug,
+      },
+      message: `${row.userName || "Unknown user"} spent ${timeSpentMinutes} min on ${project.title || "Untitled Project"}`,
+      timeSpentMinutes,
+    });
+  });
+
+  brochureRows.forEach((row) => {
+    const project = projectMap.get(String(row.projectId));
+    if (!project) return;
+
+    notifications.push({
+      id: `brochure-${row._id}`,
+      type: "brochure_downloaded",
+      createdAt: row.createdAt ?? null,
+      user: {
+        id: row.userId ? String(row.userId) : "",
+        name: row.userName || "Unknown user",
+        phone: row.userPhone || "No phone",
+        email: row.userEmail || "No email",
+        role: row.userRole || "User",
+        userCode: row.userCode || "No code",
+      },
+      project: {
+        id: String(project._id),
+        title: project.title || "Untitled Project",
+        slug: project.slug,
+      },
+      message: `${row.userName || "Unknown user"} downloaded the brochure for ${project.title || "Untitled Project"}`,
+      timeSpentMinutes: null,
+    });
+  });
+  notifications.sort((a, b) => {
+    const aTime = a.createdAt ? new Date(String(a.createdAt)).getTime() : 0;
+    const bTime = b.createdAt ? new Date(String(b.createdAt)).getTime() : 0;
+    return bTime - aTime;
+  });
+
+  return {
+    success: true,
+    data: notifications,
+    summary: {
+      total: notifications.length,
+      shortlists: notifications.filter((item) => item.type === "project_shortlisted").length,
+      brochureDownloads: notifications.filter((item) => item.type === "brochure_downloaded").length,
+      timeSpent: notifications.filter((item) => item.type === "high_time_spent").length,
+    },
+  };
+};

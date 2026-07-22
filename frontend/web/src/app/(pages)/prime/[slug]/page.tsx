@@ -9,6 +9,7 @@ import LocateUs from "./LocateUs";
 import Gallery from "./Gallery";
 import AboutUS from "./AboutUs";
 import Specification from "./Specification";
+import ProjectViewDurationTracker from "./ProjectViewDurationTracker";
 
 export const dynamic = "force-dynamic";
 
@@ -172,11 +173,13 @@ export default async function Page({ params }: PageProps) {
  
   return (
     <div>
+      <ProjectViewDurationTracker projectId={project?._id} />
       <MicroSiteNavbar
         links={links}
         logoUrl={project?.logo?.url}
         color={project?.color?.trim()}
         brochureUrl={project?.brochure?.url}
+        projectId={project?._id}
         redirectUrl={project?.redirectUrl}
       />
       <Herosection hero={hero} />

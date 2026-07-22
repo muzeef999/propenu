@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { addToShortlistService, getBuilderAnalytics, getBuilderFeaturedProjectShortlists, getShortlistStatusService, getUserShortlistService, removeFromShortlistService } from "../services/shortlistService";
+import { addToShortlistService, getBuilderAnalytics, getBuilderFeaturedProjectShortlists, getBuilderNotificationsFeed, getBuilderProjectActivity, getShortlistStatusService, getUserShortlistService, removeFromShortlistService } from "../services/shortlistService";
 import { AuthRequest } from "../middlewares/authMiddleware";
 
 
@@ -147,6 +147,130 @@ export const getBuilderFeaturedShortlists = async (
     return res
       .status(500)
       .json({ success: false, message: "Failed to load shortlisted projects" });
+  }
+};
+
+const resolveBuilderContext = (req: AuthRequest) => {
+  const roleName = req.user?.roleName;
+  const rawBuilderAccess = req.user?.builderAccess as
+    | {
+        builderId?: string;
+        projectIds?: string[];
+      }
+    | undefined;
+
+  if (roleName === "builder" && req.user?.sub) {
+    return {
+      builderId: req.user.sub,
+      projectIds: ["*"],
+    };
+  }
+
+  if (roleName === "builder_staff" && rawBuilderAccess?.builderId) {
+    return {
+      builderId: rawBuilderAccess.builderId,
+      projectIds: rawBuilderAccess.projectIds ?? [],
+    };
+  }
+
+  return null;
+};
+
+export const getBuilderProjectActivityController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    const builderContext = resolveBuilderContext(req);
+
+    if (!builderContext?.builderId) {
+      return res.status(403).json({
+        success: false,
+        message: "Only builders can access project activity",
+      });
+    }
+
+    const { projectId } = req.params;
+
+    if (!projectId) {
+      return res.status(400).json({
+        success: false,
+        message: "projectId is required",
+      });
+    }
+
+    const data = await getBuilderProjectActivity(
+      builderContext.builderId,
+      projectId,
+      builderContext.projectIds,
+    );
+
+    return res.status(200).json(data);
+  } catch (error: any) {
+    const statusCode = Number(error?.statusCode) || 500;
+
+    if (statusCode === 403) {
+      return res.status(403).json({
+        success: false,
+        message: error?.message || "Project access denied",
+      });
+    }
+
+    if (statusCode === 404) {
+      return res.status(404).json({
+        success: false,
+        message: error?.message || "Project not found",
+      });
+    }
+
+    if (error?.message === "Invalid builderId" || error?.message === "Invalid projectId") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("BUILDER_PROJECT_ACTIVITY_ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load project activity",
+    });
+  }
+};
+
+export const getBuilderNotificationsController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    const builderContext = resolveBuilderContext(req);
+
+    if (!builderContext?.builderId) {
+      return res.status(403).json({
+        success: false,
+        message: "Only builders can access notifications",
+      });
+    }
+
+    const data = await getBuilderNotificationsFeed(
+      builderContext.builderId,
+      builderContext.projectIds,
+    );
+
+    return res.status(200).json(data);
+  } catch (error: any) {
+    if (error?.message === "Invalid builderId") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("BUILDER_NOTIFICATIONS_ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load notifications",
+    });
   }
 };
 

@@ -1031,6 +1031,110 @@ export const getBuilderFeaturedShortlists = async () => {
   return res.data;
 };
 
+export const getBuilderProjectActivity = async (projectId: string) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  try {
+    const res = await axiosInstance.get(
+      `${url}/api/users/builder/projects/${projectId}/activity`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    return res.data;
+  } catch (error: any) {
+    if (error?.response?.status === 404) {
+      return {
+        success: false,
+        project: undefined,
+        summary: {
+          totalUsers: 0,
+          shortlistedUsers: 0,
+          leadSubmittedUsers: 0,
+          pageViewedUsers: 0,
+          brochureDownloadedUsers: 0,
+          avgTimeSpentMinutes: 0,
+          totalPageViews: 0,
+        },
+        users: [],
+        fallbackReason: "activity_endpoint_missing",
+      };
+    }
+
+    throw error;
+  }
+};
+
+export const getBuilderNotifications = async () => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(`${url}/api/users/builder/notifications`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.data;
+};
+
+export const trackProjectBrochureDownload = async (projectId: string) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.post(
+    `${url}/api/properties/leads/project/${projectId}/brochure-download`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  return res.data;
+};
+
+export const trackProjectViewDuration = async (
+  projectId: string,
+  durationMs: number,
+  pathname?: string,
+) => {
+  const token = Cookies.get("token");
+  if (!token) return null;
+
+  if (!Number.isFinite(durationMs) || durationMs < 1000) {
+    return null;
+  }
+
+  try {
+    const res = await fetch(`${url}/api/properties/leads/project/${projectId}/view-duration`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        durationMs: Math.round(durationMs),
+        pathname,
+      }),
+      keepalive: true,
+    });
+
+    if (!res.ok) {
+      return null;
+    }
+
+    return res.json();
+  } catch {
+    return null;
+  }
+};
+
 
 
 export const getMembershipHistory = async () => {

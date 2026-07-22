@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -16,6 +16,7 @@ import {
 import { RequestCallSvg } from "@/icons/icons";
 import {
   FiCalendar,
+  FiCheck,
   FiChevronDown,
   FiClock,
   FiEdit2,
@@ -105,6 +106,12 @@ const getProjectId = (project: BuilderProject) =>
 const getProjectName = (project: BuilderProject) =>
   project.title || project.projectName || project.name || "Untitled Project";
 
+const getProjectLocation = (project: BuilderProject) =>
+  [project.locality, project.city].filter(Boolean).join(", ");
+
+const getProjectType = (project: BuilderProject) =>
+  project.categoryType || project.propertyType || "Project";
+
 const getRelationshipManager = (project?: BuilderProject | null) => {
   if (project?.relationshipManagerId) {
     return typeof project.relationshipManagerId === "string"
@@ -147,6 +154,7 @@ const page = () => {
   const [isTicketOpen, setIsTicketOpen] = useState(false);
   const [isRequestCallOpen, setIsRequestCallOpen] = useState(false);
   const [selectedDisplayProjectId, setSelectedDisplayProjectId] = useState("");
+  const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const [ticketCategoryOpen, setTicketCategoryOpen] = useState(false);
   const [ticketPriorityOpen, setTicketPriorityOpen] = useState(false);
   const [selectedTicketCategory, setSelectedTicketCategory] = useState<
@@ -165,6 +173,7 @@ const page = () => {
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
   const [subject, setSubject] = useState("");
+  const projectMenuRef = useRef<HTMLDivElement | null>(null);
 
   const userQuery = useQuery({
     queryKey: ["me"],
@@ -240,6 +249,30 @@ const page = () => {
       setSelectedDisplayProjectId(getProjectId(projects[0]));
     }
   }, [projects, selectedDisplayProjectId]);
+
+  useEffect(() => {
+    if (!projectMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!projectMenuRef.current?.contains(event.target as Node)) {
+        setProjectMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setProjectMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [projectMenuOpen]);
 
   const activeProject = useMemo(
     () =>
@@ -506,24 +539,103 @@ const page = () => {
               <span className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
                 Select Project
               </span>
-              <div className="relative mt-2">
-                <select
-                  value={selectedDisplayProjectId}
-                  onChange={(event) =>
-                    setSelectedDisplayProjectId(event.target.value)
-                  }
-                  className="h-11 w-full appearance-none rounded-lg border border-emerald-100 bg-white px-3.5 pr-10 text-sm font-medium text-gray-700 outline-none transition focus:border-[#22c06f]"
+              <div ref={projectMenuRef} className="relative mt-2">
+                <button
+                  type="button"
+                  onClick={() => setProjectMenuOpen((open) => !open)}
+                  className="group w-full rounded-2xl border border-emerald-100 bg-white/95 px-4 py-3 text-left shadow-[0_12px_30px_rgba(34,192,111,0.08)] outline-none transition hover:border-emerald-200 hover:shadow-[0_16px_40px_rgba(34,192,111,0.12)] focus:border-[#22c06f]"
+                  aria-haspopup="listbox"
+                  aria-expanded={projectMenuOpen}
                 >
-                  {projects.map((project) => (
-                    <option
-                      key={getProjectId(project)}
-                      value={getProjectId(project)}
-                    >
-                      {getProjectName(project)}
-                    </option>
-                  ))}
-                </select>
-                <FiChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                  <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-600">
+                        Active project
+                      </span>
+                      <span className="mt-1 truncate text-sm font-semibold text-gray-900">
+                        {activeProject ? getProjectName(activeProject) : "Select project"}
+                      </span>
+                      <span className="mt-1 truncate text-xs text-gray-500">
+                        {activeProject
+                          ? getProjectLocation(activeProject) ||
+                            getProjectType(activeProject)
+                          : "Choose a project to view support details"}
+                      </span>
+                    </div>
+
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#f3fff8] text-[#22c06f] transition group-hover:bg-[#eafff2]">
+                      <FiChevronDown
+                        className={`h-4 w-4 transition ${
+                          projectMenuOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </button>
+
+                {projectMenuOpen ? (
+                  <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-30 overflow-hidden rounded-2xl border border-emerald-100 bg-white p-2 shadow-[0_24px_60px_rgba(15,23,42,0.16)]">
+                    <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
+                      {projects.map((project) => {
+                        const projectId = getProjectId(project);
+                        const isSelected =
+                          projectId === selectedDisplayProjectId;
+                        const location = getProjectLocation(project);
+                        const projectType = getProjectType(project);
+
+                        return (
+                          <button
+                            key={projectId}
+                            type="button"
+                            onClick={() => {
+                              setSelectedDisplayProjectId(projectId);
+                              setProjectMenuOpen(false);
+                            }}
+                            className={`flex w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition ${
+                              isSelected
+                                ? "border-[#b8ebca] bg-[#f2fff7] shadow-[0_10px_24px_rgba(34,192,111,0.10)]"
+                                : "border-transparent bg-white hover:border-emerald-100 hover:bg-[#fbfefc]"
+                            }`}
+                          >
+                            <div
+                              className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-semibold ${
+                                isSelected
+                                  ? "bg-[#22c06f] text-white"
+                                  : "bg-[#eefbf4] text-[#1ea764]"
+                              }`}
+                            >
+                              {getProjectName(project).slice(0, 2).toUpperCase()}
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start justify-between gap-3">
+                                <p className="line-clamp-1 text-sm font-semibold text-gray-900">
+                                  {getProjectName(project)}
+                                </p>
+                                {isSelected ? (
+                                  <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#22c06f] text-white">
+                                    <FiCheck className="h-3.5 w-3.5" />
+                                  </span>
+                                ) : null}
+                              </div>
+
+                              <div className="mt-1 flex flex-wrap items-center gap-2">
+                                <span className="rounded-full bg-[#f4f7f5] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#607066]">
+                                  {projectType}
+                                </span>
+                                {location ? (
+                                  <span className="text-xs text-gray-500">
+                                    {location}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </label>
           </div>

@@ -11,6 +11,7 @@ import Specifications from "./Specifications";
 import AboutProject from "./AboutProject";
 import ContactSeller from "./ContactSeller";
 import ProjectVideos from "./ProjectVideos";
+import ProjectViewDurationTracker from "../../prime/[slug]/ProjectViewDurationTracker";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -56,6 +57,7 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <main className="min-h-screen bg-white">
+      <ProjectViewDurationTracker projectId={project._id} />
       <HeroSection project={project} />
       <section className="bg-emerald-50/60 py-5">
         <div className="mx-0 flex min-w-0 flex-col gap-5 sm:mx-5 lg:mx-8 lg:flex-row lg:items-start xl:mx-33 2xl:mx-44">

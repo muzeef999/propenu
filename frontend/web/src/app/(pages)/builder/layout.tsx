@@ -8,10 +8,10 @@ export default function AccountLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen container mx-auto flex flex-col lg:flex-row mb-4">
+    <div className="container mx-auto mb-4 min-h-screen lg:flex lg:items-start">
       <Sidebar />
 
-      <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-24 lg:pb-6">
+      <main className="min-w-0 flex-1 overflow-x-hidden p-3 pb-24 sm:p-4 lg:p-6 lg:pb-6">
         {children}
       </main>
     </div>

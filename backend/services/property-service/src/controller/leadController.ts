@@ -267,11 +267,196 @@ const getProjectLeadQuery = (projectId: string, from?: unknown, to?: unknown) =>
   return query;
 };
 
+const resolveLeadUserIds = async (leads: any[]) => {
+  const directUserIds = new Set<string>();
+  const emails = new Set<string>();
+  const phones = new Set<string>();
+
+  leads.forEach((lead: any) => {
+    const createdBy = String(lead?.createdBy ?? "").trim();
+    const email = String(lead?.email ?? "").trim().toLowerCase();
+    const phone = String(lead?.phone ?? "").trim();
+
+    if (createdBy && Types.ObjectId.isValid(createdBy)) {
+      directUserIds.add(createdBy);
+    }
+    if (email) {
+      emails.add(email);
+    }
+    if (phone) {
+      phones.add(phone);
+    }
+  });
+
+  const orMatch: Record<string, unknown>[] = [];
+
+  if (directUserIds.size) {
+    orMatch.push({
+      _id: {
+        $in: Array.from(directUserIds).map((id) => new Types.ObjectId(id)),
+      },
+    });
+  }
+
+  if (emails.size) {
+    orMatch.push({ email: { $in: Array.from(emails) } });
+  }
+
+  if (phones.size) {
+    orMatch.push({ phone: { $in: Array.from(phones) } });
+  }
+
+  if (!orMatch.length) {
+    return new Map<string, string>();
+  }
+
+  const users = await mongoose.connection
+    .collection("users")
+    .find({ $or: orMatch })
+    .project({ _id: 1, email: 1, phone: 1 })
+    .toArray();
+
+  const userIdByLookup = new Map<string, string>();
+  users.forEach((user) => {
+    const userId = String(user._id);
+    const email = String(user.email ?? "").trim().toLowerCase();
+    const phone = String(user.phone ?? "").trim();
+
+    userIdByLookup.set(`id:${userId}`, userId);
+    if (email) userIdByLookup.set(`email:${email}`, userId);
+    if (phone) userIdByLookup.set(`phone:${phone}`, userId);
+  });
+
+  const resolvedUserIds = new Map<string, string>();
+
+  leads.forEach((lead: any) => {
+    const leadId = String(lead._id);
+    const createdBy = String(lead?.createdBy ?? "").trim();
+    const email = String(lead?.email ?? "").trim().toLowerCase();
+    const phone = String(lead?.phone ?? "").trim();
+
+    const resolvedUserId =
+      (createdBy && userIdByLookup.get(`id:${createdBy}`)) ||
+      (email && userIdByLookup.get(`email:${email}`)) ||
+      (phone && userIdByLookup.get(`phone:${phone}`)) ||
+      "";
+
+    if (resolvedUserId) {
+      resolvedUserIds.set(leadId, resolvedUserId);
+    }
+  });
+
+  return resolvedUserIds;
+};
+
+const attachProjectLeadActivity = async (projectId: string, leads: any[]) => {
+  if (!leads.length || !Types.ObjectId.isValid(projectId)) {
+    return leads;
+  }
+
+  const resolvedUserIds = await resolveLeadUserIds(leads);
+  const uniqueUserIds = Array.from(new Set(resolvedUserIds.values()));
+
+  if (!uniqueUserIds.length) {
+    return leads.map((lead: any) => ({
+      ...lead,
+      activity: {
+        leadSubmitted: true,
+        shortlisted: false,
+        brochureDownloaded: false,
+        timeSpentMinutes: null,
+      },
+    }));
+  }
+
+  const projectObjectId = new Types.ObjectId(projectId);
+  const userObjectIds = uniqueUserIds.map((id) => new Types.ObjectId(id));
+
+  const [shortlistRows, brochureRows, durationRows] = await Promise.all([
+    mongoose.connection
+      .collection("shortlists")
+      .aggregate([
+        {
+          $match: {
+            propertyType: "FeaturedProject",
+            propertyId: projectObjectId,
+            userId: { $in: userObjectIds },
+          },
+        },
+        {
+          $group: {
+            _id: "$userId",
+          },
+        },
+      ])
+      .toArray(),
+    mongoose.connection
+      .collection("brochuredownloads")
+      .aggregate([
+        {
+          $match: {
+            projectId: projectObjectId,
+            source: "brochure_download",
+            userId: { $in: userObjectIds },
+          },
+        },
+        {
+          $group: {
+            _id: "$userId",
+          },
+        },
+      ])
+      .toArray(),
+    mongoose.connection
+      .collection("projectviewdurations")
+      .aggregate([
+        {
+          $match: {
+            projectId: projectObjectId,
+            userId: { $in: userObjectIds },
+          },
+        },
+        {
+          $group: {
+            _id: "$userId",
+            totalDurationMs: { $sum: { $ifNull: ["$durationMs", 0] } },
+          },
+        },
+      ])
+      .toArray(),
+  ]);
+
+  const shortlistedUserIds = new Set(shortlistRows.map((row) => String(row._id)));
+  const brochureUserIds = new Set(brochureRows.map((row) => String(row._id)));
+  const timeSpentByUserId = new Map<string, number>(
+    durationRows.map((row) => [
+      String(row._id),
+      Number(((row.totalDurationMs ?? 0) / 60000).toFixed(1)),
+    ]),
+  );
+
+  return leads.map((lead: any) => {
+    const resolvedUserId = resolvedUserIds.get(String(lead._id)) || "";
+
+    return {
+      ...lead,
+      activity: {
+        leadSubmitted: true,
+        shortlisted: resolvedUserId ? shortlistedUserIds.has(resolvedUserId) : false,
+        brochureDownloaded: resolvedUserId ? brochureUserIds.has(resolvedUserId) : false,
+        timeSpentMinutes: resolvedUserId
+          ? timeSpentByUserId.get(resolvedUserId) ?? null
+          : null,
+      },
+    };
+  });
+};
+
 const getCombinedProjectLeads = async (query: any) => {
   const [publicLeads, propertyLeads] = await Promise.all([
     PublicLead.find(query).lean(),
     Lead.find(query)
-      .select("name phone email status remarks createdAt updatedAt projectId")
+      .select("name phone email status remarks createdAt updatedAt projectId createdBy")
       .lean(),
   ]);
 
@@ -285,10 +470,12 @@ const getCombinedProjectLeads = async (query: any) => {
     source: "direct",
   }));
 
-  return [...normalizedPublicLeads, ...normalizedPropertyLeads].sort(
+  const combinedLeads = [...normalizedPublicLeads, ...normalizedPropertyLeads].sort(
     (a: any, b: any) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
+
+  return attachProjectLeadActivity(String(query.projectId), combinedLeads);
 };
 
 const buildProjectLeadsHeader = (leads: any[]) => {
@@ -328,6 +515,7 @@ const standardLeadColumns = [
   { key: "name", label: "Full Name" },
   { key: "email", label: "Email" },
   { key: "phone", label: "Phone Number" },
+  { key: "activity", label: "Activity" },
   { key: "status", label: "Status" },
   { key: "leadTime", label: "Lead Time" },
   { key: "purchaseTimeline", label: "Planning To Purchase" },
@@ -662,6 +850,128 @@ export const createPublicLeadController = async (
     res.status(400).json({
       success: false,
       message: err.message,
+    });
+  }
+};
+
+export const trackProjectBrochureDownloadController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    const projectId = String(req.params.projectId || "");
+    const userId = String(req.user?.id || "");
+
+    if (!projectId) {
+      return res.status(400).json({
+        success: false,
+        message: "projectId is required",
+      });
+    }
+
+    if (!Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid projectId",
+      });
+    }
+
+    if (!userId || !Types.ObjectId.isValid(userId)) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    await mongoose.connection.collection("brochuredownloads").insertOne({
+      projectId: new Types.ObjectId(projectId),
+      userId: new Types.ObjectId(userId),
+      source: "brochure_download",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Brochure download tracked",
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || "Failed to track brochure download",
+    });
+  }
+};
+
+export const trackProjectViewDurationController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    const projectId = String(req.params.projectId || "");
+    const userId = String(req.user?.id || "");
+    const durationMs = Number(req.body?.durationMs ?? 0);
+    const pathname = typeof req.body?.pathname === "string" ? req.body.pathname.trim() : "";
+
+    if (!projectId) {
+      return res.status(400).json({
+        success: false,
+        message: "projectId is required",
+      });
+    }
+
+    if (!Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid projectId",
+      });
+    }
+
+    if (!userId || !Types.ObjectId.isValid(userId)) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    if (!Number.isFinite(durationMs) || durationMs < 1000) {
+      return res.status(400).json({
+        success: false,
+        message: "durationMs must be at least 1000",
+      });
+    }
+
+    const project = await FeaturedProject.findById(projectId)
+      .select("_id createdBy")
+      .lean();
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    await mongoose.connection.collection("projectviewdurations").insertOne({
+      projectId: new Types.ObjectId(projectId),
+      builderId: project.createdBy,
+      userId: new Types.ObjectId(userId),
+      durationMs: Math.round(durationMs),
+      durationMinutes: Number((durationMs / 60000).toFixed(2)),
+      pathname: pathname || null,
+      source: "project_view_duration",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Project view duration tracked",
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || "Failed to track project view duration",
     });
   }
 };

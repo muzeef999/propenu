@@ -42,11 +42,10 @@ export const AgentOptions = [
 export const BuilderOptions = [
   { label: "Dashboard", link: "/builder" },
   { label: "Leads", link: "/builder/leads" },
-  { label: "Roles & Team", link: "/builder/roles" },
-  // { label: "My Shortlists", link: "/builder/my-shortlists" },
-  { label: "User Shortlists", link: "/builder/user-shortlists" },
   { label: "My Projects", link: "/builder/my-projects" },
   { label: "Prime Projects", link: "/builder/prime-projects" },
+  { label: "Notifications", link: "/builder/notifications" },
+  { label: "Roles & Team", link: "/builder/roles" },
   { label: "Account & Settings", link: "/builder/account-settings" },
   { label: "Support", link: "/builder/support" },
   { label: "Logout", link: "/logout" },

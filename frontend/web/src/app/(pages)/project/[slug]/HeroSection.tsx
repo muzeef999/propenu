@@ -2,6 +2,7 @@
 
 import LoginDialog from "@/app/(auth)/Login";
 import RegisterDialog from "@/app/(auth)/Register";
+import { trackProjectBrochureDownload } from "@/data/ClientData";
 import { FeaturedProject } from "@/types";
 import { useShortlist } from "@/hooks/useShortlist";
 import { useEffect, useRef, useState } from "react";
@@ -305,13 +306,19 @@ export default function HeroSection({ project }: HeroSectionProps) {
         link.remove();
     }
 
-    function onTabClick(event: React.MouseEvent<HTMLAnchorElement>, href: string, isDownload?: boolean) {
+    async function onTabClick(event: React.MouseEvent<HTMLAnchorElement>, href: string, isDownload?: boolean) {
         if (isDownload) {
             event.preventDefault();
 
             if (!Cookies.get("token")) {
                 openLoginDialog();
                 return;
+            }
+
+            try {
+                await trackProjectBrochureDownload(project._id);
+            } catch {
+                // Do not block the actual brochure download if tracking fails.
             }
 
             downloadBrochure(href);
