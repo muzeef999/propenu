@@ -8,6 +8,7 @@ import GalleryFile from "../../../GalleryFile";
 import { GiCompass, GiRoad, GiMoneyStack } from "react-icons/gi";
 import { FaRoad } from "react-icons/fa";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
+import PropertyViewDurationTracker from "@/components/PropertyViewDurationTracker";
 import RelatedLandCarousel from "./RelatedLandCarousel";
 import Image from "next/image";
 import LandNearbySection from "./LandNearbySection";
@@ -118,6 +119,10 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <div className="min-h-screen overflow-hidden py-6">
+      <PropertyViewDurationTracker
+        projectId={String(project._id)}
+        propertyType="landplots"
+      />
       <div className="container">
         <div className="w-full">
           <header className="flex flex-col justify-between gap-2 p-2">

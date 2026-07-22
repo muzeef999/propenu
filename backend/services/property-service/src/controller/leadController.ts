@@ -17,6 +17,10 @@ import { createPublicLead } from "../services/publicLeadService";
 import PublicLead from "../models/PublicLead";
 import mongoose, { Types } from "mongoose";
 import FeaturedProject from "../models/featurePropertiesModel";
+import Residential from "../models/residentialModel";
+import Commercial from "../models/commercialModel";
+import LandPlot from "../models/landModel";
+import Agricultural from "../models/agriculturalModel";
 import * as XLSX from "xlsx";
 import { getAdminLeadDashboard } from "../services/adminLeadService";
 
@@ -265,6 +269,14 @@ const getProjectLeadQuery = (projectId: string, from?: unknown, to?: unknown) =>
   }
 
   return query;
+};
+
+const VIEW_DURATION_MODEL_MAP: Record<string, any> = {
+  featuredprojects: FeaturedProject,
+  residentials: Residential,
+  commercials: Commercial,
+  landplots: LandPlot,
+  agriculturals: Agricultural,
 };
 
 const resolveLeadUserIds = async (leads: any[]) => {
@@ -972,6 +984,89 @@ export const trackProjectViewDurationController = async (
     return res.status(500).json({
       success: false,
       message: error?.message || "Failed to track project view duration",
+    });
+  }
+};
+
+export const trackPropertyViewDurationController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    const projectId = String(req.params.projectId || "");
+    const propertyType = String(req.params.propertyType || "").trim().toLowerCase();
+    const userId = String(req.user?.id || "");
+    const durationMs = Number(req.body?.durationMs ?? 0);
+    const pathname = typeof req.body?.pathname === "string" ? req.body.pathname.trim() : "";
+
+    if (!projectId) {
+      return res.status(400).json({
+        success: false,
+        message: "projectId is required",
+      });
+    }
+
+    if (!Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid projectId",
+      });
+    }
+
+    if (!userId || !Types.ObjectId.isValid(userId)) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    if (!Number.isFinite(durationMs) || durationMs < 1000) {
+      return res.status(400).json({
+        success: false,
+        message: "durationMs must be at least 1000",
+      });
+    }
+
+    const PropertyModel = VIEW_DURATION_MODEL_MAP[propertyType];
+    if (!PropertyModel || propertyType === "featuredprojects") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid propertyType",
+      });
+    }
+
+    const property = await PropertyModel.findById(projectId)
+      .select("_id createdBy")
+      .lean();
+
+    if (!property) {
+      return res.status(404).json({
+        success: false,
+        message: "Property not found",
+      });
+    }
+
+    await mongoose.connection.collection("projectviewdurations").insertOne({
+      projectId: new Types.ObjectId(projectId),
+      ownerId: property.createdBy,
+      userId: new Types.ObjectId(userId),
+      propertyType,
+      durationMs: Math.round(durationMs),
+      durationMinutes: Number((durationMs / 60000).toFixed(2)),
+      pathname: pathname || null,
+      source: "property_view_duration",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Property view duration tracked",
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || "Failed to track property view duration",
     });
   }
 };

@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import GalleryFile from "../../../GalleryFile"; // Assuming this is client-side or handles SSR correctly
 import { Balconies, Bath, Bhk } from "@/icons/icons";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
+import PropertyViewDurationTracker from "@/components/PropertyViewDurationTracker";
 import Image from "next/image";
 import RelatedPropertiesCarousel from "./RelatedPropertiesCarousel";
 import ResidentialNearbySection from "./ResidentialNearbySection";
@@ -196,6 +197,10 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <div className="min-h-screen py-6 overflow-hidden">
+      <PropertyViewDurationTracker
+        projectId={String(project._id)}
+        propertyType="residentials"
+      />
       <div className="container">
         <div className="w-full">
           {/* Top: Price + Title + CTA */}

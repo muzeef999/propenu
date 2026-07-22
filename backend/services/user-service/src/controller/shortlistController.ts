@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { addToShortlistService, getBuilderAnalytics, getBuilderFeaturedProjectShortlists, getBuilderNotificationsFeed, getBuilderProjectActivity, getShortlistStatusService, getUserShortlistService, removeFromShortlistService } from "../services/shortlistService";
+import { addToShortlistService, getAgentNotificationsFeed, getBuilderAnalytics, getBuilderFeaturedProjectShortlists, getBuilderNotificationsFeed, getBuilderProjectActivity, getShortlistStatusService, getUserNotificationsFeed, getUserShortlistService, removeFromShortlistService } from "../services/shortlistService";
 import { AuthRequest } from "../middlewares/authMiddleware";
 
 
@@ -267,6 +267,66 @@ export const getBuilderNotificationsController = async (
     }
 
     console.error("BUILDER_NOTIFICATIONS_ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load notifications",
+    });
+  }
+};
+
+export const getAgentNotificationsController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    if (!req.user?.sub) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const data = await getAgentNotificationsFeed(req.user.sub);
+    return res.status(200).json(data);
+  } catch (error: any) {
+    if (error?.message === "Invalid ownerId") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("AGENT_NOTIFICATIONS_ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load notifications",
+    });
+  }
+};
+
+export const getUserNotificationsController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    if (!req.user?.sub) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const data = await getUserNotificationsFeed(req.user.sub);
+    return res.status(200).json(data);
+  } catch (error: any) {
+    if (error?.message === "Invalid userId") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("USER_NOTIFICATIONS_ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to load notifications",

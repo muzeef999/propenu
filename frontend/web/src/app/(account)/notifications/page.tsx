@@ -3,18 +3,19 @@
 import { useQuery } from "@tanstack/react-query";
 
 import NotificationFeed from "@/components/notifications/NotificationFeed";
-import { getBuilderNotifications } from "@/data/ClientData";
+import { getUserNotifications } from "@/data/ClientData";
 
 const Page = () => {
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["builder-notifications-feed-v2"],
-    queryFn: getBuilderNotifications,
+    queryKey: ["user-notifications-feed-v1"],
+    queryFn: getUserNotifications,
   });
 
   return (
     <NotificationFeed
       title="Notifications"
-      description="Recent user activity across your projects, shown as one backend-driven notification feed."
+      description="Your shortlist, brochure, and project activity history appears here."
+      containerClassName="w-full max-w-none"
       notifications={data?.data ?? []}
       summary={data?.summary}
       isLoading={isLoading}

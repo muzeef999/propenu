@@ -1,6 +1,10 @@
 import mongoose, { Types } from "mongoose";
 import Shortlist from "../models/shortlistModel";
 import FeaturedProject, { Lead } from "../models/featurePropertiesModel";
+import Residential from "../models/residentialModel";
+import Commercial from "../models/commercialModel";
+import LandPlot from "../models/landModel";
+import Agricultural from "../models/agriculturalModel";
 
 const getBuilderFromDate = (range: string) => {
   const now = new Date();
@@ -1090,6 +1094,7 @@ export const getBuilderNotificationsFeed = async (
       summary: {
         total: 0,
         shortlists: 0,
+        contacts: 0,
         brochureDownloads: 0,
         timeSpent: 0,
       },
@@ -1200,6 +1205,81 @@ export const getBuilderNotificationsFeed = async (
           userEmail: "$user.email",
           userCode: "$user.userCode",
           userRole: { $ifNull: ["$role.label", "$role.name"] },
+        },
+      },
+      { $sort: { createdAt: -1 } },
+    ])
+    .toArray();
+
+  const projectLeadRows = await Lead.aggregate([
+    {
+      $match: {
+        projectId: { $in: projectIds },
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "createdBy",
+        foreignField: "_id",
+        as: "user",
+      },
+    },
+    {
+      $unwind: {
+        path: "$user",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "roles",
+        localField: "user.roleId",
+        foreignField: "_id",
+        as: "role",
+      },
+    },
+    {
+      $unwind: {
+        path: "$role",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        createdAt: 1,
+        projectId: 1,
+        userId: "$user._id",
+        userName: "$user.name",
+        userPhone: "$user.phone",
+        userEmail: "$user.email",
+        userCode: "$user.userCode",
+        userRole: { $ifNull: ["$role.label", "$role.name"] },
+      },
+    },
+    { $sort: { createdAt: -1 } },
+  ]);
+
+  const publicLeadCollection = mongoose.connection.collection("publicleads");
+  const publicLeadRows = await publicLeadCollection
+    .aggregate([
+      {
+        $match: {
+          projectId: { $in: projectIds },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          createdAt: 1,
+          projectId: 1,
+          userId: null,
+          userName: "$name",
+          userPhone: "$phone",
+          userEmail: "$email",
+          userCode: null,
+          userRole: { $literal: "User" },
         },
       },
       { $sort: { createdAt: -1 } },
@@ -1354,6 +1434,32 @@ export const getBuilderNotificationsFeed = async (
       timeSpentMinutes: null,
     });
   });
+
+  [...projectLeadRows, ...publicLeadRows].forEach((row) => {
+    const project = projectMap.get(String(row.projectId));
+    if (!project) return;
+
+    notifications.push({
+      id: `contact-${row._id}`,
+      type: "contact_requested",
+      createdAt: row.createdAt ?? null,
+      user: {
+        id: row.userId ? String(row.userId) : "",
+        name: row.userName || "Unknown user",
+        phone: row.userPhone || "No phone",
+        email: row.userEmail || "No email",
+        role: row.userRole || "User",
+        userCode: row.userCode || "No code",
+      },
+      project: {
+        id: String(project._id),
+        title: project.title || "Untitled Project",
+        slug: project.slug,
+      },
+      message: `${row.userName || "Unknown user"} contacted you for ${project.title || "Untitled Project"}`,
+      timeSpentMinutes: null,
+    });
+  });
   notifications.sort((a, b) => {
     const aTime = a.createdAt ? new Date(String(a.createdAt)).getTime() : 0;
     const bTime = b.createdAt ? new Date(String(b.createdAt)).getTime() : 0;
@@ -1363,11 +1469,388 @@ export const getBuilderNotificationsFeed = async (
   return {
     success: true,
     data: notifications,
-    summary: {
-      total: notifications.length,
-      shortlists: notifications.filter((item) => item.type === "project_shortlisted").length,
-      brochureDownloads: notifications.filter((item) => item.type === "brochure_downloaded").length,
-      timeSpent: notifications.filter((item) => item.type === "high_time_spent").length,
+    summary: createNotificationSummary(notifications as NotificationFeedItem[]),
+  };
+};
+
+type NotificationFeedItem = {
+  id: string;
+  type:
+    | "project_shortlisted"
+    | "property_shortlisted"
+    | "contact_requested"
+    | "brochure_downloaded"
+    | "high_time_spent";
+  createdAt?: Date | string | null;
+  user?: {
+    id?: string;
+    name?: string;
+    phone?: string;
+    email?: string;
+    role?: string;
+    userCode?: string;
+  };
+  project?: {
+    id?: string;
+    title?: string;
+    slug?: string;
+  };
+  message?: string;
+  timeSpentMinutes?: number | null;
+};
+
+const createNotificationSummary = (notifications: NotificationFeedItem[]) => ({
+  total: notifications.length,
+  shortlists: notifications.filter(
+    (item) =>
+      item.type === "project_shortlisted" || item.type === "property_shortlisted",
+  ).length,
+  brochureDownloads: notifications.filter(
+    (item) => item.type === "brochure_downloaded",
+  ).length,
+  contacts: notifications.filter((item) => item.type === "contact_requested").length,
+  timeSpent: notifications.filter((item) => item.type === "high_time_spent").length,
+});
+
+const sortNotifications = (notifications: NotificationFeedItem[]) => {
+  notifications.sort((a, b) => {
+    const aTime = a.createdAt ? new Date(String(a.createdAt)).getTime() : 0;
+    const bTime = b.createdAt ? new Date(String(b.createdAt)).getTime() : 0;
+    return bTime - aTime;
+  });
+
+  return notifications;
+};
+
+const createProjectPayload = (input: {
+  id: string;
+  slug?: string;
+  title: string;
+}) => ({
+  id: input.id,
+  title: input.title,
+  ...(input.slug ? { slug: input.slug } : {}),
+});
+
+const getPropertyOwnerNotifications = async (ownerId: string) => {
+  if (!mongoose.Types.ObjectId.isValid(ownerId)) {
+    throw new Error("Invalid ownerId");
+  }
+
+  const ownerObjectId = new mongoose.Types.ObjectId(ownerId);
+  const propertyModels = [
+    {
+      shortlistPropertyTypes: ["Residential"],
+      leadPropertyTypes: ["residentials"],
+      model: Residential,
     },
+    {
+      shortlistPropertyTypes: ["Commercial"],
+      leadPropertyTypes: ["commercials"],
+      model: Commercial,
+    },
+    {
+      shortlistPropertyTypes: ["Land", "LandPlot"],
+      leadPropertyTypes: ["landplots"],
+      model: LandPlot,
+    },
+    {
+      shortlistPropertyTypes: ["Agricultural"],
+      leadPropertyTypes: ["agriculturals"],
+      model: Agricultural,
+    },
+  ] as const;
+
+  const notifications: NotificationFeedItem[] = [];
+
+  await Promise.all(
+    propertyModels.map(async ({ shortlistPropertyTypes, leadPropertyTypes, model }) => {
+      const properties = await (model as any)
+        .find({ createdBy: ownerObjectId })
+        .select("_id title slug projectName buildingName")
+        .lean();
+
+      if (!properties.length) return;
+
+      const propertyIds = properties.map((property: any) => property._id);
+      const propertyMap = new Map(
+        properties.map((property: any) => [
+          String(property._id),
+          property.title || property.projectName || property.buildingName || "Untitled Property",
+        ]),
+      );
+
+      const shortlistRows = await Shortlist.aggregate([
+        {
+          $match: {
+            propertyType: { $in: shortlistPropertyTypes },
+            propertyId: { $in: propertyIds },
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        {
+          $unwind: {
+            path: "$user",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: "roles",
+            localField: "user.roleId",
+            foreignField: "_id",
+            as: "role",
+          },
+        },
+        {
+          $unwind: {
+            path: "$role",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            createdAt: 1,
+            propertyId: 1,
+            userId: "$user._id",
+            userName: "$user.name",
+            userPhone: "$user.phone",
+            userEmail: "$user.email",
+            userCode: "$user.userCode",
+            userRole: { $ifNull: ["$role.label", "$role.name"] },
+          },
+        },
+        { $sort: { createdAt: -1 } },
+      ]);
+
+      shortlistRows.forEach((row) => {
+        const propertyTitle = propertyMap.get(String(row.propertyId));
+        if (!propertyTitle) return;
+
+        notifications.push({
+          id: `property-shortlist-${shortlistPropertyTypes.join("-")}-${row._id}`,
+          type: "property_shortlisted",
+          createdAt: row.createdAt ?? null,
+          user: {
+            id: row.userId ? String(row.userId) : "",
+            name: row.userName || "Unknown user",
+            phone: row.userPhone || "No phone",
+            email: row.userEmail || "No email",
+            role: row.userRole || "User",
+            userCode: row.userCode || "No code",
+          },
+          project: createProjectPayload({
+            id: String(row.propertyId),
+            title: String(propertyTitle),
+          }),
+          message: `${row.userName || "Unknown user"} shortlisted ${propertyTitle}`,
+          timeSpentMinutes: null,
+        });
+      });
+
+      const leadRows = await mongoose.connection
+        .collection("propertyleads")
+        .aggregate([
+          {
+            $match: {
+              ownerId: ownerObjectId,
+              propertyType: { $in: leadPropertyTypes },
+              projectId: { $in: propertyIds },
+            },
+          },
+          {
+            $lookup: {
+              from: "users",
+              localField: "createdBy",
+              foreignField: "_id",
+              as: "user",
+            },
+          },
+          {
+            $unwind: {
+              path: "$user",
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $lookup: {
+              from: "roles",
+              localField: "user.roleId",
+              foreignField: "_id",
+              as: "role",
+            },
+          },
+          {
+            $unwind: {
+              path: "$role",
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+              createdAt: 1,
+              projectId: 1,
+              userId: "$user._id",
+              userName: "$user.name",
+              userPhone: "$user.phone",
+              userEmail: "$user.email",
+              userCode: "$user.userCode",
+              userRole: { $ifNull: ["$role.label", "$role.name"] },
+            },
+          },
+          { $sort: { createdAt: -1 } },
+        ])
+        .toArray();
+
+      leadRows.forEach((row) => {
+        const propertyTitle = propertyMap.get(String(row.projectId));
+        if (!propertyTitle) return;
+
+        notifications.push({
+          id: `property-contact-${leadPropertyTypes.join("-")}-${row._id}`,
+          type: "contact_requested",
+          createdAt: row.createdAt ?? null,
+          user: {
+            id: row.userId ? String(row.userId) : "",
+            name: row.userName || "Unknown user",
+            phone: row.userPhone || "No phone",
+            email: row.userEmail || "No email",
+            role: row.userRole || "User",
+            userCode: row.userCode || "No code",
+          },
+          project: createProjectPayload({
+            id: String(row.projectId),
+            title: String(propertyTitle),
+          }),
+          message: `${row.userName || "Unknown user"} contacted you for ${propertyTitle}`,
+          timeSpentMinutes: null,
+        });
+      });
+
+      const timeSpentRows = await mongoose.connection
+        .collection("projectviewdurations")
+        .aggregate([
+          {
+            $match: {
+              ownerId: ownerObjectId,
+              propertyType: { $in: leadPropertyTypes },
+              projectId: { $in: propertyIds },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                projectId: "$projectId",
+                userId: "$userId",
+              },
+              totalDurationMs: { $sum: { $ifNull: ["$durationMs", 0] } },
+              lastViewedAt: { $max: "$createdAt" },
+            },
+          },
+          {
+            $lookup: {
+              from: "users",
+              localField: "_id.userId",
+              foreignField: "_id",
+              as: "user",
+            },
+          },
+          {
+            $unwind: {
+              path: "$user",
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $lookup: {
+              from: "roles",
+              localField: "user.roleId",
+              foreignField: "_id",
+              as: "role",
+            },
+          },
+          {
+            $unwind: {
+              path: "$role",
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              projectId: "$_id.projectId",
+              userId: "$user._id",
+              userName: "$user.name",
+              userPhone: "$user.phone",
+              userEmail: "$user.email",
+              userCode: "$user.userCode",
+              userRole: { $ifNull: ["$role.label", "$role.name"] },
+              totalDurationMs: 1,
+              lastViewedAt: 1,
+            },
+          },
+          { $sort: { lastViewedAt: -1 } },
+        ])
+        .toArray();
+
+      timeSpentRows.forEach((row) => {
+        const propertyTitle = propertyMap.get(String(row.projectId));
+        if (!propertyTitle) return;
+
+        const timeSpentMinutes = Number(((row.totalDurationMs ?? 0) / 60000).toFixed(1));
+        if (!(timeSpentMinutes > 0)) return;
+
+        notifications.push({
+          id: `property-time-${leadPropertyTypes.join("-")}-${String(row.projectId)}-${String(row.userId || "unknown")}`,
+          type: "high_time_spent",
+          createdAt: row.lastViewedAt ?? null,
+          user: {
+            id: row.userId ? String(row.userId) : "",
+            name: row.userName || "Unknown user",
+            phone: row.userPhone || "No phone",
+            email: row.userEmail || "No email",
+            role: row.userRole || "User",
+            userCode: row.userCode || "No code",
+          },
+          project: createProjectPayload({
+            id: String(row.projectId),
+            title: String(propertyTitle),
+          }),
+          message: `${row.userName || "Unknown user"} spent ${timeSpentMinutes} min on ${propertyTitle}`,
+          timeSpentMinutes,
+        });
+      });
+    }),
+  );
+
+  return sortNotifications(notifications);
+};
+
+export const getAgentNotificationsFeed = async (agentUserId: string) => {
+  const notifications = await getPropertyOwnerNotifications(agentUserId);
+
+  return {
+    success: true,
+    data: notifications,
+    summary: createNotificationSummary(notifications),
+  };
+};
+
+export const getUserNotificationsFeed = async (userId: string) => {
+  const notifications = await getPropertyOwnerNotifications(userId);
+
+  return {
+    success: true,
+    data: notifications,
+    summary: createNotificationSummary(notifications),
   };
 };

@@ -11,14 +11,12 @@ export default function AccountLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-
   const [openResponses, setOpenResponses] = useState(false);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
 
   return (
-    <div className="min-h-screen container mx-auto flex relative mb-4">
+    <div className="container mx-auto mb-4 min-h-screen lg:flex lg:items-start">
       {/* LEFT SIDEBAR */}
       <Sidebar />
 
@@ -39,8 +37,7 @@ export default function AccountLayout({
         }}
       >
         {/* MAIN CONTENT */}
-        <main className="flex-1 p-1 md:p-6 pb-24 lg:pb-1 relative">
-
+        <main className="min-w-0 flex-1 overflow-x-hidden p-3 pb-24 sm:p-4 lg:p-6 lg:pb-6 relative">
           {children}
         </main>
       </ResponsesProvider>

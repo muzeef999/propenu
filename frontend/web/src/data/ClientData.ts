@@ -1082,6 +1082,32 @@ export const getBuilderNotifications = async () => {
   return res.data;
 };
 
+export const getAgentNotifications = async () => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(`${url}/api/users/agent/notifications`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.data;
+};
+
+export const getUserNotifications = async () => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(`${url}/api/users/shortlist/notifications/me`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.data;
+};
+
 export const trackProjectBrochureDownload = async (projectId: string) => {
   const token = Cookies.get("token");
   if (!token) throw new Error("Not authenticated");
@@ -1124,6 +1150,46 @@ export const trackProjectViewDuration = async (
       }),
       keepalive: true,
     });
+
+    if (!res.ok) {
+      return null;
+    }
+
+    return res.json();
+  } catch {
+    return null;
+  }
+};
+
+export const trackPropertyViewDuration = async (
+  propertyType: string,
+  projectId: string,
+  durationMs: number,
+  pathname?: string,
+) => {
+  const token = Cookies.get("token");
+  if (!token) return null;
+
+  if (!Number.isFinite(durationMs) || durationMs < 1000) {
+    return null;
+  }
+
+  try {
+    const res = await fetch(
+      `${url}/api/properties/leads/property/${propertyType}/${projectId}/view-duration`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          durationMs: Math.round(durationMs),
+          pathname,
+        }),
+        keepalive: true,
+      },
+    );
 
     if (!res.ok) {
       return null;

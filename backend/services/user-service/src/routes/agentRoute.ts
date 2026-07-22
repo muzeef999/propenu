@@ -15,6 +15,7 @@ import {
   getMyPropertyStats,
   verifyAgentStatus,
 } from "../controller/agentController";
+import { getAgentNotificationsController } from "../controller/shortlistController";
 import { authMiddleware } from "../middlewares/authMiddleware";
 
 const agentRoute = express.Router();
@@ -26,6 +27,7 @@ agentRoute.post("/", upload.fields([{ name: "avatar", maxCount: 1 }, { name: "co
 agentRoute.get("/", getAllAgents);
 agentRoute.get("/city", getAgentsByCity);
 agentRoute.get("/my", authMiddleware, getMyPropertyStats);
+agentRoute.get("/notifications", authMiddleware, getAgentNotificationsController);
 agentRoute.get("/:id", getIndetailAgent);
 agentRoute.get("/slug/:slug", getIndetailSlug);
 agentRoute.get("/me/profile", authMiddleware, getMyAgentProfile);

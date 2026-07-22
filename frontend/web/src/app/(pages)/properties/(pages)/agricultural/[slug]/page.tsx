@@ -9,6 +9,7 @@ import { GiGroundSprout } from "react-icons/gi";
 import { FaRoad } from "react-icons/fa";
 import { IAgricultural } from "@/types/agricultural";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
+import PropertyViewDurationTracker from "@/components/PropertyViewDurationTracker";
 import RelatedAgriculturalCarousel from "./RelatedAgriculturalCarousel";
 import Image from "next/image";
 import { AGRICULTURAL_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
@@ -62,6 +63,10 @@ export default async function Page({ params }: PageProps) {
     <div
       className="min-h-screen py-6 overflow-hidden"
     >
+      <PropertyViewDurationTracker
+        projectId={String(project._id)}
+        propertyType="agriculturals"
+      />
       <div className="container">
         <div className="w-full">
           {/* Top: Price + Title + CTA */}

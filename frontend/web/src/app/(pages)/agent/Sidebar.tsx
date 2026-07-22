@@ -7,6 +7,7 @@ import { hexToRGBA } from "@/ui/hexToRGBA";
 import { Building, Subscription } from "@/icons/icons";
 import { RiAccountCircle2Fill, RiDeleteBin6Line } from "react-icons/ri";
 import { BiSupport } from "react-icons/bi";
+import { FiBell } from "react-icons/fi";
 
 const menuItems = [
   {
@@ -32,6 +33,12 @@ const menuItems = [
     mobileLabel: "Shortlist",
     link: "/agent/shortlisted-properties",
     icon: FaHeart,
+  },
+  {
+    label: "Notifications",
+    mobileLabel: "Alerts",
+    link: "/agent/notifications",
+    icon: FiBell,
   },
   {
     label: "My Plan",

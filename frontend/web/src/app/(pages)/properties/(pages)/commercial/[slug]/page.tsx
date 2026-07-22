@@ -14,6 +14,7 @@ import {
 } from "react-icons/fa";
 
 import ContactOwnerButton from "@/components/ContactOwnerButton";
+import PropertyViewDurationTracker from "@/components/PropertyViewDurationTracker";
 import RelatedCommercialCarousel from "./RelatedCommercialCarousel";
 import Image from "next/image";
 import { COMMERCIAL_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
@@ -156,6 +157,10 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <div className="min-h-screen py-6 overflow-hidden">
+      <PropertyViewDurationTracker
+        projectId={String(project._id)}
+        propertyType="commercials"
+      />
       <div className="container">
         <div className="w-full">
           {/* Top: Price + Title + CTA */}
