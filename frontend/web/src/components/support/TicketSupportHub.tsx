@@ -288,6 +288,7 @@ export default function TicketSupportHub({ role }: { role: Role }) {
   const [selectedId, setSelectedId] = useState("");
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [reply, setReply] = useState("");
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(true);
@@ -372,7 +373,7 @@ export default function TicketSupportHub({ role }: { role: Role }) {
       else if (isAgentWorkspace) params.set("assignedOrRequested", currentUser.id);
       else params.set("requesterId", currentUser.id);
       if (status !== "all") params.set("status", status);
-      if (search.trim()) params.set("q", search.trim());
+      if (searchQuery) params.set("q", searchQuery);
 
       const response = await fetch(apiUrl(`/api/tickets?${params.toString()}`), { cache: "no-store" });
       if (!response.ok) throw new Error("Ticket service is not reachable");
@@ -391,10 +392,20 @@ export default function TicketSupportHub({ role }: { role: Role }) {
   };
 
   useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearchQuery(search.trim());
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [search]);
+
+  useEffect(() => {
     if (authLoading) return;
     loadTickets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [role, status, authLoading, currentUser.id]);
+  }, [role, status, authLoading, currentUser.id, searchQuery]);
 
   useEffect(() => {
     if (!showCreatePanel && !previewTicketId) return;
@@ -679,9 +690,9 @@ export default function TicketSupportHub({ role }: { role: Role }) {
         </div>
 
         {showCreatePanel && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/25 px-4 py-6">
+          <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/25 px-4 py-6">
             <div className="absolute inset-0" onClick={() => setShowCreatePanel(false)} aria-hidden="true" />
-            <form onSubmit={createTicket} className="relative z-[121] max-h-[90vh] w-full max-w-[760px] overflow-y-auto rounded-[14px] border border-[#E8EFEA] bg-white p-5 shadow-[0_30px_80px_rgba(0,0,0,0.22)] sm:p-6">
+            <form onSubmit={createTicket} className="relative z-121 max-h-[90vh] w-full max-w-[760px] overflow-y-auto rounded-[14px] border border-[#E8EFEA] bg-white p-5 shadow-[0_30px_80px_rgba(0,0,0,0.22)] sm:p-6">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h2 className="text-[18px] font-semibold text-[#111111]">Create Ticket</h2>
@@ -924,7 +935,7 @@ export default function TicketSupportHub({ role }: { role: Role }) {
                     value={form.title}
                     onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
                     placeholder="Example: The leads are visible in my Mailbox, but they are not showing on the Dashboard."
-                    className="support-input !rounded-sm !border-[#ECECEC] !bg-[#F5F5F5] !text-[#444] focus:!bg-white"
+                    className="support-input rounded-sm! border-[#ECECEC]! bg-[#F5F5F5]! text-[#444]! focus:bg-white!"
                   />
                   <div className="mt-1 text-right text-[11px] text-gray-500">
                     {form.title.length}/100 characters
@@ -932,7 +943,7 @@ export default function TicketSupportHub({ role }: { role: Role }) {
                 </div>
               </Field>
               <Field label="Description">
-                <textarea required rows={3} value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Provide a brief description of the subject." className="support-input resize-none !rounded-sm !border-[#ECECEC] !bg-[#F5F5F5] !text-[#444] focus:!bg-white" />
+                <textarea required rows={3} value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Provide a brief description of the subject." className="support-input resize-none rounded-sm! border-[#ECECEC]! bg-[#F5F5F5]! text-[#444]! focus:bg-white!" />
               </Field>
               <Field label="Attachment">
                 <div className="mt-2 rounded-sm bg-[#E6FAEE] px-4 py-4">
@@ -1011,13 +1022,13 @@ export default function TicketSupportHub({ role }: { role: Role }) {
         )}
 
         {previewTicket && (
-          <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/35 px-4 py-6">
+          <div className="fixed inset-0 z-130 flex items-center justify-center bg-black/35 px-4 py-6">
             <div
               className="absolute inset-0"
               onClick={() => setPreviewTicketId(null)}
               aria-hidden="true"
             />
-            <div className="relative z-[131] flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-[14px] border border-[#E8EFEA] bg-white shadow-[0_30px_80px_rgba(0,0,0,0.22)]">
+            <div className="relative z-   131 flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-[14px] border border-[#E8EFEA] bg-white shadow-[0_30px_80px_rgba(0,0,0,0.22)]">
               <div className="flex items-center justify-between border-b border-[#EEF3EF] px-5 py-4">
                 <div className="min-w-0">
                   <h3 className="truncate text-[18px] font-semibold text-[#111111]">
@@ -1136,7 +1147,7 @@ export default function TicketSupportHub({ role }: { role: Role }) {
                 </button>
 
                 {statusDropdownOpen && (
-                  <div className="absolute right-0 top-[calc(100%+12px)] z-[80] w-48 rounded-md border border-[#E5EBE7] bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
+                  <div className="absolute right-0 top-[calc(100%+12px)] z-80 w-48 rounded-md border border-[#E5EBE7] bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
                     <div className="flex flex-col gap-1">
                       <button type="button" onClick={() => { setStatus("all"); setStatusDropdownOpen(false); }} className={`rounded px-3 py-2 text-left text-sm ${status === "all" ? "bg-[#DFF5E8] text-[#15803D]" : "text-gray-700 hover:bg-gray-100"}`}>
                         All Status
@@ -1208,7 +1219,7 @@ export default function TicketSupportHub({ role }: { role: Role }) {
 
 function Metric({ label, value, valueText, icon }: { label: string; value?: number; valueText?: string; icon: React.ReactNode }) {
   return (
-    <div className="min-h-[112px] rounded-md border border-[#E8EFEA] bg-white p-4">
+    <div className="min-h-28 rounded-md border border-[#E8EFEA] bg-white p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[14px] font-medium text-[#222]">{label}</p>
@@ -1240,7 +1251,7 @@ function Detail({ role, viewerRole, ticket, reply, note, submitting, setReply, s
   sendComment: (visibility: "public" | "internal") => void;
   changeStatus: (status: Status) => void;
 }) {
-  if (!ticket) return <div className="rounded-[24px] border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">Select a ticket to see details.</div>;
+  if (!ticket) return <div className="rounded-md border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">Select a ticket to see details.</div>;
   const isSupportOperator =
     role === "agent" ||
     viewerRole === "customer_care" ||
@@ -1249,8 +1260,8 @@ function Detail({ role, viewerRole, ticket, reply, note, submitting, setReply, s
   const internalComments = ticket.comments?.filter((item) => item.visibility === "internal") ?? [];
 
   return (
-    <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
-      <div className="border-b border-slate-100 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_35%),linear-gradient(180deg,_#ffffff_0%,_#f6fff9_100%)] p-5 sm:p-6">
+    <div className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+      <div className="border-b border-slate-100 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_35%),linear-gradient(180deg,#ffffff_0%,#f6fff9_100%)] p-5 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#27A361]">Ticket Detail</p>
