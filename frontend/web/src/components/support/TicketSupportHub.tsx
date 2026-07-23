@@ -13,9 +13,7 @@ import {
   FiClock,
   FiFilter,
   FiPaperclip,
-  FiPlus,
   FiX,
-  FiRefreshCw,
   FiSearch,
   FiSend,
   FiShield,
@@ -38,6 +36,7 @@ type Status =
 
 type Ticket = {
   _id: string;
+  ticketCode?: string;
   title: string;
   description: string;
   status: Status;
@@ -50,7 +49,13 @@ type Ticket = {
   updatedAt?: string;
   requester?: { name?: string; userId?: string; email?: string };
   assignedTo?: { name?: string; userId?: string };
-  attachments?: { url: string; name?: string }[];
+  attachments?: { url: string; name?: string; mimeType?: string; size?: number }[];
+  metadata?: {
+    propertyCode?: string;
+    propertyTitle?: string;
+    relatedProjectId?: string;
+    relatedProjectName?: string;
+  };
   comments?: {
     _id?: string;
     message: string;
@@ -58,6 +63,13 @@ type Ticket = {
     author?: { name?: string; role?: string };
     createdAt?: string;
   }[];
+};
+
+type UploadedAttachment = {
+  url: string;
+  name?: string;
+  mimeType?: string;
+  size?: number;
 };
 
 type TicketForm = {
@@ -72,6 +84,7 @@ type RelatedItem = {
   id: string;
   label: string;
   meta: string;
+  code?: string;
   kind: "property" | "project";
 };
 
@@ -84,7 +97,7 @@ const config = {
     listTitle: "My Tickets",
     department: "support",
     requesterRole: "customer",
-    categories: ["Property Verification", "Owner Contact", "Payment", "Technical", "Account"],
+    categories: ["Lead Issue", "Property Issue", "Customer Request", "Payment", "Technical"],
     relatedLabel: "Related property",
     relatedEmpty: "No properties found. You can still create a general support ticket.",
   },
@@ -96,7 +109,7 @@ const config = {
     listTitle: "Project Tickets",
     department: "builder-success",
     requesterRole: "builder",
-    categories: ["Verification", "Listing Approval", "Leads", "Payment", "Technical"],
+    categories: ["Lead Issue", "Property Issue", "Customer Request", "Payment", "Technical"],
     relatedLabel: "Related project",
     relatedEmpty: "No projects found. Create a general builder support ticket.",
   },
@@ -178,19 +191,46 @@ const formatFileSize = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+const formatCompactCount = (value: number) =>
+  new Intl.NumberFormat("en-IN", {
+    notation: value >= 1000 ? "compact" : "standard",
+    maximumFractionDigits: 1,
+  }).format(value);
+
+const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024;
+const MAX_ATTACHMENT_COUNT = 5;
+
+const getAttachmentKind = (attachment?: {
+  url?: string;
+  name?: string;
+  mimeType?: string;
+}) => {
+  const source = `${attachment?.mimeType || ""} ${attachment?.name || ""} ${attachment?.url || ""}`.toLowerCase();
+  if (
+    source.includes("image/") ||
+    /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(source)
+  ) {
+    return "image";
+  }
+  if (source.includes("pdf") || /\.pdf$/i.test(source)) {
+    return "pdf";
+  }
+  return "file";
+};
+
 const flattenProperties = (data: any): RelatedItem[] => {
   if (!data) return [];
 
   const groups = Array.isArray(data)
     ? { properties: data }
     : {
-        residential: data.residential,
-        commercial: data.commercial,
-        land: data.land,
-        agricultural: data.agricultural,
-        properties: data.properties,
-        data: data.data,
-      };
+      residential: data.residential,
+      commercial: data.commercial,
+      land: data.land,
+      agricultural: data.agricultural,
+      properties: data.properties,
+      data: data.data,
+    };
 
   return Object.entries(groups).flatMap(([kind, value]) => {
     if (!Array.isArray(value)) return [];
@@ -199,6 +239,7 @@ const flattenProperties = (data: any): RelatedItem[] => {
       .map((item) => ({
         id: String(item._id),
         label: item.title || item.projectName || item.name || "Untitled property",
+        code: item.propertyCode || item.projectCode,
         meta: [kind, item.city || item.locality || item.address].filter(Boolean).join(" • "),
         kind: "property" as const,
       }));
@@ -214,6 +255,7 @@ const normalizeProjects = (data: any): RelatedItem[] => {
     .map((item) => ({
       id: String(item._id),
       label: item.title || item.projectName || item.name || "Untitled project",
+      code: item.propertyCode || item.projectCode,
       meta: ["project", item.city || item.locality || item.state].filter(Boolean).join(" • "),
       kind: "project" as const,
     }));
@@ -266,6 +308,8 @@ export default function TicketSupportHub({ role }: { role: Role }) {
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [priorityOpen, setPriorityOpen] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [showCreatePanel, setShowCreatePanel] = useState(false);
+  const [previewTicketId, setPreviewTicketId] = useState<string | null>(null);
 
   const relatedDropdownRef = useRef<HTMLDivElement | null>(null);
   const categoryDropdownRef = useRef<HTMLDivElement | null>(null);
@@ -291,6 +335,19 @@ export default function TicketSupportHub({ role }: { role: Role }) {
     () => relatedItems.find((item) => item.id === form.relatedId),
     [form.relatedId, relatedItems],
   );
+
+  const previewTicket = useMemo(
+    () => tickets.find((ticket) => ticket._id === previewTicketId),
+    [previewTicketId, tickets],
+  );
+
+  const relatedItemLookup = useMemo(() => {
+    const lookup = new Map<string, RelatedItem>();
+    relatedItems.forEach((item) => {
+      lookup.set(item.id, item);
+    });
+    return lookup;
+  }, [relatedItems]);
 
   const filteredRelatedItems = useMemo(() => {
     const query = relatedSearch.trim().toLowerCase();
@@ -340,6 +397,17 @@ export default function TicketSupportHub({ role }: { role: Role }) {
   }, [role, status, authLoading, currentUser.id]);
 
   useEffect(() => {
+    if (!showCreatePanel && !previewTicketId) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [previewTicketId, showCreatePanel]);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       if (relatedDropdownRef.current && !relatedDropdownRef.current.contains(target)) {
@@ -362,6 +430,7 @@ export default function TicketSupportHub({ role }: { role: Role }) {
         setCategoryOpen(false);
         setPriorityOpen(false);
         setStatusDropdownOpen(false);
+        setShowCreatePanel(false);
       }
     };
 
@@ -404,10 +473,10 @@ export default function TicketSupportHub({ role }: { role: Role }) {
         if (role === "agent") {
           const [propertiesResult, projectsResult, primeProjectsResult] =
             await Promise.allSettled([
-            getMyProperties(),
-            getHighlightProjectBuilders(),
-            getFeaturedProjectsDashboard(),
-          ]);
+              getMyProperties(),
+              getHighlightProjectBuilders(),
+              getFeaturedProjectsDashboard(),
+            ]);
 
           const properties =
             propertiesResult.status === "fulfilled"
@@ -450,13 +519,42 @@ export default function TicketSupportHub({ role }: { role: Role }) {
     setSubmitting(true);
     setError("");
     try {
+      if (files.length < 1) {
+        throw new Error("Please upload at least 1 attachment");
+      }
+
+      if (files.length > MAX_ATTACHMENT_COUNT) {
+        throw new Error("You can upload up to 5 attachments");
+      }
+
+      if (files.some((file) => file.size > MAX_ATTACHMENT_SIZE)) {
+        throw new Error("Each attachment must be 5 MB or smaller");
+      }
+
       const related = relatedItems.find((item) => item.id === form.relatedId);
-      const attachments = files.map((file) => ({
-        url: `local-file://${encodeURIComponent(file.name)}`,
-        name: file.name,
-        mimeType: file.type || "application/octet-stream",
-        size: file.size,
-      }));
+      const attachments = await Promise.all(
+        files.map(async (file) => {
+          const uploadFormData = new FormData();
+          uploadFormData.append("file", file);
+
+          const uploadResponse = await fetch(apiUrl("/api/ticket-attachments/upload"), {
+            method: "POST",
+            body: uploadFormData,
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error("Attachment upload failed");
+          }
+
+          const uploadResult = await uploadResponse.json();
+          if (!uploadResult?.data?.url) {
+            throw new Error("Attachment upload failed");
+          }
+
+          return uploadResult.data as UploadedAttachment;
+        }),
+      );
+
       const response = await fetch(apiUrl("/api/tickets"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -474,12 +572,19 @@ export default function TicketSupportHub({ role }: { role: Role }) {
             related?.kind || "general",
             form.category.toLowerCase().replace(/\s+/g, "-"),
           ],
+          metadata: {
+            propertyCode: related?.kind === "property" ? related.code : undefined,
+            propertyTitle: related?.kind === "property" ? related.label : undefined,
+            relatedProjectId: related?.kind === "project" ? related.id : undefined,
+            relatedProjectName: related?.kind === "project" ? related.label : undefined,
+          },
           attachments,
         }),
       });
       if (!response.ok) throw new Error("Ticket could not be created");
       setForm({ title: "", description: "", category: copy.categories[0], relatedId: "", priority: "medium" });
       setFiles([]);
+      setShowCreatePanel(false);
       await loadTickets();
     } catch (err: any) {
       setError(err.message || "Ticket could not be created");
@@ -547,415 +652,497 @@ export default function TicketSupportHub({ role }: { role: Role }) {
   };
 
   return (
-    <div className="space-y-4">
-      <section className="overflow-visible rounded-[10px] border border-emerald-100 bg-linear-to-br from-white via-white to-emerald-50/70 shadow-sm">
-        <div className="grid items-start gap-5 p-4 lg:grid-cols-[minmax(0,1fr)_440px] lg:p-5 xl:grid-cols-[minmax(0,1fr)_520px]">
-          <div className="rounded-[10px] p-1">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#27A361]">{copy.eyebrow}</p>
-              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-gray-950 sm:text-3xl">{copy.title}</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">{copy.description}</p>
-            </div>
-            <div className="mt-5 grid max-w-3xl grid-cols-2 gap-3 lg:grid-cols-4">
-              <Metric label="Active" value={metrics.active} icon={<FiClock />} />
-              <Metric label="Urgent" value={metrics.urgent} icon={<FiAlertCircle />} />
-              <Metric label="Waiting" value={metrics.waiting} icon={<FiUserCheck />} />
-              <Metric label="Resolved" value={metrics.resolved} icon={<FiShield />} />
-            </div>
-            <div className="mt-5 grid gap-3 text-sm text-gray-600 lg:grid-cols-3">
-              <div className="rounded-lg border border-emerald-100 bg-white/75 p-3">
-                <p className="font-semibold text-gray-900">Smart routing</p>
-                <p className="mt-1 text-xs leading-5">Tickets are linked to the right property or project.</p>
+    <div className="no-scrollbar flex h-[calc(100vh-80px)] flex-col overflow-y-auto rounded-lg bg-[#F7FCF9] p-4 sm:p-6">
+      <section className="space-y-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-[12px] font-medium uppercase tracking-[0.06em] text-[#111111]">How can we help you?</p>
+            <h1 className="mt-1 text-[24px] font-semibold leading-none text-[#111111]">{copy.title}</h1>
+            <p className="mt-3 max-w-3xl text-[14px] leading-7 text-[#7A7A7A]">
+              Raise and track tickets related to your account, projects, subscription, leads, payments and other Propenu services
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowCreatePanel((prev) => !prev)}
+            className="inline-flex h-10 items-center justify-center rounded-sm bg-[#27A361] px-5 text-[14px] font-medium text-white hover:bg-[#208650]"
+          >
+            Create Ticket
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <Metric label="Active" value={metrics.active} icon={<FiClock size={12} />} />
+          <Metric label="Immediate" value={metrics.urgent} icon={<FiAlertCircle size={12} />} />
+          <Metric label="Waiting" value={metrics.waiting} icon={<FiUserCheck size={12} />} />
+          <Metric label="Resolved" value={metrics.resolved} icon={<FiShield size={12} />} />
+        </div>
+
+        {showCreatePanel && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/25 px-4 py-6">
+            <div className="absolute inset-0" onClick={() => setShowCreatePanel(false)} aria-hidden="true" />
+            <form onSubmit={createTicket} className="relative z-[121] max-h-[90vh] w-full max-w-[760px] overflow-y-auto rounded-[14px] border border-[#E8EFEA] bg-white p-5 shadow-[0_30px_80px_rgba(0,0,0,0.22)] sm:p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-[18px] font-semibold text-[#111111]">Create Ticket</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCreatePanel(false)}
+                  className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                  aria-label="Close dialog"
+                >
+                  <FiX size={18} />
+                </button>
               </div>
-              <div className="rounded-lg border border-emerald-100 bg-white/75 p-3">
-                <p className="font-semibold text-gray-900">Clear proof</p>
-                <p className="mt-1 text-xs leading-5">Upload screenshots or files with every request.</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Category">
+                  <div ref={categoryDropdownRef} className="relative mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setCategoryOpen((prev) => !prev)}
+                      className="flex h-11 w-full items-center justify-between rounded-sm border border-[#ECECEC] bg-[#F5F5F5] px-4 text-sm text-[#444] outline-none"
+                    >
+                      <span className="truncate">{form.category || "Select Category"}</span>
+                      <ArrowDropdownIcon
+                        size={12}
+                        color="#111827"
+                        className={`transition-transform duration-200 ${categoryOpen ? "rotate-180" : ""
+                          }`}
+                      />
+                    </button>
+
+                    {categoryOpen && (
+                      <div className="absolute left-0 top-[calc(100%+8px)] z-60 w-full rounded-md border border-[#E5EBE7] bg-white p-2 shadow-lg">
+                        <div className="pointer-events-none absolute -top-2 left-6">
+                          <div className="h-3 w-3 rotate-45 border-l border-t border-gray-200 bg-white" />
+                        </div>
+                        <h4 className="mb-2 text-sm font-semibold">Select Category</h4>
+                        <div className="flex flex-col gap-1">
+                          {copy.categories.map((item) => (
+                            <button
+                              key={item}
+                              type="button"
+                              onClick={() => {
+                                setForm((p) => ({ ...p, category: item }));
+                                setCategoryOpen(false);
+                              }}
+                              className={`rounded px-3 py-2 text-left text-sm transition-colors ${form.category === item
+                                  ? "bg-[#D1EFDD] font-medium text-[#15803D]"
+                                  : "text-gray-700 hover:bg-gray-100"
+                                }`}
+                            >
+                              {item}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Field>
+
+                <Field label="Priority">
+                  <div ref={priorityDropdownRef} className="relative mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setPriorityOpen((prev) => !prev)}
+                      className="flex h-11 w-full items-center justify-between rounded-sm border border-[#ECECEC] bg-[#F5F5F5] px-4 text-sm text-[#444] outline-none"
+                    >
+                      <span className="truncate capitalize">{form.priority || "Select Priority"}</span>
+                      <ArrowDropdownIcon
+                        size={12}
+                        color="#111827"
+                        className={`transition-transform duration-200 ${priorityOpen ? "rotate-180" : ""
+                          }`}
+                      />
+                    </button>
+
+                    {priorityOpen && (
+                      <div className="absolute left-0 top-[calc(100%+8px)] z-60 w-full rounded-md border border-[#E5EBE7] bg-white p-2 shadow-lg">
+                        <div className="pointer-events-none absolute -top-2 left-6">
+                          <div className="h-3 w-3 rotate-45 border-l border-t border-gray-200 bg-white" />
+                        </div>
+                        <h4 className="mb-2 text-sm font-semibold">Select Priority</h4>
+                        <div className="flex flex-col gap-1">
+                          {(["low", "medium", "high", "urgent"] as const).map((item) => (
+                            <button
+                              key={item}
+                              type="button"
+                              onClick={() => {
+                                setForm((p) => ({ ...p, priority: item }));
+                                setPriorityOpen(false);
+                              }}
+                              className={`rounded px-3 py-2 text-left text-sm transition-colors capitalize ${form.priority === item
+                                  ? "bg-[#D1EFDD] font-medium text-[#15803D]"
+                                  : "text-gray-700 hover:bg-gray-100"
+                                }`}
+                            >
+                              {item}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Field>
               </div>
-              <div className="rounded-lg border border-emerald-100 bg-white/75 p-3">
-                <p className="font-semibold text-gray-900">Fast updates</p>
-                <p className="mt-1 text-xs leading-5">Track replies, status, and ownership in one view.</p>
+              <Field label="Choose the Project related to your issue">
+                <div ref={relatedDropdownRef} className="relative mt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRelatedOpen((prev) => !prev);
+                      setRelatedSearch("");
+                    }}
+                    className="flex h-11 w-full items-center justify-between rounded-sm border border-[#ECECEC] bg-[#F5F5F5] px-4 text-sm text-[#444] outline-none"
+                  >
+                    <span className="truncate">
+                      {relatedLoading
+                        ? "Loading related items..."
+                        : selectedRelated?.label || "General support ticket"}
+                    </span>
+                    <ArrowDropdownIcon
+                      size={12}
+                      color="#111827"
+                      className={`transition-transform duration-200 shrink-0 ${relatedOpen ? "rotate-180" : ""
+                        }`}
+                    />
+                  </button>
+
+                  {relatedOpen && (
+                    <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-60 w-full rounded-md border border-[#E5EBE7] bg-white p-3 shadow-lg">
+                      <div className="pointer-events-none absolute -top-2 left-6">
+                        <div className="h-3 w-3 rotate-45 border-l border-t border-gray-200 bg-white" />
+                      </div>
+                      <div className="border-b border-gray-100 pb-2 mb-2">
+                        <label className="relative block">
+                          <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                          <input
+                            value={relatedSearch}
+                            onChange={(event) => setRelatedSearch(event.target.value)}
+                            autoFocus
+                            placeholder={`Search ${copy.relatedLabel.toLowerCase()}`}
+                            className="w-full rounded-sm border border-[#ECECEC] bg-[#F5F5F5] py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#27A361] focus:bg-white"
+                            onKeyDown={(event) => {
+                              if (event.key === "Escape") setRelatedOpen(false);
+                            }}
+                          />
+                        </label>
+                      </div>
+
+                      <div className="max-h-64 overflow-y-auto flex flex-col gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setForm((p) => ({ ...p, relatedId: "" }));
+                            setRelatedOpen(false);
+                            setRelatedSearch("");
+                          }}
+                          className={`rounded px-3 py-2 text-left transition-colors flex items-start gap-3 ${!form.relatedId
+                              ? "bg-[#D1EFDD] font-medium text-[#15803D]"
+                              : "text-gray-700 hover:bg-gray-100"
+                            }`}
+                        >
+                          <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[#27A361]" />
+                          <span className="min-w-0">
+                            <span className="block text-sm font-semibold">
+                              General support ticket
+                            </span>
+                            <span className="block text-xs opacity-80">
+                              Use this when the issue is not linked to a specific item.
+                            </span>
+                          </span>
+                        </button>
+
+                        {relatedLoading ? (
+                          <p className="px-3 py-4 text-sm text-gray-500">
+                            Loading related items...
+                          </p>
+                        ) : filteredRelatedItems.length > 0 ? (
+                          filteredRelatedItems.map((item) => (
+                            <button
+                              type="button"
+                              key={`${item.kind}:${item.id}`}
+                              onClick={() => {
+                                setForm((p) => ({ ...p, relatedId: item.id }));
+                                setRelatedOpen(false);
+                                setRelatedSearch("");
+                              }}
+                              className={`rounded px-3 py-2 text-left transition-colors flex items-start gap-3 ${form.relatedId === item.id
+                                  ? "bg-[#D1EFDD] font-medium text-[#15803D]"
+                                  : "text-gray-700 hover:bg-gray-100"
+                                }`}
+                            >
+                              <span
+                                className={cx(
+                                  "mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase",
+                                  item.kind === "project"
+                                    ? "bg-blue-50 text-blue-700"
+                                    : "bg-emerald-50 text-emerald-700",
+                                )}
+                              >
+                                {item.kind}
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block truncate text-sm font-semibold">
+                                  {item.label}
+                                </span>
+                                <span className="block truncate text-xs opacity-80">
+                                  {item.meta || item.id}
+                                </span>
+                              </span>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-4">
+                            <p className="text-sm font-medium text-gray-700">
+                              No matching result
+                            </p>
+                            <p className="mt-1 text-xs leading-5 text-gray-500">
+                              {relatedItems.length === 0
+                                ? copy.relatedEmpty
+                                : "Try searching by title, location, project, or property type."}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {!relatedLoading && relatedItems.length === 0 && (
+                    <p className="mt-2 text-[11px] leading-5 text-gray-500">
+                      {copy.relatedEmpty}
+                    </p>
+                  )}
+                </div>
+              </Field>
+              <Field label="Subject">
+                <div className="mt-2">
+                  <input
+                    required
+                    maxLength={100}
+                    value={form.title}
+                    onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                    placeholder="Example: The leads are visible in my Mailbox, but they are not showing on the Dashboard."
+                    className="support-input !rounded-sm !border-[#ECECEC] !bg-[#F5F5F5] !text-[#444] focus:!bg-white"
+                  />
+                  <div className="mt-1 text-right text-[11px] text-gray-500">
+                    {form.title.length}/100 characters
+                  </div>
+                </div>
+              </Field>
+              <Field label="Description">
+                <textarea required rows={3} value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Provide a brief description of the subject." className="support-input resize-none !rounded-sm !border-[#ECECEC] !bg-[#F5F5F5] !text-[#444] focus:!bg-white" />
+              </Field>
+              <Field label="Attachment">
+                <div className="mt-2 rounded-sm bg-[#E6FAEE] px-4 py-4">
+                  <label className="flex cursor-pointer flex-col items-center justify-center text-center">
+                    <FiPaperclip className="mb-2 text-[#27A361]" size={20} />
+                    <span className="text-[14px] font-medium text-[#222]">
+                      Upload Screenshot or document
+                    </span>
+                    <span className="mt-1 text-[11px] text-[#7A7A7A]">
+                      Minimum 1 file, maximum 5 files, 5 MB each. Formats: png, jpg, pdf
+                    </span>
+                    <input
+                      type="file"
+                      multiple
+                      className="hidden"
+                      accept="image/*,.pdf,.doc,.docx"
+                      onChange={(e) => {
+                        const selectedFiles = Array.from(e.target.files ?? []);
+                        if (!selectedFiles.length) {
+                          e.target.value = "";
+                          return;
+                        }
+                        if (selectedFiles.length > MAX_ATTACHMENT_COUNT) {
+                          setError("You can upload up to 5 attachments");
+                          e.target.value = "";
+                          return;
+                        }
+                        if (selectedFiles.some((file) => file.size > MAX_ATTACHMENT_SIZE)) {
+                          setError("Each attachment must be 5 MB or smaller");
+                          e.target.value = "";
+                          return;
+                        }
+                        setError("");
+                        setFiles(selectedFiles);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+
+                  {files.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {files.map((file, index) => (
+                        <div
+                          key={`${file.name}-${file.lastModified}-${index}`}
+                          className="flex items-center justify-between gap-3 rounded-sm bg-white px-3 py-2"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-xs font-semibold text-gray-800">
+                              {file.name}
+                            </p>
+                            <p className="text-[11px] text-gray-500">
+                              {formatFileSize(file.size)}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFiles((prev) => prev.filter((_, i) => i !== index))
+                            }
+                            className="rounded-full p-1 text-gray-400 hover:bg-white hover:text-red-500"
+                            aria-label={`Remove ${file.name}`}
+                          >
+                            <FiX size={15} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </Field>
+              <button disabled={submitting} className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-sm bg-[#27A361] px-4 text-sm font-medium text-white hover:bg-[#208650] disabled:opacity-60">
+                {submitting ? "Submitting..." : "Submit Ticket"}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {previewTicket && (
+          <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/35 px-4 py-6">
+            <div
+              className="absolute inset-0"
+              onClick={() => setPreviewTicketId(null)}
+              aria-hidden="true"
+            />
+            <div className="relative z-[131] flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-[14px] border border-[#E8EFEA] bg-white shadow-[0_30px_80px_rgba(0,0,0,0.22)]">
+              <div className="flex items-center justify-between border-b border-[#EEF3EF] px-5 py-4">
+                <div className="min-w-0">
+                  <h3 className="truncate text-[18px] font-semibold text-[#111111]">
+                    Attachments Preview
+                  </h3>
+                  <p className="truncate text-xs text-[#7A7A7A]">
+                    {previewTicket.title}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPreviewTicketId(null)}
+                  className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                  aria-label="Close attachment preview"
+                >
+                  <FiX size={18} />
+                </button>
+              </div>
+              <div className="no-scrollbar space-y-4 overflow-y-auto p-5">
+                {previewTicket.attachments?.map((attachment, index) => {
+                  const kind = getAttachmentKind(attachment);
+
+                  return (
+                    <div
+                      key={`${attachment.url}-${index}`}
+                      className="overflow-hidden rounded-xl border border-[#E8EFEA] bg-[#F8FBF9]"
+                    >
+                      <div className="flex items-center justify-between gap-3 border-b border-[#E8EFEA] px-4 py-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-[#222]">
+                            {attachment.name || `Attachment ${index + 1}`}
+                          </p>
+                          <p className="text-xs text-[#7A7A7A]">
+                            {kind === "image"
+                              ? "Image preview"
+                              : kind === "pdf"
+                                ? "PDF preview"
+                                : "File preview unavailable"}
+                          </p>
+                        </div>
+                        <a
+                          href={attachment.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="shrink-0 rounded-md bg-[#27A361] px-3 py-2 text-xs font-medium text-white hover:bg-[#208650]"
+                        >
+                          Open
+                        </a>
+                      </div>
+                      <div className="bg-white p-4">
+                        {kind === "image" ? (
+                          <img
+                            src={attachment.url}
+                            alt={attachment.name || `Attachment ${index + 1}`}
+                            className="max-h-[420px] w-full rounded-lg object-contain"
+                          />
+                        ) : kind === "pdf" ? (
+                          <iframe
+                            src={attachment.url}
+                            title={attachment.name || `Attachment ${index + 1}`}
+                            className="h-[420px] w-full rounded-lg border border-[#E8EFEA]"
+                          />
+                        ) : (
+                          <div className="flex min-h-[180px] items-center justify-center rounded-lg border border-dashed border-[#D8E6DE] bg-[#F8FBF9] p-6 text-center">
+                            <div>
+                              <p className="text-sm font-medium text-[#222]">
+                                Preview is not available for this file type.
+                              </p>
+                              <p className="mt-1 text-xs text-[#7A7A7A]">
+                                Use the Open button to view or download the file.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
-
-          <form onSubmit={createTicket} className="rounded-[10px] border border-gray-100 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-semibold text-gray-950">{copy.action}</h2>
-                <p className="text-xs text-gray-500">Add clear details for faster resolution.</p>
-              </div>
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 text-[#27A361]">
-                <FiPlus size={19} />
-              </span>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Category">
-                <div ref={categoryDropdownRef} className="relative mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setCategoryOpen((prev) => !prev)}
-                    className="flex h-10 w-full items-center justify-between rounded-md border border-[#ECECEC] bg-[#F3F3F3] px-4 text-sm text-gray-700 outline-none transition hover:border-[#D7E7DC] focus:border-[#16A34A] focus:bg-white"
-                  >
-                    <span className="truncate">{form.category || "Select Category"}</span>
-                    <ArrowDropdownIcon
-                      size={12}
-                      color="#111827"
-                      className={`transition-transform duration-200 ${
-                        categoryOpen ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-
-                  {categoryOpen && (
-                    <div className="absolute left-0 top-[calc(100%+8px)] z-60 w-full rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
-                      <div className="pointer-events-none absolute -top-2 left-6">
-                        <div className="h-3 w-3 rotate-45 border-l border-t border-gray-200 bg-white" />
-                      </div>
-                      <h4 className="mb-2 text-sm font-semibold">Select Category</h4>
-                      <div className="flex flex-col gap-1">
-                        {copy.categories.map((item) => (
-                          <button
-                            key={item}
-                            type="button"
-                            onClick={() => {
-                              setForm((p) => ({ ...p, category: item }));
-                              setCategoryOpen(false);
-                            }}
-                            className={`rounded px-3 py-2 text-left text-sm transition-colors ${
-                              form.category === item
-                                ? "bg-[#D1EFDD] font-medium text-[#15803D]"
-                                : "text-gray-700 hover:bg-gray-100"
-                            }`}
-                          >
-                            {item}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </Field>
-
-              <Field label="Priority">
-                <div ref={priorityDropdownRef} className="relative mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setPriorityOpen((prev) => !prev)}
-                    className="flex h-10 w-full items-center justify-between rounded-md border border-[#ECECEC] bg-[#F3F3F3] px-4 text-sm text-gray-700 outline-none transition hover:border-[#D7E7DC] focus:border-[#16A34A] focus:bg-white"
-                  >
-                    <span className="truncate capitalize">{form.priority || "Select Priority"}</span>
-                    <ArrowDropdownIcon
-                      size={12}
-                      color="#111827"
-                      className={`transition-transform duration-200 ${
-                        priorityOpen ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-
-                  {priorityOpen && (
-                    <div className="absolute left-0 top-[calc(100%+8px)] z-60 w-full rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
-                      <div className="pointer-events-none absolute -top-2 left-6">
-                        <div className="h-3 w-3 rotate-45 border-l border-t border-gray-200 bg-white" />
-                      </div>
-                      <h4 className="mb-2 text-sm font-semibold">Select Priority</h4>
-                      <div className="flex flex-col gap-1">
-                        {(["low", "medium", "high", "urgent"] as const).map((item) => (
-                          <button
-                            key={item}
-                            type="button"
-                            onClick={() => {
-                              setForm((p) => ({ ...p, priority: item }));
-                              setPriorityOpen(false);
-                            }}
-                            className={`rounded px-3 py-2 text-left text-sm transition-colors capitalize ${
-                              form.priority === item
-                                ? "bg-[#D1EFDD] font-medium text-[#15803D]"
-                                : "text-gray-700 hover:bg-gray-100"
-                            }`}
-                          >
-                            {item}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </Field>
-            </div>
-            <Field label={copy.relatedLabel}>
-              <div ref={relatedDropdownRef} className="relative mt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRelatedOpen((prev) => !prev);
-                    setRelatedSearch("");
-                  }}
-                  className="flex h-10 w-full items-center justify-between rounded-md border border-[#ECECEC] bg-[#F3F3F3] px-4 text-sm text-gray-700 outline-none transition hover:border-[#D7E7DC] focus:border-[#16A34A] focus:bg-white"
-                >
-                  <span className="truncate">
-                    {relatedLoading
-                      ? "Loading related items..."
-                      : selectedRelated?.label || "General support ticket"}
-                  </span>
-                  <ArrowDropdownIcon
-                    size={12}
-                    color="#111827"
-                    className={`transition-transform duration-200 shrink-0 ${
-                      relatedOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-
-                {relatedOpen && (
-                  <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-60 w-full rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
-                    <div className="pointer-events-none absolute -top-2 left-6">
-                      <div className="h-3 w-3 rotate-45 border-l border-t border-gray-200 bg-white" />
-                    </div>
-                    <div className="border-b border-gray-100 pb-2 mb-2">
-                      <label className="relative block">
-                        <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input
-                          value={relatedSearch}
-                          onChange={(event) => setRelatedSearch(event.target.value)}
-                          autoFocus
-                          placeholder={`Search ${copy.relatedLabel.toLowerCase()}`}
-                          className="w-full rounded-md border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#27A361] focus:bg-white"
-                          onKeyDown={(event) => {
-                            if (event.key === "Escape") setRelatedOpen(false);
-                          }}
-                        />
-                      </label>
-                    </div>
-
-                    <div className="max-h-64 overflow-y-auto flex flex-col gap-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setForm((p) => ({ ...p, relatedId: "" }));
-                          setRelatedOpen(false);
-                          setRelatedSearch("");
-                        }}
-                        className={`rounded px-3 py-2 text-left transition-colors flex items-start gap-3 ${
-                          !form.relatedId
-                            ? "bg-[#D1EFDD] font-medium text-[#15803D]"
-                            : "text-gray-700 hover:bg-gray-100"
-                        }`}
-                      >
-                        <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[#27A361]" />
-                        <span className="min-w-0">
-                          <span className="block text-sm font-semibold">
-                            General support ticket
-                          </span>
-                          <span className="block text-xs opacity-80">
-                            Use this when the issue is not linked to a specific item.
-                          </span>
-                        </span>
-                      </button>
-
-                      {relatedLoading ? (
-                        <p className="px-3 py-4 text-sm text-gray-500">
-                          Loading related items...
-                        </p>
-                      ) : filteredRelatedItems.length > 0 ? (
-                        filteredRelatedItems.map((item) => (
-                          <button
-                            type="button"
-                            key={`${item.kind}:${item.id}`}
-                            onClick={() => {
-                              setForm((p) => ({ ...p, relatedId: item.id }));
-                              setRelatedOpen(false);
-                              setRelatedSearch("");
-                            }}
-                            className={`rounded px-3 py-2 text-left transition-colors flex items-start gap-3 ${
-                              form.relatedId === item.id
-                                ? "bg-[#D1EFDD] font-medium text-[#15803D]"
-                                : "text-gray-700 hover:bg-gray-100"
-                            }`}
-                          >
-                            <span
-                              className={cx(
-                                "mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase",
-                                item.kind === "project"
-                                  ? "bg-blue-50 text-blue-700"
-                                  : "bg-emerald-50 text-emerald-700",
-                              )}
-                            >
-                              {item.kind}
-                            </span>
-                            <span className="min-w-0">
-                              <span className="block truncate text-sm font-semibold">
-                                {item.label}
-                              </span>
-                              <span className="block truncate text-xs opacity-80">
-                                {item.meta || item.id}
-                              </span>
-                            </span>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="px-3 py-4">
-                          <p className="text-sm font-medium text-gray-700">
-                            No matching result
-                          </p>
-                          <p className="mt-1 text-xs leading-5 text-gray-500">
-                            {relatedItems.length === 0
-                              ? copy.relatedEmpty
-                              : "Try searching by title, location, project, or property type."}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {!relatedLoading && relatedItems.length === 0 && (
-                  <p className="mt-2 text-[11px] leading-5 text-gray-500">
-                    {copy.relatedEmpty}
-                  </p>
-                )}
-              </div>
-            </Field>
-            <Field label="Subject">
-              <input required value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Example: Verification is pending" className="support-input" />
-            </Field>
-            <Field label="Description">
-              <textarea required rows={3} value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Tell us what happened and what you need." className="support-input resize-none" />
-            </Field>
-            <Field label="Attachments">
-              <div className="mt-2 rounded-lg border border-dashed border-emerald-200 bg-white p-2">
-                <label className="flex cursor-pointer flex-col items-center justify-center rounded-md bg-emerald-50/60 px-4 py-3 text-center transition hover:bg-emerald-50">
-                  <FiPaperclip className="mb-2 text-[#27A361]" size={20} />
-                  <span className="text-sm font-semibold text-gray-800">
-                    Upload screenshots or documents
-                  </span>
-                  <span className="mt-1 text-xs text-gray-500">
-                    PNG, JPG, PDF or DOC files up to your browser limit
-                  </span>
-                  <input
-                    type="file"
-                    multiple
-                    className="hidden"
-                    accept="image/*,.pdf,.doc,.docx"
-                    onChange={(e) => {
-                      const selectedFiles = Array.from(e.target.files ?? []);
-                      setFiles((prev) => [...prev, ...selectedFiles]);
-                      e.target.value = "";
-                    }}
-                  />
-                </label>
-
-                {files.length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    {files.map((file, index) => (
-                      <div
-                        key={`${file.name}-${file.lastModified}-${index}`}
-                        className="flex items-center justify-between gap-3 rounded-md border border-gray-100 bg-gray-50 px-3 py-2"
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate text-xs font-semibold text-gray-800">
-                            {file.name}
-                          </p>
-                          <p className="text-[11px] text-gray-500">
-                            {formatFileSize(file.size)}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setFiles((prev) => prev.filter((_, i) => i !== index))
-                          }
-                          className="rounded-full p-1 text-gray-400 hover:bg-white hover:text-red-500"
-                          aria-label={`Remove ${file.name}`}
-                        >
-                          <FiX size={15} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </Field>
-            <button disabled={submitting} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#27A361] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#208650] disabled:opacity-60">
-              <FiSend /> {submitting ? "Submitting..." : "Submit Ticket"}
-            </button>
-          </form>
-        </div>
+        )}
       </section>
 
       {error && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{error}</div>}
 
-      <section className="grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)] 2xl:grid-cols-[460px_minmax(0,1fr)]">
-        <div className="overflow-hidden rounded-[10px] border border-gray-100 bg-white shadow-sm">
-          <div className="border-b border-gray-100 p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-950">{copy.listTitle}</h2>
-                <p className="text-sm text-gray-500">{tickets.length} ticket{tickets.length === 1 ? "" : "s"} found</p>
-              </div>
-              <button onClick={loadTickets} className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm hover:border-[#27A361] hover:text-[#27A361]">
-                <FiRefreshCw /> Refresh
-              </button>
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_180px]">
+      <section className="mt-1 flex min-h-0 flex-1 flex-col rounded-lg bg-transparent">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h2 className="text-[24px] font-semibold leading-tight text-[#111111] sm:text-[28px]">Submitted Tickets</h2>
+            <p className="mt-2 text-[12px] leading-5 text-[#7A7A7A]">Your Submitted Ticket requests are listed Below</p>
+          </div>
+          {/* <button onClick={loadTickets} className="text-[12px] font-medium text-[#27A361] hover:underline">
+                View All
+              </button> */}
+        </div>
+
+        <div className="mt-5 flex min-h-0 flex-1 flex-col rounded-md border border-[#E8EFEA] bg-white">
+          <div className="relative z-30 border-b border-[#EEF3EF] px-4 py-3">
+            <div className="grid gap-3 sm:grid-cols-[1fr_180px]">
               <label className="relative block">
                 <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === "Enter" && loadTickets()} placeholder="Search tickets" className="w-full rounded-md border border-gray-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#27A361]" />
+                <input value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === "Enter" && loadTickets()} placeholder="Search tickets" className="h-10 w-full rounded-sm border border-[#E5EBE7] bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-[#27A361]" />
               </label>
-              <div ref={statusDropdownRef} className="relative">
+              <div ref={statusDropdownRef} className="relative z-20">
                 <button
                   type="button"
                   onClick={() => setStatusDropdownOpen((prev) => !prev)}
-                  className="flex h-10 w-full items-center justify-between rounded-md border border-gray-200 bg-white px-4 text-sm text-gray-700 outline-none transition hover:border-[#D7E7DC] focus:border-[#16A34A]"
+                  className="flex h-10 w-full items-center justify-between rounded-sm border border-[#E5EBE7] bg-white px-4 text-sm text-[#444] outline-none"
                 >
                   <span className="flex items-center gap-2 truncate">
                     <FiFilter className="text-gray-400 shrink-0" />
                     {status === "all" ? "All Status" : statusLabel[status as Status]}
                   </span>
-                  <ArrowDropdownIcon
-                    size={12}
-                    color="#111827"
-                    className={`transition-transform duration-200 shrink-0 ${
-                      statusDropdownOpen ? "rotate-180" : ""
-                    }`}
-                  />
+                  <ArrowDropdownIcon size={12} color="#111827" className={`transition-transform duration-200 shrink-0 ${statusDropdownOpen ? "rotate-180" : ""}`} />
                 </button>
 
                 {statusDropdownOpen && (
-                  <div className="absolute right-0 top-[calc(100%+8px)] z-60 w-48 rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
-                    <div className="pointer-events-none absolute -top-2 right-6">
-                      <div className="h-3 w-3 rotate-45 border-l border-t border-gray-200 bg-white" />
-                    </div>
-                    <h4 className="mb-2 text-sm font-semibold">Filter Status</h4>
+                  <div className="absolute right-0 top-[calc(100%+12px)] z-[80] w-48 rounded-md border border-[#E5EBE7] bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
                     <div className="flex flex-col gap-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setStatus("all");
-                          setStatusDropdownOpen(false);
-                        }}
-                        className={`rounded px-3 py-2 text-left text-sm transition-colors ${
-                          status === "all"
-                            ? "bg-[#D1EFDD] font-medium text-[#15803D]"
-                            : "text-gray-700 hover:bg-gray-100"
-                        }`}
-                      >
+                      <button type="button" onClick={() => { setStatus("all"); setStatusDropdownOpen(false); }} className={`rounded px-3 py-2 text-left text-sm ${status === "all" ? "bg-[#DFF5E8] text-[#15803D]" : "text-gray-700 hover:bg-gray-100"}`}>
                         All Status
                       </button>
                       {Object.entries(statusLabel).map(([value, label]) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => {
-                            setStatus(value);
-                            setStatusDropdownOpen(false);
-                          }}
-                          className={`rounded px-3 py-2 text-left text-sm transition-colors ${
-                            status === value
-                              ? "bg-[#D1EFDD] font-medium text-[#15803D]"
-                              : "text-gray-700 hover:bg-gray-100"
-                          }`}
-                        >
+                        <button key={value} type="button" onClick={() => { setStatus(value); setStatusDropdownOpen(false); }} className={`rounded px-3 py-2 text-left text-sm ${status === value ? "bg-[#DFF5E8] text-[#15803D]" : "text-gray-700 hover:bg-gray-100"}`}>
                           {label}
                         </button>
                       ))}
@@ -965,38 +1152,69 @@ export default function TicketSupportHub({ role }: { role: Role }) {
               </div>
             </div>
           </div>
-          <div className="max-h-[680px] overflow-y-auto">
-            {loading ? <EmptyText text="Loading tickets..." /> : tickets.length === 0 ? <EmptyText text="No tickets yet. Create your first ticket from the form above." /> : tickets.map((ticket) => (
-              <button key={ticket._id} onClick={() => setSelectedId(ticket._id)} className={cx("block w-full border-b border-gray-100 p-4 text-left transition hover:bg-emerald-50/50", selected?._id === ticket._id && "bg-emerald-50/80 shadow-[inset_3px_0_0_#27A361]")}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="truncate text-sm font-semibold text-gray-950">{ticket.title}</h3>
-                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">{ticket.description}</p>
-                  </div>
-                  <span className={cx("shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ring-1 ring-inset ring-black/5", priorityTone[ticket.priority])}>{ticket.priority}</span>
-                </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className={cx("rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset ring-black/5", statusTone[ticket.status])}>{statusLabel[ticket.status]}</span>
-                  {ticket.category && <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] text-gray-600">{ticket.category}</span>}
-                  <span className="text-[11px] text-gray-400">Updated {dateLabel(ticket.updatedAt)}</span>
-                </div>
-              </button>
-            ))}
+          <div className="no-scrollbar min-h-0 flex-1 overflow-auto rounded-b-md">
+            {loading ? <EmptyText text="Loading tickets..." /> : tickets.length === 0 ? <EmptyText text="No tickets yet. Create your first ticket from the form above." /> : (
+              <table className="min-w-full text-left">
+                <thead className="sticky top-0 z-10 bg-[#F7FCF9] shadow-[0_1px_0_0_#EEF3EF]">
+                  <tr className="text-[13px] font-medium text-[#222]">
+                    <th className="px-4 py-3">Category</th>
+                    <th className="px-4 py-3">Priority</th>
+                    <th className="px-4 py-3">Project</th>
+                    <th className="px-4 py-3">Subject</th>
+                    <th className="px-4 py-3">Attachment</th>
+                    <th className="px-4 py-3">Raised On</th>
+                    <th className="px-4 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tickets.map((ticket) => (
+                    <tr key={ticket._id} className="border-t border-[#EEF3EF] text-[13px] text-[#555]">
+                      <td className="px-4 py-3">{ticket.category || "General"}</td>
+                      <td className="px-4 py-3 capitalize">{ticket.priority}</td>
+                      <td className="px-4 py-3">
+                        {ticket.metadata?.relatedProjectName ||
+                          ticket.metadata?.propertyTitle ||
+                          relatedItemLookup.get(ticket.propertyId || "")?.label ||
+                          ticket.metadata?.propertyCode ||
+                          ticket.propertyId ||
+                          "General"}
+                      </td>
+                      <td className="px-4 py-3 text-[#333]">{ticket.title}</td>
+                      <td className="px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            (ticket.attachments?.length || 0) > 0 && setPreviewTicketId(ticket._id)
+                          }
+                          disabled={!ticket.attachments?.length}
+                          className="inline-flex items-center gap-1 rounded-sm bg-[#DFF5E8] px-2 py-1 text-[11px] font-medium text-[#27A361] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <FiPaperclip size={10} /> {ticket.attachments?.length || 0} Files
+                        </button>
+                      </td>
+                      <td className="px-4 py-3">{ticket.createdAt ? new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short" }).format(new Date(ticket.createdAt)) : "24 July"}</td>
+                      <td className="px-4 py-3">{statusLabel[ticket.status]}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
-
-        <Detail role={role} viewerRole={currentUser.role} ticket={selected} reply={reply} note={note} submitting={submitting} setReply={setReply} setNote={setNote} sendComment={sendComment} changeStatus={changeStatus} />
       </section>
     </div>
   );
 }
 
-function Metric({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
+function Metric({ label, value, valueText, icon }: { label: string; value?: number; valueText?: string; icon: React.ReactNode }) {
   return (
-    <div className="rounded-[10px] border border-emerald-100 bg-white/90 p-3 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
-        <div><p className="text-xs text-gray-500">{label}</p><p className="mt-1 text-2xl font-semibold text-gray-950">{value}</p></div>
-        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-[#27A361]">{icon}</span>
+    <div className="min-h-[112px] rounded-md border border-[#E8EFEA] bg-white p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[14px] font-medium text-[#222]">{label}</p>
+          <p className="mt-3 text-[16px] font-semibold text-[#27A361]">{valueText || formatCompactCount(value || 0)}</p>
+        </div>
+        <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-[#E8F7EF] text-[#27A361]">{icon}</span>
       </div>
     </div>
   );
@@ -1022,7 +1240,7 @@ function Detail({ role, viewerRole, ticket, reply, note, submitting, setReply, s
   sendComment: (visibility: "public" | "internal") => void;
   changeStatus: (status: Status) => void;
 }) {
-  if (!ticket) return <div className="rounded-[10px] border border-gray-100 bg-white p-6 text-sm text-gray-500 shadow-sm">Select a ticket to see details.</div>;
+  if (!ticket) return <div className="rounded-[24px] border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">Select a ticket to see details.</div>;
   const isSupportOperator =
     role === "agent" ||
     viewerRole === "customer_care" ||
@@ -1031,71 +1249,78 @@ function Detail({ role, viewerRole, ticket, reply, note, submitting, setReply, s
   const internalComments = ticket.comments?.filter((item) => item.visibility === "internal") ?? [];
 
   return (
-    <div className="overflow-hidden rounded-[10px] border border-gray-100 bg-white shadow-sm">
-      <div className="border-b border-gray-100 bg-linear-to-br from-white to-emerald-50/50 p-5">
+    <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+      <div className="border-b border-slate-100 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_35%),linear-gradient(180deg,_#ffffff_0%,_#f6fff9_100%)] p-5 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#27A361]">Ticket Detail</p>
-            <h2 className="mt-2 text-xl font-semibold text-gray-950">{ticket.title}</h2>
-            <p className="mt-2 text-sm leading-6 text-gray-600">{ticket.description}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#27A361]">Ticket Detail</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-950">{ticket.title}</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-600">{ticket.description}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <span className={cx("rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ring-black/5", statusTone[ticket.status])}>{statusLabel[ticket.status]}</span>
             <span className={cx("rounded-full px-3 py-1 text-xs font-semibold capitalize ring-1 ring-inset ring-black/5", priorityTone[ticket.priority])}>{ticket.priority}</span>
           </div>
         </div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Info label="Requester" value={ticket.requester?.name || "Customer"} />
           <Info label="Department" value={ticket.department || "Support"} />
-          <Info label="Property" value={ticket.propertyId || "Not linked"} />
+          <Info
+            label="Property"
+            value={
+              ticket.metadata?.propertyCode ||
+              ticket.propertyId ||
+              "Not linked"
+            }
+          />
           <Info label="Due" value={dateLabel(ticket.dueAt)} />
         </div>
         {isSupportOperator && (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-5 flex flex-wrap gap-2">
             <Action onClick={() => changeStatus("in_progress")} disabled={submitting} label="Start Progress" />
             <Action onClick={() => changeStatus("awaiting_user_response")} disabled={submitting} label="Await User" />
             <Action onClick={() => changeStatus("resolved")} disabled={submitting} label="Resolve Ticket" />
           </div>
         )}
       </div>
-      <div className="grid xl:grid-cols-[1fr_280px]">
-        <div className="p-5">
-          <h3 className="text-sm font-semibold text-gray-950">Conversation</h3>
+      <div className="grid xl:grid-cols-[1fr_300px]">
+        <div className="p-5 sm:p-6">
+          <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-400">Conversation</h3>
           <div className="mt-3 space-y-3">
-            {publicComments.length === 0 ? <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-500">No public replies yet.</div> : publicComments.map((comment, index) => (
-              <div key={comment._id || index} className="rounded-lg bg-gray-50 p-4">
+            {publicComments.length === 0 ? <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-500">No public replies yet.</div> : publicComments.map((comment, index) => (
+              <div key={comment._id || index} className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
                 <div className="mb-1 flex items-center justify-between gap-2">
-                  <p className="text-xs font-semibold text-gray-700">{comment.author?.name || "Support"}</p>
-                  <span className="text-[11px] text-gray-400">{dateLabel(comment.createdAt)}</span>
+                  <p className="text-xs font-semibold text-slate-700">{comment.author?.name || "Support"}</p>
+                  <span className="text-[11px] text-slate-400">{dateLabel(comment.createdAt)}</span>
                 </div>
-                <p className="text-sm leading-6 text-gray-700">{comment.message}</p>
+                <p className="text-sm leading-7 text-slate-700">{comment.message}</p>
               </div>
             ))}
           </div>
-          <div className="mt-5 rounded-[10px] border border-gray-100 bg-[#FBFFFD] p-4">
-            <label className="text-xs font-semibold text-gray-600">Public Reply</label>
+          <div className="mt-5 rounded-[22px] border border-emerald-100 bg-[#FBFFFD] p-4">
+            <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Public Reply</label>
             <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={3} placeholder="Write a clear update..." className="support-input resize-none" />
-            <button onClick={() => sendComment("public")} disabled={submitting || !reply.trim()} className="mt-3 inline-flex items-center gap-2 rounded-md bg-[#27A361] px-4 py-2 text-sm font-semibold text-white hover:bg-[#208650] disabled:opacity-60"><FiSend /> Send Reply</button>
+            <button onClick={() => sendComment("public")} disabled={submitting || !reply.trim()} className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[#27A361] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_24px_rgba(39,163,97,0.18)] hover:bg-[#208650] disabled:opacity-60"><FiSend /> Send Reply</button>
           </div>
           {isSupportOperator && (
-            <div className="mt-4 rounded-lg border border-amber-100 bg-amber-50/40 p-4">
-              <label className="text-xs font-semibold text-amber-800">Internal Note</label>
-              <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Visible only to support team." className="mt-2 w-full resize-none rounded-md border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400" />
-              <button onClick={() => sendComment("internal")} disabled={submitting || !note.trim()} className="mt-3 rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60">Save Internal Note</button>
-              {internalComments.length > 0 && <div className="mt-4 space-y-2">{internalComments.map((comment, index) => <p key={comment._id || index} className="rounded-md bg-white px-3 py-2 text-xs leading-5 text-amber-900">{comment.message}</p>)}</div>}
+            <div className="mt-4 rounded-[22px] border border-amber-100 bg-amber-50/50 p-4">
+              <label className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-800">Internal Note</label>
+              <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Visible only to support team." className="mt-2 w-full resize-none rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
+              <button onClick={() => sendComment("internal")} disabled={submitting || !note.trim()} className="mt-3 rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60">Save Internal Note</button>
+              {internalComments.length > 0 && <div className="mt-4 space-y-2">{internalComments.map((comment, index) => <p key={comment._id || index} className="rounded-xl bg-white px-3 py-2 text-xs leading-5 text-amber-900">{comment.message}</p>)}</div>}
             </div>
           )}
         </div>
-        <aside className="border-t border-gray-100 bg-gray-50/50 p-5 xl:border-l xl:border-t-0">
-          <div className="mb-3 flex items-center gap-2"><FiPaperclip className="text-[#27A361]" /><h3 className="text-sm font-semibold text-gray-950">Attachments</h3></div>
+        <aside className="border-t border-slate-100 bg-slate-50/70 p-5 sm:p-6 xl:border-l xl:border-t-0">
+          <div className="mb-3 flex items-center gap-2"><FiPaperclip className="text-[#27A361]" /><h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">Attachments</h3></div>
           <div className="space-y-2">
-            {ticket.attachments?.length ? ticket.attachments.map((item, index) => <a key={`${item.url}-${index}`} href={item.url} target="_blank" rel="noreferrer" className="block rounded-md border border-gray-100 px-3 py-2 text-xs text-gray-700 hover:border-[#27A361] hover:text-[#27A361]">{item.name || "Attachment"}</a>) : <p className="rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-500">No attachments</p>}
+            {ticket.attachments?.length ? ticket.attachments.map((item, index) => <a key={`${item.url}-${index}`} href={item.url} target="_blank" rel="noreferrer" className="block rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700 hover:border-[#27A361] hover:text-[#27A361]">{item.name || "Attachment"}</a>) : <p className="rounded-xl bg-white px-3 py-2.5 text-xs text-slate-500">No attachments</p>}
           </div>
-          <div className="mt-6 space-y-2 text-xs text-gray-600">
-            <h3 className="text-sm font-semibold text-gray-950">Ownership</h3>
-            <p className="rounded-md bg-gray-50 px-3 py-2">Assigned: {ticket.assignedTo?.name || "Not assigned"}</p>
-            <p className="rounded-md bg-gray-50 px-3 py-2">Category: {ticket.category || "General"}</p>
-            <p className="rounded-md bg-gray-50 px-3 py-2">Created: {dateLabel(ticket.createdAt)}</p>
+          <div className="mt-6 space-y-2 text-xs text-slate-600">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">Ownership</h3>
+            <p className="rounded-xl bg-white px-3 py-2.5">Assigned: {ticket.assignedTo?.name || "Not assigned"}</p>
+            <p className="rounded-xl bg-white px-3 py-2.5">Category: {ticket.category || "General"}</p>
+            <p className="rounded-xl bg-white px-3 py-2.5">Created: {dateLabel(ticket.createdAt)}</p>
           </div>
         </aside>
       </div>
@@ -1104,9 +1329,9 @@ function Detail({ role, viewerRole, ticket, reply, note, submitting, setReply, s
 }
 
 function Info({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-lg border border-gray-100 bg-white px-3 py-2 shadow-sm"><p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</p><p className="mt-1 truncate text-sm font-semibold text-gray-800">{value}</p></div>;
+  return <div className="rounded-2xl border border-white/80 bg-white/90 px-3 py-3 shadow-sm"><p className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400">{label}</p><p className="mt-1 truncate text-sm font-semibold text-slate-800">{value}</p></div>;
 }
 
 function Action({ label, disabled, onClick }: { label: string; disabled: boolean; onClick: () => void }) {
-  return <button onClick={onClick} disabled={disabled} className="rounded-md border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">{label}</button>;
+  return <button onClick={onClick} disabled={disabled} className="rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">{label}</button>;
 }

@@ -43,6 +43,11 @@ export interface IUser extends mongoose.Document {
   lastLoginAt?: Date;
   loginCount?: number;
   fcmToken?: string | null;
+  notificationSeenAt?: {
+    builder?: Date | null;
+    agent?: Date | null;
+    user?: Date | null;
+  };
 }
 
 const getCityCode = (city?: string) => {
@@ -231,6 +236,20 @@ const UserSchema = new mongoose.Schema(
     fcmToken: {
       type: String,
       default: null,
+    },
+    notificationSeenAt: {
+      builder: {
+        type: Date,
+        default: null,
+      },
+      agent: {
+        type: Date,
+        default: null,
+      },
+      user: {
+        type: Date,
+        default: null,
+      },
     },
   },
   {

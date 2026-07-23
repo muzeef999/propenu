@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { AttachmentService } from "./attachment.service";
+import { uploadAttachmentToS3 } from "./upload.util";
 
 const notFound = (res: Response) => res.status(404).json({ success: false, message: "Attachment not found" });
 
@@ -10,6 +11,26 @@ export const createAttachment = async (req: Request, res: Response) => {
     return res.status(201).json({ success: true, data });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message || "Internal server error" });
+  }
+};
+
+export const uploadAttachment = async (req: Request, res: Response) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: "Attachment file is required",
+      });
+    }
+
+    const data = await uploadAttachmentToS3(file);
+    return res.status(201).json({ success: true, data });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Attachment upload failed",
+    });
   }
 };
 

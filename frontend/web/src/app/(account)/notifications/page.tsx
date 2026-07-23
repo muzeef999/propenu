@@ -1,15 +1,26 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import NotificationFeed from "@/components/notifications/NotificationFeed";
-import { getUserNotifications } from "@/data/ClientData";
+import { getUserNotifications, markUserNotificationsSeen } from "@/data/ClientData";
 
 const Page = () => {
+  const queryClient = useQueryClient();
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["user-notifications-feed-v1"],
     queryFn: getUserNotifications,
   });
+
+  useEffect(() => {
+    if (isLoading || isError || !data || (data.summary?.unread ?? 0) <= 0) return;
+
+    void markUserNotificationsSeen().then(() => {
+      queryClient.invalidateQueries({ queryKey: ["user-notifications-feed-v1"] });
+      queryClient.invalidateQueries({ queryKey: ["user-notifications-badge"] });
+    });
+  }, [data, isError, isLoading, queryClient]);
 
   return (
     <NotificationFeed

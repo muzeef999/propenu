@@ -66,6 +66,7 @@ const requesterSchema = new Schema(
 
 const ticketSchema = new Schema<TicketDocument>(
   {
+    ticketCode: { type: String, required: true, trim: true, unique: true, index: true },
     title: { type: String, required: true, trim: true, index: "text" },
     description: { type: String, required: true, trim: true, index: "text" },
     requester: { type: requesterSchema, required: true },

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { addToShortlistService, getAgentNotificationsFeed, getBuilderAnalytics, getBuilderFeaturedProjectShortlists, getBuilderNotificationsFeed, getBuilderProjectActivity, getShortlistStatusService, getUserNotificationsFeed, getUserShortlistService, removeFromShortlistService } from "../services/shortlistService";
+import { addToShortlistService, getAgentNotificationsFeed, getAgentNotificationsSummary, getBuilderAnalytics, getBuilderFeaturedProjectShortlists, getBuilderNotificationsFeed, getBuilderNotificationsSummary, getBuilderProjectActivity, getShortlistStatusService, getUserNotificationsFeed, getUserNotificationsSummary, getUserShortlistService, markNotificationFeedSeen, removeFromShortlistService } from "../services/shortlistService";
 import { AuthRequest } from "../middlewares/authMiddleware";
 
 
@@ -28,6 +28,15 @@ try {
     const err: any = error;
     if (err?.name === "CastError") {
       return res.status(400).json({ success: false, message: "Invalid propertyId" });
+    }
+    if (err?.message === "Invalid propertyType" || err?.message === "Property not found") {
+      return res.status(400).json({ success: false, message: err.message });
+    }
+    if (err?.message === "This is your own property") {
+      return res.status(200).json({
+        success: true,
+        message: "Skipped self shortlist",
+      });
     }
     if (err?.code === 11000) {
       return res.status(200).json({
@@ -274,6 +283,42 @@ export const getBuilderNotificationsController = async (
   }
 };
 
+export const getBuilderNotificationsSummaryController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    const builderContext = resolveBuilderContext(req);
+
+    if (!builderContext?.builderId) {
+      return res.status(403).json({
+        success: false,
+        message: "Only builders can access notification summary",
+      });
+    }
+
+    const data = await getBuilderNotificationsSummary(
+      builderContext.builderId,
+      builderContext.projectIds,
+    );
+
+    return res.status(200).json(data);
+  } catch (error: any) {
+    if (error?.message === "Invalid builderId") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("BUILDER_NOTIFICATION_SUMMARY_ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load notification summary",
+    });
+  }
+};
+
 export const getAgentNotificationsController = async (
   req: AuthRequest,
   res: Response,
@@ -304,6 +349,36 @@ export const getAgentNotificationsController = async (
   }
 };
 
+export const getAgentNotificationsSummaryController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    if (!req.user?.sub) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const data = await getAgentNotificationsSummary(req.user.sub);
+    return res.status(200).json(data);
+  } catch (error: any) {
+    if (error?.message === "Invalid ownerId") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("AGENT_NOTIFICATION_SUMMARY_ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load notification summary",
+    });
+  }
+};
+
 export const getUserNotificationsController = async (
   req: AuthRequest,
   res: Response,
@@ -330,6 +405,125 @@ export const getUserNotificationsController = async (
     return res.status(500).json({
       success: false,
       message: "Failed to load notifications",
+    });
+  }
+};
+
+export const getUserNotificationsSummaryController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    if (!req.user?.sub) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const data = await getUserNotificationsSummary(req.user.sub);
+    return res.status(200).json(data);
+  } catch (error: any) {
+    if (error?.message === "Invalid userId") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("USER_NOTIFICATION_SUMMARY_ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load notification summary",
+    });
+  }
+};
+
+export const markBuilderNotificationsSeenController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    const builderContext = resolveBuilderContext(req);
+
+    if (!builderContext?.builderId || !req.user?.sub) {
+      return res.status(403).json({
+        success: false,
+        message: "Only builders can update notifications",
+      });
+    }
+
+    const data = await markNotificationFeedSeen(req.user.sub, "builder");
+    return res.status(200).json(data);
+  } catch (error: any) {
+    if (error?.message === "Invalid userId") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update notifications",
+    });
+  }
+};
+
+export const markAgentNotificationsSeenController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    if (!req.user?.sub) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const data = await markNotificationFeedSeen(req.user.sub, "agent");
+    return res.status(200).json(data);
+  } catch (error: any) {
+    if (error?.message === "Invalid userId") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update notifications",
+    });
+  }
+};
+
+export const markUserNotificationsSeenController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    if (!req.user?.sub) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const data = await markNotificationFeedSeen(req.user.sub, "user");
+    return res.status(200).json(data);
+  } catch (error: any) {
+    if (error?.message === "Invalid userId") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update notifications",
     });
   }
 };

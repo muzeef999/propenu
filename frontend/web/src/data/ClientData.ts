@@ -1082,6 +1082,36 @@ export const getBuilderNotifications = async () => {
   return res.data;
 };
 
+export const getBuilderNotificationSummary = async () => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(`${url}/api/users/builder/notifications/summary`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.data;
+};
+
+export const markBuilderNotificationsSeen = async () => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.post(
+    `${url}/api/users/builder/notifications/seen`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  return res.data;
+};
+
 export const getAgentNotifications = async () => {
   const token = Cookies.get("token");
   if (!token) throw new Error("Not authenticated");
@@ -1095,6 +1125,36 @@ export const getAgentNotifications = async () => {
   return res.data;
 };
 
+export const getAgentNotificationSummary = async () => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(`${url}/api/users/agent/notifications/summary`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.data;
+};
+
+export const markAgentNotificationsSeen = async () => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.post(
+    `${url}/api/users/agent/notifications/seen`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  return res.data;
+};
+
 export const getUserNotifications = async () => {
   const token = Cookies.get("token");
   if (!token) throw new Error("Not authenticated");
@@ -1104,6 +1164,36 @@ export const getUserNotifications = async () => {
       Authorization: `Bearer ${token}`,
     },
   });
+
+  return res.data;
+};
+
+export const getUserNotificationSummary = async () => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(`${url}/api/users/shortlist/notifications/me/summary`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.data;
+};
+
+export const markUserNotificationsSeen = async () => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.post(
+    `${url}/api/users/shortlist/notifications/me/seen`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
 
   return res.data;
 };

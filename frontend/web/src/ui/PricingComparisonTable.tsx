@@ -42,12 +42,14 @@ function getRedirectAfterPlan(plan: Plan, user: any) {
 
   // ✅ Buyer view plans → stay same page
   if (code?.includes("buyer") && code.includes("view")) {
-    return null;
+    if (user?.roleName === "agent") return "/agent/my-plan";
+    if (user?.roleName === "builder") return "/builder/my-plan";
+    return "/membership";
   }
 
   // ✅ Agent / Builder
-  if (user?.roleName === "builder") return "/builder/dashboard";
-  if (user?.roleName === "agent") return "/agent/dashboard";
+  if (user?.roleName === "builder") return "/builder/my-plan";
+  if (user?.roleName === "agent") return "/agent/my-plan";
 
   return "/membership";
 }
@@ -136,10 +138,10 @@ export default function PricingComparisonTable({
           });
 
           const redirectMap: Record<string, string> = {
-            agent: "/agent/membership",
+            agent: "/agent/my-plan",
             buyer: "/membership",
             owner: "/membership",
-            builder: "/builder/dashboard",
+            builder: "/builder/my-plan",
           };
 
           const roleName = user?.user.roleName?.toLowerCase();

@@ -8,6 +8,10 @@ import type {
 } from "./ticket.interface";
 
 export class TicketRepository {
+  static existsByTicketCode(ticketCode: string) {
+    return Ticket.exists({ ticketCode });
+  }
+
   static create(payload: CreateTicketInput & Partial<TicketAttrs>) {
     return Ticket.create(payload);
   }

@@ -52,6 +52,7 @@ export interface TicketActivity {
 }
 
 export interface TicketAttrs {
+  ticketCode: string;
   title: string;
   description: string;
   requester: TicketRequester;
@@ -109,6 +110,7 @@ export interface TicketListQuery {
 }
 
 export interface CreateTicketInput {
+  ticketCode?: string;
   title: string;
   description: string;
   requester: TicketRequester;
