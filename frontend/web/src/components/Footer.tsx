@@ -75,11 +75,11 @@ export default function Footer() {
               <div>
                 <p className="font-medium">Registered Office</p>
                 <p className="leading-relaxed text-gray-700">
-                  # 191, 5th Floor, Tagore Towers,
+                  # 193, 3rd Floor, SV Chambers,
                   <br />
                   Kavuri Hills, Madhapur,
                   <br />
-                  Hyderabad – 500033, Telangana, India
+                  Hyderabad – 500081, Telangana, India
                 </p>
               </div>
             </div>

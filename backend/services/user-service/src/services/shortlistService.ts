@@ -5,6 +5,23 @@ import Residential from "../models/residentialModel";
 import Commercial from "../models/commercialModel";
 import LandPlot from "../models/landModel";
 import Agricultural from "../models/agriculturalModel";
+import User from "../models/userModel";
+
+const SHORTLIST_MODEL_MAP: Record<string, any> = {
+  Residential,
+  Commercial,
+  Land: LandPlot,
+  Agricultural,
+  FeaturedProject,
+} as const;
+
+const NOTIFICATION_RETENTION_DAYS = 30;
+
+const getNotificationCutoffDate = () => {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - NOTIFICATION_RETENTION_DAYS);
+  return cutoffDate;
+};
 
 const getBuilderFromDate = (range: string) => {
   const now = new Date();
@@ -31,6 +48,23 @@ export const addToShortlistService = async (
     | "FeaturedProject",
 ) => {
   const propertyObjectId = new Types.ObjectId(propertyId);
+  const PropertyModel = SHORTLIST_MODEL_MAP[propertyType];
+
+  if (!PropertyModel) {
+    throw new Error("Invalid propertyType");
+  }
+
+  const property = await PropertyModel.findById(propertyObjectId)
+    .select("createdBy")
+    .lean();
+
+  if (!property) {
+    throw new Error("Property not found");
+  }
+
+  if (String((property as any).createdBy) === String(userId)) {
+    throw new Error("This is your own property");
+  }
 
   return await (Shortlist.findOneAndUpdate as any)(
     { userId, propertyId: propertyObjectId },
@@ -1067,6 +1101,7 @@ export const getBuilderNotificationsFeed = async (
   }
 
   const builderObjectId = new mongoose.Types.ObjectId(builderId);
+  const cutoffDate = getNotificationCutoffDate();
   const projectMatch: Record<string, unknown> = {
     createdBy: builderObjectId,
   };
@@ -1088,16 +1123,15 @@ export const getBuilderNotificationsFeed = async (
     .lean();
 
   if (!projects.length) {
+    const viewer = await User.findById(builderId)
+      .select("notificationSeenAt.builder")
+      .lean();
+    const lastSeenAt = viewer?.notificationSeenAt?.builder ?? null;
+
     return {
       success: true,
       data: [],
-      summary: {
-        total: 0,
-        shortlists: 0,
-        contacts: 0,
-        brochureDownloads: 0,
-        timeSpent: 0,
-      },
+      summary: createNotificationSummary([], lastSeenAt),
     };
   }
 
@@ -1111,6 +1145,7 @@ export const getBuilderNotificationsFeed = async (
       $match: {
         propertyType: "FeaturedProject",
         propertyId: { $in: projectIds },
+        createdAt: { $gte: cutoffDate },
       },
     },
     {
@@ -1164,6 +1199,7 @@ export const getBuilderNotificationsFeed = async (
         $match: {
           projectId: { $in: projectIds },
           source: "brochure_download",
+          createdAt: { $gte: cutoffDate },
         },
       },
       {
@@ -1215,6 +1251,7 @@ export const getBuilderNotificationsFeed = async (
     {
       $match: {
         projectId: { $in: projectIds },
+        createdAt: { $gte: cutoffDate },
       },
     },
     {
@@ -1267,6 +1304,7 @@ export const getBuilderNotificationsFeed = async (
       {
         $match: {
           projectId: { $in: projectIds },
+          createdAt: { $gte: cutoffDate },
         },
       },
       {
@@ -1293,6 +1331,7 @@ export const getBuilderNotificationsFeed = async (
         $match: {
           builderId: builderObjectId,
           projectId: { $in: projectIds },
+          createdAt: { $gte: cutoffDate },
         },
       },
       {
@@ -1412,6 +1451,7 @@ export const getBuilderNotificationsFeed = async (
   brochureRows.forEach((row) => {
     const project = projectMap.get(String(row.projectId));
     if (!project) return;
+    if (row.userId && String(row.userId) === String(builderObjectId)) return;
 
     notifications.push({
       id: `brochure-${row._id}`,
@@ -1466,10 +1506,15 @@ export const getBuilderNotificationsFeed = async (
     return bTime - aTime;
   });
 
+  const viewer = await User.findById(builderId)
+    .select("notificationSeenAt.builder")
+    .lean();
+  const lastSeenAt = viewer?.notificationSeenAt?.builder ?? null;
+
   return {
     success: true,
     data: notifications,
-    summary: createNotificationSummary(notifications as NotificationFeedItem[]),
+    summary: createNotificationSummary(notifications as NotificationFeedItem[], lastSeenAt),
   };
 };
 
@@ -1499,8 +1544,24 @@ type NotificationFeedItem = {
   timeSpentMinutes?: number | null;
 };
 
-const createNotificationSummary = (notifications: NotificationFeedItem[]) => ({
+const getUnreadNotificationCount = (
+  notifications: NotificationFeedItem[],
+  lastSeenAt?: Date | string | null,
+) => {
+  const seenAtMs = lastSeenAt ? new Date(lastSeenAt).getTime() : 0;
+
+  return notifications.filter((item) => {
+    const createdAtMs = item.createdAt ? new Date(String(item.createdAt)).getTime() : 0;
+    return createdAtMs > seenAtMs;
+  }).length;
+};
+
+const createNotificationSummary = (
+  notifications: NotificationFeedItem[],
+  lastSeenAt?: Date | string | null,
+) => ({
   total: notifications.length,
+  unread: getUnreadNotificationCount(notifications, lastSeenAt),
   shortlists: notifications.filter(
     (item) =>
       item.type === "project_shortlisted" || item.type === "property_shortlisted",
@@ -1538,6 +1599,7 @@ const getPropertyOwnerNotifications = async (ownerId: string) => {
   }
 
   const ownerObjectId = new mongoose.Types.ObjectId(ownerId);
+  const cutoffDate = getNotificationCutoffDate();
   const propertyModels = [
     {
       shortlistPropertyTypes: ["Residential"],
@@ -1585,6 +1647,7 @@ const getPropertyOwnerNotifications = async (ownerId: string) => {
           $match: {
             propertyType: { $in: shortlistPropertyTypes },
             propertyId: { $in: propertyIds },
+            createdAt: { $gte: cutoffDate },
           },
         },
         {
@@ -1634,6 +1697,7 @@ const getPropertyOwnerNotifications = async (ownerId: string) => {
       shortlistRows.forEach((row) => {
         const propertyTitle = propertyMap.get(String(row.propertyId));
         if (!propertyTitle) return;
+        if (row.userId && String(row.userId) === String(ownerObjectId)) return;
 
         notifications.push({
           id: `property-shortlist-${shortlistPropertyTypes.join("-")}-${row._id}`,
@@ -1664,6 +1728,7 @@ const getPropertyOwnerNotifications = async (ownerId: string) => {
               ownerId: ownerObjectId,
               propertyType: { $in: leadPropertyTypes },
               projectId: { $in: propertyIds },
+              createdAt: { $gte: cutoffDate },
             },
           },
           {
@@ -1714,6 +1779,7 @@ const getPropertyOwnerNotifications = async (ownerId: string) => {
       leadRows.forEach((row) => {
         const propertyTitle = propertyMap.get(String(row.projectId));
         if (!propertyTitle) return;
+        if (row.userId && String(row.userId) === String(ownerObjectId)) return;
 
         notifications.push({
           id: `property-contact-${leadPropertyTypes.join("-")}-${row._id}`,
@@ -1744,6 +1810,7 @@ const getPropertyOwnerNotifications = async (ownerId: string) => {
               ownerId: ownerObjectId,
               propertyType: { $in: leadPropertyTypes },
               projectId: { $in: propertyIds },
+              createdAt: { $gte: cutoffDate },
             },
           },
           {
@@ -1805,6 +1872,7 @@ const getPropertyOwnerNotifications = async (ownerId: string) => {
       timeSpentRows.forEach((row) => {
         const propertyTitle = propertyMap.get(String(row.projectId));
         if (!propertyTitle) return;
+        if (row.userId && String(row.userId) === String(ownerObjectId)) return;
 
         const timeSpentMinutes = Number(((row.totalDurationMs ?? 0) / 60000).toFixed(1));
         if (!(timeSpentMinutes > 0)) return;
@@ -1837,20 +1905,72 @@ const getPropertyOwnerNotifications = async (ownerId: string) => {
 
 export const getAgentNotificationsFeed = async (agentUserId: string) => {
   const notifications = await getPropertyOwnerNotifications(agentUserId);
+  const viewer = await User.findById(agentUserId)
+    .select("notificationSeenAt.agent")
+    .lean();
+  const lastSeenAt = viewer?.notificationSeenAt?.agent ?? null;
 
   return {
     success: true,
     data: notifications,
-    summary: createNotificationSummary(notifications),
+    summary: createNotificationSummary(notifications, lastSeenAt),
+  };
+};
+
+export const getAgentNotificationsSummary = async (agentUserId: string) => {
+  const feed = await getAgentNotificationsFeed(agentUserId);
+  return {
+    success: true,
+    summary: feed.summary,
   };
 };
 
 export const getUserNotificationsFeed = async (userId: string) => {
   const notifications = await getPropertyOwnerNotifications(userId);
+  const viewer = await User.findById(userId)
+    .select("notificationSeenAt.user")
+    .lean();
+  const lastSeenAt = viewer?.notificationSeenAt?.user ?? null;
 
   return {
     success: true,
     data: notifications,
-    summary: createNotificationSummary(notifications),
+    summary: createNotificationSummary(notifications, lastSeenAt),
   };
+};
+
+export const getUserNotificationsSummary = async (userId: string) => {
+  const feed = await getUserNotificationsFeed(userId);
+  return {
+    success: true,
+    summary: feed.summary,
+  };
+};
+
+export const getBuilderNotificationsSummary = async (
+  builderId: string,
+  allowedProjectIds: string[] = ["*"],
+) => {
+  const feed = await getBuilderNotificationsFeed(builderId, allowedProjectIds);
+  return {
+    success: true,
+    summary: feed.summary,
+  };
+};
+
+export const markNotificationFeedSeen = async (
+  userId: string,
+  audience: "builder" | "agent" | "user",
+) => {
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid userId");
+  }
+
+  await User.findByIdAndUpdate(userId, {
+    $set: {
+      [`notificationSeenAt.${audience}`]: new Date(),
+    },
+  });
+
+  return { success: true };
 };

@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { FaChartLine, FaHeart, FaUserPlus } from "react-icons/fa";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import { Building, Subscription } from "@/icons/icons";
 import { RiAccountCircle2Fill, RiDeleteBin6Line } from "react-icons/ri";
 import { BiSupport } from "react-icons/bi";
 import { FiBell } from "react-icons/fi";
+import { getAgentNotificationSummary } from "@/data/ClientData";
 
 const menuItems = [
   {
@@ -69,6 +71,15 @@ const menuItems = [
 const Sidebar = () => {
   const bgColor = hexToRGBA("#27AE60", 0.1);
   const pathname = usePathname();
+  const { data: notificationData } = useQuery({
+    queryKey: ["agent-notifications-summary"],
+    queryFn: getAgentNotificationSummary,
+    staleTime: 30000,
+    refetchInterval: 60000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
+  });
+  const notificationCount = notificationData?.summary?.unread ?? 0;
 
   const isItemActive = (link: string) => {
     if (link === "/agent") return pathname === "/agent";
@@ -109,6 +120,11 @@ const Sidebar = () => {
                   <Icon size={22} color="currentColor" />
                 </span>
                 <span className="flex-1">{item.label}</span>
+                {item.link === "/agent/notifications" && notificationCount > 0 && (
+                  <span className="min-w-[22px] rounded-full bg-[#27A361] px-2 py-0.5 text-center text-xs font-semibold leading-5 text-white">
+                    {notificationCount > 99 ? "99+" : notificationCount}
+                  </span>
+                )}
 
                 {isActive && <div className="w-1.5 h-1.5 rounded-full bg-[#27A361]" />}
               </Link>

@@ -125,12 +125,23 @@ const formatTimeRange = (start?: string, end?: string) => {
   return start || end || "";
 };
 
+const generateTicketCode = async () => {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const value = `tk${Math.floor(10000 + Math.random() * 90000)}`;
+    const exists = await TicketRepository.existsByTicketCode(value);
+    if (!exists) return value;
+  }
+
+  throw new Error("Unable to generate unique ticket code");
+};
+
 const isSupportActor = (author?: TicketActor) =>
   !!author && author.role !== "requester" && author.role !== "customer";
 
 const buildTicketTemplateBase = (
   ticket: {
     _id: unknown;
+    ticketCode?: string;
     requester: { name: string };
     title: string;
     category?: string;
@@ -140,7 +151,7 @@ const buildTicketTemplateBase = (
 ) => {
   const metadata = (ticket.metadata ?? {}) as Record<string, unknown>;
   const base = {
-    ticketId: String(ticket._id),
+    ticketId: ticket.ticketCode || String(ticket._id),
     requesterName: ticket.requester.name,
     subject: ticket.title,
   } as {
@@ -155,7 +166,8 @@ const buildTicketTemplateBase = (
   };
 
   if (ticket.category) base.category = ticket.category;
-  if (ticket.propertyId) base.propertyId = ticket.propertyId;
+  if (typeof metadata.propertyCode === "string") base.propertyId = metadata.propertyCode;
+  else if (ticket.propertyId) base.propertyId = ticket.propertyId;
   if (typeof metadata.propertyTitle === "string") base.propertyTitle = metadata.propertyTitle;
   if (typeof metadata.relatedProjectId === "string") base.projectId = metadata.relatedProjectId;
   if (typeof metadata.relatedProjectName === "string") base.projectName = metadata.relatedProjectName;
@@ -164,7 +176,12 @@ const buildTicketTemplateBase = (
 };
 
 export class TicketService {
+  private static displayTicketId(ticket: { _id: unknown; ticketCode?: string }) {
+    return ticket.ticketCode || String(ticket._id);
+  }
+
   static async createTicket(input: CreateTicketInput) {
+    const ticketCode = input.ticketCode ?? (await generateTicketCode());
     const requestedDepartment = input.department;
     const isRelationshipManagerTicket =
       input.metadata?.module === "relationship_manager" &&
@@ -229,6 +246,7 @@ export class TicketService {
 
     const ticket = await TicketRepository.create({
       ...input,
+      ticketCode,
       department,
       ...(assignedTo ? { assignedTo } : {}),
       ...(autoAssigned ? { status: "assigned" } : {}),
@@ -271,7 +289,7 @@ export class TicketService {
       try {
         await sendEmail({
           to: ticket.requester.email,
-          subject: ticketRaisedSubject(String(ticket._id)),
+          subject: ticketRaisedSubject(TicketService.displayTicketId(ticket)),
           html: ticketRaisedTemplate(templateParams),
         });
       } catch (error) {
@@ -283,7 +301,7 @@ export class TicketService {
       try {
         await sendEmail({
           to: ticket.requester.email,
-          subject: ticketAssignedSubject(String(ticket._id)),
+          subject: ticketAssignedSubject(TicketService.displayTicketId(ticket)),
           html: ticketAssignedTemplate({
             ...buildTicketTemplateBase(ticket),
             assignedTeam: resolveAssignedTeamName(ticket),
@@ -300,6 +318,7 @@ export class TicketService {
 
   static async createRequestCall(input: CreateRequestCallInput) {
     const scheduledAt = new Date(input.date);
+    const ticketCode = await generateTicketCode();
     let assignedTo: TicketActor | undefined;
     let autoAssigned = false;
     const activities = [
@@ -354,12 +373,18 @@ export class TicketService {
       }
     }
 
+    const department =
+      assignedTo?.role === "relationship_manager"
+        ? "relationship-manager"
+        : "customer-care";
+
     return TicketRepository.create({
+      ticketCode,
       title: `Request a Call - ${input.category}`,
       description: input.subject,
       requester: input.requester,
       category: "request_call",
-      department: assignedTo?.role === "relationship_manager" ? "relationship-manager" : "customer-care",
+      department,
       ...(assignedTo ? { assignedTo } : {}),
       ...(autoAssigned ? { status: "assigned" } : {}),
       priority: "medium",
@@ -377,8 +402,7 @@ export class TicketService {
         notes: input.notes,
         relationshipManagerName: input.relationshipManagerName,
         relationshipManagerId: input.relationshipManagerId,
-        intakeDepartment:
-          assignedTo?.role === "relationship_manager" ? "relationship-manager" : "customer-care",
+        intakeDepartment: department,
         ...((input as any).__assignLocation
           ? {
               assignState: (input as any).__assignLocation.state,
@@ -448,7 +472,7 @@ export class TicketService {
       try {
         await sendEmail({
           to: ticket.requester.email,
-          subject: ticketTransferredSubject(String(ticket._id)),
+          subject: ticketTransferredSubject(TicketService.displayTicketId(ticket)),
           html: ticketTransferredTemplate(templateParams),
         });
       } catch (error) {
@@ -471,7 +495,7 @@ export class TicketService {
       try {
         await sendEmail({
           to: ticket.requester.email,
-          subject: ticketAwaitingExternalResponseSubject(String(ticket._id)),
+          subject: ticketAwaitingExternalResponseSubject(TicketService.displayTicketId(ticket)),
           html: ticketAwaitingExternalResponseTemplate(templateParams),
         });
       } catch (error) {
@@ -494,7 +518,7 @@ export class TicketService {
       try {
         await sendEmail({
           to: ticket.requester.email,
-          subject: ticketInvalidSubject(String(ticket._id)),
+          subject: ticketInvalidSubject(TicketService.displayTicketId(ticket)),
           html: ticketInvalidTemplate(templateParams),
         });
       } catch (error) {
@@ -526,7 +550,7 @@ export class TicketService {
       try {
         await sendEmail({
           to: ticket.requester.email,
-          subject: ticketAttachmentIssueSubject(String(ticket._id)),
+          subject: ticketAttachmentIssueSubject(TicketService.displayTicketId(ticket)),
           html: ticketAttachmentIssueTemplate(templateParams),
         });
       } catch (error) {
@@ -549,7 +573,7 @@ export class TicketService {
       try {
         await sendEmail({
           to: ticket.requester.email,
-          subject: ticketDuplicateSubject(String(ticket._id)),
+          subject: ticketDuplicateSubject(TicketService.displayTicketId(ticket)),
           html: ticketDuplicateTemplate(templateParams),
         });
       } catch (error) {
@@ -588,7 +612,7 @@ export class TicketService {
       try {
         await sendEmail({
           to: ticket.requester.email,
-          subject: ticketSupportCallbackScheduledSubject(String(ticket._id)),
+          subject: ticketSupportCallbackScheduledSubject(TicketService.displayTicketId(ticket)),
           html: ticketSupportCallbackScheduledTemplate(templateParams),
         });
       } catch (error) {
@@ -618,7 +642,7 @@ export class TicketService {
       try {
         await sendEmail({
           to: ticket.requester.email,
-          subject: ticketResolutionConfirmationReminderSubject(String(ticket._id)),
+          subject: ticketResolutionConfirmationReminderSubject(TicketService.displayTicketId(ticket)),
           html: ticketResolutionConfirmationReminderTemplate(templateParams),
         });
       } catch (error) {
@@ -655,7 +679,7 @@ export class TicketService {
       try {
         await sendEmail({
           to: ticket.requester.email,
-          subject: ticketResolutionDelayedSubject(String(ticket._id)),
+          subject: ticketResolutionDelayedSubject(TicketService.displayTicketId(ticket)),
           html: ticketResolutionDelayedTemplate(templateParams),
         });
       } catch (error) {
@@ -675,7 +699,7 @@ export class TicketService {
       try {
         await sendEmail({
           to: ticket.requester.email,
-          subject: ticketFeedbackRequestSubject(String(ticket._id)),
+          subject: ticketFeedbackRequestSubject(TicketService.displayTicketId(ticket)),
           html: ticketFeedbackRequestTemplate(templateParams),
         });
       } catch (error) {
@@ -703,7 +727,7 @@ export class TicketService {
         try {
           await sendEmail({
             to: existing.requester.email,
-            subject: ticketCancelledSubject(String(existing._id)),
+            subject: ticketCancelledSubject(TicketService.displayTicketId(existing)),
             html: ticketCancelledTemplate(templateParams),
           });
         } catch (error) {
@@ -761,7 +785,7 @@ export class TicketService {
         try {
           await sendEmail({
             to: ticket.requester.email,
-            subject: ticketUnderReviewSubject(String(ticket._id)),
+            subject: ticketUnderReviewSubject(TicketService.displayTicketId(ticket)),
             html: ticketUnderReviewTemplate(templateParams),
           });
         } catch (error) {
@@ -779,7 +803,7 @@ export class TicketService {
         try {
           await sendEmail({
             to: ticket.requester.email,
-            subject: ticketInProgressSubject(String(ticket._id)),
+            subject: ticketInProgressSubject(TicketService.displayTicketId(ticket)),
             html: ticketInProgressTemplate(templateParams),
           });
         } catch (error) {
@@ -805,7 +829,7 @@ export class TicketService {
         try {
           await sendEmail({
             to: ticket.requester.email,
-            subject: ticketAwaitingUserResponseSubject(String(ticket._id)),
+            subject: ticketAwaitingUserResponseSubject(TicketService.displayTicketId(ticket)),
             html: ticketAwaitingUserResponseTemplate(templateParams),
           });
         } catch (error) {
@@ -831,7 +855,7 @@ export class TicketService {
         try {
           await sendEmail({
             to: ticket.requester.email,
-            subject: ticketAwaitingResponseReminderSubject(String(ticket._id)),
+            subject: ticketAwaitingResponseReminderSubject(TicketService.displayTicketId(ticket)),
             html: ticketAwaitingResponseReminderTemplate(templateParams),
           });
         } catch (error) {
@@ -850,7 +874,7 @@ export class TicketService {
         try {
           await sendEmail({
             to: ticket.requester.email,
-            subject: ticketEscalatedSubject(String(ticket._id)),
+            subject: ticketEscalatedSubject(TicketService.displayTicketId(ticket)),
             html: ticketEscalatedTemplate(templateParams),
           });
         } catch (error) {
@@ -875,7 +899,7 @@ export class TicketService {
         try {
           await sendEmail({
             to: ticket.requester.email,
-            subject: ticketResolvedSubject(String(ticket._id)),
+            subject: ticketResolvedSubject(TicketService.displayTicketId(ticket)),
             html: ticketResolvedTemplate(templateParams),
           });
         } catch (error) {
@@ -894,7 +918,7 @@ export class TicketService {
         try {
           await sendEmail({
             to: ticket.requester.email,
-            subject: ticketReopenedSubject(String(ticket._id)),
+            subject: ticketReopenedSubject(TicketService.displayTicketId(ticket)),
             html: ticketReopenedTemplate(templateParams),
           });
         } catch (error) {
@@ -922,7 +946,7 @@ export class TicketService {
           try {
             await sendEmail({
               to: ticket.requester.email,
-              subject: ticketAutoClosedSubject(String(ticket._id)),
+              subject: ticketAutoClosedSubject(TicketService.displayTicketId(ticket)),
               html: ticketAutoClosedTemplate(templateParams),
             });
           } catch (error) {
@@ -943,7 +967,7 @@ export class TicketService {
           try {
             await sendEmail({
               to: ticket.requester.email,
-              subject: ticketClosedSubject(String(ticket._id)),
+              subject: ticketClosedSubject(TicketService.displayTicketId(ticket)),
               html: ticketClosedTemplate(templateParams),
             });
           } catch (error) {
@@ -965,7 +989,7 @@ export class TicketService {
         try {
           await sendEmail({
             to: ticket.requester.email,
-            subject: ticketStatusUpdatedSubject(String(ticket._id)),
+            subject: ticketStatusUpdatedSubject(TicketService.displayTicketId(ticket)),
             html: ticketStatusUpdatedTemplate(templateParams),
           });
         } catch (error) {
@@ -1005,7 +1029,7 @@ export class TicketService {
       try {
         await sendEmail({
           to: ticket.requester.email,
-          subject: ticketAssignedSubject(String(ticket._id)),
+          subject: ticketAssignedSubject(TicketService.displayTicketId(ticket)),
           html: ticketAssignedTemplate(templateParams),
         });
       } catch (error) {
@@ -1078,7 +1102,7 @@ export class TicketService {
         try {
           await sendEmail({
             to: ticket.requester.email,
-            subject: ticketSupportResponseSubject(String(ticket._id)),
+            subject: ticketSupportResponseSubject(TicketService.displayTicketId(ticket)),
             html: ticketSupportResponseTemplate(templateParams),
           });
         } catch (error) {
@@ -1105,7 +1129,7 @@ export class TicketService {
           try {
             await sendEmail({
               to: ticket.requester.email,
-              subject: ticketAdditionalInformationReceivedSubject(String(ticket._id)),
+              subject: ticketAdditionalInformationReceivedSubject(TicketService.displayTicketId(ticket)),
               html: ticketAdditionalInformationReceivedTemplate(templateParams),
             });
           } catch (error) {
@@ -1121,7 +1145,7 @@ export class TicketService {
           try {
             await sendEmail({
               to: ticket.requester.email,
-              subject: ticketUserReplyReceivedSubject(String(ticket._id)),
+              subject: ticketUserReplyReceivedSubject(TicketService.displayTicketId(ticket)),
               html: ticketUserReplyReceivedTemplate(templateParams),
             });
           } catch (error) {

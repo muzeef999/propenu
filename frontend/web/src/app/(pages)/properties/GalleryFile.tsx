@@ -286,7 +286,7 @@ const GalleryFile: React.FC<GalleryFileProps> = ({
         <div
           className="fixed inset-0 z-99 flex flex-col bg-black/95 backdrop-blur-sm"
         >
-          <div className="flex items-center gap-3 sm:gap-4 p-2 sm:p-3 bg-[#1fab60]">
+          <div className="flex items-center gap-3 bg-[#1fab60] p-2 sm:gap-4 sm:p-3">
 
             <button
               className="rounded-full bg-white/10 p-1.5 sm:p-2 text-white transition hover:bg-white/20 border border-white/50"
@@ -301,67 +301,69 @@ const GalleryFile: React.FC<GalleryFileProps> = ({
 
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col gap-4 p-3 sm:p-4">
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {safeGallery.map((item, index) => (
-                <button
-                  type="button"
-                  key={`${item.key ?? item.url}-${index}`}
-                  className={`relative h-20 w-32 shrink-0 overflow-hidden rounded-lg border-2 bg-gray-800 transition sm:h-24 sm:w-40 ${
-                    activeIndex === index
-                      ? "border-[#1fab60]"
-                      : "border-transparent hover:border-white/60"
-                  }`}
-                  onClick={() => setActiveIndex(index)}
-                >
-                  <Image
-                    src={item.url}
-                    alt={item.filename ?? title ?? "Preview image"}
-                    fill
-                    sizes="160px"
-                    className="object-cover"
-                  />
-                </button>
-              ))}
-            </div>
-
-            <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-              <aside className="order-2 flex flex-col justify-between gap-4 rounded-lg bg-white p-4 text-gray-900 lg:order-1">
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#1fab60]">
-                    Property Images
-                  </p>
-                  <h3 className="text-lg font-semibold leading-snug">
+          <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
+            <div className="mx-auto w-full max-w-6xl">
+              {/* <div className="mb-4 flex items-center justify-between gap-3 text-white">
+                <div className="min-w-0">
+                  <h3 className="truncate text-sm font-medium sm:text-base">
                     {title ?? "Property gallery"}
                   </h3>
-                  <p className="text-sm text-gray-600">
-                    Image {activeIndex + 1} of {safeGallery.length}
+                  <p className="text-xs text-white/55">
+                    {safeGallery.length} images
                   </p>
                 </div>
 
                 <button
                   type="button"
-                  className="rounded-md bg-[#1fab60] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#188f4f]"
+                  className="rounded-full border border-white/15 bg-white/8 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/14"
                   onClick={() => setPreviewIndex(activeIndex)}
                 >
-                  View Image
+                  Open
                 </button>
-              </aside>
+              </div> */}
 
-              <button
-                type="button"
-                className="relative order-1 min-h-[45vh] overflow-hidden rounded-lg bg-black lg:order-2 lg:min-h-0"
-                onClick={() => setPreviewIndex(activeIndex)}
-              >
-                <Image
-                  src={safeGallery[activeIndex].url}
-                  alt={safeGallery[activeIndex].filename ?? title ?? "Preview image"}
-                  fill
-                  sizes="(min-width: 1024px) calc(100vw - 360px), 100vw"
-                  className="object-contain"
-                  priority
-                />
-              </button>
+              <div className="columns-2 gap-3 sm:columns-2 lg:columns-3 xl:columns-4 [&>button]:mb-3">
+                {safeGallery.map((item, index) => {
+                  const isActive = activeIndex === index;
+
+                  return (
+                    <button
+                      type="button"
+                      key={`${item.key ?? item.url}-${index}`}
+                      className={`group relative block w-full break-inside-avoid overflow-hidden rounded-2xl border bg-neutral-950 text-left transition duration-300 ${
+                        index % 5 === 0
+                          ? "min-h-60 sm:min-h-80"
+                          : index % 5 === 1
+                            ? "min-h-[180px] sm:min-h-[220px]"
+                            : index % 5 === 2
+                              ? "min-h-[280px] sm:min-h-[360px]"
+                              : index % 5 === 3
+                                ? "min-h-[200px] sm:min-h-[260px]"
+                                : "min-h-[230px] sm:min-h-[300px]"
+                      } ${
+                        isActive
+                          ? "border-[#1fab60]/80 ring-1 ring-[#1fab60]/50"
+                          : "border-white/8 hover:border-white/20"
+                      }`}
+                      onClick={() => {
+                        setActiveIndex(index);
+                        setPreviewIndex(index);
+                      }}
+                    >
+                      <Image
+                        src={item.url}
+                        alt={item.filename ?? title ?? "Preview image"}
+                        fill
+                        sizes="(min-width: 1280px) 22vw, (min-width: 1024px) 30vw, (min-width: 640px) 45vw, 50vw"
+                        className="object-cover transition duration-500 group-hover:scale-[1.03]"
+                        priority={index === activeIndex || index < 2}
+                      />
+
+                      <div className="absolute inset-0 bg-linear-to-t from-black/65 via-black/10 to-transparent" />
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 

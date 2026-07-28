@@ -53,6 +53,11 @@ export interface IUser extends mongoose.Document {
   followUpAssignedTo?: Types.ObjectId;
   followUpAssignedAt?: Date;
   followUpAssignMethod?: "location_round_robin" | "round_robin";
+  notificationSeenAt?: {
+    builder?: Date | null;
+    agent?: Date | null;
+    user?: Date | null;
+  };
 }
 
 const getCityCode = (city?: string) => {
@@ -263,6 +268,20 @@ const UserSchema = new mongoose.Schema(
     fcmToken: {
       type: String,
       default: null,
+    },
+    notificationSeenAt: {
+      builder: {
+        type: Date,
+        default: null,
+      },
+      agent: {
+        type: Date,
+        default: null,
+      },
+      user: {
+        type: Date,
+        default: null,
+      },
     },
   },
   {

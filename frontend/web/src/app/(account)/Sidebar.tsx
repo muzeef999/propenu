@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { MdOutlinePhoneInTalk } from "react-icons/md";
 import { BiSupport } from "react-icons/bi";
 import { FiBell } from "react-icons/fi";
@@ -12,6 +13,7 @@ import {
   Shortlistedicons,
   Subscription,
 } from "@/icons/icons";
+import { getUserNotificationSummary } from "@/data/ClientData";
 
 const menuItems = [
   {
@@ -61,6 +63,15 @@ const menuItems = [
 const Sidebar = () => {
   const bgColor = hexToRGBA("#27AE60", 0.1);
   const pathname = usePathname();
+  const { data: notificationData } = useQuery({
+    queryKey: ["user-notifications-summary"],
+    queryFn: getUserNotificationSummary,
+    staleTime: 30000,
+    refetchInterval: 60000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
+  });
+  const notificationCount = notificationData?.summary?.unread ?? 0;
 
   return (
     <>
@@ -93,6 +104,11 @@ const Sidebar = () => {
                     }`}
                 />
                 <span className="flex-1">{item.label}</span>
+                {item.link === "/notifications" && notificationCount > 0 && (
+                  <span className="min-w-[22px] rounded-full bg-[#27A361] px-2 py-0.5 text-center text-xs font-semibold leading-5 text-white">
+                    {notificationCount > 99 ? "99+" : notificationCount}
+                  </span>
+                )}
 
                 {isActive && (
                   <div className="w-1.5 h-1.5 rounded-full bg-[#27A361]" />

@@ -895,6 +895,24 @@ export const trackProjectBrochureDownloadController = async (
       });
     }
 
+    const project = await FeaturedProject.findById(projectId)
+      .select("createdBy")
+      .lean();
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    if (String(project.createdBy) === userId) {
+      return res.status(200).json({
+        success: true,
+        message: "Skipped self brochure download tracking",
+      });
+    }
+
     await mongoose.connection.collection("brochuredownloads").insertOne({
       projectId: new Types.ObjectId(projectId),
       userId: new Types.ObjectId(userId),
@@ -961,6 +979,13 @@ export const trackProjectViewDurationController = async (
       return res.status(404).json({
         success: false,
         message: "Project not found",
+      });
+    }
+
+    if (String(project.createdBy) === userId) {
+      return res.status(200).json({
+        success: true,
+        message: "Skipped self project view duration tracking",
       });
     }
 
@@ -1043,6 +1068,13 @@ export const trackPropertyViewDurationController = async (
       return res.status(404).json({
         success: false,
         message: "Property not found",
+      });
+    }
+
+    if (String(property.createdBy) === userId) {
+      return res.status(200).json({
+        success: true,
+        message: "Skipped self property view duration tracking",
       });
     }
 

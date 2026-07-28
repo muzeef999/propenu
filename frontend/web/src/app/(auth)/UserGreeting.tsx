@@ -22,7 +22,7 @@ export const GreetingOptions = [
   { label: "Shortlisted Properties", link: "/shortlisted-properties" },
   { label: "Contacted Properties", link: "/contacted-properties" },
   { label: "Membership", link: "/membership" },
-  { label: "Support", link: "/agent/support" },
+  { label: "Support", link: "/support" },
   { label: "Logout", link: "/logout" },
 ];
 

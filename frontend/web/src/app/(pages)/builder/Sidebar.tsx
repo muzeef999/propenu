@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import { Building, profile } from "@/icons/icons";
 import { TbBuildingSkyscraper } from "react-icons/tb";
 import { RiUserHeartLine } from "react-icons/ri";
 import { FiBell, FiBriefcase, FiSettings, FiUsers } from "react-icons/fi";
 import { BiSupport } from "react-icons/bi";
+import { getBuilderNotificationSummary } from "@/data/ClientData";
 
 const menuItems = [
   {
@@ -70,6 +72,17 @@ const Sidebar = () => {
     setRoleName(String(localStorage.getItem("role") ?? "").toLowerCase());
   }, []);
 
+  const { data: notificationData } = useQuery({
+    queryKey: ["builder-notifications-summary"],
+    queryFn: getBuilderNotificationSummary,
+    staleTime: 30000,
+    refetchInterval: 60000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const notificationCount = notificationData?.summary?.unread ?? 0;
+
   const visibleMenuItems =
     roleName === "builder_staff"
       ? menuItems.filter((item) => item.link !== "/builder/roles")
@@ -109,6 +122,11 @@ const Sidebar = () => {
                   <Icon size={22} color="currentColor" />
                 </span>
                 <span className="flex-1">{item.label}</span>
+                {item.link === "/builder/notifications" && notificationCount > 0 && (
+                  <span className="min-w-[22px] rounded-full bg-[#27A361] px-2 py-0.5 text-center text-xs font-semibold leading-5 text-white">
+                    {notificationCount > 99 ? "99+" : notificationCount}
+                  </span>
+                )}
                 {isActive && (
                   <div className="h-1.5 w-1.5 rounded-full bg-[#27A361]" />
                 )}

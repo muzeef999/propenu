@@ -16,6 +16,7 @@ import sponsoredRoute from "./features/sponsored/sponsored.route";
 import blogRoute from "./blogs/blog.route";
 import { startPromotionExpiryJob } from "./jobs/promotionExpiry.job";
 import userInteractionRoute from "./routes/userInteractionRoute";
+import mongoose from "mongoose";
 
 dotenv.config({ quiet: true });
 
@@ -25,9 +26,29 @@ app.use(express.urlencoded({ extended: true }));
 
 const port = process.env.PORT ?? 4003;
 
+const ensureNotificationRetentionIndexes = async () => {
+  await Promise.all([
+    mongoose.connection.collection("brochuredownloads").createIndex(
+      { createdAt: 1 },
+      {
+        expireAfterSeconds: 60 * 60 * 24 * 30,
+        name: "brochure_download_retention_30_days",
+      },
+    ),
+    mongoose.connection.collection("projectviewdurations").createIndex(
+      { createdAt: 1 },
+      {
+        expireAfterSeconds: 60 * 60 * 24 * 30,
+        name: "project_view_duration_retention_30_days",
+      },
+    ),
+  ]);
+};
+
 async function start() {
   try {
     await connectDB();
+    await ensureNotificationRetentionIndexes();
     startPromotionExpiryJob();
 
     app.get("/", (req, res) => {
