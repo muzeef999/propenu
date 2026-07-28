@@ -16,20 +16,79 @@ import mongoose from "mongoose";
 import DeletedAccount from "../models/deletedAccountModel";
 import Agent from "../models/agentModel";
 import { getBuilderAccessForUser } from "../services/builderAccessService";
-import { BUSINESS_DEVELOPMENT_MANAGED_ROLE_NAMES, canAssignDashboardRole, OPERATIONS_MANAGED_ROLE_NAMES } from "../utils/roleManagementPolicy";
+import {
+  getDescendantRoleIds,
+  PLATFORM_END_USER_ROLE_NAMES,
+  resolveVisibleRoleIdsForActor,
+} from "../utils/roleHierarchy";
+import {
+  canReportToRole,
+  canonicalRoleName,
+  describeRoleHierarchy,
+  getReportsToRoleOptions,
+} from "../utils/reportsToPolicy";
+import { seedWorkingLocationsOnActivate } from "../utils/seedWorkingLocations";
+import {
+  ensureFollowUpAssignee,
+  ensureFollowUpAssigneesForUsers,
+} from "../utils/followUpAssign";
+
+const PLATFORM_END_USER_ROLE_SET = new Set<string>(PLATFORM_END_USER_ROLE_NAMES);
+import { ALL_PERMISSIONS } from "../constants/permissionCatalog";
+
+/** Optional day range from query: createdFrom/createdTo (aliases: from/to). YYYY-MM-DD. */
+const buildCreatedAtQueryFilter = (query: Record<string, any> = {}) => {
+  const fromRaw = String(query.createdFrom || query.from || "").trim();
+  const toRaw = String(query.createdTo || query.to || "").trim();
+  if (!fromRaw && !toRaw) return null;
+
+  const isDay = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value);
+  const createdAt: Record<string, Date> = {};
+
+  if (fromRaw && isDay(fromRaw)) {
+    const start = new Date(`${fromRaw}T00:00:00.000`);
+    if (!Number.isNaN(start.getTime())) createdAt.$gte = start;
+  }
+  if (toRaw && isDay(toRaw)) {
+    const end = new Date(`${toRaw}T23:59:59.999`);
+    if (!Number.isNaN(end.getTime())) createdAt.$lte = end;
+  }
+
+  return Object.keys(createdAt).length ? createdAt : null;
+};
 
 const deletedAccountMessage =
   "This account has been deleted. Please create a new account.";
 const ADMIN_CREATE_ROLES = new Set([
   "admin",
   "super_admin",
-  "sales_manager",
+  "ceo",
+  "founder",
+  "operations_head",
+  "operation_head",
+  "business_development_head",
   "regional_manager",
+  "business_development_manager",
+  "sales_manager",
   "sales_agent",
-  "accounts",
-  "digital_marketing",
+  "sales_executive",
+  "customer_support_head",
+  "team_lead",
+  "customer_support_team_lead",
   "customer_care",
+  "customer_care_executive",
   "relationship_manager",
+  "marketing_head",
+  "digital_marketing",
+  "social_media",
+  "content_team",
+  "creative_team",
+  "accounts",
+  "accounts_finance",
+  "legal_compliance",
+  "hr_administration",
+  "technical_support_head",
+  "technical_support_team",
 ]);
 const NAME_MAX_LENGTH = 42;
 const COMPANY_NAME_MAX_LENGTH = 80;
@@ -248,7 +307,7 @@ const createAuthToken = async ({
     companyName: user.companyName,
     roleId: roleDoc ? String(roleDoc._id) : undefined,
     roleName: roleDoc?.name,
-    permissions: roleDoc?.permissions ?? [],
+    permissions: roleDoc?.name === "super_admin" ? ALL_PERMISSIONS : roleDoc?.permissions ?? [],
     builderAccess,
     accountStatus: user.accountStatus,
   };
@@ -256,6 +315,10 @@ const createAuthToken = async ({
   if (user.phone) {
     payload.phone = Number(user.phone);
   }
+
+  const lastLoginAt = new Date();
+  await User.findByIdAndUpdate(user._id, { $set: { lastLoginAt } });
+  user.lastLoginAt = lastLoginAt;
 
   return generateToken(payload);
 };
@@ -512,7 +575,7 @@ export const me = async (req: AuthRequest, res: Response) => {
         phoneVerified: user.phoneVerified,
         roleId: role ? String(role._id) : null,
         roleName: role ? role.name : null,
-        permissions: role ? role.permissions : [],
+        permissions: role?.name === "super_admin" ? ALL_PERMISSIONS : role?.permissions || [],
         builderAccess,
 
         kyc: {
@@ -532,6 +595,60 @@ const REGIONAL_MANAGER_TRANSFER_ROLES = new Set([
   "sales_agent",
   "relationship_manager",
 ]);
+
+const resolveReportsToUserId = (body: any): string | null | undefined => {
+  if (body?.clearManager === true || body?.reportsToUserId === null || body?.managerId === null) {
+    return null;
+  }
+  const raw = body?.reportsToUserId ?? body?.managerId;
+  if (raw === undefined) return undefined;
+  const value = String(raw || "").trim();
+  return value || null;
+};
+
+const assertValidReportsToAssignment = async (params: {
+  reportUserId?: string | undefined;
+  reportRoleName: string;
+  managerUserId: string;
+}) => {
+  if (!mongoose.Types.ObjectId.isValid(params.managerUserId)) {
+    return { ok: false as const, status: 400, message: "Invalid reports-to user id" };
+  }
+  if (params.reportUserId && String(params.reportUserId) === String(params.managerUserId)) {
+    return { ok: false as const, status: 400, message: "A user cannot report to themselves" };
+  }
+
+  const manager = await User.findById(params.managerUserId)
+    .populate("roleId", "name label")
+    .select("name email phone city state locality pincode roleId isActive accountStatus managerId");
+
+  if (!manager || manager.isActive === false) {
+    return { ok: false as const, status: 404, message: "Reports-to user not found" };
+  }
+
+  const managerRoleName = canonicalRoleName((manager.roleId as any)?.name);
+  if (!canReportToRole(params.reportRoleName, managerRoleName)) {
+    const allowed = getReportsToRoleOptions(params.reportRoleName);
+    return {
+      ok: false as const,
+      status: 400,
+      message: allowed.length
+        ? `Users with role '${params.reportRoleName}' can only report to: ${allowed.join(", ")}`
+        : `Role '${params.reportRoleName}' does not support person-level reporting`,
+    };
+  }
+
+  // Prevent simple cycles: manager must not already report to the report user.
+  if (params.reportUserId && String(manager.managerId || "") === String(params.reportUserId)) {
+    return {
+      ok: false as const,
+      status: 400,
+      message: "Invalid reporting line: would create a circular manager relationship",
+    };
+  }
+
+  return { ok: true as const, manager };
+};
 
 export const updateUserRole = async (req: AuthRequest, res: Response) => {
   try {
@@ -573,11 +690,30 @@ export const updateUserRole = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { roleId: role._id },
-      { new: true },
-    ).populate("roleId");
+    const reportsToUserId = resolveReportsToUserId(req.body);
+    const updatePayload: Record<string, any> = { roleId: role._id };
+
+    // Role change clears the old reporting line by default.
+    // Caller may pass reportsToUserId / managerId to set a new one for the new role.
+    if (reportsToUserId === undefined) {
+      updatePayload.managerId = null;
+    } else if (reportsToUserId === null) {
+      updatePayload.managerId = null;
+    } else {
+      const check = await assertValidReportsToAssignment({
+        reportUserId: userId,
+        reportRoleName: role.name,
+        managerUserId: reportsToUserId,
+      });
+      if (!check.ok) {
+        return res.status(check.status).json({ message: check.message });
+      }
+      updatePayload.managerId = check.manager._id;
+    }
+
+    const user = await User.findByIdAndUpdate(userId, updatePayload, { new: true })
+      .populate("roleId")
+      .populate("managerId", "name email phone");
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -590,6 +726,7 @@ export const updateUserRole = async (req: AuthRequest, res: Response) => {
     res.json({
       message: "User role updated",
       user,
+      hierarchy: describeRoleHierarchy(role.name),
     });
   } catch (err: any) {
     console.error(err);
@@ -651,35 +788,95 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
   try {
     const userFilter: any = {};
     const actorRole = req.user?.roleName || "";
-    const managedRoleNames = ["operations_head", "operation_head"].includes(actorRole)
-      ? OPERATIONS_MANAGED_ROLE_NAMES
-      : actorRole === "business_development_head" ? BUSINESS_DEVELOPMENT_MANAGED_ROLE_NAMES : null;
-    if (managedRoleNames) {
-      const managedRoles = await Role.find({ name: { $in: [...managedRoleNames] } })
+    const scope = req.query.scope?.toString().trim().toLowerCase();
+
+    if (scope === "ticket_requesters") {
+      const requesterRoleNames = ["user", "agent", "builder", "builder_staff"];
+      const requesterRoles = await Role.find({ name: { $in: requesterRoleNames } })
         .select("_id")
         .lean();
-      userFilter.roleId = { $in: managedRoles.map((role) => role._id) };
-
-      const operator = await User.findById(req.user?.sub)
-        .select("state city locality pincode")
+      userFilter.roleId = { $in: requesterRoles.map((role) => role._id) };
+    } else if (scope === "ticket_assignees") {
+      const excludedRoleNames = ["user", "agent", "builder", "builder_staff"];
+      const excludedRoles = await Role.find({ name: { $in: excludedRoleNames } })
+        .select("_id")
         .lean();
-      for (const field of ["state", "city", "locality", "pincode"] as const) {
-        if (operator?.[field]) userFilter[field] = operator[field];
+      userFilter.roleId = {
+        $nin: excludedRoles.map((role) => role._id),
+      };
+    } else if (scope === "team_directory") {
+      // Staff under the actor in the org hierarchy (not platform end-users).
+      const excludedRoleNames = ["user", "agent", "builder", "builder_staff"];
+      const excludedRoles = await Role.find({ name: { $in: excludedRoleNames } })
+        .select("_id")
+        .lean();
+      const excludedIds = excludedRoles.map((role) => role._id);
+
+      if (actorRole === "super_admin" || actorRole === "admin") {
+        userFilter.roleId = { $nin: excludedIds };
+      } else {
+        const operator = await User.findById(req.user?.sub)
+          .select("roleId")
+          .lean();
+        const descendantRoleIds = operator?.roleId
+          ? await getDescendantRoleIds(operator.roleId)
+          : [];
+        userFilter.roleId = { $in: descendantRoleIds };
       }
+    } else if (actorRole !== "super_admin") {
+      const operator = await User.findById(req.user?.sub)
+        .select("roleId")
+        .lean();
+      const visibleRoleIds = await resolveVisibleRoleIdsForActor({
+        actorRoleId: operator?.roleId ?? null,
+        actorRoleName: actorRole,
+        permissions: req.user?.permissions || [],
+      });
+      // null = unrestricted (admin); [] = no matching roles
+      if (visibleRoleIds) {
+        userFilter.roleId = { $in: visibleRoleIds };
+      }
+    }
+
+    const createdAtFilter = buildCreatedAtQueryFilter(req.query as Record<string, any>);
+    if (createdAtFilter) {
+      userFilter.createdAt = createdAtFilter;
     }
 
     const users = await User.find(userFilter)
       .select("-token")
-      .populate("roleId", "name")
+      .populate("roleId", "name label")
+      .populate("managerId", "name email phone")
       .lean();
+
+    // Backfill exclusive follow-up owners for stuck onboarding users (one CCE only).
+    try {
+      await ensureFollowUpAssigneesForUsers(users);
+    } catch {
+      /* non-blocking */
+    }
 
     const formattedUsers = users.map((user: any) => {
       const role = user.roleId;
+      const manager = user.managerId;
+      const followUpAssignedTo = user.followUpAssignedTo
+        ? String(user.followUpAssignedTo)
+        : null;
 
       return {
         ...user,
         roleId: role?._id ? String(role._id) : user.roleId ? String(user.roleId) : null,
         roleName: role?.name || null,
+        managerId: manager?._id ? String(manager._id) : manager ? String(manager) : null,
+        followUpAssignedTo,
+        reportsTo: manager?._id
+          ? {
+              _id: String(manager._id),
+              name: manager.name || null,
+              email: manager.email || null,
+              phone: manager.phone || null,
+            }
+          : null,
       };
     });
 
@@ -689,12 +886,35 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const searchUsers = async (req: Request, res: Response) => {
+export const searchUsers = async (req: AuthRequest, res: Response) => {
   try {
     const query = req.query.q?.toString().trim();
-    const roleFilter = req.query.role?.toString().trim();
+    const roleFilterRaw = req.query.role?.toString().trim() || "";
+    const ROLE_SEARCH_ALIASES: Record<string, string[]> = {
+      sales_agent: ["sales_agent", "sales_executive", "sales_executives"],
+      sales_executive: ["sales_agent", "sales_executive", "sales_executives"],
+      sales_executives: ["sales_agent", "sales_executive", "sales_executives"],
+      customer_care: ["customer_care", "customer_care_executive", "customer_care_executives"],
+      customer_care_executive: ["customer_care", "customer_care_executive", "customer_care_executives"],
+      team_lead: ["team_lead", "team_leads", "customer_support_team_lead"],
+      team_leads: ["team_lead", "team_leads", "customer_support_team_lead"],
+      relationship_manager: ["relationship_manager", "relationship_managers"],
+      operations_head: ["operations_head", "operation_head"],
+      operation_head: ["operations_head", "operation_head"],
+    };
+    const roleFilters = [
+      ...new Set(
+        (roleFilterRaw
+          ? roleFilterRaw
+              .split(",")
+              .map((role) => role.trim().toLowerCase())
+              .filter(Boolean)
+          : []
+        ).flatMap((role) => ROLE_SEARCH_ALIASES[role] || [role]),
+      ),
+    ];
 
-    if (!query && !roleFilter) {
+    if (!query && !roleFilters.length) {
       return res.status(400).json({
         message: "Search query 'q' or role is required",
       });
@@ -709,14 +929,21 @@ export const searchUsers = async (req: Request, res: Response) => {
         { email: { $regex: query, $options: "i" } },
         { phone: { $regex: query, $options: "i" } },
         { userCode: { $regex: query, $options: "i" } },
-        { locality : { $regex: query, $options: "i"}},
-        { city :{ $regex: query, $options: "i"}},
-        { state :{ $regex: query, $options: "i"}},
-        { pincode:{ $regex: query, $options: "i"}},
+        { locality: { $regex: query, $options: "i" } },
+        { city: { $regex: query, $options: "i" } },
+        { state: { $regex: query, $options: "i" } },
+        { pincode: { $regex: query, $options: "i" } },
       ];
     }
 
-    const pipeline: any[] = [
+    const pipeline: any[] = [];
+
+    const createdAtFilter = buildCreatedAtQueryFilter(req.query as Record<string, any>);
+    if (createdAtFilter) {
+      pipeline.push({ $match: { createdAt: createdAtFilter } });
+    }
+
+    pipeline.push(
       {
         $lookup: {
           from: "roles",
@@ -726,7 +953,6 @@ export const searchUsers = async (req: Request, res: Response) => {
         },
       },
       { $unwind: "$role" },
-
       {
         $lookup: {
           from: "agents",
@@ -738,14 +964,49 @@ export const searchUsers = async (req: Request, res: Response) => {
       {
         $unwind: {
           path: "$agent",
-          preserveNullAndEmptyArrays: true
-        }
-      }
-    ];
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+    );
 
-    if (roleFilter) {
+    const actorRole = String(req.user?.roleName || "")
+      .trim()
+      .toLowerCase();
+    const searchingPlatformRoles =
+      roleFilters.length > 0 &&
+      roleFilters.every((role) => PLATFORM_END_USER_ROLE_SET.has(role));
+    const actorIsPlatformEndUser = PLATFORM_END_USER_ROLE_SET.has(actorRole);
+
+    // Internal staff (Operations, Sales, CEO, etc.) must be able to pick builders
+    // when posting projects. Hierarchy descendants alone never include platform roles.
+    if (
+      actorRole &&
+      actorRole !== "super_admin" &&
+      actorRole !== "admin" &&
+      !(searchingPlatformRoles && !actorIsPlatformEndUser)
+    ) {
+      const operator = await User.findById(req.user?.sub)
+        .select("roleId")
+        .lean();
+      const visibleRoleIds = await resolveVisibleRoleIdsForActor({
+        actorRoleId: operator?.roleId ?? null,
+        actorRoleName: actorRole,
+        permissions: req.user?.permissions || [],
+      });
+      if (visibleRoleIds) {
+        pipeline.push({
+          $match: { roleId: { $in: visibleRoleIds } },
+        });
+      }
+    }
+
+    if (roleFilters.length === 1) {
       pipeline.push({
-        $match: { "role.name": roleFilter }
+        $match: { "role.name": roleFilters[0] },
+      });
+    } else if (roleFilters.length > 1) {
+      pipeline.push({
+        $match: { "role.name": { $in: roleFilters } },
       });
     }
 
@@ -832,9 +1093,8 @@ export const searchUsers = async (req: Request, res: Response) => {
 
     res.json({
       results: users,
-      count: users.length
+      count: users.length,
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Search failed" });
@@ -1010,6 +1270,14 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       await createInitialAgentProfile(user._id);
     }
 
+    // Exclusive CCE follow-up owner (global RR until location is known).
+    try {
+      const didAssign = await ensureFollowUpAssignee(user);
+      if (didAssign) await user.save();
+    } catch {
+      /* non-blocking */
+    }
+
     const token = await createAuthToken({ user, roleDoc });
 
     return res.status(201).json({
@@ -1088,6 +1356,7 @@ export const adminCreateVerifyOtp = async (req: AuthRequest, res: Response) => {
   try {
     let { email, otp, name, role } = req.body;
     const createPrivateRole = req.body?.createPrivateRole === true;
+    const reportsToUserId = resolveReportsToUserId(req.body);
 
     email = email?.trim()?.toLowerCase();
     otp = otp?.trim();
@@ -1190,9 +1459,17 @@ export const adminCreateVerifyOtp = async (req: AuthRequest, res: Response) => {
     }
 
     if (req.user) {
-      if (!canAssignDashboardRole(req.user.roleName, roleDoc.name)) {
+      let canAssign = req.user.roleName === "super_admin";
+      if (!canAssign) {
+        const actor = await User.findById(req.user.sub).select("roleId").lean();
+        const descendantRoleIds = actor?.roleId
+          ? await getDescendantRoleIds(actor.roleId)
+          : [];
+        canAssign = descendantRoleIds.some((roleId) => String(roleId) === String(roleDoc._id));
+      }
+      if (!canAssign) {
         return res.status(403).json({
-          message: `You cannot create credentials for the '${roleDoc.label || roleDoc.name}' role. Operations Head can assign only roles within Operations.`,
+          message: `You cannot create credentials for the '${roleDoc.label || roleDoc.name}' role. Select a role below your role in the organisation hierarchy.`,
         });
       }
     }
@@ -1201,10 +1478,30 @@ export const adminCreateVerifyOtp = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: "Role cannot be used for Admin Dashboard credentials" });
     }
 
+    let managerId: mongoose.Types.ObjectId | undefined;
+    let reportsToUser: any = null;
+    if (reportsToUserId) {
+      const check = await assertValidReportsToAssignment({
+        reportRoleName: roleDoc.name,
+        managerUserId: reportsToUserId,
+      });
+      if (!check.ok) {
+        return res.status(check.status).json({ message: check.message });
+      }
+      managerId = check.manager._id as mongoose.Types.ObjectId;
+      reportsToUser = {
+        _id: String(check.manager._id),
+        name: check.manager.name,
+        email: check.manager.email,
+        roleName: (check.manager.roleId as any)?.name || null,
+      };
+    }
+
     user = await User.create({
       name,
       email,
       roleId: roleDoc._id,
+      ...(managerId ? { managerId } : {}),
       accountStatus: "location_pending",
       kyc: {
         status: "not_started",
@@ -1222,6 +1519,8 @@ export const adminCreateVerifyOtp = async (req: AuthRequest, res: Response) => {
       token,
       nextStep: "location",
       role: { _id: String(roleDoc._id), name: roleDoc.name, label: roleDoc.label },
+      reportsTo: reportsToUser,
+      hierarchy: describeRoleHierarchy(roleDoc.name),
     });
   } catch (error: any) {
     if (error?.name === "ValidationError") {
@@ -1316,6 +1615,9 @@ export const adminCreateUpdateLocation = async (
     user.state = state;
     user.pincode = pincode;
 
+    // Seed CCE working territory from initial credential location (additive).
+    seedWorkingLocationsOnActivate(user, { state, city, locality });
+
     // activate account
     user.accountStatus = "active";
 
@@ -1382,6 +1684,13 @@ export const updateLocationOtp = async (req: AuthRequest, res: Response) => {
         : undefined;
 
     updatedUser.accountStatus = roleName === "builder" ? "active" : "kyc_pending";
+
+    // Exclusive follow-up owner by location (reassign if prior global owner doesn't cover).
+    try {
+      await ensureFollowUpAssignee(updatedUser, { reassignIfNotCovering: true });
+    } catch {
+      /* non-blocking */
+    }
 
     await updatedUser.save();
 
@@ -1738,7 +2047,7 @@ export const getManagerTeamDetails = async (req: Request, res: Response) => {
 
     // ⭐ Now safe to use
     const manager = await User.findById(managerId)
-      .populate("roleId", "name")
+      .populate("roleId", "name label")
       .select("name email phone");
 
     if (!manager) {
@@ -1746,26 +2055,34 @@ export const getManagerTeamDetails = async (req: Request, res: Response) => {
     }
 
     const role: any = manager.roleId;
+    const roleName = role?.name || null;
 
-    if (!role || role.name !== "sales_manager") {
-      return res.status(400).json({
-        message: "User is not a sales_manager",
-      });
-    }
-
-    // ⭐ Get agents
-    const agents = await User.find({ managerId })
-      .select("name email phone")
+    // Additive: any hierarchy head can have direct reports via managerId.
+    // Legacy sales Team Management still works when role is sales_manager.
+    const reports = await User.find({ managerId })
+      .select("name email phone city state locality pincode accountStatus")
+      .populate("roleId", "name label")
       .lean();
+
+    const agents = reports.map((report: any) => ({
+      ...report,
+      roleName: report.roleId?.name || null,
+      roleId: report.roleId?._id ? String(report.roleId._id) : null,
+    }));
 
     res.json({
       manager: {
         id: manager._id,
         name: manager.name,
         email: manager.email,
+        roleName,
+        roleLabel: role?.label || roleName,
       },
       totalAgents: agents.length,
+      totalReports: agents.length,
       agents,
+      reports: agents,
+      hierarchy: describeRoleHierarchy(roleName),
     });
   } catch (err: any) {
     console.error("getManagerTeamDetails error:", err);
@@ -1835,5 +2152,223 @@ export const assignManager = async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error("assignManager error:", err);
     res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * Eligible person-level managers for a target role (hierarchy-aware).
+ * GET /auth/eligible-reports-to?targetRole=sales_agent
+ */
+export const getEligibleReportsTo = async (req: AuthRequest, res: Response) => {
+  try {
+    const targetRole = canonicalRoleName(
+      String(req.query.targetRole || req.query.role || "").trim(),
+    );
+    const forUserId = String(req.query.forUserId || "").trim();
+    const stateFilter = String(req.query.state || "").trim();
+
+    if (!targetRole) {
+      return res.status(400).json({ message: "targetRole is required" });
+    }
+
+    const hierarchy = describeRoleHierarchy(targetRole);
+    const reportsToRoles = hierarchy.reportsToRoles;
+
+    if (!reportsToRoles.length) {
+      return res.json({
+        success: true,
+        targetRole,
+        required: false,
+        ...hierarchy,
+        users: [],
+      });
+    }
+
+    const managerRoles = await Role.find({
+      name: { $in: reportsToRoles },
+      isActive: { $ne: false },
+    })
+      .select("_id name label")
+      .lean();
+
+    if (!managerRoles.length) {
+      return res.json({
+        success: true,
+        targetRole,
+        required: false,
+        ...hierarchy,
+        users: [],
+      });
+    }
+
+    const roleIds = managerRoles.map((role) => role._id);
+    const roleNameById = new Map(
+      managerRoles.map((role) => [String(role._id), role.name]),
+    );
+
+    const userFilter: Record<string, any> = {
+      roleId: { $in: roleIds },
+      isActive: { $ne: false },
+    };
+    if (forUserId && mongoose.Types.ObjectId.isValid(forUserId)) {
+      userFilter._id = { $ne: forUserId };
+    }
+    if (stateFilter) {
+      userFilter.state = stateFilter;
+    }
+
+    // Non–super_admin actors only see managers within their descendant visibility band
+    // plus themselves if they hold an eligible manager role.
+    const actorRole = req.user?.roleName || "";
+    if (actorRole && actorRole !== "super_admin" && actorRole !== "admin") {
+      const actor = await User.findById(req.user?.sub).select("roleId").lean();
+      const descendantRoleIds = actor?.roleId
+        ? await getDescendantRoleIds(actor.roleId)
+        : [];
+      const visibleManagerRoleIds = roleIds.filter(
+        (id) =>
+          descendantRoleIds.some((d) => String(d) === String(id)) ||
+          String(actor?.roleId) === String(id),
+      );
+      if (!visibleManagerRoleIds.length) {
+        return res.json({
+          success: true,
+          targetRole,
+          required: reportsToRoles.length > 0,
+          ...hierarchy,
+          users: [],
+        });
+      }
+      userFilter.roleId = { $in: visibleManagerRoleIds };
+    }
+
+    const users = await User.find(userFilter)
+      .select("name email phone city state locality pincode roleId accountStatus")
+      .lean();
+
+    const preferred = hierarchy.preferredReportsToRole;
+    const sorted = users
+      .map((user: any) => ({
+        _id: String(user._id),
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        city: user.city,
+        state: user.state,
+        locality: user.locality,
+        pincode: user.pincode,
+        accountStatus: user.accountStatus,
+        roleName: roleNameById.get(String(user.roleId)) || null,
+      }))
+      .sort((a, b) => {
+        const aPref = a.roleName === preferred ? 0 : 1;
+        const bPref = b.roleName === preferred ? 0 : 1;
+        return aPref - bPref || String(a.name || "").localeCompare(String(b.name || ""));
+      });
+
+    return res.json({
+      success: true,
+      targetRole,
+      required: reportsToRoles.length > 0,
+      ...hierarchy,
+      users: sorted,
+    });
+  } catch (err: any) {
+    console.error("getEligibleReportsTo error:", err);
+    return res.status(500).json({ message: err.message || "Failed to load reports-to options" });
+  }
+};
+
+/**
+ * Generalized person reporting assignment for any hierarchy pair.
+ * POST /auth/assign-reports-to
+ * Body: { userId, reportsToUserId | managerId | null }
+ * Legacy POST /auth/assign-manager remains unchanged for sales_agent → sales_manager.
+ */
+export const assignReportsTo = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = String(req.body?.userId || req.body?.salesagentId || "").trim();
+    const reportsToUserId = resolveReportsToUserId(req.body);
+
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
+    }
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "Invalid userId" });
+    }
+    if (reportsToUserId === undefined) {
+      return res.status(400).json({
+        message: "reportsToUserId is required (pass null to clear)",
+      });
+    }
+
+    const user = await User.findById(userId).populate("roleId", "name label");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const reportRoleName = (user.roleId as any)?.name;
+    if (!reportRoleName) {
+      return res.status(400).json({ message: "User has no role assigned" });
+    }
+
+    if (reportsToUserId === null) {
+      user.managerId = null as any;
+      await user.save();
+      return res.json({
+        message: "Reports-to cleared successfully",
+        user: {
+          id: user._id,
+          name: user.name,
+          roleName: reportRoleName,
+        },
+        reportsTo: null,
+        hierarchy: describeRoleHierarchy(reportRoleName),
+      });
+    }
+
+    const check = await assertValidReportsToAssignment({
+      reportUserId: userId,
+      reportRoleName,
+      managerUserId: reportsToUserId,
+    });
+    if (!check.ok) {
+      return res.status(check.status).json({ message: check.message });
+    }
+
+    user.managerId = check.manager._id as any;
+    await user.save();
+
+    return res.json({
+      message: "Reports-to assigned successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        roleName: reportRoleName,
+      },
+      reportsTo: {
+        id: check.manager._id,
+        name: check.manager.name,
+        email: check.manager.email,
+        roleName: (check.manager.roleId as any)?.name || null,
+      },
+      hierarchy: describeRoleHierarchy(reportRoleName),
+    });
+  } catch (err: any) {
+    console.error("assignReportsTo error:", err);
+    return res.status(500).json({ message: err.message || "Failed to assign reports-to" });
+  }
+};
+
+/** GET /auth/role-hierarchy?role=sales_agent — above / below / reports-to roles */
+export const getRoleHierarchyGuide = async (req: AuthRequest, res: Response) => {
+  try {
+    const role = canonicalRoleName(String(req.query.role || "").trim());
+    if (!role) {
+      return res.status(400).json({ message: "role is required" });
+    }
+    return res.json({ success: true, ...describeRoleHierarchy(role) });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message || "Failed to load hierarchy" });
   }
 };

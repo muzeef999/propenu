@@ -35,6 +35,19 @@ export const BUSINESS_DEVELOPMENT_MANAGED_ROLE_NAMES = new Set([
   "sales_manager", "sales_executive", "sales_executives", "sales_agent",
 ]);
 
+export const REGIONAL_MANAGER_MANAGED_ROLE_NAMES = new Set([
+  "sales_manager", "sales_executive", "sales_executives", "sales_agent",
+  "relationship_manager", "relationship_managers",
+]);
+
+export const getLegacyManagedRoleNames = (actorRoleName?: string | null) => {
+  if (!actorRoleName) return null;
+  if (OPERATIONS_HEAD_ROLES.has(actorRoleName)) return OPERATIONS_MANAGED_ROLE_NAMES;
+  if (actorRoleName === "business_development_head") return BUSINESS_DEVELOPMENT_MANAGED_ROLE_NAMES;
+  if (actorRoleName === "regional_manager") return REGIONAL_MANAGER_MANAGED_ROLE_NAMES;
+  return null;
+};
+
 export const canAssignDashboardRole = (
   actorRoleName?: string | null,
   targetRoleName?: string | null,
@@ -46,6 +59,9 @@ export const canAssignDashboardRole = (
   }
   if (actorRoleName === "business_development_head") {
     return BUSINESS_DEVELOPMENT_MANAGED_ROLE_NAMES.has(targetRoleName);
+  }
+  if (actorRoleName === "regional_manager") {
+    return REGIONAL_MANAGER_MANAGED_ROLE_NAMES.has(targetRoleName);
   }
   return false;
 };

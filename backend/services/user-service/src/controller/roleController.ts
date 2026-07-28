@@ -5,6 +5,11 @@ import mongoose from "mongoose";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { ALL_PERMISSIONS, PERMISSION_CATALOG, PERMISSION_SET } from "../constants/permissionCatalog";
 import { BUSINESS_DEVELOPMENT_MANAGED_ROLE_NAMES, OPERATIONS_MANAGED_ROLE_NAMES } from "../utils/roleManagementPolicy";
+import {
+  ensureCanonicalHierarchyRoles,
+  getCanonicalParentRoleName,
+  getDescendantRoleIds,
+} from "../utils/roleHierarchy";
 
 const PROTECTED_ROLE_NAMES = new Set(["super_admin", "admin"]);
 
@@ -27,15 +32,20 @@ export const getPermissionCatalog = async (_req: AuthRequest, res: Response) =>
 
 export const getAssignableRoles = async (req: AuthRequest, res: Response) => {
   try {
+    // Ensure Legal, HR, Support, Marketing, Tech, etc. exist under Operations Head tree.
+    await ensureCanonicalHierarchyRoles();
+
     const roleFilter: any = {
       isActive: { $ne: false },
       name: { $nin: ["super_admin", "user", "builder", "builder_staff", "agent"] },
     };
 
-    if (["operations_head", "operation_head"].includes(req.user?.roleName || "")) {
-      roleFilter.name = { $in: [...OPERATIONS_MANAGED_ROLE_NAMES] };
-    } else if (req.user?.roleName === "business_development_head") {
-      roleFilter.name = { $in: [...BUSINESS_DEVELOPMENT_MANAGED_ROLE_NAMES] };
+    const actorRole = String(req.user?.roleName || "").toLowerCase();
+    // Only roles below the actor (descendants). Platform heads (super_admin/admin) see the full dashboard set.
+    if (actorRole !== "super_admin" && actorRole !== "admin") {
+      const actor = await User.findById(req.user?.sub).select("roleId").lean();
+      const descendantRoleIds = actor?.roleId ? await getDescendantRoleIds(actor.roleId) : [];
+      roleFilter._id = { $in: descendantRoleIds };
     }
 
     const roles = await Role.find(roleFilter)
@@ -51,18 +61,22 @@ export const getAssignableRoles = async (req: AuthRequest, res: Response) => {
 
 export const getTeamDirectoryRoles = async (req: AuthRequest, res: Response) => {
   try {
-    const excluded = ["super_admin", "user", "builder", "builder_staff", "agent"];
-    if (req.user?.roleName) excluded.push(req.user.roleName);
+    await ensureCanonicalHierarchyRoles();
+
+    const excluded = ["user", "builder", "builder_staff", "agent"];
 
     const roleFilter: any = {
       isActive: { $ne: false },
       name: { $nin: excluded },
     };
 
-    if (["operations_head", "operation_head"].includes(req.user?.roleName || "")) {
-      roleFilter.name = { $in: [...OPERATIONS_MANAGED_ROLE_NAMES].filter((name) => !excluded.includes(name)) };
-    } else if (req.user?.roleName === "business_development_head") {
-      roleFilter.name = { $in: [...BUSINESS_DEVELOPMENT_MANAGED_ROLE_NAMES].filter((name) => !excluded.includes(name)) };
+    const actor = await User.findById(req.user?.sub).select("roleId").lean();
+    const actorRoleId = actor?.roleId;
+
+    if (req.user?.roleName !== "super_admin") {
+      const descendantRoleIds = actor?.roleId ? await getDescendantRoleIds(actor.roleId) : [];
+      const visibleRoleIds = descendantRoleIds;
+      roleFilter._id = { $in: visibleRoleIds };
     }
 
     const roles = await Role.find(roleFilter)
@@ -71,7 +85,22 @@ export const getTeamDirectoryRoles = async (req: AuthRequest, res: Response) => 
       .sort({ label: 1 })
       .lean();
 
-    return res.json({ success: true, roles });
+    const hierarchyRoles = roles.map((role: any) => ({
+      ...role,
+      isCurrentRole: !!actorRoleId && String(role._id) === String(actorRoleId),
+      effectiveParentRoleId:
+        role.parentRoleId?._id
+            ? String(role.parentRoleId._id)
+            : role.parentRoleId
+              ? String(role.parentRoleId)
+              : (() => {
+                  const canonicalParentName = getCanonicalParentRoleName(role.name);
+                  const canonicalParent = roles.find((candidate: any) => candidate.name === canonicalParentName);
+                  return canonicalParent ? String(canonicalParent._id) : null;
+                })(),
+    }));
+
+    return res.json({ success: true, currentRoleId: actorRoleId ? String(actorRoleId) : null, roles: hierarchyRoles });
   } catch (err: any) {
     return res.status(500).json({ message: "Failed to fetch team directory roles", error: err.message });
   }
@@ -187,9 +216,14 @@ export const createRole = async (req: AuthRequest, res: Response) => {
 
 export const getAllRoles = async (req: AuthRequest, res: Response) => {
   try {
-    const filter = isOperationsHead(req)
-      ? { name: { $in: [...OPERATIONS_MANAGED_ROLE_NAMES] } }
-      : {};
+    const filter: any = {};
+    if (req.user?.roleName !== "super_admin") {
+      const actor = await User.findById(req.user?.sub).select("roleId").lean();
+      const descendantRoleIds = actor?.roleId
+        ? await getDescendantRoleIds(actor.roleId)
+        : [];
+      filter._id = { $in: descendantRoleIds };
+    }
     const roles = await Role.find(filter).populate("parentRoleId", "name label").sort({ createdAt: -1 }).lean();
     const roleIds = roles.map((role) => role._id);
     const assignmentCounts = await User.aggregate([
@@ -298,6 +332,48 @@ export const updateRolePermissions = async (req: AuthRequest, res: Response) => 
       message: "Failed to update permissions",
       error: err.message,
     });
+  }
+};
+
+export const updateRole = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { parentRoleId } = req.body;
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid role id" });
+    }
+
+    const role = await Role.findById(id);
+    if (!role) return res.status(404).json({ message: "Role not found" });
+    if (rejectRoleOutsideManagementScope(req, res, role.name)) return;
+
+    if (parentRoleId) {
+      if (!mongoose.Types.ObjectId.isValid(parentRoleId)) {
+        return res.status(400).json({ message: "Invalid parent role" });
+      }
+      if (String(parentRoleId) === String(role._id)) {
+        return res.status(400).json({ message: "A role cannot be its own parent" });
+      }
+      const parent = await Role.findById(parentRoleId).select("_id name isActive");
+      if (!parent) return res.status(404).json({ message: "Parent role not found" });
+      if (parent.isActive === false) return res.status(409).json({ message: "Select an active parent role" });
+      if (["user", "builder", "builder_staff", "agent"].includes(parent.name)) {
+        return res.status(400).json({ message: "System account roles cannot be hierarchy parents" });
+      }
+      const descendantIds = await getDescendantRoleIds(role._id);
+      if (descendantIds.some((roleId) => String(roleId) === String(parentRoleId))) {
+        return res.status(409).json({ message: "This parent would create a circular role hierarchy" });
+      }
+      role.parentRoleId = parent._id;
+    } else {
+      (role as any).parentRoleId = null;
+    }
+
+    await role.save();
+    await role.populate("parentRoleId", "name label");
+    return res.json({ success: true, role });
+  } catch (err: any) {
+    return res.status(500).json({ message: "Failed to update role hierarchy", error: err.message });
   }
 };
 

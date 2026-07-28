@@ -2,10 +2,10 @@ import { Request, Response } from "express";
 import { getAccountsSummary, getPayments, getRevenueByPlan, getSubscriptionHistoryone, getSubscriptions } from "../services/accountServices";
 
 export const getAccountsSummaryController = async (
-  _req: Request,
+  req: Request,
   res: Response
 ) => {
-  const data = await getAccountsSummary();
+  const data = await getAccountsSummary(req.query as Record<string, any>);
   res.json(data);
 };
 
@@ -34,9 +34,9 @@ export const getSubscriptionHistoryController = async (
 };
 
 export const getRevenueByPlanController = async (
-  _req: Request,
+  req: Request,
   res: Response
 ) => {
-  const data = await getRevenueByPlan();
+  const data = await getRevenueByPlan(req.query as Record<string, any>);
   res.json(data);
 };

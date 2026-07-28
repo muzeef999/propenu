@@ -4,6 +4,7 @@ import { JwtUserPayload } from "../types/auth";
 import jwt from "jsonwebtoken";
 import Role from "../models/roleModel";
 import User from "../models/userModel";
+import { ALL_PERMISSIONS } from "../constants/permissionCatalog";
 
 export interface AuthRequest extends Request {
   user?: JwtUserPayload;
@@ -50,7 +51,7 @@ export async function authMiddleware(
       }
 
       roleName = role.name;
-      permissions = role.permissions ?? [];
+      permissions = role.name === "super_admin" ? ALL_PERMISSIONS : role.permissions ?? [];
     }
 
     const activeUser = await User.findById(decoded.sub)

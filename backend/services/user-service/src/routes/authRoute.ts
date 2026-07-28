@@ -1,5 +1,6 @@
 import express from "express";
-import { adminCreateRequestOtp, adminCreateUpdateLocation, adminCreateVerifyOtp, assignManager, createRequestOtp,  createVerifyOtp, deleteMyAccount, getAllUsers,  getManagerTeamDetails, me, requestAdminUserPhoneChangeOtp, requestOTP, searchUsers, updateLocationOtp, updateUser, updateUserProfileById, updateUserRole, verifyOtp } from "../controller/authController";
+import { adminCreateRequestOtp, adminCreateUpdateLocation, adminCreateVerifyOtp, assignManager, assignReportsTo, createRequestOtp,  createVerifyOtp, deleteMyAccount, getAllUsers, getEligibleReportsTo, getManagerTeamDetails, getRoleHierarchyGuide, me, requestAdminUserPhoneChangeOtp, requestOTP, searchUsers, updateLocationOtp, updateUser, updateUserProfileById, updateUserRole, verifyOtp } from "../controller/authController";
+import { getUserWorkingLocations, updateUserWorkingLocations } from "../controller/workingLocationsController";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 import { superAdminOnly } from "../middlewares/superAdminOnly";
 import { requirePermission } from "../middlewares/requirePermission";
@@ -16,11 +17,42 @@ const requireAdminOrSuperAdmin = (req: AuthRequest, res: express.Response, next:
 };
 
 const requireRoleTransferAccess = (req: AuthRequest, res: express.Response, next: express.NextFunction) => {
-  if (!req.user || !["super_admin", "admin", "regional_manager"].includes(req.user.roleName || "")) {
+  if (!req.user) {
+    return res.status(403).json({ message: "Forbidden: role transfer access denied" });
+  }
+
+  const roleName = req.user.roleName || "";
+  const permissions = req.user.permissions || [];
+  const allowedByRole = ["super_admin", "admin", "regional_manager"].includes(roleName);
+  const allowedByPermission = permissions.includes("user:update");
+
+  if (!allowedByRole && !allowedByPermission) {
     return res.status(403).json({ message: "Forbidden: role transfer access denied" });
   }
 
   next();
+};
+
+/** Create Credentials + Assign + Transfer all need eligible manager lists. */
+const requireReportsToLookup = (req: AuthRequest, res: express.Response, next: express.NextFunction) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  const roleName = String(req.user.roleName || "").toLowerCase();
+  if (["super_admin", "admin", "regional_manager"].includes(roleName)) {
+    return next();
+  }
+  const permissions = req.user.permissions || [];
+  if (
+    permissions.includes("team:assign_manager") ||
+    permissions.includes("user:create") ||
+    permissions.includes("user:update")
+  ) {
+    return next();
+  }
+  return res.status(403).json({
+    message: "You do not have permission to view reports-to options",
+  });
 };
 
 authRoute.post("/request-otp",  requestOTP);
@@ -43,6 +75,25 @@ authRoute.patch("/me/update", authMiddleware, updateUser);
 authRoute.delete("/me", authMiddleware, deleteMyAccount);
 authRoute.get("/search", authMiddleware, searchUsers);
 authRoute.post("/assign-manager", authMiddleware, requirePermission("team:assign_manager", ["regional_manager"]), assignManager);
+// Additive hierarchy-wide reporting (keeps /assign-manager for legacy sales flow)
+authRoute.get(
+  "/eligible-reports-to",
+  authMiddleware,
+  requireReportsToLookup,
+  getEligibleReportsTo,
+);
+authRoute.get(
+  "/role-hierarchy",
+  authMiddleware,
+  requireReportsToLookup,
+  getRoleHierarchyGuide,
+);
+authRoute.post(
+  "/assign-reports-to",
+  authMiddleware,
+  requirePermission("team:assign_manager", ["regional_manager", "super_admin", "admin"]),
+  assignReportsTo,
+);
 authRoute.get("/manager-team-details/:id", authMiddleware, requirePermission("team:view", ["regional_manager", "sales_manager"]), getManagerTeamDetails);
 authRoute.post(
   "/:id/profile/phone/request-otp",
@@ -58,6 +109,17 @@ authRoute.patch(
 );
  
 authRoute.get("/all-users", authMiddleware, requirePermission("user:view"), getAllUsers);
+
+authRoute.get(
+  "/:id/working-locations",
+  authMiddleware,
+  getUserWorkingLocations,
+);
+authRoute.put(
+  "/:id/working-locations",
+  authMiddleware,
+  updateUserWorkingLocations,
+);
 
 authRoute.patch("/:id/role", authMiddleware, requireRoleTransferAccess,
   updateUserRole

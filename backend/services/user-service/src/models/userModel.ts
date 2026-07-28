@@ -43,6 +43,16 @@ export interface IUser extends mongoose.Document {
   lastLoginAt?: Date;
   loginCount?: number;
   fcmToken?: string | null;
+  /** CCE/staff geo territories for auto-assign (additive; home locality/city/state unchanged). */
+  workingLocations?: Array<{
+    state: string;
+    city?: string;
+    locality?: string;
+  }>;
+  /** Exclusive follow-up owner (one CCE). Prevents same case showing to multiple CCEs. */
+  followUpAssignedTo?: Types.ObjectId;
+  followUpAssignedAt?: Date;
+  followUpAssignMethod?: "location_round_robin" | "round_robin";
 }
 
 const getCityCode = (city?: string) => {
@@ -222,6 +232,28 @@ const UserSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       index: true,
+    },
+
+    /** Geo territories for CCE auto-assign. Empty city = whole state; empty locality = whole city. */
+    workingLocations: [
+      {
+        state: { type: String, trim: true, maxlength: 45 },
+        city: { type: String, trim: true, maxlength: 45 },
+        locality: { type: String, trim: true, maxlength: 45 },
+      },
+    ],
+
+    /** One CCE owns this user's follow-up journey (exclusive). */
+    followUpAssignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      index: true,
+      default: null,
+    },
+    followUpAssignedAt: { type: Date },
+    followUpAssignMethod: {
+      type: String,
+      enum: ["location_round_robin", "round_robin"],
     },
 
     isActive: { type: Boolean, default: true },

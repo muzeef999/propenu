@@ -8,12 +8,20 @@ export const isDirectAgentRole = (roleName?: string) => {
 
   return [
     "agent",
+    "agents",
     "sales_agent",
     "sales_manager",
     "digital_marketing",
     "admin",
     "super_admin",
-    "customer_care"
+    "customer_care",
+    "customer_care_executive",
+    "customer_care_executives",
+    "customer_support_head",
+    "customer_support_team_lead",
+    "customer_support_team_leads",
+    "team_lead",
+    "team_leads",
   ].includes(normalizedRole);
 };
 
@@ -23,23 +31,7 @@ export const isAgentListingRole = (roleName?: string) => {
     .toLowerCase()
     .replace(/[-\s]+/g, "_");
 
-  return ["agent", "sales_agent", "sales_manager"].includes(normalizedRole);
-};
-
-export const isAgentReviewProperty = (property: any, roleName?: string) => {
-  if (isAgentListingRole(roleName)) return true;
-  if (isAgentListingRole(property?.postedBy?.roleName)) return true;
-  if (isAgentListingRole(property?.lastUpdatedBy?.roleName)) return true;
-
-  const approvalStatus = String(property?.approval?.status ?? "").toLowerCase();
-  const completionPercent = Number(property?.completion?.percent);
-  const completionStep = Number(property?.completion?.step);
-
-  return (
-    approvalStatus === "pending" ||
-    completionPercent === 70 ||
-    completionStep === 4
-  );
+  return ["agent", "agents", "sales_agent", "sales_manager"].includes(normalizedRole);
 };
 
 type AuthUserLike = {
@@ -49,6 +41,39 @@ type AuthUserLike = {
   email?: string | undefined;
   phone?: string | number | undefined;
   roleName?: string | undefined;
+};
+
+/** Submit for approval when actor is staff/agent OR the listing owner is an agent. */
+export async function shouldSubmitListingForReview(
+  Model: any,
+  propertyId: string,
+  authUser?: AuthUserLike,
+  propertyDoc?: any,
+) {
+  if (isDirectAgentRole(authUser?.roleName)) return true;
+
+  const property =
+    propertyDoc ||
+    (await Model.findById(propertyId).select("createdBy postedBy lastUpdatedBy").lean());
+  if (!property) return false;
+
+  if (isAgentListingRole(property?.postedBy?.roleName)) return true;
+  if (isAgentListingRole(property?.lastUpdatedBy?.roleName)) return true;
+
+  const creatorRole = await getCreatedByRoleName(Model, property.createdBy);
+  return isAgentListingRole(creatorRole);
+}
+
+export const isAgentReviewProperty = (property: any, roleName?: string) => {
+  if (isAgentListingRole(roleName)) return true;
+  if (isAgentListingRole(property?.postedBy?.roleName)) return true;
+  if (isAgentListingRole(property?.lastUpdatedBy?.roleName)) return true;
+
+  const status = String(property?.status ?? "").toLowerCase();
+  const approvalStatus = String(property?.approval?.status ?? "").toLowerCase();
+
+  // Agent review path: pending @ ~70% (do not treat incomplete drafts as reviewable).
+  return status === "pending" || approvalStatus === "pending";
 };
 
 function toObjectId(value: any) {

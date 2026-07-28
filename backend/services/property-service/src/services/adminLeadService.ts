@@ -19,6 +19,30 @@ const leadCategory = (lead: any): Category => {
   return "featured";
 };
 const safeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/** Local calendar day bounds — avoids UTC midnight shifting IST "today" leads. */
+const parseDayBound = (value?: string, endOfDay = false): Date | null => {
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value).trim());
+  if (match) {
+    const year = Number(match[1]);
+    const month = Number(match[2]) - 1;
+    const day = Number(match[3]);
+    return endOfDay
+      ? new Date(year, month, day, 23, 59, 59, 999)
+      : new Date(year, month, day, 0, 0, 0, 0);
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  if (endOfDay) parsed.setHours(23, 59, 59, 999);
+  else parsed.setHours(0, 0, 0, 0);
+  return parsed;
+};
+const localDayKey = (value: Date) => {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 export interface AdminLeadQuery { page?: string; limit?: string; search?: string; category?: string; projectId?: string; status?: string; source?: string; state?: string; city?: string; locality?: string; from?: string; to?: string; creatorIds?: string; }
 
 export const getAdminLeadDashboard = async (query: AdminLeadQuery, exportAll = false) => {
@@ -27,8 +51,10 @@ export const getAdminLeadDashboard = async (query: AdminLeadQuery, exportAll = f
   const creatorIds = String(query.creatorIds || "").split(",").map((id) => id.trim()).filter((id) => Types.ObjectId.isValid(id));
   const creatorSet = new Set(creatorIds);
   const dateFilter: Record<string, Date> = {};
-  if (query.from) dateFilter.$gte = new Date(query.from);
-  if (query.to) { const end = new Date(query.to); end.setHours(23, 59, 59, 999); dateFilter.$lte = end; }
+  const fromDate = parseDayBound(query.from, false);
+  const toDate = parseDayBound(query.to, true);
+  if (fromDate) dateFilter.$gte = fromDate;
+  if (toDate) dateFilter.$lte = toDate;
   const base: any = {};
   if (query.projectId) {
     const projectIds = query.projectId.split(",").map((id) => id.trim()).filter(Boolean);
@@ -70,7 +96,7 @@ export const getAdminLeadDashboard = async (query: AdminLeadQuery, exportAll = f
     acc.bySource[row.source] = (acc.bySource[row.source] || 0) + 1;
     const createdAt = new Date(row.createdAt);
     if (!Number.isNaN(createdAt.getTime())) {
-      const date = createdAt.toISOString().slice(0, 10);
+      const date = localDayKey(createdAt);
       const daily = acc.dailyTrend[date] || { date, leads: 0, converted: 0 };
       daily.leads += 1;
       if (row.status === "sale") daily.converted += 1;

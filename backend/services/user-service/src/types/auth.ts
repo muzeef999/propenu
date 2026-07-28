@@ -13,11 +13,13 @@ export type UserRole =
   | "builder_staff";
 
 export interface JwtUserPayload extends JwtPayload {
-  sub: string;    
+  sub: string;
+  id?: string;
+  _id?: string;
   email?: string | undefined;
   phone?: number | undefined;
   name: string;
-  roleId?: string | undefined; 
+  roleId?: string | undefined;
   roleName?: string | undefined;
   permissions: string[];
   builderAccess?: unknown;

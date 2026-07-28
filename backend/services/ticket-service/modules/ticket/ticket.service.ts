@@ -1,5 +1,11 @@
 import { closedTicketStatuses } from "./ticket.constants";
 import { TicketRepository } from "./ticket.repository";
+import {
+  pickNextCustomerCareExecutiveDetailed,
+  shouldAutoAssignCustomerCare,
+  resolveAssignLocation,
+  lookupRequesterLocation,
+} from "./roundRobinAssign.service";
 import { sendEmail } from "../../../../shared/email/email.service";
 import {
   ticketAdditionalInformationReceivedSubject,
@@ -164,11 +170,68 @@ export class TicketService {
       input.metadata?.module === "relationship_manager" &&
       input.assignedTo?.role === "relationship_manager";
 
+    const department = isRelationshipManagerTicket
+      ? "relationship-manager"
+      : "customer-care";
+
+    let assignedTo = input.assignedTo;
+    let autoAssigned = false;
+    const activities = [activity("ticket.created", "Ticket created", requesterActor(input))];
+
+    if (
+      shouldAutoAssignCustomerCare({
+        assignedTo,
+        isRelationshipManagerTicket,
+        department,
+      })
+    ) {
+      try {
+        let assignLocation =
+          resolveAssignLocation({
+            metadata: input.metadata,
+            requester: input.requester as any,
+          }) || null;
+        if (!assignLocation) {
+          assignLocation = await lookupRequesterLocation({
+            userId: (input.requester as any)?.userId || (input.requester as any)?.id,
+            email: input.requester?.email,
+          });
+        }
+
+        const picked = await pickNextCustomerCareExecutiveDetailed(assignLocation);
+        if (picked?.actor?.userId) {
+          assignedTo = picked.actor;
+          autoAssigned = true;
+          const methodLabel =
+            picked.method === "location_round_robin"
+              ? "location round-robin"
+              : "round-robin";
+          activities.push(
+            activity(
+              "ticket.assigned",
+              `Auto-assigned (${methodLabel}) to ${picked.actor.name || picked.actor.userId}`,
+              {
+                name: "System",
+                role: "system",
+              },
+              undefined,
+              picked.actor.name || picked.actor.userId,
+            ),
+          );
+          // Stamp location + method onto metadata after create payload merge below
+          (input as any).__autoAssignMethod = picked.method;
+          (input as any).__assignLocation = assignLocation;
+        }
+      } catch (error) {
+        console.warn("customer-care round-robin skipped:", error);
+      }
+    }
+
     const ticket = await TicketRepository.create({
       ...input,
-      department: isRelationshipManagerTicket
-        ? "relationship-manager"
-        : "customer-care",
+      department,
+      ...(assignedTo ? { assignedTo } : {}),
+      ...(autoAssigned ? { status: "assigned" } : {}),
       priority: input.priority ?? "medium",
       source: input.source ?? "web",
       tags: cleanTags(input.tags),
@@ -176,11 +239,27 @@ export class TicketService {
       metadata: {
         ...(input.metadata ?? {}),
         requestedDepartment,
-        intakeDepartment: isRelationshipManagerTicket
-          ? "relationship-manager"
-          : "customer-care",
+        intakeDepartment: department,
+        ...((input as any).__assignLocation
+          ? {
+              assignState: (input as any).__assignLocation.state,
+              assignCity: (input as any).__assignLocation.city,
+              assignLocality: (input as any).__assignLocation.locality,
+              state: (input.metadata as any)?.state || (input as any).__assignLocation.state,
+              city: (input.metadata as any)?.city || (input as any).__assignLocation.city,
+              locality:
+                (input.metadata as any)?.locality || (input as any).__assignLocation.locality,
+            }
+          : {}),
+        ...(autoAssigned
+          ? {
+              autoAssigned: true,
+              autoAssignMethod: (input as any).__autoAssignMethod || "round_robin",
+              autoAssignedAt: new Date().toISOString(),
+            }
+          : {}),
       },
-      activities: [activity("ticket.created", "Ticket created", requesterActor(input))],
+      activities,
     });
 
     if (ticket.requester.email) {
@@ -200,17 +279,79 @@ export class TicketService {
       }
     }
 
+    if (autoAssigned && ticket.requester.email && ticket.assignedTo) {
+      try {
+        await sendEmail({
+          to: ticket.requester.email,
+          subject: ticketAssignedSubject(String(ticket._id)),
+          html: ticketAssignedTemplate({
+            ...buildTicketTemplateBase(ticket),
+            assignedTeam: resolveAssignedTeamName(ticket),
+            currentStatus: toTitleCase(ticket.status),
+          }),
+        });
+      } catch (error) {
+        console.error("ticket auto-assignment email failed:", error);
+      }
+    }
+
     return ticket;
   }
 
-  static createRequestCall(input: CreateRequestCallInput) {
+  static async createRequestCall(input: CreateRequestCallInput) {
     const scheduledAt = new Date(input.date);
     let assignedTo: TicketActor | undefined;
+    let autoAssigned = false;
+    const activities = [
+      activity(
+        "ticket.request_call_created",
+        `Call request created for ${input.timeSlot}`,
+        requesterActor({ requester: input.requester }),
+      ),
+    ];
 
     if (input.relationshipManagerId || input.relationshipManagerName) {
       assignedTo = { role: "relationship_manager" };
       if (input.relationshipManagerId) assignedTo.userId = input.relationshipManagerId;
       if (input.relationshipManagerName) assignedTo.name = input.relationshipManagerName;
+    } else {
+      try {
+        let assignLocation =
+          resolveAssignLocation({
+            metadata: {
+              relatedProjectId: input.relatedProjectId,
+            },
+            requester: input.requester as any,
+          }) || null;
+        if (!assignLocation) {
+          assignLocation = await lookupRequesterLocation({
+            userId: (input.requester as any)?.userId || (input.requester as any)?.id,
+            email: input.requester?.email,
+          });
+        }
+        const picked = await pickNextCustomerCareExecutiveDetailed(assignLocation);
+        if (picked?.actor?.userId) {
+          assignedTo = picked.actor;
+          autoAssigned = true;
+          const methodLabel =
+            picked.method === "location_round_robin"
+              ? "location round-robin"
+              : "round-robin";
+          activities.push(
+            activity(
+              "ticket.assigned",
+              `Auto-assigned (${methodLabel}) to ${picked.actor.name || picked.actor.userId}`,
+              { name: "System", role: "system" },
+              undefined,
+              picked.actor.name || picked.actor.userId,
+            ),
+          );
+          (input as any).__autoAssignMethod = picked.method;
+          (input as any).__assignLocation = assignLocation;
+        }
+      } catch (error) {
+        console.warn("request-call round-robin skipped:", error);
+      }
     }
 
     return TicketRepository.create({
@@ -218,8 +359,9 @@ export class TicketService {
       description: input.subject,
       requester: input.requester,
       category: "request_call",
-      department: assignedTo ? "relationship-manager" : "customer-care",
+      department: assignedTo?.role === "relationship_manager" ? "relationship-manager" : "customer-care",
       ...(assignedTo ? { assignedTo } : {}),
+      ...(autoAssigned ? { status: "assigned" } : {}),
       priority: "medium",
       source: input.source ?? "web",
       tags: cleanTags(["request_call", input.category, input.timeSlot]),
@@ -235,17 +377,29 @@ export class TicketService {
         notes: input.notes,
         relationshipManagerName: input.relationshipManagerName,
         relationshipManagerId: input.relationshipManagerId,
-        intakeDepartment: assignedTo ? "relationship-manager" : "customer-care",
+        intakeDepartment:
+          assignedTo?.role === "relationship_manager" ? "relationship-manager" : "customer-care",
+        ...((input as any).__assignLocation
+          ? {
+              assignState: (input as any).__assignLocation.state,
+              assignCity: (input as any).__assignLocation.city,
+              assignLocality: (input as any).__assignLocation.locality,
+              state: (input as any).__assignLocation.state,
+              city: (input as any).__assignLocation.city,
+              locality: (input as any).__assignLocation.locality,
+            }
+          : {}),
+        ...(autoAssigned
+          ? {
+              autoAssigned: true,
+              autoAssignMethod: (input as any).__autoAssignMethod || "round_robin",
+              autoAssignedAt: new Date().toISOString(),
+            }
+          : {}),
       },
       dueAt: scheduledAt,
       attachments: [],
-      activities: [
-        activity(
-          "ticket.request_call_created",
-          `Call request created for ${input.timeSlot}`,
-          requesterActor({ requester: input.requester }),
-        ),
-      ],
+      activities,
     });
   }
 

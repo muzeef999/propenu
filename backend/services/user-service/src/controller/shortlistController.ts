@@ -1,16 +1,23 @@
 import { Request, Response } from "express";
+import { Types } from "mongoose";
 import { addToShortlistService, getAgentNotificationsFeed, getBuilderAnalytics, getBuilderFeaturedProjectShortlists, getBuilderNotificationsFeed, getBuilderProjectActivity, getShortlistStatusService, getUserNotificationsFeed, getUserShortlistService, removeFromShortlistService } from "../services/shortlistService";
 import { AuthRequest } from "../middlewares/authMiddleware";
+
+const authUserObjectId = (req: AuthRequest) => {
+  const raw = req.user?._id || req.user?.sub || req.user?.id;
+  if (!raw) return null;
+  return new Types.ObjectId(String(raw));
+};
 
 
 /* ADD TO SHORTLIST */
 export const addToShortlist = async (req: AuthRequest, res: Response) => {
   
 try {
-    if (!req.user?._id) {
+    const userId = authUserObjectId(req);
+    if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    const userId = req.user._id; // from auth middleware
     const { propertyId, propertyType  } = req.body;
 
     if (!propertyId || !propertyType) {
@@ -42,18 +49,18 @@ try {
 /* REMOVE FROM SHORTLIST */
 export const removeFromShortlist = async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.user?._id) {
+    const userId = authUserObjectId(req);
+    if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const userId = req.user._id;
     const { propertyId } = req.params; // ✅ FIX
 
     if (!propertyId) {
       return res.status(400).json({ message: "propertyId required" });
     }
 
-    await removeFromShortlistService(userId, propertyId);
+    await removeFromShortlistService(String(userId), propertyId);
 
     res.status(200).json({
       success: true,
@@ -68,10 +75,10 @@ export const removeFromShortlist = async (req: AuthRequest, res: Response) => {
 /* GET USER SHORTLIST */
 export const getMyShortlist = async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.user?._id) {
+    const userId = authUserObjectId(req);
+    if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    const userId = req.user._id; 
     const shortlist = await getUserShortlistService(userId);
     res.status(200).json({
       success: true,
@@ -337,7 +344,10 @@ export const getUserNotificationsController = async (
 
 export const syncShortlist = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user!._id;
+    const userId = authUserObjectId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
     const { properties } = req.body;
 
     if (!properties || !Array.isArray(properties)) {

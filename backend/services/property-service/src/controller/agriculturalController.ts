@@ -26,6 +26,7 @@ import {
   buildPostedByAudit,
   isDirectAgentRole,
   populateListingAuditFields,
+  shouldSubmitListingForReview,
   submitAgentListingForReview,
 } from "../utils/agentSubmission";
 
@@ -492,7 +493,7 @@ export const updateAgriculturalDetailsStep = async (
     // 5️⃣ Fetch fresh doc (with gallery, title, slug)
     // const fresh = await Agricultural.findById(req.params.id)
 
-    if (isDirectAgentRole(req.user?.roleName)) {
+    if (await shouldSubmitListingForReview(Agricultural, req.params.id, req.user, updated)) {
       await submitAgentListingForReview(
         Agricultural,
         req.params.id,
@@ -757,7 +758,26 @@ export const verifyAgricultiralDocument = async (
       });
     }
 
-    const existingProperty = await Agricultural.findById(id).select("status");
+    const existingProperty = await Agricultural.findById(id)
+      .select("status createdBy postedBy ownerId")
+      .populate("createdBy", "roleName role name email");
+    if (!existingProperty) {
+      return res.status(404).json({
+        success: false,
+        message: "Property not found",
+      });
+    }
+    const { assertCanApproveListing } = await import(
+      "../utils/listingApprovalGuard"
+    );
+    if (
+      !assertCanApproveListing(req, res, existingProperty, [
+        "agricultural:verify_document",
+        "agricultural:approve",
+      ])
+    ) {
+      return;
+    }
 
     const updated = await AgriculturalService.verifyDocument(
       id,

@@ -24,6 +24,7 @@ import {
   buildPostedByAudit,
   isDirectAgentRole,
   populateListingAuditFields,
+  shouldSubmitListingForReview,
   submitAgentListingForReview,
 } from "../utils/agentSubmission";
 
@@ -481,7 +482,7 @@ export const updateCommercialDetailsStep = async (
       await doc.save(); // triggers validate → slug sync
     }
 
-    if (isDirectAgentRole(req.user?.roleName)) {
+    if (await shouldSubmitListingForReview(Commercial, req.params.id, req.user, doc)) {
       await submitAgentListingForReview(
         Commercial,
         req.params.id,
@@ -771,7 +772,26 @@ export const verifyCommercialDocument = async (
       });
     }
 
-    const existingProperty = await Commercial.findById(id).select("status");
+    const existingProperty = await Commercial.findById(id)
+      .select("status createdBy postedBy ownerId")
+      .populate("createdBy", "roleName role name email");
+    if (!existingProperty) {
+      return res.status(404).json({
+        success: false,
+        message: "Property not found",
+      });
+    }
+    const { assertCanApproveListing } = await import(
+      "../utils/listingApprovalGuard"
+    );
+    if (
+      !assertCanApproveListing(req, res, existingProperty, [
+        "commercial:verify_document",
+        "commercial:approve",
+      ])
+    ) {
+      return;
+    }
 
     // ✅ Call service
     const updated = await CommercialService.verifyDocument(

@@ -19,6 +19,13 @@ export class DashboardService {
       if (to) (dateMatch.createdAt as Record<string, Date>).$lte = to;
     }
 
+    if (typeof query.assignedTo === "string" && query.assignedTo.trim()) {
+      dateMatch["assignedTo.userId"] = query.assignedTo.trim();
+    }
+    if (typeof query.department === "string" && query.department.trim()) {
+      dateMatch.department = query.department.trim();
+    }
+
     const openStatuses = ["open", "assigned", "under_review", "awaiting_user_response", "in_progress", "escalated", "reopened", "waiting_for_customer", "waiting_for_internal_team"];
     const now = new Date();
 
@@ -80,11 +87,26 @@ export class DashboardService {
 
   static async trends(query: Record<string, unknown>) {
     const days = Math.min(Math.max(Number(query.days) || 14, 1), 90);
-    const from = new Date();
-    from.setDate(from.getDate() - days);
+    const from = parseDate(query.from) || (() => {
+      const d = new Date();
+      d.setDate(d.getDate() - days);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    })();
+    const to = parseDate(query.to);
+
+    const match: Record<string, unknown> = {
+      createdAt: { $gte: from, ...(to ? { $lte: to } : {}) },
+    };
+    if (typeof query.assignedTo === "string" && query.assignedTo.trim()) {
+      match["assignedTo.userId"] = query.assignedTo.trim();
+    }
+    if (typeof query.department === "string" && query.department.trim()) {
+      match.department = query.department.trim();
+    }
 
     const pipeline: PipelineStage[] = [
-      { $match: { createdAt: { $gte: from } } },
+      { $match: match },
       {
         $group: {
           _id: {

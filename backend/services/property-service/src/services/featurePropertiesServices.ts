@@ -667,6 +667,7 @@ export const FeaturePropertyService = {
       projectSummary,
       priceFrom,
       priceTo,
+      createdBy: user?.id || payload.createdBy,
       postedBy: user
         ? {
             userId: user.id,

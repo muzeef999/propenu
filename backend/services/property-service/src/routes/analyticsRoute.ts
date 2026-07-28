@@ -14,8 +14,47 @@ analyticsRouter.get("/analytics/admin", getAdmin);
 analyticsRouter.get("/analytics/salemanager", authMiddleware, getsupermanager);
 analyticsRouter.get("/analytics/saleagent", authMiddleware, getsuperagent);
 
-analyticsRouter.get("/pending-projects", authMiddleware, requirePermission("project:view", ["sales_manager"]), getPendingProjects);
-analyticsRouter.patch("/:id/approve", authMiddleware, requirePermission("project:approve", ["sales_manager"]), approveProject);
-analyticsRouter.patch("/:id/reject", authMiddleware, requirePermission("project:reject", ["sales_manager"]), rejectProject);
+analyticsRouter.get(
+  "/pending-projects",
+  authMiddleware,
+  requirePermission("project:view", [
+    "sales_manager",
+    "regional_manager",
+    "operations_head",
+    "business_development_head",
+    "ceo",
+    "admin",
+    "super_admin",
+  ]),
+  getPendingProjects,
+);
+analyticsRouter.patch(
+  "/:id/approve",
+  authMiddleware,
+  requirePermission("project:approve", [
+    "sales_manager",
+    "regional_manager",
+    "operations_head",
+    "business_development_head",
+    "ceo",
+    "admin",
+    "super_admin",
+  ]),
+  approveProject,
+);
+analyticsRouter.patch(
+  "/:id/reject",
+  authMiddleware,
+  requirePermission("project:reject", [
+    "sales_manager",
+    "regional_manager",
+    "operations_head",
+    "business_development_head",
+    "ceo",
+    "admin",
+    "super_admin",
+  ]),
+  rejectProject,
+);
 
 export default analyticsRouter;

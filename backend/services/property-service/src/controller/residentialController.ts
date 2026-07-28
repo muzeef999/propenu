@@ -30,9 +30,11 @@ import {
   isDirectAgentRole,
   normalizeListingAuditFields,
   populateListingAuditFields,
+  shouldSubmitListingForReview,
   stampListingUpdateAudit,
   submitAgentListingForReview,
 } from "../utils/agentSubmission";
+import { assertCanApproveListing } from "../utils/listingApprovalGuard";
 
 /** Helper: parse values that might be JSON strings (multipart sends arrays/objects as strings). */
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -539,8 +541,13 @@ export const updateDetailsStep = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: "Residential property not found" });
     }
 
-    const shouldSubmitForReview = isDirectAgentRole(req.user?.roleName);
     const fresh = await Residential.findById(req.params.id);
+    const shouldSubmitForReview = await shouldSubmitListingForReview(
+      Residential,
+      req.params.id,
+      req.user,
+      fresh,
+    );
     if (fresh) {
       fresh.completion = {
         ...(fresh.completion ?? {}),
@@ -859,7 +866,23 @@ export const verifyResidentialDocument = async (
       });
     }
 
-    const existingProperty = await Residential.findById(id).select("status");
+    const existingProperty = await Residential.findById(id)
+      .select("status createdBy postedBy ownerId")
+      .populate("createdBy", "roleName role name email");
+    if (!existingProperty) {
+      return res.status(404).json({
+        success: false,
+        message: "Property not found",
+      });
+    }
+    if (
+      !assertCanApproveListing(req, res, existingProperty, [
+        "residential:verify_document",
+        "residential:approve",
+      ])
+    ) {
+      return;
+    }
 
     const updated = await ResidentialPropertyService.verifyDocument(
       id,

@@ -101,8 +101,8 @@ export const getTickets = async (req: Request, res: Response) => {
     const overdue = toBoolean(req.query.overdue);
     if (overdue !== undefined) options.overdue = overdue;
 
-    const createdFrom = toDate(req.query.createdFrom);
-    const createdTo = toDate(req.query.createdTo);
+    const createdFrom = toDate(req.query.createdFrom ?? req.query.from);
+    const createdTo = toDate(req.query.createdTo ?? req.query.to);
     if (createdFrom) options.createdFrom = createdFrom;
     if (createdTo) options.createdTo = createdTo;
 

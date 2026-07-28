@@ -12,6 +12,7 @@ import FeatureProperty from "../models/featurePropertiesModel";
 import { deleteS3ObjectIfExists } from "../utils/s3Helpers";
 import mongoose from "mongoose";
 import BuilderMember from "../models/builderMemberModel";
+import { projectRequiresApprovalOnCreate } from "../utils/projectApprovalPolicy";
 
 const getBuilderProjectScope = async (req: AuthRequest) => {
   if (!req.user?.id) {
@@ -84,21 +85,22 @@ export const createFeatureProperties = async (req: Request, res: Response) => {
     ) as CreateFeaturePropertyDTO;
 
     const authUser = (req as AuthRequest).user;
-
     const roleName = authUser?.roleName;
 
-    if (roleName === "sales_agent") {
+    // CC / sales agent / other lower creators → pending for RM (or higher) approval.
+    // RM / Ops / Admin / CEO / SM → live immediately.
+    if (projectRequiresApprovalOnCreate(roleName ?? null)) {
       payload.status = "pending";
-
       payload.approvalStatus = "pending";
+      delete (payload as any).approvedBy;
+      delete (payload as any).approvedAt;
     } else {
       payload.status = "active";
-
       payload.approvalStatus = "approved";
-
-      payload.approvedBy = authUser?.id;
-
-      payload.approvedAt = new Date();
+      if (authUser?.id) {
+        payload.approvedBy = authUser.id;
+        payload.approvedAt = new Date();
+      }
     }
 
     // files: multer puts them in req.files

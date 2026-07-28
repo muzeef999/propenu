@@ -20,6 +20,7 @@ import {
   buildPostedByAudit,
   isDirectAgentRole,
   populateListingAuditFields,
+  shouldSubmitListingForReview,
   submitAgentListingForReview,
 } from "../utils/agentSubmission";
 
@@ -481,7 +482,7 @@ export const updateLandDetailsStep = async (
     }
 
     const fresh = await LandService.getById(req.params.id);
-    if (isDirectAgentRole(req.user?.roleName)) {
+    if (await shouldSubmitListingForReview(LandPlot, req.params.id, req.user, fresh)) {
       await submitAgentListingForReview(
         LandPlot,
         req.params.id,
@@ -738,7 +739,26 @@ export const verifyLandDocument = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const existingProperty = await LandPlot.findById(id).select("status");
+    const existingProperty = await LandPlot.findById(id)
+      .select("status createdBy postedBy ownerId")
+      .populate("createdBy", "roleName role name email");
+    if (!existingProperty) {
+      return res.status(404).json({
+        success: false,
+        message: "Property not found",
+      });
+    }
+    const { assertCanApproveListing } = await import(
+      "../utils/listingApprovalGuard"
+    );
+    if (
+      !assertCanApproveListing(req, res, existingProperty, [
+        "land:verify_document",
+        "land:approve",
+      ])
+    ) {
+      return;
+    }
 
     const updated = await LandService.verifyDocument(
       id,

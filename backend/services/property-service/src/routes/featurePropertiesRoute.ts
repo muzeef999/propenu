@@ -48,7 +48,21 @@ const jsonKeys = [
 
 
 
-router.post("/",  uploadMedia, parseJsonFields(jsonKeys), authMiddleware, requirePermission("project:create", ["builder", "sales_manager", "sales_agent"]), fallbackCoerceDefault, validateBody(CreateFeaturePropertySchema),
+router.post("/",  uploadMedia, parseJsonFields(jsonKeys), authMiddleware, requirePermission("project:create", [
+  "builder",
+  "sales_manager",
+  "sales_agent",
+  "sales_executive",
+  "customer_care",
+  "customer_care_executive",
+  "customer_care_executives",
+  "relationship_manager",
+  "regional_manager",
+  "operations_head",
+  "business_development_head",
+  "ceo",
+  "team_lead",
+]), fallbackCoerceDefault, validateBody(CreateFeaturePropertySchema),
   createFeatureProperties
 );
 
