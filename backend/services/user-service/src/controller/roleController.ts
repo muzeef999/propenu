@@ -15,6 +15,24 @@ const PROTECTED_ROLE_NAMES = new Set(["super_admin", "admin"]);
 
 const normalizeRoleName = (name: string) => name.trim().toLowerCase();
 const SYSTEM_ROLE_NAMES = new Set(["super_admin", "admin", "user", "builder", "builder_staff", "agent"]);
+/** CCE + legacy aliases: Super Admin may activate / deactivate / delete like custom roles. */
+const CUSTOMER_CARE_LIFECYCLE_ROLE_NAMES = new Set([
+  "customer_care",
+  "customer_care_executive",
+  "customer_care_executives",
+]);
+
+const canManageRoleLifecycle = (role: {
+  name?: string | null;
+  roleType?: string | null;
+  isProtected?: boolean | null;
+}) => {
+  if (!role?.name || role.isProtected) return false;
+  const name = normalizeRoleName(role.name);
+  if (SYSTEM_ROLE_NAMES.has(name) || PROTECTED_ROLE_NAMES.has(name)) return false;
+  if (role.roleType === "custom") return true;
+  return CUSTOMER_CARE_LIFECYCLE_ROLE_NAMES.has(name);
+};
 
 const normalizePermissions = (permissions: unknown[]) =>
   [...new Set(permissions.map((permission) => String(permission).trim().toLowerCase()))];
@@ -431,7 +449,7 @@ export const deleteRole = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: "Role not found" });
     }
 
-    if (role.roleType !== "custom" || role.isProtected || SYSTEM_ROLE_NAMES.has(role.name)) {
+    if (!canManageRoleLifecycle(role)) {
       return res.status(403).json({
         message: "System and protected roles cannot be deleted",
       });

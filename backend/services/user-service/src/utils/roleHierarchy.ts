@@ -75,8 +75,8 @@ const HIERARCHY_ROLE_DEFS: Array<{ name: string; label: string }> = [
   { name: "sales_manager", label: "Sales Manager" },
   { name: "sales_agent", label: "Sales Executives" },
   { name: "customer_support_head", label: "Customer Support Head" },
-  { name: "team_lead", label: "Customer Support Team Leads" },
-  { name: "customer_care_executive", label: "Customer Care Executives" },
+  { name: "team_lead", label: "Customer Support Team Lead" },
+  { name: "customer_care_executive", label: "Customer Care Executive" },
   { name: "relationship_manager", label: "Relationship Managers" },
   { name: "marketing_head", label: "Marketing Head" },
   { name: "digital_marketing", label: "Digital Marketing" },
@@ -104,10 +104,11 @@ export const ensureCanonicalHierarchyRoles = async (): Promise<void> => {
           permissions: [],
           roleType: "system",
           isProtected: false,
+          isActive: true,
         },
         $set: {
           label: def.label,
-          isActive: true,
+          // Do not force isActive — Super Admin deactivate must stick.
         },
       },
       { upsert: true, setDefaultsOnInsert: true },

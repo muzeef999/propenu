@@ -1,5 +1,5 @@
 import express from "express";
-import { adminCreateRequestOtp, adminCreateUpdateLocation, adminCreateVerifyOtp, assignManager, assignReportsTo, createRequestOtp,  createVerifyOtp, deleteMyAccount, getAllUsers, getEligibleReportsTo, getManagerTeamDetails, getRoleHierarchyGuide, me, requestAdminUserPhoneChangeOtp, requestOTP, searchUsers, updateLocationOtp, updateUser, updateUserProfileById, updateUserRole, verifyOtp } from "../controller/authController";
+import { adminCreateRequestOtp, adminCreateUpdateLocation, adminCreateVerifyOtp, adminDeleteUser, adminSetUserActive, assignManager, assignReportsTo, createRequestOtp,  createVerifyOtp, deleteMyAccount, getAllUsers, getEligibleReportsTo, getManagerTeamDetails, getRoleHierarchyGuide, me, requestAdminUserPhoneChangeOtp, requestOTP, searchUsers, updateLocationOtp, updateUser, updateUserProfileById, updateUserRole, verifyOtp } from "../controller/authController";
 import { getUserWorkingLocations, updateUserWorkingLocations } from "../controller/workingLocationsController";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 import { superAdminOnly } from "../middlewares/superAdminOnly";
@@ -123,6 +123,22 @@ authRoute.put(
 
 authRoute.patch("/:id/role", authMiddleware, requireRoleTransferAccess,
   updateUserRole
+);
+
+authRoute.patch(
+  "/:id/status",
+  authMiddleware,
+  superAdminOnly,
+  requirePermission("user:activate", ["super_admin"]),
+  adminSetUserActive,
+);
+
+authRoute.delete(
+  "/:id",
+  authMiddleware,
+  superAdminOnly,
+  requirePermission("user:delete", ["super_admin"]),
+  adminDeleteUser,
 );
 
 export default authRoute;

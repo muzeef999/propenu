@@ -417,7 +417,7 @@ router.post("/seed-roles", async (_req, res) => {
       },
       {
         name: "team_lead",
-        label: "Customer Support Team Leads",
+        label: "Customer Support Team Lead",
         permissions: [
           "dashboard:view",
           "user:view",

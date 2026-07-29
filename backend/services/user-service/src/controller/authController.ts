@@ -784,6 +784,112 @@ export const deleteMyAccount = async (req: AuthRequest, res: Response) => {
   }
 };
 
+/** Super Admin: activate / deactivate a team user (login blocked when inactive). */
+export const adminSetUserActive = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body as { isActive?: boolean };
+
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user id" });
+    }
+    if (typeof isActive !== "boolean") {
+      return res.status(400).json({ message: "isActive must be a boolean" });
+    }
+    if (String(req.user?.sub) === String(id)) {
+      return res.status(400).json({ message: "You cannot change your own account status here" });
+    }
+
+    const user = await User.findById(id).populate("roleId", "name label");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const roleName = String((user.roleId as any)?.name || "").toLowerCase();
+    if (roleName === "super_admin") {
+      return res.status(403).json({ message: "Super Admin accounts cannot be activated or deactivated here" });
+    }
+
+    user.isActive = isActive;
+    await user.save();
+
+    return res.json({
+      success: true,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        isActive: user.isActive,
+        roleName,
+        roleLabel: (user.roleId as any)?.label || roleName,
+      },
+      message: isActive ? "User activated" : "User deactivated",
+    });
+  } catch (error: any) {
+    console.error("adminSetUserActive error", error);
+    return res.status(500).json({
+      message: "Failed to update user status",
+      error: error.message,
+    });
+  }
+};
+
+/** Super Admin: permanently delete a candidate / team user. */
+export const adminDeleteUser = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body as { reason?: string };
+
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user id" });
+    }
+    if (String(req.user?.sub) === String(id)) {
+      return res.status(400).json({ message: "You cannot permanently delete your own account here" });
+    }
+
+    const user = await User.findById(id)
+      .select("_id name email phone roleId isActive")
+      .populate("roleId", "name label");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const roleName = String((user.roleId as any)?.name || "").toLowerCase();
+    if (roleName === "super_admin") {
+      return res.status(403).json({ message: "Super Admin accounts cannot be permanently deleted" });
+    }
+
+    await DeletedAccount.create({
+      userId: user._id,
+      name: user.name,
+      email: user.email ?? null,
+      phone: user.phone ?? null,
+      roleId: user.roleId ?? null,
+      deletedAt: new Date(),
+      deletionReason: reason?.trim() || "Deleted by Super Admin",
+      deletionFeedback: null,
+    });
+
+    await User.findByIdAndDelete(user._id);
+
+    return res.json({
+      success: true,
+      deletedUser: {
+        id: user._id,
+        name: user.name,
+        roleName,
+      },
+      message: `${user.name || "User"} permanently deleted`,
+    });
+  } catch (error: any) {
+    console.error("adminDeleteUser error", error);
+    return res.status(500).json({
+      message: "Failed to delete user",
+      error: error.message,
+    });
+  }
+};
+
 export const getAllUsers = async (req: AuthRequest, res: Response) => {
   try {
     const userFilter: any = {};
