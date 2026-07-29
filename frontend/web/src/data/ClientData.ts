@@ -1198,6 +1198,65 @@ export const markUserNotificationsSeen = async () => {
   return res.data;
 };
 
+export type AdminNotificationAudience = "all" | "builder" | "agent" | "owner" | "user";
+
+export type SendAdminNotificationPayload = {
+  title: string;
+  body: string;
+  audience: AdminNotificationAudience;
+  image?: File | null;
+  city?: string;
+  state?: string;
+  locality?: string;
+  userIds?: string[];
+};
+
+export const sendAdminNotification = async (
+  payload: SendAdminNotificationPayload,
+) => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const formData = new FormData();
+  formData.append("title", payload.title);
+  formData.append("body", payload.body);
+  formData.append("audience", payload.audience);
+
+  if (payload.image) formData.append("image", payload.image);
+  if (payload.city?.trim()) formData.append("city", payload.city.trim());
+  if (payload.state?.trim()) formData.append("state", payload.state.trim());
+  if (payload.locality?.trim()) formData.append("locality", payload.locality.trim());
+  if (payload.userIds?.length) {
+    formData.append("userIds", JSON.stringify(payload.userIds));
+  }
+
+  const res = await axiosInstance.post(
+    `${url}/api/users/notifications/admin/notify/custom`,
+    formData,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+  return res.data;
+};
+
+export const getAdminNotifications = async () => {
+  const token = Cookies.get("token");
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await axiosInstance.get(`${url}/api/users/notifications/admin/feed`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.data;
+};
+
 export const trackProjectBrochureDownload = async (projectId: string) => {
   const token = Cookies.get("token");
   if (!token) throw new Error("Not authenticated");

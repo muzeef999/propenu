@@ -57,6 +57,7 @@ export interface IUser extends mongoose.Document {
     builder?: Date | null;
     agent?: Date | null;
     user?: Date | null;
+    admin?: Date | null;
   };
 }
 
@@ -279,6 +280,10 @@ const UserSchema = new mongoose.Schema(
         default: null,
       },
       user: {
+        type: Date,
+        default: null,
+      },
+      admin: {
         type: Date,
         default: null,
       },

@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Propenu Notification Testing Guide</title>
+  <style>
+    @page {
+      margin: 22mm 18mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: #17221b;
+      background: #ffffff;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    h1,
+    h2,
+    h3 {
+      color: #0f3d2e;
+      line-height: 1.2;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 30px;
+      margin-bottom: 10px;
+    }
+
+    h2 {
+      border-bottom: 1px solid #d9e8df;
+      font-size: 20px;
+      margin-top: 26px;
+      padding-bottom: 6px;
+    }
+
+    h3 {
+      font-size: 15px;
+      margin-top: 18px;
+    }
+
+    p {
+      margin: 8px 0;
+    }
+
+    ul,
+    ol {
+      margin: 8px 0 8px 22px;
+      padding: 0;
+    }
+
+    li {
+      margin: 4px 0;
+    }
+
+    code {
+      background: #f3f7f5;
+      border: 1px solid #e3eee8;
+      border-radius: 4px;
+      color: #173d2f;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12px;
+      padding: 1px 4px;
+    }
+
+    pre {
+      background: #10251d;
+      border-radius: 8px;
+      color: #e9fff2;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      margin: 10px 0;
+      overflow-wrap: anywhere;
+      padding: 12px;
+      white-space: pre-wrap;
+    }
+
+    table {
+      border-collapse: collapse;
+      margin: 10px 0 16px;
+      width: 100%;
+    }
+
+    th,
+    td {
+      border: 1px solid #d9e8df;
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #edf7f1;
+      color: #0f3d2e;
+      font-weight: 700;
+    }
+
+    .cover {
+      border-bottom: 4px solid #178a55;
+      margin-bottom: 22px;
+      padding-bottom: 18px;
+    }
+
+    .subtitle {
+      color: #4f6659;
+      font-size: 15px;
+      margin-top: 4px;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .badge {
+      background: #edf7f1;
+      border: 1px solid #cce5d6;
+      border-radius: 999px;
+      color: #11613e;
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 10px;
+    }
+
+    .note {
+      background: #fff9eb;
+      border: 1px solid #f0d79a;
+      border-radius: 8px;
+      margin: 12px 0;
+      padding: 10px 12px;
+    }
+
+    .ok {
+      background: #edf7f1;
+      border: 1px solid #cce5d6;
+      border-radius: 8px;
+      margin: 12px 0;
+      padding: 10px 12px;
+    }
+
+    .break {
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <h1>Propenu Notification Testing Guide</h1>
+    <p class="subtitle">Backend + Firebase push + admin campaign notification process</p>
+    <div class="badge-row">
+      <span class="badge">User Service</span>
+      <span class="badge">Property Service</span>
+      <span class="badge">Firebase FCM</span>
+      <span class="badge">Postman Testing</span>
+      <span class="badge">Admin Campaigns</span>
+    </div>
+  </section>
+
+  <h2>1. What Was Implemented</h2>
+  <p>The notification work now has two paths: automatic event notifications and admin campaign notifications.</p>
+
+  <h3>Automatic Event Notifications</h3>
+  <p>These are sent by backend business events. The implementation sends push notifications to the property owner or project builder, and also records/sends admin alerts.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Event</th>
+        <th>Who receives push</th>
+        <th>Where it is triggered</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Buyer/user contacts a property owner</td>
+        <td>Owner/builder/agent who owns the property, plus admins</td>
+        <td><code>property-service/src/services/leadService.ts</code></td>
+      </tr>
+      <tr>
+        <td>Public featured project lead is submitted</td>
+        <td>Project builder, plus admins</td>
+        <td><code>property-service/src/services/publicLeadService.ts</code></td>
+      </tr>
+      <tr>
+        <td>User downloads a featured project brochure</td>
+        <td>Project builder, plus admins</td>
+        <td><code>property-service/src/controller/leadController.ts</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Admin Campaign Notifications</h3>
+  <p>Admins can send festival, offer, announcement, or general push notifications with text and optional image.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Audience</th>
+        <th>Backend target</th>
+        <th>Use case</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>all</code></td>
+        <td>Every active user with a valid <code>fcmToken</code></td>
+        <td>General festival wishes or platform-wide announcement</td>
+      </tr>
+      <tr>
+        <td><code>builder</code></td>
+        <td>Users with builder role</td>
+        <td>Builder plan offers, project promotions, builder updates</td>
+      </tr>
+      <tr>
+        <td><code>agent</code></td>
+        <td>Users with agent role</td>
+        <td>Agent offers, lead updates, sales campaigns</td>
+      </tr>
+      <tr>
+        <td><code>owner</code></td>
+        <td>Users with normal user role</td>
+        <td>Owner property boost, property posting reminders</td>
+      </tr>
+      <tr>
+        <td><code>user</code></td>
+        <td>Users with normal user role</td>
+        <td>Buyer/renter messages, property recommendations, festival offers</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2. Backend Routes Added Or Used</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Route</th>
+        <th>Method</th>
+        <th>Purpose</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>/api/users/notifications/save-fcm-token</code></td>
+        <td>POST</td>
+        <td>Saves a user's Firebase device token.</td>
+      </tr>
+      <tr>
+        <td><code>/api/users/notifications/admin/notify/custom</code></td>
+        <td>POST</td>
+        <td>Admin sends campaign push notification with filters and optional image.</td>
+      </tr>
+      <tr>
+        <td><code>/api/users/notifications/admin/feed</code></td>
+        <td>GET</td>
+        <td>Admin reads automatic alerts plus sent campaigns.</td>
+      </tr>
+      <tr>
+        <td><code>/api/users/notifications/admin/feed/seen</code></td>
+        <td>POST</td>
+        <td>Marks admin notification feed as seen.</td>
+      </tr>
+      <tr>
+        <td><code>/api/properties/leads</code></td>
+        <td>POST</td>
+        <td>Creates contact-owner lead and sends automatic push.</td>
+      </tr>
+      <tr>
+        <td><code>/api/properties/leads/project/lead</code></td>
+        <td>POST</td>
+        <td>Creates public featured-project lead and sends automatic push.</td>
+      </tr>
+      <tr>
+        <td><code>/api/properties/leads/project/:projectId/brochure-download</code></td>
+        <td>POST</td>
+        <td>Tracks brochure download and sends automatic push.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>3. Required Setup Before Testing</h2>
+  <ol>
+    <li>Start backend services: gateway, user-service, property-service. Firebase push testing needs user-service and property-service connected to the same Mongo database.</li>
+    <li>Make sure Firebase service account JSON exists and <code>FIREBASE_KEY_PATH</code> points to it.</li>
+    <li>Make sure the target account has a valid Firebase <code>fcmToken</code>.</li>
+    <li>Use an admin or super admin JWT for admin campaign routes.</li>
+  </ol>
+
+  <div class="note">
+    <strong>Important:</strong> FCM push cannot be tested with a fake token. You need a real token generated by the frontend/mobile Firebase SDK.
+  </div>
+
+  <h2>4. Base URLs For Postman</h2>
+  <p>If testing through gateway, use:</p>
+  <pre>http://localhost:4000</pre>
+  <p>If testing user-service directly, use:</p>
+  <pre>http://localhost:4004</pre>
+  <p>If testing property-service directly, use:</p>
+  <pre>http://localhost:4003</pre>
+  <p>The examples below use the gateway base URL.</p>
+
+  <h2>5. Postman Authentication</h2>
+  <p>For protected routes, add this header:</p>
+  <pre>Authorization: Bearer YOUR_ADMIN_OR_USER_TOKEN</pre>
+  <p>For admin campaign routes, the token must belong to a user whose role is <code>admin</code> or <code>super_admin</code>.</p>
+
+  <h2>6. Save FCM Token</h2>
+  <p>Before sending any push, save the target user's FCM token.</p>
+  <pre>POST http://localhost:4000/api/users/notifications/save-fcm-token
+Content-Type: application/json</pre>
+  <pre>{
+  "userId": "TARGET_USER_ID",
+  "token": "REAL_FIREBASE_FCM_TOKEN"
+}</pre>
+  <p>Expected response:</p>
+  <pre>{
+  "message": "Token saved"
+}</pre>
+
+  <div class="ok">
+    <strong>Recommended first test:</strong> save the token for your own account, then send an <code>audience=all</code> campaign without image.
+  </div>
+
+  <div class="break"></div>
+  <h2>7. Test Admin Campaign Notification: All Users</h2>
+  <p>Postman setup:</p>
+  <ul>
+    <li>Method: <code>POST</code></li>
+    <li>URL: <code>http://localhost:4000/api/users/notifications/admin/notify/custom</code></li>
+    <li>Authorization header: admin token</li>
+    <li>Body type: <code>form-data</code></li>
+  </ul>
+  <p>Form-data fields:</p>
+  <pre>title: Happy Diwali
+body: Wishing you a bright and prosperous festival from Propenu.
+audience: all</pre>
+  <p>Optional image field:</p>
+  <pre>image: select a file in Postman</pre>
+  <p>Expected response:</p>
+  <pre>{
+  "success": true,
+  "message": "Notification sent",
+  "totalUsers": 10,
+  "successCount": 9,
+  "failureCount": 1,
+  "successUserIds": ["..."],
+  "failedUserIds": ["..."],
+  "image": "https://...",
+  "campaignId": "..."
+}</pre>
+
+  <h2>8. Test Builder Campaign</h2>
+  <pre>POST http://localhost:4000/api/users/notifications/admin/notify/custom</pre>
+  <p>Body type: <code>form-data</code></p>
+  <pre>title: Builder Festival Offer
+body: Promote your project with a special festival boost.
+audience: builder</pre>
+  <p>This targets active users with the builder role and valid <code>fcmToken</code>.</p>
+
+  <h2>9. Test Agent Campaign</h2>
+  <pre>POST http://localhost:4000/api/users/notifications/admin/notify/custom</pre>
+  <p>Body type: <code>form-data</code></p>
+  <pre>title: Agent Lead Update
+body: New campaign tools are available for agents.
+audience: agent</pre>
+
+  <h2>10. Test Owner Campaign</h2>
+  <pre>POST http://localhost:4000/api/users/notifications/admin/notify/custom</pre>
+  <p>Body type: <code>form-data</code></p>
+  <pre>title: Owner Property Boost
+body: Boost your property visibility this festival season.
+audience: owner</pre>
+  <div class="note">
+    <strong>Note:</strong> In the current backend, owner maps to the normal <code>user</code> role. If later you create a separate owner role, update the audience-role mapping.
+  </div>
+
+  <h2>11. Test Campaign With Location Filter</h2>
+  <p>Example: send only to agents in Pune, Maharashtra.</p>
+  <pre>title: Pune Agent Campaign
+body: Special update for agents in Pune.
+audience: agent
+state: Maharashtra
+city: Pune</pre>
+  <p>Optional locality:</p>
+  <pre>locality: Baner</pre>
+
+  <h2>12. Test Campaign To Specific User IDs</h2>
+  <p>Body type: <code>form-data</code></p>
+  <pre>title: Selected User Test
+body: Testing push notification for selected users.
+audience: all
+userIds: ["USER_ID_1","USER_ID_2"]</pre>
+  <p>In Postman, <code>userIds</code> is a text field containing a JSON array string.</p>
+
+  <h2>13. Test Admin Notification Feed</h2>
+  <p>This endpoint returns automatic admin alerts and manually sent campaigns.</p>
+  <pre>GET http://localhost:4000/api/users/notifications/admin/feed
+Authorization: Bearer YOUR_ADMIN_TOKEN</pre>
+  <p>Expected response shape:</p>
+  <pre>{
+  "success": true,
+  "data": [
+    {
+      "_id": "...",
+      "type": "brochure_downloaded",
+      "title": "Brochure Downloaded",
+      "body": "...",
+      "createdAt": "..."
+    },
+    {
+      "_id": "...",
+      "title": "Happy Diwali",
+      "body": "...",
+      "audience": "all",
+      "successCount": 10,
+      "failureCount": 0
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "unread": 2
+  }
+}</pre>
+
+  <h2>14. Mark Admin Feed Seen</h2>
+  <pre>POST http://localhost:4000/api/users/notifications/admin/feed/seen
+Authorization: Bearer YOUR_ADMIN_TOKEN</pre>
+  <p>Expected response:</p>
+  <pre>{
+  "success": true
+}</pre>
+
+  <div class="break"></div>
+  <h2>15. Test Automatic Notification: Contact Owner</h2>
+  <p>This tests the automatic notification sent when a user contacts a property owner.</p>
+  <p>Requirements:</p>
+  <ul>
+    <li>The buyer/user must be logged in.</li>
+    <li>The property must not belong to the same user.</li>
+    <li>The property owner/builder/agent must have a saved <code>fcmToken</code>.</li>
+    <li>For normal properties, buyer/renter subscription checks still apply.</li>
+  </ul>
+  <pre>POST http://localhost:4000/api/properties/leads
+Authorization: Bearer BUYER_USER_TOKEN
+Content-Type: application/json</pre>
+  <pre>{
+  "name": "Test Buyer",
+  "phone": "9876543210",
+  "email": "buyer@example.com",
+  "projectId": "PROPERTY_ID",
+  "propertyType": "residentials",
+  "remarks": "I am interested"
+}</pre>
+  <p>Supported <code>propertyType</code> values:</p>
+  <pre>featuredprojects
+residentials
+commercials
+agriculturals
+landplots</pre>
+  <p>Expected notification title:</p>
+  <pre>New Contact Request</pre>
+
+  <h2>16. Test Automatic Notification: Public Featured Project Lead</h2>
+  <pre>POST http://localhost:4000/api/properties/leads/project/lead
+Content-Type: application/json</pre>
+  <pre>{
+  "projectId": "FEATURED_PROJECT_ID",
+  "name": "Public Lead",
+  "phone": "9876543210",
+  "email": "lead@example.com",
+  "message": "Interested in this project"
+}</pre>
+  <p>Expected notification title:</p>
+  <pre>New Project Lead</pre>
+
+  <h2>17. Test Automatic Notification: Brochure Download</h2>
+  <pre>POST http://localhost:4000/api/properties/leads/project/FEATURED_PROJECT_ID/brochure-download
+Authorization: Bearer USER_TOKEN</pre>
+  <p>Expected notification title:</p>
+  <pre>Brochure Downloaded</pre>
+  <p>The project builder and admins receive this notification if they have valid FCM tokens.</p>
+
+  <h2>18. Where Data Is Stored</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Collection</th>
+        <th>Purpose</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>users</code></td>
+        <td>Stores <code>fcmToken</code> and notification seen timestamps.</td>
+      </tr>
+      <tr>
+        <td><code>notificationcampaigns</code></td>
+        <td>Stores admin-sent campaigns, filters, counts, image URL, success/failure users.</td>
+      </tr>
+      <tr>
+        <td><code>usercampaignnotifications</code></td>
+        <td>Stores per-user records for successful admin campaigns.</td>
+      </tr>
+      <tr>
+        <td><code>platformnotifications</code></td>
+        <td>Stores admin alerts generated by backend events such as brochure download and leads.</td>
+      </tr>
+      <tr>
+        <td><code>brochuredownloads</code></td>
+        <td>Tracks featured project brochure downloads.</td>
+      </tr>
+      <tr>
+        <td><code>propertyleads</code></td>
+        <td>Stores direct contact-owner leads.</td>
+      </tr>
+      <tr>
+        <td><code>publicleads</code></td>
+        <td>Stores public featured-project leads.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>19. Notifications You Can Receive</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Receiver</th>
+        <th>Notification examples</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Admin</td>
+        <td>Brochure downloaded, new contact request, new project lead, sent campaign history.</td>
+      </tr>
+      <tr>
+        <td>Builder</td>
+        <td>New project lead, brochure downloaded, project contact request, admin campaign.</td>
+      </tr>
+      <tr>
+        <td>Agent</td>
+        <td>New property lead/contact request, admin campaign for agents.</td>
+      </tr>
+      <tr>
+        <td>Owner</td>
+        <td>New property contact request, admin campaign for owners/users.</td>
+      </tr>
+      <tr>
+        <td>User/Buyer/Renter</td>
+        <td>Admin campaign, festival message, platform announcement.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>20. Common Errors And Fixes</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Error</th>
+        <th>Meaning</th>
+        <th>Fix</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>403 Forbidden</code></td>
+        <td>The JWT user is not admin/super_admin.</td>
+        <td>Login with admin or super_admin account.</td>
+      </tr>
+      <tr>
+        <td><code>No users found</code></td>
+        <td>No active users matched the audience/location filters with FCM token.</td>
+        <td>Check role, city/state/locality spelling, and saved token.</td>
+      </tr>
+      <tr>
+        <td><code>No valid tokens</code></td>
+        <td>Matching users exist but do not have <code>fcmToken</code>.</td>
+        <td>Call save-fcm-token first with a real Firebase token.</td>
+      </tr>
+      <tr>
+        <td><code>Firebase service account file NOT FOUND</code></td>
+        <td>Firebase Admin cannot find the service account JSON.</td>
+        <td>Set <code>FIREBASE_KEY_PATH</code> correctly and restart backend.</td>
+      </tr>
+      <tr>
+        <td><code>messaging/registration-token-not-registered</code></td>
+        <td>The FCM token is expired or invalid.</td>
+        <td>Generate a fresh frontend token and save it again.</td>
+      </tr>
+      <tr>
+        <td><code>This is your own property</code></td>
+        <td>User tried to contact their own property.</td>
+        <td>Use a different user account as buyer/renter.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>21. Quick Test Checklist</h2>
+  <ol>
+    <li>Start gateway, user-service, and property-service.</li>
+    <li>Confirm Firebase service account file path.</li>
+    <li>Login as admin and copy JWT.</li>
+    <li>Save a real FCM token for at least one target user.</li>
+    <li>Send admin campaign with <code>audience=all</code>.</li>
+    <li>Check device/browser push received.</li>
+    <li>Check <code>GET /api/users/notifications/admin/feed</code>.</li>
+    <li>Test builder/agent/owner filters.</li>
+    <li>Test brochure download automatic notification.</li>
+    <li>Test contact-owner automatic notification.</li>
+  </ol>
+</body>
+</html>

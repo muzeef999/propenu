@@ -7,6 +7,66 @@ import { HydratedDocument } from "mongoose";
 import Role from "../models/roleModel";
 import { uploadToS3 } from "../utils/s3Upload";
 
+const isAdminRole = (roleName?: string) =>
+  roleName === "admin" || roleName === "super_admin";
+
+const audienceRoleMap: Record<string, string[]> = {
+  builder: ["builder"],
+  agent: ["agent"],
+  owner: ["user"],
+  user: ["user"],
+  users: ["user"],
+  all: [],
+};
+
+const normalizeList = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.map(String).map((item) => item.trim()).filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.map(String).map((item) => item.trim()).filter(Boolean);
+      }
+    } catch {
+      // Fall through to comma-separated values.
+    }
+
+    return trimmed
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
+const createRegexFilter = (value?: string) =>
+  value ? new RegExp(`^${value.trim()}$`, "i") : undefined;
+
+const getRoleIdsForAudience = async (audience?: string, role?: string) => {
+  const normalizedAudience = String(audience || "").trim().toLowerCase();
+  const explicitRoles = normalizeList(role);
+  const roleNames = explicitRoles.length
+    ? explicitRoles
+    : audienceRoleMap[normalizedAudience] || [];
+
+  if (!roleNames.length) return [];
+
+  const roles = await Role.find({
+    $or: roleNames.map((name) => ({ name: new RegExp(`^${name}$`, "i") })),
+  })
+    .select("_id")
+    .lean();
+
+  return roles.map((roleDoc) => roleDoc._id);
+};
+
 export const saveFcmToken = async (req: Request, res: Response) => {
   try {
     const { userId, token } = req.body;
@@ -115,15 +175,31 @@ export const saveFcmToken = async (req: Request, res: Response) => {
 
 export const sendCustomNotification = async (req: Request, res: Response) => {
   try {
+    const actor = (req as any).user;
+
+    if (!isAdminRole(actor?.roleName)) {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden: only admin/super_admin can send notifications",
+      });
+    }
+
     const {
       title,
       body,
       userIds,
-      role,
+      audience,
+      role: requestedRole,
       city,
       state,
       locality,
     } = req.body;
+    const normalizedAudience = String(audience || "").trim().toLowerCase();
+    const role =
+      requestedRole ||
+      (normalizedAudience && normalizedAudience !== "all"
+        ? audienceRoleMap[normalizedAudience]?.[0]
+        : undefined);
 
     if (!title || !body) {
       return res.status(400).json({
@@ -151,12 +227,14 @@ export const sendCustomNotification = async (req: Request, res: Response) => {
 
     // ✅ Base query
     const query: any = {
-      fcmToken: { $ne: null },
+      fcmToken: { $nin: [null, ""] },
+      isActive: { $ne: false },
     };
 
     // ✅ UserIds priority
-    if (userIds?.length) {
-      query._id = { $in: userIds };
+    const requestedUserIds = normalizeList(userIds);
+    if (requestedUserIds.length) {
+      query._id = { $in: requestedUserIds };
     }
 
     // ✅ 🔥 FIXED ROLE FILTER (IMPORTANT)
@@ -216,6 +294,10 @@ export const sendCustomNotification = async (req: Request, res: Response) => {
       title,
       body,
       ...(image ? { image } : {}),
+      data: {
+        type: "admin_campaign",
+        audience: String(audience || role || "custom"),
+      },
     });
 
 
@@ -241,6 +323,46 @@ export const sendCustomNotification = async (req: Request, res: Response) => {
       }
     });
 
+    const now = new Date();
+    const campaign = await User.db.collection("notificationcampaigns").insertOne({
+      title,
+      body,
+      image: image || null,
+      audience: audience || null,
+      role: role || null,
+      filters: {
+        userIds: requestedUserIds,
+        city: city || null,
+        state: state || null,
+        locality: locality || null,
+      },
+      totalUsers: users.length,
+      successCount: response.successCount,
+      failureCount: response.failureCount,
+      successUserIds: successUsers,
+      failedUserIds: failedUsers,
+      createdBy: actor?.sub || actor?.id || null,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    if (successUsers.length) {
+      await User.db.collection("usercampaignnotifications").insertMany(
+        successUsers.map((userId) => ({
+          userId,
+          campaignId: campaign.insertedId,
+          type: "admin_campaign",
+          title,
+          body,
+          image: image || null,
+          audience: audience || null,
+          createdAt: now,
+          updatedAt: now,
+        })),
+        { ordered: false },
+      );
+    }
+
     return res.status(200).json({
       success: true,
       message: `Notification sent`,
@@ -253,6 +375,7 @@ export const sendCustomNotification = async (req: Request, res: Response) => {
       failedUserIds: failedUsers,
 
       image,
+      campaignId: campaign.insertedId,
     });
   } catch (error: any) {
     console.error("❌ Notification Error:", error);
@@ -260,6 +383,98 @@ export const sendCustomNotification = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: "Error sending notification",
+      error: error.message,
+    });
+  }
+};
+
+export const getAdminNotifications = async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+
+    if (!isAdminRole(user?.roleName)) {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden: only admin/super_admin can access notifications",
+      });
+    }
+
+    const limit = Math.min(Number(req.query.limit ?? 50), 100);
+    const [platformNotifications, campaigns] = await Promise.all([
+      User.db
+        .collection("platformnotifications")
+        .find({ audience: "admin" })
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .toArray(),
+      User.db
+        .collection("notificationcampaigns")
+        .find({})
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .toArray(),
+    ]);
+
+    const notifications = [...platformNotifications, ...campaigns]
+      .sort((a: any, b: any) => {
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bTime - aTime;
+      })
+      .slice(0, limit);
+
+    const viewer = await User.findById(user.sub || user.id)
+      .select("notificationSeenAt.admin")
+      .lean();
+    const lastSeenAt = (viewer?.notificationSeenAt as any)?.admin ?? null;
+    const seenAtMs = lastSeenAt ? new Date(lastSeenAt).getTime() : 0;
+    const unread = notifications.filter((item: any) => {
+      const createdAtMs = item.createdAt ? new Date(item.createdAt).getTime() : 0;
+      return createdAtMs > seenAtMs;
+    }).length;
+
+    return res.json({
+      success: true,
+      data: notifications,
+      summary: {
+        total: notifications.length,
+        unread,
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load admin notifications",
+      error: error.message,
+    });
+  }
+};
+
+export const markAdminNotificationsSeen = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const user = (req as any).user;
+
+    if (!isAdminRole(user?.roleName)) {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden: only admin/super_admin can update notifications",
+      });
+    }
+
+    await User.findByIdAndUpdate(user.sub || user.id, {
+      $set: {
+        "notificationSeenAt.admin": new Date(),
+      },
+    });
+
+    return res.json({ success: true });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update admin notifications",
       error: error.message,
     });
   }

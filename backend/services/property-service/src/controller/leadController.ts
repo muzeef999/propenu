@@ -23,6 +23,7 @@ import LandPlot from "../models/landModel";
 import Agricultural from "../models/agriculturalModel";
 import * as XLSX from "xlsx";
 import { getAdminLeadDashboard } from "../services/adminLeadService";
+import { notifyProjectBrochureDownload } from "../services/pushNotificationService";
 
 
 const sendCSV = (leads: any[], res: Response) => {
@@ -920,6 +921,8 @@ export const trackProjectBrochureDownloadController = async (
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+
+    await notifyProjectBrochureDownload({ projectId, userId });
 
     return res.status(201).json({
       success: true,

@@ -8,6 +8,8 @@ import Agricultural from "../models/agriculturalModel";
 import LandPlot from "../models/landModel";
 import FeaturedProject from "../models/featurePropertiesModel";
 import PublicLead from "../models/PublicLead";
+import User from "../models/userModel";
+import { notifyOwnerAndAdmins } from "./pushNotificationService";
 
 const PROPERTY_MODEL_MAP: Record<string, any> = {
   featuredprojects: FeaturedProject,
@@ -43,6 +45,41 @@ const getExistingLeadWithDialogDetails = async (lead: any) => {
   }
 
   return getLeadWithDialogDetails(lead._id);
+};
+
+const notifyLeadCreated = async ({
+  lead,
+  property,
+  userId,
+}: {
+  lead: any;
+  property: any;
+  userId: string;
+}) => {
+  const user = await User.findById(userId).select("name phone email").lean();
+  const propertyTitle =
+    property?.title ||
+    property?.projectName ||
+    property?.buildingName ||
+    "your property";
+  const userName = user?.name || lead?.name || "A user";
+
+  await notifyOwnerAndAdmins({
+    type: "contact_requested",
+    title: "New Contact Request",
+    body: `${userName} requested contact for ${propertyTitle}.`,
+    actorUserId: userId,
+    ownerId: lead.ownerId,
+    projectId: lead.projectId,
+    propertyType: lead.propertyType,
+    metadata: {
+      leadId: String(lead._id),
+      propertyTitle,
+      userName,
+      userPhone: user?.phone || lead?.phone || "",
+      userEmail: user?.email || lead?.email || "",
+    },
+  });
 };
 
 /** CREATE LEAD **/
@@ -106,6 +143,8 @@ export const createLead = async (data: any, userId: string | null) => {
       listingType,
     });
 
+    await notifyLeadCreated({ lead, property, userId });
+
     return getLeadWithDialogDetails(lead._id);
   }
 
@@ -155,6 +194,7 @@ export const createLead = async (data: any, userId: string | null) => {
 
   viewerSub.usage.contactUsed += 1;
   await viewerSub.save();
+  await notifyLeadCreated({ lead, property, userId });
 
   return getLeadWithDialogDetails(lead._id);
 };
