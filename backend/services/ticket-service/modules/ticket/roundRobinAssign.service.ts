@@ -114,10 +114,11 @@ const effectiveTerritories = (exec: ExecutiveCandidate): WorkingLocation[] => {
   const stored = Array.isArray(exec.workingLocations) ? exec.workingLocations : [];
   const cleaned = stored.filter((row) => normalizeLoc(row?.state));
   if (cleaned.length) return cleaned;
-  if (normalizeLoc(exec.state)) {
+  const state = String(exec.state || "").trim();
+  if (normalizeLoc(state)) {
     return [
       {
-        state: exec.state,
+        state,
         ...(normalizeLoc(exec.city) ? { city: exec.city } : {}),
         ...(normalizeLoc(exec.locality) ? { locality: exec.locality } : {}),
       },
@@ -215,18 +216,25 @@ export async function listCustomerCareExecutives(): Promise<ExecutiveCandidate[]
   const merged = uniqueByUserId([...fromUsers, ...fromDept]);
   // Enrich dept-only members with location fields from users when possible.
   const byId = new Map(fromUsers.map((u) => [u.userId, u]));
-  const enriched = merged.map((item) => {
+  const enriched = merged.map((item): ExecutiveCandidate => {
     const fromUser = byId.get(item.userId);
     if (!fromUser) return item;
-    return {
+    const enrichedItem: ExecutiveCandidate = {
       ...item,
-      state: item.state || fromUser.state,
-      city: item.city || fromUser.city,
-      locality: item.locality || fromUser.locality,
-      workingLocations: item.workingLocations?.length
-        ? item.workingLocations
-        : fromUser.workingLocations,
     };
+    const state = item.state || fromUser.state;
+    const city = item.city || fromUser.city;
+    const locality = item.locality || fromUser.locality;
+    const workingLocations = item.workingLocations?.length
+      ? item.workingLocations
+      : fromUser.workingLocations;
+
+    if (state) enrichedItem.state = state;
+    if (city) enrichedItem.city = city;
+    if (locality) enrichedItem.locality = locality;
+    if (workingLocations?.length) enrichedItem.workingLocations = workingLocations;
+
+    return enrichedItem;
   });
   return sortExecutives(enriched);
 }
@@ -288,7 +296,8 @@ export async function pickNextCustomerCareExecutiveDetailed(
     const localPool = pool.filter((exec) => executiveCoversLocation(exec, location));
     if (localPool.length) {
       const index = await nextRoundRobinIndex(localPool.length, LOCATION_COUNTER_KEY);
-      const selected = localPool[index] || localPool[0];
+      const selected = localPool[index] ?? localPool[0];
+      if (!selected) return null;
       const actor = toActor(selected);
       if (!actor) return null;
       return { actor, method: "location_round_robin" };
@@ -296,7 +305,8 @@ export async function pickNextCustomerCareExecutiveDetailed(
   }
 
   const index = await nextRoundRobinIndex(pool.length, COUNTER_KEY);
-  const selected = pool[index] || pool[0];
+  const selected = pool[index] ?? pool[0];
+  if (!selected) return null;
   const actor = toActor(selected);
   if (!actor) return null;
   return { actor, method: "round_robin" };

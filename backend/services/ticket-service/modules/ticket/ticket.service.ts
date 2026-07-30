@@ -135,6 +135,14 @@ const generateTicketCode = async () => {
   throw new Error("Unable to generate unique ticket code");
 };
 
+const requesterLookupInput = (requester: CreateTicketInput["requester"]) => {
+  const input: { userId?: string; email?: string } = {};
+  const userId = (requester as any)?.userId || (requester as any)?.id;
+  if (userId) input.userId = String(userId);
+  if (requester?.email) input.email = requester.email;
+  return input;
+};
+
 const isSupportActor = (author?: TicketActor) =>
   !!author && author.role !== "requester" && author.role !== "customer";
 
@@ -197,22 +205,19 @@ export class TicketService {
 
     if (
       shouldAutoAssignCustomerCare({
-        assignedTo,
         isRelationshipManagerTicket,
         department,
+        ...(assignedTo ? { assignedTo } : {}),
       })
     ) {
       try {
         let assignLocation =
           resolveAssignLocation({
-            metadata: input.metadata,
+            metadata: input.metadata ?? {},
             requester: input.requester as any,
           }) || null;
         if (!assignLocation) {
-          assignLocation = await lookupRequesterLocation({
-            userId: (input.requester as any)?.userId || (input.requester as any)?.id,
-            email: input.requester?.email,
-          });
+          assignLocation = await lookupRequesterLocation(requesterLookupInput(input.requester));
         }
 
         const picked = await pickNextCustomerCareExecutiveDetailed(assignLocation);
@@ -343,10 +348,7 @@ export class TicketService {
             requester: input.requester as any,
           }) || null;
         if (!assignLocation) {
-          assignLocation = await lookupRequesterLocation({
-            userId: (input.requester as any)?.userId || (input.requester as any)?.id,
-            email: input.requester?.email,
-          });
+          assignLocation = await lookupRequesterLocation(requesterLookupInput(input.requester));
         }
         const picked = await pickNextCustomerCareExecutiveDetailed(assignLocation);
         if (picked?.actor?.userId) {
