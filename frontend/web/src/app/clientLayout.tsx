@@ -14,7 +14,6 @@ import Navbar from "@/components/Navbar";
 import { HomeMateChatbot } from "@/app/(pages)/chatbot";
 import { ModalProvider, useModal } from "@/app/context/ModalContext";
 import { getFcmToken } from "@/utilies/getFcmToken";
-import RateLimitBlocker from "@/components/RateLimitBlocker";
 
 const HIDE_LAYOUT_ROUTES = [
   "/prime",
@@ -103,7 +102,6 @@ function ClientProvidersContent({
      <Provider store={store}>
     <QueryClientProvider client={queryClient}>
       {!hideLayout && !isAgentRegistrationModalOpen && <Navbar />}
-      <RateLimitBlocker />
       {children}
       <Toaster
         position="top-right"

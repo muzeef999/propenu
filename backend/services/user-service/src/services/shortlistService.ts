@@ -339,6 +339,7 @@ export const getBuilderAnalytics = async (
     statusStats,
     shortlistTotal,
     leadTotal,
+    projectEngagementRows,
     projectTrend,
     shortlistTrend,
     leadTrend,
@@ -439,6 +440,115 @@ export const getBuilderAnalytics = async (
           { $count: "total" },
         ])
         .toArray(),
+    ]),
+    FeaturedProject.aggregate([
+      { $match: portfolioMatch },
+      {
+        $lookup: {
+          from: "shortlists",
+          let: { projectId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$propertyId", "$$projectId"] },
+                propertyType: "FeaturedProject",
+                createdAt: createdAtFilter,
+              },
+            },
+            { $count: "count" },
+          ],
+          as: "shortlistStats",
+        },
+      },
+      {
+        $lookup: {
+          from: "propertyleads",
+          let: { projectId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$projectId", "$$projectId"] },
+                createdAt: createdAtFilter,
+              },
+            },
+            { $count: "count" },
+          ],
+          as: "propertyLeadStats",
+        },
+      },
+      {
+        $lookup: {
+          from: "publicleads",
+          let: { projectId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$projectId", "$$projectId"] },
+                createdAt: createdAtFilter,
+              },
+            },
+            { $count: "count" },
+          ],
+          as: "publicLeadStats",
+        },
+      },
+      {
+        $lookup: {
+          from: "brochuredownloads",
+          let: { projectId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$projectId", "$$projectId"] },
+                source: "brochure_download",
+                createdAt: createdAtFilter,
+              },
+            },
+            { $count: "count" },
+          ],
+          as: "brochureStats",
+        },
+      },
+      {
+        $addFields: {
+          views: { $ifNull: ["$meta.views", 0] },
+          clicks: { $ifNull: ["$meta.clicks", 0] },
+          inquiries: { $ifNull: ["$meta.inquiries", 0] },
+          shortlists: {
+            $ifNull: [{ $arrayElemAt: ["$shortlistStats.count", 0] }, 0],
+          },
+          propertyLeads: {
+            $ifNull: [{ $arrayElemAt: ["$propertyLeadStats.count", 0] }, 0],
+          },
+          publicLeads: {
+            $ifNull: [{ $arrayElemAt: ["$publicLeadStats.count", 0] }, 0],
+          },
+          brochureDownloads: {
+            $ifNull: [{ $arrayElemAt: ["$brochureStats.count", 0] }, 0],
+          },
+        },
+      },
+      {
+        $addFields: {
+          callRequests: { $add: ["$propertyLeads", "$publicLeads", "$inquiries"] },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          city: 1,
+          state: 1,
+          status: 1,
+          views: 1,
+          clicks: 1,
+          shortlists: 1,
+          brochureDownloads: 1,
+          callRequests: 1,
+        },
+      },
+      { $sort: { views: -1, callRequests: -1, shortlists: -1, title: 1 } },
+      { $limit: 8 },
     ]),
     FeaturedProject.aggregate([
       { $match: rangeMatch },
@@ -575,6 +685,18 @@ export const getBuilderAnalytics = async (
   const totalLeads =
     (leadTotal[0]?.[0]?.total || 0) +
     (leadTotal[1]?.[0]?.total || 0);
+  const projectEngagement = projectEngagementRows.map((project) => ({
+    _id: String(project._id),
+    title: project.title || "Untitled Project",
+    city: project.city,
+    state: project.state,
+    status: project.status,
+    views: project.views || 0,
+    shortlists: project.shortlists || 0,
+    brochureDownloads: project.brochureDownloads || 0,
+    callRequests: project.callRequests || 0,
+    clicks: project.clicks || 0,
+  }));
 
   const statusSummary = {
     active: 0,
@@ -766,6 +888,7 @@ export const getBuilderAnalytics = async (
       states: availableStates,
       citiesByState,
     },
+    projectEngagement,
     topViewed,
   };
 };

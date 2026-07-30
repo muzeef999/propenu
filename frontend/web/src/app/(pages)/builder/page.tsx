@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getBuilderDashboards } from "@/data/ClientData";
 import { useQuery } from "@tanstack/react-query";
 import KpiCard from "../agent/ui/KpiCard";
 import Dropdownui from "@/ui/DropDownUI";
 import { HiHome, HiTrendingUp } from "react-icons/hi";
-import { HiBuildingOffice2, HiCheckCircle } from "react-icons/hi2";
+import { HiBuildingOffice2 } from "react-icons/hi2";
 import { MdOutlineStar } from "react-icons/md";
 import { FiCalendar, FiChevronDown, FiEye, FiImage, FiMapPin, FiUsers, FiTarget, FiMousePointer } from "react-icons/fi";
 import {
@@ -15,8 +15,6 @@ import {
   CartesianGrid,
   Cell,
   Legend,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -51,6 +49,19 @@ type LocationBucket = {
 type TrendPoint = {
   label: string;
   count: number;
+};
+
+type ProjectEngagementItem = {
+  _id: string;
+  title: string;
+  city?: string;
+  state?: string;
+  status?: string;
+  views: number;
+  shortlists: number;
+  brochureDownloads: number;
+  callRequests: number;
+  clicks: number;
 };
 
 type BuilderDashboardResponse = {
@@ -115,6 +126,7 @@ type BuilderDashboardResponse = {
     shortlists?: TrendPoint[];
     leads?: TrendPoint[];
   };
+  projectEngagement?: ProjectEngagementItem[];
   topViewed: TopViewedItem[];
 };
 
@@ -130,8 +142,6 @@ const DATE_RANGE_OPTIONS = [
   { label: "This Month", value: "30d" },
   { label: "Custom Date", value: "custom" },
 ];
-const ALL_STATES_VALUE = "__all_states__";
-const ALL_CITIES_VALUE = "__all_cities__";
 const PROJECT_IMAGE_FALLBACK = "/images/placeholder.svg";
 const MOMENTUM_PAGE_SIZE = 5;
 
@@ -192,8 +202,6 @@ const Dashboard = () => {
   const [dateRange, setDateRange] = useState("30d");
   const [customFromDate, setCustomFromDate] = useState("");
   const [customToDate, setCustomToDate] = useState("");
-  const [selectedState, setSelectedState] = useState(ALL_STATES_VALUE);
-  const [selectedCity, setSelectedCity] = useState(ALL_CITIES_VALUE);
   const [momentumPage, setMomentumPage] = useState(1);
   const [dateRangeOpen, setDateRangeOpen] = useState(false);
   const dateRangeRef = useRef<HTMLDivElement | null>(null);
@@ -203,13 +211,9 @@ const Dashboard = () => {
       dateRange,
       customFromDate,
       customToDate,
-      selectedState,
-      selectedCity,
     ],
     queryFn: () =>
       getBuilderDashboards(dateRange, {
-        state: selectedState !== ALL_STATES_VALUE ? selectedState : undefined,
-        city: selectedCity !== ALL_CITIES_VALUE ? selectedCity : undefined,
         fromDate: dateRange === "custom" ? customFromDate || undefined : undefined,
         toDate: dateRange === "custom" ? customToDate || undefined : undefined,
       }),
@@ -219,8 +223,6 @@ const Dashboard = () => {
   });
 
   const summary = data?.builderSummary;
-  const statusSummary = data?.statusSummary ?? { active: 0, inactive: 0, archived: 0 };
-
   const totalProjects = summary?.totalProjects ?? 0;
   const totalViews = summary?.totalViews ?? 0;
   const featuredProjects = summary?.featuredProjects ?? 0;
@@ -228,27 +230,7 @@ const Dashboard = () => {
   const sponsoredProjects = summary?.sponsoredProjects ?? 0;
   const totalShortlists = summary?.totalShortlists ?? 0;
   const totalLeads = summary?.totalLeads ?? 0;
-  const totalInquiries = summary?.totalInquiries ?? 0;
   const averageViewsPerProject = summary?.averageViewsPerProject ?? 0;
-  const averageShortlistsPerProject = summary?.averageShortlistsPerProject ?? 0;
-  const averageLeadsPerProject = summary?.averageLeadsPerProject ?? 0;
-  const featuredShare = totalProjects > 0 ? Math.round((featuredProjects / totalProjects) * 100) : 0;
-  const states = data?.filterOptions?.states ?? [];
-  const citiesByState = data?.filterOptions?.citiesByState ?? {};
-  const stateOptions = [
-    { label: "All States", value: ALL_STATES_VALUE },
-    ...states.map((state) => ({ label: state, value: state })),
-  ];
-  const cityPool =
-    selectedState !== ALL_STATES_VALUE
-      ? (citiesByState[selectedState] ?? [])
-      : Object.values(citiesByState).flat();
-  const cityOptions = [
-    { label: "All Cities", value: ALL_CITIES_VALUE },
-    ...Array.from(new Set(cityPool))
-      .sort((left, right) => left.localeCompare(right))
-      .map((city) => ({ label: city, value: city })),
-  ];
 
   const cityChartData =
     sortByCountDesc(
@@ -294,36 +276,41 @@ const Dashboard = () => {
     momentumPage * MOMENTUM_PAGE_SIZE,
   );
 
-  const totalClicks = topViewedProjects.reduce((sum, item) => sum + item.clicks, 0);
-
-  const topCity = cityChartData[0];
-  const topState = stateChartData[0];
   const leadingProject = topViewedProjects[0];
   const hasViewData = totalViews > 0;
-  const primaryMarket =
-    topCity && topState ? `${topCity.city}, ${topState.state}` : topCity?.city ?? topState?.state ?? "No data";
+  const projectEngagementData =
+    data?.projectEngagement?.map((project, index, projects) => {
+      const title = project.title || "Untitled Project";
+      const duplicateIndex =
+        projects.slice(0, index + 1).filter((item) => (item.title || "Untitled Project") === title).length;
+      const hasDuplicateTitle = projects.some(
+        (item, itemIndex) => itemIndex !== index && (item.title || "Untitled Project") === title,
+      );
+      const shortTitle = title.length > 20 ? `${title.slice(0, 20)}...` : title;
 
-  const trendData = useMemo(() => {
-    const projectTrend = data?.trendStats?.projectsCreated ?? [];
-    const shortlistTrend = data?.trendStats?.shortlists ?? [];
-    const leadTrend = data?.trendStats?.leads ?? [];
-    const length = Math.max(projectTrend.length, shortlistTrend.length, leadTrend.length);
-
-    return Array.from({ length }, (_, index) => ({
-      label:
-        projectTrend[index]?.label ??
-        shortlistTrend[index]?.label ??
-        leadTrend[index]?.label ??
-        "",
-      projects: projectTrend[index]?.count ?? 0,
-      shortlists: shortlistTrend[index]?.count ?? 0,
-      leads: leadTrend[index]?.count ?? 0,
-    }));
-  }, [data]);
-
-  const hasTrendData = trendData.some(
-    (item) => item.projects > 0 || item.shortlists > 0 || item.leads > 0,
+      return {
+        ...project,
+        title,
+        shortTitle: hasDuplicateTitle ? `${shortTitle} #${duplicateIndex}` : shortTitle,
+        location: [project.city, project.state].filter(Boolean).join(", ") || "Unknown location",
+      };
+    }) ?? [];
+  const hasProjectEngagement = projectEngagementData.some(
+    (project) =>
+      project.views > 0 ||
+      project.shortlists > 0 ||
+      project.brochureDownloads > 0 ||
+      project.callRequests > 0,
   );
+  const totalBrochureDownloads = projectEngagementData.reduce(
+    (sum, project) => sum + project.brochureDownloads,
+    0,
+  );
+  const totalCallRequests = projectEngagementData.reduce(
+    (sum, project) => sum + project.callRequests,
+    0,
+  );
+  const topEngagementProject = projectEngagementData[0];
 
   const engagementCards = [
     {
@@ -355,11 +342,6 @@ const Dashboard = () => {
       iconBgColor: "#D8F5EF",
     },
   ];
-
-  const handleStateChange = (value: string) => {
-    setSelectedState(value);
-    setSelectedCity(ALL_CITIES_VALUE);
-  };
 
   const handleDateRangeChange = (value: string) => {
     setDateRange(value);
@@ -540,98 +522,80 @@ const Dashboard = () => {
         ))}
       </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-3">
-        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Engagement Mix</h2>
+      <div className="mt-8 rounded-xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold text-gray-900">Project Performance</h2>
             <p className="text-sm text-gray-500">
-              Snapshot of visibility and response metrics.
+              Compare page views, shortlists, brochure downloads, and call requests project by project.
             </p>
           </div>
 
-          <div className="space-y-4">
-            <div className="rounded-xl bg-slate-50 p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="text-sm text-gray-500">Shortlists / Project</p>
-                <p className="font-semibold text-gray-900">
-                  {averageShortlistsPerProject}
-                </p>
-              </div>
-              <div className="h-2 rounded-full bg-slate-200">
-                <div
-                  className="h-2 rounded-full bg-sky-500"
-                  style={{ width: `${Math.min(averageShortlistsPerProject * 20, 100)}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="rounded-xl bg-slate-50 p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="text-sm text-gray-500">Leads / Project</p>
-                <p className="font-semibold text-gray-900">{averageLeadsPerProject}</p>
-              </div>
-              <div className="h-2 rounded-full bg-slate-200">
-                <div
-                  className="h-2 rounded-full bg-rose-500"
-                  style={{ width: `${Math.min(averageLeadsPerProject * 20, 100)}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="rounded-xl bg-slate-50 p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="text-sm text-gray-500">Inquiries</p>
-                <p className="font-semibold text-gray-900">{formatNumber(totalInquiries)}</p>
-              </div>
-              <div className="h-2 rounded-full bg-slate-200">
-                <div
-                  className="h-2 rounded-full bg-emerald-500"
-                  style={{ width: `${Math.min(totalInquiries * 10, 100)}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50/80 p-4">
-              <div className="flex items-center gap-2 text-emerald-700">
-                <HiCheckCircle size={16} />
-                <p className="text-sm font-medium">Performance Pulse</p>
-              </div>
-              <p className="mt-2 text-sm leading-6 text-emerald-900">
-                {totalLeads > 0 || totalShortlists > 0 || totalClicks > 0
-                  ? `You have ${formatNumber(totalShortlists)} shortlists, ${formatNumber(totalLeads)} leads, and ${formatNumber(totalClicks)} clicks in this range.`
-                  : "Your builder portfolio is live, but there is no shortlist, lead, or click activity recorded in this range yet."}
+          {topEngagementProject ? (
+            <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 xl:min-w-[260px]">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-600">
+                Top visibility project
+              </p>
+              <p className="mt-1 truncate text-sm font-semibold text-blue-950">
+                {topEngagementProject.title}
+              </p>
+              <p className="mt-1 text-xs text-blue-700">
+                {formatNumber(topEngagementProject.views)} views in this range
               </p>
             </div>
+          ) : null}
+        </div>
+
+        <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="rounded-xl bg-blue-50 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-600">Views</p>
+            <p className="mt-1 text-xl font-semibold text-blue-900">{formatNumber(totalViews)}</p>
+          </div>
+          <div className="rounded-xl bg-emerald-50 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-600">Shortlists</p>
+            <p className="mt-1 text-xl font-semibold text-emerald-900">{formatNumber(totalShortlists)}</p>
+          </div>
+          <div className="rounded-xl bg-orange-50 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-orange-600">Brochures</p>
+            <p className="mt-1 text-xl font-semibold text-orange-900">{formatNumber(totalBrochureDownloads)}</p>
+          </div>
+          <div className="rounded-xl bg-violet-50 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-600">Call Requests</p>
+            <p className="mt-1 text-xl font-semibold text-violet-900">{formatNumber(totalCallRequests)}</p>
           </div>
         </div>
-    
 
-        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6 xl:col-span-2">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Engagement Trend</h2>
-            <p className="text-sm text-gray-500">
-              Compare project creation, shortlist activity, and lead generation across the selected range.
-            </p>
-          </div>
-
-          <div className="h-80">
-            {hasTrendData ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <XAxis dataKey="label" tickLine={false} axisLine={false} />
-                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="projects" stroke="#2563EB" strokeWidth={3} dot={false} name="Projects" />
-                  <Line type="monotone" dataKey="shortlists" stroke="#0EA5E9" strokeWidth={3} dot={false} name="Shortlists" />
-                  <Line type="monotone" dataKey="leads" stroke="#F43F5E" strokeWidth={3} dot={false} name="Leads" />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <EmptyChartState message="No trend activity is available for this date range yet." />
-            )}
-          </div>
+        <div className="h-[390px]">
+          {hasProjectEngagement ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={projectEngagementData} barGap={4} barCategoryGap="20%">
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                <XAxis
+                  dataKey="shortTitle"
+                  tickLine={false}
+                  axisLine={false}
+                  interval={0}
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={56} />
+                <Tooltip
+                  cursor={{ fill: "#F8FAFC" }}
+                  formatter={(value, name) => [formatNumber(Number(value)), name]}
+                  labelFormatter={(_, payload) => {
+                    const item = payload?.[0]?.payload;
+                    return item ? `${item.title} - ${item.location}` : "Project";
+                  }}
+                />
+                <Legend />
+                <Bar dataKey="brochureDownloads" name="Brochure Downloads" fill="#F97316" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="callRequests" name="Call Requests" fill="#7C3AED" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="shortlists" name="Shortlists" fill="#16A34A" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="views" name="Views" fill="#2563EB" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyChartState message="No project performance activity is available for this date range yet." />
+          )}
         </div>
       </div>
 
