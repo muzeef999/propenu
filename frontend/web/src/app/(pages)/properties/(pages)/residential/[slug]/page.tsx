@@ -15,6 +15,7 @@ import ResidentialNearbySection from "./ResidentialNearbySection";
 import { RESIDENTIAL_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
 import SponsoreCard from "../../../cards/SponsoreCard";
 import AdCard, { type Ad } from "../../../cards/AdCard";
+import { buildPropertyMetadata } from "@/utilies/propertyOpenGraph";
 
 import { GiKnifeFork, GiMoneyStack } from "react-icons/gi";
 import { RiCarLine } from "react-icons/ri";
@@ -36,6 +37,18 @@ const amenityIconByKey = new Map(
 const amenityIconByTitle = new Map(
   RESIDENTIAL_AMENITIES.map((amenity) => [amenity.title, amenity.icon]),
 );
+
+export async function generateMetadata({ params }: PageProps) {
+  const { slug } = await params;
+  const project = await getResidentialSlugProjects({ slug }).catch(() => null);
+
+  return buildPropertyMetadata({
+    property: project,
+    slug,
+    propertyType: "residential",
+    propertyTypeLabel: "Residential",
+  });
+}
 
 function getPropertyLink(property: Property) {
   const type = (property.type || "").toLowerCase();

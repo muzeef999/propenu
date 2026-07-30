@@ -31,6 +31,7 @@ import { GiMoneyStack } from "react-icons/gi";
 import { TilesIcons } from "../../MoreDetailsIcons";
 import { HiOutlineUser } from "react-icons/hi2";
 import CommercialNearbySection from "./CommercialNearbySection";
+import { buildPropertyMetadata } from "@/utilies/propertyOpenGraph";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -43,6 +44,18 @@ const amenityIconByKey = new Map(
 const amenityIconByTitle = new Map(
   COMMERCIAL_AMENITIES.map((amenity) => [amenity.title, amenity.icon]),
 );
+
+export async function generateMetadata({ params }: PageProps) {
+  const { slug } = await params;
+  const project = await getCommercialSlugProjects({ slug }).catch(() => null);
+
+  return buildPropertyMetadata({
+    property: project,
+    slug,
+    propertyType: "commercial",
+    propertyTypeLabel: "Commercial",
+  });
+}
 
 const formatTenantMonthYear = (value?: unknown) => {
   if (!value) return null;

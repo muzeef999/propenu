@@ -15,6 +15,7 @@ import Image from "next/image";
 import { AGRICULTURAL_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
 import AgriculturalNearbySection from "./AgriculturalNearbySection";
 import SponsoreCard from "../../../cards/SponsoreCard";
+import { buildPropertyMetadata } from "@/utilies/propertyOpenGraph";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -27,6 +28,18 @@ const amenityIconByKey = new Map(
 const amenityIconByTitle = new Map(
   AGRICULTURAL_AMENITIES.map((amenity) => [amenity.title, amenity.icon]),
 );
+
+export async function generateMetadata({ params }: PageProps) {
+  const { slug } = await params;
+  const project = await getAgriculturalSlugProjects({ slug }).catch(() => null);
+
+  return buildPropertyMetadata({
+    property: project,
+    slug,
+    propertyType: "agricultural",
+    propertyTypeLabel: "Agricultural",
+  });
+}
 
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;

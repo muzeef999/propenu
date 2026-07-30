@@ -19,6 +19,7 @@ import { FiZap } from "react-icons/fi";
 import { IoSparklesOutline, IoWaterOutline } from "react-icons/io5";
 import { MdOutlineLayers } from "react-icons/md";
 import { PiMapTrifold } from "react-icons/pi";
+import { buildPropertyMetadata } from "@/utilies/propertyOpenGraph";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -31,6 +32,18 @@ const amenityIconByKey = new Map(
 const amenityIconByTitle = new Map(
   LAND_PLOT_AMENITIES.map((amenity) => [amenity.title, amenity.icon]),
 );
+
+export async function generateMetadata({ params }: PageProps) {
+  const { slug } = await params;
+  const project = await getLandSlugProjects({ slug }).catch(() => null);
+
+  return buildPropertyMetadata({
+    property: project,
+    slug,
+    propertyType: "land",
+    propertyTypeLabel: "Land",
+  });
+}
 
 function formatAreaUnit(unit?: string) {
   if (!unit) return "sqft";
