@@ -1,29 +1,17 @@
 import { Request, Response, NextFunction } from "express";
 
-const requiredCreateFields = [
-  "title",
-  "excerpt",
-  "featuredImage",
-  "content",
-  "author",
-  "category",
-  "metaTitle",
-  "metaDescription",
-];
+/** Only title is required to create/save a draft. Everything else is optional. */
+const requiredCreateFields = ["title"];
 
 function isNonEmptyString(value: unknown) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function validateAuthor(author: any) {
-  if (!author || typeof author !== "object") {
-    return "author is required";
+function validateAuthorIfPresent(author: any) {
+  if (author === undefined || author === null) return null;
+  if (typeof author !== "object") {
+    return "author must be an object";
   }
-
-  if (!isNonEmptyString(author.name)) {
-    return "author.name is required";
-  }
-
   return null;
 }
 
@@ -36,13 +24,12 @@ export function validateCreateBlog(
   const issues: { path: string; message: string }[] = [];
 
   for (const field of requiredCreateFields) {
-    if (field === "author") continue;
     if (!isNonEmptyString(body[field])) {
       issues.push({ path: field, message: `${field} is required` });
     }
   }
 
-  const authorIssue = validateAuthor(body.author);
+  const authorIssue = validateAuthorIfPresent(body.author);
   if (authorIssue) {
     issues.push({ path: "author", message: authorIssue });
   }
@@ -74,11 +61,13 @@ export function validateUpdateBlog(
     issues.push({ path: "body", message: "At least one field is required" });
   }
 
-  if (body.author !== undefined) {
-    const authorIssue = validateAuthor(body.author);
-    if (authorIssue) {
-      issues.push({ path: "author", message: authorIssue });
-    }
+  if (body.title !== undefined && !isNonEmptyString(body.title)) {
+    issues.push({ path: "title", message: "title is required" });
+  }
+
+  const authorIssue = validateAuthorIfPresent(body.author);
+  if (authorIssue) {
+    issues.push({ path: "author", message: authorIssue });
   }
 
   if (body.excerpt && String(body.excerpt).length > 300) {

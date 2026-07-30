@@ -8,13 +8,13 @@ const faqSchema = new Schema(
   {
     question: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
     },
 
     answer: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
     },
   },
@@ -27,7 +27,7 @@ const authorSchema = new Schema(
   {
     name: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
     },
 
@@ -85,7 +85,7 @@ const blogSchema = new Schema(
 
     featuredImage: {
       type: String,
-      required: true,
+      default: "",
     },
 
     imageAlt: {
@@ -112,7 +112,13 @@ const blogSchema = new Schema(
 
     author: {
       type: authorSchema,
-      required: true,
+      default: () => ({
+        name: "",
+        profileImage: "",
+        designation: "",
+        description: "",
+        socialLinks: { linkedin: "", twitter: "", website: "" },
+      }),
     },
 
     /* CATEGORY + TAGS */
@@ -120,7 +126,7 @@ const blogSchema = new Schema(
     category: {
       type: String,
       trim: true,
-      required: true,
+      default: "",
     },
 
     tags: {
@@ -140,13 +146,13 @@ const blogSchema = new Schema(
     metaTitle: {
       type: String,
       trim: true,
-      required: true,
+      default: "",
     },
 
     metaDescription: {
       type: String,
       trim: true,
-      required: true,
+      default: "",
     },
 
     metaKeywords: {

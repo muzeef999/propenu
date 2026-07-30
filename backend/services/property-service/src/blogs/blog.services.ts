@@ -43,6 +43,15 @@ function normalizeTags(tags: unknown) {
     .filter(Boolean);
 }
 
+/** Multipart FormData sends booleans as "true"/"false" strings. */
+function coerceBoolean(value: unknown): boolean | undefined {
+  if (typeof value === "boolean") return value;
+  if (value === "true" || value === "1" || value === 1) return true;
+  if (value === "false" || value === "0" || value === 0 || value === "")
+    return false;
+  return undefined;
+}
+
 function withPublishDate(payload: Record<string, any>) {
   const next = { ...payload };
 
@@ -54,6 +63,68 @@ function withPublishDate(payload: Record<string, any>) {
 
   if (next.tags) next.tags = normalizeTags(next.tags);
   if (next.metaKeywords) next.metaKeywords = normalizeTags(next.metaKeywords);
+
+  const published = coerceBoolean(next.published);
+  if (published !== undefined) next.published = published;
+
+  const featured = coerceBoolean(next.featured);
+  if (featured !== undefined) next.featured = featured;
+
+  if (next.readTime !== undefined && next.readTime !== null && next.readTime !== "") {
+    const n = Number(next.readTime);
+    if (!Number.isNaN(n) && n > 0) next.readTime = n;
+    else delete next.readTime;
+  } else if (next.readTime === "" || next.readTime === null) {
+    delete next.readTime;
+  }
+
+  if (typeof next.featuredImage === "string") {
+    next.featuredImage = next.featuredImage.trim();
+  } else if (next.featuredImage == null) {
+    next.featuredImage = "";
+  }
+
+  if (next.content == null) next.content = "";
+  if (next.category == null) next.category = "";
+  if (next.metaTitle == null || next.metaTitle === "") {
+    next.metaTitle = next.title || "";
+  }
+  if (next.metaDescription == null) next.metaDescription = "";
+
+  if (!next.author || typeof next.author !== "object") {
+    next.author = {
+      name: "",
+      designation: "",
+      description: "",
+      socialLinks: { linkedin: "", twitter: "", website: "" },
+    };
+  } else {
+    next.author = {
+      name: next.author.name || "",
+      designation: next.author.designation || "",
+      description: next.author.description || "",
+      profileImage: next.author.profileImage || "",
+      socialLinks: {
+        linkedin: next.author.socialLinks?.linkedin || "",
+        twitter: next.author.socialLinks?.twitter || "",
+        website: next.author.socialLinks?.website || "",
+      },
+    };
+  }
+
+  if (Array.isArray(next.faqs)) {
+    next.faqs = next.faqs.filter(
+      (faq: any) =>
+        String(faq?.question || "").trim() || String(faq?.answer || "").trim(),
+    );
+  }
+
+  if (Array.isArray(next.articleSections)) {
+    next.articleSections = next.articleSections.filter(
+      (sec: any) =>
+        String(sec?.heading || "").trim() || String(sec?.content || "").trim(),
+    );
+  }
 
   if (next.published === true && !next.publishedAt) {
     next.publishedAt = new Date();
