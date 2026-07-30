@@ -6,13 +6,24 @@ import Role from "../models/roleModel";
  * Super Admin
  * ├── CEO
  * └── Operations Head
- *     ├── Business Development Head → Regional Managers → (BD Manager, Sales Executives)
- *     ├── Customer Support Head → Team Leads → (Customer Care, Relationship Managers)
- *     ├── Marketing Head → Digital / Social / Content / Creative
+ *     ├── Business Development Head
+ *     │   └── Regional Manager
+ *     │       ├── Business Development Manager
+ *     │       └── Sales Executive
+ *     ├── Customer Support Head
+ *     │   └── Customer Support Team Lead
+ *     │       ├── Customer Care Executive
+ *     │       └── Relationship Manager
+ *     ├── Marketing Head
+ *     │   ├── Digital Marketing
+ *     │   ├── Social Media
+ *     │   ├── Content Team
+ *     │   └── Creative Team
  *     ├── Accounts
  *     ├── Legal
  *     ├── HR
- *     └── Technical Support Head → Technical Support Team
+ *     └── Technical Support Head
+ *         └── Technical Support Team
  */
 const CANONICAL_PARENT_BY_ROLE: Record<string, string> = {
   ceo: "super_admin",
@@ -70,14 +81,14 @@ const HIERARCHY_ROLE_DEFS: Array<{ name: string; label: string }> = [
   { name: "ceo", label: "CEO" },
   { name: "operations_head", label: "Operations Head" },
   { name: "business_development_head", label: "Business Development Head" },
-  { name: "regional_manager", label: "Regional Managers" },
+  { name: "regional_manager", label: "Regional Manager" },
   { name: "business_development_manager", label: "Business Development Manager" },
   { name: "sales_manager", label: "Sales Manager" },
-  { name: "sales_agent", label: "Sales Executives" },
+  { name: "sales_agent", label: "Sales Executive" },
   { name: "customer_support_head", label: "Customer Support Head" },
   { name: "team_lead", label: "Customer Support Team Lead" },
   { name: "customer_care_executive", label: "Customer Care Executive" },
-  { name: "relationship_manager", label: "Relationship Managers" },
+  { name: "relationship_manager", label: "Relationship Manager" },
   { name: "marketing_head", label: "Marketing Head" },
   { name: "digital_marketing", label: "Digital Marketing" },
   { name: "social_media", label: "Social Media" },

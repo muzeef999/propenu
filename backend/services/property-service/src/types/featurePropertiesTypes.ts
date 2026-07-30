@@ -236,6 +236,12 @@ export interface IFeaturedProject {
     | "rejected";
 
   createdBy?: Types.ObjectId | string;
+  /** Exclusive CCE owner for Client Progress Queue. */
+  followUpAssignedTo?: Types.ObjectId | string | null;
+  followUpAssignedAt?: Date | null;
+  followUpWorkStatus?: "assigned" | "in_progress" | "completed" | null;
+  followUpWorkUpdatedAt?: Date | null;
+  followUpWorkUpdatedBy?: Types.ObjectId | string | null;
   relationshipManager?: {
     userId?: Types.ObjectId | string | null;
     designation?: string;

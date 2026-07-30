@@ -1005,9 +1005,40 @@ export class TicketService {
     const existing = await TicketRepository.findById(id);
     if (!existing) return null;
 
+    const previousAssigneeId = String(existing.assignedTo?.userId || "").trim();
+    const nextAssigneeId = String(assignedTo?.userId || "").trim();
+    const actorId = String(actor?.userId || "").trim();
+    const involvedIds = new Set<string>(
+      Array.isArray((existing.metadata as any)?.involvedAssigneeIds)
+        ? (existing.metadata as any).involvedAssigneeIds.map(String)
+        : [],
+    );
+    // Keep previous CCE on the ticket after reassignment to admin/staff.
+    if (previousAssigneeId && previousAssigneeId !== nextAssigneeId) {
+      involvedIds.add(previousAssigneeId);
+    }
+    if (actorId && actorId !== nextAssigneeId) {
+      involvedIds.add(actorId);
+    }
+
+    const existingTags = Array.isArray(existing.tags) ? existing.tags.map(String) : [];
+    const involvedTags = [...involvedIds].map((uid) => `involved_${uid}`);
+    const nextTags = [...new Set([...existingTags, ...involvedTags])];
+
     const ticket = await TicketRepository.updateById(id, {
       assignedTo,
       ...(existing.status === "open" ? { status: "assigned" } : {}),
+      tags: nextTags,
+      metadata: {
+        ...((existing.metadata as Record<string, unknown>) || {}),
+        involvedAssigneeIds: [...involvedIds],
+        ...(previousAssigneeId
+          ? {
+              lastReassignedFrom: previousAssigneeId,
+              lastReassignedAt: new Date().toISOString(),
+            }
+          : {}),
+      },
       $push: {
         activities: activity(
           "ticket.assigned",

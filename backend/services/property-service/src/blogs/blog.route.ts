@@ -12,7 +12,10 @@ import {
   updateBlog,
 } from "./blog.controller";
 import { authMiddleware } from "../middlewares/authMiddleware";
-import { requirePermission } from "../middlewares/requirePermission";
+import {
+  requireAnyPermission,
+  requirePermission,
+} from "../middlewares/requirePermission";
 import { parseJsonFields } from "../middlewares/parseJsonFields";
 import { uploadFile } from "../utils/uploadFile";
 import { validateCreateBlog, validateUpdateBlog } from "./blog.validation";
@@ -87,6 +90,56 @@ function uploadBlogFeaturedImage(
 
 router.get("/", getBlogs);
 router.get("/slug/:slug", getBlogBySlug);
+
+/** In-article / section images for TipTap editor (create + edit). */
+router.post(
+  "/upload-content-image",
+  authMiddleware,
+  requireAnyPermission(["blog:create", "blog:edit"]),
+  (req: Request, res: Response) => {
+    const handler = blogImageUpload.single("image");
+    handler(req, res, async (err: any) => {
+      if (err) {
+        return res.status(400).json({
+          success: false,
+          message: err.message || "Image upload failed",
+        });
+      }
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: "Image file is required",
+        });
+      }
+      if (req.file.size > 1 * 1024 * 1024) {
+        return res.status(400).json({
+          success: false,
+          message: "Image must be below 1 MB",
+        });
+      }
+      try {
+        const uploaded = await uploadFile({
+          buffer: req.file.buffer,
+          originalName: req.file.originalname,
+          mimetype: req.file.mimetype,
+          folder: "blogs/content-images",
+        });
+        return res.status(200).json({
+          success: true,
+          imageUrl: uploaded.url,
+          url: uploaded.url,
+        });
+      } catch (uploadError: any) {
+        console.error("Blog content image upload failed:", uploadError);
+        return res.status(500).json({
+          success: false,
+          message: uploadError.message || "Image upload failed",
+        });
+      }
+    });
+  },
+);
+
 router.get("/:id", getBlogById);
 
 router.post(

@@ -95,6 +95,8 @@ export interface TicketListQuery {
   assignedTo?: string;
   assignedRole?: string;
   assignedOrRequested?: string;
+  /** CCE desk: assigned to me OR created by me OR previously handled/reassigned by me */
+  ownedBy?: string;
   requesterId?: string;
   requesterEmail?: string;
   propertyId?: string;

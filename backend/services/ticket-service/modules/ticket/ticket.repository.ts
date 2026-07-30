@@ -47,6 +47,18 @@ export class TicketRepository {
         { "requester.userId": query.assignedOrRequested }
       ];
     }
+    if (query.ownedBy) {
+      const ownerId = String(query.ownedBy).trim();
+      if (ownerId) {
+        filter.$or = [
+          { "assignedTo.userId": ownerId },
+          { "metadata.createdByUserId": ownerId },
+          { "metadata.involvedAssigneeIds": ownerId },
+          { tags: `created_by_${ownerId}` },
+          { tags: `involved_${ownerId}` },
+        ];
+      }
+    }
     if (query.requesterId) filter["requester.userId"] = query.requesterId;
     if (query.requesterEmail) filter["requester.email"] = query.requesterEmail;
     if (query.propertyId) filter.propertyId = query.propertyId;

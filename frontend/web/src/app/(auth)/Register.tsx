@@ -19,6 +19,7 @@ import Cookies from "js-cookie";
 import { AiOutlineUser } from "react-icons/ai";
 import {  accountSchema, COMPANY_NAME_MAX_LENGTH, FormErrors,  locationSchema,  mapAuthZodErrors, NAME_MAX_LENGTH,  OTP_LENGTH,  otpSchema,  phoneSchema,} from "./AuthZod";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { useCity } from "@/hooks/useCity";
 
 interface RegisterDialogProps {
   open: boolean;
@@ -113,7 +114,7 @@ const RegisterDialog = ({
   initialKycStatus = null,
   initialKycRemark = "",
 }: RegisterDialogProps) => {
-
+  const { selectedCity } = useCity();
   const [step, setStep] = useState<RegisterStep>(initialStep || "personal");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [formData, setFormData] = useState({
@@ -318,6 +319,13 @@ const RegisterDialog = ({
         role: accountValidation.data.role,
         phone: phoneValidation.data.phone,
         otp: otpToSubmit,
+        ...(selectedCity?.city || selectedCity?.state
+          ? {
+              tempCity: selectedCity.city || undefined,
+              tempState: selectedCity.state || undefined,
+              tempLocationSource: "header" as const,
+            }
+          : {}),
       };
 
       const res = await createVerifyOtp(payload);

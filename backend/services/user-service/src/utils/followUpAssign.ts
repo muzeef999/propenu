@@ -159,6 +159,57 @@ export async function pickFollowUpExecutive(
   return toPickResult(selected, "round_robin");
 }
 
+const resolveFollowUpLocation = (user: any): WorkingLocationInput | null => {
+  const realState = String(user?.state || "").trim();
+  if (realState) {
+    return {
+      state: realState,
+      city: String(user?.city || "").trim(),
+      locality: String(user?.locality || "").trim(),
+    };
+  }
+
+  const tempState = String(user?.tempState || "").trim();
+  if (tempState) {
+    return {
+      state: tempState,
+      city: String(user?.tempCity || "").trim(),
+      locality: "",
+    };
+  }
+
+  return null;
+};
+
+export const sanitizeTempLocationInput = (input?: {
+  tempCity?: unknown;
+  tempState?: unknown;
+  tempLocationSource?: unknown;
+}) => {
+  const tempCity = String(input?.tempCity ?? "")
+    .trim()
+    .slice(0, 45);
+  const tempState = String(input?.tempState ?? "")
+    .trim()
+    .slice(0, 45);
+  if (!tempCity && !tempState) return null;
+
+  const rawSource = String(input?.tempLocationSource ?? "header")
+    .trim()
+    .toLowerCase();
+  const tempLocationSource =
+    rawSource === "geolocation" || rawSource === "manual" || rawSource === "header"
+      ? rawSource
+      : "header";
+
+  return {
+    tempCity: tempCity || null,
+    tempState: tempState || null,
+    tempLocationSource: tempLocationSource as "header" | "geolocation" | "manual",
+    tempLocationAt: new Date(),
+  };
+};
+
 /** Assign once. Optionally reassign when current CCE does not cover the user location. */
 export async function ensureFollowUpAssignee(
   user: any,
@@ -171,12 +222,8 @@ export async function ensureFollowUpAssignee(
     return false;
   }
 
-  const location = {
-    state: user.state || "",
-    city: user.city || "",
-    locality: user.locality || "",
-  };
-  const hasLocation = Boolean(String(location.state || "").trim());
+  const location = resolveFollowUpLocation(user);
+  const hasLocation = Boolean(String(location?.state || "").trim());
 
   if (user.followUpAssignedTo) {
     if (!opts?.reassignIfNotCovering || !hasLocation) return false;
@@ -192,6 +239,9 @@ export async function ensureFollowUpAssignee(
     user.followUpAssignedTo = undefined;
     user.followUpAssignedAt = undefined;
     user.followUpAssignMethod = undefined;
+    user.followUpWorkStatus = undefined;
+    user.followUpWorkUpdatedAt = undefined;
+    user.followUpWorkUpdatedBy = undefined;
   }
 
   const pick = await pickFollowUpExecutive(hasLocation ? location : null);
@@ -200,6 +250,10 @@ export async function ensureFollowUpAssignee(
   user.followUpAssignedTo = new mongoose.Types.ObjectId(pick.userId);
   user.followUpAssignedAt = new Date();
   user.followUpAssignMethod = pick.method;
+  // Fresh ownership starts at Assigned (CCE can later mark In progress / Completed).
+  user.followUpWorkStatus = "assigned";
+  user.followUpWorkUpdatedAt = new Date();
+  user.followUpWorkUpdatedBy = undefined;
   return true;
 }
 
@@ -208,16 +262,39 @@ export async function ensureFollowUpAssigneesForUsers(users: any[]): Promise<num
   if (!Array.isArray(users) || !users.length) return 0;
   let changed = 0;
   for (const user of users) {
+    // Backfill default work status for already-assigned cases (additive, non-breaking).
+    if (user.followUpAssignedTo && !user.followUpWorkStatus) {
+      const assignedAt = user.followUpAssignedAt || new Date();
+      await User.updateOne(
+        {
+          _id: user._id,
+          $or: [{ followUpWorkStatus: null }, { followUpWorkStatus: { $exists: false } }],
+        },
+        {
+          $set: {
+            followUpWorkStatus: "assigned",
+            followUpWorkUpdatedAt: assignedAt,
+          },
+        },
+      );
+      user.followUpWorkStatus = "assigned";
+      user.followUpWorkUpdatedAt = assignedAt;
+      changed += 1;
+    }
+
     if (user.followUpAssignedTo) continue;
     const status = String(user.accountStatus || "").toLowerCase();
-    if (!ONBOARDING_STATUSES.has(status)) continue;
+    const roleName = normalizeRole(user?.roleId?.name || user?.roleName || "");
+    const isPlatformPoster = ["user", "owner", "agent", "builder", "builder_staff"].includes(
+      roleName,
+    );
+    // Onboarding stuck users + active posters (so their listings stay exclusive to one CCE).
+    if (!ONBOARDING_STATUSES.has(status) && !(status === "active" && isPlatformPoster)) {
+      continue;
+    }
 
-    const location = {
-      state: user.state || "",
-      city: user.city || "",
-      locality: user.locality || "",
-    };
-    const hasLocation = Boolean(String(location.state || "").trim());
+    const location = resolveFollowUpLocation(user);
+    const hasLocation = Boolean(String(location?.state || "").trim());
     const pick = await pickFollowUpExecutive(hasLocation ? location : null);
     if (!pick?.userId || !mongoose.Types.ObjectId.isValid(pick.userId)) continue;
 
@@ -232,6 +309,8 @@ export async function ensureFollowUpAssigneesForUsers(users: any[]): Promise<num
           followUpAssignedTo: new mongoose.Types.ObjectId(pick.userId),
           followUpAssignedAt: assignedAt,
           followUpAssignMethod: pick.method,
+          followUpWorkStatus: "assigned",
+          followUpWorkUpdatedAt: assignedAt,
         },
       },
       { new: true },
@@ -241,6 +320,8 @@ export async function ensureFollowUpAssigneesForUsers(users: any[]): Promise<num
     user.followUpAssignedTo = updated.followUpAssignedTo;
     user.followUpAssignedAt = updated.followUpAssignedAt;
     user.followUpAssignMethod = updated.followUpAssignMethod;
+    user.followUpWorkStatus = updated.followUpWorkStatus || "assigned";
+    user.followUpWorkUpdatedAt = updated.followUpWorkUpdatedAt;
     changed += 1;
   }
   return changed;

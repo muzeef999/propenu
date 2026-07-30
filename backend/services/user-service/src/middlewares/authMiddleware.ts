@@ -43,11 +43,18 @@ export async function authMiddleware(
 
     if (decoded.roleId) {
       const role = await Role.findById(decoded.roleId)
-        .select("name permissions")
+        .select("name permissions isActive")
         .lean();
 
       if (!role) {
         return res.status(401).json({ message: "Invalid role" });
+      }
+
+      if (role.isActive === false) {
+        return res.status(403).json({
+          message: "This role is deactivated. Dashboard access is blocked until a Super Admin activates the role again.",
+          code: "ROLE_DEACTIVATED",
+        });
       }
 
       roleName = role.name;

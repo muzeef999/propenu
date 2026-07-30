@@ -134,6 +134,22 @@ const UserSchema = new mongoose.Schema(
       index: true,
     },
 
+    /** Mirrored from user-service for listing exclusive CCE assign reads. */
+    followUpAssignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      index: true,
+      default: null,
+    },
+    followUpAssignedAt: { type: Date },
+    workingLocations: [
+      {
+        state: { type: String, trim: true, maxlength: 45 },
+        city: { type: String, trim: true, maxlength: 45 },
+        locality: { type: String, trim: true, maxlength: 45 },
+      },
+    ],
+
     isActive: { type: Boolean, default: true },
     lastLoginAt: { type: Date },
     loginCount: { type: Number, default: 0 },

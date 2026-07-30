@@ -21,6 +21,7 @@ import {
   generatePropertyCode,
   PropertyCodeCategory,
 } from "../utils/generatePropertyCode";
+import { listingFollowUpPlugin } from "../utils/listingFollowUpAssign";
 
 const FEATURED_CATEGORY_CODES: Record<
   NonNullable<IFeaturedProject["categoryType"]>,
@@ -299,6 +300,26 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
       required: true,
       index: true,
     },
+    /** Exclusive CCE owner (from creator at post time). */
+    followUpAssignedTo: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      index: true,
+      default: null,
+    },
+    followUpAssignedAt: { type: Date, default: null },
+    followUpWorkStatus: {
+      type: String,
+      enum: ["assigned", "in_progress", "completed"],
+      default: null,
+      index: true,
+    },
+    followUpWorkUpdatedAt: { type: Date, default: null },
+    followUpWorkUpdatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
     relationshipManager: {
       type: RelationshipManagerAssignmentSchema,
       default: null,
@@ -430,6 +451,8 @@ FeaturePropertySchema.index(
   { "location.coordinates": "2dsphere" },
   { name: "Idx_Location_2dsphere" },
 );
+
+FeaturePropertySchema.plugin(listingFollowUpPlugin);
 
 FeaturePropertySchema.pre<IFeaturedProjectDocument>("save", function (next) {
   const legacySummary = (this as any).bhkSummary;

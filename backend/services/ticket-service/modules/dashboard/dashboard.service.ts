@@ -19,7 +19,16 @@ export class DashboardService {
       if (to) (dateMatch.createdAt as Record<string, Date>).$lte = to;
     }
 
-    if (typeof query.assignedTo === "string" && query.assignedTo.trim()) {
+    if (typeof query.ownedBy === "string" && query.ownedBy.trim()) {
+      const ownerId = query.ownedBy.trim();
+      dateMatch.$or = [
+        { "assignedTo.userId": ownerId },
+        { "metadata.createdByUserId": ownerId },
+        { "metadata.involvedAssigneeIds": ownerId },
+        { tags: `created_by_${ownerId}` },
+        { tags: `involved_${ownerId}` },
+      ];
+    } else if (typeof query.assignedTo === "string" && query.assignedTo.trim()) {
       dateMatch["assignedTo.userId"] = query.assignedTo.trim();
     }
     if (typeof query.department === "string" && query.department.trim()) {
@@ -98,7 +107,16 @@ export class DashboardService {
     const match: Record<string, unknown> = {
       createdAt: { $gte: from, ...(to ? { $lte: to } : {}) },
     };
-    if (typeof query.assignedTo === "string" && query.assignedTo.trim()) {
+    if (typeof query.ownedBy === "string" && query.ownedBy.trim()) {
+      const ownerId = query.ownedBy.trim();
+      match.$or = [
+        { "assignedTo.userId": ownerId },
+        { "metadata.createdByUserId": ownerId },
+        { "metadata.involvedAssigneeIds": ownerId },
+        { tags: `created_by_${ownerId}` },
+        { tags: `involved_${ownerId}` },
+      ];
+    } else if (typeof query.assignedTo === "string" && query.assignedTo.trim()) {
       match["assignedTo.userId"] = query.assignedTo.trim();
     }
     if (typeof query.department === "string" && query.department.trim()) {

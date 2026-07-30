@@ -7,7 +7,7 @@ export const upload = multer({
   storage: multer.memoryStorage(),
 
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: 5 * 1024 * 1024, // 5MB — CSV / general uploads
   },
 
   fileFilter: (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
@@ -22,6 +22,21 @@ export const upload = multer({
       cb(null, true);
     } else {
       cb(new Error("Only CSV and image files are allowed"));
+    }
+  },
+});
+
+/** Push campaign images only — max 1 MB */
+export const uploadNotificationImage = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 1 * 1024 * 1024,
+  },
+  fileFilter: (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed"));
     }
   },
 });

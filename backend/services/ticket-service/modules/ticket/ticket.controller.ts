@@ -44,6 +44,50 @@ const actorFromRequest = (req: Request): TicketActor | undefined => {
   return headerActor;
 };
 
+const normalizeRoleKey = (role = "") =>
+  String(role)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+/** CCE desk scope: assigned + created + previously handled/reassigned. */
+const isCustomerCareExecutiveRole = (role = "") => {
+  const key = normalizeRoleKey(role);
+  if (key.includes("customer_support_head") || key.includes("team_lead")) return false;
+  return (
+    key === "customer_care" ||
+    key === "customer_care_executive" ||
+    key === "customer_care_executives" ||
+    (key.includes("customer_care") && key.includes("executive"))
+  );
+};
+
+const ticketOwnedByUser = (ticket: any, userId: string) => {
+  const id = String(userId || "").trim();
+  if (!ticket || !id) return false;
+  if (String(ticket?.assignedTo?.userId || "") === id) return true;
+  if (String(ticket?.metadata?.createdByUserId || "") === id) return true;
+  const involved = ticket?.metadata?.involvedAssigneeIds;
+  if (Array.isArray(involved) && involved.map(String).includes(id)) return true;
+  const tags = Array.isArray(ticket?.tags) ? ticket.tags.map(String) : [];
+  return tags.includes(`created_by_${id}`) || tags.includes(`involved_${id}`);
+};
+
+const applyExecutiveListScope = (req: Request, options: TicketListQuery) => {
+  const actor = actorFromRequest(req);
+  const role = actor?.role || "";
+  const userId = String(actor?.userId || "").trim();
+  if (!isCustomerCareExecutiveRole(role) || !userId) return options;
+
+  options.ownedBy = userId;
+  delete options.assignedTo;
+  delete options.assignedOrRequested;
+  delete options.requesterId;
+  delete options.assignedRole;
+  return options;
+};
+
 const sendNotFound = (res: Response) =>
   res.status(404).json({ success: false, message: "Ticket not found" });
 
@@ -90,6 +134,7 @@ export const getTickets = async (req: Request, res: Response) => {
     if (typeof req.query.assignedTo === "string") options.assignedTo = req.query.assignedTo;
     if (typeof req.query.assignedRole === "string") options.assignedRole = req.query.assignedRole;
     if (typeof req.query.assignedOrRequested === "string") options.assignedOrRequested = req.query.assignedOrRequested;
+    if (typeof req.query.ownedBy === "string") options.ownedBy = req.query.ownedBy;
     if (typeof req.query.requesterId === "string") options.requesterId = req.query.requesterId;
     if (typeof req.query.requesterEmail === "string") options.requesterEmail = req.query.requesterEmail;
     if (typeof req.query.propertyId === "string") options.propertyId = req.query.propertyId;
@@ -106,6 +151,8 @@ export const getTickets = async (req: Request, res: Response) => {
     if (createdFrom) options.createdFrom = createdFrom;
     if (createdTo) options.createdTo = createdTo;
 
+    applyExecutiveListScope(req, options);
+
     const result = await TicketService.listTickets(options);
     return res.json({ success: true, ...result });
   } catch (err: any) {
@@ -119,6 +166,21 @@ export const getTicketById = async (req: Request, res: Response) => {
     if (!req.params.id) return res.status(400).json({ success: false, message: "Missing ticket id" });
     const ticket = await TicketService.getTicket(req.params.id);
     if (!ticket) return sendNotFound(res);
+
+    const actor = actorFromRequest(req);
+    const role = actor?.role || "";
+    const userId = String(actor?.userId || "").trim();
+    if (
+      isCustomerCareExecutiveRole(role) &&
+      userId &&
+      !ticketOwnedByUser(ticket, userId)
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only open tickets on your CCE desk",
+      });
+    }
+
     return res.json({ success: true, data: ticket });
   } catch (err: any) {
     console.error("getTicketById:", err);

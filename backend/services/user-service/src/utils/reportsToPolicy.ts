@@ -111,6 +111,42 @@ export const getReportsToRoleOptions = (roleName?: string | null): string[] => {
   return REPORTS_TO_ROLE_OPTIONS[key] ? [...REPORTS_TO_ROLE_OPTIONS[key]] : [];
 };
 
+/** Expand canonical reports-to roles to include DB alias names (legacy seeds). */
+export const expandReportsToRoleNames = (roleNames: string[] = []): string[] => {
+  const ALIASES: Record<string, string[]> = {
+    team_lead: [
+      "team_lead",
+      "team_leads",
+      "customer_support_team_lead",
+      "customer_support_team_leads",
+    ],
+    customer_support_head: ["customer_support_head"],
+    operations_head: ["operations_head", "operation_head"],
+    business_development_head: ["business_development_head"],
+    regional_manager: ["regional_manager", "regional_managers"],
+    sales_manager: ["sales_manager"],
+    marketing_head: ["marketing_head"],
+    technical_support_head: ["technical_support_head"],
+    super_admin: ["super_admin"],
+    customer_care_executive: [
+      "customer_care_executive",
+      "customer_care_executives",
+      "customer_care",
+    ],
+    relationship_manager: ["relationship_manager", "relationship_managers"],
+    sales_executive: ["sales_executive", "sales_executives", "sales_agent"],
+  };
+
+  return [
+    ...new Set(
+      roleNames.flatMap((name) => {
+        const key = canonicalRoleName(name);
+        return ALIASES[key] || [key || name];
+      }),
+    ),
+  ].filter(Boolean);
+};
+
 export const getPreferredReportsToRole = (roleName?: string | null): string | null => {
   const options = getReportsToRoleOptions(roleName);
   return options[0] || null;

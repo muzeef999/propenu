@@ -11,6 +11,7 @@ import { BaseFields, FileRefSchema, PromotionSchema } from "./sharedSchemas";
 import { TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
 import { generatePropertyCode } from "../utils/generatePropertyCode";
+import { listingFollowUpPlugin } from "../utils/listingFollowUpAssign";
 import "../models/roleModel";
  
 
@@ -105,6 +106,8 @@ const ResidentialSchema = new Schema<IResidential>(
   },
   { timestamps: true },
 );
+
+ResidentialSchema.plugin(listingFollowUpPlugin);
 
 /* Indexes */
 ResidentialSchema.index(TEXT_INDEX_FIELDS, { name: "Res_Text" });

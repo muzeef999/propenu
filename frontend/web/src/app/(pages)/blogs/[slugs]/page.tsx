@@ -254,14 +254,16 @@ export default async function Page({ params }: PageProps) {
               />
             </div>
 
-            <div className="relative mt-5 aspect-[16/7.7] min-h-50 overflow-hidden rounded-xl bg-gray-100">
+            {/* Hero frame matches admin upload spec 1600×770 (aspect 16/7.7).
+                object-contain avoids cutting banner edges; correct uploads fill the box. */}
+            <div className="relative mt-5 aspect-[16/7.7] w-full overflow-hidden rounded-xl bg-[#eef6f1]">
               <Image
                 src={blog.featuredImage || fallbackImage}
                 alt={blog.imageAlt || blog.title}
                 fill
                 priority
-                sizes="(max-width: 1024px) 100vw, 900px"
-                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 850px"
+                className="object-contain"
               />
             </div>
 

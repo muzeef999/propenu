@@ -5,7 +5,7 @@ import {
   saveFcmToken,
   sendCustomNotification,
 } from "../controller/userController";
-import { upload } from "../middlewares/upload";
+import { uploadNotificationImage } from "../middlewares/upload";
 import { authMiddleware } from "../middlewares/authMiddleware";
 
 const router = express.Router();
@@ -16,7 +16,7 @@ router.post("/admin/feed/seen", authMiddleware, markAdminNotificationsSeen);
 router.post(
   "/admin/notify/custom",
   authMiddleware,
-  upload.single("image"),
+  uploadNotificationImage.single("image"),
   sendCustomNotification,
 );
 

@@ -12,6 +12,7 @@ import {
 import { TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
 import { generatePropertyCode } from "../utils/generatePropertyCode";
+import { listingFollowUpPlugin } from "../utils/listingFollowUpAssign";
 import "../models/roleModel";
 import { PROPERTY_AGE_BUCKETS } from "../types/residentialTypes";
 
@@ -130,6 +131,8 @@ const CommercialSchema = new Schema<ICommercial>(
   },
   { timestamps: true },
 );
+
+CommercialSchema.plugin(listingFollowUpPlugin);
 
 CommercialSchema.index(TEXT_INDEX_FIELDS, { name: "Com_Text" });
 

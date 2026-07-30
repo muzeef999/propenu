@@ -9,6 +9,7 @@ import {
 import { TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
 import { generatePropertyCode } from "../utils/generatePropertyCode";
+import { listingFollowUpPlugin } from "../utils/listingFollowUpAssign";
 import "../models/roleModel";
 import { create } from "domain";
 
@@ -67,6 +68,8 @@ const LandSchema = new Schema<ILand>(
   },
   { timestamps: true },
 );
+
+LandSchema.plugin(listingFollowUpPlugin);
 
 LandSchema.index(
   { slug: 1 },

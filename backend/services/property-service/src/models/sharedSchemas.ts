@@ -381,6 +381,29 @@ export const BaseFields = {
     index: true,
     required: true,
   },
+  /**
+   * Exclusive CCE owner for this listing (copied from creator at post time).
+   * Same territory peers do not share the case.
+   */
+  followUpAssignedTo: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+    index: true,
+    default: null,
+  },
+  followUpAssignedAt: { type: Date, default: null },
+  followUpWorkStatus: {
+    type: String,
+    enum: ["assigned", "in_progress", "completed"],
+    default: null,
+    index: true,
+  },
+  followUpWorkUpdatedAt: { type: Date, default: null },
+  followUpWorkUpdatedBy: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+    default: null,
+  },
   relationshipManager: {
     type: RelationshipManagerAssignmentSchema,
     default: null,

@@ -8,6 +8,7 @@ import { BaseFields, FileRefSchema, PromotionSchema } from "./sharedSchemas";
 import { TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
 import { generatePropertyCode } from "../utils/generatePropertyCode";
+import { listingFollowUpPlugin } from "../utils/listingFollowUpAssign";
 import "../models/roleModel";
 
 export interface AgriculturalDocument extends Document, IAgricultural {
@@ -63,6 +64,8 @@ const AgriculturalSchema = new Schema<IAgricultural>(
   },
   { timestamps: true },
 );
+
+AgriculturalSchema.plugin(listingFollowUpPlugin);
 
 AgriculturalSchema.index(
   { slug: 1 },

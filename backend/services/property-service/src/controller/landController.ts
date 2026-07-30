@@ -7,6 +7,7 @@ import LandPlot from "../models/landModel";
 import { uploadFile } from "../utils/uploadFile";
 import Location from "../models/locationModel";
 import User from "../models/userModel";
+import { syncListingFollowUpAfterLocation } from "../utils/listingFollowUpAssign";
 import { sendManagerApprovalMail } from "../utils/sendManagerMail";
 import mongoose from "mongoose";
 import { deleteS3ObjectIfExists } from "../utils/s3Helpers";
@@ -396,6 +397,8 @@ export const updateLandLocationStep = async (
     step: 3,
     lastSection: "location",
   };
+
+  await syncListingFollowUpAfterLocation(doc);
 
   await doc.save(); // 🔥 title improves with location
 

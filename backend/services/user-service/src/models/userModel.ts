@@ -53,6 +53,21 @@ export interface IUser extends mongoose.Document {
   followUpAssignedTo?: Types.ObjectId;
   followUpAssignedAt?: Date;
   followUpAssignMethod?: "location_round_robin" | "round_robin";
+  /**
+   * CCE manual work process (separate from accountStatus / journey stage).
+   * Auto-set to "assigned" when a CCE is attached; CCE/TL can move to in_progress / completed.
+   */
+  followUpWorkStatus?: "assigned" | "in_progress" | "completed" | null;
+  followUpWorkUpdatedAt?: Date | null;
+  followUpWorkUpdatedBy?: Types.ObjectId | null;
+  /**
+   * Temporary browse/header location (city+state only) used for early CCE assign
+   * before the Location step. Cleared when real locality/city/state/pincode are saved.
+   */
+  tempCity?: string | null;
+  tempState?: string | null;
+  tempLocationSource?: "header" | "geolocation" | "manual" | null;
+  tempLocationAt?: Date | null;
   notificationSeenAt?: {
     builder?: Date | null;
     agent?: Date | null;
@@ -261,6 +276,30 @@ const UserSchema = new mongoose.Schema(
       type: String,
       enum: ["location_round_robin", "round_robin"],
     },
+
+    /** CCE work process — does not replace accountStatus / journey stage. */
+    followUpWorkStatus: {
+      type: String,
+      enum: ["assigned", "in_progress", "completed"],
+      default: null,
+      index: true,
+    },
+    followUpWorkUpdatedAt: { type: Date, default: null },
+    followUpWorkUpdatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    /** Header/browse city+state until Location step completes (does not replace real fields). */
+    tempCity: { type: String, trim: true, maxlength: 45, default: null },
+    tempState: { type: String, trim: true, maxlength: 45, default: null },
+    tempLocationSource: {
+      type: String,
+      enum: ["header", "geolocation", "manual"],
+      default: null,
+    },
+    tempLocationAt: { type: Date, default: null },
 
     isActive: { type: Boolean, default: true },
     lastLoginAt: { type: Date },

@@ -13,6 +13,7 @@ import Residential from "../models/residentialModel";
 import { uploadFile } from "../utils/uploadFile";
 import Location from "../models/locationModel";
 import User from "../models/userModel";
+import { syncListingFollowUpAfterLocation } from "../utils/listingFollowUpAssign";
 import { sendManagerApprovalMail } from "../utils/sendManagerMail";
 import mongoose from "mongoose";
 import { deleteS3ObjectIfExists } from "../utils/s3Helpers";
@@ -440,6 +441,9 @@ export const updateLocationStep = async (req: AuthRequest, res: Response) => {
       lastSection: "location",
     },
   });
+
+  // Location step (~45%): keep CCE if still covers; else reassign by listing location.
+  await syncListingFollowUpAfterLocation(doc);
 
   await stampListingUpdateAudit(Residential, doc, req.user);
   await doc.save();

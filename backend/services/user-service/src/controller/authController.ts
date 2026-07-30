@@ -25,12 +25,14 @@ import {
   canReportToRole,
   canonicalRoleName,
   describeRoleHierarchy,
+  expandReportsToRoleNames,
   getReportsToRoleOptions,
 } from "../utils/reportsToPolicy";
 import { seedWorkingLocationsOnActivate } from "../utils/seedWorkingLocations";
 import {
   ensureFollowUpAssignee,
   ensureFollowUpAssigneesForUsers,
+  sanitizeTempLocationInput,
 } from "../utils/followUpAssign";
 
 const PLATFORM_END_USER_ROLE_SET = new Set<string>(PLATFORM_END_USER_ROLE_NAMES);
@@ -288,6 +290,25 @@ const findDeletedAccount = async ({
   return DeletedAccount.findOne({ $or: lookup }).select("_id").lean();
 };
 
+/** Super Admin / Create Credentials may rehire the same email after permanent delete. */
+const clearDeletedAccountTombstones = async ({
+  email,
+  phone,
+}: {
+  email?: string;
+  phone?: string;
+}) => {
+  const lookup = [
+    ...(email ? [{ email: String(email).trim().toLowerCase() }] : []),
+    ...(phone
+      ? getPhoneLookupValues(phone).map((value) => ({ phone: value }))
+      : []),
+  ];
+  if (!lookup.length) return 0;
+  const result = await DeletedAccount.deleteMany({ $or: lookup });
+  return result.deletedCount || 0;
+};
+
 const createAuthToken = async ({
   user,
   roleDoc,
@@ -469,6 +490,14 @@ export const verifyOtp = async (req: Request, res: Response) => {
     }
 
     const role: any = user.roleId;
+
+    if (role?.isActive === false) {
+      return res.status(403).json({
+        message:
+          "Your role is deactivated. Contact Super Admin to activate the role before logging in.",
+        code: "ROLE_DEACTIVATED",
+      });
+    }
 
     const restrictionMessage = getOtpLoginRestrictionMessage({
       roleName: role?.name,
@@ -968,6 +997,7 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       const followUpAssignedTo = user.followUpAssignedTo
         ? String(user.followUpAssignedTo)
         : null;
+      const followUpWorkStatus = user.followUpWorkStatus || (followUpAssignedTo ? "assigned" : null);
 
       return {
         ...user,
@@ -975,6 +1005,7 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
         roleName: role?.name || null,
         managerId: manager?._id ? String(manager._id) : manager ? String(manager) : null,
         followUpAssignedTo,
+        followUpWorkStatus,
         reportsTo: manager?._id
           ? {
               _id: String(manager._id),
@@ -1255,6 +1286,7 @@ export const createRequestOtp = async (req: Request, res: Response) => {
 export const createVerifyOtp = async (req: Request, res: Response) => {
   try {
     let { email, phone, otp, name, role, companyName } = req.body;
+    const tempLocation = sanitizeTempLocationInput(req.body);
 
     email = email?.trim()?.toLowerCase();
     phone = phone?.trim();
@@ -1330,6 +1362,21 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
         });
       }
 
+      // Incomplete signup: keep temp header location for early CCE match (additive).
+      if (tempLocation && !user.state) {
+        user.tempCity = tempLocation.tempCity;
+        user.tempState = tempLocation.tempState;
+        user.tempLocationSource = tempLocation.tempLocationSource;
+        user.tempLocationAt = tempLocation.tempLocationAt;
+        try {
+          // Reassign only when existing CCE no longer covers the new header city/state.
+          await ensureFollowUpAssignee(user, { reassignIfNotCovering: true });
+        } catch {
+          /* non-blocking */
+        }
+        await user.save();
+      }
+
       const roleDoc: any = user.roleId;
 
       const token = await createAuthToken({ user, roleDoc });
@@ -1370,13 +1417,21 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       kyc: {
         status: "not_started",
       },
+      ...(tempLocation
+        ? {
+            tempCity: tempLocation.tempCity,
+            tempState: tempLocation.tempState,
+            tempLocationSource: tempLocation.tempLocationSource,
+            tempLocationAt: tempLocation.tempLocationAt,
+          }
+        : {}),
     });
 
     if (roleDoc.name === "agent") {
       await createInitialAgentProfile(user._id);
     }
 
-    // Exclusive CCE follow-up owner (global RR until location is known).
+    // Exclusive CCE follow-up owner (temp city/state when present; else global RR).
     try {
       const didAssign = await ensureFollowUpAssignee(user);
       if (didAssign) await user.save();
@@ -1436,12 +1491,8 @@ export const adminCreateRequestOtp = async (req: Request, res: Response) => {
       });
     }
 
-    const deletedAccount = await findDeletedAccount({ email });
-    if (deletedAccount) {
-      return res.status(403).json({
-        message: deletedAccountMessage,
-      });
-    }
+    // Allow Super Admin / credential creators to recreate a previously deleted email.
+    await clearDeletedAccountTombstones({ email });
 
     const otp = genOtp();
     await saveOtpToRedis(email, otp);
@@ -1602,6 +1653,9 @@ export const adminCreateVerifyOtp = async (req: AuthRequest, res: Response) => {
         roleName: (check.manager.roleId as any)?.name || null,
       };
     }
+
+    // Rehire path: remove deleted-account block for this email before creating again.
+    await clearDeletedAccountTombstones({ email });
 
     user = await User.create({
       name,
@@ -1781,6 +1835,12 @@ export const updateLocationOtp = async (req: AuthRequest, res: Response) => {
     updatedUser.state = state.trim();
     updatedUser.pincode = pincode.trim();
 
+    // Real Location step wins — clear temporary header location.
+    updatedUser.tempCity = null;
+    updatedUser.tempState = null;
+    updatedUser.tempLocationSource = null;
+    updatedUser.tempLocationAt = null;
+
     const populatedUser = await updatedUser.populate("roleId");
     const roleName =
       typeof populatedUser.roleId === "object" &&
@@ -1791,7 +1851,7 @@ export const updateLocationOtp = async (req: AuthRequest, res: Response) => {
 
     updatedUser.accountStatus = roleName === "builder" ? "active" : "kyc_pending";
 
-    // Exclusive follow-up owner by location (reassign if prior global owner doesn't cover).
+    // Keep same CCE if they still cover final location; otherwise remove + reassign.
     try {
       await ensureFollowUpAssignee(updatedUser, { reassignIfNotCovering: true });
     } catch {
@@ -2279,6 +2339,7 @@ export const getEligibleReportsTo = async (req: AuthRequest, res: Response) => {
 
     const hierarchy = describeRoleHierarchy(targetRole);
     const reportsToRoles = hierarchy.reportsToRoles;
+    const reportsToRoleNames = expandReportsToRoleNames(reportsToRoles);
 
     if (!reportsToRoles.length) {
       return res.json({
@@ -2291,10 +2352,9 @@ export const getEligibleReportsTo = async (req: AuthRequest, res: Response) => {
     }
 
     const managerRoles = await Role.find({
-      name: { $in: reportsToRoles },
-      isActive: { $ne: false },
+      name: { $in: reportsToRoleNames },
     })
-      .select("_id name label")
+      .select("_id name label isActive")
       .lean();
 
     if (!managerRoles.length) {
@@ -2304,6 +2364,8 @@ export const getEligibleReportsTo = async (req: AuthRequest, res: Response) => {
         required: false,
         ...hierarchy,
         users: [],
+        message:
+          "No parent role found (e.g. Customer Support Team Lead). Create that role user first.",
       });
     }
 
@@ -2319,8 +2381,12 @@ export const getEligibleReportsTo = async (req: AuthRequest, res: Response) => {
     if (forUserId && mongoose.Types.ObjectId.isValid(forUserId)) {
       userFilter._id = { $ne: forUserId };
     }
+    // Optional state filter (exact or case-insensitive). Empty state = all managers.
     if (stateFilter) {
-      userFilter.state = stateFilter;
+      userFilter.state = new RegExp(
+        `^${stateFilter.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+        "i",
+      );
     }
 
     // Non–super_admin actors only see managers within their descendant visibility band

@@ -1,5 +1,6 @@
 import express from "express";
 import { adminCreateRequestOtp, adminCreateUpdateLocation, adminCreateVerifyOtp, adminDeleteUser, adminSetUserActive, assignManager, assignReportsTo, createRequestOtp,  createVerifyOtp, deleteMyAccount, getAllUsers, getEligibleReportsTo, getManagerTeamDetails, getRoleHierarchyGuide, me, requestAdminUserPhoneChangeOtp, requestOTP, searchUsers, updateLocationOtp, updateUser, updateUserProfileById, updateUserRole, verifyOtp } from "../controller/authController";
+import { updateFollowUpWorkStatus } from "../controller/followUpWorkController";
 import { getUserWorkingLocations, updateUserWorkingLocations } from "../controller/workingLocationsController";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 import { superAdminOnly } from "../middlewares/superAdminOnly";
@@ -109,6 +110,13 @@ authRoute.patch(
 );
  
 authRoute.get("/all-users", authMiddleware, requirePermission("user:view"), getAllUsers);
+
+authRoute.patch(
+  "/:id/follow-up-work-status",
+  authMiddleware,
+  requirePermission("user:view"),
+  updateFollowUpWorkStatus,
+);
 
 authRoute.get(
   "/:id/working-locations",

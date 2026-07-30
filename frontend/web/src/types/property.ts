@@ -144,6 +144,10 @@ export interface createVerifyOtpPayload {
   role: "user" | "builder" | "agent"
   phone: string
   otp: string
+  /** Optional header/browse city for early CCE assign (before Location step). */
+  tempCity?: string
+  tempState?: string
+  tempLocationSource?: "header" | "geolocation" | "manual"
 }
 
 export interface Leads {
