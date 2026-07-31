@@ -97,6 +97,23 @@ const LandFilters = () => {
     Builders: "Builder",
   };
 
+  const normalizePostedByRole = (value: string) => {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "owners" || normalized === "owner") return "user";
+    if (normalized === "agents") return "agent";
+    if (normalized === "builders") return "builder";
+    return normalized;
+  };
+
+  const selectedCreatedByRole = Array.isArray(createdByRole)
+    ? createdByRole[0] ?? ""
+    : createdByRole
+      ? String(createdByRole).split(",")[0]?.trim() ?? ""
+      : "";
+
+  const isCreatedByRoleSelected = (value: string) =>
+    normalizePostedByRole(selectedCreatedByRole) === normalizePostedByRole(value);
+
   const [open, setOpen] = useState(false);
 
   const handleSectionClick = (key: LandFilterKey) => {
@@ -579,7 +596,7 @@ const LandFilters = () => {
                 key={opt}
                 onClick={() => {
                   const nextValue =
-                    createdByRole === postedByLabelMap[opt]
+                    isCreatedByRoleSelected(postedByLabelMap[opt])
                       ? ""
                       : postedByLabelMap[opt];
                   dispatch(
@@ -590,10 +607,10 @@ const LandFilters = () => {
                   );
                   close?.();
                 }}
-                className={`px-2 py-1 rounded block w-full cursor-pointer text-left hover:bg-gray-100 ${createdByRole === postedByLabelMap[opt] ? "font-semibold bg-gray-100" : ""
+                className={`px-2 py-1 rounded block w-full cursor-pointer text-left ${isCreatedByRoleSelected(postedByLabelMap[opt]) ? "bg-[#D1EFDD] font-semibold text-[#15803D]" : "hover:bg-gray-100 text-gray-700"
                   }`}
               >
-                {postedByLabelMap[opt]}
+                {opt}
               </button>
             ))}
             <button
@@ -606,7 +623,7 @@ const LandFilters = () => {
                 );
                 close?.();
               }}
-              disabled={!createdByRole}
+              disabled={!selectedCreatedByRole}
               className={`mt-2 px-2 py-1 rounded block w-full text-left ${
                 createdByRole
                   ? "cursor-pointer text-red-500 hover:bg-red-50"

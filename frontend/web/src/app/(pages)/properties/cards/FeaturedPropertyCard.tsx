@@ -14,6 +14,7 @@ import {
 } from "@/icons/icons";
 import { Property } from "@/types/property";
 import { useShortlist } from "@/hooks/useShortlist";
+import { toast } from "sonner";
 
 type ProjectSummaryUnit = NonNullable<
   NonNullable<Property["bhkSummary"]>[number]["units"]
@@ -374,7 +375,24 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
   const promotionBadge = promotionConfig[promotionType];
   const propertyHref = getFeaturedProjectHref(p);
 
+  const shareProperty = async () => {
+    const href =
+      typeof window !== "undefined"
+        ? new URL(propertyHref, window.location.origin).toString()
+        : "";
 
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: p.title, url: href });
+        return;
+      }
+
+      await navigator.clipboard.writeText(href);
+      toast.success("Project link copied");
+    } catch {
+      // Ignore cancelled share or clipboard errors.
+    }
+  };
 
   return (
     <div
@@ -396,6 +414,7 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
             images={images}
             alt={p.title}
             onIndexChange={setActiveImageIndex}
+            onShare={shareProperty}
             isShortlisted={isShortlisted}
             isShortlistLoading={isShortlistLoading}
             onToggleShortlist={toggleShortlist}

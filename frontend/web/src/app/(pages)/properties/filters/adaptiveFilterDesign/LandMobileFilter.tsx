@@ -112,7 +112,26 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
   const selectedLocalities = Array.isArray(land.locality) ? land.locality : [];
   const selectedLandTypes = Array.isArray(land.landType) ? land.landType : [];
   const selectedLandSubTypes = Array.isArray(land.landSubType) ? land.landSubType : [];
-  const selectedPostedBy = land.createdByRole ? [land.createdByRole] : [];
+  const normalizePostedByRole = (value: string) => {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "owners" || normalized === "owner") return "user";
+    if (normalized === "agents") return "agent";
+    if (normalized === "builders") return "builder";
+    return normalized;
+  };
+
+  const selectedPostedByValue = Array.isArray(land.createdByRole)
+    ? land.createdByRole[0] ?? ""
+    : land.createdByRole
+      ? String(land.createdByRole).split(",")[0]?.trim() ?? ""
+      : "";
+
+  const isPostedBySelected = (value: string) =>
+    normalizePostedByRole(selectedPostedByValue) === normalizePostedByRole(value);
+
+  const selectedPostedBy = postedByOptions.filter((option) =>
+    isPostedBySelected(postedByLabelMap[option]),
+  );
   const dimensionLength = land.dimensions?.length;
   const dimensionWidth = land.dimensions?.width;
 
@@ -526,16 +545,16 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                   dispatch(
                     setLandFilter({
                       key: "createdByRole",
-                      value: postedByLabelMap[option],
+                      value: isPostedBySelected(postedByLabelMap[option]) ? "" : postedByLabelMap[option],
                     }),
                   )
                 }
-                className={`rounded-xl border px-3 py-2 text-sm ${selectedPostedBy.includes(postedByLabelMap[option])
+                className={`rounded-xl border px-3 py-2 text-sm ${selectedPostedBy.includes(option)
                     ? "border-green-600 bg-[#d8ece0] text-green-700"
                     : "border-gray-300 bg-white"
                   }`}
               >
-                {postedByLabelMap[option]}
+                {option}
               </button>
             ))}
           </div>

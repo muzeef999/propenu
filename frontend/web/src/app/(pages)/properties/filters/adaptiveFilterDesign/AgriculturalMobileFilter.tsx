@@ -118,9 +118,26 @@ const AgriculturalMobileFilter: React.FC<AgriculturalMobileFilterProps> = ({
   )
     ? agricultural.agriculturalSubType
     : [];
-  const selectedPostedBy = agricultural.createdByRole
-    ? [agricultural.createdByRole]
-    : [];
+  const normalizePostedByRole = (value: string) => {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "owners" || normalized === "owner") return "user";
+    if (normalized === "agents") return "agent";
+    if (normalized === "builders") return "builder";
+    return normalized;
+  };
+
+  const selectedPostedByValue = Array.isArray(agricultural.createdByRole)
+    ? agricultural.createdByRole[0] ?? ""
+    : agricultural.createdByRole
+      ? String(agricultural.createdByRole).split(",")[0]?.trim() ?? ""
+      : "";
+
+  const isPostedBySelected = (value: string) =>
+    normalizePostedByRole(selectedPostedByValue) === normalizePostedByRole(value);
+
+  const selectedPostedBy = postedByOptions.filter((option) =>
+    isPostedBySelected(postedByLabelMap[option]),
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -515,17 +532,17 @@ const AgriculturalMobileFilter: React.FC<AgriculturalMobileFilterProps> = ({
                   dispatch(
                     setAgriculturalFilter({
                       key: "createdByRole",
-                      value: postedByLabelMap[option],
+                      value: isPostedBySelected(postedByLabelMap[option]) ? "" : postedByLabelMap[option],
                     }),
                   )
                 }
                 className={`rounded-xl border px-3 py-2 text-sm ${
-                  selectedPostedBy.includes(postedByLabelMap[option])
+                  selectedPostedBy.includes(option)
                     ? "border-green-600 bg-[#d8ece0] text-green-700"
                     : "border-gray-300 bg-white"
                 }`}
               >
-                {postedByLabelMap[option]}
+                {option}
               </button>
             ))}
           </div>

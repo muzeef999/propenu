@@ -51,7 +51,7 @@ export const moreFilterSections: MoreFilterSection[] = [
     {
       key: "Posted By",
       label: "Posted By",
-      options: ["User", "Agent", "Builder"],
+      options: ["Owners", "Agents", "Builders"],
       selectionType: "single",
     },
     {
@@ -154,7 +154,7 @@ export const moreFilterSections: MoreFilterSection[] = [
       key: "Posted By",
       label: "Posted By",
       options: ["Owners", "Agents"],
-      selectionType: "multiple",
+      selectionType: "single",
     },
     {
       key: "Construction Status",
@@ -281,6 +281,7 @@ export const moreFilterSections: MoreFilterSection[] = [
       key: "Posted By",
       label: "Posted By",
       options: ["Owners", "Agents", "Builders"],
+      selectionType: "single",
     },
     {
       key: "Plot Area",
@@ -398,7 +399,8 @@ export const agriculturalMoreFilterSections: MoreFilterSectionAGR[] = [
     {
       key: "Posted By",
       label: "Posted By",
-      options: ["Owners", "Agents"],
+      options: ["Owners", "Agents", "Builders"],
+      selectionType: "single",
     },
     {
       key: "Total Area",

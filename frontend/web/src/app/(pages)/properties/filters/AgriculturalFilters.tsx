@@ -62,6 +62,14 @@ const postedByLabelMap: Record<PostedByOption, string> = {
   Builders: "Builder",
 };
 
+const normalizePostedByRole = (value: string) => {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "owners" || normalized === "owner") return "user";
+  if (normalized === "agents") return "agent";
+  if (normalized === "builders") return "builder";
+  return normalized;
+};
+
 const normalizeBudgetRange = (
   min: number | null,
   max: number | null
@@ -99,6 +107,15 @@ const AgriculturalFilters = () => {
   ]);
 
   const { locality, createdByRole } = agricultural;
+  const selectedCreatedByRole = Array.isArray(createdByRole)
+    ? createdByRole[0] ?? ""
+    : createdByRole
+      ? String(createdByRole).split(",")[0]?.trim() ?? ""
+      : "";
+
+  const isCreatedByRoleSelected = (value: string) =>
+    normalizePostedByRole(selectedCreatedByRole) === normalizePostedByRole(value);
+
   const selectedLocalities = Array.isArray(locality) ? locality : [];
   const localityLabel =
     selectedLocalities.length === 0
@@ -540,7 +557,7 @@ const AgriculturalFilters = () => {
                 key={opt}
                 onClick={() => {
                   const nextValue =
-                    createdByRole === postedByLabelMap[opt]
+                    isCreatedByRoleSelected(postedByLabelMap[opt])
                       ? ""
                       : postedByLabelMap[opt];
                   dispatch(
@@ -551,10 +568,10 @@ const AgriculturalFilters = () => {
                   );
                   close?.();
                 }}
-                className={`px-2 py-1 rounded block w-full cursor-pointer text-left hover:bg-gray-100 ${createdByRole === postedByLabelMap[opt] ? "font-semibold bg-gray-100" : ""
+                className={`px-2 py-1 rounded block w-full cursor-pointer text-left ${isCreatedByRoleSelected(postedByLabelMap[opt]) ? "bg-[#D1EFDD] font-semibold text-[#15803D]" : "hover:bg-gray-100 text-gray-700"
                   }`}
               >
-                {postedByLabelMap[opt]}
+                {opt}
               </button>
             ))}
             <button
@@ -567,7 +584,7 @@ const AgriculturalFilters = () => {
                 );
                 close?.();
               }}
-              disabled={!createdByRole}
+              disabled={!selectedCreatedByRole}
               className={`mt-2 px-2 py-1 rounded block w-full text-left ${
                 createdByRole
                   ? "cursor-pointer text-red-500 hover:bg-red-50"

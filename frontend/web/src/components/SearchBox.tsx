@@ -62,7 +62,7 @@ const SearchBox = () => {
     };
   }, []);
 
-  const { listingTypeLabel, category, searchText, residential, commercial, land, agricultural } = useAppSelector((s) => s.filters);
+  const { listingTypeLabel, listingTypeValue, category, searchText, residential, commercial, land, agricultural } = useAppSelector((s) => s.filters);
   const cityData = useAppSelector(selectCityWithLocalities);
 
   const categoryOptions: Array<{ label: string; value: categoryOption }> = [
@@ -99,30 +99,60 @@ const SearchBox = () => {
     return agricultural.locality ? [agricultural.locality] : [];
   }, [category, residential.locality, commercial.locality, land.locality, agricultural.locality]);
 
+  const buildPropertiesHref = (
+    localities: string[] = selectedLocalities,
+    text: string = searchText,
+  ) => {
+    const params = new URLSearchParams({
+      type: categoryToType[category],
+      listingType: listingTypeValue,
+    });
+
+    const cleanedLocalities = localities
+      .map((locality) => locality.trim())
+      .filter(Boolean);
+
+    if (cleanedLocalities.length > 0) {
+      params.set("locality", cleanedLocalities.join(","));
+    }
+
+    const cleanedSearch = text.trim();
+    if (cleanedSearch && cleanedLocalities.length === 0) {
+      params.set("search", cleanedSearch);
+    }
+
+    if (cityData?.city) params.set("city", cityData.city);
+    if (cityData?.state) params.set("state", cityData.state);
+
+    return `/properties?${params.toString()}`;
+  };
+
   const handleLocalitySelect = (name: string) => {
+    const nextLocalities = toggleArrayValue(selectedLocalities, name);
+
     if (category === "Residential") {
       dispatch(
         setResidentialFilter({
           key: "locality",
-          value: toggleArrayValue(selectedLocalities, name),
+          value: nextLocalities,
         }),
       );
     } else if (category === "Commercial") {
       dispatch(
         setCommercialFilter({
           key: "locality",
-          value: toggleArrayValue(selectedLocalities, name),
+          value: nextLocalities,
         }),
       );
     } else if (category === "Land") {
-      dispatch(setLandFilter({ key: "locality", value: name }));
+      dispatch(setLandFilter({ key: "locality", value: nextLocalities }));
     } else {
-      dispatch(setAgriculturalFilter({ key: "locality", value: name }));
+      dispatch(setAgriculturalFilter({ key: "locality", value: nextLocalities }));
     }
 
     dispatch(setSearchText(""));
     setSearchOpen(false);
-    router.push(`/properties?type=${categoryToType[category]}`);
+    router.push(buildPropertiesHref(nextLocalities, ""));
   };
 
   const localitySuggestions = useMemo(() => {
@@ -285,7 +315,7 @@ const SearchBox = () => {
             )}
           </div>
 
-          <Link href={`/properties?type=${categoryToType[category]}`} className="btn-primary px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shrink-0">
+          <Link href={buildPropertiesHref()} className="btn-primary px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shrink-0">
             <IoIosSearch className="h-5 w-5" />
             <span className="hidden sm:inline">Search</span>
           </Link>

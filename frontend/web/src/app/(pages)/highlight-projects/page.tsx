@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { getHighlightProjects, getSponsored } from "@/data/ClientData";
@@ -13,12 +13,16 @@ import {
     FiDownload,
 } from "react-icons/fi";
 import { HiOutlineLocationMarker } from "react-icons/hi";
+import { GoHeart, GoHeartFill } from "react-icons/go";
+import { IoMdShareAlt } from "react-icons/io";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import formatINR from "@/utilies/PriceFormat";
 import AdCard, { type Ad } from "../properties/cards/AdCard";
 import SponsoreCard from "../properties/cards/SponsoreCard";
+import { useShortlist } from "@/hooks/useShortlist";
+import { toast } from "sonner";
 
 type HighlightProjectsResponse = {
     items?: FeaturedProject[];
@@ -103,6 +107,75 @@ const getSponsoredPropertyHref = (property: SponsoredProperty) => {
         default:
             return "/";
     }
+};
+const ProjectCardActions = ({
+    project,
+    projectHref,
+}: {
+    project: FeaturedProject;
+    projectHref: string;
+}) => {
+    const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(
+        project._id,
+        "FeaturedProject",
+    );
+
+    const shareProject = async (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const shareUrl =
+            typeof window !== "undefined"
+                ? new URL(projectHref, window.location.origin).toString()
+                : "";
+
+        try {
+            if (navigator.share) {
+                await navigator.share({ title: project.title, url: shareUrl });
+                return;
+            }
+
+            await navigator.clipboard.writeText(shareUrl);
+            toast.success("Project link copied");
+        } catch {
+            // Ignore cancelled share or clipboard errors.
+        }
+    };
+
+    return (
+        <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
+            <button
+                type="button"
+                onClick={shareProject}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow transition-all duration-200 hover:scale-110 active:scale-95"
+                title="Share project"
+                aria-label="Share project"
+            >
+                <IoMdShareAlt className="h-5 w-5 text-gray-700" />
+            </button>
+
+            <button
+                type="button"
+                onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    toggleShortlist();
+                }}
+                disabled={isShortlistLoading}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow transition-all duration-200 hover:scale-110 active:scale-95 disabled:cursor-not-allowed"
+                title={isShortlisted ? "Remove from shortlist" : "Shortlist"}
+                aria-label={isShortlisted ? "Remove from shortlist" : "Shortlist"}
+            >
+                {isShortlistLoading ? (
+                    <span className="block h-5 w-5 animate-pulse rounded-full bg-gray-300" />
+                ) : isShortlisted ? (
+                    <GoHeartFill className="h-5 w-5 text-red-500" />
+                ) : (
+                    <GoHeart className="h-5 w-5 text-gray-600 hover:text-red-500" />
+                )}
+            </button>
+        </div>
+    );
 };
 
 const HotspotsPage = () => {
@@ -426,6 +499,8 @@ const HotspotsPage = () => {
                                                             alt={project.title}
                                                             className="w-full h-full object-cover rounded-xl"
                                                         />
+
+                                                        <ProjectCardActions project={project} projectHref={projectHref} />
 
                                                         {promotionLabel && (
                                                             <span className="absolute left-3 top-3 rounded-md bg-black/60 px-2.5 py-1 text-xs font-semibold text-white">

@@ -223,13 +223,32 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
     return [...startsWith, ...includes].slice(0, 8);
   }, [cityData, searchText]);
 
-  const selectedPostedBy = useMemo(() => {
+  const normalizePostedByRole = (value: string) => {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "owners" || normalized === "owner") return "user";
+    if (normalized === "agents") return "agent";
+    return normalized;
+  };
+
+  const selectedPostedByValue = useMemo(() => {
     const source = commercial.createdByRole;
-    const sourceList = Array.isArray(source) ? source : source ? [source] : [];
-    return postedByOptions.filter((option) =>
-      sourceList.includes(postedByLabelMap[option]),
-    );
+    return Array.isArray(source)
+      ? source[0] ?? ""
+      : source
+        ? String(source).split(",")[0]?.trim() ?? ""
+        : "";
   }, [commercial.createdByRole]);
+
+  const isPostedBySelected = (value: string) =>
+    normalizePostedByRole(selectedPostedByValue) === normalizePostedByRole(value);
+
+  const selectedPostedBy = useMemo(
+    () =>
+      postedByOptions.filter((option) =>
+        isPostedBySelected(postedByLabelMap[option]),
+      ),
+    [selectedPostedByValue],
+  );
 
   const toggleArrayValue = (arr: string[] = [], value: string) =>
     arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
@@ -558,7 +577,7 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
                   dispatch(
                     setCommercialFilter({
                       key: "createdByRole",
-                      value: postedByLabelMap[option],
+                      value: isPostedBySelected(postedByLabelMap[option]) ? "" : postedByLabelMap[option],
                     }),
                   )
                 }
@@ -568,7 +587,7 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
                     : "border-gray-300 bg-white"
                 }`}
               >
-                {postedByLabelMap[option]}
+                {option}
               </button>
             ))}
           </div>

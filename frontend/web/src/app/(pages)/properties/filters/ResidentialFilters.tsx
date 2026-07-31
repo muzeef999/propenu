@@ -67,6 +67,23 @@ const ResidentialFilters = () => {
     Builders: "Builder",
   };
 
+  const normalizePostedByRole = (value: string) => {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "owners" || normalized === "owner") return "user";
+    if (normalized === "agents") return "agent";
+    if (normalized === "builders") return "builder";
+    return normalized;
+  };
+
+  const selectedCreatedByRole = Array.isArray(createdByRole)
+    ? createdByRole[0] ?? ""
+    : createdByRole
+      ? String(createdByRole).split(",")[0]?.trim() ?? ""
+      : "";
+
+  const isCreatedByRoleSelected = (value: string) =>
+    normalizePostedByRole(selectedCreatedByRole) === normalizePostedByRole(value);
+
   const keyMapping: Record<RESFilterKey, keyof typeof residential> = {
     "Property Type": "propertyType",
     "Sales Type": "transactionType",
@@ -255,9 +272,7 @@ const ResidentialFilters = () => {
     ...(residential.postedSince
       ? [`Posted: ${formatLabel(residential.postedSince)}`]
       : []),
-    ...(residential.createdByRole
-      ? [`By: ${formatLabel(residential.createdByRole)}`]
-      : []),
+    ...(selectedCreatedByRole ? [`By: ${formatLabel(selectedCreatedByRole)}`] : []),
     ...(Array.isArray(locality) && locality.length
       ? locality.map((value) => `Locality: ${value}`)
       : []),
@@ -634,18 +649,17 @@ const ResidentialFilters = () => {
                     dispatch(
                       setResidentialFilter({
                         key: "createdByRole",
-                        value: createdByRole === mappedValue ? "" : mappedValue,
+                        value: isCreatedByRoleSelected(mappedValue) ? "" : mappedValue,
                       }),
                     );
-                    close?.();
                   }}
-                  className={`px-2 py-1 rounded block w-full text-left hover:bg-gray-100 cursor-pointer${
-                    createdByRole === POSTED_BY_MAP[opt]
-                      ? "font-semibold bg-gray-100"
-                      : ""
+                  className={`px-2 py-1 rounded block w-full text-left cursor-pointer ${
+                    isCreatedByRoleSelected(POSTED_BY_MAP[opt])
+                      ? "bg-[#D1EFDD] font-semibold text-[#15803D]"
+                      : "hover:bg-gray-100 text-gray-700"
                   }`}
                 >
-                  {POSTED_BY_MAP[opt]}
+                  {opt}
                 </button>
               ))}
               <button
@@ -658,9 +672,9 @@ const ResidentialFilters = () => {
                   );
                   close?.();
                 }}
-                disabled={!createdByRole}
+                disabled={!selectedCreatedByRole}
                 className={`mt-2 px-2 py-1 rounded block w-full text-left ${
-                  createdByRole
+                  selectedCreatedByRole
                     ? "text-red-500 hover:bg-red-50"
                     : "text-gray-400 cursor-not-allowed"
                 }`}
@@ -867,7 +881,9 @@ const ResidentialFilters = () => {
                           const currentValue = residential[mappedKey];
                           const currentValues = Array.isArray(currentValue)
                             ? (currentValue as string[])
-                            : [];
+                            : currentValue
+                              ? [String(currentValue)]
+                              : [];
                           const filterValue =
                             mappedKey === "createdByRole"
                               ? POSTED_BY_MAP[opt as PostedByOption] ?? opt
@@ -882,9 +898,7 @@ const ResidentialFilters = () => {
                             <SelectableButton
                               key={opt}
                               label={
-                                mappedKey === "createdByRole"
-                                  ? POSTED_BY_MAP[opt as PostedByOption] ?? opt
-                                  : formatLabel(opt)
+                                mappedKey === "createdByRole" ? opt : formatLabel(opt)
                               }
                               active={isActive}
                               selectionType={section.selectionType ?? "single"}

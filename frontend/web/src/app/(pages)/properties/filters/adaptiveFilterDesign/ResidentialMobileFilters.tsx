@@ -165,13 +165,33 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
     return [...startsWith, ...includes].slice(0, 8);
   }, [cityData, searchText]);
 
-  const selectedPostedBy = useMemo(() => {
+  const normalizePostedByRole = (value: string) => {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "owners" || normalized === "owner") return "user";
+    if (normalized === "agents") return "agent";
+    if (normalized === "builders") return "builder";
+    return normalized;
+  };
+
+  const selectedPostedByValue = useMemo(() => {
     const source = residential.createdByRole;
-    const sourceList = Array.isArray(source) ? source : source ? [source] : [];
-    return POSTED_BY_OPTIONS.filter((option) =>
-      sourceList.includes(POSTED_BY_MAP[option]),
-    );
+    return Array.isArray(source)
+      ? source[0] ?? ""
+      : source
+        ? String(source).split(",")[0]?.trim() ?? ""
+        : "";
   }, [residential.createdByRole]);
+
+  const isPostedBySelected = (value: string) =>
+    normalizePostedByRole(selectedPostedByValue) === normalizePostedByRole(value);
+
+  const selectedPostedBy = useMemo(
+    () =>
+      POSTED_BY_OPTIONS.filter((option) =>
+        isPostedBySelected(POSTED_BY_MAP[option]),
+      ),
+    [selectedPostedByValue],
+  );
 
   const selectedBedrooms = Array.isArray(residential.bedrooms)
     ? residential.bedrooms
@@ -502,18 +522,18 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
                 type="button"
                 onClick={() =>
                   dispatch(
-                      setResidentialFilter({
-                        key: "createdByRole",
-                        value: POSTED_BY_MAP[option],
-                      }),
-                    )
+                    setResidentialFilter({
+                      key: "createdByRole",
+                      value: isPostedBySelected(POSTED_BY_MAP[option]) ? "" : POSTED_BY_MAP[option],
+                    }),
+                  )
                 }
                 className={`rounded-xl border px-3 py-2 text-sm ${selectedPostedBy.includes(option)
                   ? "border-green-600 bg-[#d8ece0] text-green-700"
                   : "border-gray-300 bg-white"
                   }`}
               >
-                {POSTED_BY_MAP[option]}
+                {option}
               </button>
             ))}
           </div>
