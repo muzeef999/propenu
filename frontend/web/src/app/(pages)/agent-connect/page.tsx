@@ -7,14 +7,14 @@ import { useRouter } from "next/navigation";
 import { MdLocationOn } from "react-icons/md";
 import { HiOutlineLocationMarker, HiOutlineOfficeBuilding } from "react-icons/hi";
 import { IoMdShareAlt } from "react-icons/io";
-import { FiArrowLeft, FiArrowRight } from "react-icons/fi";
+import { FiArrowLeft, FiArrowRight, FiSearch, FiX } from "react-icons/fi";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AgentConnect } from "@/types";
 import { getAgentConnect } from "@/data/ClientData";
 import { useCity } from "@/hooks/useCity";
 import { minDelay } from "@/utilies/minDelay";
-import ad from "@/asserts/ad.png";
+import SponsoreCard from "../properties/cards/SponsoreCard";
 
 const agentSkeletonItems = Array.from({ length: 4 });
 
@@ -72,8 +72,9 @@ function AgentListSkeleton() {
 
 export default function Page() {
   const router = useRouter();
-  const { selectedCity } = useCity(); // ✅ hook at top level
+  const { selectedCity } = useCity();
   const [selectedLocality, setSelectedLocality] = useState("");
+  const [searchText, setSearchText] = useState("");
   const localitiesRef = useRef<HTMLDivElement>(null);
   const [hasLocalityOverflow, setHasLocalityOverflow] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -81,7 +82,32 @@ export default function Page() {
 
   useEffect(() => {
     setSelectedLocality("");
+    setSearchText("");
   }, [selectedCity?.city]);
+
+  const filteredLocalities = useMemo(() => {
+    const localities = Array.from(
+      new Map(
+        (selectedCity?.localities ?? [])
+          .map((locality: any) => locality?.name?.trim())
+          .filter((name): name is string => Boolean(name))
+          .map((name) => [name.toLowerCase(), { name }] as const),
+      ).values(),
+    );
+
+    const query = searchText.trim().toLowerCase();
+    if (!query) return localities;
+
+    const startsWith = localities.filter((locality) =>
+      locality.name.toLowerCase().startsWith(query),
+    );
+    const includes = localities.filter((locality) => {
+      const name = locality.name.toLowerCase();
+      return !name.startsWith(query) && name.includes(query);
+    });
+
+    return [...startsWith, ...includes];
+  }, [selectedCity?.localities, searchText]);
 
   const { data, isLoading } = useQuery<{ items?: AgentConnect[] }>({
     queryKey: ["agent-connect", selectedCity?.city],
@@ -98,14 +124,40 @@ export default function Page() {
 
   const agents = data?.items || [];
   const filteredAgents = useMemo(() => {
-    if (!selectedLocality) return agents;
-
     const selected = selectedLocality.trim().toLowerCase();
-    return agents.filter((agent) =>
-      agent.locality?.trim().toLowerCase() === selected ||
-      agent.areasServed?.some((area) => area.trim().toLowerCase() === selected),
-    );
-  }, [agents, selectedLocality]);
+    const query = searchText.trim().toLowerCase();
+
+    return agents.filter((agent) => {
+      const matchesLocality =
+        !selected ||
+        agent.locality?.trim().toLowerCase() === selected ||
+        agent.areasServed?.some((area) => area.trim().toLowerCase() === selected);
+
+      if (!matchesLocality) return false;
+      if (!query) return true;
+
+      const searchableText = [
+        agent.name,
+        agent.bio,
+        agent.agencyName,
+        agent.locality,
+        agent.city,
+        agent.experienceYears,
+        agent.dealsClosed,
+        agent.verificationStatus,
+        agent.rera?.reraAgentId,
+        agent.stats?.totalProperties,
+        agent.stats?.publishedCount,
+        agent.areasServed?.join(" "),
+        agent.languages?.join(" "),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(query);
+    });
+  }, [agents, selectedLocality, searchText]);
 
   useEffect(() => {
     const el = localitiesRef.current;
@@ -141,7 +193,7 @@ export default function Page() {
       window.removeEventListener("resize", checkScroll);
       resizeObserver.disconnect();
     };
-  }, [isLoading, selectedCity?.city, selectedCity?.localities?.length]);
+  }, [isLoading, selectedCity?.city, filteredLocalities.length]);
 
   const scrollLocalities = (direction: "left" | "right") => {
     if (!localitiesRef.current) return;
@@ -209,39 +261,76 @@ export default function Page() {
           </div>
 
           {!isLoading && Boolean(selectedCity?.localities?.length) && (
-            <div className="relative mb-3 sm:mb-5">
-              {hasLocalityOverflow && canScrollLeft && (
-                <button
-                  type="button"
-                  onClick={() => scrollLocalities("left")}
-                  className="hidden md:block absolute left-0 lg:-left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-2 text-slate-600 shadow hover:bg-slate-50"
-                  aria-label="Scroll localities left"
-                >
-                  <FiArrowLeft size={16} />
-                </button>
-              )}
+            <div className="mb-3 space-y-3 sm:mb-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="relative w-full sm:max-w-sm">
+                  <FiSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="search"
+                    value={searchText}
+                    onChange={(event) => {
+                      setSearchText(event.target.value);
+                      setSelectedLocality("");
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && filteredLocalities[0]) {
+                        setSelectedLocality(filteredLocalities[0].name);
+                      }
+                    }}
+                    placeholder="Search agents, agency, locality"
+                    className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-10 text-sm text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  />
+                  {searchText && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchText("")}
+                      aria-label="Clear agent search"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                    >
+                      <FiX size={16} />
+                    </button>
+                  )}
+                </div>
 
-              <div
-                ref={localitiesRef}
-                className="flex gap-3 sm:gap-4 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-1 py-4 sm:py-5"
-              >
-                {selectedCity?.localities?.map((locality: any, index: number) => (
+                {selectedLocality && (
                   <button
-                    key={`${locality.name}-${index}`}
                     type="button"
-                    onClick={() =>
-                      setSelectedLocality((prev) =>
-                        prev === locality.name ? "" : locality.name,
-                      )
-                    }
-                    className={`group min-w-[150px] sm:min-w-40 rounded-xl border bg-white p-3.5 sm:p-4 shadow-[10px_10px_10px_rgba(0,0,0,0.10)] transition cursor-pointer text-left ${selectedLocality === locality.name
+                    onClick={() => setSelectedLocality("")}
+                    className="inline-flex h-10 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-4 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
+                  >
+                    Show all localities
+                  </button>
+                )}
+              </div>
+
+              <div className="relative">
+                {hasLocalityOverflow && canScrollLeft && (
+                  <button
+                    type="button"
+                    onClick={() => scrollLocalities("left")}
+                    className="hidden md:block absolute left-0 lg:-left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-2 text-slate-600 shadow hover:bg-slate-50"
+                    aria-label="Scroll localities left"
+                  >
+                    <FiArrowLeft size={16} />
+                  </button>
+                )}
+
+                <div
+                  ref={localitiesRef}
+                  className="flex gap-3 sm:gap-4 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-1 py-4 sm:py-5"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSelectedLocality("")}
+                    aria-pressed={!selectedLocality}
+                    className={`group min-w-[150px] sm:min-w-40 rounded-xl border bg-white p-3.5 sm:p-4 shadow-[10px_10px_10px_rgba(0,0,0,0.10)] transition cursor-pointer text-left ${!selectedLocality
                         ? "border-emerald-500 ring-1 ring-emerald-200"
                         : "border-slate-200 hover:border-emerald-300"
                       }`}
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className={`flex h-9 w-9 items-center justify-center rounded-lg ${selectedLocality === locality.name
+                        className={`flex h-9 w-9 items-center justify-center rounded-lg ${!selectedLocality
                             ? "bg-emerald-50 text-emerald-600"
                             : "bg-slate-100 text-slate-500 group-hover:bg-emerald-50 group-hover:text-emerald-600"
                           }`}
@@ -249,26 +338,62 @@ export default function Page() {
                         <HiOutlineLocationMarker size={18} />
                       </div>
                       <h3 className="truncate text-sm font-medium text-slate-900">
-                        {locality.name}
+                        All
                       </h3>
                     </div>
                   </button>
-                ))}
-              </div>
 
-              {hasLocalityOverflow && canScrollRight && (
-                <button
-                  type="button"
-                  onClick={() => scrollLocalities("right")}
-                  className="hidden md:block absolute right-0 lg:-right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-2 text-slate-600 shadow hover:bg-slate-50"
-                  aria-label="Scroll localities right"
-                >
-                  <FiArrowRight size={16} />
-                </button>
-              )}
+                  {filteredLocalities.map((locality, index: number) => (
+                    <button
+                      key={`${locality.name}-${index}`}
+                      type="button"
+                      onClick={() =>
+                        setSelectedLocality((prev) =>
+                          prev === locality.name ? "" : locality.name,
+                        )
+                      }
+                      aria-pressed={selectedLocality === locality.name}
+                      className={`group min-w-[150px] sm:min-w-40 rounded-xl border bg-white p-3.5 sm:p-4 shadow-[10px_10px_10px_rgba(0,0,0,0.10)] transition cursor-pointer text-left ${selectedLocality === locality.name
+                          ? "border-emerald-500 ring-1 ring-emerald-200"
+                          : "border-slate-200 hover:border-emerald-300"
+                        }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`flex h-9 w-9 items-center justify-center rounded-lg ${selectedLocality === locality.name
+                              ? "bg-emerald-50 text-emerald-600"
+                              : "bg-slate-100 text-slate-500 group-hover:bg-emerald-50 group-hover:text-emerald-600"
+                            }`}
+                        >
+                          <HiOutlineLocationMarker size={18} />
+                        </div>
+                        <h3 className="truncate text-sm font-medium text-slate-900">
+                          {locality.name}
+                        </h3>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {filteredLocalities.length === 0 && (
+                  <p className="px-1 pb-3 text-sm text-slate-500">
+                    No locality found for &quot;{searchText}&quot;.
+                  </p>
+                )}
+
+                {hasLocalityOverflow && canScrollRight && (
+                  <button
+                    type="button"
+                    onClick={() => scrollLocalities("right")}
+                    className="hidden md:block absolute right-0 lg:-right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-2 text-slate-600 shadow hover:bg-slate-50"
+                    aria-label="Scroll localities right"
+                  >
+                    <FiArrowRight size={16} />
+                  </button>
+                )}
+              </div>
             </div>
           )}
-
           {isLoading ? (
             <AgentListSkeleton />
           ) : (
@@ -283,7 +408,7 @@ export default function Page() {
 
               {filteredAgents.length === 0 && (
                 <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
-                  No agents found for this locality.
+                  No agents found for this search.
                 </div>
               )}
 
@@ -364,7 +489,7 @@ export default function Page() {
                         <div className="grid grid-cols-3 gap-4 mt-4 lg:mt-2 border-t pt-4 lg:pt-2 border-gray-200 text-sm">
                           <div className="text-center">
                             <p className="text-green-600 font-semibold">
-                              {agent.stats?.totalProperties || 0}
+                              {agent.stats?.totalProperties ? agent.stats.totalProperties : "-"}
                             </p>
                             <p className="text-xs text-gray-500">
                               Properties For Sale
@@ -373,7 +498,7 @@ export default function Page() {
 
                           <div className="text-center">
                             <p className="text-green-600 font-semibold">
-                              {agent.stats?.publishedCount || 0}
+                              {agent.stats?.publishedCount ? agent.stats.publishedCount : "-"}
                             </p>
                             <p className="text-xs text-gray-500">
                               Properties For Rent
@@ -382,7 +507,7 @@ export default function Page() {
 
                           <div className="text-center">
                             <p className="text-green-600 font-semibold">
-                              {agent.dealsClosed || 0}
+                              {agent.dealsClosed ? agent.dealsClosed : "-"}
                             </p>
                             <p className="text-xs text-gray-500">
                               Deals Closed
@@ -421,11 +546,7 @@ export default function Page() {
         </div>
 
         <aside className="w-full shrink-0 lg:w-[260px] sticky top-20 self-start">
-          <Image
-            src={ad}
-            alt="advertisement banner"
-            className="w-full h-auto p-6"
-          />
+          <SponsoreCard />
         </aside>
       </div>
     </div>
