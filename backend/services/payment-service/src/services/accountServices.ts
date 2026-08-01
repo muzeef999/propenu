@@ -44,7 +44,7 @@ export const getAccountsSummary = async (query: Record<string, any> = {}) => {
       },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]),
-    Subscription.countDocuments({ status: "active" }),
+    Subscription.countDocuments({ status: "active", ...rangeMatch }),
     Payment.countDocuments({ status: "failed", ...rangeMatch }),
   ]);
 
@@ -56,6 +56,7 @@ export const getAccountsSummary = async (query: Record<string, any> = {}) => {
     lifetimeRevenue,
     periodRevenue,
     todayRevenue: todayAgg[0]?.total || 0,
+    // When from/to is set, count active subscriptions created in that window.
     activeSubscriptions: activeSubs,
     failedPayments,
   };
