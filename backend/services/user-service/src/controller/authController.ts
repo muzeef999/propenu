@@ -38,7 +38,9 @@ import {
 const PLATFORM_END_USER_ROLE_SET = new Set<string>(PLATFORM_END_USER_ROLE_NAMES);
 import { ALL_PERMISSIONS } from "../constants/permissionCatalog";
 
-/** Optional day range from query: createdFrom/createdTo (aliases: from/to). YYYY-MM-DD. */
+/** Optional day range from query: createdFrom/createdTo (aliases: from/to). YYYY-MM-DD.
+ *  Day bounds use India time (IST, +05:30) so "today" matches admin UI local dates.
+ */
 const buildCreatedAtQueryFilter = (query: Record<string, any> = {}) => {
   const fromRaw = String(query.createdFrom || query.from || "").trim();
   const toRaw = String(query.createdTo || query.to || "").trim();
@@ -48,11 +50,11 @@ const buildCreatedAtQueryFilter = (query: Record<string, any> = {}) => {
   const createdAt: Record<string, Date> = {};
 
   if (fromRaw && isDay(fromRaw)) {
-    const start = new Date(`${fromRaw}T00:00:00.000`);
+    const start = new Date(`${fromRaw}T00:00:00.000+05:30`);
     if (!Number.isNaN(start.getTime())) createdAt.$gte = start;
   }
   if (toRaw && isDay(toRaw)) {
-    const end = new Date(`${toRaw}T23:59:59.999`);
+    const end = new Date(`${toRaw}T23:59:59.999+05:30`);
     if (!Number.isNaN(end.getTime())) createdAt.$lte = end;
   }
 
