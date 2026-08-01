@@ -35,8 +35,14 @@ import { trackInteraction } from "@/services/trackingService";
 type Props = {
   p: ILand;
   vertical?: boolean;
-  isSponsored?: boolean; // ✅ ADD THIS
+  isSponsored?: boolean;
 };
+
+function formatValueWithUnit(value?: number | string, unit?: string) {
+  if (value === undefined || value === null || value === "") return "—";
+  const normalizedUnit = unit?.trim();
+  return normalizedUnit ? `${value} ${normalizedUnit}` : String(value);
+}
 
 export const LandCard: React.FC<Props> = ({
   p,
@@ -48,9 +54,13 @@ export const LandCard: React.FC<Props> = ({
   const bgPriceColoricon = hexToRGBA("#27AE60", 0.4);
 
   const img = p?.gallery?.[0]?.url ?? "/placeholder.jpg";
-  const area = (p as any)?.superBuiltUpArea;
+  const area = (p as any)?.plotArea;
+  const plotAreaUnit = p?.plotAreaUnit?.trim();
   const pricePerSqft =
     (p as any)?.pricePerSqft ?? (area ? Math.round((p?.price ?? 0) / area) : 0);
+  const pricePerUnitLabel = pricePerSqft
+    ? `₹ ${pricePerSqft}${plotAreaUnit ? `/${plotAreaUnit}` : ""}`
+    : "—";
   const resolvedListingSource = resolveListingSource(
     p?.listingSource,
     (p as any)?.createdBy,
@@ -300,7 +310,7 @@ export const LandCard: React.FC<Props> = ({
                   Plot Area
                 </div>
                 <div className="font-medium">
-                  {(p as any)?.plotArea ?? "—"} sqft
+                  {formatValueWithUnit((p as any)?.plotArea, plotAreaUnit)}
                 </div>
               </div>
             </div>
@@ -379,7 +389,7 @@ export const LandCard: React.FC<Props> = ({
             {formatINR(p?.price)}
           </div>
 
-          <div className="text-xs text-gray-600">₹ {pricePerSqft}/sqft</div>
+          <div className="text-xs text-gray-600">{pricePerUnitLabel}</div>
         </div>
 
         {/* BUTTON */}

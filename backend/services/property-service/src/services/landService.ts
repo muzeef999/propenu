@@ -203,7 +203,7 @@ export async function findRelatedLand(property: any) {
 
   return findRankedRelatedProperties(LandPlot, property, {
     select:
-      "title slug price city locality plotArea landUseZone gallery propertyType listingType",
+      "title slug price city locality plotArea plotAreaUnit landUseZone gallery propertyType listingType",
     exactFields: [{ field: "landUseZone", points: 18 }],
     numericBands: [
       { field: "price", tolerance: 0.3, points: 20 },
@@ -874,6 +874,7 @@ export const LandService = {
           dimensions: 1,
           gallery: 1,
           plotArea: 1,
+          plotAreaUnit: 1,
           pricePerSqft: 1,
           slug: 1,
           listingSource: 1,
