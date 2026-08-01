@@ -5,7 +5,6 @@ import {
   Facing,
   RoadAccessIcon,
   SuperBuiitupAraea,
-  UnderConstruction,
 } from "@/icons/icons";
 import { Property } from "@/types/property";
 import { hexToRGBA } from "@/ui/hexToRGBA";
@@ -300,7 +299,7 @@ export const LandCard: React.FC<Props> = ({
             className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200 ${
               vertical
                 ? "grid grid-cols-2 gap-4"
-                : "grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6"
+                : "grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6"
             }`}
           >
             <div className="items-center gap-2 flex">
@@ -314,24 +313,6 @@ export const LandCard: React.FC<Props> = ({
                 </div>
               </div>
             </div>
-
-            {/* <div className="items-center gap-2 flex">
-              <UnderConstruction size={24} color={bgPriceColoricon} />
-              <div className="flex flex-col">
-                <div className="text-xs text-gray-500 tracking-wide">
-                  Dimensions
-                </div>
-
-                <div className="font-medium">
-                  {(p as any)?.dimensions?.length &&
-                  (p as any)?.dimensions?.width
-                    ? `${(p as any).dimensions.length} x ${
-                        (p as any).dimensions.width
-                      }`
-                    : "—"}
-                </div>
-              </div>
-            </div> */}
 
             <div className="items-center gap-2 flex">
               <Facing size={24} color={bgPriceColoricon} />
