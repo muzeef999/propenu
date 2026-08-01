@@ -1,8 +1,8 @@
-name:  Backend CI/CD 2
+name:  Backend CI/CD 3
 
-on: 
+on:
   push:
-    # branches: ["deploy"]
+    branches: ["deploy"]
   workflow_dispatch:
 
 jobs:
