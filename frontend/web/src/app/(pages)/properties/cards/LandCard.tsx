@@ -31,6 +31,9 @@ import { createPortal } from "react-dom";
 import { addLocalShortlist, isLocalShortlisted, removeLocalShortlist } from "@/utilies/shortlistLocal";
 import { trackInteraction } from "@/services/trackingService";
 
+
+//react component for land card
+
 type Props = {
   p: ILand;
   vertical?: boolean;

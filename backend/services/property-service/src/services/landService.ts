@@ -213,6 +213,8 @@ export async function findRelatedLand(property: any) {
 }
 
 /** delete S3 object best-effort */
+
+/** delete S3 object best-effort */
 async function deleteS3ObjectIfExists(key?: string) {
   if (!key) return;
   const bucket = process.env.AWS_S3_BUCKET;
