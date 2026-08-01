@@ -315,7 +315,7 @@ export const LandCard: React.FC<Props> = ({
               </div>
             </div>
 
-            <div className="items-center gap-2 flex">
+            {/* <div className="items-center gap-2 flex">
               <UnderConstruction size={24} color={bgPriceColoricon} />
               <div className="flex flex-col">
                 <div className="text-xs text-gray-500 tracking-wide">
@@ -331,7 +331,7 @@ export const LandCard: React.FC<Props> = ({
                     : "—"}
                 </div>
               </div>
-            </div>
+            </div> */}
 
             <div className="items-center gap-2 flex">
               <Facing size={24} color={bgPriceColoricon} />
