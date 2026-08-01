@@ -54,7 +54,7 @@ export const LandCard: React.FC<Props> = ({
 
   const img = p?.gallery?.[0]?.url ?? "/placeholder.jpg";
   const area = (p as any)?.plotArea;
-  const plotAreaUnit = p?.plotAreaUnit?.trim();
+  const plotAreaUnit = p?.plotAreaUnit?.trim() || "sqft";
   const pricePerSqft =
     (p as any)?.pricePerSqft ?? (area ? Math.round((p?.price ?? 0) / area) : 0);
   const pricePerUnitLabel = pricePerSqft
