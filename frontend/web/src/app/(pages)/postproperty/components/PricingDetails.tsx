@@ -34,23 +34,34 @@ const ROAD_WIDTH_UNITS = [
   { label: "METER", value: "meter" },
 ];
 
-const AREA_TO_SQFT: Record<string, number> = {
-  sqft: 1,
-  sqmt: 10.7639,
-  sqyd: 9,
-  acre: 43560,
-  guntha: 1089,
-  cent: 435.6,
-  hectare: 107639.104,
+/** Uppercase rate labels for PRICE / … field (matches plot area unit). */
+const RATE_UNIT_LABELS: Record<string, string> = {
+  sqft: "SQFT",
+  sqmt: "SQ.MT",
+  sqyd: "SQ.YD",
+  acre: "ACRE",
+  guntha: "GUNTHA",
+  cent: "CENT",
+  hectare: "HECTARE",
 };
 
-function convertAreaToSqft(value?: string | number, unit = "sqft") {
-  const area = Number(value);
-  const factor = AREA_TO_SQFT[unit] ?? 1;
+function normalizeAreaUnit(unit?: string) {
+  return String(unit || "sqft")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/\./g, "")
+    .replace("acres", "acre")
+    .replace("acer", "acre")
+    .replace("sqfeet", "sqft")
+    .replace("squarefeet", "sqft")
+    .replace("squareyards", "sqyd")
+    .replace("squareyard", "sqyd");
+}
 
-  if (!area || area <= 0) return 0;
-
-  return area * factor;
+function getRateUnitLabel(unit?: string) {
+  const key = normalizeAreaUnit(unit);
+  return RATE_UNIT_LABELS[key] || String(unit || "SQFT").toUpperCase();
 }
 
 export default function PricingDetails({
@@ -68,7 +79,6 @@ export default function PricingDetails({
   const isRentOrLease = ["rent", "lease"].includes(
     String(listingType ?? data.listingType ?? "").toLowerCase(),
   );
-  const rateUnitLabel = "sq.ft";
 
   /* ================= AREA KEYS ================= */
   const areaValue =
@@ -82,16 +92,18 @@ export default function PricingDetails({
     : isLand
       ? data.plotAreaUnit ?? "sqft"
       : "sqft";
+  const rateUnitLabel = getRateUnitLabel(areaUnit);
 
-  /* ================= AUTO PRICE / SQ FT ================= */
+  /* ================= AUTO PRICE / SELECTED UNIT ================= */
+  // Store price-per-unit in the same unit as plot/total area (matches land detail UI).
   useEffect(() => {
     const price = Number(data.price);
-    const areaInSqft = convertAreaToSqft(areaValue, areaUnit);
+    const area = Number(areaValue);
 
-    if (price > 0 && areaInSqft > 0) {
-      const pps = Math.round(price / areaInSqft).toString();
+    if (price > 0 && area > 0) {
+      const pps = Math.round(price / area).toString();
 
-      if (pps !== data.pricePerSqft) {
+      if (pps !== String(data.pricePerSqft ?? "")) {
         dispatch(
           setProfileField({
             propertyType,
@@ -221,9 +233,10 @@ export default function PricingDetails({
 
       )}
 
-      {/* ================= PRICE / SQ FT ================= */}
+      {/* ================= PRICE / SELECTED AREA UNIT ================= */}
       <InputField
-        label="Price / sq ft"
+        key={`price-per-${areaUnit}`}
+        label={`PRICE / ${rateUnitLabel}`}
         value={data.pricePerSqft || ""}
         placeholder="Auto calculated"
         disabled

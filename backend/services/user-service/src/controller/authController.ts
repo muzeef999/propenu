@@ -1111,18 +1111,25 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
     const actorRole = String(req.user?.roleName || "")
       .trim()
       .toLowerCase();
-    const searchingPlatformRoles =
+    // Roles staff pick on project/property forms (not limited to own hierarchy branch).
+    const PROJECT_ASSIGNABLE_ROLE_SET = new Set<string>([
+      ...PLATFORM_END_USER_ROLE_SET,
+      "relationship_manager",
+      "relationship_managers",
+    ]);
+    const searchingAssignableRoles =
       roleFilters.length > 0 &&
-      roleFilters.every((role) => PLATFORM_END_USER_ROLE_SET.has(role));
+      roleFilters.every((role) => PROJECT_ASSIGNABLE_ROLE_SET.has(role));
     const actorIsPlatformEndUser = PLATFORM_END_USER_ROLE_SET.has(actorRole);
 
     // Internal staff (Operations, Sales, CEO, etc.) must be able to pick builders
-    // when posting projects. Hierarchy descendants alone never include platform roles.
+    // and relationship managers when posting projects. Hierarchy descendants alone
+    // never include platform roles, and Sales branch does not include RMs.
     if (
       actorRole &&
       actorRole !== "super_admin" &&
       actorRole !== "admin" &&
-      !(searchingPlatformRoles && !actorIsPlatformEndUser)
+      !(searchingAssignableRoles && !actorIsPlatformEndUser)
     ) {
       const operator = await User.findById(req.user?.sub)
         .select("roleId")

@@ -86,6 +86,28 @@ export const createFeatureProperties = async (req: Request, res: Response) => {
 
     const authUser = (req as AuthRequest).user;
     const roleName = authUser?.roleName;
+    const normalizedRole = String(roleName || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_");
+    const isSelfOwnerRole =
+      normalizedRole === "builder" || normalizedRole === "builder_staff";
+    const selectedBuilderId = String((payload as any).createdBy || "").trim();
+
+    // Staff/admin must pick a builder in the dropdown → that id is createdBy.
+    // Builder accounts may omit dropdown and own the project themselves.
+    if (!isSelfOwnerRole) {
+      if (!selectedBuilderId || !mongoose.Types.ObjectId.isValid(selectedBuilderId)) {
+        return res.status(400).json({
+          error: "Select a builder before posting. createdBy (builder) is required.",
+        });
+      }
+    } else if (!selectedBuilderId && authUser?.id) {
+      (payload as any).createdBy = authUser.id;
+    }
+
+    // Never let client dictate postedBy; service sets it from auth user (/me).
+    delete (payload as any).postedBy;
 
     // CC / sales agent / other lower creators → pending for RM (or higher) approval.
     // RM / Ops / Admin / CEO / SM → live immediately.

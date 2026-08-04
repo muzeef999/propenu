@@ -210,6 +210,25 @@ export const sanitizeTempLocationInput = (input?: {
   };
 };
 
+const PLATFORM_CLIENT_ROLES = new Set([
+  "user",
+  "owner",
+  "agent",
+  "builder",
+  "builder_staff",
+  "buyer",
+  "tenant",
+]);
+
+const isPlatformClientRole = (roleName = "") => {
+  const key = normalizeRole(roleName);
+  if (!key) return false;
+  if (key.includes("admin") || key.includes("team_lead") || key.includes("customer_care")) {
+    return false;
+  }
+  return PLATFORM_CLIENT_ROLES.has(key);
+};
+
 /** Assign once. Optionally reassign when current CCE does not cover the user location. */
 export async function ensureFollowUpAssignee(
   user: any,
@@ -219,6 +238,10 @@ export async function ensureFollowUpAssignee(
 
   const roleName = normalizeRole(user?.roleId?.name || user?.roleName || "");
   if (isCceRole(roleName) || roleName.includes("team_lead") || roleName.includes("admin")) {
+    return false;
+  }
+  // Never auto-assign internal staff (sales_manager, accounts, etc.)
+  if (!isPlatformClientRole(roleName)) {
     return false;
   }
 
@@ -285,9 +308,8 @@ export async function ensureFollowUpAssigneesForUsers(users: any[]): Promise<num
     if (user.followUpAssignedTo) continue;
     const status = String(user.accountStatus || "").toLowerCase();
     const roleName = normalizeRole(user?.roleId?.name || user?.roleName || "");
-    const isPlatformPoster = ["user", "owner", "agent", "builder", "builder_staff"].includes(
-      roleName,
-    );
+    if (!isPlatformClientRole(roleName)) continue;
+    const isPlatformPoster = isPlatformClientRole(roleName);
     // Onboarding stuck users + active posters (so their listings stay exclusive to one CCE).
     if (!ONBOARDING_STATUSES.has(status) && !(status === "active" && isPlatformPoster)) {
       continue;

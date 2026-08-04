@@ -123,10 +123,16 @@ export default async function Page({ params }: PageProps) {
 
                       <div className="flex flex-col gap-1">
                         <span className="text-xs sm:text-sm text-gray-500 font-medium">
-                          Price Per Sqft
+                          Price Per{" "}
+                          {project?.totalArea?.unit
+                            ? String(project.totalArea.unit).toUpperCase()
+                            : "SQFT"}
                         </span>
                         <span className="text-sm sm:text-base font-semibold text-gray-900">
-                          ₹ {project?.pricePerSqft}/sqft
+                          ₹ {project?.pricePerSqft}/
+                          {project?.totalArea?.unit
+                            ? String(project.totalArea.unit).toLowerCase()
+                            : "sqft"}
                         </span>
                       </div>
 

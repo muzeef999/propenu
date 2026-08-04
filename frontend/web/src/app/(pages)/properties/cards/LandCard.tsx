@@ -49,6 +49,7 @@ export const LandCard: React.FC<Props> = ({
 
   const img = p?.gallery?.[0]?.url ?? "/placeholder.jpg";
   const area = (p as any)?.superBuiltUpArea;
+  const plotAreaUnit = String((p as any)?.plotAreaUnit || "sqft").toLowerCase();
   const pricePerSqft =
     (p as any)?.pricePerSqft ?? (area ? Math.round((p?.price ?? 0) / area) : 0);
   const resolvedListingSource = resolveListingSource(
@@ -379,7 +380,9 @@ export const LandCard: React.FC<Props> = ({
             {formatINR(p?.price)}
           </div>
 
-          <div className="text-xs text-gray-600">₹ {pricePerSqft}/sqft</div>
+          <div className="text-xs text-gray-600">
+            ₹ {pricePerSqft}/{plotAreaUnit}
+          </div>
         </div>
 
         {/* BUTTON */}

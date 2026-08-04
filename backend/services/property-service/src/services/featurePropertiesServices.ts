@@ -2,6 +2,9 @@
 import mongoose from "mongoose";
 import s3 from "../config/s3";
 import FeaturedProject from "../models/featurePropertiesModel";
+// Register models so createdBy / RM / postedBy populate resolves User + Role.
+import "../models/userModel";
+import "../models/roleModel";
 import {
   CreateFeaturePropertyDTO,
   UpdateFeaturePropertyDTO,
@@ -16,6 +19,49 @@ import {
 } from "../utils/agentSubmission";
 
 dotenv.config({ quiet: true });
+
+const CREATED_BY_USER_FIELDS =
+  "name email phone city state locality pincode companyName role roleName roleId";
+const AUDIT_USER_FIELDS = "name email phone role roleName roleId";
+
+/** Populate owner + poster + RM so API returns user details (not bare ObjectIds). */
+function applyFeaturedUserPopulates(query: any) {
+  return query
+    .populate("createdBy", CREATED_BY_USER_FIELDS)
+    .populate("createdBy.roleId", "name label")
+    .populate("relationshipManagerId", AUDIT_USER_FIELDS)
+    .populate("relationshipManager.userId", AUDIT_USER_FIELDS)
+    .populate("postedBy.userId", AUDIT_USER_FIELDS)
+    .populate("approvedBy", AUDIT_USER_FIELDS)
+    .populate("approvedBy.roleId", "name label")
+    .populate("lastUpdatedBy.userId", AUDIT_USER_FIELDS)
+    .populate("updateHistory.userId", AUDIT_USER_FIELDS);
+}
+
+async function loadFeaturedWithUsers(id: string) {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new Error("Invalid id");
+  }
+
+  const original = await FeaturedProject.findById(id).select("createdBy").lean();
+  const doc = await applyFeaturedUserPopulates(FeaturedProject.findById(id)).lean();
+
+  return serializeFeaturedProject(
+    await restoreCreatedById(FeaturedProject, doc, original?.createdBy),
+  );
+}
+
+async function enrichFeaturedListWithUsers(items: any[]) {
+  return Promise.all(
+    items.map(async (item) => {
+      const originalCreatedBy =
+        item?.createdBy?._id ?? item?.createdBy ?? null;
+      return serializeFeaturedProject(
+        await restoreCreatedById(FeaturedProject, item, originalCreatedBy),
+      );
+    }),
+  );
+}
 
 type MulterFiles = { [fieldname: string]: Express.Multer.File[] } | undefined;
 
@@ -661,36 +707,56 @@ export const FeaturePropertyService = {
     const projectSummary = getCanonicalProjectSummary(payload);
     const { priceFrom, priceTo } = computePriceRangeFromBhk(projectSummary);
 
+    // Ownership = Select Builder dropdown (payload.createdBy).
+    // Actor = logged-in /me user (postedBy) — never overwrite createdBy with actor.
+    const selectedOwnerId =
+      (payload as any)?.createdBy &&
+      mongoose.Types.ObjectId.isValid(String((payload as any).createdBy))
+        ? String((payload as any).createdBy)
+        : "";
+    const actorIdRaw = user?.id || user?.sub || "";
+    const actorId =
+      actorIdRaw && mongoose.Types.ObjectId.isValid(String(actorIdRaw))
+        ? String(actorIdRaw)
+        : "";
+    const ownerId = selectedOwnerId || actorId;
+    if (!ownerId) {
+      throw new Error("createdBy (selected builder) is required");
+    }
+
     // 3) prepare base create payload
     const toCreate: any = {
       ...payload,
       projectSummary,
       priceFrom,
       priceTo,
-      createdBy: user?.id || payload.createdBy,
-      postedBy: user
+      createdBy: new mongoose.Types.ObjectId(ownerId),
+      postedBy: actorId
         ? {
-            userId: user.id,
-            name: user.name,
-            email: user.email,
-            roleName: user.roleName,
+            userId: new mongoose.Types.ObjectId(actorId),
+            name: user?.name || "",
+            email: user?.email || "",
+            roleName: user?.roleName || "",
+            postedAt: new Date(),
           }
         : undefined,
 
-      updateHistory: user
+      updateHistory: actorId
         ? [
             {
-              userId: user.id,
-              name: user.name,
-              email: user.email,
-              roleName: user.roleName,
+              userId: new mongoose.Types.ObjectId(actorId),
+              name: user?.name || "",
+              email: user?.email || "",
+              roleName: user?.roleName || "",
               updatedAt: new Date(),
             },
           ]
         : [],
-      updateCount: user ? 1 : 0,
+      updateCount: actorId ? 1 : 0,
     };
     delete toCreate.bhkSummary;
+    // Ignore any client-sent postedBy; actor always comes from auth token (/me).
+    if (!actorId) delete toCreate.postedBy;
 
     // create a preliminary doc instance to get _id for S3 key naming (no DB write yet)
     const preliminary = new FeaturedProject(toCreate);
@@ -920,7 +986,8 @@ export const FeaturePropertyService = {
       });
     }
 
-    return serializeFeaturedProject(createdDoc);
+    // Return populated createdBy / postedBy / RM user details for UI cards.
+    return loadFeaturedWithUsers(String(createdDoc._id));
   },
 
   async updateFeatureProperty(
@@ -1309,9 +1376,9 @@ export const FeaturePropertyService = {
       }
     }
 
-    // save and return
+    // save and return populated user details
     await existing.save();
-    return serializeFeaturedProject(existing);
+    return loadFeaturedWithUsers(String(existing._id));
   },
 
   async getMyHightlightProjects(userId: string, projectIds?: string[] | null) {
@@ -1324,13 +1391,11 @@ export const FeaturePropertyService = {
       filter._id = { $in: projectIds };
     }
 
-    const projects = await FeaturedProject.find(filter)
-      .populate("createdBy", "name email phone")
-      .populate("relationshipManagerId", "name email phone")
-      .populate("relationshipManager.userId", "name email phone")
-      .lean();
+    const projects = await applyFeaturedUserPopulates(
+      FeaturedProject.find(filter),
+    ).lean();
 
-    return serializeFeaturedProjectList(projects);
+    return enrichFeaturedListWithUsers(projects);
   },
 
   async getMyFeaturedProjects(userId: string, projectIds?: string[] | null) {
@@ -1343,13 +1408,11 @@ export const FeaturePropertyService = {
       filter._id = { $in: projectIds };
     }
 
-    const projects = await FeaturedProject.find(filter)
-      .populate("createdBy", "name email phone")
-      .populate("relationshipManagerId", "name email phone")
-      .populate("relationshipManager.userId", "name email phone")
-      .lean();
+    const projects = await applyFeaturedUserPopulates(
+      FeaturedProject.find(filter),
+    ).lean();
 
-    return serializeFeaturedProjectList(projects);
+    return enrichFeaturedListWithUsers(projects);
   },
 
   async getFeatureBySlug(slug: string) {
@@ -1360,16 +1423,9 @@ export const FeaturePropertyService = {
     const original = await FeaturedProject.findOne({ slug })
       .select("createdBy")
       .lean();
-    const doc = await FeaturedProject.findOne({ slug })
-      .populate("createdBy", "name email phone role roleId")
-      .populate("relationshipManagerId", "name email phone")
-      .populate("relationshipManager.userId", "name email phone")
-      .populate("createdBy.roleId", "name label")
-      .populate("approvedBy", "name email phone role roleId")
-      .populate("approvedBy.roleId", "name label")
-      .populate("lastUpdatedBy.userId", "name email phone role roleId")
-      .populate("updateHistory.userId", "name email phone role roleId")
-      .lean();
+    const doc = await applyFeaturedUserPopulates(
+      FeaturedProject.findOne({ slug }),
+    ).lean();
 
     return serializeFeaturedProject(
       await restoreCreatedById(FeaturedProject, doc, original?.createdBy),
@@ -1377,25 +1433,7 @@ export const FeaturePropertyService = {
   },
 
   async getFeatureById(id: string) {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new Error("Invalid id");
-    }
-
-    const original = await FeaturedProject.findById(id)
-      .select("createdBy")
-      .lean();
-    const doc = await FeaturedProject.findById(id)
-      .populate("createdBy", "name email phone role roleId")
-      .populate("createdBy.roleId", "name label")
-      .populate("approvedBy", "name email phone role roleId")
-      .populate("approvedBy.roleId", "name label")
-      .populate("lastUpdatedBy.userId", "name email phone role roleId")
-      .populate("updateHistory.userId", "name email phone role roleId")
-      .lean();
-
-    return serializeFeaturedProject(
-      await restoreCreatedById(FeaturedProject, doc, original?.createdBy),
-    );
+    return loadFeaturedWithUsers(id);
   },
 
   async getFeaturesByCity({ locality, city, state }: LocationParams) {
@@ -1579,11 +1617,9 @@ export const FeaturePropertyService = {
     }
 
     const [items, total, promotionCounts] = await Promise.all([
-      FeaturedProject.find(filter)
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .populate("createdBy", "name email phone city state locality pincode roleName")
+      applyFeaturedUserPopulates(
+        FeaturedProject.find(filter).sort(sort).skip(skip).limit(limit),
+      )
         .lean()
         .exec(),
 
@@ -1595,7 +1631,7 @@ export const FeaturePropertyService = {
     ]);
 
     return {
-      items: serializeFeaturedProjectList(items),
+      items: await enrichFeaturedListWithUsers(items),
       meta: {
         total,
         page,
@@ -1733,16 +1769,15 @@ export const FeaturePropertyService = {
       sort[options.sortBy] = options.sortOrder === "asc" ? 1 : -1;
     else sort.createdAt = -1;
     const [items, total] = await Promise.all([
-      FeaturedProject.find(filter)
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .populate("createdBy", "name email phone city state locality pincode roleName")
+      applyFeaturedUserPopulates(
+        FeaturedProject.find(filter).sort(sort).skip(skip).limit(limit),
+      )
+        .lean()
         .exec(),
       FeaturedProject.countDocuments(filter).exec(),
     ]);
     return {
-      items: serializeFeaturedProjectList(items as any),
+      items: await enrichFeaturedListWithUsers(items as any),
       meta: { total, page, limit, pages: Math.ceil(total / limit) },
     };
   },

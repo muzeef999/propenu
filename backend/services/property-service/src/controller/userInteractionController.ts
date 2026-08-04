@@ -8,6 +8,7 @@ import FeaturedProject from "../models/featurePropertiesModel";
 import LandPlot from "../models/landModel";
 import Residential from "../models/residentialModel";
 import UserInteraction, { INTERACTION_EVENT_TYPES, InteractionPromotionType } from "../models/userInteractionModel";
+import User from "../models/userModel";
 
 const promotionTypes = new Set(["normal", "sponsored", "featured", "prime"]);
 const eventTypes = new Set<string>(INTERACTION_EVENT_TYPES);
@@ -285,5 +286,910 @@ export async function getUserSession(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error("getUserSession failed", error);
     return res.status(500).json({ success: false, message: "Unable to load session" });
+  }
+}
+
+/** Sidebar action groups for all-users activity. */
+const ACTION_GROUPS: Record<string, string[]> = {
+  browsing: ["page_view", "page_exit", "session_heartbeat", "listing_impression", "featured_project_impression"],
+  searches: ["search_performed", "filter_applied", "search_result_click"],
+  views: ["project_view", "property_view", "plot_view", "project_click", "property_click", "featured_project_click"],
+  gallery: ["gallery_open", "gallery_image_view", "map_open", "price_calculator_used"],
+  shortlists: ["shortlist_added", "shortlist_removed", "compare_added"],
+  brochures: ["brochure_downloaded"],
+  contacts: ["whatsapp_clicked", "phone_clicked", "contact_owner_clicked", "lead_form_started", "lead_form_abandoned", "otp_requested", "otp_verification_failed"],
+  visits: ["site_visit_submitted", "booking_started"],
+};
+
+const NOISE_EVENTS = new Set(["session_heartbeat", "page_exit"]);
+
+const roleLabel = (role?: string) => {
+  const key = String(role || "").toLowerCase();
+  if (key === "user") return "Owner";
+  if (key === "builder_staff") return "Builder Staff";
+  if (!key) return "User";
+  return key.split("_").map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
+};
+
+const actionGroupFor = (eventType: string) => {
+  for (const [group, types] of Object.entries(ACTION_GROUPS)) {
+    if (types.includes(eventType)) return group;
+  }
+  return "other";
+};
+
+const describeWhat = (event: any, entityTitle?: string | null) => {
+  const title = entityTitle || event?.promotionSnapshot?.capturedEntityName || "";
+  const searchQ =
+    event?.searchContext?.query ||
+    event?.searchContext?.q ||
+    event?.metadata?.query ||
+    event?.metadata?.searchQuery ||
+    "";
+  switch (event.eventType) {
+    case "search_performed":
+      return searchQ ? `Searched “${searchQ}”` : "Searched properties";
+    case "filter_applied":
+      return "Applied search filters";
+    case "search_result_click":
+      return title ? `Opened search result · ${title}` : "Opened a search result";
+    case "project_view":
+    case "project_click":
+    case "featured_project_click":
+      return title ? `Viewed project · ${title}` : "Viewed a project";
+    case "property_view":
+    case "property_click":
+      return title ? `Viewed property · ${title}` : "Viewed a property";
+    case "plot_view":
+      return title ? `Viewed plot · ${title}` : "Viewed a plot";
+    case "brochure_downloaded":
+      return title ? `Downloaded brochure · ${title}` : "Downloaded brochure";
+    case "shortlist_added":
+      return title ? `Shortlisted · ${title}` : "Added to shortlist";
+    case "shortlist_removed":
+      return title ? `Removed shortlist · ${title}` : "Removed from shortlist";
+    case "compare_added":
+      return title ? `Compared · ${title}` : "Added to compare";
+    case "whatsapp_clicked":
+      return title ? `WhatsApp contact · ${title}` : "Clicked WhatsApp";
+    case "phone_clicked":
+      return title ? `Phone contact · ${title}` : "Clicked phone";
+    case "contact_owner_clicked":
+      return title ? `Contacted · ${title}` : "Contacted owner/builder";
+    case "lead_form_started":
+      return title ? `Started lead form · ${title}` : "Started lead form";
+    case "lead_form_abandoned":
+      return "Abandoned lead form";
+    case "otp_requested":
+      return "Requested OTP";
+    case "otp_verification_failed":
+      return "OTP verification failed";
+    case "site_visit_submitted":
+      return title ? `Site visit requested · ${title}` : "Requested site visit";
+    case "booking_started":
+      return title ? `Booking started · ${title}` : "Started booking";
+    case "gallery_open":
+    case "gallery_image_view":
+      return title ? `Opened gallery · ${title}` : "Opened gallery";
+    case "map_open":
+      return title ? `Opened map · ${title}` : "Opened map";
+    case "price_calculator_used":
+      return "Used price / EMI calculator";
+    case "page_view": {
+      const raw = String(event.pageUrl || "").trim() || "/";
+      if (raw === "/" || raw === "") return "Visited home page";
+      try {
+        const url = raw.startsWith("http")
+          ? new URL(raw)
+          : new URL(raw, "https://propenu.local");
+        const path = url.pathname || "/";
+        const type = url.searchParams.get("type") || url.searchParams.get("propertyType");
+        const listingType =
+          url.searchParams.get("listingType") ||
+          url.searchParams.get("purpose") ||
+          url.searchParams.get("transactionType");
+        const city = url.searchParams.get("city");
+        const locality = url.searchParams.get("locality") || url.searchParams.get("area");
+        if (path.includes("/properties") || path.includes("/search")) {
+          const parts = ["Browsed"];
+          if (type) parts.push(String(type).replace(/_/g, " "));
+          parts.push("properties");
+          if (listingType) parts.push(`for ${String(listingType).replace(/_/g, " ")}`);
+          const place = locality || city;
+          if (place) parts.push(`in ${place}`);
+          return parts.join(" ");
+        }
+        if (/^\/(?:project|prime)\//i.test(path)) {
+          return title ? `Viewed project details · ${title}` : "Viewed project details";
+        }
+        if (/account|profile|dashboard|my-/i.test(path)) return "Visited account area";
+        const segment = path.split("/").filter(Boolean).pop() || "page";
+        return `Visited ${segment.replace(/[-_]/g, " ")}`;
+      } catch {
+        return "Visited a page";
+      }
+    }
+    case "listing_impression":
+    case "featured_project_impression":
+      return title ? `Saw listing · ${title}` : "Saw a listing";
+    default:
+      return String(event.eventType || "Activity").replace(/_/g, " ");
+  }
+};
+
+const describeGot = (eventType: string, lead?: any) => {
+  if (lead?._id) {
+    const shortId = String(lead._id).slice(-4).toUpperCase();
+    return {
+      type: "lead",
+      label: lead.status === "site_visit" ? "Visit booked" : `Lead #${shortId}`,
+      id: String(lead._id),
+    };
+  }
+  switch (eventType) {
+    case "brochure_downloaded":
+      return { type: "brochure", label: "Brochure PDF" };
+    case "shortlist_added":
+      return { type: "saved", label: "Saved" };
+    case "shortlist_removed":
+      return { type: "saved", label: "Unsaved" };
+    case "site_visit_submitted":
+      return { type: "visit", label: "Visit booked" };
+    case "booking_started":
+      return { type: "booking", label: "Booking started" };
+    case "whatsapp_clicked":
+    case "phone_clicked":
+    case "contact_owner_clicked":
+      return { type: "contact", label: "Contact started" };
+    case "lead_form_started":
+      return { type: "lead", label: "Lead started" };
+    case "lead_form_abandoned":
+      return { type: "lead", label: "Lead abandoned" };
+    case "otp_requested":
+      return { type: "lead", label: "OTP sent" };
+    case "page_view":
+    case "listing_impression":
+    case "featured_project_impression":
+      return { type: "browse", label: "Browsed" };
+    case "project_view":
+    case "property_view":
+    case "plot_view":
+    case "project_click":
+    case "property_click":
+    case "featured_project_click":
+      return { type: "view", label: "Viewed" };
+    case "search_performed":
+    case "filter_applied":
+    case "search_result_click":
+      return { type: "search", label: "Searched" };
+    default:
+      return { type: "none", label: "—" };
+  }
+};
+
+const resolveDisplayName = (user: any, userId: string) => {
+  const name = String(user?.name || "").trim();
+  const company = String(user?.companyName || "").trim();
+  const email = String(user?.email || "").trim();
+  const phone = String(user?.phone || "").trim();
+  if (name) return name;
+  if (company) return company;
+  if (email) return email;
+  if (phone) return phone;
+  if (userId) return `User · ${userId.slice(-6)}`;
+  return "Unknown user";
+};
+
+const resolveRoleKey = (user: any) => {
+  const fromLookup = String(user?.roleName || "").trim().toLowerCase();
+  if (fromLookup) return fromLookup;
+  const embedded = String(user?.role || "").trim().toLowerCase();
+  if (embedded && embedded !== "requester" && embedded !== "customer") return embedded;
+  return "";
+};
+
+async function loadUsersByIds(db: any, userIds: string[]) {
+  const objectIds = userIds
+    .filter((id) => mongoose.Types.ObjectId.isValid(id))
+    .map((id) => new mongoose.Types.ObjectId(id));
+  if (!objectIds.length) return [] as any[];
+
+  try {
+    const aggregated = await db
+      .collection("users")
+      .aggregate([
+        { $match: { _id: { $in: objectIds } } },
+        {
+          $lookup: {
+            from: "roles",
+            localField: "roleId",
+            foreignField: "_id",
+            as: "roleDoc",
+          },
+        },
+        {
+          $project: {
+            name: 1,
+            companyName: 1,
+            email: 1,
+            phone: 1,
+            city: 1,
+            state: 1,
+            locality: 1,
+            avatar: 1,
+            profileImage: 1,
+            photo: 1,
+            role: 1,
+            roleName: {
+              $ifNull: [
+                { $arrayElemAt: ["$roleDoc.name", 0] },
+                { $ifNull: ["$role", ""] },
+              ],
+            },
+          },
+        },
+      ])
+      .toArray();
+    if (aggregated?.length) return aggregated;
+  } catch {
+    // fall through to simple find
+  }
+
+  return db
+    .collection("users")
+    .find({ _id: { $in: objectIds } })
+    .project({
+      name: 1,
+      companyName: 1,
+      email: 1,
+      phone: 1,
+      city: 1,
+      state: 1,
+      locality: 1,
+      avatar: 1,
+      profileImage: 1,
+      photo: 1,
+      role: 1,
+      roleId: 1,
+    })
+    .toArray()
+    .catch(() => []);
+}
+
+/**
+ * Platform-wide activity feed for Owners / Agents / Builders.
+ * Returns WHO / WHAT / WHEN / GOT rows + sidebar action counts.
+ */
+const istDayBounds = (offsetDays = 0) => {
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const base = new Date(Date.now() + offsetDays * 86_400_000);
+  const day = fmt.format(base); // YYYY-MM-DD in IST
+  const since = new Date(`${day}T00:00:00+05:30`);
+  const until = new Date(`${day}T23:59:59.999+05:30`);
+  return { since, until };
+};
+
+export async function getAllUsersActivity(req: AuthRequest, res: Response) {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+    const groupBy = String(req.query.groupBy || "user").toLowerCase(); // user | event
+    // Larger pool when grouping by user so unique-user pages stay accurate at scale
+    const poolLimit =
+      groupBy === "user"
+        ? Math.min(8000, Math.max(800, page * pageSize * 40))
+        : Math.min(1000, Math.max(300, page * pageSize * 3));
+    const action = String(req.query.action || "all").toLowerCase();
+    const role = String(req.query.role || "all").toLowerCase();
+    const q = String(req.query.q || "").trim().toLowerCase();
+    const userIdFilter = String(req.query.userId || "").trim();
+    const includeNoise = String(req.query.includeNoise || "") === "1";
+    const range = String(req.query.range || "").toLowerCase();
+    const fromRaw = String(req.query.from || "").trim();
+    const toRaw = String(req.query.to || "").trim();
+
+    let since: Date;
+    let until: Date | null = null;
+    let hours = Math.min(24 * 30, Math.max(1, Number(req.query.hours) || 24));
+
+    if (fromRaw && toRaw) {
+      const fromDate = new Date(fromRaw);
+      const toDate = new Date(toRaw);
+      if (!Number.isNaN(fromDate.getTime()) && !Number.isNaN(toDate.getTime()) && fromDate <= toDate) {
+        since = fromDate;
+        until = toDate;
+        hours = Math.max(1, Math.ceil((toDate.getTime() - fromDate.getTime()) / 3_600_000));
+      } else {
+        since = new Date(Date.now() - hours * 60 * 60 * 1000);
+      }
+    } else if (range === "yesterday") {
+      ({ since, until } = istDayBounds(-1));
+      hours = 24;
+    } else if (range === "today") {
+      ({ since, until } = istDayBounds(0));
+      hours = 24;
+    } else if (range === "7d" || range === "7days") {
+      since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      hours = 168;
+    } else if (range === "30d" || range === "month") {
+      since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      hours = 720;
+    } else if (range === "12mo" || range === "year" || range === "365d") {
+      since = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+      hours = 24 * 365;
+    } else {
+      since = new Date(Date.now() - hours * 60 * 60 * 1000);
+    }
+
+    const timeMatch: Record<string, unknown> = until
+      ? { $gte: since, $lte: until }
+      : { $gte: since };
+
+    const actionEventTypes = ACTION_GROUPS[action] || [];
+    const contactEventTypes = ACTION_GROUPS.contacts || [];
+    const eventTypeFilter =
+      action !== "all" && actionEventTypes.length
+        ? { eventType: { $in: actionEventTypes } }
+        : action === "leads"
+          ? {
+              eventType: {
+                $in: [...contactEventTypes, "site_visit_submitted", "booking_started"],
+              },
+            }
+          : {};
+
+    const baseMatch: Record<string, unknown> = {
+      serverTimestamp: timeMatch,
+      ...eventTypeFilter,
+    };
+    if (userIdFilter && mongoose.Types.ObjectId.isValid(userIdFilter)) {
+      baseMatch.userId = new mongoose.Types.ObjectId(userIdFilter);
+    }
+    if (!includeNoise && action === "all") {
+      baseMatch.eventType = { $nin: [...NOISE_EVENTS] };
+    }
+
+    const createdAtMatch = until ? { $gte: since, $lte: until } : { $gte: since };
+    const brochureMatch: Record<string, unknown> = { createdAt: createdAtMatch };
+    const leadMatch: Record<string, unknown> = { createdAt: createdAtMatch };
+    if (userIdFilter && mongoose.Types.ObjectId.isValid(userIdFilter)) {
+      const userObjectId = new mongoose.Types.ObjectId(userIdFilter);
+      brochureMatch.$or = [{ userId: userIdFilter }, { userId: userObjectId }];
+      leadMatch.$or = [{ createdBy: userIdFilter }, { createdBy: userObjectId }];
+    }
+
+    const db = mongoose.connection?.db;
+    const [rawEvents, brochureDocs, leadDocs, typeCounts] = await Promise.all([
+      UserInteraction.find(baseMatch).sort({ serverTimestamp: -1 }).limit(poolLimit).lean(),
+      db
+        ? db
+            .collection("brochuredownloads")
+            .find(brochureMatch)
+            .sort({ createdAt: -1 })
+            .limit(userIdFilter ? 200 : 100)
+            .toArray()
+            .catch(() => [])
+        : Promise.resolve([]),
+      db
+        ? db
+            .collection("propertyleads")
+            .find(leadMatch)
+            .project({ _id: 1, createdBy: 1, projectId: 1, status: 1, name: 1, createdAt: 1 })
+            .sort({ createdAt: -1 })
+            .limit(200)
+            .toArray()
+            .catch(() => [])
+        : Promise.resolve([]),
+      UserInteraction.aggregate([
+        {
+          $match: {
+            serverTimestamp: timeMatch,
+            ...(userIdFilter && mongoose.Types.ObjectId.isValid(userIdFilter)
+              ? { userId: new mongoose.Types.ObjectId(userIdFilter) }
+              : {}),
+          },
+        },
+        { $group: { _id: "$eventType", count: { $sum: 1 } } },
+      ]),
+    ]);
+
+    // Synthetic brochure rows if interaction event missing but collection has download
+    const interactionBrochureKeys = new Set(
+      rawEvents
+        .filter((e) => e.eventType === "brochure_downloaded")
+        .map((e) => `${e.userId}:${e.projectId || ""}`),
+    );
+    const syntheticBrochures = (brochureDocs || [])
+      .filter((doc: any) => !interactionBrochureKeys.has(`${doc.userId}:${doc.projectId || ""}`))
+      .map((doc: any) => ({
+        _id: doc._id,
+        userId: doc.userId,
+        projectId: doc.projectId,
+        eventType: "brochure_downloaded",
+        eventCategory: "conversion",
+        pageUrl: "/brochure",
+        source: "brochure_download",
+        serverTimestamp: doc.createdAt || doc.updatedAt,
+        clientTimestamp: doc.createdAt || doc.updatedAt,
+        sessionId: `brochure-${doc._id}`,
+        promotionType: "normal",
+        __synthetic: true,
+      }));
+
+    const combined = [...rawEvents, ...syntheticBrochures].sort(
+      (a: any, b: any) =>
+        new Date(b.serverTimestamp || 0).getTime() - new Date(a.serverTimestamp || 0).getTime(),
+    ).slice(0, poolLimit);
+
+    const userIds = [...new Set(combined.map((e: any) => String(e.userId || "")).filter(Boolean))];
+    const users = userIds.length && db ? await loadUsersByIds(db, userIds) : [];
+    const userMap = new Map((users || []).map((u: any) => [String(u._id), u]));
+
+    // Resolve role names when aggregate fallback only returned roleId
+    const missingRoleIds = [
+      ...new Set(
+        (users || [])
+          .filter((u: any) => !u.roleName && u.roleId)
+          .map((u: any) => String(u.roleId)),
+      ),
+    ].filter(
+      (id): id is string =>
+        typeof id === "string" && mongoose.Types.ObjectId.isValid(id),
+    );
+    if (db && missingRoleIds.length) {
+      const roleDocs = await db
+        .collection("roles")
+        .find({
+          _id: {
+            $in: missingRoleIds.map((id) => new mongoose.Types.ObjectId(id)),
+          },
+        })
+        .project({ name: 1 })
+        .toArray()
+        .catch(() => []);
+      const roleNameById = new Map(
+        (roleDocs || []).map((r: any) => [String(r._id), String(r.name || "")]),
+      );
+      for (const user of users || []) {
+        if (!user.roleName && user.roleId) {
+          user.roleName = roleNameById.get(String(user.roleId)) || "";
+        }
+      }
+    }
+
+    const entities = await loadJourneyEntities(combined);
+    const entityMap = new Map(entities.map((entity: any) => [entity.id, entity]));
+
+    const leadsByUserProject = new Map<string, any>();
+    for (const lead of leadDocs || []) {
+      const key = `${lead.createdBy}:${lead.projectId || ""}`;
+      if (!leadsByUserProject.has(key)) leadsByUserProject.set(key, lead);
+    }
+
+    const allowedRoles = new Set(["user", "owner", "agent", "builder", "builder_staff"]);
+    let items = combined.map((event: any) => {
+      const userId = String(event.userId || "");
+      const user: any = userMap.get(userId) || null;
+      const entity =
+        entityMap.get(String(event.propertyId || event.plotId || event.projectId || "")) || null;
+      const lead = leadsByUserProject.get(`${event.userId}:${event.projectId || ""}`);
+      const group = actionGroupFor(event.eventType);
+      const got = describeGot(event.eventType, lead);
+      const roleKey = resolveRoleKey(user) || "user";
+      return {
+        id: String(event._id),
+        actionKey: group === "contacts" && got.type === "lead" ? "leads" : group,
+        eventType: event.eventType,
+        who: {
+          userId,
+          name: resolveDisplayName(user, userId),
+          role: roleLabel(roleKey),
+          roleKey,
+          avatar: user?.avatar || user?.profileImage || user?.photo || null,
+          city: user?.city || null,
+          state: user?.state || null,
+          email: user?.email || null,
+          phone: user?.phone || null,
+          resolved: Boolean(user),
+        },
+        what: describeWhat(event, entity?.title),
+        when: event.serverTimestamp || event.clientTimestamp,
+        got,
+        entity: entity
+          ? { id: entity.id, title: entity.title, kind: entity.kind, location: entity.location }
+          : null,
+        pageUrl: event.pageUrl || null,
+        source: event.source || null,
+      };
+    });
+
+    // Keep platform end-users; also keep unresolved ids (deleted accounts) so history is not hidden
+    items = items.filter(
+      (item) =>
+        allowedRoles.has(item.who.roleKey) ||
+        item.who.roleKey === "owner" ||
+        !item.who.resolved,
+    );
+    if (role !== "all") {
+      const roleAliases: Record<string, string[]> = {
+        owner: ["user", "owner"],
+        user: ["user", "owner"],
+        agent: ["agent"],
+        builder: ["builder"],
+        builder_staff: ["builder_staff"],
+      };
+      const aliases = roleAliases[role] || [role];
+      items = items.filter((item) => aliases.includes(item.who.roleKey));
+    }
+    if (q) {
+      items = items.filter((item) =>
+        [
+          item.who?.name,
+          item.who?.userId,
+          item.who?.email,
+          item.who?.phone,
+          item.who?.city,
+          item.who?.state,
+          item.what,
+          item.entity?.title,
+          item.entity?.id,
+          item.entity?.location,
+          item.got?.label,
+          item.got?.id,
+          item.pageUrl,
+          item.eventType,
+        ]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q)),
+      );
+    }
+    if (action === "leads") {
+      items = items.filter(
+        (item) =>
+          item.got?.type === "lead" ||
+          item.actionKey === "leads" ||
+          item.actionKey === "contacts",
+      );
+    } else if (action !== "all" && actionEventTypes.length) {
+      items = items.filter(
+        (item) =>
+          item.actionKey === action || actionEventTypes.includes(item.eventType),
+      );
+    }
+
+    const countMap: Record<string, number> = {};
+    for (const row of typeCounts || []) {
+      countMap[String(row._id)] = Number(row.count || 0);
+    }
+    const groupCount = (key: string) =>
+      (ACTION_GROUPS[key] || []).reduce((sum, type) => sum + (countMap[type] || 0), 0);
+
+    const brochureExtra = (brochureDocs || []).length;
+    const sidebar = [
+      { key: "all", label: "All activity", count: Object.values(countMap).reduce((a, b) => a + b, 0) + brochureExtra },
+      { key: "browsing", label: "Browsing", count: groupCount("browsing") },
+      { key: "searches", label: "Searches", count: groupCount("searches") },
+      { key: "views", label: "Views", count: groupCount("views") },
+      { key: "gallery", label: "Gallery / Map / EMI", count: groupCount("gallery") },
+      { key: "shortlists", label: "Shortlists", count: groupCount("shortlists") },
+      { key: "brochures", label: "Brochure downloads", count: groupCount("brochures") + brochureExtra },
+      { key: "contacts", label: "Contacts", count: groupCount("contacts") },
+      { key: "leads", label: "Leads got", count: (leadDocs || []).length },
+      { key: "visits", label: "Site visits", count: groupCount("visits") },
+    ];
+
+    const activeUserIds = new Set(
+      combined
+        .filter((e: any) => new Date(e.serverTimestamp).getTime() >= Date.now() - 15 * 60_000)
+        .map((e: any) => String(e.userId)),
+    );
+
+    // Count top active from flat event list before collapsing duplicates
+    const topActiveMap = new Map<string, { userId: string; name: string; role: string; count: number }>();
+    for (const item of items) {
+      const cur = topActiveMap.get(item.who.userId) || {
+        userId: item.who.userId,
+        name: item.who.name,
+        role: item.who.role,
+        count: 0,
+      };
+      cur.count += 1;
+      topActiveMap.set(item.who.userId, cur);
+    }
+
+    // Collapse duplicate WHO rows: one card per user with latest action + count
+    let feedItems: any[] = items;
+    if (groupBy === "user") {
+      const byUser = new Map<string, any>();
+      for (const item of items) {
+        const key = item.who.userId || item.id;
+        const existing = byUser.get(key);
+        if (!existing) {
+          byUser.set(key, {
+            ...item,
+            id: `user-${key}`,
+            actionCount: 1,
+            recentActions: [
+              {
+                id: item.id,
+                what: item.what,
+                when: item.when,
+                got: item.got,
+                eventType: item.eventType,
+                entity: item.entity,
+                pageUrl: item.pageUrl,
+                source: item.source,
+              },
+            ],
+          });
+          continue;
+        }
+        existing.actionCount += 1;
+        if (existing.recentActions.length < 8) {
+          existing.recentActions.push({
+            id: item.id,
+            what: item.what,
+            when: item.when,
+            got: item.got,
+            eventType: item.eventType,
+            entity: item.entity,
+            pageUrl: item.pageUrl,
+            source: item.source,
+          });
+        }
+      }
+      feedItems = [...byUser.values()];
+    }
+
+    const total = feedItems.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const safePage = Math.min(page, totalPages);
+    const start = (safePage - 1) * pageSize;
+    const pagedItems = feedItems.slice(start, start + pageSize);
+
+    return res.json({
+      success: true,
+      data: {
+        generatedAt: new Date(),
+        since,
+        until,
+        range: range || (fromRaw && toRaw ? "custom" : "hours"),
+        hours,
+        groupBy,
+        kpis: {
+          activeNow: activeUserIds.size,
+          actionsToday: sidebar.find((s) => s.key === "all")?.count || 0,
+          leadsGot: (leadDocs || []).length,
+          visitsGot: groupCount("visits"),
+          brochuresGot: groupCount("brochures") + brochureExtra,
+          contactsGot: groupCount("contacts"),
+          shortlistsGot: groupCount("shortlists"),
+        },
+        sidebar,
+        needsAttention: [
+          (leadDocs || []).filter((l: any) => !l.status || l.status === "new" || l.status === "open").length
+            ? {
+                text: `${(leadDocs || []).filter((l: any) => !l.status || l.status === "new" || l.status === "open").length} new leads in period`,
+                tone: "amber",
+              }
+            : null,
+          groupCount("contacts") > 20
+            ? { text: "Contact activity is high — review unassigned follow-ups", tone: "green" }
+            : null,
+        ].filter(Boolean),
+        topActive: [...topActiveMap.values()].sort((a, b) => b.count - a.count).slice(0, 5),
+        items: pagedItems,
+        pagination: {
+          page: safePage,
+          pageSize,
+          total,
+          totalPages,
+          rangeStart: total === 0 ? 0 : start + 1,
+          rangeEnd: Math.min(start + pageSize, total),
+          mode: groupBy === "user" ? "users" : "events",
+        },
+      },
+    });
+  } catch (error) {
+    console.error("getAllUsersActivity failed", error);
+    return res.status(500).json({ success: false, message: "Unable to load all-users activity" });
+  }
+}
+
+const normalizeActorRole = (value = "") =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_");
+
+const isCceActorRole = (roleName = "") => normalizeActorRole(roleName).includes("customer_care");
+
+const isOversightActorRole = (roleName = "") => {
+  const key = normalizeActorRole(roleName);
+  return (
+    key === "super_admin" ||
+    key === "admin" ||
+    key.includes("team_lead") ||
+    key.includes("support_head")
+  );
+};
+
+const resolveAssignedActivityWindow = (query: Record<string, unknown>) => {
+  const range = String(query.range || "today").toLowerCase();
+  const fromRaw = String(query.from || "").trim();
+  const toRaw = String(query.to || "").trim();
+
+  if ((range === "custom" || (fromRaw && toRaw)) && fromRaw && toRaw) {
+    const fromDate = new Date(fromRaw.includes("T") ? fromRaw : `${fromRaw}T00:00:00+05:30`);
+    const toDate = new Date(toRaw.includes("T") ? toRaw : `${toRaw}T23:59:59.999+05:30`);
+    if (!Number.isNaN(fromDate.getTime()) && !Number.isNaN(toDate.getTime()) && fromDate <= toDate) {
+      return { since: fromDate, until: toDate, range: "custom" };
+    }
+  }
+  if (range === "yesterday") {
+    const bounds = istDayBounds(-1);
+    return { ...bounds, range: "yesterday" };
+  }
+  if (range === "7d" || range === "7days") {
+    return {
+      since: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      until: new Date(),
+      range: "7d",
+    };
+  }
+  if (range === "30d" || range === "month") {
+    return {
+      since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      until: new Date(),
+      range: "30d",
+    };
+  }
+  if (range === "12mo" || range === "year" || range === "365d") {
+    return {
+      since: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
+      until: new Date(),
+      range: "12mo",
+    };
+  }
+  const bounds = istDayBounds(0);
+  return { ...bounds, range: "today" };
+};
+
+/**
+ * Scalable single-user activity for Client Progress Queue.
+ * - Indexed query: userId + serverTimestamp
+ * - True skip/limit pagination (no large in-memory pools)
+ * - CCE may only read users assigned to them (followUpAssignedTo)
+ */
+export async function getAssignedUserActivity(req: AuthRequest, res: Response) {
+  try {
+    const targetUserId = String(req.params.userId || req.query.userId || "").trim();
+    if (!targetUserId || !mongoose.Types.ObjectId.isValid(targetUserId)) {
+      return res.status(400).json({ success: false, message: "Valid userId is required" });
+    }
+
+    const actorId = String(req.user?.id || "");
+    const actorRole = String(req.user?.roleName || "");
+    const oversight = isOversightActorRole(actorRole);
+    const cce = isCceActorRole(actorRole);
+
+    if (!oversight && cce) {
+      const target = await User.findById(targetUserId)
+        .select("followUpAssignedTo name email phone city state")
+        .lean();
+      if (!target) {
+        return res.status(404).json({ success: false, message: "User not found" });
+      }
+      const ownerId = target.followUpAssignedTo ? String(target.followUpAssignedTo) : "";
+      if (!ownerId || ownerId !== actorId) {
+        return res.status(403).json({
+          success: false,
+          code: "ASSIGNMENT_REQUIRED",
+          message: "You can only view activity for users assigned to you",
+        });
+      }
+    } else if (!oversight) {
+      // Non-CCE staff still need user:view (enforced by route); allow read.
+    }
+
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.min(50, Math.max(1, Number(req.query.limit) || 25));
+    const { since, until, range } = resolveAssignedActivityWindow(req.query as Record<string, unknown>);
+    const timeMatch = until ? { $gte: since, $lte: until } : { $gte: since };
+
+    const match: Record<string, unknown> = {
+      userId: new mongoose.Types.ObjectId(targetUserId),
+      serverTimestamp: timeMatch,
+      eventType: { $nin: [...NOISE_EVENTS] },
+    };
+
+    const [total, events] = await Promise.all([
+      UserInteraction.countDocuments(match),
+      UserInteraction.find(match)
+        .sort({ serverTimestamp: -1 })
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .lean(),
+    ]);
+
+    const db = mongoose.connection?.db;
+    const targetObjectId = new mongoose.Types.ObjectId(targetUserId);
+    const leadDocs =
+      db && events.length
+        ? await db
+            .collection("propertyleads")
+            .find({
+              createdAt: timeMatch,
+              $or: [{ createdBy: targetUserId }, { createdBy: targetObjectId }],
+            })
+            .project({ _id: 1, createdBy: 1, projectId: 1, status: 1, createdAt: 1 })
+            .sort({ createdAt: -1 })
+            .limit(100)
+            .toArray()
+            .catch(() => [])
+        : [];
+
+    const leadsByProject = new Map<string, any>();
+    for (const lead of leadDocs || []) {
+      const key = String(lead.projectId || "");
+      if (!leadsByProject.has(key)) leadsByProject.set(key, lead);
+    }
+
+    const entities = await loadJourneyEntities(events);
+    const entityMap = new Map(entities.map((entity: any) => [entity.id, entity]));
+
+    const items = events.map((event: any) => {
+      const entity =
+        entityMap.get(String(event.propertyId || event.plotId || event.projectId || "")) || null;
+      const lead =
+        leadsByProject.get(String(event.projectId || "")) ||
+        leadsByProject.get("") ||
+        null;
+      const got = describeGot(event.eventType, lead);
+      return {
+        id: String(event._id),
+        eventType: event.eventType,
+        what: describeWhat(event, entity?.title),
+        when: event.serverTimestamp || event.clientTimestamp,
+        got,
+        entity: entity
+          ? { id: entity.id, title: entity.title, kind: entity.kind, location: entity.location }
+          : null,
+        pageUrl: event.pageUrl || null,
+        source: event.source || null,
+      };
+    });
+
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+    const rangeEnd = Math.min(page * pageSize, total);
+
+    return res.json({
+      success: true,
+      data: {
+        userId: targetUserId,
+        range,
+        since,
+        until,
+        items,
+        pagination: {
+          page,
+          pageSize,
+          total,
+          totalPages,
+          rangeStart,
+          rangeEnd,
+          mode: "events",
+        },
+      },
+    });
+  } catch (error) {
+    console.error("getAssignedUserActivity failed", error);
+    return res.status(500).json({ success: false, message: "Unable to load user activity" });
   }
 }
