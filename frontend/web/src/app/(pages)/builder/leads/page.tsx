@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import DatePicker from "react-datepicker";
+// @ts-ignore: CSS import declaration not present in this project
 import "react-datepicker/dist/react-datepicker.css";
 
 import { useState, useEffect, useMemo, useRef, JSX, CSSProperties } from "react";
