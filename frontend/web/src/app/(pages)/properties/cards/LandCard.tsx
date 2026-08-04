@@ -5,7 +5,6 @@ import {
   Facing,
   RoadAccessIcon,
   SuperBuiitupAraea,
-  UnderConstruction,
 } from "@/icons/icons";
 import { Property } from "@/types/property";
 import { hexToRGBA } from "@/ui/hexToRGBA";
@@ -32,11 +31,20 @@ import { createPortal } from "react-dom";
 import { addLocalShortlist, isLocalShortlisted, removeLocalShortlist } from "@/utilies/shortlistLocal";
 import { trackInteraction } from "@/services/trackingService";
 
+
+//react component for land card
+
 type Props = {
   p: ILand;
   vertical?: boolean;
-  isSponsored?: boolean; // ✅ ADD THIS
+  isSponsored?: boolean;
 };
+
+function formatValueWithUnit(value?: number | string, unit?: string) {
+  if (value === undefined || value === null || value === "") return "—";
+  const normalizedUnit = unit?.trim();
+  return normalizedUnit ? `${value} ${normalizedUnit}` : String(value);
+}
 
 export const LandCard: React.FC<Props> = ({
   p,
@@ -48,10 +56,14 @@ export const LandCard: React.FC<Props> = ({
   const bgPriceColoricon = hexToRGBA("#27AE60", 0.4);
 
   const img = p?.gallery?.[0]?.url ?? "/placeholder.jpg";
-  const area = (p as any)?.superBuiltUpArea;
-  const plotAreaUnit = String((p as any)?.plotAreaUnit || "sqft").toLowerCase();
+  // Senior: use plotArea (not superBuiltUpArea). Keep unit normalized for price label.
+  const area = (p as any)?.plotArea;
+  const plotAreaUnit = String(p?.plotAreaUnit?.trim() || "sqft").toLowerCase();
   const pricePerSqft =
     (p as any)?.pricePerSqft ?? (area ? Math.round((p?.price ?? 0) / area) : 0);
+  const pricePerUnitLabel = pricePerSqft
+    ? `₹ ${pricePerSqft}${plotAreaUnit ? `/${plotAreaUnit}` : ""}`
+    : "—";
   const resolvedListingSource = resolveListingSource(
     p?.listingSource,
     (p as any)?.createdBy,
@@ -291,7 +303,7 @@ export const LandCard: React.FC<Props> = ({
             className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200 ${
               vertical
                 ? "grid grid-cols-2 gap-4"
-                : "grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6"
+                : "grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6"
             }`}
           >
             <div className="items-center gap-2 flex">
@@ -301,25 +313,7 @@ export const LandCard: React.FC<Props> = ({
                   Plot Area
                 </div>
                 <div className="font-medium">
-                  {(p as any)?.plotArea ?? "—"} sqft
-                </div>
-              </div>
-            </div>
-
-            <div className="items-center gap-2 flex">
-              <UnderConstruction size={24} color={bgPriceColoricon} />
-              <div className="flex flex-col">
-                <div className="text-xs text-gray-500 tracking-wide">
-                  Dimensions
-                </div>
-
-                <div className="font-medium">
-                  {(p as any)?.dimensions?.length &&
-                  (p as any)?.dimensions?.width
-                    ? `${(p as any).dimensions.length} x ${
-                        (p as any).dimensions.width
-                      }`
-                    : "—"}
+                  {formatValueWithUnit((p as any)?.plotArea, plotAreaUnit)}
                 </div>
               </div>
             </div>
@@ -380,9 +374,7 @@ export const LandCard: React.FC<Props> = ({
             {formatINR(p?.price)}
           </div>
 
-          <div className="text-xs text-gray-600">
-            ₹ {pricePerSqft}/{plotAreaUnit}
-          </div>
+          <div className="text-xs text-gray-600">{pricePerUnitLabel}</div>
         </div>
 
         {/* BUTTON */}

@@ -12,6 +12,10 @@ import {
 import dotenv from "dotenv";
 import fs from "fs";
 import { uploadFile } from "../utils/uploadFile";
+import {
+  createWatermarkedBuffer,
+  getUploadedFileBuffer,
+} from "../utils/imageProcessing";
 import { upsertCityAndLocality } from "./locationServices";
 import {
   normalizeListingAuditFields,
@@ -655,8 +659,10 @@ async function mapAndUploadGallery({
     if (matchedIndex === -1) matchedIndex = i;
 
     // perform upload
+    const imageBuffer = getUploadedFileBuffer(file);
+    const watermarkedBuffer = await createWatermarkedBuffer(imageBuffer);
     const up = await uploadFile({
-      filePath: file.path,
+      buffer: watermarkedBuffer,
       originalName: file.originalname,
       mimetype: file.mimetype,
       folder: "gallery",
@@ -788,9 +794,10 @@ export const FeaturePropertyService = {
     const heroFiles = files?.heroImage;
     if (heroFiles && heroFiles.length > 0) {
       const f: Express.Multer.File = heroFiles[0]!;
+      const imageBuffer = getUploadedFileBuffer(f);
+      const watermarkedBuffer = await createWatermarkedBuffer(imageBuffer);
       const up = await uploadFile({
-        filePath: f.path,
-
+        buffer: watermarkedBuffer,
         originalName: f.originalname,
         mimetype: f.mimetype,
         folder: "Builder_hero",
@@ -1132,8 +1139,10 @@ export const FeaturePropertyService = {
     const heroFiles = files?.heroImage;
     if (heroFiles && heroFiles.length > 0) {
       const f = heroFiles[0]!;
+      const imageBuffer = getUploadedFileBuffer(f);
+      const watermarkedBuffer = await createWatermarkedBuffer(imageBuffer);
       const up = await uploadFile({
-        filePath: f.path,
+        buffer: watermarkedBuffer,
         originalName: f.originalname,
         mimetype: f.mimetype,
         folder: "hero",
@@ -1252,8 +1261,10 @@ export const FeaturePropertyService = {
           const declared = entry?.filename ?? entry?.fileName ?? entry?.file;
           if (declared && filesByName.has(declared)) {
             const f = filesByName.get(declared)!;
+            const imageBuffer = getUploadedFileBuffer(f);
+            const watermarkedBuffer = await createWatermarkedBuffer(imageBuffer);
             const up = await uploadFile({
-              filePath: f.path,
+              buffer: watermarkedBuffer,
               originalName: f.originalname,
               mimetype: f.mimetype,
               folder: "gallery",
@@ -1270,8 +1281,10 @@ export const FeaturePropertyService = {
         const remainingFiles = Array.from(filesByName.values());
         for (const file of remainingFiles) {
           if (!file) continue;
+          const imageBuffer = getUploadedFileBuffer(file);
+          const watermarkedBuffer = await createWatermarkedBuffer(imageBuffer);
           const up = await uploadFile({
-            filePath: file.path,
+            buffer: watermarkedBuffer,
             originalName: file.originalname,
             mimetype: file.mimetype,
             folder: "gallery",
