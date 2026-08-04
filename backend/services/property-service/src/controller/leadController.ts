@@ -703,12 +703,24 @@ export const exportAdminLeadsController = async (req: Request, res: Response) =>
       State: lead.project.state,
       City: lead.project.city,
       Locality: lead.project.locality,
+      "Where From": lead.origin?.label || lead.source,
+      "Entry Point": lead.origin?.entryPoint || "",
+      "Journey Path": Array.isArray(lead.origin?.path)
+        ? lead.origin.path.join(" → ")
+        : "",
       Source: lead.source,
       Status: lead.status,
+      Submissions: lead.submissionCount || 1,
+      "Duplicates Merged": lead.duplicateCount || 0,
       "Purchase Timeline": lead.purchaseTimeline,
       "Budget Range": lead.budgetRange,
       Message: lead.message,
-      "Created At": new Date(lead.createdAt).toLocaleString("en-IN"),
+      "First Touch": new Date(lead.firstTouchAt || lead.createdAt).toLocaleString(
+        "en-IN",
+      ),
+      "Last Touch": new Date(lead.lastTouchAt || lead.createdAt).toLocaleString(
+        "en-IN",
+      ),
     }));
     const format = String(req.query.format || "csv").toLowerCase();
     const worksheet = XLSX.utils.json_to_sheet(rows);

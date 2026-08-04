@@ -1019,16 +1019,28 @@ const isOversightActorRole = (roleName = "") => {
   );
 };
 
+/** IST calendar window ending today (inclusive), spanning `days` days. */
+const istRollingDayBounds = (days: number) => {
+  const end = istDayBounds(0);
+  const startDay = istDayBounds(-(Math.max(1, days) - 1));
+  return { since: startDay.since, until: end.until };
+};
+
 const resolveAssignedActivityWindow = (query: Record<string, unknown>) => {
   const range = String(query.range || "today").toLowerCase();
   const fromRaw = String(query.from || "").trim();
   const toRaw = String(query.to || "").trim();
 
-  if ((range === "custom" || (fromRaw && toRaw)) && fromRaw && toRaw) {
+  // Prefer explicit from/to from UI for every preset (keeps click ranges exact).
+  if (fromRaw && toRaw) {
     const fromDate = new Date(fromRaw.includes("T") ? fromRaw : `${fromRaw}T00:00:00+05:30`);
     const toDate = new Date(toRaw.includes("T") ? toRaw : `${toRaw}T23:59:59.999+05:30`);
     if (!Number.isNaN(fromDate.getTime()) && !Number.isNaN(toDate.getTime()) && fromDate <= toDate) {
-      return { since: fromDate, until: toDate, range: "custom" };
+      return {
+        since: fromDate,
+        until: toDate,
+        range: range === "custom" ? "custom" : range || "custom",
+      };
     }
   }
   if (range === "yesterday") {
@@ -1036,25 +1048,13 @@ const resolveAssignedActivityWindow = (query: Record<string, unknown>) => {
     return { ...bounds, range: "yesterday" };
   }
   if (range === "7d" || range === "7days") {
-    return {
-      since: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-      until: new Date(),
-      range: "7d",
-    };
+    return { ...istRollingDayBounds(7), range: "7d" };
   }
   if (range === "30d" || range === "month") {
-    return {
-      since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-      until: new Date(),
-      range: "30d",
-    };
+    return { ...istRollingDayBounds(30), range: "30d" };
   }
   if (range === "12mo" || range === "year" || range === "365d") {
-    return {
-      since: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
-      until: new Date(),
-      range: "12mo",
-    };
+    return { ...istRollingDayBounds(365), range: "12mo" };
   }
   const bounds = istDayBounds(0);
   return { ...bounds, range: "today" };
@@ -1099,29 +1099,43 @@ export async function getAssignedUserActivity(req: AuthRequest, res: Response) {
 
     const page = Math.max(1, Number(req.query.page) || 1);
     const pageSize = Math.min(50, Math.max(1, Number(req.query.limit) || 25));
-    const { since, until, range } = resolveAssignedActivityWindow(req.query as Record<string, unknown>);
+    const { since, until, range } = resolveAssignedActivityWindow(
+      req.query as Record<string, unknown>,
+    );
     const timeMatch = until ? { $gte: since, $lte: until } : { $gte: since };
+    const targetObjectId = new mongoose.Types.ObjectId(targetUserId);
 
+    // Match userId + (server or client timestamp) so older rows still surface.
     const match: Record<string, unknown> = {
-      userId: new mongoose.Types.ObjectId(targetUserId),
-      serverTimestamp: timeMatch,
-      eventType: { $nin: [...NOISE_EVENTS] },
+      $and: [
+        { $or: [{ userId: targetObjectId }, { userId: targetUserId as any }] },
+        { eventType: { $nin: [...NOISE_EVENTS] } },
+        {
+          $or: [{ serverTimestamp: timeMatch }, { clientTimestamp: timeMatch }],
+        },
+      ],
     };
 
-    const [total, events] = await Promise.all([
-      UserInteraction.countDocuments(match),
+    const db = mongoose.connection?.db;
+    const [rawEvents, brochureDocs, leadDocs] = await Promise.all([
       UserInteraction.find(match)
         .sort({ serverTimestamp: -1 })
-        .skip((page - 1) * pageSize)
-        .limit(pageSize)
+        .limit(500)
         .lean(),
-    ]);
-
-    const db = mongoose.connection?.db;
-    const targetObjectId = new mongoose.Types.ObjectId(targetUserId);
-    const leadDocs =
-      db && events.length
-        ? await db
+      db
+        ? db
+            .collection("brochuredownloads")
+            .find({
+              createdAt: timeMatch,
+              $or: [{ userId: targetUserId }, { userId: targetObjectId }],
+            })
+            .sort({ createdAt: -1 })
+            .limit(200)
+            .toArray()
+            .catch(() => [])
+        : Promise.resolve([]),
+      db
+        ? db
             .collection("propertyleads")
             .find({
               createdAt: timeMatch,
@@ -1129,10 +1143,45 @@ export async function getAssignedUserActivity(req: AuthRequest, res: Response) {
             })
             .project({ _id: 1, createdBy: 1, projectId: 1, status: 1, createdAt: 1 })
             .sort({ createdAt: -1 })
-            .limit(100)
+            .limit(200)
             .toArray()
             .catch(() => [])
-        : [];
+        : Promise.resolve([]),
+    ]);
+
+    const interactionBrochureKeys = new Set(
+      (rawEvents || [])
+        .filter((e: any) => e.eventType === "brochure_downloaded")
+        .map((e: any) => `${e.userId}:${e.projectId || ""}`),
+    );
+    const syntheticBrochures = (brochureDocs || [])
+      .filter(
+        (doc: any) =>
+          !interactionBrochureKeys.has(`${doc.userId}:${doc.projectId || ""}`),
+      )
+      .map((doc: any) => ({
+        _id: doc._id,
+        userId: doc.userId,
+        projectId: doc.projectId,
+        eventType: "brochure_downloaded",
+        eventCategory: "conversion",
+        pageUrl: "/brochure",
+        source: "brochure_download",
+        serverTimestamp: doc.createdAt || doc.updatedAt,
+        clientTimestamp: doc.createdAt || doc.updatedAt,
+        sessionId: `brochure-${doc._id}`,
+        promotionType: "normal",
+        __synthetic: true,
+      }));
+
+    const combined = [...(rawEvents || []), ...syntheticBrochures].sort(
+      (a: any, b: any) =>
+        new Date(b.serverTimestamp || b.clientTimestamp || 0).getTime() -
+        new Date(a.serverTimestamp || a.clientTimestamp || 0).getTime(),
+    );
+
+    const total = combined.length;
+    const pageSlice = combined.slice((page - 1) * pageSize, page * pageSize);
 
     const leadsByProject = new Map<string, any>();
     for (const lead of leadDocs || []) {
@@ -1140,12 +1189,13 @@ export async function getAssignedUserActivity(req: AuthRequest, res: Response) {
       if (!leadsByProject.has(key)) leadsByProject.set(key, lead);
     }
 
-    const entities = await loadJourneyEntities(events);
+    const entities = await loadJourneyEntities(pageSlice);
     const entityMap = new Map(entities.map((entity: any) => [entity.id, entity]));
 
-    const items = events.map((event: any) => {
+    const items = pageSlice.map((event: any) => {
       const entity =
-        entityMap.get(String(event.propertyId || event.plotId || event.projectId || "")) || null;
+        entityMap.get(String(event.propertyId || event.plotId || event.projectId || "")) ||
+        null;
       const lead =
         leadsByProject.get(String(event.projectId || "")) ||
         leadsByProject.get("") ||
@@ -1158,7 +1208,12 @@ export async function getAssignedUserActivity(req: AuthRequest, res: Response) {
         when: event.serverTimestamp || event.clientTimestamp,
         got,
         entity: entity
-          ? { id: entity.id, title: entity.title, kind: entity.kind, location: entity.location }
+          ? {
+              id: entity.id,
+              title: entity.title,
+              kind: entity.kind,
+              location: entity.location,
+            }
           : null,
         pageUrl: event.pageUrl || null,
         source: event.source || null,
