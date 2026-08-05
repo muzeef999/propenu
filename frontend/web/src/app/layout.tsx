@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
 import "./global.css";
 import "leaflet/dist/leaflet.css";
 import ClientProviders from "@/app/clientLayout"; // client component – used inside <body>
@@ -7,11 +6,6 @@ import Script from "next/script";
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import UserJourneyTracker from "@/components/tracking/UserJourneyTracker";
 
-const poppins = Poppins({
-  subsets: ["latin"],
-  variable: "--font-poppins",
-  weight: ["400", "500", "600", "700"],
-});
 
 export const metadata: Metadata = {
   title: "Propenu | Smart, Trusted & Verified Real Estate Platform",
@@ -52,7 +46,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       {/* Only head & body may be direct children of html */}
       <body
         suppressHydrationWarning
-        className={`${poppins.variable} antialiased`}
+        className="antialiased"
       >
         <noscript>
           <iframe

@@ -125,7 +125,7 @@ function PropertiesListSkeleton() {
   );
 }
 
-const Page: React.FC = () => {
+const PropertiesPageContent: React.FC = () => {
   const filters = useAppSelector((s) => s.filters);
   const cityData = useAppSelector(selectCityWithLocalities);
   const searchParams = useSearchParams();
@@ -419,5 +419,11 @@ const Page: React.FC = () => {
     </div>
   );
 };
+
+const Page: React.FC = () => (
+  <Suspense fallback={<PropertiesListSkeleton />}>
+    <PropertiesPageContent />
+  </Suspense>
+);
 
 export default Page;

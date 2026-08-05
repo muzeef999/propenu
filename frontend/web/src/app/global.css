@@ -16,6 +16,7 @@
   --color-heading-desc: #8C8989;
   --container-padding: 1rem;     
   --container-width: 1400px;     
+  --font-poppins: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 /* Base reset */
@@ -25,6 +26,7 @@ html, body {
   height: 100%;
   scroll-behavior: smooth;
   background-color: #FBFFFD;
+  font-family: var(--font-poppins);
 }
 
 @layer base {

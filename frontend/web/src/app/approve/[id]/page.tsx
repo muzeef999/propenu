@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 
-export default function ApprovePage() {
+function ApprovePageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
 
@@ -70,5 +70,14 @@ export default function ApprovePage() {
         <p style={{ color: "red" }}>{message}</p>
       )}
     </div>
+  );
+}
+
+
+export default function ApprovePage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, fontFamily: "Arial" }}>Approving property...</div>}>
+      <ApprovePageContent />
+    </Suspense>
   );
 }
