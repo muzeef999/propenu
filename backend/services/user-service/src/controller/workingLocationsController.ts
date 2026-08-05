@@ -19,9 +19,12 @@ const TEAM_LEAD_ROLE_NAMES = new Set([
   "team_leads",
   "customer_support_team_lead",
   "customer_support_team_leads",
-  "customer_support_head",
+]);
+
+const GLOBAL_MANAGE_ROLES = new Set([
   "super_admin",
   "admin",
+  "customer_support_head",
 ]);
 
 const normalizeRole = (value = "") =>
@@ -33,14 +36,47 @@ const normalizeRole = (value = "") =>
 
 const isCceRole = (roleName?: string) => CCE_ROLE_NAMES.has(normalizeRole(roleName));
 
+const isTeamLeadRole = (roleName?: string) =>
+  TEAM_LEAD_ROLE_NAMES.has(normalizeRole(roleName));
+
+const asId = (value: any): string => {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (value._id) return String(value._id);
+  return String(value);
+};
+
+/**
+ * True when actor is the direct manager, or appears in the manager chain.
+ */
+async function actorManagesUser(targetUser: any, actorId: string): Promise<boolean> {
+  if (!actorId) return false;
+
+  let current = asId(targetUser?.managerId);
+  if (current === actorId) return true;
+
+  let guard = 0;
+  while (current && guard < 8) {
+    if (current === actorId) return true;
+    const mgr = await User.findById(current).select("managerId").lean();
+    current = asId(mgr?.managerId);
+    guard += 1;
+  }
+  return false;
+}
+
 /**
  * Team lead / support head / admin can manage CCE territories.
- * Team leads may only edit CCEs who report to them (managerId).
+ * Team leads may edit CCEs who report to them (managerId / chain),
+ * or unbound CCEs in their pod (no manager yet) — then bind on save.
  */
 async function assertCanManageWorkingLocations(
   req: AuthRequest,
   targetUser: any,
-): Promise<{ ok: true } | { ok: false; status: number; message: string }> {
+): Promise<
+  | { ok: true; bindManager?: boolean }
+  | { ok: false; status: number; message: string }
+> {
   if (!req.user?.sub && !req.user?.id) {
     return { ok: false, status: 401, message: "Unauthorized" };
   }
@@ -49,51 +85,66 @@ async function assertCanManageWorkingLocations(
   const actorRole = normalizeRole(req.user.roleName || "");
   const permissions = req.user.permissions || [];
 
-  if (["super_admin", "admin", "customer_support_head"].includes(actorRole)) {
+  if (GLOBAL_MANAGE_ROLES.has(actorRole)) {
     return { ok: true };
   }
-  if (permissions.includes("user:update") || permissions.includes("team:assign_manager")) {
-    // Still restrict non-global roles to CCE targets below when team lead
-    if (!TEAM_LEAD_ROLE_NAMES.has(actorRole) && !permissions.includes("user:update")) {
-      return { ok: false, status: 403, message: "Forbidden" };
-    }
-  }
 
-  if (
-    TEAM_LEAD_ROLE_NAMES.has(actorRole) ||
+  const canManageStaff =
+    isTeamLeadRole(actorRole) ||
     permissions.includes("team:assign_manager") ||
-    permissions.includes("user:update")
-  ) {
-    const targetRoleName = normalizeRole(
-      targetUser?.roleId?.name || targetUser?.roleName || "",
-    );
-    if (!isCceRole(targetRoleName)) {
-      return {
-        ok: false,
-        status: 400,
-        message: "Working locations are managed for Customer Care Executives",
-      };
-    }
+    permissions.includes("user:update");
 
-    // Super/admin/head already returned. Team lead: must be manager of target.
-    if (
-      ["team_lead", "team_leads", "customer_support_team_lead", "customer_support_team_leads"].includes(
-        actorRole,
-      )
-    ) {
-      if (String(targetUser.managerId || "") !== actorId) {
-        return {
-          ok: false,
-          status: 403,
-          message: "You can only manage territories for executives who report to you",
-        };
-      }
-    }
+  if (!canManageStaff) {
+    return { ok: false, status: 403, message: "Forbidden: cannot manage working locations" };
+  }
 
+  const targetRoleName = normalizeRole(
+    targetUser?.roleId?.name || targetUser?.roleName || "",
+  );
+  if (!isCceRole(targetRoleName)) {
+    return {
+      ok: false,
+      status: 400,
+      message: "Working locations are managed for Customer Care Executives",
+    };
+  }
+
+  // Non–team-lead staff with user:update (e.g. ops) may manage any CCE.
+  if (!isTeamLeadRole(actorRole)) {
     return { ok: true };
   }
 
-  return { ok: false, status: 403, message: "Forbidden: cannot manage working locations" };
+  const managed = await actorManagesUser(targetUser, actorId);
+  if (managed) {
+    return { ok: true };
+  }
+
+  // CCE visible in Team Lead directory but not yet linked via reportsTo/managerId.
+  const targetManagerId = asId(targetUser?.managerId);
+  if (!targetManagerId) {
+    return { ok: true, bindManager: true };
+  }
+
+  // Common mis-link: CCE reports to Support Head instead of Team Lead.
+  // If this TL reports to that same Head, allow manage + re-bind to the TL.
+  const targetManager = await User.findById(targetManagerId)
+    .select("roleId")
+    .populate("roleId", "name")
+    .lean();
+  const targetManagerRole = normalizeRole((targetManager?.roleId as any)?.name || "");
+  if (targetManagerRole === "customer_support_head") {
+    const actor = await User.findById(actorId).select("managerId").lean();
+    if (asId(actor?.managerId) === targetManagerId) {
+      return { ok: true, bindManager: true };
+    }
+  }
+
+  return {
+    ok: false,
+    status: 403,
+    message:
+      "You can only manage territories for executives who report to you. Assign this CCE to you under Reports To, then try again.",
+  };
 }
 
 export const getUserWorkingLocations = async (req: AuthRequest, res: Response) => {
@@ -113,7 +164,6 @@ export const getUserWorkingLocations = async (req: AuthRequest, res: Response) =
     }
 
     const access = await assertCanManageWorkingLocations(req, user);
-    // Allow the CCE themselves to read their own territories
     const actorId = String(req.user?.sub || req.user?.id || "");
     const isSelf = actorId && actorId === String(user._id);
     if (!access.ok && !isSelf) {
@@ -137,6 +187,7 @@ export const getUserWorkingLocations = async (req: AuthRequest, res: Response) =
         name: user.name,
         email: user.email,
         roleName: (user.roleId as any)?.name || null,
+        managerId: asId(user.managerId) || null,
         homeLocation: {
           state: user.state || "",
           city: user.city || "",
@@ -180,6 +231,15 @@ export const updateUserWorkingLocations = async (req: AuthRequest, res: Response
     }
 
     user.workingLocations = next as any;
+
+    // Bind unbound CCE to this Team Lead so future territory edits + RR stay scoped.
+    if (access.bindManager) {
+      const actorId = String(req.user?.sub || req.user?.id || "");
+      if (actorId) {
+        user.managerId = actorId as any;
+      }
+    }
+
     await user.save();
 
     return res.status(200).json({
@@ -187,6 +247,7 @@ export const updateUserWorkingLocations = async (req: AuthRequest, res: Response
       message: "Working locations updated",
       data: {
         userId: String(user._id),
+        managerId: asId(user.managerId) || null,
         workingLocations: next,
         labels: next.map(formatTerritoryLabel),
       },
