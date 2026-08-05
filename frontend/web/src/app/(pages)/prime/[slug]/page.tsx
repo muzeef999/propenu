@@ -65,7 +65,7 @@ export default async function Page({ params }: PageProps) {
   }
 
   const links = [
-    { title: "Available Properties", href: "#available-properties" },
+    { title: "Available Units", href: "#available-properties" },
     { title: "Amenities", href: "#amenities" },
     { title: "Location Advantages", href: "#map-view" },
     { title: "Specifications", href: "#specification" },

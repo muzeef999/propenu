@@ -4,13 +4,15 @@ import { useCallback, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { FiMail, FiPhone } from "react-icons/fi";
+import { FiChevronLeft, FiChevronRight, FiMail, FiPhone } from "react-icons/fi";
 import { HiOutlineLocationMarker } from "react-icons/hi";
 
 import { getMyContactedProperties } from "@/data/ClientData";
 import ActiveTabs from "@/ui/ActiveTabs";
 import formatINR from "@/utilies/PriceFormat";
 import { IoIosShareAlt } from "react-icons/io";
+
+const PAGE_SIZE = 6;
 
 const PROPERTY_TYPE_ROUTE_MAP: Record<string, string> = {
   residential: "residential",
@@ -123,6 +125,7 @@ const shareProperty = async (title: string, href: string) => {
 
 const Page = () => {
   const [activeTab, setActiveTab] = useState("Residential");
+  const [page, setPage] = useState(1);
   const router = useRouter();
 
   const { data, isLoading } = useQuery({
@@ -147,6 +150,22 @@ const Page = () => {
         normalizePropertyType(property.propertyType) === activeType,
     );
   }, [activeTab, properties]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredProperties.length / PAGE_SIZE),
+  );
+  const currentPage = Math.min(page, totalPages);
+  const paginatedProperties = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+
+    return filteredProperties.slice(start, start + PAGE_SIZE);
+  }, [currentPage, filteredProperties]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setPage(1);
+  };
 
   const shouldShowCategory = useCallback(
     (category: string) => {
@@ -181,7 +200,7 @@ const Page = () => {
           <ActiveTabs
             categories={categories}
             activeTab={activeTab}
-            setActiveTab={setActiveTab}
+            setActiveTab={handleTabChange}
             shouldShowCategory={shouldShowCategory}
           />
         </div>
@@ -196,8 +215,9 @@ const Page = () => {
           No contacted properties found.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          {filteredProperties.map((property: any) => {
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            {paginatedProperties.map((property: any) => {
             const location =
               property.locality || property.city
                 ? `${property.locality || ""}${
@@ -325,10 +345,118 @@ const Page = () => {
               </article>
             );
           })}
+          </div>
+
+          {filteredProperties.length > PAGE_SIZE ? (
+            <Pagination
+              page={currentPage}
+              pageSize={PAGE_SIZE}
+              totalItems={filteredProperties.length}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          ) : null}
         </div>
       )}
     </div>
   );
 };
+
+function Pagination({
+  page,
+  pageSize,
+  totalItems,
+  totalPages,
+  onPageChange,
+}: {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  const startItem = totalItems ? (page - 1) * pageSize + 1 : 0;
+  const endItem = Math.min(page * pageSize, totalItems);
+  const visiblePages = Array.from(
+    { length: totalPages },
+    (_, index) => index + 1,
+  ).filter(
+    (item) => item === 1 || item === totalPages || Math.abs(item - page) <= 1,
+  );
+  const pageItems = visiblePages.reduce<Array<number | "dots">>(
+    (items, item) => {
+      const previous = items[items.length - 1];
+
+      if (typeof previous === "number" && item - previous > 1) {
+        items.push("dots");
+      }
+
+      items.push(item);
+      return items;
+    },
+    [],
+  );
+
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white px-3 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-4">
+      <p className="text-sm text-gray-500">
+        Showing{" "}
+        <span className="font-semibold text-gray-900">
+          {startItem}-{endItem}
+        </span>{" "}
+        of <span className="font-semibold text-gray-900">{totalItems}</span>{" "}
+        properties
+      </p>
+
+      <div className="flex items-center justify-between gap-2 sm:justify-end">
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+          disabled={page === 1}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-300"
+          aria-label="Previous page"
+        >
+          <FiChevronLeft className="h-4 w-4" />
+        </button>
+
+        <div className="flex items-center gap-1">
+          {pageItems.map((item, index) =>
+            item === "dots" ? (
+              <span
+                key={`dots-${index}`}
+                className="flex h-9 w-7 items-center justify-center text-sm text-gray-400"
+              >
+                ...
+              </span>
+            ) : (
+              <button
+                key={item}
+                type="button"
+                onClick={() => onPageChange(item)}
+                className={`h-9 min-w-9 rounded-md px-3 text-sm font-medium transition ${
+                  page === item
+                    ? "bg-[#16A34A] text-white shadow-sm"
+                    : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                {item}
+              </button>
+            ),
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+          disabled={page === totalPages}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-300"
+          aria-label="Next page"
+        >
+          <FiChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default Page;

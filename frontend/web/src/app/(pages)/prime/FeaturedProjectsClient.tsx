@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { FeaturedProject } from "@/types";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import { useCity } from "@/hooks/useCity";
@@ -20,8 +19,10 @@ import { GoHeart, GoHeartFill } from "react-icons/go";
 import { IoMdShareAlt } from "react-icons/io";
 import { RATE_LIMIT_RECOVERED_EVENT } from "@/utilies/requestMonitor";
 import { trackInteraction } from "@/services/trackingService";
+import { useRouter } from "next/navigation";
 
 function PrimeProjectCard({ project }: { project: FeaturedProject }) {
+  const router = useRouter();
   const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(
     project._id,
     "FeaturedProject",
@@ -51,24 +52,36 @@ function PrimeProjectCard({ project }: { project: FeaturedProject }) {
     }
   };
 
+  const openProject = () => {
+    trackInteraction({
+      eventType: "project_click",
+      eventCategory: "project_engagement",
+      entityType: "project",
+      projectId: project._id,
+      promotionType: project.promotion?.type || "prime",
+      source: "homepage",
+      placement: "prime_projects",
+      metadata: { projectName: project.title, projectSlug: project.slug },
+    });
+    router.push(projectHref);
+  };
+
+  const handleCardKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      openProject();
+    }
+  };
+
   return (
-    <div className="shrink-0 w-[90%] sm:w-[calc(50%-0.5rem)] lg:w-[calc(50%-0.5rem)] card snap-start group">
-      <Link
-        href={projectHref}
-        onClick={() => {
-          trackInteraction({
-            eventType: "project_click",
-            eventCategory: "project_engagement",
-            entityType: "project",
-            projectId: project._id,
-            promotionType: project.promotion?.type || "prime",
-            source: "homepage",
-            placement: "prime_projects",
-            metadata: { projectName: project.title, projectSlug: project.slug },
-          });
-        }}
-        className="relative block overflow-hidden rounded-t-md h-40 sm:h-[50px] md:h-[200px] lg:h-[220px]"
-      >
+    <div
+      role="link"
+      tabIndex={0}
+      onClick={openProject}
+      onKeyDown={handleCardKeyDown}
+      className="shrink-0 w-[90%] sm:w-[calc(50%-0.5rem)] lg:w-[calc(50%-0.5rem)] card snap-start group cursor-pointer"
+    >
+      <div className="relative block overflow-hidden rounded-t-md h-40 sm:h-[50px] md:h-[200px] lg:h-[220px]">
         <Image
           src={project.heroImage ?? "/images/placeholder.svg"}
           alt={project.title}
@@ -108,7 +121,7 @@ function PrimeProjectCard({ project }: { project: FeaturedProject }) {
             )}
           </button>
         </div>
-      </Link>
+      </div>
 
       <div className="p-3 flex justify-between items-center gap-3">
         <div className="shrink-0">
@@ -313,3 +326,6 @@ export default function FeaturedProjectsClient() {
     </div>
   );
 }
+
+
+

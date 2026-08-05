@@ -3,10 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { FiArrowLeft, FiArrowRight, FiClock } from "react-icons/fi";
+import { FiArrowRight, FiClock } from "react-icons/fi";
 import { getBlogs } from "@/data/ClientData";
 import { useCity } from "@/hooks/useCity";
 import { RiArrowRightSLine } from "react-icons/ri";
+import { ArrowDropdownIcon } from "@/icons/icons";
 
 type BlogPost = {
   _id?: string;
@@ -194,12 +195,12 @@ export default function BlogsClient({
   return (
     <section className="w-full">
       {showHeader && (
-        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mb-3 flex items-start justify-between gap-3 sm:mb-5 sm:items-end sm:gap-4">
           <div className="headingSideBar min-w-0">
-            <h1 className="truncate text-lg font-bold sm:text-2xl">
+            <h1 className="truncate text-base font-bold sm:text-2xl">
               Property Blogs
             </h1>
-            <p className="mt-1 text-sm text-gray-500 sm:text-base">
+            <p className="mt-0.5 text-xs text-gray-500 sm:mt-1 sm:text-base">
               Fresh real estate insights for {selectedCity?.city ?? "Hyderabad"}
             </p>
           </div>
@@ -221,7 +222,7 @@ export default function BlogsClient({
           className={
             isPage
               ? "sticky top-0 z-10 -mx-4 mb-6 flex gap-2 overflow-x-auto border-b border-gray-100 bg-white/95 px-4 py-3 no-scrollbar backdrop-blur sm:mx-0 sm:rounded-lg sm:border sm:px-3"
-              : "-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1 no-scrollbar sm:mx-0 sm:px-0"
+              : "-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1 no-scrollbar sm:mx-0 sm:mb-5 sm:px-0"
           }
         >
           {categories.map((category) => {
@@ -233,7 +234,7 @@ export default function BlogsClient({
                 key={category}
                 type="button"
                 onClick={() => setActiveCategory(category)}
-                className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition ${
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium transition sm:px-4 sm:py-2 ${
                   isActive
                     ? "border-[#26ad5f] bg-[#26ad5f] text-white shadow-sm"
                     : "border-gray-200 bg-white text-gray-600 hover:border-green-200 hover:bg-green-50"
@@ -246,7 +247,7 @@ export default function BlogsClient({
         </div>
       )}
 
-      <div className={isPage ? "relative" : "relative mt-6"}>
+      <div className={isPage ? "relative" : "relative mt-3 sm:mt-6"}>
         {!isPage && (
           <>
             <button
@@ -254,9 +255,9 @@ export default function BlogsClient({
               aria-label="Scroll blogs left"
               onClick={() => scrollBlogs("left")}
               disabled={!canScrollLeft}
-              className="absolute left-1 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-700 shadow-md transition disabled:cursor-not-allowed disabled:opacity-0 lg:flex"
+              className="absolute -left-5 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-700 shadow-md transition disabled:cursor-not-allowed disabled:opacity-0 lg:flex"
             >
-              <FiArrowLeft size={16} />
+              <ArrowDropdownIcon size={16} className="rotate-90" />
             </button>
 
             <button
@@ -264,9 +265,9 @@ export default function BlogsClient({
               aria-label="Scroll blogs right"
               onClick={() => scrollBlogs("right")}
               disabled={!canScrollRight}
-              className="absolute right-1 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-700 shadow-md transition disabled:cursor-not-allowed disabled:opacity-0 lg:flex"
+              className="absolute -right-5 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-700 shadow-md transition disabled:cursor-not-allowed disabled:opacity-0 lg:flex"
             >
-              <FiArrowRight size={16} />
+              <ArrowDropdownIcon size={16} className="rotate-270" />
             </button>
           </>
         )}
@@ -286,7 +287,7 @@ export default function BlogsClient({
                 className={
                   isPage
                     ? "min-h-[340px] animate-pulse overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm"
-                    : "min-h-[340px] w-[82vw] shrink-0 animate-pulse overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm sm:w-auto sm:shrink lg:w-[320px] lg:shrink-0"
+                    : "min-h-[340px] w-[calc(100vw-32px)] max-w-[360px] shrink-0 snap-center animate-pulse overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm sm:w-auto sm:max-w-none sm:shrink lg:basis-[calc((100%-48px)/4)] lg:w-auto lg:shrink-0"
                 }
               >
                 <div className="aspect-16/10 bg-gray-100" />
@@ -306,7 +307,7 @@ export default function BlogsClient({
                 className={
                   isPage
                     ? "min-w-0"
-                    : "w-[82vw] shrink-0 sm:w-auto sm:shrink lg:w-[320px] lg:shrink-0"
+                    : "w-[calc(100vw-32px)] max-w-[360px] shrink-0 snap-center sm:w-auto sm:max-w-none sm:shrink lg:basis-[calc((100%-48px)/4)] lg:w-auto lg:shrink-0"
                 }
               >
                 <BlogCard post={post} />

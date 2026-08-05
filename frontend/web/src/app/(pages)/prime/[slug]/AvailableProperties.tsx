@@ -211,7 +211,7 @@ export default function AvailableProperties({ bhk }: Props) {
       <div style={{ color: color, borderLeft: `5px solid ${color}` }}>
         <div className="ml-2">
           <h1 className="text-[20px] font-bold lg:text-2xl md:text-4xl">
-            Available properties
+            Available Units
           </h1>
           <p className="headingDesc text-xs lg:text-base md:text-lg">
             Your next property could be here

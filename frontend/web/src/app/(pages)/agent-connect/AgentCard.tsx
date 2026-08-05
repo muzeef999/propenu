@@ -108,13 +108,13 @@ export default function AgentsList() {
 
   const scrollLeft = () =>
     sliderRef.current?.scrollBy({
-      left: -320,
+      left: -(sliderRef.current.clientWidth / 4),
       behavior: "smooth",
     });
 
   const scrollRight = () =>
     sliderRef.current?.scrollBy({
-      left: 320,
+      left: sliderRef.current.clientWidth / 4,
       behavior: "smooth",
     });
   const hasItems = agents.length > 0;
@@ -154,7 +154,7 @@ export default function AgentsList() {
           type="button"
           onClick={scrollLeft}
           aria-label="Scroll left"
-          className="absolute left-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex bg-white p-2 rounded-full shadow-md hover:shadow-xl cursor-pointer transition-all duration-300"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex bg-white p-2 rounded-full shadow-md hover:shadow-xl cursor-pointer transition-all duration-300"
         >
           <ArrowDropdownIcon size={16} className="rotate-90" />
         </button>
@@ -165,7 +165,7 @@ export default function AgentsList() {
           type="button"
           onClick={scrollRight}
           aria-label="Scroll right"
-          className="absolute right-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex bg-white p-2 rounded-full shadow-md hover:shadow-xl cursor-pointer transition-all duration-300"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex bg-white p-2 rounded-full shadow-md hover:shadow-xl cursor-pointer transition-all duration-300"
         >
           <ArrowDropdownIcon size={16} className="-rotate-90" />
         </button>
@@ -175,17 +175,17 @@ export default function AgentsList() {
       {loading ? (
         <div
           ref={sliderRef}
-          className="flex gap-3 overflow-x-auto scroll-smooth no-scrollbar pb-8 pt-2 snap-x snap-mandatory px-1"
+          className="flex gap-3 overflow-x-auto scroll-smooth no-scrollbar pb-8 pt-2 snap-x snap-mandatory px-2 sm:px-3"
         >
-          <HomeSectionSkeleton variant="agent" count={3} />
+          <HomeSectionSkeleton variant="agent" count={4} />
         </div>
       ) : hasItems ? (
         <div
           ref={sliderRef}
-          className="flex gap-3 overflow-x-auto scroll-smooth no-scrollbar pb-8 pt-2 snap-x snap-mandatory px-1"
+          className="flex gap-3 overflow-x-auto scroll-smooth no-scrollbar pb-8 pt-2 snap-x snap-mandatory px-2 sm:px-3"
         >
           {agents.map((agent) => (
-            <div key={agent._id} className="snap-start shrink-0 px-1 py-1">
+            <div key={agent._id} className="w-[82vw] snap-start shrink-0 px-1 py-1 sm:w-auto sm:basis-[calc((100%-12px)/2)] lg:basis-[calc((100%-36px)/4)]">
               <AgentCard data={agent} />
             </div>
           ))}
@@ -201,7 +201,7 @@ export default function AgentsList() {
 function AgentCard({ data }: { data: AgentConnect }) {
   return (
     <Link href={`/agent-connect/${data.slug}`}>
-      <div className="card w-[300px]">
+      <div className="card w-full">
         {/* Banner */}
         <div className="h-28 relative ">
           <Image

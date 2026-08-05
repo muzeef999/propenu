@@ -90,7 +90,7 @@ export default function HomeSectionSkeleton({
       {items.map((_, index) => (
         <div
           key={`agent-skeleton-${index}`}
-          className="w-[300px] shrink-0 overflow-hidden rounded-xl border border-gray-100 bg-white"
+          className="w-[82vw] shrink-0 overflow-hidden rounded-xl border border-gray-100 bg-white sm:w-auto sm:basis-[calc((100%-12px)/2)] lg:basis-[calc((100%-36px)/4)]"
         >
           <div className="relative">
             <div className={`${baseBlock} h-28 w-full rounded-none`} />
