@@ -51,11 +51,39 @@ export default function MicroSiteNavbar({
   const [activeHash, setActiveHash] = useState("");
 
   useEffect(() => {
-    const updateHash = () => setActiveHash(window.location.hash || "");
-    updateHash();
-    window.addEventListener("hashchange", updateHash);
-    return () => window.removeEventListener("hashchange", updateHash);
-  }, []);
+    const hashes = links
+      .map((link) => extractHash(link.href))
+      .filter((hash): hash is string => Boolean(hash));
+
+    const updateActiveSection = () => {
+      if (hashes.length === 0) return;
+
+      const scrollPosition = window.scrollY + 90;
+      let currentHash = hashes[0];
+
+      for (const hash of hashes) {
+        const section = document.getElementById(hash.slice(1));
+        if (section && section.offsetTop <= scrollPosition) {
+          currentHash = hash;
+        }
+      }
+
+      setActiveHash((previous) =>
+        previous === currentHash ? previous : currentHash,
+      );
+    };
+
+    updateActiveSection();
+    window.addEventListener("hashchange", updateActiveSection);
+    window.addEventListener("scroll", updateActiveSection, { passive: true });
+    window.addEventListener("resize", updateActiveSection);
+
+    return () => {
+      window.removeEventListener("hashchange", updateActiveSection);
+      window.removeEventListener("scroll", updateActiveSection);
+      window.removeEventListener("resize", updateActiveSection);
+    };
+  }, [links]);
 
   useEffect(() => {
     const body = document.body;
@@ -329,3 +357,4 @@ export default function MicroSiteNavbar({
     </>
   );
 }
+

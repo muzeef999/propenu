@@ -108,7 +108,7 @@ function getLeadErrorMessage(error: unknown) {
 }
 
 function getFieldValidationMessage(
-  field: HTMLInputElement | HTMLTextAreaElement,
+  field: HTMLInputElement,
 ) {
   const { name, validity } = field;
 
@@ -116,7 +116,6 @@ function getFieldValidationMessage(
     if (name === "name") return "Please enter your name";
     if (name === "phone") return "Please enter your mobile number";
     if (name === "email") return "Please enter your email address";
-    if (name === "message") return "Please enter your message";
   }
 
   if (validity.patternMismatch) {
@@ -127,10 +126,6 @@ function getFieldValidationMessage(
 
   if (validity.typeMismatch && name === "email") {
     return "Please enter a valid email address";
-  }
-
-  if (validity.tooShort && name === "message") {
-    return "Message must be at least 10 characters";
   }
 
   return "Please check this field";
@@ -152,7 +147,6 @@ export default function HeroSection({ hero }: Props) {
     name: "",
     phone: "",
     email: "",
-    message: "",
   });
 
   const leadsMutation = useMutation({
@@ -165,7 +159,6 @@ export default function HeroSection({ hero }: Props) {
       name: "",
       phone: "",
       email: "",
-      message: "",
     });
   },
 
@@ -192,14 +185,13 @@ export default function HeroSection({ hero }: Props) {
     name: form.name,
     phone: form.phone,
     email: form.email.trim(),
-    remarks: form.message,
     projectId: h.projectId,
   });
 };
 
 
   function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement>
   ) {
     const { name, value } = e.target;
     setForm((p) => ({
@@ -214,13 +206,13 @@ export default function HeroSection({ hero }: Props) {
   }
 
   function handleInvalid(
-    e: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.FormEvent<HTMLInputElement>,
   ) {
     e.currentTarget.setCustomValidity(getFieldValidationMessage(e.currentTarget));
   }
 
   function handleFieldInput(
-    e: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.FormEvent<HTMLInputElement>,
   ) {
     e.currentTarget.setCustomValidity("");
   }
@@ -315,15 +307,15 @@ export default function HeroSection({ hero }: Props) {
               </button>
             </div>
 
-            <div className="absolute bottom-0 left-0 w-full lg:w-[65%] z-10">
-              <div className="grid grid-cols-2 gap-3 py-4 text-center sm:gap-4 sm:py-6 md:grid-cols-4 md:gap-6 lg:py-8">
+            <div className="absolute bottom-0 left-0 z-10 w-full lg:w-[78%]">
+              <div className="grid grid-cols-2 gap-2 py-4 text-center sm:gap-3 sm:py-6 md:grid-cols-4 lg:py-8">
                 {h.stats?.map((stat, idx) => (
-                  <div key={idx}>
-                    <div className="text-sm font-bold text-white sm:text-lg md:text-2xl">
+                  <div key={idx} className="min-w-0 px-1">
+                    <div className="whitespace-nowrap text-base font-bold leading-tight text-white sm:text-xl md:text-[26px]">
                       {stat.value}
                     </div>
 
-                    <div className="mt-0.5 text-[10px] text-gray-200 sm:mt-1 sm:text-xs md:text-sm">{stat.label}</div>
+                    <div className="mt-1 whitespace-nowrap text-[11px] text-gray-200 sm:text-xs md:text-sm">{stat.label}</div>
 
                     <div
                       className="mx-auto mt-1 h-0.5 w-8 sm:mt-2 sm:w-10 md:w-12"
@@ -389,19 +381,6 @@ export default function HeroSection({ hero }: Props) {
                   className="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2 text-sm text-white placeholder-white/70 focus:ring-2 focus:ring-yellow-400 outline-none"
                 />
 
-                <textarea
-                  name="message"
-                  value={form.message}
-                  onChange={handleChange}
-                  onInvalid={handleInvalid}
-                  onInput={handleFieldInput}
-                  rows={3}
-                  minLength={10}
-                  placeholder="Message"
-                  required
-                  className="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2 text-sm text-white placeholder-white/70 focus:ring-2 focus:ring-yellow-400 outline-none"
-                />
-
                 <button
                   type="submit"
                   disabled={leadsMutation.isPending}
@@ -418,3 +397,7 @@ export default function HeroSection({ hero }: Props) {
     </section>
   );
 }
+
+
+
+

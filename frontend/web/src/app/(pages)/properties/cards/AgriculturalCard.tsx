@@ -46,6 +46,7 @@ const AgriculturalCard: React.FC<Props> = ({
     (p as any)?.pricePerSqft ??
     Math.round((p?.price ?? 0) / (p as any)?.builtUpArea || 0);
   const displayLandName = (p as any)?.landName || (p as any)?.title || "Land";
+  const isRentListing = p?.listingType?.toLowerCase() === "rent";
   const resolvedListingSource = resolveListingSource(
     p?.listingSource,
     (p as any)?.createdBy,
@@ -354,6 +355,9 @@ const AgriculturalCard: React.FC<Props> = ({
               }`}
           >
             {formatINR(p?.price)}
+            {isRentListing && (
+              <span className="text-sm font-medium"> / month</span>
+            )}
           </div>
 
           <div className="text-xs text-gray-600">

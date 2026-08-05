@@ -15,8 +15,6 @@ import {
   PostedByOption,
   residentialKeyMapping,
 } from "@/types/residential";
-import { buildSearchParams } from "./buildSearchParams";
-import { searchFilter } from "@/data/ClientData";
 import {
   selectCityWithLocalities,
   selectLocalitiesByCity,
@@ -189,10 +187,6 @@ const ResidentialFilters = () => {
         }`;
 
   const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
-
-  useEffect(() => {
-    searchFilter(buildSearchParams(filtersState));
-  }, [filtersState]);
 
   const handleSectionClick = (key: RESFilterKey) => {
     const container = rightPanelRef.current;
@@ -931,3 +925,5 @@ const ResidentialFilters = () => {
 };
 
 export default ResidentialFilters;
+
+

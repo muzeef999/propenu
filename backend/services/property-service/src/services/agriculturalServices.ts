@@ -17,7 +17,7 @@ function normalizeCreatedByRoleFilterToken(token: string) {
 
   return normalized;
 }
-import { upsertCityAndLocality } from "./locationServices";
+import { upsertActiveListingCityAndLocality } from "./locationServices";
 import {
   createWatermarkedBuffer,
   getUploadedFileBuffer,
@@ -274,16 +274,7 @@ export const AgriculturalService = {
 
     const createdDoc = await Agricultural.create(toCreate);
 
-    if (createdDoc.city && createdDoc.locality) {
-      await upsertCityAndLocality({
-        city: createdDoc.city,
-        locality: createdDoc.locality,
-        ...(createdDoc.state && { state: createdDoc.state }),
-        ...(createdDoc.location?.coordinates && {
-          coordinates: createdDoc.location.coordinates,
-        }),
-      });
-    }
+    await upsertActiveListingCityAndLocality(createdDoc);
 
     const populated = await Agricultural.findById(createdDoc._id)
       .populate("createdBy", "name email phone role roleId")
@@ -452,6 +443,7 @@ export const AgriculturalService = {
     }
 
     await existing.save();
+    await upsertActiveListingCityAndLocality(existing);
     return existing.toObject ? existing.toObject() : existing;
   },
 
@@ -625,6 +617,7 @@ export const AgriculturalService = {
           };
         }
         await property.save();
+        await upsertActiveListingCityAndLocality(property);
         return property;
       }
 
@@ -661,6 +654,7 @@ export const AgriculturalService = {
     }
 
     await property.save();
+    await upsertActiveListingCityAndLocality(property);
     return property;
   },
 

@@ -10,6 +10,79 @@ function exactCaseInsensitive(value: string) {
   return { $regex: `^${escapeRegex(value)}$`, $options: "i" };
 }
 
+type LocalityLike = {
+  name?: string;
+  location?: {
+    type?: string;
+    coordinates?: number[];
+  } | null | undefined;
+};
+
+function localityKey(locality: LocalityLike) {
+  return locality.name?.trim().toLowerCase() || "";
+}
+
+function toTitleCase(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\b[a-z]/g, (char) => char.toUpperCase());
+}
+function hasValidCoordinates(locality: LocalityLike) {
+  const coordinates = locality.location?.coordinates;
+  if (!Array.isArray(coordinates) || coordinates.length !== 2) return false;
+
+  const lng = Number(coordinates[0]);
+  const lat = Number(coordinates[1]);
+  return Number.isFinite(lng) && Number.isFinite(lat) && !(lng === 0 && lat === 0);
+}
+
+export function mergeDuplicateLocalities<T extends LocalityLike>(localities: T[] = []) {
+  const byName = new Map<string, T>();
+
+  for (const locality of localities) {
+    const key = localityKey(locality);
+    if (!key) continue;
+
+    const trimmedName = locality.name?.trim();
+    const normalizedLocality = {
+      ...locality,
+      ...(trimmedName ? { name: toTitleCase(trimmedName) } : {}),
+    } as T;
+
+    const existing = byName.get(key);
+    if (!existing) {
+      byName.set(key, normalizedLocality);
+      continue;
+    }
+
+    if (!hasValidCoordinates(existing) && hasValidCoordinates(normalizedLocality)) {
+      existing.location = normalizedLocality.location;
+    }
+  }
+
+  return Array.from(byName.values());
+}
+
+function localitiesChanged(before: LocalityLike[] = [], after: LocalityLike[] = []) {
+  if (before.length !== after.length) return true;
+
+  return before.some((locality, index) => {
+    const next = after[index];
+    return locality.name !== next?.name || JSON.stringify(locality.location) !== JSON.stringify(next?.location);
+  });
+}
+
+async function saveWithMergedLocalities(doc: any) {
+  const mergedLocalities = mergeDuplicateLocalities(doc.localities as LocalityLike[]);
+  if (localitiesChanged(doc.localities as LocalityLike[], mergedLocalities)) {
+    doc.localities = mergedLocalities;
+  }
+
+  await doc.save();
+  return doc;
+}
+
 /* ------------------------------------
    TYPES
 ------------------------------------ */
@@ -48,11 +121,13 @@ export async function createLocation(payload: CreateLocationPayload) {
 
   const cityName = payload.city.trim();
   const stateName: string | null = payload.state?.trim() || null;
-  const localityName = payload.locality?.name?.trim() || null;
+  const localityName = payload.locality?.name?.trim()
+    ? toTitleCase(payload.locality.name)
+    : null;
 
   let coordinates = payload.locality?.location?.coordinates;
 
-  // 🌍 Auto-geocode locality if coordinates exist
+  // Auto-geocode locality when coordinates are missing.
   if (!coordinates && localityName) {
     const geo = await geocode(`${localityName}, ${cityName}`);
     if (!geo) {
@@ -61,91 +136,54 @@ export async function createLocation(payload: CreateLocationPayload) {
     coordinates = [geo.lng, geo.lat];
   }
 
-  const existingCity = await Location.findOne({
+  const cityFilter = {
     city: exactCaseInsensitive(cityName),
     ...(stateName === null
       ? { $or: [{ state: null }, { state: "" }, { state: { $exists: false } }] }
       : { state: exactCaseInsensitive(stateName) }),
-  });
+  };
 
-  if (existingCity && localityName) {
-    const localityIndex = existingCity.localities.findIndex(
-      (item: any) => item.name?.trim().toLowerCase() === localityName.toLowerCase()
-    );
+  const existingCity = await Location.findOne(cityFilter);
 
-    if (localityIndex >= 0) {
-      const existingLocality = existingCity.localities[localityIndex];
-      if (coordinates) {
-        await Location.updateOne(
-          {
-            _id: existingCity._id,
-            "localities.name": existingLocality?.name,
-          },
-          {
-            $set: {
-              "localities.$.location": {
-                type: "Point",
-                coordinates,
-              },
-            },
-          }
-        );
+  if (existingCity) {
+    if (localityName) {
+      const localityIndex = existingCity.localities.findIndex(
+        (item: any) => localityKey(item) === localityName.toLowerCase()
+      );
+
+      if (localityIndex >= 0 && coordinates && existingCity.localities[localityIndex]) {
+        existingCity.localities[localityIndex].location = {
+          type: "Point",
+          coordinates,
+        };
       }
-      return Location.findById(existingCity._id);
+
+      if (localityIndex < 0) {
+        existingCity.localities.push({
+          name: localityName,
+          location: coordinates ? { type: "Point", coordinates } : undefined,
+        } as any);
+      }
     }
 
-    await Location.updateOne(
-      {
-        _id: existingCity._id,
-        localities: {
-          $not: {
-            $elemMatch: { name: exactCaseInsensitive(localityName) },
-          },
-        },
-      },
-      {
-        $push: {
-          localities: {
+    return saveWithMergedLocalities(existingCity);
+  }
+
+  const created = new Location({
+    city: cityName,
+    state: stateName,
+    category: payload.category,
+    localities: localityName
+      ? [
+          {
             name: localityName,
             location: coordinates ? { type: "Point", coordinates } : undefined,
           },
-        },
-      }
-    );
-    return Location.findById(existingCity._id);
-  }
+        ]
+      : [],
+  });
 
-  return Location.findOneAndUpdate(
-    {
-      city: exactCaseInsensitive(cityName),
-      ...(stateName === null
-        ? { $or: [{ state: null }, { state: "" }, { state: { $exists: false } }] }
-        : { state: exactCaseInsensitive(stateName) }),
-    },
-    {
-      $setOnInsert: {
-        city: cityName,
-        state: stateName,
-        category: payload.category,
-      },
-      ...(localityName
-        ? {
-            $addToSet: {
-              localities: {
-                name: localityName,
-                location: coordinates
-                  ? { type: "Point", coordinates }
-                  : undefined,
-              },
-            },
-          }
-        : {}),
-    },
-    {
-      upsert: true,
-      new: true,
-    }
-  );
+  return saveWithMergedLocalities(created);
 }
 
 /* ------------------------------------
@@ -169,7 +207,10 @@ export async function getAllLocationsDetails() {
   ]);
 
   return {
-    locations,
+    locations: locations.map((location) => ({
+      ...location,
+      localities: mergeDuplicateLocalities(location.localities),
+    })),
     states,
     categories,
   };
@@ -189,24 +230,22 @@ export async function updateLocation(
   const doc = await Location.findById(id);
   if (!doc) return null;
 
-  // ---- top-level fields ----
   if (payload.city !== undefined) {
     doc.city = payload.city;
   }
 
-if (payload.state !== undefined) {
-  doc.set("state", payload.state);
-}
+  if (payload.state !== undefined) {
+    doc.set("state", payload.state);
+  }
+
   if (payload.category !== undefined) {
     doc.category = payload.category;
   }
 
-  // ---- locality update ----
   if (payload.locality) {
-    const localityName = payload.locality.name.trim();
+    const localityName = toTitleCase(payload.locality.name);
     let coordinates = payload.locality.location?.coordinates;
 
-    // auto-geocode if missing
     if (!coordinates) {
       const geo = await geocode(`${localityName}, ${doc.city}`);
       if (geo) {
@@ -219,7 +258,7 @@ if (payload.state !== undefined) {
     }
 
     const index = doc.localities.findIndex(
-      (l: any) => l.name === localityName
+      (l: any) => localityKey(l) === localityName.toLowerCase()
     );
 
     if (index >= 0 && coordinates && doc.localities[index]) {
@@ -230,7 +269,50 @@ if (payload.state !== undefined) {
     }
   }
 
-  return doc.save();
+  return saveWithMergedLocalities(doc);
+}
+
+/* ------------------------------------
+   CLEAN DUPLICATE LOCALITIES
+------------------------------------ */
+export async function cleanupDuplicateLocalities() {
+  const docs = await Location.find();
+  const cleanedCities: Array<{
+    id: string;
+    city: string;
+    state: string | null;
+    before: number;
+    after: number;
+    removed: number;
+  }> = [];
+
+  for (const doc of docs) {
+    const before = doc.localities.length;
+    const mergedLocalities = mergeDuplicateLocalities(doc.localities as LocalityLike[]);
+
+    if (!localitiesChanged(doc.localities as LocalityLike[], mergedLocalities)) {
+      continue;
+    }
+
+    doc.localities = mergedLocalities as any;
+    await doc.save();
+
+    cleanedCities.push({
+      id: String(doc._id),
+      city: doc.city,
+      state: doc.state ?? null,
+      before,
+      after: mergedLocalities.length,
+      removed: before - mergedLocalities.length,
+    });
+  }
+
+  return {
+    scanned: docs.length,
+    cleaned: cleanedCities.length,
+    removed: cleanedCities.reduce((total, item) => total + item.removed, 0),
+    cities: cleanedCities,
+  };
 }
 
 /* ------------------------------------
@@ -250,13 +332,18 @@ export async function getLocationByIdService(id: string) {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error("Invalid id");
   }
-  return Location.findById(id).lean();
+
+  const doc = await Location.findById(id).lean();
+  if (!doc) return null;
+
+  return {
+    ...doc,
+    localities: mergeDuplicateLocalities(doc.localities),
+  };
 }
 
-
-
 /* ------------------------------------
-   DEL LOCALITY 
+   DEL LOCALITY
 ------------------------------------ */
 export async function removeLocalityFromCity(
   cityId: string,
@@ -288,12 +375,10 @@ export async function removeLocalityFromCity(
 
   localities.splice(removeIndex, 1);
 
-  // Remove only one matching locality. $pull removes every duplicate with the same name.
   await Location.updateOne(
     { _id: cityId },
-    { $set: { localities } }
+    { $set: { localities: mergeDuplicateLocalities(localities) } }
   );
 
   return Location.findById(cityId);
 }
-

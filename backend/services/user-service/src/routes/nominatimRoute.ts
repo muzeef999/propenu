@@ -1,11 +1,13 @@
 import express from "express";
 import {
   deleteLocality,
+  dedupeLocalities,
   deleteLocation,
   editLocation,
   getAllLocations,
   getLocationById,
   postLocation,
+  reverseMajorCity,
 } from "../controller/nominatimController";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 
@@ -27,7 +29,25 @@ nominatimRoute.post("/", authMiddleware,  (req: AuthRequest, res, next) => {
   postLocation
 );
 
+nominatimRoute.post(
+  "/dedupe-localities",
+  authMiddleware,
+  (req: AuthRequest, res, next) => {
+    if (
+      !req.user ||
+      !["super_admin", "admin"].includes(req.user.roleName || "")
+    ) {
+      return res.status(403).json({
+        message: "Forbidden: only admin/super_admin allowed",
+      });
+    }
+    next();
+  },
+  dedupeLocalities
+);
+
 nominatimRoute.get("/", getAllLocations);
+nominatimRoute.get("/reverse-major-city", reverseMajorCity);
 nominatimRoute.get("/:id", getLocationById);
 nominatimRoute.patch("/:id", authMiddleware,(req: AuthRequest, res, next) => {
     if (
@@ -78,3 +98,4 @@ nominatimRoute.delete(
 );
 
 export default nominatimRoute;
+

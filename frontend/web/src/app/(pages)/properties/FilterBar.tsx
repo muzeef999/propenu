@@ -42,7 +42,6 @@ function normalizeLocalityName(value: string) {
 function getLocalityDedupKey(value: string) {
   return normalizeLocalityName(value).toLowerCase();
 }
-
 const FilterBar: React.FC = () => {
   const getCategoryLabel = (value: categoryOption) =>
     value === "Land" ? "Plots" : value;
@@ -368,6 +367,7 @@ const FilterBar: React.FC = () => {
   }, [searchParams, selectedLocalities.length]);
 
   const handleLocalitySelect = (name: string) => {
+
     if (category === "Residential") {
       dispatch(
         setResidentialFilter({
@@ -404,6 +404,15 @@ const FilterBar: React.FC = () => {
     setSearchOpen(true);
   };
 
+  const handleSearchSubmit = () => {
+    const fallbackLocality = searchText.trim();
+    const localityName = localitySuggestions[0] ?? fallbackLocality;
+
+    if (!localityName) return;
+
+    handleLocalitySelect(normalizeLocalityName(localityName));
+    setSearchOpen(false);
+  };
   const handleRemoveLocality = (name: string) => {
     const next = selectedLocalities.filter((loc) => loc !== name);
 
@@ -605,6 +614,12 @@ const FilterBar: React.FC = () => {
                       dispatch(setSearchText(e.target.value));
                       setSearchOpen(true);
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSearchSubmit();
+                      }
+                    }}
                     className="bg-transparent text-sm outline-none flex-1 min-w-0"
                   />
                 </div>
@@ -722,3 +737,5 @@ const FilterBar: React.FC = () => {
 };
 
 export default FilterBar;
+
+

@@ -148,15 +148,15 @@ function getGalleryImages(project: FeaturedProject): GalleryImage[] {
 
 export default function HeroSection({ project }: HeroSectionProps) {
     const isLand = project.categoryType?.toLowerCase() === "land";
-    const tabs = [
+    const tabs: Array<{ label: string; href: string; isDownload?: boolean }> = [
         { label: "Overview", href: "#overview" },
         { label: isLand ? "Layout" : "Floor Plans", href: "#floor-plans" },
         { label: "Amenities", href: "#amenities" },
-        { label: "Location", href: "#location" },
+        { label: "Location Advantages", href: "#location" },
         { label: "Specifications", href: "#specifications" },
-        { label: "Photos & Videos", href: "#project-images" },
+        { label: "Gallery", href: "#gallery" },
         { label: "About", href: "#about-project" },
-        ...(project.brochure?.url ? [{ label: "Download Brochure", href: project.brochure.url, isDownload: true }] : []),
+        ...(project.brochure?.url ? [{ label: "Brochure Preview", href: "#brochure-preview" }] : []),
     ];
     const locationText = [project.locality, project.city].filter(Boolean).join(", ");
     const galleryImages = getGalleryImages(project);
@@ -596,3 +596,8 @@ export default function HeroSection({ project }: HeroSectionProps) {
         </>
     );
 }
+
+
+
+
+

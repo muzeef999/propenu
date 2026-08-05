@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { HiArrowsUpDown } from "react-icons/hi2";
 import FilterBar from "./FilterBar";
 import { useAppSelector } from "@/Redux/store";
@@ -21,8 +22,19 @@ import SponsoreCard from "./cards/SponsoreCard";
 import ad from "@/asserts/ad.png";
 import { buildSearchParams } from "./filters/buildSearchParams";
 import { injectSponsored } from "@/utilies/injectSponsored";
+import FilterDropdown from "@/ui/FilterDropdown";
+import { ArrowDropdownIcon } from "@/icons/icons";
 
 const propertySkeletonItems = Array.from({ length: 4 });
+
+const sortOptions = [
+  { value: "newest", label: "Newest" },
+  { value: "oldest", label: "Oldest" },
+  { value: "price-low-high", label: "Price: Low to High" },
+  { value: "price-high-low", label: "Price: High to Low" },
+  { value: "area-low-high", label: "Area: Low to High" },
+  { value: "area-high-low", label: "Area: High to Low" },
+];
 
 
 function getPropertyLink(property: any) {
@@ -116,16 +128,20 @@ function PropertiesListSkeleton() {
 const Page: React.FC = () => {
   const filters = useAppSelector((s) => s.filters);
   const cityData = useAppSelector(selectCityWithLocalities);
+  const searchParams = useSearchParams();
+  const urlCity = searchParams.get("city")?.trim() || undefined;
+  const urlState = searchParams.get("state")?.trim() || undefined;
   const params = React.useMemo(
     () => ({
       ...buildSearchParams(filters),
-      city: cityData?.city,
-      state: cityData?.state,
+      city: cityData?.city ?? urlCity,
+      state: cityData?.state ?? urlState,
     }),
-    [filters, cityData?.city, cityData?.state],
+    [filters, cityData?.city, cityData?.state, urlCity, urlState],
   );
   const { items, sponsored, loading, total } = useStreamProperties(params);
   const [sortBy, setSortBy] = React.useState("newest");
+  const [sortDropdownOpen, setSortDropdownOpen] = React.useState(false);
   const [dismissedAds, setDismissedAds] = useState<Set<string>>(new Set());
   const listingSourceFilter = String((params as any).listingSource || "").toLowerCase();
   const isOwnerFilterActive =
@@ -133,19 +149,26 @@ const Page: React.FC = () => {
   const isAgentFilterActive =
     listingSourceFilter === "agent";
 
+  const selectedSortOption =
+    sortOptions.find((option) => option.value === sortBy) ?? sortOptions[0];
+
   const renderPropertyCard = (p: Property, index: number) => {
-    const type = (p.type || "").toLowerCase();
-    const isSponsored = p.promotion?.type === "sponsored";
+    const propertyForCard = {
+      ...p,
+      listingType: p.listingType || params.listingType,
+    };
+    const type = (propertyForCard.type || "").toLowerCase();
+    const isSponsored = propertyForCard.promotion?.type === "sponsored";
 
     switch (type) {
       case "featuredproject":
-        return <FeaturedPropertyCard key={p.id} p={p} />;
+        return <FeaturedPropertyCard key={p.id} p={propertyForCard} />;
 
       case "residential":
         return (
           <ResidentialCard
             key={p.id}
-            p={p as IResidential}
+            p={propertyForCard as IResidential}
             isSponsored={isSponsored}
           />
         );
@@ -154,7 +177,7 @@ const Page: React.FC = () => {
         return (
           <CommercialCard
             key={p.id}
-            p={p as unknown as ICommercial} // safe after type check
+            p={propertyForCard as unknown as ICommercial} // safe after type check
             isSponsored={isSponsored}
           />
         );
@@ -162,7 +185,7 @@ const Page: React.FC = () => {
         return (
           <LandCard
             key={p.id}
-            p={p as ILand}
+            p={propertyForCard as ILand}
             isSponsored={isSponsored}
           />
         );
@@ -171,7 +194,7 @@ const Page: React.FC = () => {
         return (
           <AgriculturalCard
             key={p.id}
-            p={p as IAgricultural}
+            p={propertyForCard as IAgricultural}
             isSponsored={isSponsored}
           />
         );
@@ -310,22 +333,60 @@ const Page: React.FC = () => {
                 </p>
               )}
 
-              <label className="inline-flex w-fit items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm cursor-pointer">
-                <HiArrowsUpDown className="h-4 w-4" />
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-transparent text-sm text-gray-700 outline-none cursor-pointer"
-                  aria-label="Sort properties"
-                >
-                  <option value="newest">Newest</option>
-                  <option value="oldest">Oldest</option>
-                  <option value="price-low-high">Price: Low to High</option>
-                  <option value="price-high-low">Price: High to Low</option>
-                  <option value="area-low-high">Area: Low to High</option>
-                  <option value="area-high-low">Area: High to Low</option>
-                </select>
-              </label>
+              <FilterDropdown
+                open={sortDropdownOpen}
+                onOpenChange={setSortDropdownOpen}
+                triggerLabel={
+                  <button
+                    type="button"
+                    className="inline-flex min-w-[210px] items-center justify-between gap-3 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 cursor-pointer"
+                    aria-label="Sort properties"
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <HiArrowsUpDown className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{selectedSortOption.label}</span>
+                    </span>
+                    <ArrowDropdownIcon
+                      size={12}
+                      color="#374151"
+                      className={`shrink-0 transition-transform duration-200 ${sortDropdownOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                }
+                width="w-56"
+                align="right"
+                backdropClassName="fixed inset-0 z-40"
+                renderContent={(close) => (
+                  <div>
+                    <h4 className="mb-2 text-sm font-semibold text-gray-900">
+                      Sort Properties
+                    </h4>
+                    <div className="flex flex-col gap-1">
+                      {sortOptions.map((option) => {
+                        const selected = option.value === sortBy;
+
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => {
+                              setSortBy(option.value);
+                              close();
+                            }}
+                            className={`rounded px-2 py-1.5 text-left text-sm transition-colors cursor-pointer ${
+                              selected
+                                ? "bg-[#D1EFDD] font-semibold text-[#15803D]"
+                                : "text-gray-700 hover:bg-gray-100"
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              />
             </div>
 
             {loading ? (

@@ -9,6 +9,7 @@ import LocateUs from "./LocateUs";
 import Gallery from "./Gallery";
 import AboutUS from "./AboutUs";
 import Specification from "./Specification";
+import BrochurePreview from "./BrochurePreview";
 import ProjectViewDurationTracker from "./ProjectViewDurationTracker";
 import ProjectViewTracker from "@/components/tracking/ProjectViewTracker";
 
@@ -66,9 +67,11 @@ export default async function Page({ params }: PageProps) {
   const links = [
     { title: "Available Properties", href: "#available-properties" },
     { title: "Amenities", href: "#amenities" },
-    { title: "Map View", href: "#map-view" },
+    { title: "Location Advantages", href: "#map-view" },
+    { title: "Specifications", href: "#specification" },
     { title: "Gallery", href: "#gallery" },
     { title: "About Us", href: "#about-us" },
+    ...(project?.brochure?.url ? [{ title: "Brochure Preview", href: "#brochure-preview" }] : []),
   ];
   function formatCompactPrice(price?: number) {
     if (typeof price !== "number" || !Number.isFinite(price) || price <= 0) {
@@ -200,18 +203,26 @@ export default async function Page({ params }: PageProps) {
           <LocateUs nearbyPlaces={nearbyPlaces} />
         </div>
 
-        <div id="gallery" className="scroll-mt-20">
-          <Gallery gallerySummary={gallerySummary} />
-        </div>
-
         <div id="specification" className="scroll-mt-20">
           <Specification specifications={specifications} />
         </div>
 
+        <div id="gallery" className="scroll-mt-20">
+          <Gallery gallerySummary={gallerySummary} />
+        </div>
+
+
         <div id="about-us" className="scroll-mt-20">
           <AboutUS aboutSummary={aboutSummary} />
+        </div>
+        <div id="brochure-preview" className="scroll-mt-20">
+          <BrochurePreview project={project} />
         </div>
       </div>
     </div>
   );
 }
+
+
+
+

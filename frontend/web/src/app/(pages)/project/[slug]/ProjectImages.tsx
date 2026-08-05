@@ -106,11 +106,11 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
   }
 
   return (
-    <section id="project-images" className="scroll-mt-20">
+    <section id="gallery" className="scroll-mt-20">
       <div className="container mx-auto px-1 sm:px-4 lg:px-3">
         <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
           <h2 className="border-b border-slate-200 px-4 py-4 text-lg font-medium text-slate-950 sm:px-5 sm:py-5 sm:text-xl">
-            Images & Videos
+            Gallery
           </h2>
 
           <div className="relative grid grid-cols-2 gap-2 p-3 sm:grid-cols-2 sm:gap-3 sm:p-5 lg:grid-cols-3">
@@ -236,3 +236,4 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
     </section>
   );
 }
+

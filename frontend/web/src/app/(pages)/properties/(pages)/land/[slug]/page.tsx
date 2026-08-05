@@ -45,22 +45,41 @@ export async function generateMetadata({ params }: PageProps) {
   });
 }
 
+const SQFT_PER_LAND_UNIT: Record<string, number> = {
+  sqft: 1,
+  sqmt: 10.7639,
+  sqyd: 9,
+  acre: 43560,
+  guntha: 1089,
+  cent: 435.6,
+  kanal: 5445,
+  hectare: 107639,
+};
+
 function formatAreaUnit(unit?: string) {
   if (!unit) return "sqft";
 
   const normalized = unit.toLowerCase();
-  const supportedUnits = [
-    "sqft",
-    "sqmt",
-    "sqyd",
-    "acre",
-    "guntha",
-    "cent",
-    "kanal",
-    "hectare",
-  ];
+  return SQFT_PER_LAND_UNIT[normalized] ? normalized : "sqft";
+}
 
-  return supportedUnits.includes(normalized) ? normalized : "sqft";
+function calculatePricePerPlotUnit(
+  price?: number,
+  area?: number | string,
+  unit = "sqft",
+  fallbackPricePerSqft?: number,
+) {
+  const numericPrice = Number(price);
+  const numericArea = Number(area);
+
+  if (numericPrice > 0 && numericArea > 0) {
+    return Math.round(numericPrice / numericArea);
+  }
+
+  const numericFallback = Number(fallbackPricePerSqft);
+  const sqftPerUnit = SQFT_PER_LAND_UNIT[unit] ?? 1;
+
+  return numericFallback > 0 ? Math.round(numericFallback * sqftPerUnit) : 0;
 }
 
 export default async function Page({ params }: PageProps) {
@@ -85,6 +104,12 @@ export default async function Page({ params }: PageProps) {
 
   const priceLabel = formatINR(project?.price);
   const plotAreaUnit = formatAreaUnit((project as any)?.plotAreaUnit);
+  const pricePerArea = calculatePricePerPlotUnit(
+    project?.price,
+    project?.plotArea,
+    plotAreaUnit,
+    project?.pricePerSqft,
+  );
   const resolvedListingSource = resolveListingSource(
     project?.listingSource,
     project?.createdBy as any,
@@ -176,7 +201,7 @@ export default async function Page({ params }: PageProps) {
                           Price Per {plotAreaUnit}
                         </span>
                         <span className="text-sm font-semibold text-gray-900 sm:text-base">
-                          ₹ {project?.pricePerSqft ?? "—"}/{plotAreaUnit}
+                          ₹ {pricePerArea ? pricePerArea.toLocaleString("en-IN") : "—"}/{plotAreaUnit}
                         </span>
                       </div>
 
@@ -403,3 +428,6 @@ export default async function Page({ params }: PageProps) {
     </div>
   );
 }
+
+
+

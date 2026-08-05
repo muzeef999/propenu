@@ -17,6 +17,7 @@ import blogRoute from "./blogs/blog.route";
 import { startPromotionExpiryJob } from "./jobs/promotionExpiry.job";
 import userInteractionRoute from "./routes/userInteractionRoute";
 import mongoose from "mongoose";
+import { syncLocationsFromActiveListings } from "./services/locationServices";
 
 dotenv.config({ quiet: true });
 
@@ -49,6 +50,16 @@ async function start() {
   try {
     await connectDB();
     await ensureNotificationRetentionIndexes();
+
+    syncLocationsFromActiveListings()
+      .then((result) => {
+        if (result.updatedCities > 0 || result.removedLocalities > 0) {
+          console.log("Locations synced from active listings:", result);
+        }
+      })
+      .catch((error) => {
+        console.error("Active listing location sync failed:", error);
+      });
     startPromotionExpiryJob();
 
     app.get("/", (req, res) => {

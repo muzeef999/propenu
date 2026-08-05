@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "../store";
 import { LocationItem } from "@/types";
 
@@ -22,12 +22,14 @@ export const fetchLocations = createAsyncThunk<LocationItem[]>(
 interface CityState {
   locations: LocationItem[];
   selectedCityId: string | null;
+  detectedCity: LocationItem | null;
   status: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: CityState = {
   locations: [],
   selectedCityId: null,
+  detectedCity: null,
   status: "idle",
 };
 
@@ -39,8 +41,13 @@ const citySlice = createSlice({
     setCityId(state, action: PayloadAction<string | null>) {
       state.selectedCityId = action.payload;
     },
+    setDetectedCity(state, action: PayloadAction<LocationItem | null>) {
+      state.detectedCity = action.payload;
+      state.selectedCityId = action.payload?._id ?? state.selectedCityId;
+    },
     clearCity(state) {
       state.selectedCityId = null;
+      state.detectedCity = null;
     },
   },
   extraReducers: (builder) => {
@@ -60,16 +67,37 @@ const citySlice = createSlice({
 
 /* ---------------- SELECTORS ---------------- */
 
-// Selected city object
-export const selectSelectedCity = (state: RootState) => {
-  const { locations, selectedCityId } = state.city;
-  return locations.find(c => c._id === selectedCityId) || null;
+const EMPTY_ARRAY: LocationItem["localities"] = [];
+
+const normalizeLocalities = (localities: LocationItem["localities"] = EMPTY_ARRAY) => {
+  const seen = new Set<string>();
+
+  return localities.filter((locality) => {
+    const normalizedName = locality.name?.trim().toLowerCase();
+    if (!normalizedName || seen.has(normalizedName)) return false;
+
+    seen.add(normalizedName);
+    return true;
+  });
 };
 
-const EMPTY_ARRAY: any[] = [];
+const selectCityState = (state: RootState) => state.city;
 
-export const selectLocalitiesByCity = (state: RootState) =>
-  selectSelectedCity(state)?.localities ?? EMPTY_ARRAY;
+// Selected city object
+export const selectSelectedCity = createSelector(selectCityState, ({ locations, selectedCityId, detectedCity }) => {
+  const city = locations.find((item) => item._id === selectedCityId) ?? detectedCity;
+  if (!city) return null;
+
+  return {
+    ...city,
+    localities: normalizeLocalities(city.localities),
+  };
+});
+
+export const selectLocalitiesByCity = createSelector(
+  selectSelectedCity,
+  (city) => city?.localities ?? EMPTY_ARRAY
+);
 
 // Combined helper
 export const selectCityWithLocalities = (state: RootState) => {
@@ -83,5 +111,5 @@ export const selectCityWithLocalities = (state: RootState) => {
   };
 };
 
-export const { setCityId, clearCity } = citySlice.actions;
+export const { setCityId, setDetectedCity, clearCity } = citySlice.actions;
 export default citySlice.reducer;

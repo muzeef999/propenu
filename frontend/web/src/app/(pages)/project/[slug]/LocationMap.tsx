@@ -333,7 +333,7 @@ export default function LocationMap({ project }: LocationMapProps) {
       <div className="container mx-auto px-1 sm:px-4 lg:px-3">
         <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
           <h2 className="border-b border-slate-200 px-4 py-4 text-lg font-medium text-slate-950 sm:px-5 sm:py-5 sm:text-xl">
-            Location
+            Location Advantages
           </h2>
           <div className="p-3 sm:p-5">
             <div className="space-y-4 sm:space-y-5">
@@ -375,7 +375,7 @@ export default function LocationMap({ project }: LocationMapProps) {
 
               {nearbyLocations.length > 0 && (
                 <div className="rounded-md border border-slate-200 bg-slate-50 p-3 sm:p-4">
-                  <h3 className="mb-3 text-sm font-semibold text-slate-950 sm:text-base">Additional locations</h3>
+                 
                   <div className="grid gap-2 sm:grid-cols-2">
                     {nearbyLocations.map((place, index) => (
                       <div
@@ -404,3 +404,5 @@ export default function LocationMap({ project }: LocationMapProps) {
     </section>
   );
 }
+
+

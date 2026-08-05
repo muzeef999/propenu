@@ -8,6 +8,7 @@ import buildSearchCursor, {
   countSearchResults,
 } from "../services/filters/searchService";
 import { sanitizeSearchFilters } from "../services/filters/sanitizeFilters";
+import { getActiveLocationsFromListings } from "../services/locationServices";
 
 /**
  * Count applied filters safely
@@ -88,3 +89,14 @@ const streamSearchHandler: RequestHandler = createStreamingHandler(
 
 // ✅ DEFAULT EXPORT (THIS FIXES YOUR TS ERROR)
 export default streamSearchHandler;
+
+export const getActiveLocationsHandler: RequestHandler = async (_req, res) => {
+  try {
+    const locations = await getActiveLocationsFromListings();
+    return res.json({ locations });
+  } catch (error: any) {
+    return res.status(500).json({
+      error: error?.message || "Failed to load active locations",
+    });
+  }
+};

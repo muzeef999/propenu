@@ -3,6 +3,8 @@ import Modal from "../ui/Modal";
 import { useLocationPermission } from "@/hooks/useLocationPermission";
 import { useEffect } from "react";
 
+const url = process.env.NEXT_PUBLIC_API_URL;
+
 export function LocationDialog({
   open,
   onClose,
@@ -16,7 +18,7 @@ export function LocationDialog({
 
   useEffect(() => {
     if (status === "granted" && coords) {
-      fetch(`/api/users/locations/reverse?lat=${coords.lat}&lon=${coords.lon}`)
+      fetch(`${url}/api/users/location/reverse-major-city?lat=${coords.lat}&lon=${coords.lon}`)
         .then((res) => res.json())
         .then((data) => {
           onCityDetect(data.city || data.state || data.country || "Unknown");
@@ -50,3 +52,4 @@ export function LocationDialog({
     </Modal>
   );
 }
+

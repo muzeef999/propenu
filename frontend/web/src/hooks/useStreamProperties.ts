@@ -5,6 +5,12 @@ import { Meta, Property } from "@/types/property";
 import { SearchFilterParams } from "@/types/sharedTypes";
 import { minDelay } from "@/utilies/minDelay";
 
+function isAbortError(error: unknown) {
+  return (
+    error instanceof DOMException && error.name === "AbortError"
+  ) || (typeof error === "object" && error !== null && (error as { name?: string }).name === "AbortError");
+}
+
 export function useStreamProperties(params: SearchFilterParams) {
   const [items, setItems] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
@@ -14,6 +20,7 @@ export function useStreamProperties(params: SearchFilterParams) {
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
 
     async function start() {
       const startedAt = Date.now();
@@ -24,13 +31,24 @@ export function useStreamProperties(params: SearchFilterParams) {
 
       const query = new URLSearchParams(
         Object.entries(params)
-          .filter(([_, v]) => v !== undefined)
+          .filter(([, v]) => v !== undefined)
           .map(([k, v]) => [k, String(v)]),
       ).toString();
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/properties/search?${query}`,
-      );
+      const searchUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/properties/search?${query}`;
+      const sponsoredUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/properties/sponsored?${query}`;
+
+      const res = await fetch(searchUrl, { signal: controller.signal });
+
+      if (!res.ok) {
+        if (res.status === 429) {
+          console.warn("Property search rate limited. Skipping this refresh.");
+        } else {
+          console.error(`Property search failed with status ${res.status}`);
+        }
+        setLoading(false);
+        return;
+      }
 
       if (!res.body) {
         console.error("Streaming not supported");
@@ -38,9 +56,15 @@ export function useStreamProperties(params: SearchFilterParams) {
         return;
       }
 
-      const sponsoredPromise = fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/properties/sponsored?${query}`,
-      ).then((res) => res.json());
+      const sponsoredPromise = fetch(sponsoredUrl, {
+        signal: controller.signal,
+      })
+        .then((response) => (response.ok ? response.json() : { data: [] }))
+        .catch((error) => {
+          if (isAbortError(error) || cancelled) return { data: [] };
+          console.error("Failed to fetch sponsored properties", error);
+          return { data: [] };
+        });
 
       const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
 
@@ -68,7 +92,6 @@ export function useStreamProperties(params: SearchFilterParams) {
               continue;
             }
 
-            // âœ… append one property at a time
             setItems((prev) => [...prev, parsed as Property]);
           } catch (err) {
             console.error("Invalid JSON chunk", line);
@@ -89,10 +112,15 @@ export function useStreamProperties(params: SearchFilterParams) {
       }
     }
 
-    start();
+    start().catch((error) => {
+      if (isAbortError(error) || cancelled) return;
+      console.error("Failed to stream properties", error);
+      setLoading(false);
+    });
 
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [params]);
 

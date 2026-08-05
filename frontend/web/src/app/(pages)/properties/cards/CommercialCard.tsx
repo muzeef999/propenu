@@ -159,6 +159,7 @@ const CommercialCard: React.FC<Props> = ({
     (p as any)?.pricePerSqft ??
     Math.round((p?.price ?? 0) / (p as any)?.superBuiltUpArea || 0);
 
+  const isRentListing = p?.listingType?.toLowerCase() === "rent";
   const resolvedListingSource = resolveListingSource(
     p?.listingSource,
     p?.createdBy as any,
@@ -379,6 +380,9 @@ const CommercialCard: React.FC<Props> = ({
             }`}
           >
             {formatINR(p?.price)}
+            {isRentListing && (
+              <span className="text-sm font-medium"> / month</span>
+            )}
           </div>
 
           <div className="text-xs text-gray-600">₹ {pricePerSqft}/sqft</div>

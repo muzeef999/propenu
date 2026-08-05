@@ -15,6 +15,7 @@ import emailRouter from "./routes/emailRoute";
 import whatsappRouter from "./routes/whatsappRoute";
 import builderAccessRoute from "./routes/builderAccessRoute";
 import builderProfileRoute from "./routes/builderProfileRoute";
+import { cleanupDuplicateLocalities } from "./services/locationService";
 
 dotenv.config({ path: path.resolve(process.cwd(), ".env"), quiet: true });
 
@@ -27,6 +28,16 @@ const port = process.env.PORT ?? 4004;
 async function start() {
   try {
     await connectDB();
+
+    cleanupDuplicateLocalities()
+      .then((result) => {
+        if (result.removed > 0) {
+          console.log("Duplicate localities cleaned on startup:", result);
+        }
+      })
+      .catch((error) => {
+        console.error("Duplicate locality cleanup failed:", error);
+      });
     app.get("/", (req, res) => {
       res.json({ message: "User Service is running" });
     });

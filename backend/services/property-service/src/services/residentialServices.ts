@@ -8,7 +8,7 @@ import { cleanupUploadedFile, uploadFile } from "../utils/uploadFile";
 import { extendResidentialFilters } from "./filters/residentialFilters";
 import { ResidentialQuery } from "../types/filterTypes";
 import { Request } from "express";
-import { upsertCityAndLocality } from "./locationServices";
+import { upsertActiveListingCityAndLocality } from "./locationServices";
 import {
   createWatermarkedBuffer,
   getUploadedFileBuffer,
@@ -278,16 +278,7 @@ export const ResidentialPropertyService = {
 
     const createdDoc = await Residential.create(toCreate);
 
-    if (createdDoc.city && createdDoc.locality) {
-      await upsertCityAndLocality({
-        city: createdDoc.city,
-        locality: createdDoc.locality,
-        ...(createdDoc.state && { state: createdDoc.state }),
-        ...(createdDoc.location?.coordinates && {
-          coordinates: createdDoc.location.coordinates,
-        }),
-      });
-    }
+    await upsertActiveListingCityAndLocality(createdDoc);
 
     const populated = await Residential.findById(createdDoc._id)
       .populate("createdBy", "name email phone role roleId")
@@ -429,6 +420,7 @@ export const ResidentialPropertyService = {
 
     // Final save
     await existing.save();
+    await upsertActiveListingCityAndLocality(existing);
     return existing.toObject ? existing.toObject() : existing;
   },
 
@@ -639,6 +631,7 @@ export const ResidentialPropertyService = {
           };
         }
         await property.save();
+        await upsertActiveListingCityAndLocality(property);
         return property;
       }
 
@@ -675,6 +668,7 @@ export const ResidentialPropertyService = {
     }
 
     await property.save();
+    await upsertActiveListingCityAndLocality(property);
     return property;
   },
 

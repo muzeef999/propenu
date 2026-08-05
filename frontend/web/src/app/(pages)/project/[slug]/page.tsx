@@ -11,6 +11,7 @@ import Specifications from "./Specifications";
 import AboutProject from "./AboutProject";
 import ContactSeller from "./ContactSeller";
 import ProjectVideos from "./ProjectVideos";
+import BrochurePreview from "./BrochurePreview";
 import ProjectViewDurationTracker from "../../prime/[slug]/ProjectViewDurationTracker";
 import ProjectViewTracker from "@/components/tracking/ProjectViewTracker";
 
@@ -73,6 +74,7 @@ export default async function Page({ params }: PageProps) {
             <ProjectImages project={project} />
             <ProjectVideos project={project} />
             <AboutProject project={project} />
+            <BrochurePreview project={project} />
           </div>
 
           <div className="w-full shrink-0 lg:sticky lg:top-20 lg:w-80 xl:w-[340px]">
@@ -83,3 +85,5 @@ export default async function Page({ params }: PageProps) {
     </main>
   );
 }
+
+

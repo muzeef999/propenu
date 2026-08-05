@@ -6,7 +6,7 @@ import User from "../models/userModel";
 import Role from "../models/roleModel";
 import { cleanupUploadedFile, uploadFile } from "../utils/uploadFile";
 import { extendCommercialFilters } from "./filters/commercialFilters";
-import { upsertCityAndLocality } from "./locationServices";
+import { upsertActiveListingCityAndLocality } from "./locationServices";
 import { findRankedRelatedProperties } from "./relatedPropertyUtils";
 import {
   createWatermarkedBuffer,
@@ -317,16 +317,7 @@ export const CommercialService = {
 
     const createdDoc = await Commercial.create(toCreate);
 
-    if (createdDoc.city && createdDoc.locality) {
-      await upsertCityAndLocality({
-        city: createdDoc.city,
-        locality: createdDoc.locality,
-        ...(createdDoc.state && { state: createdDoc.state }),
-        ...(createdDoc.location?.coordinates && {
-          coordinates: createdDoc.location.coordinates,
-        }),
-      });
-    }
+    await upsertActiveListingCityAndLocality(createdDoc);
     const populated = await Commercial.findById(createdDoc._id)
       .populate("createdBy", "name email phone role roleId")
       .populate("createdBy.roleId", "name label")
@@ -536,6 +527,7 @@ export const CommercialService = {
     }
 
     await existing.save();
+    await upsertActiveListingCityAndLocality(existing);
     return existing.toObject ? existing.toObject() : existing;
   },
 
@@ -739,6 +731,7 @@ export const CommercialService = {
           };
         }
         await property.save();
+        await upsertActiveListingCityAndLocality(property);
         return property;
       }
     }
@@ -786,6 +779,7 @@ export const CommercialService = {
     }
 
     await property.save();
+    await upsertActiveListingCityAndLocality(property);
 
     return property;
   },

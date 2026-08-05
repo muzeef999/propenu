@@ -1,10 +1,11 @@
 import { Router } from "express";
-import streamSearchHandler from "../controller/searchController";
+import streamSearchHandler, { getActiveLocationsHandler } from "../controller/searchController";
 import { myProperties} from "../controller/topPropertiesController"
 import { authMiddleware } from "../middlewares/authMiddleware";
 
 const router = Router();
 
+router.get("/active-locations", getActiveLocationsHandler);
 router.get("/", streamSearchHandler);
 
 router.get("/my", authMiddleware, myProperties);

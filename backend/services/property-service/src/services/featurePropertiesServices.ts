@@ -16,7 +16,7 @@ import {
   createWatermarkedBuffer,
   getUploadedFileBuffer,
 } from "../utils/imageProcessing";
-import { upsertCityAndLocality } from "./locationServices";
+import { upsertActiveListingCityAndLocality } from "./locationServices";
 import {
   normalizeListingAuditFields,
   restoreCreatedById,
@@ -978,20 +978,7 @@ export const FeaturePropertyService = {
       }
     }
 
-    if (createdDoc.city && createdDoc.locality) {
-      const coordinates = createdDoc.location?.coordinates;
-      const localityCoordinates =
-        Array.isArray(coordinates) && coordinates.length === 2
-          ? ([coordinates[0], coordinates[1]] as [number, number])
-          : undefined;
-
-      await upsertCityAndLocality({
-        city: createdDoc.city,
-        locality: createdDoc.locality,
-        ...(createdDoc.state && { state: createdDoc.state }),
-        ...(localityCoordinates && { coordinates: localityCoordinates }),
-      });
-    }
+    await upsertActiveListingCityAndLocality(createdDoc);
 
     // Return populated createdBy / postedBy / RM user details for UI cards.
     return loadFeaturedWithUsers(String(createdDoc._id));
@@ -1391,6 +1378,7 @@ export const FeaturePropertyService = {
 
     // save and return populated user details
     await existing.save();
+    await upsertActiveListingCityAndLocality(existing);
     return loadFeaturedWithUsers(String(existing._id));
   },
 
@@ -1841,3 +1829,4 @@ export const FeaturePropertyService = {
     }).exec();
   },
 };
+

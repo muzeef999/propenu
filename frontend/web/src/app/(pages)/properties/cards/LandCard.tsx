@@ -41,9 +41,39 @@ type Props = {
 };
 
 function formatValueWithUnit(value?: number | string, unit?: string) {
-  if (value === undefined || value === null || value === "") return "—";
+  if (value === undefined || value === null || value === "") return "-";
   const normalizedUnit = unit?.trim();
   return normalizedUnit ? `${value} ${normalizedUnit}` : String(value);
+}
+
+const SQFT_PER_LAND_UNIT: Record<string, number> = {
+  sqft: 1,
+  sqmt: 10.7639,
+  sqyd: 9,
+  acre: 43560,
+  guntha: 1089,
+  cent: 435.6,
+  kanal: 5445,
+  hectare: 107639,
+};
+
+function calculatePricePerPlotUnit(
+  price?: number,
+  area?: number | string,
+  unit = "sqft",
+  fallbackPricePerSqft?: number,
+) {
+  const numericPrice = Number(price);
+  const numericArea = Number(area);
+
+  if (numericPrice > 0 && numericArea > 0) {
+    return Math.round(numericPrice / numericArea);
+  }
+
+  const numericFallback = Number(fallbackPricePerSqft);
+  const sqftPerUnit = SQFT_PER_LAND_UNIT[unit] ?? 1;
+
+  return numericFallback > 0 ? Math.round(numericFallback * sqftPerUnit) : 0;
 }
 
 export const LandCard: React.FC<Props> = ({
@@ -59,11 +89,16 @@ export const LandCard: React.FC<Props> = ({
   // Senior: use plotArea (not superBuiltUpArea). Keep unit normalized for price label.
   const area = (p as any)?.plotArea;
   const plotAreaUnit = String(p?.plotAreaUnit?.trim() || "sqft").toLowerCase();
-  const pricePerSqft =
-    (p as any)?.pricePerSqft ?? (area ? Math.round((p?.price ?? 0) / area) : 0);
-  const pricePerUnitLabel = pricePerSqft
-    ? `₹ ${pricePerSqft}${plotAreaUnit ? `/${plotAreaUnit}` : ""}`
-    : "—";
+  const pricePerPlotUnit = calculatePricePerPlotUnit(
+    p?.price,
+    area,
+    plotAreaUnit,
+    (p as any)?.pricePerSqft,
+  );
+  const pricePerUnitLabel = pricePerPlotUnit
+    ? `\u20b9 ${pricePerPlotUnit.toLocaleString("en-IN")}${plotAreaUnit ? `/${plotAreaUnit}` : ""}`
+    : "-";
+  const isRentListing = p?.listingType?.toLowerCase() === "rent";
   const resolvedListingSource = resolveListingSource(
     p?.listingSource,
     (p as any)?.createdBy,
@@ -96,7 +131,7 @@ export const LandCard: React.FC<Props> = ({
   
         setIsShortlisted(isInList);
       } else {
-        // 👇 guest user → check localStorage
+        // ðŸ‘‡ guest user â†’ check localStorage
         const local = isLocalShortlisted(p.id);
         setIsShortlisted(local);
       }
@@ -325,7 +360,7 @@ export const LandCard: React.FC<Props> = ({
                   Facing
                 </div>
                 <div className="font-medium">
-                  {(p as any)?.facing?.trim() ?? "—"}
+                  {(p as any)?.facing?.trim() ?? "-"}
                 </div>
               </div>
             </div>
@@ -339,7 +374,7 @@ export const LandCard: React.FC<Props> = ({
                 <div className="font-medium">
                   {(p as any)?.roadWidthFt
                     ? `${(p as any)?.roadWidthFt} Feet`
-                    : "—"}
+                    : "-"}
                 </div>
               </div>
             </div>
@@ -372,6 +407,9 @@ export const LandCard: React.FC<Props> = ({
             }`}
           >
             {formatINR(p?.price)}
+            {isRentListing && (
+              <span className="text-sm font-medium"> / month</span>
+            )}
           </div>
 
           <div className="text-xs text-gray-600">{pricePerUnitLabel}</div>
@@ -438,3 +476,11 @@ export const LandCard: React.FC<Props> = ({
     </div>
   );
 };
+
+
+
+
+
+
+
+

@@ -447,7 +447,7 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
       <div className="mb-6 flex items-start justify-between gap-6">
         <div style={{ color, borderLeft: `5px solid ${color}` }}>
           <div className="ml-2">
-            <h1 className="text-[20px] font-bold lg:text-2xl md:text-4xl">{"Near by Places"}</h1>
+            <h1 className="text-[20px] font-bold lg:text-2xl md:text-4xl">{"Location Advantages"}</h1>
             <p className="headingDesc text-xs lg:text-base md:text-lg">Find important locations around your property</p>
           </div>
         </div>
@@ -455,7 +455,6 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
 
       <div className="w-full">
         <div className="sm:p-2">
-          <h2 className="mb-3 text-lg font-semibold text-slate-950">Additional locations</h2>
 
           <ul className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-3">
             {withDistance.length === 0 && (
@@ -468,30 +467,29 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
               return (
                 <li
                   key={`${p.name ?? "place"}-${idx}`}
-                  onClick={() => onSelectPlace(idx)}
-                  className={`cursor-pointer rounded-xl border bg-white px-4 py-3 transition ${
-                    active ? "ring-2 ring-offset-2" : "hover:border-slate-300 hover:shadow-sm"
+                  className={`rounded-lg border bg-white px-3.5 py-2.5 transition ${
+                    active ? "ring-1 ring-offset-1" : ""
                   }`}
                   style={{
                     borderColor: active ? color : "#e2e8f0",
-                    boxShadow: active ? `0 6px 20px ${color}22` : undefined,
+                    boxShadow: active ? `0 4px 12px ${color}1f` : undefined,
                   } as React.CSSProperties}
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
                       <span
-                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border"
+                        className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border"
                         style={{ borderColor: color, color }}
                       >
                         <FiCheck className="h-3.5 w-3.5" />
                       </span>
 
-                      <div className="truncate text-[15px] font-semibold text-slate-950">
+                      <div className="truncate text-sm font-semibold text-slate-950">
                         {p.name?.split(",")[0] ?? "Nearby place"}
                       </div>
                     </div>
 
-                    <span className="shrink-0 text-base font-semibold text-slate-700">
+                    <span className="shrink-0 text-sm font-semibold text-slate-600">
                       ({distanceText ?? p.distanceText ?? "-"})
                     </span>
                   </div>
@@ -510,8 +508,12 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
             <div id={mapContainerId} ref={mapRef} className="h-[420px] w-full sm:h-[500px] md:h-[560px] lg:h-[420px]" />
           )}
         </div>
-        <div className="mt-3 text-xs text-slate-500">Click markers to open details. Click a list item to focus that marker.</div>
+        <div className="mt-3 text-xs text-slate-500">Click markers to open details.</div>
       </div>
     </section>
   );
 }
+
+
+
+
