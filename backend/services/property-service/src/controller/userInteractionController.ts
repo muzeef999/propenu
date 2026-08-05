@@ -588,10 +588,15 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
     const role = String(req.query.role || "all").toLowerCase();
     const q = String(req.query.q || "").trim().toLowerCase();
     const userIdFilter = String(req.query.userId || "").trim();
+    const projectIdFilter = String(req.query.projectId || "").trim();
     const includeNoise = String(req.query.includeNoise || "") === "1";
     const range = String(req.query.range || "").toLowerCase();
     const fromRaw = String(req.query.from || "").trim();
     const toRaw = String(req.query.to || "").trim();
+    const projectObjectId =
+      projectIdFilter && mongoose.Types.ObjectId.isValid(projectIdFilter)
+        ? new mongoose.Types.ObjectId(projectIdFilter)
+        : null;
 
     let since: Date;
     let until: Date | null = null;
@@ -619,7 +624,10 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
     } else if (range === "30d" || range === "month") {
       since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       hours = 720;
-    } else if (range === "12mo" || range === "year" || range === "365d") {
+    } else if (range === "90d" || range === "quarter") {
+      since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      hours = 24 * 90;
+    } else if (range === "12mo" || range === "year" || range === "365d" || range === "all") {
       since = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
       hours = 24 * 365;
     } else {
@@ -650,6 +658,9 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
     if (userIdFilter && mongoose.Types.ObjectId.isValid(userIdFilter)) {
       baseMatch.userId = new mongoose.Types.ObjectId(userIdFilter);
     }
+    if (projectObjectId) {
+      baseMatch.projectId = projectObjectId;
+    }
     if (!includeNoise && action === "all") {
       baseMatch.eventType = { $nin: [...NOISE_EVENTS] };
     }
@@ -662,6 +673,18 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
       brochureMatch.$or = [{ userId: userIdFilter }, { userId: userObjectId }];
       leadMatch.$or = [{ createdBy: userIdFilter }, { createdBy: userObjectId }];
     }
+    if (projectObjectId) {
+      brochureMatch.projectId = projectObjectId;
+      leadMatch.projectId = projectObjectId;
+    }
+
+    const typeCountMatch: Record<string, unknown> = {
+      serverTimestamp: timeMatch,
+      ...(userIdFilter && mongoose.Types.ObjectId.isValid(userIdFilter)
+        ? { userId: new mongoose.Types.ObjectId(userIdFilter) }
+        : {}),
+      ...(projectObjectId ? { projectId: projectObjectId } : {}),
+    };
 
     const db = mongoose.connection?.db;
     const [rawEvents, brochureDocs, leadDocs, typeCounts] = await Promise.all([
@@ -671,7 +694,7 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
             .collection("brochuredownloads")
             .find(brochureMatch)
             .sort({ createdAt: -1 })
-            .limit(userIdFilter ? 200 : 100)
+            .limit(userIdFilter || projectObjectId ? 200 : 100)
             .toArray()
             .catch(() => [])
         : Promise.resolve([]),
@@ -686,14 +709,7 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
             .catch(() => [])
         : Promise.resolve([]),
       UserInteraction.aggregate([
-        {
-          $match: {
-            serverTimestamp: timeMatch,
-            ...(userIdFilter && mongoose.Types.ObjectId.isValid(userIdFilter)
-              ? { userId: new mongoose.Types.ObjectId(userIdFilter) }
-              : {}),
-          },
-        },
+        { $match: typeCountMatch },
         { $group: { _id: "$eventType", count: { $sum: 1 } } },
       ]),
     ]);
@@ -1053,12 +1069,286 @@ const resolveAssignedActivityWindow = (query: Record<string, unknown>) => {
   if (range === "30d" || range === "month") {
     return { ...istRollingDayBounds(30), range: "30d" };
   }
-  if (range === "12mo" || range === "year" || range === "365d") {
-    return { ...istRollingDayBounds(365), range: "12mo" };
+  if (range === "90d" || range === "quarter") {
+    return { ...istRollingDayBounds(90), range: "90d" };
+  }
+  if (range === "12mo" || range === "year" || range === "365d" || range === "all") {
+    // Interaction retention is ~90 days; cap "all" to retained window.
+    return { ...istRollingDayBounds(90), range: range === "all" ? "all" : "12mo" };
   }
   const bounds = istDayBounds(0);
   return { ...bounds, range: "today" };
 };
+
+const CLICK_EVENT_TYPES = new Set([
+  "featured_project_click",
+  "project_click",
+  "property_click",
+  "search_result_click",
+  "whatsapp_clicked",
+  "phone_clicked",
+  "contact_owner_clicked",
+]);
+
+const VIEW_EVENT_TYPES = new Set([
+  "page_view",
+  "listing_impression",
+  "featured_project_impression",
+  "project_view",
+  "property_view",
+  "plot_view",
+  "gallery_open",
+  "gallery_image_view",
+  "map_open",
+]);
+
+/**
+ * End-user friendly event labels for Super Admin Top Events.
+ * - Featured project = project
+ * - Impression = view (same meaning for leadership UI)
+ */
+const canonicalEngagementEvent = (eventType: string) => {
+  const key = String(eventType || "").trim().toLowerCase();
+
+  // Clicks
+  if (key === "featured_project_click" || key === "project_click") {
+    return { key: "project_click", label: "Project click" };
+  }
+  if (key === "property_click") return { key: "property_click", label: "Property click" };
+  if (key === "search_result_click") {
+    return { key: "search_result_click", label: "Search result click" };
+  }
+  if (key === "whatsapp_clicked") return { key: "whatsapp_clicked", label: "WhatsApp click" };
+  if (key === "phone_clicked") return { key: "phone_clicked", label: "Phone click" };
+  if (key === "contact_owner_clicked") {
+    return { key: "contact_owner_clicked", label: "Contact click" };
+  }
+
+  // Views (impressions count as views)
+  if (
+    key === "featured_project_impression" ||
+    key === "project_view" ||
+    key === "project_impression"
+  ) {
+    return { key: "project_view", label: "Project view" };
+  }
+  if (key === "listing_impression" || key === "property_view" || key === "plot_view") {
+    return { key: "property_view", label: "Property view" };
+  }
+  if (key === "page_view") return { key: "page_view", label: "Page view" };
+  if (key === "gallery_open" || key === "gallery_image_view") {
+    return { key: "gallery_view", label: "Gallery view" };
+  }
+  if (key === "map_open") return { key: "map_view", label: "Map view" };
+
+  return {
+    key,
+    label: key
+      .replace(/_/g, " ")
+      .replace(/\bimpression\b/gi, "view")
+      .replace(/\bfeatured project\b/gi, "project")
+      .replace(/\b\w/g, (c) => c.toUpperCase()),
+  };
+};
+
+/**
+ * Super Admin platform engagement: website/app clicks + all actions by day (or hour for Today).
+ * Same auth model as all-users-activity (user:view / super_admin|admin).
+ */
+export async function getPlatformEngagement(req: AuthRequest, res: Response) {
+  try {
+    const window = resolveAssignedActivityWindow(req.query as Record<string, unknown>);
+    const since = window.since;
+    const until = window.until;
+    const rangeKey = window.range || "today";
+    const useHourly = rangeKey === "today";
+
+    const match: Record<string, unknown> = {
+      serverTimestamp: until ? { $gte: since, $lte: until } : { $gte: since },
+      eventType: { $nin: [...NOISE_EVENTS] },
+    };
+
+    const dayFormat = useHourly ? "%Y-%m-%dT%H" : "%Y-%m-%d";
+    const rows = await UserInteraction.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: {
+            bucket: {
+              $dateToString: {
+                format: dayFormat,
+                date: "$serverTimestamp",
+                timezone: "Asia/Kolkata",
+              },
+            },
+            eventType: "$eventType",
+          },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const bucketMap = new Map<
+      string,
+      {
+        key: string;
+        clicks: number;
+        views: number;
+        actions: number;
+        browsing: number;
+        searches: number;
+        contacts: number;
+        visits: number;
+        brochures: number;
+        shortlists: number;
+      }
+    >();
+
+    const ensureBucket = (key: string) => {
+      if (!bucketMap.has(key)) {
+        bucketMap.set(key, {
+          key,
+          clicks: 0,
+          views: 0,
+          actions: 0,
+          browsing: 0,
+          searches: 0,
+          contacts: 0,
+          visits: 0,
+          brochures: 0,
+          shortlists: 0,
+        });
+      }
+      return bucketMap.get(key)!;
+    };
+
+    const byActionType = new Map<string, number>();
+    let totalClicks = 0;
+    let totalViews = 0;
+    let totalActions = 0;
+
+    for (const row of rows || []) {
+      const key = String(row?._id?.bucket || "");
+      const eventType = String(row?._id?.eventType || "");
+      const count = Number(row?.count) || 0;
+      if (!key || !eventType || !count) continue;
+
+      const bucket = ensureBucket(key);
+      bucket.actions += count;
+      totalActions += count;
+      byActionType.set(eventType, (byActionType.get(eventType) || 0) + count);
+
+      if (CLICK_EVENT_TYPES.has(eventType) || /click/i.test(eventType)) {
+        bucket.clicks += count;
+        totalClicks += count;
+      }
+      if (VIEW_EVENT_TYPES.has(eventType) || /view|impression/i.test(eventType)) {
+        bucket.views += count;
+        totalViews += count;
+      }
+
+      const group = actionGroupFor(eventType);
+      if (group === "browsing") bucket.browsing += count;
+      else if (group === "searches") bucket.searches += count;
+      else if (group === "contacts") bucket.contacts += count;
+      else if (group === "visits") bucket.visits += count;
+      else if (group === "brochures") bucket.brochures += count;
+      else if (group === "shortlists") bucket.shortlists += count;
+      else if (group === "views") {
+        // listing/project view+click group — already counted in views/clicks
+      }
+    }
+
+    // Fill empty buckets across the window so charts stay continuous
+    const series: Array<ReturnType<typeof ensureBucket> & { label: string }> = [];
+    if (useHourly) {
+      for (let h = 0; h < 24; h += 1) {
+        const day = since.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+        const key = `${day}T${String(h).padStart(2, "0")}`;
+        const bucket = ensureBucket(key);
+        series.push({
+          ...bucket,
+          label: `${h % 12 === 0 ? 12 : h % 12}${h < 12 ? "a" : "p"}`,
+        });
+      }
+    } else {
+      const cursor = new Date(since.getTime());
+      const endMs = until ? until.getTime() : Date.now();
+      let guard = 0;
+      while (cursor.getTime() <= endMs && guard < 120) {
+        const key = cursor.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+        const bucket = ensureBucket(key);
+        const label = cursor.toLocaleDateString("en-IN", {
+          timeZone: "Asia/Kolkata",
+          day: "2-digit",
+          month: "short",
+        });
+        series.push({ ...bucket, label });
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
+        guard += 1;
+      }
+    }
+
+    // De-dupe filled series keys (timezone edge) while keeping order
+    const seen = new Set<string>();
+    const daily = series.filter((row) => {
+      if (seen.has(row.key)) return false;
+      seen.add(row.key);
+      return true;
+    });
+
+    const actionMix = Object.entries(ACTION_GROUPS).map(([key, types]) => ({
+      key,
+      label: key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+      value: types.reduce((sum, type) => sum + (byActionType.get(type) || 0), 0),
+    })).filter((row) => row.value > 0)
+      .sort((a, b) => b.value - a.value);
+
+    // Roll featured_project_* into project_* so Top Events say "Project …", not "Featured project …"
+    const topEventMap = new Map<string, { key: string; label: string; value: number }>();
+    for (const [eventType, value] of byActionType.entries()) {
+      const canonical = canonicalEngagementEvent(eventType);
+      const existing = topEventMap.get(canonical.key);
+      if (existing) {
+        existing.value += value;
+      } else {
+        topEventMap.set(canonical.key, {
+          key: canonical.key,
+          label: canonical.label,
+          value,
+        });
+      }
+    }
+    const topEvents = [...topEventMap.values()]
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+
+    return res.json({
+      success: true,
+      data: {
+        range: rangeKey,
+        from: since.toISOString(),
+        to: (until || new Date()).toISOString(),
+        granularity: useHourly ? "hour" : "day",
+        summary: {
+          clicks: totalClicks,
+          views: totalViews,
+          actions: totalActions,
+          clickRate:
+            totalViews > 0 && Number.isFinite(totalClicks)
+              ? Math.round((totalClicks / totalViews) * 1000) / 10
+              : null,
+        },
+        daily,
+        actionMix,
+        topEvents,
+      },
+    });
+  } catch (error) {
+    console.error("getPlatformEngagement failed", error);
+    return res.status(500).json({ success: false, message: "Unable to load platform engagement" });
+  }
+}
 
 /**
  * Scalable single-user activity for Client Progress Queue.

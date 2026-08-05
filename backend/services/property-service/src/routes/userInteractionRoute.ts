@@ -3,6 +3,7 @@ import {
   captureInteraction,
   getAllUsersActivity,
   getAssignedUserActivity,
+  getPlatformEngagement,
   getUserJourney,
   getUserSession,
 } from "../controller/userInteractionController";
@@ -31,6 +32,14 @@ router.get(
   authMiddleware,
   requirePermission("user:view", ["super_admin", "admin"]),
   getAllUsersActivity,
+);
+
+/** Super Admin dashboard: website/app clicks + actions by day/hour */
+router.get(
+  "/platform-engagement",
+  authMiddleware,
+  requirePermission("user:view", ["super_admin", "admin"]),
+  getPlatformEngagement,
 );
 
 /**
