@@ -64,7 +64,7 @@ export default async function Page({ params }: PageProps) {
       <ProjectViewDurationTracker projectId={project._id} />
       <HeroSection project={project} />
       <section className="bg-emerald-50/60 py-5">
-        <div className="mx-0 flex min-w-0 flex-col gap-5 sm:mx-5 lg:mx-8 lg:flex-row lg:items-start xl:mx-33 2xl:mx-44">
+        <div className="mx-0 flex min-w-0 flex-col gap-5 sm:mx-4 lg:mx-5 lg:flex-row lg:items-start xl:mx-28 2xl:mx-34">
           <div className="w-full min-w-0 flex-1 space-y-4">
             <Overview project={project} />
             <FloorPlan project={project} />

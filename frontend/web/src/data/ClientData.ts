@@ -637,6 +637,32 @@ export const projectpostLeads = async (
   return res.data;
 };
 
+
+export const patchProjectLeadIntention = async (
+  leadId: string,
+  payload: {
+    intention: { question: string; answer: string }[];
+  },
+) => {
+  const res = await axiosInstance.patch(
+    `${url}/api/properties/leads/project/lead/${leadId}/intention`,
+    payload,
+  );
+
+  return res.data;
+};
+export const checkProjectLeadSubmitted = async (params: {
+  projectId: string;
+  phone?: string;
+  email?: string;
+}) => {
+  const res = await axiosInstance.get(
+    `${url}/api/properties/leads/project/lead/check`,
+    { params },
+  );
+
+  return res.data;
+};
 // export const projectpostLeads = async (payload: {
 //   name: string;
 //   phone: string;
@@ -1629,3 +1655,4 @@ export const deleteTicket = async (ticketId: string) => {
 
   return res.data;
 };
+

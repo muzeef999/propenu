@@ -123,6 +123,10 @@ export default async function Page({ params }: PageProps) {
   const projectAreaValue = formatProjectArea(project?.projectArea);
   const hero = {
     projectId: project._id,
+    title: project?.title,
+    logo: project?.logo,
+    developer: project?.developer,
+    createdBy: project?.createdBy,
     subTagline: project?.heroSubTagline,
     heroTagline: project?.heroTagline,
     description: project?.heroDescription,
@@ -222,6 +226,7 @@ export default async function Page({ params }: PageProps) {
     </div>
   );
 }
+
 
 
 

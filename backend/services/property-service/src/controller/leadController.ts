@@ -878,6 +878,110 @@ export const createPublicLeadController = async (
     });
   }
 };
+export const checkPublicProjectLeadController = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const projectId = String(req.query.projectId || "").trim();
+    const phone = String(req.query.phone || "").trim();
+    const email = String(req.query.email || "").trim().toLowerCase();
+
+    if (!projectId || !Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid projectId is required",
+      });
+    }
+
+    if (!phone && !email) {
+      return res.json({
+        success: true,
+        submitted: false,
+        data: null,
+      });
+    }
+
+    const identityMatch: Record<string, unknown>[] = [];
+    if (phone) identityMatch.push({ phone });
+    if (email) identityMatch.push({ email });
+
+    const lead = await PublicLead.findOne({
+      projectId,
+      $or: identityMatch,
+    })
+      .collation({ locale: "en", strength: 2 })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.json({
+      success: true,
+      submitted: Boolean(lead),
+      data: lead
+        ? {
+            _id: lead._id,
+            intention: lead.intention || [],
+          }
+        : null,
+    });
+  } catch (err: any) {
+    return res.status(400).json({
+      success: false,
+      message: err.message || "Failed to check project lead",
+    });
+  }
+};
+
+
+export const updatePublicLeadIntentionController = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const leadId = String(req.params.id || "");
+    const rawIntention = Array.isArray(req.body?.intention)
+      ? req.body.intention
+      : [];
+
+    if (!Types.ObjectId.isValid(leadId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid lead id",
+      });
+    }
+
+    const intention = rawIntention
+      .map((item: any) => ({
+        question: String(item?.question || "").trim(),
+        answer: String(item?.answer || "").trim(),
+      }))
+      .filter((item: { question: string; answer: string }) => item.question && item.answer);
+
+    const lead = await PublicLead.findByIdAndUpdate(
+      leadId,
+      { $set: { intention } },
+      { new: true },
+    );
+
+    if (!lead) {
+      return res.status(404).json({
+        success: false,
+        message: "Lead not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Lead intention updated successfully",
+      data: lead,
+    });
+  } catch (err: any) {
+    return res.status(400).json({
+      success: false,
+      message: err.message || "Failed to update lead intention",
+    });
+  }
+};
 
 export const trackProjectBrochureDownloadController = async (
   req: AuthRequest,
@@ -1463,3 +1567,5 @@ export const importProjectLeadsCSVController = async (
     });
   }
 };
+
+

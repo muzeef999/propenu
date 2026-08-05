@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from "multer";
-import { assignLeadController, checkLeadController, createLeadController, createPublicLeadController, deleteLeadController, deleteProjectLeadsController, downloadLeadsCSVController, exportAdminLeadsController, getAdminLeadsController, getLeadByIdController, getLeadsController, getMyContactedProperties, getProjectLeadsController, importProjectLeadsCSVController, trackProjectBrochureDownloadController, trackProjectViewDurationController, trackPropertyViewDurationController, updateLeadStatusController, updateProjectLeadStatusController } from "../controller/leadController"
+import { assignLeadController, checkLeadController, checkPublicProjectLeadController, createLeadController, createPublicLeadController, deleteLeadController, deleteProjectLeadsController, downloadLeadsCSVController, exportAdminLeadsController, getAdminLeadsController, getLeadByIdController, getLeadsController, getMyContactedProperties, getProjectLeadsController, importProjectLeadsCSVController, trackProjectBrochureDownloadController, trackProjectViewDurationController, trackPropertyViewDurationController, updatePublicLeadIntentionController, updateLeadStatusController, updateProjectLeadStatusController } from "../controller/leadController"
 import { LeadCreateSchema } from '../zod/leadZod';
 import { validateBody } from '../middlewares/validate';
 import { authMiddleware } from '../middlewares/authMiddleware';
@@ -36,6 +36,8 @@ router.post('/', (req, res, next) => {
 
 
 router.post("/project/lead",  createPublicLeadController);
+router.get("/project/lead/check", checkPublicProjectLeadController);
+router.patch("/project/lead/:id/intention", updatePublicLeadIntentionController);
 router.post("/project/:projectId/brochure-download", authMiddleware, trackProjectBrochureDownloadController);
 router.post("/project/:projectId/view-duration", authMiddleware, trackProjectViewDurationController);
 router.post("/property/:propertyType/:projectId/view-duration", authMiddleware, trackPropertyViewDurationController);
@@ -121,3 +123,4 @@ router.get('/', getLeadsController);
 router.get('/:id', getLeadByIdController);
 
 export default router;
+

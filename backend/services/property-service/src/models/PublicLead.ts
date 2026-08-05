@@ -13,8 +13,12 @@ export interface IPublicLead extends Document {
   sourceCreatedAt?: Date;
   purchaseTimeline?: string;
   budgetRange?: string;
+  intention?: {
+    question: string;
+    answer: string;
+  }[];
   createdAt: Date;
-  status:  LeadStatus
+  status: LeadStatus;
 }
 
 const PublicLeadSchema = new Schema<IPublicLead>(
@@ -43,16 +47,22 @@ const PublicLeadSchema = new Schema<IPublicLead>(
     sourceCreatedAt: { type: Date },
     purchaseTimeline: { type: String, trim: true },
     budgetRange: { type: String, trim: true },
+    intention: [
+      {
+        question: { type: String, trim: true },
+        answer: { type: String, trim: true },
+      },
+    ],
     status: {
-          type: String,
-          enum: LEAD_STATUSES,
-          default: "new_lead",
-        },
+      type: String,
+      enum: LEAD_STATUSES,
+      default: "new_lead",
+    },
   },
-  { timestamps: true } 
+  { timestamps: true },
 );
 
 export default mongoose.model<IPublicLead>(
   "PublicLead",
-  PublicLeadSchema
+  PublicLeadSchema,
 );

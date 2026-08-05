@@ -1,10 +1,10 @@
 // components/HeroSection.tsx
 "use client";
 
-import { projectpostLeads } from "@/data/ClientData";
+import { checkProjectLeadSubmitted, me, patchProjectLeadIntention, projectpostLeads } from "@/data/ClientData";
 import { useShortlist } from "@/hooks/useShortlist";
-import { useMutation } from "@tanstack/react-query";
-import React, { useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import React, { useEffect, useState } from "react";
 import { FiHeart } from "react-icons/fi";
 import { IoIosShareAlt } from "react-icons/io";
 import { toast } from "sonner";
@@ -12,6 +12,32 @@ import { toast } from "sonner";
 type Props = {
   hero?: Hero;
 };
+
+type ContactLike = {
+  name?: string;
+  fullName?: string;
+  companyName?: string;
+  phone?: string;
+  contact?: string;
+  email?: string;
+};
+
+type UserProfile = {
+  name?: string;
+  fullName?: string;
+  phone?: string;
+  email?: string;
+};
+
+type IntentionAnswer = {
+  question: string;
+  answer: string;
+};
+
+const BUY_TIMELINE_QUESTION = "When do you plan to buy?";
+const BUDGET_QUESTION = "Your Budget?";
+const buyTimelineOptions = ["30 Days", "1 - 3 Months", "3 - 6 Months", "More than 6 Months"];
+const budgetOptions = ["50L - 1Cr", "1Cr - 2Cr", "2Cr+"];
 
 export type Stat = {
   value: string;
@@ -21,6 +47,16 @@ export type Stat = {
 export type Hero = {
   projectId: string;
   title?: string;
+  logo?: { url?: string };
+  developer?: ContactLike | string | null;
+  createdBy?: ContactLike | string | null;
+  phone?: string;
+  contact?: string;
+  contactPhone?: string;
+  phoneNumber?: string;
+  mobile?: string;
+  email?: string;
+  contactEmail?: string;
   subTagline?: string;
   description?: string;
   color?: string;
@@ -59,6 +95,18 @@ function sanitizePhoneInput(value: string) {
 
 function sanitizeNameInput(value: string) {
   return value.replace(/[^A-Za-z\s]/g, "");
+}
+
+function getUserPrefill(user?: UserProfile | null) {
+  return {
+    name: sanitizeNameInput(user?.name || user?.fullName || ""),
+    phone: user?.phone ? sanitizePhoneInput(user.phone) : "",
+    email: user?.email || "",
+  };
+}
+
+function isContactObject(value: unknown): value is ContactLike {
+  return Boolean(value) && typeof value === "object";
 }
 
 function isValidEmail(value: string) {
@@ -148,26 +196,131 @@ export default function HeroSection({ hero }: Props) {
     phone: "",
     email: "",
   });
+  const [leadId, setLeadId] = useState("");
+  const [showSubmittedStep, setShowSubmittedStep] = useState(false);
+  const [intentionAnswers, setIntentionAnswers] = useState<IntentionAnswer[]>([]);
+
+  const developer = h.developer;
+  const createdBy = h.createdBy;
+  const contactName =
+    isContactObject(developer)
+      ? developer.companyName ||
+        developer.name ||
+        developer.fullName ||
+        (isContactObject(createdBy) ? createdBy.name : undefined) ||
+        h.title ||
+        "Seller"
+      : isContactObject(createdBy)
+        ? createdBy.name || h.title || "Seller"
+        : h.title || "Seller";
+  const contactPhone =
+    (isContactObject(developer) ? developer.phone || developer.contact : "") ||
+    (isContactObject(createdBy) ? createdBy.phone || createdBy.contact : "") ||
+    h.phone ||
+    h.contact ||
+    h.contactPhone ||
+    h.phoneNumber ||
+    h.mobile ||
+    "";
+  const contactEmail =
+    (isContactObject(developer) ? developer.email : "") ||
+    (isContactObject(createdBy) ? createdBy.email : "") ||
+    h.email ||
+    h.contactEmail ||
+    "";
+  const selectedTimeline = intentionAnswers.find(
+    (item) => item.question === BUY_TIMELINE_QUESTION,
+  )?.answer;
+  const selectedBudget = intentionAnswers.find(
+    (item) => item.question === BUDGET_QUESTION,
+  )?.answer;
+
+  const { data: userData } = useQuery({
+    queryKey: ["user"],
+    queryFn: me,
+    retry: 1,
+  });
+  const loggedInUser = userData?.user as UserProfile | undefined;
+  const userLeadPhone = loggedInUser?.phone
+    ? sanitizePhoneInput(loggedInUser.phone)
+    : "";
+  const userLeadEmail = loggedInUser?.email?.trim() || "";
+
+  const { data: existingLeadData } = useQuery({
+    queryKey: ["prime-project-lead-submitted", h.projectId, userLeadPhone, userLeadEmail],
+    queryFn: () =>
+      checkProjectLeadSubmitted({
+        projectId: h.projectId,
+        phone: userLeadPhone,
+        email: userLeadEmail,
+      }),
+    enabled: Boolean(h.projectId && (userLeadPhone || userLeadEmail)),
+    retry: 1,
+  });
+
+  useEffect(() => {
+    if (!loggedInUser) return;
+
+    const prefill = getUserPrefill(loggedInUser);
+    setForm((current) => ({
+      name: current.name || prefill.name,
+      phone: current.phone || prefill.phone,
+      email: current.email || prefill.email,
+    }));
+  }, [loggedInUser]);
+
+  useEffect(() => {
+    const existingLead = existingLeadData?.data;
+    if (!existingLeadData?.submitted || !existingLead) return;
+
+    setLeadId(String(existingLead._id || ""));
+    setIntentionAnswers(
+      Array.isArray(existingLead.intention) ? existingLead.intention : [],
+    );
+    setShowSubmittedStep(true);
+  }, [existingLeadData]);
 
   const leadsMutation = useMutation({
-  mutationFn: projectpostLeads,
+    mutationFn: projectpostLeads,
+    onSuccess: (response) => {
+      toast.success("Lead submitted successfully");
+      const createdLeadId = response?.data?._id || response?.data?.id || "";
+      setLeadId(createdLeadId);
+      setShowSubmittedStep(true);
+      setForm(getUserPrefill(loggedInUser));
+    },
+    onError: (error) => {
+      toast.error(getLeadErrorMessage(error));
+    },
+  });
 
-  onSuccess: () => {
-    toast.success("Lead submitted successfully");
+  const intentionMutation = useMutation({
+    mutationFn: ({
+      leadId: currentLeadId,
+      intention,
+    }: {
+      leadId: string;
+      intention: IntentionAnswer[];
+    }) => patchProjectLeadIntention(currentLeadId, { intention }),
+    onError: (error) => {
+      toast.error(getLeadErrorMessage(error));
+    },
+  });
 
-    setForm({
-      name: "",
-      phone: "",
-      email: "",
+  const updateIntentionAnswer = (question: string, answer: string) => {
+    setIntentionAnswers((current) => {
+      const next = [
+        ...current.filter((item) => item.question !== question),
+        { question, answer },
+      ];
+
+      if (leadId) {
+        intentionMutation.mutate({ leadId, intention: next });
+      }
+
+      return next;
     });
-  },
-
-  onError: (error) => {
-    toast.error(getLeadErrorMessage(error));
-  },
-});
-
- 
+  };
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();
 
@@ -186,6 +339,7 @@ export default function HeroSection({ hero }: Props) {
     phone: form.phone,
     email: form.email.trim(),
     projectId: h.projectId,
+    remarks: "Requested contact details",
   });
 };
 
@@ -217,6 +371,58 @@ export default function HeroSection({ hero }: Props) {
     e.currentTarget.setCustomValidity("");
   }
 
+  const accentColor = h.color || "#27AE60";
+  const intentionQuestions = (
+    <div className="bg-white px-3 py-3">
+
+
+      <p className="text-xs font-semibold text-slate-700">{BUY_TIMELINE_QUESTION}</p>
+      <div className="mt-2 grid grid-cols-4 gap-1.5">
+        {buyTimelineOptions.map((option) => {
+          const active = selectedTimeline === option;
+
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => updateIntentionAnswer(BUY_TIMELINE_QUESTION, option)}
+              style={active ? { backgroundColor: accentColor } : undefined}
+              className={`min-h-7 rounded-md px-1.5 py-1 text-center text-[9px] font-semibold leading-tight transition ${
+                active
+                  ? "text-white shadow-sm"
+                  : "bg-slate-50 text-slate-600 ring-1 ring-slate-200 hover:bg-emerald-50 hover:text-slate-900"
+              }`}
+            >
+              {option}
+            </button>
+          );
+        })}
+      </div>
+
+      <p className="mt-3 text-xs font-semibold text-slate-700">{BUDGET_QUESTION}</p>
+      <div className="mt-2 grid grid-cols-3 gap-1.5">
+        {budgetOptions.map((option) => {
+          const active = selectedBudget === option;
+
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => updateIntentionAnswer(BUDGET_QUESTION, option)}
+              style={active ? { backgroundColor: accentColor } : undefined}
+              className={`min-h-7 rounded-md px-1.5 py-1 text-center text-[9px] font-semibold leading-tight transition ${
+                active
+                  ? "text-white shadow-sm"
+                  : "bg-slate-50 text-slate-600 ring-1 ring-slate-200 hover:bg-emerald-50 hover:text-slate-900"
+              }`}
+            >
+              {option}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
   async function shareProject() {
     const shareUrl = typeof window !== "undefined" ? window.location.href : "";
     const shareData = {
@@ -330,66 +536,132 @@ export default function HeroSection({ hero }: Props) {
 
           {/* RIGHT FORM */}
           <div className="lg:col-span-5">
-            <div className="w-full max-w-md lg:ml-auto bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
-              <h3 className="text-white font-semibold text-lg mb-4">
-                Enquiry Now
-              </h3>
+            <div className={`w-full lg:ml-auto ${
+              showSubmittedStep
+                ? "max-w-sm rounded-xl border border-white/30 bg-white/20 p-2 text-slate-950 shadow-2xl shadow-black/20 backdrop-blur-xl"
+                : "max-w-md rounded-xl border border-white/20 bg-white/10 p-6 backdrop-blur-lg"
+            }`}>
+              {showSubmittedStep ? (
+                <div className="overflow-hidden rounded-lg bg-white shadow-[0_14px_38px_rgba(15,23,42,0.16)]">
+                  <div className="relative overflow-hidden px-4 py-4 text-center">
+                    <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: accentColor }} />
+                    <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(39,174,96,0.28)]" style={{ backgroundColor: accentColor }}>
+                      <span className="h-4 w-2 rotate-45 border-b-2 border-r-2 border-white" />
+                    </div>
+                    <p className="mt-3 text-sm font-semibold" style={{ color: accentColor }}>Thank You!</p>
+                    <p className="mt-1.5 text-xs leading-5 text-slate-600">
+                      View the seller's contact details below.<br />
+                  Your enquiry has been shared.
+                    </p>
+                  </div>
 
-              <form onSubmit={handleSubmit} className="space-y-3">
-                <input
-                  name="name"
-                  value={form.name}
-                  onChange={handleChange}
-                  onInvalid={handleInvalid}
-                  onInput={handleFieldInput}
-                  inputMode="text"
-                  pattern="[A-Za-z\s]+"
-                  title="Name should contain letters only"
-                  placeholder="Your Name"
-                  required
-                  className="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2 text-sm text-white placeholder-white/70 focus:ring-2 focus:ring-yellow-400 outline-none"
-                />
+                  <div className="border-t border-slate-200 bg-white px-3 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                        Contact seller
+                      </p>
+                      <span className="rounded-full bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200">
+                        Prime
+                      </span>
+                    </div>
+                    <div className="mt-3 flex items-center gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
+                        {h.logo?.url ? (
+                          <img
+                            src={h.logo.url}
+                            alt={`${contactName} logo`}
+                            className="h-full w-full object-contain p-1"
+                          />
+                        ) : (
+                          <span className="text-sm font-semibold text-emerald-600">
+                            {contactName.charAt(0)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-950">{contactName}</p>
+                        <p className="mt-0.5 text-xs font-medium text-slate-500">Seller</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid gap-1.5 border-t border-slate-100 pt-2.5 text-sm text-slate-700">
+                      <p className="flex items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-1.5">
+                        <span className="text-xs text-slate-500">Phone</span>
+                        <span className="font-medium text-slate-950">{contactPhone || "Not available"}</span>
+                      </p>
+                      {contactEmail && (
+                        <p className="flex items-start justify-between gap-3 rounded-md bg-slate-50 px-3 py-1.5">
+                          <span className="shrink-0 text-xs text-slate-500">Email</span>
+                          <span className="break-all text-right text-xs font-medium text-slate-700">{contactEmail}</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
 
-                <input
-                  name="phone"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  pattern="^\+?[1-9]\d{9,14}$"
-                  value={form.phone}
-                  onChange={handleChange}
-                  onInvalid={handleInvalid}
-                  onInput={handleFieldInput}
-                  title="Please enter a valid phone number"
-                  placeholder="Your Mobile Number"
-                  required
-                  className="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2 text-sm text-white placeholder-white/70 focus:ring-2 focus:ring-yellow-400 outline-none"
-                />
+                  <div className="border-t border-slate-200">{intentionQuestions}</div>
+                </div>
+              ) : (
+                <>
+                  <h3 className="mb-4 text-lg font-semibold text-white">
+                    Enquiry Now
+                  </h3>
 
-                <input
-                  name="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  onInvalid={handleInvalid}
-                  onInput={handleFieldInput}
-                  type="email"
-                  autoComplete="email"
-                  pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
-                  title="Please enter a valid email address"
-                  placeholder="Your Email"
-                  required
-                  className="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2 text-sm text-white placeholder-white/70 focus:ring-2 focus:ring-yellow-400 outline-none"
-                />
+                  <form onSubmit={handleSubmit} className="space-y-3">
+                    <input
+                      name="name"
+                      value={form.name}
+                      onChange={handleChange}
+                      onInvalid={handleInvalid}
+                      onInput={handleFieldInput}
+                      inputMode="text"
+                      pattern="[A-Za-z\s]+"
+                      title="Name should contain letters only"
+                      placeholder="Your Name"
+                      required
+                      className="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder-white/70 focus:ring-2 focus:ring-yellow-400"
+                    />
 
-                <button
-                  type="submit"
-                  disabled={leadsMutation.isPending}
-                  style={{ backgroundColor: h.color }}
-                  className="w-full text-white font-bold py-2 rounded-md hover:brightness-95 transition cursor-pointer"
-                >
-                  {leadsMutation.isPending ? "Submitting..." : "Submit"}
-                </button>
-              </form>
+                    <input
+                      name="phone"
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      pattern="^\+?[1-9]\d{9,14}$"
+                      value={form.phone}
+                      onChange={handleChange}
+                      onInvalid={handleInvalid}
+                      onInput={handleFieldInput}
+                      title="Please enter a valid phone number"
+                      placeholder="Your Mobile Number"
+                      required
+                      className="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder-white/70 focus:ring-2 focus:ring-yellow-400"
+                    />
+
+                    <input
+                      name="email"
+                      value={form.email}
+                      onChange={handleChange}
+                      onInvalid={handleInvalid}
+                      onInput={handleFieldInput}
+                      type="email"
+                      autoComplete="email"
+                      pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
+                      title="Please enter a valid email address"
+                      placeholder="Your Email"
+                      required
+                      className="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder-white/70 focus:ring-2 focus:ring-yellow-400"
+                    />
+
+                    <button
+                      type="submit"
+                      disabled={leadsMutation.isPending}
+                      style={{ backgroundColor: h.color || "#27AE60" }}
+                      className="w-full cursor-pointer rounded-md py-2 font-bold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {leadsMutation.isPending ? "Submitting..." : "Get Contact Details"}
+                    </button>
+                  </form>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -397,6 +669,18 @@ export default function HeroSection({ hero }: Props) {
     </section>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
