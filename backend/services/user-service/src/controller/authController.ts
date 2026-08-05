@@ -948,8 +948,12 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
         .select("_id")
         .lean();
       const excludedIds = excludedRoles.map((role) => role._id);
+      const actorRoleKey = String(actorRole || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_");
 
-      if (actorRole === "super_admin" || actorRole === "admin") {
+      if (actorRoleKey === "super_admin" || actorRoleKey === "admin") {
         userFilter.roleId = { $nin: excludedIds };
       } else {
         const operator = await User.findById(req.user?.sub)
@@ -960,18 +964,24 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
           : [];
         userFilter.roleId = { $in: descendantRoleIds };
       }
-    } else if (actorRole !== "super_admin") {
-      const operator = await User.findById(req.user?.sub)
-        .select("roleId")
-        .lean();
-      const visibleRoleIds = await resolveVisibleRoleIdsForActor({
-        actorRoleId: operator?.roleId ?? null,
-        actorRoleName: actorRole,
-        permissions: req.user?.permissions || [],
-      });
-      // null = unrestricted (admin); [] = no matching roles
-      if (visibleRoleIds) {
-        userFilter.roleId = { $in: visibleRoleIds };
+    } else {
+      const actorRoleKey = String(actorRole || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_");
+      if (actorRoleKey !== "super_admin" && actorRoleKey !== "admin") {
+        const operator = await User.findById(req.user?.sub)
+          .select("roleId")
+          .lean();
+        const visibleRoleIds = await resolveVisibleRoleIdsForActor({
+          actorRoleId: operator?.roleId ?? null,
+          actorRoleName: actorRole,
+          permissions: req.user?.permissions || [],
+        });
+        // null = unrestricted (admin); [] = no matching roles
+        if (visibleRoleIds) {
+          userFilter.roleId = { $in: visibleRoleIds };
+        }
       }
     }
 

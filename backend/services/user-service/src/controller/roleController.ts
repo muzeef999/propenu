@@ -58,9 +58,16 @@ export const getAssignableRoles = async (req: AuthRequest, res: Response) => {
       name: { $nin: ["super_admin", "user", "builder", "builder_staff", "agent"] },
     };
 
-    const actorRole = String(req.user?.roleName || "").toLowerCase();
+    const actorRole = String(req.user?.roleName || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_");
+    const actorRoleCanon =
+      actorRole === "customer_support_team_lead" || actorRole === "team_leads"
+        ? "team_lead"
+        : actorRole;
     // Only roles below the actor (descendants). Platform heads (super_admin/admin) see the full dashboard set.
-    if (actorRole !== "super_admin" && actorRole !== "admin") {
+    if (actorRoleCanon !== "super_admin" && actorRoleCanon !== "admin") {
       const actor = await User.findById(req.user?.sub).select("roleId").lean();
       const descendantRoleIds = actor?.roleId ? await getDescendantRoleIds(actor.roleId) : [];
       roleFilter._id = { $in: descendantRoleIds };
@@ -89,12 +96,15 @@ export const getTeamDirectoryRoles = async (req: AuthRequest, res: Response) => 
     };
 
     const actor = await User.findById(req.user?.sub).select("roleId").lean();
-    const actorRoleId = actor?.roleId;
+    const actorRoleId = actor?.roleId || null;
+    const actorRoleKey = String(req.user?.roleName || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_");
 
-    if (req.user?.roleName !== "super_admin") {
-      const descendantRoleIds = actor?.roleId ? await getDescendantRoleIds(actor.roleId) : [];
-      const visibleRoleIds = descendantRoleIds;
-      roleFilter._id = { $in: visibleRoleIds };
+    if (actorRoleKey !== "super_admin" && actorRoleKey !== "admin") {
+      const descendantRoleIds = actorRoleId ? await getDescendantRoleIds(actorRoleId) : [];
+      roleFilter._id = { $in: descendantRoleIds };
     }
 
     const roles = await Role.find(roleFilter)
@@ -235,7 +245,11 @@ export const createRole = async (req: AuthRequest, res: Response) => {
 export const getAllRoles = async (req: AuthRequest, res: Response) => {
   try {
     const filter: any = {};
-    if (req.user?.roleName !== "super_admin") {
+    const actorRoleKey = String(req.user?.roleName || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_");
+    if (actorRoleKey !== "super_admin" && actorRoleKey !== "admin") {
       const actor = await User.findById(req.user?.sub).select("roleId").lean();
       const descendantRoleIds = actor?.roleId
         ? await getDescendantRoleIds(actor.roleId)

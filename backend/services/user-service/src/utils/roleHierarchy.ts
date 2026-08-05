@@ -60,21 +60,50 @@ const CANONICAL_PARENT_BY_ROLE: Record<string, string> = {
   technical_support_team: "technical_support_head",
 };
 
-export const getCanonicalParentRoleName = (roleName?: string | null) =>
-  roleName ? CANONICAL_PARENT_BY_ROLE[roleName] || null : null;
-
 const ROLE_NAME_ALIASES: Record<string, string> = {
   operation_head: "operations_head",
   customer_support_team_lead: "team_lead",
+  customer_support_team_leads: "team_lead",
   team_leads: "team_lead",
   customer_care: "customer_care_executive",
   customer_care_executives: "customer_care_executive",
   relationship_managers: "relationship_manager",
   sales_executives: "sales_executive",
+  sales_agent: "sales_executive",
   accounts_finance: "accounts",
+  // Label-style / spaced names from older seeds
+  customer_support_team_lead_role: "team_lead",
+  owners: "user",
+  owner: "user",
+  users: "user",
+  agents: "agent",
+  builders: "builder",
 };
 
-const canonicalName = (name?: string | null) => (name ? ROLE_NAME_ALIASES[name] || name : "");
+/** Normalize any role label/name → snake_case key (handles spaces / Title Case). */
+const normalizeRoleKey = (name?: string | null) =>
+  String(name || "")
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+
+const canonicalName = (name?: string | null) => {
+  const key = normalizeRoleKey(name);
+  if (!key) return "";
+  return ROLE_NAME_ALIASES[key] || key;
+};
+
+export const getCanonicalParentRoleName = (roleName?: string | null) => {
+  const key = canonicalName(roleName);
+  if (!key) return null;
+  const parent =
+    CANONICAL_PARENT_BY_ROLE[key] ||
+    CANONICAL_PARENT_BY_ROLE[normalizeRoleKey(roleName)] ||
+    null;
+  return parent ? canonicalName(parent) : null;
+};
 
 /** Dashboard roles that must exist for a complete Operations Head tree. */
 const HIERARCHY_ROLE_DEFS: Array<{ name: string; label: string }> = [
