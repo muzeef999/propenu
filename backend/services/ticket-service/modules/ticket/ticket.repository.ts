@@ -68,9 +68,51 @@ export class TicketRepository {
     if (query.tag) filter.tags = query.tag;
     if (query.module) filter["metadata.module"] = query.module;
     if (query.requestType) filter["metadata.requestType"] = query.requestType;
+    const openStatuses = [
+      "open",
+      "assigned",
+      "under_review",
+      "awaiting_user_response",
+      "in_progress",
+      "escalated",
+      "reopened",
+      "waiting_for_customer",
+      "waiting_for_internal_team",
+    ];
+
+    if (query.openBucket) {
+      filter.status = { $in: openStatuses };
+    }
+    if (query.unassigned) {
+      filter.status = { $in: openStatuses };
+      filter.$and = [
+        ...(Array.isArray(filter.$and) ? filter.$and : []),
+        {
+          $or: [
+            { assignedTo: { $exists: false } },
+            { "assignedTo.userId": { $exists: false } },
+            { "assignedTo.userId": null },
+            { "assignedTo.userId": "" },
+          ],
+        },
+      ];
+    }
     if (query.overdue) {
       filter.dueAt = { $lt: new Date() };
-      filter.status = { $nin: ["resolved", "closed"] };
+      filter.status = { $in: openStatuses };
+    }
+    if (query.reassigned) {
+      filter.status = { $in: openStatuses };
+      filter.$and = [
+        ...(Array.isArray(filter.$and) ? filter.$and : []),
+        {
+          $or: [
+            { "metadata.lastReassignedAt": { $exists: true, $nin: [null, ""] } },
+            { "metadata.lastReassignedFrom": { $exists: true, $nin: [null, ""] } },
+            { "metadata.involvedAssigneeIds.0": { $exists: true } },
+          ],
+        },
+      ];
     }
 
     if (query.createdFrom || query.createdTo) {

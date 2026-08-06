@@ -105,6 +105,12 @@ export interface TicketListQuery {
   module?: string;
   requestType?: string;
   overdue?: boolean;
+  /** Open tickets that were reassigned at least once (handoff / involved history). */
+  reassigned?: boolean;
+  /** All active/open statuses (matches dashboard Open KPI). */
+  openBucket?: boolean;
+  /** Open + no assignee (matches dashboard Unassigned KPI). */
+  unassigned?: boolean;
   createdFrom?: Date;
   createdTo?: Date;
   sortBy: "createdAt" | "updatedAt" | "priority" | "dueAt" | "status";

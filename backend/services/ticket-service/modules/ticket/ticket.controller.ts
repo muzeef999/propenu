@@ -21,8 +21,8 @@ const toDate = (value: unknown) => {
 };
 
 const toBoolean = (value: unknown) => {
-  if (value === "true") return true;
-  if (value === "false") return false;
+  if (value === true || value === "true" || value === 1 || value === "1") return true;
+  if (value === false || value === "false" || value === 0 || value === "0") return false;
   return undefined;
 };
 
@@ -145,6 +145,15 @@ export const getTickets = async (req: Request, res: Response) => {
 
     const overdue = toBoolean(req.query.overdue);
     if (overdue !== undefined) options.overdue = overdue;
+
+    const openBucket = toBoolean(req.query.openBucket);
+    if (openBucket !== undefined) options.openBucket = openBucket;
+
+    const unassigned = toBoolean(req.query.unassigned);
+    if (unassigned !== undefined) options.unassigned = unassigned;
+
+    const reassigned = toBoolean(req.query.reassigned);
+    if (reassigned !== undefined) options.reassigned = reassigned;
 
     const createdFrom = toDate(req.query.createdFrom ?? req.query.from);
     const createdTo = toDate(req.query.createdTo ?? req.query.to);

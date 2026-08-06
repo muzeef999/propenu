@@ -37,6 +37,16 @@ export class DashboardService {
 
     const openStatuses = ["open", "assigned", "under_review", "awaiting_user_response", "in_progress", "escalated", "reopened", "waiting_for_customer", "waiting_for_internal_team"];
     const now = new Date();
+    /** Tickets handed off at least once (CCE → staff/admin or reassigned between agents). */
+    const reassignedMatch = {
+      ...dateMatch,
+      status: { $in: openStatuses },
+      $or: [
+        { "metadata.lastReassignedAt": { $exists: true, $nin: [null, ""] } },
+        { "metadata.lastReassignedFrom": { $exists: true, $nin: [null, ""] } },
+        { "metadata.involvedAssigneeIds.0": { $exists: true } },
+      ],
+    };
 
     const [
       totals,
@@ -46,6 +56,7 @@ export class DashboardService {
       assignmentLoad,
       overdue,
       unassigned,
+      reassigned,
       sla,
       recent,
     ] = await Promise.all([
@@ -60,7 +71,17 @@ export class DashboardService {
         { $limit: 10 },
       ]),
       Ticket.countDocuments({ ...dateMatch, dueAt: { $lt: now }, status: { $in: openStatuses } }),
-      Ticket.countDocuments({ ...dateMatch, assignedTo: { $exists: false }, status: { $in: openStatuses } }),
+      Ticket.countDocuments({
+        ...dateMatch,
+        status: { $in: openStatuses },
+        $or: [
+          { assignedTo: { $exists: false } },
+          { "assignedTo.userId": { $exists: false } },
+          { "assignedTo.userId": null },
+          { "assignedTo.userId": "" },
+        ],
+      }),
+      Ticket.countDocuments(reassignedMatch),
       Ticket.aggregate([
         { $match: { ...dateMatch, firstResponseAt: { $exists: true } } },
         {
@@ -85,6 +106,7 @@ export class DashboardService {
       open: byStatus.filter((item) => openStatuses.includes(item._id)).reduce((sum, item) => sum + item.count, 0),
       overdue,
       unassigned,
+      reassigned,
       byStatus,
       byPriority,
       byDepartment,
