@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import Role from "../models/roleModel";
+import User from "../models/userModel";
 
 /**
  * Canonical org tree (source of truth):
@@ -11,14 +12,15 @@ import Role from "../models/roleModel";
  *     │       ├── Business Development Manager
  *     │       └── Sales Executive
  *     ├── Customer Support Head
- *     │   └── Customer Support Team Lead
+ *     │   └── Customer Support Team Lead   ← name: customer_support_team_lead
  *     │       ├── Customer Care Executive
  *     │       └── Relationship Manager
  *     ├── Marketing Head
- *     │   ├── Digital Marketing
- *     │   ├── Social Media
- *     │   ├── Content Team
- *     │   └── Creative Team
+ *     │   └── Digital Marketing
+ *     │       ├── Social Media
+ *     │       ├── Content Team
+ *     │       ├── Creative Team
+ *     │       └── Performance Marketing
  *     ├── Accounts
  *     ├── Legal
  *     ├── HR
@@ -42,16 +44,17 @@ const CANONICAL_PARENT_BY_ROLE: Record<string, string> = {
   customer_support_team_lead: "customer_support_head",
   team_lead: "customer_support_head",
   team_leads: "customer_support_head",
-  customer_care: "team_lead",
-  customer_care_executive: "team_lead",
-  customer_care_executives: "team_lead",
-  relationship_manager: "team_lead",
-  relationship_managers: "team_lead",
+  customer_care: "customer_support_team_lead",
+  customer_care_executive: "customer_support_team_lead",
+  customer_care_executives: "customer_support_team_lead",
+  relationship_manager: "customer_support_team_lead",
+  relationship_managers: "customer_support_team_lead",
   marketing_head: "operations_head",
   digital_marketing: "marketing_head",
-  social_media: "marketing_head",
-  content_team: "marketing_head",
-  creative_team: "marketing_head",
+  social_media: "digital_marketing",
+  content_team: "digital_marketing",
+  creative_team: "digital_marketing",
+  performance_marketing: "digital_marketing",
   accounts: "operations_head",
   accounts_finance: "operations_head",
   legal_compliance: "operations_head",
@@ -60,19 +63,26 @@ const CANONICAL_PARENT_BY_ROLE: Record<string, string> = {
   technical_support_team: "technical_support_head",
 };
 
+/** Legacy short keys → final Customer Support Team Lead name. */
 const ROLE_NAME_ALIASES: Record<string, string> = {
   operation_head: "operations_head",
-  customer_support_team_lead: "team_lead",
-  customer_support_team_leads: "team_lead",
-  team_leads: "team_lead",
+  team_lead: "customer_support_team_lead",
+  team_leads: "customer_support_team_lead",
+  customer_support_team_leads: "customer_support_team_lead",
+  customer_support_team_lead_role: "customer_support_team_lead",
   customer_care: "customer_care_executive",
   customer_care_executives: "customer_care_executive",
   relationship_managers: "relationship_manager",
   sales_executives: "sales_executive",
   sales_agent: "sales_executive",
   accounts_finance: "accounts",
-  // Label-style / spaced names from older seeds
-  customer_support_team_lead_role: "team_lead",
+  hr: "hr_administration",
+  hr_admin: "hr_administration",
+  hr_and_administration: "hr_administration",
+  human_resources: "hr_administration",
+  legal: "legal_compliance",
+  legal_and_compliance: "legal_compliance",
+  compliance: "legal_compliance",
   owners: "user",
   owner: "user",
   users: "user",
@@ -95,6 +105,10 @@ const canonicalName = (name?: string | null) => {
   return ROLE_NAME_ALIASES[key] || key;
 };
 
+/** Public helper for controllers (create-role guards, search, etc.). */
+export const canonicalRoleName = canonicalName;
+export const normalizeHierarchyRoleKey = normalizeRoleKey;
+
 export const getCanonicalParentRoleName = (roleName?: string | null) => {
   const key = canonicalName(roleName);
   if (!key) return null;
@@ -115,7 +129,7 @@ const HIERARCHY_ROLE_DEFS: Array<{ name: string; label: string }> = [
   { name: "sales_manager", label: "Sales Manager" },
   { name: "sales_agent", label: "Sales Executive" },
   { name: "customer_support_head", label: "Customer Support Head" },
-  { name: "team_lead", label: "Customer Support Team Lead" },
+  { name: "customer_support_team_lead", label: "Customer Support Team Lead" },
   { name: "customer_care_executive", label: "Customer Care Executive" },
   { name: "relationship_manager", label: "Relationship Manager" },
   { name: "marketing_head", label: "Marketing Head" },
@@ -123,12 +137,44 @@ const HIERARCHY_ROLE_DEFS: Array<{ name: string; label: string }> = [
   { name: "social_media", label: "Social Media" },
   { name: "content_team", label: "Content Team" },
   { name: "creative_team", label: "Creative Team" },
+  { name: "performance_marketing", label: "Performance Marketing" },
   { name: "accounts", label: "Accounts" },
   { name: "legal_compliance", label: "Legal" },
   { name: "hr_administration", label: "HR" },
   { name: "technical_support_head", label: "Technical Support Head" },
   { name: "technical_support_team", label: "Technical Support Team" },
 ];
+
+/**
+ * Move users + child roles off legacy `team_lead`, then retire that role.
+ * Safe to run repeatedly.
+ */
+const migrateLegacyTeamLeadRole = async (): Promise<void> => {
+  const legacy = await Role.findOne({ name: "team_lead" }).select("_id name").lean();
+  if (!legacy?._id) return;
+
+  const canonical = await Role.findOne({ name: "customer_support_team_lead" })
+    .select("_id name")
+    .lean();
+  if (!canonical?._id) return;
+  if (String(legacy._id) === String(canonical._id)) return;
+
+  await User.updateMany({ roleId: legacy._id }, { $set: { roleId: canonical._id } });
+  await Role.updateMany(
+    { parentRoleId: legacy._id },
+    { $set: { parentRoleId: canonical._id } },
+  );
+  // Retire legacy short key so it no longer appears as a separate assignable role.
+  await Role.updateOne(
+    { _id: legacy._id },
+    {
+      $set: {
+        isActive: false,
+        label: "Customer Support Team Lead (legacy)",
+      },
+    },
+  );
+};
 
 /**
  * Creates missing hierarchy roles and wires parentRoleId from the canonical map.
@@ -155,11 +201,15 @@ export const ensureCanonicalHierarchyRoles = async (): Promise<void> => {
     );
   }
 
+  await migrateLegacyTeamLeadRole();
+
   const names = [
     "super_admin",
     ...HIERARCHY_ROLE_DEFS.map((def) => def.name),
     ...Object.keys(CANONICAL_PARENT_BY_ROLE),
     ...Object.values(CANONICAL_PARENT_BY_ROLE),
+    "team_lead",
+    "team_leads",
   ];
   const roles = await Role.find({ name: { $in: [...new Set(names)] } }).select("_id name").lean();
   const idByName = new Map(roles.map((role) => [role.name, role._id]));
@@ -173,8 +223,12 @@ export const ensureCanonicalHierarchyRoles = async (): Promise<void> => {
 };
 
 const STRICT_BRANCH_ROLES: Record<string, Set<string>> = {
-  customer_support_head: new Set(["team_lead", "customer_care_executive", "relationship_manager"]),
-  team_lead: new Set(["customer_care_executive", "relationship_manager"]),
+  customer_support_head: new Set([
+    "customer_support_team_lead",
+    "customer_care_executive",
+    "relationship_manager",
+  ]),
+  customer_support_team_lead: new Set(["customer_care_executive", "relationship_manager"]),
 };
 
 /** Platform end-users shown on User Management for Customer Care / support. */

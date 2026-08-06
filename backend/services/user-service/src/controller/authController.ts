@@ -87,6 +87,7 @@ const ADMIN_CREATE_ROLES = new Set([
   "social_media",
   "content_team",
   "creative_team",
+  "performance_marketing",
   "accounts",
   "accounts_finance",
   "legal_compliance",
@@ -993,7 +994,11 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
     const users = await User.find(userFilter)
       .select("-token")
       .populate("roleId", "name label")
-      .populate("managerId", "name email phone")
+      .populate({
+        path: "managerId",
+        select: "name email phone roleId",
+        populate: { path: "roleId", select: "name label" },
+      })
       .lean();
 
     // Backfill exclusive follow-up owners for stuck onboarding users (one CCE only).
@@ -1006,6 +1011,7 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
     const formattedUsers = users.map((user: any) => {
       const role = user.roleId;
       const manager = user.managerId;
+      const managerRole = manager?.roleId;
       const followUpAssignedTo = user.followUpAssignedTo
         ? String(user.followUpAssignedTo)
         : null;
@@ -1024,6 +1030,8 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
               name: manager.name || null,
               email: manager.email || null,
               phone: manager.phone || null,
+              roleName: managerRole?.name || null,
+              roleLabel: managerRole?.label || null,
             }
           : null,
       };
@@ -1045,8 +1053,20 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
       sales_executives: ["sales_agent", "sales_executive", "sales_executives"],
       customer_care: ["customer_care", "customer_care_executive", "customer_care_executives"],
       customer_care_executive: ["customer_care", "customer_care_executive", "customer_care_executives"],
-      team_lead: ["team_lead", "team_leads", "customer_support_team_lead"],
-      team_leads: ["team_lead", "team_leads", "customer_support_team_lead"],
+      team_lead: ["team_lead", "team_leads", "customer_support_team_lead", "customer_support_team_leads"],
+      team_leads: ["team_lead", "team_leads", "customer_support_team_lead", "customer_support_team_leads"],
+      customer_support_team_lead: [
+        "team_lead",
+        "team_leads",
+        "customer_support_team_lead",
+        "customer_support_team_leads",
+      ],
+      customer_support_team_leads: [
+        "team_lead",
+        "team_leads",
+        "customer_support_team_lead",
+        "customer_support_team_leads",
+      ],
       relationship_manager: ["relationship_manager", "relationship_managers"],
       operations_head: ["operations_head", "operation_head"],
       operation_head: ["operations_head", "operation_head"],

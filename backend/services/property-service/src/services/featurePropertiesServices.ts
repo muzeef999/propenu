@@ -1503,17 +1503,41 @@ export const FeaturePropertyService = {
     state?: string; // 🔥 NEW
     locality?: string; // 🔥 NEW
     propertyCode?: string;
+    from?: string;
+    to?: string;
   }) {
     const page = Math.max(1, options?.page ?? 1);
     const limit = Math.min(100, options?.limit ?? 20);
     const skip = (page - 1) * limit;
 
-    const filter: any = {
-      status: "active",
-    };
+    const statusOpt = String(options?.status || "").trim().toLowerCase();
+    const hasDateRange = Boolean(options?.from || options?.to);
+    // Date drill-downs (sidebar "today") must include pending/draft/inactive.
+    // Default public list stays active-only.
+    const filter: any = {};
+    if (statusOpt && statusOpt !== "all") {
+      if (statusOpt === "inactive" || statusOpt === "draft" || statusOpt === "onboarding") {
+        filter.status = { $in: ["inactive", "draft", "onboarding", "incomplete"] };
+      } else {
+        filter.status = statusOpt;
+      }
+    } else if (!hasDateRange) {
+      filter.status = "active";
+    }
     const andFilters: any[] = [];
     const escapeRegex = (value: string) =>
       value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    if (options?.from || options?.to) {
+      const createdAt: Record<string, Date> = {};
+      if (options.from) {
+        createdAt.$gte = new Date(`${String(options.from).slice(0, 10)}T00:00:00.000+05:30`);
+      }
+      if (options.to) {
+        createdAt.$lte = new Date(`${String(options.to).slice(0, 10)}T23:59:59.999+05:30`);
+      }
+      filter.createdAt = createdAt;
+    }
 
     // 🔍 SEARCH
     if (options?.q) {

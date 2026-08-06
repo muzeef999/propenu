@@ -199,6 +199,10 @@ export const getAllFeatureProperties = async (req: Request, res: Response) => {
       propertycode,
       createdBy,
       promotionStatus,
+      from,
+      to,
+      createdFrom,
+      createdTo,
     } = req.query;
     const options: any = {};
     if (typeof page === "string") options.page = Number(page);
@@ -217,6 +221,16 @@ export const getAllFeatureProperties = async (req: Request, res: Response) => {
     if (typeof promotionStatus === "string") {
       options.promotionStatus = promotionStatus;
     }
+    const fromDay =
+      (typeof from === "string" && from) ||
+      (typeof createdFrom === "string" && createdFrom) ||
+      "";
+    const toDay =
+      (typeof to === "string" && to) ||
+      (typeof createdTo === "string" && createdTo) ||
+      "";
+    if (fromDay) options.from = String(fromDay).slice(0, 10);
+    if (toDay) options.to = String(toDay).slice(0, 10);
     if (typeof createdBy === "string") {
       if (!mongoose.Types.ObjectId.isValid(createdBy)) {
         return res.status(400).json({ error: "Invalid createdBy" });

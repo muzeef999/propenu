@@ -6,15 +6,32 @@ import { AuthRequest } from "../middlewares/authMiddleware";
 import { ALL_PERMISSIONS, PERMISSION_CATALOG, PERMISSION_SET } from "../constants/permissionCatalog";
 import { BUSINESS_DEVELOPMENT_MANAGED_ROLE_NAMES, OPERATIONS_MANAGED_ROLE_NAMES } from "../utils/roleManagementPolicy";
 import {
+  canonicalRoleName,
   ensureCanonicalHierarchyRoles,
   getCanonicalParentRoleName,
   getDescendantRoleIds,
+  normalizeHierarchyRoleKey,
 } from "../utils/roleHierarchy";
 
 const PROTECTED_ROLE_NAMES = new Set(["super_admin", "admin"]);
 
 const normalizeRoleName = (name: string) => name.trim().toLowerCase();
 const SYSTEM_ROLE_NAMES = new Set(["super_admin", "admin", "user", "builder", "builder_staff", "agent"]);
+/** Do not allow creating a second Customer Support Team Lead under another name. */
+const RESERVED_HIERARCHY_ROLE_CANONS = new Set([
+  "customer_support_team_lead",
+  "customer_support_head",
+  "customer_care_executive",
+  "relationship_manager",
+  "operations_head",
+  "super_admin",
+  "marketing_head",
+  "digital_marketing",
+  "social_media",
+  "content_team",
+  "creative_team",
+  "performance_marketing",
+]);
 /** CCE + legacy aliases: Super Admin may activate / deactivate / delete like custom roles. */
 const CUSTOMER_CARE_LIFECYCLE_ROLE_NAMES = new Set([
   "customer_care",
@@ -63,8 +80,8 @@ export const getAssignableRoles = async (req: AuthRequest, res: Response) => {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "_");
     const actorRoleCanon =
-      actorRole === "customer_support_team_lead" || actorRole === "team_leads"
-        ? "team_lead"
+      actorRole === "team_lead" || actorRole === "team_leads"
+        ? "customer_support_team_lead"
         : actorRole;
     // Only roles below the actor (descendants). Platform heads (super_admin/admin) see the full dashboard set.
     if (actorRoleCanon !== "super_admin" && actorRoleCanon !== "admin") {
@@ -182,11 +199,21 @@ export const createRole = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const normalizedName = normalizeRoleName(name);
+    const normalizedName = normalizeHierarchyRoleKey(name) || normalizeRoleName(name);
     const normalizedPermissions = normalizePermissions(Array.isArray(permissions) ? permissions : []);
 
     if (SYSTEM_ROLE_NAMES.has(normalizedName)) {
       return res.status(409).json({ message: "This name is reserved for a system role" });
+    }
+
+    const roleCanon = canonicalRoleName(normalizedName);
+    if (RESERVED_HIERARCHY_ROLE_CANONS.has(roleCanon) || RESERVED_HIERARCHY_ROLE_CANONS.has(normalizedName)) {
+      return res.status(409).json({
+        message:
+          roleCanon === "customer_support_team_lead"
+            ? "Customer Support Team Lead already exists in the hierarchy. Use that role — do not create a duplicate."
+            : `Role '${normalizedName}' is reserved in the organisation hierarchy`,
+      });
     }
 
     const invalidPermissions = getInvalidPermissions(normalizedPermissions);
