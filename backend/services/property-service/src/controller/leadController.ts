@@ -26,6 +26,62 @@ import { getAdminLeadDashboard } from "../services/adminLeadService";
 import { notifyProjectBrochureDownload } from "../services/pushNotificationService";
 
 
+const NORMAL_PROMOTION_VISIBLE_LEAD_LIMIT = 10;
+
+const maskPhone = (phone?: string) => {
+  const value = String(phone ?? "").trim();
+  if (!value) return "";
+  if (value.length <= 4) return "*".repeat(value.length);
+  return `${value.slice(0, 2)}${"*".repeat(Math.max(4, value.length - 4))}${value.slice(-2)}`;
+};
+
+const maskEmail = (email?: string) => {
+  const value = String(email ?? "").trim();
+  if (!value) return "";
+
+  const [name = "", domain = ""] = value.split("@");
+  if (!domain) {
+    return name.length <= 2 ? `${name.slice(0, 1)}***` : `${name.slice(0, 2)}***`;
+  }
+
+  const visibleName = name.length <= 2 ? name.slice(0, 1) : name.slice(0, 2);
+  return `${visibleName}***@${domain}`;
+};
+
+const getLeadDisplayTimestamp = (lead: any) => {
+  const value = lead?.sourceCreatedAt || lead?.createdAt;
+  const time = value ? new Date(value).getTime() : 0;
+  return Number.isNaN(time) ? 0 : time;
+};
+
+const sortLeadsForDisplay = (leads: any[]) =>
+  [...leads].sort(
+    (a, b) => getLeadDisplayTimestamp(b) - getLeadDisplayTimestamp(a)
+  );
+
+const maskLeadsForNormalPromotion = (leads: any[], promotionType?: string | null) => {
+  const sortedLeads = sortLeadsForDisplay(leads);
+  const resolvedPromotionType = promotionType || "normal";
+
+  if (resolvedPromotionType !== "normal") {
+    return sortedLeads.map((lead) => ({ ...lead, contactMasked: false }));
+  }
+
+  return sortedLeads.map((lead, index) => {
+    const contactMasked = index >= NORMAL_PROMOTION_VISIBLE_LEAD_LIMIT;
+
+    if (!contactMasked) {
+      return { ...lead, contactMasked: false };
+    }
+
+    return {
+      ...lead,
+      phone: maskPhone(lead.phone),
+      email: maskEmail(lead.email),
+      contactMasked: true,
+    };
+  });
+};
 const sendCSV = (leads: any[], res: Response) => {
   const header = [
     "Full Name",
@@ -1239,17 +1295,23 @@ export const getProjectLeadsController = async (
       return res.status(400).json({ message: "Invalid projectId" });
     }
 
+    const project = await FeaturedProject.findById(projectId)
+      .select("promotion.type")
+      .lean();
     const query = getProjectLeadQuery(projectId, from, to);
     const leads = await getCombinedProjectLeads(query);
-    const header = buildProjectLeadsHeader(leads);
-    const columns = buildProjectLeadColumns(leads);
+    const maskedLeads = maskLeadsForNormalPromotion(leads, project?.promotion?.type);
+    const header = buildProjectLeadsHeader(maskedLeads);
+    const columns = buildProjectLeadColumns(maskedLeads);
 
     res.json({
       success: true,
-      count: leads.length,
+      count: maskedLeads.length,
+      promotionType: project?.promotion?.type || "normal",
+      visibleLeadLimit: NORMAL_PROMOTION_VISIBLE_LEAD_LIMIT,
       header,
       columns,
-      data: leads,
+      data: maskedLeads,
     });
 
   } catch (err: any) {
@@ -1376,10 +1438,14 @@ export const downloadLeadsCSVController = async (
       return res.status(400).json({ message: "Invalid projectId" });
     }
 
+    const project = await FeaturedProject.findById(projectId)
+      .select("promotion.type")
+      .lean();
     const query = getProjectLeadQuery(projectId, from, to);
     const leads = await getCombinedProjectLeads(query);
+    const maskedLeads = maskLeadsForNormalPromotion(leads, project?.promotion?.type);
 
-    return sendCSV(leads, res);
+    return sendCSV(maskedLeads, res);
 
   } catch (err: any) {
     res.status(500).json({ message: err.message });

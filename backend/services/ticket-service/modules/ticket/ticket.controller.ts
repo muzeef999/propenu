@@ -111,6 +111,38 @@ export const createRequestCall = async (req: Request, res: Response) => {
   }
 };
 
+const buildScopedTicketQuery = (req: Request): Partial<TicketListQuery> => {
+  const options: Partial<TicketListQuery> = {};
+
+  if (typeof req.query.q === "string") options.q = req.query.q;
+  if (typeof req.query.status === "string") options.status = req.query.status as TicketStatus;
+  if (typeof req.query.priority === "string") options.priority = req.query.priority as TicketPriority;
+  if (typeof req.query.category === "string") options.category = req.query.category;
+  if (typeof req.query.department === "string") options.department = req.query.department;
+  if (typeof req.query.assignedTo === "string") options.assignedTo = req.query.assignedTo;
+  if (typeof req.query.assignedRole === "string") options.assignedRole = req.query.assignedRole;
+  if (typeof req.query.assignedOrRequested === "string") options.assignedOrRequested = req.query.assignedOrRequested;
+  if (typeof req.query.ownedBy === "string") options.ownedBy = req.query.ownedBy;
+  if (typeof req.query.requesterId === "string") options.requesterId = req.query.requesterId;
+  if (typeof req.query.requesterEmail === "string") options.requesterEmail = req.query.requesterEmail;
+  if (typeof req.query.propertyId === "string") options.propertyId = req.query.propertyId;
+  if (typeof req.query.relatedProjectId === "string") options.relatedProjectId = req.query.relatedProjectId;
+  if (typeof req.query.tag === "string") options.tag = req.query.tag;
+  if (typeof req.query.module === "string") options.module = req.query.module;
+  if (typeof req.query.requestType === "string") options.requestType = req.query.requestType;
+
+  const overdue = toBoolean(req.query.overdue);
+  if (overdue !== undefined) options.overdue = overdue;
+
+  const createdFrom = toDate(req.query.createdFrom ?? req.query.from);
+  const createdTo = toDate(req.query.createdTo ?? req.query.to);
+  if (createdFrom) options.createdFrom = createdFrom;
+  if (createdTo) options.createdTo = createdTo;
+
+  applyExecutiveListScope(req, options as TicketListQuery);
+
+  return options;
+};
 export const getTickets = async (req: Request, res: Response) => {
   try {
     const sortBy =
@@ -298,9 +330,9 @@ export const removeTicketComment = async (req: Request, res: Response) => {
   }
 };
 
-export const getTicketSummary = async (_req: Request, res: Response) => {
+export const getTicketSummary = async (req: Request, res: Response) => {
   try {
-    const summary = await TicketService.summary();
+    const summary = await TicketService.summary(buildScopedTicketQuery(req));
     return res.json({ success: true, data: summary });
   } catch (err: any) {
     console.error("getTicketSummary:", err);

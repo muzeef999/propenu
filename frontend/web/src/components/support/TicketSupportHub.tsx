@@ -65,6 +65,16 @@ type Ticket = {
   }[];
 };
 
+type TicketSummaryBucket = {
+  _id: string;
+  count: number;
+};
+
+type TicketSummary = {
+  byStatus: TicketSummaryBucket[];
+  byPriority: TicketSummaryBucket[];
+  overdue?: number;
+};
 type UploadedAttachment = {
   url: string;
   name?: string;
@@ -199,6 +209,17 @@ const formatCompactCount = (value: number) =>
 
 const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024;
 const MAX_ATTACHMENT_COUNT = 5;
+const ACTIVE_STATUSES = new Set<Status>([
+  "open",
+  "assigned",
+  "under_review",
+  "awaiting_user_response",
+  "in_progress",
+  "escalated",
+  "reopened",
+]);
+const WAITING_STATUSES = new Set<Status>(["awaiting_user_response"]);
+const RESOLVED_STATUSES = new Set<Status>(["resolved", "closed"]);
 
 const getAttachmentKind = (attachment?: {
   url?: string;
@@ -285,6 +306,7 @@ export default function TicketSupportHub({ role }: { role: Role }) {
   const isAgentWorkspace =
     role === "agent" || isRelationshipManagerViewer;
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [ticketSummary, setTicketSummary] = useState<TicketSummary | null>(null);
   const [selectedId, setSelectedId] = useState("");
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
@@ -322,15 +344,31 @@ export default function TicketSupportHub({ role }: { role: Role }) {
     [selectedId, tickets],
   );
 
-  const metrics = useMemo(
-    () => ({
-      active: tickets.filter((ticket) => ["open", "in_progress", "reopened"].includes(ticket.status)).length,
-      urgent: tickets.filter((ticket) => ticket.priority === "urgent").length,
-      waiting: tickets.filter((ticket) => ticket.status.startsWith("waiting")).length,
-      resolved: tickets.filter((ticket) => ["resolved", "closed"].includes(ticket.status)).length,
-    }),
-    [tickets],
-  );
+  const metrics = useMemo(() => {
+    const byStatus = new Map<Status, number>();
+    const byPriority = new Map<string, number>();
+
+    (ticketSummary?.byStatus ?? []).forEach((item) => {
+      byStatus.set(normalizeStatus(item._id), item.count);
+    });
+
+    (ticketSummary?.byPriority ?? []).forEach((item) => {
+      byPriority.set(item._id, item.count);
+    });
+
+    const sumStatuses = (statuses: Set<Status>) =>
+      Array.from(statuses).reduce(
+        (total, item) => total + (byStatus.get(item) ?? 0),
+        0,
+      );
+
+    return {
+      active: sumStatuses(ACTIVE_STATUSES),
+      urgent: byPriority.get("urgent") ?? 0,
+      waiting: sumStatuses(WAITING_STATUSES),
+      resolved: sumStatuses(RESOLVED_STATUSES),
+    };
+  }, [ticketSummary]);
 
   const selectedRelated = useMemo(
     () => relatedItems.find((item) => item.id === form.relatedId),
@@ -363,15 +401,34 @@ export default function TicketSupportHub({ role }: { role: Role }) {
     );
   }, [relatedItems, relatedSearch]);
 
+  const getTicketScopeParams = () => {
+    const params = new URLSearchParams();
+    if (isCustomerCareViewer) params.set("department", "customer-care");
+    else if (isAgentWorkspace) params.set("assignedOrRequested", currentUser.id);
+    else params.set("requesterId", currentUser.id);
+    return params;
+  };
+
+  const loadTicketSummary = async () => {
+    if (authLoading) return;
+
+    try {
+      const response = await fetch(apiUrl(`/api/tickets/summary?${getTicketScopeParams().toString()}`), { cache: "no-store" });
+      if (!response.ok) throw new Error("Ticket summary is not reachable");
+      const result = await response.json();
+      setTicketSummary(result.data ?? null);
+    } catch (err: any) {
+      setError(err.message || "Unable to load ticket summary");
+    }
+  };
   const loadTickets = async () => {
     if (authLoading) return;
     setLoading(true);
     setError("");
     try {
-      const params = new URLSearchParams({ limit: "30", sortBy: "updatedAt" });
-      if (isCustomerCareViewer) params.set("department", "customer-care");
-      else if (isAgentWorkspace) params.set("assignedOrRequested", currentUser.id);
-      else params.set("requesterId", currentUser.id);
+      const params = getTicketScopeParams();
+      params.set("limit", "30");
+      params.set("sortBy", "updatedAt");
       if (status !== "all") params.set("status", status);
       if (searchQuery) params.set("q", searchQuery);
 
@@ -404,6 +461,7 @@ export default function TicketSupportHub({ role }: { role: Role }) {
   useEffect(() => {
     if (authLoading) return;
     loadTickets();
+    loadTicketSummary();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, status, authLoading, currentUser.id, searchQuery]);
 
@@ -525,6 +583,9 @@ export default function TicketSupportHub({ role }: { role: Role }) {
     };
   }, [role]);
 
+  const refreshTicketsAndSummary = async () => {
+    await Promise.all([loadTickets(), loadTicketSummary()]);
+  };
   const createTicket = async (event: FormEvent) => {
     event.preventDefault();
     setSubmitting(true);
@@ -596,7 +657,7 @@ export default function TicketSupportHub({ role }: { role: Role }) {
       setForm({ title: "", description: "", category: copy.categories[0], relatedId: "", priority: "medium" });
       setFiles([]);
       setShowCreatePanel(false);
-      await loadTickets();
+      await refreshTicketsAndSummary();
     } catch (err: any) {
       setError(err.message || "Ticket could not be created");
     } finally {
@@ -625,7 +686,7 @@ export default function TicketSupportHub({ role }: { role: Role }) {
       if (!response.ok) throw new Error("Reply could not be sent");
       setReply("");
       setNote("");
-      await loadTickets();
+      await refreshTicketsAndSummary();
     } catch (err: any) {
       setError(err.message || "Reply could not be sent");
     } finally {
@@ -654,7 +715,7 @@ export default function TicketSupportHub({ role }: { role: Role }) {
         }),
       });
       if (!response.ok) throw new Error("Status could not be updated");
-      await loadTickets();
+      await refreshTicketsAndSummary();
     } catch (err: any) {
       setError(err.message || "Status could not be updated");
     } finally {
@@ -1346,3 +1407,4 @@ function Info({ label, value }: { label: string; value: string }) {
 function Action({ label, disabled, onClick }: { label: string; disabled: boolean; onClick: () => void }) {
   return <button onClick={onClick} disabled={disabled} className="rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">{label}</button>;
 }
+
