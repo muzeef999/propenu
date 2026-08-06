@@ -352,6 +352,22 @@ const Dashboard = () => {
     }
   };
 
+  const closeDateRangeWhenComplete = (fromDate: string, toDate: string) => {
+    if (fromDate && toDate) {
+      setDateRangeOpen(false);
+    }
+  };
+
+  const handleCustomFromDateChange = (value: string) => {
+    setCustomFromDate(value);
+    closeDateRangeWhenComplete(value, customToDate);
+  };
+
+  const handleCustomToDateChange = (value: string) => {
+    setCustomToDate(value);
+    closeDateRangeWhenComplete(customFromDate, value);
+  };
+
   const handleMomentumPageChange = (page: number) => {
     setMomentumPage(page);
   };
@@ -450,7 +466,7 @@ const Dashboard = () => {
                           type="date"
                           max={customToDate || undefined}
                           value={customFromDate}
-                          onChange={(event) => setCustomFromDate(event.target.value)}
+                          onChange={(event) => handleCustomFromDateChange(event.target.value)}
                           className="h-[38px] w-full rounded-[12px] border border-[#d8ebe0] bg-[#f9fffc] px-2.5 pr-8 text-[12px] font-semibold text-[#163322] outline-none transition focus:border-[#22c06f] focus:ring-4 focus:ring-[#22c06f]/10"
                         />
                         <FiCalendar className="pointer-events-none absolute right-2.5 top-[calc(50%+9px)] h-3.5 w-3.5 -translate-y-1/2 text-[#1f7a4d]" />
@@ -464,7 +480,7 @@ const Dashboard = () => {
                           type="date"
                           min={customFromDate || undefined}
                           value={customToDate}
-                          onChange={(event) => setCustomToDate(event.target.value)}
+                          onChange={(event) => handleCustomToDateChange(event.target.value)}
                           className="h-[38px] w-full rounded-[12px] border border-[#d8ebe0] bg-[#f9fffc] px-2.5 pr-8 text-[12px] font-semibold text-[#163322] outline-none transition focus:border-[#22c06f] focus:ring-4 focus:ring-[#22c06f]/10"
                         />
                         <FiCalendar className="pointer-events-none absolute right-2.5 top-[calc(50%+9px)] h-3.5 w-3.5 -translate-y-1/2 text-[#1f7a4d]" />
@@ -829,3 +845,5 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+

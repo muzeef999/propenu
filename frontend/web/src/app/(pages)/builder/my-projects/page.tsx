@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   getFeaturedProjectsDashboard,
@@ -9,6 +9,7 @@ import {
 import { FeaturedProject } from "@/types";
 import Myproperties from "../components/Myproperties";
 import ActiveTabs from "@/ui/ActiveTabs";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
 type HighlightProjectsBuilderResponse = {
   success?: boolean;
@@ -23,6 +24,7 @@ const PROJECT_TABS = [
   "Sponsored Project",
 ] as const;
 
+const PROJECTS_PER_PAGE = 6;
 const projectSkeletonCards = Array.from({ length: 4 });
 
 function MyProjectsSkeleton() {
@@ -100,9 +102,79 @@ function MyProjectsSkeleton() {
   );
 }
 
+function ProjectsPagination({
+  page,
+  pageSize,
+  totalItems,
+  totalPages,
+  onPageChange,
+}: {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  const startItem = totalItems ? (page - 1) * pageSize + 1 : 0;
+  const endItem = Math.min(page * pageSize, totalItems);
+  const pages = Array.from({ length: totalPages }, (_, index) => index + 1);
+
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-[#E5E7EB] bg-white px-3 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-4">
+      <p className="text-sm text-[#6B7280]">
+        Showing{" "}
+        <span className="font-semibold text-[#111827]">
+          {startItem}-{endItem}
+        </span>{" "}
+        of <span className="font-semibold text-[#111827]">{totalItems}</span>{" "}
+        projects
+      </p>
+
+      <div className="flex items-center justify-between gap-2 sm:justify-end">
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+          disabled={page === 1}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#E5E7EB] bg-white text-[#4B5563] transition hover:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:text-[#D1D5DB]"
+          aria-label="Previous page"
+        >
+          <FiChevronLeft className="h-4 w-4" />
+        </button>
+
+        <div className="flex items-center gap-1">
+          {pages.map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => onPageChange(item)}
+              className={`h-9 min-w-9 rounded-md px-3 text-sm font-medium transition ${
+                page === item
+                  ? "bg-[#16A34A] text-white shadow-sm"
+                  : "border border-[#E5E7EB] bg-white text-[#4B5563] hover:bg-[#F9FAFB]"
+              }`}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+          disabled={page === totalPages}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#E5E7EB] bg-white text-[#4B5563] transition hover:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:text-[#D1D5DB]"
+          aria-label="Next page"
+        >
+          <FiChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
 const page = () => {
   const [activeTab, setActiveTab] =
     useState<(typeof PROJECT_TABS)[number]>("All");
+  const [pageNumber, setPageNumber] = useState(1);
 
   const { data, isLoading, isError } = useQuery<{
     regularProjects: HighlightProjectsBuilderResponse | FeaturedProject[] | null;
@@ -158,6 +230,25 @@ const page = () => {
         return projects;
     }
   }, [activeTab, projects]);
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredProjects.length / PROJECTS_PER_PAGE),
+  );
+
+  const paginatedProjects = useMemo(() => {
+    const start = (pageNumber - 1) * PROJECTS_PER_PAGE;
+    return filteredProjects.slice(start, start + PROJECTS_PER_PAGE);
+  }, [filteredProjects, pageNumber]);
+
+  useEffect(() => {
+    setPageNumber(1);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (pageNumber > totalPages) {
+      setPageNumber(totalPages);
+    }
+  }, [pageNumber, totalPages]);
 
   if (isLoading) {
     return <MyProjectsSkeleton />;
@@ -187,7 +278,16 @@ const page = () => {
 
           {filteredProjects.length > 0 ? (
             <div className="space-y-2">
-              <Myproperties items={filteredProjects} />
+              <Myproperties items={paginatedProjects} />
+              {filteredProjects.length > PROJECTS_PER_PAGE ? (
+                <ProjectsPagination
+                  page={pageNumber}
+                  pageSize={PROJECTS_PER_PAGE}
+                  totalItems={filteredProjects.length}
+                  totalPages={totalPages}
+                  onPageChange={setPageNumber}
+                />
+              ) : null}
             </div>
           ) : (
             <div className="p-6 text-center text-gray-500">

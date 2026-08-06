@@ -1200,7 +1200,7 @@ export class TicketService {
     });
   }
 
-  static summary() {
-    return TicketRepository.summary();
+  static summary(query: Partial<TicketListQuery> = {}) {
+    return TicketRepository.summary(query);
   }
 }

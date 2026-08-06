@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch } from "@/Redux/store";
 import { useEffect, useRef, useState } from "react";
+import { FiCheck, FiChevronDown } from "react-icons/fi";
 
 import { setBaseField, nextStep } from "@/Redux/slice/postPropertySlice";
 import {
@@ -78,6 +79,7 @@ function getProjectBackendCategory(projectPropertyType?: string) {
 type PostalPincodeResponse = {
   Status?: string;
   PostOffice?: Array<{
+    Name?: string;
     District?: string;
     State?: string;
   }>;
@@ -97,6 +99,26 @@ const normalizePincodeAreaName = (value: string) => {
   if (!trimmed) return "";
 
   return trimmed.replace(/^ward\s*\d+[a-z]?\s+/i, "").trim();
+};
+
+const normalizeComparisonValue = (value: string) =>
+  value.trim().toLowerCase().replace(/\s+/g, " ");
+
+const uniqueAreaNames = (postOffices: PostalPincodeResponse["PostOffice"]) => {
+  const seen = new Set<string>();
+
+  return (postOffices || []).reduce<string[]>((areas, postOffice) => {
+    const name = formatToTitleCase(
+      normalizePincodeAreaName(postOffice?.Name || ""),
+    );
+    const key = normalizeComparisonValue(name);
+
+    if (!name || seen.has(key)) return areas;
+
+    seen.add(key);
+    areas.push(name);
+    return areas;
+  }, []);
 };
 
 const getLocalityFromAddress = (address: NominatimPincodeResult["address"]) =>
@@ -135,22 +157,24 @@ const lookupPincodeWithPostalApi = async (
 
     if (!res.ok) {
       console.error("Postal pincode lookup failed:", res.status);
-      return { city: "", state: "" };
+      return { city: "", state: "", localities: [] };
     }
 
     const data: PostalPincodeResponse[] = await res.json();
-    const firstPostalOffice = data?.[0]?.PostOffice?.[0];
+    const postOffices = data?.[0]?.PostOffice || [];
+    const firstPostalOffice = postOffices[0];
 
     return {
       city: formatToTitleCase(firstPostalOffice?.District || ""),
       state: formatToTitleCase(firstPostalOffice?.State || ""),
+      localities: uniqueAreaNames(postOffices),
     };
   } catch (err) {
     if ((err as { name?: string })?.name !== "AbortError") {
       console.error("Postal pincode lookup error:", err);
     }
 
-    return { city: "", state: "" };
+    return { city: "", state: "", localities: [] };
   }
 };
 
@@ -194,8 +218,27 @@ const LocationDetailsStep = () => {
 
   const dispatch = useDispatch<AppDispatch>();
   const [showErrors, setShowErrors] = useState(false);
+  const [pincodeLocalities, setPincodeLocalities] = useState<string[]>([]);
+  const [isLocalityDropdownOpen, setIsLocalityDropdownOpen] = useState(false);
+  const localityDropdownRef = useRef<HTMLDivElement>(null);
   const skipNextFieldGeocodeRef = useRef(false);
 
+  useEffect(() => {
+    if (!isLocalityDropdownOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (
+        localityDropdownRef.current &&
+        !localityDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsLocalityDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [isLocalityDropdownOpen]);
   useEffect(() => {
     if (skipNextFieldGeocodeRef.current) {
       skipNextFieldGeocodeRef.current = false;
@@ -265,7 +308,11 @@ const LocationDetailsStep = () => {
     const pincode = (base.pincode || "").replace(/\D/g, "");
 
     // only run when 6 digit pincode entered
-    if (pincode.length !== 6) return;
+    if (pincode.length !== 6) {
+      setPincodeLocalities([]);
+      setIsLocalityDropdownOpen(false);
+      return;
+    }
 
     const controller = new AbortController();
 
@@ -276,25 +323,35 @@ const LocationDetailsStep = () => {
           lookupPincodeWithOpenStreet(pincode, controller.signal),
         ]);
 
-        if (!best) {
+        setPincodeLocalities(postalResult.localities);
+
+        if (!best && !postalResult.city && !postalResult.state) {
           console.warn("No pincode result found");
           return;
         }
 
         const address = best?.address;
-
-        const locality = getLocalityFromAddress(address);
+        const localityFromMap = getLocalityFromAddress(address);
+        const selectedLocality =
+          postalResult.localities.find(
+            (locality) =>
+              normalizeComparisonValue(locality) ===
+              normalizeComparisonValue(base.locality || ""),
+          ) ||
+          postalResult.localities[0] ||
+          localityFromMap;
 
         const city = postalResult.city || getCityFromAddress(address);
         const state =
           postalResult.state || formatToTitleCase(address?.state || "");
 
-        const lat = Number(best?.lat);
-        const lon = Number(best?.lon);
+        const lat = Number(best?.lat || NaN);
+        const lon = Number(best?.lon || NaN);
+        const hasPincodeCoordinates = Number.isFinite(lat) && Number.isFinite(lon);
 
         // Preserve coordinates returned by pincode lookup instead of
         // immediately re-geocoding with locality + district + state.
-        skipNextFieldGeocodeRef.current = true;
+        skipNextFieldGeocodeRef.current = hasPincodeCoordinates;
 
         // Update redux fields.
         if (state) {
@@ -305,11 +362,11 @@ const LocationDetailsStep = () => {
           dispatch(setBaseField({ key: "city", value: city }));
         }
 
-        if (locality) {
-          dispatch(setBaseField({ key: "locality", value: locality }));
+        if (selectedLocality) {
+          dispatch(setBaseField({ key: "locality", value: selectedLocality }));
         }
 
-        if (Number.isFinite(lat) && Number.isFinite(lon)) {
+        if (hasPincodeCoordinates) {
           dispatch(
             setBaseField({
               key: "location",
@@ -448,20 +505,101 @@ const LocationDetailsStep = () => {
 
       {/* Locality / City / State */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-        <InputField
-          label="Locality"
-          value={base.locality || ""}
-          placeholder="Enter locality"
-          onChange={(value) =>
-            dispatch(
-              setBaseField({
-                key: "locality",
-                value: formatToTitleCase(value),
-              }),
-            )
-          }
-          error={getError("locality")}
-        />
+        <div className="w-full">
+          {pincodeLocalities.length > 0 ? (
+            <div ref={localityDropdownRef} className="relative">
+              <div className="flex items-center gap-1 mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Locality
+                </label>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsLocalityDropdownOpen((open) => !open)}
+                className={`flex w-full items-center justify-between gap-2 rounded-md border bg-white px-3 py-2 text-left text-sm shadow-sm transition focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                  getError("locality") ? "border-red-500" : "border-gray-300"
+                } ${isLocalityDropdownOpen ? "border-green-500" : ""}`}
+                aria-haspopup="listbox"
+                aria-expanded={isLocalityDropdownOpen}
+              >
+                <span
+                  className={`min-w-0 flex-1 truncate ${
+                    base.locality ? "text-gray-900" : "text-gray-400"
+                  }`}
+                >
+                  {base.locality || "Select locality"}
+                </span>
+                <FiChevronDown
+                  className={`h-4 w-4 shrink-0 text-gray-500 transition-transform ${
+                    isLocalityDropdownOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {isLocalityDropdownOpen && (
+                <div className="absolute left-0 right-0 top-full z-[1000] mt-1 overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg">
+                  <div className="max-h-56 overflow-y-auto py-1" role="listbox">
+                    {pincodeLocalities.map((locality) => {
+                      const isSelected = base.locality === locality;
+
+                      return (
+                        <button
+                          key={locality}
+                          type="button"
+                          role="option"
+                          aria-selected={isSelected}
+                          onClick={() => {
+                            dispatch(
+                              setBaseField({
+                                key: "locality",
+                                value: locality,
+                              }),
+                            );
+                            setIsLocalityDropdownOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition ${
+                            isSelected
+                              ? "bg-green-50 text-green-700"
+                              : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                          }`}
+                        >
+                          <span className="min-w-0 flex-1 truncate">
+                            {locality}
+                          </span>
+                          {isSelected && (
+                            <FiCheck className="h-4 w-4 shrink-0 text-green-600" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {getError("locality") && (
+                <p className="mt-1 text-xs text-red-500">
+                  {getError("locality")}
+                </p>
+              )}
+            </div>
+          ) : (
+            <InputField
+              label="Locality"
+              value={base.locality || ""}
+              placeholder="Enter locality"
+              onChange={(value) =>
+                dispatch(
+                  setBaseField({
+                    key: "locality",
+                    value: formatToTitleCase(value),
+                  }),
+                )
+              }
+              error={getError("locality")}
+            />
+          )}
+        </div>
 
         <InputField
           label="City"

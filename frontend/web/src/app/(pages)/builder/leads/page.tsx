@@ -48,6 +48,9 @@ type StoredLeadStatus =
 interface Property {
   _id: string;
   title: string;
+  promotion?: {
+    type?: string;
+  };
   city?: string;
   locality?: string;
   carpetArea?: number;
@@ -68,6 +71,7 @@ interface Lead {
   purchaseTimeline?: string;
   budgetRange?: string;
   status: StoredLeadStatus;
+  contactMasked?: boolean;
   createdAt: string;
   activity?: {
     leadSubmitted?: boolean;
@@ -93,11 +97,66 @@ interface LeadsResponse {
     };
   };
   columns?: LeadColumn[];
+  promotionType?: string;
+  visibleLeadLimit?: number;
   data: Lead[];
 }
 
 /* ================= UTILS ================= */
 
+const NORMAL_PROMOTION_VISIBLE_LEAD_LIMIT = 10;
+
+const maskPhone = (phone?: string) => {
+  const value = String(phone ?? "").trim();
+  if (!value) return "—";
+  if (value.length <= 4) return "*".repeat(value.length);
+  return `${value.slice(0, 2)}${"*".repeat(Math.max(4, value.length - 4))}${value.slice(-2)}`;
+};
+
+const maskEmail = (email?: string) => {
+  const value = String(email ?? "").trim();
+  if (!value) return "—";
+
+  const [name = "", domain = ""] = value.split("@");
+  if (!domain) {
+    return name.length <= 2 ? `${name.slice(0, 1)}***` : `${name.slice(0, 2)}***`;
+  }
+
+  const visibleName = name.length <= 2 ? name.slice(0, 1) : name.slice(0, 2);
+  return `${visibleName}***@${domain}`;
+};
+
+const shouldMaskLeadContact = ({
+  lead,
+  index,
+  page,
+  pageSize,
+  promotionType,
+  visibleLeadLimit,
+}: {
+  lead: Lead;
+  index: number;
+  page: number;
+  pageSize: number;
+  promotionType: string;
+  visibleLeadLimit: number;
+}) => {
+  if (lead.contactMasked) return true;
+  if (promotionType !== "normal") return false;
+  return (page - 1) * pageSize + index >= visibleLeadLimit;
+};
+
+const getLeadContactDisplayValue = (lead: Lead, column: LeadColumn, shouldMaskContact: boolean) => {
+  if (column.key === "phone") {
+    return shouldMaskContact ? maskPhone(lead.phone) : getDisplayValue(lead.phone);
+  }
+
+  if (column.key === "email") {
+    return shouldMaskContact ? maskEmail(lead.email) : getDisplayValue(lead.email);
+  }
+
+  return getColumnDisplayValue(lead, column);
+};
 const TAB_KEY_MAP: Record<string, string> = {
   Featured: "featured",
 };
@@ -433,7 +492,7 @@ const StatusSelect = ({
   };
 
   return (
-    <div className={`relative w-full min-w-[128px] max-w-[150px] ${className}`}>
+    <div className={`relative w-full min-w-32 max-w-[150px] ${className}`}>
       <button
         ref={buttonRef}
         type="button"
@@ -531,6 +590,10 @@ export default function BuilderLeadsPage(): JSX.Element {
     }
   }, [properties, selectedPropertyId]);
 
+  const selectedProperty = useMemo(() => {
+    return properties.find((property) => property._id === selectedPropertyId) ?? null;
+  }, [properties, selectedPropertyId]);
+
   const totalPropertyPages = Math.max(
     1,
     Math.ceil(properties.length / propertyPageSize),
@@ -552,6 +615,10 @@ export default function BuilderLeadsPage(): JSX.Element {
       ),
     enabled: !!selectedPropertyId,
   });
+  const selectedPromotionType =
+    leadsData?.promotionType || selectedProperty?.promotion?.type || "normal";
+  const visibleLeadLimit =
+    leadsData?.visibleLeadLimit || NORMAL_PROMOTION_VISIBLE_LEAD_LIMIT;
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: LeadStatusValue }) =>
@@ -895,6 +962,10 @@ export default function BuilderLeadsPage(): JSX.Element {
                 columns={leadsData?.columns ?? []}
                 leads={paginatedLeads}
                 updateStatusMutation={updateStatusMutation}
+                page={page}
+                pageSize={pageSize}
+                promotionType={selectedPromotionType}
+                visibleLeadLimit={visibleLeadLimit}
               />
               <Pagination
                 page={page}
@@ -1017,10 +1088,18 @@ function LeadsTable({
   columns,
   leads,
   updateStatusMutation,
+  page,
+  pageSize,
+  promotionType,
+  visibleLeadLimit,
 }: {
   columns: LeadColumn[];
   leads: Lead[];
   updateStatusMutation: any;
+  page: number;
+  pageSize: number;
+  promotionType: string;
+  visibleLeadLimit: number;
 }) {
   const visibleColumns = columns.length
     ? columns
@@ -1039,48 +1118,61 @@ function LeadsTable({
     <>
       {/* Mobile Cards */}
       <div className="md:hidden space-y-3">
-        {leads.map((lead) => (
-          <div
-            key={lead._id}
-            className="rounded-lg border border-[#E5E7EB] bg-white p-4 shadow-sm"
-          >
-            <div className="flex items-start justify-between gap-3 border-b border-[#F3F4F6] pb-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[#111827]">
-                  {lead.name}
-                </p>
-                <p className="mt-1 text-sm text-[#6B7280]">{lead.phone}</p>
-                <p className="mt-1 truncate text-sm text-[#6B7280]">
-                  {getDisplayValue(lead.email)}
-                </p>
-              </div>
-              <LeadTimestamp value={getLeadDateTimeValue(lead)} />
-            </div>
-            <div className="mt-3 grid grid-cols-1 gap-2 text-sm text-[#4B5563]">
-              {visibleColumns
-                .filter((column) => !["name", "phone", "email", "leadTime", "status", "activity"].includes(column.key))
-                .map((column) => (
-                  <p key={`${lead._id}-${column.key}`}>
-                    <span className="font-medium text-[#111827]">{column.label}: </span>
-                    {getColumnDisplayValue(lead, column)}
+        {leads.map((lead, index) => {
+          const shouldMaskContact = shouldMaskLeadContact({
+            lead,
+            index,
+            page,
+            pageSize,
+            promotionType,
+            visibleLeadLimit,
+          });
+
+          return (
+            <div
+              key={lead._id}
+              className="rounded-lg border border-[#E5E7EB] bg-white p-4 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-3 border-b border-[#F3F4F6] pb-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-[#111827]">
+                    {lead.name}
                   </p>
-                ))}
+                  <p className="mt-1 text-sm text-[#6B7280]">
+                    {shouldMaskContact ? maskPhone(lead.phone) : getDisplayValue(lead.phone)}
+                  </p>
+                  <p className="mt-1 truncate text-sm text-[#6B7280]">
+                    {shouldMaskContact ? maskEmail(lead.email) : getDisplayValue(lead.email)}
+                  </p>
+                </div>
+                <LeadTimestamp value={getLeadDateTimeValue(lead)} />
+              </div>
+              <div className="mt-3 grid grid-cols-1 gap-2 text-sm text-[#4B5563]">
+                {visibleColumns
+                  .filter((column) => !["name", "phone", "email", "leadTime", "status", "activity"].includes(column.key))
+                  .map((column) => (
+                    <p key={`${lead._id}-${column.key}`}>
+                      <span className="font-medium text-[#111827]">{column.label}: </span>
+                      {getColumnDisplayValue(lead, column)}
+                    </p>
+                  ))}
+              </div>
+              <div className="mt-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+                  Activity
+                </p>
+                <LeadActivityBadges lead={lead} />
+              </div>
+              <div className="mt-3">
+                <StatusSelect
+                  lead={lead}
+                  updateStatusMutation={updateStatusMutation}
+                  className="max-w-none"
+                />
+              </div>
             </div>
-            <div className="mt-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
-                Activity
-              </p>
-              <LeadActivityBadges lead={lead} />
-            </div>
-            <div className="mt-3">
-              <StatusSelect
-                lead={lead}
-                updateStatusMutation={updateStatusMutation}
-                className="max-w-none"
-              />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Desktop Table */}
@@ -1100,37 +1192,56 @@ function LeadsTable({
           ))}
         </div>
 
-        {leads.map((lead, index) => (
-          <div
-            key={lead._id}
-            className={`grid min-w-max items-center gap-x-2 border-b border-[#EEF2F0] px-3 py-2.5 text-sm transition last:border-b-0 hover:bg-[#F7FBF8] ${
-              index % 2 === 0 ? "bg-white" : "bg-[#FCFDFD]"
-            }`}
-            style={{ gridTemplateColumns: desktopGridTemplate }}
-          >
-            {visibleColumns.map((column) => (
-              <div key={`${lead._id}-${column.key}`} className="min-w-0 pr-1">
-                {column.key === "leadTime" ? (
-                  <LeadTimestamp value={getLeadDateTimeValue(lead)} />
-                ) : column.key === "activity" ? (
-                  <LeadActivityBadges lead={lead} />
-                ) : column.key === "status" ? (
-                  <StatusSelect
-                    lead={lead}
-                    updateStatusMutation={updateStatusMutation}
-                  />
-                ) : (
-                  <p
-                    className="truncate pl-1 text-sm font-medium text-[#374151]"
-                    title={String(getColumnDisplayValue(lead, column))}
-                  >
-                    {getColumnDisplayValue(lead, column)}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        ))}
+        {leads.map((lead, index) => {
+          const shouldMaskContact = shouldMaskLeadContact({
+            lead,
+            index,
+            page,
+            pageSize,
+            promotionType,
+            visibleLeadLimit,
+          });
+
+          return (
+            <div
+              key={lead._id}
+              className={`grid min-w-max items-center gap-x-2 border-b border-[#EEF2F0] px-3 py-2.5 text-sm transition last:border-b-0 hover:bg-[#F7FBF8] ${
+                index % 2 === 0 ? "bg-white" : "bg-[#FCFDFD]"
+              }`}
+              style={{ gridTemplateColumns: desktopGridTemplate }}
+            >
+              {visibleColumns.map((column) => {
+                const displayValue = getLeadContactDisplayValue(
+                  lead,
+                  column,
+                  shouldMaskContact,
+                );
+
+                return (
+                  <div key={`${lead._id}-${column.key}`} className="min-w-0 pr-1">
+                    {column.key === "leadTime" ? (
+                      <LeadTimestamp value={getLeadDateTimeValue(lead)} />
+                    ) : column.key === "activity" ? (
+                      <LeadActivityBadges lead={lead} />
+                    ) : column.key === "status" ? (
+                      <StatusSelect
+                        lead={lead}
+                        updateStatusMutation={updateStatusMutation}
+                      />
+                    ) : (
+                      <p
+                        className="truncate pl-1 text-sm font-medium text-[#374151]"
+                        title={String(displayValue)}
+                      >
+                        {displayValue}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
     </>
   );

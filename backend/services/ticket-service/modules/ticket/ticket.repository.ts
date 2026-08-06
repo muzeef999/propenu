@@ -31,7 +31,7 @@ export class TicketRepository {
     return Ticket.findByIdAndDelete(id);
   }
 
-  static async list(query: TicketListQuery) {
+  private static buildFilter(query: Partial<TicketListQuery>) {
     const filter: FilterQuery<TicketDocument> = {};
 
     if (query.q) filter.$text = { $search: query.q };
@@ -44,7 +44,7 @@ export class TicketRepository {
     if (query.assignedOrRequested) {
       filter.$or = [
         { "assignedTo.userId": query.assignedOrRequested },
-        { "requester.userId": query.assignedOrRequested }
+        { "requester.userId": query.assignedOrRequested },
       ];
     }
     if (query.ownedBy) {
@@ -62,9 +62,7 @@ export class TicketRepository {
     if (query.requesterId) filter["requester.userId"] = query.requesterId;
     if (query.requesterEmail) filter["requester.email"] = query.requesterEmail;
     if (query.propertyId) filter.propertyId = query.propertyId;
-    if (query.relatedProjectId) {
-      filter["metadata.relatedProjectId"] = query.relatedProjectId;
-    }
+    if (query.relatedProjectId) filter["metadata.relatedProjectId"] = query.relatedProjectId;
     if (query.tag) filter.tags = query.tag;
     if (query.module) filter["metadata.module"] = query.module;
     if (query.requestType) filter["metadata.requestType"] = query.requestType;
@@ -78,6 +76,11 @@ export class TicketRepository {
       if (query.createdFrom) filter.createdAt.$gte = query.createdFrom;
       if (query.createdTo) filter.createdAt.$lte = query.createdTo;
     }
+
+    return filter;
+  }
+  static async list(query: TicketListQuery) {
+    const filter = TicketRepository.buildFilter(query);
 
     const skip = (query.page - 1) * query.limit;
     const sort = { [query.sortBy]: query.sortOrder === "asc" ? 1 : -1 } as const;
@@ -98,14 +101,24 @@ export class TicketRepository {
     };
   }
 
-  static async summary() {
+  static async summary(query: Partial<TicketListQuery> = {}) {
+    const filter = TicketRepository.buildFilter(query);
+    const overdueFilter = {
+      ...filter,
+      dueAt: { $lt: new Date() },
+      status: { $nin: ["resolved", "closed"] },
+    };
+
     const [byStatus, byPriority, overdue] = await Promise.all([
-      Ticket.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
-      Ticket.aggregate([{ $group: { _id: "$priority", count: { $sum: 1 } } }]),
-      Ticket.countDocuments({
-        dueAt: { $lt: new Date() },
-        status: { $nin: ["resolved", "closed"] },
-      }),
+      Ticket.aggregate([
+        { $match: filter },
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]),
+      Ticket.aggregate([
+        { $match: filter },
+        { $group: { _id: "$priority", count: { $sum: 1 } } },
+      ]),
+      Ticket.countDocuments(overdueFilter),
     ]);
 
     return { byStatus, byPriority, overdue };
