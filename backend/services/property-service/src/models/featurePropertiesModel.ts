@@ -294,11 +294,66 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
       default: "pending",
       index: true,
     },
+    /** Optional while status=draft (builder assignment pending). Required before pending/active. */
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,
       index: true,
+    },
+    builderOnboarding: {
+      enabled: { type: Boolean, default: false, index: true },
+      mode: {
+        type: String,
+        enum: ["existing_builder", "invite_link", "staff_direct", ""],
+        default: "",
+      },
+      assignStatus: {
+        type: String,
+        enum: [
+          "pending",
+          "invited",
+          "opened",
+          "not_opened",
+          "clicked",
+          "interested",
+          "otp_pending",
+          "verified",
+          "rejected",
+          "expired",
+        ],
+        default: "pending",
+        index: true,
+      },
+      inviteId: { type: Schema.Types.ObjectId, ref: "ProjectBuilderInvite" },
+      inviteEmail: { type: String, trim: true, lowercase: true },
+      invitePhone: { type: String, trim: true },
+      emailStatus: { type: String, trim: true },
+      emailUiStatus: { type: String, trim: true, index: true },
+      lastEmailAt: { type: Date },
+      openedAt: { type: Date },
+      clickedAt: { type: Date },
+      verifiedAt: { type: Date },
+      verifiedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      builderSnapshot: {
+        companyName: { type: String },
+        contactName: { type: String },
+        email: { type: String },
+        phone: { type: String },
+      },
+    },
+    /** People handling this specific project (sales/CRM contacts). */
+    projectContacts: {
+      type: [
+        {
+          name: { type: String, required: true, trim: true },
+          phone: { type: String, required: true, trim: true },
+          email: { type: String, trim: true, lowercase: true },
+          role: { type: String, trim: true },
+          isPrimary: { type: Boolean, default: false },
+        },
+      ],
+      default: [],
     },
     /** Exclusive CCE owner (from creator at post time). */
     followUpAssignedTo: {

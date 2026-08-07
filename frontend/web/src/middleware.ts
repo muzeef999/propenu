@@ -12,6 +12,15 @@ const builderRestrictedRoutes = ["/postproperty"];
 export function middleware(req: NextRequest) {
   const token = req.cookies.get("token")?.value;
   const pathname = req.nextUrl.pathname;
+
+  // Public builder invite / onboard links (email CTA) — no login required
+  const isPublicBuilderInviteRoute =
+    pathname.startsWith("/builder/invite") ||
+    pathname.startsWith("/builder/onboard");
+  if (isPublicBuilderInviteRoute) {
+    return NextResponse.next();
+  }
+
   const isProtectedRoleRoute =
     pathname.startsWith("/user") ||
     pathname.startsWith("/agent") ||

@@ -14,8 +14,12 @@ import { authMiddleware } from "../middlewares/authMiddleware";
 import { requirePermission } from "../middlewares/requirePermission";
 import { expirePromotion, promoteProperty, renewPromotion, resetPromotion } from "../controller/promotionController";
 import { uploadMedia } from "../middlewares/multer";
+import builderOnboardingRoute from "./builderOnboardingRoute";
 
 const router = express.Router();
+
+// Draft + builder onboarding (must stay before generic "/:id" routes)
+router.use(builderOnboardingRoute);
 
 const upload = multer({ storage: multer.memoryStorage() });
 

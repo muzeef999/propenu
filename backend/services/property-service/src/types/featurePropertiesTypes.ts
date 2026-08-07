@@ -236,6 +236,44 @@ export interface IFeaturedProject {
     | "rejected";
 
   createdBy?: Types.ObjectId | string;
+  builderOnboarding?: {
+    enabled?: boolean;
+    mode?: "existing_builder" | "invite_link" | "staff_direct" | "";
+    assignStatus?:
+      | "pending"
+      | "invited"
+      | "opened"
+      | "not_opened"
+      | "clicked"
+      | "interested"
+      | "otp_pending"
+      | "verified"
+      | "rejected"
+      | "expired";
+    inviteId?: Types.ObjectId | string;
+    inviteEmail?: string;
+    invitePhone?: string;
+    emailStatus?: string;
+    emailUiStatus?: string;
+    lastEmailAt?: Date;
+    openedAt?: Date;
+    clickedAt?: Date;
+    verifiedAt?: Date;
+    verifiedBy?: Types.ObjectId | string;
+    builderSnapshot?: {
+      companyName?: string;
+      contactName?: string;
+      email?: string;
+      phone?: string;
+    };
+  };
+  projectContacts?: Array<{
+    name: string;
+    phone: string;
+    email?: string;
+    role?: string;
+    isPrimary?: boolean;
+  }>;
   /** Exclusive CCE owner for Client Progress Queue. */
   followUpAssignedTo?: Types.ObjectId | string | null;
   followUpAssignedAt?: Date | null;

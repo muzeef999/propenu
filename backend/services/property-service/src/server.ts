@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import { connectDB } from "./config/db";
 import featurePropertiesRoute from "./routes/featurePropertiesRoute";
+import { builderOnboardingPublicRouter } from "./routes/builderOnboardingRoute";
 import popularOwnerPropertiesRoute from "./routes/popularOwnerPropertiesRoute";
 import highlightProjectsRoute from "./routes/highlightProjectsRoute";
 import residentialRoute from "./routes/residentialRoute";
@@ -67,6 +68,7 @@ async function start() {
     });
 
     app.use("/api/properties/featured-project", featurePropertiesRoute);
+    app.use("/api/properties/public", builderOnboardingPublicRouter);
     app.use("/api/properties/owners-properties", popularOwnerPropertiesRoute);
     app.use("/api/properties/highlight-projects", highlightProjectsRoute);
 

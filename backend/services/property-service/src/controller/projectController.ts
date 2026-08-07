@@ -3,6 +3,7 @@ import FeaturedProject from "../models/featurePropertiesModel";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import mongoose from "mongoose";
 import { canApproveProjectByHierarchy } from "../utils/projectApprovalPolicy";
+import { BuilderOnboardingService } from "../services/builderOnboardingService";
 
 const resolveCreatorMeta = (project: any) => {
   const createdBy = project?.createdBy;
@@ -67,6 +68,17 @@ export const approveProject = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({
         success: false,
         message: "Only pending projects can be approved",
+      });
+    }
+
+    // New draft→onboarding flow: block approve until builder is verified.
+    // Existing projects without builderOnboarding.enabled are unaffected.
+    if (BuilderOnboardingService.isBuilderOnboardingBlocking(project)) {
+      return res.status(400).json({
+        success: false,
+        code: "BUILDER_ONBOARDING_REQUIRED",
+        message:
+          "Builder must be assigned and verified before this project can be approved",
       });
     }
 

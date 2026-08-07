@@ -696,6 +696,7 @@ export const FeaturePropertyService = {
     payload: CreateFeaturePropertyDTO,
     files?: MulterFiles,
     user?: any,
+    options?: { mode?: "draft" | "standard" },
   ) {
     const uploadedPaths = new Set<string>();
 
@@ -715,6 +716,8 @@ export const FeaturePropertyService = {
 
     // Ownership = Select Builder dropdown (payload.createdBy).
     // Actor = logged-in /me user (postedBy) — never overwrite createdBy with actor.
+    // Draft mode allows unassigned builder (createdBy empty) until onboarding completes.
+    const isDraftMode = options?.mode === "draft";
     const selectedOwnerId =
       (payload as any)?.createdBy &&
       mongoose.Types.ObjectId.isValid(String((payload as any).createdBy))
@@ -725,8 +728,8 @@ export const FeaturePropertyService = {
       actorIdRaw && mongoose.Types.ObjectId.isValid(String(actorIdRaw))
         ? String(actorIdRaw)
         : "";
-    const ownerId = selectedOwnerId || actorId;
-    if (!ownerId) {
+    const ownerId = selectedOwnerId || (isDraftMode ? "" : actorId);
+    if (!ownerId && !isDraftMode) {
       throw new Error("createdBy (selected builder) is required");
     }
 
@@ -736,7 +739,9 @@ export const FeaturePropertyService = {
       projectSummary,
       priceFrom,
       priceTo,
-      createdBy: new mongoose.Types.ObjectId(ownerId),
+      ...(ownerId
+        ? { createdBy: new mongoose.Types.ObjectId(ownerId) }
+        : { createdBy: undefined }),
       postedBy: actorId
         ? {
             userId: new mongoose.Types.ObjectId(actorId),
@@ -759,7 +764,21 @@ export const FeaturePropertyService = {
           ]
         : [],
       updateCount: actorId ? 1 : 0,
+      ...(isDraftMode
+        ? {
+            status: "draft",
+            approvalStatus: "pending",
+            builderOnboarding: {
+              enabled: true,
+              mode: "",
+              assignStatus: "pending",
+            },
+          }
+        : {}),
     };
+    if (isDraftMode) {
+      delete toCreate.createdBy;
+    }
     delete toCreate.bhkSummary;
     // Ignore any client-sent postedBy; actor always comes from auth token (/me).
     if (!actorId) delete toCreate.postedBy;

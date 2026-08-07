@@ -1,8 +1,23 @@
 import type { NextConfig } from "next";
 
+const API_PROXY_TARGET = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
+).replace(/\/$/, "");
+
 const nextConfig: NextConfig = {
 
   reactCompiler: true,
+
+  // Invite email links that wrongly hit the web app (/api/properties/public/...)
+  // are proxied to the API gateway so click → project preview still works.
+  async rewrites() {
+    return [
+      {
+        source: "/api/properties/public/:path*",
+        destination: `${API_PROXY_TARGET}/api/properties/public/:path*`,
+      },
+    ];
+  },
 
   async headers() {
     return [
