@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { FeaturedProject } from "@/types";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import { useCity } from "@/hooks/useCity";
@@ -229,46 +229,59 @@ export default function FeaturedProjectsClient() {
     };
   }, [cacheKey, selectedCity, retryKey]);
 
-  const updateScrollState = useCallback(() => {
-    const el = sliderRef.current;
-    if (!el) return;
-
-    setCanScrollLeft(el.scrollLeft > 0);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth);
-  }, []);
+  // Gate: arrows only make sense when there are more than 2 cards.
+  const hasMoreThanTwo = items.length > 2;
 
   useEffect(() => {
-    const el = sliderRef.current;
+    const slider = sliderRef.current;
 
-    if (!el || loading || !items.length) {
+    // Reset when there are no cards, still loading, or ≤2 cards.
+    if (!slider || loading || !hasMoreThanTwo) {
       setCanScrollLeft(false);
       setCanScrollRight(false);
       return;
     }
 
-    updateScrollState();
+    const updateScrollButtons = () => {
+      const maxScrollLeft = slider.scrollWidth - slider.clientWidth;
+      // Left arrow: only after the user has scrolled away from the start.
+      setCanScrollLeft(slider.scrollLeft > 10);
+      // Right arrow: hidden only when fully scrolled to the end.
+      setCanScrollRight(slider.scrollLeft < maxScrollLeft - 10);
+    };
 
-    el.addEventListener("scroll", updateScrollState);
-    window.addEventListener("resize", updateScrollState);
+    // Double-rAF: wait for two paint frames so the DOM has fully reflowed
+    // before measuring scrollWidth (single rAF can fire before layout is done).
+    let frameId: number;
+    const outerFrameId = window.requestAnimationFrame(() => {
+      frameId = window.requestAnimationFrame(updateScrollButtons);
+    });
+
+    slider.addEventListener("scroll", updateScrollButtons, { passive: true });
+    window.addEventListener("resize", updateScrollButtons);
 
     return () => {
-      el.removeEventListener("scroll", updateScrollState);
-      window.removeEventListener("resize", updateScrollState);
+      window.cancelAnimationFrame(outerFrameId);
+      window.cancelAnimationFrame(frameId);
+      slider.removeEventListener("scroll", updateScrollButtons);
+      window.removeEventListener("resize", updateScrollButtons);
     };
-  }, [items, loading, updateScrollState]);
+  }, [items, loading, hasMoreThanTwo]);
 
+  const scrollBy = (dir: "left" | "right") => {
+    const el = sliderRef.current;
+    if (!el) return;
+    const step = Math.floor(el.clientWidth / 2);
+    el.scrollBy({ left: dir === "left" ? -step : step, behavior: "smooth" });
+    // Re-evaluate after the smooth scroll animation (~300 ms) finishes.
+    setTimeout(() => {
+      if (!el) return;
+      const maxScrollLeft = el.scrollWidth - el.clientWidth;
+      setCanScrollLeft(el.scrollLeft > 10);
+      setCanScrollRight(el.scrollLeft < maxScrollLeft - 10);
+    }, 350);
+  };
 
-  const scrollLeft = () =>
-    sliderRef.current?.scrollBy({
-      left: -window.innerWidth / 2,
-      behavior: "smooth",
-    });
-
-  const scrollRight = () =>
-    sliderRef.current?.scrollBy({
-      left: window.innerWidth / 2,
-      behavior: "smooth",
-    });
   const hasItems = items.length > 0;
 
   if (!hasItems) {
@@ -277,52 +290,57 @@ export default function FeaturedProjectsClient() {
 
   return (
     <div className="relative w-full">
-      {/* Left Arrow */}
-
+      {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="headingSideBar">
           <h1 className="text-base font-bold sm:text-2xl truncate">
             Prime Projects
           </h1>
 
-          <p className="mt-1 text-sm text-gray-500 sm:text-base ">
+          <p className="mt-1 text-sm text-gray-500 sm:text-base">
             Stand out for the lifestyle they offer in {selectedCity?.city ?? "Hyderabad"}
           </p>
         </div>
       </div>
 
-      {!loading && hasItems && canScrollLeft && (
-        <button
-          onClick={scrollLeft}
-          aria-label="Scroll left"
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-white rounded-full shadow-md hover:shadow-lg cursor-pointer transition-all duration-300 -translate-x-1/2 hidden md:flex items-center justify-center"
-        >
-          <ArrowDropdownIcon size={20} className="rotate-90" />
-        </button>
-      )}
+      {/* Slider area — own relative wrapper so arrow top-1/2 is scoped here */}
+      <div className="relative">
+        {/* Left arrow */}
+        {!loading && hasItems && canScrollLeft && (
+          <button
+            type="button"
+            aria-label="Scroll left"
+            onClick={() => scrollBy("left")}
+            className="absolute left-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex items-center justify-center bg-white p-2 rounded-full shadow-md hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-green-300"
+          >
+            <ArrowDropdownIcon size={16} color="#26ad5f" className="rotate-90" />
+          </button>
+        )}
 
-      {/* Scrollable Row */}
-      {!loading && hasItems ? (
-        <div
-          ref={sliderRef}
-          className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-1 py-2 snap-x snap-mandatory"
-        >
-          {items.map((project) => (
-            <PrimeProjectCard key={project._id} project={project} />
-          ))}
-        </div>
-      ) : null}
+        {/* Right arrow */}
+        {!loading && hasItems && canScrollRight && (
+          <button
+            type="button"
+            aria-label="Scroll right"
+            onClick={() => scrollBy("right")}
+            className="absolute right-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex items-center justify-center bg-white p-2 rounded-full shadow-md hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-green-300"
+          >
+            <ArrowDropdownIcon size={16} color="#26ad5f" className="rotate-270" />
+          </button>
+        )}
 
-      {/* Right Arrow */}
-      {!loading && hasItems && canScrollRight && (
-        <button
-          onClick={scrollRight}
-          aria-label="Scroll right"
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white p-2 rounded-full shadow-md hover:shadow-lg cursor-pointer transition-all duration-300 translate-x-1/2 hidden md:flex items-center justify-center"
-        >
-          <ArrowDropdownIcon size={20} className="-rotate-90" />
-        </button>
-      )}
+        {/* Scrollable Row */}
+        {!loading && hasItems ? (
+          <div
+            ref={sliderRef}
+            className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-1 py-2 snap-x snap-mandatory"
+          >
+            {items.map((project) => (
+              <PrimeProjectCard key={project._id} project={project} />
+            ))}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

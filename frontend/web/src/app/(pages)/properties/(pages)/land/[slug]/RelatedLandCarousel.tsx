@@ -27,7 +27,7 @@ const RelatedLandCarousel = ({ projects }: RelatedLandCarouselProps) => {
         onClick={() => scrollBy("left")}
         className="absolute left-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex items-center justify-center bg-white p-2 rounded-full shadow-md hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-green-300"
       >
-        <ArrowDropdownIcon size={16} className="rotate-90" />
+        <ArrowDropdownIcon size={16} color="#26ad5f" className="rotate-90" />
       </button>
       <div
         ref={sliderRef}
@@ -45,7 +45,7 @@ const RelatedLandCarousel = ({ projects }: RelatedLandCarouselProps) => {
         onClick={() => scrollBy("right")}
         className="absolute right-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex items-center justify-center bg-white p-2 rounded-full shadow-md hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-green-300"
       >
-        <ArrowDropdownIcon size={16} className="rotate-270" />
+        <ArrowDropdownIcon size={16} color="#26ad5f" className="rotate-270" />
       </button>
     </div>
   );

@@ -261,7 +261,7 @@ const DiscoverRealestate = () => {
                                 onClick={() => scrollTabs("left")}
                                 className="absolute left-0 top-1/2 z-20 hidden -translate-y-1/2 items-center justify-center rounded-full bg-white p-2 shadow-md transition hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-green-300 sm:inline-flex"
                             >
-                                <ArrowDropdownIcon size={16} className="rotate-90" />
+                                <ArrowDropdownIcon size={16} color="#26ad5f" className="rotate-90" />
                             </button>
                         )}
 
@@ -296,7 +296,7 @@ const DiscoverRealestate = () => {
                                 onClick={() => scrollTabs("right")}
                                 className="absolute right-0 top-1/2 z-20 hidden -translate-y-1/2 items-center justify-center rounded-full bg-white p-2 shadow-md transition hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-green-300 sm:inline-flex"
                             >
-                                <ArrowDropdownIcon size={16} className="rotate-270" />
+                                <ArrowDropdownIcon size={16} color="#26ad5f" className="rotate-270" />
                             </button>
                         )}
                     </div>

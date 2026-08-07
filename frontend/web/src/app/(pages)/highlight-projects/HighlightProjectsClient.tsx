@@ -158,7 +158,6 @@ export default function HighlightProjectsClient() {
   const [loading, setLoading] = useState(() => !getHomeSectionCache(cacheKey));
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const [hasHiddenProjects, setHasHiddenProjects] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
@@ -211,49 +210,60 @@ export default function HighlightProjectsClient() {
     };
   }, [cacheKey, selectedCity, retryKey]);
 
+  // Gate: arrows only make sense when there are more than 4 cards.
+  const hasMoreThanFour = items.length > 4;
+
   useEffect(() => {
     const slider = sliderRef.current;
-    if (!slider || loading || items.length === 0) {
+
+    // Reset when there are no cards, still loading, or ≤4 cards.
+    if (!slider || loading || !hasMoreThanFour) {
       setCanScrollLeft(false);
       setCanScrollRight(false);
-      setHasHiddenProjects(false);
       return;
     }
 
     const updateScrollButtons = () => {
       const maxScrollLeft = slider.scrollWidth - slider.clientWidth;
-
-      setCanScrollLeft(slider.scrollLeft > 1);
-      setCanScrollRight(slider.scrollLeft < maxScrollLeft - 1);
-      setHasHiddenProjects(maxScrollLeft > 1);
+      // Left arrow: only after the user has scrolled away from the start.
+      setCanScrollLeft(slider.scrollLeft > 10);
+      // Right arrow: hidden only when fully scrolled to the end.
+      setCanScrollRight(slider.scrollLeft < maxScrollLeft - 10);
     };
 
-    const frameId = window.requestAnimationFrame(updateScrollButtons);
-    slider.addEventListener("scroll", updateScrollButtons);
+    // Double-rAF: wait for two paint frames so the DOM has fully reflowed
+    // before measuring scrollWidth (single rAF can fire before layout is done).
+    let frameId: number;
+    const outerFrameId = window.requestAnimationFrame(() => {
+      frameId = window.requestAnimationFrame(updateScrollButtons);
+    });
+
+    slider.addEventListener("scroll", updateScrollButtons, { passive: true });
     window.addEventListener("resize", updateScrollButtons);
 
     return () => {
+      window.cancelAnimationFrame(outerFrameId);
       window.cancelAnimationFrame(frameId);
       slider.removeEventListener("scroll", updateScrollButtons);
       window.removeEventListener("resize", updateScrollButtons);
     };
-  }, [items, loading]);
+  }, [items, loading, hasMoreThanFour]);
 
-  const scrollLeft = () =>
-    sliderRef.current?.scrollBy({
-      left: -320,
-      behavior: "smooth",
-    });
-
-    
-
-  const scrollRight = () =>
-    sliderRef.current?.scrollBy({
-      left: 320,
-      behavior: "smooth",
-    });
+  const scrollBy = (dir: "left" | "right") => {
+    const el = sliderRef.current;
+    if (!el) return;
+    const step = Math.floor(el.clientWidth / 2);
+    el.scrollBy({ left: dir === "left" ? -step : step, behavior: "smooth" });
+    // Re-evaluate after the smooth scroll animation (~300 ms) finishes.
+    setTimeout(() => {
+      if (!el) return;
+      const maxScrollLeft = el.scrollWidth - el.clientWidth;
+      setCanScrollLeft(el.scrollLeft > 10);
+      setCanScrollRight(el.scrollLeft < maxScrollLeft - 10);
+    }, 350);
+  };
   const hasItems = items.length > 0;
-  const showViewAll = !loading && hasItems && hasHiddenProjects;
+  const showViewAll = !loading && hasMoreThanFour;
 
   return (
     <div className="relative w-full">
@@ -280,51 +290,52 @@ export default function HighlightProjectsClient() {
         )}
       </div>
 
-      {/* Navigation Buttons */}
-      {/* Left button */}
-      {!loading && hasItems && canScrollLeft && (
-        <button
-          onClick={scrollLeft}
-          aria-label="Scroll left"
-          className="hidden md:flex absolute left-2 lg:-left-3 top-1/2 -translate-y-1/2 z-20 bg-white p-2 rounded-full shadow-md hover:shadow-xl transition-all duration-300"
-        >
-          <ArrowDropdownIcon size={16} className="rotate-90" />
-        </button>
-      )}
+      {/* Slider area — own relative wrapper so arrow top-1/2 is scoped here */}
+      <div className="relative">
+        {/* Left arrow */}
+        {!loading && hasItems && canScrollLeft && (
+          <button
+            type="button"
+            aria-label="Scroll left"
+            onClick={() => scrollBy("left")}
+            className="absolute left-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex items-center justify-center bg-white p-2 rounded-full shadow-md hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-green-300"
+          >
+            <ArrowDropdownIcon size={16} color="#26ad5f" className="rotate-90" />
+          </button>
+        )}
 
-      {/* Right button */}
-      {!loading && hasItems && canScrollRight && (
-        <button
-          onClick={scrollRight}
-          aria-label="Scroll right"
-          className=" hidden md:flex absolute right-2 lg:-right-3 top-1/2 -translate-y-1/2 z-20 h-9 w-9 lg:h-10 lg:w-10 items-center justify-center rounded-full bg-white shadow-md transition-all duration-300 hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-300"
-        >
-          <ArrowDropdownIcon size={16} className="rotate-270" />
-        </button>
-      )}
+        {/* Right arrow */}
+        {!loading && hasItems && canScrollRight && (
+          <button
+            type="button"
+            aria-label="Scroll right"
+            onClick={() => scrollBy("right")}
+            className="absolute -right-1 top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex items-center justify-center bg-white p-2 rounded-full shadow-md hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-green-300"
+          >
+            <ArrowDropdownIcon size={16} color="#26ad5f" className="rotate-270" />
+          </button>
+        )}
 
- 
-
-      {/* Scrollable Container */}
-      {loading ? (
-        <div
-          ref={sliderRef}
-          className="flex gap-4 sm:gap-6 overflow-x-auto scroll-smooth no-scrollbar pb-6 snap-x snap-mandatory px-1"
-        >
-          <HomeSectionSkeleton variant="highlight" count={3} />
-        </div>
-      ) : hasItems ? (
-        <div
-          ref={sliderRef}
-          className="flex gap-4 sm:gap-6 overflow-x-auto scroll-smooth no-scrollbar pb-6 snap-x snap-mandatory px-1"
-        >
-          {items.map((project) => (
-            <HighlightProjectCard key={project._id} project={project} />
-          ))}
-        </div>
-      ) : (
-        <Topselllingcomingsoon />
-      )}
+        {/* Scrollable Container */}
+        {loading ? (
+          <div
+            className="flex gap-4 sm:gap-6 overflow-x-auto scroll-smooth no-scrollbar pb-6 snap-x snap-mandatory px-1"
+          >
+            <HomeSectionSkeleton variant="highlight" count={3} />
+          </div>
+        ) : hasItems ? (
+          <div
+            ref={sliderRef}
+            className="flex gap-4 sm:gap-6 overflow-x-auto scroll-smooth no-scrollbar pb-6 snap-x snap-mandatory px-1"
+          >
+            {items.map((project) => (
+              <HighlightProjectCard key={project._id} project={project} />
+            ))}
+          </div>
+        ) : (
+          <Topselllingcomingsoon />
+        )}
+      </div>
     </div>
   );
 }
