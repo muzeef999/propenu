@@ -257,7 +257,7 @@ export default function BlogsClient({
               disabled={!canScrollLeft}
               className="absolute -left-5 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-700 shadow-md transition disabled:cursor-not-allowed disabled:opacity-0 lg:flex"
             >
-              <ArrowDropdownIcon size={16} className="rotate-90" />
+              <ArrowDropdownIcon size={16} color="#26ad5f" className="rotate-90" />
             </button>
 
             <button
@@ -267,7 +267,7 @@ export default function BlogsClient({
               disabled={!canScrollRight}
               className="absolute -right-5 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-700 shadow-md transition disabled:cursor-not-allowed disabled:opacity-0 lg:flex"
             >
-              <ArrowDropdownIcon size={16} className="rotate-270" />
+              <ArrowDropdownIcon size={16} color="#26ad5f" className="rotate-270" />
             </button>
           </>
         )}

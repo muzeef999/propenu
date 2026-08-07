@@ -278,8 +278,10 @@ const Page = () => {
         {filteredProperties.length ? (
           filteredProperties.map((property) => {
             const image = property.gallery?.[0]?.url || "/placeholder.jpg";
-            const isDraft =
-              String(property.status ?? "").toLowerCase() === "draft";
+            const statusLower = String(property.status ?? "").toLowerCase();
+            const isActive = statusLower === "active";
+            const isDraft = statusLower === "draft";
+            const isPending = statusLower === "pending";
             const propertyCategory =
               TAB_KEY_MAP[activeTab] ?? "residential";
 
@@ -328,8 +330,17 @@ const Page = () => {
                     </div>
 
                     {/* Status */}
-                    <span className="self-start sm:self-auto inline-block rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700 capitalize whitespace-nowrap">
-                      {property.status}
+                    <span
+                      className={`self-start sm:self-auto inline-block rounded-full px-3 py-1 text-xs font-medium capitalize whitespace-nowrap ${isActive
+                          ? "bg-emerald-100 text-emerald-700"
+                          : isDraft
+                            ? "bg-amber-100 text-amber-700"
+                            : isPending
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-gray-100 text-gray-600"
+                        }`}
+                    >
+                      {property.status ?? "Draft"}
                     </span>
                   </div>
 
@@ -376,6 +387,25 @@ const Page = () => {
                     </p>
 
                   </div>
+
+                  {/* Non-Active Status Message Banner at Bottom */}
+                  {!isActive && (
+                    <div className="mt-3">
+                      {isDraft ? (
+                        <span className="inline-block rounded-md bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 border border-amber-200">
+                          Draft — Complete listing
+                        </span>
+                      ) : isPending ? (
+                        <span className="inline-block rounded-md bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 border border-blue-200">
+                          Under Review — Pending
+                        </span>
+                      ) : (
+                        <span className="inline-block rounded-md bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200">
+                          Listing Inactive
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Right Column */}
@@ -445,29 +475,31 @@ const Page = () => {
                     )}
                   </div>
 
-                  {/* Stats Section */}
-                  <div className="text-xs sm:text-sm text-gray-600 text-left md:text-right space-y-1 md:pr-2">
-                    <p>
-                      Views:{" "}
-                      <span className="font-medium text-gray-800">
-                        {property.meta?.views ?? 0}
-                      </span>
-                    </p>
+                  {/* Stats Section (only for Active properties) */}
+                  {isActive && (
+                    <div className="text-xs sm:text-sm text-gray-600 text-left md:text-right space-y-1 md:pr-2">
+                      <p>
+                        Views:{" "}
+                        <span className="font-medium text-gray-800">
+                          {property.meta?.views ?? 0}
+                        </span>
+                      </p>
 
-                    <p>
-                      Enquiries:{" "}
-                      <span className="font-medium text-gray-800">
-                        {property.meta?.inquiries ?? property.meta?.enquiries ?? 0}
-                      </span>
-                    </p>
+                      <p>
+                        Enquiries:{" "}
+                        <span className="font-medium text-gray-800">
+                          {property.meta?.inquiries ?? property.meta?.enquiries ?? 0}
+                        </span>
+                      </p>
 
-                    <ResponsesButton
-                      propertyId={property._id}
-                      count={
-                        property.meta?.inquiries ?? property.meta?.enquiries ?? 0
-                      }
-                    />
-                  </div>
+                      <ResponsesButton
+                        propertyId={property._id}
+                        count={
+                          property.meta?.inquiries ?? property.meta?.enquiries ?? 0
+                        }
+                      />
+                    </div>
+                  )}
 
                 </div>
               </Link>

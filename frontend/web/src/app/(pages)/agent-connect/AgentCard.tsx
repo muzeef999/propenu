@@ -30,7 +30,6 @@ export default function AgentsList() {
   const [loading, setLoading] = useState(() => !getHomeSectionCache(cacheKey));
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const [hasHiddenAgents, setHasHiddenAgents] = useState(false);
 
   useEffect(() => {
     if (!selectedCity) return;
@@ -75,51 +74,62 @@ export default function AgentsList() {
     };
   }, [cacheKey, selectedCity]);
 
+  // Gate: arrows only make sense when there are more than 4 cards.
+  const hasMoreThanFour = agents.length > 4;
+
   useEffect(() => {
     const slider = sliderRef.current;
-    if (!slider || loading || agents.length === 0) {
+
+    // Reset when there are no cards, still loading, or ≤4 cards.
+    if (!slider || loading || !hasMoreThanFour) {
       setCanScrollLeft(false);
       setCanScrollRight(false);
-      setHasHiddenAgents(false);
       return;
     }
 
     const updateScrollButtons = () => {
       const maxScrollLeft = slider.scrollWidth - slider.clientWidth;
-
-      setCanScrollLeft(slider.scrollLeft > 1);
-      setCanScrollRight(slider.scrollLeft < maxScrollLeft - 1);
-      setHasHiddenAgents(maxScrollLeft > 1);
+      // Left arrow: only after the user has scrolled away from the start.
+      setCanScrollLeft(slider.scrollLeft > 10);
+      // Right arrow: hidden only when fully scrolled to the end.
+      setCanScrollRight(slider.scrollLeft < maxScrollLeft - 10);
     };
 
-    setCanScrollLeft(false);
-    slider.scrollLeft = 0;
+    // Double-rAF: wait for two paint frames so the DOM has fully reflowed
+    // before measuring scrollWidth (single rAF can fire before layout is done).
+    let frameId: number;
+    const outerFrameId = window.requestAnimationFrame(() => {
+      frameId = window.requestAnimationFrame(updateScrollButtons);
+    });
 
-    const frameId = window.requestAnimationFrame(updateScrollButtons);
-    slider.addEventListener("scroll", updateScrollButtons);
+    slider.addEventListener("scroll", updateScrollButtons, { passive: true });
     window.addEventListener("resize", updateScrollButtons);
 
     return () => {
+      window.cancelAnimationFrame(outerFrameId);
       window.cancelAnimationFrame(frameId);
       slider.removeEventListener("scroll", updateScrollButtons);
       window.removeEventListener("resize", updateScrollButtons);
     };
-  }, [agents, loading]);
+  }, [agents, loading, hasMoreThanFour]);
 
-  const scrollLeft = () =>
-    sliderRef.current?.scrollBy({
-      left: -(sliderRef.current.clientWidth / 4),
-      behavior: "smooth",
-    });
+  const scrollBy = (dir: "left" | "right") => {
+    const el = sliderRef.current;
+    if (!el) return;
+    const step = Math.floor(el.clientWidth / 2);
+    el.scrollBy({ left: dir === "left" ? -step : step, behavior: "smooth" });
+    // Re-evaluate after the smooth scroll animation (~300 ms) finishes.
+    setTimeout(() => {
+      if (!el) return;
+      const maxScrollLeft = el.scrollWidth - el.clientWidth;
+      setCanScrollLeft(el.scrollLeft > 10);
+      setCanScrollRight(el.scrollLeft < maxScrollLeft - 10);
+    }, 350);
+  };
 
-  const scrollRight = () =>
-    sliderRef.current?.scrollBy({
-      left: sliderRef.current.clientWidth / 4,
-      behavior: "smooth",
-    });
   const hasItems = agents.length > 0;
-  const showViewAll = !loading && hasItems && hasHiddenAgents;
-
+  // "View All" link is shown only when there are overflow cards.
+  const showViewAll = !loading && hasMoreThanFour;
 
   return (
     <div className="relative w-full">
@@ -148,51 +158,55 @@ export default function AgentsList() {
         )}
       </div>
 
-      {/* Navigation Buttons */}
-      {!loading && hasItems && canScrollLeft && (
-        <button
-          type="button"
-          onClick={scrollLeft}
-          aria-label="Scroll left"
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex bg-white p-2 rounded-full shadow-md hover:shadow-xl cursor-pointer transition-all duration-300"
-        >
-          <ArrowDropdownIcon size={16} className="rotate-90" />
-        </button>
-      )}
+      {/* Slider area — own relative wrapper so arrow top-1/2 is scoped here */}
+      <div className="relative">
+        {/* Left arrow */}
+        {!loading && hasItems && canScrollLeft && (
+          <button
+            type="button"
+            aria-label="Scroll left"
+            onClick={() => scrollBy("left")}
+            className="absolute left-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex items-center justify-center bg-white p-2 rounded-full shadow-md hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-green-300"
+          >
+            <ArrowDropdownIcon size={16} color="#26ad5f" className="rotate-90" />
+          </button>
+        )}
 
-      {!loading && hasItems && canScrollRight && (
-        <button
-          type="button"
-          onClick={scrollRight}
-          aria-label="Scroll right"
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex bg-white p-2 rounded-full shadow-md hover:shadow-xl cursor-pointer transition-all duration-300"
-        >
-          <ArrowDropdownIcon size={16} className="-rotate-90" />
-        </button>
-      )}
+        {/* Right arrow */}
+        {!loading && hasItems && canScrollRight && (
+          <button
+            type="button"
+            aria-label="Scroll right"
+            onClick={() => scrollBy("right")}
+            className="absolute right-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex items-center justify-center bg-white p-2 rounded-full shadow-md hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-green-300"
+          >
+            <ArrowDropdownIcon size={16} color="#26ad5f" className="rotate-270" />
+          </button>
+        )}
 
-      {/* Scrollable Container */}
-      {loading ? (
-        <div
-          ref={sliderRef}
-          className="flex gap-3 overflow-x-auto scroll-smooth no-scrollbar pb-8 pt-2 snap-x snap-mandatory px-2 sm:px-3"
-        >
-          <HomeSectionSkeleton variant="agent" count={4} />
-        </div>
-      ) : hasItems ? (
-        <div
-          ref={sliderRef}
-          className="flex gap-3 overflow-x-auto scroll-smooth no-scrollbar pb-8 pt-2 snap-x snap-mandatory px-2 sm:px-3"
-        >
-          {agents.map((agent) => (
-            <div key={agent._id} className="w-[82vw] snap-start shrink-0 px-1 py-1 sm:w-auto sm:basis-[calc((100%-12px)/2)] lg:basis-[calc((100%-36px)/4)]">
-              <AgentCard data={agent} />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <AgentsComingSoon city={selectedCity?.city} state={selectedCity?.state} />
-      )}
+        {/* Scrollable Container */}
+        {loading ? (
+          <div className="flex gap-3 overflow-x-auto scroll-smooth no-scrollbar pb-8 pt-2 px-2 sm:px-3">
+            <HomeSectionSkeleton variant="agent" count={4} />
+          </div>
+        ) : hasItems ? (
+          <div
+            ref={sliderRef}
+            className="flex gap-3.5 overflow-x-auto scroll-smooth no-scrollbar pb-8 pt-2 px-2 sm:px-3"
+          >
+            {agents.map((agent) => (
+              <div
+                key={agent._id}
+                className="w-[calc(50%-6px)] sm:w-[calc(33.333%-8px)] md:w-[calc(33.333%-8px)] lg:w-[calc(25%-9px)] shrink-0 flex flex-col"
+              >
+                <AgentCard data={agent} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <AgentsComingSoon city={selectedCity?.city} state={selectedCity?.state} />
+        )}
+      </div>
     </div>
   );
 }
@@ -200,10 +214,10 @@ export default function AgentsList() {
 // Agent Card Component
 function AgentCard({ data }: { data: AgentConnect }) {
   return (
-    <Link href={`/agent-connect/${data.slug}`}>
-      <div className="card w-full">
+    <Link href={`/agent-connect/${data.slug}`} className="block h-full w-full min-w-0">
+      <div className="card w-full h-full flex flex-col justify-between min-w-0 overflow-hidden">
         {/* Banner */}
-        <div className="h-28 relative ">
+        <div className="h-28 relative shrink-0">
           <Image
             src={data.coverImage?.url || "/placeholder.jpg"}
             alt="Banner"
@@ -230,49 +244,27 @@ function AgentCard({ data }: { data: AgentConnect }) {
         </div>
 
         {/* Content */}
-        <div className="pt-12 pb-5 px-5 flex flex-col justify-between min-h-[200px]">
+        <div className="pt-12 pb-5 px-5 flex flex-col justify-between grow min-w-0">
           {/* Title + Headline */}
-          <div>
-            <h2 className="text-lg font-bold text-gray-900 leading-tight">
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-gray-900 leading-tight truncate">
               {data.name}
             </h2>
-            <p className="text-sm font-medium text-green-600">
+            <p className="text-sm font-medium text-green-600 truncate min-h-[20px]">
               {data.agencyName}
             </p>
 
-            <p className="text-sm text-gray-500 mt-2 leading-snug line-clamp-2 truncate">
-              {data.bio}
-            </p>
+            {data.bio ? (
+              <p className="text-sm text-gray-500 mt-2 leading-snug line-clamp-2">
+                {data.bio}
+              </p>
+            ) : null}
 
-            <p className="text-sm text-gray-500 mt-2 truncate flex items-center">
-              <MdLocationPin className="mr-1 text-gray-400" size={18} />
-              {data.areasServed?.join(", ")}
+            <p className="text-sm text-gray-500 mt-2 flex items-center min-h-[24px] min-w-0">
+              <MdLocationPin className="mr-1 text-gray-400 shrink-0" size={18} />
+              <span className="truncate min-w-0 block">{data.areasServed?.join(", ") || ""}</span>
             </p>
           </div>
-
-          {/* Stats */}
-          {/* <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
-            <div className="text-center">
-              <p className="text-xl font-medium text-green-600 leading-none">
-                {data.stats?.publishedCount}
-              </p>
-              <p className="text-sm text-gray-500 mt-1">For Sale</p>
-            </div>
-
-            <div className="text-center">
-              <p className="text-xl font-medium text-green-600 leading-none">
-                {data.stats?.totalProperties}
-              </p>
-              <p className="text-sm text-gray-500 mt-1">Total properties</p>
-            </div>
-
-            <div className="text-center">
-              <p className="text-xl font-medium text-green-600 leading-none">
-                {data.dealsClosed}
-              </p>
-              <p className="text-sm text-gray-500 mt-1">Deal Closed</p>
-            </div>
-          </div> */}
         </div>
       </div>
     </Link>
