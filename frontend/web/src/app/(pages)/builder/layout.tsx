@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 
 export default function AccountLayout({
@@ -7,6 +8,16 @@ export default function AccountLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname() || "";
+  // Invite/onboard must feel like continuing inside the email — no builder sidebar
+  const isInviteExperience =
+    pathname.startsWith("/builder/onboard") ||
+    pathname.startsWith("/builder/invite");
+
+  if (isInviteExperience) {
+    return <div className="min-h-screen bg-[#eef1f4]">{children}</div>;
+  }
+
   return (
     <div className="container mx-auto mb-4 min-h-screen lg:flex lg:items-start">
       <Sidebar />

@@ -32,23 +32,43 @@ const RESERVED_HIERARCHY_ROLE_CANONS = new Set([
   "creative_team",
   "performance_marketing",
 ]);
-/** CCE + legacy aliases: Super Admin may activate / deactivate / delete like custom roles. */
-const CUSTOMER_CARE_LIFECYCLE_ROLE_NAMES = new Set([
-  "customer_care",
-  "customer_care_executive",
-  "customer_care_executives",
+/** Consumer / marketplace roles — never permanently deleted */
+const NON_DELETABLE_PLATFORM_ROLE_NAMES = new Set([
+  "super_admin",
+  "user",
+  "builder",
+  "builder_staff",
+  "agent",
 ]);
 
-const canManageRoleLifecycle = (role: {
-  name?: string | null;
-  roleType?: string | null;
-  isProtected?: boolean | null;
-}) => {
+/**
+ * Super Admin may permanently delete any dashboard/hierarchy/custom role
+ * (except super_admin + marketplace account roles). Safe transfer is enforced in deleteRole.
+ */
+const canManageRoleLifecycle = (
+  role: {
+    name?: string | null;
+    roleType?: string | null;
+    isProtected?: boolean | null;
+  },
+  actorRoleName?: string | null,
+) => {
   if (!role?.name || role.isProtected) return false;
   const name = normalizeRoleName(role.name);
-  if (SYSTEM_ROLE_NAMES.has(name) || PROTECTED_ROLE_NAMES.has(name)) return false;
+  if (NON_DELETABLE_PLATFORM_ROLE_NAMES.has(name) || PROTECTED_ROLE_NAMES.has(name)) {
+    return false;
+  }
+
+  const actor = normalizeRoleName(String(actorRoleName || ""));
+  if (actor === "super_admin") return true;
+
+  // Non–super-admin: keep legacy custom / CCE-only delete policy
   if (role.roleType === "custom") return true;
-  return CUSTOMER_CARE_LIFECYCLE_ROLE_NAMES.has(name);
+  return (
+    name === "customer_care" ||
+    name === "customer_care_executive" ||
+    name === "customer_care_executives"
+  );
 };
 
 const normalizePermissions = (permissions: unknown[]) =>
@@ -462,6 +482,18 @@ export const updateRoleStatus = async (req: AuthRequest, res: Response) => {
     if (rejectProtectedRoleForRegionalManager(req, res, existingRole.name)) return;
     if (rejectRoleOutsideManagementScope(req, res, existingRole.name)) return;
 
+    const roleName = normalizeRoleName(existingRole.name);
+    // Super Admin may toggle any dashboard role; never toggle super_admin / marketplace roles
+    if (
+      existingRole.isProtected ||
+      PROTECTED_ROLE_NAMES.has(roleName) ||
+      NON_DELETABLE_PLATFORM_ROLE_NAMES.has(roleName)
+    ) {
+      return res.status(403).json({
+        message: "Protected platform roles cannot be activated or deactivated",
+      });
+    }
+
     existingRole.isActive = isActive;
     await existingRole.save();
 
@@ -480,6 +512,7 @@ export const updateRoleStatus = async (req: AuthRequest, res: Response) => {
 export const deleteRole = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
+    const transferToRoleId = String(req.body?.transferToRoleId || "").trim();
 
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid role id" });
@@ -490,9 +523,10 @@ export const deleteRole = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: "Role not found" });
     }
 
-    if (!canManageRoleLifecycle(role)) {
+    if (!canManageRoleLifecycle(role, req.user?.roleName)) {
       return res.status(403).json({
-        message: "System and protected roles cannot be deleted",
+        message:
+          "This role cannot be deleted. Super Admin can delete dashboard roles only after safe user transfer.",
       });
     }
 
@@ -504,20 +538,83 @@ export const deleteRole = async (req: AuthRequest, res: Response) => {
     }
 
     const assignedUsers = await User.countDocuments({ roleId: role._id });
-    if (assignedUsers > 0) {
-      return res.status(409).json({
-        code: "ROLE_IN_USE",
-        assignedUsers,
-        message: `This role is assigned to ${assignedUsers} ${assignedUsers === 1 ? "user" : "users"}. Reassign them before deleting the role.`,
-      });
+    const childRoles = await Role.countDocuments({ parentRoleId: role._id });
+    const needsTransfer = assignedUsers > 0 || childRoles > 0;
+
+    let transferRole: any = null;
+    if (needsTransfer) {
+      if (!transferToRoleId || !mongoose.Types.ObjectId.isValid(transferToRoleId)) {
+        return res.status(400).json({
+          code: "TRANSFER_ROLE_REQUIRED",
+          assignedUsers,
+          childRoles,
+          message:
+            "Select a transfer role to safely move assigned users and child roles before deletion",
+        });
+      }
+      if (String(transferToRoleId) === String(role._id)) {
+        return res.status(400).json({
+          message: "Transfer role must be different from the role being deleted",
+        });
+      }
+
+      transferRole = await Role.findById(transferToRoleId);
+      if (!transferRole) {
+        return res.status(404).json({ message: "Transfer role not found" });
+      }
+      if (transferRole.isActive === false) {
+        return res.status(409).json({
+          message: "Transfer role must be active",
+        });
+      }
+      const transferName = normalizeRoleName(transferRole.name);
+      // Allow transfer onto admin / hierarchy / custom — never onto marketplace consumer roles
+      if (
+        transferName === "user" ||
+        transferName === "builder" ||
+        transferName === "builder_staff" ||
+        transferName === "agent"
+      ) {
+        return res.status(400).json({
+          message: "Cannot transfer dashboard users onto marketplace account roles",
+        });
+      }
+      if (transferName === "super_admin" && normalizeRoleName(role.name) !== "admin") {
+        // Prefer not dumping whole teams onto super_admin unless deleting admin
+        return res.status(400).json({
+          message: "Choose a normal dashboard role for transfer (not Super Admin)",
+        });
+      }
     }
 
-    const childRoles = await Role.countDocuments({ parentRoleId: role._id });
-    if (childRoles > 0) {
+    let transferredUsers = 0;
+    let reparentedChildren = 0;
+
+    if (transferRole && assignedUsers > 0) {
+      const move = await User.updateMany(
+        { roleId: role._id },
+        { $set: { roleId: transferRole._id } },
+      );
+      transferredUsers = move.modifiedCount || 0;
+    }
+
+    if (transferRole && childRoles > 0) {
+      const reparent = await Role.updateMany(
+        { parentRoleId: role._id },
+        { $set: { parentRoleId: transferRole._id } },
+      );
+      reparentedChildren = reparent.modifiedCount || 0;
+    }
+
+    // Final safety check — never leave orphaned assignments
+    const remainingUsers = await User.countDocuments({ roleId: role._id });
+    const remainingChildren = await Role.countDocuments({ parentRoleId: role._id });
+    if (remainingUsers > 0 || remainingChildren > 0) {
       return res.status(409).json({
-        code: "ROLE_HAS_CHILDREN",
-        childRoles,
-        message: `This role has ${childRoles} child ${childRoles === 1 ? "role" : "roles"}. Reassign or delete the child roles first.`,
+        code: "ROLE_STILL_IN_USE",
+        assignedUsers: remainingUsers,
+        childRoles: remainingChildren,
+        message: "Could not finish safe transfer. Role was not deleted.",
       });
     }
 
@@ -525,7 +622,13 @@ export const deleteRole = async (req: AuthRequest, res: Response) => {
     return res.json({
       success: true,
       deletedRole: { id: role._id, name: role.name, label: role.label },
-      message: `Role '${role.label}' deleted successfully`,
+      transferredUsers,
+      reparentedChildren,
+      transferToRoleId: transferRole ? String(transferRole._id) : null,
+      message:
+        transferredUsers > 0 || reparentedChildren > 0
+          ? `Role '${role.label}' deleted after safely transferring ${transferredUsers} user(s) and ${reparentedChildren} child role(s)`
+          : `Role '${role.label}' deleted successfully`,
     });
   } catch (err: any) {
     return res.status(500).json({

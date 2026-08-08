@@ -64,7 +64,8 @@ function genTrackingId() {
 }
 
 function genOtp() {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  // 4-digit OTP (matches user-service / invite UI)
+  return String(Math.floor(Math.random() * 10000)).padStart(4, "0");
 }
 
 function normalizeEmail(email?: string) {
@@ -429,12 +430,18 @@ export const BuilderOnboardingService = {
     const openPixelUrl = `${apiPublicBase()}/api/properties/public/email/open/${trackingId}.gif`;
     const directPreview = `${publicWebBase()}/project/${project!.slug}?invite=${rawToken}`;
 
+    const locationHint = [project!.locality, project!.city, project!.state]
+      .filter(Boolean)
+      .join(", ");
+
     const html = buildBuilderInviteEmailHtml({
       previewUrl,
       onboardUrl,
       openPixelUrl,
       projectTitle: project!.title,
       companyHint: input.companyName || "",
+      locationHint,
+      heroImageUrl: (project as any).heroImage || "",
     });
 
     try {

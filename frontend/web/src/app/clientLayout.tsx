@@ -18,6 +18,8 @@ import { getFcmToken } from "@/utilies/getFcmToken";
 const HIDE_LAYOUT_ROUTES = [
   "/prime",
   "/postproperty",
+  "/builder/onboard",
+  "/builder/invite",
 ];
 
 

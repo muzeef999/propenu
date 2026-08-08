@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import EmailOnboardingShell from "@/components/builder/EmailOnboardingShell";
 
 const apiBase = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(
   /\/$/,
@@ -11,7 +12,7 @@ const apiBase = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").rep
 /**
  * Invite email landing:
  * 1) track click via API
- * 2) redirect to project selling preview page (or onboard form)
+ * 2) redirect into email-styled onboard (Approve) or project preview
  */
 export default function BuilderInviteClickPage() {
   const params = useParams<{ trackingId: string }>();
@@ -33,7 +34,6 @@ export default function BuilderInviteClickPage() {
 
     (async () => {
       try {
-        // Prefer JSON resolve endpoint (token-based) for slug + tracking
         const res = await fetch(
           `${apiBase}/api/properties/public/builder-invite/${encodeURIComponent(token)}`,
           { cache: "no-store" },
@@ -43,7 +43,6 @@ export default function BuilderInviteClickPage() {
           throw new Error(json?.error || "Invite link is invalid or expired");
         }
 
-        // Also mark click via tracking id (best-effort)
         fetch(
           `${apiBase}/api/properties/public/builder-invite/${encodeURIComponent(trackingId)}/click?token=${encodeURIComponent(token)}&to=${encodeURIComponent(to)}`,
           { redirect: "manual", cache: "no-store" },
@@ -52,13 +51,15 @@ export default function BuilderInviteClickPage() {
         if (cancelled) return;
 
         const slug = json?.data?.project?.slug;
-        if (to === "onboard") {
+        if (to === "onboard" || to === "approve") {
           router.replace(`/builder/onboard/${encodeURIComponent(token)}`);
           return;
         }
 
         if (!slug) {
-          throw new Error("Project preview is not available for this invite");
+          // Preview unavailable — continue in onboarding experience
+          router.replace(`/builder/onboard/${encodeURIComponent(token)}`);
+          return;
         }
 
         router.replace(
@@ -78,10 +79,12 @@ export default function BuilderInviteClickPage() {
 
   if (error) {
     return (
-      <main className="min-h-[60vh] flex items-center justify-center px-4">
-        <div className="max-w-md w-full rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
-          <h1 className="text-lg font-bold text-red-700 mb-2">Invite link issue</h1>
-          <p className="text-sm text-red-600 mb-4">{error}</p>
+      <EmailOnboardingShell>
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
+          <h1 className="mb-2 text-lg font-bold text-red-700">
+            Invite link issue
+          </h1>
+          <p className="mb-4 text-sm text-red-600">{error}</p>
           <a
             href="/"
             className="inline-block rounded-xl bg-[#27AE60] px-4 py-2 text-sm font-semibold text-white"
@@ -89,18 +92,21 @@ export default function BuilderInviteClickPage() {
             Go Home
           </a>
         </div>
-      </main>
+      </EmailOnboardingShell>
     );
   }
 
   return (
-    <main className="min-h-[60vh] flex items-center justify-center px-4">
-      <div className="text-center">
-        <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-4 border-emerald-200 border-t-[#27AE60]" />
+    <EmailOnboardingShell>
+      <div className="flex min-h-[220px] flex-col items-center justify-center text-center">
+        <div className="mb-3 h-10 w-10 animate-spin rounded-full border-4 border-emerald-200 border-t-[#27AE60]" />
         <p className="text-sm font-semibold text-gray-700">
-          Opening your project preview…
+          Opening your Propenu invite…
+        </p>
+        <p className="mt-1 text-xs font-semibold text-gray-400">
+          Continuing inside this invite experience
         </p>
       </div>
-    </main>
+    </EmailOnboardingShell>
   );
 }
