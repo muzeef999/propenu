@@ -1,4 +1,4 @@
-﻿import { getCommercialSlugProjects } from "@/data/serverData";
+import { getCommercialSlugProjects } from "@/data/serverData";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import formatINR from "@/utilies/PriceFormat";
 import { minDelay } from "@/utilies/minDelay";
@@ -15,6 +15,7 @@ import {
 
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import PropertyViewDurationTracker from "@/components/PropertyViewDurationTracker";
+import { listingSourceToOwnershipLabel } from "@/utilies/resolveListingSource";
 import RelatedCommercialCarousel from "./RelatedCommercialCarousel";
 import Image from "next/image";
 import { COMMERCIAL_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
@@ -351,6 +352,22 @@ export default async function Page({ params }: PageProps) {
                           {project.description}
                         </p>
                       </div>
+
+                      {(project as any)?.createdBy?.name && (
+                        <div className="mt-6 inline-flex w-fit items-center gap-3 rounded-lg border border-gray-200 bg-gray-50/80 px-4 py-2.5 shadow-2xs">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white shadow-2xs">
+                            {(project as any)?.createdBy?.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1.5">
+                            <span className="text-[11px] font-semibold tracking-wider text-gray-500 uppercase">
+                              Listed By {listingSourceToOwnershipLabel(project?.listingSource, (project as any)?.createdBy)}:
+                            </span>
+                            <span className="text-xs font-bold text-gray-900">
+                              {(project as any)?.createdBy?.name}
+                            </span>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="mt-8">
                         <ContactOwnerButton

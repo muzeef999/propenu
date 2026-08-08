@@ -256,6 +256,11 @@ const Page = () => {
           filteredProperties.map((property) => {
             const image = property.gallery?.[0]?.url ?? "/placeholder.jpg";
             const tracking = getTrackingState(property);
+            const statusLower = String(property.status ?? "").toLowerCase();
+            const isActive =
+              statusLower === "active" ||
+              statusLower === "approved" ||
+              Boolean(property.isPublished);
 
             return (
               <Link
@@ -437,20 +442,22 @@ const Page = () => {
                     )}
                   </div>
 
-                  <div className="order-1 md:order-2 md:mt-auto text-xs text-gray-500 text-left md:text-right space-y-1">
-                    <p>
-                      Views:{" "}
-                      <span className="font-medium text-gray-700">
-                        {property.meta?.views ?? 0}
-                      </span>
-                    </p>
-                    <p>
-                      Enquiries:{" "}
-                      <span className="font-medium text-gray-700">
-                        {property.meta?.enquiries ?? 0}
-                      </span>
-                    </p>
-                  </div>
+                  {isActive && (
+                    <div className="order-1 md:order-2 md:mt-auto text-xs text-gray-500 text-left md:text-right space-y-1">
+                      <p>
+                        Views:{" "}
+                        <span className="font-medium text-gray-700">
+                          {property.meta?.views ?? 0}
+                        </span>
+                      </p>
+                      <p>
+                        Enquiries:{" "}
+                        <span className="font-medium text-gray-700">
+                          {property.meta?.enquiries ?? 0}
+                        </span>
+                      </p>
+                    </div>
+                  )}
                 </div>
               </Link>
             );

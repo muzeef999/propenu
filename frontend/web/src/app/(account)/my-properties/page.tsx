@@ -279,7 +279,10 @@ const Page = () => {
           filteredProperties.map((property) => {
             const image = property.gallery?.[0]?.url || "/placeholder.jpg";
             const statusLower = String(property.status ?? "").toLowerCase();
-            const isActive = statusLower === "active";
+            const isActive =
+              statusLower === "active" ||
+              statusLower === "approved" ||
+              Boolean(property.isPublished);
             const isDraft = statusLower === "draft";
             const isPending = statusLower === "pending";
             const propertyCategory =
