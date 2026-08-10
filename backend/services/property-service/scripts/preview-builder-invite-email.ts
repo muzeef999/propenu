@@ -19,6 +19,14 @@ const inviteHtml = buildBuilderInviteEmailHtml({
   locationHint: "Kondapur, Telangana",
   heroImageUrl:
     "https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&w=1200&q=80",
+  websiteUrl: "https://www.propenu.com",
+  termsUrl: "https://www.propenu.com/terms",
+  privacyUrl: "https://www.propenu.com/privacy-policy",
+  supportEmail: "marketingteam@propenu.com",
+  playStoreUrl: "https://play.google.com/store",
+  appStoreUrl: "https://apps.apple.com",
+  playStoreBadgeUrl: "https://www.propenu.com/email/playstoreBadge.png",
+  appStoreBadgeUrl: "https://www.propenu.com/email/appleBadge.png",
 });
 
 const otpHtml = buildBuilderOtpEmailHtml("6546", "Hindu Puja Villas");

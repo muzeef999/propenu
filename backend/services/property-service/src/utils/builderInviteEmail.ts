@@ -6,6 +6,14 @@ type BuilderInviteEmailParams = {
   companyHint?: string;
   locationHint?: string;
   heroImageUrl?: string;
+  websiteUrl?: string;
+  termsUrl?: string;
+  privacyUrl?: string;
+  supportEmail?: string;
+  playStoreUrl?: string;
+  appStoreUrl?: string;
+  playStoreBadgeUrl?: string;
+  appStoreBadgeUrl?: string;
 };
 
 export const builderInviteEmailSubject =
@@ -22,6 +30,14 @@ export function buildBuilderInviteEmailHtml(
     companyHint,
     locationHint,
     heroImageUrl,
+    websiteUrl,
+    termsUrl,
+    privacyUrl,
+    supportEmail,
+    playStoreUrl,
+    appStoreUrl,
+    playStoreBadgeUrl,
+    appStoreBadgeUrl,
   } = params;
 
   const greeting = companyHint
@@ -51,6 +67,17 @@ export function buildBuilderInviteEmailHtml(
     ? `<div style="margin-top:6px;font-size:13px;color:#64748b;">For ${companyHint}</div>`
     : "";
 
+  const safeWebsiteUrl = websiteUrl || "https://www.propenu.com";
+  const safeTermsUrl = termsUrl || `${safeWebsiteUrl}/terms`;
+  const safePrivacyUrl = privacyUrl || `${safeWebsiteUrl}/privacy-policy`;
+  const safeSupportEmail = supportEmail || "marketingteam@propenu.com";
+  const safePlayStoreUrl = playStoreUrl || safeWebsiteUrl;
+  const safeAppStoreUrl = appStoreUrl || safeWebsiteUrl;
+  const safePlayStoreBadgeUrl =
+    playStoreBadgeUrl || `${safeWebsiteUrl}/email/playstoreBadge.png`;
+  const safeAppStoreBadgeUrl =
+    appStoreBadgeUrl || `${safeWebsiteUrl}/email/appleBadge.png`;
+
   return `<!DOCTYPE html>
 <html>
 <body style="margin:0;padding:0;background:#edf3ef;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
@@ -73,7 +100,7 @@ export function buildBuilderInviteEmailHtml(
                     </table>
                   </td>
                   <td align="right" valign="middle" style="font-size:11px;color:#94a3b8;">
-                    www.propenu.com
+                    <a href="${safeWebsiteUrl}" style="color:#94a3b8;text-decoration:none;">www.propenu.com</a>
                   </td>
                 </tr>
               </table>
@@ -221,23 +248,37 @@ export function buildBuilderInviteEmailHtml(
             <td style="padding:0 28px 18px;font-size:13px;color:#475569;">
               <p style="margin:0 0 4px;">Warm regards,</p>
               <p style="margin:0 0 4px;font-weight:700;color:#1f2937;">Propenu Team</p>
-              <p style="margin:0;color:#16a34a;">marketingteam@propenu.com</p>
+              <p style="margin:0;color:#16a34a;">${safeSupportEmail}</p>
             </td>
           </tr>
 
           <tr>
             <td style="padding:16px 28px;background:#f7faf8;border-top:1px solid #e5e7eb;">
-              <table width="100%" cellpadding="0" cellspacing="0">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#2fb35f;border-radius:8px;">
                 <tr>
-                  <td align="left" style="font-size:18px;font-weight:700;color:#ffffff;background:#22c55e;border-radius:8px;padding:12px 16px;">
+                  <td align="left" style="padding:16px 18px;font-size:18px;font-weight:700;color:#ffffff;">
                     Download the Propenu App
+                  </td>
+                  <td align="right" style="padding:10px 18px;white-space:nowrap;">
+                    <a href="${safePlayStoreUrl}" style="display:inline-block;text-decoration:none;">
+                      <img src="${safePlayStoreBadgeUrl}" alt="Get it on Google Play" width="140" style="display:block;width:140px;max-width:140px;height:auto;border:0;" />
+                    </a>
+                  </td>
+                  <td align="right" style="padding:10px 18px 10px 0;white-space:nowrap;">
+                    <a href="${safeAppStoreUrl}" style="display:inline-block;text-decoration:none;">
+                      <img src="${safeAppStoreBadgeUrl}" alt="Download on the App Store" width="140" style="display:block;width:140px;max-width:140px;height:auto;border:0;" />
+                    </a>
                   </td>
                 </tr>
               </table>
               <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
                 <tr>
-                  <td align="left" style="font-size:11px;color:#94a3b8;">Terms &amp; Conditions</td>
-                  <td align="center" style="font-size:11px;color:#94a3b8;">Privacy Policy</td>
+                  <td align="left" style="font-size:11px;color:#94a3b8;">
+                    <a href="${safeTermsUrl}" style="color:#94a3b8;text-decoration:none;">Terms &amp; Conditions</a>
+                  </td>
+                  <td align="center" style="font-size:11px;color:#94a3b8;">
+                    <a href="${safePrivacyUrl}" style="color:#94a3b8;text-decoration:none;">Privacy Policy</a>
+                  </td>
                   <td align="right" style="font-size:11px;color:#94a3b8;">Connect Us</td>
                 </tr>
               </table>
