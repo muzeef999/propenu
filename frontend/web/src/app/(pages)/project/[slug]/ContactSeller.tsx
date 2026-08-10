@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import { checkProjectLeadSubmitted, me, patchProjectLeadIntention, projectpostLeads } from "@/data/ClientData";
 import { FeaturedProject } from "@/types";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
+import Cookies from "js-cookie";
+import OtpFourDigitInput from "@/components/builder/OtpFourDigitInput";
 
 type IntentionAnswer = {
   question: string;
@@ -142,7 +145,32 @@ function getFieldValidationMessage(
   return "Please check this field";
 }
 
+const apiBase = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(
+  /\/$/,
+  "",
+);
+
 const ContactSeller = ({ project }: ContactSellerProps) => {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const inviteToken = searchParams.get("invite");
+  const projectStatus = String(project.status || "").toLowerCase();
+  const projectAlreadyClaimed = Boolean(project.createdBy);
+  const canUseInviteFlow =
+    Boolean(inviteToken) &&
+    projectStatus !== "active" &&
+    !projectAlreadyClaimed;
+
+  // Builder Invite Mode States
+  const [isInviteMode, setIsInviteMode] = useState(canUseInviteFlow);
+  const [inviteData, setInviteData] = useState<any>(null);
+  const [inviteStep, setInviteStep] = useState<"form" | "otp" | "success">("form");
+  const [otp, setOtp] = useState("");
+  const [otpSubmitting, setOtpSubmitting] = useState(false);
+  const [otpError, setOtpError] = useState("");
+  const [builderFormError, setBuilderFormError] = useState("");
+
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -152,6 +180,33 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
   const [leadId, setLeadId] = useState("");
   const [showSubmittedStep, setShowSubmittedStep] = useState(false);
   const [intentionAnswers, setIntentionAnswers] = useState<IntentionAnswer[]>([]);
+
+  // Fetch Invite Details if inviteToken exists
+  useEffect(() => {
+    setIsInviteMode(canUseInviteFlow);
+    if (!inviteToken || !canUseInviteFlow) return;
+    (async () => {
+      try {
+        const res = await fetch(
+          `${apiBase}/api/properties/public/builder-invite/${encodeURIComponent(inviteToken)}`,
+          { cache: "no-store" },
+        );
+        const json = await res.json().catch(() => ({}));
+        if (res.ok && json.data) {
+          setInviteData(json.data);
+          const invite = json.data?.invite;
+          setForm((f) => ({
+            ...f,
+            email: invite?.email || f.email,
+            phone: invite?.phone ? sanitizePhoneInput(invite.phone) : f.phone,
+            name: invite?.companyName || invite?.contactName || f.name,
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to load invite details:", err);
+      }
+    })();
+  }, [canUseInviteFlow, inviteToken]);
 
   const { data: userData } = useQuery({
     queryKey: ["user"],
@@ -172,11 +227,12 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
         phone: userLeadPhone,
         email: userLeadEmail,
       }),
-    enabled: Boolean(project._id && (userLeadPhone || userLeadEmail)),
+    enabled: Boolean(project._id && (userLeadPhone || userLeadEmail) && !isInviteMode),
     retry: 1,
   });
 
   useEffect(() => {
+    if (isInviteMode) return;
     const existingLead = existingLeadData?.data;
     if (!existingLeadData?.submitted || !existingLead) return;
 
@@ -185,10 +241,10 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
       Array.isArray(existingLead.intention) ? existingLead.intention : [],
     );
     setShowSubmittedStep(true);
-  }, [existingLeadData]);
+  }, [existingLeadData, isInviteMode]);
 
   useEffect(() => {
-    if (!loggedInUser) return;
+    if (!loggedInUser || isInviteMode) return;
 
     const prefill = getUserPrefill(loggedInUser);
     setForm((current) => ({
@@ -196,7 +252,7 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
       phone: current.phone || prefill.phone,
       email: current.email || prefill.email,
     }));
-  }, [loggedInUser]);
+  }, [loggedInUser, isInviteMode]);
 
   const developer = project.developer as ContactLike | string | null | undefined;
   const createdBy = project.createdBy as ContactLike | string | null | undefined;
@@ -263,7 +319,7 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
       setShowSubmittedStep(true);
       setForm(getUserPrefill(loggedInUser));
       setTermsAccepted(false);
-      },
+    },
     onError: (error) => {
       toast.error(getLeadErrorMessage(error));
     },
@@ -297,6 +353,7 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
     });
   };
 
+  // Standard Lead Submission
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -329,9 +386,129 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
     });
   };
 
+  // Builder Approval Form Request OTP
+  const handleBuilderSubmit = async (e?: React.SyntheticEvent) => {
+    if (e) e.preventDefault();
+
+    if (!isValidName(form.name)) {
+      toast.error("Full Name should contain letters only");
+      return;
+    }
+
+    if (!isValidPhoneNumber(form.phone)) {
+      toast.error("Please enter a valid phone number");
+      return;
+    }
+
+    if (!isValidEmail(form.email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    if (!termsAccepted) {
+      toast.error("Please accept the Terms & Conditions");
+      return;
+    }
+
+    setOtpSubmitting(true);
+    setOtpError("");
+    setBuilderFormError("");
+
+    try {
+      const payload = {
+        phone: form.phone,
+        email: form.email.trim(),
+        contactName: form.name.trim(),
+        companyName: form.name.trim(),
+      };
+
+      const res = await fetch(
+        `${apiBase}/api/properties/public/builder-invite/${encodeURIComponent(inviteToken!)}/send-otp`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.error || json?.message || "Failed to send OTP");
+      }
+
+      toast.success(
+        json?.data?.message || "OTP sent successfully to your contact details",
+      );
+      setInviteStep("otp");
+    } catch (err: any) {
+      const errMsg = err?.message || "Failed to send OTP";
+      setBuilderFormError(errMsg);
+      toast.error(errMsg);
+    } finally {
+      setOtpSubmitting(false);
+    }
+  };
+
+  // Verify OTP & Claim Project
+  const handleVerifyOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanOtp = otp.trim();
+    if (cleanOtp.length !== 4) {
+      setOtpError("Please enter a 4-digit OTP");
+      return;
+    }
+
+    setOtpSubmitting(true);
+    setOtpError("");
+
+    try {
+      const res = await fetch(
+        `${apiBase}/api/properties/public/builder-invite/${encodeURIComponent(inviteToken!)}/complete`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            otp: cleanOtp,
+            phone: form.phone,
+            contactName: form.name.trim(),
+            companyName: form.name.trim(),
+            email: form.email.trim(),
+          }),
+        },
+      );
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.error || json?.message || "Incorrect OTP");
+      }
+
+      // Automatically log the builder into the website
+      if (json?.data?.token) {
+        Cookies.set("token", json.data.token, {
+          expires: 7,
+          path: "/",
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "Lax",
+        });
+        queryClient.invalidateQueries({ queryKey: ["user"] });
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("auth-changed"));
+        }
+      }
+
+      toast.success("Project approved and claimed successfully!");
+      setInviteStep("success");
+    } catch (err: any) {
+      setOtpError(err?.message || "OTP verification failed");
+      toast.error(err?.message || "OTP verification failed");
+    } finally {
+      setOtpSubmitting(false);
+    }
+  };
+
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) {
+    if (builderFormError) setBuilderFormError("");
     const { name, value } = e.target;
     setForm((current) => ({
       ...current,
@@ -404,9 +581,209 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
     </div>
   );
 
+  // BUILDER APPROVAL MODE RENDERING
+  if (isInviteMode) {
+    return (
+      <aside className="w-full rounded-md border border-emerald-300 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.1)] lg:sticky lg:top-20 lg:max-w-[390px] lg:p-5">
+        {/* Banner Header */}
+        <div className="rounded-md bg-emerald-50 p-3 text-center border border-emerald-200">
+          <p className="text-[11px] font-black uppercase tracking-wider text-emerald-700">
+            Propenu Launch Partner Invite
+          </p>
+          <p className="mt-1 text-xs font-semibold text-slate-800">
+            Approve & Claim project <span className="text-[#27AE60]">“{project.title}”</span>
+          </p>
+        </div>
+
+        {inviteStep === "success" ? (
+          <div className="mt-5 space-y-4 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#27AE60] text-white shadow-md">
+              <span className="h-6 w-3 rotate-45 border-b-2 border-r-2 border-white" />
+            </div>
+            <div>
+              <p className="text-base font-bold text-[#27AE60]">
+                Project Approved & Assigned!
+              </p>
+              <p className="mt-2 text-xs leading-5 text-slate-600">
+                You have successfully claimed ownership of this project. Log in anytime to manage listings, leads, and staff.
+              </p>
+            </div>
+            <button
+              onClick={() => router.push("/builder/my-projects")}
+              className="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-[#27AE60] px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-[#219150]"
+            >
+              Go to Builder Dashboard →
+            </button>
+          </div>
+        ) : inviteStep === "otp" ? (
+          <form onSubmit={handleVerifyOtp} className="mt-5 space-y-4">
+            <div className="text-center">
+              <p className="text-sm font-bold text-slate-900">Enter 4-Digit Verification Code</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Sent to <span className="font-semibold text-slate-800">{form.phone || form.email}</span>
+              </p>
+            </div>
+
+            <div className="py-2">
+              <OtpFourDigitInput
+                value={otp}
+                onChange={(val) => {
+                  setOtp(val);
+                  setOtpError("");
+                }}
+                disabled={otpSubmitting}
+                error={Boolean(otpError)}
+                autoFocus
+              />
+            </div>
+
+            {otpError && (
+              <p className="text-center text-xs font-medium text-red-600">{otpError}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={otpSubmitting || otp.length !== 4}
+              className="h-10 w-full rounded-xl bg-[#27AE60] text-sm font-bold text-white shadow-sm transition hover:bg-[#219150] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {otpSubmitting ? "Verifying..." : "Verify OTP & Claim Project"}
+            </button>
+
+            <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+              <button
+                type="button"
+                onClick={() => setInviteStep("form")}
+                className="font-medium text-slate-600 hover:text-slate-900 underline"
+              >
+                ← Edit Contact Info
+              </button>
+              <button
+                type="button"
+                onClick={handleBuilderSubmit}
+                disabled={otpSubmitting}
+                className="font-semibold text-[#27AE60] hover:underline"
+              >
+                Resend OTP
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleBuilderSubmit} className="mt-4 space-y-3 sm:space-y-4">
+            <p className="text-xs font-medium text-slate-600">
+              Please share your contact details to approve and claim this project:
+            </p>
+
+            <label className="block">
+              <span className="text-sm text-slate-600">Full Name</span>
+              <input
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                onInvalid={handleInvalid}
+                onInput={handleFieldInput}
+                placeholder="Enter Full Name"
+                inputMode="text"
+                pattern="[A-Za-z\s]+"
+                title="Full Name should contain letters only"
+                required
+                className="mt-1.5 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-sm text-slate-600">Mobile Number</span>
+              <input
+                name="phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                pattern="^\+?[1-9]\d{9,14}$"
+                value={form.phone}
+                onChange={handleChange}
+                onInvalid={handleInvalid}
+                onInput={handleFieldInput}
+                title="Please enter a valid phone number"
+                placeholder="Enter Mobile Number"
+                required
+                className="mt-1.5 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-sm text-slate-600">Email ID</span>
+              <input
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={handleChange}
+                onInvalid={handleInvalid}
+                onInput={handleFieldInput}
+                autoComplete="email"
+                pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
+                title="Please enter a valid email address"
+                placeholder="Enter Email Address"
+                required
+                className="mt-1.5 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
+              />
+            </label>
+
+            <label className="flex items-start gap-2 text-xs text-slate-600">
+              <input
+                name="terms"
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(event) => {
+                  event.currentTarget.setCustomValidity("");
+                  setTermsAccepted(event.target.checked);
+                }}
+                onInvalid={(event) =>
+                  event.currentTarget.setCustomValidity(
+                    "Please accept the Terms & Conditions",
+                  )
+                }
+                required
+                className="peer sr-only"
+              />
+              <span
+                aria-hidden="true"
+                className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-slate-300 bg-white transition peer-checked:border-[#27AE60] peer-checked:bg-[#27AE60] peer-focus-visible:ring-2 peer-focus-visible:ring-[#27AE60]/25"
+              >
+                <span className="h-2 w-1 rotate-45 border-b-2 border-r-2 border-white" />
+              </span>
+              <span className="leading-5">
+                I agree to Propenu's{" "}
+                <Link
+                  href="/terms"
+                  className="font-medium text-slate-900 underline underline-offset-2 hover:text-[#27AE60]"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  Terms & Conditions
+                </Link>
+              </span>
+            </label>
+
+            {builderFormError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold leading-relaxed text-red-700">
+                ⚠️ {builderFormError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={otpSubmitting}
+              className="h-11 w-full rounded-xl bg-[#27AE60] text-sm font-bold text-white shadow-sm transition hover:bg-[#219150] disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {otpSubmitting ? "Sending OTP..." : "Approve & Claim Project"}
+            </button>
+          </form>
+        )}
+      </aside>
+    );
+  }
+
+  // STANDARD LEAD FORM (WHEN NO INVITE TOKEN IS PRESENT)
   return (
     <aside className="w-full rounded-md border border-slate-200 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.08)] lg:sticky lg:top-20 lg:max-w-[390px] lg:p-5">
-
       {!showSubmittedStep && (
         <>
           <div className="mt-4 flex items-center gap-3 border-b border-slate-200 pb-4">

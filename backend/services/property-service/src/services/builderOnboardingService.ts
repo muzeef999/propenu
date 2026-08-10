@@ -12,6 +12,8 @@ import {
   buildBuilderOtpEmailHtml,
   builderInviteEmailSubject,
 } from "../utils/builderInviteEmail";
+import { sendOtpWhatsApp } from "../utils/whatsapp";
+import { generateToken } from "../utils/jwt";
 
 const INVITE_TTL_MS = 1000 * 60 * 60 * 72; // 72 hours
 const OTP_TTL_MS = 1000 * 60 * 10; // 10 minutes
@@ -109,6 +111,50 @@ async function getBuilderRoleId() {
     throw new Error("Builder role not found in roles collection");
   }
   return role._id;
+}
+
+async function checkUserRoleEligibility(email?: string, phone?: string) {
+  const normEmail = normalizeEmail(email);
+  const normPhone = normalizePhone(phone);
+  const phoneValues = phoneLookupValues(normPhone);
+
+  // 1. Check Phone Number eligibility
+  if (phoneValues.length) {
+    const userByPhone = await User.findOne({ phone: { $in: phoneValues } })
+      .select("roleId email phone name")
+      .lean();
+    if (userByPhone?.roleId) {
+      const role = await Role.findById(userByPhone.roleId).select("name label").lean();
+      const roleName = String(role?.name || "").toLowerCase().trim();
+      if (["user", "agent", "customer_care", "regional_manager"].includes(roleName)) {
+        const displayRole = roleName === "user" ? "User" : roleName === "agent" ? "Agent" : roleName;
+        const err: any = new Error(
+          `Mobile Number (${normPhone}) is registered as a ${displayRole} account. Project approval is restricted to Builder accounts only.`,
+        );
+        err.statusCode = 400;
+        throw err;
+      }
+    }
+  }
+
+  // 2. Check Email Address eligibility
+  if (normEmail) {
+    const userByEmail = await User.findOne({ email: normEmail })
+      .select("roleId email phone name")
+      .lean();
+    if (userByEmail?.roleId) {
+      const role = await Role.findById(userByEmail.roleId).select("name label").lean();
+      const roleName = String(role?.name || "").toLowerCase().trim();
+      if (["user", "agent", "customer_care", "regional_manager"].includes(roleName)) {
+        const displayRole = roleName === "user" ? "User" : roleName === "agent" ? "Agent" : roleName;
+        const err: any = new Error(
+          `Email Address (${normEmail}) is registered as a ${displayRole} account. Project approval is restricted to Builder accounts only.`,
+        );
+        err.statusCode = 400;
+        throw err;
+      }
+    }
+  }
 }
 
 function pushEmailStatus(
@@ -524,7 +570,7 @@ export const BuilderOnboardingService = {
       try {
         const result = await this.sendInvite(
           projectId,
-          { email, companyName: input.companyName },
+          { email, companyName: input.companyName || "" },
           staff,
           { skipRevoke: true },
         );
@@ -672,6 +718,8 @@ export const BuilderOnboardingService = {
     const email = normalizeEmail(input.email || invite.email || (builder as any).email);
 
     project!.createdBy = builder._id;
+    project!.status = "active";
+    project!.status = "active";
     project!.builderOnboarding = {
       enabled: true,
       mode: "invite_link",
@@ -889,6 +937,7 @@ export const BuilderOnboardingService = {
     });
 
     project!.createdBy = builder._id;
+    project!.status = "active";
     project!.builderOnboarding = {
       enabled: true,
       mode: "staff_direct",
@@ -1168,7 +1217,15 @@ export const BuilderOnboardingService = {
     };
   },
 
-  async requestInviteOtp(token: string) {
+  async requestInviteOtp(
+    token: string,
+    input?: {
+      phone?: string;
+      email?: string;
+      contactName?: string;
+      companyName?: string;
+    },
+  ) {
     const invite = await ProjectBuilderInvite.findOne({
       tokenHash: hashToken(token),
       isActive: true,
@@ -1179,11 +1236,31 @@ export const BuilderOnboardingService = {
       err.statusCode = 404;
       throw err;
     }
-    if (!invite.email) {
-      const err: any = new Error("Invite email missing");
+
+    if (input?.phone) {
+      invite.phone = normalizePhone(input.phone);
+    }
+    if (input?.email) {
+      invite.email = normalizeEmail(input.email);
+    }
+    if (input?.contactName) {
+      invite.contactName = String(input.contactName).trim();
+    }
+    if (input?.companyName) {
+      invite.companyName = String(input.companyName).trim();
+    }
+
+    const targetPhone = invite.phone || (input?.phone ? normalizePhone(input.phone) : "");
+    const targetEmail = invite.email || (input?.email ? normalizeEmail(input.email) : "");
+
+    if (!targetPhone && !targetEmail) {
+      const err: any = new Error("Contact phone or email is required");
       err.statusCode = 400;
       throw err;
     }
+
+    // Ensure account role is eligible (block Customer/Agent accounts)
+    await checkUserRoleEligibility(targetEmail, targetPhone);
 
     const project = await FeaturedProject.findById(invite.projectId)
       .select("title")
@@ -1195,18 +1272,27 @@ export const BuilderOnboardingService = {
     pushEmailStatus(invite, "interested");
     await invite.save();
 
-    await sendEmail({
-      to: invite.email,
-      subject: `Propenu OTP for ${(project as any)?.title || "project onboarding"}`,
-      html: buildBuilderOtpEmailHtml(
-        otp,
-        (project as any)?.title || "your project",
-      ),
-    });
+    if (targetPhone) {
+      sendOtpWhatsApp(targetPhone, otp).catch(() => undefined);
+    }
+
+    if (targetEmail) {
+      sendEmail({
+        to: targetEmail,
+        subject: `Propenu OTP for ${(project as any)?.title || "project onboarding"}`,
+        html: buildBuilderOtpEmailHtml(
+          otp,
+          (project as any)?.title || "your project",
+        ),
+      }).catch(() => undefined);
+    }
 
     return {
-      message: "OTP sent to invite email",
-      email: invite.email,
+      message: targetPhone
+        ? `OTP sent to mobile (${targetPhone})`
+        : "OTP sent successfully to email",
+      phone: targetPhone,
+      email: targetEmail,
       ...(process.env.NODE_ENV !== "production" ? { debugOtp: otp } : {}),
     };
   },
@@ -1288,6 +1374,7 @@ export const BuilderOnboardingService = {
     });
 
     project!.createdBy = builder._id;
+    project!.status = "active";
     project!.builderOnboarding = {
       enabled: true,
       mode: "invite_link",
@@ -1325,12 +1412,22 @@ export const BuilderOnboardingService = {
     await invite.save();
     await project!.save();
 
+    const authToken = generateToken({
+      _id: builder._id,
+      sub: String(builder._id),
+      email: builder.email || email,
+      name: builder.name || contactName,
+      roleName: "builder",
+      permissions: [],
+    });
+
     return {
       message: "Builder onboarded successfully",
       builderId: String(builder._id),
       projectId: String(project!._id),
       assignStatus: "verified",
       createdNewUser: builder.createdNew,
+      token: authToken,
       previewUrl: `${publicWebBase()}/project/${project!.slug}`,
     };
   },
@@ -1343,6 +1440,8 @@ export const BuilderOnboardingService = {
   }) {
     const email = normalizeEmail(input.email);
     const phone = normalizePhone(input.phone);
+    await checkUserRoleEligibility(email, phone);
+
     const phoneValues = phoneLookupValues(phone);
     const builderRoleId = await getBuilderRoleId();
 

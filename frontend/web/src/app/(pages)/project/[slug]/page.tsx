@@ -15,7 +15,6 @@ import ProjectVideos from "./ProjectVideos";
 import BrochurePreview from "./BrochurePreview";
 import ProjectViewDurationTracker from "../../prime/[slug]/ProjectViewDurationTracker";
 import ProjectViewTracker from "@/components/tracking/ProjectViewTracker";
-import InviteApproveBanner from "@/components/builder/InviteApproveBanner";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -61,9 +60,6 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <main className="min-h-screen bg-white">
-      <Suspense fallback={null}>
-        <InviteApproveBanner projectTitle={project.title} />
-      </Suspense>
       <ProjectViewDurationTracker projectId={project._id} />
       <ProjectViewTracker projectId={project._id} title={project.title} slug={project.slug} locality={project.locality} city={project.city} state={project.state} promotionType={project.promotion?.type || "normal"} />
       <ProjectViewDurationTracker projectId={project._id} />
