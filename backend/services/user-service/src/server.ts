@@ -15,6 +15,7 @@ import emailRouter from "./routes/emailRoute";
 import whatsappRouter from "./routes/whatsappRoute";
 import builderAccessRoute from "./routes/builderAccessRoute";
 import builderProfileRoute from "./routes/builderProfileRoute";
+import { fieldMeetingRoute } from "./routes/fieldMeetingRoute";
 import { cleanupDuplicateLocalities } from "./services/locationService";
 
 dotenv.config({ path: path.resolve(process.cwd(), ".env"), quiet: true });
@@ -43,6 +44,7 @@ async function start() {
     });
 
     app.use("/api/users/auth", authRoute);
+    app.use("/api/users/field-meetings", fieldMeetingRoute);
     app.use("/api/users/location", nominatimRoute);
     app.use("/api/users/seeds", seedRolesRoute);
     app.use("/api/users/shortlist", shortlistRoutes);
