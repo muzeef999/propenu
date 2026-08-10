@@ -344,6 +344,7 @@ export default function HeroSection({ project }: HeroSectionProps) {
         window.history.pushState(null, "", href);
         setActiveTab(href);
     }
+    console.log(project, "project in hero section");
 
     return (
         <>

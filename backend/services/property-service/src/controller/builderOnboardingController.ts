@@ -286,7 +286,7 @@ export const getPublicBuilderInvite = async (req: Request, res: Response) => {
 export const requestPublicInviteOtp = async (req: Request, res: Response) => {
   try {
     const token = String(req.params.token || "");
-    const data = await BuilderOnboardingService.requestInviteOtp(token);
+    const data = await BuilderOnboardingService.requestInviteOtp(token, req.body);
     return res.status(200).json({ success: true, data });
   } catch (err: any) {
     return sendError(res, err);
