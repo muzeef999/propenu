@@ -144,6 +144,8 @@ export const getAllCommercial = async (req: Request, res: Response) => {
       minPrice,
       maxPrice,
       createdBy,
+      postedBy,
+      postedByUserId,
     } = req.query;
     if (typeof page === "string") options.page = Number(page);
     if (typeof limit === "string") options.limit = Number(limit);
@@ -160,6 +162,16 @@ export const getAllCommercial = async (req: Request, res: Response) => {
         return res.status(400).json({ error: "Invalid createdBy" });
       }
       options.createdBy = createdBy;
+    }
+    const postedByRaw =
+      (typeof postedBy === "string" && postedBy) ||
+      (typeof postedByUserId === "string" && postedByUserId) ||
+      "";
+    if (postedByRaw) {
+      if (!mongoose.Types.ObjectId.isValid(postedByRaw)) {
+        return res.status(400).json({ error: "Invalid postedBy" });
+      }
+      options.postedBy = postedByRaw;
     }
 
     const result = await CommercialService.list(options);

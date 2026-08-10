@@ -485,15 +485,20 @@ export const ResidentialPropertyService = {
     near?: string;
     maxDistance?: number;
     createdBy?: string;
+    postedBy?: string;
   }) {
     const page = Math.max(1, options?.page ?? 1);
     const limit = Math.min(100, options?.limit ?? 20);
     const skip = (page - 1) * limit;
     const filter: any = {};
     if (options?.q) filter.$text = { $search: options.q };
-    if (options?.status) filter.status = options.status;
+    const statusOpt = String(options?.status || "").trim().toLowerCase();
+    if (statusOpt && statusOpt !== "all") filter.status = statusOpt;
     if (options?.createdBy) {
       filter.createdBy = new mongoose.Types.ObjectId(options.createdBy);
+    }
+    if (options?.postedBy) {
+      filter["postedBy.userId"] = new mongoose.Types.ObjectId(options.postedBy);
     }
     if (typeof options?.city === "string") filter.city = options.city;
     if (

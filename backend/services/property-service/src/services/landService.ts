@@ -589,6 +589,7 @@ export const LandService = {
     status?: string;
     city?: string;
     createdBy?: string;
+    postedBy?: string;
     sortBy?: string;                
   sortOrder?: "asc" | "desc";      
   }) {
@@ -597,10 +598,14 @@ export const LandService = {
     const skip = (page - 1) * limit;
     const filter: any = {};
     if (options?.q) filter.$text = { $search: options.q };
-    if (options?.status) filter.status = options.status;
+    const statusOpt = String(options?.status || "").trim().toLowerCase();
+    if (statusOpt && statusOpt !== "all") filter.status = statusOpt;
     if (typeof options?.city === "string") filter.city = options.city;
     if (options?.createdBy) {
       filter.createdBy = new mongoose.Types.ObjectId(options.createdBy);
+    }
+    if (options?.postedBy) {
+      filter["postedBy.userId"] = new mongoose.Types.ObjectId(options.postedBy);
     }
 
   const sort: any = {};

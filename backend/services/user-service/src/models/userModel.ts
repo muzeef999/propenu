@@ -39,6 +39,8 @@ export interface IUser extends mongoose.Document {
   userCode: string;
   roleId?: Types.ObjectId;
   managerId?: Types.ObjectId;
+  /** Staff (usually Sales Executive) who onboarded this public user on admin. */
+  onboardedBy?: Types.ObjectId;
   isActive?: boolean;
   lastLoginAt?: Date;
   loginCount?: number;
@@ -253,6 +255,13 @@ const UserSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       index: true,
+    },
+
+    onboardedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      index: true,
+      default: null,
     },
 
     /** Geo territories for CCE auto-assign. Empty city = whole state; empty locality = whole city. */

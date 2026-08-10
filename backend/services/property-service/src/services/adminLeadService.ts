@@ -284,7 +284,7 @@ export const getAdminLeadDashboard = async (
       const docs = await model
         .find({ _id: { $in: ids } })
         .select(
-          "title projectName buildingName propertyCode state city locality createdBy slug heroImage gallery price priceFrom priceTo listingType promotion status",
+          "title projectName buildingName propertyCode state city locality createdBy postedBy slug heroImage gallery price priceFrom priceTo listingType promotion status",
         )
         .lean();
       return docs.map(
@@ -293,6 +293,15 @@ export const getAdminLeadDashboard = async (
     }),
   );
   const properties = new Map(propertyEntries.flat());
+
+  const ownerId = (value: unknown) => {
+    if (!value) return "";
+    if (typeof value === "object") {
+      const nested = (value as any)?._id ?? (value as any)?.userId ?? (value as any)?.id;
+      return nested ? String(nested) : "";
+    }
+    return String(value);
+  };
 
   const normalized = raw.map((row: any) => {
     const property: any = properties.get(String(row.projectId)) || {};
@@ -328,7 +337,8 @@ export const getAdminLeadDashboard = async (
         state: property.state || "",
         city: property.city || "",
         locality: property.locality || "",
-        createdBy: property.createdBy ? String(property.createdBy) : "",
+        createdBy: ownerId(property.createdBy),
+        postedBy: ownerId(property.postedBy?.userId ?? property.postedBy),
         slug: property.slug || "",
         heroImage,
         price: property.price ?? null,
@@ -349,7 +359,10 @@ export const getAdminLeadDashboard = async (
 
   const preFiltered = normalized
     .filter((row) => {
-      if (creatorSet.size && !creatorSet.has(row.project.createdBy)) return false;
+      if (creatorSet.size) {
+        const owners = [row.project.createdBy, row.project.postedBy].filter(Boolean);
+        if (!owners.some((id) => creatorSet.has(id))) return false;
+      }
       if (
         !matchText(row.project.category, query.category) ||
         !matchText(row.project.state, query.state) ||

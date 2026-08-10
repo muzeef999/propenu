@@ -34,6 +34,12 @@ import {
   ensureFollowUpAssigneesForUsers,
   sanitizeTempLocationInput,
 } from "../utils/followUpAssign";
+import {
+  anyTerritoryCovers,
+  formatTerritoryLabel,
+  sanitizeWorkingLocations,
+  territoryFromHomeLocation,
+} from "../utils/workingLocations";
 
 const PLATFORM_END_USER_ROLE_SET = new Set<string>(PLATFORM_END_USER_ROLE_NAMES);
 import { ALL_PERMISSIONS } from "../constants/permissionCatalog";
@@ -991,11 +997,25 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       userFilter.createdAt = createdAtFilter;
     }
 
+    const managerIdQuery = String(req.query.managerId || "").trim();
+    if (managerIdQuery && mongoose.Types.ObjectId.isValid(managerIdQuery)) {
+      userFilter.managerId = new mongoose.Types.ObjectId(managerIdQuery);
+    }
+    const onboardedByQuery = String(req.query.onboardedBy || "").trim();
+    if (onboardedByQuery && mongoose.Types.ObjectId.isValid(onboardedByQuery)) {
+      userFilter.onboardedBy = new mongoose.Types.ObjectId(onboardedByQuery);
+    }
+
     const users = await User.find(userFilter)
       .select("-token")
       .populate("roleId", "name label")
       .populate({
         path: "managerId",
+        select: "name email phone roleId",
+        populate: { path: "roleId", select: "name label" },
+      })
+      .populate({
+        path: "onboardedBy",
         select: "name email phone roleId",
         populate: { path: "roleId", select: "name label" },
       })
@@ -1012,6 +1032,7 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       const role = user.roleId;
       const manager = user.managerId;
       const managerRole = manager?.roleId;
+      const onboardedBy = user.onboardedBy;
       const followUpAssignedTo = user.followUpAssignedTo
         ? String(user.followUpAssignedTo)
         : null;
@@ -1022,6 +1043,11 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
         roleId: role?._id ? String(role._id) : user.roleId ? String(user.roleId) : null,
         roleName: role?.name || null,
         managerId: manager?._id ? String(manager._id) : manager ? String(manager) : null,
+        onboardedBy: onboardedBy?._id
+          ? String(onboardedBy._id)
+          : onboardedBy
+            ? String(onboardedBy)
+            : null,
         followUpAssignedTo,
         followUpWorkStatus,
         reportsTo: manager?._id
@@ -1040,6 +1066,173 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
     res.json(formattedUsers);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch users" });
+  }
+};
+
+/**
+ * Sales Executive (or manager) claims a public marketplace user as their client.
+ * Sets managerId + onboardedBy so SE Detail "My clients" can follow their activity.
+ */
+export const claimSeClient = async (req: AuthRequest, res: Response) => {
+  try {
+    const actorId = String(req.user?.sub || req.user?.id || "").trim();
+    const actorRole = canonicalRoleName(req.user?.roleName);
+    const permissions = req.user?.permissions || [];
+    const allowedRoles = new Set([
+      "sales_executive",
+      "sales_agent",
+      "sales_manager",
+      "regional_manager",
+      "business_development_head",
+      "operations_head",
+      "super_admin",
+      "admin",
+    ]);
+    if (!allowedRoles.has(actorRole) && !permissions.includes("user:create")) {
+      return res.status(403).json({
+        message: "Only Sales Executive staff can claim clients",
+      });
+    }
+
+    const clientUserId = String(req.body?.userId || "").trim();
+    if (!clientUserId || !mongoose.Types.ObjectId.isValid(clientUserId)) {
+      return res.status(400).json({ message: "Valid userId is required" });
+    }
+
+    let salesExecutiveId = String(req.body?.salesExecutiveId || "").trim();
+    if (!salesExecutiveId) {
+      salesExecutiveId = actorId;
+    }
+    if (!mongoose.Types.ObjectId.isValid(salesExecutiveId)) {
+      return res.status(400).json({ message: "Invalid salesExecutiveId" });
+    }
+
+    // Field SE can only claim to self; managers/admins may assign to a specific SE
+    if (
+      ["sales_executive", "sales_agent"].includes(actorRole) &&
+      String(salesExecutiveId) !== String(actorId)
+    ) {
+      return res.status(403).json({
+        message: "Sales Executives can only assign clients to themselves",
+      });
+    }
+
+    const client = await User.findById(clientUserId).populate("roleId", "name label");
+    if (!client) {
+      return res.status(404).json({ message: "Client user not found" });
+    }
+    const clientRole = String((client.roleId as any)?.name || "").toLowerCase();
+    const claimableRoles = new Set(["user", "agent", "builder"]);
+    if (!claimableRoles.has(clientRole)) {
+      return res.status(400).json({
+        message:
+          "Only marketplace clients (user, agent, or builder) can be claimed as SE clients",
+      });
+    }
+
+    const se = await User.findById(salesExecutiveId)
+      .populate("roleId", "name label")
+      .select("name email phone roleId isActive state city locality workingLocations");
+    if (!se || se.isActive === false) {
+      return res.status(404).json({ message: "Sales Executive not found" });
+    }
+    const seRole = canonicalRoleName((se.roleId as any)?.name);
+    if (!["sales_executive", "sales_agent", "sales_manager", "regional_manager"].includes(seRole)) {
+      return res.status(400).json({
+        message: "Assignee must be a Sales Executive (or field sales role)",
+      });
+    }
+
+    // Territory check (same CCE pattern): if client has a location and SE has
+    // working territories (or home fallback), require coverage.
+    const clientLoc = {
+      state: String((client as any).state || "").trim(),
+      city: String((client as any).city || "").trim(),
+      locality: String((client as any).locality || "").trim(),
+    };
+    if (clientLoc.state) {
+      const stored = Array.isArray((se as any).workingLocations)
+        ? (se as any).workingLocations
+        : [];
+      const territories =
+        stored.length > 0
+          ? sanitizeWorkingLocations(stored)
+          : territoryFromHomeLocation({
+              state: (se as any).state || "",
+              city: (se as any).city || "",
+              locality: (se as any).locality || "",
+            });
+      if (territories.length > 0 && !anyTerritoryCovers(territories, clientLoc)) {
+        return res.status(400).json({
+          message:
+            "Client location is outside this Sales Executive's working territories. Align SE working locations, or assign a SE covering that area.",
+          clientLocation: clientLoc,
+          salesExecutiveTerritories: territories.map(formatTerritoryLabel),
+        });
+      }
+    }
+
+    const previousManagerId = client.managerId
+      ? String(client.managerId)
+      : null;
+    if (previousManagerId && previousManagerId === String(se._id)) {
+      return res.json({
+        success: true,
+        message: "Client is already assigned to this Sales Executive",
+        alreadyAssigned: true,
+        client: {
+          _id: String(client._id),
+          name: client.name,
+          phone: client.phone,
+          email: client.email,
+          managerId: String(se._id),
+          onboardedBy: String((client as any).onboardedBy || actorId),
+          accountStatus: client.accountStatus,
+          kycStatus: (client as any).kyc?.status || "not_started",
+        },
+        salesExecutive: {
+          _id: String(se._id),
+          name: se.name,
+          roleName: seRole,
+        },
+      });
+    }
+
+    // Existing Propenu users can be reassigned to this SE.
+    client.managerId = se._id as any;
+    if (!(client as any).onboardedBy) {
+      (client as any).onboardedBy = new mongoose.Types.ObjectId(actorId);
+    }
+    await client.save();
+
+    return res.json({
+      success: true,
+      message: previousManagerId
+        ? "Existing client reassigned to Sales Executive"
+        : "Client assigned to Sales Executive",
+      reassigned: Boolean(previousManagerId),
+      previousManagerId,
+      client: {
+        _id: String(client._id),
+        name: client.name,
+        phone: client.phone,
+        email: client.email,
+        managerId: String(se._id),
+        onboardedBy: String((client as any).onboardedBy || actorId),
+        accountStatus: client.accountStatus,
+        kycStatus: (client as any).kyc?.status || "not_started",
+      },
+      salesExecutive: {
+        _id: String(se._id),
+        name: se.name,
+        roleName: seRole,
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      message: "Failed to assign client to Sales Executive",
+      error: error.message,
+    });
   }
 };
 
@@ -1429,6 +1622,7 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       return res.status(200).json({
         message: "Continue signup process",
         token,
+        userId: String(user._id),
         nextStep,
         kycStatus: user.kyc?.status || "not_started",
       });
@@ -1483,6 +1677,7 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
     return res.status(201).json({
       message: "Account created. Continue signup.",
       token,
+      userId: String(user._id),
       nextStep: "location",
       kycStatus: "not_started",
     });

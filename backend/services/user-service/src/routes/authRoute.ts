@@ -1,5 +1,5 @@
 import express from "express";
-import { adminCreateRequestOtp, adminCreateUpdateLocation, adminCreateVerifyOtp, adminDeleteUser, adminSetUserActive, assignManager, assignReportsTo, createRequestOtp,  createVerifyOtp, deleteMyAccount, getAllUsers, getEligibleReportsTo, getManagerTeamDetails, getRoleHierarchyGuide, me, requestAdminUserPhoneChangeOtp, requestOTP, searchUsers, updateLocationOtp, updateUser, updateUserProfileById, updateUserRole, verifyOtp } from "../controller/authController";
+import { adminCreateRequestOtp, adminCreateUpdateLocation, adminCreateVerifyOtp, adminDeleteUser, adminSetUserActive, assignManager, assignReportsTo, claimSeClient, createRequestOtp,  createVerifyOtp, deleteMyAccount, getAllUsers, getEligibleReportsTo, getManagerTeamDetails, getRoleHierarchyGuide, me, requestAdminUserPhoneChangeOtp, requestOTP, searchUsers, updateLocationOtp, updateUser, updateUserProfileById, updateUserRole, verifyOtp } from "../controller/authController";
 import { updateFollowUpWorkStatus } from "../controller/followUpWorkController";
 import { getUserWorkingLocations, updateUserWorkingLocations } from "../controller/workingLocationsController";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
@@ -94,6 +94,20 @@ authRoute.post(
   authMiddleware,
   requirePermission("team:assign_manager", ["regional_manager", "super_admin", "admin"]),
   assignReportsTo,
+);
+authRoute.post(
+  "/se-claim-client",
+  authMiddleware,
+  requirePermission("user:create", [
+    "sales_executive",
+    "sales_agent",
+    "sales_manager",
+    "regional_manager",
+    "business_development_head",
+    "super_admin",
+    "admin",
+  ]),
+  claimSeClient,
 );
 authRoute.get("/manager-team-details/:id", authMiddleware, requirePermission("team:view", ["regional_manager", "sales_manager"]), getManagerTeamDetails);
 authRoute.post(

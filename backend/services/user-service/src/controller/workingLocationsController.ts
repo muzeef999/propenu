@@ -7,37 +7,12 @@ import {
   formatTerritoryLabel,
   type WorkingLocationInput,
 } from "../utils/workingLocations";
-
-const CCE_ROLE_NAMES = new Set([
-  "customer_care",
-  "customer_care_executive",
-  "customer_care_executives",
-]);
-
-const TEAM_LEAD_ROLE_NAMES = new Set([
-  "team_lead",
-  "team_leads",
-  "customer_support_team_lead",
-  "customer_support_team_leads",
-]);
-
-const GLOBAL_MANAGE_ROLES = new Set([
-  "super_admin",
-  "admin",
-  "customer_support_head",
-]);
-
-const normalizeRole = (value = "") =>
-  String(value)
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-
-const isCceRole = (roleName?: string) => CCE_ROLE_NAMES.has(normalizeRole(roleName));
-
-const isTeamLeadRole = (roleName?: string) =>
-  TEAM_LEAD_ROLE_NAMES.has(normalizeRole(roleName));
+import {
+  isTerritoryBranchLead,
+  isTerritoryGlobalManager,
+  isTerritoryTargetRole,
+  normalizeTerritoryRole,
+} from "../utils/territoryRoles";
 
 const asId = (value: any): string => {
   if (!value) return "";
@@ -66,9 +41,10 @@ async function actorManagesUser(targetUser: any, actorId: string): Promise<boole
 }
 
 /**
- * Team lead / support head / admin can manage CCE territories.
- * Team leads may edit CCEs who report to them (managerId / chain),
- * or unbound CCEs in their pod (no manager yet) — then bind on save.
+ * Hierarchy parents / admins can manage territories for territory-enabled roles
+ * (CCE, SE, RM, BD Manager, BD Head, Ops, Relationship Manager, …).
+ * Direct staff cannot edit their own territories — parent managers only.
+ * Branch leads may edit reports in their manager chain, or unbound staff (binds on save).
  */
 async function assertCanManageWorkingLocations(
   req: AuthRequest,
@@ -82,35 +58,47 @@ async function assertCanManageWorkingLocations(
   }
 
   const actorId = String(req.user.sub || req.user.id);
-  const actorRole = normalizeRole(req.user.roleName || "");
+  const actorRole = normalizeTerritoryRole(req.user.roleName || "");
   const permissions = req.user.permissions || [];
 
-  if (GLOBAL_MANAGE_ROLES.has(actorRole)) {
+  const targetRoleName = normalizeTerritoryRole(
+    targetUser?.roleId?.name || targetUser?.roleName || "",
+  );
+  if (!isTerritoryTargetRole(targetRoleName)) {
+    return {
+      ok: false,
+      status: 400,
+      message:
+        "Working locations are managed for hierarchy field roles (CCE, Sales Executive, RM, BD Manager, etc.)",
+    };
+  }
+
+  if (isTerritoryGlobalManager(actorRole)) {
     return { ok: true };
   }
 
+  // Direct staff cannot edit their own territories — parents / admins only.
+  if (actorId && actorId === asId(targetUser?._id || targetUser?.id)) {
+    return {
+      ok: false,
+      status: 403,
+      message:
+        "Working locations are assigned by your manager. Ask your parent lead to update territories.",
+    };
+  }
+
   const canManageStaff =
-    isTeamLeadRole(actorRole) ||
+    isTerritoryBranchLead(actorRole) ||
     permissions.includes("team:assign_manager") ||
-    permissions.includes("user:update");
+    permissions.includes("user:update") ||
+    permissions.includes("team:view");
 
   if (!canManageStaff) {
     return { ok: false, status: 403, message: "Forbidden: cannot manage working locations" };
   }
 
-  const targetRoleName = normalizeRole(
-    targetUser?.roleId?.name || targetUser?.roleName || "",
-  );
-  if (!isCceRole(targetRoleName)) {
-    return {
-      ok: false,
-      status: 400,
-      message: "Working locations are managed for Customer Care Executives",
-    };
-  }
-
-  // Non–team-lead staff with user:update (e.g. ops) may manage any CCE.
-  if (!isTeamLeadRole(actorRole)) {
+  // Staff with user:update / team:assign_manager (non–branch-lead) may manage any territory role.
+  if (!isTerritoryBranchLead(actorRole)) {
     return { ok: true };
   }
 
@@ -119,20 +107,26 @@ async function assertCanManageWorkingLocations(
     return { ok: true };
   }
 
-  // CCE visible in Team Lead directory but not yet linked via reportsTo/managerId.
+  // Visible in directory but not yet linked via reportsTo/managerId.
   const targetManagerId = asId(targetUser?.managerId);
   if (!targetManagerId) {
     return { ok: true, bindManager: true };
   }
 
-  // Common mis-link: CCE reports to Support Head instead of Team Lead.
-  // If this TL reports to that same Head, allow manage + re-bind to the TL.
+  // Mis-link: staff reports to a Head instead of the branch lead.
+  // If this lead reports to that same Head, allow manage + re-bind.
   const targetManager = await User.findById(targetManagerId)
     .select("roleId")
     .populate("roleId", "name")
     .lean();
-  const targetManagerRole = normalizeRole((targetManager?.roleId as any)?.name || "");
-  if (targetManagerRole === "customer_support_head") {
+  const targetManagerRole = normalizeTerritoryRole((targetManager?.roleId as any)?.name || "");
+  const headRoles = new Set([
+    "customer_support_head",
+    "business_development_head",
+    "operations_head",
+    "operation_head",
+  ]);
+  if (headRoles.has(targetManagerRole)) {
     const actor = await User.findById(actorId).select("managerId").lean();
     if (asId(actor?.managerId) === targetManagerId) {
       return { ok: true, bindManager: true };
@@ -143,7 +137,7 @@ async function assertCanManageWorkingLocations(
     ok: false,
     status: 403,
     message:
-      "You can only manage territories for executives who report to you. Assign this CCE to you under Reports To, then try again.",
+      "You can only manage territories for people who report to you. Assign Reports To, then try again.",
   };
 }
 
@@ -232,7 +226,7 @@ export const updateUserWorkingLocations = async (req: AuthRequest, res: Response
 
     user.workingLocations = next as any;
 
-    // Bind unbound CCE to this Team Lead so future territory edits + RR stay scoped.
+    // Bind unbound staff to this branch lead so future territory edits stay scoped.
     if (access.bindManager) {
       const actorId = String(req.user?.sub || req.user?.id || "");
       if (actorId) {

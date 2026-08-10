@@ -1533,8 +1533,11 @@ export const FeaturePropertyService = {
     const hasDateRange = Boolean(options?.from || options?.to);
     // Date drill-downs (sidebar "today") must include pending/draft/inactive.
     // Default public list stays active-only.
+    // status=all → no status filter (SE / staff "posted by me" views).
     const filter: any = {};
-    if (statusOpt && statusOpt !== "all") {
+    if (statusOpt === "all") {
+      /* intentionally no status filter */
+    } else if (statusOpt) {
       if (statusOpt === "inactive" || statusOpt === "draft" || statusOpt === "onboarding") {
         filter.status = { $in: ["inactive", "draft", "onboarding", "incomplete"] };
       } else {
@@ -1599,6 +1602,12 @@ export const FeaturePropertyService = {
     }
     if ((options as any)?.createdBy) {
       filter.createdBy = new mongoose.Types.ObjectId((options as any).createdBy);
+    }
+    // Sales Executive / staff poster — ownership stays on builder (createdBy)
+    if ((options as any)?.postedBy) {
+      filter["postedBy.userId"] = new mongoose.Types.ObjectId(
+        (options as any).postedBy,
+      );
     }
 
     // 🔥 EXCLUDE EXPIRED PROMOTIONS

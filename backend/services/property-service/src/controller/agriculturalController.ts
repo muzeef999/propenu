@@ -137,8 +137,18 @@ export const createAgricultural = async (req: Request, res: Response) => {
 export const getAllAgricultural = async (req: Request, res: Response) => {
   try {
     const options: any = {};
-    const { page, limit, q, status, city, sortBy, sortOrder, createdBy } =
-      req.query;
+    const {
+      page,
+      limit,
+      q,
+      status,
+      city,
+      sortBy,
+      sortOrder,
+      createdBy,
+      postedBy,
+      postedByUserId,
+    } = req.query;
     if (typeof page === "string") options.page = Number(page);
     if (typeof limit === "string") options.limit = Number(limit);
     if (typeof q === "string") options.q = q;
@@ -152,6 +162,16 @@ export const getAllAgricultural = async (req: Request, res: Response) => {
         return res.status(400).json({ error: "Invalid createdBy" });
       }
       options.createdBy = createdBy;
+    }
+    const postedByRaw =
+      (typeof postedBy === "string" && postedBy) ||
+      (typeof postedByUserId === "string" && postedByUserId) ||
+      "";
+    if (postedByRaw) {
+      if (!mongoose.Types.ObjectId.isValid(postedByRaw)) {
+        return res.status(400).json({ error: "Invalid postedBy" });
+      }
+      options.postedBy = postedByRaw;
     }
 
     const result = await AgriculturalService.list(options);

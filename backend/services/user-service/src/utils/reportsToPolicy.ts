@@ -64,6 +64,8 @@ const REPORTS_TO_ROLE_OPTIONS: Record<string, string[]> = {
   sales_manager: ["regional_manager"],
   sales_executive: ["sales_manager", "regional_manager"],
   sales_agent: ["sales_manager", "regional_manager"],
+  // Public marketplace users can be owned/followed by field SE staff
+  user: ["sales_executive", "sales_agent", "sales_manager", "regional_manager"],
   customer_support_head: ["operations_head"],
   customer_support_team_lead: ["customer_support_head"],
   customer_care_executive: ["customer_support_team_lead"],

@@ -499,6 +499,7 @@ export const AgriculturalService = {
     city?: string;
     status?: string;
     createdBy?: string;
+    postedBy?: string;
     sortBy?: string;               
     sortOrder?: "asc" | "desc";      
   }) {
@@ -508,9 +509,13 @@ export const AgriculturalService = {
     const filter: any = {};
     if (options?.q) filter.$text = { $search: options.q };
     if (options?.city) filter.city = options.city;
-    if (options?.status) filter.status = options.status;
+    const statusOpt = String(options?.status || "").trim().toLowerCase();
+    if (statusOpt && statusOpt !== "all") filter.status = statusOpt;
     if (options?.createdBy) {
       filter.createdBy = new mongoose.Types.ObjectId(options.createdBy);
+    }
+    if (options?.postedBy) {
+      filter["postedBy.userId"] = new mongoose.Types.ObjectId(options.postedBy);
     }
 
       const sort: any = {};

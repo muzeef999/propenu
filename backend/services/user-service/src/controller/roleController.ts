@@ -42,8 +42,9 @@ const NON_DELETABLE_PLATFORM_ROLE_NAMES = new Set([
 ]);
 
 /**
- * Super Admin may permanently delete any dashboard/hierarchy/custom role
- * (except super_admin + marketplace account roles). Safe transfer is enforced in deleteRole.
+ * Super Admin may permanently delete any dashboard role they created by mistake
+ * (hierarchy, custom, or seeded) — except absolute platform/marketplace roles.
+ * isProtected does NOT block Super Admin. Safe transfer is enforced in deleteRole.
  */
 const canManageRoleLifecycle = (
   role: {
@@ -53,16 +54,16 @@ const canManageRoleLifecycle = (
   },
   actorRoleName?: string | null,
 ) => {
-  if (!role?.name || role.isProtected) return false;
+  if (!role?.name) return false;
   const name = normalizeRoleName(role.name);
-  if (NON_DELETABLE_PLATFORM_ROLE_NAMES.has(name) || PROTECTED_ROLE_NAMES.has(name)) {
-    return false;
-  }
+  // Never delete these — even Super Admin
+  if (NON_DELETABLE_PLATFORM_ROLE_NAMES.has(name)) return false;
 
   const actor = normalizeRoleName(String(actorRoleName || ""));
   if (actor === "super_admin") return true;
 
-  // Non–super-admin: keep legacy custom / CCE-only delete policy
+  // Non–super-admin: custom / CCE only; respect isProtected
+  if (role.isProtected || PROTECTED_ROLE_NAMES.has(name)) return false;
   if (role.roleType === "custom") return true;
   return (
     name === "customer_care" ||
@@ -483,15 +484,20 @@ export const updateRoleStatus = async (req: AuthRequest, res: Response) => {
     if (rejectRoleOutsideManagementScope(req, res, existingRole.name)) return;
 
     const roleName = normalizeRoleName(existingRole.name);
-    // Super Admin may toggle any dashboard role; never toggle super_admin / marketplace roles
-    if (
-      existingRole.isProtected ||
-      PROTECTED_ROLE_NAMES.has(roleName) ||
-      NON_DELETABLE_PLATFORM_ROLE_NAMES.has(roleName)
-    ) {
+    const actor = normalizeRoleName(String(req.user?.roleName || ""));
+    // Never toggle absolute platform/marketplace roles
+    if (NON_DELETABLE_PLATFORM_ROLE_NAMES.has(roleName)) {
       return res.status(403).json({
         message: "Protected platform roles cannot be activated or deactivated",
       });
+    }
+    // Super Admin may deactivate any other role (including hierarchy / isProtected) before safe delete
+    if (actor !== "super_admin") {
+      if (existingRole.isProtected || PROTECTED_ROLE_NAMES.has(roleName)) {
+        return res.status(403).json({
+          message: "Protected platform roles cannot be activated or deactivated",
+        });
+      }
     }
 
     existingRole.isActive = isActive;
@@ -526,7 +532,7 @@ export const deleteRole = async (req: AuthRequest, res: Response) => {
     if (!canManageRoleLifecycle(role, req.user?.roleName)) {
       return res.status(403).json({
         message:
-          "This role cannot be deleted. Super Admin can delete dashboard roles only after safe user transfer.",
+          "This platform role cannot be deleted (Super Admin, User, Builder, Agent). Other roles can be permanently deleted by Super Admin after safe user transfer.",
       });
     }
 

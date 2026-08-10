@@ -1,5 +1,5 @@
 /**
- * Working territories for Customer Care Executives.
+ * Working territories for hierarchy field roles (CCE, Sales Executive, RM, BD, …).
  * Empty city  => whole state
  * Empty locality => whole city
  */

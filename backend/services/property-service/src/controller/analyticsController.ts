@@ -1185,8 +1185,117 @@ export const getsupermanager = async (
 };
 
 /* =====================================================
-   4️⃣ SALES AGENT   Only his properties
+   4️⃣ SALES AGENT / SALES EXECUTIVE
+   Inventory created by OR posted by the actor (all categories).
 ===================================================== */
+
+/** Local calendar day bounds — matches admin leads / IST "today". */
+function parseLocalDayBound(value?: string, endOfDay = false): Date | null {
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value).trim());
+  if (match) {
+    const year = Number(match[1]);
+    const month = Number(match[2]) - 1;
+    const day = Number(match[3]);
+    return endOfDay
+      ? new Date(year, month, day, 23, 59, 59, 999)
+      : new Date(year, month, day, 0, 0, 0, 0);
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  if (endOfDay) parsed.setHours(23, 59, 59, 999);
+  else parsed.setHours(0, 0, 0, 0);
+  return parsed;
+}
+
+async function agentInventoryStats(match: Record<string, any>) {
+  const models = [
+    { model: Residential, category: "residential" },
+    { model: Commercial, category: "commercial" },
+    { model: LandPlot, category: "land" },
+    { model: Agricultural, category: "agricultural" },
+    { model: FeaturedProject, category: "featured" },
+  ] as const;
+
+  const listingSelect =
+    "title projectName buildingName status city locality state createdAt updatedAt meta.views propertyId listingId propertyCode slug";
+
+  const [statRows, listingRows] = await Promise.all([
+    Promise.all(
+      models.map(({ model }) =>
+        model.aggregate([
+          { $match: match },
+          {
+            $group: {
+              _id: null,
+              totalProperties: { $sum: 1 },
+              active: {
+                $sum: { $cond: [{ $eq: ["$status", "active"] }, 1, 0] },
+              },
+              pending: {
+                $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] },
+              },
+              draft: {
+                $sum: { $cond: [{ $eq: ["$status", "draft"] }, 1, 0] },
+              },
+              totalViews: { $sum: { $ifNull: ["$meta.views", 0] } },
+            },
+          },
+        ]),
+      ),
+    ),
+    Promise.all(
+      models.map(({ model, category }) =>
+        model
+          .find(match)
+          .select(listingSelect)
+          .sort({ updatedAt: -1 })
+          .limit(80)
+          .lean()
+          .then((rows) =>
+            rows.map((row: any) => ({
+              ...row,
+              category,
+              title:
+                row.title ||
+                row.projectName ||
+                row.buildingName ||
+                "Untitled listing",
+            })),
+          ),
+      ),
+    ),
+  ]);
+
+  const totals = {
+    totalProperties: 0,
+    active: 0,
+    pending: 0,
+    draft: 0,
+    totalViews: 0,
+  };
+
+  for (const rows of statRows) {
+    const row = rows[0];
+    if (!row) continue;
+    totals.totalProperties += Number(row.totalProperties || 0);
+    totals.active += Number(row.active || 0);
+    totals.pending += Number(row.pending || 0);
+    totals.draft += Number(row.draft || 0);
+    totals.totalViews += Number(row.totalViews || 0);
+  }
+
+  const listings = listingRows
+    .flat()
+    .sort(
+      (a, b) =>
+        new Date(b.updatedAt || b.createdAt || 0).getTime() -
+        new Date(a.updatedAt || a.createdAt || 0).getTime(),
+    )
+    .slice(0, 80);
+
+  return { ...totals, listings };
+}
 
 export const getsuperagent = async (
   req: AuthRequest,
@@ -1194,12 +1303,28 @@ export const getsuperagent = async (
 ) => {
   try {
     const agentId = new mongoose.Types.ObjectId(req.user!.id);
+    const from = req.query.from as string | undefined;
+    const to = req.query.to as string | undefined;
 
-    const properties = await propertyStats({
-      createdBy: agentId,
+    // SE posts attach postedBy; builder/owner inventory stays on createdBy.
+    const match: Record<string, any> = {
+      $or: [{ createdBy: agentId }, { "postedBy.userId": agentId }],
+    };
+
+    const fromDate = parseLocalDayBound(from, false);
+    const toDate = parseLocalDayBound(to, true);
+    if (fromDate || toDate) {
+      match.createdAt = {};
+      if (fromDate) match.createdAt.$gte = fromDate;
+      if (toDate) match.createdAt.$lte = toDate;
+    }
+
+    const properties = await agentInventoryStats(match);
+
+    res.json({
+      ...properties,
+      range: { from: from || null, to: to || null },
     });
-
-    res.json(properties);
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
