@@ -15,6 +15,7 @@ const inviteHtml = buildBuilderInviteEmailHtml({
     "http://localhost:3000/project/hindu-puja-villas-kondapur?invite=sample-token",
   openPixelUrl: "http://localhost:4000/api/properties/public/email/open/sample.gif",
   projectTitle: "Hindu Puja Villas",
+  brandLogoUrl: "http://localhost:3000/email/propenu-logo.png",
   companyHint: "Aparna",
   locationHint: "Kondapur, Telangana",
   heroImageUrl:
@@ -27,6 +28,21 @@ const inviteHtml = buildBuilderInviteEmailHtml({
   appStoreUrl: "https://apps.apple.com",
   playStoreBadgeUrl: "http://localhost:3000/email/playstoreBadge.png",
   appStoreBadgeUrl: "http://localhost:3000/email/appleBadge.png",
+  linkedinUrl: "https://www.linkedin.com",
+  instagramUrl: "https://www.instagram.com",
+  facebookUrl: "https://www.facebook.com",
+  twitterUrl: "https://x.com",
+  youtubeUrl: "https://www.youtube.com",
+  linkedinIconUrl: "http://localhost:3000/email/linkedin.png",
+  instagramIconUrl: "http://localhost:3000/email/instagram.png",
+  facebookIconUrl: "http://localhost:3000/email/facebook.png",
+  twitterIconUrl: "http://localhost:3000/email/twitter.png",
+  youtubeIconUrl: "http://localhost:3000/email/youtube.png",
+  contactUrl: "http://localhost:3000/contact",
+  teamworksUrl: "http://localhost:3000",
+  aslijobsUrl: "http://localhost:3000",
+  teamworksLogoUrl: "http://localhost:3000/email/teamworks.png",
+  aslijobsLogoUrl: "http://localhost:3000/email/aslijobs.png",
 });
 
 const otpHtml = buildBuilderOtpEmailHtml("6546", "Hindu Puja Villas");

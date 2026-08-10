@@ -1,8 +1,12 @@
+import fs from "fs";
+import path from "path";
+
 type BuilderInviteEmailParams = {
   previewUrl: string;
   onboardUrl: string;
   openPixelUrl: string;
   projectTitle: string;
+  brandLogoUrl?: string;
   companyHint?: string;
   locationHint?: string;
   heroImageUrl?: string;
@@ -14,10 +18,38 @@ type BuilderInviteEmailParams = {
   appStoreUrl?: string;
   playStoreBadgeUrl?: string;
   appStoreBadgeUrl?: string;
+  linkedinUrl?: string;
+  instagramUrl?: string;
+  facebookUrl?: string;
+  twitterUrl?: string;
+  youtubeUrl?: string;
+  linkedinIconUrl?: string;
+  instagramIconUrl?: string;
+  facebookIconUrl?: string;
+  twitterIconUrl?: string;
+  youtubeIconUrl?: string;
+  contactUrl?: string;
+  teamworksUrl?: string;
+  aslijobsUrl?: string;
+  teamworksLogoUrl?: string;
+  aslijobsLogoUrl?: string;
 };
 
 export const builderInviteEmailSubject =
   "Invitation to Join Propenu's Launch Partners Program";
+
+const defaultBrandLogoDataUri = (() => {
+  try {
+    const logoPath = path.resolve(
+      __dirname,
+      "../../../payment-service/src/assets/watermark.png",
+    );
+    const logoBuffer = fs.readFileSync(logoPath);
+    return `data:image/png;base64,${logoBuffer.toString("base64")}`;
+  } catch {
+    return "";
+  }
+})();
 
 export function buildBuilderInviteEmailHtml(
   params: BuilderInviteEmailParams,
@@ -27,6 +59,7 @@ export function buildBuilderInviteEmailHtml(
     onboardUrl,
     openPixelUrl,
     projectTitle,
+    brandLogoUrl,
     companyHint,
     locationHint,
     heroImageUrl,
@@ -38,11 +71,61 @@ export function buildBuilderInviteEmailHtml(
     appStoreUrl,
     playStoreBadgeUrl,
     appStoreBadgeUrl,
+    linkedinUrl,
+    instagramUrl,
+    facebookUrl,
+    twitterUrl,
+    youtubeUrl,
+    linkedinIconUrl,
+    instagramIconUrl,
+    facebookIconUrl,
+    twitterIconUrl,
+    youtubeIconUrl,
+    contactUrl,
+    teamworksUrl,
+    aslijobsUrl,
+    teamworksLogoUrl,
+    aslijobsLogoUrl,
   } = params;
 
   const greeting = companyHint
     ? `Dear ${companyHint} Team,`
     : "Dear Sir/Madam,";
+
+  const safeWebsiteUrl = websiteUrl || "https://www.propenu.com";
+  const safeTermsUrl = termsUrl || `${safeWebsiteUrl}/terms`;
+  const safePrivacyUrl = privacyUrl || `${safeWebsiteUrl}/privacy-policy`;
+  const safeSupportEmail = supportEmail || "marketingteam@propenu.com";
+  const safePlayStoreUrl = playStoreUrl || safeWebsiteUrl;
+  const safeAppStoreUrl = appStoreUrl || safeWebsiteUrl;
+  const safePlayStoreBadgeUrl =
+    playStoreBadgeUrl || `${safeWebsiteUrl}/email/playstoreBadge.png`;
+  const safeAppStoreBadgeUrl =
+    appStoreBadgeUrl || `${safeWebsiteUrl}/email/appleBadge.png`;
+  const safeBrandLogoUrl =
+    brandLogoUrl || defaultBrandLogoDataUri || `${safeWebsiteUrl}/email/propenu-logo.png`;
+  const safeLinkedinUrl = linkedinUrl || safeWebsiteUrl;
+  const safeInstagramUrl = instagramUrl || safeWebsiteUrl;
+  const safeFacebookUrl = facebookUrl || safeWebsiteUrl;
+  const safeTwitterUrl = twitterUrl || safeWebsiteUrl;
+  const safeYoutubeUrl = youtubeUrl || safeWebsiteUrl;
+  const safeContactUrl = contactUrl || safeWebsiteUrl;
+  const safeTeamworksUrl = teamworksUrl || safeWebsiteUrl;
+  const safeAslijobsUrl = aslijobsUrl || safeWebsiteUrl;
+  const safeLinkedinIconUrl =
+    linkedinIconUrl || `${safeWebsiteUrl}/email/linkedin.png`;
+  const safeInstagramIconUrl =
+    instagramIconUrl || `${safeWebsiteUrl}/email/instagram.png`;
+  const safeFacebookIconUrl =
+    facebookIconUrl || `${safeWebsiteUrl}/email/facebook.png`;
+  const safeTwitterIconUrl =
+    twitterIconUrl || `${safeWebsiteUrl}/email/twitter.png`;
+  const safeYoutubeIconUrl =
+    youtubeIconUrl || `${safeWebsiteUrl}/email/youtube.png`;
+  const safeTeamworksLogoUrl =
+    teamworksLogoUrl || `${safeWebsiteUrl}/email/teamworks.png`;
+  const safeAslijobsLogoUrl =
+    aslijobsLogoUrl || `${safeWebsiteUrl}/email/aslijobs.png`;
 
   const heroSection = heroImageUrl
     ? `
@@ -67,17 +150,6 @@ export function buildBuilderInviteEmailHtml(
     ? `<div style="margin-top:6px;font-size:13px;color:#64748b;">For ${companyHint}</div>`
     : "";
 
-  const safeWebsiteUrl = websiteUrl || "https://www.propenu.com";
-  const safeTermsUrl = termsUrl || `${safeWebsiteUrl}/terms`;
-  const safePrivacyUrl = privacyUrl || `${safeWebsiteUrl}/privacy-policy`;
-  const safeSupportEmail = supportEmail || "marketingteam@propenu.com";
-  const safePlayStoreUrl = playStoreUrl || safeWebsiteUrl;
-  const safeAppStoreUrl = appStoreUrl || safeWebsiteUrl;
-  const safePlayStoreBadgeUrl =
-    playStoreBadgeUrl || `${safeWebsiteUrl}/email/playstoreBadge.png`;
-  const safeAppStoreBadgeUrl =
-    appStoreBadgeUrl || `${safeWebsiteUrl}/email/appleBadge.png`;
-
   return `<!DOCTYPE html>
 <html>
 <body style="margin:0;padding:0;background:#edf3ef;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
@@ -90,14 +162,7 @@ export function buildBuilderInviteEmailHtml(
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="left" valign="middle">
-                    <table cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="width:34px;height:34px;border-radius:10px;background:#22c55e;color:#ffffff;font-size:20px;font-weight:800;text-align:center;vertical-align:middle;">P</td>
-                        <td style="padding-left:10px;">
-                          <div style="font-size:22px;font-weight:800;color:#16a34a;line-height:1;">Propenu</div>
-                        </td>
-                      </tr>
-                    </table>
+                    <img src="${safeBrandLogoUrl}" alt="Propenu" width="132" style="display:block;width:132px;max-width:132px;height:auto;border:0;" />
                   </td>
                   <td align="right" valign="middle" style="font-size:11px;color:#94a3b8;">
                     <a href="${safeWebsiteUrl}" style="color:#94a3b8;text-decoration:none;">www.propenu.com</a>
@@ -210,9 +275,9 @@ export function buildBuilderInviteEmailHtml(
                 </tr>
                 <tr>
                   <td style="padding-left:18px;font-size:13px;line-height:1.8;color:#166534;">
-                    <div>• Primary Contact Person</div>
-                    <div>• Mobile Number</div>
-                    <div>• Email ID</div>
+                    <div>&bull; Primary Contact Person</div>
+                    <div>&bull; Mobile Number</div>
+                    <div>&bull; Email ID</div>
                   </td>
                 </tr>
               </table>
@@ -279,11 +344,51 @@ export function buildBuilderInviteEmailHtml(
                   <td align="center" style="font-size:11px;color:#94a3b8;">
                     <a href="${safePrivacyUrl}" style="color:#94a3b8;text-decoration:none;">Privacy Policy</a>
                   </td>
-                  <td align="right" style="font-size:11px;color:#94a3b8;">Connect Us</td>
+                  <td align="right" style="font-size:11px;color:#94a3b8;">
+                    <a href="${safeContactUrl}" style="color:#94a3b8;text-decoration:none;">Contact Us</a>
+                  </td>
+                </tr>
+              </table>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:22px;">
+                <tr>
+                  <td align="center">
+                    <a href="${safeTeamworksUrl}" style="display:inline-block;margin-right:16px;text-decoration:none;vertical-align:middle;">
+                      <img src="${safeTeamworksLogoUrl}" alt="Teamworks" width="110" style="display:block;width:110px;max-width:110px;height:auto;border:0;" />
+                    </a>
+                    <a href="${safeAslijobsUrl}" style="display:inline-block;text-decoration:none;vertical-align:middle;">
+                      <img src="${safeAslijobsLogoUrl}" alt="Asli Jobs" width="110" style="display:block;width:110px;max-width:110px;height:auto;border:0;" />
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top:8px;font-size:12px;color:#475569;">
+                    Associated Businesses
+                  </td>
+                </tr>
+              </table>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;">
+                <tr>
+                  <td align="right">
+                    <a href="${safeLinkedinUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
+                      <img src="${safeLinkedinIconUrl}" alt="LinkedIn" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                    </a>
+                    <a href="${safeInstagramUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
+                      <img src="${safeInstagramIconUrl}" alt="Instagram" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                    </a>
+                    <a href="${safeFacebookUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
+                      <img src="${safeFacebookIconUrl}" alt="Facebook" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                    </a>
+                    <a href="${safeTwitterUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
+                      <img src="${safeTwitterIconUrl}" alt="Twitter" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                    </a>
+                    <a href="${safeYoutubeUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
+                      <img src="${safeYoutubeIconUrl}" alt="YouTube" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                    </a>
+                  </td>
                 </tr>
               </table>
               <p style="margin:18px 0 0;font-size:10px;line-height:1.6;color:#94a3b8;text-align:center;">
-                © Propenu Solutions Private Limited<br />
+                &copy; Propenu Solutions Private Limited<br />
                 This email was sent as part of an onboarding invitation for your organization.
               </p>
             </td>
@@ -323,7 +428,7 @@ export function buildBuilderOtpEmailHtml(
                 <span style="font-size:34px;letter-spacing:10px;font-weight:800;color:#16a34a;">${otp}</span>
               </div>
               <p style="margin:0;font-size:12px;color:#94a3b8;text-align:center;">
-                Expires in 10 minutes · 4 digits only
+                Expires in 10 minutes &middot; 4 digits only
               </p>
             </td>
           </tr>
