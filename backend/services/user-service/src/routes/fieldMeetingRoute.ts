@@ -6,6 +6,7 @@ import {
   getFieldMeetingTeamSummary,
   getFieldMeetingTerritory,
   listFieldMeetings,
+  searchFieldMeetingContacts,
   updateFieldMeeting,
   updatePrepTask,
 } from "../controller/fieldMeetingController";
@@ -17,6 +18,7 @@ fieldMeetingRoute.use(authMiddleware);
 fieldMeetingRoute.get("/", listFieldMeetings);
 fieldMeetingRoute.get("/team-summary", getFieldMeetingTeamSummary);
 fieldMeetingRoute.get("/territory", getFieldMeetingTerritory);
+fieldMeetingRoute.get("/contacts/search", searchFieldMeetingContacts);
 fieldMeetingRoute.get("/:id", getFieldMeetingById);
 fieldMeetingRoute.post("/", createFieldMeeting);
 fieldMeetingRoute.patch("/:id", updateFieldMeeting);
