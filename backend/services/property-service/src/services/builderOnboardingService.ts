@@ -1291,11 +1291,15 @@ export const BuilderOnboardingService = {
       invite.companyName = String(input.companyName).trim();
     }
 
-    const targetPhone = invite.phone || (input?.phone ? normalizePhone(input.phone) : "");
-    const targetEmail = invite.email || (input?.email ? normalizeEmail(input.email) : "");
+    const targetPhone =
+      invite.phone || (input?.phone ? normalizePhone(input.phone) : "");
+    const targetEmail =
+      invite.email || (input?.email ? normalizeEmail(input.email) : "");
 
-    if (!targetPhone && !targetEmail) {
-      const err: any = new Error("Contact phone or email is required");
+    if (!targetPhone) {
+      const err: any = new Error(
+        "Contact phone is required to send OTP on WhatsApp",
+      );
       err.statusCode = 400;
       throw err;
     }
@@ -1313,25 +1317,10 @@ export const BuilderOnboardingService = {
     pushEmailStatus(invite, "interested");
     await invite.save();
 
-    if (targetPhone) {
-      sendOtpWhatsApp(targetPhone, otp).catch(() => undefined);
-    }
-
-    if (targetEmail) {
-      sendEmail({
-        to: targetEmail,
-        subject: `Propenu OTP for ${(project as any)?.title || "project onboarding"}`,
-        html: buildBuilderOtpEmailHtml(
-          otp,
-          (project as any)?.title || "your project",
-        ),
-      }).catch(() => undefined);
-    }
+    sendOtpWhatsApp(targetPhone, otp).catch(() => undefined);
 
     return {
-      message: targetPhone
-        ? `OTP sent to mobile (${targetPhone})`
-        : "OTP sent successfully to email",
+      message: `OTP sent to WhatsApp number (${targetPhone})`,
       phone: targetPhone,
       email: targetEmail,
       ...(process.env.NODE_ENV !== "production" ? { debugOtp: otp } : {}),

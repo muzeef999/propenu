@@ -27,6 +27,41 @@ const resolveCreatorMeta = (project: any) => {
   };
 };
 
+const readTrimmed = (...values: any[]) => {
+  for (const value of values) {
+    const text = String(value || "").trim();
+    if (text) return text;
+  }
+  return "";
+};
+
+const resolveBuilderThankYouRecipient = (project: any) => {
+  const onboarding = project?.builderOnboarding || {};
+  const snapshot = onboarding?.builderSnapshot || {};
+  const primaryContact = Array.isArray(project?.projectContacts)
+    ? project.projectContacts.find((contact: any) => contact?.isPrimary) ||
+      project.projectContacts.find((contact: any) => contact?.email)
+    : null;
+
+  const email = readTrimmed(
+    snapshot.email,
+    onboarding.inviteEmail,
+    primaryContact?.email,
+    project?.createdBy?.email,
+  ).toLowerCase();
+
+  const name = readTrimmed(
+    snapshot.companyName,
+    project?.createdBy?.companyName,
+    snapshot.contactName,
+    primaryContact?.name,
+    project?.createdBy?.fullName,
+    project?.createdBy?.name,
+  );
+
+  return { email, name };
+};
+
 export const getPendingProjects = async (req: AuthRequest, res: Response) => {
   try {
     const projects = await FeaturedProject.find({
@@ -115,25 +150,42 @@ export const approveProject = async (req: AuthRequest, res: Response) => {
 
     await project.save();
 
-    const builderEmail = String((project as any)?.createdBy?.email || "").trim();
+    const { email: builderEmail, name: builderName } =
+      resolveBuilderThankYouRecipient(project);
     if (builderEmail) {
-      const builderName =
-        String((project as any)?.createdBy?.companyName || "").trim() ||
-        String((project as any)?.createdBy?.fullName || "").trim() ||
-        String((project as any)?.createdBy?.name || "").trim();
-      const projectUrl = (process.env.PUBLIC_WEB_URL || process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
+      const projectUrl = (
+        process.env.PUBLIC_WEB_URL ||
+        process.env.FRONTEND_URL ||
+        "http://localhost:3000"
+      ).replace(/\/$/, "");
 
-      sendMarketingEmail({
-        to: builderEmail,
-        subject: buildBuilderApprovalThankYouSubject(builderName),
-        html: buildBuilderApprovalThankYouEmailHtml({
-          builderName,
-          projectTitle: String(project.title || ""),
-          projectUrl: `${projectUrl}/project/${project.slug}`,
-        }),
-      }).catch((emailError: any) => {
-        console.error("Failed to send builder approval thank-you email:", emailError?.message || emailError);
-      });
+      try {
+        await sendMarketingEmail({
+          to: builderEmail,
+          subject: buildBuilderApprovalThankYouSubject(builderName),
+          html: buildBuilderApprovalThankYouEmailHtml({
+            builderName,
+            projectTitle: String(project.title || ""),
+            projectUrl: `${projectUrl}/project/${project.slug}`,
+          }),
+        });
+      } catch (emailError: any) {
+        console.error(
+          "Failed to send builder approval thank-you email:",
+          {
+            projectId: String(project._id),
+            recipient: builderEmail,
+            error: emailError?.message || emailError,
+          },
+        );
+      }
+    } else {
+      console.warn(
+        "Skipped builder approval thank-you email because no recipient email was found",
+        {
+          projectId: String(project._id),
+        },
+      );
     }
 
     return res.status(200).json({

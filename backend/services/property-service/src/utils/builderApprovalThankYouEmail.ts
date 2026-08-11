@@ -246,27 +246,6 @@ export function buildBuilderApprovalThankYouEmailHtml(
                   </td>
                 </tr>
               </table>
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;">
-                <tr>
-                  <td align="right">
-                    <a href="${safeLinkedinUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
-                      <img src="${safeLinkedinIconUrl}" alt="LinkedIn" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
-                    </a>
-                    <a href="${safeInstagramUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
-                      <img src="${safeInstagramIconUrl}" alt="Instagram" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
-                    </a>
-                    <a href="${safeFacebookUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
-                      <img src="${safeFacebookIconUrl}" alt="Facebook" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
-                    </a>
-                    <a href="${safeTwitterUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
-                      <img src="${safeTwitterIconUrl}" alt="Twitter" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
-                    </a>
-                    <a href="${safeYoutubeUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
-                      <img src="${safeYoutubeIconUrl}" alt="YouTube" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
-                    </a>
-                  </td>
-                </tr>
-              </table>
               <p style="margin:18px 0 0;font-size:10px;line-height:1.6;color:#94a3b8;text-align:center;">
                 &copy; Propenu Solutions Private Limited<br />
                 This email was sent as part of the Propenu launch partnership program.
