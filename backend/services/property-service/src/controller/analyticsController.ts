@@ -1209,16 +1209,49 @@ function parseLocalDayBound(value?: string, endOfDay = false): Date | null {
 }
 
 async function agentInventoryStats(match: Record<string, any>) {
-  const models = [
-    { model: Residential, category: "residential" },
-    { model: Commercial, category: "commercial" },
-    { model: LandPlot, category: "land" },
-    { model: Agricultural, category: "agricultural" },
-    { model: FeaturedProject, category: "featured" },
-  ] as const;
+  // Use Model<any> so .find/.aggregate are callable across mixed category models.
+  type InventoryModel = {
+    aggregate: (pipeline: any[]) => Promise<any[]>;
+    find: (filter: Record<string, any>) => {
+      select: (fields: string) => {
+        sort: (spec: Record<string, 1 | -1>) => {
+          limit: (n: number) => {
+            lean: () => Promise<any[]>;
+          };
+        };
+      };
+    };
+  };
+
+  const models: Array<{ model: InventoryModel; category: string }> = [
+    { model: Residential as unknown as InventoryModel, category: "residential" },
+    { model: Commercial as unknown as InventoryModel, category: "commercial" },
+    { model: LandPlot as unknown as InventoryModel, category: "land" },
+    { model: Agricultural as unknown as InventoryModel, category: "agricultural" },
+    {
+      model: FeaturedProject as unknown as InventoryModel,
+      category: "featured",
+    },
+  ];
 
   const listingSelect =
     "title projectName buildingName status city locality state createdAt updatedAt meta.views propertyId listingId propertyCode slug";
+
+  type StatRow = {
+    totalProperties?: number;
+    active?: number;
+    pending?: number;
+    draft?: number;
+    totalViews?: number;
+  };
+
+  type ListingRow = {
+    category: string;
+    title: string;
+    updatedAt?: Date | string;
+    createdAt?: Date | string;
+    [key: string]: any;
+  };
 
   const [statRows, listingRows] = await Promise.all([
     Promise.all(
@@ -1241,7 +1274,7 @@ async function agentInventoryStats(match: Record<string, any>) {
               totalViews: { $sum: { $ifNull: ["$meta.views", 0] } },
             },
           },
-        ]),
+        ]) as Promise<StatRow[]>,
       ),
     ),
     Promise.all(
@@ -1252,16 +1285,17 @@ async function agentInventoryStats(match: Record<string, any>) {
           .sort({ updatedAt: -1 })
           .limit(80)
           .lean()
-          .then((rows) =>
-            rows.map((row: any) => ({
-              ...row,
-              category,
-              title:
-                row.title ||
-                row.projectName ||
-                row.buildingName ||
-                "Untitled listing",
-            })),
+          .then(
+            (rows: any[]): ListingRow[] =>
+              rows.map((row: any) => ({
+                ...row,
+                category,
+                title:
+                  row.title ||
+                  row.projectName ||
+                  row.buildingName ||
+                  "Untitled listing",
+              })),
           ),
       ),
     ),
@@ -1288,7 +1322,7 @@ async function agentInventoryStats(match: Record<string, any>) {
   const listings = listingRows
     .flat()
     .sort(
-      (a, b) =>
+      (a: ListingRow, b: ListingRow) =>
         new Date(b.updatedAt || b.createdAt || 0).getTime() -
         new Date(a.updatedAt || a.createdAt || 0).getTime(),
     )

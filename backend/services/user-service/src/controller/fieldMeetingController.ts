@@ -2,11 +2,13 @@ import { Response } from "express";
 import mongoose from "mongoose";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import FieldMeeting, {
+  FIELD_MEETING_LOGGING_MODES,
   FIELD_MEETING_STATUSES,
   FIELD_MEETING_TYPES,
+  normalizeMeetingPlace,
 } from "../models/fieldMeetingModel";
+import FieldMeetingContact from "../models/fieldMeetingContactModel";
 import User from "../models/userModel";
-import Role from "../models/roleModel";
 import {
   actorCanAccessMeeting,
   buildVisibilityChain,
@@ -75,6 +77,7 @@ const serializeMeeting = (doc: any) => {
     _id: String(o._id),
     title: o.title || "",
     meetingType: o.meetingType,
+    meetingPlace: o.meetingPlace || null,
     mode: o.mode,
     status: o.status,
     scheduledStart: o.scheduledStart,
@@ -82,15 +85,32 @@ const serializeMeeting = (doc: any) => {
     ownerUserId: asId(o.ownerUserId),
     createdBy: asId(o.createdBy),
     client: {
-      id: asId(o.client?.userId) || null,
+      id: asId(o.client?.contactId) || asId(o.client?.userId) || null,
       userId: asId(o.client?.userId) || null,
+      contactId: asId(o.client?.contactId) || null,
       name: o.client?.name || "",
       company: o.client?.company || "",
       phone: o.client?.phone || "",
       email: o.client?.email || "",
-      roleName: o.client?.roleName || "user",
+      title: o.client?.title || "",
+      roleName: o.client?.roleName || "owner",
       createdInline: Boolean(o.client?.createdInline),
+      source: o.client?.source || (o.client?.contactId ? "meeting_contact" : "platform_user"),
     },
+    people: (Array.isArray(o.people) ? o.people : []).map((p: any) => ({
+      id: asId(p._id) || asId(p.contactId) || asId(p.userId) || "",
+      userId: asId(p.userId) || null,
+      contactId: asId(p.contactId) || null,
+      name: p.name || "",
+      company: p.company || "",
+      phone: p.phone || "",
+      email: p.email || "",
+      title: p.title || "",
+      roleName: p.roleName || "owner",
+      isPrimary: Boolean(p.isPrimary),
+      createdInline: Boolean(p.createdInline),
+      source: p.source || (p.contactId ? "meeting_contact" : "platform_user"),
+    })),
     location: {
       state: o.location?.state || "",
       city: o.location?.city || "",
@@ -101,6 +121,10 @@ const serializeMeeting = (doc: any) => {
     objective: o.objective || "",
     notes: o.notes || "",
     outcome: o.outcome || "",
+    loggingMode: o.loggingMode || "scheduled",
+    visitConfirmed: Boolean(o.visitConfirmed),
+    visitConfirmedAt: o.visitConfirmedAt || null,
+    visitConfirmedBy: asId(o.visitConfirmedBy) || null,
     prepTasks: prepTasks.map((t: any) => ({
       id: String(t._id || t.id || t.key),
       key: t.key || "",
@@ -135,73 +159,117 @@ const resolveOwnerId = async (req: AuthRequest, bodyOwner?: string) => {
   return actorId;
 };
 
-async function createInlineClient(
+const normalizePhone = (phone: string) => {
+  const raw = String(phone || "").trim();
+  if (!raw) return "";
+  let digits = raw.replace(/\D/g, "");
+  if (digits.length === 10) return `+91${digits}`;
+  if (raw.startsWith("+")) return `+${digits}`;
+  if (digits) return `+${digits}`;
+  return "";
+};
+
+const mapClientType = (intent: string) => {
+  const v = String(intent || "").trim().toLowerCase();
+  if (v === "agent") return "agent";
+  if (v === "builder") return "builder";
+  if (v === "other") return "other";
+  // "user" / "owner" → owner label in meeting book
+  return "owner";
+};
+
+/**
+ * Upsert into FieldMeetingContact only — never creates Users / credentials / KYC.
+ */
+async function upsertMeetingContact(
   actorId: string,
   ownerId: string,
   payload: any,
 ) {
   const name = String(payload?.name || "").trim();
-  const phone = String(payload?.phone || "").trim();
   const email = String(payload?.email || "").trim().toLowerCase();
   const company = String(payload?.company || "").trim();
-  const intent = String(payload?.roleIntent || payload?.roleName || "user")
-    .trim()
-    .toLowerCase();
+  const phoneToSave = normalizePhone(payload?.phone || "");
+  const clientType = mapClientType(
+    payload?.roleIntent || payload?.roleName || payload?.clientType || "owner",
+  );
+  const title = String(payload?.title || payload?.jobTitle || "").trim();
   const state = String(payload?.state || "").trim();
-  const city = String(payload?.city || "Hyderabad").trim();
+  const city = String(payload?.city || "").trim();
   const locality = String(payload?.locality || "").trim();
 
-  if (!name || name.length < 3) throw new Error("Client name must be at least 3 characters");
-  if (!phone && !email) throw new Error("Client phone or email is required");
-
-  let normalizedPhone = phone.replace(/\D/g, "");
-  if (normalizedPhone.length === 10) normalizedPhone = `+91${normalizedPhone}`;
-  else if (normalizedPhone && !phone.startsWith("+")) normalizedPhone = `+${normalizedPhone}`;
-  else if (phone.startsWith("+")) normalizedPhone = phone.replace(/\s+/g, "");
-  const phoneToSave = normalizedPhone || undefined;
-
-  if (phoneToSave) {
-    const existing = await User.findOne({ phone: phoneToSave })
-      .select("_id name email phone companyName managerId")
-      .lean();
-    if (existing) {
-      return { user: existing, created: false };
-    }
-  }
-  if (email) {
-    const existing = await User.findOne({ email })
-      .select("_id name email phone companyName managerId")
-      .lean();
-    if (existing) {
-      return { user: existing, created: false };
-    }
+  if (!name || name.length < 2) {
+    throw new Error("Person name is required");
   }
 
-  const roleKey =
-    intent === "agent" ? "agent" : intent === "builder" ? "builder" : "user";
-  const role = await Role.findOne({ name: roleKey }).select("_id name").lean();
-  if (!role) throw new Error(`Role ${roleKey} not found`);
+  const ownerOid = new mongoose.Types.ObjectId(ownerId);
+  const or: Record<string, string>[] = [];
+  if (phoneToSave) or.push({ phone: phoneToSave });
+  if (email) or.push({ email });
 
-  const safeCity = city.length >= 3 ? city : "Hyderabad";
+  let contact =
+    or.length > 0
+      ? await FieldMeetingContact.findOne({
+          ownerUserId: ownerOid,
+          $or: or,
+        })
+      : await FieldMeetingContact.findOne({
+          ownerUserId: ownerOid,
+          name,
+          company: company || "",
+          title: title || "",
+        });
 
-  const user = await User.create({
+  if (contact) {
+    contact.name = name || contact.name;
+    if (company) contact.company = company;
+    if (phoneToSave) contact.phone = phoneToSave;
+    if (email) contact.email = email;
+    if (title) contact.title = title;
+    contact.clientType = clientType as any;
+    if (state) contact.state = state;
+    if (city) contact.city = city;
+    if (locality) contact.locality = locality;
+    await contact.save();
+    return { contact, created: false };
+  }
+
+  contact = await FieldMeetingContact.create({
+    ownerUserId: ownerOid,
+    createdBy: new mongoose.Types.ObjectId(actorId),
     name,
     phone: phoneToSave,
-    email: email || undefined,
-    companyName: company || undefined,
-    state: state || undefined,
-    city: safeCity,
-    locality: locality || undefined,
-    roleId: role._id,
-    managerId: new mongoose.Types.ObjectId(ownerId),
-    onboardedBy: new mongoose.Types.ObjectId(actorId),
-    accountStatus: "location_pending",
-    phoneVerified: false,
-    isActive: true,
-    kyc: { status: "not_started" },
+    email,
+    company,
+    title,
+    clientType,
+    state,
+    city,
+    locality,
+    source: "field_meeting_create",
+    meetingIds: [],
+    meetingCount: 0,
   });
 
-  return { user, created: true };
+  return { contact, created: true };
+}
+
+async function linkMeetingToContact(contactId: string, meetingId: string, when: Date) {
+  if (!contactId || !meetingId) return;
+  const contact = await FieldMeetingContact.findByIdAndUpdate(
+    contactId,
+    {
+      $addToSet: { meetingIds: new mongoose.Types.ObjectId(meetingId) },
+      $set: { lastMeetingAt: when },
+    },
+    { new: true },
+  );
+  if (contact) {
+    contact.meetingCount = Array.isArray(contact.meetingIds)
+      ? contact.meetingIds.length
+      : 0;
+    await contact.save();
+  }
 }
 
 export const listFieldMeetings = async (req: AuthRequest, res: Response) => {
@@ -341,90 +409,200 @@ export const createFieldMeeting = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: "Invalid meeting owner" });
     }
 
-    let clientUserId = String(body.clientUserId || body.client?.userId || "").trim();
-    let clientSnap: any = {
-      name: String(body.client?.name || "").trim(),
-      company: String(body.client?.company || "").trim(),
-      phone: String(body.client?.phone || "").trim(),
-      email: String(body.client?.email || "").trim(),
-      roleName: String(body.client?.roleName || "user").trim(),
-      createdInline: false,
+    const locationHint = {
+      state: body.location?.state,
+      city: body.location?.city,
+      locality: body.location?.locality,
     };
 
-    if (body.createClient && typeof body.createClient === "object") {
-      const { user, created } = await createInlineClient(
-        actorId,
-        ownerId,
-        {
-          ...body.createClient,
-          state: body.createClient.state || body.location?.state,
-          city: body.createClient.city || body.location?.city,
-          locality: body.createClient.locality || body.location?.locality,
-        },
+    /** Normalize incoming people list (N attendees: CEO, managers, heads, …) */
+    const rawPeople: any[] = [];
+    if (Array.isArray(body.people) && body.people.length) {
+      rawPeople.push(...body.people);
+    }
+    if (Array.isArray(body.createPeople) && body.createPeople.length) {
+      rawPeople.push(
+        ...body.createPeople.map((p: any) => ({ ...p, _create: true })),
       );
-      clientUserId = String(user._id);
-      clientSnap = {
-        userId: user._id,
-        name: user.name || body.createClient.name,
-        company: body.createClient.company || (user as any).companyName || "",
-        phone: user.phone || body.createClient.phone || "",
-        email: user.email || body.createClient.email || "",
-        roleName: body.createClient.roleIntent || body.createClient.roleName || "user",
-        createdInline: created,
-      };
-      if (!created && !(user as any).managerId) {
-        await User.updateOne(
-          { _id: user._id },
-          {
-            $set: {
-              managerId: new mongoose.Types.ObjectId(ownerId),
-              onboardedBy: new mongoose.Types.ObjectId(actorId),
-            },
-          },
-        );
+    }
+    // Legacy single-client payloads
+    if (!rawPeople.length && body.createClient && typeof body.createClient === "object") {
+      rawPeople.push({ ...body.createClient, _create: true, isPrimary: true });
+    }
+    if (!rawPeople.length && (body.client || body.clientUserId || body.clientContactId)) {
+      rawPeople.push({
+        ...(body.client || {}),
+        userId: body.clientUserId || body.client?.userId,
+        contactId: body.clientContactId || body.client?.contactId,
+        isPrimary: true,
+      });
+    }
+
+    const peopleSnaps: any[] = [];
+    for (let i = 0; i < rawPeople.length; i += 1) {
+      const row = rawPeople[i] || {};
+      const wantCreate =
+        Boolean(row._create) ||
+        Boolean(row.create) ||
+        (!row.userId && !row.contactId && row.name);
+
+      if (wantCreate && row.name) {
+        if (!String(row.phone || "").trim() && !String(row.email || "").trim()) {
+          // Allow name-only attendees at a company meeting (CEO without phone yet)
+          if (String(row.name).trim().length < 2) continue;
+        }
+        const { contact } = await upsertMeetingContact(actorId, ownerId, {
+          ...row,
+          ...locationHint,
+          state: row.state || locationHint.state,
+          city: row.city || locationHint.city,
+          locality: row.locality || locationHint.locality,
+        });
+        peopleSnaps.push({
+          userId: null,
+          contactId: contact._id,
+          name: contact.name,
+          company: contact.company || row.company || "",
+          phone: contact.phone || "",
+          email: contact.email || "",
+          title: contact.title || row.title || "",
+          roleName: contact.clientType || "owner",
+          isPrimary: Boolean(row.isPrimary) || i === 0,
+          createdInline: true,
+          source: "meeting_contact",
+        });
+        continue;
       }
-    } else if (clientUserId && mongoose.Types.ObjectId.isValid(clientUserId)) {
-      const user = await User.findById(clientUserId)
-        .select("name phone email companyName roleId managerId")
-        .populate("roleId", "name")
-        .lean();
-      if (user) {
-        clientSnap = {
+
+      const contactId = String(row.contactId || "").trim();
+      const userId = String(row.userId || "").trim();
+
+      if (contactId && mongoose.Types.ObjectId.isValid(contactId)) {
+        const contact = await FieldMeetingContact.findById(contactId).lean();
+        if (!contact) continue;
+        peopleSnaps.push({
+          userId: null,
+          contactId: contact._id,
+          name: contact.name,
+          company: contact.company || "",
+          phone: contact.phone || "",
+          email: contact.email || "",
+          title: contact.title || row.title || "",
+          roleName: contact.clientType || "owner",
+          isPrimary: Boolean(row.isPrimary) || i === 0,
+          createdInline: true,
+          source: "meeting_contact",
+        });
+        continue;
+      }
+
+      if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+        const user = await User.findById(userId)
+          .select("name phone email companyName roleId")
+          .populate("roleId", "name")
+          .lean();
+        if (!user) continue;
+        peopleSnaps.push({
           userId: user._id,
-          name: clientSnap.name || user.name || "",
-          company: clientSnap.company || (user as any).companyName || "",
-          phone: clientSnap.phone || user.phone || "",
-          email: clientSnap.email || user.email || "",
-          roleName:
-            clientSnap.roleName ||
-            (user.roleId as any)?.name ||
-            "user",
+          contactId: null,
+          name: user.name || row.name || "",
+          company: (user as any).companyName || row.company || "",
+          phone: user.phone || "",
+          email: user.email || "",
+          title: row.title || "",
+          roleName: (user.roleId as any)?.name || "owner",
+          isPrimary: Boolean(row.isPrimary) || i === 0,
           createdInline: false,
-        };
-        // Soft-claim only when unassigned — does not change KYC / onboard status
-        if (!user.managerId) {
-          await User.updateOne(
-            { _id: user._id },
-            {
-              $set: {
-                managerId: new mongoose.Types.ObjectId(ownerId),
-                onboardedBy: new mongoose.Types.ObjectId(actorId),
-              },
-            },
-          );
+          source: "platform_user",
+        });
+        continue;
+      }
+
+      // Snapshot-only row (name + title) without phone/email
+      if (String(row.name || "").trim()) {
+        const { contact } = await upsertMeetingContact(actorId, ownerId, {
+          name: row.name,
+          phone: row.phone,
+          email: row.email,
+          company: row.company,
+          title: row.title,
+          roleIntent: row.roleIntent || row.roleName || "other",
+          ...locationHint,
+        });
+        peopleSnaps.push({
+          userId: null,
+          contactId: contact._id,
+          name: contact.name,
+          company: contact.company || "",
+          phone: contact.phone || "",
+          email: contact.email || "",
+          title: contact.title || row.title || "",
+          roleName: contact.clientType || "other",
+          isPrimary: Boolean(row.isPrimary) || i === 0,
+          createdInline: true,
+          source: "meeting_contact",
+        });
+      }
+    }
+
+    // Ensure exactly one primary
+    if (peopleSnaps.length) {
+      const hasPrimary = peopleSnaps.some((p) => p.isPrimary);
+      if (!hasPrimary) peopleSnaps[0].isPrimary = true;
+      else {
+        let seen = false;
+        for (const p of peopleSnaps) {
+          if (p.isPrimary && !seen) {
+            seen = true;
+          } else {
+            p.isPrimary = false;
+          }
         }
       }
     }
 
-    if (!asDraft && !clientSnap.name && !clientUserId) {
-      return res.status(400).json({ message: "Client is required" });
+    const clientSnap =
+      peopleSnaps.find((p) => p.isPrimary) || peopleSnaps[0] || {
+        userId: null,
+        contactId: null,
+        name: "",
+        company: "",
+        phone: "",
+        email: "",
+        title: "",
+        roleName: "owner",
+        createdInline: false,
+        source: "meeting_contact",
+      };
+
+    const clientContactId = asId(clientSnap.contactId);
+    const clientUserId = asId(clientSnap.userId);
+
+    if (!asDraft && !peopleSnaps.length) {
+      return res.status(400).json({
+        message: "Add at least one person for this meeting (CEO, manager, owner, …)",
+      });
     }
 
     const meetingType = (FIELD_MEETING_TYPES as readonly string[]).includes(
       String(body.meetingType || ""),
     )
       ? body.meetingType
-      : "site_visit";
+      : "sales";
+
+    const meetingPlace = normalizeMeetingPlace(String(meetingType), body.meetingPlace);
+
+    if (
+      !asDraft &&
+      ["sales", "marketing", "service_meeting", "office_meeting"].includes(
+        String(meetingType),
+      ) &&
+      !meetingPlace
+    ) {
+      return res.status(400).json({
+        message: "Select meeting place: On site, Off site, or Office",
+      });
+    }
 
     let start =
       body.scheduledStart
@@ -469,10 +647,45 @@ export const createFieldMeeting = async (req: AuthRequest, res: Response) => {
           }))
         : defaultPrepTasks();
 
-    const allPrepDone = prepTasks.every((t: any) => t.completed);
+    const loggingModeRaw = String(body.loggingMode || "scheduled").toLowerCase();
+    const loggingMode = (FIELD_MEETING_LOGGING_MODES as readonly string[]).includes(
+      loggingModeRaw,
+    )
+      ? loggingModeRaw
+      : "scheduled";
+
+    const visitConfirmed = Boolean(body.visitConfirmed);
+    if (!asDraft && loggingMode === "already_visited" && !visitConfirmed) {
+      return res.status(400).json({
+        message:
+          "Confirm that this visit already took place before logging an already-visited meeting",
+      });
+    }
+
+    // Walk-in / already-visited: prep is N/A — mark tasks complete for CRM hygiene
+    const effectivePrep =
+      !asDraft && (loggingMode === "walk_in" || loggingMode === "already_visited")
+        ? prepTasks.map((t: any) => ({
+            ...t,
+            completed: true,
+            completedAt: t.completedAt || new Date(),
+          }))
+        : prepTasks;
+
+    const allPrepDone = effectivePrep.every((t: any) => t.completed);
     let status = String(body.status || "").toLowerCase();
     if (!FIELD_MEETING_STATUSES.includes(status as any)) {
-      status = asDraft ? "draft" : allPrepDone ? "planned" : "prep_pending";
+      if (asDraft) status = "draft";
+      else if (loggingMode === "already_visited") status = "completed";
+      else if (loggingMode === "walk_in") status = "confirmed";
+      else status = allPrepDone ? "planned" : "prep_pending";
+    }
+
+    const outcome = String(body.outcome || "").trim();
+    if (!asDraft && loggingMode === "already_visited" && !outcome) {
+      return res.status(400).json({
+        message: "Add a short visit outcome when logging an already-visited meeting",
+      });
     }
 
     const visibilityChain = await buildVisibilityChain(ownerId);
@@ -483,21 +696,35 @@ export const createFieldMeeting = async (req: AuthRequest, res: Response) => {
           ? "phone"
           : "in_person";
 
-    const meeting = await FieldMeeting.create({
+    const meetingPayload: Record<string, unknown> = {
       title: String(body.title || clientSnap.name || "Field meeting").trim(),
       meetingType,
       mode: body.mode || mode,
       status,
+      loggingMode,
+      visitConfirmed: loggingMode === "already_visited" ? visitConfirmed : false,
+      visitConfirmedAt:
+        loggingMode === "already_visited" && visitConfirmed ? new Date() : null,
+      visitConfirmedBy:
+        loggingMode === "already_visited" && visitConfirmed
+          ? new mongoose.Types.ObjectId(actorId)
+          : null,
       scheduledStart: start,
       scheduledEnd: end,
       ownerUserId: new mongoose.Types.ObjectId(ownerId),
       createdBy: new mongoose.Types.ObjectId(actorId),
       client: {
         ...clientSnap,
-        userId: clientUserId && mongoose.Types.ObjectId.isValid(clientUserId)
-          ? new mongoose.Types.ObjectId(clientUserId)
-          : clientSnap.userId || null,
+        userId:
+          clientUserId && mongoose.Types.ObjectId.isValid(clientUserId)
+            ? new mongoose.Types.ObjectId(clientUserId)
+            : clientSnap.userId || null,
+        contactId:
+          clientContactId && mongoose.Types.ObjectId.isValid(clientContactId)
+            ? new mongoose.Types.ObjectId(clientContactId)
+            : clientSnap.contactId || null,
       },
+      people: peopleSnaps,
       location,
       linkedProperty: body.linkedProperty
         ? {
@@ -510,14 +737,43 @@ export const createFieldMeeting = async (req: AuthRequest, res: Response) => {
         : null,
       objective: String(body.objective || "").trim(),
       notes: String(body.notes || "").trim(),
-      prepTasks,
+      outcome,
+      prepTasks: effectivePrep,
       wizardStep: Number(body.wizardStep) || (asDraft ? 1 : 5),
       visibilityChain,
-    });
+    };
+
+    // Only set when valid — never persist "" (breaks mongoose enum)
+    if (meetingPlace) {
+      meetingPayload.meetingPlace = meetingPlace;
+    }
+
+    const meeting = await FieldMeeting.create(meetingPayload);
+
+    const contactIds = [
+      ...new Set(
+        peopleSnaps
+          .map((p) => asId(p.contactId))
+          .filter((id) => id && mongoose.Types.ObjectId.isValid(id)),
+      ),
+    ];
+    await Promise.all(
+      contactIds.map((id) =>
+        linkMeetingToContact(id, String(meeting._id), meeting.scheduledStart),
+      ),
+    );
+
+    const successMessage = asDraft
+      ? "Draft saved"
+      : loggingMode === "already_visited"
+        ? "Visit logged as completed"
+        : loggingMode === "walk_in"
+          ? "Walk-in visit confirmed"
+          : "Meeting scheduled successfully";
 
     return res.status(201).json({
       success: true,
-      message: asDraft ? "Draft saved" : "Meeting scheduled successfully",
+      message: successMessage,
       data: serializeMeeting(meeting),
     });
   } catch (error: any) {
@@ -551,6 +807,15 @@ export const updateFieldMeeting = async (req: AuthRequest, res: Response) => {
       (FIELD_MEETING_TYPES as readonly string[]).includes(String(body.meetingType))
     ) {
       meeting.meetingType = body.meetingType;
+    }
+    if (body.meetingPlace !== undefined || body.meetingType) {
+      const nextType = String(body.meetingType || meeting.meetingType || "sales");
+      const place = normalizeMeetingPlace(
+        nextType,
+        body.meetingPlace !== undefined ? body.meetingPlace : meeting.meetingPlace,
+      );
+      if (place) meeting.meetingPlace = place;
+      else meeting.set("meetingPlace", null);
     }
     if (
       body.status &&
@@ -778,6 +1043,69 @@ export const getFieldMeetingTeamSummary = async (req: AuthRequest, res: Response
           prepPending: team.reduce((s, r) => s + r.prepPending, 0),
         },
       },
+    });
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+/** Search FieldMeetingContact book (not Users / credentials). */
+export const searchFieldMeetingContacts = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    if (!assertStaff(req)) return res.status(403).json({ message: "Forbidden" });
+    const actorId = String(req.user?.sub || req.user?.id || "");
+    const q = String(req.query.q || "").trim();
+    if (q.length < 2) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const ownerId = await resolveOwnerId(req, req.query.ownerUserId as string);
+    if (!ownerId) return res.status(403).json({ message: "Forbidden" });
+
+    // Allow managers to search contacts under a visible SE
+    const visible = await getVisibleOwnerIds(actorId, req.user?.roleName);
+    if (visible !== "all" && !visible.includes(ownerId)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    const safe = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(safe, "i");
+    const phoneDigits = q.replace(/\D/g, "");
+
+    const filter: Record<string, any> = {
+      ownerUserId: new mongoose.Types.ObjectId(ownerId),
+      $or: [{ name: regex }, { email: regex }, { company: regex }, { phone: regex }],
+    };
+    if (phoneDigits.length >= 4) {
+      filter.$or.push({ phone: new RegExp(phoneDigits.slice(-10)) });
+    }
+
+    const rows = await FieldMeetingContact.find(filter)
+      .sort({ lastMeetingAt: -1, updatedAt: -1 })
+      .limit(20)
+      .lean();
+
+    return res.json({
+      success: true,
+      data: rows.map((c: any) => ({
+        id: String(c._id),
+        _id: String(c._id),
+        contactId: String(c._id),
+        name: c.name,
+        phone: c.phone || "",
+        email: c.email || "",
+        company: c.company || "",
+        clientType: c.clientType || "owner",
+        roleName: c.clientType || "owner",
+        meetingCount: c.meetingCount || 0,
+        source: "meeting_contact",
+        state: c.state || "",
+        city: c.city || "",
+        locality: c.locality || "",
+      })),
     });
   } catch (error: any) {
     return res.status(500).json({ message: error.message });

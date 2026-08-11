@@ -1,8 +1,10 @@
 import fs from "fs";
 import path from "path";
 
-type BuilderInviteEmailParams = {
+export type BuilderInviteEmailParams = {
   previewUrl: string;
+  /** Approve / onboard CTA (falls back to previewUrl in template if omitted) */
+  onboardUrl?: string;
   openPixelUrl: string;
   projectTitle: string;
   priceHint?: string;
@@ -57,6 +59,7 @@ export function buildBuilderInviteEmailHtml(
 ): string {
   const {
     previewUrl,
+    onboardUrl,
     openPixelUrl,
     projectTitle,
     priceHint,
@@ -88,6 +91,8 @@ export function buildBuilderInviteEmailHtml(
     teamworksLogoUrl,
     aslijobsLogoUrl,
   } = params;
+
+  const approveUrl = onboardUrl || previewUrl;
 
   const greeting = companyHint
     ? `Dear ${companyHint} Team,`
@@ -288,7 +293,7 @@ export function buildBuilderInviteEmailHtml(
 
           <tr>
             <td style="padding:4px 28px 12px;">
-              <a href="${previewUrl}" style="display:inline-block;background:#22c55e;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-size:14px;font-weight:700;">
+              <a href="${approveUrl}" style="display:inline-block;background:#22c55e;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-size:14px;font-weight:700;">
                 Review &amp; Approve Project
               </a>
             </td>
