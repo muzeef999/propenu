@@ -6,10 +6,8 @@ import cors from "cors";
 import { Socket } from "net";
 import path from "path";
 import {
-  authLimiter,
   chatbotLimiter,
   globalApiLimiter,
-  otpRequestLimiter,
   paymentLimiter,
   propertySearchLimiter,
 } from "./middleware/rateLimiter";
@@ -66,14 +64,6 @@ app.use(morgan("dev"));
 
 // ===================== RATE LIMITS =====================
 
-app.use(
-  ["/api/users/auth/request-otp", "/api/users/auth/request-otp/create"],
-  otpRequestLimiter
-);
-app.use(
-  ["/api/users/auth/verify-otp", "/api/users/auth/verify-otp/create"],
-  authLimiter
-);
 app.use("/api/chatbot", chatbotLimiter);
 app.use("/api/properties/search", propertySearchLimiter);
 app.use("/api/payments", paymentLimiter);

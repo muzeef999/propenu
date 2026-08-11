@@ -25,26 +25,6 @@ export const globalApiLimiter = rateLimit({
   },
 });
 
-export const authLimiter = rateLimit({
-  ...commonOptions,
-  windowMs: 10 * 60 * 1000,
-  max: 10,
-  message: {
-    success: false,
-    message: "Too many authentication attempts. Please wait before trying again.",
-  },
-});
-
-export const otpRequestLimiter = rateLimit({
-  ...commonOptions,
-  windowMs: 10 * 60 * 1000,
-  max: 5,
-  message: {
-    success: false,
-    message: "Too many OTP requests. Please wait before requesting another OTP.",
-  },
-});
-
 export const chatbotLimiter = rateLimit({
   ...commonOptions,
   windowMs: 5 * 60 * 1000,

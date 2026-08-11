@@ -122,51 +122,25 @@ Promise<MetadataRoute.Sitemap> {
     "",
 
     "/about",
-
     "/privacy",
-
     "/terms",
-
     "/help-center",
-
     "/safety-guide",
-
-    "/explore-properties",
-
-    "/highlight-projects",
-
-    "/top-rated",
-
     "/builder",
-
     "/agent",
-
     "/agent-connect",
-
     "/plans",
-
     "/reviews",
-
     "/home-loans",
-
     "/home-care",
-
     "/interior-designer",
-
     "/postproperty",
-
     "/owner-listed",
-
     "/properties/residential",
-
     "/properties/commercial",
-
     "/properties/land",
-
     "/properties/agricultural",
-
     "/blogs",
-
     "/prime",
   ].map((route) => ({
     url: `${BASE_URL}${route}`,
