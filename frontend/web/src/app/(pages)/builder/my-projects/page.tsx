@@ -210,7 +210,11 @@ const page = () => {
       uniqueProjects.set(project._id, project);
     });
 
-    return Array.from(uniqueProjects.values());
+    return Array.from(uniqueProjects.values()).sort((a, b) => {
+      const dateA = new Date(a.updatedAt ?? a.createdAt ?? 0).getTime();
+      const dateB = new Date(b.updatedAt ?? b.createdAt ?? 0).getTime();
+      return dateB - dateA;
+    });
   }, [primeProjects, regularProjects]);
 
   const filteredProjects = useMemo(() => {

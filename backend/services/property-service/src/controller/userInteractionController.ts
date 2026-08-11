@@ -1,11 +1,15 @@
 import crypto from "crypto";
-import { Response } from "express";
+import { Request, Response } from "express";
 import mongoose from "mongoose";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import Agricultural from "../models/agriculturalModel";
 import Commercial from "../models/commercialModel";
 import FeaturedProject from "../models/featurePropertiesModel";
 import LandPlot from "../models/landModel";
+import PublicPageView, {
+  PublicViewEntityType,
+  PublicViewPropertyType,
+} from "../models/publicPageViewModel";
 import Residential from "../models/residentialModel";
 import UserInteraction, { INTERACTION_EVENT_TYPES, InteractionPromotionType } from "../models/userInteractionModel";
 import User from "../models/userModel";
@@ -17,6 +21,13 @@ const deduplicatedEventTypes = new Set([
   "page_view", "page_exit", "project_view", "property_view", "plot_view",
   "listing_impression", "featured_project_impression",
 ]);
+const publicViewPropertyTypes = new Set([
+  "residential",
+  "commercial",
+  "land",
+  "agricultural",
+]);
+const THIRTY_MINUTES_MS = 30 * 60 * 1000;
 
 const cleanObject = (value: unknown, maxBytes = 12_000): Record<string, unknown> | undefined => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
@@ -27,6 +38,46 @@ const cleanObject = (value: unknown, maxBytes = 12_000): Record<string, unknown>
 
 const safeString = (value: unknown, max: number) =>
   typeof value === "string" && value.trim() ? value.trim().slice(0, max) : undefined;
+
+const normalizePublicViewPropertyType = (
+  value: unknown,
+): PublicViewPropertyType | undefined => {
+  const normalized = String(value || "").trim().toLowerCase();
+  return publicViewPropertyTypes.has(normalized)
+    ? (normalized as PublicViewPropertyType)
+    : undefined;
+};
+
+const incrementPublicEntityViewCount = async (params: {
+  entityType: PublicViewEntityType;
+  entityId: string;
+  propertyType?: PublicViewPropertyType;
+}) => {
+  const objectId = new mongoose.Types.ObjectId(params.entityId);
+
+  if (params.entityType === "project") {
+    await FeaturedProject.findByIdAndUpdate(objectId, {
+      $inc: { "meta.views": 1 },
+    }).exec();
+    return;
+  }
+
+  const modelByPropertyType: Record<PublicViewPropertyType, any> = {
+    residential: Residential,
+    commercial: Commercial,
+    land: LandPlot,
+    agricultural: Agricultural,
+  };
+
+  const model = params.propertyType ? modelByPropertyType[params.propertyType] : null;
+  if (!model) {
+    throw new Error("propertyType is required for property views");
+  }
+
+  await model.findByIdAndUpdate(objectId, {
+    $inc: { "meta.views": 1 },
+  }).exec();
+};
 
 const firstImage = (entity: any) => {
   const candidates = [entity?.projectCoverImage, entity?.coverImage, entity?.heroImage, entity?.thumbnail,
@@ -222,6 +273,100 @@ export async function captureInteraction(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error("captureInteraction failed", error);
     return res.status(500).json({ success: false, message: "Unable to capture interaction" });
+  }
+}
+
+export async function capturePublicView(req: Request, res: Response) {
+  try {
+    const entityType = safeString(req.body?.entityType, 32) as
+      | PublicViewEntityType
+      | undefined;
+    const entityId = safeString(req.body?.entityId, 64);
+    const visitorId = safeString(req.body?.visitorId, 128);
+    const propertyType = normalizePublicViewPropertyType(req.body?.propertyType);
+    const pageUrl = safeString(req.body?.pageUrl, 2048);
+
+    const errors: string[] = [];
+    if (!entityType || !["project", "property"].includes(entityType)) {
+      errors.push("entityType is invalid");
+    }
+    if (!entityId || !mongoose.Types.ObjectId.isValid(entityId)) {
+      errors.push("entityId is invalid");
+    }
+    if (!visitorId) {
+      errors.push("visitorId is required");
+    }
+    if (entityType === "property" && !propertyType) {
+      errors.push("propertyType is required for property views");
+    }
+
+    if (errors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid public view payload",
+        errors,
+      });
+    }
+
+    const forwardedFor = safeString(req.headers["x-forwarded-for"], 256)
+      ?.split(",")[0]
+      ?.trim();
+    const ip = forwardedFor || req.ip;
+    const ipHash = ip
+      ? crypto.createHash("sha256").update(ip).digest("hex")
+      : undefined;
+    const userAgent = safeString(req.headers["user-agent"], 512);
+    const userAgentHash = userAgent
+      ? crypto.createHash("sha256").update(userAgent).digest("hex")
+      : undefined;
+
+    const cutoff = new Date(Date.now() - THIRTY_MINUTES_MS);
+    const existing = await PublicPageView.findOne({
+      entityType,
+      entityId: new mongoose.Types.ObjectId(entityId!),
+      visitorId,
+      viewedAt: { $gte: cutoff },
+    })
+      .sort({ viewedAt: -1 })
+      .lean();
+
+    if (existing) {
+      return res.status(200).json({
+        success: true,
+        counted: false,
+        duplicate: true,
+        windowMinutes: 30,
+      });
+    }
+
+    await PublicPageView.create({
+      entityType,
+      entityId: new mongoose.Types.ObjectId(entityId!),
+      ...(propertyType ? { propertyType } : {}),
+      visitorId,
+      ...(ipHash ? { ipHash } : {}),
+      ...(userAgentHash ? { userAgentHash } : {}),
+      ...(pageUrl ? { pageUrl } : {}),
+      viewedAt: new Date(),
+    });
+
+    await incrementPublicEntityViewCount({
+      entityType: entityType!,
+      entityId: entityId!,
+      ...(propertyType ? { propertyType } : {}),
+    });
+
+    return res.status(201).json({
+      success: true,
+      counted: true,
+      windowMinutes: 30,
+    });
+  } catch (error) {
+    console.error("capturePublicView failed", error);
+    return res.status(500).json({
+      success: false,
+      message: "Unable to capture public view",
+    });
   }
 }
 

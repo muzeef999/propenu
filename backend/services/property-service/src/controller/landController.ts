@@ -218,18 +218,10 @@ export const getLandBySlug = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Not found" });
     }
 
-    // 2️⃣ Increment views (fire-and-forget)
-    const id = (property as any)._id?.toString?.();
-    if (id) {
-      LandService.incrementViews(id).catch((e: any) =>
-        console.error("incrementViews error:", e),
-      );
-    }
-
-    // 3️⃣ Find related land properties
+    // 2️⃣ Find related land properties
     const relatedProjects = await findRelatedLand(property);
 
-    // 4️⃣ Response
+    // 3️⃣ Response
     return res.json({
       data: property,
       relatedProjects,
@@ -249,10 +241,6 @@ export const getLandDetail = async (req: Request, res: Response) => {
     if (!id) return res.status(400).json({ error: "Missing id" });
     const doc = await LandService.getById(id, true);
     if (!doc) return res.status(404).json({ error: "Not found" });
-
-    LandService.incrementViews(id).catch((e) =>
-      console.error("incrementViews error:", e),
-    );
 
     return res.json({ data: doc });
   } catch (err: any) {

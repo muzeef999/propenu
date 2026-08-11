@@ -12,6 +12,7 @@ import Specification from "./Specification";
 import BrochurePreview from "./BrochurePreview";
 import ProjectViewDurationTracker from "./ProjectViewDurationTracker";
 import ProjectViewTracker from "@/components/tracking/ProjectViewTracker";
+import PublicViewTracker from "@/components/tracking/PublicViewTracker";
 
 export const dynamic = "force-dynamic";
 
@@ -181,6 +182,7 @@ export default async function Page({ params }: PageProps) {
  
   return (
     <div>
+      <PublicViewTracker entityType="project" entityId={project._id} />
       <ProjectViewDurationTracker projectId={project?._id} />
       <ProjectViewTracker projectId={project._id} title={project.title} slug={project.slug} locality={project.locality} city={project.city} state={project.state} promotionType={project.promotion?.type || "prime"} />
       <MicroSiteNavbar

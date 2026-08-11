@@ -225,18 +225,10 @@ export const getCommercialBySlug = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Property not found" });
     }
 
-    // 2️⃣ Increment views (fire-and-forget)
-    const id = (property as any)._id?.toString?.();
-    if (id) {
-      CommercialService.incrementViews(id).catch((e: any) =>
-        console.error("incrementViews error:", e),
-      );
-    }
-
-    // 3️⃣ Find related commercial properties
+    // 2️⃣ Find related commercial properties
     const relatedProjects = await findRelatedCommercial(property);
 
-    // 4️⃣ Response
+    // 3️⃣ Response
     return res.json({
       data: property,
       relatedProjects,
@@ -256,10 +248,6 @@ export const getCommercialDetail = async (req: Request, res: Response) => {
 
     const doc = await CommercialService.getById(id, true);
     if (!doc) return res.status(404).json({ error: "Property not found" });
-
-    CommercialService.incrementViews(id).catch((e) =>
-      console.error("incrementViews error:", e),
-    );
 
     return res.json({ data: doc });
   } catch (err: any) {

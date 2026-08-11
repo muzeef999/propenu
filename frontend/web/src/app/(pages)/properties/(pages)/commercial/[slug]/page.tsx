@@ -15,6 +15,7 @@ import {
 
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import PropertyViewDurationTracker from "@/components/PropertyViewDurationTracker";
+import PublicViewTracker from "@/components/tracking/PublicViewTracker";
 import { listingSourceToOwnershipLabel } from "@/utilies/resolveListingSource";
 import RelatedCommercialCarousel from "./RelatedCommercialCarousel";
 import Image from "next/image";
@@ -171,6 +172,11 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <div className="min-h-screen py-6 overflow-hidden">
+      <PublicViewTracker
+        entityType="property"
+        entityId={String(project._id)}
+        propertyType="commercial"
+      />
       <PropertyViewDurationTracker
         projectId={String(project._id)}
         propertyType="commercials"

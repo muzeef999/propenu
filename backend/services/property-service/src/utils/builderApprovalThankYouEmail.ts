@@ -1,6 +1,3 @@
-import fs from "fs";
-import path from "path";
-
 type BuilderApprovalThankYouEmailParams = {
   builderName?: string;
   projectTitle: string;
@@ -24,6 +21,7 @@ type BuilderApprovalThankYouEmailParams = {
   facebookIconUrl?: string;
   twitterIconUrl?: string;
   youtubeIconUrl?: string;
+  emailIconUrl?: string;
   contactUrl?: string;
   teamworksUrl?: string;
   aslijobsUrl?: string;
@@ -33,19 +31,6 @@ type BuilderApprovalThankYouEmailParams = {
 
 export const buildBuilderApprovalThankYouSubject = (builderName?: string) =>
   `Thank You for Your Approval${builderName ? ` ${builderName}` : ""} - Propenu`;
-
-const defaultBrandLogoDataUri = (() => {
-  try {
-    const logoPath = path.resolve(
-      __dirname,
-      "../../../payment-service/src/assets/watermark.png",
-    );
-    const logoBuffer = fs.readFileSync(logoPath);
-    return `data:image/png;base64,${logoBuffer.toString("base64")}`;
-  } catch {
-    return "";
-  }
-})();
 
 export function buildBuilderApprovalThankYouEmailHtml(
   params: BuilderApprovalThankYouEmailParams,
@@ -73,6 +58,7 @@ export function buildBuilderApprovalThankYouEmailHtml(
     facebookIconUrl,
     twitterIconUrl,
     youtubeIconUrl,
+    emailIconUrl,
     contactUrl,
     teamworksUrl,
     aslijobsUrl,
@@ -92,9 +78,7 @@ export function buildBuilderApprovalThankYouEmailHtml(
   const safeAppStoreBadgeUrl =
     appStoreBadgeUrl || `${safeWebsiteUrl}/email/appleBadge.png`;
   const safeBrandLogoUrl =
-    brandLogoUrl ||
-    defaultBrandLogoDataUri ||
-    `${safeWebsiteUrl}/email/propenu-logo.png`;
+    brandLogoUrl || `${safeWebsiteUrl}/email/propenu-logo.png`;
   const safeLinkedinUrl = linkedinUrl || safeWebsiteUrl;
   const safeInstagramUrl = instagramUrl || safeWebsiteUrl;
   const safeFacebookUrl = facebookUrl || safeWebsiteUrl;
@@ -113,6 +97,8 @@ export function buildBuilderApprovalThankYouEmailHtml(
     twitterIconUrl || `${safeWebsiteUrl}/email/twitter.png`;
   const safeYoutubeIconUrl =
     youtubeIconUrl || `${safeWebsiteUrl}/email/youtube.png`;
+  const safeEmailIconUrl =
+    emailIconUrl || `${safeWebsiteUrl}/email/emailicon.png`;
   const safeTeamworksLogoUrl =
     teamworksLogoUrl || `${safeWebsiteUrl}/email/teamworks.png`;
   const safeAslijobsLogoUrl =
@@ -132,8 +118,8 @@ export function buildBuilderApprovalThankYouEmailHtml(
                   <td align="left" valign="middle">
                     <img src="${safeBrandLogoUrl}" alt="Propenu" width="132" style="display:block;width:132px;max-width:132px;height:auto;border:0;" />
                   </td>
-                  <td align="right" valign="middle" style="font-size:11px;color:#16a34a;">
-                    <a href="${safeWebsiteUrl}" style="color:#16a34a;text-decoration:none;">www.propenu.com</a>
+                  <td align="right" valign="middle" style="font-size:11px;color:#94a3b8;">
+                    <a href="${safeWebsiteUrl}" style="color:#94a3b8;text-decoration:none;">www.propenu.com</a>
                   </td>
                 </tr>
               </table>
@@ -168,30 +154,44 @@ export function buildBuilderApprovalThankYouEmailHtml(
             <td style="padding:16px 28px 18px;">
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td valign="top" style="font-size:13px;color:#475569;">
+                  <td valign="top" align="left" style="padding:0;font-size:13px;color:#475569;">
                     <p style="margin:0 0 4px;">Warm regards,</p>
                     <p style="margin:0 0 4px;font-weight:700;color:#1f2937;">Propenu Team</p>
                     <p style="margin:0;color:#16a34a;">
-                      <span style="display:inline-block;margin-right:6px;font-size:13px;line-height:1;">&#9993;</span>${safeSupportEmail}
+                      <img src="${safeEmailIconUrl}" alt="Email" width="16" height="16" style="display:inline-block;width:16px;height:16px;vertical-align:middle;margin-right:6px;border:0;" />${safeSupportEmail}
                     </p>
                   </td>
-                  <td align="right" valign="top" style="font-size:13px;color:#1f2937;">
-                    <div style="margin-bottom:8px;">Follow Us</div>
-                    <a href="${safeLinkedinUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
-                      <img src="${safeLinkedinIconUrl}" alt="LinkedIn" width="24" height="24" style="display:block;width:24px;height:24px;border:0;" />
-                    </a>
-                    <a href="${safeInstagramUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
-                      <img src="${safeInstagramIconUrl}" alt="Instagram" width="24" height="24" style="display:block;width:24px;height:24px;border:0;" />
-                    </a>
-                    <a href="${safeFacebookUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
-                      <img src="${safeFacebookIconUrl}" alt="Facebook" width="24" height="24" style="display:block;width:24px;height:24px;border:0;" />
-                    </a>
-                    <a href="${safeTwitterUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
-                      <img src="${safeTwitterIconUrl}" alt="Twitter" width="24" height="24" style="display:block;width:24px;height:24px;border:0;" />
-                    </a>
-                    <a href="${safeYoutubeUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
-                      <img src="${safeYoutubeIconUrl}" alt="YouTube" width="24" height="24" style="display:block;width:24px;height:24px;border:0;" />
-                    </a>
+                  <td valign="top" align="right" style="padding:0;font-size:13px;color:#1f2937;">
+                    <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#1f2937;">Follow Us</p>
+                    <table cellpadding="0" cellspacing="0" align="right">
+                      <tr>
+                        <td style="padding:0 8px 0 0;">
+                          <a href="${safeLinkedinUrl}" style="display:inline-block;text-decoration:none;">
+                            <img src="${safeLinkedinIconUrl}" alt="LinkedIn" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                          </a>
+                        </td>
+                        <td style="padding:0 8px 0 0;">
+                          <a href="${safeInstagramUrl}" style="display:inline-block;text-decoration:none;">
+                            <img src="${safeInstagramIconUrl}" alt="Instagram" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                          </a>
+                        </td>
+                        <td style="padding:0 8px 0 0;">
+                          <a href="${safeFacebookUrl}" style="display:inline-block;text-decoration:none;">
+                            <img src="${safeFacebookIconUrl}" alt="Facebook" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                          </a>
+                        </td>
+                        <td style="padding:0 8px 0 0;">
+                          <a href="${safeTwitterUrl}" style="display:inline-block;text-decoration:none;">
+                            <img src="${safeTwitterIconUrl}" alt="Twitter" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                          </a>
+                        </td>
+                        <td style="padding:0;">
+                          <a href="${safeYoutubeUrl}" style="display:inline-block;text-decoration:none;">
+                            <img src="${safeYoutubeIconUrl}" alt="YouTube" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
               </table>
@@ -243,6 +243,27 @@ export function buildBuilderApprovalThankYouEmailHtml(
                 <tr>
                   <td align="center" style="padding-top:8px;font-size:12px;color:#475569;">
                     Associated Businesses
+                  </td>
+                </tr>
+              </table>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;">
+                <tr>
+                  <td align="right">
+                    <a href="${safeLinkedinUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
+                      <img src="${safeLinkedinIconUrl}" alt="LinkedIn" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                    </a>
+                    <a href="${safeInstagramUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
+                      <img src="${safeInstagramIconUrl}" alt="Instagram" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                    </a>
+                    <a href="${safeFacebookUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
+                      <img src="${safeFacebookIconUrl}" alt="Facebook" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                    </a>
+                    <a href="${safeTwitterUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
+                      <img src="${safeTwitterIconUrl}" alt="Twitter" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                    </a>
+                    <a href="${safeYoutubeUrl}" style="display:inline-block;margin-left:8px;text-decoration:none;">
+                      <img src="${safeYoutubeIconUrl}" alt="YouTube" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                    </a>
                   </td>
                 </tr>
               </table>

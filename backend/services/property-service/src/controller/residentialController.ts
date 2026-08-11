@@ -257,13 +257,6 @@ export const getResidentialBySlug = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Property not found" });
     }
 
-    const id = (property as any)._id?.toString?.();
-    if (id) {
-      ResidentialPropertyService.incrementViews(id).catch((e: any) =>
-        console.error("incrementViews error:", e),
-      );
-    }
-
     const relatedProjects = await findRelatedResidential(property);
 
     return res.json({
@@ -286,11 +279,6 @@ export const getResidentialDetail = async (req: Request, res: Response) => {
 
     const doc = await ResidentialPropertyService.getById(id, true);
     if (!doc) return res.status(404).json({ error: "Property not found" });
-
-    // increment views (non-blocking)
-    ResidentialPropertyService.incrementViews(id).catch((e: any) =>
-      console.error("incrementViews error:", e),
-    );
 
     return res.json({ data: doc });
   } catch (err: any) {

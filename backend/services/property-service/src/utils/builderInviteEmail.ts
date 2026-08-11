@@ -1,6 +1,3 @@
-import fs from "fs";
-import path from "path";
-
 type BuilderInviteEmailParams = {
   previewUrl: string;
   openPixelUrl: string;
@@ -28,6 +25,10 @@ type BuilderInviteEmailParams = {
   facebookIconUrl?: string;
   twitterIconUrl?: string;
   youtubeIconUrl?: string;
+  userIconUrl?: string;
+  phoneIconUrl?: string;
+  emailIconUrl?: string;
+  giftIconUrl?: string;
   contactUrl?: string;
   teamworksUrl?: string;
   aslijobsUrl?: string;
@@ -37,20 +38,6 @@ type BuilderInviteEmailParams = {
 
 export const builderInviteEmailSubject =
   "Invitation to Join Propenu's Launch Partners Program";
-
-
-const defaultBrandLogoDataUri = (() => {
-  try {
-    const logoPath = path.resolve(
-      __dirname,
-      "../../../payment-service/src/assets/watermark.png",
-    );
-    const logoBuffer = fs.readFileSync(logoPath);
-    return `data:image/png;base64,${logoBuffer.toString("base64")}`;
-  } catch {
-    return "";
-  }
-})();
 
 export function buildBuilderInviteEmailHtml(
   params: BuilderInviteEmailParams,
@@ -82,6 +69,10 @@ export function buildBuilderInviteEmailHtml(
     facebookIconUrl,
     twitterIconUrl,
     youtubeIconUrl,
+    userIconUrl,
+    phoneIconUrl,
+    emailIconUrl,
+    giftIconUrl,
     contactUrl,
     teamworksUrl,
     aslijobsUrl,
@@ -104,7 +95,7 @@ export function buildBuilderInviteEmailHtml(
   const safeAppStoreBadgeUrl =
     appStoreBadgeUrl || `${safeWebsiteUrl}/email/appleBadge.png`;
   const safeBrandLogoUrl =
-    brandLogoUrl || defaultBrandLogoDataUri || `${safeWebsiteUrl}/email/propenu-logo.png`;
+    brandLogoUrl || `${safeWebsiteUrl}/email/propenu-logo.png`;
   const safeLinkedinUrl = linkedinUrl || safeWebsiteUrl;
   const safeInstagramUrl = instagramUrl || safeWebsiteUrl;
   const safeFacebookUrl = facebookUrl || safeWebsiteUrl;
@@ -123,6 +114,13 @@ export function buildBuilderInviteEmailHtml(
     twitterIconUrl || `${safeWebsiteUrl}/email/twitter.png`;
   const safeYoutubeIconUrl =
     youtubeIconUrl || `${safeWebsiteUrl}/email/youtube.png`;
+  const safeUserIconUrl = userIconUrl || `${safeWebsiteUrl}/email/Usericon.png`;
+  const safePhoneIconUrl =
+    phoneIconUrl || `${safeWebsiteUrl}/email/Phoneicon.png`;
+  const safeEmailIconUrl =
+    emailIconUrl || `${safeWebsiteUrl}/email/emailicon.png`;
+  const safeGiftIconUrl =
+    giftIconUrl || `${safeWebsiteUrl}/email/giftIcon.png`;
   const safeTeamworksLogoUrl =
     teamworksLogoUrl || `${safeWebsiteUrl}/email/teamworks.png`;
   const safeAslijobsLogoUrl =
@@ -184,8 +182,8 @@ export function buildBuilderInviteEmailHtml(
               </p>
               <table cellpadding="0" cellspacing="0" style="background:#f0fbf4;border:1px solid #d5efdc;border-radius:10px;">
                 <tr>
-                  <td style="padding:10px 12px 10px 14px;font-size:24px;line-height:1;color:#22c55e;" valign="middle">
-                    &#127873;
+                  <td style="padding:10px 12px 10px 14px;" valign="middle">
+                    <img src="${safeGiftIconUrl}" alt="Gift" width="22" height="22" style="display:block;width:22px;height:22px;border:0;" />
                   </td>
                   <td style="padding:10px 14px 10px 0;font-size:13px;line-height:1.6;color:#166534;" valign="middle">
                     <span style="font-weight:700;">Complimentary onboarding and project activation</span>
@@ -269,15 +267,15 @@ export function buildBuilderInviteEmailHtml(
                 <tr>
                   <td style="padding-left:18px;font-size:13px;line-height:1.8;color:#166534;">
                     <div style="margin:0 0 6px;">
-                      <span style="display:inline-block;width:22px;color:#22c55e;font-size:16px;">&#128100;</span>
+                      <img src="${safeUserIconUrl}" alt="User" width="16" height="16" style="display:inline-block;width:16px;height:16px;vertical-align:middle;margin-right:6px;border:0;" />
                       <span style="color:#1f2937;">Primary Contact Person</span>
                     </div>
                     <div style="margin:0 0 6px;">
-                      <span style="display:inline-block;width:22px;color:#22c55e;font-size:16px;">&#128222;</span>
+                      <img src="${safePhoneIconUrl}" alt="Phone" width="16" height="16" style="display:inline-block;width:16px;height:16px;vertical-align:middle;margin-right:6px;border:0;" />
                       <span style="color:#1f2937;">Mobile Number</span>
                     </div>
                     <div>
-                      <span style="display:inline-block;width:22px;color:#22c55e;font-size:16px;">&#9993;</span>
+                      <img src="${safeEmailIconUrl}" alt="Email" width="16" height="16" style="display:inline-block;width:16px;height:16px;vertical-align:middle;margin-right:6px;border:0;" />
                       <span style="color:#1f2937;">Email ID</span>
                     </div>
                   </td>
@@ -313,11 +311,49 @@ export function buildBuilderInviteEmailHtml(
 
           <tr>
             <td style="padding:0 28px 18px;font-size:13px;color:#475569;">
-              <p style="margin:0 0 4px;">Warm regards,</p>
-              <p style="margin:0 0 4px;font-weight:700;color:#1f2937;">Propenu Team</p>
-              <p style="margin:0;color:#16a34a;">
-                <span style="display:inline-block;margin-right:6px;font-size:13px;line-height:1;">&#9993;</span>${safeSupportEmail}
-              </p>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td valign="top" align="left" style="padding:0;">
+                    <p style="margin:0 0 4px;">Warm regards,</p>
+                    <p style="margin:0 0 4px;font-weight:700;color:#1f2937;">Propenu Team</p>
+                    <p style="margin:0;color:#16a34a;">
+                      <img src="${safeEmailIconUrl}" alt="Email" width="16" height="16" style="display:inline-block;width:16px;height:16px;vertical-align:middle;margin-right:6px;border:0;" />${safeSupportEmail}
+                    </p>
+                  </td>
+                  <td valign="top" align="right" style="padding:0;">
+                    <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#1f2937;">Follow Us</p>
+                    <table cellpadding="0" cellspacing="0" align="right">
+                      <tr>
+                        <td style="padding:0 8px 0 0;">
+                          <a href="${safeLinkedinUrl}" style="display:inline-block;text-decoration:none;">
+                            <img src="${safeLinkedinIconUrl}" alt="LinkedIn" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                          </a>
+                        </td>
+                        <td style="padding:0 8px 0 0;">
+                          <a href="${safeInstagramUrl}" style="display:inline-block;text-decoration:none;">
+                            <img src="${safeInstagramIconUrl}" alt="Instagram" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                          </a>
+                        </td>
+                        <td style="padding:0 8px 0 0;">
+                          <a href="${safeFacebookUrl}" style="display:inline-block;text-decoration:none;">
+                            <img src="${safeFacebookIconUrl}" alt="Facebook" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                          </a>
+                        </td>
+                        <td style="padding:0 8px 0 0;">
+                          <a href="${safeTwitterUrl}" style="display:inline-block;text-decoration:none;">
+                            <img src="${safeTwitterIconUrl}" alt="Twitter" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                          </a>
+                        </td>
+                        <td style="padding:0;">
+                          <a href="${safeYoutubeUrl}" style="display:inline-block;text-decoration:none;">
+                            <img src="${safeYoutubeIconUrl}" alt="YouTube" width="32" height="32" style="display:block;width:32px;height:32px;border:0;" />
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 

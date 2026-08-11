@@ -227,13 +227,6 @@ export const getAgriculturalBySlug = async (req: Request, res: Response) => {
     if (!property) {
       return res.status(404).json({ error: "Not found" });
     }
-    const id = (property as any)?._id?.toString?.();
-    if (id) {
-      AgriculturalService.incrementViews(id).catch((e: any) =>
-        console.error("incrementViews:", e),
-      );
-    }
-
     const relatedProjects = await findRelatedAgriculture(property);
 
     return res.json({ data: property, relatedProjects });
@@ -254,9 +247,6 @@ export const getAgriculturalDetail = async (req: Request, res: Response) => {
     const doc = await AgriculturalService.getById(id, true);
     if (!doc) return res.status(404).json({ error: "Not found" });
 
-    AgriculturalService.incrementViews(id).catch((e) =>
-      console.error("incrementViews:", e),
-    );
     return res.json({ data: doc });
   } catch (err: any) {
     console.error("getAgriculturalDetail:", err);

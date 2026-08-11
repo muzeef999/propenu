@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  capturePublicView,
   captureInteraction,
   getAllUsersActivity,
   getAssignedUserActivity,
@@ -24,6 +25,7 @@ const CCE_AND_OVERSIGHT_ROLES = [
   "customer_support_head",
 ];
 
+router.post("/public-view", capturePublicView);
 router.post("/", authMiddleware, captureInteraction);
 
 /** Admin platform-wide feed — unchanged access model */

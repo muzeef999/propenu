@@ -4,11 +4,11 @@ import { AuthRequest } from "../middlewares/authMiddleware";
 import mongoose from "mongoose";
 import { canApproveProjectByHierarchy } from "../utils/projectApprovalPolicy";
 import { BuilderOnboardingService } from "../services/builderOnboardingService";
-import { sendEmail } from "../../../../shared/email/email.service";
 import {
   buildBuilderApprovalThankYouEmailHtml,
   buildBuilderApprovalThankYouSubject,
 } from "../utils/builderApprovalThankYouEmail";
+import { sendMarketingEmail } from "../utils/marketingMailer";
 
 const resolveCreatorMeta = (project: any) => {
   const createdBy = project?.createdBy;
@@ -123,7 +123,7 @@ export const approveProject = async (req: AuthRequest, res: Response) => {
         String((project as any)?.createdBy?.name || "").trim();
       const projectUrl = (process.env.PUBLIC_WEB_URL || process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
 
-      sendEmail({
+      sendMarketingEmail({
         to: builderEmail,
         subject: buildBuilderApprovalThankYouSubject(builderName),
         html: buildBuilderApprovalThankYouEmailHtml({

@@ -10,6 +10,7 @@ import { FaRoad } from "react-icons/fa";
 import { IAgricultural } from "@/types/agricultural";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import PropertyViewDurationTracker from "@/components/PropertyViewDurationTracker";
+import PublicViewTracker from "@/components/tracking/PublicViewTracker";
 import RelatedAgriculturalCarousel from "./RelatedAgriculturalCarousel";
 import Image from "next/image";
 import { AGRICULTURAL_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
@@ -77,6 +78,11 @@ export default async function Page({ params }: PageProps) {
     <div
       className="min-h-screen py-6 overflow-hidden"
     >
+      <PublicViewTracker
+        entityType="property"
+        entityId={String(project._id)}
+        propertyType="agricultural"
+      />
       <PropertyViewDurationTracker
         projectId={String(project._id)}
         propertyType="agriculturals"

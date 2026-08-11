@@ -9,6 +9,7 @@ import { GiCompass, GiRoad, GiMoneyStack } from "react-icons/gi";
 import { FaRoad } from "react-icons/fa";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import PropertyViewDurationTracker from "@/components/PropertyViewDurationTracker";
+import PublicViewTracker from "@/components/tracking/PublicViewTracker";
 import RelatedLandCarousel from "./RelatedLandCarousel";
 import Image from "next/image";
 import LandNearbySection from "./LandNearbySection";
@@ -157,6 +158,11 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <div className="min-h-screen overflow-hidden py-6">
+      <PublicViewTracker
+        entityType="property"
+        entityId={String(project._id)}
+        propertyType="land"
+      />
       <PropertyViewDurationTracker
         projectId={String(project._id)}
         propertyType="landplots"

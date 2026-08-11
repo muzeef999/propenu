@@ -12,6 +12,7 @@ import {
   buildBuilderOtpEmailHtml,
   builderInviteEmailSubject,
 } from "../utils/builderInviteEmail";
+import { sendMarketingEmail } from "../utils/marketingMailer";
 import { sendOtpWhatsApp } from "../utils/whatsapp";
 import { generateToken } from "../utils/jwt";
 
@@ -529,7 +530,7 @@ export const BuilderOnboardingService = {
     });
 
     try {
-      const info = await sendEmail({
+      const info = await sendMarketingEmail({
         to: email,
         subject: builderInviteEmailSubject,
         html,

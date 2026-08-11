@@ -9,6 +9,7 @@ import GalleryFile from "../../../GalleryFile"; // Assuming this is client-side 
 import { Balconies, Bath, Bhk } from "@/icons/icons";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import PropertyViewDurationTracker from "@/components/PropertyViewDurationTracker";
+import PublicViewTracker from "@/components/tracking/PublicViewTracker";
 import Image from "next/image";
 import RelatedPropertiesCarousel from "./RelatedPropertiesCarousel";
 import ResidentialNearbySection from "./ResidentialNearbySection";
@@ -211,6 +212,11 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <div className="min-h-screen py-6 overflow-hidden">
+      <PublicViewTracker
+        entityType="property"
+        entityId={String(project._id)}
+        propertyType="residential"
+      />
       <PropertyViewDurationTracker
         projectId={String(project._id)}
         propertyType="residentials"
