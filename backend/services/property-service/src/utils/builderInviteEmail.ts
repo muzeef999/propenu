@@ -6,6 +6,7 @@ type BuilderInviteEmailParams = {
   onboardUrl: string;
   openPixelUrl: string;
   projectTitle: string;
+  priceHint?: string;
   brandLogoUrl?: string;
   companyHint?: string;
   locationHint?: string;
@@ -59,6 +60,7 @@ export function buildBuilderInviteEmailHtml(
     onboardUrl,
     openPixelUrl,
     projectTitle,
+    priceHint,
     brandLogoUrl,
     companyHint,
     locationHint,
@@ -127,20 +129,6 @@ export function buildBuilderInviteEmailHtml(
   const safeAslijobsLogoUrl =
     aslijobsLogoUrl || `${safeWebsiteUrl}/email/aslijobs.png`;
 
-  const heroSection = heroImageUrl
-    ? `
-          <tr>
-            <td style="padding:0 28px 18px;">
-              <table width="100%" cellpadding="0" cellspacing="0" style="background:#eef7f2;border:1px solid #dbeee3;border-radius:16px;">
-                <tr>
-                  <td style="padding:14px;">
-                    <img src="${heroImageUrl}" alt="${projectTitle}" width="532" style="display:block;width:100%;max-width:532px;height:220px;object-fit:cover;border-radius:12px;border:0;" />
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`
-    : "";
 
   const locationLine = locationHint
     ? `<div style="margin-top:6px;font-size:12px;color:#16a34a;font-weight:700;">${locationHint}</div>`
@@ -148,6 +136,10 @@ export function buildBuilderInviteEmailHtml(
 
   const companyLine = companyHint
     ? `<div style="margin-top:6px;font-size:13px;color:#64748b;">For ${companyHint}</div>`
+    : "";
+
+  const priceLine = priceHint
+    ? `<div style="margin-top:10px;font-size:18px;color:#0f172a;font-weight:800;">${priceHint}</div>`
     : "";
 
   return `<!DOCTYPE html>
@@ -193,7 +185,10 @@ export function buildBuilderInviteEmailHtml(
               </p>
               <table cellpadding="0" cellspacing="0" style="background:#f0fbf4;border:1px solid #d5efdc;border-radius:10px;">
                 <tr>
-                  <td style="padding:10px 14px;font-size:13px;line-height:1.6;color:#166534;">
+                  <td style="padding:10px 12px 10px 14px;font-size:24px;line-height:1;color:#22c55e;" valign="middle">
+                    &#127873;
+                  </td>
+                  <td style="padding:10px 14px 10px 0;font-size:13px;line-height:1.6;color:#166534;" valign="middle">
                     <span style="font-weight:700;">Complimentary onboarding and project activation</span>
                   </td>
                 </tr>
@@ -206,8 +201,6 @@ export function buildBuilderInviteEmailHtml(
               </p>
             </td>
           </tr>
-
-          ${heroSection}
 
           <tr>
             <td style="padding:0 28px 18px;">
@@ -232,6 +225,7 @@ export function buildBuilderInviteEmailHtml(
                           <div style="font-size:20px;font-weight:700;line-height:1.3;color:#1f2937;">${projectTitle}</div>
                           ${companyLine}
                           ${locationLine}
+                          ${priceLine}
                           <div style="margin-top:14px;">
                             <a href="${previewUrl}" style="display:inline-block;background:#22c55e;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:700;">View Project</a>
                           </div>
@@ -275,9 +269,18 @@ export function buildBuilderInviteEmailHtml(
                 </tr>
                 <tr>
                   <td style="padding-left:18px;font-size:13px;line-height:1.8;color:#166534;">
-                    <div>&bull; Primary Contact Person</div>
-                    <div>&bull; Mobile Number</div>
-                    <div>&bull; Email ID</div>
+                    <div style="margin:0 0 6px;">
+                      <span style="display:inline-block;width:22px;color:#22c55e;font-size:16px;">&#128100;</span>
+                      <span style="color:#1f2937;">Primary Contact Person</span>
+                    </div>
+                    <div style="margin:0 0 6px;">
+                      <span style="display:inline-block;width:22px;color:#22c55e;font-size:16px;">&#128222;</span>
+                      <span style="color:#1f2937;">Mobile Number</span>
+                    </div>
+                    <div>
+                      <span style="display:inline-block;width:22px;color:#22c55e;font-size:16px;">&#9993;</span>
+                      <span style="color:#1f2937;">Email ID</span>
+                    </div>
                   </td>
                 </tr>
               </table>
@@ -313,7 +316,9 @@ export function buildBuilderInviteEmailHtml(
             <td style="padding:0 28px 18px;font-size:13px;color:#475569;">
               <p style="margin:0 0 4px;">Warm regards,</p>
               <p style="margin:0 0 4px;font-weight:700;color:#1f2937;">Propenu Team</p>
-              <p style="margin:0;color:#16a34a;">${safeSupportEmail}</p>
+              <p style="margin:0;color:#16a34a;">
+                <span style="display:inline-block;margin-right:6px;font-size:13px;line-height:1;">&#9993;</span>${safeSupportEmail}
+              </p>
             </td>
           </tr>
 

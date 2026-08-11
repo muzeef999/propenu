@@ -70,6 +70,32 @@ function genOtp() {
   return String(Math.floor(Math.random() * 10000)).padStart(4, "0");
 }
 
+function formatIndianPrice(value?: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return "";
+  }
+  if (value >= 10000000) {
+    return `₹${(value / 10000000).toFixed(value >= 100000000 ? 0 : 1)}Cr`;
+  }
+  if (value >= 100000) {
+    return `₹${(value / 100000).toFixed(value >= 1000000 ? 0 : 1)}L`;
+  }
+  return `₹${new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: 0,
+  }).format(value)}`;
+}
+
+function buildProjectPriceHint(project: any) {
+  const price = formatIndianPrice(project?.price);
+  const priceFrom = formatIndianPrice(project?.priceFrom);
+  const priceTo = formatIndianPrice(project?.priceTo);
+
+  if (priceFrom && priceTo) {
+    return priceFrom === priceTo ? priceFrom : `${priceFrom} - ${priceTo}`;
+  }
+  return price || priceFrom || priceTo || "";
+}
+
 function normalizeEmail(email?: string) {
   return String(email || "")
     .trim()
@@ -479,12 +505,14 @@ export const BuilderOnboardingService = {
     const locationHint = [project!.locality, project!.city, project!.state]
       .filter(Boolean)
       .join(", ");
+    const priceHint = buildProjectPriceHint(project);
 
     const html = buildBuilderInviteEmailHtml({
       previewUrl,
       onboardUrl,
       openPixelUrl,
       projectTitle: project!.title,
+      priceHint,
       companyHint: input.companyName || "",
       locationHint,
       heroImageUrl: (project as any).heroImage || "",
