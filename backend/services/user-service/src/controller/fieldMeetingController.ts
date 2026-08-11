@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import FieldMeeting, {
   FIELD_MEETING_LOGGING_MODES,
+  FIELD_MEETING_PUNCH_OUT_WAIT_MINUTES,
   FIELD_MEETING_STATUSES,
   FIELD_MEETING_TYPES,
   normalizeMeetingPlace,
@@ -68,6 +69,132 @@ const assertStaff = (req: AuthRequest) => {
   return true;
 };
 
+const applyPunchIn = (meeting: any, actorId: string, at = new Date()) => {
+  if (meeting.punchInAt) return;
+  meeting.punchInAt = at;
+  if (actorId && mongoose.Types.ObjectId.isValid(actorId)) {
+    meeting.punchInBy = new mongoose.Types.ObjectId(actorId);
+  }
+};
+
+const punchOutAllowedAt = (punchInAt: Date | string | null | undefined) => {
+  if (!punchInAt) return null;
+  const start = new Date(punchInAt);
+  if (Number.isNaN(start.getTime())) return null;
+  return new Date(
+    start.getTime() + FIELD_MEETING_PUNCH_OUT_WAIT_MINUTES * 60 * 1000,
+  );
+};
+
+const canPunchOutNow = (
+  meeting: any,
+  at = new Date(),
+): { ok: boolean; allowedAt: Date | null; waitMinutes: number } => {
+  const loggingMode = String(meeting.loggingMode || "scheduled");
+  // Retroactive "already visited" logs can punch out immediately
+  if (loggingMode === "already_visited") {
+    return { ok: true, allowedAt: at, waitMinutes: 0 };
+  }
+  if (!meeting.punchInAt) {
+    return {
+      ok: false,
+      allowedAt: null,
+      waitMinutes: FIELD_MEETING_PUNCH_OUT_WAIT_MINUTES,
+    };
+  }
+  const allowedAt = punchOutAllowedAt(meeting.punchInAt);
+  if (!allowedAt) {
+    return {
+      ok: false,
+      allowedAt: null,
+      waitMinutes: FIELD_MEETING_PUNCH_OUT_WAIT_MINUTES,
+    };
+  }
+  const remainingMs = allowedAt.getTime() - at.getTime();
+  if (remainingMs <= 0) return { ok: true, allowedAt, waitMinutes: 0 };
+  return {
+    ok: false,
+    allowedAt,
+    waitMinutes: Math.ceil(remainingMs / 60000),
+  };
+};
+
+const applyPunchOutAndNextAction = (
+  meeting: any,
+  actorId: string,
+  at = new Date(),
+) => {
+  if (!meeting.punchInAt) applyPunchIn(meeting, actorId, at);
+  if (!meeting.punchOutAt) {
+    meeting.punchOutAt = at;
+    if (actorId && mongoose.Types.ObjectId.isValid(actorId)) {
+      meeting.punchOutBy = new mongoose.Types.ObjectId(actorId);
+    }
+  }
+  // After punch-out, CRM next follow-up is due immediately (sales-force style)
+  const existing = meeting.nextAction || {};
+  if (existing.status === "done" || existing.status === "skipped") return;
+  meeting.nextAction = {
+    title: existing.title || "Post-meeting follow-up",
+    note:
+      existing.note ||
+      "Call / WhatsApp next step, update interest, and log CRM outcome.",
+    dueAt: at,
+    status: "due",
+    completedAt: null,
+    completedBy: null,
+  };
+};
+
+const serializeNextAction = (na: any) => {
+  if (!na) return null;
+  const dueAt = na.dueAt ? new Date(na.dueAt) : null;
+  let status = String(na.status || "pending");
+  if (
+    dueAt &&
+    !Number.isNaN(dueAt.getTime()) &&
+    (status === "pending" || status === "due") &&
+    dueAt.getTime() <= Date.now()
+  ) {
+    status = "due";
+  }
+  return {
+    title: na.title || "Post-meeting follow-up",
+    note: na.note || "",
+    dueAt: na.dueAt || null,
+    status,
+    completedAt: na.completedAt || null,
+    completedBy: asId(na.completedBy) || null,
+    delayMinutes: 0,
+    isDue: status === "due",
+  };
+};
+
+const serializePunchProgress = (o: any) => {
+  const gate = canPunchOutNow(o);
+  const allowedAt = gate.allowedAt || punchOutAllowedAt(o.punchInAt);
+  return {
+    punchInAt: o.punchInAt || null,
+    punchInBy: asId(o.punchInBy) || null,
+    punchOutAt: o.punchOutAt || null,
+    punchOutBy: asId(o.punchOutBy) || null,
+    punchOutWaitMinutes: FIELD_MEETING_PUNCH_OUT_WAIT_MINUTES,
+    punchOutAllowedAt: allowedAt,
+    canPunchOut: Boolean(o.punchOutAt) || gate.ok,
+    punchOutWaitMinutesRemaining: o.punchOutAt ? 0 : gate.waitMinutes,
+    /** End-user friendly stage for Salesforce-style progress */
+    crmStage: o.punchOutAt
+      ? o.nextAction?.status === "done" || o.nextAction?.status === "skipped"
+        ? "closed"
+        : "follow_up"
+      : o.punchInAt
+        ? gate.ok
+          ? "ready_to_punch_out"
+          : "waiting_punch_out"
+        : "not_started",
+  };
+};
+
 const serializeMeeting = (doc: any) => {
   const o = typeof doc.toObject === "function" ? doc.toObject() : doc;
   const prepTasks = Array.isArray(o.prepTasks) ? o.prepTasks : [];
@@ -125,6 +252,8 @@ const serializeMeeting = (doc: any) => {
     visitConfirmed: Boolean(o.visitConfirmed),
     visitConfirmedAt: o.visitConfirmedAt || null,
     visitConfirmedBy: asId(o.visitConfirmedBy) || null,
+    ...serializePunchProgress(o),
+    nextAction: serializeNextAction(o.nextAction),
     prepTasks: prepTasks.map((t: any) => ({
       id: String(t._id || t.id || t.key),
       key: t.key || "",
@@ -748,6 +877,33 @@ export const createFieldMeeting = async (req: AuthRequest, res: Response) => {
       meetingPayload.meetingPlace = meetingPlace;
     }
 
+    // CRM punch: create = punch in. Punch out only after 15m (except already_visited).
+    if (!asDraft) {
+      const now = new Date();
+      meetingPayload.punchInAt = now;
+      if (actorId && mongoose.Types.ObjectId.isValid(actorId)) {
+        meetingPayload.punchInBy = new mongoose.Types.ObjectId(actorId);
+      }
+      if (status === "completed" && loggingMode === "already_visited") {
+        meetingPayload.punchOutAt = now;
+        if (actorId && mongoose.Types.ObjectId.isValid(actorId)) {
+          meetingPayload.punchOutBy = new mongoose.Types.ObjectId(actorId);
+        }
+        meetingPayload.nextAction = {
+          title: "Post-meeting follow-up",
+          note: "Call / WhatsApp next step, update interest, and log CRM outcome.",
+          dueAt: now,
+          status: "due",
+          completedAt: null,
+          completedBy: null,
+        };
+      } else if (status === "completed" && loggingMode !== "already_visited") {
+        // Force non-completed until wait passes — create as planned/confirmed instead
+        meetingPayload.status =
+          loggingMode === "walk_in" ? "confirmed" : status === "completed" ? "planned" : status;
+      }
+    }
+
     const meeting = await FieldMeeting.create(meetingPayload);
 
     const contactIds = [
@@ -766,10 +922,10 @@ export const createFieldMeeting = async (req: AuthRequest, res: Response) => {
     const successMessage = asDraft
       ? "Draft saved"
       : loggingMode === "already_visited"
-        ? "Visit logged as completed"
+        ? "Visit logged as completed — CRM follow-up is due now"
         : loggingMode === "walk_in"
-          ? "Walk-in visit confirmed"
-          : "Meeting scheduled successfully";
+          ? "Walk-in confirmed — punched in. Wait 15 minutes, then punch out"
+          : "Meeting created — punched in. Wait 15 minutes, then punch out";
 
     return res.status(201).json({
       success: true,
@@ -817,11 +973,32 @@ export const updateFieldMeeting = async (req: AuthRequest, res: Response) => {
       if (place) meeting.meetingPlace = place;
       else meeting.set("meetingPlace", null);
     }
-    if (
-      body.status &&
-      (FIELD_MEETING_STATUSES as readonly string[]).includes(String(body.status))
-    ) {
-      meeting.status = body.status;
+    if (body.status != null) {
+      const nextStatus = String(body.status || "").toLowerCase();
+      if (nextStatus === "cancelled") {
+        return res.status(400).json({
+          message:
+            "Cancel is disabled for field meetings. Mark completed, confirmed, or rescheduled instead.",
+        });
+      }
+      if ((FIELD_MEETING_STATUSES as readonly string[]).includes(nextStatus as any)) {
+        const prevStatus = String(meeting.status || "");
+        if (nextStatus === "completed" && prevStatus !== "completed") {
+          if (!meeting.punchInAt) applyPunchIn(meeting, actorId);
+          const gate = canPunchOutNow(meeting);
+          if (!gate.ok) {
+            return res.status(400).json({
+              message: `Wait ${gate.waitMinutes} more minute(s) after punch in before punch out (CRM ${FIELD_MEETING_PUNCH_OUT_WAIT_MINUTES}-minute field visit).`,
+              punchOutAllowedAt: gate.allowedAt,
+              waitMinutes: gate.waitMinutes,
+            });
+          }
+          meeting.status = nextStatus as any;
+          applyPunchOutAndNextAction(meeting, actorId);
+        } else {
+          meeting.status = nextStatus as any;
+        }
+      }
     }
     if (body.date || body.startTime || body.scheduledStart) {
       const start = body.scheduledStart
@@ -865,6 +1042,64 @@ export const updateFieldMeeting = async (req: AuthRequest, res: Response) => {
     return res.json({
       success: true,
       message: "Meeting updated",
+      data: serializeMeeting(meeting),
+    });
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
+};
+
+/** Mark CRM next action done/skipped after punch-out (+15 min follow-up). */
+export const completeFieldMeetingNextAction = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    if (!assertStaff(req)) return res.status(403).json({ message: "Forbidden" });
+    const id = String(req.params.id || "");
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid meeting id" });
+    }
+    const meeting = await FieldMeeting.findById(id);
+    if (!meeting) return res.status(404).json({ message: "Meeting not found" });
+
+    const actorId = String(req.user?.sub || req.user?.id || "");
+    const ok = await actorCanAccessMeeting(
+      actorId,
+      req.user?.roleName,
+      asId(meeting.ownerUserId),
+    );
+    if (!ok) return res.status(403).json({ message: "Forbidden" });
+
+    if (!meeting.punchOutAt || !meeting.nextAction) {
+      return res.status(400).json({
+        message: "Complete the meeting (punch out) before closing the next action",
+      });
+    }
+
+    const actionStatus = String(req.body?.status || "done").toLowerCase();
+    const finalStatus = actionStatus === "skipped" ? "skipped" : "done";
+    const note = String(req.body?.note || meeting.nextAction.note || "").trim();
+
+    meeting.nextAction = {
+      title: meeting.nextAction.title || "Post-meeting follow-up",
+      note,
+      dueAt: meeting.nextAction.dueAt,
+      status: finalStatus as any,
+      completedAt: new Date(),
+      completedBy:
+        actorId && mongoose.Types.ObjectId.isValid(actorId)
+          ? new mongoose.Types.ObjectId(actorId)
+          : null,
+    } as any;
+
+    await meeting.save();
+    return res.json({
+      success: true,
+      message:
+        finalStatus === "skipped"
+          ? "Next action skipped"
+          : "Next action completed",
       data: serializeMeeting(meeting),
     });
   } catch (error: any) {

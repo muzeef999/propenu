@@ -142,6 +142,50 @@ const LinkedPropertySchema = new Schema(
   { _id: false },
 );
 
+/** CRM next step after punch-out (due 15 minutes after complete) */
+export const FIELD_MEETING_NEXT_ACTION_STATUSES = [
+  "pending",
+  "due",
+  "done",
+  "skipped",
+] as const;
+
+const NextActionSchema = new Schema(
+  {
+    title: {
+      type: String,
+      trim: true,
+      default: "Post-meeting follow-up",
+    },
+    note: { type: String, trim: true, default: "" },
+    dueAt: { type: Date, default: null, index: true },
+    status: {
+      type: String,
+      enum: FIELD_MEETING_NEXT_ACTION_STATUSES,
+      default: "pending",
+      index: true,
+    },
+    completedAt: { type: Date, default: null },
+    completedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+  },
+  { _id: false },
+);
+
+/**
+ * Salesforce-style field CRM timing:
+ * - Punch in on create
+ * - Wait this many minutes before punch out is allowed
+ * - After punch out, next CRM follow-up is due immediately
+ */
+export const FIELD_MEETING_PUNCH_OUT_WAIT_MINUTES = 15;
+/** @deprecated use FIELD_MEETING_PUNCH_OUT_WAIT_MINUTES — kept for older imports */
+export const FIELD_MEETING_NEXT_ACTION_DELAY_MINUTES =
+  FIELD_MEETING_PUNCH_OUT_WAIT_MINUTES;
+
 const fieldMeetingSchema = new Schema(
   {
     title: { type: String, trim: true, default: "" },
@@ -225,6 +269,22 @@ const fieldMeetingSchema = new Schema(
       ref: "User",
       default: null,
     },
+    /** Punch in when meeting is scheduled/created (CRM attendance start) */
+    punchInAt: { type: Date, default: null, index: true },
+    punchInBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    /** Punch out when meeting is completed (CRM attendance end) */
+    punchOutAt: { type: Date, default: null, index: true },
+    punchOutBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    /** Auto next CRM step — due 15 minutes after punch-out */
+    nextAction: { type: NextActionSchema, default: null },
     prepTasks: { type: [PrepTaskSchema], default: [] },
     wizardStep: { type: Number, default: 1 },
     visibilityChain: [{ type: String, trim: true }],

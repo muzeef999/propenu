@@ -1,6 +1,7 @@
 import express from "express";
 import { authMiddleware } from "../middlewares/authMiddleware";
 import {
+  completeFieldMeetingNextAction,
   createFieldMeeting,
   getFieldMeetingById,
   getFieldMeetingTeamSummary,
@@ -23,6 +24,7 @@ fieldMeetingRoute.get("/:id", getFieldMeetingById);
 fieldMeetingRoute.post("/", createFieldMeeting);
 fieldMeetingRoute.patch("/:id", updateFieldMeeting);
 fieldMeetingRoute.patch("/:id/prep/:taskId", updatePrepTask);
+fieldMeetingRoute.patch("/:id/next-action", completeFieldMeetingNextAction);
 
 export { fieldMeetingRoute };
 export default fieldMeetingRoute;
