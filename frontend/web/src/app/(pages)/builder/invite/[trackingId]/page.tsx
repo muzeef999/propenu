@@ -3,17 +3,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import EmailOnboardingShell from "@/components/builder/EmailOnboardingShell";
+import ProjectLoadingSkeleton from "@/components/project/ProjectLoadingSkeleton";
 
 const apiBase = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(
   /\/$/,
   "",
 );
 
-/**
- * Invite email landing:
- * 1) track click via API
- * 2) redirect into email-styled onboard (Approve) or project preview
- */
 export default function BuilderInviteClickPage() {
   const params = useParams<{ trackingId: string }>();
   const search = useSearchParams();
@@ -51,15 +47,8 @@ export default function BuilderInviteClickPage() {
         if (cancelled) return;
 
         const slug = json?.data?.project?.slug;
-        if (to === "onboard" || to === "approve") {
-          router.replace(`/builder/onboard/${encodeURIComponent(token)}`);
-          return;
-        }
-
         if (!slug) {
-          // Preview unavailable — continue in onboarding experience
-          router.replace(`/builder/onboard/${encodeURIComponent(token)}`);
-          return;
+          throw new Error("Project preview is unavailable for this invite");
         }
 
         router.replace(
@@ -97,16 +86,6 @@ export default function BuilderInviteClickPage() {
   }
 
   return (
-    <EmailOnboardingShell>
-      <div className="flex min-h-[220px] flex-col items-center justify-center text-center">
-        <div className="mb-3 h-10 w-10 animate-spin rounded-full border-4 border-emerald-200 border-t-[#27AE60]" />
-        <p className="text-sm font-semibold text-gray-700">
-          Opening your Propenu invite…
-        </p>
-        <p className="mt-1 text-xs font-semibold text-gray-400">
-          Continuing inside this invite experience
-        </p>
-      </div>
-    </EmailOnboardingShell>
+    <ProjectLoadingSkeleton />
   );
 }

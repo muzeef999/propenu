@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 export default function InviteApproveBanner({
   projectTitle,
@@ -9,6 +9,7 @@ export default function InviteApproveBanner({
   projectTitle?: string;
 }) {
   const search = useSearchParams();
+  const pathname = usePathname();
   const inviteToken = search.get("invite");
 
   if (!inviteToken) return null;
@@ -27,13 +28,13 @@ export default function InviteApproveBanner({
           </p>
         </div>
         <Link
-          href={`/builder/onboard/${encodeURIComponent(inviteToken)}`}
+          href={`${pathname}?invite=${encodeURIComponent(inviteToken)}#contact-seller`}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#27AE60] px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-[#219150]"
         >
           <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-xs">
             ✓
           </span>
-          Approve
+          Approve Below
         </Link>
       </div>
     </div>

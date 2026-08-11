@@ -1617,6 +1617,13 @@ export const createSupportTicket = async (
   return res.data;
 };
 
+export const createPublicSupportTicket = async (
+  payload: CreateSupportTicketPayload,
+) => {
+  const res = await axiosInstance.post(`${url}/api/tickets`, payload);
+  return res.data;
+};
+
 export type GetTicketsParams = {
   requesterId?: string;
   category?: string;

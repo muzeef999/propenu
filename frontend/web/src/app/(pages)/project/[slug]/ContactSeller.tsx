@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { checkProjectLeadSubmitted, me, patchProjectLeadIntention, projectpostLeads } from "@/data/ClientData";
+import {
+  checkProjectLeadSubmitted,
+  createPublicSupportTicket,
+  me,
+  patchProjectLeadIntention,
+  projectpostLeads,
+} from "@/data/ClientData";
 import { FeaturedProject } from "@/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
@@ -38,6 +44,23 @@ type UserProfile = {
   fullName?: string;
   phone?: string;
   email?: string;
+};
+
+type RoleConflictState = {
+  message: string;
+  conflictField?: "phone" | "email";
+  conflictRole?: string;
+  conflictDisplayRole?: string;
+  conflictValue?: string;
+};
+
+type BuilderInviteApiError = {
+  message: string;
+  code?: string;
+  conflictField?: "phone" | "email";
+  conflictRole?: string;
+  conflictDisplayRole?: string;
+  conflictValue?: string;
 };
 
 function getUserPrefill(user?: UserProfile | null) {
@@ -145,6 +168,30 @@ function getFieldValidationMessage(
   return "Please check this field";
 }
 
+function prettifyConflictRole(value?: string) {
+  if (!value) return "another";
+  if (value === "user") return "User";
+  if (value === "agent") return "Agent";
+  return value
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+async function parseInviteApiError(res: Response): Promise<BuilderInviteApiError> {
+  const json = await res.json().catch(() => ({}));
+  return {
+    message:
+      json?.error || json?.message || "Something went wrong. Please try again.",
+    code: json?.code,
+    conflictField: json?.conflictField,
+    conflictRole: json?.conflictRole,
+    conflictDisplayRole: json?.conflictDisplayRole,
+    conflictValue: json?.conflictValue,
+  };
+}
+
 const apiBase = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(
   /\/$/,
   "",
@@ -165,11 +212,14 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
   // Builder Invite Mode States
   const [isInviteMode, setIsInviteMode] = useState(canUseInviteFlow);
   const [inviteData, setInviteData] = useState<any>(null);
-  const [inviteStep, setInviteStep] = useState<"form" | "otp" | "success">("form");
+  const [inviteStep, setInviteStep] = useState<
+    "form" | "otp" | "success" | "role_conflict" | "review_sent"
+  >("form");
   const [otp, setOtp] = useState("");
   const [otpSubmitting, setOtpSubmitting] = useState(false);
   const [otpError, setOtpError] = useState("");
   const [builderFormError, setBuilderFormError] = useState("");
+  const [roleConflict, setRoleConflict] = useState<RoleConflictState | null>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -180,6 +230,53 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
   const [leadId, setLeadId] = useState("");
   const [showSubmittedStep, setShowSubmittedStep] = useState(false);
   const [intentionAnswers, setIntentionAnswers] = useState<IntentionAnswer[]>([]);
+
+  const reviewTicketMutation = useMutation({
+    mutationFn: async () =>
+      createPublicSupportTicket({
+        title: "Builder claim account role conflict review",
+        description: [
+          "A builder project claim was blocked due to an account role conflict.",
+          `Project: ${project.title}`,
+          `Invite token: ${inviteToken || "-"}`,
+          `Contact name: ${form.name.trim()}`,
+          `Phone: ${form.phone.trim() || "-"}`,
+          `Email: ${form.email.trim() || "-"}`,
+          `Conflict field: ${roleConflict?.conflictField || "-"}`,
+          `Detected role: ${roleConflict?.conflictRole || "-"}`,
+          "Reason: builder_claim_role_conflict",
+        ].join("\n"),
+        requester: {
+          name: form.name.trim(),
+          phone: form.phone.trim(),
+          email: form.email.trim(),
+        },
+        category: "Customer Request",
+        priority: "high",
+        source: "web",
+        metadata: {
+          requestType: "builder_claim_role_conflict",
+          module: "builder_invite_claim",
+          relatedProjectId: project._id,
+          relatedProjectName: project.title,
+          inviteToken,
+          contactName: form.name.trim(),
+          phone: form.phone.trim(),
+          email: form.email.trim(),
+          conflictField: roleConflict?.conflictField || null,
+          conflictRole: roleConflict?.conflictRole || null,
+          conflictDisplayRole: roleConflict?.conflictDisplayRole || null,
+          conflictValue: roleConflict?.conflictValue || null,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Your review request has been sent to Admin.");
+      setInviteStep("review_sent");
+    },
+    onError: (error) => {
+      toast.error(getLeadErrorMessage(error));
+    },
+  });
 
   // Fetch Invite Details if inviteToken exists
   useEffect(() => {
@@ -413,6 +510,7 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
     setOtpSubmitting(true);
     setOtpError("");
     setBuilderFormError("");
+    setRoleConflict(null);
 
     try {
       const payload = {
@@ -430,10 +528,22 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
           body: JSON.stringify(payload),
         },
       );
-      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(json?.error || json?.message || "Failed to send OTP");
+        const apiError = await parseInviteApiError(res);
+        if (apiError.code === "ACCOUNT_ROLE_CONFLICT") {
+          setRoleConflict({
+            message: apiError.message,
+            conflictField: apiError.conflictField,
+            conflictRole: apiError.conflictRole,
+            conflictDisplayRole: apiError.conflictDisplayRole,
+            conflictValue: apiError.conflictValue,
+          });
+          setInviteStep("role_conflict");
+          return;
+        }
+        throw new Error(apiError.message || "Failed to send OTP");
       }
+      const json = await res.json().catch(() => ({}));
 
       toast.success(
         json?.data?.message || "OTP sent successfully to your contact details",
@@ -459,6 +569,7 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
 
     setOtpSubmitting(true);
     setOtpError("");
+    setRoleConflict(null);
 
     try {
       const res = await fetch(
@@ -476,10 +587,22 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
         },
       );
 
-      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(json?.error || json?.message || "Incorrect OTP");
+        const apiError = await parseInviteApiError(res);
+        if (apiError.code === "ACCOUNT_ROLE_CONFLICT") {
+          setRoleConflict({
+            message: apiError.message,
+            conflictField: apiError.conflictField,
+            conflictRole: apiError.conflictRole,
+            conflictDisplayRole: apiError.conflictDisplayRole,
+            conflictValue: apiError.conflictValue,
+          });
+          setInviteStep("role_conflict");
+          return;
+        }
+        throw new Error(apiError.message || "Incorrect OTP");
       }
+      const json = await res.json().catch(() => ({}));
 
       // Automatically log the builder into the website
       if (json?.data?.token) {
@@ -509,6 +632,10 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) {
     if (builderFormError) setBuilderFormError("");
+    if (roleConflict) setRoleConflict(null);
+    if (inviteStep === "role_conflict" || inviteStep === "review_sent") {
+      setInviteStep("form");
+    }
     const { name, value } = e.target;
     setForm((current) => ({
       ...current,
@@ -583,8 +710,14 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
 
   // BUILDER APPROVAL MODE RENDERING
   if (isInviteMode) {
+    const conflictRoleLabel = prettifyConflictRole(
+      roleConflict?.conflictDisplayRole || roleConflict?.conflictRole,
+    );
+    const conflictFieldLabel =
+      roleConflict?.conflictField === "email" ? "email address" : "mobile number";
+
     return (
-      <aside className="w-full rounded-md border border-emerald-300 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.1)] lg:sticky lg:top-20 lg:max-w-[390px] lg:p-5">
+      <aside id="contact-seller" className="w-full rounded-md border border-emerald-300 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.1)] lg:sticky lg:top-20 lg:max-w-[390px] lg:p-5">
         {/* Banner Header */}
         <div className="rounded-md bg-emerald-50 p-3 text-center border border-emerald-200">
           <p className="text-[11px] font-black uppercase tracking-wider text-emerald-700">
@@ -613,6 +746,101 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
               className="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-[#27AE60] px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-[#219150]"
             >
               Go to Builder Dashboard →
+            </button>
+          </div>
+        ) : inviteStep === "review_sent" ? (
+          <div className="mt-5 space-y-4 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#27AE60] text-white shadow-md">
+              <span className="h-6 w-3 rotate-45 border-b-2 border-r-2 border-white" />
+            </div>
+            <div>
+              <p className="text-base font-bold text-[#27AE60]">
+                Review Request Submitted
+              </p>
+              <p className="mt-2 text-xs leading-5 text-slate-600">
+                Our admin team has received your request and will review this account-role conflict shortly.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setRoleConflict(null);
+                setInviteStep("form");
+              }}
+              className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-[#27AE60] bg-white px-4 py-3 text-sm font-bold text-[#27AE60] shadow-sm hover:bg-emerald-50"
+            >
+              Use Different Contact Details
+            </button>
+          </div>
+        ) : inviteStep === "role_conflict" ? (
+          <div className="mt-5 space-y-4">
+            <div className="rounded-md border border-red-200 bg-gradient-to-br from-red-50 via-white to-red-50 p-3.5 shadow-sm">
+              <div className="flex items-start gap-2.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-200 bg-white text-red-500">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M12 9v4" />
+                    <path d="M12 17h.01" />
+                    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-red-600">
+                    Account role conflict
+                  </p>
+                  <p className="mt-1 text-[13px] leading-5 text-slate-700">
+                    This {conflictFieldLabel} is registered as a{" "}
+                    <span className="font-bold text-red-600">{conflictRoleLabel}</span>{" "}
+                    <span className="font-bold text-red-600">account</span>.
+                    {` `}
+                    {conflictRoleLabel} accounts can continue with their current role, but cannot claim Builder CRM projects.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-3 border-t border-red-100 pt-3">
+                <div className="flex items-start gap-2.5">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-200 bg-white text-red-500">
+                    <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M18 21a6 6 0 0 0-12 0" />
+                      <circle cx="12" cy="11" r="4" />
+                    </svg>
+                  </div>
+                  <p className="pt-1 text-[13px] leading-5 text-slate-700">
+                    Send this request to Admin for builder account review.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => reviewTicketMutation.mutate()}
+              disabled={reviewTicketMutation.isPending}
+              className="h-11 w-full rounded-md bg-[#1f9d55] text-sm font-bold text-white shadow-sm transition hover:bg-[#188746] disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {reviewTicketMutation.isPending
+                ? "Sending..."
+                : "Send for Admin Review"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setRoleConflict(null);
+                setBuilderFormError("");
+                setOtpError("");
+                setInviteStep("form");
+                if (roleConflict?.conflictField === "email") {
+                  setForm((current) => ({ ...current, email: "" }));
+                  return;
+                }
+                setForm((current) => ({ ...current, phone: "" }));
+              }}
+              className="h-11 w-full rounded-md border border-[#27AE60] bg-white text-sm font-bold text-[#27AE60] shadow-sm transition hover:bg-emerald-50"
+            >
+              {roleConflict?.conflictField === "email"
+                ? "Use different email address"
+                : "Use different mobile number"}
             </button>
           </div>
         ) : inviteStep === "otp" ? (
@@ -771,7 +999,7 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
             <button
               type="submit"
               disabled={otpSubmitting}
-              className="h-11 w-full rounded-xl bg-[#27AE60] text-sm font-bold text-white shadow-sm transition hover:bg-[#219150] disabled:cursor-not-allowed disabled:opacity-70"
+              className="h-11 w-full rounded-md bg-[#27AE60] text-sm font-bold text-white shadow-sm transition hover:bg-[#219150] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {otpSubmitting ? "Sending OTP..." : "Approve & Claim Project"}
             </button>
@@ -783,7 +1011,7 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
 
   // STANDARD LEAD FORM (WHEN NO INVITE TOKEN IS PRESENT)
   return (
-    <aside className="w-full rounded-md border border-slate-200 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.08)] lg:sticky lg:top-20 lg:max-w-[390px] lg:p-5">
+    <aside id="contact-seller" className="w-full rounded-md border border-slate-200 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.08)] lg:sticky lg:top-20 lg:max-w-[390px] lg:p-5">
       {!showSubmittedStep && (
         <>
           <div className="mt-4 flex items-center gap-3 border-b border-slate-200 pb-4">

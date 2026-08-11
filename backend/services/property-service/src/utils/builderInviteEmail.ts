@@ -3,7 +3,6 @@ import path from "path";
 
 type BuilderInviteEmailParams = {
   previewUrl: string;
-  onboardUrl: string;
   openPixelUrl: string;
   projectTitle: string;
   priceHint?: string;
@@ -39,6 +38,7 @@ type BuilderInviteEmailParams = {
 export const builderInviteEmailSubject =
   "Invitation to Join Propenu's Launch Partners Program";
 
+
 const defaultBrandLogoDataUri = (() => {
   try {
     const logoPath = path.resolve(
@@ -57,7 +57,6 @@ export function buildBuilderInviteEmailHtml(
 ): string {
   const {
     previewUrl,
-    onboardUrl,
     openPixelUrl,
     projectTitle,
     priceHint,
@@ -289,8 +288,8 @@ export function buildBuilderInviteEmailHtml(
 
           <tr>
             <td style="padding:4px 28px 12px;">
-              <a href="${onboardUrl}" style="display:inline-block;background:#22c55e;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-size:14px;font-weight:700;">
-                Start Activation
+              <a href="${previewUrl}" style="display:inline-block;background:#22c55e;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-size:14px;font-weight:700;">
+                Review &amp; Approve Project
               </a>
             </td>
           </tr>

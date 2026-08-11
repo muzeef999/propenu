@@ -30,6 +30,13 @@ function sendError(res: Response, err: any) {
   return res.status(status).json({
     success: false,
     error: err?.message || "Internal server error",
+    ...(err?.code ? { code: err.code } : {}),
+    ...(err?.conflictField ? { conflictField: err.conflictField } : {}),
+    ...(err?.conflictRole ? { conflictRole: err.conflictRole } : {}),
+    ...(err?.conflictDisplayRole
+      ? { conflictDisplayRole: err.conflictDisplayRole }
+      : {}),
+    ...(err?.conflictValue ? { conflictValue: err.conflictValue } : {}),
   });
 }
 
@@ -263,8 +270,7 @@ export const trackInviteEmailClick = async (req: Request, res: Response) => {
       trackingId,
       token || undefined,
     );
-    const target =
-      to === "onboard" ? result.onboardUrl : result.previewUrl;
+    const target = result.previewUrl;
     return res.redirect(302, target);
   } catch (err: any) {
     return res

@@ -158,6 +158,11 @@ async function checkUserRoleEligibility(email?: string, phone?: string) {
           `Mobile Number (${normPhone}) is registered as a ${displayRole} account. Project approval is restricted to Builder accounts only.`,
         );
         err.statusCode = 400;
+        err.code = "ACCOUNT_ROLE_CONFLICT";
+        err.conflictField = "phone";
+        err.conflictRole = roleName;
+        err.conflictDisplayRole = displayRole;
+        err.conflictValue = normPhone;
         throw err;
       }
     }
@@ -177,6 +182,11 @@ async function checkUserRoleEligibility(email?: string, phone?: string) {
           `Email Address (${normEmail}) is registered as a ${displayRole} account. Project approval is restricted to Builder accounts only.`,
         );
         err.statusCode = 400;
+        err.code = "ACCOUNT_ROLE_CONFLICT";
+        err.conflictField = "email";
+        err.conflictRole = roleName;
+        err.conflictDisplayRole = displayRole;
+        err.conflictValue = normEmail;
         throw err;
       }
     }
@@ -498,7 +508,7 @@ export const BuilderOnboardingService = {
 
     // Preview → project selling page; Approve → onboard form
     const previewUrl = `${publicWebBase()}/builder/invite/${trackingId}?token=${rawToken}&to=preview`;
-    const onboardUrl = `${publicWebBase()}/builder/invite/${trackingId}?token=${rawToken}&to=onboard`;
+    const onboardUrl = previewUrl;
     const openPixelUrl = `${apiPublicBase()}/api/properties/public/email/open/${trackingId}.gif`;
     const directPreview = `${publicWebBase()}/project/${project!.slug}?invite=${rawToken}`;
 
@@ -561,7 +571,9 @@ export const BuilderOnboardingService = {
       emailUiStatus: deriveUiEmailStatus(invite),
       previewUrl: directPreview,
       inviteToken: rawToken,
-      onboardPath: `/builder/onboard/${rawToken}`,
+      onboardPath: project!.slug
+        ? `/project/${project!.slug}?invite=${rawToken}`
+        : `/builder/invite/${trackingId}?token=${rawToken}&to=preview`,
       expiresAt: invite.expiresAt,
       message: "Invite email sent. Tracking is active.",
     };
@@ -1183,7 +1195,7 @@ export const BuilderOnboardingService = {
       projectSlug: slug,
       projectTitle: (project as any)?.title,
       previewUrl: `${publicWebBase()}/project/${slug}?invite=${token || ""}`,
-      onboardUrl: `${publicWebBase()}/builder/onboard/${token || ""}`,
+      onboardUrl: `${publicWebBase()}/project/${slug}?invite=${token || ""}`,
     };
   },
 

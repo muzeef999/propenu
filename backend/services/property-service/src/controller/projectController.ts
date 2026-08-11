@@ -4,6 +4,11 @@ import { AuthRequest } from "../middlewares/authMiddleware";
 import mongoose from "mongoose";
 import { canApproveProjectByHierarchy } from "../utils/projectApprovalPolicy";
 import { BuilderOnboardingService } from "../services/builderOnboardingService";
+import { sendEmail } from "../../../../shared/email/email.service";
+import {
+  buildBuilderApprovalThankYouEmailHtml,
+  buildBuilderApprovalThankYouSubject,
+} from "../utils/builderApprovalThankYouEmail";
 
 const resolveCreatorMeta = (project: any) => {
   const createdBy = project?.createdBy;
@@ -54,7 +59,7 @@ export const approveProject = async (req: AuthRequest, res: Response) => {
 
     const project = await FeaturedProject.findById(req.params.id).populate(
       "createdBy",
-      "fullName name email roleName",
+      "fullName name companyName email roleName",
     );
 
     if (!project) {
@@ -110,6 +115,27 @@ export const approveProject = async (req: AuthRequest, res: Response) => {
 
     await project.save();
 
+    const builderEmail = String((project as any)?.createdBy?.email || "").trim();
+    if (builderEmail) {
+      const builderName =
+        String((project as any)?.createdBy?.companyName || "").trim() ||
+        String((project as any)?.createdBy?.fullName || "").trim() ||
+        String((project as any)?.createdBy?.name || "").trim();
+      const projectUrl = (process.env.PUBLIC_WEB_URL || process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
+
+      sendEmail({
+        to: builderEmail,
+        subject: buildBuilderApprovalThankYouSubject(builderName),
+        html: buildBuilderApprovalThankYouEmailHtml({
+          builderName,
+          projectTitle: String(project.title || ""),
+          projectUrl: `${projectUrl}/project/${project.slug}`,
+        }),
+      }).catch((emailError: any) => {
+        console.error("Failed to send builder approval thank-you email:", emailError?.message || emailError);
+      });
+    }
+
     return res.status(200).json({
       success: true,
       message: "Project approved successfully and is now live",
@@ -134,7 +160,7 @@ export const rejectProject = async (req: AuthRequest, res: Response) => {
     const { reason } = req.body;
     const project = await FeaturedProject.findById(req.params.id).populate(
       "createdBy",
-      "fullName name email roleName",
+      "fullName name companyName email roleName",
     );
 
     if (!project) {
