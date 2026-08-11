@@ -34,6 +34,7 @@ interface Property {
   propertyType?: string;
   createdAt?: string;
   status?: "Active" | "Draft" | "Deactivated" | string;
+  isPublished?: boolean;
 
   meta?: {
     views?: number;
