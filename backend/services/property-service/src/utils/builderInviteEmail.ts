@@ -4,6 +4,7 @@ type BuilderInviteEmailParams = {
   onboardUrl?: string;
   openPixelUrl: string;
   projectTitle: string;
+  builderName?: string;
   priceHint?: string;
   brandLogoUrl?: string;
   companyHint?: string;
@@ -49,6 +50,7 @@ export function buildBuilderInviteEmailHtml(
     onboardUrl,
     openPixelUrl,
     projectTitle,
+    builderName,
     priceHint,
     brandLogoUrl,
     companyHint,
@@ -85,9 +87,11 @@ export function buildBuilderInviteEmailHtml(
 
   const approveUrl = onboardUrl || previewUrl;
 
-  const greeting = companyHint
+  const greeting = builderName
+    ? `Dear ${builderName} Team,`
+    : companyHint
     ? `Dear ${companyHint} Team,`
-    : "Dear Sir/Madam,";
+    : `Dear ${projectTitle} Team,`;
 
   const safeWebsiteUrl = websiteUrl || "https://www.propenu.com";
   const safeTermsUrl = termsUrl || `${safeWebsiteUrl}/terms`;
@@ -292,7 +296,7 @@ export function buildBuilderInviteEmailHtml(
           <tr>
             <td style="padding:4px 28px 12px;">
               <a href="${approveUrl}" style="display:inline-block;background:#22c55e;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-size:14px;font-weight:700;">
-                Review &amp; Approve Project
+                Start activation
               </a>
             </td>
           </tr>
@@ -300,16 +304,16 @@ export function buildBuilderInviteEmailHtml(
           <tr>
             <td style="padding:0 28px 18px;font-size:13px;line-height:1.75;color:#475569;">
               <p style="margin:0 0 12px;">
-                The process takes just a few minutes to complete. Once approved, your organization can begin receiving verified buyer enquiries and managing project visibility through the Propenu ecosystem.
+                The above details will be used to configure your organization's Propenu CRM Dashboard, enabling your team to seamlessly receive, manage, and track verified buyer enquiries generated through the platform.
               </p>
               <p style="margin:0 0 12px;">
-                We believe this partnership will strengthen your digital presence while providing your sales team with an efficient channel to engage qualified homebuyers and streamline response management.
+                We believe this partnership will strengthen your digital presence while providing your sales team with an additional channel to engage qualified homebuyers and efficiently manage enquiries.
               </p>
               <p style="margin:0 0 12px;">
-                We look forward to the opportunity to collaborate with your organization on one of Propenu's launch partnerships.
+                We look forward to your approval and to welcoming your organization as one of Propenu's Launch Partners.
               </p>
               <p style="margin:0;">
-                Should you require any further information or wish to schedule a brief discussion, our team would be pleased to assist.
+                We should you require any further information or wish to schedule a brief discussion, our team would be pleased to assist.
               </p>
             </td>
           </tr>

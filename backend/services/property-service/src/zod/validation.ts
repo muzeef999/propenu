@@ -59,6 +59,7 @@ export const BrochureSchema = z
   .optional();
 
 export const AboutSummaryZ = z.object({
+  builderName: z.string().optional(),
   aboutDescription: z.string().optional(),
   url: z.string().url("Invalid URL format").optional(),
   rightContent: z.string().min(1, "Right content is required"),

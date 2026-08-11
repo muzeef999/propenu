@@ -8,6 +8,10 @@ import User from "../models/userModel";
 import Role from "../models/roleModel";
 import { sendEmail } from "../../../../shared/email/email.service";
 import {
+  buildBuilderApprovalThankYouEmailHtml,
+  buildBuilderApprovalThankYouSubject,
+} from "../utils/builderApprovalThankYouEmail";
+import {
   buildBuilderInviteEmailHtml,
   buildBuilderOtpEmailHtml,
   builderInviteEmailSubject,
@@ -110,6 +114,67 @@ function normalizePhone(phone?: string) {
   if (digits.startsWith("91") && digits.length === 12) return `+${digits}`;
   if (String(phone || "").startsWith("+")) return String(phone).trim();
   return `+${digits}`;
+}
+
+function readTrimmed(...values: any[]) {
+  for (const value of values) {
+    const text = String(value || "").trim();
+    if (text) return text;
+  }
+  return "";
+}
+
+async function sendBuilderApprovalThankYouEmail(project: any) {
+  const onboarding = project?.builderOnboarding || {};
+  const snapshot = onboarding?.builderSnapshot || {};
+  const primaryContact = Array.isArray(project?.projectContacts)
+    ? project.projectContacts.find((contact: any) => contact?.isPrimary) ||
+      project.projectContacts.find((contact: any) => contact?.email)
+    : null;
+
+  const builderEmail = readTrimmed(
+    snapshot.email,
+    onboarding.inviteEmail,
+    primaryContact?.email,
+    project?.createdBy?.email,
+  ).toLowerCase();
+
+  if (!builderEmail) {
+    console.warn(
+      "Skipped builder thank-you email because no recipient email was found",
+      { projectId: String(project?._id || "") },
+    );
+    return;
+  }
+
+  const builderName = readTrimmed(
+    snapshot.companyName,
+    project?.createdBy?.companyName,
+    snapshot.contactName,
+    primaryContact?.name,
+    project?.createdBy?.fullName,
+    project?.createdBy?.name,
+  );
+
+  const projectUrl = `${publicWebBase()}/project/${project?.slug || ""}`;
+
+  try {
+    await sendMarketingEmail({
+      to: builderEmail,
+      subject: buildBuilderApprovalThankYouSubject(builderName),
+      html: buildBuilderApprovalThankYouEmailHtml({
+        builderName,
+        projectTitle: String(project?.title || ""),
+        projectUrl,
+      }),
+    });
+  } catch (error: any) {
+    console.error("Failed to send builder thank-you email:", {
+      projectId: String(project?._id || ""),
+      recipient: builderEmail,
+      error: error?.message || error,
+    });
+  }
 }
 
 function phoneLookupValues(phone?: string) {
@@ -517,12 +582,20 @@ export const BuilderOnboardingService = {
       .filter(Boolean)
       .join(", ");
     const priceHint = buildProjectPriceHint(project);
+    const aboutSummary = Array.isArray((project as any).aboutSummary)
+      ? (project as any).aboutSummary
+      : [];
+    const inviteBuilderName =
+      input.companyName ||
+      String(aboutSummary[0]?.builderName || "").trim() ||
+      "";
 
     const html = buildBuilderInviteEmailHtml({
       previewUrl,
       onboardUrl,
       openPixelUrl,
       projectTitle: project!.title,
+      builderName: inviteBuilderName,
       priceHint,
       companyHint: input.companyName || "",
       locationHint,
@@ -794,6 +867,7 @@ export const BuilderOnboardingService = {
     invite.builderUserId = builder._id;
     await invite.save();
     await project!.save();
+    await sendBuilderApprovalThankYouEmail(project);
 
     return {
       message: "Builder onboarded and project claimed successfully",
@@ -1441,6 +1515,7 @@ export const BuilderOnboardingService = {
     (invite as any).otpExpiresAt = undefined;
     await invite.save();
     await project!.save();
+    await sendBuilderApprovalThankYouEmail(project);
 
     const authToken = generateToken({
       _id: builder._id,

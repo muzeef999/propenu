@@ -618,7 +618,7 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
         }
       }
 
-      toast.success("Project approved and claimed successfully!");
+      toast.success("Project approved successfully!");
       setInviteStep("success");
     } catch (err: any) {
       setOtpError(err?.message || "OTP verification failed");
@@ -719,14 +719,7 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
     return (
       <aside id="contact-seller" className="w-full rounded-md border border-emerald-300 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.1)] lg:sticky lg:top-20 lg:max-w-[390px] lg:p-5">
         {/* Banner Header */}
-        <div className="rounded-md bg-emerald-50 p-3 text-center border border-emerald-200">
-          <p className="text-[11px] font-black uppercase tracking-wider text-emerald-700">
-            Propenu Launch Partner Invite
-          </p>
-          <p className="mt-1 text-xs font-semibold text-slate-800">
-            Approve & Claim project <span className="text-[#27AE60]">“{project.title}”</span>
-          </p>
-        </div>
+        
 
         {inviteStep === "success" ? (
           <div className="mt-5 space-y-4 text-center">
@@ -735,10 +728,7 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
             </div>
             <div>
               <p className="text-base font-bold text-[#27AE60]">
-                Project Approved & Assigned!
-              </p>
-              <p className="mt-2 text-xs leading-5 text-slate-600">
-                You have successfully claimed ownership of this project. Log in anytime to manage listings, leads, and staff.
+                Project Approved
               </p>
             </div>
             <button
@@ -792,7 +782,7 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
                     <span className="font-bold text-red-600">{conflictRoleLabel}</span>{" "}
                     <span className="font-bold text-red-600">account</span>.
                     {` `}
-                    {conflictRoleLabel} accounts can continue with their current role, but cannot claim Builder CRM projects.
+                    {conflictRoleLabel} accounts can continue with their current role, but cannot approve Builder CRM projects.
                   </p>
                 </div>
               </div>
@@ -874,7 +864,7 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
               disabled={otpSubmitting || otp.length !== 4}
               className="h-10 w-full rounded-xl bg-[#27AE60] text-sm font-bold text-white shadow-sm transition hover:bg-[#219150] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {otpSubmitting ? "Verifying..." : "Verify OTP & Claim Project"}
+              {otpSubmitting ? "Verifying..." : "Verify OTP "}
             </button>
 
             <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
@@ -898,7 +888,7 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
         ) : (
           <form onSubmit={handleBuilderSubmit} className="mt-4 space-y-3 sm:space-y-4">
             <p className="text-xs font-medium text-slate-600">
-              Please share your contact details to approve and claim this project:
+              Please share your contact details to approve this project:
             </p>
 
             <label className="block">
@@ -1001,7 +991,7 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
               disabled={otpSubmitting}
               className="h-11 w-full rounded-md bg-[#27AE60] text-sm font-bold text-white shadow-sm transition hover:bg-[#219150] disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {otpSubmitting ? "Sending OTP..." : "Approve & Claim Project"}
+              {otpSubmitting ? "Sending OTP..." : "Approve Project"}
             </button>
           </form>
         )}

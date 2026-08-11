@@ -114,6 +114,7 @@ const GallerySummarySchema = new Schema<IGalleryItem>(
 
 const AboutSummarySchema = new Schema<IAboutSummary>(
   {
+    builderName: { type: String },
     aboutDescription: { type: String },
     url: { type: String },
     rightContent: { type: String, required: true },

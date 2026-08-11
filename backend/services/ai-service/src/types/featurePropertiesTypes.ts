@@ -57,6 +57,7 @@ export interface Ibrochure {
 }
 
 export interface IAboutSummary {
+  builderName?: string;
   aboutDescription?: string;
   url?: string;
   rightContent?: string;
