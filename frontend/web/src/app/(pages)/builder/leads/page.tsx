@@ -105,8 +105,6 @@ interface LeadsResponse {
 
 /* ================= UTILS ================= */
 
-const DEFAULT_VISIBLE_LEAD_LIMIT = 5;
-
 const maskPhone = (phone?: string) => {
   const value = String(phone ?? "").trim();
   if (!value) return "—";
@@ -129,30 +127,19 @@ const maskEmail = (email?: string) => {
 
 const shouldMaskLeadContact = ({
   lead,
-  index,
-  page,
-  pageSize,
-  promotionType,
-  visibleLeadLimit,
 }: {
   lead: Lead;
-  index: number;
-  page: number;
-  pageSize: number;
-  promotionType: string;
-  visibleLeadLimit: number;
 }) => {
-  if (lead.contactMasked) return true;
-  return (page - 1) * pageSize + index >= visibleLeadLimit;
+  return Boolean(lead.contactMasked);
 };
 
 const getLeadContactDisplayValue = (lead: Lead, column: LeadColumn, shouldMaskContact: boolean) => {
   if (column.key === "phone") {
-    return shouldMaskContact ? maskPhone(lead.phone) : getDisplayValue(lead.phone);
+    return shouldMaskContact ? getDisplayValue(lead.phone) : getDisplayValue(lead.phone);
   }
 
   if (column.key === "email") {
-    return shouldMaskContact ? maskEmail(lead.email) : getDisplayValue(lead.email);
+    return shouldMaskContact ? getDisplayValue(lead.email) : getDisplayValue(lead.email);
   }
 
   return getColumnDisplayValue(lead, column);
@@ -639,8 +626,6 @@ export default function BuilderLeadsPage(): JSX.Element {
   });
   const selectedPromotionType =
     leadsData?.promotionType || selectedProperty?.promotion?.type || "normal";
-  const visibleLeadLimit =
-    leadsData?.visibleLeadLimit ?? DEFAULT_VISIBLE_LEAD_LIMIT;
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: LeadStatusValue }) =>
@@ -997,10 +982,6 @@ export default function BuilderLeadsPage(): JSX.Element {
                 columns={leadsData?.columns ?? []}
                 leads={paginatedLeads}
                 updateStatusMutation={updateStatusMutation}
-                page={page}
-                pageSize={pageSize}
-                promotionType={selectedPromotionType}
-                visibleLeadLimit={visibleLeadLimit}
               />
               <Pagination
                 page={page}
@@ -1123,18 +1104,10 @@ function LeadsTable({
   columns,
   leads,
   updateStatusMutation,
-  page,
-  pageSize,
-  promotionType,
-  visibleLeadLimit,
 }: {
   columns: LeadColumn[];
   leads: Lead[];
   updateStatusMutation: any;
-  page: number;
-  pageSize: number;
-  promotionType: string;
-  visibleLeadLimit: number;
 }) {
   const visibleColumns = columns.length
     ? columns
@@ -1156,11 +1129,6 @@ function LeadsTable({
         {leads.map((lead, index) => {
           const shouldMaskContact = shouldMaskLeadContact({
             lead,
-            index,
-            page,
-            pageSize,
-            promotionType,
-            visibleLeadLimit,
           });
 
           return (
@@ -1174,10 +1142,10 @@ function LeadsTable({
                     {lead.name}
                   </p>
                   <p className="mt-1 text-sm text-[#6B7280]">
-                    {shouldMaskContact ? maskPhone(lead.phone) : getDisplayValue(lead.phone)}
+                    {getDisplayValue(lead.phone)}
                   </p>
                   <p className="mt-1 truncate text-sm text-[#6B7280]">
-                    {shouldMaskContact ? maskEmail(lead.email) : getDisplayValue(lead.email)}
+                    {getDisplayValue(lead.email)}
                   </p>
                 </div>
                 <LeadTimestamp value={getLeadDateTimeValue(lead)} />
@@ -1230,11 +1198,6 @@ function LeadsTable({
         {leads.map((lead, index) => {
           const shouldMaskContact = shouldMaskLeadContact({
             lead,
-            index,
-            page,
-            pageSize,
-            promotionType,
-            visibleLeadLimit,
           });
 
           return (
