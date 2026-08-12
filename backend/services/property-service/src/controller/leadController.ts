@@ -26,7 +26,19 @@ import { getAdminLeadDashboard } from "../services/adminLeadService";
 import { notifyProjectBrochureDownload } from "../services/pushNotificationService";
 
 
-const NORMAL_PROMOTION_VISIBLE_LEAD_LIMIT = 10;
+const DEFAULT_VISIBLE_LEAD_LIMIT = 5;
+
+const getVisibleLeadLimitForPromotion = (promotion?: {
+  type?: string | null;
+  visibleLeadLimit?: number | null;
+} | null) => {
+  const configuredLimit = Number(promotion?.visibleLeadLimit);
+  if (Number.isFinite(configuredLimit) && configuredLimit >= 0) {
+    return configuredLimit;
+  }
+
+  return DEFAULT_VISIBLE_LEAD_LIMIT;
+};
 
 const maskPhone = (phone?: string) => {
   const value = String(phone ?? "").trim();
@@ -59,16 +71,15 @@ const sortLeadsForDisplay = (leads: any[]) =>
     (a, b) => getLeadDisplayTimestamp(b) - getLeadDisplayTimestamp(a)
   );
 
-const maskLeadsForNormalPromotion = (leads: any[], promotionType?: string | null) => {
+const maskLeadsForPromotion = (
+  leads: any[],
+  promotion?: { type?: string | null; visibleLeadLimit?: number | null } | null,
+) => {
   const sortedLeads = sortLeadsForDisplay(leads);
-  const resolvedPromotionType = promotionType || "normal";
-
-  if (resolvedPromotionType !== "normal") {
-    return sortedLeads.map((lead) => ({ ...lead, contactMasked: false }));
-  }
+  const visibleLeadLimit = getVisibleLeadLimitForPromotion(promotion);
 
   return sortedLeads.map((lead, index) => {
-    const contactMasked = index >= NORMAL_PROMOTION_VISIBLE_LEAD_LIMIT;
+    const contactMasked = index >= visibleLeadLimit;
 
     if (!contactMasked) {
       return { ...lead, contactMasked: false };
@@ -1296,11 +1307,12 @@ export const getProjectLeadsController = async (
     }
 
     const project = await FeaturedProject.findById(projectId)
-      .select("promotion.type")
+      .select("promotion.type promotion.visibleLeadLimit")
       .lean();
     const query = getProjectLeadQuery(projectId, from, to);
     const leads = await getCombinedProjectLeads(query);
-    const maskedLeads = maskLeadsForNormalPromotion(leads, project?.promotion?.type);
+    const visibleLeadLimit = getVisibleLeadLimitForPromotion(project?.promotion);
+    const maskedLeads = maskLeadsForPromotion(leads, project?.promotion);
     const header = buildProjectLeadsHeader(maskedLeads);
     const columns = buildProjectLeadColumns(maskedLeads);
 
@@ -1308,7 +1320,7 @@ export const getProjectLeadsController = async (
       success: true,
       count: maskedLeads.length,
       promotionType: project?.promotion?.type || "normal",
-      visibleLeadLimit: NORMAL_PROMOTION_VISIBLE_LEAD_LIMIT,
+      visibleLeadLimit,
       header,
       columns,
       data: maskedLeads,
@@ -1443,7 +1455,7 @@ export const downloadLeadsCSVController = async (
       .lean();
     const query = getProjectLeadQuery(projectId, from, to);
     const leads = await getCombinedProjectLeads(query);
-    const maskedLeads = maskLeadsForNormalPromotion(leads, project?.promotion?.type);
+    const maskedLeads = maskLeadsForPromotion(leads, project?.promotion);
 
     return sendCSV(maskedLeads, res);
 

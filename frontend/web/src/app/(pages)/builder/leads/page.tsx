@@ -48,6 +48,7 @@ type StoredLeadStatus =
 interface Property {
   _id: string;
   title: string;
+  propertyType?: string;
   promotion?: {
     type?: string;
   };
@@ -104,7 +105,7 @@ interface LeadsResponse {
 
 /* ================= UTILS ================= */
 
-const NORMAL_PROMOTION_VISIBLE_LEAD_LIMIT = 10;
+const DEFAULT_VISIBLE_LEAD_LIMIT = 5;
 
 const maskPhone = (phone?: string) => {
   const value = String(phone ?? "").trim();
@@ -142,7 +143,6 @@ const shouldMaskLeadContact = ({
   visibleLeadLimit: number;
 }) => {
   if (lead.contactMasked) return true;
-  if (promotionType !== "normal") return false;
   return (page - 1) * pageSize + index >= visibleLeadLimit;
 };
 
@@ -191,6 +191,28 @@ const getPropertyPriceLabel = (property: any) => {
   }
 
   return "—";
+};
+
+const formatPromotionTypeLabel = (promotionType?: string) => {
+  const value = String(promotionType ?? "normal").trim();
+  if (!value) return "Normal";
+
+  return value
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
+const formatPropertyTypeLabel = (propertyType?: string) => {
+  const value = String(propertyType ?? "").trim();
+  if (!value) return "Property";
+
+  return value
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 };
 
 const getStatusClasses = (status: LeadStatusValue) => {
@@ -618,7 +640,7 @@ export default function BuilderLeadsPage(): JSX.Element {
   const selectedPromotionType =
     leadsData?.promotionType || selectedProperty?.promotion?.type || "normal";
   const visibleLeadLimit =
-    leadsData?.visibleLeadLimit || NORMAL_PROMOTION_VISIBLE_LEAD_LIMIT;
+    leadsData?.visibleLeadLimit ?? DEFAULT_VISIBLE_LEAD_LIMIT;
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: LeadStatusValue }) =>
@@ -901,12 +923,14 @@ export default function BuilderLeadsPage(): JSX.Element {
           {paginatedProperties.map((property: any) => {
             const image = property.gallery?.[0]?.url || "/placeholder.jpg";
             const active = property._id === selectedPropertyId;
+            const promotionTypeLabel = formatPromotionTypeLabel(property?.promotion?.type);
+            const propertyTypeLabel = formatPropertyTypeLabel(property?.propertyType);
 
             return (
               <button
                 key={property._id}
                 onClick={() => setSelectedPropertyId(property._id)}
-                className={`w-full flex gap-3 rounded-lg border p-2 text-left transition
+                className={`w-full flex items-start gap-3 rounded-lg border p-2 text-left transition
                   ${
                     active
                       ? "border-green-500 bg-green-50"
@@ -921,17 +945,28 @@ export default function BuilderLeadsPage(): JSX.Element {
                   />
                 </div>
 
-                <div className="min-w-0">
-                  <h3 className="text-sm font-semibold truncate">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <h3 className="text-sm font-semibold leading-5 text-gray-900 wrap-break-word">
                     {property.title}
                   </h3>
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="text-xs text-gray-500 leading-4 truncate">
                     {property.locality}, {property.city}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    Carpet Area: {property.carpetArea} sq.ft.
+                  <p className="text-xs text-gray-500 leading-4">
+                    {propertyTypeLabel}
                   </p>
-                  <p className="text-sm font-semibold text-green-600">
+                  <div>
+                    <span
+                      className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium leading-none ${
+                        active
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {promotionTypeLabel}
+                    </span>
+                  </div>
+                  <p className="pt-0.5 text-sm font-semibold leading-5 text-green-600">
                     {getPropertyPriceLabel(property)}
                   </p>
                 </div>
@@ -1024,7 +1059,7 @@ function Pagination({
   );
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-[#E5E7EB] bg-white px-3 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-4">
+    <div className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-3 shadow-sm sm:px-4">
       <p className="text-sm text-[#6B7280]">
         Showing{" "}
         <span className="font-semibold text-[#111827]">
@@ -1034,22 +1069,22 @@ function Pagination({
         {itemLabel}
       </p>
 
-      <div className="flex items-center justify-between gap-2 sm:justify-end">
+      <div className="mt-3 flex items-center justify-center gap-2">
         <button
           onClick={() => onPageChange(Math.max(1, page - 1))}
           disabled={page === 1}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#E5E7EB] bg-white text-[#4B5563] transition hover:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:text-[#D1D5DB]"
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[#E5E7EB] bg-white text-[#4B5563] transition hover:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:text-[#D1D5DB]"
           aria-label="Previous page"
         >
           <FiChevronLeft className="h-4 w-4" />
         </button>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
           {pageItems.map((item, index) =>
             item === "dots" ? (
               <span
                 key={`dots-${index}`}
-                className="flex h-9 w-7 items-center justify-center text-sm text-[#9CA3AF]"
+                className="flex h-9 w-7 shrink-0 items-center justify-center text-sm text-[#9CA3AF]"
               >
                 ...
               </span>
@@ -1057,7 +1092,7 @@ function Pagination({
               <button
                 key={item}
                 onClick={() => onPageChange(item)}
-                className={`h-9 min-w-9 rounded-md px-3 text-sm font-medium transition ${
+                className={`h-9 min-w-9 shrink-0 rounded-md px-3 text-sm font-medium transition ${
                   page === item
                     ? "bg-[#16A34A] text-white shadow-sm"
                     : "border border-[#E5E7EB] bg-white text-[#4B5563] hover:bg-[#F9FAFB]"
@@ -1072,7 +1107,7 @@ function Pagination({
         <button
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={page === totalPages}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#E5E7EB] bg-white text-[#4B5563] transition hover:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:text-[#D1D5DB]"
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[#E5E7EB] bg-white text-[#4B5563] transition hover:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:text-[#D1D5DB]"
           aria-label="Next page"
         >
           <FiChevronRight className="h-4 w-4" />

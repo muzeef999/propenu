@@ -179,6 +179,7 @@ export interface IPromotion {
   source: "manual" | "subscription";
   startDate?: Date;
   boostExpiry?: Date;
+  visibleLeadLimit?: number;
   enquiryLimit?: number;
   enquiriesUsed?: number;
   features?: {
@@ -213,6 +214,11 @@ export const PromotionSchema = new Schema(
     boostExpiry: {
       type: Date,
       index: true
+    },
+
+    visibleLeadLimit: {
+      type: Number,
+      default: null
     },
 
     enquiryLimit: {

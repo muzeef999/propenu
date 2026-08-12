@@ -1,5 +1,3 @@
-// src/controller/promotionController.ts
-
 import { Response } from "express";
 import mongoose from "mongoose";
 import FeaturedProject from "../models/featurePropertiesModel";
@@ -26,7 +24,9 @@ function appendPromotionHistory(
   const previousPromotion = property.promotion || {};
   const fromType = (previousPromotion.type || "normal") as PromotionType;
   const toType = (promotion.type || "normal") as PromotionType;
-  const history = Array.isArray(property.promotionHistory) ? property.promotionHistory : [];
+  const history = Array.isArray(property.promotionHistory)
+    ? property.promotionHistory
+    : [];
   const lastHistory = history[history.length - 1];
 
   if (lastHistory && !lastHistory.endedAt) {
@@ -59,9 +59,8 @@ function appendPromotionHistory(
 
 export const promoteProperty = async (req: AuthRequest, res: Response) => {
   try {
-    const { type, days } = req.body;
+    const { type, days, visibleLeadLimit } = req.body;
 
-    // ✅ 1. VALIDATION
     if (!type || !ALLOWED_TYPES.includes(type)) {
       return res.status(400).json({
         success: false,
@@ -69,7 +68,6 @@ export const promoteProperty = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // ✅ 2. FIND PROPERTY
     const property = await FeaturedProject.findById(req.params.id);
 
     if (!property) {
@@ -79,12 +77,16 @@ export const promoteProperty = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // ✅ 3. BUILD PROMOTION
     const promotion: IPromotion = buildManualPromotion(type);
-  
-    // ✅ 4. OPTIONAL CUSTOM DAYS
+
     if (days && typeof days === "number") {
-      promotion.boostExpiry = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+      promotion.boostExpiry = new Date(
+        Date.now() + days * 24 * 60 * 60 * 1000,
+      );
+    }
+
+    if (typeof visibleLeadLimit === "number" && visibleLeadLimit >= 0) {
+      promotion.visibleLeadLimit = visibleLeadLimit;
     }
 
     appendPromotionHistory(
@@ -94,10 +96,8 @@ export const promoteProperty = async (req: AuthRequest, res: Response) => {
       `Promotion changed to ${promotion.type}`,
     );
 
-    // ✅ 5. SAFE MERGE (VERY IMPORTANT)
     property.promotion = promotion as any;
 
-    // ✅ 6. SAVE
     await property.save();
 
     return res.status(200).json({
@@ -106,7 +106,7 @@ export const promoteProperty = async (req: AuthRequest, res: Response) => {
       data: property,
     });
   } catch (err) {
-    console.error("❌ promoteProperty error:", err);
+    console.error("promoteProperty error:", err);
     return res.status(500).json({
       success: false,
       message: "Promotion failed",
@@ -116,7 +116,7 @@ export const promoteProperty = async (req: AuthRequest, res: Response) => {
 
 export const renewPromotion = async (req: AuthRequest, res: Response) => {
   try {
-    const { type, days } = req.body;
+    const { type, days, visibleLeadLimit } = req.body;
     const renewalDays = typeof days === "number" ? days : 10;
 
     if (!Number.isFinite(renewalDays) || renewalDays <= 0) {
@@ -170,6 +170,12 @@ export const renewPromotion = async (req: AuthRequest, res: Response) => {
       ),
     };
 
+    if (typeof visibleLeadLimit === "number" && visibleLeadLimit >= 0) {
+      promotion.visibleLeadLimit = visibleLeadLimit;
+    } else if (typeof currentPromotion.visibleLeadLimit === "number") {
+      promotion.visibleLeadLimit = currentPromotion.visibleLeadLimit;
+    }
+
     appendPromotionHistory(
       property,
       req,
@@ -203,14 +209,12 @@ export const expirePromotion = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: "Property not found" });
     }
 
-    // ✅ 1. CHECK IF PROMOTION EXISTS
     if (!property.promotion) {
       return res.status(400).json({
         message: "No promotion found for this property",
       });
     }
 
-    // ✅ 2. EXPIRE
     const promotion = {
       type: "normal",
       priority: 0,
@@ -229,7 +233,7 @@ export const expirePromotion = async (req: AuthRequest, res: Response) => {
       message: "Promotion expired and reset to normal",
     });
   } catch (err) {
-    console.error("❌ expirePromotion error:", err);
+    console.error("expirePromotion error:", err);
     res.status(500).json({ message: "Expire failed" });
   }
 };
