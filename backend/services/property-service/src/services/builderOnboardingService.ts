@@ -19,6 +19,7 @@ import {
 import { sendMarketingEmail } from "../utils/marketingMailer";
 import { sendOtpWhatsApp } from "../utils/whatsapp";
 import { generateToken } from "../utils/jwt";
+import { projectRequiresApprovalOnCreate } from "../utils/projectApprovalPolicy";
 
 const INVITE_TTL_MS = 1000 * 60 * 60 * 72; // 72 hours
 const OTP_TTL_MS = 1000 * 60 * 10; // 10 minutes
@@ -522,13 +523,48 @@ export const BuilderOnboardingService = {
       },
     } as any;
 
+    // Seed a primary contact from the builder so team can submit/approve without extra UI
+    const existingContacts = Array.isArray((project as any).projectContacts)
+      ? (project as any).projectContacts
+      : [];
+    if (!existingContacts.length) {
+      (project as any).projectContacts = [
+        {
+          name: String((builder as any).name || "Builder").trim() || "Builder",
+          phone: String((builder as any).phone || "").trim() || "0000000000",
+          email: String((builder as any).email || "").trim() || undefined,
+          role: "builder",
+          isPrimary: true,
+        },
+      ];
+    }
+
+    // High hierarchy staff (RM / SM / Ops / Admin…): go LIVE directly — no invite claim wait
+    const staffRole = staff?.roleName || "";
+    const canGoLiveDirectly =
+      Boolean(staffRole) && !projectRequiresApprovalOnCreate(staffRole);
+
+    if (canGoLiveDirectly) {
+      project!.status = "active";
+      project!.approvalStatus = "approved";
+      (project as any).approvedAt = new Date();
+      if (staff?.id && mongoose.Types.ObjectId.isValid(staff.id)) {
+        (project as any).approvedBy = new mongoose.Types.ObjectId(staff.id);
+      }
+    }
+
     await project!.save();
 
     return {
-      message: "Builder assigned directly (already in database, no OTP required)",
+      message: canGoLiveDirectly
+        ? "Existing builder assigned — project is live (team approved)"
+        : "Builder assigned directly (already in database, no OTP required)",
       projectId,
       builderId,
       assignStatus: "verified",
+      status: project!.status,
+      approvalStatus: project!.approvalStatus,
+      wentLive: canGoLiveDirectly,
     };
   },
 
@@ -1162,13 +1198,29 @@ export const BuilderOnboardingService = {
       throw err;
     }
 
-    const contacts = (project as any).projectContacts || [];
+    let contacts = (project as any).projectContacts || [];
     if (!Array.isArray(contacts) || contacts.length === 0) {
-      const err: any = new Error(
-        "Add at least one project contact person before submission",
-      );
-      err.statusCode = 400;
-      throw err;
+      const snap = onboarding?.builderSnapshot || {};
+      const name = String(snap.contactName || snap.companyName || "").trim();
+      const phone = String(snap.phone || "").trim();
+      if (onboarding?.mode === "existing_builder" && (name || phone)) {
+        contacts = [
+          {
+            name: name || "Builder",
+            phone: phone || "0000000000",
+            email: String(snap.email || "").trim() || undefined,
+            role: "builder",
+            isPrimary: true,
+          },
+        ];
+        (project as any).projectContacts = contacts;
+      } else {
+        const err: any = new Error(
+          "Add at least one project contact person before submission",
+        );
+        err.statusCode = 400;
+        throw err;
+      }
     }
 
     project!.status = "pending";
