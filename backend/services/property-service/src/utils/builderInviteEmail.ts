@@ -144,9 +144,9 @@ export function buildBuilderInviteEmailHtml(
     ? `<div style="margin-top:6px;font-size:13px;color:#64748b;">For ${companyHint}</div>`
     : "";
 
-  const priceLine = priceHint
-    ? `<div style="margin-top:10px;font-size:18px;color:#0f172a;font-weight:800;">${priceHint}</div>`
-    : "";
+  const priceLine = `<div style="margin-top:10px;font-size:18px;color:#0f172a;font-weight:800;">${
+    priceHint || "Price on Request"
+  }</div>`;
 
   return `<!DOCTYPE html>
 <html>
@@ -220,10 +220,16 @@ export function buildBuilderInviteEmailHtml(
                   <td style="padding:0 18px 18px;">
                     <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
                       <tr>
-                        <td width="160" valign="top" style="background:#dbeafe;">
+                        <td width="160" valign="top" style="width:160px;background:#dbeafe;">
                           ${
                             heroImageUrl
-                              ? `<img src="${heroImageUrl}" alt="${projectTitle}" width="160" style="display:block;width:160px;max-width:160px;height:120px;object-fit:cover;border:0;" />`
+                              ? `<table width="160" height="120" cellpadding="0" cellspacing="0" style="width:160px;height:120px;background:#dbeafe;">
+                                  <tr>
+                                    <td align="center" valign="middle" style="width:160px;height:120px;padding:0;background:#dbeafe;">
+                                      <img src="${heroImageUrl}" alt="${projectTitle}" width="160" style="display:block;max-width:160px;max-height:120px;width:auto;height:auto;border:0;" />
+                                    </td>
+                                  </tr>
+                                </table>`
                               : `<div style="width:160px;height:120px;background:#dbeafe;color:#0f172a;font-size:16px;font-weight:700;text-align:center;line-height:120px;">Project</div>`
                           }
                         </td>

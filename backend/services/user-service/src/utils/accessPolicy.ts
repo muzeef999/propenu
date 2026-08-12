@@ -17,7 +17,6 @@ const EMAIL_OTP_ONLY_LOGIN_ROLES = new Set([
   "accounts",
   "customer_care",
 ]);
-const KYC_REQUIRED_LOGIN_ROLES = new Set(["agent", "user"]);
 
 export function canAccessAdminDashboard(roleName?: string) {
   return !!roleName && ADMIN_DASHBOARD_ROLES.has(roleName);
@@ -25,10 +24,6 @@ export function canAccessAdminDashboard(roleName?: string) {
 
 export function requiresPhoneOtpOnlyLogin(roleName?: string) {
   return !!roleName && PHONE_OTP_ONLY_LOGIN_ROLES.has(roleName);
-}
-
-export function requiresKycForLogin(roleName?: string) {
-  return !!roleName && KYC_REQUIRED_LOGIN_ROLES.has(roleName);
 }
 
 export function requiresEmailOtpOnlyLogin(roleName?: string) {

@@ -8,7 +8,6 @@ import nominatimRoute from "./routes/nominatimRoute";
 import seedRolesRoute from "./routes/seedRolesRoute";
 import shortlistRoutes from "./routes/shortlistRoute";
 import roleRoute from "./routes/roleRoute";
-import kycRoutes from "./routes/kycRoute";
 import userRoutes from "./routes/userRoutes";
 import { startNotificationJob } from "./jobs/notification.job";
 import emailRouter from "./routes/emailRoute";
@@ -53,7 +52,6 @@ async function start() {
     app.use("/api/users/agent", agentRoute);
     app.use("/api/users/roles", roleRoute);
     app.use("/api/users/builder-access", builderAccessRoute);
-    app.use("/api/users/kyc", kycRoutes);
     app.use("/api/users/notifications", userRoutes);
     app.use("/api/users/email", emailRouter);
     app.use("/api/users/whatsapp", whatsappRouter);

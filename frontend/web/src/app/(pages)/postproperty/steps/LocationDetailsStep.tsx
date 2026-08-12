@@ -83,6 +83,12 @@ type LocalitySuggestion = {
   coordinates: [number, number];
 };
 
+type CitySuggestion = {
+  label: string;
+  state: string;
+  coordinates?: [number, number];
+};
+
 function getProjectBackendCategory(projectPropertyType?: string) {
   if (["apartment", "villa"].includes(projectPropertyType ?? "")) {
     return "residential";
@@ -126,6 +132,12 @@ const normalizePincodeAreaName = (value: string) => {
 
 const normalizeComparisonValue = (value: string) =>
   value.trim().toLowerCase().replace(/\s+/g, " ");
+
+const getPrimaryLocationSegment = (value: string) =>
+  value
+    .split(",")[0]
+    ?.split("/")[0]
+    ?.trim() || "";
 
 const uniqueAreaDetails = (postOffices: PostalPincodeResponse["PostOffice"]) => {
   const seen = new Set<string>();
@@ -267,6 +279,71 @@ const searchLocalitiesWithPhoton = async (
   }
 };
 
+const searchCitiesWithPhoton = async (
+  query: string,
+  signal: AbortSignal,
+  activeState?: string,
+): Promise<CitySuggestion[]> => {
+  if (!query.trim()) return [];
+
+  try {
+    const fullQuery = activeState ? `${query}, ${activeState}` : query;
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(fullQuery)}&lang=en&limit=12&bbox=${INDIA_BBOX}`;
+    const res = await fetch(url, { signal });
+
+    if (!res.ok) {
+      console.error("Photon city search failed:", res.status);
+      return [];
+    }
+
+    const data: { features?: PhotonFeature[] } = await res.json();
+    const features = data?.features || [];
+    const seen = new Set<string>();
+    const suggestions: CitySuggestion[] = [];
+
+    for (const feature of features) {
+      const p = feature.properties;
+
+      if (p.country && p.country !== "India") continue;
+
+      const cityName = formatToTitleCase(
+        normalizePincodeAreaName(
+          getPrimaryLocationSegment(p.city || p.district || ""),
+        ),
+      );
+      const stateName = formatToTitleCase(p.state || "");
+
+      if (!cityName) continue;
+
+      if (
+        activeState &&
+        stateName &&
+        normalizeComparisonValue(stateName) !==
+          normalizeComparisonValue(activeState)
+      ) {
+        continue;
+      }
+
+      const key = normalizeComparisonValue(cityName);
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      suggestions.push({
+        label: cityName,
+        state: stateName,
+        coordinates: feature.geometry.coordinates,
+      });
+    }
+
+    return suggestions;
+  } catch (err) {
+    if ((err as { name?: string })?.name !== "AbortError") {
+      console.error("Photon city search error:", err);
+    }
+    return [];
+  }
+};
+
 const lookupPincodeWithPostalApi = async (
   pincode: string,
   signal: AbortSignal,
@@ -352,6 +429,11 @@ const LocationDetailsStep = () => {
   const [isPhotonDropdownOpen, setIsPhotonDropdownOpen] = useState(false);
   const [isPhotonLoading, setIsPhotonLoading] = useState(false);
   const photonDropdownRef = useRef<HTMLDivElement>(null);
+  const [citySuggestions, setCitySuggestions] = useState<CitySuggestion[]>([]);
+  const [citySearchInput, setCitySearchInput] = useState("");
+  const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
+  const [isCityLoading, setIsCityLoading] = useState(false);
+  const cityDropdownRef = useRef<HTMLDivElement>(null);
 
   // Filter text for pincode-localities dropdown search
   const [pincodeLocalityFilter, setPincodeLocalityFilter] = useState("");
@@ -390,6 +472,22 @@ const LocationDetailsStep = () => {
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [isPhotonDropdownOpen]);
 
+  useEffect(() => {
+    if (!isCityDropdownOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (
+        cityDropdownRef.current &&
+        !cityDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsCityDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [isCityDropdownOpen]);
+
   // Debounced Photon search — runs in both pincode and no-pincode modes
   useEffect(() => {
     // In pincode mode use pincodeLocalityFilter; in Photon-only mode use localitySearchInput
@@ -421,59 +519,107 @@ const LocationDetailsStep = () => {
       setIsPhotonLoading(false);
     };
   }, [localitySearchInput, pincodeLocalityFilter, pincodeLocalities.length, base.state]);
+
+  useEffect(() => {
+    const query = citySearchInput.trim();
+
+    if (!isCityDropdownOpen) {
+      setCitySuggestions([]);
+      return;
+    }
+
+    if (query.length < 2) {
+      setCitySuggestions([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    let cancelled = false;
+
+    const timeout = setTimeout(async () => {
+      setIsCityLoading(true);
+      const results = await searchCitiesWithPhoton(
+        query,
+        controller.signal,
+        base.state || undefined,
+      );
+
+      if (!cancelled) {
+        setCitySuggestions(results);
+        setIsCityLoading(false);
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+      clearTimeout(timeout);
+      setIsCityLoading(false);
+    };
+  }, [base.state, citySearchInput, isCityDropdownOpen]);
+
   useEffect(() => {
     if (skipNextFieldGeocodeRef.current) {
       skipNextFieldGeocodeRef.current = false;
       return;
     }
 
-    if (!base.locality || !base.city || !base.state) return;
+    if (!base.locality) return;
 
     const controller = new AbortController();
 
     const fetchCoordinates = async () => {
+      const queryCandidates = [
+        [base.locality, base.state].filter(Boolean).join(", "),
+        [base.locality, base.city, base.state].filter(Boolean).join(", "),
+        String(base.locality),
+      ].filter(Boolean);
+
       try {
-        const query = `${base.locality}, ${base.city}, ${base.state}`;
-
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-            query,
-          )}&limit=1`,
-          {
-            signal: controller.signal,
-            headers: {
-              "Accept-Language": "en",
+        for (const query of queryCandidates) {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+              query,
+            )}&limit=1`,
+            {
+              signal: controller.signal,
+              headers: {
+                "Accept-Language": "en",
+              },
             },
-          },
-        );
+          );
 
-        if (!res.ok) {
-          console.error("Geocoding failed:", res.status);
+          if (!res.ok) {
+            console.error("Geocoding failed:", res.status);
+            continue;
+          }
+
+          let data;
+
+          try {
+            data = await res.json();
+          } catch {
+            console.warn("Invalid JSON from Nominatim");
+            continue;
+          }
+
+          if (!Array.isArray(data) || data.length === 0) {
+            continue;
+          }
+
+          const { lat, lon } = data[0];
+
+          dispatch(
+            setBaseField({
+              key: "location",
+              value: {
+                type: "Point",
+                coordinates: [Number(lon), Number(lat)],
+              },
+            }),
+          );
           return;
         }
-
-        let data;
-
-        try {
-          data = await res.json();
-        } catch {
-          console.warn("Invalid JSON from Nominatim");
-          return;
-        }
-
-        if (!Array.isArray(data) || data.length === 0) return;
-
-        const { lat, lon } = data[0];
-
-        dispatch(
-          setBaseField({
-            key: "location",
-            value: {
-              type: "Point",
-              coordinates: [Number(lon), Number(lat)],
-            },
-          }),
-        );
       } catch (err) {
         if ((err as any).name !== "AbortError") {
           console.error("Geocoding error", err);
@@ -644,6 +790,17 @@ const LocationDetailsStep = () => {
     }
   };
 
+  const applyCitySelection = (suggestion: CitySuggestion) => {
+    dispatch(setBaseField({ key: "city", value: suggestion.label }));
+
+    if (suggestion.state) {
+      dispatch(setBaseField({ key: "state", value: suggestion.state }));
+    }
+
+    setCitySearchInput("");
+    setIsCityDropdownOpen(false);
+  };
+
   return (
     <div className="space-y-4">
       {/* Address */}
@@ -773,6 +930,7 @@ const LocationDetailsStep = () => {
                                 if (matchedDistrict) {
                                   dispatch(setBaseField({ key: "city", value: matchedDistrict }));
                                 }
+                                setCitySearchInput("");
                                 setIsLocalityDropdownOpen(false);
                                 setPincodeLocalityFilter("");
                                 setPhotonSuggestions([]);
@@ -806,11 +964,17 @@ const LocationDetailsStep = () => {
                                 key={`photon-${suggestion.label}-${idx}`}
                                 type="button"
                                 onClick={() => {
-                                  // Photon: only use locality + coordinates. City/state come from postal/Nominatim only.
                                   dispatch(setBaseField({ key: "locality", value: suggestion.label }));
+                                  if (suggestion.city) {
+                                    dispatch(setBaseField({ key: "city", value: suggestion.city }));
+                                  }
+                                  if (suggestion.state) {
+                                    dispatch(setBaseField({ key: "state", value: suggestion.state }));
+                                  }
                                   const [lon, lat] = suggestion.coordinates;
                                   skipNextFieldGeocodeRef.current = true;
                                   dispatch(setBaseField({ key: "location", value: { type: "Point", coordinates: [lon, lat] } }));
+                                  setCitySearchInput("");
                                   setIsLocalityDropdownOpen(false);
                                   setPincodeLocalityFilter("");
                                   setPhotonSuggestions([]);
@@ -908,11 +1072,17 @@ const LocationDetailsStep = () => {
                           type="button"
                           role="option"
                           onClick={() => {
-                            // Photon: only use locality + coordinates. City/state come from postal/Nominatim only.
                             dispatch(setBaseField({ key: "locality", value: suggestion.label }));
+                            if (suggestion.city) {
+                              dispatch(setBaseField({ key: "city", value: suggestion.city }));
+                            }
+                            if (suggestion.state) {
+                              dispatch(setBaseField({ key: "state", value: suggestion.state }));
+                            }
                             const [lon, lat] = suggestion.coordinates;
                             skipNextFieldGeocodeRef.current = true;
                             dispatch(setBaseField({ key: "location", value: { type: "Point", coordinates: [lon, lat] } }));
+                            setCitySearchInput("");
                             setLocalitySearchInput("");
                             setIsPhotonDropdownOpen(false);
                             setPhotonSuggestions([]);
@@ -945,21 +1115,122 @@ const LocationDetailsStep = () => {
           )}
         </div>
 
-        <InputField
-          label="City"
-          value={base.city || ""}
-          placeholder="Enter city"
-          disabled
-          onChange={(value) =>
-            dispatch(
-              setBaseField({
-                key: "city",
-                value: formatToTitleCase(value),
-              }),
-            )
-          }
-          error={getError("city")}
-        />
+        <div ref={cityDropdownRef} className="relative w-full">
+          <label className="mb-2 block text-sm font-medium text-gray-700">
+            City
+          </label>
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsCityDropdownOpen((open) => !open);
+              if (!isCityDropdownOpen) {
+                setCitySearchInput("");
+              }
+            }}
+            className={`flex w-full items-center justify-between gap-2 rounded-md border bg-white px-3 py-2 text-left text-sm shadow-sm transition focus:outline-none focus:ring-2 focus:ring-green-500 ${
+              getError("city") ? "border-red-500" : "border-gray-300"
+            } ${isCityDropdownOpen ? "border-green-500" : ""}`}
+            aria-haspopup="listbox"
+            aria-expanded={isCityDropdownOpen}
+          >
+            <span
+              className={`min-w-0 flex-1 truncate ${
+                base.city ? "text-gray-900" : "text-gray-400"
+              }`}
+            >
+              {base.city || "Select city"}
+            </span>
+            <FiChevronDown
+              className={`h-4 w-4 shrink-0 text-gray-500 transition-transform ${
+                isCityDropdownOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {isCityDropdownOpen && (
+            <div className="absolute left-0 right-0 top-full z-[1000] mt-1 rounded-md border border-gray-200 bg-white shadow-lg">
+              <div className="relative border-b border-gray-100 p-2">
+                <input
+                  autoFocus
+                  type="text"
+                  value={citySearchInput}
+                  placeholder="Search city…"
+                  onChange={(e) => setCitySearchInput(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500"
+                />
+                {isCityLoading && (
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2">
+                    <svg
+                      className="h-4 w-4 animate-spin text-gray-400"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8H4z"
+                      />
+                    </svg>
+                  </span>
+                )}
+              </div>
+
+              <div className="max-h-52 overflow-y-auto py-1" role="listbox">
+                {citySuggestions.length > 0 ? (
+                  citySuggestions.map((suggestion, idx) => {
+                    const isSelected = base.city === suggestion.label;
+
+                    return (
+                      <button
+                        key={`${suggestion.label}-${suggestion.state}-${idx}`}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => applyCitySelection(suggestion)}
+                        className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition ${
+                          isSelected
+                            ? "bg-green-50 text-green-700"
+                            : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                        }`}
+                      >
+                        <span className="min-w-0 flex-1 truncate">
+                          {suggestion.label}
+                        </span>
+                        {isSelected && (
+                          <FiCheck className="h-4 w-4 shrink-0 text-green-600" />
+                        )}
+                      </button>
+                    );
+                  })
+                ) : citySearchInput.trim().length >= 2 && !isCityLoading ? (
+                  <p className="px-3 py-3 text-sm text-gray-400">
+                    No city found
+                  </p>
+                ) : !isCityLoading ? (
+                  <p className="px-3 py-3 text-sm text-gray-400">
+                    {base.state
+                      ? "Type at least 2 letters to search city"
+                      : "Select state first"}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          )}
+
+          {getError("city") && (
+            <p className="mt-1 text-xs text-red-500">{getError("city")}</p>
+          )}
+        </div>
 
         <InputField
           label="State"

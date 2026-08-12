@@ -11,7 +11,7 @@ import { Request, Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { sendOtpWhatsApp } from "../utils/whatsapp";
 import { sendOtpEmail } from "../utils/email";
-import { getOtpLoginRestrictionMessage, requiresKycForLogin } from "../utils/accessPolicy";
+import { getOtpLoginRestrictionMessage } from "../utils/accessPolicy";
 import mongoose from "mongoose";
 import DeletedAccount from "../models/deletedAccountModel";
 import Agent from "../models/agentModel";
@@ -403,15 +403,6 @@ export const requestOTP = async (req: Request, res: Response) => {
       ? await Role.findById(existingUser.roleId).select("name").lean()
       : null;
 
-    if (
-      requiresKycForLogin(role?.name) &&
-      existingUser.accountStatus !== "active"
-    ) {
-      return res.status(403).json({
-        message: "Please complete the KYC process",
-      });
-    }
-
     const restrictionMessage = getOtpLoginRestrictionMessage({
       roleName: role?.name,
       email,
@@ -529,18 +520,6 @@ export const verifyOtp = async (req: Request, res: Response) => {
       });
     }
 
-    /* ⭐ Roles that require KYC */
-    const KYC_REQUIRED_ROLES = ["user", "agent"];
-
-    if (KYC_REQUIRED_ROLES.includes(role?.name)) {
-      if (user.accountStatus !== "active") {
-        return res.status(403).json({
-          message: "Please complete KYC verification",
-          kycStatus: user.kyc?.status || "not_started",
-        });
-      }
-    }
-
     const token = await createAuthToken({ user, roleDoc: role });
 
     return res.status(200).json({
@@ -591,9 +570,6 @@ export const me = async (req: AuthRequest, res: Response) => {
     const locationCompleted =
       !!user.locality && !!user.city && !!user.state && !!user.pincode;
 
-    // 4️⃣ detect KYC status
-    const kycStatus = user.kyc?.status || "not_started";
-
     return res.status(200).json({
       message: "Authenticated user",
       token,
@@ -616,9 +592,6 @@ export const me = async (req: AuthRequest, res: Response) => {
         permissions: role?.name === "super_admin" ? ALL_PERMISSIONS : role?.permissions || [],
         builderAccess,
 
-        kyc: {
-          status: kycStatus,
-        },
       },
     });
   } catch (err: any) {
@@ -1188,7 +1161,6 @@ export const claimSeClient = async (req: AuthRequest, res: Response) => {
           managerId: String(se._id),
           onboardedBy: String((client as any).onboardedBy || actorId),
           accountStatus: client.accountStatus,
-          kycStatus: (client as any).kyc?.status || "not_started",
         },
         salesExecutive: {
           _id: String(se._id),
@@ -1220,7 +1192,6 @@ export const claimSeClient = async (req: AuthRequest, res: Response) => {
         managerId: String(se._id),
         onboardedBy: String((client as any).onboardedBy || actorId),
         accountStatus: client.accountStatus,
-        kycStatus: (client as any).kyc?.status || "not_started",
       },
       salesExecutive: {
         _id: String(se._id),
@@ -1415,9 +1386,6 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
         createdAt: 1,
 
         role: "$role.name",
-
-        kycStatus: { $ifNull: ["$kyc.status", "not_started"] },
-        kycReason: { $ifNull: ["$kyc.remarks", ""] },
 
         verificationStatus: {
           $cond: [
@@ -1616,7 +1584,7 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       let nextStep = "location";
 
       if (user.locality && user.city && user.state && user.pincode) {
-        nextStep = roleDoc.name === "builder" ? "completed" : "kyc";
+        nextStep = "completed";
       }
 
       return res.status(200).json({
@@ -1624,7 +1592,6 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
         token,
         userId: String(user._id),
         nextStep,
-        kycStatus: user.kyc?.status || "not_started",
       });
     }
 
@@ -1647,9 +1614,6 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       roleId: roleDoc._id,
       phoneVerified: true,
       accountStatus: "location_pending",
-      kyc: {
-        status: "not_started",
-      },
       ...(tempLocation
         ? {
             tempCity: tempLocation.tempCity,
@@ -1679,7 +1643,6 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       token,
       userId: String(user._id),
       nextStep: "location",
-      kycStatus: "not_started",
     });
   } catch (error: any) {
     if (error?.name === "ValidationError") {
@@ -1897,9 +1860,6 @@ export const adminCreateVerifyOtp = async (req: AuthRequest, res: Response) => {
       roleId: roleDoc._id,
       ...(managerId ? { managerId } : {}),
       accountStatus: "location_pending",
-      kyc: {
-        status: "not_started",
-      },
     });
 
     if (roleDoc.name === "agent") {
@@ -2083,7 +2043,7 @@ export const updateLocationOtp = async (req: AuthRequest, res: Response) => {
         ? populatedUser.roleId.name
         : undefined;
 
-    updatedUser.accountStatus = roleName === "builder" ? "active" : "kyc_pending";
+    updatedUser.accountStatus = "active";
 
     // Keep same CCE if they still cover final location; otherwise remove + reassign.
     try {

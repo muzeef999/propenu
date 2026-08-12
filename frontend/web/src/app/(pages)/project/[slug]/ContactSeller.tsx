@@ -15,6 +15,7 @@ import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 import OtpFourDigitInput from "@/components/builder/OtpFourDigitInput";
+import { HiXMark } from "react-icons/hi2";
 
 type IntentionAnswer = {
   question: string;
@@ -28,6 +29,8 @@ const budgetOptions = ["50L - 1Cr", "1Cr - 2Cr", "2Cr+"];
 
 type ContactSellerProps = {
   project: FeaturedProject;
+  isModal?: boolean;
+  onClose?: () => void;
 };
 
 type ContactLike = {
@@ -197,7 +200,7 @@ const apiBase = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").rep
   "",
 );
 
-const ContactSeller = ({ project }: ContactSellerProps) => {
+const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps) => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -396,6 +399,17 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
   const isNormalPromotion = promotionType === "normal" && !isTopSellingPromotion;
   const contactRole = isTopSellingPromotion ? "Seller" : "Builder";
   const submitButtonLabel = isNormalPromotion ? "Request Callback" : "Get Contact Details";
+  const hasPrefilledUserDetails =
+    Boolean(loggedInUser) &&
+    Boolean(form.name.trim()) &&
+    Boolean(form.phone.trim()) &&
+    Boolean(form.email.trim());
+  const standardWrapperClassName = isModal
+    ? "relative w-full rounded-md border border-slate-200 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.08)]"
+    : "w-full rounded-md border border-slate-200 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.08)] lg:sticky lg:top-20 lg:max-w-[390px] lg:p-5";
+  const inviteWrapperClassName = isModal
+    ? "relative w-full rounded-md border border-emerald-300 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.1)]"
+    : "w-full rounded-md border border-emerald-300 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.1)] lg:sticky lg:top-20 lg:max-w-[390px] lg:p-5";
   const selectedTimeline = intentionAnswers.find(
     (item) => item.question === BUY_TIMELINE_QUESTION,
   )?.answer;
@@ -434,6 +448,14 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
       toast.error(getLeadErrorMessage(error));
     },
   });
+
+  useEffect(() => {
+    if (isInviteMode) return;
+
+    if (hasPrefilledUserDetails) {
+      setTermsAccepted(true);
+    }
+  }, [hasPrefilledUserDetails, isInviteMode]);
 
   const updateIntentionAnswer = (question: string, answer: string) => {
     setIntentionAnswers((current) => {
@@ -717,7 +739,17 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
       roleConflict?.conflictField === "email" ? "email address" : "mobile number";
 
     return (
-      <aside id="contact-seller" className="w-full rounded-md border border-emerald-300 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.1)] lg:sticky lg:top-20 lg:max-w-[390px] lg:p-5">
+      <aside id="contact-seller" className={inviteWrapperClassName}>
+        {isModal && onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close contact dialog"
+            className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 shadow-sm transition hover:bg-slate-200 hover:text-slate-700"
+          >
+            <HiXMark className="h-5 w-5" />
+          </button>
+        ) : null}
         {/* Banner Header */}
         
 
@@ -1001,7 +1033,17 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
 
   // STANDARD LEAD FORM (WHEN NO INVITE TOKEN IS PRESENT)
   return (
-    <aside id="contact-seller" className="w-full rounded-md border border-slate-200 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.08)] lg:sticky lg:top-20 lg:max-w-[390px] lg:p-5">
+    <aside id="contact-seller" className={standardWrapperClassName}>
+      {isModal && onClose ? (
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close contact dialog"
+          className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 shadow-sm transition hover:bg-slate-200 hover:text-slate-700"
+        >
+          <HiXMark className="h-5 w-5" />
+        </button>
+      ) : null}
       {!showSubmittedStep && (
         <>
           <div className="mt-4 flex items-center gap-3 border-b border-slate-200 pb-4">
@@ -1026,9 +1068,11 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
             </div>
           </div>
 
-          <p className="mt-4 text-sm font-medium text-slate-950 sm:text-base">
-            Please share your contact details
-          </p>
+          {hasPrefilledUserDetails ? null : (
+            <p className="mt-4 text-sm font-medium text-slate-950 sm:text-base">
+              Please share your contact details
+            </p>
+          )}
         </>
       )}
 
@@ -1101,94 +1145,98 @@ const ContactSeller = ({ project }: ContactSellerProps) => {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="mt-4 space-y-3 sm:space-y-4">
-          <label className="block">
-            <span className="text-sm text-slate-600">Full Name</span>
-            <input
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              onInvalid={handleInvalid}
-              onInput={handleFieldInput}
-              placeholder="Enter Name"
-              inputMode="text"
-              pattern="[A-Za-z\s]+"
-              title="Full Name should contain letters only"
-              required
-              className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
-            />
-          </label>
+          {hasPrefilledUserDetails ? null : (
+            <>
+              <label className="block">
+                <span className="text-sm text-slate-600">Full Name</span>
+                <input
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  onInvalid={handleInvalid}
+                  onInput={handleFieldInput}
+                  placeholder="Enter Name"
+                  inputMode="text"
+                  pattern="[A-Za-z\s]+"
+                  title="Full Name should contain letters only"
+                  required
+                  className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
+                />
+              </label>
 
-          <label className="block">
-            <span className="text-sm text-slate-600">Mobile</span>
-            <input
-              name="phone"
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              pattern="^\+?[1-9]\d{9,14}$"
-              value={form.phone}
-              onChange={handleChange}
-              onInvalid={handleInvalid}
-              onInput={handleFieldInput}
-              title="Please enter a valid phone number"
-              placeholder="Enter Mobile Number"
-              required
-              className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
-            />
-          </label>
+              <label className="block">
+                <span className="text-sm text-slate-600">Mobile</span>
+                <input
+                  name="phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  pattern="^\+?[1-9]\d{9,14}$"
+                  value={form.phone}
+                  onChange={handleChange}
+                  onInvalid={handleInvalid}
+                  onInput={handleFieldInput}
+                  title="Please enter a valid phone number"
+                  placeholder="Enter Mobile Number"
+                  required
+                  className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
+                />
+              </label>
 
-          <label className="block">
-            <span className="text-sm text-slate-600">Email ID</span>
-            <input
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={handleChange}
-              onInvalid={handleInvalid}
-              onInput={handleFieldInput}
-              autoComplete="email"
-              pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
-              title="Please enter a valid email address"
-              placeholder="Enter your Email ID"
-              required
-              className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
-            />
-          </label>
+              <label className="block">
+                <span className="text-sm text-slate-600">Email ID</span>
+                <input
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  onInvalid={handleInvalid}
+                  onInput={handleFieldInput}
+                  autoComplete="email"
+                  pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
+                  title="Please enter a valid email address"
+                  placeholder="Enter your Email ID"
+                  required
+                  className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
+                />
+              </label>
 
-          <label className="flex items-start gap-2 text-xs text-slate-600 sm:text-sm">
-            <input
-              name="terms"
-              type="checkbox"
-              checked={termsAccepted}
-              onChange={(event) => {
-                event.currentTarget.setCustomValidity("");
-                setTermsAccepted(event.target.checked);
-              }}
-              onInvalid={(event) =>
-                event.currentTarget.setCustomValidity(
-                  "Please accept the Terms & Conditions",
-                )
-              }
-              required
-              className="peer sr-only"
-            />
-            <span
-              aria-hidden="true"
-              className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-slate-300 bg-white transition peer-checked:border-[#27AE60] peer-checked:bg-[#27AE60] peer-focus-visible:ring-2 peer-focus-visible:ring-[#27AE60]/25"
-            >
-              <span className="h-2 w-1 rotate-45 border-b-2 border-r-2 border-white" />
-            </span>
-            <span className="leading-5">
-              I agree to Propenu's{" "}
-              <Link
-                href="/terms"
-                className="font-medium text-slate-900 underline underline-offset-2 hover:text-[#27AE60]"
-                onClick={(event) => event.stopPropagation()}
-              >
-                Terms & Conditions
-              </Link>
-            </span>
-          </label>
+              <label className="flex items-start gap-2 text-xs text-slate-600 sm:text-sm">
+                <input
+                  name="terms"
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(event) => {
+                    event.currentTarget.setCustomValidity("");
+                    setTermsAccepted(event.target.checked);
+                  }}
+                  onInvalid={(event) =>
+                    event.currentTarget.setCustomValidity(
+                      "Please accept the Terms & Conditions",
+                    )
+                  }
+                  required
+                  className="peer sr-only"
+                />
+                <span
+                  aria-hidden="true"
+                  className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-slate-300 bg-white transition peer-checked:border-[#27AE60] peer-checked:bg-[#27AE60] peer-focus-visible:ring-2 peer-focus-visible:ring-[#27AE60]/25"
+                >
+                  <span className="h-2 w-1 rotate-45 border-b-2 border-r-2 border-white" />
+                </span>
+                <span className="leading-5">
+                  I agree to Propenu's{" "}
+                  <Link
+                    href="/terms"
+                    className="font-medium text-slate-900 underline underline-offset-2 hover:text-[#27AE60]"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    Terms & Conditions
+                  </Link>
+                </span>
+              </label>
+            </>
+          )}
 
           <button
             type="submit"

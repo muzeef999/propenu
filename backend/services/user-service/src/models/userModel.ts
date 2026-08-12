@@ -21,20 +21,7 @@ export interface IUser extends mongoose.Document {
   accountStatus?:
     | "pending"
     | "location_pending"
-    | "kyc_pending"
-    | "kyc_rejected"
     | "active";
-  kyc?: {
-    status?: "not_started" | "pending" | "verified" | "rejected";
-    provider?: "digilocker" | "pan" | "manual";
-    documents?: string[];
-    verifiedName?: string;
-    verifiedPhone?: string;
-    verifiedDob?: string;
-    digilockerId?: string;
-    verifiedAt?: Date;
-    remarks?: string;
-  };
   builderId?: Types.ObjectId;
   userCode: string;
   roleId?: Types.ObjectId;
@@ -110,29 +97,6 @@ const getEntityCode = async (roleId?: Types.ObjectId | null) => {
 const getCounterKey = (entityCode: string, cityCode: string, yearCode: string) =>
   `${entityCode}_${cityCode}_${yearCode}`;
 
-const KycSchema = new mongoose.Schema({
-  status: {
-    type: String,
-    enum: ["not_started", "pending", "verified", "rejected"],
-    default: "not_started",
-  },
-  provider: {
-    type: String,
-    enum: ["digilocker", "pan", "manual"],
-  },
-  documents: [
-    {
-      type: String, // PAN, Aadhaar, DL etc
-    },
-  ],
-  verifiedName: String,
-  verifiedPhone: String,
-  verifiedDob: String,
-  digilockerId: String,
-  verifiedAt: Date,
-  remarks: String,
-});
-
 const UserSchema = new mongoose.Schema(
   {
     name: {
@@ -185,12 +149,6 @@ const UserSchema = new mongoose.Schema(
         },
       },
     ],
-    kyc: {
-      type: KycSchema,
-      default: () => ({
-        status: "not_started",
-      }),
-    },
     locality: {
       type: String,
       trim: true,
@@ -232,7 +190,7 @@ const UserSchema = new mongoose.Schema(
     },
     accountStatus: {
       type: String,
-      enum: ["pending", "location_pending", "kyc_pending", "kyc_rejected", "active"],
+      enum: ["pending", "location_pending", "active"],
       default: "location_pending",
     },
     address: {
