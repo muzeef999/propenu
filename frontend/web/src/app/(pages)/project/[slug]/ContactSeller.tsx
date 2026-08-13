@@ -233,6 +233,10 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
   const [leadId, setLeadId] = useState("");
   const [showSubmittedStep, setShowSubmittedStep] = useState(false);
   const [intentionAnswers, setIntentionAnswers] = useState<IntentionAnswer[]>([]);
+  const resolvedProjectId =
+    (project as FeaturedProject & { id?: string })._id ||
+    (project as FeaturedProject & { id?: string }).id ||
+    "";
 
   const reviewTicketMutation = useMutation({
     mutationFn: async () =>
@@ -260,7 +264,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
         metadata: {
           requestType: "builder_claim_role_conflict",
           module: "builder_invite_claim",
-          relatedProjectId: project._id,
+          relatedProjectId: resolvedProjectId,
           relatedProjectName: project.title,
           inviteToken,
           contactName: form.name.trim(),
@@ -320,14 +324,14 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
   const userLeadEmail = loggedInUser?.email?.trim() || "";
 
   const { data: existingLeadData } = useQuery({
-    queryKey: ["project-lead-submitted", project._id, userLeadPhone, userLeadEmail],
+    queryKey: ["project-lead-submitted", resolvedProjectId, userLeadPhone, userLeadEmail],
     queryFn: () =>
       checkProjectLeadSubmitted({
-        projectId: project._id,
+        projectId: resolvedProjectId,
         phone: userLeadPhone,
         email: userLeadEmail,
       }),
-    enabled: Boolean(project._id && (userLeadPhone || userLeadEmail) && !isInviteMode),
+    enabled: Boolean(resolvedProjectId && (userLeadPhone || userLeadEmail) && !isInviteMode),
     retry: 1,
   });
 
@@ -500,7 +504,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
       name: form.name.trim(),
       phone: form.phone,
       email: form.email.trim(),
-      projectId: project._id,
+      projectId: resolvedProjectId,
       remarks: isNormalPromotion ? "Requested callback" : "Requested contact details",
     });
   };

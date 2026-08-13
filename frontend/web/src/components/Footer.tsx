@@ -13,6 +13,28 @@ import {
 import Link from "next/link";
 import BuildingFooterSvg from "../svg/BuildingFooterSvg";
 
+export function FooterLegalBar() {
+  return (
+    <div className="bg-[#111111] px-3 py-2 text-[10px] leading-none text-white sm:px-4 sm:text-xs">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 overflow-hidden whitespace-nowrap">
+        <p className="min-w-0 truncate text-white/90">
+          All trademarks, logos and names are properties of their respective
+          owners.All Rights Reserved. Copyright 2026 Propenu Private Limited.
+        </p>
+        <Link
+          href="/terms"
+          className="flex shrink-0 items-center gap-1.5 underline underline-offset-2"
+        >
+          <span>Terms of use</span>
+          <span className="block h-3.5 w-[10px] text-[#27AE60]">
+            <Logo />
+          </span>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function Footer() {
   return (
     <footer
@@ -113,7 +135,6 @@ export default function Footer() {
               Follow Us
             </h3>
             <div className="flex items-center gap-3 mb-8">
-              {/* LinkedIn */}
               <Link
                 href="https://www.linkedin.com/company/propenu"
                 target="_blank"
@@ -125,18 +146,17 @@ export default function Footer() {
                 </span>
               </Link>
 
-              {/* Instagram */}
               <Link
                 href="https://www.instagram.com/propenu"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm transition-all duration-300 hover:shadow-md group hover:bg-[linear-gradient(45deg,#f09433_0%,#e6683c_25%,#dc2743_50%,#cc2366_75%,#bc1888_100%)]">
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm transition-all duration-300 hover:shadow-md group hover:bg-[linear-gradient(45deg,#f09433_0%,#e6683c_25%,#dc2743_50%,#cc2366_75%,#bc1888_100%)]"
+              >
                 <span className="w-6 h-6">
                   <InstagramSVG />
                 </span>
               </Link>
 
-              {/* Facebook */}
               <Link
                 href="https://www.facebook.com/profile.php?id=61584609591479"
                 target="_blank"
@@ -148,7 +168,6 @@ export default function Footer() {
                 </span>
               </Link>
 
-              {/* Twitter / X */}
               <Link
                 href="https://x.com/propenu"
                 target="_blank"
@@ -160,7 +179,6 @@ export default function Footer() {
                 </span>
               </Link>
 
-              {/* YouTube */}
               <Link
                 href="https://www.youtube.com/@Propenu"
                 target="_blank"
@@ -174,9 +192,6 @@ export default function Footer() {
             </div>
 
             <div className="mt-6 flex flex-col items-start gap-4 max-lg:items-center max-lg:text-center lg:mt-8">
-              <p className="text-xs leading-5 text-gray-500">
-                © Copyright 2026 Propenu Solutions Pvt. Ltd
-              </p>
               <div className="flex flex-wrap items-center gap-3">
                 <PlayStoreBadge />
                 <AppStoreBadge />
@@ -187,11 +202,13 @@ export default function Footer() {
       </div>
 
       {/* Background Cityscape Svg */}
-      <div className="pointer-events-none -mt-8 flex w-full items-end justify-center sm:-mt-7 lg:mt-0">
-        <div className="flex w-full opacity-60">
+      <div className="-mt-1 flex w-full items-end justify-center sm:mt-0">
+        <div className="pointer-events-none flex w-full opacity-60">
           <BuildingFooterSvg />
         </div>
       </div>
+
+      <FooterLegalBar />
     </footer>
   );
 }

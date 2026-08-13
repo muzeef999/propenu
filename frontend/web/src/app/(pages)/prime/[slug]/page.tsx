@@ -10,6 +10,7 @@ import Gallery from "./Gallery";
 import AboutUS from "./AboutUs";
 import Specification from "./Specification";
 import BrochurePreview from "./BrochurePreview";
+import AboutDevelopers from "./AboutDevelopers";
 import ProjectViewDurationTracker from "./ProjectViewDurationTracker";
 import ProjectViewTracker from "@/components/tracking/ProjectViewTracker";
 import PublicViewTracker from "@/components/tracking/PublicViewTracker";
@@ -175,11 +176,11 @@ export default async function Page({ params }: PageProps) {
     color: project?.color?.trim(),
   };
 
-  const  specifications =  {
+  const specifications = {
     specifications: project?.specifications,
     color: project?.color?.trim(),
   }
- 
+
   return (
     <div>
       <PublicViewTracker entityType="project" entityId={project._id} />
@@ -195,6 +196,7 @@ export default async function Page({ params }: PageProps) {
         redirectUrl={project?.redirectUrl}
       />
       <Herosection hero={hero} />
+
       <br />
       <div className="prime-responsive-container">
         <div id="available-properties" className="scroll-mt-20">
@@ -221,9 +223,18 @@ export default async function Page({ params }: PageProps) {
         <div id="about-us" className="scroll-mt-20">
           <AboutUS aboutSummary={aboutSummary} />
         </div>
+        <AboutDevelopers
+          logoUrl={project?.logo?.url}
+          developer={project?.developer as any}
+          createdBy={project?.createdBy as any}
+          description={project?.heroDescription}
+          aboutSummary={project?.aboutSummary}
+          color={project?.color?.trim()}
+        />
         <div id="brochure-preview" className="scroll-mt-20">
           <BrochurePreview project={project} />
         </div>
+
       </div>
     </div>
   );
