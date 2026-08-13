@@ -137,9 +137,6 @@ export default function BrochurePreview({
                       Brochure
                     </p>
 
-                    <p className="text-xs text-slate-500">
-                      Embedded brochure preview
-                    </p>
                   </div>
 
                   {/* =========================
