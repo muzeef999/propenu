@@ -7,7 +7,12 @@ import { trackInteraction } from "@/services/trackingService";
 import { FeaturedProject } from "@/types";
 import Cookies from "js-cookie";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { HiArrowDownTray, HiDocumentText } from "react-icons/hi2";
+import {
+  HiArrowDownTray,
+  HiChevronLeft,
+  HiChevronRight,
+  HiDocumentText,
+} from "react-icons/hi2";
 import { Document, Page, pdfjs } from "react-pdf";
 
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
@@ -25,7 +30,9 @@ export default function BrochurePreview({
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const [numPages, setNumPages] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [pdfPageWidth, setPdfPageWidth] = useState(320);
+  const [pdfViewportWidth, setPdfViewportWidth] = useState(320);
   const [pdfError, setPdfError] = useState("");
 
   const isPdf =
@@ -43,14 +50,49 @@ export default function BrochurePreview({
 
     const resizeObserver = new ResizeObserver(([entry]) => {
       const width = entry.contentRect.width;
-      const horizontalPadding = width >= 640 ? 48 : 24;
-      setPdfPageWidth(Math.max(260, Math.min(760, width - horizontalPadding)));
+      const horizontalPadding = width >= 640 ? 96 : 32;
+      setPdfViewportWidth(width);
+      setPdfPageWidth(Math.max(260, Math.min(860, width - horizontalPadding)));
     });
 
     resizeObserver.observe(scroller);
 
     return () => resizeObserver.disconnect();
   }, [isPdf]);
+
+  const scrollToPdfPage = (pageNumber: number) => {
+    const scroller = pdfScrollerRef.current;
+    if (!scroller) return;
+
+    const nextPage = Math.min(Math.max(pageNumber, 1), numPages || 1);
+
+    scroller.scrollTo({
+      left: (nextPage - 1) * scroller.clientWidth,
+      behavior: "smooth",
+    });
+    setCurrentPage(nextPage);
+  };
+
+  const handlePdfScroll = () => {
+    const scroller = pdfScrollerRef.current;
+    if (!scroller || !numPages || !scroller.clientWidth) return;
+
+    const nextPage =
+      Math.round(scroller.scrollLeft / scroller.clientWidth) + 1;
+    setCurrentPage(Math.min(Math.max(nextPage, 1), numPages));
+  };
+
+  const handlePdfKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      scrollToPdfPage(currentPage - 1);
+    }
+
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      scrollToPdfPage(currentPage + 1);
+    }
+  };
 
   if (!brochure?.url) return null;
 
@@ -129,15 +171,48 @@ export default function BrochurePreview({
 
               {isPdf ? (
                 <div className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
+                  <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-600">
+                        Page {currentPage}
+                        {numPages ? ` of ${numPages}` : ""}
+                      </p>
+                    </div>
 
-                 
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => scrollToPdfPage(currentPage - 1)}
+                        disabled={currentPage <= 1}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        aria-label="Previous brochure page"
+                      >
+                        <HiChevronLeft className="h-5 w-5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => scrollToPdfPage(currentPage + 1)}
+                        disabled={!numPages || currentPage >= numPages}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        aria-label="Next brochure page"
+                      >
+                        <HiChevronRight className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+
                   {/* =========================
                       PDF VIEWER
                   ========================== */}
+                  <div className="bg-[#eef2f6] p-3 sm:p-5">
                     <div
                       ref={pdfScrollerRef}
-                      className="w-full overflow-x-auto overflow-y-hidden rounded-md border border-slate-300 bg-[#252525] px-3 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.16)] [scrollbar-gutter:stable] [scroll-snap-type:x_mandatory] sm:px-6 sm:py-6"
-                      aria-label="Horizontal brochure PDF pages"
+                      onScroll={handlePdfScroll}
+                      onKeyDown={handlePdfKeyDown}
+                      tabIndex={0}
+                      className="w-full overflow-x-auto overflow-y-hidden rounded-md border border-slate-300 bg-[#252525] shadow-[0_10px_30px_rgba(15,23,42,0.16)] outline-none ring-0 transition focus-visible:ring-2 focus-visible:ring-[#27AE60] focus-visible:ring-offset-2 [scroll-snap-type:x_mandatory]"
+                      aria-label="Horizontal brochure PDF pages. Use left and right arrow keys to change pages."
                     >
                       <Document
                         key={pdfPreviewUrl}
@@ -169,18 +244,20 @@ export default function BrochurePreview({
                         }) => {
                           setPdfError("");
                           setNumPages(loadedPages);
+                          setCurrentPage(1);
                         }}
                         onLoadError={(error) => {
                           setPdfError(error.message);
                         }}
                       >
-                        <div className="flex min-h-[520px] w-max items-start gap-4 sm:min-h-[640px] sm:gap-6 lg:min-h-[760px]">
+                        <div className="flex min-h-[520px] w-max items-start sm:min-h-[640px] lg:min-h-[760px]">
                           {Array.from(
                             { length: numPages },
                             (_, pageIndex) => (
                               <div
                                 key={pageIndex + 1}
-                                className="shrink-0 [scroll-snap-align:center]"
+                                className="flex shrink-0 justify-center px-4 py-4 [scroll-snap-align:start] sm:px-12 sm:py-6"
+                                style={{ width: pdfViewportWidth }}
                               >
                                 <Page
                                   pageNumber={pageIndex + 1}
@@ -206,6 +283,7 @@ export default function BrochurePreview({
                         </div>
                       </Document>
                     </div>
+                  </div>
                 </div>
               ) : (
 
