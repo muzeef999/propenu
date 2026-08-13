@@ -6,8 +6,11 @@ import { trackProjectBrochureDownload } from "@/data/ClientData";
 import { trackInteraction } from "@/services/trackingService";
 import { FeaturedProject } from "@/types";
 import Cookies from "js-cookie";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { HiArrowDownTray, HiDocumentText } from "react-icons/hi2";
+import { Document, Page, pdfjs } from "react-pdf";
+
+pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
 type BrochurePreviewProps = {
   project: FeaturedProject;
@@ -17,41 +20,39 @@ export default function BrochurePreview({
   project,
 }: BrochurePreviewProps) {
   const brochure = project.brochure;
+  const pdfScrollerRef = useRef<HTMLDivElement | null>(null);
 
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
-
-  if (!brochure?.url) return null;
+  const [numPages, setNumPages] = useState(0);
+  const [pdfPageWidth, setPdfPageWidth] = useState(320);
+  const [pdfError, setPdfError] = useState("");
 
   const isPdf =
-    brochure.mimetype?.toLowerCase().includes("pdf") ||
-    brochure.url.toLowerCase().includes(".pdf");
+    brochure?.mimetype?.toLowerCase().includes("pdf") ||
+    brochure?.url?.toLowerCase().includes(".pdf");
+  const pdfPreviewUrl = useMemo(() => {
+    if (!brochure?.url || !isPdf) return "";
 
-  /**
-   * PDF preview settings
-   *
-   * page=1
-   *    Start from first page.
-   *
-   * zoom=page-fit
-   *    Fit the complete PDF page inside the viewer.
-   *
-   * toolbar=0
-   *    Hide PDF toolbar.
-   *
-   * navpanes=0
-   *    Hide PDF navigation pane.
-   *
-   * scrollbar=1
-   *    Keep scrolling enabled for multiple pages.
-   */
-  const previewUrl = isPdf
-  ? `${brochure.url}#page=1&zoom=85&toolbar=0&navpanes=0&scrollbar=1`
-  : brochure.url;
-  const pdfFrameWrapperClassName =
-    "mx-auto w-full max-w-5xl overflow-hidden rounded-md border border-slate-300 bg-[#252525] shadow-[0_10px_30px_rgba(15,23,42,0.16)]";
-  const pdfFrameClassName =
-    "block h-[650px] w-full border-0 bg-[#252525] sm:h-[750px] lg:h-[850px]";
+    return `/api/pdf-proxy?url=${encodeURIComponent(brochure.url)}`;
+  }, [brochure?.url, isPdf]);
+
+  useEffect(() => {
+    const scroller = pdfScrollerRef.current;
+    if (!scroller || !isPdf) return;
+
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      const width = entry.contentRect.width;
+      const horizontalPadding = width >= 640 ? 48 : 24;
+      setPdfPageWidth(Math.max(260, Math.min(760, width - horizontalPadding)));
+    });
+
+    resizeObserver.observe(scroller);
+
+    return () => resizeObserver.disconnect();
+  }, [isPdf]);
+
+  if (!brochure?.url) return null;
 
   const handleBrochureDownload = async () => {
     const token = Cookies.get("token")?.trim();
@@ -129,33 +130,82 @@ export default function BrochurePreview({
               {isPdf ? (
                 <div className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
 
-                  {/* =========================
-                      PREVIEW TITLE
-                  ========================== */}
-                  <div className="border-b border-slate-200 bg-white px-4 py-3">
-                    <p className="text-sm font-semibold text-slate-800">
-                      Brochure
-                    </p>
-
-                    <p className="text-xs text-slate-500">
-                      Embedded brochure preview
-                    </p>
-                  </div>
-
+                 
                   {/* =========================
                       PDF VIEWER
                   ========================== */}
-                  <div className="bg-[#eef2f6] p-3 sm:p-5">
-                    <div className={pdfFrameWrapperClassName}>
-                      <iframe
-                        key={previewUrl}
-                        src={previewUrl}
-                        title="Brochure PDF preview"
-                        loading="lazy"
-                        className={pdfFrameClassName}
-                      />
+                    <div
+                      ref={pdfScrollerRef}
+                      className="w-full overflow-x-auto overflow-y-hidden rounded-md border border-slate-300 bg-[#252525] px-3 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.16)] [scrollbar-gutter:stable] [scroll-snap-type:x_mandatory] sm:px-6 sm:py-6"
+                      aria-label="Horizontal brochure PDF pages"
+                    >
+                      <Document
+                        key={pdfPreviewUrl}
+                        file={pdfPreviewUrl}
+                        loading={
+                          <div className="flex h-[520px] items-center justify-center text-sm font-medium text-white/80">
+                            Loading brochure...
+                          </div>
+                        }
+                        error={
+                          <div className="flex h-[520px] items-center justify-center px-4 text-center text-sm font-medium text-white/80">
+                            <div>
+                              <p>
+                                Brochure preview could not be loaded. Please use
+                                the download button.
+                              </p>
+                              {pdfError ? (
+                                <p className="mt-2 text-xs text-white/60">
+                                  {pdfError}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        }
+                        onLoadSuccess={({
+                          numPages: loadedPages,
+                        }: {
+                          numPages: number;
+                        }) => {
+                          setPdfError("");
+                          setNumPages(loadedPages);
+                        }}
+                        onLoadError={(error) => {
+                          setPdfError(error.message);
+                        }}
+                      >
+                        <div className="flex min-h-[520px] w-max items-start gap-4 sm:min-h-[640px] sm:gap-6 lg:min-h-[760px]">
+                          {Array.from(
+                            { length: numPages },
+                            (_, pageIndex) => (
+                              <div
+                                key={pageIndex + 1}
+                                className="shrink-0 [scroll-snap-align:center]"
+                              >
+                                <Page
+                                  pageNumber={pageIndex + 1}
+                                  width={pdfPageWidth}
+                                  renderAnnotationLayer={false}
+                                  renderTextLayer={false}
+                                  className="overflow-hidden rounded-sm bg-white shadow-md"
+                                  loading={
+                                    <div
+                                      className="flex items-center justify-center bg-white text-xs font-medium text-slate-500"
+                                      style={{
+                                        height: pdfPageWidth * 1.35,
+                                        width: pdfPageWidth,
+                                      }}
+                                    >
+                                      Loading page...
+                                    </div>
+                                  }
+                                />
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </Document>
                     </div>
-                  </div>
                 </div>
               ) : (
 
