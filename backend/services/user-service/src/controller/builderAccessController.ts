@@ -232,7 +232,6 @@ export const createBuilderMember = async (req: AuthRequest, res: Response) => {
         builderId,
         accountStatus: "active",
         phoneVerified: Boolean(phone),
-        kyc: { status: "not_started" },
       });
     } else {
       user.name = name;

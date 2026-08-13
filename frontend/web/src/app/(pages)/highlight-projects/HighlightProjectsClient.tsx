@@ -61,6 +61,8 @@ function HighlightProjectCard({ project }: { project: FeaturedProject }) {
     <Link
       key={project._id}
       href={projectHref}
+      target="_blank"
+      rel="noopener noreferrer"
       onClick={() => {
         trackInteraction({
           eventType: "project_click",

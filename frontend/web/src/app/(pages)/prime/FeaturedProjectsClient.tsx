@@ -19,10 +19,8 @@ import { GoHeart, GoHeartFill } from "react-icons/go";
 import { IoMdShareAlt } from "react-icons/io";
 import { RATE_LIMIT_RECOVERED_EVENT } from "@/utilies/requestMonitor";
 import { trackInteraction } from "@/services/trackingService";
-import { useRouter } from "next/navigation";
 
 function PrimeProjectCard({ project }: { project: FeaturedProject }) {
-  const router = useRouter();
   const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(
     project._id,
     "FeaturedProject",
@@ -63,7 +61,10 @@ function PrimeProjectCard({ project }: { project: FeaturedProject }) {
       placement: "prime_projects",
       metadata: { projectName: project.title, projectSlug: project.slug },
     });
-    router.push(projectHref);
+
+    if (typeof window !== "undefined") {
+      window.open(projectHref, "_blank", "noopener,noreferrer");
+    }
   };
 
   const handleCardKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {

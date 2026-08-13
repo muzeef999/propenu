@@ -163,6 +163,8 @@ const AgriculturalCard: React.FC<Props> = ({
     >
       <Link
         href={`/properties/agricultural/${p.slug}`}
+        target="_blank"
+        rel="noopener noreferrer"
         onClick={() => {
           const property = p as any;
           trackInteraction({

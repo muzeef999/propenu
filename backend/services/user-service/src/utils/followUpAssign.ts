@@ -19,10 +19,8 @@ const LOCATION_RR_KEY = "follow-up-cce-location-round-robin";
 
 const ONBOARDING_STATUSES = new Set([
   "location_pending",
-  "kyc_pending",
   "pending",
   "incomplete",
-  "kyc_rejected",
 ]);
 
 type ExecutiveCandidate = {

@@ -2,6 +2,7 @@
 
 import LoginDialog from "@/app/(auth)/Login";
 import RegisterDialog from "@/app/(auth)/Register";
+import ContactSeller from "./ContactSeller";
 import { trackProjectBrochureDownload } from "@/data/ClientData";
 import { FeaturedProject } from "@/types";
 import { useShortlist } from "@/hooks/useShortlist";
@@ -161,11 +162,14 @@ export default function HeroSection({ project }: HeroSectionProps) {
     const locationText = [project.locality, project.city].filter(Boolean).join(", ");
     const galleryImages = getGalleryImages(project);
     const heroImage = galleryImages[0]?.url;
+    const priceRangeLabel = formatPriceRange(project);
+    const hasDisplayPrice = priceRangeLabel !== "Price on Request";
     const pricePerUnitLabel = formatPricePerUnit(project);
     const [openIndex, setOpenIndex] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState(tabs[0].href);
     const [authMode, setAuthMode] = useState<AuthMode>(null);
     const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
+    const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
     const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(project._id, "FeaturedProject");
     const navRef = useRef<HTMLDivElement | null>(null);
     const startX = useRef<number | null>(null);
@@ -381,14 +385,29 @@ export default function HeroSection({ project }: HeroSectionProps) {
                             <p className="mt-2 text-md font-bold  text-[#6C6F79] sm:text-xl">
                                 {pricePerUnitLabel}
                             </p>
-                            {pricePerUnitLabel && (
+                            {hasDisplayPrice ? (
                                 <p className="mt-1 text-xs font-medium text-[#4bbb7b] sm:text-sm">
-                                    {formatPriceRange(project)}
+                                    {priceRangeLabel}
+                                </p>
+                            ) : (
+                                <div className="mt-1">
+                                    <p className="text-xs font-medium text-[#4bbb7b] sm:text-sm">
+                                        Price on Request
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsContactDialogOpen(true)}
+                                        className="mt-2 inline-flex items-center justify-center rounded-md bg-[#27AE60] px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#15803D] sm:text-sm"
+                                    >
+                                        Contact Builder
+                                    </button>
+                                </div>
+                            )}
+                            {hasDisplayPrice && (
+                                <p className="mt-0.5 text-[10px] font-medium text-[#8A8D96] sm:text-xs">
+                                    Govt Charges &amp; Tax (Negotiable)
                                 </p>
                             )}
-                            <p className="mt-0.5 text-[10px] font-medium text-[#8A8D96] sm:text-xs">
-                                Govt Charges &amp; Tax (Negotiable)
-                            </p>
                         </div>
                     </div>
 
@@ -592,6 +611,29 @@ export default function HeroSection({ project }: HeroSectionProps) {
                         setAuthMode("login");
                     }}
                 />
+            )}
+
+            {isContactDialogOpen && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+                    onClick={() => setIsContactDialogOpen(false)}
+                >
+                    <div
+                        className="relative w-full max-w-[420px] overflow-visible"
+                        onClick={(event) => event.stopPropagation()}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Contact seller"
+                    >
+                        <div className="max-h-[90vh] overflow-y-auto rounded-md bg-white shadow-2xl">
+                    <ContactSeller
+                      project={project}
+                      isModal
+                      onClose={() => setIsContactDialogOpen(false)}
+                    />
+                        </div>
+                    </div>
+                </div>
             )}
         </>
     );

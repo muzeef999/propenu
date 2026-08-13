@@ -5,7 +5,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { me, getMembershipHistory, updateUser } from "@/data/ClientData";
 import { HiOutlineDownload } from "react-icons/hi";
 import { toast } from "sonner";
-import KycButton from "./KycButton";
 
 type InfoFieldProps = {
   label: string;
@@ -153,11 +152,6 @@ const SettingsPage = () => {
               </p>
             </div>
           </div>
-
-          {/* KYC Button */}
-          {/* <div className="w-full sm:w-auto sm:ml-auto">
-            <KycButton kycStatus={user?.user?.kycStatus} />
-          </div> */}
         </div>
 
         {/* Personal Information */}

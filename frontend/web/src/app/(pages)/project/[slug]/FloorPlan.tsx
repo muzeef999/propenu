@@ -374,12 +374,7 @@ export default function FloorPlan({ project }: FloorPlanProps) {
                 </div>
               </div>
 
-              <button
-                type="button"
-                className="w-full rounded btn-primary px-10 py-3 text-sm font-semibold text-white shadow-sm transition sm:w-auto sm:min-w-56"
-              >
-                Request Callback
-              </button>
+              
             </div>
           </div>
         </div>

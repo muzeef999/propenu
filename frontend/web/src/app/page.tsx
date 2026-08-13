@@ -10,8 +10,6 @@ import AgentsList from "./(pages)/agent-connect/AgentCard";
 import PopularOwnerPropertiesClient from "./(pages)/owner-listed/PopularOwnerPropertiesClient";
 import Banner from "@/components/Banner";
 
-import { Suspense } from "react";
-import TokenHandler from "@/components/TokenHandler";
 import DiscoverRealestate from "@/components/discoverRealestate/DiscoverRealestate";
 import ResidentialLinks from "@/components/quickLinks/ResidentialLinks";
 import CommercialLinks from "@/components/quickLinks/CommercialLinks";
@@ -22,10 +20,6 @@ import BlogsClient from "./(pages)/blogs/BlogsClient";
 export default function Home() {
   return (
     <div>
-      <Suspense fallback={null}>
-        <TokenHandler />
-      </Suspense>
-
       <Banner />
       <br />
       <br />

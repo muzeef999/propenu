@@ -1,28 +1,5 @@
 import mongoose from "mongoose";
 
-const KycSchema = new mongoose.Schema({
-  status: {
-    type: String,
-    enum: ["not_started", "pending", "verified", "rejected"],
-    default: "not_started",
-  },
-  provider: {
-    type: String,
-    enum: ["digilocker", "pan", "manual"],
-  },
-  documents: [
-    {
-      type: String, // PAN, Aadhaar, DL etc
-    },
-  ],
-  verifiedName: String,
-  verifiedPhone: String,
-  verifiedDob: String,
-  digilockerId: String,
-  verifiedAt: Date,
-  remarks: String,
-});
-
 const UserSchema = new mongoose.Schema(
   {
     name: {
@@ -51,13 +28,6 @@ const UserSchema = new mongoose.Schema(
       sparse: true,
       index: true,
       match: [/^\+?[1-9]\d{6,14}$/, "Invalid phone number"],
-    },
-
-    kyc: {
-      type: KycSchema,
-      default: () => ({
-        status: "not_started",
-      }),
     },
 
     locality: {
@@ -97,7 +67,7 @@ const UserSchema = new mongoose.Schema(
 
     accountStatus: {
       type: String,
-      enum: ["pending", "location_pending", "kyc_pending", "active"],
+      enum: ["pending", "location_pending", "active"],
       default: "location_pending",
     },
 

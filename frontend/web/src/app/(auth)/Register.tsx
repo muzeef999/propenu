@@ -1,23 +1,34 @@
-"use client"
-import KycButton from "@/app/(account)/settings/KycButton";
+"use client";
+
 import {
   createRequestOtp,
   createVerifyOtp,
   me,
-  updateKycDetails,
   updateLocation,
 } from "@/data/ClientData";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import {  MdCheckCircle,  MdClose,  MdOutlineBadge,  MdOutlineLock,} from "react-icons/md";
+import {
+  MdCheckCircle,
+  MdClose,
+  MdOutlineBadge,
+} from "react-icons/md";
 import { BsBuildings } from "react-icons/bs";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
 import "react-phone-number-input/style.css";
-import { BsShieldCheck } from "react-icons/bs";
-import { HiOutlineIdentification } from "react-icons/hi2";
 import Cookies from "js-cookie";
 import { AiOutlineUser } from "react-icons/ai";
-import {  accountSchema, COMPANY_NAME_MAX_LENGTH, FormErrors,  locationSchema,  mapAuthZodErrors, NAME_MAX_LENGTH,  OTP_LENGTH,  otpSchema,  phoneSchema,} from "./AuthZod";
+import {
+  accountSchema,
+  COMPANY_NAME_MAX_LENGTH,
+  FormErrors,
+  locationSchema,
+  mapAuthZodErrors,
+  NAME_MAX_LENGTH,
+  OTP_LENGTH,
+  otpSchema,
+  phoneSchema,
+} from "./AuthZod";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { useCity } from "@/hooks/useCity";
 
@@ -25,12 +36,10 @@ interface RegisterDialogProps {
   open: boolean;
   onClose: () => void;
   onSwitchToLogin: () => void;
-  initialStep?: "personal" | "location" | "kyc";
-  initialKycStatus?: "verified" | "pending" | "rejected" | null;
-  initialKycRemark?: string;
+  initialStep?: "personal" | "location";
 }
 
-type RegisterStep = "personal" | "location" | "kyc";
+type RegisterStep = "personal" | "location";
 
 type NominatimPincodeResult = {
   address?: {
@@ -49,7 +58,7 @@ type NominatimPincodeResult = {
 
 function validateFullName(
   name: string,
-  role: "user" | "builder" | "agent",
+  _role: "user" | "builder" | "agent",
 ): string {
   const value = name.trim();
 
@@ -58,23 +67,6 @@ function validateFullName(
   if (value.length > NAME_MAX_LENGTH) {
     return `Full name must not exceed ${NAME_MAX_LENGTH} characters`;
   }
-
-  // 🚨 Only apply strict rules for KYC users
-  if (role !== "builder") {
-    const words = value.split(" ").filter(Boolean);
-
-    if (words.length < 2) {
-      return "Enter full name as per Aadhaar (first + last name)";
-    }
-
-    const businessWords = ["construction", "builders", "realty", "infra"];
-
-    if (businessWords.some((word) => value.toLowerCase().includes(word))) {
-      return "Please enter your full name as per Aadhaar (not your business name)";
-    }
-  }
-
-  
   if (/\d/.test(value)) {
     return "Name cannot contain numbers";
   }
@@ -101,7 +93,6 @@ function normalizePincodeAreaName(value: string) {
 const tabs: { id: RegisterStep; label: string }[] = [
   { id: "personal", label: "Personal Details" },
   { id: "location", label: "Location" },
-  { id: "kyc", label: "KYC Verification" },
 ];
 
 const RESEND_OTP_SECONDS = 30;
@@ -111,11 +102,9 @@ const RegisterDialog = ({
   onClose,
   onSwitchToLogin,
   initialStep = "personal",
-  initialKycStatus = null,
-  initialKycRemark = "",
 }: RegisterDialogProps) => {
   const { selectedCity } = useCity();
-  const [step, setStep] = useState<RegisterStep>(initialStep || "personal");
+  const [step, setStep] = useState<RegisterStep>(initialStep);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [formData, setFormData] = useState({
     name: "",
@@ -127,16 +116,6 @@ const RegisterDialog = ({
     city: "",
     state: "",
   });
-
-  const [kycStatus, setKycStatus] = useState<
-    "verified" | "pending" | "rejected" | null
-  >(initialKycStatus);
-
-  const [kycRemark, setKycRemark] = useState(initialKycRemark);
-  const [isKycEditMode, setIsKycEditMode] = useState(
-    initialKycStatus === "rejected" || initialKycStatus === "pending",
-  );
-
   const [otpDigits, setOtpDigits] = useState<string[]>(
     Array(OTP_LENGTH).fill(""),
   );
@@ -160,10 +139,6 @@ const RegisterDialog = ({
     formData.locality.trim().length > 0 &&
     formData.city.trim().length > 0 &&
     formData.state.trim().length > 0;
-  const requiresKyc = formData.role !== "builder";
-  const visibleTabs = requiresKyc
-    ? tabs
-    : tabs.filter((tab) => tab.id !== "kyc");
 
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const lastOtpRequestedPhoneRef = useRef("");
@@ -250,28 +225,6 @@ const RegisterDialog = ({
     }
 
     if (isOtpVerified) {
-      if (requiresKyc && isKycEditMode) {
-        setLoading(true);
-
-        try {
-        const res = await updateKycDetails({
-            name: accountValidation.data.name,
-            email: accountValidation.data.email,
-          });
-
-          saveAuthToken(res?.token);
-          toast.success("Personal details updated");
-          setStep("location");
-        } catch (err: any) {
-          toast.error(
-            err?.response?.data?.message || "Failed to update KYC details",
-          );
-        } finally {
-          setLoading(false);
-        }
-        return;
-      }
-
       setStep("location");
       return;
     }
@@ -330,15 +283,10 @@ const RegisterDialog = ({
 
       const res = await createVerifyOtp(payload);
 
-      // save token
       saveAuthToken(res?.token);
-
       verifiedPhoneRef.current = phoneValidation.data.phone;
       setIsOtpVerified(true);
-
-      // move to location step
       setStep("location");
-
       toast.success("OTP verified successfully");
     } catch (err: any) {
       const errorData = err?.response?.data;
@@ -386,38 +334,13 @@ const RegisterDialog = ({
         pincode: validation.data.pincode,
       };
 
-      const res =
-        requiresKyc && isKycEditMode
-          ? await updateKycDetails({
-              name: accountValidation.data.name,
-              email: accountValidation.data.email,
-              ...payload,
-            })
-          : await updateLocation(payload);
+      const res = await updateLocation(payload);
 
       saveAuthToken(res?.token);
-
-      if (requiresKyc) {
-        if (isKycEditMode) {
-          setKycStatus(null);
-          setKycRemark("");
-          toast.success("Details updated. Please retry KYC.");
-        } else {
-          toast.success("Location updated");
-        }
-        setStep("kyc");
-        return;
-      }
-
-      toast.success("Location updated. Builder account is now active.");
+      toast.success("Location updated. Your account is now active.");
       handleClose();
     } catch (err: any) {
-      toast.error(
-        err?.response?.data?.message ||
-          (isKycEditMode
-            ? "Failed to update KYC details"
-            : "Failed to update location"),
-      );
+      toast.error(err?.response?.data?.message || "Failed to update location");
     } finally {
       setLoading(false);
     }
@@ -473,9 +396,6 @@ const RegisterDialog = ({
     setPhoneNumber("");
     setIsOtpVerified(false);
     setResendCooldown(0);
-    setKycStatus(null);
-    setKycRemark("");
-    setIsKycEditMode(false);
     lastOtpRequestedPhoneRef.current = "";
     verifiedPhoneRef.current = "";
     setFormData({
@@ -501,14 +421,6 @@ const RegisterDialog = ({
 
     if (nextStep === "location" && isOtpVerified) {
       setStep("location");
-      return;
-    }
-
-    if (nextStep === "kyc" && isOtpVerified && requiresKyc) {
-      const validation = locationSchema.safeParse(formData);
-      if (validation.success) {
-        setStep("kyc");
-      }
     }
   }
 
@@ -541,12 +453,10 @@ const RegisterDialog = ({
 
         if (!user) return;
 
-        // fill phone
         setPhoneNumber(user.phone || "");
         verifiedPhoneRef.current =
           user.phoneVerified && user.phone ? normalizePhone(user.phone) : "";
 
-        // fill form fields
         setFormData((prev) => ({
           ...prev,
           name: user.name || "",
@@ -562,22 +472,8 @@ const RegisterDialog = ({
           state: user.state || "",
         }));
 
-        // important: user already verified OTP
         setIsOtpVerified(Boolean(user.phoneVerified));
-
-        if (user.kyc?.status === "rejected" || user.kyc?.status === "pending") {
-          setKycStatus(user.kyc.status);
-          setKycRemark(user.kyc?.remarks || initialKycRemark || "");
-          setIsKycEditMode(true);
-        } else if (
-          user.roleName !== "builder" &&
-          (user.accountStatus === "kyc_pending" ||
-            user.accountStatus === "kyc_rejected" ||
-            initialStep === "kyc")
-        ) {
-          setIsKycEditMode(true);
-        }
-      } catch (err) {
+      } catch {
         console.log("Failed to fetch user");
       }
     }
@@ -585,48 +481,12 @@ const RegisterDialog = ({
     if (open) {
       fetchUser();
     }
-  }, [open, initialKycRemark]);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
     setStep(initialStep);
   }, [initialStep, open]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    setKycStatus(initialKycStatus);
-    setKycRemark(initialKycRemark);
-    setIsKycEditMode(
-      initialKycStatus === "rejected" || initialKycStatus === "pending",
-    );
-
-    if (initialKycStatus === "rejected" || initialKycStatus === "pending") {
-      setStep("kyc");
-    }
-  }, [initialKycRemark, initialKycStatus, open]);
-
-
-  useEffect(() => {
-  const kyc = sessionStorage.getItem("kycStatus");
-  const remark = sessionStorage.getItem("kycRemark");
-
-  if (kyc === "rejected" || kyc === "pending") {
-    setKycStatus(kyc as any);
-    setKycRemark(remark || "");
-    setStep("kyc");
-
-    // reopen dialog
-    // IMPORTANT
-    if (!open) {
-      onSwitchToLogin(); // remove if unnecessary
-    }
-
-    sessionStorage.removeItem("kycStatus");
-    sessionStorage.removeItem("kycRemark");
-  }
-}, []);
-
 
   useEffect(() => {
     if (step !== "location") return;
@@ -738,7 +598,7 @@ const RegisterDialog = ({
       <div className="relative z-50 max-h-[calc(100vh-2rem)] w-full max-w-[440px] overflow-y-auto rounded-xl bg-[#f2fcf6] shadow-2xl">
         <button
           onClick={handleClose}
-          className="absolute right-5 top-5 rounded-full p-1 cursor-pointer text-[#8d908e] transition-colors hover:text-[#5e635f]"
+          className="absolute right-5 top-5 cursor-pointer rounded-full p-1 text-[#8d908e] transition-colors hover:text-[#5e635f]"
           aria-label="Close"
         >
           <MdClose size={22} />
@@ -753,15 +613,14 @@ const RegisterDialog = ({
           </p>
 
           <div className="mt-3 flex justify-between gap-6 text-[0.9rem]">
-            {visibleTabs.map((tab) => {
+            {tabs.map((tab) => {
               const isActive = step === tab.id;
               const isCompleted =
                 (tab.id === "personal" && isPersonalDetailsFilled) ||
                 (tab.id === "location" && isLocationFilled);
               const isEnabled =
                 tab.id === "personal" ||
-                (tab.id === "location" && isOtpVerified) ||
-                (tab.id === "kyc" && isOtpVerified && requiresKyc);
+                (tab.id === "location" && isOtpVerified);
 
               return (
                 <button
@@ -769,7 +628,7 @@ const RegisterDialog = ({
                   type="button"
                   onClick={() => handleTabClick(tab.id)}
                   disabled={!isEnabled}
-                  className={`border-b-2 pb-2 text-center transition cursor-pointer ${
+                  className={`cursor-pointer border-b-2 pb-2 text-center transition ${
                     isCompleted
                       ? "border-[#1c7b44] text-[#1f8f4d]"
                       : isActive
@@ -819,10 +678,10 @@ const RegisterDialog = ({
                             companyName: undefined,
                           }));
                         }}
-                        className={`flex min-h-[46px] items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition cursor-pointer ${
+                        className={`flex min-h-[46px] items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition ${
                           isActive
-                            ? "border-[#28b463] bg-[#f2fcf6]  text-[#28b463]"
-                            : "border-transparent bg-[#f2fcf6]  text-[#8a8d8b]"
+                            ? "border-[#28b463] bg-[#f2fcf6] text-[#28b463]"
+                            : "border-transparent bg-[#f2fcf6] text-[#8a8d8b]"
                         }`}
                       >
                         <Icon size={20} />
@@ -835,8 +694,9 @@ const RegisterDialog = ({
                   <p className="mt-2 text-xs text-red-600">{errors.role}</p>
                 )}
               </div>
+
               <div>
-                <label className="font-normal text-[#1e1e1e]">Full Name </label>
+                <label className="font-normal text-[#1e1e1e]">Full Name</label>
                 <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-2.5">
                   <input
                     type="text"
@@ -896,12 +756,7 @@ const RegisterDialog = ({
               )}
 
               <div>
-                <label className="font-normal text-[#1e1e1e]">
-                  Mobile{" "}
-                  <span className="text-sm font-normal text-[#9ca09d]">
-                    (aadhaar linked mobile number)
-                  </span>
-                </label>
+                <label className="font-normal text-[#1e1e1e]">Mobile</label>
 
                 <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-0.5">
                   <div className="phone-material flex items-center gap-3">
@@ -941,7 +796,7 @@ const RegisterDialog = ({
                     <p className="mb-2 font-normal text-[#1e1e1e]">
                       Enter WhatsApp OTP
                     </p>
-                    <div className="flex  gap-3" onPaste={handleOtpPaste}>
+                    <div className="flex gap-3" onPaste={handleOtpPaste}>
                       {otpDigits.map((digit, index) => (
                         <input
                           key={index}
@@ -986,7 +841,7 @@ const RegisterDialog = ({
 
               <div>
                 <label className="font-normal text-[#1e1e1e]">Mail ID</label>
-                <div className="mt-2 rounded-md bg-[#f2fcf6]  px-4 py-2.5">
+                <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-2.5">
                   <input
                     type="email"
                     value={formData.email}
@@ -1009,15 +864,9 @@ const RegisterDialog = ({
               <button
                 disabled={loading}
                 onClick={handlePersonalStepNext}
-                className="w-full rounded-lg py-2.5 text-base font-semibold text-white shadow-lg transition-all btn-primary disabled:cursor-not-allowed disabled:opacity-70"
+                className="btn-primary w-full rounded-lg py-2.5 text-base font-semibold text-white shadow-lg transition-all disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {loading ? (
-                  "Verifying..."
-                ) : (
-                  <span className="flex items-center justify-center gap-2">
-                    Continue
-                  </span>
-                )}
+                {loading ? "Verifying..." : "Continue"}
               </button>
 
               <div className="text-center">
@@ -1080,7 +929,7 @@ const RegisterDialog = ({
               </div>
 
               <div>
-                <label className=" font-medium text-[#1e1e1e]">Locality</label>
+                <label className="font-medium text-[#1e1e1e]">Locality</label>
                 <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-2.5">
                   <input
                     type="text"
@@ -1156,125 +1005,11 @@ const RegisterDialog = ({
                 <button
                   type="button"
                   onClick={handleCompleteLocation}
-                  className="w-full rounded-lg py-2.5 text-base font-semibold text-white shadow-lg transition-all btn-primary"
+                  className="btn-primary w-full rounded-lg py-2.5 text-base font-semibold text-white shadow-lg transition-all"
                 >
                   Continue
                 </button>
               </div>
-            </div>
-          )}
-
-          {step === "kyc" && (
-            <div className="space-y-5">
-              <div>
-                <h3 className="text-lg font-medium leading-none text-[#1f1f1f]">
-                  Verify with DigiLocker
-                </h3>
-                <div className="mt-5 rounded-md bg-[#f2fcf6] px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="min-w-0 flex-1 text-base font-medium text-[#1f1f1f]">
-                      {phoneNumber || "-"}
-                    </div>
-                    <MdCheckCircle className="shrink-0 text-[1.6rem] text-[#28b463]" />
-                  </div>
-                </div>
-                <p className="mt-2 text-sm text-[#8b8f8c]">
-                  This number will be used for KYC verification
-                </p>
-              </div>
-              {kycStatus === "rejected" ? (
-                <div className="relative rounded-xl bg-[#fdeaea] p-5 border border-red-200">
-                  {/* Icon (top-right) */}
-                  <div className="absolute top-4 right-4 text-red-300 text-4xl">
-                    <HiOutlineIdentification />
-                  </div>
-
-                  {/* Title */}
-                  <h2 className="text-lg font-semibold text-red-600">
-                    KYC Verification Failed
-                  </h2>
-
-                  {/* Subtitle */}
-                  <p className="text-gray-700 mt-1">
-                    We couldn’t verify your identity
-                  </p>
-
-                  {/* Reason */}
-                  <p className="mt-2 text-sm">
-                    <span className="text-red-500 font-semibold">Reason:</span>{" "}
-                    <span className="text-gray-700">
-                      {kycRemark || "Name mismatch with Aadhaar card."}
-                    </span>
-                  </p>
-
-                  {/* Divider */}
-                  <div className="border-t border-dashed border-red-200 my-4"></div>
-
-                  {/* How to resolve */}
-                  <h3 className="text-red-600 font-semibold mb-2">
-                    How to resolve:
-                  </h3>
-
-                  <ul className="text-sm text-gray-700 space-y-1 list-disc pl-5">
-                    <li>Enter your full name as per your Aadhaar.</li>
-                    <li>Do not use business or company names.</li>
-                    <li>Check spellings carefully before submitting.</li>
-                  </ul>
-                </div>
-              ) : (
-                <div>
-                  <div className="space-y-2 py-1">
-                    {[
-                      "Real users, verified identities",
-                      "One-time KYC verification",
-                      "Safe & secure platform",
-                      "Zero spam & fake accounts",
-                      "Connect with genuine leads",
-                    ].map((item) => (
-                      <div key={item} className="flex items-center gap-3">
-                        <MdCheckCircle className="shrink-0 text-lg text-[#28b463]" />
-                        <span className="text-[1.02rem] text-[#1f1f1f]">
-                          {item}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div className="mt-5 rounded-lg bg-green-50 border border-green-100 px-4 py-3">
-                <div className="flex items-start gap-3">
-                  {/* Icon */}
-                  <div className="text-green-600 text-xl mt-0.5">
-                    <BsShieldCheck />
-                  </div>
-
-                  {/* Text */}
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800">
-                      Your data is safe and secure with DigiLocker
-                    </p>
-
-                    <p className="text-xs text-gray-500 mt-1">
-                      We don’t store your documents
-                    </p>
-                  </div>
-                </div>
-              </div>
-              {kycStatus == "rejected" ? (
-                <button
-                  onClick={() => {
-                    setErrors({});
-                    setStep("personal");
-                  }}
-                  className="mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                >
-                  Update Details
-                </button>
-              ) : (
-                <div className="pt-2">
-                  <KycButton className="w-full text-center" />
-                </div>
-              )}
             </div>
           )}
         </div>

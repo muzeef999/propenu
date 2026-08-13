@@ -48,6 +48,10 @@ export default function BrochurePreview({
   const previewUrl = isPdf
   ? `${brochure.url}#page=1&zoom=85&toolbar=0&navpanes=0&scrollbar=1`
   : brochure.url;
+  const pdfFrameWrapperClassName =
+    "mx-auto w-full max-w-5xl overflow-hidden rounded-md border border-slate-300 bg-[#252525] shadow-[0_10px_30px_rgba(15,23,42,0.16)]";
+  const pdfFrameClassName =
+    "block h-[650px] w-full border-0 bg-[#252525] sm:h-[750px] lg:h-[850px]";
 
   const handleBrochureDownload = async () => {
     const token = Cookies.get("token")?.trim();
@@ -142,33 +146,13 @@ export default function BrochurePreview({
                       PDF VIEWER
                   ========================== */}
                   <div className="bg-[#eef2f6] p-3 sm:p-5">
-                    <div
-                      className="
-                        mx-auto
-                        w-full
-                        max-w-5xl
-                        overflow-hidden
-                        rounded-md
-                        border
-                        border-slate-300
-                        bg-[#252525]
-                        shadow-[0_10px_30px_rgba(15,23,42,0.16)]
-                      "
-                    >
+                    <div className={pdfFrameWrapperClassName}>
                       <iframe
                         key={previewUrl}
                         src={previewUrl}
                         title="Brochure PDF preview"
                         loading="lazy"
-                        className="
-                          block
-                          h-[650px]
-                          w-full
-                          border-0
-                          bg-[#252525]
-                          sm:h-[750px]
-                          lg:h-[850px]
-                        "
+                        className={pdfFrameClassName}
                       />
                     </div>
                   </div>

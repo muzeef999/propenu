@@ -49,7 +49,12 @@ function BlogCard({ post }: { post: BlogPost }) {
 
   return (
     <article className="group flex h-full overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-      <Link href={`/blogs/${post.slug}`} className="flex h-full w-full flex-col">
+      <Link
+        href={`/blogs/${post.slug}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex h-full w-full flex-col"
+      >
         <div className="relative aspect-16/10 w-full shrink-0 overflow-hidden bg-gray-100">
           <Image
             src={post.featuredImage || fallbackImage}
