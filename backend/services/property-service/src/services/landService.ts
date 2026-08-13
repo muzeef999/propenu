@@ -14,6 +14,8 @@ import {
   getCreatedByRoleName,
   isAgentReviewProperty,
   restoreCreatedById,
+  stampListingApproved,
+  stampListingRejected,
 } from "../utils/agentSubmission";
 
 dotenv.config({ quiet: true });
@@ -542,6 +544,7 @@ export const LandService = {
     const query = LandPlot.findById(id)
       .populate("createdBy", "name email phone role roleId")
       .populate("createdBy.roleId", "name label")
+      .populate("approvedBy", "name email phone role roleName roleId");
     if (includeAudit) query.populate(auditUserPopulate);
     const doc = await query.exec();
     if (!doc) return null;
@@ -678,6 +681,7 @@ export const LandService = {
     documentIndex: number,
     status: "verified" | "rejected",
     rejectedReason = "",
+    approverId?: string | null,
   ) {
     const property = await LandPlot.findById(propertyId);
     if (!property) return null;
@@ -693,16 +697,10 @@ export const LandService = {
         (await getCreatedByRoleName(LandPlot, property.createdBy));
 
       if (isAgentReviewProperty(property, roleName)) {
-        property.rejectedReason =
-          status === "rejected" ? rejectedReason.trim() : "";
-        property.status = status === "verified" ? "active" : "draft";
-        property.isPublished = status === "verified";
         if (status === "verified") {
-          property.completion = {
-            percent: 100,
-            step: 5,
-            lastSection: "verification",
-          };
+          stampListingApproved(property, approverId);
+        } else {
+          stampListingRejected(property, rejectedReason);
         }
         await property.save();
         await upsertActiveListingCityAndLocality(property);
@@ -724,21 +722,13 @@ export const LandService = {
 
     // 2️⃣ Check if ANY document is verified
     const hasVerified = docs.some(
-      (doc) => doc.status === "verified",
+      (d) => d.status === "verified",
     );
 
-    // 3️⃣ Auto publish if verified
     if (hasVerified) {
-      property.status = "active";
-      property.isPublished = true;
-      property.completion = {
-        percent: 100,
-        step: 5,
-        lastSection: "verification",
-      };
+      stampListingApproved(property, approverId);
     } else {
-      property.status = "draft";
-      property.isPublished = false;
+      stampListingRejected(property, rejectedReason);
     }
 
     await property.save();

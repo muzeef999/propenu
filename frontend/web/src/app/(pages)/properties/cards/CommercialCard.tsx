@@ -173,6 +173,8 @@ const CommercialCard: React.FC<Props> = ({
     >
       <Link
         href={`/properties/commercial/${p.slug}`}
+        target="_blank"
+        rel="noopener noreferrer"
         onClick={() => {
           const property = p as any;
           trackInteraction({

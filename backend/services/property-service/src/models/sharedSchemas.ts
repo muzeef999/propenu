@@ -327,6 +327,8 @@ export const BaseFields = {
     approvedAt: Date,
     approvalComment: String,
     approvalToken: String, // ⭐ email approval link token
+    /** True when a previously live listing was edited and needs hierarchy re-approve */
+    reverificationRequired: { type: Boolean, default: false },
   },
   approvedBy: {
     type: Schema.Types.ObjectId,

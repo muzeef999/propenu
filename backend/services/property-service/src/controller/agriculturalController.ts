@@ -28,6 +28,7 @@ import {
   isDirectAgentRole,
   populateListingAuditFields,
   shouldSubmitListingForReview,
+  stampListingApproved,
   submitAgentListingForReview,
 } from "../utils/agentSubmission";
 
@@ -797,6 +798,7 @@ export const verifyAgricultiralDocument = async (
       documentIndex,
       status,
       rejectedReason,
+      req.user?.id ?? null,
     );
 
     if (!updated) {
@@ -909,17 +911,11 @@ export const approveAgriculturalProperty = async (
     if (property.approval.approvalToken !== token)
       return res.status(400).json({ message: "Invalid approval link" });
 
-    /* ✅ UPDATE PROPERTY */
-    property.status = "active";
-    property.isPublished = true;
-
-    /* ✅ UPDATE APPROVAL */
-    property.approval.status = "approved";
-    property.approval.isApprovedByManager = true;
-    property.approval.approvedAt = new Date();
-
-    /* optional security */
-    property.approval.approvalToken = undefined;
+    stampListingApproved(property, (req as any).user?.id ?? null);
+    if (property.approval) {
+      (property.approval as any).isApprovedByManager = true;
+      property.approval.approvalToken = undefined;
+    }
 
     await property.save();
 

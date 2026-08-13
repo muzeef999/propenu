@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { useCity } from "@/hooks/useCity";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import ActiveTabs from "@/ui/ActiveTabs";
-import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import {
   setCategory,
@@ -53,7 +52,6 @@ const listingTypes: ListingType[] = ["Buy", "Rent"];
 
 const ResidentialLinks = () => {
   const dispatch = useDispatch();
-  const router = useRouter();
   const { selectedCity } = useCity();
   const cityName = selectedCity?.city ?? "Hyderabad";
   const [listingType, setListingType] = useState<ListingType>("Buy");
@@ -75,6 +73,24 @@ const ResidentialLinks = () => {
     const [, locality = ""] = link.split("|");
     const bedroomMatch = link.match(/^(\d+)\s+BHK/i);
     const bedrooms = bedroomMatch ? [Number(bedroomMatch[1])] : [];
+    const params = new URLSearchParams({
+      category: "Residential",
+      listingType: listingType === "Buy" ? "sale" : "rent",
+      propertyType: activePropertyType,
+      city: cityName,
+    });
+
+    if (selectedCity?.state) {
+      params.set("state", selectedCity.state);
+    }
+
+    if (bedrooms.length > 0) {
+      params.set("bedrooms", bedrooms.join(","));
+    }
+
+    if (locality) {
+      params.set("locality", locality);
+    }
 
     dispatch(setCategory("Residential"));
     dispatch(
@@ -97,7 +113,7 @@ const ResidentialLinks = () => {
       }),
     );
     dispatch(setSearchText(""));
-    router.push("/properties");
+    window.open(`/properties?${params.toString()}`, "_blank", "noopener,noreferrer");
   };
 
   return (

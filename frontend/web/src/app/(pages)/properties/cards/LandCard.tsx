@@ -217,6 +217,8 @@ export const LandCard: React.FC<Props> = ({
     >
       <Link
         href={`/properties/land/${p.slug}`}
+        target="_blank"
+        rel="noopener noreferrer"
         onClick={() => {
           const property = p as any;
           trackInteraction({

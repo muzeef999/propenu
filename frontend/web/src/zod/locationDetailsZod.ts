@@ -32,9 +32,14 @@ export const locationDetailsSchema = z.object({
   }),
 
   pincode: z
-    .string({ message: "Pincode is required" })
-    .regex(/^\d+$/, "Pincode must contain only numbers")
-    .length(6, "Pincode must be 6 digits"),
+    .string()
+    .trim()
+    .refine(
+      (value) => value === "" || (/^\d+$/.test(value) && value.length === 6),
+      "Pincode must be 6 digits",
+    )
+    .optional()
+    .default(""),
 
 
   buildingName: z.string().optional(),

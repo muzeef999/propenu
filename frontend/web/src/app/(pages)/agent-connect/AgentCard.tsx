@@ -214,7 +214,12 @@ export default function AgentsList() {
 // Agent Card Component
 function AgentCard({ data }: { data: AgentConnect }) {
   return (
-    <Link href={`/agent-connect/${data.slug}`} className="block h-full w-full min-w-0">
+    <Link
+      href={`/agent-connect/${data.slug}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block h-full w-full min-w-0"
+    >
       <div className="card w-full h-full flex flex-col justify-between min-w-0 overflow-hidden">
         {/* Banner */}
         <div className="h-28 relative shrink-0">

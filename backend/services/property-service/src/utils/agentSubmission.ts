@@ -390,6 +390,41 @@ export async function stampListingUpdateAudit(Model: any, property: any, authUse
   property.updateCount = Number(property.updateCount || 0) + 1;
 }
 
+/** Stamp who approved + when listing went live (createdAt stays original). */
+export function stampListingApproved(property: any, approverId?: string | null) {
+  if (!property) return;
+  const now = new Date();
+  property.status = "active";
+  property.isPublished = true;
+  property.rejectedReason = "";
+  property.approval ??= {};
+  property.approval.status = "approved";
+  property.approval.approvedAt = now;
+  property.approval.reverificationRequired = false;
+  property.approvedAt = now;
+  if (approverId && mongoose.Types.ObjectId.isValid(String(approverId))) {
+    const oid = new mongoose.Types.ObjectId(String(approverId));
+    property.approvedBy = oid;
+    property.approval.approvedByManager = oid;
+  }
+  property.completion = {
+    ...(property.completion?.toObject?.() ?? property.completion ?? {}),
+    percent: 100,
+    step: 5,
+    lastSection: "verification",
+  };
+}
+
+export function stampListingRejected(property: any, rejectedReason = "") {
+  if (!property) return;
+  property.status = "draft";
+  property.isPublished = false;
+  property.rejectedReason = String(rejectedReason || "").trim();
+  property.approval ??= {};
+  property.approval.status = "rejected";
+  property.approval.reverificationRequired = false;
+}
+
 export async function submitAgentListingForReview(
   Model: any,
   id: string,
@@ -398,6 +433,12 @@ export async function submitAgentListingForReview(
   const property = await Model.findById(id);
   if (!property) return null;
   const assignedCreatedBy = property.createdBy?.toString?.() ?? property.createdBy;
+
+  const prevStatus = String(property.status || "").toLowerCase();
+  const wasLive =
+    prevStatus === "active" ||
+    Boolean(property.approvedAt) ||
+    String(property.approval?.status || "").toLowerCase() === "approved";
 
   property.status = "pending";
   property.isPublished = false;
@@ -409,6 +450,19 @@ export async function submitAgentListingForReview(
   };
   property.approval ??= {};
   property.approval.status = "pending";
+  property.approval.reverificationRequired = wasLive;
+  property.approval.approvedAt = undefined;
+  property.approval.approvedByManager = undefined;
+  property.approvedBy = undefined;
+  property.approvedAt = undefined;
+
+  // Live → edited: documents must be re-verified with hierarchy approve again
+  if (wasLive && Array.isArray(property.verificationDocuments)) {
+    for (const doc of property.verificationDocuments) {
+      if (doc) doc.status = "pending";
+    }
+  }
+
   property.postedBy = await buildPostedByAudit(
     Model,
     property.createdBy,
@@ -422,6 +476,7 @@ export async function submitAgentListingForReview(
   const submitted = await Model.findById(id)
     .populate("createdBy", "name email phone role roleId")
     .populate("createdBy.roleId", "name label")
+    .populate("approvedBy", "name email phone role roleName roleId")
     .populate("lastUpdatedBy.userId", "name email phone role roleId")
     .populate("updateHistory.userId", "name email phone role roleId")
     .lean();
