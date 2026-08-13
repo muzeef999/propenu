@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { useCity } from "@/hooks/useCity";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import ActiveTabs from "@/ui/ActiveTabs";
-import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import {
   setCategory,
@@ -70,7 +69,6 @@ const getCategoryLinkGroups = (
 
 const CommercialLinks = () => {
   const dispatch = useDispatch();
-  const router = useRouter();
   const { selectedCity } = useCity();
   const cityName = selectedCity?.city ?? "Hyderabad";
   const [listingType, setListingType] = useState<ListingType>("Buy");
@@ -94,6 +92,20 @@ const CommercialLinks = () => {
   const handleQuickLinkClick = (link: string) => {
     const locality = link.split(" in ").at(-1) ?? "";
     const selectedLocality = locality && locality !== cityName ? locality : "";
+    const params = new URLSearchParams({
+      category: "Commercial",
+      listingType: listingType === "Buy" ? "sale" : "rent",
+      propertyType: activeCommercialType,
+      city: cityName,
+    });
+
+    if (selectedCity?.state) {
+      params.set("state", selectedCity.state);
+    }
+
+    if (selectedLocality) {
+      params.set("locality", selectedLocality);
+    }
 
     dispatch(setCategory("Commercial"));
     dispatch(
@@ -115,7 +127,7 @@ const CommercialLinks = () => {
       }),
     );
     dispatch(setSearchText(""));
-    router.push("/properties");
+    window.open(`/properties?${params.toString()}`, "_blank", "noopener,noreferrer");
   };
 
   return (

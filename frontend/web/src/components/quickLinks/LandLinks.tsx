@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { useCity } from "@/hooks/useCity";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import ActiveTabs from "@/ui/ActiveTabs";
-import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import {
   setCategory,
@@ -69,7 +68,6 @@ const getLandSubTypesFromLink = (link: string) => {
 
 const LandLinks = () => {
   const dispatch = useDispatch();
-  const router = useRouter();
   const { selectedCity } = useCity();
   const cityName = selectedCity?.city ?? "Hyderabad";
   const [listingType, setListingType] = useState<ListingType>("Buy");
@@ -91,6 +89,24 @@ const LandLinks = () => {
   const handleQuickLinkClick = (link: string) => {
     const [, locality = ""] = link.split("|");
     const landSubTypes = getLandSubTypesFromLink(link);
+    const params = new URLSearchParams({
+      category: "Land",
+      listingType: listingType === "Buy" ? "sale" : "rent",
+      propertyType: activeLandType,
+      city: cityName,
+    });
+
+    if (selectedCity?.state) {
+      params.set("state", selectedCity.state);
+    }
+
+    if (landSubTypes.length > 0) {
+      params.set("propertySubType", landSubTypes.join(","));
+    }
+
+    if (locality) {
+      params.set("locality", locality);
+    }
 
     dispatch(setCategory("Land"));
     dispatch(
@@ -118,7 +134,7 @@ const LandLinks = () => {
       }),
     );
     dispatch(setSearchText(""));
-    router.push("/properties");
+    window.open(`/properties?${params.toString()}`, "_blank", "noopener,noreferrer");
   };
 
   return (

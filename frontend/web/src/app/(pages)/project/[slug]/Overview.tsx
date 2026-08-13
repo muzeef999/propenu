@@ -101,11 +101,6 @@ export default function Overview({ project }: OverviewProps) {
       label: "Property Type",
       value: formatPropertyType(project.propertyType),
     },
-
-    {
-      label: "Availability",
-      value: formatAvailableUnits(project),
-    },
     {
       label: "Units",
       value: project.totalUnits ? `${project.totalUnits} Units` : "--",
