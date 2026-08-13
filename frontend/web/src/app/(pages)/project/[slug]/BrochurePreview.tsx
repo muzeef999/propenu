@@ -9,22 +9,24 @@ import Cookies from "js-cookie";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   HiArrowDownTray,
+  HiArrowsPointingIn,
+  HiArrowsPointingOut,
   HiChevronLeft,
   HiChevronRight,
   HiDocumentText,
 } from "react-icons/hi2";
-import { Document, Page, pdfjs } from "react-pdf";
-
-pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
 type BrochurePreviewProps = {
   project: FeaturedProject;
 };
 
+type ReactPdfModule = typeof import("react-pdf");
+
 export default function BrochurePreview({
   project,
 }: BrochurePreviewProps) {
   const brochure = project.brochure;
+  const pdfViewerRef = useRef<HTMLDivElement | null>(null);
   const pdfScrollerRef = useRef<HTMLDivElement | null>(null);
 
   const [showLoginDialog, setShowLoginDialog] = useState(false);
@@ -32,8 +34,16 @@ export default function BrochurePreview({
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pdfPageWidth, setPdfPageWidth] = useState(320);
+  const [pdfPageHeight, setPdfPageHeight] = useState(468);
   const [pdfViewportWidth, setPdfViewportWidth] = useState(320);
   const [pdfError, setPdfError] = useState("");
+  const [pdfModule, setPdfModule] = useState<Pick<
+    ReactPdfModule,
+    "Document" | "Page"
+  > | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const previewHeight = "500px";
+  const fullscreenHeight = "calc(100vh - 40px)";
 
   const isPdf =
     brochure?.mimetype?.toLowerCase().includes("pdf") ||
@@ -45,20 +55,78 @@ export default function BrochurePreview({
   }, [brochure?.url, isPdf]);
 
   useEffect(() => {
+    let isMounted = true;
+
+    import("react-pdf")
+      .then((module) => {
+        module.pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+
+        if (!isMounted) return;
+
+        setPdfModule({
+          Document: module.Document,
+          Page: module.Page,
+        });
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setPdfError("PDF preview library could not be loaded.");
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
     const scroller = pdfScrollerRef.current;
     if (!scroller || !isPdf) return;
 
     const resizeObserver = new ResizeObserver(([entry]) => {
       const width = entry.contentRect.width;
       const horizontalPadding = width >= 640 ? 96 : 32;
+      const viewerHeight = isFullscreen ? window.innerHeight - 8 : 500;
+      const controlsHeight = 52;
+      const progressHeight = 4;
+      const verticalPadding = isFullscreen ? 0 : 56;
+      const nextPageHeight = Math.max(
+        260,
+        viewerHeight - controlsHeight - progressHeight - verticalPadding,
+      );
       setPdfViewportWidth(width);
       setPdfPageWidth(Math.max(260, Math.min(860, width - horizontalPadding)));
+      setPdfPageHeight(nextPageHeight);
     });
 
     resizeObserver.observe(scroller);
 
     return () => resizeObserver.disconnect();
-  }, [isPdf]);
+  }, [isFullscreen, isPdf]);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    const scroller = pdfScrollerRef.current;
+    if (!scroller || !numPages) return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      scroller.scrollTo({
+        left: (currentPage - 1) * scroller.clientWidth,
+        behavior: "auto",
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [currentPage, isFullscreen, numPages, pdfViewportWidth]);
 
   const scrollToPdfPage = (pageNumber: number) => {
     const scroller = pdfScrollerRef.current;
@@ -93,6 +161,13 @@ export default function BrochurePreview({
       scrollToPdfPage(currentPage + 1);
     }
   };
+
+  const toggleFullscreen = () => {
+    setIsFullscreen((current) => !current);
+  };
+
+  const DocumentComponent = pdfModule?.Document;
+  const PageComponent = pdfModule?.Page;
 
   if (!brochure?.url) return null;
 
@@ -156,7 +231,7 @@ export default function BrochurePreview({
               <button
                 type="button"
                 onClick={handleBrochureDownload}
-                className="inline-flex w-fit items-center gap-2 rounded-md bg-[#27AE60] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#15803D]"
+                className="inline-flex w-fit items-center gap-2 rounded-md border border-[#27AE60]/20 bg-[#27AE60] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1f9451]"
               >
                 <HiArrowDownTray className="h-4 w-4" />
 
@@ -170,121 +245,222 @@ export default function BrochurePreview({
             <div className="bg-[#f4f6f5] p-3 sm:p-5">
 
               {isPdf ? (
-                <div className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
-                  <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-600">
-                        Page {currentPage}
-                        {numPages ? ` of ${numPages}` : ""}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => scrollToPdfPage(currentPage - 1)}
-                        disabled={currentPage <= 1}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                        aria-label="Previous brochure page"
-                      >
-                        <HiChevronLeft className="h-5 w-5" />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => scrollToPdfPage(currentPage + 1)}
-                        disabled={!numPages || currentPage >= numPages}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                        aria-label="Next brochure page"
-                      >
-                        <HiChevronRight className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </div>
+                <div
+                  className={`overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm ${
+                    isFullscreen ? "fixed inset-0 z-50 border-0 bg-[#252525] p-0 shadow-none" : ""
+                  }`}
+                >
+                 
 
                   {/* =========================
                       PDF VIEWER
                   ========================== */}
-                  <div className="bg-[#eef2f6] p-3 sm:p-5">
                     <div
-                      ref={pdfScrollerRef}
-                      onScroll={handlePdfScroll}
-                      onKeyDown={handlePdfKeyDown}
-                      tabIndex={0}
-                      className="w-full overflow-x-auto overflow-y-hidden rounded-md border border-slate-300 bg-[#252525] shadow-[0_10px_30px_rgba(15,23,42,0.16)] outline-none ring-0 transition focus-visible:ring-2 focus-visible:ring-[#27AE60] focus-visible:ring-offset-2 [scroll-snap-type:x_mandatory]"
-                      aria-label="Horizontal brochure PDF pages. Use left and right arrow keys to change pages."
+                      ref={pdfViewerRef}
+                      className={`relative overflow-hidden rounded-md border border-slate-300 bg-[#252525] shadow-[0_10px_30px_rgba(15,23,42,0.16)] ${
+                        isFullscreen
+                          ? "h-full w-full rounded-none border-0 shadow-none"
+                          : ""
+                      }`}
                     >
-                      <Document
-                        key={pdfPreviewUrl}
-                        file={pdfPreviewUrl}
-                        loading={
-                          <div className="flex h-[520px] items-center justify-center text-sm font-medium text-white/80">
+                      <button
+                        type="button"
+                        onClick={handleBrochureDownload}
+                        className={`absolute z-10 inline-flex items-center justify-center bg-[#27AE60] text-white shadow-[0_12px_32px_rgba(39,174,96,0.35)] transition hover:bg-[#1f9451] ${
+                          isFullscreen
+                            ? "bottom-6 left-6 h-12 w-12 rounded-full"
+                            : "bottom-16 left-5 h-14 w-14 rounded-full"
+                        }`}
+                        aria-label="Download brochure"
+                      >
+                        <HiArrowDownTray className={isFullscreen ? "h-6 w-6" : "h-7 w-7"} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={toggleFullscreen}
+                        className="absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-white shadow-md transition hover:bg-black/60"
+                        aria-label={isFullscreen ? "Exit fullscreen brochure preview" : "Open brochure preview in fullscreen"}
+                      >
+                        {isFullscreen ? (
+                          <HiArrowsPointingIn className="h-5 w-5" />
+                        ) : (
+                          <HiArrowsPointingOut className="h-5 w-5" />
+                        )}
+                      </button>
+
+                      {isFullscreen ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => scrollToPdfPage(currentPage - 1)}
+                            disabled={currentPage <= 1}
+                            className="absolute left-4 top-1/2 z-10 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white shadow-md transition hover:bg-black/60 disabled:cursor-not-allowed disabled:opacity-30 sm:left-6"
+                            aria-label="Previous brochure page"
+                          >
+                            <HiChevronLeft className="h-6 w-6" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => scrollToPdfPage(currentPage + 1)}
+                            disabled={!numPages || currentPage >= numPages}
+                            className="absolute right-4 top-1/2 z-10 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white shadow-md transition hover:bg-black/60 disabled:cursor-not-allowed disabled:opacity-30 sm:right-6"
+                            aria-label="Next brochure page"
+                          >
+                            <HiChevronRight className="h-6 w-6" />
+                          </button>
+
+                          <div className="absolute bottom-10 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/45 px-4 py-2 text-sm font-semibold text-white shadow-md">
+                            {currentPage}
+                            {numPages ? ` of ${numPages}` : ""}
+                          </div>
+                        </>
+                      ) : null}
+
+                      <div
+                        ref={pdfScrollerRef}
+                        onScroll={handlePdfScroll}
+                        onKeyDown={handlePdfKeyDown}
+                        tabIndex={0}
+                        className={`relative no-scrollbar w-full overflow-x-auto overflow-y-hidden bg-[#252525] outline-none ring-0 transition focus-visible:ring-2 focus-visible:ring-[#27AE60] focus-visible:ring-offset-2 [scroll-snap-type:x_mandatory] ${
+                          isFullscreen ? "rounded-t-2xl" : ""
+                        }`}
+                        style={{ height: isFullscreen ? fullscreenHeight : previewHeight }}
+                        aria-label="Horizontal brochure PDF pages. Use left and right arrow keys to change pages."
+                      >
+                        {DocumentComponent && PageComponent ? (
+                        <DocumentComponent
+                          key={pdfPreviewUrl}
+                          file={pdfPreviewUrl}
+                          loading={
+                            <div
+                              className="flex items-center justify-center text-sm font-medium text-white/80"
+                              style={{ height: isFullscreen ? fullscreenHeight : previewHeight }}
+                            >
+                              Loading brochure...
+                            </div>
+                          }
+                          error={
+                            <div
+                              className="flex items-center justify-center px-4 text-center text-sm font-medium text-white/80"
+                              style={{ height: isFullscreen ? fullscreenHeight : previewHeight }}
+                            >
+                              <div>
+                                <p>
+                                  Brochure preview could not be loaded. Please use
+                                  the download button.
+                                </p>
+                                {pdfError ? (
+                                  <p className="mt-2 text-xs text-white/60">
+                                    {pdfError}
+                                  </p>
+                                ) : null}
+                              </div>
+                            </div>
+                          }
+                          onLoadSuccess={({
+                            numPages: loadedPages,
+                          }: {
+                            numPages: number;
+                          }) => {
+                            setPdfError("");
+                            setNumPages(loadedPages);
+                            setCurrentPage(1);
+                          }}
+                          onLoadError={(error) => {
+                            setPdfError(error.message);
+                          }}
+                        >
+                          <div
+                            className="flex w-max items-center overflow-y-hidden"
+                            style={{ height: isFullscreen ? fullscreenHeight : previewHeight }}
+                          >
+                            {Array.from(
+                              { length: numPages },
+                              (_, pageIndex) => (
+                                <div
+                                  key={pageIndex + 1}
+                                  className={`flex shrink-0 items-center justify-center [scroll-snap-align:start] ${
+                                    isFullscreen ? "px-6 py-4" : "px-4 py-4"
+                                  }`}
+                                  style={{
+                                    height: isFullscreen ? fullscreenHeight : previewHeight,
+                                    width: pdfViewportWidth,
+                                  }}
+                                >
+                                  <PageComponent
+                                    pageNumber={pageIndex + 1}
+                                    height={pdfPageHeight}
+                                    renderAnnotationLayer={false}
+                                    renderTextLayer={false}
+                                    className="overflow-hidden  bg-white shadow-md"
+                                    loading={
+                                      <div
+                                        className="flex items-center justify-center bg-white text-xs font-medium text-slate-500"
+                                        style={{
+                                          height: pdfPageHeight,
+                                          width: pdfPageWidth,
+                                        }}
+                                      >
+                                        Loading page...
+                                      </div>
+                                    }
+                                  />
+                                </div>
+                              )
+                            )}
+                          </div>
+                        </DocumentComponent>
+                        ) : (
+                          <div
+                            className="flex items-center justify-center text-sm font-medium text-white/80"
+                            style={{ height: isFullscreen ? fullscreenHeight : previewHeight }}
+                          >
                             Loading brochure...
                           </div>
-                        }
-                        error={
-                          <div className="flex h-[520px] items-center justify-center px-4 text-center text-sm font-medium text-white/80">
-                            <div>
-                              <p>
-                                Brochure preview could not be loaded. Please use
-                                the download button.
-                              </p>
-                              {pdfError ? (
-                                <p className="mt-2 text-xs text-white/60">
-                                  {pdfError}
-                                </p>
-                              ) : null}
-                            </div>
-                          </div>
-                        }
-                        onLoadSuccess={({
-                          numPages: loadedPages,
-                        }: {
-                          numPages: number;
-                        }) => {
-                          setPdfError("");
-                          setNumPages(loadedPages);
-                          setCurrentPage(1);
-                        }}
-                        onLoadError={(error) => {
-                          setPdfError(error.message);
-                        }}
-                      >
-                        <div className="flex min-h-[520px] w-max items-start sm:min-h-[640px] lg:min-h-[760px]">
-                          {Array.from(
-                            { length: numPages },
-                            (_, pageIndex) => (
-                              <div
-                                key={pageIndex + 1}
-                                className="flex shrink-0 justify-center px-4 py-4 [scroll-snap-align:start] sm:px-12 sm:py-6"
-                                style={{ width: pdfViewportWidth }}
-                              >
-                                <Page
-                                  pageNumber={pageIndex + 1}
-                                  width={pdfPageWidth}
-                                  renderAnnotationLayer={false}
-                                  renderTextLayer={false}
-                                  className="overflow-hidden rounded-sm bg-white shadow-md"
-                                  loading={
-                                    <div
-                                      className="flex items-center justify-center bg-white text-xs font-medium text-slate-500"
-                                      style={{
-                                        height: pdfPageWidth * 1.35,
-                                        width: pdfPageWidth,
-                                      }}
-                                    >
-                                      Loading page...
-                                    </div>
-                                  }
-                                />
-                              </div>
-                            )
-                          )}
+                        )}
+                      </div>
+
+                      <div className="h-1 w-full bg-[#1f2a37]">
+                        <div
+                          className="h-full bg-[#27AE60] transition-all duration-300"
+                          style={{
+                            width: numPages ? `${(currentPage / numPages) * 100}%` : "0%",
+                          }}
+                        />
+                      </div>
+
+                      {!isFullscreen ? (
+                        <div className="flex items-center justify-center gap-3 bg-[#252525] px-4 py-3 text-white">
+                          <button
+                            type="button"
+                            onClick={() => scrollToPdfPage(currentPage - 1)}
+                            disabled={currentPage <= 1}
+                            className="inline-flex h-7 w-7 items-center justify-center text-white transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-30"
+                            aria-label="Previous brochure page"
+                          >
+                            <HiChevronLeft className="h-4 w-4" />
+                          </button>
+
+                          <p className="min-w-[64px] text-center text-sm font-semibold">
+                            {currentPage}
+                            {numPages ? ` of ${numPages}` : ""}
+                          </p>
+
+                          <button
+                            type="button"
+                            onClick={() => scrollToPdfPage(currentPage + 1)}
+                            disabled={!numPages || currentPage >= numPages}
+                            className="inline-flex h-7 w-7 items-center justify-center text-white transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-30"
+                            aria-label="Next brochure page"
+                          >
+                            <HiChevronRight className="h-4 w-4" />
+                          </button>
                         </div>
-                      </Document>
+                      ) : null}
                     </div>
                   </div>
-                </div>
               ) : (
 
                 /* =========================

@@ -737,7 +737,7 @@
             </button>
 
             {isStateDropdownOpen && (
-              <div className="absolute left-0 right-0 top-full z-[1000] mt-1 rounded-md border border-gray-200 bg-white shadow-lg">
+              <div className="absolute left-0 right-0 top-full z-1000 mt-1 rounded-md border border-gray-200 bg-white shadow-lg">
                 <div className="relative border-b border-gray-100 p-2">
                   <input
                     autoFocus
@@ -855,7 +855,7 @@
             </button>
 
             {isCityDropdownOpen && (
-              <div className="absolute left-0 right-0 top-full z-[1000] mt-1 rounded-md border border-gray-200 bg-white shadow-lg">
+              <div className="absolute left-0 right-0 top-full z-1000 mt-1 rounded-md border border-gray-200 bg-white shadow-lg">
                 <div className="relative border-b border-gray-100 p-2">
                   <input
                     autoFocus
@@ -969,7 +969,7 @@
             </button>
 
             {isPhotonDropdownOpen && (
-              <div className="absolute left-0 right-0 top-full z-[1000] mt-1 rounded-md border border-gray-200 bg-white shadow-lg">
+              <div className="absolute left-0 right-0 top-full z-1000 mt-1 rounded-md border border-gray-200 bg-white shadow-lg">
                 <div className="relative border-b border-gray-100 p-2">
                   <input
                     autoFocus

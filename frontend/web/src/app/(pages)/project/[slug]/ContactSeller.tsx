@@ -796,7 +796,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
           </div>
         ) : inviteStep === "role_conflict" ? (
           <div className="mt-5 space-y-4">
-            <div className="rounded-md border border-red-200 bg-gradient-to-br from-red-50 via-white to-red-50 p-3.5 shadow-sm">
+            <div className="rounded-md border border-red-200 bg-linear-to-br from-red-50 via-white to-red-50 p-3.5 shadow-sm">
               <div className="flex items-start gap-2.5">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-200 bg-white text-red-500">
                   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1094,10 +1094,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
             ) : (
               <>
                 <p className="mt-3 text-base font-semibold text-[#27AE60]">Thank You!</p>
-                <p className="mt-1.5 text-sm leading-6 text-slate-700">
-                  View the seller's contact details below.<br />
-                  Your enquiry has been shared.
-                </p>
+               
               </>
             )}
           </div>

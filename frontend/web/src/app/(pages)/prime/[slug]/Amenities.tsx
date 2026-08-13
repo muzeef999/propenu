@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { amenityTitleToIconPath } from "@/lib/amenityIcons";
 import { hexToRGBA } from "@/ui/hexToRGBA";
+import { HiChevronLeft, HiChevronRight } from "react-icons/hi2";
 
 export type Amenity = {
   key?: string;
@@ -60,6 +61,7 @@ export default function Amenities(props: Props) {
   const [query, setQuery] = useState("");
   const [showAll, setShowAll] = useState(false);
   const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
+  const [desktopPage, setDesktopPage] = useState(0);
 
   // Detect screen size for responsive behavior
   useEffect(() => {
@@ -94,15 +96,20 @@ export default function Amenities(props: Props) {
 
   const amenitiesToShow = useMemo(
     () => {
-      // On desktop (lg and above), show all filtered amenities
       if (!isMobileOrTablet) {
-        return filtered;
+        return filtered.slice(desktopPage * 20, (desktopPage + 1) * 20);
       }
-      // On mobile/tablet, show 10 unless "showAll" is true
       return showAll ? filtered : filtered.slice(0, 10);
     },
-    [filtered, showAll, isMobileOrTablet]
+    [desktopPage, filtered, showAll, isMobileOrTablet]
   );
+
+  const totalDesktopPages = Math.ceil(filtered.length / 20);
+
+  useEffect(() => {
+    if (isMobileOrTablet) return;
+    setDesktopPage((current) => Math.min(current, Math.max(totalDesktopPages - 1, 0)));
+  }, [filtered.length, isMobileOrTablet, totalDesktopPages]);
 
 
   return (
@@ -123,42 +130,72 @@ export default function Amenities(props: Props) {
       </div>
       <br />
 
-      <div className="grid lg:grid-cols-5 sm:grid-cols-3 grid-cols-2 gap-4 ">
-        {amenitiesToShow.length === 0 ? (
-          <div className="text-sm text-slate-500">No amenities available.</div>
-        ) : (
-          amenitiesToShow.map((a, idx) => {
-            const key = a.key ?? a.title ?? `amenity-${idx}`;
-            const title = a.title ?? "Amenity";
-            // icon priority: uploaded imageUrl -> local icon path from mapping -> default placeholder
-            const iconSrc = a.imageUrl ?? amenityTitleToIconPath(title) ?? "/icons/amenities/default.svg";
+      <div className="flex items-center gap-3 lg:gap-5">
+        {!isMobileOrTablet ? (
+          <button
+            type="button"
+            onClick={() => setDesktopPage((current) => Math.max(current - 1, 0))}
+            disabled={desktopPage === 0}
+            style={{ color: accent, borderColor: hexToRGBA(accent, 0.2), backgroundColor: pillBg }}
+            className="hidden lg:inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-35"
+            aria-label="Previous amenities"
+          >
+            <HiChevronLeft className="h-5 w-5" />
+          </button>
+        ) : null}
 
+        <div className="min-w-0 flex-1">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            {amenitiesToShow.length === 0 ? (
+              <div className="text-sm text-slate-500">No amenities available.</div>
+            ) : (
+              amenitiesToShow.map((a, idx) => {
+                const key = a.key ?? a.title ?? `amenity-${idx}`;
+                const title = a.title ?? "Amenity";
+                const iconSrc = a.imageUrl ?? amenityTitleToIconPath(title) ?? "/icons/amenities/default.svg";
 
-            return (
-              <div
-                key={key}
-                title={title}
-                className="flex items-center gap-2 text-xs text-gray-700 truncate sm:gap-3 sm:text-sm"
-              >
-                <span
-                  className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 shrink-0 sm:h-9 sm:w-9"
-                >
-                  <img
-                    src={iconSrc}
-                    alt={title}
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).onerror = null;
-                      (e.currentTarget as HTMLImageElement).src = "/icons/amenities/default.svg";
-                    }}
-                    className="h-4 w-4 object-contain sm:h-6 sm:w-6"
-                  />
-                </span>
+                return (
+                  <div
+                    key={key}
+                    title={title}
+                    className="flex items-center gap-2 text-xs text-gray-700 truncate sm:gap-3 sm:text-sm"
+                  >
+                    <span
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 sm:h-9 sm:w-9"
+                    >
+                      <img
+                        src={iconSrc}
+                        alt={title}
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).onerror = null;
+                          (e.currentTarget as HTMLImageElement).src = "/icons/amenities/default.svg";
+                        }}
+                        className="h-4 w-4 object-contain sm:h-6 sm:w-6"
+                      />
+                    </span>
 
-                <span className="whitespace-nowrap text-xs sm:text-sm">{title}</span>
-              </div>
-            );
-          })
-        )}
+                    <span className="whitespace-nowrap text-xs sm:text-sm">{title}</span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {!isMobileOrTablet ? (
+          <button
+            type="button"
+            onClick={() =>
+              setDesktopPage((current) => Math.min(current + 1, Math.max(totalDesktopPages - 1, 0)))
+            }
+            disabled={desktopPage >= totalDesktopPages - 1}
+            style={{ color: accent, borderColor: hexToRGBA(accent, 0.2), backgroundColor: pillBg }}
+            className="hidden lg:inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-35"
+            aria-label="Next amenities"
+          >
+            <HiChevronRight className="h-5 w-5" />
+          </button>
+        ) : null}
       </div>
 
       {filtered.length > 10 && isMobileOrTablet && (
