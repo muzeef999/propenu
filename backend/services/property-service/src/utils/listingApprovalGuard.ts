@@ -37,6 +37,25 @@ export const assertCanApproveListing = (
     return false;
   }
 
+  const listingStatus = String(property?.status || "").toLowerCase();
+  if (listingStatus === "active") {
+    res.status(400).json({
+      success: false,
+      code: "ALREADY_LIVE",
+      message:
+        "Property is already live. Approve is hidden until an edit sends it back for re-verification.",
+    });
+    return false;
+  }
+  if (listingStatus !== "pending") {
+    res.status(400).json({
+      success: false,
+      code: "NOT_PENDING",
+      message: "Only pending listings can be approved by hierarchy staff.",
+    });
+    return false;
+  }
+
   const { creatorId, creatorRole } = resolveCreatorMeta(property);
   const permissions = Array.isArray(req.user.permissions)
     ? req.user.permissions
