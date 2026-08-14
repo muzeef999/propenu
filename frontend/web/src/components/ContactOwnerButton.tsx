@@ -33,6 +33,29 @@ interface ContactOwnerButtonProps {
   children?: React.ReactNode;
 }
 
+function normalizeComparableValue(value?: string | null) {
+  return value?.trim().toLowerCase() || "";
+}
+
+function sanitizePhoneInput(value?: string | null) {
+  const cleaned = String(value || "").replace(/[^\d+]/g, "");
+  if (!cleaned.startsWith("+")) {
+    return cleaned.replace(/\+/g, "");
+  }
+
+  return `+${cleaned.slice(1).replace(/\+/g, "")}`;
+}
+
+function getEntityId(value: unknown) {
+  if (!value) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "object") {
+    const entity = value as { _id?: string; id?: string };
+    return entity._id?.trim() || entity.id?.trim() || "";
+  }
+  return "";
+}
+
 export default function ContactOwnerButton({
   listingType,
   listingSource,
@@ -101,6 +124,27 @@ export default function ContactOwnerButton({
   };
 
   const user = userData?.user;
+  const loggedInUserId = getEntityId(user);
+  const createdById = getEntityId(createdBy);
+  const normalizedOwnerPhone = sanitizePhoneInput(ownerPhone);
+  const normalizedUserPhone = sanitizePhoneInput(user?.phone);
+  const normalizedOwnerEmail = normalizeComparableValue(ownerEmail);
+  const normalizedUserEmail = normalizeComparableValue(user?.email);
+  const isOwnPropertyLead =
+    Boolean(user) &&
+    (
+      (Boolean(loggedInUserId) && Boolean(createdById) && loggedInUserId === createdById) ||
+      (Boolean(normalizedUserPhone) &&
+        Boolean(normalizedOwnerPhone) &&
+        normalizedUserPhone === normalizedOwnerPhone) ||
+      (Boolean(normalizedUserEmail) &&
+        Boolean(normalizedOwnerEmail) &&
+        normalizedUserEmail === normalizedOwnerEmail)
+    );
+  const ownPropertyLeadMessage =
+    propertyType === "featuredprojects"
+      ? "You cannot submit a lead for your own project."
+      : "You cannot submit a lead for your own property.";
   const { mutate: postLead, isPending: isLeadPosting } = useMutation({
     mutationFn: postLeads,
     onSuccess: (response) => {
@@ -148,6 +192,11 @@ export default function ContactOwnerButton({
       return;
     }
 
+    if (isOwnPropertyLead) {
+      toast.error(ownPropertyLeadMessage);
+      return;
+    }
+
     if (!projectId) {
       toast.error("Property ID missing");
       return;
@@ -177,7 +226,7 @@ export default function ContactOwnerButton({
     <>
       <button
         onClick={handleContactOwner}
-        disabled={isLeadPosting || isLoadingUser}
+        disabled={isLeadPosting || isLoadingUser || isOwnPropertyLead}
         className={
           className ??
           "rounded btn-primary px-6 py-2 font-medium text-white disabled:cursor-not-allowed transition-opacity"

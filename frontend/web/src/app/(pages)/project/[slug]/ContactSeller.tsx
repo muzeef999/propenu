@@ -24,7 +24,7 @@ type IntentionAnswer = {
 
 const BUY_TIMELINE_QUESTION = "When do you plan to buy?";
 const BUDGET_QUESTION = "Your Budget?";
-const buyTimelineOptions = ["30 Days", "1 - 3 Months", "3 - 6 Months", "More than 6 Months"];
+const buyTimelineOptions = ["Within 30 Days", "1 - 3 Months", "3 - 6 Months", "More than 6 Months"];
 const budgetOptions = ["50L - 1Cr", "1Cr - 2Cr", "2Cr+"];
 
 type ContactSellerProps = {
@@ -34,6 +34,8 @@ type ContactSellerProps = {
 };
 
 type ContactLike = {
+  _id?: string;
+  id?: string;
   name?: string;
   fullName?: string;
   companyName?: string;
@@ -43,6 +45,8 @@ type ContactLike = {
 };
 
 type UserProfile = {
+  _id?: string;
+  id?: string;
   name?: string;
   fullName?: string;
   phone?: string;
@@ -76,6 +80,20 @@ function getUserPrefill(user?: UserProfile | null) {
 
 function isContactObject(value: unknown): value is ContactLike {
   return Boolean(value) && typeof value === "object";
+}
+
+function normalizeComparableValue(value?: string | null) {
+  return value?.trim().toLowerCase() || "";
+}
+
+function getEntityId(value: unknown) {
+  if (!value) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "object") {
+    const entity = value as { _id?: string; id?: string };
+    return entity._id?.trim() || entity.id?.trim() || "";
+  }
+  return "";
 }
 
 function getLeadErrorMessage(error: unknown) {
@@ -318,6 +336,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
     retry: 1,
   });
   const loggedInUser = userData?.user as UserProfile | undefined;
+  const loggedInUserId = getEntityId(loggedInUser);
   const userLeadPhone = loggedInUser?.phone
     ? sanitizePhoneInput(loggedInUser.phone)
     : "";
@@ -392,6 +411,19 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
     projectContact.email ||
     projectContact.contactEmail ||
     "";
+  const createdById = getEntityId(createdBy);
+  const developerId = getEntityId(developer);
+  const ownerPhone = contactPhone ? sanitizePhoneInput(contactPhone) : "";
+  const ownerEmail = normalizeComparableValue(contactEmail);
+  const userEmail = normalizeComparableValue(userLeadEmail);
+  const isOwnProjectLead =
+    Boolean(loggedInUser) &&
+    (
+      (Boolean(loggedInUserId) &&
+        (loggedInUserId === createdById || loggedInUserId === developerId)) ||
+      (Boolean(userLeadPhone) && Boolean(ownerPhone) && userLeadPhone === ownerPhone) ||
+      (Boolean(userEmail) && Boolean(ownerEmail) && userEmail === ownerEmail)
+    );
 
   const promotionType = String(project.promotion?.type || "normal").toLowerCase();
   const isTopSellingPromotion = [
@@ -403,6 +435,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
   const isNormalPromotion = promotionType === "normal" && !isTopSellingPromotion;
   const contactRole = isTopSellingPromotion ? "Seller" : "Builder";
   const submitButtonLabel = isNormalPromotion ? "Request Callback" : "Get Contact Details";
+  const ownProjectLeadMessage = "You cannot submit a lead for your own project.";
   const hasPrefilledUserDetails =
     Boolean(loggedInUser) &&
     Boolean(form.name.trim()) &&
@@ -479,6 +512,11 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
   // Standard Lead Submission
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (isOwnProjectLead) {
+      toast.error(ownProjectLeadMessage);
+      return;
+    }
 
     if (!isValidName(form.name)) {
       toast.error("Full Name should contain letters only");
@@ -1077,6 +1115,11 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
               Please share your contact details
             </p>
           )}
+          {isOwnProjectLead ? (
+            <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+              {ownProjectLeadMessage}
+            </div>
+          ) : null}
         </>
       )}
 
@@ -1241,7 +1284,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
 
           <button
             type="submit"
-            disabled={leadsMutation.isPending}
+            disabled={leadsMutation.isPending || isOwnProjectLead}
             className="h-10 w-full btn-primary text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
           >
             {leadsMutation.isPending ? "Submitting..." : submitButtonLabel}

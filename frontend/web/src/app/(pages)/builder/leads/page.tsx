@@ -135,11 +135,11 @@ const shouldMaskLeadContact = ({
 
 const getLeadContactDisplayValue = (lead: Lead, column: LeadColumn, shouldMaskContact: boolean) => {
   if (column.key === "phone") {
-    return shouldMaskContact ? getDisplayValue(lead.phone) : getDisplayValue(lead.phone);
+    return shouldMaskContact ? maskPhone(lead.phone) : getDisplayValue(lead.phone);
   }
 
   if (column.key === "email") {
-    return shouldMaskContact ? getDisplayValue(lead.email) : getDisplayValue(lead.email);
+    return shouldMaskContact ? maskEmail(lead.email) : getDisplayValue(lead.email);
   }
 
   return getColumnDisplayValue(lead, column);
@@ -183,6 +183,10 @@ const getPropertyPriceLabel = (property: any) => {
 const formatPromotionTypeLabel = (promotionType?: string) => {
   const value = String(promotionType ?? "normal").trim();
   if (!value) return "Normal";
+
+  if (value.toLowerCase() === "featured") {
+    return "Top Selling";
+  }
 
   return value
     .split(/[_\s-]+/)
@@ -792,6 +796,15 @@ export default function BuilderLeadsPage(): JSX.Element {
         <span className="text-sm text-gray-500">
           Showing <b>{properties.length}</b> Properties
         </span>
+        {typeof leadsData?.visibleLeadLimit === "number" ? (
+          <p className="mt-2 text-xs font-medium text-[#6B7280]">
+            Lead visibility: first{" "}
+            <span className="font-semibold text-[#111827]">
+              {leadsData.visibleLeadLimit}
+            </span>{" "}
+            leads are visible for {formatPromotionTypeLabel(selectedPromotionType)}.
+          </p>
+        ) : null}
       </div>
 
       {/* FILTER TOOLBAR */}
@@ -1142,10 +1155,18 @@ function LeadsTable({
                     {lead.name}
                   </p>
                   <p className="mt-1 text-sm text-[#6B7280]">
-                    {getDisplayValue(lead.phone)}
+                    {getLeadContactDisplayValue(
+                      lead,
+                      { key: "phone", label: "Phone Number" },
+                      shouldMaskContact,
+                    )}
                   </p>
                   <p className="mt-1 truncate text-sm text-[#6B7280]">
-                    {getDisplayValue(lead.email)}
+                    {getLeadContactDisplayValue(
+                      lead,
+                      { key: "email", label: "Email" },
+                      shouldMaskContact,
+                    )}
                   </p>
                 </div>
                 <LeadTimestamp value={getLeadDateTimeValue(lead)} />
