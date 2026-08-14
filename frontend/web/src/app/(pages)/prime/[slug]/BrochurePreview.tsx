@@ -1,7 +1,6 @@
 "use client";
 
-import LoginDialog from "@/app/(auth)/Login";
-import RegisterDialog from "@/app/(auth)/Register";
+import ContactSeller from "@/app/(pages)/project/[slug]/ContactSeller";
 import { trackProjectBrochureDownload } from "@/data/ClientData";
 import { FeaturedProject } from "@/types";
 import { trackInteraction } from "@/services/trackingService";
@@ -16,8 +15,7 @@ type BrochurePreviewProps = {
 export default function BrochurePreview({ project }: BrochurePreviewProps) {
   const brochure = project.brochure;
   const color = project.color?.trim() || "#27AE60";
-  const [showLoginDialog, setShowLoginDialog] = useState(false);
-  const [showRegisterDialog, setShowRegisterDialog] = useState(false);
+  const [showContactDialog, setShowContactDialog] = useState(false);
 
   if (!brochure?.url) return null;
 
@@ -31,8 +29,7 @@ export default function BrochurePreview({ project }: BrochurePreviewProps) {
   const handleBrochureDownload = async () => {
     const token = Cookies.get("token")?.trim();
     if (!token) {
-      setShowRegisterDialog(false);
-      setShowLoginDialog(true);
+      setShowContactDialog(true);
       return;
     }
 
@@ -114,26 +111,27 @@ export default function BrochurePreview({ project }: BrochurePreviewProps) {
         </div>
       </section>
 
-      {showLoginDialog && (
-        <LoginDialog
-          open
-          onClose={() => setShowLoginDialog(false)}
-          onSwitchToRegister={() => {
-            setShowLoginDialog(false);
-            setShowRegisterDialog(true);
-          }}
-        />
-      )}
-
-      {showRegisterDialog && (
-        <RegisterDialog
-          open
-          onClose={() => setShowRegisterDialog(false)}
-          onSwitchToLogin={() => {
-            setShowRegisterDialog(false);
-            setShowLoginDialog(true);
-          }}
-        />
+      {showContactDialog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={() => setShowContactDialog(false)}
+        >
+          <div
+            className="relative w-full max-w-[420px] overflow-visible"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Contact seller"
+          >
+            <div className="max-h-[90vh] overflow-y-auto rounded-md bg-white shadow-2xl">
+              <ContactSeller
+                project={project}
+                isModal
+                onClose={() => setShowContactDialog(false)}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
