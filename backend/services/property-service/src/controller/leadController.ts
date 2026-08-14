@@ -29,15 +29,27 @@ import { verifyToken } from "../utils/jwt";
 
 const DEFAULT_VISIBLE_LEAD_LIMIT = 5;
 
+const toNonNegativeInt = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return Math.trunc(parsed);
+};
+
 const getVisibleLeadLimitForPromotion = (promotion?: {
   type?: string | null;
   visibleLeadLimit?: number | null;
 } | null) => {
-  const configuredLimit = Number(promotion?.visibleLeadLimit);
-  if (Number.isFinite(configuredLimit) && configuredLimit >= 0) {
+  // Important: Number(null) === 0 in JS — do NOT treat missing limit as zero.
+  const configuredLimit = toNonNegativeInt(promotion?.visibleLeadLimit);
+  if (configuredLimit !== null) {
     return configuredLimit;
   }
 
+  const type = String(promotion?.type || "normal").toLowerCase();
+  if (!type || type === "normal") return 0;
+
+  // Promoted but limit not set yet — allow a small default window
   return DEFAULT_VISIBLE_LEAD_LIMIT;
 };
 
@@ -1470,7 +1482,7 @@ export const downloadLeadsCSVController = async (
     }
 
     const project = await FeaturedProject.findById(projectId)
-      .select("promotion.type")
+      .select("promotion.type promotion.visibleLeadLimit")
       .lean();
     const query = getProjectLeadQuery(projectId, from, to);
     const leads = await getCombinedProjectLeads(query);

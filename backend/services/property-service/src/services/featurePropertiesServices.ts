@@ -1533,13 +1533,28 @@ export const FeaturePropertyService = {
     const hasDateRange = Boolean(options?.from || options?.to);
     // Date drill-downs (sidebar "today") must include pending/draft/inactive.
     // Default public list stays active-only.
-    // status=all → no status filter (SE / staff "posted by me" views).
+    // status=all → no status filter (admin dropdown "All Status").
     const filter: any = {};
     if (statusOpt === "all") {
       /* intentionally no status filter */
     } else if (statusOpt) {
-      if (statusOpt === "inactive" || statusOpt === "draft" || statusOpt === "onboarding") {
-        filter.status = { $in: ["inactive", "draft", "onboarding", "incomplete"] };
+      if (
+        statusOpt === "inactive" ||
+        statusOpt === "draft" ||
+        statusOpt === "onboarding" ||
+        statusOpt === "incomplete"
+      ) {
+        filter.status = {
+          $in: ["inactive", "draft", "onboarding", "incomplete"],
+        };
+      } else if (
+        statusOpt === "approved" ||
+        statusOpt === "live" ||
+        statusOpt === "active"
+      ) {
+        filter.status = "active";
+      } else if (statusOpt === "pending") {
+        filter.status = "pending";
       } else {
         filter.status = statusOpt;
       }

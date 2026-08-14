@@ -85,8 +85,19 @@ export const promoteProperty = async (req: AuthRequest, res: Response) => {
       );
     }
 
-    if (typeof visibleLeadLimit === "number" && visibleLeadLimit >= 0) {
-      promotion.visibleLeadLimit = visibleLeadLimit;
+    const parsedLeadLimit = (() => {
+      if (visibleLeadLimit === null || visibleLeadLimit === undefined || visibleLeadLimit === "") {
+        return null;
+      }
+      const n = Number(visibleLeadLimit);
+      if (!Number.isFinite(n) || n < 0) return null;
+      return Math.trunc(n);
+    })();
+
+    if (type === "normal") {
+      promotion.visibleLeadLimit = 0;
+    } else if (parsedLeadLimit !== null) {
+      promotion.visibleLeadLimit = parsedLeadLimit;
     }
 
     appendPromotionHistory(
@@ -97,6 +108,8 @@ export const promoteProperty = async (req: AuthRequest, res: Response) => {
     );
 
     property.promotion = promotion as any;
+    // Ensure nested numeric field is persisted even if previously null
+    property.markModified("promotion");
 
     await property.save();
 
@@ -172,6 +185,13 @@ export const renewPromotion = async (req: AuthRequest, res: Response) => {
 
     if (typeof visibleLeadLimit === "number" && visibleLeadLimit >= 0) {
       promotion.visibleLeadLimit = visibleLeadLimit;
+    } else if (visibleLeadLimit !== undefined && visibleLeadLimit !== null && visibleLeadLimit !== "") {
+      const parsed = Number(visibleLeadLimit);
+      if (Number.isFinite(parsed) && parsed >= 0) {
+        promotion.visibleLeadLimit = Math.trunc(parsed);
+      } else if (typeof currentPromotion.visibleLeadLimit === "number") {
+        promotion.visibleLeadLimit = currentPromotion.visibleLeadLimit;
+      }
     } else if (typeof currentPromotion.visibleLeadLimit === "number") {
       promotion.visibleLeadLimit = currentPromotion.visibleLeadLimit;
     }
@@ -220,6 +240,7 @@ export const expirePromotion = async (req: AuthRequest, res: Response) => {
       priority: 0,
       source: "manual",
       startDate: new Date(),
+      visibleLeadLimit: 0,
     } as IPromotion;
 
     appendPromotionHistory(property, req, promotion, "Promotion expired manually");
@@ -251,6 +272,7 @@ export const resetPromotion = async (req: AuthRequest, res: Response) => {
       priority: 0,
       source: "manual",
       startDate: new Date(),
+      visibleLeadLimit: 0,
     } as IPromotion;
 
     appendPromotionHistory(property, req, promotion, "Promotion reset to normal");
