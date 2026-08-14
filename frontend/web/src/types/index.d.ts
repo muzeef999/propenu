@@ -308,6 +308,7 @@ export interface LocationItem {
   city: string;
   state: string;
   category: string;
+  isHome?: boolean;
   localities: Locality[];
 }
 
