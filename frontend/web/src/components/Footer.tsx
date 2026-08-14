@@ -16,8 +16,8 @@ import BuildingFooterSvg from "../svg/BuildingFooterSvg";
 export function FooterLegalBar() {
   return (
     <div className="bg-[#111111] px-3 py-2 text-[10px] leading-none text-white sm:px-4 sm:text-xs">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 overflow-hidden whitespace-nowrap">
-        <p className="min-w-0 truncate text-white/90">
+      <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center justify-center gap-2 sm:gap-3">
+        <p className="min-w-0 text-center text-white/90 sm:text-left">
           All trademarks, logos and names are properties of their respective
           owners.All Rights Reserved. Copyright 2026 Propenu Private Limited.
         </p>

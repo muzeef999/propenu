@@ -1,7 +1,6 @@
 "use client";
 
-import LoginDialog from "@/app/(auth)/Login";
-import RegisterDialog from "@/app/(auth)/Register";
+import ContactSeller from "./ContactSeller";
 import { trackProjectBrochureDownload } from "@/data/ClientData";
 import { trackInteraction } from "@/services/trackingService";
 import { FeaturedProject } from "@/types";
@@ -29,8 +28,7 @@ export default function BrochurePreview({
   const pdfViewerRef = useRef<HTMLDivElement | null>(null);
   const pdfScrollerRef = useRef<HTMLDivElement | null>(null);
 
-  const [showLoginDialog, setShowLoginDialog] = useState(false);
-  const [showRegisterDialog, setShowRegisterDialog] = useState(false);
+  const [showContactDialog, setShowContactDialog] = useState(false);
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pdfPageWidth, setPdfPageWidth] = useState(320);
@@ -174,10 +172,8 @@ export default function BrochurePreview({
   const handleBrochureDownload = async () => {
     const token = Cookies.get("token")?.trim();
 
-    // User is not logged in
     if (!token) {
-      setShowRegisterDialog(false);
-      setShowLoginDialog(true);
+      setShowContactDialog(true);
       return;
     }
 
@@ -488,32 +484,27 @@ export default function BrochurePreview({
         </div>
       </section>
 
-      {/* =========================
-          LOGIN DIALOG
-      ========================== */}
-      {showLoginDialog ? (
-        <LoginDialog
-          open
-          onClose={() => setShowLoginDialog(false)}
-          onSwitchToRegister={() => {
-            setShowLoginDialog(false);
-            setShowRegisterDialog(true);
-          }}
-        />
-      ) : null}
-
-      {/* =========================
-          REGISTER DIALOG
-      ========================== */}
-      {showRegisterDialog ? (
-        <RegisterDialog
-          open
-          onClose={() => setShowRegisterDialog(false)}
-          onSwitchToLogin={() => {
-            setShowRegisterDialog(false);
-            setShowLoginDialog(true);
-          }}
-        />
+      {showContactDialog ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={() => setShowContactDialog(false)}
+        >
+          <div
+            className="relative w-full max-w-[420px] overflow-visible"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Contact seller"
+          >
+            <div className="max-h-[90vh] overflow-y-auto rounded-md bg-white shadow-2xl">
+              <ContactSeller
+                project={project}
+                isModal
+                onClose={() => setShowContactDialog(false)}
+              />
+            </div>
+          </div>
+        </div>
       ) : null}
     </>
   );

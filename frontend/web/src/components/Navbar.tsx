@@ -43,7 +43,6 @@ const Navbar = () => {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const mobileDropdownRef = useRef<HTMLDivElement | null>(null);
-  const [openState, setOpenState] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [registerStep, setRegisterStep] = useState<"personal" | "location">(
     "personal",
@@ -94,10 +93,6 @@ const Navbar = () => {
       window.removeEventListener("auth-changed", handleAuthChanged);
     };
   }, []);
-
-  const toggleState = (stateName: string) => {
-    setOpenState((prev) => (prev === stateName ? null : stateName));
-  };
 
   const { selectedCity, locations, selectCity } = useCity();
 
@@ -166,34 +161,19 @@ const Navbar = () => {
     return name.charAt(0).toUpperCase();
   };
 
-  const popularCities = locations.filter(
+  const visibleLocations = locations.filter((loc) => loc.isHome === true);
+
+  const popularCities = visibleLocations.filter(
     (loc) => loc.category?.toLowerCase() === "popular",
   );
 
-  const groupedByState = locations.reduce(
-    (acc: Record<string, LocationItem[]>, loc) => {
-      if (!acc[loc.state]) acc[loc.state] = [];
-      acc[loc.state].push(loc);
-      return acc;
-    },
-    {},
-  );
-  const sortedGroupedByState = Object.entries(groupedByState)
-    .sort(([stateA], [stateB]) => {
-      if (stateA === selectedCity?.state) return -1;
-      if (stateB === selectedCity?.state) return 1;
-      return stateA.localeCompare(stateB);
-    })
-    .map(([stateName, cities]) => {
-      if (stateName === selectedCity?.state) {
-        const sortedCities = [...cities].sort((a, b) => {
-          if (a.city === selectedCity?.city) return -1;
-          if (b.city === selectedCity?.city) return 1;
-          return a.city.localeCompare(b.city);
-        });
-        return [stateName, sortedCities] as [string, LocationItem[]];
-      }
-      return [stateName, cities] as [string, LocationItem[]];
+  const popularCityIds = new Set(popularCities.map((city) => city._id));
+  const otherCities = visibleLocations
+    .filter((city) => !popularCityIds.has(city._id))
+    .sort((a, b) => {
+      if (a.city === selectedCity?.city) return -1;
+      if (b.city === selectedCity?.city) return 1;
+      return a.city.localeCompare(b.city);
     });
 
   return (
@@ -299,27 +279,25 @@ const Navbar = () => {
                             </button>
                           ))}
                         </div>
-                        {sortedGroupedByState.map(([stateName, cities]) => (
-                          <div key={stateName} className="w-full px-2 mt-2">
-                            <h3 className="font-semibold text-black text-sm tracking-wide">
-                              {stateName}
-                            </h3>
-                            <div className="flex flex-wrap gap-2 mt-1">
-                              {cities.map((c) => (
-                                <button
-                                  key={c._id}
-                                  onClick={() => {
-                                    onSelect(c);
-                                    close?.();
-                                  }}
-                                  className="text-gray-600 cursor-pointer px-2 py-1 text-xs rounded hover:bg-gray-100 transition-colors"
-                                >
-                                  {c.city}
-                                </button>
-                              ))}
-                            </div>
+                        <div className="w-full px-2 mt-2">
+                          <h3 className="font-semibold text-black text-sm tracking-wide">
+                            Other cities
+                          </h3>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {otherCities.map((c) => (
+                              <button
+                                key={c._id}
+                                onClick={() => {
+                                  onSelect(c);
+                                  close?.();
+                                }}
+                                className="text-gray-600 cursor-pointer px-2 py-1 text-xs rounded hover:bg-gray-100 transition-colors"
+                              >
+                                {c.city}
+                              </button>
+                            ))}
                           </div>
-                        ))}
+                        </div>
                       </div>
                     )}
                   />
@@ -403,44 +381,28 @@ const Navbar = () => {
                       </div>
 
                       <div className="px-3">
-                        {sortedGroupedByState.map(([stateName, cities]) => {
-                          const isOpen = openState === stateName;
-
-                          return (
-                            <div key={stateName} className="border-t pt-2 mt-2">
+                        <div className="border-t pt-2 mt-2">
+                          <h3 className="w-full text-sm font-semibold text-gray-900 px-2 py-2">
+                            Other Cities
+                          </h3>
+                          <div className="pl-3 mt-1 space-y-1">
+                            {otherCities.map((c) => (
                               <button
-                                onClick={() => toggleState(stateName)}
-                                className="w-full flex items-center justify-between text-sm font-semibold text-gray-900 px-2 py-2"
+                                key={c._id}
+                                onClick={() => {
+                                  onSelect(c);
+                                  close?.();
+                                }}
+                                className="w-full text-left text-sm text-gray-600 px-2 py-1.5 rounded hover:bg-gray-100 transition"
                               >
-                                <span>{stateName}</span>
-                                <span className="text-lg leading-none">
-                                  {isOpen ? "−" : "+"}
-                                </span>
+                                {c.city}
                               </button>
-
-                              {isOpen && (
-                                <div className="pl-3 mt-1 space-y-1">
-                                  {cities.map((c) => (
-                                    <button
-                                      key={c._id}
-                                      onClick={() => {
-                                        onSelect(c);
-                                        close?.();
-                                      }}
-                                      className="w-full text-left text-sm text-gray-600 px-2 py-1.5 rounded hover:bg-gray-100 transition"
-                                    >
-                                      {c.city}
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  )}
-                />
+                  )}                />
               </div>
 
               {/* Mobile Login Button */}
@@ -687,3 +649,4 @@ const Navbar = () => {
 };
 
 export default Navbar;
+
