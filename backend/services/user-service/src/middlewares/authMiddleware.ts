@@ -82,3 +82,60 @@ export async function authMiddleware(
     return res.status(401).json({ message: "Invalid token" });
   }
 }
+
+/** Sets req.user when a valid Bearer token is present; never blocks the request. */
+export async function optionalAuthMiddleware(
+  req: AuthRequest,
+  _res: Response,
+  next: NextFunction,
+) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return next();
+  }
+
+  const token = authHeader.split(" ")[1];
+  if (!token) return next();
+
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string,
+    ) as unknown as JwtUserPayload;
+
+    if (!decoded.sub) return next();
+
+    let roleName: string | undefined;
+    let permissions: string[] = [];
+
+    if (decoded.roleId) {
+      const role = await Role.findById(decoded.roleId)
+        .select("name permissions isActive")
+        .lean();
+
+      if (!role || role.isActive === false) return next();
+
+      roleName = role.name;
+      permissions =
+        role.name === "super_admin" ? ALL_PERMISSIONS : role.permissions ?? [];
+    }
+
+    const activeUser = await User.findById(decoded.sub)
+      .select("_id isActive")
+      .lean();
+
+    if (!activeUser || activeUser.isActive === false) return next();
+
+    req.user = {
+      ...decoded,
+      _id: decoded.sub,
+      id: decoded.sub,
+      roleName,
+      permissions,
+    };
+  } catch {
+    // Public callers stay unauthenticated
+  }
+
+  return next();
+}

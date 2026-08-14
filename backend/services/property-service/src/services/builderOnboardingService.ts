@@ -289,18 +289,33 @@ function deriveUiEmailStatus(invite: {
   emailStatus: InviteEmailStatus;
   deliveredAt?: Date;
   openedAt?: Date;
+  clickedAt?: Date;
+  sentAt?: Date;
 }) {
-  if (invite.emailStatus === "opened" || invite.openedAt) return "opened";
-  if (invite.emailStatus === "clicked") return "clicked";
+  // Engagement order matters — clicked/onboarded must win over opened.
   if (invite.emailStatus === "onboarded") return "onboarded";
   if (invite.emailStatus === "interested") return "interested";
+  if (invite.emailStatus === "clicked" || invite.clickedAt) return "clicked";
+  if (invite.emailStatus === "opened" || invite.openedAt) return "opened";
   if (invite.emailStatus === "bounced" || invite.emailStatus === "failed") {
     return invite.emailStatus;
   }
-  if (invite.emailStatus === "delivered" || invite.deliveredAt) {
-    return invite.openedAt ? "opened" : "not_opened";
+  if (invite.emailStatus === "expired") return "expired";
+  if (invite.emailStatus === "rejected") return "rejected";
+  // Revoked = link no longer claimable, but keep delivery/open progress for history.
+  if (
+    invite.emailStatus === "delivered" ||
+    invite.deliveredAt ||
+    invite.emailStatus === "revoked"
+  ) {
+    if (invite.openedAt) return "opened";
+    if (invite.deliveredAt || invite.emailStatus === "delivered") {
+      return "not_opened";
+    }
+    if (invite.sentAt || invite.emailStatus === "sent") return "sent";
+    if (invite.emailStatus === "revoked") return "revoked";
   }
-  if (invite.emailStatus === "sent") return "sent";
+  if (invite.emailStatus === "sent" || invite.sentAt) return "sent";
   return invite.emailStatus;
 }
 
@@ -350,15 +365,40 @@ function mapInviteToAssignStatus(emailStatus: InviteEmailStatus) {
 }
 
 async function revokeActiveInvites(projectId: string) {
+  // Deactivate claim links only — do NOT wipe emailStatus / open / click history.
+  // Older emails must keep tracing when a new invite is sent.
   await ProjectBuilderInvite.updateMany(
     { projectId, isActive: true },
     {
-      $set: { isActive: false, emailStatus: "revoked" },
+      $set: { isActive: false },
       $push: {
         statusHistory: { status: "revoked", at: new Date() },
       },
     },
   );
+}
+
+function serializeInviteForTracking(inv: any) {
+  return {
+    id: String(inv._id),
+    mode: inv.mode,
+    email: inv.email,
+    phone: inv.phone,
+    companyName: inv.companyName || "",
+    emailStatus: inv.emailStatus,
+    emailUiStatus: deriveUiEmailStatus(inv),
+    sentAt: inv.sentAt,
+    deliveredAt: inv.deliveredAt,
+    openedAt: inv.openedAt,
+    clickedAt: inv.clickedAt,
+    openCount: inv.openCount || 0,
+    clickCount: inv.clickCount || 0,
+    expiresAt: inv.expiresAt,
+    isActive: inv.isActive,
+    usedAt: inv.usedAt || null,
+    createdAt: inv.createdAt,
+    statusHistory: inv.statusHistory || [],
+  };
 }
 
 export const BuilderOnboardingService = {
@@ -421,10 +461,11 @@ export const BuilderOnboardingService = {
 
     const invites = await ProjectBuilderInvite.find({ projectId })
       .sort({ createdAt: -1 })
-      .limit(10)
+      .limit(100)
       .lean();
 
     const latest = invites[0];
+    const serialized = invites.map(serializeInviteForTracking);
     return {
       project: {
         id: String((project as any)._id),
@@ -439,37 +480,9 @@ export const BuilderOnboardingService = {
           ? `${publicWebBase()}/project/${(project as any).slug}`
           : null,
       },
-      latestInvite: latest
-        ? {
-            id: String(latest._id),
-            mode: latest.mode,
-            email: latest.email,
-            phone: latest.phone,
-            emailStatus: latest.emailStatus,
-            emailUiStatus: deriveUiEmailStatus(latest),
-            sentAt: latest.sentAt,
-            deliveredAt: latest.deliveredAt,
-            openedAt: latest.openedAt,
-            clickedAt: latest.clickedAt,
-            openCount: latest.openCount,
-            clickCount: latest.clickCount,
-            expiresAt: latest.expiresAt,
-            isActive: latest.isActive,
-            statusHistory: latest.statusHistory,
-          }
-        : null,
-      invites: invites.map((inv: any) => ({
-        id: String(inv._id),
-        mode: inv.mode,
-        email: inv.email,
-        phone: inv.phone,
-        emailStatus: inv.emailStatus,
-        emailUiStatus: deriveUiEmailStatus(inv),
-        sentAt: inv.sentAt,
-        openedAt: inv.openedAt,
-        clickedAt: inv.clickedAt,
-        isActive: inv.isActive,
-      })),
+      latestInvite: latest ? serializeInviteForTracking(latest) : null,
+      invites: serialized,
+      inviteCount: serialized.length,
     };
   },
 
@@ -1247,38 +1260,59 @@ export const BuilderOnboardingService = {
   },
 
   async markEmailOpened(trackingId: string) {
-    const invite = await ProjectBuilderInvite.findOne({ trackingId, isActive: true });
+    // Track opens for EVERY invite email (including superseded/revoked ones).
+    const invite = await ProjectBuilderInvite.findOne({ trackingId });
     if (!invite) return false;
 
-    // Keep terminal statuses
-    if (!["onboarded", "rejected", "expired", "revoked"].includes(invite.emailStatus)) {
-      if (invite.emailStatus !== "clicked") {
-        pushEmailStatus(invite, "opened");
-      } else {
+    const terminal = ["onboarded", "rejected", "expired"].includes(
+      invite.emailStatus,
+    );
+
+    if (!terminal) {
+      // Already clicked / onboarded path — still count opens without downgrading.
+      if (
+        invite.emailStatus === "clicked" ||
+        invite.emailStatus === "interested" ||
+        invite.clickedAt
+      ) {
         invite.openCount = (invite.openCount || 0) + 1;
         if (!invite.openedAt) invite.openedAt = new Date();
+      } else {
+        pushEmailStatus(invite, "opened");
       }
       await invite.save();
-      await FeaturedProject.updateOne(
-        { _id: invite.projectId },
-        {
-          $set: {
-            "builderOnboarding.emailStatus": invite.emailStatus,
-            "builderOnboarding.emailUiStatus": deriveUiEmailStatus(invite),
-            "builderOnboarding.openedAt": invite.openedAt,
-            "builderOnboarding.assignStatus":
-              invite.emailStatus === "clicked" ? "clicked" : "opened",
+
+      // Project summary follows the active invite; otherwise keep best engagement.
+      if (invite.isActive) {
+        await FeaturedProject.updateOne(
+          { _id: invite.projectId },
+          {
+            $set: {
+              "builderOnboarding.emailStatus": invite.emailStatus,
+              "builderOnboarding.emailUiStatus": deriveUiEmailStatus(invite),
+              "builderOnboarding.openedAt": invite.openedAt,
+              "builderOnboarding.assignStatus":
+                invite.emailStatus === "clicked" ? "clicked" : "opened",
+            },
           },
-        },
-      );
+        );
+      }
+    } else if (!invite.openedAt) {
+      invite.openCount = (invite.openCount || 0) + 1;
+      invite.openedAt = new Date();
+      await invite.save();
+    } else {
+      invite.openCount = (invite.openCount || 0) + 1;
+      await invite.save();
     }
     return true;
   },
 
   async markEmailClicked(trackingId: string, token?: string) {
+    // Record clicks on every invite by trackingId (active or superseded).
     const invite = await ProjectBuilderInvite.findOne({ trackingId });
-    if (!invite || !invite.isActive) {
-      const err: any = new Error("Invite not found or inactive");
+    if (!invite) {
+      const err: any = new Error("Invite not found");
       err.statusCode = 404;
       throw err;
     }
@@ -1289,40 +1323,92 @@ export const BuilderOnboardingService = {
       throw err;
     }
 
-    if (invite.expiresAt < new Date()) {
-      pushEmailStatus(invite, "expired");
-      invite.isActive = false;
-      await invite.save();
-      const err: any = new Error("Invite link expired");
-      err.statusCode = 410;
-      throw err;
-    }
-
-    pushEmailStatus(invite, "clicked");
-    await invite.save();
-
     const project = await FeaturedProject.findById(invite.projectId)
       .select("slug title status")
       .lean();
-
-    await FeaturedProject.updateOne(
-      { _id: invite.projectId },
-      {
-        $set: {
-          "builderOnboarding.emailStatus": "clicked",
-          "builderOnboarding.emailUiStatus": "clicked",
-          "builderOnboarding.clickedAt": invite.clickedAt,
-          "builderOnboarding.assignStatus": "clicked",
-        },
-      },
-    );
-
     const slug = (project as any)?.slug || "";
+
+    const isExpired = invite.expiresAt < new Date();
+    if (isExpired && invite.emailStatus !== "onboarded") {
+      if (invite.emailStatus !== "expired") {
+        pushEmailStatus(invite, "expired");
+      }
+      invite.isActive = false;
+      invite.clickCount = (invite.clickCount || 0) + 1;
+      if (!invite.clickedAt) invite.clickedAt = new Date();
+      await invite.save();
+      return {
+        projectSlug: slug,
+        projectTitle: (project as any)?.title,
+        previewUrl: slug
+          ? `${publicWebBase()}/project/${slug}`
+          : publicWebBase(),
+        onboardUrl: slug
+          ? `${publicWebBase()}/project/${slug}`
+          : publicWebBase(),
+        inactive: true,
+        expired: true,
+      };
+    }
+
+    // Always record click on this specific email's invite row.
+    if (invite.emailStatus !== "onboarded" && invite.emailStatus !== "rejected") {
+      pushEmailStatus(invite, "clicked");
+    } else {
+      invite.clickCount = (invite.clickCount || 0) + 1;
+      if (!invite.clickedAt) invite.clickedAt = new Date();
+    }
+    await invite.save();
+
+    // Prefer redirect to a still-active invite for the same project when this one was superseded.
+    let redirectToken = token || "";
+    if (!invite.isActive) {
+      const active = await ProjectBuilderInvite.findOne({
+        projectId: invite.projectId,
+        isActive: true,
+        mode: "invite_link",
+        expiresAt: { $gt: new Date() },
+      })
+        .sort({ createdAt: -1 })
+        .lean();
+      // Cannot recover raw token from hash — send to project page; click is already stored.
+      if (active && slug) {
+        return {
+          projectSlug: slug,
+          projectTitle: (project as any)?.title,
+          previewUrl: `${publicWebBase()}/project/${slug}`,
+          onboardUrl: `${publicWebBase()}/project/${slug}`,
+          inactive: true,
+        };
+      }
+    } else {
+      await FeaturedProject.updateOne(
+        { _id: invite.projectId },
+        {
+          $set: {
+            "builderOnboarding.emailStatus": "clicked",
+            "builderOnboarding.emailUiStatus": "clicked",
+            "builderOnboarding.clickedAt": invite.clickedAt,
+            "builderOnboarding.assignStatus": "clicked",
+          },
+        },
+      );
+    }
+
     return {
       projectSlug: slug,
       projectTitle: (project as any)?.title,
-      previewUrl: `${publicWebBase()}/project/${slug}?invite=${token || ""}`,
-      onboardUrl: `${publicWebBase()}/project/${slug}?invite=${token || ""}`,
+      previewUrl: slug
+        ? `${publicWebBase()}/project/${slug}${
+            redirectToken ? `?invite=${redirectToken}` : ""
+          }`
+        : publicWebBase(),
+      onboardUrl: slug
+        ? `${publicWebBase()}/project/${slug}${
+            redirectToken ? `?invite=${redirectToken}` : ""
+          }`
+        : publicWebBase(),
+      inactive: !invite.isActive,
     };
   },
 

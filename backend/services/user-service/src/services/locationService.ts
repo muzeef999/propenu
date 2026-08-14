@@ -91,7 +91,9 @@ export interface CreateLocationPayload {
   city: string;
   state?: string | null;
   category: string;
-  locality: {
+  /** Publish to propenu.com location picker. Defaults to true. */
+  isHome?: boolean;
+  locality?: {
     name: string;
     location?: {
       type: "Point";
@@ -104,6 +106,7 @@ export interface UpdateLocationPayload {
   city?: string;
   state?: string | null;
   category?: string;
+  isHome?: boolean;
   locality?: {
     name: string;
     location?: {
@@ -111,6 +114,11 @@ export interface UpdateLocationPayload {
     };
   };
 }
+
+export type GetLocationsOptions = {
+  /** When true, only return cities shown on the website location picker. */
+  homeOnly?: boolean;
+};
 
 /* ------------------------------------
    CREATE / UPSERT CITY + LOCALITY
@@ -146,6 +154,13 @@ export async function createLocation(payload: CreateLocationPayload) {
   const existingCity = await Location.findOne(cityFilter);
 
   if (existingCity) {
+    if (payload.category) {
+      existingCity.category = payload.category;
+    }
+    if (typeof payload.isHome === "boolean") {
+      existingCity.set("isHome", payload.isHome);
+    }
+
     if (localityName) {
       const localityIndex = existingCity.localities.findIndex(
         (item: any) => localityKey(item) === localityName.toLowerCase()
@@ -173,6 +188,7 @@ export async function createLocation(payload: CreateLocationPayload) {
     city: cityName,
     state: stateName,
     category: payload.category,
+    isHome: typeof payload.isHome === "boolean" ? payload.isHome : true,
     localities: localityName
       ? [
           {
@@ -189,18 +205,24 @@ export async function createLocation(payload: CreateLocationPayload) {
 /* ------------------------------------
    GET ALL CITIES + METADATA
 ------------------------------------ */
-export async function getAllLocationsDetails() {
-  const locations = await Location.find()
+export async function getAllLocationsDetails(options: GetLocationsOptions = {}) {
+  const filter = options.homeOnly
+    ? { isHome: { $ne: false } } // missing isHome => treat as published
+    : {};
+
+  const locations = await Location.find(filter)
     .sort({ city: 1 })
     .lean();
 
   const states = await Location.aggregate([
+    ...(Object.keys(filter).length ? [{ $match: filter }] : []),
     { $group: { _id: "$state", count: { $sum: 1 } } },
     { $project: { state: "$_id", count: 1, _id: 0 } },
     { $sort: { state: 1 } },
   ]);
 
   const categories = await Location.aggregate([
+    ...(Object.keys(filter).length ? [{ $match: filter }] : []),
     { $group: { _id: "$category", count: { $sum: 1 } } },
     { $project: { category: "$_id", count: 1, _id: 0 } },
     { $sort: { category: 1 } },
@@ -209,6 +231,7 @@ export async function getAllLocationsDetails() {
   return {
     locations: locations.map((location) => ({
       ...location,
+      isHome: location.isHome !== false,
       localities: mergeDuplicateLocalities(location.localities),
     })),
     states,
@@ -240,6 +263,10 @@ export async function updateLocation(
 
   if (payload.category !== undefined) {
     doc.category = payload.category;
+  }
+
+  if (typeof payload.isHome === "boolean") {
+    doc.set("isHome", payload.isHome);
   }
 
   if (payload.locality) {
@@ -338,6 +365,7 @@ export async function getLocationByIdService(id: string) {
 
   return {
     ...doc,
+    isHome: doc.isHome !== false,
     localities: mergeDuplicateLocalities(doc.localities),
   };
 }

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { cleanupDuplicateLocalities, createLocation, getAllLocationsDetails, getLocationByIdService, removeLocalityFromCity, removeLocation, updateLocation } from "../services/locationService";
 import mongoose from "mongoose";
 import axios from "axios";
+import { AuthRequest } from "../middlewares/authMiddleware";
 
 type MajorCity = {
   city: string;
@@ -126,15 +127,17 @@ export const postLocation = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid payload" });
     }
 
-    const { city, category, location } = payload;
+    const { city, category, location, locality } = payload;
+    const localityPayload = locality || location;
 
     if (!city || !category) {
       return res.status(400).json({ error: "city and category are required" });
     }
 
     // If user manually sends coordinates, validate them
-    if (location?.coordinates) {
-      const coords = location.coordinates;
+    const coordsSource = localityPayload?.location?.coordinates || localityPayload?.coordinates;
+    if (coordsSource) {
+      const coords = coordsSource;
 
       if (!Array.isArray(coords) || coords.length !== 2) {
         return res
@@ -148,10 +151,17 @@ export const postLocation = async (req: Request, res: Response) => {
           .json({ error: "coordinates must be valid numbers" });
       }
 
-      payload.location.coordinates = [Number(coords[0]), Number(coords[1])];
+      if (localityPayload.location) {
+        localityPayload.location.coordinates = [Number(coords[0]), Number(coords[1])];
+      }
     }
 
-    const doc = await createLocation(payload);
+    const doc = await createLocation({
+      ...payload,
+      locality: localityPayload,
+      isHome:
+        payload.isHome === false || payload.isHome === "false" ? false : true,
+    });
 
     return res.status(201).json({ success: true, item: doc });
   } catch (err: any) {
@@ -161,9 +171,24 @@ export const postLocation = async (req: Request, res: Response) => {
 };
 
 
-export const getAllLocations = async(req:Request, res:Response) => {
+export const getAllLocations = async(req: AuthRequest, res: Response) => {
   try {
-    const result = await getAllLocationsDetails();
+    const roleName = String(req.user?.roleName || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_");
+    const permissions = req.user?.permissions || [];
+    const canManageLocations =
+      roleName === "super_admin" ||
+      roleName === "admin" ||
+      permissions.includes("location:view") ||
+      permissions.includes("location:create") ||
+      permissions.includes("location:update") ||
+      permissions.includes("location:delete");
+
+    const result = await getAllLocationsDetails({
+      homeOnly: !canManageLocations,
+    });
     return res.json(result);
 
   }catch (err: any) {

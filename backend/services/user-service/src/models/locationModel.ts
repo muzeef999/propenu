@@ -20,9 +20,13 @@ const CitySchema = new mongoose.Schema(
     city: { type: String, required: true, trim: true },
     state: { type: String, default: null },
     category: { type: String, required: true },
+    /** When true, city appears on propenu.com location picker. */
+    isHome: { type: Boolean, default: true },
   },
   { timestamps: true }
 );
+
+CitySchema.index({ isHome: 1 });
 
 // indexes
 CitySchema.index({ city: 1, state: 1 }, { unique: true });

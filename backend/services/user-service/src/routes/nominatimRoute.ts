@@ -9,93 +9,48 @@ import {
   postLocation,
   reverseMajorCity,
 } from "../controller/nominatimController";
-import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
+import { authMiddleware, optionalAuthMiddleware } from "../middlewares/authMiddleware";
+import { requirePermission } from "../middlewares/requirePermission";
 
 const nominatimRoute = express.Router();
 
-nominatimRoute.post("/", authMiddleware,  (req: AuthRequest, res, next) => {
-    if (
-      !req.user ||
-      !["super_admin", "admin"].includes(req.user.roleName || "")
-    ) {
-      return res
-        .status(403)
-        .json({
-          message: "Forbidden: only admin/super_admin can change roles",
-        });
-    }
-    next();
-  },
+nominatimRoute.post(
+  "/",
+  authMiddleware,
+  requirePermission("location:create"),
   postLocation
 );
 
 nominatimRoute.post(
   "/dedupe-localities",
   authMiddleware,
-  (req: AuthRequest, res, next) => {
-    if (
-      !req.user ||
-      !["super_admin", "admin"].includes(req.user.roleName || "")
-    ) {
-      return res.status(403).json({
-        message: "Forbidden: only admin/super_admin allowed",
-      });
-    }
-    next();
-  },
+  requirePermission("location:update"),
   dedupeLocalities
 );
 
-nominatimRoute.get("/", getAllLocations);
+nominatimRoute.get("/", optionalAuthMiddleware, getAllLocations);
 nominatimRoute.get("/reverse-major-city", reverseMajorCity);
 nominatimRoute.get("/:id", getLocationById);
-nominatimRoute.patch("/:id", authMiddleware,(req: AuthRequest, res, next) => {
-    if (
-      !req.user ||
-      !["super_admin", "admin"].includes(req.user.roleName || "")
-    ) {
-      return res.status(403).json({
-        message: "Forbidden: only admin/super_admin can change roles",
-      });
-    }
-    next();
-  },
+
+nominatimRoute.patch(
+  "/:id",
+  authMiddleware,
+  requirePermission("location:update"),
   editLocation
 );
 
 nominatimRoute.delete(
   "/:id",
   authMiddleware,
-  (req: AuthRequest, res, next) => {
-    if (
-      !req.user ||
-      !["super_admin", "admin"].includes(req.user.roleName || "")
-    ) {
-      return res.status(403).json({
-        message: "Forbidden: only admin/super_admin can change roles",
-      });
-    }
-    next();
-  },
+  requirePermission("location:delete"),
   deleteLocation
 );
 
 nominatimRoute.delete(
   "/:id/locality/:name",
   authMiddleware,
-  (req: AuthRequest, res, next) => {
-    if (
-      !req.user ||
-      !["super_admin", "admin"].includes(req.user.roleName || "")
-    ) {
-      return res.status(403).json({
-        message: "Forbidden: only admin/super_admin allowed",
-      });
-    }
-    next();
-  },
+  requirePermission("location:delete"),
   deleteLocality
 );
 
 export default nominatimRoute;
-
