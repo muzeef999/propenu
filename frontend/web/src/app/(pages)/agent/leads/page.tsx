@@ -162,13 +162,13 @@ const LeadsPage = () => {
                             <button
                                 key={property._id}
                                 onClick={() => setSelectedPropertyId(property._id)}
-                                className={`w-full flex gap-3 rounded-lg border p-2 text-left transition
+                                className={`w-full flex flex-col gap-3 rounded-lg border p-2 text-left transition sm:flex-row
                   ${active
                                         ? "border-green-500 bg-green-50"
                                         : "border-gray-200 bg-white hover:bg-gray-50"
                                     }`}
                             >
-                                <div className="w-20 h-16 rounded-md overflow-hidden bg-gray-100">
+                                <div className="h-36 w-full rounded-md overflow-hidden bg-gray-100 sm:h-16 sm:w-20 sm:shrink-0">
                                     <img
                                         src={image}
                                         alt={property.title}

@@ -10,7 +10,8 @@ export type NotificationType =
   | "property_shortlisted"
   | "contact_requested"
   | "brochure_downloaded"
-  | "high_time_spent";
+  | "high_time_spent"
+  | "ticket_created";
 
 type FilterType = "all" | NotificationType;
 type DateRangeFilter = "all" | "today" | "last_7_days" | "this_month";
@@ -47,6 +48,7 @@ export interface NotificationSummary {
   contacts?: number;
   brochureDownloads?: number;
   timeSpent?: number;
+  tickets?: number;
 }
 
 interface NotificationFeedProps {
@@ -65,6 +67,7 @@ const FILTERS: Array<{ id: FilterType; label: string }> = [
   { id: "project_shortlisted", label: "Project Shortlists" },
   { id: "property_shortlisted", label: "Property Shortlists" },
   { id: "contact_requested", label: "Contacts" },
+  { id: "ticket_created", label: "Tickets" },
   { id: "brochure_downloaded", label: "Brochure" },
   { id: "high_time_spent", label: "Time Spent" },
 ];
@@ -109,6 +112,13 @@ const formatMinutes = (value?: number | null) => {
   return `${value.toFixed(1)} min`;
 };
 
+const getNotificationTimestamp = (value?: string | null) => {
+  if (!value) return 0;
+
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
 const isWithinDateRange = (value: string | null | undefined, filter: DateRangeFilter) => {
   if (filter === "all") return true;
   if (!value) return false;
@@ -151,6 +161,8 @@ const getNotificationAccentClasses = (type: NotificationType) => {
   switch (type) {
     case "brochure_downloaded":
       return "bg-violet-50 text-violet-700 ring-violet-100";
+    case "ticket_created":
+      return "bg-orange-50 text-orange-700 ring-orange-100";
     case "high_time_spent":
       return "bg-amber-50 text-amber-700 ring-amber-100";
     case "contact_requested":
@@ -167,6 +179,8 @@ const getNotificationLabel = (type: NotificationType) => {
   switch (type) {
     case "brochure_downloaded":
       return "Brochure";
+    case "ticket_created":
+      return "Ticket";
     case "high_time_spent":
       return "Time Spent";
     case "contact_requested":
@@ -205,10 +219,20 @@ const NotificationFeed = ({
     [notifications],
   );
 
+  const sortedNotifications = useMemo(
+    () =>
+      [...notifications].sort(
+        (a, b) =>
+          getNotificationTimestamp(b.createdAt) -
+          getNotificationTimestamp(a.createdAt),
+      ),
+    [notifications],
+  );
+
   const filteredNotifications = useMemo(() => {
     const query = searchValue.trim().toLowerCase();
 
-    return notifications.filter((item) => {
+    return sortedNotifications.filter((item) => {
       const userName = item.user?.name || "";
       const userPhone = item.user?.phone || "";
       const userCode = item.user?.userCode || "";
@@ -227,7 +251,7 @@ const NotificationFeed = ({
 
       return matchesFilter && matchesDateRange && matchesSearch;
     });
-  }, [activeDateFilter, activeFilter, notifications, searchValue]);
+  }, [activeDateFilter, activeFilter, searchValue, sortedNotifications]);
 
   const totalPages = Math.max(1, Math.ceil(filteredNotifications.length / pageSize));
 
@@ -258,6 +282,9 @@ const NotificationFeed = ({
     contacts:
       summary?.contacts ??
       notifications.filter((item) => item.type === "contact_requested").length,
+    tickets:
+      summary?.tickets ??
+      notifications.filter((item) => item.type === "ticket_created").length,
     brochureDownloads:
       summary?.brochureDownloads ??
       notifications.filter((item) => item.type === "brochure_downloaded").length,
@@ -318,7 +345,7 @@ const NotificationFeed = ({
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <div className="rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
           <p className="text-sm text-gray-500">All Notifications</p>
           <p className="mt-2 text-2xl font-semibold text-gray-900">{resolvedSummary.total}</p>
@@ -330,6 +357,12 @@ const NotificationFeed = ({
         <div className="rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
           <p className="text-sm text-gray-500">Contacts</p>
           <p className="mt-2 text-2xl font-semibold text-gray-900">{resolvedSummary.contacts}</p>
+        </div>
+        <div className="rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
+          <p className="text-sm text-gray-500">Tickets</p>
+          <p className="mt-2 text-2xl font-semibold text-gray-900">
+            {resolvedSummary.tickets}
+          </p>
         </div>
         <div className="rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
           <p className="text-sm text-gray-500">Brochure / Time</p>

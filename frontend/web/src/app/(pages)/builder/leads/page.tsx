@@ -796,15 +796,6 @@ export default function BuilderLeadsPage(): JSX.Element {
         <span className="text-sm text-gray-500">
           Showing <b>{properties.length}</b> Properties
         </span>
-        {typeof leadsData?.visibleLeadLimit === "number" ? (
-          <p className="mt-2 text-xs font-medium text-[#6B7280]">
-            Lead visibility: first{" "}
-            <span className="font-semibold text-[#111827]">
-              {leadsData.visibleLeadLimit}
-            </span>{" "}
-            leads are visible for {formatPromotionTypeLabel(selectedPromotionType)}.
-          </p>
-        ) : null}
       </div>
 
       {/* FILTER TOOLBAR */}
@@ -916,7 +907,7 @@ export default function BuilderLeadsPage(): JSX.Element {
       {/* GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* PROPERTY LIST */}
-        <div className="lg:col-span-4 space-y-3">
+        <div className="lg:col-span-5 xl:col-span-4 space-y-3">
           <div className="space-y-2 pr-1">
           {paginatedProperties.map((property: any) => {
             const image = property.gallery?.[0]?.url || "/placeholder.jpg";
@@ -928,14 +919,14 @@ export default function BuilderLeadsPage(): JSX.Element {
               <button
                 key={property._id}
                 onClick={() => setSelectedPropertyId(property._id)}
-                className={`w-full flex items-start gap-3 rounded-lg border p-2 text-left transition
+                className={`w-full flex flex-col gap-3 rounded-lg border p-2 text-left transition lg:flex-row lg:items-start
                   ${
                     active
                       ? "border-green-500 bg-green-50"
                       : "border-gray-200 bg-white hover:bg-gray-50"
                   }`}
               >
-                <div className="w-20 h-16 rounded-md overflow-hidden bg-gray-100">
+                <div className="h-48 w-full rounded-md overflow-hidden bg-gray-100 lg:h-28 lg:w-32 lg:shrink-0">
                   <img
                     src={property.heroImage || image}
                     alt={property.title}
@@ -986,7 +977,7 @@ export default function BuilderLeadsPage(): JSX.Element {
         </div>
 
         {/* LEADS TABLE */}
-        <div className="lg:col-span-8 bg-green-50/40 rounded-lg p-2 sm:p-0">
+        <div className="lg:col-span-7 xl:col-span-8 bg-green-50/40 rounded-lg p-2 sm:p-0">
           {leadsLoading ? (
             <div className="text-center py-20">Loading leads…</div>
           ) : filteredLeads.length ? (

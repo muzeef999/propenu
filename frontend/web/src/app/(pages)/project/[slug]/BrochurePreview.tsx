@@ -262,14 +262,14 @@ export default function BrochurePreview({
                       <button
                         type="button"
                         onClick={handleBrochureDownload}
-                        className={`absolute z-10 inline-flex items-center justify-center bg-[#27AE60] text-white shadow-[0_12px_32px_rgba(39,174,96,0.35)] transition hover:bg-[#1f9451] ${
+                        className={`absolute z-20 inline-flex items-center justify-center bg-[#27AE60] text-white shadow-[0_12px_32px_rgba(39,174,96,0.35)] transition hover:bg-[#1f9451] ${
                           isFullscreen
-                            ? "bottom-6 left-6 h-12 w-12 rounded-full"
-                            : "bottom-16 left-5 h-14 w-14 rounded-full"
+                            ? "bottom-60 left-40 h-13 w-13 translate-y-1/2 rounded-full"
+                            : "bottom-36 left-15 h-12 w-12 rounded-full"
                         }`}
                         aria-label="Download brochure"
                       >
-                        <HiArrowDownTray className={isFullscreen ? "h-6 w-6" : "h-7 w-7"} />
+                        <HiArrowDownTray className={isFullscreen ? "h-6 w-6" : "h-6 w-6"} />
                       </button>
 
                       <button

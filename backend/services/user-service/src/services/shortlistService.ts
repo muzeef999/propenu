@@ -23,6 +23,12 @@ const getNotificationCutoffDate = () => {
   return cutoffDate;
 };
 
+const toTitleCase = (value?: string | null) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\b[a-z]/g, (char) => char.toUpperCase());
+
 const getBuilderFromDate = (range: string) => {
   const now = new Date();
 
@@ -1241,6 +1247,8 @@ export const getBuilderNotificationsFeed = async (
     projectMatch._id = { $in: validProjectIds };
   }
 
+  const ticketNotifications = await getTicketNotificationsForRequester(builderId);
+
   const projects = await FeaturedProject.find(projectMatch)
     .select("_id title slug heroImage meta")
     .lean();
@@ -1253,8 +1261,8 @@ export const getBuilderNotificationsFeed = async (
 
     return {
       success: true,
-      data: [],
-      summary: createNotificationSummary([], lastSeenAt),
+      data: ticketNotifications,
+      summary: createNotificationSummary(ticketNotifications, lastSeenAt),
     };
   }
 
@@ -1629,6 +1637,9 @@ export const getBuilderNotificationsFeed = async (
     return bTime - aTime;
   });
 
+  notifications.push(...ticketNotifications);
+  sortNotifications(notifications as NotificationFeedItem[]);
+
   const viewer = await User.findById(builderId)
     .select("notificationSeenAt.builder")
     .lean();
@@ -1648,7 +1659,8 @@ type NotificationFeedItem = {
     | "property_shortlisted"
     | "contact_requested"
     | "brochure_downloaded"
-    | "high_time_spent";
+    | "high_time_spent"
+    | "ticket_created";
   createdAt?: Date | string | null;
   user?: {
     id?: string;
@@ -1665,6 +1677,81 @@ type NotificationFeedItem = {
   };
   message?: string;
   timeSpentMinutes?: number | null;
+};
+
+const getTicketNotificationsForRequester = async (requesterUserId: string) => {
+  const cutoffDate = getNotificationCutoffDate();
+  const ticketRows = await mongoose.connection
+    .collection("tickets")
+    .find(
+      {
+        "requester.userId": requesterUserId,
+        createdAt: { $gte: cutoffDate },
+      },
+      {
+        projection: {
+          _id: 1,
+          ticketCode: 1,
+          title: 1,
+          status: 1,
+          createdAt: 1,
+          requester: 1,
+          propertyId: 1,
+          metadata: 1,
+        },
+      },
+    )
+    .sort({ createdAt: -1 })
+    .toArray();
+
+  const requester = await User.findById(requesterUserId)
+    .select("roleId")
+    .lean();
+  const requesterRole = requester?.roleId
+    ? await mongoose.connection.collection("roles").findOne(
+        { _id: requester.roleId },
+        { projection: { label: 1, name: 1 } },
+      )
+    : null;
+  const requesterRoleLabel =
+    String(requesterRole?.label || requesterRole?.name || "").trim() || "User";
+
+  return ticketRows.map((ticket) => {
+    const metadata = (ticket.metadata ?? {}) as Record<string, unknown>;
+    const relatedTitle =
+      typeof metadata.relatedProjectName === "string" && metadata.relatedProjectName.trim()
+        ? metadata.relatedProjectName.trim()
+        : typeof metadata.propertyTitle === "string" && metadata.propertyTitle.trim()
+          ? metadata.propertyTitle.trim()
+          : typeof metadata.propertyCode === "string" && metadata.propertyCode.trim()
+            ? metadata.propertyCode.trim()
+            : typeof ticket.title === "string" && ticket.title.trim()
+              ? ticket.title.trim()
+              : "Support Ticket";
+
+    const ticketLabel = ticket.ticketCode || String(ticket._id);
+    const statusLabel = toTitleCase(ticket.status || "open") || "Open";
+
+    return {
+      id: `ticket-${String(ticket._id)}`,
+      type: "ticket_created" as const,
+      createdAt: ticket.createdAt ?? null,
+      user: {
+        id: ticket.requester?.userId || "",
+        name: ticket.requester?.name || "You",
+        phone: ticket.requester?.phone || "No phone",
+        email: ticket.requester?.email || "No email",
+        role: requesterRoleLabel,
+        userCode: ticketLabel,
+      },
+      project: {
+        id: typeof ticket.propertyId === "string" ? ticket.propertyId : "",
+        title: relatedTitle,
+      },
+      message: `Ticket ${ticketLabel} created for ${relatedTitle} (${statusLabel})`,
+      timeSpentMinutes: null,
+    };
+  });
 };
 
 const getUnreadNotificationCount = (
@@ -1689,6 +1776,7 @@ const createNotificationSummary = (
     (item) =>
       item.type === "project_shortlisted" || item.type === "property_shortlisted",
   ).length,
+  tickets: notifications.filter((item) => item.type === "ticket_created").length,
   brochureDownloads: notifications.filter(
     (item) => item.type === "brochure_downloaded",
   ).length,
@@ -1746,7 +1834,8 @@ const getPropertyOwnerNotifications = async (ownerId: string) => {
     },
   ] as const;
 
-  const notifications: NotificationFeedItem[] = [];
+  const notifications: NotificationFeedItem[] =
+    await getTicketNotificationsForRequester(ownerId);
 
   await Promise.all(
     propertyModels.map(async ({ shortlistPropertyTypes, leadPropertyTypes, model }) => {

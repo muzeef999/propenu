@@ -72,23 +72,18 @@ function BlogMeta({
 }
 
 function SectionHeading({
-  eyebrow,
   title,
   description,
 }: {
-  eyebrow: string;
   title: string;
   description: string;
 }) {
   return (
-    <div className="space-y-3">
-      <p className="text-xs font-semibold uppercase tracking-[0.32em] text-emerald-700">
-        {eyebrow}
-      </p>
-      <h2 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+    <div className="space-y-2">
+      <h2 className="text-2xl font-semibold text-slate-950 sm:text-3xl">
         {title}
       </h2>
-      <p className="max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
+      <p className="max-w-2xl text-sm leading-6 text-slate-600">
         {description}
       </p>
     </div>
@@ -99,9 +94,9 @@ function FeaturedBlogCard({ post }: { post: BlogPost }) {
   return (
     <Link
       href={`/blogs/${post.slug}`}
-      className="group relative block overflow-hidden rounded-[32px] bg-slate-950 text-white shadow-[0_24px_90px_rgba(15,23,42,0.22)]"
+      className="group overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm"
     >
-      <div className="absolute inset-0">
+      <div className="relative min-h-[260px] overflow-hidden bg-slate-100 lg:min-h-[420px]">
         <Image
           src={post.featuredImage || fallbackImage}
           alt={post.imageAlt || post.title}
@@ -110,51 +105,30 @@ function FeaturedBlogCard({ post }: { post: BlogPost }) {
           sizes="(max-width: 1024px) 100vw, 66vw"
           className="object-cover transition-transform duration-700 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/82 to-slate-950/40" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.24),transparent_32%)]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/78 via-slate-950/28 to-transparent" />
       </div>
 
-      <div className="relative grid min-h-[460px] items-end lg:grid-cols-[minmax(0,1.15fr)_320px]">
-        <div className="flex flex-col justify-end p-6 sm:p-8 lg:p-12">
-          <BlogMeta post={post} light />
-          <h2 className="mt-5 max-w-3xl text-3xl font-semibold leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">
-            {post.title}
-          </h2>
-          <p className="mt-5 max-w-2xl text-sm leading-7 text-white/78 sm:text-base">
-            {post.excerpt}
-          </p>
+      <div className="border-t border-slate-200 bg-white p-5 sm:p-6 lg:p-7">
+        <BlogMeta post={post} />
+        <h2 className="mt-4 max-w-3xl text-2xl font-semibold leading-tight text-slate-950 sm:text-3xl lg:text-[2rem]">
+          {post.title}
+        </h2>
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
+          {post.excerpt}
+        </p>
 
-          <div className="mt-8 flex flex-wrap items-center gap-4">
-            <span className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition group-hover:translate-x-1">
-              Read featured story
-              <FiArrowRight className="h-4 w-4" />
+        <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-slate-500">
+          <span>{post.author?.name || "Propenu Editorial"}</span>
+          {post.tags?.length ? (
+            <span className="truncate text-slate-400">
+              {post.tags.slice(0, 2).map((tag) => `#${tag}`).join(" ")}
             </span>
-            <span className="text-sm text-white/70">
-              {post.author?.name || "Propenu Editorial"}
-            </span>
-          </div>
+          ) : null}
         </div>
 
-        <div className="hidden h-full flex-col justify-end border-l border-white/10 bg-white/6 p-8 backdrop-blur-sm lg:flex">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-300">
-            Editor&apos;s pick
-          </p>
-          <p className="mt-4 text-sm leading-7 text-white/74">
-            Perspective, launches, market shifts, and buying guidance curated for
-            serious home seekers.
-          </p>
-          {post.tags?.length ? (
-            <div className="mt-6 flex flex-wrap gap-2">
-              {post.tags.slice(0, 3).map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full border border-white/14 px-3 py-1 text-xs text-white/72"
-                >
-                  #{tag}
-                </span>
-              ))}
-            </div>
-          ) : null}
+        <div className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-emerald-700">
+          Read more
+          <FiArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
         </div>
       </div>
     </Link>
@@ -165,24 +139,24 @@ function CompactStoryCard({ post }: { post: BlogPost }) {
   return (
     <Link
       href={`/blogs/${post.slug}`}
-      className="group flex gap-4 rounded-[24px] border border-slate-200/80 bg-white p-4 transition duration-300 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
+      className="group flex gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition duration-300 hover:border-emerald-200 hover:shadow-sm"
     >
-      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-slate-100 sm:h-28 sm:w-28">
+      <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl bg-slate-100">
         <Image
           src={post.featuredImage || fallbackImage}
           alt={post.imageAlt || post.title}
           fill
-          sizes="112px"
+          sizes="128px"
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
       </div>
 
       <div className="min-w-0 flex-1">
         <BlogMeta post={post} />
-        <h3 className="mt-3 line-clamp-2 text-lg font-semibold leading-6 text-slate-950 transition-colors group-hover:text-emerald-700">
+        <h3 className="mt-3 line-clamp-2 text-xl font-semibold leading-8 text-slate-950 transition-colors group-hover:text-emerald-700">
           {post.title}
         </h3>
-        <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">
+        <p className="mt-2 line-clamp-3 text-sm leading-7 text-slate-600">
           {post.excerpt}
         </p>
       </div>
@@ -194,7 +168,7 @@ function StoryGridCard({ post }: { post: BlogPost }) {
   return (
     <Link
       href={`/blogs/${post.slug}`}
-      className="group flex h-full flex-col overflow-hidden rounded-[28px] border border-slate-200/80 bg-white transition duration-300 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-[0_22px_48px_rgba(15,23,42,0.08)]"
+      className="group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white"
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
         <Image
@@ -206,9 +180,9 @@ function StoryGridCard({ post }: { post: BlogPost }) {
         />
       </div>
 
-      <div className="flex flex-1 flex-col p-5 sm:p-6">
+      <div className="flex flex-1 flex-col p-5">
         <BlogMeta post={post} />
-        <h3 className="mt-4 line-clamp-2 text-xl font-semibold leading-7 text-slate-950">
+        <h3 className="mt-4 line-clamp-2 text-lg font-semibold leading-7 text-slate-950">
           {post.title}
         </h3>
         <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">
@@ -218,8 +192,8 @@ function StoryGridCard({ post }: { post: BlogPost }) {
           <span className="min-w-0 truncate text-sm text-slate-500">
             {post.author?.name || "Propenu Editorial"}
           </span>
-          <span className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-emerald-700">
-            Explore
+          <span className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-emerald-700">
+            Read
             <FiArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </span>
         </div>
@@ -317,56 +291,31 @@ export default function Page() {
   const gridPosts = featuredPost ? filteredPosts.slice(4) : filteredPosts;
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#f4fbf6_0%,#f7f7f2_24%,#ffffff_48%,#f6faf8_100%)]">
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.18),transparent_34%),radial-gradient(circle_at_top_right,rgba(15,23,42,0.08),transparent_26%)]" />
-        <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_360px] lg:items-end">
-            <div className="space-y-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.34em] text-emerald-700">
-                Propenu Journal
-              </p>
-              <div className="space-y-4">
-                <h1 className="max-w-4xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
-                  Real estate stories with clarity, momentum, and local insight.
-                </h1>
-                <p className="max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-                  Browse market reads, project launches, buying tips, and design
-                  inspiration curated to help people make sharper property
-                  decisions.
-                </p>
-              </div>
-            </div>
+    <main className="min-h-screen bg-white">
+      <section className="border-b border-slate-200">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-8 sm:px-6 lg:px-8">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-semibold text-slate-950 sm:text-4xl">
+              Blogs
+            </h1>
+            <p className="max-w-2xl text-sm leading-6 text-slate-600">
+              Market updates, launches, buying tips, and local insights.
+            </p>
+          </div>
 
-            <div className="rounded-[28px] border border-white/70 bg-white/85 p-5 shadow-[0_20px_70px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
-                Discover
-              </p>
-              <div className="mt-4 space-y-4">
-                <label className="relative block">
-                  <FiSearch className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Search by title, topic or tag"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                  />
-                </label>
-                <div className="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-                      Showing
-                    </p>
-                    <p className="mt-1 text-lg font-semibold text-slate-950">
-                      {filteredPosts.length} stories
-                    </p>
-                  </div>
-                  <div className="text-right text-sm text-slate-500">
-                    <p>{activeCategory}</p>
-                    <p>{query.trim() ? "Filtered search" : "All results"}</p>
-                  </div>
-                </div>
-              </div>
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_160px] lg:items-center">
+            <label className="relative block">
+              <FiSearch className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search by title, topic or tag"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
+              />
+            </label>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              {filteredPosts.length} stories
             </div>
           </div>
 
@@ -381,8 +330,8 @@ export default function Page() {
                   onClick={() => setActiveCategory(category)}
                   className={`shrink-0 rounded-full px-5 py-2.5 text-sm font-medium transition ${
                     isActive
-                      ? "bg-slate-950 text-white shadow-[0_14px_30px_rgba(15,23,42,0.18)]"
-                      : "border border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:text-emerald-700"
+                      ? "bg-slate-900 text-white"
+                      : "border border-slate-200 bg-white text-slate-600"
                   }`}
                 >
                   {category}
@@ -393,7 +342,7 @@ export default function Page() {
         </div>
       </section>
 
-      <section className="mx-auto flex w-full max-w-7xl flex-col gap-16 px-4 pb-16 sm:px-6 lg:px-8 lg:pb-24">
+      <section className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
         {loading ? (
           <>
             <div className="grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.7fr)]">
@@ -413,14 +362,13 @@ export default function Page() {
           </>
         ) : filteredPosts.length > 0 ? (
           <>
-            <div className="grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.7fr)]">
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_380px] lg:items-start">
               <div>{featuredPost ? <FeaturedBlogCard post={featuredPost} /> : null}</div>
 
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <SectionHeading
-                  eyebrow="Quick Reads"
-                  title="Fresh takes worth a quick dive"
-                  description="A tighter side rail for short, timely reads that complement the featured story."
+                  title="Recent highlights"
+                  description="Short reads and timely updates"
                 />
                 {spotlightPosts.map((post) => (
                   <CompactStoryCard key={post._id ?? post.slug} post={post} />
@@ -430,9 +378,8 @@ export default function Page() {
 
             <div className="space-y-8">
               <SectionHeading
-                eyebrow="Latest Stories"
-                title="More from the journal"
-                description="Browse the full stream of articles across launches, investment thinking, interiors, and city-specific updates."
+                title="All posts"
+                description="Browse the latest articles across updates, launches, advice, and city-specific stories"
               />
               <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                 {gridPosts.map((post) => (

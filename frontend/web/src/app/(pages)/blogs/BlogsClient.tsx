@@ -55,13 +55,13 @@ function BlogCard({ post }: { post: BlogPost }) {
         rel="noopener noreferrer"
         className="flex h-full w-full flex-col"
       >
-        <div className="relative aspect-16/10 w-full shrink-0 overflow-hidden bg-gray-100">
+        <div className="relative aspect-[25/12] w-full shrink-0 overflow-hidden bg-white">
           <Image
             src={post.featuredImage || fallbackImage}
             alt={post.imageAlt || post.title}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            className="object-contain object-center transition-transform duration-500 group-hover:scale-[1.02]"
           />
         </div>
 
@@ -182,7 +182,7 @@ export default function BlogsClient({
       setCanScrollRight(false);
       return;
     }
-  1
+
     updateScrollControls();
 
     const element = scrollRef.current;
