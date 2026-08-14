@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { BiBuildingHouse } from "react-icons/bi";
-import ContactOwnerButton from "@/components/ContactOwnerButton";
 import ImageAutoCarousel from "@/ui/ImageAutoCarousel";
 import formatINR from "@/utilies/PriceFormat";
 import { hexToRGBA } from "@/ui/hexToRGBA";
@@ -13,8 +12,11 @@ import {
   UnderConstruction,
 } from "@/icons/icons";
 import { Property } from "@/types/property";
+import { FeaturedProject } from "@/types";
 import { useShortlist } from "@/hooks/useShortlist";
 import { toast } from "sonner";
+import ContactSeller from "@/app/(pages)/project/[slug]/ContactSeller";
+import { createPortal } from "react-dom";
 
 type ProjectSummaryUnit = NonNullable<
   NonNullable<Property["bhkSummary"]>[number]["units"]
@@ -59,11 +61,18 @@ function getPriceLabel(property: Property) {
   const from = property.priceFrom ?? property.price;
   const to = property.priceTo;
 
-  if (typeof from === "number" && typeof to === "number" && to > from) {
+  if (
+    typeof from === "number" &&
+    Number.isFinite(from) &&
+    from > 0 &&
+    typeof to === "number" &&
+    Number.isFinite(to) &&
+    to > from
+  ) {
     return `${formatINR(from)} - ${formatINR(to)}`;
   }
 
-  if (typeof from === "number") {
+  if (typeof from === "number" && Number.isFinite(from) && from > 0) {
     return `From ${formatINR(from)}`;
   }
 
@@ -298,7 +307,7 @@ function getPricePerSqftLabel(property: Property) {
       : undefined;
   const rate = derivedPricePerUnit ?? derivedPricePerSqft ?? directPricePerSqft;
 
-  return rate ? formatPricePerUnit(rate.value, rate.unit) ?? "--" : "--";
+  return rate ? formatPricePerUnit(rate.value, rate.unit) ?? "Price on request" : "Price on request";
 }
 
 function getAmenitiesCount(property: Property) {
@@ -341,6 +350,7 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
   vertical = false,
 }) => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [showContactDialog, setShowContactDialog] = useState(false);
   const bgPriceColor = hexToRGBA("#27AE60", 0.1);
   const bgPriceColorIcon = hexToRGBA("#27AE60", 0.4);
   const images =
@@ -374,6 +384,8 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
   };
   const promotionBadge = promotionConfig[promotionType];
   const propertyHref = getFeaturedProjectHref(p);
+  const pricePerSqftLabel = getPricePerSqftLabel(p);
+  const priceLabel = getPriceLabel(p);
 
   const shareProperty = async () => {
     const href =
@@ -403,6 +415,8 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
     >
       <Link
         href={propertyHref}
+        target="_blank"
+        rel="noopener noreferrer"
         className={`flex flex-1 min-w-0 ${vertical ? "flex-col" : "flex-col md:flex-row"
           }`}
       >
@@ -530,9 +544,10 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
                 ? "self-start text-base"
                 : "self-start md:self-center md:text-lg"
               }`}
+          hidden={pricePerSqftLabel === "Price on request"}
           >
             <span className="truncate whitespace-nowrap">
-              {getPricePerSqftLabel(p)}
+              {pricePerSqftLabel}
             </span>
           </div>
           <div
@@ -541,7 +556,7 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
               : "text-sm leading-tight md:text-base"
               }`}
           >
-            {getPriceLabel(p)}
+            {priceLabel}
           </div>
         </div>
 
@@ -551,23 +566,33 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
             : "shrink-0 md:w-full md:mt-4 flex justify-center"
             }`}
         >
-          <ContactOwnerButton
-            projectId={projectId}
-            propertyType="featuredprojects"
-            listingType="sale"
-            listingSource="builder"
-            postedOn={p.createdAt}
-            price={p.priceFrom ?? p.price}
-            propertyLabel={p.title}
+          <button
+            type="button"
+            onClick={() => setShowContactDialog(true)}
             className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${vertical
               ? "px-4 py-1.5 text-sm"
               : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base"
               }`}
           >
             Contact Builder
-          </ContactOwnerButton>
+          </button>
         </div>
       </aside>
+
+      {showContactDialog && typeof document !== "undefined"
+        ? createPortal(
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+              <div className="w-full max-w-md">
+                <ContactSeller
+                  project={p as unknown as FeaturedProject}
+                  isModal
+                  onClose={() => setShowContactDialog(false)}
+                />
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 };

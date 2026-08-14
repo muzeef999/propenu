@@ -24,7 +24,7 @@ type IntentionAnswer = {
 
 const BUY_TIMELINE_QUESTION = "When do you plan to buy?";
 const BUDGET_QUESTION = "Your Budget?";
-const buyTimelineOptions = ["30 Days", "1 - 3 Months", "3 - 6 Months", "More than 6 Months"];
+const buyTimelineOptions = ["Within 30 Days", "1 - 3 Months", "3 - 6 Months", "More than 6 Months"];
 const budgetOptions = ["50L - 1Cr", "1Cr - 2Cr", "2Cr+"];
 
 type ContactSellerProps = {
@@ -34,6 +34,8 @@ type ContactSellerProps = {
 };
 
 type ContactLike = {
+  _id?: string;
+  id?: string;
   name?: string;
   fullName?: string;
   companyName?: string;
@@ -43,6 +45,8 @@ type ContactLike = {
 };
 
 type UserProfile = {
+  _id?: string;
+  id?: string;
   name?: string;
   fullName?: string;
   phone?: string;
@@ -76,6 +80,20 @@ function getUserPrefill(user?: UserProfile | null) {
 
 function isContactObject(value: unknown): value is ContactLike {
   return Boolean(value) && typeof value === "object";
+}
+
+function normalizeComparableValue(value?: string | null) {
+  return value?.trim().toLowerCase() || "";
+}
+
+function getEntityId(value: unknown) {
+  if (!value) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "object") {
+    const entity = value as { _id?: string; id?: string };
+    return entity._id?.trim() || entity.id?.trim() || "";
+  }
+  return "";
 }
 
 function getLeadErrorMessage(error: unknown) {
@@ -233,6 +251,10 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
   const [leadId, setLeadId] = useState("");
   const [showSubmittedStep, setShowSubmittedStep] = useState(false);
   const [intentionAnswers, setIntentionAnswers] = useState<IntentionAnswer[]>([]);
+  const resolvedProjectId =
+    (project as FeaturedProject & { id?: string })._id ||
+    (project as FeaturedProject & { id?: string }).id ||
+    "";
 
   const reviewTicketMutation = useMutation({
     mutationFn: async () =>
@@ -260,7 +282,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
         metadata: {
           requestType: "builder_claim_role_conflict",
           module: "builder_invite_claim",
-          relatedProjectId: project._id,
+          relatedProjectId: resolvedProjectId,
           relatedProjectName: project.title,
           inviteToken,
           contactName: form.name.trim(),
@@ -314,20 +336,21 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
     retry: 1,
   });
   const loggedInUser = userData?.user as UserProfile | undefined;
+  const loggedInUserId = getEntityId(loggedInUser);
   const userLeadPhone = loggedInUser?.phone
     ? sanitizePhoneInput(loggedInUser.phone)
     : "";
   const userLeadEmail = loggedInUser?.email?.trim() || "";
 
   const { data: existingLeadData } = useQuery({
-    queryKey: ["project-lead-submitted", project._id, userLeadPhone, userLeadEmail],
+    queryKey: ["project-lead-submitted", resolvedProjectId, userLeadPhone, userLeadEmail],
     queryFn: () =>
       checkProjectLeadSubmitted({
-        projectId: project._id,
+        projectId: resolvedProjectId,
         phone: userLeadPhone,
         email: userLeadEmail,
       }),
-    enabled: Boolean(project._id && (userLeadPhone || userLeadEmail) && !isInviteMode),
+    enabled: Boolean(resolvedProjectId && (userLeadPhone || userLeadEmail) && !isInviteMode),
     retry: 1,
   });
 
@@ -388,6 +411,19 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
     projectContact.email ||
     projectContact.contactEmail ||
     "";
+  const createdById = getEntityId(createdBy);
+  const developerId = getEntityId(developer);
+  const ownerPhone = contactPhone ? sanitizePhoneInput(contactPhone) : "";
+  const ownerEmail = normalizeComparableValue(contactEmail);
+  const userEmail = normalizeComparableValue(userLeadEmail);
+  const isOwnProjectLead =
+    Boolean(loggedInUser) &&
+    (
+      (Boolean(loggedInUserId) &&
+        (loggedInUserId === createdById || loggedInUserId === developerId)) ||
+      (Boolean(userLeadPhone) && Boolean(ownerPhone) && userLeadPhone === ownerPhone) ||
+      (Boolean(userEmail) && Boolean(ownerEmail) && userEmail === ownerEmail)
+    );
 
   const promotionType = String(project.promotion?.type || "normal").toLowerCase();
   const isTopSellingPromotion = [
@@ -399,6 +435,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
   const isNormalPromotion = promotionType === "normal" && !isTopSellingPromotion;
   const contactRole = isTopSellingPromotion ? "Seller" : "Builder";
   const submitButtonLabel = isNormalPromotion ? "Request Callback" : "Get Contact Details";
+  const ownProjectLeadMessage = "You cannot submit a lead for your own project.";
   const hasPrefilledUserDetails =
     Boolean(loggedInUser) &&
     Boolean(form.name.trim()) &&
@@ -476,6 +513,11 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    if (isOwnProjectLead) {
+      toast.error(ownProjectLeadMessage);
+      return;
+    }
+
     if (!isValidName(form.name)) {
       toast.error("Full Name should contain letters only");
       return;
@@ -500,7 +542,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
       name: form.name.trim(),
       phone: form.phone,
       email: form.email.trim(),
-      projectId: project._id,
+      projectId: resolvedProjectId,
       remarks: isNormalPromotion ? "Requested callback" : "Requested contact details",
     });
   };
@@ -796,7 +838,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
           </div>
         ) : inviteStep === "role_conflict" ? (
           <div className="mt-5 space-y-4">
-            <div className="rounded-md border border-red-200 bg-gradient-to-br from-red-50 via-white to-red-50 p-3.5 shadow-sm">
+            <div className="rounded-md border border-red-200 bg-linear-to-br from-red-50 via-white to-red-50 p-3.5 shadow-sm">
               <div className="flex items-start gap-2.5">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-200 bg-white text-red-500">
                   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1073,6 +1115,11 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
               Please share your contact details
             </p>
           )}
+          {isOwnProjectLead ? (
+            <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+              {ownProjectLeadMessage}
+            </div>
+          ) : null}
         </>
       )}
 
@@ -1094,10 +1141,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
             ) : (
               <>
                 <p className="mt-3 text-base font-semibold text-[#27AE60]">Thank You!</p>
-                <p className="mt-1.5 text-sm leading-6 text-slate-700">
-                  View the seller's contact details below.<br />
-                  Your enquiry has been shared.
-                </p>
+               
               </>
             )}
           </div>
@@ -1240,7 +1284,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
 
           <button
             type="submit"
-            disabled={leadsMutation.isPending}
+            disabled={leadsMutation.isPending || isOwnProjectLead}
             className="h-10 w-full btn-primary text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
           >
             {leadsMutation.isPending ? "Submitting..." : submitButtonLabel}

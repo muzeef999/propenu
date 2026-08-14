@@ -9,7 +9,7 @@ import { Provider } from "react-redux";
 import { store } from "@/Redux/store";
 import { Toaster } from "sonner";
 import { usePathname } from "next/navigation";
-import Footer from "@/components/Footer";
+import Footer, { FooterLegalBar } from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import { HomeMateChatbot } from "@/app/(pages)/chatbot";
 import { ModalProvider, useModal } from "@/app/context/ModalContext";
@@ -119,7 +119,7 @@ function ClientProvidersContent({
           /> */}
         </div>
       )}
-         {!hideLayout && <Footer />}
+         {!hideLayout ? <Footer /> : <FooterLegalBar />}
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
     </Provider>

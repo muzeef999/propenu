@@ -119,7 +119,11 @@ export const createLead = async (data: any, userId: string | null) => {
 
   // User/agent/builder cannot contact their own property.
   if (String(ownerId) === String(userId)) {
-    throw new Error("This is your own property");
+    const error: any = new Error(
+      "You cannot submit a lead for your own property",
+    );
+    error.statusCode = 403;
+    throw error;
   }
 
   const listingType = (

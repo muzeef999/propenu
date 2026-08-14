@@ -72,6 +72,30 @@ const getCategoryForTab = (tab: string): PropertyCategory => {
   return "residential";
 };
 
+const formatPropertyPrice = (price?: number) => {
+  if (price == null || Number.isNaN(price) || price <= 0) {
+    return "—";
+  }
+
+  if (price < 100000) {
+    return `₹ ${new Intl.NumberFormat("en-IN", {
+      maximumFractionDigits: 0,
+    }).format(price)}`;
+  }
+
+  if (price < 10000000) {
+    const lakhs = price / 100000;
+    return `₹ ${new Intl.NumberFormat("en-IN", {
+      maximumFractionDigits: lakhs < 10 ? 2 : 1,
+    }).format(lakhs)} Lac`;
+  }
+
+  const crores = price / 10000000;
+  return `₹ ${new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: crores < 10 ? 2 : 1,
+  }).format(crores)} Cr`;
+};
+
 /* ================= PAGE ================= */
 
 const Page = () => {
@@ -307,9 +331,7 @@ const Page = () => {
                     <p>
                       <span className="text-gray-500">Price:</span>{" "}
                       <span className="font-medium text-gray-800">
-                        {property.price
-                          ? `₹ ${Math.round(property.price / 100000)} Lac`
-                          : "—"}
+                        {formatPropertyPrice(property.price)}
                       </span>
                     </p>
 

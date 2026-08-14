@@ -3,7 +3,16 @@ import { Types } from "mongoose";
 import PublicLead from "../models/PublicLead";
 import { notifyOwnerAndAdmins } from "./pushNotificationService";
 
-export const createPublicLead = async (data: any) => {
+const normalizePhone = (value?: string | null) =>
+  String(value || "").replace(/[^\d+]/g, "");
+
+const normalizeEmail = (value?: string | null) =>
+  String(value || "").trim().toLowerCase();
+
+export const createPublicLead = async (
+  data: any,
+  options?: { actorUserId?: string | null },
+) => {
   const { projectId } = data;
 
   // 1️⃣ Validate ObjectId
@@ -12,9 +21,29 @@ export const createPublicLead = async (data: any) => {
   }
 
   // 2️⃣ Check project exists
-  const project = await FeaturedProject.findById(projectId);
+  const project = await FeaturedProject.findById(projectId).populate(
+    "createdBy",
+    "phone email",
+  );
   if (!project) {
     throw new Error("Featured project not found");
+  }
+
+  const actorUserId = String(options?.actorUserId || "").trim();
+  const ownerId = String((project as any)?.createdBy?._id || project.createdBy || "").trim();
+  const ownerPhone = normalizePhone((project as any)?.createdBy?.phone);
+  const ownerEmail = normalizeEmail((project as any)?.createdBy?.email);
+  const submittedPhone = normalizePhone(data.phone);
+  const submittedEmail = normalizeEmail(data.email);
+
+  if (
+    (actorUserId && ownerId && actorUserId === ownerId) ||
+    (submittedPhone && ownerPhone && submittedPhone === ownerPhone) ||
+    (submittedEmail && ownerEmail && submittedEmail === ownerEmail)
+  ) {
+    const error: any = new Error("You cannot submit a lead for your own project");
+    error.statusCode = 403;
+    throw error;
   }
 
   // 3️⃣ Prevent duplicate spam (same phone same project)

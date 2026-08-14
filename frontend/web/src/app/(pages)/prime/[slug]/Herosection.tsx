@@ -1,6 +1,7 @@
 // components/HeroSection.tsx
 "use client";
 
+import Link from "next/link";
 import { checkProjectLeadSubmitted, me, patchProjectLeadIntention, projectpostLeads } from "@/data/ClientData";
 import { useShortlist } from "@/hooks/useShortlist";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -196,6 +197,7 @@ export default function HeroSection({ hero }: Props) {
     phone: "",
     email: "",
   });
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [leadId, setLeadId] = useState("");
   const [showSubmittedStep, setShowSubmittedStep] = useState(false);
   const [intentionAnswers, setIntentionAnswers] = useState<IntentionAnswer[]>([]);
@@ -245,6 +247,11 @@ export default function HeroSection({ hero }: Props) {
     ? sanitizePhoneInput(loggedInUser.phone)
     : "";
   const userLeadEmail = loggedInUser?.email?.trim() || "";
+  const hasPrefilledUserDetails =
+    Boolean(loggedInUser) &&
+    Boolean(form.name.trim()) &&
+    Boolean(form.phone.trim()) &&
+    Boolean(form.email.trim());
 
   const { data: existingLeadData } = useQuery({
     queryKey: ["prime-project-lead-submitted", h.projectId, userLeadPhone, userLeadEmail],
@@ -331,6 +338,11 @@ export default function HeroSection({ hero }: Props) {
 
   if (!isValidEmail(form.email)) {
     toast.error("Please enter a valid email address");
+    return;
+  }
+
+  if (!hasPrefilledUserDetails && !termsAccepted) {
+    toast.error("Please accept the Terms & Conditions");
     return;
   }
 
@@ -549,16 +561,13 @@ export default function HeroSection({ hero }: Props) {
                       <span className="h-4 w-2 rotate-45 border-b-2 border-r-2 border-white" />
                     </div>
                     <p className="mt-3 text-sm font-semibold" style={{ color: accentColor }}>Thank You!</p>
-                    <p className="mt-1.5 text-xs leading-5 text-slate-600">
-                      View the seller's contact details below.<br />
-                  Your enquiry has been shared.
-                    </p>
+                    
                   </div>
 
                   <div className="border-t border-slate-200 bg-white px-3 py-3">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                        Contact seller
+                        Contact Builder 
                       </p>
                       <span className="rounded-full bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200">
                         Prime
@@ -606,50 +615,91 @@ export default function HeroSection({ hero }: Props) {
                   </h3>
 
                   <form onSubmit={handleSubmit} className="space-y-3">
-                    <input
-                      name="name"
-                      value={form.name}
-                      onChange={handleChange}
-                      onInvalid={handleInvalid}
-                      onInput={handleFieldInput}
-                      inputMode="text"
-                      pattern="[A-Za-z\s]+"
-                      title="Name should contain letters only"
-                      placeholder="Your Name"
-                      required
-                      className="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder-white/70 focus:ring-2 focus:ring-yellow-400"
-                    />
+                    {!hasPrefilledUserDetails ? (
+                      <>
+                        <input
+                          name="name"
+                          value={form.name}
+                          onChange={handleChange}
+                          onInvalid={handleInvalid}
+                          onInput={handleFieldInput}
+                          inputMode="text"
+                          pattern="[A-Za-z\s]+"
+                          title="Name should contain letters only"
+                          placeholder="Your Name"
+                          required
+                          className="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder-white/70 focus:ring-2 focus:ring-yellow-400"
+                        />
 
-                    <input
-                      name="phone"
-                      type="tel"
-                      inputMode="tel"
-                      autoComplete="tel"
-                      pattern="^\+?[1-9]\d{9,14}$"
-                      value={form.phone}
-                      onChange={handleChange}
-                      onInvalid={handleInvalid}
-                      onInput={handleFieldInput}
-                      title="Please enter a valid phone number"
-                      placeholder="Your Mobile Number"
-                      required
-                      className="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder-white/70 focus:ring-2 focus:ring-yellow-400"
-                    />
+                        <input
+                          name="phone"
+                          type="tel"
+                          inputMode="tel"
+                          autoComplete="tel"
+                          pattern="^\+?[1-9]\d{9,14}$"
+                          value={form.phone}
+                          onChange={handleChange}
+                          onInvalid={handleInvalid}
+                          onInput={handleFieldInput}
+                          title="Please enter a valid phone number"
+                          placeholder="Your Mobile Number"
+                          required
+                          className="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder-white/70 focus:ring-2 focus:ring-yellow-400"
+                        />
 
-                    <input
-                      name="email"
-                      value={form.email}
-                      onChange={handleChange}
-                      onInvalid={handleInvalid}
-                      onInput={handleFieldInput}
-                      type="email"
-                      autoComplete="email"
-                      pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
-                      title="Please enter a valid email address"
-                      placeholder="Your Email"
-                      required
-                      className="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder-white/70 focus:ring-2 focus:ring-yellow-400"
-                    />
+                        <input
+                          name="email"
+                          value={form.email}
+                          onChange={handleChange}
+                          onInvalid={handleInvalid}
+                          onInput={handleFieldInput}
+                          type="email"
+                          autoComplete="email"
+                          pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
+                          title="Please enter a valid email address"
+                          placeholder="Your Email"
+                          required
+                          className="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder-white/70 focus:ring-2 focus:ring-yellow-400"
+                        />
+
+                        <label className="flex items-start gap-2 text-xs text-white/80">
+                          <input
+                            name="terms"
+                            type="checkbox"
+                            checked={termsAccepted}
+                            onChange={(event) => {
+                              event.currentTarget.setCustomValidity("");
+                              setTermsAccepted(event.target.checked);
+                            }}
+                            onInvalid={(event) =>
+                              event.currentTarget.setCustomValidity(
+                                "Please accept the Terms & Conditions",
+                              )
+                            }
+                            required
+                            className="peer sr-only"
+                          />
+                          <span
+                            aria-hidden="true"
+                            className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-white/40 bg-white/10 transition peer-checked:border-[#27AE60] peer-checked:bg-[#27AE60] peer-focus-visible:ring-2 peer-focus-visible:ring-[#27AE60]/25"
+                          >
+                            {termsAccepted ? (
+                              <span className="h-2 w-1 rotate-45 border-b-2 border-r-2 border-white" />
+                            ) : null}
+                          </span>
+                          <span className="leading-5">
+                            I agree to Propenu's{" "}
+                            <Link
+                              href="/terms"
+                              className="font-medium text-white underline underline-offset-2 hover:text-[#27AE60]"
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              Terms & Conditions
+                            </Link>
+                          </span>
+                        </label>
+                      </>
+                    ) : null}
 
                     <button
                       type="submit"

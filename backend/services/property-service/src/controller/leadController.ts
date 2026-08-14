@@ -24,6 +24,7 @@ import Agricultural from "../models/agriculturalModel";
 import * as XLSX from "xlsx";
 import { getAdminLeadDashboard } from "../services/adminLeadService";
 import { notifyProjectBrochureDownload } from "../services/pushNotificationService";
+import { verifyToken } from "../utils/jwt";
 
 
 const DEFAULT_VISIBLE_LEAD_LIMIT = 5;
@@ -686,7 +687,10 @@ export const createLeadController: RequestHandler = async (req, res) => {
 
     res.status(201).json({ success: true, data: lead });
   } catch (error: any) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(error?.statusCode || 400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -931,7 +935,22 @@ export const createPublicLeadController = async (
 ) => {
   try {
     const data = PublicLeadSchemaZ.parse(normalizePublicLeadPayload(req.body));
-    const lead = await createPublicLead(data);
+    const authHeader = String(req.headers.authorization || "").trim();
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.slice("Bearer ".length).trim()
+      : "";
+    let actorUserId = "";
+
+    if (token) {
+      try {
+        const decoded = verifyToken(token);
+        actorUserId = String(decoded.sub || "").trim();
+      } catch {
+        actorUserId = "";
+      }
+    }
+
+    const lead = await createPublicLead(data, { actorUserId });
 
     res.status(201).json({
       success: true,
@@ -939,7 +958,7 @@ export const createPublicLeadController = async (
       data: lead,
     });
   } catch (err: any) {
-    res.status(400).json({
+    res.status(err?.statusCode || 400).json({
       success: false,
       message: err.message,
     });

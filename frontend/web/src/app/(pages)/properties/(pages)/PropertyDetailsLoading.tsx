@@ -1,6 +1,3 @@
-import ad from "@/asserts/ad.png";
-import Image from "next/image";
-
 const detailSkeletonItems = Array.from({ length: 6 });
 const moreDetailSkeletonItems = Array.from({ length: 8 });
 const amenitySkeletonItems = Array.from({ length: 6 });
@@ -133,11 +130,24 @@ export default function PropertyDetailsLoading() {
             </main>
 
             <aside className="sticky top-20 self-start w-full shrink-0 lg:w-[260px]">
-              <Image
-                src={ad}
-                alt="advertisement banner"
-                className="h-auto w-full p-6 opacity-40"
-              />
+              <section className="overflow-hidden rounded-2xl bg-white shadow-md">
+                <div className="relative h-40 w-full overflow-hidden bg-linear-to-br from-gray-100 to-gray-200">
+                  <div className="h-full w-full animate-pulse bg-gray-200" />
+                  <div className="absolute left-2 top-2 h-7 w-24 animate-pulse rounded-md bg-black/20" />
+                  <div className="absolute bottom-2 right-2 h-9 w-9 animate-pulse rounded-full bg-white/90 shadow-md" />
+                </div>
+
+                <div className="flex flex-col gap-2 p-3">
+                  <div className="h-5 w-4/5 animate-pulse rounded bg-gray-200" />
+                  <div className="h-4 w-full animate-pulse rounded bg-gray-200" />
+                  <div className="h-4 w-2/3 animate-pulse rounded bg-gray-200" />
+
+                  <div className="mt-2 flex items-center justify-between gap-2 border-t border-gray-200 pt-3">
+                    <div className="h-4 w-24 animate-pulse rounded bg-emerald-200" />
+                    <div className="h-4 w-4 animate-pulse rounded bg-emerald-200" />
+                  </div>
+                </div>
+              </section>
             </aside>
           </div>
         </div>

@@ -612,7 +612,7 @@ const RegisterDialog = ({
             Provide your personal details to create your account
           </p>
 
-          <div className="mt-3 flex justify-between gap-6 text-[0.9rem]">
+          <div className="mt-3 flex items-center gap-4 text-[0.9rem]">
             {tabs.map((tab) => {
               const isActive = step === tab.id;
               const isCompleted =
@@ -628,7 +628,7 @@ const RegisterDialog = ({
                   type="button"
                   onClick={() => handleTabClick(tab.id)}
                   disabled={!isEnabled}
-                  className={`cursor-pointer border-b-2 pb-2 text-center transition ${
+                  className={`min-w-[120px] cursor-pointer border-b-2 pb-2 text-center transition ${
                     isCompleted
                       ? "border-[#1c7b44] text-[#1f8f4d]"
                       : isActive
