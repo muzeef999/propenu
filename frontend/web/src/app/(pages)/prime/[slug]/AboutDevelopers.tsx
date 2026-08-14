@@ -70,7 +70,7 @@ export default function AboutDevelopers({
 
   return (
     <section className="w-full">
-      <div style={{ color: color, borderLeft: `5px solid ${color}` }}>
+      <div style={{ color: accentColor, borderLeft: `5px solid ${accentColor}` }}>
         <div className="ml-2">
           <h1 className="text-[20px] font-bold lg:text-2xl md:text-4xl">
             About the Developers - {developerName}
