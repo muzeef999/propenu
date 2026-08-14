@@ -20,8 +20,8 @@ const CitySchema = new mongoose.Schema(
     city: { type: String, required: true, trim: true },
     state: { type: String, default: null },
     category: { type: String, required: true },
-    /** When true, city appears on propenu.com location picker. */
-    isHome: { type: Boolean, default: true },
+    /** When true, city appears on propenu.com location picker. Default off (inactive). */
+    isHome: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

@@ -91,7 +91,7 @@ export interface CreateLocationPayload {
   city: string;
   state?: string | null;
   category: string;
-  /** Publish to propenu.com location picker. Defaults to true. */
+  /** Publish to propenu.com location picker. Defaults to false (inactive). */
   isHome?: boolean;
   locality?: {
     name: string;
@@ -188,7 +188,7 @@ export async function createLocation(payload: CreateLocationPayload) {
     city: cityName,
     state: stateName,
     category: payload.category,
-    isHome: typeof payload.isHome === "boolean" ? payload.isHome : true,
+    isHome: typeof payload.isHome === "boolean" ? payload.isHome : false,
     localities: localityName
       ? [
           {
@@ -207,7 +207,7 @@ export async function createLocation(payload: CreateLocationPayload) {
 ------------------------------------ */
 export async function getAllLocationsDetails(options: GetLocationsOptions = {}) {
   const filter = options.homeOnly
-    ? { isHome: { $ne: false } } // missing isHome => treat as published
+    ? { isHome: true } // only explicitly Home-active cities on website
     : {};
 
   const locations = await Location.find(filter)
@@ -231,7 +231,7 @@ export async function getAllLocationsDetails(options: GetLocationsOptions = {}) 
   return {
     locations: locations.map((location) => ({
       ...location,
-      isHome: location.isHome !== false,
+      isHome: location.isHome === true,
       localities: mergeDuplicateLocalities(location.localities),
     })),
     states,
@@ -365,7 +365,7 @@ export async function getLocationByIdService(id: string) {
 
   return {
     ...doc,
-    isHome: doc.isHome !== false,
+    isHome: doc.isHome === true,
     localities: mergeDuplicateLocalities(doc.localities),
   };
 }

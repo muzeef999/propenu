@@ -160,7 +160,7 @@ export const postLocation = async (req: Request, res: Response) => {
       ...payload,
       locality: localityPayload,
       isHome:
-        payload.isHome === false || payload.isHome === "false" ? false : true,
+        payload.isHome === true || payload.isHome === "true" ? true : false,
     });
 
     return res.status(201).json({ success: true, item: doc });
