@@ -894,7 +894,7 @@ export const verifyAgricultiralDocument = async (
 };
 
 export const approveAgriculturalProperty = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
 ) => {
   try {
@@ -911,7 +911,7 @@ export const approveAgriculturalProperty = async (
     if (property.approval.approvalToken !== token)
       return res.status(400).json({ message: "Invalid approval link" });
 
-    stampListingApproved(property, (req as any).user?.id ?? null);
+    stampListingApproved(property, req.user?.id ?? null);
     if (property.approval) {
       (property.approval as any).isApprovedByManager = true;
       property.approval.approvalToken = undefined;

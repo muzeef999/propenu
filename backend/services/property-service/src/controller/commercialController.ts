@@ -903,7 +903,7 @@ export const verifyCommercialDocument = async (
 };
 
 export const approveCommercialProperty = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
 ) => {
   try {
@@ -920,7 +920,7 @@ export const approveCommercialProperty = async (
     if (property.approval.approvalToken !== token)
       return res.status(400).json({ message: "Invalid approval link" });
 
-    stampListingApproved(property, (req as any).user?.id ?? null);
+    stampListingApproved(property, req.user?.id ?? null);
     if (property.approval) {
       (property.approval as any).isApprovedByManager = true;
       property.approval.approvalToken = undefined;

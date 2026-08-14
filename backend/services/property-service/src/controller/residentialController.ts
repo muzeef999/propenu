@@ -992,7 +992,7 @@ export const verifyResidentialDocument = async (
   }
 };
 
-export const approveProperty = async (req: Request, res: Response) => {
+export const approveProperty = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { token } = req.body;
