@@ -28,9 +28,20 @@ type ShortlistEntry = {
   };
 };
 
+function getEntityId(value: unknown) {
+  if (!value) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "object") {
+    const entity = value as { _id?: string; id?: string };
+    return entity._id?.trim() || entity.id?.trim() || "";
+  }
+  return "";
+}
+
 export function useShortlist(
   propertyId?: string,
   propertyType?: ShortlistPropertyType,
+  createdBy?: unknown,
 ) {
   const [isShortlisted, setIsShortlisted] = useState(false);
   const queryClient = useQueryClient();
@@ -42,6 +53,13 @@ export function useShortlist(
   });
 
   const user = userData?.user;
+  const loggedInUserId = getEntityId(user);
+  const createdById = getEntityId(createdBy);
+  const isOwnListing =
+    Boolean(user) &&
+    Boolean(loggedInUserId) &&
+    Boolean(createdById) &&
+    loggedInUserId === createdById;
 
   const { data: shortlistData } = useQuery({
     queryKey: ["user-shortlist"],
@@ -136,6 +154,15 @@ export function useShortlist(
   const toggleShortlist = () => {
     if (!propertyId || !propertyType) {
       toast.error("Unable to shortlist this project.");
+      return;
+    }
+
+    if (isOwnListing) {
+      toast.error(
+        propertyType === "FeaturedProject"
+          ? "You cannot shortlist your own project."
+          : "You cannot shortlist your own property.",
+      );
       return;
     }
 

@@ -19,16 +19,14 @@ import { GoHeart, GoHeartFill } from "react-icons/go";
 import { IoMdShareAlt } from "react-icons/io";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import ContactOwnerButton from "@/components/ContactOwnerButton";
 import formatINR from "@/utilies/PriceFormat";
 import AdCard, { type Ad } from "../properties/cards/AdCard";
 import SponsoreCard from "../properties/cards/SponsoreCard";
 import { useShortlist } from "@/hooks/useShortlist";
 import { useAuth } from "@/hooks/useAuth";
-import LoginDialog from "@/app/(auth)/Login";
-import RegisterDialog from "@/app/(auth)/Register";
-import { createPortal } from "react-dom";
 import { toast } from "sonner";
+import { createPortal } from "react-dom";
+import ContactSeller from "@/app/(pages)/project/[slug]/ContactSeller";
 
 type HighlightProjectsResponse = {
     items?: FeaturedProject[];
@@ -124,6 +122,7 @@ const ProjectCardActions = ({
     const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(
         project._id,
         "FeaturedProject",
+        project.createdBy,
     );
 
     const shareProject = async (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -190,12 +189,11 @@ const HotspotsPage = () => {
     const { user, isLoading: isAuthLoading } = useAuth();
     const [selectedLocality, setSelectedLocality] = useState<string>("");
     const [localitySearch, setLocalitySearch] = useState("");
-    const [showLoginDialog, setShowLoginDialog] = useState(false);
-    const [showRegisterDialog, setShowRegisterDialog] = useState(false);
     const localitiesRef = useRef<HTMLDivElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
     const [dismissedAds, setDismissedAds] = useState<Set<string>>(new Set());
+    const [contactProject, setContactProject] = useState<FeaturedProject | null>(null);
 
 
 
@@ -363,11 +361,15 @@ const HotspotsPage = () => {
         });
     };
 
-    const handleBrochureDownload = (url?: string) => {
+    const handleBrochureDownload = (
+        project: FeaturedProject,
+        _projectHref: string,
+    ) => {
+        const url = project.brochure?.url;
         if (!url) return;
 
         if (!user) {
-            setShowLoginDialog(true);
+            setContactProject(project);
             return;
         }
 
@@ -617,6 +619,8 @@ const HotspotsPage = () => {
                                                 key={project._id}
                                                 href={projectHref}
                                                 className="block"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
                                             >
                                                 <div className="flex flex-col lg:flex-row card rounded-xl p-2 sm:p-3 gap-3 sm:gap-4">
                                                     {/* Image */}
@@ -703,29 +707,25 @@ const HotspotsPage = () => {
                                                                 event.stopPropagation();
                                                             }}
                                                         >
-                                                            <ContactOwnerButton
-                                                                projectId={project._id}
-                                                                propertyType="featuredprojects"
-                                                                listingType="sale"
-                                                                listingSource="builder"
-                                                                price={formatProjectPriceRange(project)}
-                                                                propertyLabel={project.title}
-                                                                className="mx-auto flex min-h-11 w-full min-w-[150px] items-center justify-center whitespace-nowrap rounded-lg btn-primary px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70 sm:text-base"
-                                                            >
-                                                                Contact Owner
-                                                            </ContactOwnerButton>
-                                                        </div>
-                                                        {project.brochure?.url ? (
                                                             <button
                                                                 type="button"
-                                                                disabled={isAuthLoading}
-                                                                onClick={(event) => {
-                                                                    event.preventDefault();
-                                                                    event.stopPropagation();
-                                                                    handleBrochureDownload(project.brochure?.url);
-                                                                }}
-                                                                className="w-full border border-[#26ad5f] text-[#26ad5f] py-2 rounded-lg font-semibold text-sm sm:text-base flex items-center justify-center gap-2 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-70"
+                                                                onClick={() => setContactProject(project)}
+                                                                className="mx-auto flex min-h-11 w-full min-w-[150px] items-center justify-center whitespace-nowrap rounded-lg btn-primary px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70 sm:text-base"
                                                             >
+                                                                Contact Builder
+                                                            </button>
+                                                        </div>
+                                                        {project.brochure?.url ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled={isAuthLoading}
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            event.stopPropagation();
+                                                                            handleBrochureDownload(project, projectHref);
+                                                                        }}
+                                                                        className="w-full border border-[#26ad5f] text-[#26ad5f] py-2 rounded-lg font-semibold text-sm sm:text-base flex items-center justify-center gap-2 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-70"
+                                                                    >
                                                                 <FiDownload /> Brochure
                                                             </button>
                                                         ) : (
@@ -769,32 +769,27 @@ const HotspotsPage = () => {
                 </div>
             </div>
 
-            {showLoginDialog &&
+            {contactProject &&
                 createPortal(
-                    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40">
-                        <LoginDialog
-                            open
-                            onClose={() => setShowLoginDialog(false)}
-                            onSwitchToRegister={() => {
-                                setShowLoginDialog(false);
-                                setShowRegisterDialog(true);
-                            }}
-                        />
-                    </div>,
-                    document.body,
-                )}
-
-            {showRegisterDialog &&
-                createPortal(
-                    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40">
-                        <RegisterDialog
-                            open
-                            onClose={() => setShowRegisterDialog(false)}
-                            onSwitchToLogin={() => {
-                                setShowRegisterDialog(false);
-                                setShowLoginDialog(true);
-                            }}
-                        />
+                    <div
+                        className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40 px-4"
+                        onClick={() => setContactProject(null)}
+                    >
+                        <div
+                            className="relative w-full max-w-[420px] overflow-visible"
+                            onClick={(event) => event.stopPropagation()}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label="Contact seller"
+                        >
+                            <div className="max-h-[90vh] overflow-y-auto rounded-md bg-white shadow-2xl">
+                                <ContactSeller
+                                    project={contactProject}
+                                    isModal
+                                    onClose={() => setContactProject(null)}
+                                />
+                            </div>
+                        </div>
                     </div>,
                     document.body,
                 )}
