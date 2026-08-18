@@ -107,6 +107,8 @@ export interface UpdateLocationPayload {
   state?: string | null;
   category?: string;
   isHome?: boolean;
+  /** Current saved locality name — required to rename / update that locality */
+  originalLocalityName?: string;
   locality?: {
     name: string;
     location?: {
@@ -271,28 +273,66 @@ export async function updateLocation(
 
   if (payload.locality) {
     const localityName = toTitleCase(payload.locality.name);
-    let coordinates = payload.locality.location?.coordinates;
+    if (!localityName) {
+      return saveWithMergedLocalities(doc);
+    }
 
-    if (!coordinates) {
+    const originalKey = payload.originalLocalityName?.trim().toLowerCase() || "";
+
+    let index = -1;
+    if (originalKey) {
+      index = doc.localities.findIndex(
+        (l: any) => localityKey(l) === originalKey
+      );
+    }
+    if (index < 0) {
+      index = doc.localities.findIndex(
+        (l: any) => localityKey(l) === localityName.toLowerCase()
+      );
+    }
+
+    let coordinates = payload.locality.location?.coordinates as
+      | [number, number]
+      | undefined;
+    const hasProvidedCoords =
+      Array.isArray(coordinates) &&
+      coordinates.length >= 2 &&
+      (Number(coordinates[0]) !== 0 || Number(coordinates[1]) !== 0);
+
+    if (hasProvidedCoords && coordinates) {
+      coordinates = [Number(coordinates[0]), Number(coordinates[1])];
+    } else if (
+      index >= 0 &&
+      Array.isArray(doc.localities[index]?.location?.coordinates)
+    ) {
+      coordinates = doc.localities[index].location!.coordinates as [
+        number,
+        number,
+      ];
+    } else {
       const geo = await geocode(`${localityName}, ${doc.city}`);
       if (geo) {
         coordinates = [geo.lng, geo.lat];
       }
     }
 
-    if (coordinates) {
-      coordinates = [Number(coordinates[0]), Number(coordinates[1])];
-    }
-
-    const index = doc.localities.findIndex(
-      (l: any) => localityKey(l) === localityName.toLowerCase()
-    );
-
-    if (index >= 0 && coordinates && doc.localities[index]) {
-      doc.localities[index].location = {
-        type: "Point",
-        coordinates,
-      };
+    if (index >= 0 && doc.localities[index]) {
+      // Rename + update coords for existing locality
+      doc.localities[index].name = localityName;
+      if (coordinates) {
+        doc.localities[index].location = {
+          type: "Point",
+          coordinates,
+        };
+      }
+    } else {
+      // New locality on this city
+      doc.localities.push({
+        name: localityName,
+        location: coordinates
+          ? { type: "Point", coordinates }
+          : undefined,
+      } as any);
     }
   }
 
