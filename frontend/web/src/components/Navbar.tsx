@@ -258,44 +258,63 @@ const Navbar = () => {
                         />
                       </div>
                     }
-                    width="w-[90vw] max-w-[600px] z-999"
+                    width="w-[90vw] max-w-[680px] z-999"
                     align="left"
                     renderContent={(close) => (
-                      <div className="max-h-[80vh] overflow-y-auto">
-                        <h3 className="font-semibold text-black mt-1 tracking-wide px-2">
-                          Popular cities
-                        </h3>
-                        <div className="flex flex-wrap text-primary p-2 gap-2">
-                          {popularCities.map((i) => (
-                            <button
-                              key={i._id}
-                              onClick={() => {
-                                onSelect(i);
-                                close?.();
-                              }}
-                              className="flex flex-col text-gray-600 cursor-pointer px-2 py-1 items-center justify-center rounded hover:bg-gray-100 transition-colors"
-                            >
-                              <div className="text-xs">{i.city}</div>
-                            </button>
-                          ))}
-                        </div>
-                        <div className="w-full px-2 mt-2">
-                          <h3 className="font-semibold text-black text-sm tracking-wide">
-                            Other cities
+                      <div className="max-h-[80vh] overflow-y-auto px-2.5 py-1.5">
+                        <div>
+                          <h3 className="text-[15px] font-semibold text-gray-900">
+                            Popular Cities
                           </h3>
-                          <div className="flex flex-wrap gap-2 mt-1">
-                            {otherCities.map((c) => (
-                              <button
-                                key={c._id}
-                                onClick={() => {
-                                  onSelect(c);
-                                  close?.();
-                                }}
-                                className="text-gray-600 cursor-pointer px-2 py-1 text-xs rounded hover:bg-gray-100 transition-colors"
-                              >
-                                {c.city}
-                              </button>
-                            ))}
+                          <div className="mt-1.5 grid grid-cols-2 gap-x-6 gap-y-0 md:grid-cols-3 lg:grid-cols-5">
+                            {popularCities.map((i) => {
+                              const isSelected = selectedCity?._id === i._id;
+
+                              return (
+                                <button
+                                  key={i._id}
+                                  onClick={() => {
+                                    onSelect(i);
+                                    close?.();
+                                  }}
+                                  className={`py-px text-left text-[14px] leading-[1.15rem] transition-colors ${
+                                    isSelected
+                                      ? "font-semibold text-[#27AE60]"
+                                      : "text-gray-700 hover:text-[#27AE60]"
+                                  }`}
+                                >
+                                  <span className="block truncate">{i.city}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <h3 className="text-[15px] font-semibold text-gray-900">
+                            Other Cities
+                          </h3>
+                          <div className="mt-1.5 grid grid-cols-2 gap-x-6 gap-y-0 md:grid-cols-3 lg:grid-cols-5">
+                            {otherCities.map((c) => {
+                              const isSelected = selectedCity?._id === c._id;
+
+                              return (
+                                <button
+                                  key={c._id}
+                                  onClick={() => {
+                                    onSelect(c);
+                                    close?.();
+                                  }}
+                                  className={`py-px text-left text-[14px] leading-[1.15rem] transition-colors ${
+                                    isSelected
+                                      ? "font-semibold text-[#27AE60]"
+                                      : "text-gray-700 hover:text-[#27AE60]"
+                                  }`}
+                                >
+                                  <span className="block truncate">{c.city}</span>
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>

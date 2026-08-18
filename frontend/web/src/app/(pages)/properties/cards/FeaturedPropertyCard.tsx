@@ -552,8 +552,8 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
           </div>
           <div
             className={`whitespace-nowrap font-medium text-green-700 ${vertical
-              ? "text-sm leading-tight"
-              : "text-sm leading-tight md:text-base"
+              ? "text-lg leading-tight"
+              : "text-lg leading-tight md:text-xl"
               }`}
           >
             {priceLabel}

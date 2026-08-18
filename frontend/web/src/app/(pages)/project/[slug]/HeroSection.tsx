@@ -7,7 +7,7 @@ import { trackProjectBrochureDownload } from "@/data/ClientData";
 import { FeaturedProject } from "@/types";
 import { useShortlist } from "@/hooks/useShortlist";
 import { useEffect, useRef, useState } from "react";
-import { FiCheckCircle, FiDownload, FiHeart, FiMapPin } from "react-icons/fi";
+import { FiCheckCircle, FiDownload, FiHeart, FiMapPin, FiPhone } from "react-icons/fi";
 import { HiChevronLeft, HiChevronRight, HiPhoto, HiXMark } from "react-icons/hi2";
 import { IoIosShareAlt } from "react-icons/io";
 import Cookies from "js-cookie";
@@ -391,15 +391,18 @@ export default function HeroSection({ project }: HeroSectionProps) {
                                 </p>
                             ) : (
                                 <div className="mt-1">
-                                    <p className="text-xs font-medium text-[#4bbb7b] sm:text-sm">
+                                    <p className="text-xs font-medium text-[#4bbb7b] lg:text-[21px]">
                                         Price on Request
                                     </p>
                                     <button
                                         type="button"
                                         onClick={() => setIsContactDialogOpen(true)}
-                                        className="mt-2 inline-flex items-center justify-center rounded-md bg-[#27AE60] px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#15803D] sm:text-sm"
+                                        className="mt-4 inline-flex min-w-[120px] items-center justify-center gap-2 rounded-md bg-[#27AE60] px-3 py-3 text-white shadow-sm transition hover:bg-[#15803D] sm:min-w-5"
                                     >
-                                        Contact Builder
+                                        <FiPhone className="h-4 w-4 lg:h-5 lg:w-5" />
+                                        <span className="text-xs font-medium lg:text-base">
+                                            Contact Builder
+                                        </span>
                                     </button>
                                 </div>
                             )}

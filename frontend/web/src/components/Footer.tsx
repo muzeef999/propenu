@@ -19,14 +19,14 @@ export function FooterLegalBar() {
       <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center justify-center gap-2 sm:gap-3">
         <p className="min-w-0 text-center text-white/90 sm:text-left">
           All trademarks, logos and names are properties of their respective
-          owners.All Rights Reserved. Copyright 2026 Propenu Private Limited.
+          owners. All Rights Reserved. Copyright 2026 Propenu Private Limited.
         </p>
         <Link
           href="/terms"
           className="flex shrink-0 items-center gap-1.5 underline underline-offset-2"
         >
           <span>Terms of use</span>
-          <span className="block h-3.5 w-[10px] text-[#27AE60]">
+          <span className="block h-3.5 w-2.5 text-[#27AE60]">
             <Logo />
           </span>
         </Link>
@@ -134,7 +134,7 @@ export default function Footer() {
             <h3 className="mb-6 text-lg font-semibold text-gray-900">
               Follow Us
             </h3>
-            <div className="flex items-center gap-3 mb-8">
+            <div className="flex items-center gap-3 mb-2">
               <Link
                 href="https://www.linkedin.com/company/propenu"
                 target="_blank"
@@ -191,10 +191,32 @@ export default function Footer() {
               </Link>
             </div>
 
-            <div className="mt-6 flex flex-col items-start gap-4 max-lg:items-center max-lg:text-center lg:mt-8">
+            <div className="mt-6 flex flex-col items-start gap-4 max-lg:items-center max-lg:text-center lg:mt-3">
               <div className="flex flex-wrap items-center gap-3">
                 <PlayStoreBadge />
                 <AppStoreBadge />
+              </div>
+
+              <div className="w-full max-w-xs mt-4">
+                <h4 className="mb-2 text-lg font-semibold text-gray-900">
+                  Associated Businesses
+                </h4>
+                <div className="grid grid-cols-2 items-center">
+                  <div className="h-12">
+                    <img
+                      src="/email/teamworks.png"
+                      alt="Teamworks"
+                      className="h-full w-40 object-contain object-left" 
+                      />
+                  </div>
+                  <div className="flex h-10">
+                    <img
+                      src="/email/aslijobs.png"
+                      alt="AsliJobs"
+                      className="h-full w-full object-contain object-left"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

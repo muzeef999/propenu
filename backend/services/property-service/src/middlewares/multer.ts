@@ -145,6 +145,7 @@ const DOCUMENT_MIME_TYPES = ["application/pdf"];
 
 const IMAGE_MAX_BYTES = 2 * 1024 * 1024;
 const VIDEO_MAX_BYTES = 20 * 1024 * 1024;
+const BROCHURE_MAX_BYTES = 20 * 1024 * 1024;
 const MAX_TOTAL_SIZE = 80 * 1024 * 1024;
 
 /* =========================
@@ -197,6 +198,16 @@ export const uploadMedia = (
   res: Response,
   next: NextFunction,
 ) => {
+  const fieldSizeLimits: Record<string, number> = {
+    images: IMAGE_MAX_BYTES,
+    heroImage: IMAGE_MAX_BYTES,
+    aboutImage: IMAGE_MAX_BYTES,
+    logo: IMAGE_MAX_BYTES,
+    videos: VIDEO_MAX_BYTES,
+    heroVideo: VIDEO_MAX_BYTES,
+    brochure: BROCHURE_MAX_BYTES,
+  };
+
   const handler = upload.fields([
     { name: "images", maxCount: 12 },
     { name: "videos", maxCount: 3 },
@@ -240,6 +251,22 @@ export const uploadMedia = (
       }) || {};
 
     const uploadedFiles = Object.values(files).flat();
+
+    for (const file of uploadedFiles) {
+      const fieldLimit = fieldSizeLimits[file.fieldname];
+
+      if (fieldLimit && file.size > fieldLimit) {
+        const maxSizeLabel =
+          fieldLimit >= 1024 * 1024
+            ? `${Math.round(fieldLimit / 1024 / 1024)}MB`
+            : `${Math.round(fieldLimit / 1024)}KB`;
+
+        return res.status(400).json({
+          success: false,
+          message: `${file.fieldname} file too large: ${file.originalname}. Max ${maxSizeLabel} allowed.`,
+        });
+      }
+    }
 
     const totalSize = uploadedFiles.reduce(
       (sum, file) => sum + file.size,

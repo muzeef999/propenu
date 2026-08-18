@@ -847,13 +847,13 @@ export const FeaturePropertyService = {
 
       // 1) Basic validations (adjust as needed)
       const allowedMimeTypes = ["application/pdf"];
-      const maxSizeBytes = 5 * 1024 * 1024; // 5 MB
+      const maxSizeBytes = 20 * 1024 * 1024; // 20 MB
 
       if (!allowedMimeTypes.includes(bf.mimetype)) {
         throw new Error("Brochure must be a PDF (application/pdf)");
       }
       if (bf.size && bf.size > maxSizeBytes) {
-        throw new Error("Brochure file too large (max 8MB)");
+        throw new Error("Brochure file too large (max 20MB)");
       }
 
       // 2) Upload to S3 (using your existing uploadFile util)
@@ -1177,14 +1177,14 @@ export const FeaturePropertyService = {
       const bf = brochureFiles[0] as Express.Multer.File;
       uploadedPaths.add(bf.path);
       const allowedMimeTypes = ["application/pdf"];
-      const maxSizeBytes = 5 * 1024 * 1024;
+      const maxSizeBytes = 20 * 1024 * 1024;
 
       if (!allowedMimeTypes.includes(bf.mimetype)) {
         throw new Error("Brochure must be a PDF (application/pdf)");
       }
 
       if (bf.size && bf.size > maxSizeBytes) {
-        throw new Error("Brochure file too large (max 5MB)");
+        throw new Error("Brochure file too large (max 20MB)");
       }
 
       const up = await uploadFile({

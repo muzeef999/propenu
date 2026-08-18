@@ -384,11 +384,15 @@ export default function HeroSection({ hero }: Props) {
   }
 
   const accentColor = h.color || "#27AE60";
+  const optionButtonClass =
+    "min-h-7 rounded-md px-1.5 py-1 text-center text-[12px] font-semibold leading-tight  transition";
+  const inactiveOptionButtonClass =
+    "border border-white/25 bg-white/12 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] hover:bg-white/18 hover:text-white";
   const intentionQuestions = (
-    <div className="bg-white px-3 py-3">
+    <div className=" px-3 py-3">
 
 
-      <p className="text-xs font-semibold text-slate-700">{BUY_TIMELINE_QUESTION}</p>
+      <p className="text-xs font-semibold text-white">{BUY_TIMELINE_QUESTION}</p>
       <div className="mt-2 grid grid-cols-4 gap-1.5">
         {buyTimelineOptions.map((option) => {
           const active = selectedTimeline === option;
@@ -399,10 +403,8 @@ export default function HeroSection({ hero }: Props) {
               type="button"
               onClick={() => updateIntentionAnswer(BUY_TIMELINE_QUESTION, option)}
               style={active ? { backgroundColor: accentColor } : undefined}
-              className={`min-h-7 rounded-md px-1.5 py-1 text-center text-[9px] font-semibold leading-tight transition ${
-                active
-                  ? "text-white shadow-sm"
-                  : "bg-slate-50 text-slate-600 ring-1 ring-slate-200 hover:bg-emerald-50 hover:text-slate-900"
+              className={`${optionButtonClass} ${
+                active ? "text-white shadow-sm" : inactiveOptionButtonClass
               }`}
             >
               {option}
@@ -411,7 +413,7 @@ export default function HeroSection({ hero }: Props) {
         })}
       </div>
 
-      <p className="mt-3 text-xs font-semibold text-slate-700">{BUDGET_QUESTION}</p>
+      <p className="mt-3 text-xs font-semibold text-white">{BUDGET_QUESTION}</p>
       <div className="mt-2 grid grid-cols-3 gap-1.5">
         {budgetOptions.map((option) => {
           const active = selectedBudget === option;
@@ -422,10 +424,8 @@ export default function HeroSection({ hero }: Props) {
               type="button"
               onClick={() => updateIntentionAnswer(BUDGET_QUESTION, option)}
               style={active ? { backgroundColor: accentColor } : undefined}
-              className={`min-h-7 rounded-md px-1.5 py-1 text-center text-[9px] font-semibold leading-tight transition ${
-                active
-                  ? "text-white shadow-sm"
-                  : "bg-slate-50 text-slate-600 ring-1 ring-slate-200 hover:bg-emerald-50 hover:text-slate-900"
+              className={`${optionButtonClass} ${
+                active ? "text-white shadow-sm" : inactiveOptionButtonClass
               }`}
             >
               {option}
@@ -554,7 +554,7 @@ export default function HeroSection({ hero }: Props) {
                 : "max-w-md rounded-xl border border-white/20 bg-white/10 p-6 backdrop-blur-lg"
             }`}>
               {showSubmittedStep ? (
-                <div className="overflow-hidden rounded-lg bg-white shadow-[0_14px_38px_rgba(15,23,42,0.16)]">
+                <div className="overflow-hidden rounded-lg shadow-[0_14px_38px_rgba(15,23,42,0.16)]">
                   <div className="relative overflow-hidden px-4 py-4 text-center">
                     <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: accentColor }} />
                     <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(39,174,96,0.28)]" style={{ backgroundColor: accentColor }}>
@@ -564,9 +564,9 @@ export default function HeroSection({ hero }: Props) {
                     
                   </div>
 
-                  <div className="border-t border-slate-200 bg-white px-3 py-3">
+                  <div className="border-t border-slate-500 px-3 py-3">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white">
                         Contact Builder 
                       </p>
                       <span className="rounded-full bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200">
@@ -574,7 +574,7 @@ export default function HeroSection({ hero }: Props) {
                       </span>
                     </div>
                     <div className="mt-3 flex items-center gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-500 shadow-sm">
                         {h.logo?.url ? (
                           <img
                             src={h.logo.url}
@@ -588,19 +588,19 @@ export default function HeroSection({ hero }: Props) {
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-slate-950">{contactName}</p>
-                        <p className="mt-0.5 text-xs font-medium text-slate-500">Seller</p>
+                        <p className="truncate text-sm font-semibold text-white">{contactName}</p>
+                        <p className="mt-0.5 text-xs font-medium text-white">Builder</p>
                       </div>
                     </div>
-                    <div className="mt-3 grid gap-1.5 border-t border-slate-100 pt-2.5 text-sm text-slate-700">
-                      <p className="flex items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-1.5">
-                        <span className="text-xs text-slate-500">Phone</span>
-                        <span className="font-medium text-slate-950">{contactPhone || "Not available"}</span>
+                    <div className="mt-3 grid gap-2 border-t border-slate-500 pt-2.5 text-sm text-slate-700">
+                      <p className="flex items-center justify-between gap-3 rounded-md border border-white/20 bg-white/10 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                        <span className="text-xs text-white/80">Phone</span>
+                        <span className="font-medium text-white text-xs">{contactPhone || "Not available"}</span>
                       </p>
                       {contactEmail && (
-                        <p className="flex items-start justify-between gap-3 rounded-md bg-slate-50 px-3 py-1.5">
-                          <span className="shrink-0 text-xs text-slate-500">Email</span>
-                          <span className="break-all text-right text-xs font-medium text-slate-700">{contactEmail}</span>
+                        <p className="flex items-start justify-between gap-3 rounded-md border border-white/20 bg-white/10 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                          <span className="shrink-0 text-xs text-white/80">Email</span>
+                          <span className="break-all text-right text-xs font-medium text-white">{contactEmail}</span>
                         </p>
                       )}
                     </div>

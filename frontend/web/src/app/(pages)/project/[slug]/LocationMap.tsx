@@ -197,6 +197,7 @@ function openMarkerPopup(marker: unknown) {
 }
 
 export default function LocationMap({ project }: LocationMapProps) {
+  const defaultNearbyCount = 4;
   const apiKey = process.env.NEXT_PUBLIC_MAPPLS_MAP_SDK_KEY || process.env.NEXT_MAPPLS_MAP_SDK_KEY;
   const mapContainerId = "project-location-mappls-map";
   const mapRef = useRef<HTMLDivElement | null>(null);
@@ -204,6 +205,7 @@ export default function LocationMap({ project }: LocationMapProps) {
   const markersRef = useRef<MarkerRefItem[]>([]);
   const [mapError, setMapError] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [showAllNearby, setShowAllNearby] = useState(false);
 
   const color = project.color?.trim() || "#10b981";
   const projectCenter = useMemo(
@@ -223,6 +225,11 @@ export default function LocationMap({ project }: LocationMapProps) {
         .filter((place) => place.name && place.distanceText),
     [project.nearbyPlaces],
   );
+  const visibleNearbyLocations = useMemo(
+    () => (showAllNearby ? nearbyLocations : nearbyLocations.slice(0, defaultNearbyCount)),
+    [defaultNearbyCount, nearbyLocations, showAllNearby],
+  );
+  const remainingNearbyCount = Math.max(nearbyLocations.length - defaultNearbyCount, 0);
 
   useEffect(() => {
     let isCancelled = false;
@@ -375,9 +382,8 @@ export default function LocationMap({ project }: LocationMapProps) {
 
               {nearbyLocations.length > 0 && (
                 <div className="rounded-md border border-slate-200 bg-slate-50 p-3 sm:p-4">
-                 
                   <div className="grid gap-2 sm:grid-cols-2">
-                    {nearbyLocations.map((place, index) => (
+                    {visibleNearbyLocations.map((place, index) => (
                       <div
                         key={`${place.name}-${index}`}
                         className="flex min-w-0 items-center gap-2 rounded-md border border-slate-100 bg-white px-3 py-2.5 text-sm text-slate-900"
@@ -395,6 +401,17 @@ export default function LocationMap({ project }: LocationMapProps) {
                       </div>
                     ))}
                   </div>
+
+                  {remainingNearbyCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllNearby((prev) => !prev)}
+                      className="mt-3 text-sm font-semibold transition hover:opacity-80"
+                      style={{ color }}
+                    >
+                      {showAllNearby ? "View less" : `View more (${remainingNearbyCount})`}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

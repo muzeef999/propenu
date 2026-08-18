@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { FeaturedProject } from "@/types";
 
 type SpecificationsProps = {
@@ -13,6 +13,15 @@ type SpecificationItem = {
   description: string;
 };
 
+function formatSpecificationDescription(description: string) {
+  return description
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/\s*(?=(?:Structure|Super structure|Plastering|Painting|Flooring|Doors|Windows|Kitchen|Toilets|Electrical system|Common Area|Railings|Bedroom and kitchen|Utility \/ Wash Area|Ceiling|Internal|External|Main Door|Internal Door|Windows frame and shutter|Utility areas|Drawing, Dinning, living and foyer|Balcony|Staircase):)/g, "\n")
+    .replace(/\n{2,}/g, "\n")
+    .trim();
+}
+
 export default function Specifications({ project }: SpecificationsProps) {
   const specifications = useMemo(
     () =>
@@ -21,13 +30,22 @@ export default function Specifications({ project }: SpecificationsProps) {
       ),
     [project.specifications],
   );
-  const [activeIndex, setActiveIndex] = useState(0);
+  const descriptions = useMemo(
+    () =>
+      specifications
+        .flatMap((spec) => spec.items ?? [])
+        .map((item) =>
+          formatSpecificationDescription(
+            (item as SpecificationItem).description?.trim() ?? "",
+          ),
+        )
+        .filter((description): description is string => Boolean(description)),
+    [specifications],
+  );
 
-  if (!specifications.length) {
+  if (!specifications.length || !descriptions.length) {
     return null;
   }
-
-  const activeSpec = specifications[activeIndex] ?? specifications[0];
 
   return (
     <section id="specifications">
@@ -38,28 +56,13 @@ export default function Specifications({ project }: SpecificationsProps) {
           </h2>
 
           <div className="px-4 py-4 sm:px-5">
-            <div className="flex gap-2 overflow-x-auto border-b border-slate-200 pb-3 [scrollbar-width:none] [-ms-overflow-style:none] sm:gap-3 sm:pb-4 [&::-webkit-scrollbar]:hidden">
-              {specifications.map((spec: Specification, index) => (
-                <button
-                  key={`${spec.category}-${index}`}
-                  type="button"
-                  onClick={() => setActiveIndex(index)}
-                  className={`shrink-0 rounded-md border px-4 py-2 text-xs font-medium transition sm:px-5 sm:py-2.5 sm:text-sm cursor-pointer ${activeIndex === index
-                      ? "border-emerald-500 bg-[#27ae60] text-white shadow-sm"
-                      : "border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
-                    }`}
+            <div className="max-h-[420px] overflow-y-auto rounded-md border border-slate-200 bg-white p-4 sm:max-h-[460px] sm:p-5">
+              {descriptions.map((description, index) => (
+                <p
+                  key={`${description.slice(0, 40)}-${index}`}
+                  className="mb-3 whitespace-pre-line text-sm leading-7 text-slate-600 last:mb-0 sm:text-base sm:leading-8"
                 >
-                  {spec.category}
-                </button>
-              ))}
-            </div>
-
-            <div className="grid gap-x-16 gap-y-3 pt-4 md:grid-cols-2 md:gap-y-4 md:pt-5">
-              {(activeSpec.items as SpecificationItem[] | undefined)?.map((item, index) => (
-                <p key={`${item.title}-${index}`} className="text-sm leading-6 text-slate-500 sm:leading-7">
-                  <span className="block font-medium text-slate-950 sm:inline">{item.title}</span>
-                  <span className="hidden sm:inline"> - </span>
-                  <span>{item.description}</span>
+                  {description}
                 </p>
               ))}
             </div>
