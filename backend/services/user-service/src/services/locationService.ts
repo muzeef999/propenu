@@ -301,14 +301,17 @@ export async function updateLocation(
 
     if (hasProvidedCoords && coordinates) {
       coordinates = [Number(coordinates[0]), Number(coordinates[1])];
-    } else if (
-      index >= 0 &&
-      Array.isArray(doc.localities[index]?.location?.coordinates)
-    ) {
-      coordinates = doc.localities[index].location!.coordinates as [
-        number,
-        number,
-      ];
+    } else if (index >= 0) {
+      const existingLocality = doc.localities[index];
+      const existingCoords = existingLocality?.location?.coordinates;
+      if (Array.isArray(existingCoords) && existingCoords.length >= 2) {
+        coordinates = [Number(existingCoords[0]), Number(existingCoords[1])];
+      } else {
+        const geo = await geocode(`${localityName}, ${doc.city}`);
+        if (geo) {
+          coordinates = [geo.lng, geo.lat];
+        }
+      }
     } else {
       const geo = await geocode(`${localityName}, ${doc.city}`);
       if (geo) {
@@ -316,11 +319,12 @@ export async function updateLocation(
       }
     }
 
-    if (index >= 0 && doc.localities[index]) {
+    const existingAtIndex = index >= 0 ? doc.localities[index] : undefined;
+    if (existingAtIndex) {
       // Rename + update coords for existing locality
-      doc.localities[index].name = localityName;
+      existingAtIndex.name = localityName;
       if (coordinates) {
-        doc.localities[index].location = {
+        existingAtIndex.location = {
           type: "Point",
           coordinates,
         };

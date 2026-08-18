@@ -1,5 +1,6 @@
 import express from "express";
 import { getAdmin, getSuperAdmin, getsuperagent, getsupermanager, projectAnalytics, propertyAnalytics } from "../controller/analyticsController";
+import { locationListingCounts } from "../controller/locationListingCountsController";
 import { updateListingFollowUpWorkStatus } from "../controller/listingFollowUpController";
 import { authMiddleware } from "../middlewares/authMiddleware";
 import { approveProject, getPendingProjects, rejectProject } from "../controller/projectController";
@@ -9,6 +10,12 @@ const analyticsRouter = express.Router();
 
 analyticsRouter.get("/analytics/project", authMiddleware, requireAnyPermission(["dashboard:view", "dashboard:view_reports"]), projectAnalytics);
 analyticsRouter.get("/analytics/properties", authMiddleware, requireAnyPermission(["dashboard:view", "dashboard:view_reports"]), propertyAnalytics);
+analyticsRouter.get(
+  "/analytics/location-counts",
+  authMiddleware,
+  requireAnyPermission(["dashboard:view", "dashboard:view_reports", "property:view", "project:view"]),
+  locationListingCounts,
+);
 
 analyticsRouter.patch(
   "/follow-up/:entity/:id/work-status",
