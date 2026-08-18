@@ -19,6 +19,11 @@ type HeroSectionProps = {
     project: FeaturedProject;
 };
 
+function toTitleCase(str?: string) {
+    if (!str) return "";
+    return str.replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+}
+
 function formatCompactPrice(price?: number) {
     if (typeof price !== "number" || !Number.isFinite(price) || price <= 0) {
         return null;
@@ -349,6 +354,11 @@ export default function HeroSection({ project }: HeroSectionProps) {
         setActiveTab(href);
     }
 
+    const builderName =
+        (Array.isArray(project.aboutSummary)
+            ? project.aboutSummary[0]?.builderName
+            : (project.aboutSummary as any)?.builderName)?.trim();
+
     return (
         <>
             <section className="bg-white">
@@ -358,6 +368,12 @@ export default function HeroSection({ project }: HeroSectionProps) {
                             <h1 className="truncate text-2xl font-semibold text-slate-950 sm:text-3xl">
                                 {project.title}
                             </h1>
+
+                            {builderName && (
+                                <p className="mt-0.5 text-sm font-medium text-slate-600 sm:text-base">
+                                    By <span className="font-semibold text-[#4bbb7b]">{toTitleCase(builderName)}</span>
+                                </p>
+                            )}
 
                             {locationText && (
                                 <p className="mt-1 flex items-center gap-1.5 text-xs text-[#6C6F79] sm:text-sm">

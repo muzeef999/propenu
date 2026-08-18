@@ -370,7 +370,7 @@ const ResidentialFilters = () => {
           }
           width="w-116"
           align="left"
-          renderContent={() => (
+          renderContent={(close) => (
             <div className="p-3">
               <h4 className="text-sm font-semibold mb-3">
                 {cityData

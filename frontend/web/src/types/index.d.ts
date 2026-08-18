@@ -179,6 +179,7 @@ export interface IBhkUnit {
 
 // types/feature.ts
 export interface AboutItem {
+  builderName?: string;
   aboutDescription?: string;
   rightContent?: string; // newline separated bullets or lines starting with •
   url?: string; // S3 url, optional (server may not provide)

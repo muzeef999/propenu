@@ -115,7 +115,7 @@ export function hydrateFiltersFromSearchParams(
 
   const listingSource = getString(params, "listingSource");
 
-  residential.propertyType = getString(params, "propertyType");
+  residential.propertyType = getCsv(params, "propertyType");
   residential.transactionType = getString(params, "transactionType");
   residential.constructionStatus = getString(params, "constructionStatus");
   residential.furnishing = getString(params, "furnishing");

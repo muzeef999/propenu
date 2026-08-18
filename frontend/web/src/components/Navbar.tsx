@@ -266,7 +266,7 @@ const Navbar = () => {
                           <h3 className="text-[15px] font-semibold text-gray-900">
                             Popular Cities
                           </h3>
-                          <div className="mt-1.5 grid grid-cols-2 gap-x-6 gap-y-0 md:grid-cols-3 lg:grid-cols-5">
+                          <div className="mt-1.5 grid grid-cols-2 gap-x-6 gap-y-1 md:grid-cols-3 lg:grid-cols-5">
                             {popularCities.map((i) => {
                               const isSelected = selectedCity?._id === i._id;
 
@@ -294,7 +294,7 @@ const Navbar = () => {
                           <h3 className="text-[15px] font-semibold text-gray-900">
                             Other Cities
                           </h3>
-                          <div className="mt-1.5 grid grid-cols-2 gap-x-6 gap-y-0 md:grid-cols-3 lg:grid-cols-5">
+                          <div className="mt-1.5 grid grid-cols-2 gap-x-6 gap-y-1 md:grid-cols-3 lg:grid-cols-5">
                             {otherCities.map((c) => {
                               const isSelected = selectedCity?._id === c._id;
 
