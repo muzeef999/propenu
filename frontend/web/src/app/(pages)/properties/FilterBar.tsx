@@ -4,8 +4,13 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import { IoIosSearch } from "react-icons/io";
 import { useDispatch } from "react-redux";
 import FilterDropdown from "@/ui/FilterDropdown";
-import { useAppSelector } from "@/Redux/store";
-import { selectCityWithLocalities, setCityId } from "@/Redux/slice/citySlice";
+import { useAppDispatch, useAppSelector } from "@/Redux/store";
+import {
+  fetchSearchableLocations,
+  selectAllCitiesWithLocalities,
+  selectCityWithLocalities,
+  setCityId,
+} from "@/Redux/slice/citySlice";
 import {
   categoryOption,
   resetAgriculturalFilters,
@@ -34,14 +39,50 @@ import { buildSearchParams } from "./filters/buildSearchParams";
 import { hydrateFiltersFromSearchParams } from "./filters/hydrateFiltersFromSearchParams";
 
 const LAST_PROPERTY_CATEGORY_KEY = "properties:lastCategory";
+const SEARCH_API_URL = process.env.NEXT_PUBLIC_API_URL;
+const RECENT_SEARCHES_KEY = "propenu_recent_searches";
+
+type SearchSuggestion =
+  | {
+      kind: "city";
+      cityId?: string;
+      city: string;
+      state: string;
+      label: string;
+      subLabel: string;
+    }
+  | {
+      kind: "locality";
+      cityId?: string;
+      city: string;
+      state: string;
+      locality: string;
+      label: string;
+      subLabel: string;
+    }
+  | {
+      kind: "project";
+      label: string;
+      subLabel: string;
+      slug: string;
+      city: string;
+      state: string;
+      locality: string;
+    };
+
+type RecentSearchItem = SearchSuggestion & {
+  savedAt: number;
+};
+
+type SearchCityContext = {
+  city: string;
+  state: string;
+};
 
 function normalizeLocalityName(value: string) {
   return value.trim().replace(/\s+/g, " ");
 }
 
-function getLocalityDedupKey(value: string) {
-  return normalizeLocalityName(value).toLowerCase();
-}
 const FilterBar: React.FC = () => {
   const getCategoryLabel = (value: categoryOption) =>
     value === "Land" ? "Plots" : value;
@@ -74,12 +115,20 @@ const FilterBar: React.FC = () => {
   const [showAgriculturalAdvanced, setShowAgriculturalAdvanced] = useState(false);
   const [hasRestoredCategory, setHasRestoredCategory] = useState(false);
   const [hasHydratedFromUrl, setHasHydratedFromUrl] = useState(false);
+  const [typedSuggestions, setTypedSuggestions] = useState<SearchSuggestion[]>([]);
+  const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
+  const [activeSearchCity, setActiveSearchCity] = useState<SearchCityContext | null>(null);
+  const [isCityChipDismissed, setIsCityChipDismissed] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<
+    Extract<SearchSuggestion, { kind: "project" }> | null
+  >(null);
   const pendingInitialUrlCategoryRef = useRef<categoryOption | null>(null);
 
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const dispatch = useDispatch();
+  const appDispatch = useAppDispatch();
   const {
     listingTypeLabel,
     listingTypeValue,
@@ -94,7 +143,48 @@ const FilterBar: React.FC = () => {
   } =
     useAppSelector((s) => s.filters);
   const cityData = useAppSelector(selectCityWithLocalities);
-  const locations = useAppSelector((s) => s.city.locations);
+  const allLocations = useAppSelector(selectAllCitiesWithLocalities);
+  const effectiveSearchContext = useMemo(() => {
+    const city =
+      activeSearchCity?.city?.trim() ||
+      (!isCityChipDismissed ? cityData?.city?.trim() : "") ||
+      "";
+    const state =
+      activeSearchCity?.state?.trim() ||
+      (!isCityChipDismissed ? cityData?.state?.trim() : "") ||
+      "";
+
+    const matchedLocation = city
+      ? allLocations.find((location) => {
+          const sameCity =
+            location.city.trim().toLowerCase() === city.toLowerCase();
+          const sameState =
+            !state ||
+            location.state.trim().toLowerCase() === state.toLowerCase();
+
+          return sameCity && sameState;
+        })
+      : null;
+
+    return {
+      city,
+      state,
+      localities:
+        matchedLocation?.localities
+          ?.map((locality) => locality?.name?.trim())
+          .filter((name): name is string => Boolean(name)) ?? [],
+      cityId: matchedLocation?._id,
+    };
+  }, [
+    activeSearchCity?.city,
+    activeSearchCity?.state,
+    allLocations,
+    cityData?.city,
+    cityData?.state,
+    isCityChipDismissed,
+  ]);
+  const explicitSearchCity = effectiveSearchContext.city;
+  const explicitSearchState = effectiveSearchContext.state;
   const urlSearchPayload = useMemo(
     () => ({
       ...buildSearchParams({
@@ -109,8 +199,8 @@ const FilterBar: React.FC = () => {
         land,
         agricultural,
       }),
-      city: cityData?.city || undefined,
-      state: cityData?.state || undefined,
+      city: explicitSearchCity || undefined,
+      state: explicitSearchState || undefined,
     }),
     [
       listingTypeLabel,
@@ -123,8 +213,8 @@ const FilterBar: React.FC = () => {
       commercial,
       land,
       agricultural,
-      cityData?.city,
-      cityData?.state,
+      explicitSearchCity,
+      explicitSearchState,
     ],
   );
   const hydratedUrlCategory = useMemo(
@@ -134,6 +224,26 @@ const FilterBar: React.FC = () => {
       ).category,
     [searchParams],
   );
+
+  useEffect(() => {
+    appDispatch(fetchSearchableLocations());
+  }, [appDispatch]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const stored = window.localStorage.getItem(RECENT_SEARCHES_KEY);
+      if (!stored) return;
+
+      const parsed = JSON.parse(stored) as RecentSearchItem[];
+      if (Array.isArray(parsed)) {
+        setRecentSearches(parsed.slice(0, 5));
+      }
+    } catch {
+      // Ignore malformed data.
+    }
+  }, []);
 
   useEffect(() => {
     const hydrated = hydrateFiltersFromSearchParams(
@@ -225,23 +335,25 @@ const FilterBar: React.FC = () => {
       });
     }
 
-    const city = (searchParams.get("city") ?? "").trim().toLowerCase();
-    const state = (searchParams.get("state") ?? "").trim().toLowerCase();
-    if (city && locations.length > 0) {
-      const matchedCity = locations.find(
-        (item) =>
-          item.city?.trim().toLowerCase() === city &&
-          (!state || item.state?.trim().toLowerCase() === state),
-      );
-
-      if (matchedCity?._id) {
-        dispatch(setCityId(matchedCity._id));
-      }
-    }
-
     setHasRestoredCategory(true);
     setHasHydratedFromUrl(true);
-  }, [searchParams, dispatch, locations]);
+  }, [searchParams, dispatch]);
+
+  useEffect(() => {
+    const city = (searchParams.get("city") ?? "").trim();
+    const state = (searchParams.get("state") ?? "").trim();
+
+    if (city) {
+      setIsCityChipDismissed(false);
+      setActiveSearchCity({
+        city,
+        state,
+      });
+      return;
+    }
+
+    setActiveSearchCity(null);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!hasHydratedFromUrl) return;
@@ -359,6 +471,35 @@ const FilterBar: React.FC = () => {
     return agricultural.locality ? [agricultural.locality] : [];
   }, [category, residential.locality, commercial.locality, land.locality, agricultural.locality]);
 
+  const visibleSearchCity = explicitSearchCity;
+  const searchPlaceholder =
+    selectedLocalities.length > 0 || visibleSearchCity
+      ? "Add More"
+      : "Enter City, Locality or Landmark";
+  const syncNavbarCity = (city?: string | null, state?: string | null) => {
+    const normalizedCity = city?.trim().toLowerCase();
+    const normalizedState = state?.trim().toLowerCase();
+
+    if (!normalizedCity) return;
+
+    const matchedLocation = allLocations.find((location) => {
+      const sameCity = location.city.trim().toLowerCase() === normalizedCity;
+      const sameState =
+        !normalizedState ||
+        location.state.trim().toLowerCase() === normalizedState;
+
+      return sameCity && sameState;
+    });
+
+    if (!matchedLocation?._id) return;
+
+    dispatch(setCityId(matchedLocation._id));
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("selectedCityId", matchedLocation._id);
+    }
+  };
+
   // Open search dropdown when coming from SearchBox
   useEffect(() => {
     if (searchParams.get("focus") === "search" && selectedLocalities.length === 0) {
@@ -366,34 +507,39 @@ const FilterBar: React.FC = () => {
     }
   }, [searchParams, selectedLocalities.length]);
 
-  const handleLocalitySelect = (name: string) => {
+  const handleLocalitySelect = (
+    name: string,
+    city?: string | null,
+    state?: string | null,
+  ) => {
+    const nextLocalities = toggleArrayValue(selectedLocalities, name);
 
     if (category === "Residential") {
       dispatch(
         setResidentialFilter({
           key: "locality",
-          value: toggleArrayValue(selectedLocalities, name),
+          value: nextLocalities,
         }),
       );
     } else if (category === "Commercial") {
       dispatch(
         setCommercialFilter({
           key: "locality",
-          value: toggleArrayValue(selectedLocalities, name),
+          value: nextLocalities,
         }),
       );
     } else if (category === "Land") {
       dispatch(
         setLandFilter({
           key: "locality",
-          value: toggleArrayValue(selectedLocalities, name),
+          value: nextLocalities,
         }),
       );
     } else {
       dispatch(
         setAgriculturalFilter({
           key: "locality",
-          value: toggleArrayValue(selectedLocalities, name),
+          value: nextLocalities,
         }),
       );
     }
@@ -401,16 +547,133 @@ const FilterBar: React.FC = () => {
     if (!selectedLocalities.includes(name)) {
       dispatch(setSearchText(""));
     }
-    setSearchOpen(true);
+    if (city) {
+      setIsCityChipDismissed(false);
+      setActiveSearchCity({
+        city,
+        state: state ?? "",
+      });
+      syncNavbarCity(city, state);
+    }
+    setSelectedProject(null);
+    setSearchOpen(false);
+  };
+
+  const saveRecentSearch = (item: SearchSuggestion) => {
+    if (typeof window === "undefined") return;
+
+    const nextItem: RecentSearchItem = {
+      ...item,
+      savedAt: Date.now(),
+    };
+
+    setRecentSearches((current) => {
+      const deduped = current.filter((existing) => {
+        if (existing.kind !== nextItem.kind) return true;
+
+        if (existing.kind === "city" && nextItem.kind === "city") {
+          return existing.city.toLowerCase() !== nextItem.city.toLowerCase();
+        }
+
+        if (existing.kind === "locality" && nextItem.kind === "locality") {
+          return !(
+            existing.locality.toLowerCase() === nextItem.locality.toLowerCase() &&
+            existing.city.toLowerCase() === nextItem.city.toLowerCase()
+          );
+        }
+
+        if (existing.kind === "project" && nextItem.kind === "project") {
+          return existing.slug !== nextItem.slug;
+        }
+
+        return true;
+      });
+
+      const updated = [nextItem, ...deduped].slice(0, 5);
+      window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleCitySelect = (suggestion: Extract<SearchSuggestion, { kind: "city" }>) => {
+    saveRecentSearch(suggestion);
+    setSelectedProject(null);
+    setIsCityChipDismissed(false);
+    setActiveSearchCity({
+      city: suggestion.city,
+      state: suggestion.state,
+    });
+    syncNavbarCity(suggestion.city, suggestion.state);
+
+    if (category === "Residential") {
+      dispatch(setResidentialFilter({ key: "locality", value: [] }));
+    } else if (category === "Commercial") {
+      dispatch(setCommercialFilter({ key: "locality", value: [] }));
+    } else if (category === "Land") {
+      dispatch(setLandFilter({ key: "locality", value: [] }));
+    } else {
+      dispatch(setAgriculturalFilter({ key: "locality", value: [] }));
+    }
+
+    dispatch(setSearchText(""));
+    setSearchOpen(false);
+  };
+
+  const handleSuggestionSelect = (suggestion: SearchSuggestion) => {
+    if (suggestion.kind === "city") {
+      handleCitySelect(suggestion);
+      return;
+    }
+
+    if (suggestion.kind === "project") {
+      saveRecentSearch(suggestion);
+      dispatch(setSearchText(""));
+      setSelectedProject(suggestion);
+      setIsCityChipDismissed(false);
+      setActiveSearchCity({
+        city: suggestion.city,
+        state: suggestion.state,
+      });
+      syncNavbarCity(suggestion.city, suggestion.state);
+      setSearchOpen(false);
+      return;
+    }
+
+    saveRecentSearch(suggestion);
+    handleLocalitySelect(
+      suggestion.locality,
+      suggestion.city,
+      suggestion.state,
+    );
+    setSearchOpen(false);
   };
 
   const handleSearchSubmit = () => {
+    if (selectedProject) {
+      router.push(`/project/${selectedProject.slug}`);
+      return;
+    }
+
+    const firstSuggestion = searchText.trim() ? searchSuggestions[0] : null;
+    if (firstSuggestion) {
+      if (firstSuggestion.kind === "project") {
+        handleSuggestionSelect(firstSuggestion);
+        router.push(`/project/${firstSuggestion.slug}`);
+        return;
+      }
+
+      handleSuggestionSelect(firstSuggestion);
+      return;
+    }
+
     const fallbackLocality = searchText.trim();
-    const localityName = localitySuggestions[0] ?? fallbackLocality;
+    if (!fallbackLocality) {
+      setSearchOpen(false);
+      return;
+    }
 
-    if (!localityName) return;
-
-    handleLocalitySelect(normalizeLocalityName(localityName));
+    handleLocalitySelect(normalizeLocalityName(fallbackLocality));
+    dispatch(setSearchText(""));
     setSearchOpen(false);
   };
   const handleRemoveLocality = (name: string) => {
@@ -427,30 +690,107 @@ const FilterBar: React.FC = () => {
     }
   };
 
-  const localitySuggestions = useMemo(() => {
-    const names = Array.from(
-      new Map(
-        (cityData?.localities ?? [])
-          .map((loc) => loc?.name)
-          .filter((name): name is string => Boolean(name?.trim()))
-          .map((name) => {
-            const normalizedName = normalizeLocalityName(name);
-            return [getLocalityDedupKey(normalizedName), normalizedName] as const;
-          }),
-      ).values(),
+  useEffect(() => {
+    const query = searchText.trim();
+    if (!query) {
+      setTypedSuggestions([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({
+          q: query,
+          limit: "8",
+        });
+
+        if (effectiveSearchContext.city) {
+          params.set("city", effectiveSearchContext.city);
+        }
+
+        const response = await fetch(
+          `${SEARCH_API_URL}/api/properties/search/suggestions?${params.toString()}`,
+          { signal: controller.signal },
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch suggestions");
+        }
+
+        const data = await response.json();
+        setTypedSuggestions(Array.isArray(data?.suggestions) ? data.suggestions : []);
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          setTypedSuggestions([]);
+        }
+      }
+    }, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [effectiveSearchContext.city, searchText]);
+
+  const searchSuggestions = useMemo<SearchSuggestion[]>(() => {
+    if (!searchText.trim()) {
+      return [];
+    }
+
+    return typedSuggestions;
+  }, [searchText, typedSuggestions]);
+
+  const emptyStateSuggestions = useMemo<SearchSuggestion[]>(() => {
+    const prioritizedLocalities = effectiveSearchContext.localities.map(
+      (locality) => ({
+        kind: "locality" as const,
+        cityId: effectiveSearchContext.cityId,
+        city: effectiveSearchContext.city,
+        state: effectiveSearchContext.state,
+        locality,
+        label: locality,
+        subLabel: effectiveSearchContext.city,
+      }),
     );
 
-    const query = searchText.trim().toLowerCase();
-    if (!query) return names.slice(0, 8);
+    if (visibleSearchCity) {
+      return prioritizedLocalities.slice(0, 8);
+    }
 
-    const startsWith = names.filter((name) => name.toLowerCase().startsWith(query));
-    const includes = names.filter(
-      (name) =>
-        !name.toLowerCase().startsWith(query) && name.toLowerCase().includes(query),
-    );
+    return allLocations
+      .map((location) => ({
+        kind: "city" as const,
+        cityId: location._id,
+        city: location.city,
+        state: location.state,
+        label: location.city,
+        subLabel: location.state,
+      }))
+      .slice(0, 8);
+  }, [
+    allLocations,
+    effectiveSearchContext.city,
+    effectiveSearchContext.cityId,
+    effectiveSearchContext.localities,
+    effectiveSearchContext.state,
+    visibleSearchCity,
+  ]);
 
-    return [...startsWith, ...includes].slice(0, 8);
-  }, [cityData, searchText]);
+  const groupedTypedSuggestions = useMemo(
+    () => ({
+      cities: searchSuggestions.filter(
+        (suggestion) => suggestion.kind === "city",
+      ),
+      localities: searchSuggestions.filter(
+        (suggestion) => suggestion.kind === "locality",
+      ),
+      projects: searchSuggestions.filter(
+        (suggestion) => suggestion.kind === "project",
+      ),
+    }),
+    [searchSuggestions],
+  );
 
   return (
     <div className="sticky top-0 z-45 w-full bg-[#D1EFDD] px-3 shadow-sm">
@@ -572,7 +912,7 @@ const FilterBar: React.FC = () => {
               open={searchOpen}
               onOpenChange={setSearchOpen}
               align="left"
-              width="w-[260px] lg:w-[360px]"
+              width="w-[360px] lg:w-[520px] max-w-[94vw]"
               showArrow={false}
               triggerLabel={
                 <div className="flex w-full min-w-0 max-w-full items-center cursor-text lg:w-[360px] lg:max-w-[360px]">
@@ -580,15 +920,16 @@ const FilterBar: React.FC = () => {
 
                   {selectedLocalities.length > 0 && (
                     <div className="mr-2 flex items-center gap-2 overflow-hidden">
-                      <span className="flex max-w-36 items-center gap-2 rounded-full bg-[#f2e7e7] px-3 py-1 text-sm text-gray-800">
+                      <span className="flex max-w-36 items-center gap-2 rounded-full bg-[#f4eaea] px-3 py-1 text-sm font-normal text-gray-800">
                         <span className="truncate">{selectedLocalities[0]}</span>
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleRemoveLocality(selectedLocalities[0]);
+                            setSelectedProject(null);
                           }}
-                          className="shrink-0 text-gray-600 hover:text-gray-900"
+                          className="shrink-0 text-gray-500 transition-colors hover:text-gray-900"
                         >
                           <IoCloseCircleOutline className="h-4 w-4" />
                         </button>
@@ -602,15 +943,12 @@ const FilterBar: React.FC = () => {
                     </div>
                   )}
 
-                  <input
-                    type="text"
-                    placeholder={
-                      selectedLocalities.length > 0
-                        ? "Add More"
-                        : "Enter Locality or Landmark"
-                    }
+                    <input
+                      type="text"
+                      placeholder={searchPlaceholder}
                     value={searchText}
                     onChange={(e) => {
+                      setSelectedProject(null);
                       dispatch(setSearchText(e.target.value));
                       setSearchOpen(true);
                     }}
@@ -626,43 +964,165 @@ const FilterBar: React.FC = () => {
               }
               renderContent={(close) => (
                 <div className="space-y-3">
-                  {!cityData && (
-                    <p className="text-sm text-gray-500">
-                      Please select a city to see popular localities.
-                    </p>
-                  )}
+                  <p className="text-sm font-semibold text-gray-700">
+                    {searchText.trim()
+                      ? "Search cities, localities and projects"
+                      : "Search across cities"}
+                  </p>
 
-                  {cityData && (
-                    <>
-                      <p className="text-sm font-semibold text-gray-700">
-                        Top Localities in {cityData.city}
+                  {!searchText.trim() && recentSearches.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                        Recent Searches
                       </p>
-
-                      {localitySuggestions.length === 0 && (
-                        <p className="text-sm text-gray-500">
-                          No locality found for &quot;{searchText}&quot;
-                        </p>
-                      )}
-
-                      <div className="flex flex-col gap-2">
-                        {localitySuggestions.map((name) => (
+                      <div className="flex flex-col gap-1">
+                        {recentSearches.map((suggestion, index) => (
                           <button
-                            key={name}
+                            key={`${suggestion.kind}-${index}`}
                             onClick={() => {
-                              handleLocalitySelect(name);
+                              handleSuggestionSelect(suggestion);
                               close();
                             }}
-                            className="text-left text-sm cursor-pointer text-gray-800 hover:text-primary"
+                            className="rounded-md px-2 py-1.5 text-left text-sm text-gray-800 transition-colors hover:bg-gray-50 hover:text-primary"
                           >
-                            {name},{" "}
+                            {suggestion.label},{" "}
                             <span className="text-[#26ad5f]">
-                              {cityData.city}
+                              {suggestion.subLabel}
                             </span>
                           </button>
                         ))}
                       </div>
-                    </>
+                    </div>
                   )}
+
+                  {!searchText.trim() && visibleSearchCity && (
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                      Popular In {visibleSearchCity}
+                    </p>
+                  )}
+
+                  {!searchText.trim() && !visibleSearchCity && (
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                      Popular Cities
+                    </p>
+                  )}
+
+                  {searchText.trim() && searchSuggestions.length === 0 && (
+                    <p className="text-sm text-gray-500">
+                      No city, locality or project found for &quot;{searchText}&quot;
+                    </p>
+                  )}
+
+                  {!searchText.trim() &&
+                    visibleSearchCity &&
+                    emptyStateSuggestions.length === 0 && (
+                      <p className="text-sm text-gray-500">
+                        No popular localities found in {visibleSearchCity}
+                      </p>
+                    )}
+
+                  <div className="flex flex-col">
+                    {searchText.trim() ? (
+                      <>
+                        {groupedTypedSuggestions.cities.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                              Cities
+                            </p>
+                            <div className="flex flex-col">
+                              {groupedTypedSuggestions.cities.map((suggestion) => (
+                                <button
+                                  key={`city-${suggestion.cityId ?? suggestion.city}`}
+                                  onClick={() => {
+                                    handleSuggestionSelect(suggestion);
+                                    close();
+                                  }}
+                                  className="rounded-md px-2 py-1.5 text-left text-sm text-gray-800 transition-colors hover:bg-gray-50 hover:text-primary"
+                                >
+                                  {suggestion.label},{" "}
+                                  <span className="text-[#26ad5f]">
+                                    {suggestion.subLabel}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {groupedTypedSuggestions.localities.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                              Localities
+                            </p>
+                            <div className="flex flex-col">
+                              {groupedTypedSuggestions.localities.map((suggestion) => (
+                                <button
+                                  key={`locality-${suggestion.cityId ?? suggestion.city}-${suggestion.locality}`}
+                                  onClick={() => {
+                                    handleSuggestionSelect(suggestion);
+                                    close();
+                                  }}
+                                  className="rounded-md px-2 py-1.5 text-left text-sm text-gray-800 transition-colors hover:bg-gray-50 hover:text-primary"
+                                >
+                                  {suggestion.label},{" "}
+                                  <span className="text-[#26ad5f]">
+                                    {suggestion.subLabel}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {groupedTypedSuggestions.projects.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                              Projects
+                            </p>
+                            <div className="flex flex-col">
+                              {groupedTypedSuggestions.projects.map((suggestion) => (
+                                <button
+                                  key={`project-${suggestion.slug}`}
+                                  onClick={() => {
+                                    handleSuggestionSelect(suggestion);
+                                    close();
+                                  }}
+                                  className="rounded-md px-2 py-1.5 text-left text-sm text-gray-800 transition-colors hover:bg-gray-50 hover:text-primary"
+                                >
+                                  {suggestion.label},{" "}
+                                  <span className="text-[#26ad5f]">
+                                    {suggestion.subLabel}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      emptyStateSuggestions.map((suggestion) => (
+                        <button
+                          key={
+                            suggestion.kind === "city"
+                              ? `city-${suggestion.cityId ?? suggestion.city}`
+                              : suggestion.kind === "locality"
+                                ? `locality-${suggestion.cityId ?? suggestion.city}-${suggestion.locality}`
+                                : `project-${suggestion.slug}`
+                          }
+                          onClick={() => {
+                            handleSuggestionSelect(suggestion);
+                            close();
+                          }}
+                          className="rounded-md px-2 py-1.5 text-left text-sm text-gray-800 transition-colors hover:bg-gray-50 hover:text-primary"
+                        >
+                          {suggestion.label},{" "}
+                          <span className="text-[#26ad5f]">
+                            {suggestion.subLabel}
+                          </span>
+                        </button>
+                      ))
+                    )}
+                  </div>
                 </div>
               )}
             />
