@@ -155,6 +155,11 @@ export const selectLocalitiesByCity = createSelector(
   (city) => city?.localities ?? EMPTY_ARRAY
 );
 
+export const selectHomeLocalitiesByCity = createSelector(
+  selectLocalitiesByCity,
+  (localities) => localities.filter((locality) => locality.isHome === true)
+);
+
 export const selectAllCitiesWithLocalities = createSelector(
   selectCityState,
   ({ searchableLocations }) =>

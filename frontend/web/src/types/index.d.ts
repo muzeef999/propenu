@@ -302,6 +302,7 @@ export interface PopularOwnerProperty {
 
 export interface Locality {
   name: string;
+  isHome?: boolean;
 }
 
 export interface LocationItem {
