@@ -82,6 +82,44 @@ function isAgentProperty(property: Property) {
   return type !== "featuredproject" && listingSource === "agent";
 }
 
+function toLocalityList(value: string | string[] | undefined | null): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => item.trim()).filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function formatLocationSummary(localities: string[], city?: string, state?: string) {
+  const locationParts: string[] = [];
+
+  if (localities.length === 1) {
+    locationParts.push(localities[0]);
+  } else if (localities.length > 1) {
+    const remainingCount = localities.length - 1;
+    locationParts.push(
+      `${localities[0]} +${remainingCount} ${remainingCount === 1 ? "locality" : "localities"}`,
+    );
+  }
+
+  if (city) {
+    locationParts.push(city);
+  }
+
+  if (state) {
+    locationParts.push(state);
+  }
+
+  return locationParts.join(", ");
+}
+
 
 function PropertiesListSkeleton() {
   return (
@@ -131,13 +169,15 @@ const PropertiesPageContent: React.FC = () => {
   const searchParams = useSearchParams();
   const urlCity = searchParams.get("city")?.trim() || undefined;
   const urlState = searchParams.get("state")?.trim() || undefined;
+  const effectiveCity = urlCity ?? cityData?.city;
+  const effectiveState = urlState ?? cityData?.state;
   const params = React.useMemo(
     () => ({
       ...buildSearchParams(filters),
-      city: cityData?.city ?? urlCity,
-      state: cityData?.state ?? urlState,
+      city: effectiveCity,
+      state: effectiveState,
     }),
-    [filters, cityData?.city, cityData?.state, urlCity, urlState],
+    [filters, effectiveCity, effectiveState],
   );
   const { items, sponsored, loading, total } = useStreamProperties(params);
   const [sortBy, setSortBy] = React.useState("newest");
@@ -204,24 +244,26 @@ const PropertiesPageContent: React.FC = () => {
     }
   };
 
-  const locality = (() => {
+  const selectedLocalities = (() => {
     switch (filters.category) {
       case "Residential":
-        return filters.residential.locality?.join(", ");
+        return toLocalityList(filters.residential.locality);
       case "Commercial":
-        return filters.commercial.locality?.join(", ");
+        return toLocalityList(filters.commercial.locality);
       case "Land":
-        return filters.land.locality;
+        return toLocalityList(filters.land.locality);
       case "Agricultural":
-        return filters.agricultural.locality;
+        return toLocalityList(filters.agricultural.locality);
       default:
-        return undefined;
+        return [];
     }
   })();
 
-  const locationLabel = [locality, cityData?.city, cityData?.state]
-    .filter(Boolean)
-    .join(", ");
+  const locationLabel = formatLocationSummary(
+    selectedLocalities,
+    effectiveCity,
+    effectiveState,
+  );
 
   const getAreaValue = (property: Property): number => {
     const candidate = [

@@ -5,6 +5,7 @@ import {
   deleteLocation,
   editLocation,
   getAllLocations,
+  getAllSearchLocations,
   getLocationById,
   postLocation,
   reverseMajorCity,
@@ -29,6 +30,7 @@ nominatimRoute.post(
 );
 
 nominatimRoute.get("/", optionalAuthMiddleware, getAllLocations);
+nominatimRoute.get("/searchable", getAllSearchLocations);
 nominatimRoute.get("/reverse-major-city", reverseMajorCity);
 nominatimRoute.get("/:id", getLocationById);
 

@@ -19,18 +19,40 @@ export const fetchLocations = createAsyncThunk<LocationItem[]>(
   }
 );
 
+export const fetchSearchableLocations = createAsyncThunk<LocationItem[]>(
+  "city/fetchSearchableLocations",
+  async () => {
+    const res = await fetch(`${url}/api/users/location/searchable`);
+    const data = await res.json();
+    return data.locations || [];
+  },
+  {
+    condition: (_arg, { getState }) => {
+      const state = getState() as { city: CityState };
+      return (
+        state.city.searchableStatus !== "loading" &&
+        state.city.searchableStatus !== "succeeded"
+      );
+    },
+  }
+);
+
 interface CityState {
   locations: LocationItem[];
+  searchableLocations: LocationItem[];
   selectedCityId: string | null;
   detectedCity: LocationItem | null;
   status: "idle" | "loading" | "succeeded" | "failed";
+  searchableStatus: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: CityState = {
   locations: [],
+  searchableLocations: [],
   selectedCityId: null,
   detectedCity: null,
   status: "idle",
+  searchableStatus: "idle",
 };
 
 /* ---------------- SLICE ---------------- */
@@ -61,6 +83,16 @@ const citySlice = createSlice({
       })
       .addCase(fetchLocations.rejected, (state) => {
         state.status = "failed";
+      })
+      .addCase(fetchSearchableLocations.pending, (state) => {
+        state.searchableStatus = "loading";
+      })
+      .addCase(fetchSearchableLocations.fulfilled, (state, action) => {
+        state.searchableLocations = action.payload;
+        state.searchableStatus = "succeeded";
+      })
+      .addCase(fetchSearchableLocations.rejected, (state) => {
+        state.searchableStatus = "failed";
       });
   },
 });
@@ -83,20 +115,50 @@ const normalizeLocalities = (localities: LocationItem["localities"] = EMPTY_ARRA
 
 const selectCityState = (state: RootState) => state.city;
 
-// Selected city object
-export const selectSelectedCity = createSelector(selectCityState, ({ locations, selectedCityId, detectedCity }) => {
-  const city = locations.find((item) => item._id === selectedCityId) ?? detectedCity;
-  if (!city) return null;
-
-  return {
-    ...city,
-    localities: normalizeLocalities(city.localities),
-  };
+const normalizeCity = (city: LocationItem) => ({
+  ...city,
+  localities: normalizeLocalities(city.localities),
 });
+
+const selectResolvedCities = createSelector(
+  selectCityState,
+  ({ locations, searchableLocations }) => {
+    const merged = new Map<string, LocationItem>();
+
+    searchableLocations.forEach((city) => {
+      merged.set(city._id, city);
+    });
+
+    locations.forEach((city) => {
+      merged.set(city._id, city);
+    });
+
+    return Array.from(merged.values());
+  },
+);
+
+// Selected city object
+export const selectSelectedCity = createSelector(
+  selectResolvedCities,
+  selectCityState,
+  (resolvedCities, { selectedCityId, detectedCity }) => {
+    const city =
+      resolvedCities.find((item) => item._id === selectedCityId) ?? detectedCity;
+    if (!city) return null;
+
+    return normalizeCity(city);
+  },
+);
 
 export const selectLocalitiesByCity = createSelector(
   selectSelectedCity,
   (city) => city?.localities ?? EMPTY_ARRAY
+);
+
+export const selectAllCitiesWithLocalities = createSelector(
+  selectCityState,
+  ({ searchableLocations }) =>
+    searchableLocations.map(normalizeCity)
 );
 
 // Combined helper

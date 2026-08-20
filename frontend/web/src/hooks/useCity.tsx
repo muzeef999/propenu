@@ -6,6 +6,7 @@ import { useSelector } from "react-redux";
 import { RootState, useAppDispatch } from "@/Redux/store";
 import {
   fetchLocations,
+  fetchSearchableLocations,
   setCityId,
   clearCity,
   selectSelectedCity,
@@ -23,6 +24,16 @@ export function useCity() {
   const selectedCity = useSelector(selectSelectedCity);
   const localities = useSelector(selectLocalitiesByCity);
   const locations = useSelector((s: RootState) => s.city.locations);
+  const searchableLocations = useSelector(
+    (s: RootState) => s.city.searchableLocations,
+  );
+  const resolvedLocations = useRef<LocationItem[]>([]);
+
+  resolvedLocations.current = Array.from(
+    new Map(
+      [...searchableLocations, ...locations].map((city) => [city._id, city]),
+    ).values(),
+  );
 
   function selectCity(city: LocationItem) {
     dispatch(setCityId(city._id));
@@ -37,11 +48,13 @@ export function useCity() {
 
   useEffect(() => {
     dispatch(fetchLocations());
+    dispatch(fetchSearchableLocations());
   }, [dispatch]);
 
   useEffect(() => {
     const retryLocations = () => {
       dispatch(fetchLocations());
+      dispatch(fetchSearchableLocations());
     };
 
     window.addEventListener(RATE_LIMIT_RECOVERED_EVENT, retryLocations);
@@ -67,7 +80,9 @@ export function useCity() {
     const setSavedCity = () => {
       if (!savedCityId) return false;
 
-      const savedCityExists = locations.some((city) => city._id === savedCityId);
+      const savedCityExists = resolvedLocations.current.some(
+        (city) => city._id === savedCityId,
+      );
       if (!savedCityExists) {
         localStorage.removeItem("selectedCityId");
         return false;

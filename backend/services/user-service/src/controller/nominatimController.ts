@@ -196,6 +196,18 @@ export const getAllLocations = async(req: AuthRequest, res: Response) => {
   }
 }
 
+export const getAllSearchLocations = async (_req: Request, res: Response) => {
+  try {
+    const result = await getAllLocationsDetails({
+      homeOnly: false,
+    });
+
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || "server error" });
+  }
+}
+
 
 export const getLocationById = async (req: Request, res: Response) => {
   try {

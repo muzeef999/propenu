@@ -17,6 +17,11 @@ import Cookies from "js-cookie";
 import OtpFourDigitInput from "@/components/builder/OtpFourDigitInput";
 import { HiXMark } from "react-icons/hi2";
 
+function toTitleCase(str?: string) {
+  if (!str) return "";
+  return str.replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+}
+
 type IntentionAnswer = {
   question: string;
   answer: string;
@@ -379,17 +384,21 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
 
   const developer = project.developer as ContactLike | string | null | undefined;
   const createdBy = project.createdBy as ContactLike | string | null | undefined;
+  const builderName =
+    (Array.isArray(project.aboutSummary)
+      ? project.aboutSummary[0]?.builderName
+      : (project.aboutSummary as any)?.builderName)?.trim();
 
-  const contactName =
-    isContactObject(developer)
+  const rawContactName =
+    (isContactObject(developer)
       ? developer.companyName ||
         developer.name ||
         developer.fullName ||
-        (isContactObject(createdBy) ? createdBy.name : undefined) ||
-        project.title
+        (isContactObject(createdBy) ? createdBy.name : undefined)
       : isContactObject(createdBy)
-        ? createdBy.name || project.title
-        : project.title;
+        ? createdBy.name
+        : undefined) || builderName;
+  const contactName = toTitleCase(rawContactName) || "Builder / Developer";
   const projectContact = project as FeaturedProject & ContactLike & {
     contactPhone?: string;
     phoneNumber?: string;

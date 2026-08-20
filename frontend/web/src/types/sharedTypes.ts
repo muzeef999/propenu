@@ -68,7 +68,7 @@ export type BedroomFilterValue = number | "6+";
 
 export interface ResidentialFilters {
   // ---------- SINGLE ----------
-  propertyType?: string;
+  propertyType?: string[];
   transactionType?: string;
   constructionStatus?: string; 
   furnishing?: string;

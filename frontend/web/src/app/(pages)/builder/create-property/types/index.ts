@@ -24,6 +24,7 @@ export interface IGalleryItem {
 }
 
 export interface IAboutSummary {
+  builderName?: string;
   aboutDescription?: string;
   url?: string | File;
   rightContent: string;
