@@ -12,7 +12,6 @@ import { minDelay } from "@/utilies/minDelay";
 import formatINR from "@/utilies/PriceFormat";
 import { getProjectConfigurationLabel } from "@/utilies/projectConfiguration";
 import { GoHeart, GoHeartFill } from "react-icons/go";
-import { FiShare2 } from "react-icons/fi";
 import Topselllingcomingsoon from "./Topselllingcomingsoon";
 import {
   getHomeSectionCache,
@@ -39,7 +38,9 @@ function HighlightProjectCard({ project }: { project: FeaturedProject }) {
     event.stopPropagation();
 
     const shareUrl =
-      typeof window !== "undefined" ? new URL(projectHref, window.location.origin).toString() : "";
+      typeof window !== "undefined"
+        ? new URL(projectHref, window.location.origin).toString()
+        : "";
     const shareData = {
       title: project.title,
       url: shareUrl,
@@ -75,9 +76,9 @@ function HighlightProjectCard({ project }: { project: FeaturedProject }) {
           metadata: { projectName: project.title, projectSlug: project.slug },
         });
       }}
-      className="relative shrink-0 snap-start group cursor-pointer transition-all duration-300 hover:-translate-y-2 w-[260px] sm:w-[280px] md:w-[320px]"
+      className="relative group w-[260px] shrink-0 snap-start cursor-pointer transition-all duration-300 hover:-translate-y-2 sm:w-[280px] md:w-[320px]"
     >
-      <div className="relative mt-5 w-full overflow-hidden rounded-2xl h-[150px] sm:h-[170px] md:h-[180px] shadow-sm transition-shadow duration-300 group-hover:shadow-2xl">
+      <div className="relative mt-5 h-[150px] w-full overflow-hidden rounded-2xl shadow-sm transition-shadow duration-300 group-hover:shadow-2xl sm:h-[170px] md:h-[180px]">
         <img
           src={project.heroImage ?? "/images/placeholder.svg"}
           alt={project.title}
@@ -117,27 +118,29 @@ function HighlightProjectCard({ project }: { project: FeaturedProject }) {
         </div>
       </div>
 
-      <div className="absolute left-3 right-3 top-[130px] sm:top-[140px] md:top-[150px] bg-white rounded-xl p-3 shadow-sm transition-shadow duration-300 group-hover:shadow-md">
+      <div className="absolute left-3 right-3 top-[130px] rounded-xl bg-white p-3 shadow-sm transition-shadow duration-300 group-hover:shadow-md sm:top-[140px] md:top-[150px]">
         <div className="mb-1 flex items-center justify-between gap-2">
-          <h2 className="text-sm sm:text-base font-medium text-gray-900 truncate">
+          <h2 className="truncate text-sm font-medium text-gray-900 sm:text-base">
             {project.title}
           </h2>
 
-          <span className="text-sm font-medium whitespace-nowrap">
+          <span className="whitespace-nowrap text-sm font-medium">
             {project?.priceFrom ? (
               <>
                 <span className="text-[#26ad5f]">
                   {formatINR(project.priceFrom)}
                 </span>{" "}
-                <span className="text-[#676666] font-light text-sm">onwards</span>
+                <span className="text-sm font-light text-[#676666]">
+                  onwards
+                </span>
               </>
             ) : (
-              "—"
+              <span className="text-[#26ad5f]">Price on request</span>
             )}
           </span>
         </div>
 
-        <p className="text-xs text-gray-500 truncate font-medium capitalize">
+        <p className="truncate text-xs font-medium capitalize text-gray-500">
           {getProjectConfigurationLabel(project, "Apartments")}
           {project.locality ? ` • ${project.locality}` : ""}
           {project.state ? `, ${project.state}` : ""}
@@ -165,7 +168,11 @@ export default function HighlightProjectsClient() {
   useEffect(() => {
     const retryAfterRateLimit = () => setRetryKey((value) => value + 1);
     window.addEventListener(RATE_LIMIT_RECOVERED_EVENT, retryAfterRateLimit);
-    return () => window.removeEventListener(RATE_LIMIT_RECOVERED_EVENT, retryAfterRateLimit);
+    return () =>
+      window.removeEventListener(
+        RATE_LIMIT_RECOVERED_EVENT,
+        retryAfterRateLimit,
+      );
   }, []);
 
   useEffect(() => {
@@ -212,13 +219,11 @@ export default function HighlightProjectsClient() {
     };
   }, [cacheKey, selectedCity, retryKey]);
 
-  // Gate: arrows only make sense when there are more than 4 cards.
   const hasMoreThanFour = items.length > 4;
 
   useEffect(() => {
     const slider = sliderRef.current;
 
-    // Reset when there are no cards, still loading, or ≤4 cards.
     if (!slider || loading || !hasMoreThanFour) {
       setCanScrollLeft(false);
       setCanScrollRight(false);
@@ -227,14 +232,10 @@ export default function HighlightProjectsClient() {
 
     const updateScrollButtons = () => {
       const maxScrollLeft = slider.scrollWidth - slider.clientWidth;
-      // Left arrow: only after the user has scrolled away from the start.
       setCanScrollLeft(slider.scrollLeft > 10);
-      // Right arrow: hidden only when fully scrolled to the end.
       setCanScrollRight(slider.scrollLeft < maxScrollLeft - 10);
     };
 
-    // Double-rAF: wait for two paint frames so the DOM has fully reflowed
-    // before measuring scrollWidth (single rAF can fire before layout is done).
     let frameId: number;
     const outerFrameId = window.requestAnimationFrame(() => {
       frameId = window.requestAnimationFrame(updateScrollButtons);
@@ -256,9 +257,7 @@ export default function HighlightProjectsClient() {
     if (!el) return;
     const step = Math.floor(el.clientWidth / 2);
     el.scrollBy({ left: dir === "left" ? -step : step, behavior: "smooth" });
-    // Re-evaluate after the smooth scroll animation (~300 ms) finishes.
     setTimeout(() => {
-      if (!el) return;
       const maxScrollLeft = el.scrollWidth - el.clientWidth;
       setCanScrollLeft(el.scrollLeft > 10);
       setCanScrollRight(el.scrollLeft < maxScrollLeft - 10);
@@ -269,15 +268,13 @@ export default function HighlightProjectsClient() {
 
   return (
     <div className="relative w-full">
-      {/* Header Section */}
       <div className="flex items-center justify-between gap-3">
-
         <div className="headingSideBar">
-          <h1 className="text-base font-bold sm:text-2xl truncate">
+          <h1 className="truncate text-base font-bold sm:text-2xl">
             Top Selling Projects
           </h1>
 
-          <p className="mt-1 text-xs text-gray-500 sm:text-base truncate">
+          <p className="mt-1 truncate text-xs text-gray-500 sm:text-base">
             Investment-worthy in {selectedCity?.city ?? "Hyderabad"}
           </p>
         </div>
@@ -285,50 +282,52 @@ export default function HighlightProjectsClient() {
           <Link
             href="/highlight-projects"
             aria-label="View all featured properties"
-            className="shrink-0 flex items-center gap-1 text-sm sm:text-base text-green-600 hover:text-green-700 font-medium whitespace-nowrap"
+            className="flex shrink-0 items-center gap-1 whitespace-nowrap text-sm font-medium text-green-600 hover:text-green-700 sm:text-base"
           >
             View All <RiArrowRightSLine size={18} />
           </Link>
         )}
       </div>
 
-      {/* Slider area — own relative wrapper so arrow top-1/2 is scoped here */}
       <div className="relative">
-        {/* Left arrow */}
         {!loading && hasItems && canScrollLeft && (
           <button
             type="button"
             aria-label="Scroll left"
             onClick={() => scrollBy("left")}
-            className="absolute left-[-1.2%] top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex items-center justify-center bg-white p-2 rounded-full shadow-md hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-green-300"
+            className="absolute left-[-1.2%] top-1/2 z-20 hidden -translate-y-1/2 items-center justify-center rounded-full bg-white p-2 shadow-md hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-green-300 sm:inline-flex"
           >
-            <ArrowDropdownIcon size={16} color="#26ad5f" className="rotate-90" />
+            <ArrowDropdownIcon
+              size={16}
+              color="#26ad5f"
+              className="rotate-90"
+            />
           </button>
         )}
 
-        {/* Right arrow */}
         {!loading && hasItems && canScrollRight && (
           <button
             type="button"
             aria-label="Scroll right"
             onClick={() => scrollBy("right")}
-            className="absolute -right-1 top-1/2 -translate-y-1/2 z-20 hidden sm:inline-flex items-center justify-center bg-white p-2 rounded-full shadow-md hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-green-300"
+            className="absolute -right-1 top-1/2 z-20 hidden -translate-y-1/2 items-center justify-center rounded-full bg-white p-2 shadow-md hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-green-300 sm:inline-flex"
           >
-            <ArrowDropdownIcon size={16} color="#26ad5f" className="rotate-270" />
+            <ArrowDropdownIcon
+              size={16}
+              color="#26ad5f"
+              className="rotate-270"
+            />
           </button>
         )}
 
-        {/* Scrollable Container */}
         {loading ? (
-          <div
-            className="flex gap-4 sm:gap-6 overflow-x-auto scroll-smooth no-scrollbar pb-6 snap-x snap-mandatory px-1"
-          >
+          <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-1 pb-6 no-scrollbar sm:gap-6">
             <HomeSectionSkeleton variant="highlight" count={3} />
           </div>
         ) : hasItems ? (
           <div
             ref={sliderRef}
-            className="flex gap-4 sm:gap-6 overflow-x-auto scroll-smooth no-scrollbar pb-6 snap-x snap-mandatory px-1"
+            className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-1 pb-6 no-scrollbar sm:gap-6"
           >
             {items.map((project) => (
               <HighlightProjectCard key={project._id} project={project} />

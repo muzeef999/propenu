@@ -30,8 +30,10 @@ export const accountSchema = z
     email: z
       .string()
       .trim()
-      .min(1, { message: "Email is required." })
-      .email({ message: "Invalid email address." }),
+      .refine(
+        (value) => value.length === 0 || z.string().email().safeParse(value).success,
+        { message: "Invalid email address." },
+      ),
     role: z.enum(["user", "builder", "agent"]),
   })
   .superRefine((data, ctx) => {

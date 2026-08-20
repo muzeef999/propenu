@@ -48,6 +48,7 @@ const Navbar = () => {
     "personal",
   );
   const isBuilder = user?.user?.roleName === "builder";
+  const isAuthenticated = Boolean(user?.user);
   const mobileUserOptions = user ? getOptionsForRole(user?.user?.roleName) : [];
 
   useEffect(() => {
@@ -327,7 +328,7 @@ const Navbar = () => {
             {/* RIGHT - desktop */}
             <div className="hidden lg:flex items-center gap-4 lg:gap-6 text-[#1A1A1A] shrink-0">
               <>
-                {!user || user?.user?.accountStatus !== "active" ? (
+                {!isAuthenticated ? (
                   <button
                     onClick={openLoginDialog}
                     className="text-sm text-gray-700 hover:text-gray-900 transition-colors cursor-pointer"
@@ -425,7 +426,7 @@ const Navbar = () => {
               </div>
 
               {/* Mobile Login Button */}
-              {(!user || user?.user?.accountStatus !== "active") && (
+              {!isAuthenticated && (
                 <button
                   onClick={openLoginDialog}
                   style={{ backgroundColor: BRAND_GREEN }}

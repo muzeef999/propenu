@@ -8,7 +8,7 @@ import { AiOutlineThunderbolt } from 'react-icons/ai';
 
 
 export const BuyView = () => {
-  const { data: buy = [], isLoading } = useQuery({
+  const { data: buyPlans = [], isLoading } = useQuery({
     queryKey: ["buy"],
     queryFn: () =>
       getPlans({
@@ -16,6 +16,8 @@ export const BuyView = () => {
         category: "buy",
       }),
   });
+
+  const buy = buyPlans.filter((plan: any) => plan?.tier !== "free");
 
   if (isLoading) return null;
 

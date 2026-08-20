@@ -7,7 +7,7 @@ import { rentalBuyerFeatures } from "@/config/rentalBuyerFeatures";
 import { AiOutlineThunderbolt } from 'react-icons/ai';
 
 const RentView = () => {
-  const { data: rent = [], isLoading } = useQuery({
+  const { data: rentPlans = [], isLoading } = useQuery({
     queryKey: ["rent"],
     queryFn: () =>
       getPlans({
@@ -15,6 +15,8 @@ const RentView = () => {
         category: "rent_view",
       }),
   });
+
+  const rent = rentPlans.filter((plan: any) => plan?.tier !== "free");
 
   if (isLoading) return null;
 

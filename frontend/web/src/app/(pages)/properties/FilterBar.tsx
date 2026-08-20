@@ -473,9 +473,9 @@ const FilterBar: React.FC = () => {
 
   const visibleSearchCity = explicitSearchCity;
   const searchPlaceholder =
-    selectedLocalities.length > 0 || visibleSearchCity
+    selectedLocalities.length > 0
       ? "Add More"
-      : "Enter City, Locality or Landmark";
+      : "Enter locality or projects";
   const syncNavbarCity = (city?: string | null, state?: string | null) => {
     const normalizedCity = city?.trim().toLowerCase();
     const normalizedState = state?.trim().toLowerCase();

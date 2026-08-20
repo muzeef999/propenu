@@ -2,15 +2,14 @@
 
 import LeadDialog from "@/app/(pages)/properties/cards/LeadDialog";
 import { me, postLeads } from "@/data/ClientData";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useState } from "react";
-import LoginDialog from "@/app/(auth)/Login";
-import RegisterDialog from "@/app/(auth)/Register";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { listingSourceToOwnershipLabel } from "@/utilies/resolveListingSource";
 import { trackInteraction } from "@/services/trackingService";
+import LeadAuthDialog from "@/components/LeadAuthDialog";
 
 interface ContactOwnerButtonProps {
   listingType?: string;
@@ -56,6 +55,39 @@ function getEntityId(value: unknown) {
   return "";
 }
 
+function isLeadReadyUser(user?: any) {
+  if (!user) return false;
+
+  const hasVerifiedPhone =
+    user.phoneVerified !== false && Boolean(String(user.phone || "").trim());
+  const hasName = Boolean(String(user.name || "").trim());
+  const hasRole = Boolean(String(user.roleName || user.role || "").trim());
+  const builderNeedsCompany =
+    (user.roleName || user.role) !== "builder" ||
+    Boolean(String(user.companyName || "").trim());
+
+  return hasVerifiedPhone && hasName && hasRole && builderNeedsCompany;
+}
+
+function isPlanRestrictionError(statusCode?: number, message?: string) {
+  const lowerMessage = String(message || "").toLowerCase();
+
+  const hasPlanRestrictionMessage =
+    lowerMessage.includes("plan required") ||
+    lowerMessage.includes("subscription required") ||
+    lowerMessage.includes("upgrade your plan") ||
+    lowerMessage.includes("please purchase") ||
+    lowerMessage.includes("buy a plan") ||
+    lowerMessage.includes("purchase a plan") ||
+    lowerMessage.includes("purchase a buyer plan") ||
+    lowerMessage.includes("subscribe to a plan") ||
+    lowerMessage.includes("active plan") ||
+    lowerMessage.includes("membership required") ||
+    lowerMessage.includes("plan limit");
+
+  return statusCode === 402 || statusCode === 403 || hasPlanRestrictionMessage;
+}
+
 export default function ContactOwnerButton({
   listingType,
   listingSource,
@@ -71,11 +103,13 @@ export default function ContactOwnerButton({
   className,
   children,
 }: ContactOwnerButtonProps) {
-  const [showLoginDialog, setShowLoginDialog] = useState(false);
-  const [showRegisterDialog, setShowRegisterDialog] = useState(false);
+  const [showLeadAuthDialog, setShowLeadAuthDialog] = useState(false);
   const [showLeadDialog, setShowLeadDialog] = useState(false);
   const [leadDetails, setLeadDetails] = useState<any>(null);
+  const justAuthenticatedRef = useRef(false);
   const router = useRouter();
+  const queryClient = useQueryClient();
+
   const normalizeListingType = (
     value?: string,
   ): "sale" | "rent" | undefined => {
@@ -97,6 +131,7 @@ export default function ContactOwnerButton({
     }
     return undefined;
   };
+
   const resolvedListingType = normalizeListingType(listingType);
 
   const redirectToPlan = () => {
@@ -124,37 +159,53 @@ export default function ContactOwnerButton({
   };
 
   const user = userData?.user;
-  const loggedInUserId = getEntityId(user);
+  const isLeadReady = isLeadReadyUser(user);
   const createdById = getEntityId(createdBy);
   const normalizedOwnerPhone = sanitizePhoneInput(ownerPhone);
-  const normalizedUserPhone = sanitizePhoneInput(user?.phone);
   const normalizedOwnerEmail = normalizeComparableValue(ownerEmail);
-  const normalizedUserEmail = normalizeComparableValue(user?.email);
-  const isOwnPropertyLead =
-    Boolean(user) &&
-    (
-      (Boolean(loggedInUserId) && Boolean(createdById) && loggedInUserId === createdById) ||
-      (Boolean(normalizedUserPhone) &&
-        Boolean(normalizedOwnerPhone) &&
-        normalizedUserPhone === normalizedOwnerPhone) ||
-      (Boolean(normalizedUserEmail) &&
-        Boolean(normalizedOwnerEmail) &&
-        normalizedUserEmail === normalizedOwnerEmail)
+
+  const isOwnLeadForUser = (currentUser?: any) => {
+    const currentUserId = getEntityId(currentUser);
+    const currentUserPhone = sanitizePhoneInput(currentUser?.phone);
+    const currentUserEmail = normalizeComparableValue(currentUser?.email);
+
+    return (
+      Boolean(currentUser) &&
+      ((Boolean(currentUserId) &&
+        Boolean(createdById) &&
+        currentUserId === createdById) ||
+        (Boolean(currentUserPhone) &&
+          Boolean(normalizedOwnerPhone) &&
+          currentUserPhone === normalizedOwnerPhone) ||
+        (Boolean(currentUserEmail) &&
+          Boolean(normalizedOwnerEmail) &&
+          currentUserEmail === normalizedOwnerEmail))
     );
+  };
+
+  const isOwnPropertyLead = isOwnLeadForUser(user);
   const ownPropertyLeadMessage =
     propertyType === "featuredprojects"
       ? "You cannot submit a lead for your own project."
       : "You cannot submit a lead for your own property.";
-  const { mutate: postLead, isPending: isLeadPosting } = useMutation({
+
+  const { mutateAsync: postLead, isPending: isLeadPosting } = useMutation({
     mutationFn: postLeads,
     onSuccess: (response) => {
       trackInteraction({
         eventType: "contact_owner_clicked",
         eventCategory: "conversion",
-        entityType: propertyType === "featuredprojects" ? "project" : "property",
-        ...(propertyType === "featuredprojects" ? { projectId } : { propertyId: projectId }),
+        entityType:
+          propertyType === "featuredprojects" ? "project" : "property",
+        ...(propertyType === "featuredprojects"
+          ? { projectId }
+          : { propertyId: projectId }),
         source: "contact_owner",
-        metadata: { title: propertyLabel, propertyType, listingType: resolvedListingType },
+        metadata: {
+          title: propertyLabel,
+          propertyType,
+          listingType: resolvedListingType,
+        },
       });
       setLeadDetails(response?.data ?? null);
       setShowLeadDialog(true);
@@ -164,35 +215,26 @@ export default function ContactOwnerButton({
         error?.response?.data?.message ||
         error?.message ||
         "Failed to contact owner";
+      const statusCode = error?.response?.status;
 
-      // 🔐 Buyer plan required → redirect ONLY (no toast)
-      const lowerMessage = message.toLowerCase();
-
-      if (
-        lowerMessage.includes("purchase") ||
-        lowerMessage.includes("plan required") ||
-        lowerMessage.includes("subscribe") ||
-        lowerMessage.includes("plan") ||
-        lowerMessage.includes("limit") ||
-        lowerMessage.includes("upgrade") ||
-        lowerMessage.includes("subscription")
-      ) {
+      if (isPlanRestrictionError(statusCode, message)) {
+        toast.error(
+          justAuthenticatedRef.current
+            ? "Your account is ready. To contact this owner, please choose a plan."
+            : message,
+        );
+        justAuthenticatedRef.current = false;
         redirectToPlan();
         return;
       }
 
-      // ❌ Show toast for all other errors
+      justAuthenticatedRef.current = false;
       toast.error(message);
     },
   });
 
-  const handleContactOwner = () => {
-    if (!user) {
-      setShowLoginDialog(true);
-      return;
-    }
-
-    if (isOwnPropertyLead) {
+  const submitLeadForUser = async (currentUser: any) => {
+    if (isOwnLeadForUser(currentUser)) {
       toast.error(ownPropertyLeadMessage);
       return;
     }
@@ -206,20 +248,46 @@ export default function ContactOwnerButton({
       eventType: "lead_form_started",
       eventCategory: "conversion",
       entityType: propertyType === "featuredprojects" ? "project" : "property",
-      ...(propertyType === "featuredprojects" ? { projectId } : { propertyId: projectId }),
+      ...(propertyType === "featuredprojects"
+        ? { projectId }
+        : { propertyId: projectId }),
       source: "contact_owner",
-      metadata: { title: propertyLabel, propertyType, listingType: resolvedListingType },
+      metadata: {
+        title: propertyLabel,
+        propertyType,
+        listingType: resolvedListingType,
+      },
     });
 
-    postLead({
-      name: user.name || "Guest User",
-      phone: user.phone,
-      email: user.email ?? undefined, // ✅ FIXED
+    await postLead({
+      name: currentUser?.name || "Guest User",
+      phone: currentUser?.phone,
+      email: currentUser?.email ?? undefined,
       projectId,
       propertyType,
       listingType: resolvedListingType,
       remarks: "Interested in this property",
     });
+    justAuthenticatedRef.current = false;
+  };
+
+  const handleContactOwner = () => {
+    if (!isLeadReady) {
+      setShowLeadAuthDialog(true);
+      return;
+    }
+
+    if (isOwnPropertyLead) {
+      toast.error(ownPropertyLeadMessage);
+      return;
+    }
+
+    if (!projectId) {
+      toast.error("Property ID missing");
+      return;
+    }
+
+    void submitLeadForUser(user);
   };
 
   return (
@@ -236,30 +304,20 @@ export default function ContactOwnerButton({
           (isLeadPosting ? "Sending..." : `Contact ${getContactPerson()}`)}
       </button>
 
-      {showLoginDialog &&
+      {showLeadAuthDialog &&
         createPortal(
           <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40">
-            <LoginDialog
+            <LeadAuthDialog
               open
-              onClose={() => setShowLoginDialog(false)}
-              onSwitchToRegister={() => {
-                setShowLoginDialog(false);
-                setShowRegisterDialog(true);
-              }}
-            />
-          </div>,
-          document.body,
-        )}
-
-      {showRegisterDialog &&
-        createPortal(
-          <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40">
-            <RegisterDialog
-              open
-              onClose={() => setShowRegisterDialog(false)}
-              onSwitchToLogin={() => {
-                setShowRegisterDialog(false);
-                setShowLoginDialog(true);
+              onClose={() => setShowLeadAuthDialog(false)}
+              initialPhone={user?.phone}
+              initialPlanCategory={
+                resolvedListingType === "rent" ? "rent_view" : "buy"
+              }
+              onAuthSuccess={async (authenticatedUser) => {
+                justAuthenticatedRef.current = true;
+                await queryClient.invalidateQueries({ queryKey: ["user"] });
+                await submitLeadForUser(authenticatedUser);
               }}
             />
           </div>,

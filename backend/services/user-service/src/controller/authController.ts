@@ -40,6 +40,7 @@ import {
   sanitizeWorkingLocations,
   territoryFromHomeLocation,
 } from "../utils/workingLocations";
+import { activateSubscription } from "../../../payment-service/src/services/subscriptionService";
 
 const PLATFORM_END_USER_ROLE_SET = new Set<string>(PLATFORM_END_USER_ROLE_NAMES);
 import { ALL_PERMISSIONS } from "../constants/permissionCatalog";
@@ -1485,7 +1486,8 @@ export const createRequestOtp = async (req: Request, res: Response) => {
 
 export const createVerifyOtp = async (req: Request, res: Response) => {
   try {
-    let { email, phone, otp, name, role, companyName } = req.body;
+    let { email, phone, otp, name, role, companyName, viewerPlanCategory } =
+      req.body;
     const tempLocation = sanitizeTempLocationInput(req.body);
 
     email = email?.trim()?.toLowerCase();
@@ -1495,6 +1497,8 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
     );
     otp = otp?.trim();
     companyName = companyName?.trim();
+    viewerPlanCategory =
+      viewerPlanCategory === "rent_view" ? "rent_view" : "buy";
 
     if (!phone) {
       return res.status(400).json({
@@ -1579,6 +1583,18 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
 
       const roleDoc: any = user.roleId;
 
+      if (roleDoc?.name === "user") {
+        try {
+          await activateSubscription(
+            String(user._id),
+            "user",
+            viewerPlanCategory === "rent_view" ? "RENTAL_FREE" : "BUYER_FREE",
+          );
+        } catch (subscriptionError) {
+          console.error("Failed to auto-assign free viewer plan:", subscriptionError);
+        }
+      }
+
       const token = await createAuthToken({ user, roleDoc });
 
       let nextStep = "location";
@@ -1626,6 +1642,18 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
 
     if (roleDoc.name === "agent") {
       await createInitialAgentProfile(user._id);
+    }
+
+    if (roleDoc.name === "user") {
+      try {
+        await activateSubscription(
+          String(user._id),
+          "user",
+          viewerPlanCategory === "rent_view" ? "RENTAL_FREE" : "BUYER_FREE",
+        );
+      } catch (subscriptionError) {
+        console.error("Failed to auto-assign free viewer plan:", subscriptionError);
+      }
     }
 
     // Exclusive CCE follow-up owner (temp city/state when present; else global RR).

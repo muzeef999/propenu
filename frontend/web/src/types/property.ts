@@ -144,6 +144,7 @@ export interface createVerifyOtpPayload {
   role: "user" | "builder" | "agent"
   phone: string
   otp: string
+  viewerPlanCategory?: "buy" | "rent_view"
   /** Optional header/browse city for early CCE assign (before Location step). */
   tempCity?: string
   tempState?: string
