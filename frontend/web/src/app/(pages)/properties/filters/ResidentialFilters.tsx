@@ -17,7 +17,7 @@ import {
 } from "@/types/residential";
 import {
   selectCityWithLocalities,
-  selectLocalitiesByCity,
+  selectHomeLocalitiesByCity,
 } from "@/Redux/slice/citySlice";
 import { RESFilterKey } from "@/types";
 import {
@@ -46,7 +46,7 @@ const ResidentialFilters = () => {
   const programmaticScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const cityData = useSelector(selectCityWithLocalities);
-  const localities = useSelector(selectLocalitiesByCity);
+  const localities = useSelector(selectHomeLocalitiesByCity);
   const filtersState = useSelector((state: RootState) => state.filters);
   const { minPrice, maxPrice, residential, listingTypeValue } = filtersState;
   const [budgetTouched, setBudgetTouched] = useState(false);
