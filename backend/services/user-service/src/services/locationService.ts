@@ -29,6 +29,27 @@ function toTitleCase(value: string) {
     .toLowerCase()
     .replace(/\b[a-z]/g, (char) => char.toUpperCase());
 }
+
+/** Mongoose subdocs don't spread with `{...doc}` — read fields explicitly. */
+function toPlainLocality(locality: LocalityLike | null | undefined): LocalityLike {
+  if (!locality) return {};
+  const anyLoc = locality as any;
+  const raw =
+    typeof anyLoc.toObject === "function" ? anyLoc.toObject() : locality;
+  const coords = raw?.location?.coordinates;
+  return {
+    name: typeof raw?.name === "string" ? raw.name : undefined,
+    isHome: raw?.isHome === true,
+    location:
+      raw?.location && Array.isArray(coords)
+        ? {
+            type: raw.location.type || "Point",
+            coordinates: [Number(coords[0]), Number(coords[1])],
+          }
+        : raw?.location ?? undefined,
+  };
+}
+
 function hasValidCoordinates(locality: LocalityLike) {
   const coordinates = locality.location?.coordinates;
   if (!Array.isArray(coordinates) || coordinates.length !== 2) return false;
@@ -39,9 +60,10 @@ function hasValidCoordinates(locality: LocalityLike) {
 }
 
 function normalizeLocalityHome<T extends LocalityLike>(locality: T) {
+  const plain = toPlainLocality(locality);
   return {
-    ...locality,
-    isHome: locality.isHome === true,
+    ...plain,
+    isHome: plain.isHome === true,
   } as T;
 }
 
@@ -49,12 +71,13 @@ export function mergeDuplicateLocalities<T extends LocalityLike>(localities: T[]
   const byName = new Map<string, T>();
 
   for (const locality of localities) {
-    const key = localityKey(locality);
+    const plain = toPlainLocality(locality);
+    const key = localityKey(plain);
     if (!key) continue;
 
-    const trimmedName = locality.name?.trim();
+    const trimmedName = plain.name?.trim();
     const normalizedLocality = normalizeLocalityHome({
-      ...locality,
+      ...plain,
       ...(trimmedName ? { name: toTitleCase(trimmedName) } : {}),
     } as T);
 
@@ -97,9 +120,9 @@ function mapLocalitiesForResponse(localities: LocalityLike[] = [], homeOnly = fa
 
 async function saveWithMergedLocalities(doc: any) {
   const mergedLocalities = mergeDuplicateLocalities(doc.localities as LocalityLike[]);
-  if (localitiesChanged(doc.localities as LocalityLike[], mergedLocalities)) {
-    doc.localities = mergedLocalities;
-  }
+  // Always assign plain merged localities so nested isHome / coords persist
+  doc.localities = mergedLocalities as any;
+  doc.markModified("localities");
 
   await doc.save();
   return doc;
@@ -195,16 +218,20 @@ export async function createLocation(payload: CreateLocationPayload) {
       );
 
       if (localityIndex >= 0 && existingCity.localities[localityIndex]) {
-        const existingLoc = existingCity.localities[localityIndex] as any;
-        if (coordinates) {
-          existingLoc.location = {
-            type: "Point",
-            coordinates,
-          };
-        }
-        if (typeof payload.locality?.isHome === "boolean") {
-          existingLoc.isHome = payload.locality.isHome;
-        }
+        const existingPlain = toPlainLocality(
+          existingCity.localities[localityIndex] as any
+        );
+        const nextIsHome =
+          typeof payload.locality?.isHome === "boolean"
+            ? payload.locality.isHome
+            : existingPlain.isHome === true;
+        existingCity.localities.set(localityIndex, {
+          name: localityName,
+          isHome: nextIsHome,
+          location: coordinates
+            ? { type: "Point", coordinates }
+            : existingPlain.location,
+        } as any);
       }
 
       if (localityIndex < 0) {
@@ -354,23 +381,28 @@ export async function updateLocation(
     }
 
     const existingAtIndex = index >= 0 ? doc.localities[index] : undefined;
+    const nextIsHome =
+      typeof payload.locality.isHome === "boolean"
+        ? payload.locality.isHome
+        : existingAtIndex
+          ? (existingAtIndex as any).isHome === true
+          : false;
+
     if (existingAtIndex) {
-      // Rename + update coords / home for existing locality
-      existingAtIndex.name = localityName;
-      if (typeof payload.locality.isHome === "boolean") {
-        (existingAtIndex as any).isHome = payload.locality.isHome;
-      }
-      if (coordinates) {
-        existingAtIndex.location = {
-          type: "Point",
-          coordinates,
-        };
-      }
+      // Replace entry with a plain object so isHome is never lost on merge/save
+      const nextLocality: LocalityLike = {
+        name: localityName,
+        isHome: nextIsHome,
+        location: coordinates
+          ? { type: "Point", coordinates }
+          : toPlainLocality(existingAtIndex).location,
+      };
+      doc.localities.set(index, nextLocality as any);
     } else {
       // New locality on this city
       doc.localities.push({
         name: localityName,
-        isHome: payload.locality.isHome === true,
+        isHome: nextIsHome,
         location: coordinates
           ? { type: "Point", coordinates }
           : undefined,
