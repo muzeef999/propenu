@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 const LocalitySchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
+    /** When true, locality is Home-active for website filters. Default off. */
+    isHome: { type: Boolean, default: false },
     location: {
       type: { type: String, enum: ["Point"], default: "Point" },
       coordinates: { type: [Number], default: [0, 0] }, // [lng, lat]

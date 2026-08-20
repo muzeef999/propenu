@@ -12,6 +12,7 @@ function exactCaseInsensitive(value: string) {
 
 type LocalityLike = {
   name?: string;
+  isHome?: boolean;
   location?: {
     type?: string;
     coordinates?: number[];
@@ -37,6 +38,13 @@ function hasValidCoordinates(locality: LocalityLike) {
   return Number.isFinite(lng) && Number.isFinite(lat) && !(lng === 0 && lat === 0);
 }
 
+function normalizeLocalityHome<T extends LocalityLike>(locality: T) {
+  return {
+    ...locality,
+    isHome: locality.isHome === true,
+  } as T;
+}
+
 export function mergeDuplicateLocalities<T extends LocalityLike>(localities: T[] = []) {
   const byName = new Map<string, T>();
 
@@ -45,10 +53,10 @@ export function mergeDuplicateLocalities<T extends LocalityLike>(localities: T[]
     if (!key) continue;
 
     const trimmedName = locality.name?.trim();
-    const normalizedLocality = {
+    const normalizedLocality = normalizeLocalityHome({
       ...locality,
       ...(trimmedName ? { name: toTitleCase(trimmedName) } : {}),
-    } as T;
+    } as T);
 
     const existing = byName.get(key);
     if (!existing) {
@@ -58,6 +66,10 @@ export function mergeDuplicateLocalities<T extends LocalityLike>(localities: T[]
 
     if (!hasValidCoordinates(existing) && hasValidCoordinates(normalizedLocality)) {
       existing.location = normalizedLocality.location;
+    }
+    // Keep Home Active if either duplicate was active
+    if (normalizedLocality.isHome === true) {
+      (existing as LocalityLike).isHome = true;
     }
   }
 
@@ -69,8 +81,18 @@ function localitiesChanged(before: LocalityLike[] = [], after: LocalityLike[] = 
 
   return before.some((locality, index) => {
     const next = after[index];
-    return locality.name !== next?.name || JSON.stringify(locality.location) !== JSON.stringify(next?.location);
+    return (
+      locality.name !== next?.name ||
+      locality.isHome !== next?.isHome ||
+      JSON.stringify(locality.location) !== JSON.stringify(next?.location)
+    );
   });
+}
+
+function mapLocalitiesForResponse(localities: LocalityLike[] = [], homeOnly = false) {
+  const merged = mergeDuplicateLocalities(localities).map(normalizeLocalityHome);
+  if (!homeOnly) return merged;
+  return merged.filter((locality) => locality.isHome === true);
 }
 
 async function saveWithMergedLocalities(doc: any) {
@@ -95,6 +117,8 @@ export interface CreateLocationPayload {
   isHome?: boolean;
   locality?: {
     name: string;
+    /** Locality Home Active — separate from city isHome */
+    isHome?: boolean;
     location?: {
       type: "Point";
       coordinates: [number, number];
@@ -111,6 +135,8 @@ export interface UpdateLocationPayload {
   originalLocalityName?: string;
   locality?: {
     name: string;
+    /** Locality Home Active — separate from city isHome */
+    isHome?: boolean;
     location?: {
       coordinates: [number, number];
     };
@@ -168,16 +194,23 @@ export async function createLocation(payload: CreateLocationPayload) {
         (item: any) => localityKey(item) === localityName.toLowerCase()
       );
 
-      if (localityIndex >= 0 && coordinates && existingCity.localities[localityIndex]) {
-        existingCity.localities[localityIndex].location = {
-          type: "Point",
-          coordinates,
-        };
+      if (localityIndex >= 0 && existingCity.localities[localityIndex]) {
+        const existingLoc = existingCity.localities[localityIndex] as any;
+        if (coordinates) {
+          existingLoc.location = {
+            type: "Point",
+            coordinates,
+          };
+        }
+        if (typeof payload.locality?.isHome === "boolean") {
+          existingLoc.isHome = payload.locality.isHome;
+        }
       }
 
       if (localityIndex < 0) {
         existingCity.localities.push({
           name: localityName,
+          isHome: payload.locality?.isHome === true,
           location: coordinates ? { type: "Point", coordinates } : undefined,
         } as any);
       }
@@ -195,6 +228,7 @@ export async function createLocation(payload: CreateLocationPayload) {
       ? [
           {
             name: localityName,
+            isHome: payload.locality?.isHome === true,
             location: coordinates ? { type: "Point", coordinates } : undefined,
           },
         ]
@@ -234,7 +268,7 @@ export async function getAllLocationsDetails(options: GetLocationsOptions = {}) 
     locations: locations.map((location) => ({
       ...location,
       isHome: location.isHome === true,
-      localities: mergeDuplicateLocalities(location.localities),
+      localities: mapLocalitiesForResponse(location.localities, options.homeOnly),
     })),
     states,
     categories,
@@ -321,8 +355,11 @@ export async function updateLocation(
 
     const existingAtIndex = index >= 0 ? doc.localities[index] : undefined;
     if (existingAtIndex) {
-      // Rename + update coords for existing locality
+      // Rename + update coords / home for existing locality
       existingAtIndex.name = localityName;
+      if (typeof payload.locality.isHome === "boolean") {
+        (existingAtIndex as any).isHome = payload.locality.isHome;
+      }
       if (coordinates) {
         existingAtIndex.location = {
           type: "Point",
@@ -333,6 +370,7 @@ export async function updateLocation(
       // New locality on this city
       doc.localities.push({
         name: localityName,
+        isHome: payload.locality.isHome === true,
         location: coordinates
           ? { type: "Point", coordinates }
           : undefined,
@@ -410,7 +448,7 @@ export async function getLocationByIdService(id: string) {
   return {
     ...doc,
     isHome: doc.isHome === true,
-    localities: mergeDuplicateLocalities(doc.localities),
+    localities: mapLocalitiesForResponse(doc.localities, false),
   };
 }
 
