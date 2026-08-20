@@ -18,6 +18,22 @@ export interface IUser extends mongoose.Document {
   pincode?: string;
   address?: string;
   phoneVerified?: boolean;
+  /** Extended org profile for builder accounts (RERA, GST, media, etc.). */
+  builderProfile?: {
+    bio?: string;
+    website?: string;
+    gstin?: string;
+    cin?: string;
+    officeLocations?: string[];
+    logo?: { url?: string; key?: string } | null;
+    avatar?: { url?: string; key?: string } | null;
+    coverImage?: { url?: string; key?: string } | null;
+    rera?: {
+      reraId?: string;
+      isVerified?: boolean;
+      providerResponse?: any;
+    };
+  };
   accountStatus?:
     | "pending"
     | "location_pending"
@@ -197,6 +213,30 @@ const UserSchema = new mongoose.Schema(
       type: String,
       trim: true,
       maxlength: 200,
+    },
+    builderProfile: {
+      bio: { type: String, trim: true, maxlength: 2000, default: "" },
+      website: { type: String, trim: true, maxlength: 200, default: "" },
+      gstin: { type: String, trim: true, maxlength: 20, default: "" },
+      cin: { type: String, trim: true, maxlength: 30, default: "" },
+      officeLocations: { type: [String], default: [] },
+      logo: {
+        type: { url: String, key: String },
+        default: null,
+      },
+      avatar: {
+        type: { url: String, key: String },
+        default: null,
+      },
+      coverImage: {
+        type: { url: String, key: String },
+        default: null,
+      },
+      rera: {
+        reraId: { type: String, trim: true, default: "" },
+        isVerified: { type: Boolean, default: false },
+        providerResponse: { type: mongoose.Schema.Types.Mixed },
+      },
     },
     builderId: {
       type: mongoose.Schema.Types.ObjectId,

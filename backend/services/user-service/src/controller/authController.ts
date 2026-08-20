@@ -1380,10 +1380,13 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
         email: 1,
         phone: 1,
         userCode: 1,
+        address: 1,
         locality: 1,
         city: 1,
         state: 1,
         pincode: 1,
+        isActive: 1,
+        builderProfile: 1,
         createdAt: 1,
 
         role: "$role.name",

@@ -1,9 +1,12 @@
 import { Response } from "express";
+import { randomUUID } from "crypto";
+import mongoose from "mongoose";
 import User from "../models/userModel";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { genOtp } from "../utils/genOtp";
 import { saveOtpToRedis, verifyAndConsumeOtpWithReason } from "../utils/saveOtpRedis";
 import { sendOtpWhatsApp } from "../utils/whatsapp";
+import s3 from "../config/s3";
 
 const allowedBuilderProfileFields = [
   "name",
@@ -15,6 +18,42 @@ const allowedBuilderProfileFields = [
   "state",
   "pincode",
 ] as const;
+
+type MulterFiles =
+  | {
+      avatar?: Express.Multer.File[];
+      logo?: Express.Multer.File[];
+      coverImage?: Express.Multer.File[];
+    }
+  | undefined;
+
+const formatMedia = (media: any) =>
+  media?.url
+    ? {
+        url: media.url,
+        key: media.key || null,
+      }
+    : null;
+
+const formatBuilderOrgProfile = (user: any) => {
+  const bp = user.builderProfile || {};
+  return {
+    bio: bp.bio || "",
+    website: bp.website || "",
+    gstin: bp.gstin || "",
+    cin: bp.cin || "",
+    officeLocations: Array.isArray(bp.officeLocations)
+      ? bp.officeLocations.filter(Boolean)
+      : [],
+    logo: formatMedia(bp.logo),
+    avatar: formatMedia(bp.avatar),
+    coverImage: formatMedia(bp.coverImage),
+    rera: {
+      reraId: bp.rera?.reraId || "",
+      isVerified: bp.rera?.isVerified === true,
+    },
+  };
+};
 
 const formatBuilderProfile = (user: any, role: any) => ({
   id: user._id,
@@ -30,9 +69,11 @@ const formatBuilderProfile = (user: any, role: any) => ({
   pincode: user.pincode,
   accountStatus: user.accountStatus,
   phoneVerified: user.phoneVerified,
+  isActive: user.isActive !== false,
   roleId: role ? String(role._id) : null,
   roleName: role ? role.name : null,
   permissions: role ? role.permissions : [],
+  builderProfile: formatBuilderOrgProfile(user),
 });
 
 const isPrimaryBuilder = (req: AuthRequest) => req.user?.roleName === "builder";
@@ -82,6 +123,46 @@ const assertTargetIsBuilder = (user: any) => {
   return role?.name === "builder";
 };
 
+const pickString = (body: Record<string, any>, ...keys: string[]) => {
+  for (const key of keys) {
+    const value = body[key];
+    if (value === undefined || value === null) continue;
+    if (typeof value === "string") return value;
+    if (typeof value === "object" && typeof value?.toString === "function") {
+      return String(value);
+    }
+  }
+  return undefined;
+};
+
+const parseBool = (value: unknown) => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "1", "yes"].includes(normalized)) return true;
+    if (["false", "0", "no"].includes(normalized)) return false;
+  }
+  return undefined;
+};
+
+const parseOfficeLocations = (body: Record<string, any>) => {
+  const raw =
+    body.officeLocations ??
+    body["officeLocations[]"] ??
+    body.officeLocation;
+  if (raw === undefined) return undefined;
+  if (Array.isArray(raw)) {
+    return raw.map((item) => String(item || "").trim()).filter(Boolean);
+  }
+  if (typeof raw === "string") {
+    return raw
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return undefined;
+};
+
 const buildProfileUpdates = (body: Record<string, unknown>) => {
   const updates: Record<string, unknown> = {};
 
@@ -98,6 +179,158 @@ const buildProfileUpdates = (body: Record<string, unknown>) => {
 
   return updates;
 };
+
+const buildOrgProfileUpdates = (body: Record<string, any>) => {
+  const updates: Record<string, unknown> = {};
+
+  const bio = pickString(body, "bio");
+  if (bio !== undefined) updates.bio = bio.trim();
+
+  const website = pickString(body, "website");
+  if (website !== undefined) updates.website = website.trim();
+
+  const gstin = pickString(body, "gstin", "gst.gstin");
+  if (gstin !== undefined) updates.gstin = gstin.trim().toUpperCase();
+
+  const cin = pickString(body, "cin", "mca.cin");
+  if (cin !== undefined) updates.cin = cin.trim().toUpperCase();
+
+  const officeLocations = parseOfficeLocations(body);
+  if (officeLocations !== undefined) updates.officeLocations = officeLocations;
+
+  const reraId = pickString(
+    body,
+    "reraId",
+    "rera[reraId]",
+    "rera.reraId",
+  );
+  const reraVerified = parseBool(
+    body.reraVerified ??
+      body["rera[isVerified]"] ??
+      body["rera.isVerified"] ??
+      body.rera?.isVerified,
+  );
+
+  if (reraId !== undefined || reraVerified !== undefined) {
+    updates.rera = {
+      ...(reraId !== undefined ? { reraId: reraId.trim() } : {}),
+      ...(reraVerified !== undefined ? { isVerified: reraVerified } : {}),
+    };
+  }
+
+  return updates;
+};
+
+async function deleteS3ObjectIfExists(key?: string) {
+  if (!key) return;
+  const bucket = process.env.AWS_S3_BUCKET;
+  if (!bucket) return;
+  try {
+    await s3
+      .deleteObject({
+        Bucket: bucket,
+        Key: key,
+      })
+      .promise();
+  } catch {
+    /* ignore missing keys */
+  }
+}
+
+async function uploadBuilderMedia(opts: {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+  builderId: string;
+  folder: string;
+}) {
+  const bucket = process.env.AWS_S3_BUCKET!;
+  const region = process.env.AWS_REGION!;
+  const ext = opts.originalname.includes(".")
+    ? opts.originalname.split(".").pop()
+    : "";
+  const uniqueName = `${Date.now()}-${randomUUID()}${ext ? `.${ext}` : ""}`;
+  const key = `builders/${opts.folder}/${opts.builderId}/${uniqueName}`;
+
+  await s3
+    .upload({
+      Bucket: bucket,
+      Key: key,
+      Body: opts.buffer,
+      ContentType: opts.mimetype,
+    })
+    .promise();
+
+  return {
+    key,
+    url: `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key)}`,
+  };
+}
+
+async function applyBuilderOrgUpdates(
+  user: any,
+  body: Record<string, any>,
+  files?: MulterFiles,
+) {
+  if (!user.builderProfile) {
+    user.builderProfile = {};
+  }
+
+  const orgUpdates = buildOrgProfileUpdates(body);
+  if (orgUpdates.bio !== undefined) user.builderProfile.bio = orgUpdates.bio;
+  if (orgUpdates.website !== undefined) {
+    user.builderProfile.website = orgUpdates.website;
+  }
+  if (orgUpdates.gstin !== undefined) user.builderProfile.gstin = orgUpdates.gstin;
+  if (orgUpdates.cin !== undefined) user.builderProfile.cin = orgUpdates.cin;
+  if (orgUpdates.officeLocations !== undefined) {
+    user.builderProfile.officeLocations = orgUpdates.officeLocations;
+  }
+  if (orgUpdates.rera) {
+    user.builderProfile.rera = {
+      ...(user.builderProfile.rera?.toObject?.() || user.builderProfile.rera || {}),
+      ...(orgUpdates.rera as object),
+    };
+  }
+
+  const avatarFile = files?.avatar?.[0];
+  if (avatarFile) {
+    await deleteS3ObjectIfExists(user.builderProfile.avatar?.key);
+    user.builderProfile.avatar = await uploadBuilderMedia({
+      buffer: avatarFile.buffer,
+      originalname: avatarFile.originalname,
+      mimetype: avatarFile.mimetype,
+      builderId: String(user._id),
+      folder: "avatar",
+    });
+  }
+
+  const logoFile = files?.logo?.[0];
+  if (logoFile) {
+    await deleteS3ObjectIfExists(user.builderProfile.logo?.key);
+    user.builderProfile.logo = await uploadBuilderMedia({
+      buffer: logoFile.buffer,
+      originalname: logoFile.originalname,
+      mimetype: logoFile.mimetype,
+      builderId: String(user._id),
+      folder: "logo",
+    });
+  }
+
+  const coverFile = files?.coverImage?.[0];
+  if (coverFile) {
+    await deleteS3ObjectIfExists(user.builderProfile.coverImage?.key);
+    user.builderProfile.coverImage = await uploadBuilderMedia({
+      buffer: coverFile.buffer,
+      originalname: coverFile.originalname,
+      mimetype: coverFile.mimetype,
+      builderId: String(user._id),
+      folder: "cover",
+    });
+  }
+
+  user.markModified("builderProfile");
+}
 
 export const getBuilderProfile = async (req: AuthRequest, res: Response) => {
   try {
@@ -144,8 +377,12 @@ export const updateBuilderProfile = async (req: AuthRequest, res: Response) => {
     }
 
     const updates = buildProfileUpdates(req.body);
+    const files = req.files as MulterFiles;
+    const hasOrg =
+      Object.keys(buildOrgProfileUpdates(req.body)).length > 0 ||
+      Boolean(files?.avatar?.[0] || files?.logo?.[0] || files?.coverImage?.[0]);
 
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(updates).length === 0 && !hasOrg) {
       return res.status(400).json({ message: "No valid fields to update" });
     }
 
@@ -164,6 +401,9 @@ export const updateBuilderProfile = async (req: AuthRequest, res: Response) => {
     }
 
     Object.assign(user, updates);
+    if (hasOrg) {
+      await applyBuilderOrgUpdates(user, req.body, files);
+    }
     await user.save();
 
     const role: any = user.roleId;
@@ -404,9 +644,20 @@ export const updateBuilderProfileById = async (
       });
     }
 
-    const updates = buildProfileUpdates(req.body);
+    if (
+      !req.params.builderId ||
+      !mongoose.Types.ObjectId.isValid(req.params.builderId)
+    ) {
+      return res.status(400).json({ message: "Invalid builder id" });
+    }
 
-    if (Object.keys(updates).length === 0) {
+    const updates = buildProfileUpdates(req.body);
+    const files = req.files as MulterFiles;
+    const hasOrg =
+      Object.keys(buildOrgProfileUpdates(req.body)).length > 0 ||
+      Boolean(files?.avatar?.[0] || files?.logo?.[0] || files?.coverImage?.[0]);
+
+    if (Object.keys(updates).length === 0 && !hasOrg) {
       return res.status(400).json({ message: "No valid fields to update" });
     }
 
@@ -425,6 +676,9 @@ export const updateBuilderProfileById = async (
     }
 
     Object.assign(user, updates);
+    if (hasOrg) {
+      await applyBuilderOrgUpdates(user, req.body, files);
+    }
     await user.save();
 
     const role: any = user.roleId;
