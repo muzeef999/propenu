@@ -260,10 +260,16 @@ export function buildBuilderInviteEmailHtml(
                           <div style="font-size:20px;font-weight:700;line-height:1.3;color:#1f2937;">${projectTitle}</div>
                           ${companyLine}
                           ${locationLine}
-                          ${priceLine}
-                          <div style="margin-top:14px;">
-                            <a href="${previewUrl}" style="display:inline-block;background:#22c55e;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:700;">View Project</a>
-                          </div>
+                          <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:14px;">
+                            <tr>
+                              <td align="left" valign="middle" style="padding:0;">
+                                ${priceLine}
+                              </td>
+                              <td align="right" valign="middle" style="padding:0;white-space:nowrap;">
+                                <a href="${previewUrl}" style="display:inline-block;background:#22c55e;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:700;">View Project</a>
+                              </td>
+                            </tr>
+                          </table>
                         </td>
                       </tr>
                     </table>
