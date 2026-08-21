@@ -178,7 +178,6 @@ function getFieldValidationMessage(
     if (name === "terms") return "Please accept the Terms & Conditions";
     if (name === "name") return "Please enter your full name";
     if (name === "phone") return "Please enter your mobile number";
-    if (name === "email") return "Please enter your email address";
   }
 
   if (validity.patternMismatch) {
@@ -447,9 +446,9 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
   const ownProjectLeadMessage = "You cannot submit a lead for your own project.";
   const hasPrefilledUserDetails =
     Boolean(loggedInUser) &&
-    Boolean(form.name.trim()) &&
-    Boolean(form.phone.trim()) &&
-    Boolean(form.email.trim());
+    Boolean(sanitizeNameInput(loggedInUser?.name || loggedInUser?.fullName || "").trim()) &&
+    Boolean(loggedInUser?.phone && sanitizePhoneInput(loggedInUser.phone).trim()) &&
+    Boolean(loggedInUser?.email?.trim());
   const standardWrapperClassName = isModal
     ? "relative w-full rounded-md border border-slate-200 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.08)]"
     : "w-full rounded-md border border-slate-200 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.08)] lg:sticky lg:top-20 lg:max-w-[390px] lg:p-5";
@@ -537,7 +536,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
       return;
     }
 
-    if (!isValidEmail(form.email)) {
+    if (form.email.trim() && !isValidEmail(form.email)) {
       toast.error("Please enter a valid email address");
       return;
     }
@@ -570,7 +569,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
       return;
     }
 
-    if (!isValidEmail(form.email)) {
+    if (form.email.trim() && !isValidEmail(form.email)) {
       toast.error("Please enter a valid email address");
       return;
     }
@@ -1023,7 +1022,6 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
                 pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
                 title="Please enter a valid email address"
                 placeholder="Enter Email Address"
-                required
                 className="mt-1.5 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
               />
             </label>
@@ -1182,7 +1180,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
               <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-3 text-sm text-slate-700">
                 <p className="flex items-center justify-between gap-3">
                   <span className="text-xs text-slate-500">Phone</span>
-                  <span className="font-medium text-slate-950">{contactPhone || "Not available"}</span>
+                  <span className="font-medium text-slate-950 text-xs">{contactPhone || "Not available"}</span>
                 </p>
                 {contactEmail && (
                   <p className="flex items-start justify-between gap-3">
@@ -1249,7 +1247,6 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
                   pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
                   title="Please enter a valid email address"
                   placeholder="Enter your Email ID"
-                  required
                   className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
                 />
               </label>

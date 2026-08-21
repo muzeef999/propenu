@@ -55,6 +55,9 @@ function validateFullName(
 }
 
 const RESEND_OTP_SECONDS = 30;
+const INTERNATIONAL_PHONE_INPUT_MAX_LENGTH = 15;
+const INDIA_COUNTRY_CODE = "+91";
+const INDIA_NATIONAL_NUMBER_LENGTH = 10;
 
 const RegisterDialog = ({
   open,
@@ -63,6 +66,9 @@ const RegisterDialog = ({
   onSwitchToLogin,
 }: RegisterDialogProps) => {
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState<string | undefined>(
+    "IN",
+  );
   const [formData, setFormData] = useState({
     name: "",
     companyName: "",
@@ -90,6 +96,22 @@ const RegisterDialog = ({
   function normalizePhone(value: string) {
     const validation = phoneSchema.safeParse({ phone: value });
     return validation.success ? validation.data.phone : value;
+  }
+
+  function normalizePhoneInputByCountry(
+    value: string,
+    country?: string,
+  ) {
+    if (country !== "IN" || !value.startsWith(INDIA_COUNTRY_CODE)) {
+      return value;
+    }
+
+    const digitsOnly = value.replace(/\D/g, "");
+    const indianNationalNumber = digitsOnly
+      .slice(INDIA_COUNTRY_CODE.replace("+", "").length)
+      .slice(0, INDIA_NATIONAL_NUMBER_LENGTH);
+
+    return `${INDIA_COUNTRY_CODE}${indianNationalNumber}`;
   }
 
   function isPreviouslyVerifiedPhone(value: string) {
@@ -512,9 +534,20 @@ const RegisterDialog = ({
                   <PhoneInput
                     international
                     defaultCountry="IN"
+                    limitMaxLength
+                    countryCallingCodeEditable={false}
+                    onCountryChange={(country) => {
+                      setSelectedCountry(country);
+                    }}
+                    numberInputProps={{
+                      maxLength: INTERNATIONAL_PHONE_INPUT_MAX_LENGTH,
+                    }}
                     value={phoneNumber}
                     onChange={(value) => {
-                      const nextPhone = value || "";
+                      const nextPhone = normalizePhoneInputByCountry(
+                        value || "",
+                        selectedCountry,
+                      );
                       const isSameVerifiedPhone =
                         isPreviouslyVerifiedPhone(nextPhone);
 

@@ -105,11 +105,15 @@ export function buildBuilderInviteEmailHtml(
     appStoreBadgeUrl || `${safeWebsiteUrl}/email/appleBadge.png`;
   const safeBrandLogoUrl =
     brandLogoUrl || `${safeWebsiteUrl}/email/propenu-logo.png`;
-  const safeLinkedinUrl = linkedinUrl || safeWebsiteUrl;
-  const safeInstagramUrl = instagramUrl || safeWebsiteUrl;
-  const safeFacebookUrl = facebookUrl || safeWebsiteUrl;
-  const safeTwitterUrl = twitterUrl || safeWebsiteUrl;
-  const safeYoutubeUrl = youtubeUrl || safeWebsiteUrl;
+  const safeLinkedinUrl =
+    linkedinUrl || "https://www.linkedin.com/company/propenu";
+  const safeInstagramUrl =
+    instagramUrl || "https://www.instagram.com/propenu";
+  const safeFacebookUrl =
+    facebookUrl ||
+    "https://www.facebook.com/profile.php?id=61584609591479";
+  const safeTwitterUrl = twitterUrl || "https://x.com/propenu";
+  const safeYoutubeUrl = youtubeUrl || "https://www.youtube.com/@Propenu";
   const safeContactUrl = contactUrl || safeWebsiteUrl;
   const safeTeamworksUrl = teamworksUrl || safeWebsiteUrl;
   const safeAslijobsUrl = aslijobsUrl || safeWebsiteUrl;
@@ -226,7 +230,7 @@ export function buildBuilderInviteEmailHtml(
                               ? `<table width="160" height="120" cellpadding="0" cellspacing="0" style="width:160px;height:120px;background:#dbeafe;">
                                   <tr>
                                     <td align="center" valign="middle" style="width:160px;height:120px;padding:0;background:#dbeafe;">
-                                      <img src="${heroImageUrl}" alt="${projectTitle}" width="160" style="display:block;max-width:160px;max-height:120px;width:auto;height:auto;border:0;" />
+                                      <img src="${heroImageUrl}" alt="${projectTitle}" width="160" height="120" style="display:block;width:160px;height:120px;object-fit:cover;border:0;" />
                                     </td>
                                   </tr>
                                 </table>`
@@ -391,16 +395,16 @@ export function buildBuilderInviteEmailHtml(
                   </td>
                 </tr>
               </table>
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;table-layout:fixed;">
                 <tr>
-                  <td align="left" style="font-size:11px;color:#94a3b8;">
-                    <a href="${safeTermsUrl}" style="color:#94a3b8;text-decoration:none;">Terms &amp; Conditions</a>
+                  <td width="33.33%" align="center" valign="middle" style="width:33.33%;padding:0 6px;font-size:11px;line-height:1.5;color:#94a3b8;">
+                    <a href="${safeTermsUrl}" style="color:#94a3b8;text-decoration:none;white-space:nowrap;">Terms &amp; Conditions</a>
                   </td>
-                  <td align="center" style="font-size:11px;color:#94a3b8;">
-                    <a href="${safePrivacyUrl}" style="color:#94a3b8;text-decoration:none;">Privacy Policy</a>
+                  <td width="33.33%" align="center" valign="middle" style="width:33.33%;padding:0 6px;font-size:11px;line-height:1.5;color:#94a3b8;">
+                    <a href="${safePrivacyUrl}" style="color:#94a3b8;text-decoration:none;white-space:nowrap;">Privacy Policy</a>
                   </td>
-                  <td align="right" style="font-size:11px;color:#94a3b8;">
-                    <a href="${safeContactUrl}" style="color:#94a3b8;text-decoration:none;">Contact Us</a>
+                  <td width="33.33%" align="center" valign="middle" style="width:33.33%;padding:0 6px;font-size:11px;line-height:1.5;color:#94a3b8;">
+                    <a href="${safeContactUrl}" style="color:#94a3b8;text-decoration:none;white-space:nowrap;">Contact Us</a>
                   </td>
                 </tr>
               </table>

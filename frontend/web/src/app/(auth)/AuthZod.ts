@@ -4,7 +4,6 @@ import { z } from "zod";
 export const OTP_LENGTH = 4;
 export const NAME_MAX_LENGTH = 42;
 export const COMPANY_NAME_MAX_LENGTH = 80;
-
 export const phoneSchema = z.object({
   phone: z.string().refine(isValidPhoneNumber, {
     message: "Invalid or incomplete phone number.",
