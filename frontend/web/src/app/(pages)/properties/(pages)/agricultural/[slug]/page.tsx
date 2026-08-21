@@ -3,6 +3,7 @@ import { hexToRGBA } from "@/ui/hexToRGBA";
 import formatINR from "@/utilies/PriceFormat";
 import { minDelay } from "@/utilies/minDelay";
 import { notFound } from "next/navigation";
+import Script from "next/script";
 import GalleryFile from "../../../GalleryFile";
 import { MdWaterDrop } from "react-icons/md";
 import { GiGroundSprout } from "react-icons/gi";
@@ -18,6 +19,7 @@ import AgriculturalNearbySection from "./AgriculturalNearbySection";
 import SponsoreCard from "../../../cards/SponsoreCard";
 import { buildPropertyMetadata } from "@/utilies/propertyOpenGraph";
 import { listingSourceToOwnershipLabel } from "@/utilies/resolveListingSource";
+import { buildListingStructuredData } from "@/utilies/structuredData";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -73,22 +75,48 @@ export default async function Page({ params }: PageProps) {
         (a.order ?? Number.MAX_SAFE_INTEGER) -
         (b.order ?? Number.MAX_SAFE_INTEGER),
     );
+  const structuredData = buildListingStructuredData(
+    {
+      title: project.title || "Agricultural Property",
+      description: project.description,
+      path: `/properties/agricultural/${project.slug || slug}`,
+      image: project.gallery?.[0]?.url || (project as any).gallerySummary?.[0]?.url,
+      category: "Agricultural Property",
+      price: project.price,
+      currency: "INR",
+      address: project.address,
+      city: project.city,
+      state: (project as any).state,
+      locality: (project as any).locality,
+      publishedAt: (project as any).createdAt,
+      updatedAt: (project as any).updatedAt,
+      sellerName: (project as any)?.createdBy?.name,
+    },
+    "Agricultural Properties",
+    "/properties/agricultural",
+  );
 
   return (
-    <div
-      className="min-h-screen py-6 overflow-hidden"
-    >
-      <PublicViewTracker
-        entityType="property"
-        entityId={String(project._id)}
-        propertyType="agricultural"
+    <>
+      <Script
+        id="agricultural-listing-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <PropertyViewDurationTracker
-        projectId={String(project._id)}
-        propertyType="agriculturals"
-      />
-      <div className="container">
-        <div className="w-full">
+      <div
+        className="min-h-screen py-6 overflow-hidden"
+      >
+        <PublicViewTracker
+          entityType="property"
+          entityId={String(project._id)}
+          propertyType="agricultural"
+        />
+        <PropertyViewDurationTracker
+          projectId={String(project._id)}
+          propertyType="agriculturals"
+        />
+        <div className="container">
+          <div className="w-full">
           {/* Top: Price + Title + CTA */}
           <header className="flex flex-col justify-between gap-2 p-2">
             <div className="text-lg sm:text-2xl md:text-2xl font-semibold leading-snug">
@@ -386,7 +414,8 @@ export default async function Page({ params }: PageProps) {
             </aside>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 };

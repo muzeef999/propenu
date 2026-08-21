@@ -3,6 +3,7 @@ import { hexToRGBA } from "@/ui/hexToRGBA";
 import formatINR from "@/utilies/PriceFormat";
 import { minDelay } from "@/utilies/minDelay";
 import { notFound } from "next/navigation";
+import Script from "next/script";
 import { ILand } from "@/types/land";
 import GalleryFile from "../../../GalleryFile";
 import { GiCompass, GiRoad, GiMoneyStack } from "react-icons/gi";
@@ -21,6 +22,7 @@ import { IoSparklesOutline, IoWaterOutline } from "react-icons/io5";
 import { MdOutlineLayers } from "react-icons/md";
 import { PiMapTrifold } from "react-icons/pi";
 import { buildPropertyMetadata } from "@/utilies/propertyOpenGraph";
+import { buildListingStructuredData } from "@/utilies/structuredData";
 
 type PageProps = {
   params: { slug: string } | Promise<{ slug: string }>;
@@ -115,6 +117,26 @@ export default async function Page({ params }: PageProps) {
     project?.listingSource,
     project?.createdBy as any,
   );
+  const structuredData = buildListingStructuredData(
+    {
+      title: project.title || "Land Property",
+      description: project.description,
+      path: `/properties/land/${project.slug || slug}`,
+      image: project.gallery?.[0]?.url || (project as any).gallerySummary?.[0]?.url,
+      category: "Land Property",
+      price: project.price,
+      currency: "INR",
+      address: project.address,
+      city: project.city,
+      state: (project as any).state,
+      locality: (project as any).locality,
+      publishedAt: (project as any).createdAt,
+      updatedAt: (project as any).updatedAt,
+      sellerName: (project as any)?.createdBy?.name,
+    },
+    "Land Properties",
+    "/properties/land",
+  );
   const nearbyLandmarks = (project.nearbyPlaces ?? [])
     .slice()
     .sort(
@@ -157,17 +179,23 @@ export default async function Page({ params }: PageProps) {
   ];
 
   return (
-    <div className="min-h-screen overflow-hidden py-6">
-      <PublicViewTracker
-        entityType="property"
-        entityId={String(project._id)}
-        propertyType="land"
+    <>
+      <Script
+        id="land-listing-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <PropertyViewDurationTracker
-        projectId={String(project._id)}
-        propertyType="landplots"
-      />
-      <div className="container">
+      <div className="min-h-screen overflow-hidden py-6">
+        <PublicViewTracker
+          entityType="property"
+          entityId={String(project._id)}
+          propertyType="land"
+        />
+        <PropertyViewDurationTracker
+          projectId={String(project._id)}
+          propertyType="landplots"
+        />
+        <div className="container">
         <div className="w-full">
           <header className="flex flex-col justify-between gap-2 p-2">
             <div className="text-lg font-semibold leading-snug sm:text-2xl md:text-2xl">
@@ -446,8 +474,9 @@ export default async function Page({ params }: PageProps) {
             </aside>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

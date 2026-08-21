@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Script from "next/script";
 import { getFeaturedSlugProjects, incrementProjectClicks } from "@/data/serverData";
 import { FeaturedProject } from "@/types";
 import MicroSiteNavbar from "./MicroSiteNavbar";
@@ -14,6 +15,7 @@ import AboutDevelopers from "./AboutDevelopers";
 import ProjectViewDurationTracker from "./ProjectViewDurationTracker";
 import ProjectViewTracker from "@/components/tracking/ProjectViewTracker";
 import PublicViewTracker from "@/components/tracking/PublicViewTracker";
+import { buildListingStructuredData } from "@/utilies/structuredData";
 
 export const dynamic = "force-dynamic";
 
@@ -181,62 +183,91 @@ export default async function Page({ params }: PageProps) {
     color: project?.color?.trim(),
   }
 
+  const structuredData = buildListingStructuredData(
+    {
+      title: project.title,
+      description: project.metaDescription || project.heroDescription,
+      path: `/prime/${project.slug}`,
+      image: project.heroImage || project.gallerySummary?.[0]?.url,
+      category: project.categoryType || project.propertyType || "Prime Project",
+      price: project.priceFrom,
+      currency: project.currency || "INR",
+      address: project.address,
+      city: project.city,
+      state: project.state,
+      locality: project.locality,
+      publishedAt: project.createdAt,
+      updatedAt: project.updatedAt,
+      sellerName:
+        typeof project.developer === "string" ? project.developer : undefined,
+    },
+    "Prime",
+    "/prime",
+  );
+
   return (
-    <div>
-      <PublicViewTracker entityType="project" entityId={project._id} />
-      <ProjectViewDurationTracker projectId={project?._id} />
-      <ProjectViewTracker projectId={project._id} title={project.title} slug={project.slug} locality={project.locality} city={project.city} state={project.state} promotionType={project.promotion?.type || "prime"} />
-      <MicroSiteNavbar
-        links={links}
-        logoUrl={project?.logo?.url}
-        color={project?.color?.trim()}
-        brochureUrl={project?.brochure?.url}
-        projectId={project?._id}
-        projectTitle={project?.title}
-        redirectUrl={project?.redirectUrl}
+    <>
+      <Script
+        id="prime-listing-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <Herosection hero={hero} />
-
-      <br />
-      <div className="prime-responsive-container">
-        <div id="available-properties" className="scroll-mt-20">
-          <AvailableProperties bhk={bhkSummary} />
-        </div>
-
-        <div id="amenities" className="scroll-mt-20">
-          <Amenities amenities={amenities} />
-        </div>
-
-        <div id="map-view" className="scroll-mt-20">
-          <LocateUs nearbyPlaces={nearbyPlaces} />
-        </div>
-
-        <div id="specification" className="scroll-mt-20">
-          <Specification specifications={specifications} />
-        </div>
-
-        <div id="gallery" className="scroll-mt-20">
-          <Gallery gallerySummary={gallerySummary} />
-        </div>
-
-
-        <div id="about-us" className="scroll-mt-20">
-          <AboutUS aboutSummary={aboutSummary} />
-        </div>
-        <AboutDevelopers
+      <div>
+        <PublicViewTracker entityType="project" entityId={project._id} />
+        <ProjectViewDurationTracker projectId={project?._id} />
+        <ProjectViewTracker projectId={project._id} title={project.title} slug={project.slug} locality={project.locality} city={project.city} state={project.state} promotionType={project.promotion?.type || "prime"} />
+        <MicroSiteNavbar
+          links={links}
           logoUrl={project?.logo?.url}
-          developer={project?.developer as any}
-          createdBy={project?.createdBy as any}
-          description={project?.heroDescription}
-          aboutSummary={project?.aboutSummary}
           color={project?.color?.trim()}
+          brochureUrl={project?.brochure?.url}
+          projectId={project?._id}
+          projectTitle={project?.title}
+          redirectUrl={project?.redirectUrl}
         />
-        <div id="brochure-preview" className="scroll-mt-20">
-          <BrochurePreview project={project} />
-        </div>
+        <Herosection hero={hero} />
 
+        <br />
+        <div className="prime-responsive-container">
+          <div id="available-properties" className="scroll-mt-20">
+            <AvailableProperties bhk={bhkSummary} />
+          </div>
+
+          <div id="amenities" className="scroll-mt-20">
+            <Amenities amenities={amenities} />
+          </div>
+
+          <div id="map-view" className="scroll-mt-20">
+            <LocateUs nearbyPlaces={nearbyPlaces} />
+          </div>
+
+          <div id="specification" className="scroll-mt-20">
+            <Specification specifications={specifications} />
+          </div>
+
+          <div id="gallery" className="scroll-mt-20">
+            <Gallery gallerySummary={gallerySummary} />
+          </div>
+
+
+          <div id="about-us" className="scroll-mt-20">
+            <AboutUS aboutSummary={aboutSummary} />
+          </div>
+          <AboutDevelopers
+            logoUrl={project?.logo?.url}
+            developer={project?.developer as any}
+            createdBy={project?.createdBy as any}
+            description={project?.heroDescription}
+            aboutSummary={project?.aboutSummary}
+            color={project?.color?.trim()}
+          />
+          <div id="brochure-preview" className="scroll-mt-20">
+            <BrochurePreview project={project} />
+          </div>
+
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

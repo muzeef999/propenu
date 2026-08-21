@@ -1,253 +1,265 @@
-
 import { MetadataRoute } from "next";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ||
+  process.env.NEXT_PUBLIC_WEB_URL ||
   "https://propenu.com";
 
-/* ======================================================
-   FETCH ALL PROJECTS
-====================================================== */
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+type SitemapEntity = {
+  slug?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  publishedAt?: string;
+};
+
+function buildAbsoluteUrl(path: string) {
+  return new URL(path, BASE_URL).toString();
+}
+
+function getLastModified(entry: SitemapEntity) {
+  const value =
+    entry.updatedAt ||
+    entry.publishedAt ||
+    entry.createdAt;
+
+  if (!value) {
+    return new Date();
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+function normalizeSlug(value?: string) {
+  return String(value || "").trim().replace(/^\/+|\/+$/g, "");
+}
+
+function toSitemapEntries(
+  entries: SitemapEntity[],
+  routePrefix: string,
+  priority: number,
+): MetadataRoute.Sitemap {
+  const seen = new Set<string>();
+
+  return entries.flatMap((entry) => {
+    const slug = normalizeSlug(entry.slug);
+    if (!slug || seen.has(slug)) {
+      return [];
+    }
+
+    seen.add(slug);
+
+    return [
+      {
+        url: buildAbsoluteUrl(`${routePrefix}/${slug}`),
+        lastModified: getLastModified(entry),
+        changeFrequency: "weekly" as const,
+        priority,
+      },
+    ];
+  });
+}
+
+async function fetchJson<T>(endpoint: string): Promise<T> {
+  const res = await fetch(endpoint, {
+    next: { revalidate: 3600 },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch ${endpoint}`);
+  }
+
+  return res.json();
+}
 
 async function getProjects() {
+  if (!API_URL) return [];
+
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/properties`,
-      {
-        next: {
-          revalidate: 3600,
-        },
-      }
+    const query = new URLSearchParams({
+      type: "featured",
+      limit: "1000",
+    });
+    const json = await fetchJson<{ items?: SitemapEntity[]; data?: SitemapEntity[] }>(
+      `${API_URL}/api/properties/featured-project?${query.toString()}`,
     );
 
-    if (!res.ok) {
-      throw new Error(
-        "Failed to fetch projects"
-      );
-    }
-
-    const data = await res.json();
-
-    return data?.data || [];
+    return json.items ?? json.data ?? [];
   } catch (error) {
-    console.error(
-      "Projects Sitemap Error:",
-      error
-    );
-
+    console.error("Projects Sitemap Error:", error);
     return [];
   }
 }
-
-/* ======================================================
-   FETCH PRIME PROJECTS
-====================================================== */
 
 async function getPrimeProjects() {
+  if (!API_URL) return [];
+
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/properties?promotion=prime`,
-      {
-        next: {
-          revalidate: 3600,
-        },
-      }
+    const query = new URLSearchParams({
+      type: "prime",
+      limit: "1000",
+    });
+    const json = await fetchJson<{ items?: SitemapEntity[]; data?: SitemapEntity[] }>(
+      `${API_URL}/api/properties/featured-project?${query.toString()}`,
     );
 
-    if (!res.ok) {
-      throw new Error(
-        "Failed to fetch prime projects"
-      );
-    }
-
-    const data = await res.json();
-
-    return data?.data || [];
+    return json.items ?? json.data ?? [];
   } catch (error) {
-    console.error(
-      "Prime Sitemap Error:",
-      error
-    );
-
+    console.error("Prime Sitemap Error:", error);
     return [];
   }
 }
-
-/* ======================================================
-   FETCH BLOGS
-====================================================== */
 
 async function getBlogs() {
+  if (!API_URL) return [];
+
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/blogs`,
-      {
-        next: {
-          revalidate: 3600,
-        },
-      }
+    const query = new URLSearchParams({
+      published: "true",
+      limit: "1000",
+      sortBy: "publishedAt",
+      sortOrder: "desc",
+    });
+    const json = await fetchJson<{ items?: SitemapEntity[]; data?: SitemapEntity[] }>(
+      `${API_URL}/api/properties/blogs?${query.toString()}`,
     );
 
-    if (!res.ok) {
-      throw new Error(
-        "Failed to fetch blogs"
-      );
-    }
-
-    const data = await res.json();
-
-    return data?.data || [];
+    return json.items ?? json.data ?? [];
   } catch (error) {
-    console.error(
-      "Blog Sitemap Error:",
-      error
-    );
-
+    console.error("Blog Sitemap Error:", error);
     return [];
   }
 }
 
-/* ======================================================
-   MAIN SITEMAP
-====================================================== */
+async function getSearchProperties(category: string) {
+  if (!API_URL) return [];
 
-export default async function sitemap():
-Promise<MetadataRoute.Sitemap> {
+  try {
+    const query = new URLSearchParams({
+      category,
+      listingType: "sale",
+    });
+    const res = await fetch(`${API_URL}/api/properties/search?${query.toString()}`, {
+      next: { revalidate: 3600 },
+    });
 
-  /* ====================================================
-     STATIC PAGES
-  ==================================================== */
+    if (!res.ok) {
+      throw new Error(`Failed to fetch search properties for ${category}`);
+    }
 
+    const contentType = res.headers.get("content-type") || "";
+
+    if (contentType.includes("application/json")) {
+      const json = await res.json();
+      return (json.items ?? json.data ?? []) as SitemapEntity[];
+    }
+
+    const payload = await res.text();
+    if (!payload.trim()) {
+      return [];
+    }
+
+    return payload
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .flatMap((line) => {
+        try {
+          const parsed = JSON.parse(line) as SitemapEntity & { __meta?: unknown };
+          return parsed.__meta ? [] : [parsed];
+        } catch {
+          return [];
+        }
+      });
+  } catch (error) {
+    console.error(`${category} Sitemap Error:`, error);
+    return [];
+  }
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages = [
     "",
-
+    "/prime",
+    "/blogs",
+    "/postproperty",
+    "/plans",
+    "/agent-connect",
+    "/owner-listed",
+    "/builder",
+    "/agent",
+    "/reviews",
     "/about",
     "/privacy",
     "/terms",
     "/help-center",
     "/safety-guide",
-    "/builder",
-    "/agent",
-    "/agent-connect",
-    "/plans",
-    "/reviews",
     "/home-loans",
     "/home-care",
     "/interior-designer",
-    "/postproperty",
-    "/owner-listed",
     "/properties/residential",
     "/properties/commercial",
     "/properties/land",
     "/properties/agricultural",
-    "/blogs",
-    "/prime",
   ].map((route) => ({
-    url: `${BASE_URL}${route}`,
-
+    url: buildAbsoluteUrl(route),
     lastModified: new Date(),
-
-    changeFrequency:
-      "daily" as const,
-
-    priority:
-      route === ""
-        ? 1
-        : 0.8,
+    changeFrequency: "daily" as const,
+    priority: route === "" ? 1 : 0.8,
   }));
 
-  /* ====================================================
-     FETCH DATA
-  ==================================================== */
+  const [
+    projects,
+    primeProjects,
+    blogs,
+    residentialProperties,
+    commercialProperties,
+    landProperties,
+    agriculturalProperties,
+  ] = await Promise.all([
+    getProjects(),
+    getPrimeProjects(),
+    getBlogs(),
+    getSearchProperties("Residential"),
+    getSearchProperties("Commercial"),
+    getSearchProperties("Land"),
+    getSearchProperties("Agricultural"),
+  ]);
 
-  const projects =
-    await getProjects();
-
-  const primeProjects =
-    await getPrimeProjects();
-
-  const blogs =
-    await getBlogs();
-
-  /* ====================================================
-     DYNAMIC PROJECT PAGES
-     /project/[slug]
-  ==================================================== */
-
-  const projectPages =
-    projects.map((project: any) => ({
-      url:
-        `${BASE_URL}/project/${project.slug}`,
-
-      lastModified: new Date(
-        project.updatedAt ||
-          project.createdAt ||
-          Date.now()
-      ),
-
-      changeFrequency:
-        "weekly" as const,
-
-      priority: 0.9,
-    }));
-
-  /* ====================================================
-     PRIME PROJECT PAGES
-     /prime/[slug]
-  ==================================================== */
-
-  const primePages =
-    primeProjects.map(
-      (project: any) => ({
-        url:
-          `${BASE_URL}/prime/${project.slug}`,
-
-        lastModified: new Date(
-          project.updatedAt ||
-            project.createdAt ||
-            Date.now()
-        ),
-
-        changeFrequency:
-          "weekly" as const,
-
-        priority: 0.9,
-      })
-    );
-
-  /* ====================================================
-     BLOG PAGES
-     /blogs/[slug]
-  ==================================================== */
-
-  const blogPages =
-    blogs.map((blog: any) => ({
-      url:
-        `${BASE_URL}/blogs/${blog.slug}`,
-
-      lastModified: new Date(
-        blog.updatedAt ||
-          blog.createdAt ||
-          Date.now()
-      ),
-
-      changeFrequency:
-        "weekly" as const,
-
-      priority: 0.7,
-    }));
-
-  /* ====================================================
-     FINAL RETURN
-  ==================================================== */
+  const projectPages = toSitemapEntries(projects, "/project", 0.9);
+  const primePages = toSitemapEntries(primeProjects, "/prime", 0.9);
+  const blogPages = toSitemapEntries(blogs, "/blogs", 0.7);
+  const residentialPages = toSitemapEntries(
+    residentialProperties,
+    "/properties/residential",
+    0.85,
+  );
+  const commercialPages = toSitemapEntries(
+    commercialProperties,
+    "/properties/commercial",
+    0.85,
+  );
+  const landPages = toSitemapEntries(
+    landProperties,
+    "/properties/land",
+    0.8,
+  );
+  const agriculturalPages = toSitemapEntries(
+    agriculturalProperties,
+    "/properties/agricultural",
+    0.8,
+  );
 
   return [
     ...staticPages,
-
     ...projectPages,
-
     ...primePages,
-
     ...blogPages,
+    ...residentialPages,
+    ...commercialPages,
+    ...landPages,
+    ...agriculturalPages,
   ];
 }

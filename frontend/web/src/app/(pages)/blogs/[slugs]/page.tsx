@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import Script from "next/script";
 import { notFound } from "next/navigation";
 import {
   FiCalendar,
@@ -15,6 +16,7 @@ import {
   getBlogArticleLists,
   getBlogBySlug,
 } from "@/data/serverData";
+import { buildBlogPostingStructuredData } from "@/utilies/structuredData";
 import BlogActions from "./BlogActions";
 
 type PageProps = {
@@ -212,6 +214,19 @@ export default async function Page({ params }: PageProps) {
   }
 
   const shortPublishedDate = formatShortDate(blog.publishedAt ?? blog.createdAt);
+  const structuredData = buildBlogPostingStructuredData({
+    title: blog.title,
+    description: blog.metaDescription || blog.excerpt,
+    slug: blog.slug,
+    image: blog.featuredImage,
+    imageAlt: blog.imageAlt,
+    publishedAt: blog.publishedAt ?? blog.createdAt,
+    updatedAt: blog.createdAt,
+    authorName: blog.author?.name,
+    category: blog.category,
+    tags: blog.tags,
+    faqs: blog.faqs,
+  });
   const articleContext = (blog.articleSections ?? [])
     .map((section, index) =>
       section.heading
@@ -224,8 +239,14 @@ export default async function Page({ params }: PageProps) {
     .filter((item): item is { heading: string; id: string } => Boolean(item));
 
   return (
-    <main className="min-h-screen bg-[#f6fbf8] py-6">
-      <section className="container">
+    <>
+      <Script
+        id="blog-posting-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <main className="min-h-screen bg-[#f6fbf8] py-6">
+        <section className="container">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,850px)_260px] lg:items-start lg:justify-center">
           <article className="min-w-0 max-w-[850px]">
             <h1 className="max-w-3xl text-[28px] font-semibold leading-9 text-gray-950 sm:text-4xl sm:leading-tight">
@@ -454,7 +475,8 @@ export default async function Page({ params }: PageProps) {
             )}
           </aside>
         </div>
-      </section>
-    </main>
+        </section>
+      </main>
+    </>
   );
 }

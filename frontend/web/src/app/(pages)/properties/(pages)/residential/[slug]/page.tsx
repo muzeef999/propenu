@@ -5,6 +5,7 @@ import { hexToRGBA } from "@/ui/hexToRGBA";
 import formatINR from "@/utilies/PriceFormat";
 import { minDelay } from "@/utilies/minDelay";
 import { notFound } from "next/navigation";
+import Script from "next/script";
 import GalleryFile from "../../../GalleryFile"; // Assuming this is client-side or handles SSR correctly
 import { Balconies, Bath, Bhk } from "@/icons/icons";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
@@ -18,6 +19,7 @@ import SponsoreCard from "../../../cards/SponsoreCard";
 import AdCard, { type Ad } from "../../../cards/AdCard";
 import { buildPropertyMetadata } from "@/utilies/propertyOpenGraph";
 import { listingSourceToOwnershipLabel } from "@/utilies/resolveListingSource";
+import { buildListingStructuredData } from "@/utilies/structuredData";
 
 import { GiKnifeFork, GiMoneyStack } from "react-icons/gi";
 import { RiCarLine } from "react-icons/ri";
@@ -209,19 +211,45 @@ export default async function Page({ params }: PageProps) {
       icon: PiCalendarBlank,
     },
   ];
+  const structuredData = buildListingStructuredData(
+    {
+      title: project.title || "Residential Property",
+      description: project.description,
+      path: `/properties/residential/${project.slug || slug}`,
+      image: project.gallery?.[0]?.url || (project as any).gallerySummary?.[0]?.url,
+      category: "Residential Property",
+      price: project.price,
+      currency: "INR",
+      address: project.address,
+      city: project.city,
+      state: (project as any).state,
+      locality: (project as any).locality,
+      publishedAt: (project as any).createdAt,
+      updatedAt: (project as any).updatedAt,
+      sellerName: (project as any)?.createdBy?.name,
+    },
+    "Residential Properties",
+    "/properties/residential",
+  );
 
   return (
-    <div className="min-h-screen py-6 overflow-hidden">
-      <PublicViewTracker
-        entityType="property"
-        entityId={String(project._id)}
-        propertyType="residential"
+    <>
+      <Script
+        id="residential-listing-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <PropertyViewDurationTracker
-        projectId={String(project._id)}
-        propertyType="residentials"
-      />
-      <div className="container">
+      <div className="min-h-screen py-6 overflow-hidden">
+        <PublicViewTracker
+          entityType="property"
+          entityId={String(project._id)}
+          propertyType="residential"
+        />
+        <PropertyViewDurationTracker
+          projectId={String(project._id)}
+          propertyType="residentials"
+        />
+        <div className="container">
         <div className="w-full">
           {/* Top: Price + Title + CTA */}
           <header className="flex flex-col justify-between gap-2 p-2">
@@ -555,7 +583,8 @@ export default async function Page({ params }: PageProps) {
             </aside>
           </div>
         </div>
+        </div >
       </div >
-    </div >
+    </>
   );
 };

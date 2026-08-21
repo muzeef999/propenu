@@ -50,10 +50,54 @@ export type BlogPreview = {
   featuredImage?: string;
   imageAlt?: string;
   category?: string;
+  excerpt?: string;
+  tags?: string[];
+  publishedAt?: string;
+  createdAt?: string;
+  readTime?: number;
   views?: number;
   likes?: number;
   shares?: number;
 };
+
+export type BlogListParams = {
+  page?: number;
+  limit?: number;
+  q?: string;
+  category?: string;
+  tag?: string;
+  published?: boolean;
+  featured?: boolean;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+};
+
+export async function getBlogs(params: BlogListParams = {}) {
+  const query = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      query.append(key, String(value));
+    }
+  });
+
+  const queryString = query.toString();
+  const endpoint = `${url}/api/properties/blogs${queryString ? `?${queryString}` : ""}`;
+  const res = await fetch(endpoint, {
+    next: { revalidate: 600 },
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch blogs");
+  }
+
+  const json = await res.json();
+
+  return {
+    items: (json.items ?? json.data ?? []) as BlogPreview[],
+    data: (json.data ?? json.items ?? []) as BlogPreview[],
+  };
+}
 
 export async function getBlogBySlug({ slug }: { slug: string }) {
   const res = await fetch(
