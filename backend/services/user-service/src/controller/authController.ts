@@ -21,6 +21,7 @@ import {
   PLATFORM_END_USER_ROLE_NAMES,
   resolveVisibleRoleIdsForActor,
 } from "../utils/roleHierarchy";
+import { filterUsersInReportingTree } from "../utils/reportingTree";
 import {
   canReportToRole,
   canonicalRoleName,
@@ -1056,7 +1057,18 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       };
     });
 
-    res.json(formattedUsers);
+    const actorRoleKey = String(actorRole || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_");
+    const scopedUsers =
+      scope === "team_directory" &&
+      actorRoleKey !== "super_admin" &&
+      actorRoleKey !== "admin"
+        ? filterUsersInReportingTree(formattedUsers, req.user?.sub)
+        : formattedUsers;
+
+    res.json(scopedUsers);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch users" });
   }
