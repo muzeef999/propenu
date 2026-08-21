@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import Role from "../models/roleModel";
 import User from "../models/userModel";
 import { ALL_PERMISSIONS } from "../constants/permissionCatalog";
+import { touchUserPresence } from "../utils/presence";
 
 export interface AuthRequest extends Request {
   user?: JwtUserPayload;
@@ -76,6 +77,9 @@ export async function authMiddleware(
       roleName,
       permissions,
     };
+
+    // "Did we hear from them recently?" — any authenticated API (throttled).
+    void touchUserPresence(String(decoded.sub)).catch(() => undefined);
 
     next();
   } catch (err) {

@@ -28,6 +28,7 @@ import {
   expandReportsToRoleNames,
   getReportsToRoleOptions,
 } from "../utils/reportsToPolicy";
+import { assertCanManageUserLifecycle } from "../utils/userLifecyclePolicy";
 import { seedWorkingLocationsOnActivate } from "../utils/seedWorkingLocations";
 import {
   ensureFollowUpAssignee,
@@ -348,8 +349,11 @@ const createAuthToken = async ({
   }
 
   const lastLoginAt = new Date();
-  await User.findByIdAndUpdate(user._id, { $set: { lastLoginAt } });
+  await User.findByIdAndUpdate(user._id, {
+    $set: { lastLoginAt, lastSeenAt: lastLoginAt },
+  });
   user.lastLoginAt = lastLoginAt;
+  (user as any).lastSeenAt = lastLoginAt;
 
   return generateToken(payload);
 };
@@ -796,7 +800,7 @@ export const deleteMyAccount = async (req: AuthRequest, res: Response) => {
   }
 };
 
-/** Super Admin: activate / deactivate a team user (login blocked when inactive). */
+/** Activate / deactivate a team or marketplace user (login blocked when inactive). */
 export const adminSetUserActive = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
@@ -808,9 +812,6 @@ export const adminSetUserActive = async (req: AuthRequest, res: Response) => {
     if (typeof isActive !== "boolean") {
       return res.status(400).json({ message: "isActive must be a boolean" });
     }
-    if (String(req.user?.sub) === String(id)) {
-      return res.status(400).json({ message: "You cannot change your own account status here" });
-    }
 
     const user = await User.findById(id).populate("roleId", "name label");
     if (!user) {
@@ -818,8 +819,14 @@ export const adminSetUserActive = async (req: AuthRequest, res: Response) => {
     }
 
     const roleName = String((user.roleId as any)?.name || "").toLowerCase();
-    if (roleName === "super_admin") {
-      return res.status(403).json({ message: "Super Admin accounts cannot be activated or deactivated here" });
+    const gate = assertCanManageUserLifecycle({
+      actorRoleName: req.user?.roleName,
+      targetRoleName: roleName,
+      actorUserId: req.user?.sub,
+      targetUserId: id,
+    });
+    if (!gate.ok) {
+      return res.status(gate.status).json({ message: gate.message });
     }
 
     user.isActive = isActive;
@@ -846,7 +853,7 @@ export const adminSetUserActive = async (req: AuthRequest, res: Response) => {
   }
 };
 
-/** Super Admin: permanently delete a candidate / team user. */
+/** Permanently delete a candidate / team / marketplace user. */
 export const adminDeleteUser = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
@@ -854,9 +861,6 @@ export const adminDeleteUser = async (req: AuthRequest, res: Response) => {
 
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid user id" });
-    }
-    if (String(req.user?.sub) === String(id)) {
-      return res.status(400).json({ message: "You cannot permanently delete your own account here" });
     }
 
     const user = await User.findById(id)
@@ -867,9 +871,24 @@ export const adminDeleteUser = async (req: AuthRequest, res: Response) => {
     }
 
     const roleName = String((user.roleId as any)?.name || "").toLowerCase();
-    if (roleName === "super_admin") {
-      return res.status(403).json({ message: "Super Admin accounts cannot be permanently deleted" });
+    const gate = assertCanManageUserLifecycle({
+      actorRoleName: req.user?.roleName,
+      targetRoleName: roleName,
+      actorUserId: req.user?.sub,
+      targetUserId: id,
+    });
+    if (!gate.ok) {
+      return res.status(gate.status).json({ message: gate.message });
     }
+
+    const actorRole = String(req.user?.roleName || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_");
+    const deletedBy =
+      actorRole === "business_development_head"
+        ? "Deleted by Business Development Head"
+        : "Deleted by Super Admin";
 
     await DeletedAccount.create({
       userId: user._id,
@@ -878,7 +897,7 @@ export const adminDeleteUser = async (req: AuthRequest, res: Response) => {
       phone: user.phone ?? null,
       roleId: user.roleId ?? null,
       deletedAt: new Date(),
-      deletionReason: reason?.trim() || "Deleted by Super Admin",
+      deletionReason: reason?.trim() || deletedBy,
       deletionFeedback: null,
     });
 

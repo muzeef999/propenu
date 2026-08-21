@@ -408,7 +408,16 @@ router.post("/seed-roles", async (_req, res) => {
       {
         name: "business_development_head",
         label: "Business Development Head",
-        permissions: ["dashboard:view", "team:view", "project:view", "lead:view", "lead:assign"],
+        permissions: [
+          "dashboard:view",
+          "team:view",
+          "project:view",
+          "lead:view",
+          "lead:assign",
+          "user:view",
+          "user:activate",
+          "user:delete",
+        ],
       },
       {
         name: "business_development_manager",

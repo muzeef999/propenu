@@ -1,9 +1,9 @@
 import express from "express";
 import { adminCreateRequestOtp, adminCreateUpdateLocation, adminCreateVerifyOtp, adminDeleteUser, adminSetUserActive, assignManager, assignReportsTo, claimSeClient, createRequestOtp,  createVerifyOtp, deleteMyAccount, getAllUsers, getEligibleReportsTo, getManagerTeamDetails, getRoleHierarchyGuide, me, requestAdminUserPhoneChangeOtp, requestOTP, searchUsers, updateLocationOtp, updateUser, updateUserProfileById, updateUserRole, verifyOtp } from "../controller/authController";
 import { updateFollowUpWorkStatus } from "../controller/followUpWorkController";
+import { pingPresence } from "../controller/presenceController";
 import { getUserWorkingLocations, updateUserWorkingLocations } from "../controller/workingLocationsController";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
-import { superAdminOnly } from "../middlewares/superAdminOnly";
 import { requirePermission } from "../middlewares/requirePermission";
 
 
@@ -72,6 +72,7 @@ authRoute.post("/admin-credentials/verify-otp", authMiddleware, requirePermissio
 
 
 authRoute.get("/me", authMiddleware, me);
+authRoute.post("/presence/ping", authMiddleware, pingPresence);
 authRoute.patch("/me/update", authMiddleware, updateUser);
 authRoute.delete("/me", authMiddleware, deleteMyAccount);
 authRoute.get("/search", authMiddleware, searchUsers);
@@ -150,16 +151,14 @@ authRoute.patch("/:id/role", authMiddleware, requireRoleTransferAccess,
 authRoute.patch(
   "/:id/status",
   authMiddleware,
-  superAdminOnly,
-  requirePermission("user:activate", ["super_admin"]),
+  requirePermission("user:activate", ["super_admin", "business_development_head"]),
   adminSetUserActive,
 );
 
 authRoute.delete(
   "/:id",
   authMiddleware,
-  superAdminOnly,
-  requirePermission("user:delete", ["super_admin"]),
+  requirePermission("user:delete", ["super_admin", "business_development_head"]),
   adminDeleteUser,
 );
 

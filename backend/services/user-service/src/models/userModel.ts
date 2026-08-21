@@ -46,6 +46,7 @@ export interface IUser extends mongoose.Document {
   onboardedBy?: Types.ObjectId;
   isActive?: boolean;
   lastLoginAt?: Date;
+  lastSeenAt?: Date;
   loginCount?: number;
   fcmToken?: string | null;
   /** CCE/staff geo territories for auto-assign (additive; home locality/city/state unchanged). */
@@ -310,6 +311,8 @@ const UserSchema = new mongoose.Schema(
 
     isActive: { type: Boolean, default: true },
     lastLoginAt: { type: Date },
+    /** Throttled activity stamp for online/offline presence (admin + apps). */
+    lastSeenAt: { type: Date },
     loginCount: { type: Number, default: 0 },
 
     fcmToken: {
