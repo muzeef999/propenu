@@ -36,6 +36,7 @@ import { BedroomOption } from "@/types/residential";
 import { formatLabel } from "@/utilies/formatLabel";
 import { BedroomFilterValue, ResidentialFilters } from "@/types/sharedTypes";
 import SelectableButton from "@/ui/SelectableButton";
+import SearchBox from "@/components/SearchBox";
 
 type ListingOption = {
   label: "Buy" | "Rent";
@@ -329,16 +330,7 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
 
         <div>
           <h3 className="mb-3 text-lg font-semibold">City / Locality</h3>
-          <div className="flex items-center rounded-xl border border-gray-300 bg-white px-2 py-2">
-            <IoIosSearch className="mr-2 text-xl text-gray-500" />
-            <input
-              type="text"
-              placeholder={`Search in ${cityData?.city ?? "City"}`}
-              value={searchText}
-              onChange={(e) => dispatch(setSearchText(e.target.value))}
-              className="w-full bg-transparent text-base outline-none"
-            />
-          </div>
+          <SearchBox hideOnMobile={false} mobileMode searchOnly />
 
           <h4 className="mb-3 mt-5 text-lg font-semibold">
             Localities in {cityData?.city ?? "City"}

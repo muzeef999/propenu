@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Logo from "@/animations/Logo";
 import { ArrowDropdownIcon, LocationIcon } from "@/icons/icons";
 import type { DropdownProps } from "@/ui/SingleDropDown";
@@ -9,7 +9,7 @@ import Link from "next/link";
 import LoginDialog from "@/app/(auth)/Login";
 import RegisterDialog from "@/app/(auth)/Register";
 import Cookies from "js-cookie";
-import { me } from "@/data/ClientData";
+import { getUserNotificationSummary, me } from "@/data/ClientData";
 import UserGreeting, { getOptionsForRole } from "@/app/(auth)/UserGreeting";
 import FilterDropdown from "@/ui/FilterDropdown";
 import { useCity } from "@/hooks/useCity";
@@ -23,8 +23,13 @@ import {
   setResidentialFilter,
   setSearchText,
 } from "@/Redux/slice/filterSlice";
+import { useQuery } from "@tanstack/react-query";
+import SearchBox from "@/components/SearchBox";
+import { IoArrowBack, IoNotificationsOutline, IoSearchOutline } from "react-icons/io5";
 
 type AuthMode = "login" | "register" | null;
+const OPEN_MOBILE_MENU_EVENT = "propenu:open-mobile-menu";
+const OPEN_AUTH_LOGIN_EVENT = "propenu:open-auth-login";
 
 const Dropdown = dynamic<DropdownProps>(() => import("@/ui/SingleDropDown"), {
   ssr: false,
@@ -33,9 +38,11 @@ const Dropdown = dynamic<DropdownProps>(() => import("@/ui/SingleDropDown"), {
 const BRAND_GREEN = "#27AE60";
 
 const Navbar = () => {
+  const pathname = usePathname();
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>(null);
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false); // Separate state for auth dialog
   const [cityDropdownOpen, setCityDropdownOpen] = useState(false); // Separate state for city dropdown
@@ -50,9 +57,27 @@ const Navbar = () => {
   const isBuilder = user?.user?.roleName === "builder";
   const isAuthenticated = Boolean(user?.user);
   const mobileUserOptions = user ? getOptionsForRole(user?.user?.roleName) : [];
+  const { selectedCity, locations, selectCity } = useCity();
+  const hideMobileNavSearchRow = pathname.startsWith("/properties");
+  const notificationRoute = isBuilder
+    ? "/builder/notifications"
+    : user?.user?.roleName === "agent"
+      ? "/agent/notifications"
+      : "/notifications";
+  const mobileSearchPlaceholder = selectedCity?.city
+    ? `Search in ${selectedCity.city}`
+    : "Search in Mangalore";
+
+  const { data: notificationSummary } = useQuery({
+    queryKey: ["navbar-notifications-summary", user?.user?.roleName],
+    queryFn: getUserNotificationSummary,
+    enabled: isAuthenticated && !isBuilder && user?.user?.roleName !== "agent",
+    staleTime: 60_000,
+  });
+  const notificationCount = notificationSummary?.summary?.unread ?? 0;
 
   useEffect(() => {
-    if (mobileOpen) {
+    if (mobileOpen || mobileSearchOpen) {
       document.body.classList.add("overflow-hidden");
     } else {
       document.body.classList.remove("overflow-hidden");
@@ -61,7 +86,7 @@ const Navbar = () => {
     return () => {
       document.body.classList.remove("overflow-hidden");
     };
-  }, [mobileOpen]);
+  }, [mobileOpen, mobileSearchOpen]);
 
   useEffect(() => {
     async function fetchUser() {
@@ -94,8 +119,6 @@ const Navbar = () => {
       window.removeEventListener("auth-changed", handleAuthChanged);
     };
   }, []);
-
-  const { selectedCity, locations, selectCity } = useCity();
 
   function onSelect(item: LocationItem) {
     selectCity(item);
@@ -145,6 +168,23 @@ const Navbar = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const openMobileMenu = () => setMobileOpen(true);
+    const openAuthLogin = () => openLoginDialog();
+
+    window.addEventListener(OPEN_MOBILE_MENU_EVENT, openMobileMenu);
+    window.addEventListener(OPEN_AUTH_LOGIN_EVENT, openAuthLogin);
+
+    return () => {
+      window.removeEventListener(OPEN_MOBILE_MENU_EVENT, openMobileMenu);
+      window.removeEventListener(OPEN_AUTH_LOGIN_EVENT, openAuthLogin);
+    };
+  }, []);
+
+  useEffect(() => {
+    setMobileSearchOpen(false);
+  }, [pathname]);
+
   // Function to open login dialog
   const openLoginDialog = () => {
     setIsAuthDialogOpen(true);
@@ -177,14 +217,187 @@ const Navbar = () => {
       return a.city.localeCompare(b.city);
     });
 
+  const handleMobileSearchClick = () => {
+    setMobileSearchOpen(true);
+  };
+
   return (
     <header>
       <nav
-        className="w-full bg-white border-b relative z-50 border-gray-200"
+        className="relative z-50 w-full border-b border-gray-200 bg-white"
         aria-label="Main navigation"
       >
-        <div className="container mx-auto px-1 sm:px-4 lg:px-3">
-          <div className="flex items-center justify-between h-14 sm:h-16">
+        <div className="border-b border-[#cfead8] bg-[linear-gradient(135deg,#f4fff7_0%,#e1f7e8_30%,#caecd7_68%,#eefaf2_100%)] lg:hidden">
+          <div className="container mx-auto px-2 py-2.5">
+            <div className="flex items-center gap-2">
+              {/* <button
+                aria-expanded={mobileOpen}
+                aria-label={mobileOpen ? "Close menu" : "Open menu"}
+                onClick={() => setMobileOpen((s) => !s)}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-[#d6ebdb] bg-white text-[#1b6b3f]"
+              >
+                <svg
+                  className="h-5 w-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  {mobileOpen ? (
+                    <path d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <g>
+                      <path d="M3 7h18" />
+                      <path d="M3 12h18" />
+                      <path d="M3 17h18" />
+                    </g>
+                  )}
+                </svg>
+              </button> */}
+
+              <Link
+                href="/"
+                className="flex min-w-0 flex-1 select-none items-center gap-2 sm:gap-3"
+                aria-label="Go to homepage"
+              >
+                <div className="w-5 h-5 shrink-0 sm:w-7 sm:h-7">
+                  <Logo />
+                </div>
+                <span className="truncate text-base font-semibold tracking-tight text-primary sm:text-lg lg:text-xl">
+                  PROPENU
+                  <sup className="ml-0.5 align-super text-[8px] sm:text-[10px] font-normal text-[#646464]">
+                    TM
+                  </sup>
+                </span>
+              </Link>
+
+              {!isBuilder && (
+                <Link
+                  href="/postproperty"
+                  className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-[8px] border border-[#d6ebdb] bg-white px-3 text-[12px] font-semibold text-[#4a7a5d]"
+                >
+                  <span>Post Property</span>
+                  <span className="rounded-[6px] bg-[#27AE60] px-1.5 py-[3px] text-[10px] font-bold uppercase leading-none text-white">
+                    Free
+                  </span>
+                </Link>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    openLoginDialog();
+                    return;
+                  }
+
+                  router.push(notificationRoute);
+                }}
+                aria-label={isAuthenticated ? "Open notifications" : "Login to view notifications"}
+                className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-[#d6ebdb] bg-white text-[#1b1b1b]"
+              >
+                <IoNotificationsOutline className="h-[18px] w-[18px]" />
+                {notificationCount > 0 && (
+                  <span className="absolute right-1.5 top-1.5 inline-flex min-w-4 items-center justify-center rounded-full bg-[#27AE60] px-1 text-[9px] font-semibold leading-4 text-white">
+                    {notificationCount > 9 ? "9+" : notificationCount}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {!hideMobileNavSearchRow && (
+              <div className="mt-2 grid grid-cols-[128px_minmax(0,1fr)] gap-2">
+                <div ref={mobileDropdownRef} className="relative">
+                  <div className="w-full rounded-[8px] border border-[#d6ebdb] bg-white px-3 py-[11px]">
+                    <FilterDropdown
+                      open={mobileOpen_city}
+                      onOpenChange={(next) => setMobileOpen_city(next)}
+                      backdropClassName="fixed inset-0 bg-black/45 z-40 transition-all duration-100"
+                      triggerLabel={
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <LocationIcon size={14} color="#1b1b1b" />
+                          <span className="truncate text-left text-[13px] font-medium text-[#2c2c2c]">
+                            {selectedCity?.city ?? "Select city"}
+                          </span>
+                          <ArrowDropdownIcon
+                            size={10}
+                            color="#1b1b1b"
+                            className={`shrink-0 transition-transform duration-200 ${
+                              mobileOpen_city ? "rotate-180" : "rotate-0"
+                            }`}
+                          />
+                        </div>
+                      }
+                      width="w-[90vw] max-w-[300px] z-999"
+                      align="left"
+                      renderContent={(close) => (
+                        <div className="max-h-80 overflow-y-auto">
+                          <h3 className="mb-2 px-3 pt-2 text-sm font-semibold text-gray-900">
+                            Popular Cities
+                          </h3>
+
+                          <div className="mb-4 space-y-1 px-3">
+                            {popularCities.slice(0, 5).map((i) => (
+                              <button
+                                key={i._id}
+                                onClick={() => {
+                                  onSelect(i);
+                                  close?.();
+                                }}
+                                className="w-full rounded px-2 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-100"
+                              >
+                                {i.city}
+                              </button>
+                            ))}
+                          </div>
+
+                          <div className="px-3">
+                            <div className="mt-2 border-t pt-2">
+                              <h3 className="w-full px-2 py-2 text-sm font-semibold text-gray-900">
+                                Other Cities
+                              </h3>
+                              <div className="mt-1 space-y-1 pl-3">
+                                {otherCities.map((c) => (
+                                  <button
+                                    key={c._id}
+                                    onClick={() => {
+                                      onSelect(c);
+                                      close?.();
+                                    }}
+                                    className="w-full rounded px-2 py-1.5 text-left text-sm text-gray-600 transition hover:bg-gray-100"
+                                  >
+                                    {c.city}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleMobileSearchClick}
+                  className="flex h-[46px] items-center gap-2 rounded-[8px] border border-[#d6ebdb] bg-white px-3 text-left"
+                  aria-label="Search properties"
+                >
+                  <IoSearchOutline className="h-[18px] w-[18px] shrink-0 text-[#8a8a8a]" />
+                  <span className="truncate text-[14px] text-[#8a8a8a]">
+                    {mobileSearchPlaceholder}
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="container mx-auto hidden px-1 sm:px-4 lg:block lg:px-3">
+          <div className="flex h-14 items-center justify-between sm:h-16">
             {/* LEFT */}
             <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               {/* Hamburger for mobile */}
@@ -354,91 +567,41 @@ const Navbar = () => {
               )}
             </div>
 
-            {/* mobile controls */}
-            <div className="flex items-center lg:hidden gap-2 sm:gap-3 shrink-0">
-              {/* mobile city pill (compact) */}
-              <div ref={mobileDropdownRef} className="relative">
-                <FilterDropdown
-                  open={mobileOpen_city}
-                  onOpenChange={(next) => setMobileOpen_city(next)}
-                  backdropClassName="fixed inset-0 bg-black/45 z-40 transition-all duration-100"
-                  triggerLabel={
-                    <div className="flex items-center gap-1">
-                      <LocationIcon size={14} color="#27AE60" />
-                      <span className="font-medium text-gray-700 truncate max-w-20 sm:max-w-[100px]">
-                        {selectedCity?.city ?? "City"}
-                      </span>
-                      <ArrowDropdownIcon
-                        size={12}
-                        color="#27AE60"
-                        className={`transition-transform duration-200 shrink-0 ${
-                          mobileOpen_city ? "rotate-180" : "rotate-0"
-                        }`}
-                      />
-                    </div>
-                  }
-                  width="w-[90vw] max-w-[300px] z-999"
-                  align="right"
-                  renderContent={(close) => (
-                    <div className="max-h-80 overflow-y-auto">
-                      <h3 className="text-sm font-semibold text-gray-900 mb-2 px-3 pt-2">
-                        Popular Cities
-                      </h3>
-
-                      <div className="space-y-1 mb-4 px-3">
-                        {popularCities.slice(0, 5).map((i) => (
-                          <button
-                            key={i._id}
-                            onClick={() => {
-                              onSelect(i);
-                              close?.();
-                            }}
-                            className="w-full text-left text-sm text-gray-700 px-2 py-2 rounded hover:bg-gray-100 transition"
-                          >
-                            {i.city}
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="px-3">
-                        <div className="border-t pt-2 mt-2">
-                          <h3 className="w-full text-sm font-semibold text-gray-900 px-2 py-2">
-                            Other Cities
-                          </h3>
-                          <div className="pl-3 mt-1 space-y-1">
-                            {otherCities.map((c) => (
-                              <button
-                                key={c._id}
-                                onClick={() => {
-                                  onSelect(c);
-                                  close?.();
-                                }}
-                                className="w-full text-left text-sm text-gray-600 px-2 py-1.5 rounded hover:bg-gray-100 transition"
-                              >
-                                {c.city}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}                />
-              </div>
-
-              {/* Mobile Login Button */}
-              {!isAuthenticated && (
-                <button
-                  onClick={openLoginDialog}
-                  style={{ backgroundColor: BRAND_GREEN }}
-                  className="text-white text-xs font-semibold px-4 py-1.5 rounded-md shadow-sm whitespace-nowrap transition-all hover:opacity-90 active:scale-95"
-                >
-                  Login
-                </button>
-              )}
-            </div>
           </div>
         </div>
       </nav>
+
+      {mobileSearchOpen && (
+        <div className="fixed inset-0 z-[70] bg-[#f4fbf6] lg:hidden">
+          <div className="flex items-center gap-3 border-b border-[#dfe9e2] bg-white px-3 py-3">
+            <button
+              type="button"
+              onClick={() => setMobileSearchOpen(false)}
+              aria-label="Close search"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#1f2d24]"
+            >
+              <IoArrowBack className="h-5 w-5" />
+            </button>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[#1f2d24]">
+                Search properties
+              </p>
+              <p className="text-xs text-[#6a7b71]">
+                Find cities, localities and projects
+              </p>
+            </div>
+          </div>
+
+          <div className="px-3 py-3">
+            <SearchBox
+              autoFocus
+              hideOnMobile={false}
+              mobileMode
+              onNavigate={() => setMobileSearchOpen(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Mobile Menu (Sidebar) & Overlay */}
       <>

@@ -1,6 +1,7 @@
 "use client";
 import { categoryOption } from "@/types";
 import { useState, useEffect, useMemo, useRef } from "react";
+import clsx from "clsx";
 import { useAppDispatch, useAppSelector } from "@/Redux/store";
 import { useDispatch } from "react-redux";
 import {
@@ -68,7 +69,23 @@ type SearchCityContext = {
   state: string;
 };
 
-const SearchBox = () => {
+type SearchBoxProps = {
+  autoFocus?: boolean;
+  className?: string;
+  hideOnMobile?: boolean;
+  mobileMode?: boolean;
+  onNavigate?: () => void;
+  searchOnly?: boolean;
+};
+
+const SearchBox = ({
+  autoFocus = false,
+  className,
+  hideOnMobile = true,
+  mobileMode = false,
+  onNavigate,
+  searchOnly = false,
+}: SearchBoxProps) => {
   const [open, setOpen] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -79,7 +96,8 @@ const SearchBox = () => {
   const [selectedProject, setSelectedProject] = useState<
     Extract<SearchSuggestion, { kind: "project" }> | null
   >(null);
-  const searchDropdownRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const searchShellRef = useRef<HTMLDivElement | null>(null);
   const [placeholder, setPlaceholder] = useState(
     "Search for city, locality, project..."
   );
@@ -101,8 +119,8 @@ const SearchBox = () => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        searchDropdownRef.current &&
-        !searchDropdownRef.current.contains(event.target as Node)
+        searchShellRef.current &&
+        !searchShellRef.current.contains(event.target as Node)
       ) {
         setSearchOpen(false);
       }
@@ -113,6 +131,17 @@ const SearchBox = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    if (!autoFocus) return;
+
+    const timeoutId = window.setTimeout(() => {
+      inputRef.current?.focus();
+      setSearchOpen(true);
+    }, 60);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [autoFocus]);
 
   const { listingTypeLabel, listingTypeValue, category, searchText, residential, commercial, land, agricultural } = useAppSelector((s) => s.filters);
   const cityData = useAppSelector(selectCityWithLocalities);
@@ -507,6 +536,7 @@ const SearchBox = () => {
   const handleSearchSubmit = () => {
     if (selectedProject) {
       router.push(`/project/${selectedProject.slug}`);
+      onNavigate?.();
       return;
     }
 
@@ -516,6 +546,7 @@ const SearchBox = () => {
       if (firstSuggestion.kind === "project") {
         handleSuggestionSelect(firstSuggestion);
         router.push(`/project/${firstSuggestion.slug}`);
+        onNavigate?.();
         return;
       }
 
@@ -529,6 +560,7 @@ const SearchBox = () => {
             state: firstSuggestion.state,
           }),
         );
+        onNavigate?.();
         return;
       }
 
@@ -541,6 +573,7 @@ const SearchBox = () => {
           state: firstSuggestion.state,
         }),
       );
+      onNavigate?.();
       return;
     } else {
       const cleanedSearch = searchText.trim();
@@ -554,95 +587,134 @@ const SearchBox = () => {
         text: selectedLocalities.length > 0 ? "" : searchText,
       }),
     );
+    onNavigate?.();
   };
 
   return (
-    <div className="relative w-full max-w-2xl">
-      <div className=" block bg-white shadow-lg rounded-xl border border-gray-200 p-2 cursor-pointer"
+    <div
+      className={clsx(
+        "relative w-full",
+        mobileMode ? "max-w-none" : "max-w-2xl",
+        hideOnMobile ? "hidden md:block" : "block",
+        className,
+      )}
+    >
+      <div
+        ref={searchShellRef}
+        className={clsx(
+          "block cursor-pointer border border-gray-200 bg-white",
+          searchOnly
+            ? mobileMode
+              ? "rounded-xl px-3 py-2 shadow-none"
+              : "rounded-xl px-3 py-2 shadow-sm"
+            : mobileMode
+              ? "rounded-lg p-1.5 shadow-lg"
+              : "rounded-xl p-2 shadow-lg",
+        )}
       >
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="flex items-center gap-1 rounded-md cursor-pointer bg-[#D1EFDD] px-3 py-1.5 text-sm font-medium text-[#15803D] transition-colors hover:bg-[#BDE5CE]"
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpen((prev) => !prev);
-            }}
-          >
-            <span className="leading-none">{listingTypeLabel}</span>
-            <ArrowDropdownIcon
-              size={12}
-              color="#15803D"
-              className={`transition-transform duration-200 ${open ? "rotate-180" : ""
-                }`}
-            />
-          </button>
-
-          <span className="h-6 w-px bg-gray-200" />
-
-          <div className="relative">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setCategoryOpen((prev) => !prev);
-              }}
-              className="flex items-center gap-2 bg-transparent text-sm text-gray-900 cursor-pointer"
-            >
-              <span className="md:max-w-24 md:truncate lg:max-w-none">
-                {category === "Land" ? "Plots" : category}
-              </span>
-              <ArrowDropdownIcon
-                size={12}
-                color="#111827"
-                className={`transition-transform duration-200 ${
-                  categoryOpen ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            {categoryOpen && (
-              <div
-                className="absolute left-0 top-[calc(100%+8px)] z-60 w-44 rounded-xl border border-gray-200 bg-white p-3 shadow-lg"
-                onClick={(e) => e.stopPropagation()}
+        <div className={clsx("flex items-center", mobileMode ? "gap-1.5" : "gap-2")}>
+          {!searchOnly && (
+            <>
+              <button
+                type="button"
+                className={clsx(
+                  "flex cursor-pointer items-center gap-1 bg-[#D1EFDD] font-medium text-[#15803D] transition-colors hover:bg-[#BDE5CE]",
+                  mobileMode ? "rounded-md px-2.5 py-1 text-[13px]" : "rounded-md px-3 py-1.5 text-sm",
+                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpen((prev) => !prev);
+                }}
               >
-                <div className="absolute -top-2 left-6 pointer-events-none">
-                  <div className="h-3 w-3 rotate-45 bg-white border-l border-t border-gray-200" />
-                </div>
-                <h4 className="mb-2 text-sm font-semibold">Category</h4>
-                <div className="flex flex-col">
-                  {categoryOptions.map(({ label, value }) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => {
-                        dispatch(setCategory(value));
-                        setCategoryOpen(false);
-                      }}
-                      className={`rounded px-3 py-2 text-left text-sm cursor-pointer transition-colors ${
-                        category === value
-                          ? "bg-[#D1EFDD] text-[#15803D] font-medium"
-                          : "hover:bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+                <span className="leading-none">{listingTypeLabel}</span>
+                <ArrowDropdownIcon
+                  size={12}
+                  color="#15803D"
+                  className={`transition-transform duration-200 ${open ? "rotate-180" : ""
+                    }`}
+                />
+              </button>
 
-          <span className="md:block h-6 w-px bg-gray-200" />
+              <span className={clsx("w-px bg-gray-200", mobileMode ? "h-5" : "h-6")} />
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCategoryOpen((prev) => !prev);
+                  }}
+                  className={clsx(
+                    "flex cursor-pointer items-center bg-transparent text-gray-900",
+                    mobileMode ? "gap-1 text-[13px]" : "gap-2 text-sm",
+                  )}
+                >
+                  <span className={clsx(!mobileMode && "md:max-w-24 md:truncate lg:max-w-none")}>
+                    {category === "Land" ? "Plots" : category}
+                  </span>
+                  <ArrowDropdownIcon
+                    size={12}
+                    color="#111827"
+                    className={`transition-transform duration-200 ${
+                      categoryOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {categoryOpen && (
+                  <div
+                    className="absolute left-0 top-[calc(100%+8px)] z-60 w-44 rounded-xl border border-gray-200 bg-white p-3 shadow-lg"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="absolute -top-2 left-6 pointer-events-none">
+                      <div className="h-3 w-3 rotate-45 bg-white border-l border-t border-gray-200" />
+                    </div>
+                    <h4 className="mb-2 text-sm font-semibold">Category</h4>
+                    <div className="flex flex-col">
+                      {categoryOptions.map(({ label, value }) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => {
+                            dispatch(setCategory(value));
+                            setCategoryOpen(false);
+                          }}
+                          className={`rounded px-3 py-2 text-left text-sm cursor-pointer transition-colors ${
+                            category === value
+                              ? "bg-[#D1EFDD] text-[#15803D] font-medium"
+                              : "hover:bg-gray-100 text-gray-700"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <span className={clsx("w-px bg-gray-200", mobileMode ? "h-5" : "md:block h-6")} />
+            </>
+          )}
 
           {/* Search Input */}
-          <div ref={searchDropdownRef} className="relative grow min-w-0">
+          <div className="grow min-w-0">
             <div className="flex min-w-0 items-center cursor-text">
-              <IoIosSearch className="mr-3 shrink-0 text-lg text-gray-500" />
-              <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden">
+              <IoIosSearch
+                className={clsx(
+                  "shrink-0 text-gray-500",
+                  mobileMode ? "mr-2 text-base" : "mr-3 text-lg",
+                )}
+              />
+              <div className={clsx("flex min-w-0 flex-1 items-center overflow-hidden", mobileMode ? "gap-2" : "gap-3")}>
               {visibleSearchCity && (
                 <div className="flex min-w-0 shrink items-center overflow-hidden">
-                  <span className="flex min-w-0 max-w-40 items-center gap-2 rounded-full bg-[#f4eaea] px-3 py-1 text-sm font-normal text-gray-800">
+                  <span className={clsx(
+                    "flex items-center rounded-full font-normal text-gray-800",
+                    mobileMode
+                      ? "max-w-[96px] shrink-0 gap-1.5 border border-[#e2d6d6] bg-[#f8eeee] px-2.5 py-1 text-[12px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45)]"
+                      : "min-w-0 max-w-40 gap-2 bg-[#f4eaea] px-3 py-1 text-sm",
+                  )}>
                     <span className="truncate">{visibleSearchCity}</span>
                     <button
                       type="button"
@@ -652,7 +724,10 @@ const SearchBox = () => {
                         setIsCityChipDismissed(true);
                         setSelectedProject(null);
                       }}
-                      className="shrink-0 text-gray-500 transition-colors hover:text-gray-900"
+                      className={clsx(
+                        "shrink-0 transition-colors hover:text-gray-900",
+                        mobileMode ? "text-gray-600" : "text-gray-500",
+                      )}
                     >
                       <IoCloseCircleOutline className="h-4 w-4" />
                     </button>
@@ -660,8 +735,13 @@ const SearchBox = () => {
                 </div>
               )}
               {selectedLocalities.length > 0 && (
-                <div className="flex min-w-0 shrink items-center gap-2 overflow-hidden">
-                  <span className="flex min-w-0 max-w-40 items-center gap-2 rounded-full bg-[#f4eaea] px-3 py-1 text-sm font-normal text-gray-800">
+                <div className={clsx("flex min-w-0 shrink items-center overflow-hidden", mobileMode ? "gap-1.5" : "gap-2")}>
+                  <span className={clsx(
+                    "flex items-center rounded-full font-normal text-gray-800",
+                    mobileMode
+                      ? "max-w-[96px] shrink-0 gap-1.5 border border-[#e2d6d6] bg-[#f8eeee] px-2.5 py-1 text-[12px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45)]"
+                      : "min-w-0 max-w-40 gap-2 bg-[#f4eaea] px-3 py-1 text-sm",
+                  )}>
                     <span className="truncate">{selectedLocalities[0]}</span>
                     <button
                       type="button"
@@ -672,19 +752,26 @@ const SearchBox = () => {
                         );
                         setSelectedProject(null);
                       }}
-                      className="shrink-0 text-gray-500 transition-colors hover:text-gray-900"
+                      className={clsx(
+                        "shrink-0 transition-colors hover:text-gray-900",
+                        mobileMode ? "text-gray-600" : "text-gray-500",
+                      )}
                     >
                       <IoCloseCircleOutline className="h-4 w-4" />
                     </button>
                   </span>
                   {selectedLocalities.length > 1 && (
-                    <span className="rounded-full bg-[#f2e7e7] px-3 py-1 text-sm text-gray-700">
+                    <span className={clsx(
+                      "rounded-full bg-[#f2e7e7] text-gray-700",
+                      mobileMode ? "px-2 py-0.5 text-[12px]" : "px-3 py-1 text-sm",
+                    )}>
                       +{selectedLocalities.length - 1}
                     </span>
                   )}
                 </div>
               )}
               <input
+                ref={inputRef}
                 type="text"
                 value={searchText}
                 onFocus={() => setSearchOpen(true)}
@@ -701,13 +788,21 @@ const SearchBox = () => {
                   }
                 }}
                 placeholder={searchPlaceholder}
-                className="w-full min-w-[120px] flex-1 bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400"
+                className={clsx(
+                  "w-full flex-1 bg-transparent text-gray-700 outline-none placeholder:text-gray-400",
+                  mobileMode ? "min-w-0 text-[13px]" : "min-w-[120px] text-sm",
+                )}
               />
               </div>
             </div>
 
             {searchOpen && (
-              <div className="absolute left-0 top-[calc(100%+8px)] z-70 w-[520px] max-w-[min(94vw,520px)] rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
+              <div
+                className={clsx(
+                  "absolute left-0 right-0 z-70 rounded-lg border border-gray-200 bg-white shadow-lg",
+                  mobileMode ? "top-[calc(100%+6px)] p-2.5" : "top-[calc(100%+8px)] w-full p-3",
+                )}
+              >
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-gray-700">
                   {searchText.trim()
@@ -866,14 +961,23 @@ const SearchBox = () => {
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={handleSearchSubmit}
-            className="btn-primary px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shrink-0"
-          >
-            <IoIosSearch className="h-5 w-5" />
-            <span className="hidden sm:inline">Search</span>
-          </button>
+          {!searchOnly && (
+            <button
+              type="button"
+              onClick={handleSearchSubmit}
+              className={clsx(
+                "btn-primary shrink-0 text-sm font-semibold",
+                mobileMode
+                  ? "flex h-10 w-10 items-center justify-center rounded-full p-0"
+                  : "flex items-center gap-2 rounded-lg px-4 py-2",
+              )}
+            >
+              <IoIosSearch className="h-5 w-5" />
+              <span className={mobileMode ? "hidden" : "hidden sm:inline"}>
+                Search
+              </span>
+            </button>
+          )}
         </div>
 
         {open && (

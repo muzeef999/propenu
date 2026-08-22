@@ -381,11 +381,11 @@ const PropertiesPageContent: React.FC = () => {
                 triggerLabel={
                   <button
                     type="button"
-                    className="inline-flex min-w-[210px] items-center justify-between gap-3 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 cursor-pointer"
+                    className="inline-flex w-fit min-w-[188px] max-w-[220px] items-center justify-between gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 cursor-pointer sm:min-w-[210px] sm:gap-3 sm:rounded-md"
                     aria-label="Sort properties"
                   >
                     <span className="flex min-w-0 items-center gap-2">
-                      <HiArrowsUpDown className="h-4 w-4 shrink-0" />
+                      <HiArrowsUpDown className="h-4 w-4 shrink-0 text-gray-500" />
                       <span className="truncate">{selectedSortOption.label}</span>
                     </span>
                     <ArrowDropdownIcon
