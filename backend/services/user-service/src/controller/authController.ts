@@ -821,9 +821,9 @@ export const adminSetUserActive = async (req: AuthRequest, res: Response) => {
 
     const roleName = String((user.roleId as any)?.name || "").toLowerCase();
     const gate = assertCanManageUserLifecycle({
-      actorRoleName: req.user?.roleName,
+      actorRoleName: req.user?.roleName ?? null,
       targetRoleName: roleName,
-      actorUserId: req.user?.sub,
+      actorUserId: req.user?.sub ?? null,
       targetUserId: id,
     });
     if (!gate.ok) {
@@ -873,9 +873,9 @@ export const adminDeleteUser = async (req: AuthRequest, res: Response) => {
 
     const roleName = String((user.roleId as any)?.name || "").toLowerCase();
     const gate = assertCanManageUserLifecycle({
-      actorRoleName: req.user?.roleName,
+      actorRoleName: req.user?.roleName ?? null,
       targetRoleName: roleName,
-      actorUserId: req.user?.sub,
+      actorUserId: req.user?.sub ?? null,
       targetUserId: id,
     });
     if (!gate.ok) {
