@@ -533,6 +533,15 @@ const SearchBox = ({
     );
   };
 
+  const handleSuggestionClick = (suggestion: SearchSuggestion) => {
+    handleSuggestionSelect(suggestion);
+
+    if (suggestion.kind === "project") {
+      router.push(`/project/${suggestion.slug}`);
+      onNavigate?.();
+    }
+  };
+
   const handleSearchSubmit = () => {
     if (selectedProject) {
       router.push(`/project/${selectedProject.slug}`);
@@ -819,7 +828,7 @@ const SearchBox = ({
                       {recentSearches.map((suggestion, index) => (
                         <button
                           key={`${suggestion.kind}-${index}`}
-                          onClick={() => handleSuggestionSelect(suggestion)}
+                          onClick={() => handleSuggestionClick(suggestion)}
                           className="text-left text-sm cursor-pointer text-gray-800 hover:text-primary"
                         >
                           {suggestion.label},{" "}
@@ -865,7 +874,7 @@ const SearchBox = ({
                               <button
                                 key={`city-${suggestion.cityId ?? suggestion.city}`}
                                 onClick={() => {
-                                  handleSuggestionSelect(suggestion);
+                                  handleSuggestionClick(suggestion);
                                   setSearchOpen(false);
                                 }}
                                 className="rounded-md text-left py-1 text-sm text-gray-800 transition-colors hover:bg-gray-50 hover:text-primary"
@@ -890,7 +899,7 @@ const SearchBox = ({
                               <button
                                 key={`locality-${suggestion.cityId ?? suggestion.city}-${suggestion.locality}`}
                                 onClick={() => {
-                                  handleSuggestionSelect(suggestion);
+                                  handleSuggestionClick(suggestion);
                                   setSearchOpen(false);
                                 }}
                                 className="rounded-md text-left py-1 text-sm text-gray-800 transition-colors hover:bg-gray-50 hover:text-primary"
@@ -915,7 +924,7 @@ const SearchBox = ({
                               <button
                                 key={`project-${suggestion.slug}`}
                                 onClick={() => {
-                                  handleSuggestionSelect(suggestion);
+                                  handleSuggestionClick(suggestion);
                                   setSearchOpen(false);
                                 }}
                                 className="rounded-md text-left py-1 text-sm text-gray-800 transition-colors hover:bg-gray-50 hover:text-primary"
@@ -942,7 +951,7 @@ const SearchBox = ({
                                 : `project-${suggestion.slug}`
                           }
                           onClick={() => {
-                            handleSuggestionSelect(suggestion);
+                            handleSuggestionClick(suggestion);
                             setSearchOpen(false);
                           }}
                           className="rounded-md py-1 text-left text-sm text-gray-800 transition-colors hover:bg-gray-50 hover:text-primary"

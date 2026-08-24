@@ -648,6 +648,14 @@ const FilterBar: React.FC = () => {
     setSearchOpen(false);
   };
 
+  const handleSuggestionClick = (suggestion: SearchSuggestion) => {
+    handleSuggestionSelect(suggestion);
+
+    if (suggestion.kind === "project") {
+      router.push(`/project/${suggestion.slug}`);
+    }
+  };
+
   const handleSearchSubmit = () => {
     if (selectedProject) {
       router.push(`/project/${selectedProject.slug}`);
@@ -980,7 +988,7 @@ const FilterBar: React.FC = () => {
                           <button
                             key={`${suggestion.kind}-${index}`}
                             onClick={() => {
-                              handleSuggestionSelect(suggestion);
+                              handleSuggestionClick(suggestion);
                               close();
                             }}
                             className="rounded-md px-2 py-1.5 text-left text-sm text-gray-800 transition-colors hover:bg-gray-50 hover:text-primary"
@@ -1034,7 +1042,7 @@ const FilterBar: React.FC = () => {
                                 <button
                                   key={`city-${suggestion.cityId ?? suggestion.city}`}
                                   onClick={() => {
-                                    handleSuggestionSelect(suggestion);
+                                    handleSuggestionClick(suggestion);
                                     close();
                                   }}
                                   className="rounded-md px-2 py-1.5 text-left text-sm text-gray-800 transition-colors hover:bg-gray-50 hover:text-primary"
@@ -1059,7 +1067,7 @@ const FilterBar: React.FC = () => {
                                 <button
                                   key={`locality-${suggestion.cityId ?? suggestion.city}-${suggestion.locality}`}
                                   onClick={() => {
-                                    handleSuggestionSelect(suggestion);
+                                    handleSuggestionClick(suggestion);
                                     close();
                                   }}
                                   className="rounded-md px-2 py-1.5 text-left text-sm text-gray-800 transition-colors hover:bg-gray-50 hover:text-primary"
@@ -1084,7 +1092,7 @@ const FilterBar: React.FC = () => {
                                 <button
                                   key={`project-${suggestion.slug}`}
                                   onClick={() => {
-                                    handleSuggestionSelect(suggestion);
+                                    handleSuggestionClick(suggestion);
                                     close();
                                   }}
                                   className="rounded-md px-2 py-1.5 text-left text-sm text-gray-800 transition-colors hover:bg-gray-50 hover:text-primary"
@@ -1110,7 +1118,7 @@ const FilterBar: React.FC = () => {
                                 : `project-${suggestion.slug}`
                           }
                           onClick={() => {
-                            handleSuggestionSelect(suggestion);
+                            handleSuggestionClick(suggestion);
                             close();
                           }}
                           className="rounded-md px-2 py-1.5 text-left text-sm text-gray-800 transition-colors hover:bg-gray-50 hover:text-primary"
