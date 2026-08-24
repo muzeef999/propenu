@@ -197,23 +197,23 @@ export default function Footer() {
                 <AppStoreBadge />
               </div>
 
-              <div className="w-full max-w-xs mt-4">
-                <h4 className="mb-2 text-lg font-semibold text-gray-900">
+              <div className="mt-4 w-full max-w-xs">
+                <h4 className="mb-3 text-center text-lg font-semibold text-gray-900 lg:text-left">
                   Associated Businesses
                 </h4>
-                <div className="grid grid-cols-2 items-center">
-                  <div className="h-12">
+                <div className="grid grid-cols-2 items-center gap-4 sm:gap-5">
+                  <div className="flex h-14 items-center justify-center sm:h-12">
                     <img
                       src="/email/teamworks.png"
                       alt="Teamworks"
-                      className="h-full w-40 object-contain object-left" 
-                      />
+                      className="max-h-full w-full max-w-[132px] object-contain sm:max-w-[160px] lg:object-left"
+                    />
                   </div>
-                  <div className="flex h-10">
+                  <div className="flex h-14 items-center justify-center sm:h-12">
                     <img
                       src="/email/aslijobs.png"
                       alt="AsliJobs"
-                      className="h-full w-full object-contain object-left"
+                      className="max-h-full w-full max-w-[132px] object-contain sm:max-w-[160px] lg:object-left"
                     />
                   </div>
                 </div>

@@ -40,8 +40,14 @@ export default function BrochurePreview({
     "Document" | "Page"
   > | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const previewHeight = "500px";
-  const fullscreenHeight = "calc(100vh - 40px)";
+  const previewHeight = isFullscreen ? "calc(100vh - 40px)" : "min(500px, 70vh)";
+  const isMobileViewport = pdfViewportWidth < 640;
+  const pdfRenderWidth =
+    isFullscreen && isMobileViewport
+      ? Math.max(220, pdfViewportWidth - 32)
+      : undefined;
+  const pdfRenderHeight =
+    isFullscreen && isMobileViewport ? undefined : pdfPageHeight;
 
   const isPdf =
     brochure?.mimetype?.toLowerCase().includes("pdf") ||
@@ -82,11 +88,14 @@ export default function BrochurePreview({
 
     const resizeObserver = new ResizeObserver(([entry]) => {
       const width = entry.contentRect.width;
-      const horizontalPadding = width >= 640 ? 96 : 32;
-      const viewerHeight = isFullscreen ? window.innerHeight - 8 : 500;
-      const controlsHeight = 52;
+      const isMobileWidth = width < 640;
+      const horizontalPadding = width >= 640 ? 96 : 24;
+      const viewerHeight = isFullscreen
+        ? window.innerHeight - 40
+        : Math.min(500, window.innerHeight * 0.7);
+      const controlsHeight = isFullscreen ? 0 : 52;
       const progressHeight = 4;
-      const verticalPadding = isFullscreen ? 0 : 56;
+      const verticalPadding = isFullscreen ? 24 : isMobileWidth ? 40 : 56;
       const nextPageHeight = Math.max(
         260,
         viewerHeight - controlsHeight - progressHeight - verticalPadding,
@@ -264,8 +273,8 @@ export default function BrochurePreview({
                         onClick={handleBrochureDownload}
                         className={`absolute z-20 inline-flex items-center justify-center bg-[#27AE60] text-white shadow-[0_12px_32px_rgba(39,174,96,0.35)] transition hover:bg-[#1f9451] ${
                           isFullscreen
-                            ? "bottom-60 left-40 h-13 w-13 translate-y-1/2 rounded-full"
-                            : "bottom-36 left-15 h-12 w-12 rounded-full"
+                            ? "bottom-24 left-4 h-11 w-11 rounded-full sm:bottom-60 sm:left-40 sm:h-13 sm:w-13 sm:translate-y-1/2"
+                            : "bottom-20 left-4 h-10 w-10 rounded-full sm:bottom-36 sm:left-15 sm:h-12 sm:w-12"
                         }`}
                         aria-label="Download brochure"
                       >
@@ -291,23 +300,23 @@ export default function BrochurePreview({
                             type="button"
                             onClick={() => scrollToPdfPage(currentPage - 1)}
                             disabled={currentPage <= 1}
-                            className="absolute left-4 top-1/2 z-10 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white shadow-md transition hover:bg-black/60 disabled:cursor-not-allowed disabled:opacity-30 sm:left-6"
+                            className="absolute left-3 top-1/2 z-10 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white shadow-md transition hover:bg-black/60 disabled:cursor-not-allowed disabled:opacity-30 sm:left-6 sm:h-12 sm:w-12"
                             aria-label="Previous brochure page"
                           >
-                            <HiChevronLeft className="h-6 w-6" />
+                            <HiChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
                           </button>
 
                           <button
                             type="button"
                             onClick={() => scrollToPdfPage(currentPage + 1)}
                             disabled={!numPages || currentPage >= numPages}
-                            className="absolute right-4 top-1/2 z-10 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white shadow-md transition hover:bg-black/60 disabled:cursor-not-allowed disabled:opacity-30 sm:right-6"
+                            className="absolute right-3 top-1/2 z-10 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white shadow-md transition hover:bg-black/60 disabled:cursor-not-allowed disabled:opacity-30 sm:right-6 sm:h-12 sm:w-12"
                             aria-label="Next brochure page"
                           >
-                            <HiChevronRight className="h-6 w-6" />
+                            <HiChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
                           </button>
 
-                          <div className="absolute bottom-10 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/45 px-4 py-2 text-sm font-semibold text-white shadow-md">
+                          <div className="absolute bottom-16 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/45 px-3 py-1.5 text-xs font-semibold text-white shadow-md sm:bottom-10 sm:px-4 sm:py-2 sm:text-sm">
                             {currentPage}
                             {numPages ? ` of ${numPages}` : ""}
                           </div>
@@ -322,7 +331,7 @@ export default function BrochurePreview({
                         className={`relative no-scrollbar w-full overflow-x-auto overflow-y-hidden bg-[#252525] outline-none ring-0 transition focus-visible:ring-2 focus-visible:ring-[#27AE60] focus-visible:ring-offset-2 [scroll-snap-type:x_mandatory] ${
                           isFullscreen ? "rounded-t-2xl" : ""
                         }`}
-                        style={{ height: isFullscreen ? fullscreenHeight : previewHeight }}
+                        style={{ height: previewHeight }}
                         aria-label="Horizontal brochure PDF pages. Use left and right arrow keys to change pages."
                       >
                         {DocumentComponent && PageComponent ? (
@@ -332,7 +341,7 @@ export default function BrochurePreview({
                           loading={
                             <div
                               className="flex items-center justify-center text-sm font-medium text-white/80"
-                              style={{ height: isFullscreen ? fullscreenHeight : previewHeight }}
+                              style={{ height: previewHeight }}
                             >
                               Loading brochure...
                             </div>
@@ -340,7 +349,7 @@ export default function BrochurePreview({
                           error={
                             <div
                               className="flex items-center justify-center px-4 text-center text-sm font-medium text-white/80"
-                              style={{ height: isFullscreen ? fullscreenHeight : previewHeight }}
+                              style={{ height: previewHeight }}
                             >
                               <div>
                                 <p>
@@ -370,7 +379,7 @@ export default function BrochurePreview({
                         >
                           <div
                             className="flex w-max items-center overflow-y-hidden"
-                            style={{ height: isFullscreen ? fullscreenHeight : previewHeight }}
+                            style={{ height: previewHeight }}
                           >
                             {Array.from(
                               { length: numPages },
@@ -381,13 +390,14 @@ export default function BrochurePreview({
                                     isFullscreen ? "px-6 py-4" : "px-4 py-4"
                                   }`}
                                   style={{
-                                    height: isFullscreen ? fullscreenHeight : previewHeight,
+                                    height: previewHeight,
                                     width: pdfViewportWidth,
                                   }}
                                 >
                                   <PageComponent
                                     pageNumber={pageIndex + 1}
-                                    height={pdfPageHeight}
+                                    width={pdfRenderWidth}
+                                    height={pdfRenderHeight}
                                     renderAnnotationLayer={false}
                                     renderTextLayer={false}
                                     className="overflow-hidden  bg-white shadow-md"
@@ -395,8 +405,8 @@ export default function BrochurePreview({
                                       <div
                                         className="flex items-center justify-center bg-white text-xs font-medium text-slate-500"
                                         style={{
-                                          height: pdfPageHeight,
-                                          width: pdfPageWidth,
+                                          height: pdfRenderHeight ?? pdfPageHeight,
+                                          width: pdfRenderWidth ?? pdfPageWidth,
                                         }}
                                       >
                                         Loading page...
@@ -411,7 +421,7 @@ export default function BrochurePreview({
                         ) : (
                           <div
                             className="flex items-center justify-center text-sm font-medium text-white/80"
-                            style={{ height: isFullscreen ? fullscreenHeight : previewHeight }}
+                            style={{ height: previewHeight }}
                           >
                             Loading brochure...
                           </div>

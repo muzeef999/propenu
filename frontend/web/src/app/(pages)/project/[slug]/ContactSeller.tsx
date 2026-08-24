@@ -8,6 +8,8 @@ import {
   me,
   patchProjectLeadIntention,
   projectpostLeads,
+  requestProjectLeadOtp,
+  verifyProjectLeadOtp,
 } from "@/data/ClientData";
 import { FeaturedProject } from "@/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -16,6 +18,7 @@ import { toast } from "sonner";
 import Cookies from "js-cookie";
 import OtpFourDigitInput from "@/components/builder/OtpFourDigitInput";
 import { HiXMark } from "react-icons/hi2";
+import { z } from "zod";
 
 function toTitleCase(str?: string) {
   if (!str) return "";
@@ -31,6 +34,7 @@ const BUY_TIMELINE_QUESTION = "When do you plan to buy?";
 const BUDGET_QUESTION = "Your Budget?";
 const buyTimelineOptions = ["Within 30 Days", "1 - 3 Months", "3 - 6 Months", "More than 6 Months"];
 const budgetOptions = ["50L - 1Cr", "1Cr - 2Cr", "2Cr+"];
+const STANDARD_LEAD_OTP_LENGTH = 4;
 
 type ContactSellerProps = {
   project: FeaturedProject;
@@ -74,6 +78,15 @@ type BuilderInviteApiError = {
   conflictDisplayRole?: string;
   conflictValue?: string;
 };
+
+type ContactFormValues = {
+  name: string;
+  phone: string;
+  email: string;
+  termsAccepted: boolean;
+};
+
+type ContactFormErrors = Partial<Record<keyof ContactFormValues, string>>;
 
 function getUserPrefill(user?: UserProfile | null) {
   return {
@@ -169,30 +182,6 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
-function getFieldValidationMessage(
-  field: HTMLInputElement | HTMLTextAreaElement,
-) {
-  const { name, validity } = field;
-
-  if (validity.valueMissing) {
-    if (name === "terms") return "Please accept the Terms & Conditions";
-    if (name === "name") return "Please enter your full name";
-    if (name === "phone") return "Please enter your mobile number";
-  }
-
-  if (validity.patternMismatch) {
-    if (name === "name") return "Full Name should contain letters only";
-    if (name === "phone") return "Please enter a valid phone number";
-    if (name === "email") return "Please enter a valid email address";
-  }
-
-  if (validity.typeMismatch && name === "email") {
-    return "Please enter a valid email address";
-  }
-
-  return "Please check this field";
-}
-
 function prettifyConflictRole(value?: string) {
   if (!value) return "another";
   if (value === "user") return "User";
@@ -221,6 +210,45 @@ const apiBase = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").rep
   /\/$/,
   "",
 );
+
+const contactFormSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, { message: "Please enter your full name" })
+    .refine(isValidName, { message: "Full Name should contain letters only" }),
+  phone: z
+    .string()
+    .trim()
+    .min(1, { message: "Please enter your mobile number" })
+    .refine(isValidPhoneNumber, { message: "Please enter a valid phone number" }),
+  email: z
+    .string()
+    .trim()
+    .refine((value) => !value || isValidEmail(value), {
+      message: "Please enter a valid email address",
+    }),
+  termsAccepted: z.boolean().refine((value) => value === true, {
+    message: "Please accept the Terms & Conditions",
+  }),
+});
+
+function validateContactForm(values: ContactFormValues): ContactFormErrors {
+  const result = contactFormSchema.safeParse(values);
+
+  if (result.success) return {};
+
+  const nextErrors: ContactFormErrors = {};
+
+  for (const issue of result.error.issues) {
+    const field = issue.path[0] as keyof ContactFormValues | undefined;
+    if (field && !nextErrors[field]) {
+      nextErrors[field] = issue.message;
+    }
+  }
+
+  return nextErrors;
+}
 
 const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps) => {
   const searchParams = useSearchParams();
@@ -252,9 +280,14 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
     email: "",
   });
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [formErrors, setFormErrors] = useState<ContactFormErrors>({});
   const [leadId, setLeadId] = useState("");
   const [showSubmittedStep, setShowSubmittedStep] = useState(false);
   const [intentionAnswers, setIntentionAnswers] = useState<IntentionAnswer[]>([]);
+  const [standardLeadStep, setStandardLeadStep] = useState<"form" | "otp">("form");
+  const [standardLeadOtp, setStandardLeadOtp] = useState("");
+  const [standardLeadSubmitting, setStandardLeadSubmitting] = useState(false);
+  const [standardLeadOtpError, setStandardLeadOtpError] = useState("");
   const resolvedProjectId =
     (project as FeaturedProject & { id?: string })._id ||
     (project as FeaturedProject & { id?: string }).id ||
@@ -473,6 +506,9 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
       const createdLeadId = response?.data?._id || response?.data?.id || "";
       setLeadId(createdLeadId);
       setShowSubmittedStep(true);
+      setStandardLeadStep("form");
+      setStandardLeadOtp("");
+      setStandardLeadOtpError("");
       setForm(getUserPrefill(loggedInUser));
       setTermsAccepted(false);
     },
@@ -517,35 +553,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
     });
   };
 
-  // Standard Lead Submission
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    if (isOwnProjectLead) {
-      toast.error(ownProjectLeadMessage);
-      return;
-    }
-
-    if (!isValidName(form.name)) {
-      toast.error("Full Name should contain letters only");
-      return;
-    }
-
-    if (!isValidPhoneNumber(form.phone)) {
-      toast.error("Please enter a valid phone number");
-      return;
-    }
-
-    if (form.email.trim() && !isValidEmail(form.email)) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-
-    if (!termsAccepted) {
-      toast.error("Please accept the Terms & Conditions");
-      return;
-    }
-
+  const finalizeStandardLeadSubmission = () => {
     leadsMutation.mutate({
       name: form.name.trim(),
       phone: form.phone,
@@ -555,27 +563,100 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
     });
   };
 
+  const handleStandardLeadRequestOtp = async () => {
+    setStandardLeadSubmitting(true);
+    setStandardLeadOtpError("");
+
+    try {
+      await requestProjectLeadOtp({
+        phone: form.phone,
+        projectId: resolvedProjectId || undefined,
+      });
+    } catch (error) {
+      const errorMessage = getLeadErrorMessage(error);
+      setStandardLeadOtpError(errorMessage);
+      toast.error(errorMessage);
+      return;
+    } finally {
+      setStandardLeadSubmitting(false);
+    }
+
+    setStandardLeadStep("otp");
+    setStandardLeadOtp("");
+    toast.success("OTP sent to your mobile number");
+  };
+
+  const handleStandardLeadVerifyOtp = async (
+    e?: React.FormEvent<HTMLFormElement>,
+  ) => {
+    if (e) e.preventDefault();
+
+    const cleanOtp = standardLeadOtp.trim();
+    if (cleanOtp.length !== STANDARD_LEAD_OTP_LENGTH) {
+      setStandardLeadOtpError("Please enter a 4-digit OTP");
+      return;
+    }
+
+    setStandardLeadSubmitting(true);
+    setStandardLeadOtpError("");
+
+    try {
+      await verifyProjectLeadOtp({
+        phone: form.phone,
+        otp: cleanOtp,
+        projectId: resolvedProjectId || undefined,
+      });
+
+      toast.success("Phone number verified successfully");
+      finalizeStandardLeadSubmission();
+    } catch (error) {
+      const errorMessage = getLeadErrorMessage(error);
+      setStandardLeadOtpError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setStandardLeadSubmitting(false);
+    }
+  };
+
+  // Standard Lead Submission
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (isOwnProjectLead) {
+      toast.error(ownProjectLeadMessage);
+      return;
+    }
+
+    const nextErrors = validateContactForm({
+      name: form.name,
+      phone: form.phone,
+      email: form.email,
+      termsAccepted,
+    });
+
+    setFormErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    await handleStandardLeadRequestOtp();
+  };
+
   // Builder Approval Form Request OTP
   const handleBuilderSubmit = async (e?: React.SyntheticEvent) => {
     if (e) e.preventDefault();
 
-    if (!isValidName(form.name)) {
-      toast.error("Full Name should contain letters only");
-      return;
-    }
+    const nextErrors = validateContactForm({
+      name: form.name,
+      phone: form.phone,
+      email: form.email,
+      termsAccepted,
+    });
 
-    if (!isValidPhoneNumber(form.phone)) {
-      toast.error("Please enter a valid phone number");
-      return;
-    }
+    setFormErrors(nextErrors);
 
-    if (form.email.trim() && !isValidEmail(form.email)) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-
-    if (!termsAccepted) {
-      toast.error("Please accept the Terms & Conditions");
+    if (Object.keys(nextErrors).length > 0) {
       return;
     }
 
@@ -709,6 +790,10 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
       setInviteStep("form");
     }
     const { name, value } = e.target;
+    setFormErrors((current) => ({
+      ...current,
+      [name === "terms" ? "termsAccepted" : name]: undefined,
+    }));
     setForm((current) => ({
       ...current,
       [name]:
@@ -718,18 +803,13 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
             ? sanitizeNameInput(value)
             : value,
     }));
-  }
-
-  function handleInvalid(
-    e: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) {
-    e.currentTarget.setCustomValidity(getFieldValidationMessage(e.currentTarget));
-  }
-
-  function handleFieldInput(
-    e: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) {
-    e.currentTarget.setCustomValidity("");
+    if (!isInviteMode) {
+      if (standardLeadOtpError) setStandardLeadOtpError("");
+      if (standardLeadStep === "otp") {
+        setStandardLeadStep("form");
+        setStandardLeadOtp("");
+      }
+    }
   }
 
   const intentionQuestions = (
@@ -979,15 +1059,15 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
                 name="name"
                 value={form.name}
                 onChange={handleChange}
-                onInvalid={handleInvalid}
-                onInput={handleFieldInput}
                 placeholder="Enter Full Name"
                 inputMode="text"
-                pattern="[A-Za-z\s]+"
-                title="Full Name should contain letters only"
                 required
+                aria-invalid={Boolean(formErrors.name)}
                 className="mt-1.5 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
               />
+              {formErrors.name ? (
+                <p className="mt-1 text-xs text-red-600">{formErrors.name}</p>
+              ) : null}
             </label>
 
             <label className="block">
@@ -997,16 +1077,16 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
                 type="tel"
                 inputMode="tel"
                 autoComplete="tel"
-                pattern="^\+?[1-9]\d{9,14}$"
                 value={form.phone}
                 onChange={handleChange}
-                onInvalid={handleInvalid}
-                onInput={handleFieldInput}
-                title="Please enter a valid phone number"
                 placeholder="Enter Mobile Number"
                 required
+                aria-invalid={Boolean(formErrors.phone)}
                 className="mt-1.5 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
               />
+              {formErrors.phone ? (
+                <p className="mt-1 text-xs text-red-600">{formErrors.phone}</p>
+              ) : null}
             </label>
 
             <label className="block">
@@ -1016,14 +1096,14 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
                 type="email"
                 value={form.email}
                 onChange={handleChange}
-                onInvalid={handleInvalid}
-                onInput={handleFieldInput}
                 autoComplete="email"
-                pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
-                title="Please enter a valid email address"
                 placeholder="Enter Email Address"
+                aria-invalid={Boolean(formErrors.email)}
                 className="mt-1.5 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
               />
+              {formErrors.email ? (
+                <p className="mt-1 text-xs text-red-600">{formErrors.email}</p>
+              ) : null}
             </label>
 
             <label className="flex items-start gap-2 text-xs text-slate-600">
@@ -1032,14 +1112,12 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
                 type="checkbox"
                 checked={termsAccepted}
                 onChange={(event) => {
-                  event.currentTarget.setCustomValidity("");
                   setTermsAccepted(event.target.checked);
+                  setFormErrors((current) => ({
+                    ...current,
+                    termsAccepted: undefined,
+                  }));
                 }}
-                onInvalid={(event) =>
-                  event.currentTarget.setCustomValidity(
-                    "Please accept the Terms & Conditions",
-                  )
-                }
                 required
                 className="peer sr-only"
               />
@@ -1060,6 +1138,9 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
                 </Link>
               </span>
             </label>
+            {formErrors.termsAccepted ? (
+              <p className="-mt-1 text-xs text-red-600">{formErrors.termsAccepted}</p>
+            ) : null}
 
             {builderFormError && (
               <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold leading-relaxed text-red-700">
@@ -1194,6 +1275,71 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
 
           {intentionQuestions}
         </div>
+      ) : standardLeadStep === "otp" ? (
+        <form onSubmit={handleStandardLeadVerifyOtp} className="mt-5 space-y-4">
+          <div className="text-center">
+            <p className="text-sm font-bold text-slate-900">Verify Mobile Number</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Enter the 4-digit OTP sent to{" "}
+              <span className="font-semibold text-slate-800">{form.phone}</span>
+            </p>
+          </div>
+
+          <div className="py-2">
+            <OtpFourDigitInput
+              value={standardLeadOtp}
+              onChange={(val) => {
+                setStandardLeadOtp(val);
+                setStandardLeadOtpError("");
+              }}
+              disabled={standardLeadSubmitting || leadsMutation.isPending}
+              error={Boolean(standardLeadOtpError)}
+              autoFocus
+            />
+          </div>
+
+          {standardLeadOtpError ? (
+            <p className="text-center text-xs font-medium text-red-600">
+              {standardLeadOtpError}
+            </p>
+          ) : null}
+
+          <button
+            type="submit"
+            disabled={
+              standardLeadSubmitting ||
+              leadsMutation.isPending ||
+              standardLeadOtp.length !== STANDARD_LEAD_OTP_LENGTH
+            }
+            className="h-10 w-full rounded-xl bg-[#27AE60] text-sm font-bold text-white shadow-sm transition hover:bg-[#219150] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {standardLeadSubmitting || leadsMutation.isPending
+              ? "Verifying..."
+              : "Verify & Continue"}
+          </button>
+
+          <div className="flex items-center justify-between pt-1 text-xs text-slate-500">
+            <button
+              type="button"
+              onClick={() => {
+                setStandardLeadStep("form");
+                setStandardLeadOtp("");
+                setStandardLeadOtpError("");
+              }}
+              className="font-medium text-slate-600 underline hover:text-slate-900"
+            >
+              ← Edit Contact Info
+            </button>
+            <button
+              type="button"
+              onClick={handleStandardLeadRequestOtp}
+              disabled={standardLeadSubmitting || leadsMutation.isPending}
+              className="font-semibold text-[#27AE60] hover:underline disabled:opacity-60"
+            >
+              Resend OTP
+            </button>
+          </div>
+        </form>
       ) : (
         <form onSubmit={handleSubmit} className="mt-4 space-y-3 sm:space-y-4">
           {hasPrefilledUserDetails ? null : (
@@ -1204,15 +1350,15 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
                   name="name"
                   value={form.name}
                   onChange={handleChange}
-                  onInvalid={handleInvalid}
-                  onInput={handleFieldInput}
                   placeholder="Enter Name"
                   inputMode="text"
-                  pattern="[A-Za-z\s]+"
-                  title="Full Name should contain letters only"
                   required
+                  aria-invalid={Boolean(formErrors.name)}
                   className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
                 />
+                {formErrors.name ? (
+                  <p className="mt-1 text-xs text-red-600">{formErrors.name}</p>
+                ) : null}
               </label>
 
               <label className="block">
@@ -1222,16 +1368,16 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel"
-                  pattern="^\+?[1-9]\d{9,14}$"
                   value={form.phone}
                   onChange={handleChange}
-                  onInvalid={handleInvalid}
-                  onInput={handleFieldInput}
-                  title="Please enter a valid phone number"
                   placeholder="Enter Mobile Number"
                   required
+                  aria-invalid={Boolean(formErrors.phone)}
                   className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
                 />
+                {formErrors.phone ? (
+                  <p className="mt-1 text-xs text-red-600">{formErrors.phone}</p>
+                ) : null}
               </label>
 
               <label className="block">
@@ -1241,14 +1387,14 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
                   type="email"
                   value={form.email}
                   onChange={handleChange}
-                  onInvalid={handleInvalid}
-                  onInput={handleFieldInput}
                   autoComplete="email"
-                  pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
-                  title="Please enter a valid email address"
                   placeholder="Enter your Email ID"
+                  aria-invalid={Boolean(formErrors.email)}
                   className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
                 />
+                {formErrors.email ? (
+                  <p className="mt-1 text-xs text-red-600">{formErrors.email}</p>
+                ) : null}
               </label>
 
               <label className="flex items-start gap-2 text-xs text-slate-600 sm:text-sm">
@@ -1257,14 +1403,12 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
                   type="checkbox"
                   checked={termsAccepted}
                   onChange={(event) => {
-                    event.currentTarget.setCustomValidity("");
                     setTermsAccepted(event.target.checked);
+                    setFormErrors((current) => ({
+                      ...current,
+                      termsAccepted: undefined,
+                    }));
                   }}
-                  onInvalid={(event) =>
-                    event.currentTarget.setCustomValidity(
-                      "Please accept the Terms & Conditions",
-                    )
-                  }
                   required
                   className="peer sr-only"
                 />
@@ -1285,15 +1429,22 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
                   </Link>
                 </span>
               </label>
+              {formErrors.termsAccepted ? (
+                <p className="-mt-1 text-xs text-red-600">{formErrors.termsAccepted}</p>
+              ) : null}
             </>
           )}
 
           <button
             type="submit"
-            disabled={leadsMutation.isPending || isOwnProjectLead}
+            disabled={leadsMutation.isPending || standardLeadSubmitting || isOwnProjectLead}
             className="h-10 w-full btn-primary text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {leadsMutation.isPending ? "Submitting..." : submitButtonLabel}
+            {standardLeadSubmitting
+              ? "Sending OTP..."
+              : leadsMutation.isPending
+                ? "Submitting..."
+                : submitButtonLabel}
           </button>
         </form>
       )}

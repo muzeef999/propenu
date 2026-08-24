@@ -12,8 +12,8 @@ import {
 import { LEAD_STATUSES, LeadCreateSchema } from "../zod/leadZod";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import Lead from "../models/LeadModel";
-import { PublicLeadSchemaZ } from "../zod/publicLeadZod";
-import { createPublicLead } from "../services/publicLeadService";
+import { PublicLeadSchemaZ, PublicPropertyLeadSchemaZ } from "../zod/publicLeadZod";
+import { createPublicLead, createPublicPropertyLead } from "../services/publicLeadService";
 import PublicLead from "../models/PublicLead";
 import mongoose, { Types } from "mongoose";
 import FeaturedProject from "../models/featurePropertiesModel";
@@ -25,6 +25,14 @@ import * as XLSX from "xlsx";
 import { getAdminLeadDashboard } from "../services/adminLeadService";
 import { notifyProjectBrochureDownload } from "../services/pushNotificationService";
 import { verifyToken } from "../utils/jwt";
+import { sendOtpWhatsApp } from "../utils/whatsapp";
+import {
+  consumeVerifiedLeadPhone,
+  generateLeadOtp,
+  normalizeLeadPhone,
+  saveLeadOtp,
+  verifyLeadOtp,
+} from "../utils/leadOtp";
 
 
 const DEFAULT_VISIBLE_LEAD_LIMIT = 5;
@@ -947,6 +955,7 @@ export const createPublicLeadController = async (
 ) => {
   try {
     const data = PublicLeadSchemaZ.parse(normalizePublicLeadPayload(req.body));
+    const normalizedPhone = normalizeLeadPhone(data.phone);
     const authHeader = String(req.headers.authorization || "").trim();
     const token = authHeader.startsWith("Bearer ")
       ? authHeader.slice("Bearer ".length).trim()
@@ -962,7 +971,316 @@ export const createPublicLeadController = async (
       }
     }
 
+    const verified = await consumeVerifiedLeadPhone(
+      String(data.projectId),
+      normalizedPhone,
+    );
+
+    if (!verified) {
+      return res.status(403).json({
+        success: false,
+        message: "Phone number verification is required before submitting this lead",
+      });
+    }
+
     const lead = await createPublicLead(data, { actorUserId });
+
+    res.status(201).json({
+      success: true,
+      message: "Lead submitted successfully",
+      data: lead,
+    });
+  } catch (err: any) {
+    res.status(err?.statusCode || 400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+export const requestPublicProjectLeadOtpController = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const projectId = String(req.body?.projectId || "").trim();
+    const phone = normalizeLeadPhone(req.body?.phone);
+
+    if (!projectId || !Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid projectId is required",
+      });
+    }
+
+    if (!phone || !/^\+?[1-9]\d{9,14}$/.test(phone)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid phone number is required",
+      });
+    }
+
+    const project = await FeaturedProject.findById(projectId)
+      .populate("createdBy", "phone")
+      .select("createdBy title")
+      .lean();
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    const ownerPhone = normalizeLeadPhone((project as any)?.createdBy?.phone);
+    if (ownerPhone && ownerPhone === phone) {
+      return res.status(403).json({
+        success: false,
+        message: "You cannot submit a lead for your own project",
+      });
+    }
+
+    const otp = generateLeadOtp();
+    await saveLeadOtp(projectId, phone, otp);
+    await sendOtpWhatsApp(phone, otp);
+
+    return res.json({
+      success: true,
+      message: "OTP sent successfully",
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      message: err?.message || "Failed to send OTP",
+    });
+  }
+};
+
+export const verifyPublicProjectLeadOtpController = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const projectId = String(req.body?.projectId || "").trim();
+    const phone = normalizeLeadPhone(req.body?.phone);
+    const otp = String(req.body?.otp || "").trim();
+
+    if (!projectId || !Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid projectId is required",
+      });
+    }
+
+    if (!phone || !/^\+?[1-9]\d{9,14}$/.test(phone)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid phone number is required",
+      });
+    }
+
+    if (!otp) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP is required",
+      });
+    }
+
+    const result = await verifyLeadOtp(projectId, phone, otp);
+
+    if (!result.valid) {
+      return res.status(400).json({
+        success: false,
+        message:
+          result.reason === "expired"
+            ? "OTP expired. Please request a new OTP."
+            : "Incorrect OTP",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Phone number verified successfully",
+      verified: true,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      message: err?.message || "Failed to verify OTP",
+    });
+  }
+};
+
+export const requestPublicPropertyLeadOtpController = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const projectId = String(req.body?.projectId || "").trim();
+    const propertyType = String(req.body?.propertyType || "").trim();
+    const phone = normalizeLeadPhone(req.body?.phone);
+
+    if (!projectId || !Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid projectId is required",
+      });
+    }
+
+    if (!propertyType || !["residentials", "commercials", "agriculturals", "landplots", "featuredprojects"].includes(propertyType)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid propertyType is required",
+      });
+    }
+
+    if (!phone || !/^\+?[1-9]\d{9,14}$/.test(phone)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid phone number is required",
+      });
+    }
+
+    const propertyModelMap: Record<string, any> = {
+      featuredprojects: FeaturedProject,
+      residentials: Residential,
+      commercials: Commercial,
+      agriculturals: Agricultural,
+      landplots: LandPlot,
+    };
+
+    const PropertyModel = propertyModelMap[propertyType];
+    const property = await PropertyModel.findById(projectId)
+      .populate("createdBy", "phone")
+      .select("createdBy title")
+      .lean();
+
+    if (!property) {
+      return res.status(404).json({
+        success: false,
+        message: "Property not found",
+      });
+    }
+
+    const ownerPhone = normalizeLeadPhone((property as any)?.createdBy?.phone);
+    if (ownerPhone && ownerPhone === phone) {
+      return res.status(403).json({
+        success: false,
+        message: propertyType === "featuredprojects"
+          ? "You cannot submit a lead for your own project"
+          : "You cannot submit a lead for your own property",
+      });
+    }
+
+    const otp = generateLeadOtp();
+    await saveLeadOtp(projectId, phone, otp);
+    await sendOtpWhatsApp(phone, otp);
+
+    return res.json({
+      success: true,
+      message: "OTP sent successfully",
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      message: err?.message || "Failed to send OTP",
+    });
+  }
+};
+
+export const verifyPublicPropertyLeadOtpController = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const projectId = String(req.body?.projectId || "").trim();
+    const phone = normalizeLeadPhone(req.body?.phone);
+    const otp = String(req.body?.otp || "").trim();
+
+    if (!projectId || !Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid projectId is required",
+      });
+    }
+
+    if (!phone || !/^\+?[1-9]\d{9,14}$/.test(phone)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid phone number is required",
+      });
+    }
+
+    if (!otp) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP is required",
+      });
+    }
+
+    const result = await verifyLeadOtp(projectId, phone, otp);
+
+    if (!result.valid) {
+      return res.status(400).json({
+        success: false,
+        message:
+          result.reason === "expired"
+            ? "OTP expired. Please request a new OTP."
+            : "Incorrect OTP",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Phone number verified successfully",
+      verified: true,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      message: err?.message || "Failed to verify OTP",
+    });
+  }
+};
+
+export const createPublicPropertyLeadController = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const data = PublicPropertyLeadSchemaZ.parse(req.body);
+    const normalizedPhone = normalizeLeadPhone(data.phone);
+    const authHeader = String(req.headers.authorization || "").trim();
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.slice("Bearer ".length).trim()
+      : "";
+    let actorUserId = "";
+
+    if (token) {
+      try {
+        const decoded = verifyToken(token);
+        actorUserId = String(decoded.sub || "").trim();
+      } catch {
+        actorUserId = "";
+      }
+    }
+
+    const verified = await consumeVerifiedLeadPhone(
+      String(data.projectId),
+      normalizedPhone,
+    );
+
+    if (!verified) {
+      return res.status(403).json({
+        success: false,
+        message: "Phone number verification is required before submitting this lead",
+      });
+    }
+
+    const lead = await createPublicPropertyLead(
+      { ...data, phone: normalizedPhone },
+      { actorUserId },
+    );
 
     res.status(201).json({
       success: true,

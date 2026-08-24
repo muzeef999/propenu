@@ -197,7 +197,7 @@ export default function AgentsList() {
             {agents.map((agent) => (
               <div
                 key={agent._id}
-                className="w-[calc(50%-6px)] sm:w-[calc(33.333%-8px)] md:w-[calc(33.333%-8px)] lg:w-[calc(25%-9px)] shrink-0 flex flex-col"
+                className="w-full sm:w-[calc(33.333%-8px)] md:w-[calc(33.333%-8px)] lg:w-[calc(25%-9px)] shrink-0 flex flex-col"
               >
                 <AgentCard data={agent} />
               </div>

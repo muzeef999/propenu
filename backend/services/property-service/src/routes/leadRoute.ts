@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from "multer";
-import { assignLeadController, checkLeadController, checkPublicProjectLeadController, createLeadController, createPublicLeadController, deleteLeadController, deleteProjectLeadsController, downloadLeadsCSVController, exportAdminLeadsController, getAdminLeadsController, getLeadByIdController, getLeadsController, getMyContactedProperties, getProjectLeadsController, importProjectLeadsCSVController, trackProjectBrochureDownloadController, trackProjectViewDurationController, trackPropertyViewDurationController, updatePublicLeadIntentionController, updateLeadStatusController, updateProjectLeadStatusController } from "../controller/leadController"
+import { assignLeadController, checkLeadController, checkPublicProjectLeadController, createLeadController, createPublicLeadController, createPublicPropertyLeadController, deleteLeadController, deleteProjectLeadsController, downloadLeadsCSVController, exportAdminLeadsController, getAdminLeadsController, getLeadByIdController, getLeadsController, getMyContactedProperties, getProjectLeadsController, importProjectLeadsCSVController, requestPublicProjectLeadOtpController, requestPublicPropertyLeadOtpController, trackProjectBrochureDownloadController, trackProjectViewDurationController, trackPropertyViewDurationController, updatePublicLeadIntentionController, updateLeadStatusController, updateProjectLeadStatusController, verifyPublicProjectLeadOtpController, verifyPublicPropertyLeadOtpController } from "../controller/leadController"
 import { LeadCreateSchema } from '../zod/leadZod';
 import { validateBody } from '../middlewares/validate';
 import { authMiddleware } from '../middlewares/authMiddleware';
@@ -36,6 +36,11 @@ router.post('/', (req, res, next) => {
 
 
 router.post("/project/lead",  createPublicLeadController);
+router.post("/project/lead/request-otp", requestPublicProjectLeadOtpController);
+router.post("/project/lead/verify-otp", verifyPublicProjectLeadOtpController);
+router.post("/public/lead", createPublicPropertyLeadController);
+router.post("/public/lead/request-otp", requestPublicPropertyLeadOtpController);
+router.post("/public/lead/verify-otp", verifyPublicPropertyLeadOtpController);
 router.get("/project/lead/check", checkPublicProjectLeadController);
 router.patch("/project/lead/:id/intention", updatePublicLeadIntentionController);
 router.post("/project/:projectId/brochure-download", authMiddleware, trackProjectBrochureDownloadController);

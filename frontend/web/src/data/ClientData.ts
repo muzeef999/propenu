@@ -637,6 +637,31 @@ export const projectpostLeads = async (
   return res.data;
 };
 
+export const requestProjectLeadOtp = async (payload: {
+  phone: string;
+  projectId?: string;
+}) => {
+  const res = await axiosInstance.post(
+    `${url}/api/properties/leads/project/lead/request-otp`,
+    payload,
+  );
+
+  return res.data;
+};
+
+export const verifyProjectLeadOtp = async (payload: {
+  phone: string;
+  otp: string;
+  projectId?: string;
+}) => {
+  const res = await axiosInstance.post(
+    `${url}/api/properties/leads/project/lead/verify-otp`,
+    payload,
+  );
+
+  return res.data;
+};
+
 
 export const patchProjectLeadIntention = async (
   leadId: string,
@@ -691,6 +716,43 @@ export const postLeads = async (payload: {
       Authorization: `Bearer ${cookies}`,
     },
   });
+  return res.data;
+};
+
+export const postPublicPropertyLead = async (payload: {
+  name: string;
+  phone: string;
+  email?: string;
+  projectId?: string;
+  listingType?: string;
+  propertyType?: string;
+  remarks?: string;
+}) => {
+  const res = await axiosInstance.post(`${url}/api/properties/leads/public/lead`, payload);
+  return res.data;
+};
+
+export const requestPublicPropertyLeadOtp = async (payload: {
+  phone: string;
+  projectId?: string;
+  propertyType?: string;
+}) => {
+  const res = await axiosInstance.post(
+    `${url}/api/properties/leads/public/lead/request-otp`,
+    payload,
+  );
+  return res.data;
+};
+
+export const verifyPublicPropertyLeadOtp = async (payload: {
+  phone: string;
+  otp: string;
+  projectId?: string;
+}) => {
+  const res = await axiosInstance.post(
+    `${url}/api/properties/leads/public/lead/verify-otp`,
+    payload,
+  );
   return res.data;
 };
 

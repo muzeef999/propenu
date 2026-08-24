@@ -414,14 +414,14 @@ export default function Page() {
 
               {filteredAgents.map((agent: AgentConnect) => (
                 <Link key={agent._id} href={`/agent-connect/${agent.slug}`}>
-                  <div className="card bg-base-100 p-4 lg:p-2 flex flex-col lg:flex-row items-start lg:items-center gap-6 lg:gap-4 rounded-xl">
+                  <div className="card bg-base-100 p-3 sm:p-4 lg:p-2 flex flex-col lg:flex-row items-start lg:items-center gap-4 sm:gap-6 lg:gap-4 rounded-xl">
 
                     {/* Agent Info */}
-                    <div className="flex-1 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="flex-1 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full">
 
                       {/* Image */}
                       <div className="shrink-0 relative w-full sm:w-auto">
-                        <div className="relative w-full sm:w-40 md:w-52 lg:w-64 h-44 lg:h-42 rounded-lg overflow-hidden bg-gray-100">
+                        <div className="relative w-full h-36 sm:w-40 sm:h-44 md:w-52 lg:w-64 lg:h-42 rounded-lg overflow-hidden bg-gray-100">
                           <Image
                             src={agent.avatar?.url || "/placeholder.jpg"}
                             alt={agent.name || "Agent"}
@@ -443,50 +443,62 @@ export default function Page() {
                       </div>
 
                       {/* Agent Details */}
-                      <div className="w-full flex flex-col justify-between lg:h-35">
+                      <div className="w-full flex flex-col justify-between lg:h-35 min-w-0">
 
-                        <div className="flex flex-col gap-3 font-sans">
+                        <div className="flex flex-col gap-2 sm:gap-3 font-sans min-w-0">
 
                           {/* Name / Exp / RERA */}
-                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-6">
-                            <h2 className="text-lg font-medium text-slate-900">
+                          <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:items-center sm:gap-6 min-w-0">
+                            <h2 className="truncate text-base sm:text-lg font-medium text-slate-900">
                               {agent.name}
                             </h2>
 
-                            <p className="text-sm sm:text-md text-slate-800">
-                              Exp. {agent.experienceYears}+ years
-                            </p>
+                            <div className="hidden sm:flex sm:flex-wrap sm:items-center sm:gap-4">
+                              <p className="text-sm sm:text-md text-slate-800">
+                                Exp. {agent.experienceYears}+ years
+                              </p>
+
+                              {agent.rera?.reraAgentId && (
+                                <span className="text-sm sm:text-md font-medium text-[#2DB473]">
+                                  RERA ID : {agent.rera.reraAgentId}
+                                </span>
+                              )}
+                            </div>
 
                             {agent.rera?.reraAgentId && (
-                              <span className="text-sm sm:text-md font-medium text-[#2DB473]">
+                              <span className="sm:hidden text-xs font-medium text-[#2DB473] truncate">
                                 RERA ID : {agent.rera.reraAgentId}
                               </span>
                             )}
                           </div>
 
                           {/* Agency + Location */}
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-1 text-sm text-slate-500">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-1 text-sm text-slate-500 min-w-0">
 
-                            <div className="flex items-center gap-2 text-gray-600 truncate">
-                              <HiOutlineOfficeBuilding className="text-gray-400" size={18} />
+                            <div className="flex items-center gap-2 text-gray-600 min-w-0">
+                              <HiOutlineOfficeBuilding className="shrink-0 text-gray-400" size={18} />
                               <span className="text-sm truncate">
                                 {agent.agencyName}
                               </span>
                             </div>
 
-                            <div className="flex items-center gap-1 shrink-0 min-w-0">
-                              <MdLocationOn className="text-slate-400" size={20} />
+                            <div className="flex items-center gap-1 min-w-0">
+                              <MdLocationOn className="shrink-0 text-slate-400" size={20} />
                               <span className="truncate text-sm sm:text-base">
                                 {[getAgentLocality(agent), agent.city]
                                   .filter(Boolean)
                                   .join(", ") || "Location unavailable"}
                               </span>
                             </div>
+
+                            <p className="sm:hidden text-xs text-slate-700">
+                              Exp. {agent.experienceYears}+ years
+                            </p>
                           </div>
                         </div>
 
                         {/* Stats */}
-                        <div className="grid grid-cols-3 gap-4 mt-4 lg:mt-2 border-t pt-4 lg:pt-2 border-gray-200 text-sm">
+                        <div className="hidden sm:grid grid-cols-3 gap-4 mt-4 lg:mt-2 border-t pt-4 lg:pt-2 border-gray-200 text-sm">
                           <div className="text-center">
                             <p className="text-green-600 font-semibold">
                               {agent.stats?.totalProperties ? agent.stats.totalProperties : "-"}
@@ -518,7 +530,7 @@ export default function Page() {
                     </div>
 
                     {/* RIGHT SIDE BUTTONS */}
-                    <div className="flex flex-col sm:flex-row lg:flex-col gap-3 w-full lg:w-41 bg-[#27AE60]/10 p-4 lg:p-3 rounded-xl h-auto lg:h-[170px] justify-center">
+                    <div className="flex flex-col sm:flex-row lg:flex-col gap-2 sm:gap-3 w-full lg:w-41 bg-[#27AE60]/10 p-3 sm:p-4 lg:p-3 rounded-xl h-auto lg:h-[170px] justify-center">
                       <button
                         type="button"
                         onClick={(event) => openAgentDetails(event, agent)}
