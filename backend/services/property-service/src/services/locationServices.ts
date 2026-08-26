@@ -136,7 +136,7 @@ export function shouldExposeLocalityFromListing(source: any) {
 
 export async function upsertActiveListingCityAndLocality(source: any) {
   if (!shouldExposeLocalityFromListing(source)) return;
-  if (!source?.city || !source?.locality) return;
+  if (!source?.city) return;
 
   const coordinates = source.location?.coordinates;
   const localityCoordinates =
@@ -144,9 +144,41 @@ export async function upsertActiveListingCityAndLocality(source: any) {
       ? ([Number(coordinates[0]), Number(coordinates[1])] as [number, number])
       : undefined;
 
+  const locality = String(source.locality || "").trim();
+  if (!locality) {
+    // City-only upsert so custom cities still land in Location for reuse
+    const cityName = String(source.city).trim();
+    const stateName = source.state?.trim() ?? null;
+    if (!cityName) return;
+    await Location.findOneAndUpdate(
+      {
+        city: exactCaseInsensitive(cityName),
+        ...(stateName === null
+          ? {
+              $or: [
+                { state: null },
+                { state: "" },
+                { state: { $exists: false } },
+              ],
+            }
+          : { state: exactCaseInsensitive(stateName) }),
+      },
+      {
+        $setOnInsert: {
+          city: cityName,
+          state: stateName,
+          category: "city",
+          localities: [],
+        },
+      },
+      { upsert: true },
+    );
+    return;
+  }
+
   await upsertCityAndLocality({
     city: source.city,
-    locality: source.locality,
+    locality,
     ...(source.state && { state: source.state }),
     ...(localityCoordinates && { coordinates: localityCoordinates }),
   });
@@ -199,6 +231,62 @@ async function findActiveLocationEntries(model: any) {
   return docs
     .map(toActiveLocationEntry)
     .filter((entry: ActiveLocationEntry | null): entry is ActiveLocationEntry => Boolean(entry));
+}
+
+export async function getListingLocationOptions(state?: string) {
+  const match: Record<string, any> = {
+    city: { $exists: true, $nin: [null, ""] },
+  };
+  const stateTrim = String(state || "").trim();
+  if (stateTrim) {
+    match.state = exactCaseInsensitive(stateTrim);
+  }
+
+  const docs = (
+    await Promise.all([
+      Residential.find(match).select("city state locality").lean(),
+      Commercial.find(match).select("city state locality").lean(),
+      LandPlot.find(match).select("city state locality").lean(),
+      Agricultural.find(match).select("city state locality").lean(),
+      FeaturedProject.find(match).select("city state locality").lean(),
+    ])
+  ).flat();
+
+  const cityMap = new Map<string, { city: string; state: string }>();
+  const localityMap = new Map<
+    string,
+    { name: string; city: string; state: string }
+  >();
+
+  for (const doc of docs as any[]) {
+    const city = String(doc?.city || "").trim();
+    if (!city) continue;
+    const st = String(doc?.state || "").trim();
+    const cityKey = `${city.toLowerCase()}|${st.toLowerCase()}`;
+    if (!cityMap.has(cityKey)) {
+      cityMap.set(cityKey, { city, state: st });
+    }
+
+    const locality = String(doc?.locality || "").trim();
+    if (!locality) continue;
+    const locKey = `${locality.toLowerCase()}|${cityKey}`;
+    if (!localityMap.has(locKey)) {
+      localityMap.set(locKey, {
+        name: toTitleCase(locality),
+        city,
+        state: st,
+      });
+    }
+  }
+
+  return {
+    cities: Array.from(cityMap.values()).sort((a, b) =>
+      a.city.localeCompare(b.city),
+    ),
+    localities: Array.from(localityMap.values()).sort((a, b) =>
+      a.name.localeCompare(b.name),
+    ),
+  };
 }
 
 export async function getActiveLocationsFromListings() {

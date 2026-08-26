@@ -514,3 +514,21 @@ export const incrementFeatureClicks = async (req: Request, res: Response) => {
     return res.status(500).json({ error: err.message || "Internal server error" });
   }
 };
+
+/** Distinct cities/localities from featured projects for admin dropdowns */
+export const getFeaturedLocationOptions = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const state =
+      typeof req.query.state === "string" ? req.query.state : undefined;
+    const data = await FeaturePropertyService.getFeaturedLocationOptions(state);
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error("getFeaturedLocationOptions:", err);
+    return res
+      .status(500)
+      .json({ error: err.message || "Failed to load location options" });
+  }
+};

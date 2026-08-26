@@ -8,7 +8,7 @@ import buildSearchCursor, {
   countSearchResults,
 } from "../services/filters/searchService";
 import { sanitizeSearchFilters } from "../services/filters/sanitizeFilters";
-import { getActiveLocationsFromListings } from "../services/locationServices";
+import { getActiveLocationsFromListings, getListingLocationOptions } from "../services/locationServices";
 import Location from "../models/locationModel";
 import FeaturedProject from "../models/featurePropertiesModel";
 
@@ -99,6 +99,23 @@ export const getActiveLocationsHandler: RequestHandler = async (_req, res) => {
   } catch (error: any) {
     return res.status(500).json({
       error: error?.message || "Failed to load active locations",
+    });
+  }
+};
+
+/** Distinct cities/localities from all listing types for admin dropdowns */
+export const getListingLocationOptionsHandler: RequestHandler = async (
+  req,
+  res,
+) => {
+  try {
+    const state =
+      typeof req.query.state === "string" ? req.query.state : undefined;
+    const data = await getListingLocationOptions(state);
+    return res.json({ success: true, data });
+  } catch (error: any) {
+    return res.status(500).json({
+      error: error?.message || "Failed to load location options",
     });
   }
 };

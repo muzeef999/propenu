@@ -16,7 +16,7 @@ import {
   createWatermarkedBuffer,
   getUploadedFileBuffer,
 } from "../utils/imageProcessing";
-import { upsertActiveListingCityAndLocality } from "./locationServices";
+import { upsertActiveListingCityAndLocality, getListingLocationOptions } from "./locationServices";
 import {
   normalizeListingAuditFields,
   restoreCreatedById,
@@ -1894,6 +1894,10 @@ export const FeaturePropertyService = {
     await FeaturedProject.findByIdAndUpdate(id, {
       $inc: { "meta.clicks": 1 },
     }).exec();
+  },
+
+  async getFeaturedLocationOptions(state?: string) {
+    return getListingLocationOptions(state);
   },
 };
 
