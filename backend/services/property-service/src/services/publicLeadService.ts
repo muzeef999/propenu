@@ -1,6 +1,7 @@
 import FeaturedProject from "../models/featurePropertiesModel";
 import { Types } from "mongoose";
 import PublicLead from "../models/PublicLead";
+import { Plan } from "../models/planModel";
 import { notifyOwnerAndAdmins } from "./pushNotificationService";
 import Residential from "../models/residentialModel";
 import Commercial from "../models/commercialModel";
@@ -20,6 +21,46 @@ const normalizePhone = (value?: string | null) =>
 
 const normalizeEmail = (value?: string | null) =>
   String(value || "").trim().toLowerCase();
+
+const maskPhone = (phone?: string | null) => {
+  const value = String(phone || "").trim();
+  if (!value) return "";
+  if (value.length <= 4) return "*".repeat(value.length);
+
+  return `${value.slice(0, 2)}${"*".repeat(Math.max(4, value.length - 4))}${value.slice(-2)}`;
+};
+
+const maskEmail = (email?: string | null) => {
+  const value = normalizeEmail(email);
+  if (!value) return "";
+
+  const [name = "", domain = ""] = value.split("@");
+  if (!domain) {
+    return name.length <= 2 ? `${name.slice(0, 1)}***` : `${name.slice(0, 2)}***`;
+  }
+
+  const visibleName = name.length <= 2 ? name.slice(0, 1) : name.slice(0, 2);
+  return `${visibleName}***@${domain}`;
+};
+
+const getGuestFreePlanCodeForListingType = (listingType: string) => {
+  if (listingType === "rent" || listingType === "lease") {
+    return "RENTAL_FREE";
+  }
+
+  return "BUYER_FREE";
+};
+
+const getGuestContactOwnerLimit = async (listingType: string) => {
+  const planCode = getGuestFreePlanCodeForListingType(listingType);
+  const plan = await Plan.findOne({ code: planCode }).lean();
+  const limit =
+    typeof plan?.features?.get === "function"
+      ? plan.features.get("CONTACT_OWNER_LIMIT")
+      : (plan as any)?.features?.CONTACT_OWNER_LIMIT;
+
+  return typeof limit === "number" ? limit : 2;
+};
 
 export const createPublicLead = async (
   data: any,
@@ -156,6 +197,14 @@ export const createPublicPropertyLead = async (
     throw new Error("Invalid listing type for property");
   }
 
+  const guestContactLimit = await getGuestContactOwnerLimit(listingType);
+  const priorGuestLeadCount = await PublicLead.countDocuments({
+    phone: submittedPhone,
+    source: "site",
+  });
+  const shouldMaskGuestContactDetails =
+    !actorUserId && priorGuestLeadCount >= guestContactLimit;
+
   const lead = await PublicLead.create({
     ...data,
     ownerId: ownerId || undefined,
@@ -190,12 +239,17 @@ export const createPublicPropertyLead = async (
 
   return {
     ...lead.toObject(),
+    contactAccess: shouldMaskGuestContactDetails ? "masked" : "full",
     ownerId: (property as any)?.createdBy
       ? {
           _id: (property as any).createdBy._id,
           name: (property as any).createdBy.name,
-          phone: (property as any).createdBy.phone,
-          email: (property as any).createdBy.email,
+          phone: shouldMaskGuestContactDetails
+            ? maskPhone((property as any).createdBy.phone)
+            : (property as any).createdBy.phone,
+          email: shouldMaskGuestContactDetails
+            ? maskEmail((property as any).createdBy.email)
+            : (property as any).createdBy.email,
         }
       : null,
     projectId: {

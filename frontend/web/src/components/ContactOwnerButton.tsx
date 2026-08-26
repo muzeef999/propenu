@@ -4,20 +4,25 @@ import LeadDialog from "@/app/(pages)/properties/cards/LeadDialog";
 import LoginDialog from "@/app/(auth)/Login";
 import {
   me,
+  postLeads,
   postPublicPropertyLead,
   requestPublicPropertyLeadOtp,
+  syncShortlist,
   verifyPublicPropertyLeadOtp,
 } from "@/data/ClientData";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { listingSourceToOwnershipLabel } from "@/utilies/resolveListingSource";
 import { trackInteraction } from "@/services/trackingService";
 import { HiXMark } from "react-icons/hi2";
 import { z } from "zod";
 import OtpFourDigitInput from "@/components/builder/OtpFourDigitInput";
+import Cookies from "js-cookie";
+import { VerifyPublicPropertyLeadOtpResponse } from "@/types/property";
 
 interface ContactOwnerButtonProps {
   listingType?: string;
@@ -52,6 +57,12 @@ type ContactOwnerFormErrors = Partial<
 >;
 
 const CONTACT_OWNER_OTP_LENGTH = 4;
+const INITIAL_CONTACT_FORM = {
+  name: "",
+  phone: "",
+  email: "",
+};
+const INDIA_COUNTRY_CODE = "+91";
 
 function normalizeComparableValue(value?: string | null) {
   return value?.trim().toLowerCase() || "";
@@ -64,6 +75,18 @@ function sanitizePhoneInput(value?: string | null) {
   }
 
   return `+${cleaned.slice(1).replace(/\+/g, "")}`;
+}
+
+function normalizeIndianPhone(value?: string | null) {
+  const sanitized = sanitizePhoneInput(value);
+  const digitsOnly = sanitized.replace(/\D/g, "");
+  const nationalNumber = digitsOnly.startsWith("91")
+    ? digitsOnly.slice(2)
+    : digitsOnly;
+
+  if (!nationalNumber) return INDIA_COUNTRY_CODE;
+
+  return `${INDIA_COUNTRY_CODE}${nationalNumber.slice(0, 10)}`;
 }
 
 function getEntityId(value: unknown) {
@@ -105,6 +128,27 @@ function isLeadReadyUser(user?: any) {
     Boolean(String(user.companyName || "").trim());
 
   return hasVerifiedPhone && hasName && hasRole && builderNeedsCompany;
+}
+
+function isPlanRestrictionError(statusCode?: number, message?: string) {
+  const lowerMessage = String(message || "").toLowerCase();
+
+  const hasPlanRestrictionMessage =
+    lowerMessage.includes("plan required") ||
+    lowerMessage.includes("subscription required") ||
+    lowerMessage.includes("upgrade your plan") ||
+    lowerMessage.includes("please upgrade") ||
+    lowerMessage.includes("please purchase") ||
+    lowerMessage.includes("buy a plan") ||
+    lowerMessage.includes("purchase a plan") ||
+    lowerMessage.includes("purchase a buyer plan") ||
+    lowerMessage.includes("subscribe to a plan") ||
+    lowerMessage.includes("active plan") ||
+    lowerMessage.includes("membership required") ||
+    lowerMessage.includes("plan limit") ||
+    lowerMessage.includes("owner contacts");
+
+  return statusCode === 402 || hasPlanRestrictionMessage;
 }
 
 const contactOwnerFormSchema = z.object({
@@ -169,17 +213,14 @@ export default function ContactOwnerButton({
   const [openLoginAfterClose, setOpenLoginAfterClose] = useState(false);
   const [showGuestSuccessState, setShowGuestSuccessState] = useState(false);
   const [leadDetails, setLeadDetails] = useState<any>(null);
-  const [form, setForm] = useState({
-    name: "",
-    phone: "",
-    email: "",
-  });
+  const [form, setForm] = useState(INITIAL_CONTACT_FORM);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [formErrors, setFormErrors] = useState<ContactOwnerFormErrors>({});
   const [contactLeadStep, setContactLeadStep] = useState<"form" | "otp">("form");
   const [contactLeadOtp, setContactLeadOtp] = useState("");
   const [contactLeadOtpError, setContactLeadOtpError] = useState("");
   const [contactLeadOtpSubmitting, setContactLeadOtpSubmitting] = useState(false);
+  const router = useRouter();
 
   const normalizeListingType = (
     value?: string,
@@ -205,7 +246,20 @@ export default function ContactOwnerButton({
 
   const resolvedListingType = normalizeListingType(listingType);
 
-  const { data: userData, isLoading: isLoadingUser } = useQuery({
+  const redirectToPlan = () => {
+    if (resolvedListingType === "rent") {
+      router.push("/plans/pricing/rent-view");
+      return;
+    }
+
+    router.push("/plans/pricing/buy-view");
+  };
+
+  const {
+    data: userData,
+    isLoading: isLoadingUser,
+    refetch: refetchUser,
+  } = useQuery({
     queryKey: ["user"],
     queryFn: me,
     retry: 1,
@@ -218,8 +272,14 @@ export default function ContactOwnerButton({
   const user = userData?.user;
   const isLeadReady = isLeadReadyUser(user);
   const createdById = getEntityId(createdBy);
+  const normalizedUserPhone = sanitizePhoneInput(user?.phone);
   const normalizedOwnerPhone = sanitizePhoneInput(ownerPhone);
   const normalizedOwnerEmail = normalizeComparableValue(ownerEmail);
+  const shouldHidePrefilledContactFields =
+    isLeadReady &&
+    Boolean(form.name.trim()) &&
+    Boolean(sanitizePhoneInput(form.phone));
+  const canBypassOtpForLoggedInUser = Boolean(user);
 
   const isOwnLeadForUser = (currentUser?: any) => {
     const currentUserId = getEntityId(currentUser);
@@ -245,6 +305,72 @@ export default function ContactOwnerButton({
     propertyType === "featuredprojects"
       ? "You cannot submit a lead for your own project."
       : "You cannot submit a lead for your own property.";
+  const guestContactAccess = leadDetails?.contactAccess;
+  const guestDisplayPhone =
+    guestContactAccess === "masked"
+      ? leadDetails?.ownerId?.phone
+      : leadDetails?.ownerId?.phone ?? ownerPhone;
+  const guestDisplayEmail =
+    guestContactAccess === "masked"
+      ? leadDetails?.ownerId?.email
+      : leadDetails?.ownerId?.email ?? ownerEmail;
+
+  const getPrefilledForm = () => {
+    if (!user) return INITIAL_CONTACT_FORM;
+
+    return {
+      name: sanitizeNameInput(user.name || user.fullName || ""),
+      phone: sanitizePhoneInput(user.phone),
+      email: String(user.email || ""),
+    };
+  };
+
+  const resetContactFormState = () => {
+    setForm(getPrefilledForm());
+    setFormErrors({});
+    setContactLeadStep("form");
+    setContactLeadOtp("");
+    setContactLeadOtpError("");
+    setContactLeadOtpSubmitting(false);
+    setTermsAccepted(isLeadReady);
+  };
+
+  const saveAuthToken = (token?: string) => {
+    if (!token) return;
+
+    Cookies.set("token", token, {
+      expires: 30,
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+    });
+  };
+
+  const notifyAuthChanged = () => {
+    window.dispatchEvent(new Event("auth-changed"));
+  };
+
+  const syncLocalShortlistIfNeeded = async () => {
+    const localShortlist = JSON.parse(localStorage.getItem("shortlist") || "[]");
+
+    if (localShortlist.length > 0) {
+      await syncShortlist(localShortlist);
+      localStorage.removeItem("shortlist");
+    }
+  };
+
+  const getAuthenticatedUserWithRetry = async (attempts = 3, delayMs = 250) => {
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      const response = await refetchUser();
+      if (response.data?.user) return response.data.user;
+
+      if (attempt < attempts - 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, delayMs));
+      }
+    }
+
+    return undefined;
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -273,7 +399,25 @@ export default function ContactOwnerButton({
     }
   }, [showContactModal, openLoginAfterClose]);
 
-  const { mutateAsync: postLead, isPending: isLeadPosting } = useMutation({
+  const handleLeadError = (error: any) => {
+    const statusCode = error?.response?.status;
+    const apiMessage =
+      error?.response?.data?.message ||
+      error?.message ||
+      "Failed to contact owner";
+    const currentRole = String(user?.roleName || user?.role || "").toLowerCase();
+    const isBuilderUser = currentRole === "builder";
+
+    if (!isBuilderUser && isPlanRestrictionError(statusCode, apiMessage)) {
+      toast.error(apiMessage);
+      redirectToPlan();
+      return;
+    }
+
+    toast.error(apiMessage);
+  };
+
+  const { mutateAsync: postPublicLead, isPending: isLeadPosting } = useMutation({
     mutationFn: postPublicPropertyLead,
     onSuccess: (response) => {
       toast.success(response?.message || "Lead submitted successfully");
@@ -300,14 +444,12 @@ export default function ContactOwnerButton({
         setShowGuestSuccessState(true);
       }
     },
-    onError: (error: any) => {
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Failed to contact owner";
+    onError: handleLeadError,
+  });
 
-      toast.error(message);
-    },
+  const { mutateAsync: postAuthenticatedLead } = useMutation({
+    mutationFn: postLeads,
+    onError: handleLeadError,
   });
 
   const submitLead = async (payload: {
@@ -340,7 +482,7 @@ export default function ContactOwnerButton({
       },
     });
 
-    await postLead({
+    const leadPayload = {
       name: payload.name,
       phone: payload.phone,
       email: payload.email ?? undefined,
@@ -348,19 +490,64 @@ export default function ContactOwnerButton({
       propertyType,
       listingType: resolvedListingType,
       remarks: "Interested in this property",
-    });
+    };
+
+    if (currentUser) {
+      const response = await postAuthenticatedLead(leadPayload);
+      toast.success(response?.message || "Lead submitted successfully");
+      trackInteraction({
+        eventType: "contact_owner_clicked",
+        eventCategory: "conversion",
+        entityType:
+          propertyType === "featuredprojects" ? "project" : "property",
+        ...(propertyType === "featuredprojects"
+          ? { projectId }
+          : { propertyId: projectId }),
+        source: "contact_owner",
+        metadata: {
+          title: propertyLabel,
+          propertyType,
+          listingType: resolvedListingType,
+        },
+      });
+      setLeadDetails(response?.data ?? null);
+      setShowLeadDialog(true);
+      return;
+    }
+
+    await postPublicLead(leadPayload);
   };
 
   const handleRequestLeadOtp = async () => {
     setContactLeadOtpSubmitting(true);
     setContactLeadOtpError("");
 
+    const normalizedPhone = normalizeIndianPhone(form.phone);
+
     try {
-      await requestPublicPropertyLeadOtp({
-        phone: form.phone,
+      const response = await requestPublicPropertyLeadOtp({
+        phone: normalizedPhone,
         projectId: projectId || undefined,
         propertyType,
       });
+
+      if (response?.skipOtp && user) {
+        await submitLead(
+          {
+            name: form.name.trim(),
+            phone: normalizedPhone,
+            email: form.email.trim() || undefined,
+          },
+          user,
+        );
+        setContactLeadStep("form");
+        setContactLeadOtp("");
+        setContactLeadOtpError("");
+        if (user) {
+          setShowContactModal(false);
+        }
+        return;
+      }
     } catch (error: any) {
       const message =
         error?.response?.data?.message ||
@@ -385,6 +572,7 @@ export default function ContactOwnerButton({
     if (e) e.preventDefault();
 
     const cleanOtp = contactLeadOtp.trim();
+    const normalizedPhone = normalizeIndianPhone(form.phone);
     if (cleanOtp.length !== CONTACT_OWNER_OTP_LENGTH) {
       setContactLeadOtpError("Please enter a 4-digit OTP");
       return;
@@ -394,25 +582,34 @@ export default function ContactOwnerButton({
     setContactLeadOtpError("");
 
     try {
-      await verifyPublicPropertyLeadOtp({
-        phone: form.phone,
+      const verificationResponse: VerifyPublicPropertyLeadOtpResponse =
+        await verifyPublicPropertyLeadOtp({
+        phone: normalizedPhone,
         otp: cleanOtp,
         projectId: projectId || undefined,
-      });
+        });
       toast.success("Phone number verified successfully");
+
+      let authenticatedUser = user;
+      if (!authenticatedUser && verificationResponse.token) {
+        saveAuthToken(verificationResponse.token);
+        await syncLocalShortlistIfNeeded();
+        notifyAuthChanged();
+        authenticatedUser = await getAuthenticatedUserWithRetry();
+      }
 
       await submitLead(
         {
           name: form.name.trim(),
-          phone: form.phone,
+          phone: normalizedPhone,
           email: form.email.trim() || undefined,
         },
-        user,
+        authenticatedUser,
       );
       setContactLeadStep("form");
       setContactLeadOtp("");
       setContactLeadOtpError("");
-      if (user) {
+      if (authenticatedUser) {
         setShowContactModal(false);
       }
     } catch (error: any) {
@@ -439,6 +636,7 @@ export default function ContactOwnerButton({
       return;
     }
 
+    resetContactFormState();
     setShowContactModal(true);
     setShowGuestSuccessState(false);
   };
@@ -456,6 +654,23 @@ export default function ContactOwnerButton({
     setFormErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    if (canBypassOtpForLoggedInUser) {
+      setContactLeadStep("form");
+      setContactLeadOtp("");
+      setContactLeadOtpError("");
+
+      await submitLead(
+        {
+          name: form.name.trim(),
+          phone: form.phone,
+          email: form.email.trim() || undefined,
+        },
+        user,
+      );
+      setShowContactModal(false);
       return;
     }
 
@@ -585,9 +800,28 @@ export default function ContactOwnerButton({
                       Lead Submitted Successfully
                     </p>
                     <p className="mt-2 text-sm leading-6 text-slate-600">
-                      Your lead has been submitted successfully. To view the owner's contact details, please log in here.
+                      {leadDetails?.contactAccess === "masked"
+                        ? "You have reached the free guest contact limit. Please log in to view full contact details."
+                        : "To view the owner's contact details, please log in here."}
                     </p>
                   </div>
+                  {guestDisplayPhone || guestDisplayEmail ? (
+                    <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-left">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        {getContactPerson()} Details
+                      </p>
+                      {guestDisplayPhone ? (
+                        <p className="mt-2 text-sm font-medium text-slate-800">
+                          Phone: {guestDisplayPhone}
+                        </p>
+                      ) : null}
+                      {guestDisplayEmail ? (
+                        <p className="mt-1 text-sm font-medium text-slate-800 break-all">
+                          Email: {guestDisplayEmail}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div className="space-y-2">
                     <button
                       type="button"
@@ -604,128 +838,143 @@ export default function ContactOwnerButton({
                 </div>
               ) : (
                 <>
-                  <p className="mt-4 text-sm font-medium text-slate-950 sm:text-base">
-                    Please share your contact details
-                  </p>
+                  {!shouldHidePrefilledContactFields ? (
+                    <p className="mt-4 text-sm font-medium text-slate-950 sm:text-base">
+                      Please share your contact details
+                    </p>
+                  ) : null}
 
-                  <form onSubmit={handleSubmitLeadForm} className="mt-4 space-y-3 sm:space-y-4">
-                    <label className="block">
-                      <span className="text-sm text-slate-600">Full Name</span>
-                      <input
-                        name="name"
-                        value={form.name}
-                        onChange={(event) => {
-                          setFormErrors((current) => ({
-                            ...current,
-                            name: undefined,
-                          }));
-                          setForm((current) => ({
-                            ...current,
-                            name: sanitizeNameInput(event.target.value),
-                          }));
-                        }}
-                        placeholder="Enter Name"
-                        inputMode="text"
-                        required
-                        aria-invalid={Boolean(formErrors.name)}
-                        className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
-                      />
-                      {formErrors.name ? (
-                        <p className="mt-1 text-xs text-red-600">{formErrors.name}</p>
-                      ) : null}
-                    </label>
+                  <form
+                    onSubmit={handleSubmitLeadForm}
+                    className={
+                      shouldHidePrefilledContactFields
+                        ? "mt-4"
+                        : "mt-4 space-y-3 sm:space-y-4"
+                    }
+                  >
+                    {shouldHidePrefilledContactFields ? (
+                      <></>
+                    ) : (
+                      <>
+                        <label className="block">
+                          <span className="text-sm text-slate-600">Full Name</span>
+                          <input
+                            name="name"
+                            value={form.name}
+                            onChange={(event) => {
+                              setFormErrors((current) => ({
+                                ...current,
+                                name: undefined,
+                              }));
+                              setForm((current) => ({
+                                ...current,
+                                name: sanitizeNameInput(event.target.value),
+                              }));
+                            }}
+                            placeholder="Enter Name"
+                            inputMode="text"
+                            required
+                            aria-invalid={Boolean(formErrors.name)}
+                            className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
+                          />
+                          {formErrors.name ? (
+                            <p className="mt-1 text-xs text-red-600">{formErrors.name}</p>
+                          ) : null}
+                        </label>
 
-                    <label className="block">
-                      <span className="text-sm text-slate-600">Mobile</span>
-                      <input
-                        name="phone"
-                        type="tel"
-                        inputMode="tel"
-                        autoComplete="tel"
-                        value={form.phone}
-                        onChange={(event) => {
-                          setFormErrors((current) => ({
-                            ...current,
-                            phone: undefined,
-                          }));
-                          setForm((current) => ({
-                            ...current,
-                            phone: sanitizePhoneInput(event.target.value),
-                          }));
-                        }}
-                        placeholder="Enter Mobile Number"
-                        required
-                        aria-invalid={Boolean(formErrors.phone)}
-                        className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
-                      />
-                      {formErrors.phone ? (
-                        <p className="mt-1 text-xs text-red-600">{formErrors.phone}</p>
-                      ) : null}
-                    </label>
+                        <label className="block">
+                          <span className="text-sm text-slate-600">Mobile</span>
+                          <input
+                            name="phone"
+                            type="tel"
+                            inputMode="tel"
+                            autoComplete="tel"
+                            value={form.phone}
+                            onChange={(event) => {
+                              setFormErrors((current) => ({
+                                ...current,
+                                phone: undefined,
+                              }));
+                              setForm((current) => ({
+                                ...current,
+                                phone: sanitizePhoneInput(event.target.value),
+                              }));
+                            }}
+                            placeholder="Enter Mobile Number"
+                            required
+                            aria-invalid={Boolean(formErrors.phone)}
+                            className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
+                          />
+                          {formErrors.phone ? (
+                            <p className="mt-1 text-xs text-red-600">{formErrors.phone}</p>
+                          ) : null}
+                        </label>
 
-                    <label className="block">
-                      <span className="text-sm text-slate-600">Email ID</span>
-                      <input
-                        name="email"
-                        type="email"
-                        value={form.email}
-                        onChange={(event) => {
-                          setFormErrors((current) => ({
-                            ...current,
-                            email: undefined,
-                          }));
-                          setForm((current) => ({
-                            ...current,
-                            email: event.target.value,
-                          }));
-                        }}
-                        autoComplete="email"
-                        placeholder="Enter your Email ID"
-                        aria-invalid={Boolean(formErrors.email)}
-                        className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
-                      />
-                      {formErrors.email ? (
-                        <p className="mt-1 text-xs text-red-600">{formErrors.email}</p>
-                      ) : null}
-                    </label>
+                        <label className="block">
+                          <span className="text-sm text-slate-600">Email ID</span>
+                          <input
+                            name="email"
+                            type="email"
+                            value={form.email}
+                            onChange={(event) => {
+                              setFormErrors((current) => ({
+                                ...current,
+                                email: undefined,
+                              }));
+                              setForm((current) => ({
+                                ...current,
+                                email: event.target.value,
+                              }));
+                            }}
+                            autoComplete="email"
+                            placeholder="Enter your Email ID"
+                            aria-invalid={Boolean(formErrors.email)}
+                            className="mt-2 h-10 w-full rounded-md border-0 bg-emerald-50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500"
+                          />
+                          {formErrors.email ? (
+                            <p className="mt-1 text-xs text-red-600">{formErrors.email}</p>
+                          ) : null}
+                        </label>
 
-                    <label className="flex items-start gap-2 text-xs text-slate-600 sm:text-sm">
-                      <input
-                        name="terms"
-                        type="checkbox"
-                        checked={termsAccepted}
-                        onChange={(event) => {
-                          setTermsAccepted(event.target.checked);
-                          setFormErrors((current) => ({
-                            ...current,
-                            termsAccepted: undefined,
-                          }));
-                        }}
-                        required
-                        className="peer sr-only"
-                      />
-                      <span
-                        aria-hidden="true"
-                        className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-slate-300 bg-white transition peer-checked:border-[#27AE60] peer-checked:bg-[#27AE60] peer-focus-visible:ring-2 peer-focus-visible:ring-[#27AE60]/25"
-                      >
-                        <span className="h-2 w-1 rotate-45 border-b-2 border-r-2 border-white" />
-                      </span>
-                      <span className="leading-5">
-                        I agree to Propenu's{" "}
-                        <Link
-                          href="/terms"
-                          className="font-medium text-slate-900 underline underline-offset-2 hover:text-[#27AE60]"
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          Terms & Conditions
-                        </Link>
-                      </span>
-                    </label>
-                    {formErrors.termsAccepted ? (
-                      <p className="-mt-1 text-xs text-red-600">
-                        {formErrors.termsAccepted}
-                      </p>
-                    ) : null}
+                        <label className="flex items-start gap-2 text-xs text-slate-600 sm:text-sm">
+                          <input
+                            name="terms"
+                            type="checkbox"
+                            checked={termsAccepted}
+                            onChange={(event) => {
+                              setTermsAccepted(event.target.checked);
+                              setFormErrors((current) => ({
+                                ...current,
+                                termsAccepted: undefined,
+                              }));
+                            }}
+                            required
+                            className="peer sr-only"
+                          />
+                          <span
+                            aria-hidden="true"
+                            className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-slate-300 bg-white transition peer-checked:border-[#27AE60] peer-checked:bg-[#27AE60] peer-focus-visible:ring-2 peer-focus-visible:ring-[#27AE60]/25"
+                          >
+                            <span className="h-2 w-1 rotate-45 border-b-2 border-r-2 border-white" />
+                          </span>
+                          <span className="leading-5">
+                            I agree to Propenu's{" "}
+                            <Link
+                              href="/terms"
+                              className="font-medium text-slate-900 underline underline-offset-2 hover:text-[#27AE60]"
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              Terms & Conditions
+                            </Link>
+                          </span>
+                        </label>
+                        {formErrors.termsAccepted ? (
+                          <p className="-mt-1 text-xs text-red-600">
+                            {formErrors.termsAccepted}
+                          </p>
+                        ) : null}
+                      </>
+                    )}
 
                     <button
                       type="submit"

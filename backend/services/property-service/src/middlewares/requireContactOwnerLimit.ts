@@ -22,7 +22,7 @@ export const requireContactOwnerLimit = async (
     if (propertyType === "featuredprojects") return next();
 
     // admin skip
-    const freeRoles = ["admin", "super_admin"];
+    const freeRoles = ["admin", "super_admin", "builder"];
     if (freeRoles.includes(roleName || "")) return next();
 
     // 1️⃣ get active subscription

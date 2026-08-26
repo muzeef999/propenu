@@ -129,6 +129,44 @@ export interface VerifyOtpResponse {
   kycStatus?: string;
 }
 
+export interface VerifyPublicPropertyLeadOtpResponse {
+  success: boolean;
+  message: string;
+  verified: boolean;
+  autoLoggedIn?: boolean;
+  token?: string;
+  user?: {
+    _id: string;
+    name?: string;
+    email?: string;
+    phone?: string;
+    roleName?: string;
+    accountStatus?: string;
+  };
+}
+
+export interface PublicPropertyLeadResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    contactAccess?: "full" | "masked";
+    ownerId?: {
+      _id?: string;
+      name?: string;
+      phone?: string;
+      email?: string;
+    } | null;
+    projectId?: {
+      _id?: string;
+      title?: string;
+      price?: number;
+      priceFrom?: number;
+      priceTo?: number;
+      createdAt?: string;
+    } | null;
+  };
+}
+
 export interface RequestOtpResponse {
   message: string;
 }

@@ -18,6 +18,7 @@ interface UserGreetingProps {
 
 export const GreetingOptions = [
   { label: "Account & Settings", link: "/settings" },
+  { label: "Notifications", link: "/notifications" },
   { label: "My Properties", link: "/my-properties" },
   { label: "Shortlisted Properties", link: "/shortlisted-properties" },
   { label: "Contacted Properties", link: "/contacted-properties" },
@@ -29,6 +30,7 @@ export const GreetingOptions = [
 export const AgentOptions = [
   { label: "Dashboard", link: "/agent" },
   { label: "Leads", link: "/agent/leads" },
+  { label: "Notifications", link: "/agent/notifications" },
   { label: "My Properties", link: "/agent/my-properties" },
   { label: "Shortlisted Properties", link: "/agent/shortlisted-properties" },
   { label: "My Plans", link: "/agent/my-plan" },
@@ -36,6 +38,7 @@ export const AgentOptions = [
   { label: "Support", link: "/agent/support" },
   { label: "Logout", link: "/logout" },
 ];
+
 
 
 

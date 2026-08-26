@@ -7,7 +7,6 @@ import { useQuery } from "@tanstack/react-query";
 import { hexToRGBA } from "@/ui/hexToRGBA";
 import { Building, profile } from "@/icons/icons";
 import { TbBuildingSkyscraper } from "react-icons/tb";
-import { RiUserHeartLine } from "react-icons/ri";
 import { FiBell, FiBriefcase, FiSettings, FiUsers } from "react-icons/fi";
 import { BiSupport } from "react-icons/bi";
 import { getBuilderNotificationSummary } from "@/data/ClientData";
@@ -15,49 +14,41 @@ import { getBuilderNotificationSummary } from "@/data/ClientData";
 const menuItems = [
   {
     label: "Dashboard",
-    mobileLabel: "Dashboard",
     link: "/builder",
     icon: profile,
   },
   {
     label: "Leads",
-    mobileLabel: "Leads",
     link: "/builder/leads",
     icon: Building,
   },
   {
     label: "My Projects",
-    mobileLabel: "Listings",
     link: "/builder/my-projects",
     icon: TbBuildingSkyscraper,
   },
   {
     label: "Roles & Team",
-    mobileLabel: "Team",
     link: "/builder/roles",
     icon: FiUsers,
   },
   {
     label: "Relationship Manager",
-    mobileLabel: "RM",
     link: "/builder/relationship-manager",
     icon: FiBriefcase,
   },
   {
     label: "Notifications",
-    mobileLabel: "Notifications",
     link: "/builder/notifications",
     icon: FiBell,
   },
   {
     label: "Account Settings",
-    mobileLabel: "Settings",
     link: "/builder/account-settings",
     icon: FiSettings,
   },
   {
     label: "Support",
-    mobileLabel: "Support",
     link: "/builder/support",
     icon: BiSupport,
   },

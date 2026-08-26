@@ -21,10 +21,12 @@ import Residential from "../models/residentialModel";
 import Commercial from "../models/commercialModel";
 import LandPlot from "../models/landModel";
 import Agricultural from "../models/agriculturalModel";
+import User from "../models/userModel";
+import Role from "../models/roleModel";
 import * as XLSX from "xlsx";
 import { getAdminLeadDashboard } from "../services/adminLeadService";
 import { notifyProjectBrochureDownload } from "../services/pushNotificationService";
-import { verifyToken } from "../utils/jwt";
+import { generateToken, verifyToken } from "../utils/jwt";
 import { sendOtpWhatsApp } from "../utils/whatsapp";
 import {
   consumeVerifiedLeadPhone,
@@ -79,6 +81,119 @@ const maskEmail = (email?: string) => {
 
   const visibleName = name.length <= 2 ? name.slice(0, 1) : name.slice(0, 2);
   return `${visibleName}***@${domain}`;
+};
+
+const canBypassLeadOtpVerification = async (
+  actorUserId: string,
+  phone: string,
+) => {
+  if (!actorUserId || !Types.ObjectId.isValid(actorUserId) || !phone) {
+    return false;
+  }
+
+  const user = await User.findById(actorUserId).select("phone").lean();
+  if (!user) {
+    return false;
+  }
+
+  return normalizeLeadPhone((user as any)?.phone) === phone;
+};
+
+const createLeadOtpAutoLoginPayload = async (userDoc: any) => {
+  if (!userDoc?._id) {
+    return null;
+  }
+
+  const roleDoc = userDoc.roleId
+    ? await Role.findById(userDoc.roleId).select("name permissions").lean()
+    : null;
+
+  const payload: Record<string, unknown> = {
+    sub: String(userDoc._id),
+    _id: userDoc._id,
+    email: userDoc.email,
+    name: userDoc.name,
+    companyName: userDoc.companyName,
+    roleId: roleDoc?._id ? String(roleDoc._id) : undefined,
+    roleName: roleDoc?.name,
+    permissions: roleDoc?.permissions ?? [],
+    accountStatus: userDoc.accountStatus,
+  };
+
+  if (userDoc.phone) {
+    payload.phone = Number(userDoc.phone);
+  }
+
+  const lastLoginAt = new Date();
+  await User.findByIdAndUpdate(userDoc._id, {
+    $set: { lastLoginAt },
+  });
+
+  return {
+    token: generateToken(payload as any),
+    user: {
+      _id: String(userDoc._id),
+      name: userDoc.name,
+      email: userDoc.email,
+      phone: userDoc.phone,
+      roleName: roleDoc?.name,
+      accountStatus: userDoc.accountStatus,
+    },
+  };
+};
+
+const isKnownLeadPhone = async (phone: string) => {
+  if (!phone) {
+    return false;
+  }
+
+  const [existingUser, existingPublicLead] = await Promise.all([
+    User.findOne({ phone }).select("_id").lean(),
+    PublicLead.findOne({ phone }).select("_id").lean(),
+  ]);
+
+  return Boolean(existingUser || existingPublicLead);
+};
+
+const ensureNotOwnerPhoneForPublicPropertyLead = async (params: {
+  projectId: string;
+  propertyType: string;
+  phone: string;
+}) => {
+  const { projectId, propertyType, phone } = params;
+
+  const propertyModelMap: Record<string, any> = {
+    featuredprojects: FeaturedProject,
+    residentials: Residential,
+    commercials: Commercial,
+    agriculturals: Agricultural,
+    landplots: LandPlot,
+  };
+
+  const PropertyModel = propertyModelMap[propertyType];
+  if (!PropertyModel) {
+    return;
+  }
+
+  const property = await PropertyModel.findById(projectId)
+    .populate("createdBy", "phone")
+    .select("createdBy")
+    .lean();
+
+  if (!property) {
+    return;
+  }
+
+  const ownerPhone = normalizeLeadPhone((property as any)?.createdBy?.phone);
+  if (ownerPhone && ownerPhone === phone) {
+    const error: any = new Error(
+      propertyType === "featuredprojects"
+        ? "You cannot submit a lead for your own project"
+        : "You cannot submit a lead for your own property",
+    );
+    error.statusCode = 403;
+    throw error;
+  }
 };
 
 const getLeadDisplayTimestamp = (lead: any) => {
@@ -703,7 +818,11 @@ export const createLeadController: RequestHandler = async (req, res) => {
     const authReq = req as AuthRequest; // 👈 cast once
 
     const data = LeadCreateSchema.parse(authReq.body);
-    const lead = await createLead(data, authReq.user!.id);
+    const lead = await createLead(
+      data,
+      authReq.user!.id,
+      authReq.user?.roleName || authReq.user?.role || "",
+    );
 
     res.status(201).json({ success: true, data: lead });
   } catch (error: any) {
@@ -971,10 +1090,14 @@ export const createPublicLeadController = async (
       }
     }
 
-    const verified = await consumeVerifiedLeadPhone(
-      String(data.projectId),
+    const canBypassOtp = await canBypassLeadOtpVerification(
+      actorUserId,
       normalizedPhone,
     );
+    const verified =
+      canBypassOtp ||
+      (await isKnownLeadPhone(normalizedPhone)) ||
+      (await consumeVerifiedLeadPhone(String(data.projectId), normalizedPhone));
 
     if (!verified) {
       return res.status(403).json({
@@ -1042,7 +1165,14 @@ export const requestPublicProjectLeadOtpController = async (
 
     const otp = generateLeadOtp();
     await saveLeadOtp(projectId, phone, otp);
-    await sendOtpWhatsApp(phone, otp);
+    const deliveryResult = await sendOtpWhatsApp(phone, otp);
+
+    if (!deliveryResult) {
+      return res.status(502).json({
+        success: false,
+        message: "Failed to deliver OTP",
+      });
+    }
 
     return res.json({
       success: true,
@@ -1174,7 +1304,14 @@ export const requestPublicPropertyLeadOtpController = async (
 
     const otp = generateLeadOtp();
     await saveLeadOtp(projectId, phone, otp);
-    await sendOtpWhatsApp(phone, otp);
+    const deliveryResult = await sendOtpWhatsApp(phone, otp);
+
+    if (!deliveryResult) {
+      return res.status(502).json({
+        success: false,
+        message: "Failed to deliver OTP",
+      });
+    }
 
     return res.json({
       success: true,
@@ -1230,10 +1367,30 @@ export const verifyPublicPropertyLeadOtpController = async (
       });
     }
 
+    const existingUser = await User.findOne({ phone })
+      .select("_id name email phone companyName roleId accountStatus isActive")
+      .lean();
+
+    if (existingUser?.isActive === false) {
+      return res.json({
+        success: true,
+        message: "Phone number verified successfully",
+        verified: true,
+        autoLoggedIn: false,
+      });
+    }
+
+    const autoLoginData = existingUser
+      ? await createLeadOtpAutoLoginPayload(existingUser)
+      : null;
+
     return res.json({
       success: true,
       message: "Phone number verified successfully",
       verified: true,
+      autoLoggedIn: Boolean(autoLoginData?.token),
+      token: autoLoginData?.token,
+      user: autoLoginData?.user,
     });
   } catch (err: any) {
     return res.status(500).json({
@@ -1265,10 +1422,14 @@ export const createPublicPropertyLeadController = async (
       }
     }
 
-    const verified = await consumeVerifiedLeadPhone(
-      String(data.projectId),
+    const canBypassOtp = await canBypassLeadOtpVerification(
+      actorUserId,
       normalizedPhone,
     );
+    const verified =
+      canBypassOtp ||
+      (await isKnownLeadPhone(normalizedPhone)) ||
+      (await consumeVerifiedLeadPhone(String(data.projectId), normalizedPhone));
 
     if (!verified) {
       return res.status(403).json({
@@ -1276,6 +1437,12 @@ export const createPublicPropertyLeadController = async (
         message: "Phone number verification is required before submitting this lead",
       });
     }
+
+    await ensureNotOwnerPhoneForPublicPropertyLead({
+      projectId: String(data.projectId),
+      propertyType: String(data.propertyType),
+      phone: normalizedPhone,
+    });
 
     const lead = await createPublicPropertyLead(
       { ...data, phone: normalizedPhone },
