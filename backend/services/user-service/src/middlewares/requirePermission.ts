@@ -38,15 +38,25 @@ async function rolesAllowedForPermission(required: string) {
   }));
 }
 
-export function requirePermission(required: string, legacyRoles: string[] = []) {
+export function requirePermission(required: string | string[], legacyRoles: string[] = []) {
+  const requiredList = (Array.isArray(required) ? required : [required]).filter(Boolean);
+
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // 👇 super_admin / admin bypass: always allow
     const roleName = normalizeRoleName(req.user.roleName);
-    if (roleName === "super_admin" || roleName === "admin") {
+    const permissions = Array.isArray(req.user.permissions)
+      ? req.user.permissions
+      : [];
+
+    // Built-in full access
+    if (
+      roleName === "super_admin" ||
+      roleName === "admin" ||
+      permissions.includes("*")
+    ) {
       return next();
     }
 
@@ -54,23 +64,24 @@ export function requirePermission(required: string, legacyRoles: string[] = []) 
       return next();
     }
 
-    const permissions = req.user.permissions || [];
+    const hasPermission = requiredList.some((perm) => permissions.includes(perm));
 
-    if (!permissions.includes(required)) {
-      const allowedRoles = await rolesAllowedForPermission(required);
+    if (!hasPermission) {
+      const primary = requiredList[0] || "permission";
+      const allowedRoles = await rolesAllowedForPermission(primary);
       const yourRoleLabel = formatRoleLabel(roleName || "unknown", roleName);
       const allowedLabels = allowedRoles.map((role) => role.label).join(", ");
 
       return res.status(403).json({
         success: false,
         code: "PERMISSION_REQUIRED",
-        error: `Permission denied. Your role (${yourRoleLabel}) cannot create/manage this. Required permission: '${required}'.`,
-        message: `Your role (${yourRoleLabel}) does not have '${required}'. Roles that can access this: ${allowedLabels || "Super Admin, Admin"}. Ask a Super Admin to grant '${required}' on your role.`,
-        requiredPermission: required,
+        error: `Permission denied. Your role (${yourRoleLabel}) cannot create/manage this. Required permission: '${requiredList.join("' or '")}'.`,
+        message: `Your role (${yourRoleLabel}) does not have '${requiredList.join("' or '")}'. Roles that can access this: ${allowedLabels || "Super Admin, Admin"}. Ask a Super Admin to grant access on your role.`,
+        requiredPermission: requiredList.join(" | "),
         yourRole: roleName || null,
         yourRoleLabel,
         allowedRoles,
-        howToGetAccess: `Ask a Super Admin (Access Control → Roles) to add '${required}' to your role, or sign in with one of: ${allowedLabels || "Super Admin / Admin"}.`,
+        howToGetAccess: `Ask a Super Admin (Access Control → Roles) to add '${requiredList.join("' or '")}' to your role, or sign in with one of: ${allowedLabels || "Super Admin / Admin"}.`,
       });
     }
 

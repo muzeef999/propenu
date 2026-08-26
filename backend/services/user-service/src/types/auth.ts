@@ -21,7 +21,7 @@ export interface JwtUserPayload extends JwtPayload {
   name: string;
   roleId?: string | undefined;
   roleName?: string | undefined;
-  permissions: string[];
+  permissions?: string[];
   builderAccess?: unknown;
   accountStatus?: string | undefined;
 }

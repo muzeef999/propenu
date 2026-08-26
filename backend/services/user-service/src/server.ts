@@ -16,6 +16,7 @@ import builderAccessRoute from "./routes/builderAccessRoute";
 import builderProfileRoute from "./routes/builderProfileRoute";
 import { fieldMeetingRoute } from "./routes/fieldMeetingRoute";
 import { cleanupDuplicateLocalities } from "./services/locationService";
+import Role from "./models/roleModel";
 
 dotenv.config({ path: path.resolve(process.cwd(), ".env"), quiet: true });
 
@@ -25,9 +26,57 @@ app.use(express.urlencoded({ extended: true }));
 
 const port = process.env.PORT ?? 4004;
 
+/** Ensure roles that use Locations admin can save (fixes 403 on edit). */
+async function ensureLocationManagePermissions() {
+  const roleNames = [
+    "admin",
+    "super_admin",
+    "business_development_head",
+    "operations_head",
+    "ceo",
+    "regional_manager",
+    "sales_manager",
+    "founder",
+  ];
+  const perms = [
+    "location:view",
+    "location:create",
+    "location:update",
+    "location:delete",
+  ];
+
+  // Named staff roles that see Locations in sidebar
+  await Role.updateMany(
+    { name: { $in: roleNames } },
+    { $addToSet: { permissions: { $each: perms } } },
+  );
+
+  // Any role that already has Locations sidebar (location:view) also gets manage
+  const upgraded = await Role.updateMany(
+    { permissions: "location:view" },
+    {
+      $addToSet: {
+        permissions: {
+          $each: ["location:create", "location:update", "location:delete"],
+        },
+      },
+    },
+  );
+
+  if (upgraded.modifiedCount > 0) {
+    console.log(
+      `Location manage permissions synced on ${upgraded.modifiedCount} role(s)`,
+    );
+  }
+}
+
 async function start() {
   try {
     await connectDB();
+
+    await ensureLocationManagePermissions().catch((error) => {
+      console.error("ensureLocationManagePermissions failed:", error);
+    });
 
     cleanupDuplicateLocalities()
       .then((result) => {

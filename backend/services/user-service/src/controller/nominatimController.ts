@@ -176,11 +176,13 @@ export const getAllLocations = async(req: AuthRequest, res: Response) => {
     const roleName = String(req.user?.roleName || "")
       .trim()
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_");
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
     const permissions = req.user?.permissions || [];
     const canManageLocations =
       roleName === "super_admin" ||
       roleName === "admin" ||
+      permissions.includes("*") ||
       permissions.includes("location:view") ||
       permissions.includes("location:create") ||
       permissions.includes("location:update") ||
