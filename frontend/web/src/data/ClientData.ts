@@ -6,9 +6,11 @@ import {
   ApiResponse,
   createRequestOtpPayload,
   createVerifyOtpPayload,
+  PublicPropertyLeadResponse,
   RequestOtpPayload,
   VerifyOtpPayload,
   VerifyOtpResponse,
+  VerifyPublicPropertyLeadOtpResponse,
 } from "@/types/property";
 import { SearchFilterParams } from "@/types/sharedTypes";
 import axiosInstance from "@/utilies/axiosInstance";
@@ -728,7 +730,18 @@ export const postPublicPropertyLead = async (payload: {
   propertyType?: string;
   remarks?: string;
 }) => {
-  const res = await axiosInstance.post(`${url}/api/properties/leads/public/lead`, payload);
+  const token = Cookies.get("token");
+  const res = await axiosInstance.post<PublicPropertyLeadResponse>(
+    `${url}/api/properties/leads/public/lead`,
+    payload,
+    token
+      ? {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      : undefined,
+  );
   return res.data;
 };
 
@@ -749,7 +762,7 @@ export const verifyPublicPropertyLeadOtp = async (payload: {
   otp: string;
   projectId?: string;
 }) => {
-  const res = await axiosInstance.post(
+  const res = await axiosInstance.post<VerifyPublicPropertyLeadOtpResponse>(
     `${url}/api/properties/leads/public/lead/verify-otp`,
     payload,
   );

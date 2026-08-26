@@ -591,7 +591,10 @@ const Dashboard = () => {
                   tickLine={false}
                   axisLine={false}
                   interval={0}
-                  tick={{ fontSize: 12 }}
+                  height={72}
+                  tick={{ fontSize: 11 }}
+                  angle={-20}
+                  textAnchor="end"
                 />
                 <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={56} />
                 <Tooltip

@@ -83,7 +83,11 @@ const notifyLeadCreated = async ({
 };
 
 /** CREATE LEAD **/
-export const createLead = async (data: any, userId: string | null) => {
+export const createLead = async (
+  data: any,
+  userId: string | null,
+  actorRoleName?: string | null,
+) => {
   const { propertyType, projectId } = data;
 
   if (!userId) {
@@ -149,6 +153,23 @@ export const createLead = async (data: any, userId: string | null) => {
 
     await notifyLeadCreated({ lead, property, userId });
 
+    return getLeadWithDialogDetails(lead._id);
+  }
+
+  const actorRole = String(actorRoleName || "").toLowerCase();
+
+  if (actorRole === "builder") {
+    const { listingType: _ignore, ...safeData } = data;
+
+    const lead = await Lead.create({
+      ...safeData,
+      propertyModel: PropertyModel.modelName,
+      createdBy: userId,
+      ownerId,
+      listingType,
+    });
+
+    await notifyLeadCreated({ lead, property, userId });
     return getLeadWithDialogDetails(lead._id);
   }
 

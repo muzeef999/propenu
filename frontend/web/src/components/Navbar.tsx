@@ -276,10 +276,10 @@ const Navbar = () => {
               {!isBuilder && (
                 <Link
                   href="/postproperty"
-                  className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-[8px] border border-[#d6ebdb] bg-white px-3 text-[12px] font-semibold text-[#4a7a5d]"
+                  className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-[#d6ebdb] bg-white px-3 text-[12px] font-semibold text-[#4a7a5d]"
                 >
                   <span>Post Property</span>
-                  <span className="rounded-[6px] bg-[#27AE60] px-1.5 py-[3px] text-[10px] font-bold uppercase leading-none text-white">
+                  <span className="rounded-md bg-[#27AE60] px-1.5 py-[3px] text-[10px] font-bold uppercase leading-none text-white">
                     Free
                   </span>
                 </Link>

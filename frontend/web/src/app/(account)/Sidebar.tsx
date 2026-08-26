@@ -18,43 +18,36 @@ import { getUserNotificationSummary } from "@/data/ClientData";
 const menuItems = [
   {
     label: "Account & Settings",
-    mobileLabel: "Account",
     link: "/settings",
     icon: profile,
   },
   {
     label: "My Properties",
-    mobileLabel: "Properties",
     link: "/my-properties",
     icon: Building,
   },
   {
     label: "Shortlisted Properties",
-    mobileLabel: "Saved",
     link: "/shortlisted-properties",
     icon: Shortlistedicons,
   },
   {
     label: "Notifications",
-    mobileLabel: "Alerts",
     link: "/notifications",
     icon: FiBell,
   },
   {
     label: "Contacted Properties",
-    mobileLabel: "Contacted",
     link: "/contacted-properties",
     icon: MdOutlinePhoneInTalk,
   },
   {
     label: "Membership",
-    mobileLabel: "Plans",
     link: "/membership",
     icon: Subscription,
   },
   {
     label: "Support",
-    mobileLabel: "Support",
     link: "/support",
     icon: BiSupport,
   },
@@ -134,54 +127,6 @@ const Sidebar = () => {
           </div>
         </div>
       </aside>
-
-      {/* Mobile/Tablet bottom tabs: icons only */}
-      <nav className="fixed bottom-0 inset-x-0 z-30 border-t border-gray-200 bg-white lg:hidden">
-        <div className="container mx-auto px-2">
-          <div className="grid grid-cols-7">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.link;
-
-              return (
-                <Link
-                  key={item.link}
-                  href={item.link}
-                  aria-label={item.label}
-                  title={item.label}
-                  className="flex flex-col items-center justify-center py-2 transition-all duration-300"
-                >
-                  {/* Icon Wrapper */}
-                  <div
-                    className={`p-2 rounded-full transition-all duration-300 ${isActive
-                        ? "bg-[#27A361]/15 scale-105"
-                        : "bg-transparent"
-                      }`}
-                  >
-                    <Icon
-                      size={20}
-                      className={`transition-all duration-300 ${isActive
-                          ? "text-[#27A361]"
-                          : "text-gray-400"
-                        }`}
-                    />
-                  </div>
-
-                  {/* Label */}
-                  <span
-                    className={`text-xs mt-1 transition-all duration-200 ${isActive
-                      ? "text-[#27A361]"
-                      : "text-gray-400"
-                      }`}
-                  >
-                    {item.mobileLabel ?? item.label}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </nav>
     </>
   );
 };

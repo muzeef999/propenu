@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   IoAddCircleOutline,
   IoCompassOutline,
   IoEllipsisHorizontal,
+  IoGridOutline,
   IoHeartOutline,
   IoHome,
   IoHomeOutline,
@@ -31,6 +33,19 @@ export default function MobileBottomNav({
   hidden?: boolean;
 }) {
   const pathname = usePathname() || "/";
+  const [roleName, setRoleName] = useState("");
+
+  useEffect(() => {
+    setRoleName(String(localStorage.getItem("role") ?? "").toLowerCase());
+  }, []);
+
+  const isBuilderUser =
+    isAuthenticated && (roleName === "builder" || roleName === "builder_staff");
+  const shortlistHref = isBuilderUser
+    ? "/builder/my-shortlists"
+    : roleName === "agent"
+      ? "/agent/shortlisted-properties"
+      : "/shortlisted-properties";
 
   const navItems: NavItem[] = [
     {
@@ -53,18 +68,28 @@ export default function MobileBottomNav({
       icon: () => <IoCompassOutline className="h-5 w-5" />,
     },
     {
-      key: "sell-rent",
-      label: "Sell/Rent",
-      href: "/postproperty",
-      isActive: (currentPath) => currentPath.startsWith("/postproperty"),
-      icon: () => <IoAddCircleOutline className="h-6 w-6" />,
+      key: isBuilderUser ? "builder-dashboard" : "sell-rent",
+      label: isBuilderUser ? "Dashboard" : "Sell/Rent",
+      href: isBuilderUser ? "/builder" : "/postproperty",
+      isActive: (currentPath) =>
+        isBuilderUser
+          ? currentPath === "/builder" || currentPath.startsWith("/builder/")
+          : currentPath.startsWith("/postproperty"),
+      icon: () =>
+        isBuilderUser ? (
+          <IoGridOutline className="h-5 w-5" />
+        ) : (
+          <IoAddCircleOutline className="h-6 w-6" />
+        ),
     },
     {
       key: "shortlist",
       label: "Shortlist",
-      href: isAuthenticated ? "/shortlisted-properties" : undefined,
+      href: isAuthenticated ? shortlistHref : undefined,
       isActive: (currentPath) =>
-        currentPath.startsWith("/shortlisted-properties"),
+        currentPath.startsWith("/shortlisted-properties") ||
+        currentPath.startsWith("/agent/shortlisted-properties") ||
+        currentPath.startsWith("/builder/my-shortlists"),
       icon: () => <IoHeartOutline className="h-5 w-5" />,
       onClick: !isAuthenticated
         ? () => {
