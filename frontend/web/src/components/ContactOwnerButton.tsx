@@ -1,6 +1,5 @@
 "use client";
 
-import LeadDialog from "@/app/(pages)/properties/cards/LeadDialog";
 import LoginDialog from "@/app/(auth)/Login";
 import {
   me,
@@ -208,7 +207,6 @@ export default function ContactOwnerButton({
   children,
 }: ContactOwnerButtonProps) {
   const [showContactModal, setShowContactModal] = useState(false);
-  const [showLeadDialog, setShowLeadDialog] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [openLoginAfterClose, setOpenLoginAfterClose] = useState(false);
   const [showGuestSuccessState, setShowGuestSuccessState] = useState(false);
@@ -270,6 +268,7 @@ export default function ContactOwnerButton({
   };
 
   const user = userData?.user;
+  const hasAuthToken = Boolean(Cookies.get("token"));
   const isLeadReady = isLeadReadyUser(user);
   const createdById = getEntityId(createdBy);
   const normalizedUserPhone = sanitizePhoneInput(user?.phone);
@@ -279,7 +278,7 @@ export default function ContactOwnerButton({
     isLeadReady &&
     Boolean(form.name.trim()) &&
     Boolean(sanitizePhoneInput(form.phone));
-  const canBypassOtpForLoggedInUser = Boolean(user);
+  const canBypassOtpForLoggedInUser = hasAuthToken;
 
   const isOwnLeadForUser = (currentUser?: any) => {
     const currentUserId = getEntityId(currentUser);
@@ -306,6 +305,7 @@ export default function ContactOwnerButton({
       ? "You cannot submit a lead for your own project."
       : "You cannot submit a lead for your own property.";
   const guestContactAccess = leadDetails?.contactAccess;
+  const isAuthenticatedViewer = Boolean(user || hasAuthToken);
   const guestDisplayPhone =
     guestContactAccess === "masked"
       ? leadDetails?.ownerId?.phone
@@ -437,12 +437,7 @@ export default function ContactOwnerButton({
         },
       });
       setLeadDetails(response?.data ?? null);
-      if (user) {
-        setShowLeadDialog(true);
-      } else {
-        setShowLeadDialog(false);
-        setShowGuestSuccessState(true);
-      }
+      setShowGuestSuccessState(true);
     },
     onError: handleLeadError,
   });
@@ -511,7 +506,7 @@ export default function ContactOwnerButton({
         },
       });
       setLeadDetails(response?.data ?? null);
-      setShowLeadDialog(true);
+      setShowGuestSuccessState(true);
       return;
     }
 
@@ -543,9 +538,6 @@ export default function ContactOwnerButton({
         setContactLeadStep("form");
         setContactLeadOtp("");
         setContactLeadOtpError("");
-        if (user) {
-          setShowContactModal(false);
-        }
         return;
       }
     } catch (error: any) {
@@ -609,9 +601,6 @@ export default function ContactOwnerButton({
       setContactLeadStep("form");
       setContactLeadOtp("");
       setContactLeadOtpError("");
-      if (authenticatedUser) {
-        setShowContactModal(false);
-      }
     } catch (error: any) {
       const message =
         error?.response?.data?.message ||
@@ -658,6 +647,14 @@ export default function ContactOwnerButton({
     }
 
     if (canBypassOtpForLoggedInUser) {
+      let authenticatedUser = user;
+
+      if (!authenticatedUser && hasAuthToken) {
+        authenticatedUser =
+          (await getAuthenticatedUserWithRetry(1, 0)) ??
+          { _id: "authenticated-user" };
+      }
+
       setContactLeadStep("form");
       setContactLeadOtp("");
       setContactLeadOtpError("");
@@ -668,9 +665,8 @@ export default function ContactOwnerButton({
           phone: form.phone,
           email: form.email.trim() || undefined,
         },
-        user,
+        authenticatedUser,
       );
-      setShowContactModal(false);
       return;
     }
 
@@ -792,15 +788,17 @@ export default function ContactOwnerButton({
                 </form>
               ) : showGuestSuccessState ? (
                 <div className="mt-5 space-y-4 text-center">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#27AE60] text-white shadow-md">
+                  {/* <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#27AE60] text-white shadow-md">
                     <span className="h-6 w-3 rotate-45 border-b-2 border-r-2 border-white" />
-                  </div>
+                  </div> */}
                   <div>
-                    <p className="text-base font-bold text-[#27AE60]">
+                    {/* <p className="text-base font-bold text-[#27AE60]">
                       Lead Submitted Successfully
-                    </p>
+                    </p> */}
                     <p className="mt-2 text-sm leading-6 text-slate-600">
-                      {leadDetails?.contactAccess === "masked"
+                      {isAuthenticatedViewer
+                        ? ` `
+                        : leadDetails?.contactAccess === "masked"
                         ? "You have reached the free guest contact limit. Please log in to view full contact details."
                         : "To view the owner's contact details, please log in here."}
                     </p>
@@ -822,19 +820,32 @@ export default function ContactOwnerButton({
                       ) : null}
                     </div>
                   ) : null}
-                  <div className="space-y-2">
+                  {isAuthenticatedViewer ? (
                     <button
                       type="button"
                       onClick={() => {
                         setShowGuestSuccessState(false);
                         setShowContactModal(false);
-                        setOpenLoginAfterClose(true);
                       }}
                       className="h-10 w-full rounded-md bg-[#27AE60] text-sm font-semibold text-white shadow-sm transition hover:bg-[#219150]"
                     >
-                      Login Here
+                      Close
                     </button>
-                  </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowGuestSuccessState(false);
+                          setShowContactModal(false);
+                          setOpenLoginAfterClose(true);
+                        }}
+                        className="h-10 w-full rounded-md bg-[#27AE60] text-sm font-semibold text-white shadow-sm transition hover:bg-[#219150]"
+                      >
+                        Login Here
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <>
@@ -992,27 +1003,6 @@ export default function ContactOwnerButton({
               )}
             </div>
           </div>,
-          document.body,
-        )}
-
-      {showLeadDialog &&
-        createPortal(
-          <LeadDialog
-            open={showLeadDialog}
-            onClose={() => setShowLeadDialog(false)}
-            ownerName={ownerName ?? leadDetails?.ownerId?.name}
-            ownerRole={getContactPerson()}
-            phone={ownerPhone ?? leadDetails?.ownerId?.phone}
-            email={ownerEmail ?? leadDetails?.ownerId?.email}
-            postedOn={postedOn ?? leadDetails?.projectId?.createdAt}
-            price={
-              price ??
-              leadDetails?.projectId?.price ??
-              leadDetails?.projectId?.priceFrom ??
-              leadDetails?.projectId?.priceTo
-            }
-            propertyLabel={propertyLabel ?? leadDetails?.projectId?.title}
-          />,
           document.body,
         )}
 

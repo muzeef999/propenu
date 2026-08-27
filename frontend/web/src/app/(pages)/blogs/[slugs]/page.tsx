@@ -45,6 +45,16 @@ function stripHtml(value?: string) {
   return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function normalizeBlogHtml(content: string) {
+  return content
+    .replace(/<p>(?:&nbsp;|\s|<span[^>]*>&nbsp;<\/span>)*<\/p>/gi, "")
+    .replace(
+      /<p>\s*(?:<span[^>]*>)?\s*●\s*(?:<\/span>)?(?:<span[^>]*>(?:&nbsp;|\s)+<\/span>)*(?:<span[^>]*>)?\s*&nbsp;\s*([\s\S]*?)\s*(?:<\/span>)?\s*<\/p>/gi,
+      "<ul><li>$1</li></ul>",
+    )
+    .replace(/<\/ul>\s*<ul>/gi, "");
+}
+
 function getArticleSectionId(heading: string, index: number) {
   const slug = heading
     .toLowerCase()
@@ -71,11 +81,15 @@ function ContentBlock({ content }: { content?: string }) {
   if (!content) return null;
 
   if (hasHtml(content)) {
+    const normalizedContent = normalizeBlogHtml(content);
+
     return (
-      <div
-        className="text-[15px] leading-7 text-gray-700 sm:text-base sm:leading-8 [&_a]:font-semibold [&_a]:text-[#26ad5f] [&_a]:underline [&_blockquote]:my-6 [&_blockquote]:border-l-4 [&_blockquote]:border-[#27AE60] [&_blockquote]:bg-[#f7fcf8] [&_blockquote]:pl-4 [&_blockquote]:pr-3 [&_blockquote]:py-2 [&_blockquote]:italic [&_blockquote]:text-gray-600 [&_em]:italic [&_h1]:mb-4 [&_h1]:mt-8 [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:leading-tight [&_h1]:text-gray-950 sm:[&_h1]:text-3xl [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-gray-950 sm:[&_h2]:text-2xl [&_h3]:mb-2 [&_h3]:mt-6 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:text-gray-950 sm:[&_h3]:text-xl [&_img]:my-6 [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-2xl [&_img]:border [&_img]:border-gray-200 [&_img]:shadow-sm [&_li]:mb-2 [&_mark]:rounded [&_mark]:bg-yellow-200 [&_mark]:px-1 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-5 [&_p.has-text-align-center]:text-center [&_p.has-text-align-right]:text-right [&_strong]:font-semibold [&_strong]:text-gray-950 [&_sub]:align-sub [&_sup]:align-super [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_.has-text-align-center]:text-center [&_.has-text-align-left]:text-left [&_.has-text-align-right]:text-right"
-        dangerouslySetInnerHTML={{ __html: content }}
-      />
+      <div className="overflow-x-auto">
+        <div
+          className="min-w-0 text-[15px] leading-7 text-gray-700 sm:text-base sm:leading-8 [&_a]:font-semibold [&_a]:text-[#26ad5f] [&_a]:underline [&_blockquote]:my-6 [&_blockquote]:border-l-4 [&_blockquote]:border-[#27AE60] [&_blockquote]:bg-[#f7fcf8] [&_blockquote]:pl-4 [&_blockquote]:pr-3 [&_blockquote]:py-2 [&_blockquote]:italic [&_blockquote]:text-gray-600 [&_em]:italic [&_h1]:mb-4 [&_h1]:mt-8 [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:leading-tight [&_h1]:text-gray-950 sm:[&_h1]:text-3xl [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-gray-950 sm:[&_h2]:text-2xl [&_h3]:mb-2 [&_h3]:mt-6 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:text-gray-950 sm:[&_h3]:text-xl [&_img]:my-6 [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-2xl [&_img]:border [&_img]:border-gray-200 [&_img]:shadow-sm [&_li]:mb-2 [&_li]:ml-2 [&_li_p]:mb-0 [&_mark]:rounded [&_mark]:bg-yellow-200 [&_mark]:px-1 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-3 [&_p.has-text-align-center]:text-center [&_p.has-text-align-right]:text-right [&_strong]:font-semibold [&_strong]:text-gray-950 [&_sub]:align-sub [&_sup]:align-super [&_table]:my-6 [&_table]:w-full [&_table]:min-w-[640px] [&_table]:border-separate [&_table]:border-spacing-0 [&_table]:overflow-hidden [&_table]:rounded-xl [&_table]:border [&_table]:border-gray-200 [&_table]:bg-white [&_table]:shadow-sm [&_tbody_tr:nth-child(even)]:bg-[#f7fcf8] [&_tbody_tr:hover]:bg-[#f3fbf6] [&_td]:border-b [&_td]:border-r [&_td]:border-gray-200 [&_td]:px-4 [&_td]:py-3 [&_td]:align-top [&_td]:text-sm [&_td:last-child]:border-r-0 [&_tbody_tr:last-child_td]:border-b-0 [&_th]:border-b [&_th]:border-r [&_th]:border-gray-200 [&_th]:bg-[#eef6f1] [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:text-sm [&_th]:font-semibold [&_th]:text-gray-950 [&_th:last-child]:border-r-0 [&_thead]:bg-[#eef6f1] [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6 [&_.has-text-align-center]:text-center [&_.has-text-align-left]:text-left [&_.has-text-align-right]:text-right [&>:first-child]:mt-0 [&>:last-child]:mb-0 [&>h1:first-child]:mt-0 [&>h2:first-child]:mt-0 [&>h3:first-child]:mt-0 [&>p:first-child]:mt-0"
+          dangerouslySetInnerHTML={{ __html: normalizedContent }}
+        />
+      </div>
     );
   }
 

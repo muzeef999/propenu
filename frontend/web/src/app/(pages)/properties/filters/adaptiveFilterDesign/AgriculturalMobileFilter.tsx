@@ -110,7 +110,11 @@ const AgriculturalMobileFilter: React.FC<AgriculturalMobileFilterProps> = ({
     agricultural.totalArea?.max ?? CARPET_MAX,
   ]);
 
-  const selectedLocality = agricultural.locality ?? "";
+  const selectedLocalities = Array.isArray(agricultural.locality)
+    ? agricultural.locality
+    : agricultural.locality
+      ? [agricultural.locality]
+      : [];
   const selectedAgriculturalTypes = Array.isArray(agricultural.agriculturalType)
     ? agricultural.agriculturalType
     : [];
@@ -195,7 +199,12 @@ const AgriculturalMobileFilter: React.FC<AgriculturalMobileFilterProps> = ({
     arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
 
   const handleLocalitySelect = (name: string) => {
-    dispatch(setAgriculturalFilter({ key: "locality", value: name }));
+    dispatch(
+      setAgriculturalFilter({
+        key: "locality",
+        value: toggleArrayValue(selectedLocalities, name),
+      }),
+    );
     dispatch(setSearchText(""));
   };
 
@@ -328,8 +337,8 @@ const AgriculturalMobileFilter: React.FC<AgriculturalMobileFilterProps> = ({
                 key={name}
                 type="button"
                 onClick={() => handleLocalitySelect(name)}
-                className={`rounded-xl px-3 py-2 text-sm ${
-                  selectedLocality === name
+                  className={`rounded-xl px-3 py-2 text-sm ${
+                  selectedLocalities.includes(name)
                     ? "bg-[#d8ece0] text-green-700"
                     : "bg-[#e1eae4] text-gray-900"
                 }`}
@@ -680,23 +689,31 @@ const AgriculturalMobileFilter: React.FC<AgriculturalMobileFilterProps> = ({
                               {section.options?.map((opt) => {
                                 const isStateRestrictions = mappedKey === "stateRestrictions";
                                 const stateRestrictionValue = opt === "Applicable";
-                                const active = isStateRestrictions
-                                  ? currentValue === stateRestrictionValue
-                                  : isPostedByFilter
-                                    ? Array.isArray(currentValue) &&
-                                      currentValue.includes(opt)
-                                  : isBooleanFilter
-                                    ? Boolean(currentValue)
-                                    : isMultiSelect
-                                      ? Array.isArray(currentValue) && currentValue.includes(opt)
-                                      : currentValue === opt;
+                                  const postedByValue =
+                                    isPostedByFilter
+                                      ? postedByLabelMap[opt as PostedByOption] ?? opt
+                                      : opt;
+                                  const selectedValues = Array.isArray(currentValue)
+                                    ? currentValue
+                                    : currentValue
+                                      ? [String(currentValue)]
+                                      : [];
+                                  const active = isStateRestrictions
+                                    ? currentValue === stateRestrictionValue
+                                    : isPostedByFilter
+                                      ? selectedValues.includes(postedByValue)
+                                      : isBooleanFilter
+                                        ? Boolean(currentValue)
+                                        : isMultiSelect
+                                          ? selectedValues.includes(opt)
+                                          : currentValue === opt;
 
                                 return (
                                   <SelectableButton
                                     key={opt}
                                     label={
                                       isPostedByFilter
-                                        ? postedByLabelMap[opt as PostedByOption] ?? opt
+                                        ? postedByValue
                                         : opt
                                     }
                                     active={active}
@@ -708,17 +725,14 @@ const AgriculturalMobileFilter: React.FC<AgriculturalMobileFilterProps> = ({
                                           value: isStateRestrictions
                                             ? stateRestrictionValue
                                             : isPostedByFilter
-                                              ? postedByLabelMap[opt as PostedByOption] ?? opt
-                                            : isBooleanFilter
-                                              ? !Boolean(currentValue)
-                                              : isMultiSelect
-                                                ? toggleArrayValue(
-                                                    Array.isArray(currentValue)
-                                                      ? currentValue
-                                                      : [],
-                                                    opt,
-                                                  )
-                                                : opt,
+                                              ? active
+                                                ? ""
+                                                : postedByValue
+                                              : isBooleanFilter
+                                                ? !Boolean(currentValue)
+                                                : isMultiSelect
+                                                  ? toggleArrayValue(selectedValues, opt)
+                                                  : opt,
                                         }),
                                       )
                                     }
@@ -737,17 +751,17 @@ const AgriculturalMobileFilter: React.FC<AgriculturalMobileFilterProps> = ({
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 flex gap-4 border-t border-gray-200 bg-white p-4">
+      <div className="fixed bottom-0 left-0 right-0 flex items-center gap-3 border-t border-gray-200 bg-white px-3 py-3 sm:px-4">
         <button
           type="button"
-          className="flex-1 rounded-xl border border-green-600 py-2 text-lg font-semibold text-green-600"
+          className="flex-1 rounded-lg border border-green-600 px-3 py-2 text-base font-semibold text-green-600 sm:text-lg"
           onClick={handleClear}
         >
           Clear
         </button>
         <button
           type="button"
-          className="flex-1 rounded-2xl bg-green-600 py-2 text-xl font-semibold text-white"
+          className="flex-1 rounded-lg bg-green-600 px-3 py-2 text-base font-semibold text-white sm:text-lg"
           onClick={onClose}
         >
           Search

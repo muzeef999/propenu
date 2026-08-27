@@ -539,7 +539,7 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
             }`}
         >
           <div
-            className={`inline-flex items-center justify-center rounded-lg bg-[#BEf4d4] px-4 py-2 min-w-[190px] text-center font-semibold text-gray-800 shadow-sm ring-1 ring-green-200/80
+            className={`hidden items-center justify-center rounded-lg bg-[#BEf4d4] px-4 py-2 min-w-[190px] text-center font-semibold text-gray-800 shadow-sm ring-1 ring-green-200/80 sm:inline-flex
       ${vertical
                 ? "self-start text-base"
                 : "self-start md:self-center md:text-lg"

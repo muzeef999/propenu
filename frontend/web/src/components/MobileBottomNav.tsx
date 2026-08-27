@@ -27,10 +27,10 @@ type NavItem = {
 
 export default function MobileBottomNav({
   isAuthenticated,
-  hidden = false,
+  isDialogOpen = false,
 }: {
   isAuthenticated: boolean;
-  hidden?: boolean;
+  isDialogOpen?: boolean;
 }) {
   const pathname = usePathname() || "/";
   const [roleName, setRoleName] = useState("");
@@ -110,12 +110,18 @@ export default function MobileBottomNav({
 
   return (
     <nav
-      className={`fixed inset-x-0 bottom-0 z-50 border-t border-[#dbe5de] bg-white/96 shadow-[0_-8px_24px_rgba(17,24,39,0.08)] backdrop-blur supports-[backdrop-filter]:bg-white/88 lg:hidden transition-opacity duration-200 ${
-        hidden ? "pointer-events-none opacity-0" : "opacity-100"
+      className={`fixed inset-x-0 bottom-0 z-30 bg-white/96 backdrop-blur supports-backdrop-filter:bg-white/88 lg:hidden ${
+        isDialogOpen ? "pointer-events-none" : ""
       }`}
       aria-label="Mobile bottom navigation"
     >
-      <div className="mx-auto flex max-w-screen-sm items-end justify-between px-2 pb-[calc(env(safe-area-inset-bottom,0px)+8px)] pt-2">
+      <div className="relative mx-auto flex max-w-screen-sm items-end justify-between px-2 pb-[calc(env(safe-area-inset-bottom,0px)+8px)] pt-2">
+        {isDialogOpen && (
+          <div
+            className="pointer-events-none absolute inset-0"
+            aria-hidden="true"
+          />
+        )}
         {navItems.map((item) => {
           const active = item.isActive(pathname);
           const content = (

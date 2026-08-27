@@ -727,16 +727,28 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
                               ) : null}
 
                               {section.options?.map((opt) => {
-                                const active = isMulti
-                                  ? Array.isArray(currentValue) && currentValue.includes(opt)
-                                  : currentValue === opt;
+                                const postedByValue =
+                                  mappedKey === "createdByRole"
+                                    ? postedByLabelMap[opt as PostedByOption] ?? opt
+                                    : opt;
+                                const currentValues = Array.isArray(currentValue)
+                                  ? currentValue
+                                  : currentValue
+                                    ? [String(currentValue)]
+                                    : [];
+                                const active =
+                                  mappedKey === "createdByRole"
+                                    ? currentValues.includes(postedByValue)
+                                    : isMulti
+                                      ? currentValues.includes(opt)
+                                      : currentValue === opt;
 
                                 return (
                                   <SelectableButton
                                     key={opt}
                                     label={
                                       mappedKey === "createdByRole"
-                                        ? postedByLabelMap[opt as PostedByOption] ?? opt
+                                        ? postedByValue
                                         : opt
                                     }
                                     active={active}
@@ -745,16 +757,14 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
                                       dispatch(
                                         setCommercialFilter({
                                           key: mappedKey,
-                                          value: isMulti
-                                            ? toggleArrayValue(
-                                                Array.isArray(currentValue)
-                                                  ? currentValue
-                                                  : [],
-                                                opt,
-                                              )
-                                            : mappedKey === "createdByRole"
-                                              ? postedByLabelMap[opt as PostedByOption] ?? opt
-                                              : opt,
+                                          value:
+                                            mappedKey === "createdByRole"
+                                              ? active
+                                                ? ""
+                                                : postedByValue
+                                              : isMulti
+                                                ? toggleArrayValue(currentValues, opt)
+                                                : opt,
                                         }),
                                       )
                                     }
@@ -773,17 +783,17 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 flex gap-4 border-t border-gray-200 bg-white p-4">
+      <div className="fixed bottom-0 left-0 right-0 flex items-center gap-3 border-t border-gray-200 bg-white px-3 py-3 sm:px-4">
         <button
           type="button"
-          className="flex-1 rounded-xl border border-green-600 py-2 text-lg font-semibold text-green-600"
+          className="flex-1 rounded-lg border border-green-600 px-3 py-2 text-base font-semibold text-green-600 sm:text-lg"
           onClick={handleClear}
         >
           Clear
         </button>
         <button
           type="button"
-          className="flex-1 rounded-2xl bg-green-600 py-2 text-xl font-semibold text-white"
+          className="flex-1 rounded-lg bg-green-600 px-3 py-2 text-base font-semibold text-white sm:text-lg"
           onClick={onClose}
         >
           Search

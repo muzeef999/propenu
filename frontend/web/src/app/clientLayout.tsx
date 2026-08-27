@@ -145,7 +145,7 @@ function ClientProvidersContent({
         {!hideLayout && !isAgentRegistrationModalOpen && (
           <MobileBottomNav
             isAuthenticated={Boolean(user?.user)}
-            hidden={hasOpenDialog}
+            isDialogOpen={hasOpenDialog}
           />
         )}
         <Toaster

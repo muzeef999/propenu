@@ -250,7 +250,12 @@ if (localShortlist.length > 0) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={step === "request" ? "Login dialog" : "OTP verification dialog"}
+    >
       <div
         className="absolute inset-0"
         onClick={handleClose}

@@ -748,15 +748,16 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                                   : opt;
                                 const selectedValues = Array.isArray(currentValue)
                                   ? (currentValue as string[])
-                                  : [];
+                                  : currentValue
+                                    ? [String(currentValue)]
+                                    : [];
                                 const active = isBooleanFilter
                                   ? Boolean(currentValue)
                                   : isPostedByFilter
-                                    ? Array.isArray(currentValue) &&
-                                      selectedValues.includes(postedByValue)
-                                  : section.selectionType === "multiple"
-                                    ? Array.isArray(currentValue) && selectedValues.includes(opt)
-                                    : currentValue === opt;
+                                    ? selectedValues.includes(postedByValue)
+                                    : section.selectionType === "multiple"
+                                      ? selectedValues.includes(opt)
+                                      : currentValue === opt;
 
                                 return (
                                   <SelectableButton
@@ -803,17 +804,17 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 flex gap-4 border-t border-gray-200 bg-white p-4">
+      <div className="fixed bottom-0 left-0 right-0 flex items-center gap-3 border-t border-gray-200 bg-white px-3 py-3 sm:px-4">
         <button
           type="button"
-          className="flex-1 rounded-xl border border-green-600 py-2 text-lg font-semibold text-green-600"
+          className="flex-1 rounded-lg border border-green-600 px-3 py-2 text-base font-semibold text-green-600 sm:text-lg"
           onClick={handleClear}
         >
           Clear
         </button>
         <button
           type="button"
-          className="flex-1 rounded-2xl bg-green-600 py-2 text-xl font-semibold text-white"
+          className="flex-1 rounded-lg bg-green-600 px-3 py-2 text-base font-semibold text-white sm:text-lg"
           onClick={onClose}
         >
           Search

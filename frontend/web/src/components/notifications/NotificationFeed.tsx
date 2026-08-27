@@ -79,6 +79,14 @@ const DATE_FILTERS: Array<{ id: DateRangeFilter; label: string }> = [
   { id: "this_month", label: "This Month" },
 ];
 
+const SUMMARY_CARD_LAYOUTS = [
+  "col-span-2",
+  "col-span-2",
+  "col-span-2",
+  "col-span-3",
+  "col-span-3",
+];
+
 const formatDate = (value?: string | null) => {
   if (!value) return "NA";
 
@@ -331,96 +339,100 @@ const NotificationFeed = ({
 
   return (
     <div className={`mx-auto min-w-0 max-w-7xl space-y-6 ${containerClassName ?? ""}`.trim()}>
-      <div className="rounded-2xl border border-green-100 bg-linear-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
+      <div className="rounded-2xl border border-green-100 bg-linear-to-r from-green-50 via-white to-emerald-50 px-4 py-5 sm:px-5 sm:py-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">{title}</h1>
             <p className="mt-2 max-w-3xl text-sm text-gray-600 md:text-base">{description}</p>
           </div>
 
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-medium text-[#21884B]">
+          <div className="inline-flex w-fit items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-medium text-[#21884B]">
             <FiBell className="h-4 w-4" />
             <span>{resolvedSummary.total} notifications</span>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <div className="rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
-          <p className="text-sm text-gray-500">All Notifications</p>
+      <div className="grid grid-cols-6 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className={`${SUMMARY_CARD_LAYOUTS[0]} rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm sm:px-5 sm:py-4 xl:col-span-1`}>
+          <p className="text-xs font-medium leading-tight text-gray-500 sm:text-sm">All Notifications</p>
           <p className="mt-2 text-2xl font-semibold text-gray-900">{resolvedSummary.total}</p>
         </div>
-        <div className="rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
-          <p className="text-sm text-gray-500">Shortlists</p>
+        <div className={`${SUMMARY_CARD_LAYOUTS[1]} rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm sm:px-5 sm:py-4 xl:col-span-1`}>
+          <p className="text-xs font-medium leading-tight text-gray-500 sm:text-sm">Shortlists</p>
           <p className="mt-2 text-2xl font-semibold text-gray-900">{resolvedSummary.shortlists}</p>
         </div>
-        <div className="rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
-          <p className="text-sm text-gray-500">Contacts</p>
+        <div className={`${SUMMARY_CARD_LAYOUTS[2]} rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm sm:px-5 sm:py-4 xl:col-span-1`}>
+          <p className="text-xs font-medium leading-tight text-gray-500 sm:text-sm">Contacts</p>
           <p className="mt-2 text-2xl font-semibold text-gray-900">{resolvedSummary.contacts}</p>
         </div>
-        <div className="rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
-          <p className="text-sm text-gray-500">Tickets</p>
+        <div className={`${SUMMARY_CARD_LAYOUTS[3]} rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm sm:px-5 sm:py-4 xl:col-span-1`}>
+          <p className="text-xs font-medium leading-tight text-gray-500 sm:text-sm">Tickets</p>
           <p className="mt-2 text-2xl font-semibold text-gray-900">
             {resolvedSummary.tickets}
           </p>
         </div>
-        <div className="rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
-          <p className="text-sm text-gray-500">Brochure / Time</p>
+        <div className={`${SUMMARY_CARD_LAYOUTS[4]} rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm sm:px-5 sm:py-4 xl:col-span-1`}>
+          <p className="text-xs font-medium leading-tight text-gray-500 sm:text-sm">Brochure / Time</p>
           <p className="mt-2 text-2xl font-semibold text-gray-900">
             {resolvedSummary.brochureDownloads + resolvedSummary.timeSpent}
           </p>
         </div>
       </div>
 
-      <div className="min-w-0 rounded-2xl border border-gray-100 bg-white shadow-sm">
-        <div className="flex flex-col gap-4 border-b border-gray-100 px-5 py-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-wrap gap-2">
-                {availableFilters.map((filter) => {
-                  const isActive = activeFilter === filter.id;
+      <div className="min-w-0 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+        <div className="flex flex-col gap-4 border-b border-gray-100 px-4 py-4 sm:px-5">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div className="min-w-0 space-y-3">
+              <div className="-mx-1 overflow-x-auto px-1 pb-1 sm:mx-0 sm:overflow-visible sm:px-0">
+                <div className="flex w-max min-w-full gap-2 sm:min-w-0 sm:flex-wrap">
+                  {availableFilters.map((filter) => {
+                    const isActive = activeFilter === filter.id;
 
-                  return (
-                    <button
-                      key={filter.id}
-                      type="button"
-                      onClick={() => setActiveFilter(filter.id)}
-                      className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                        isActive
-                          ? "bg-[#26ad5f] text-white"
-                          : "bg-[#F6FBF8] text-gray-600 hover:bg-[#EAF6EE]"
-                      }`}
-                    >
-                      {filter.label}
-                    </button>
-                  );
-                })}
+                    return (
+                      <button
+                        key={filter.id}
+                        type="button"
+                        onClick={() => setActiveFilter(filter.id)}
+                        className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition ${
+                          isActive
+                            ? "bg-[#26ad5f] text-white"
+                            : "bg-[#F6FBF8] text-gray-600 hover:bg-[#EAF6EE]"
+                        }`}
+                      >
+                        {filter.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                {DATE_FILTERS.map((filter) => {
-                  const isActive = activeDateFilter === filter.id;
+              <div className="-mx-1 overflow-x-auto px-1 pb-1 sm:mx-0 sm:overflow-visible sm:px-0">
+                <div className="flex w-max min-w-full gap-2 sm:min-w-0 sm:flex-wrap">
+                  {DATE_FILTERS.map((filter) => {
+                    const isActive = activeDateFilter === filter.id;
 
-                  return (
-                    <button
-                      key={filter.id}
-                      type="button"
-                      onClick={() => setActiveDateFilter(filter.id)}
-                      className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition ${
-                        isActive
-                          ? "border-[#26ad5f] bg-[#EAF6EE] text-[#21884B]"
-                          : "border-gray-200 bg-white text-gray-600 hover:border-[#BFE5CB] hover:bg-[#F6FBF8]"
-                      }`}
-                    >
-                      {filter.label}
-                    </button>
-                  );
-                })}
+                    return (
+                      <button
+                        key={filter.id}
+                        type="button"
+                        onClick={() => setActiveDateFilter(filter.id)}
+                        className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition ${
+                          isActive
+                            ? "border-[#26ad5f] bg-[#EAF6EE] text-[#21884B]"
+                            : "border-gray-200 bg-white text-gray-600 hover:border-[#BFE5CB] hover:bg-[#F6FBF8]"
+                        }`}
+                      >
+                        {filter.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
-              <div className="relative min-w-0 flex-1 lg:w-80">
+            <div className="flex w-full flex-col gap-3 sm:flex-row xl:w-auto xl:min-w-[22rem]">
+              <div className="relative min-w-0 flex-1 xl:w-80">
                 <FiSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
                   value={searchValue}
@@ -430,7 +442,7 @@ const NotificationFeed = ({
                 />
               </div>
 
-              <div className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-500">
+              <div className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 py-2.5 text-center text-sm text-gray-500 sm:justify-start">
                 <FiFilter className="h-4 w-4" />
                 <span>
                   {filteredNotifications.length} shown · Page {currentPage} of {totalPages}
@@ -440,61 +452,135 @@ const NotificationFeed = ({
           </div>
         </div>
 
-        <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-7xl border-collapse text-left">
+        <div className="divide-y divide-gray-100 md:hidden">
+          {paginatedNotifications.map((item, index) => (
+            <article
+              key={`${item.id}-${item.createdAt ?? "unknown"}-${index}`}
+              className="space-y-4 px-4 py-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-gray-900">
+                    {item.user?.name || "You"}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {item.user?.userCode || "No code"}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-xs font-medium text-gray-700">{formatDate(item.createdAt)}</p>
+                  <p className="mt-1 text-[11px] text-gray-400">{formatTime(item.createdAt)}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${getNotificationAccentClasses(
+                    item.type,
+                  )}`}
+                >
+                  {getNotificationLabel(item.type)}
+                </span>
+                <span className="rounded-full bg-[#F3FBF6] px-3 py-1 text-[11px] font-semibold text-[#21884B]">
+                  {getRoleLabel(item.user?.role)}
+                </span>
+                {item.type === "high_time_spent" &&
+                item.timeSpentMinutes &&
+                item.timeSpentMinutes > 0 ? (
+                  <span className="inline-flex rounded-full bg-[#F6FBF8] px-2.5 py-1 text-[11px] font-semibold text-[#21884B]">
+                    {formatMinutes(item.timeSpentMinutes)}
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                    Contact
+                  </p>
+                  <p className="text-sm text-gray-700">{item.user?.email || "No email"}</p>
+                  <p className="text-sm text-gray-700">{item.user?.phone || "No phone"}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                    Project
+                  </p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {item.project?.title || "Untitled Project"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                  Message
+                </p>
+                <p className="text-sm leading-6 text-gray-800">
+                  {item.message || "No message"}
+                </p>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div className="hidden w-full overflow-x-auto md:block">
+          <table className="w-full min-w-[900px] border-collapse text-left xl:min-w-full">
             <thead className="bg-[#F8FBF9]">
-              <tr className="text-sm text-gray-500">
-                <th className="px-5 py-4 font-medium">Date</th>
-                <th className="px-5 py-4 font-medium">User</th>
-                <th className="px-5 py-4 font-medium">Contact Detail</th>
-                <th className="px-5 py-4 font-medium">Role</th>
-                <th className="px-5 py-4 font-medium">Project</th>
-                <th className="px-5 py-4 font-medium">Message</th>
+              <tr className="text-xs text-gray-500 lg:text-sm">
+                <th className="px-4 py-3 font-medium">Date</th>
+                <th className="px-4 py-3 font-medium">User</th>
+                <th className="px-4 py-3 font-medium">Contact Detail</th>
+                <th className="px-4 py-3 font-medium">Role</th>
+                <th className="px-4 py-3 font-medium">Project</th>
+                <th className="px-4 py-3 font-medium">Message</th>
               </tr>
             </thead>
 
             <tbody className="divide-y divide-gray-100">
-              {paginatedNotifications.map((item) => (
-                <tr key={item.id} className="transition hover:bg-[#FCFDFD]">
-                  <td className="px-5 py-4 text-sm text-gray-700">
+              {paginatedNotifications.map((item, index) => (
+                <tr
+                  key={`${item.id}-${item.createdAt ?? "unknown"}-${index}`}
+                  className="transition hover:bg-[#FCFDFD]"
+                >
+                  <td className="px-4 py-3 text-sm text-gray-700">
                     <p>{formatDate(item.createdAt)}</p>
-                    <p className="mt-1 text-xs text-gray-400">{formatTime(item.createdAt)}</p>
+                    <p className="mt-0.5 text-[11px] text-gray-400">{formatTime(item.createdAt)}</p>
                   </td>
-                  <td className="px-5 py-4">
-                    <div className="space-y-1">
-                      <p className="font-semibold text-gray-900">
+                  <td className="px-4 py-3 align-top">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-semibold leading-6 text-gray-900">
                         {item.user?.name || "You"}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-[11px] text-gray-500">
                         {item.user?.userCode || "No code"}
                       </p>
                     </div>
                   </td>
-                  <td className="px-5 py-4">
-                    <div className="space-y-1">
-                      <p className="text-xs text-gray-500">
+                  <td className="px-4 py-3 align-top">
+                    <div className="space-y-0.5">
+                      <p className="text-[11px] text-gray-500">
                         {item.user?.email || "No email"}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-[11px] text-gray-500">
                         {item.user?.phone || "No phone"}
                       </p>
                     </div>
                   </td>
-                  <td className="px-5 py-4">
-                    <span className="rounded-full bg-[#F3FBF6] px-3 py-1 text-xs font-semibold text-[#21884B]">
+                  <td className="px-4 py-3 align-top">
+                    <span className="rounded-full bg-[#F3FBF6] px-2.5 py-1 text-[11px] font-semibold text-[#21884B]">
                       {getRoleLabel(item.user?.role)}
                     </span>
                   </td>
-                  <td className="px-5 py-4">
-                    <p className="font-medium text-gray-900">
+                  <td className="px-4 py-3 align-top">
+                    <p className="text-sm font-medium leading-5 text-gray-900">
                       {item.project?.title || "Untitled Project"}
                     </p>
                   </td>
-                  <td className="px-5 py-4">
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
+                  <td className="px-4 py-3 align-top">
+                    <div className="space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${getNotificationAccentClasses(
+                          className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ring-1 ${getNotificationAccentClasses(
                             item.type,
                           )}`}
                         >
@@ -503,13 +589,13 @@ const NotificationFeed = ({
                         {item.type === "high_time_spent" &&
                         item.timeSpentMinutes &&
                         item.timeSpentMinutes > 0 ? (
-                          <span className="inline-flex rounded-full bg-[#F6FBF8] px-2.5 py-1 text-[11px] font-semibold text-[#21884B]">
+                          <span className="inline-flex rounded-full bg-[#F6FBF8] px-2 py-1 text-[10px] font-semibold text-[#21884B]">
                             {formatMinutes(item.timeSpentMinutes)}
                           </span>
                         ) : null}
                       </div>
 
-                      <p className="text-sm font-medium leading-6 text-gray-800">
+                      <p className="text-sm leading-6 text-gray-800">
                         {item.message || "No message"}
                       </p>
                     </div>
@@ -521,7 +607,7 @@ const NotificationFeed = ({
         </div>
 
         {filteredNotifications.length > 0 ? (
-          <div className="flex flex-col gap-3 border-t border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 border-t border-gray-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <p className="text-sm text-gray-500">
               Showing {(currentPage - 1) * pageSize + 1} to{" "}
               {Math.min(currentPage * pageSize, filteredNotifications.length)} of{" "}

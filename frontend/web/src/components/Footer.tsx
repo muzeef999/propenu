@@ -8,6 +8,7 @@ import {
   LinkedInSVG,
   PlayStoreBadge,
   TwitterSVG,
+  WhatsAppSVG,
   YouTubeSVG,
 } from "@/icons/icons";
 import Link from "next/link";
@@ -158,6 +159,17 @@ export default function Footer() {
               </Link>
 
               <Link
+                href="https://wa.me/9182334233"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm transition-all duration-300 hover:shadow-md group hover:bg-[#25D366]"
+              >
+                <span className="w-6 h-6">
+                  <WhatsAppSVG />
+                </span>
+              </Link>
+
+              <Link
                 href="https://www.facebook.com/profile.php?id=61584609591479"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -202,20 +214,30 @@ export default function Footer() {
                   Associated Businesses
                 </h4>
                 <div className="grid grid-cols-2 items-center gap-4 sm:gap-5">
-                  <div className="flex h-14 items-center justify-center sm:h-12">
+                  <a
+                    href="https://www.eteamworks.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-14 items-center justify-center sm:h-12"
+                  >
                     <img
                       src="/email/teamworks.png"
                       alt="Teamworks"
                       className="max-h-full w-full max-w-[132px] object-contain sm:max-w-[160px] lg:object-left"
                     />
-                  </div>
-                  <div className="flex h-14 items-center justify-center sm:h-12">
+                  </a>
+                  <a
+                    href="https://www.aslijobs.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-14 items-center justify-center sm:h-12"
+                  >
                     <img
                       src="/email/aslijobs.png"
                       alt="AsliJobs"
                       className="max-h-full w-full max-w-[132px] object-contain sm:max-w-[160px] lg:object-left"
                     />
-                  </div>
+                  </a>
                 </div>
               </div>
             </div>
