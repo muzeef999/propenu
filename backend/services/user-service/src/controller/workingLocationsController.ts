@@ -69,7 +69,7 @@ async function assertCanManageWorkingLocations(
       ok: false,
       status: 400,
       message:
-        "Working locations are managed for hierarchy field roles (CCE, Sales Executive, RM, BD Manager, etc.)",
+        "Working locations are managed for hierarchy field roles (CCE, Customer Support Head, Sales Executive, RM, BD Manager, etc.)",
     };
   }
 
