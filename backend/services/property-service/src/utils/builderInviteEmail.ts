@@ -439,16 +439,7 @@ export function buildBuilderInviteEmailHtml(
                     </a>
                   </td>
                 </tr>
-                <tr>
-                  <td align="center" style="padding-top:10px;font-size:12px;line-height:1.6;">
-                    <a href="${safeTeamworksUrl}" style="color:#16a34a;text-decoration:none;font-weight:700;margin-right:16px;">
-                      www.eteamworks.com
-                    </a>
-                    <a href="${safeAslijobsUrl}" style="color:#16a34a;text-decoration:none;font-weight:700;">
-                      www.aslijobs.com
-                    </a>
-                  </td>
-                </tr>
+                
                 <tr>
                   <td align="center" style="padding-top:8px;font-size:12px;color:#475569;">
                     Associated Businesses
