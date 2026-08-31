@@ -152,6 +152,13 @@ export interface ILastUpdatedBy {
   updatedAt?: Date;
 }
 
+export interface IDeletedBy {
+  userId: Types.ObjectId | string;
+  name?: string;
+  email?: string;
+  roleName?: string;
+}
+
 export interface IUpdateHistory {
   userId: Types.ObjectId | string;
   name?: string;
@@ -290,6 +297,8 @@ export interface IFeaturedProject {
   relationshipManagerId?: Types.ObjectId | string | null;
   postedBy?: IPostedBy;
   lastUpdatedBy?: ILastUpdatedBy;
+  deletedAt?: Date | null;
+  deletedBy?: IDeletedBy | null;
   updateCount?: number;
   updateHistory?: IUpdateHistory[];
 
