@@ -230,14 +230,7 @@ export function buildBuilderInviteEmailHtml(
                                 alt="${projectTitle}"
                                 width="160"
                                 height="120"
-                                style="
-                                  display:block;
-                                  width:160px;
-                                  height:120px;
-                                  object-fit:cover;
-                                  border:0;
-                                  margin:0;
-                                  padding:0;
+                                style="display:block; width:160px; height:120px; object-fit:cover; border:0; margin:0; padding:0;
                                 "
                               />`
                             : `<div
@@ -441,6 +434,16 @@ export function buildBuilderInviteEmailHtml(
                     </a>
                     <a href="${safeAslijobsUrl}" style="display:inline-block;text-decoration:none;vertical-align:middle;">
                       <img src="${safeAslijobsLogoUrl}" alt="Asli Jobs" width="110" style="display:block;width:110px;max-width:110px;height:auto;border:0;" />
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top:10px;font-size:12px;line-height:1.6;">
+                    <a href="${safeTeamworksUrl}" style="color:#16a34a;text-decoration:none;font-weight:700;margin-right:16px;">
+                      www.eteamworks.com
+                    </a>
+                    <a href="${safeAslijobsUrl}" style="color:#16a34a;text-decoration:none;font-weight:700;">
+                      www.aslijobs.com
                     </a>
                   </td>
                 </tr>

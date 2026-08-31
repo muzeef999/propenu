@@ -259,12 +259,12 @@ const Navbar = () => {
 
               <Link
                 href="/"
-                className="flex min-w-0 flex-1 select-none items-center gap-2 sm:gap-3"
-                aria-label="Go to homepage"
+                className="flex min-w-0 flex-1 select-none items-center gap-0.5" aria-label="Go to homepage"
               >
                 <div className="w-5 h-5 shrink-0 sm:w-7 sm:h-7">
                   <Logo />
                 </div>
+
                 <span className="truncate text-base font-semibold tracking-tight text-primary sm:text-lg lg:text-xl">
                   PROPENU
                   <sup className="ml-0.5 align-super text-[8px] sm:text-[10px] font-normal text-[#646464]">
@@ -324,9 +324,8 @@ const Navbar = () => {
                           <ArrowDropdownIcon
                             size={10}
                             color="#1b1b1b"
-                            className={`shrink-0 transition-transform duration-200 ${
-                              mobileOpen_city ? "rotate-180" : "rotate-0"
-                            }`}
+                            className={`shrink-0 transition-transform duration-200 ${mobileOpen_city ? "rotate-180" : "rotate-0"
+                              }`}
                           />
                         </div>
                       }
@@ -430,7 +429,7 @@ const Navbar = () => {
 
               <Link
                 href="/"
-                className="flex items-center gap-2 sm:gap-3 select-none shrink-0"
+                className="flex items-center sm:gap-1 select-none shrink-0"
                 aria-label="Go to homepage"
               >
                 <div className="w-6 sm:w-7 h-6 sm:h-7 shrink-0">
@@ -466,9 +465,8 @@ const Navbar = () => {
                         <ArrowDropdownIcon
                           size={12}
                           color="#27AE60"
-                          className={`transition-transform duration-200 shrink-0 ${
-                            cityDropdownOpen ? "rotate-180" : "rotate-0"
-                          }`}
+                          className={`transition-transform duration-200 shrink-0 ${cityDropdownOpen ? "rotate-180" : "rotate-0"
+                            }`}
                         />
                       </div>
                     }
@@ -491,11 +489,10 @@ const Navbar = () => {
                                     onSelect(i);
                                     close?.();
                                   }}
-                                  className={`py-px text-left text-[14px] leading-[1.15rem] transition-colors ${
-                                    isSelected
-                                      ? "font-semibold text-[#27AE60]"
-                                      : "text-gray-700 hover:text-[#27AE60]"
-                                  }`}
+                                  className={`py-px text-left text-[14px] leading-[1.15rem] transition-colors ${isSelected
+                                    ? "font-semibold text-[#27AE60]"
+                                    : "text-gray-700 hover:text-[#27AE60]"
+                                    }`}
                                 >
                                   <span className="block truncate">{i.city}</span>
                                 </button>
@@ -519,11 +516,10 @@ const Navbar = () => {
                                     onSelect(c);
                                     close?.();
                                   }}
-                                  className={`py-px text-left text-[14px] leading-[1.15rem] transition-colors ${
-                                    isSelected
-                                      ? "font-semibold text-[#27AE60]"
-                                      : "text-gray-700 hover:text-[#27AE60]"
-                                  }`}
+                                  className={`py-px text-left text-[14px] leading-[1.15rem] transition-colors ${isSelected
+                                    ? "font-semibold text-[#27AE60]"
+                                    : "text-gray-700 hover:text-[#27AE60]"
+                                    }`}
                                 >
                                   <span className="block truncate">{c.city}</span>
                                 </button>
@@ -614,9 +610,8 @@ const Navbar = () => {
         )}
 
         <div
-          className={`fixed top-0 left-0 h-[120vh] w-75 max-w-[90vw] bg-white shadow-lg lg:hidden transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${
-            mobileOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
+          className={`fixed top-0 left-0 h-[120vh] w-75 max-w-[90vw] bg-white shadow-lg lg:hidden transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${mobileOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
           aria-hidden={!mobileOpen}
           role="dialog"
           aria-modal="true"
@@ -755,22 +750,20 @@ const Navbar = () => {
                         router.push(item.link);
                         setMobileOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-1 py-3 border-b border-gray-200 transition-colors group ${
-                        isLogout
-                          ? "text-red-600 hover:bg-red-50"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
+                      className={`w-full flex items-center justify-between px-1 py-3 border-b border-gray-200 transition-colors group ${isLogout
+                        ? "text-red-600 hover:bg-red-50"
+                        : "text-gray-700 hover:bg-gray-100"
+                        }`}
                     >
                       <span className="text-sm font-medium group-hover:text-primary">
                         {item.label}
                       </span>
 
                       <svg
-                        className={`w-4 h-4 ${
-                          isLogout
-                            ? "text-red-300"
-                            : "text-gray-300 group-hover:text-primary"
-                        }`}
+                        className={`w-4 h-4 ${isLogout
+                          ? "text-red-300"
+                          : "text-gray-300 group-hover:text-primary"
+                          }`}
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -816,7 +809,7 @@ const Navbar = () => {
           }}
         />
       )}
-      
+
       {isAuthDialogOpen && authMode === "register" && (
         <RegisterDialog
           open={isAuthDialogOpen}
