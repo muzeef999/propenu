@@ -97,8 +97,10 @@ export function buildBuilderInviteEmailHtml(
   const safeTermsUrl = termsUrl || `${safeWebsiteUrl}/terms`;
   const safePrivacyUrl = privacyUrl || `${safeWebsiteUrl}/privacy-policy`;
   const safeSupportEmail = supportEmail || "marketingteam@propenu.com";
-  const safePlayStoreUrl = playStoreUrl || safeWebsiteUrl;
-  const safeAppStoreUrl = appStoreUrl || safeWebsiteUrl;
+  const safePlayStoreUrl =
+    playStoreUrl || "https://play.google.com/store/apps/details?id=com.propenu.app";
+  const safeAppStoreUrl =
+    appStoreUrl || "https://apps.apple.com/in/app/propenu/id6762111856";
   const safePlayStoreBadgeUrl =
     playStoreBadgeUrl || `${safeWebsiteUrl}/email/playstoreBadge.png`;
   const safeAppStoreBadgeUrl =
@@ -115,8 +117,8 @@ export function buildBuilderInviteEmailHtml(
   const safeTwitterUrl = twitterUrl || "https://x.com/propenu";
   const safeYoutubeUrl = youtubeUrl || "https://www.youtube.com/@Propenu";
   const safeContactUrl = contactUrl || safeWebsiteUrl;
-  const safeTeamworksUrl = teamworksUrl || safeWebsiteUrl;
-  const safeAslijobsUrl = aslijobsUrl || safeWebsiteUrl;
+  const safeTeamworksUrl = teamworksUrl || "https://www.eteamworks.com";
+  const safeAslijobsUrl = aslijobsUrl || "https://www.aslijobs.com";
   const safeLinkedinIconUrl =
     linkedinIconUrl || `${safeWebsiteUrl}/email/linkedin.png`;
   const safeInstagramIconUrl =

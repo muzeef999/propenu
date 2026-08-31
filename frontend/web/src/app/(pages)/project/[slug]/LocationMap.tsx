@@ -222,7 +222,7 @@ export default function LocationMap({ project }: LocationMapProps) {
           name: place.name?.split(",")[0]?.trim(),
           distanceText: place.distanceText?.trim(),
         }))
-        .filter((place) => place.name && place.distanceText),
+        .filter((place) => place.name),
     [project.nearbyPlaces],
   );
   const visibleNearbyLocations = useMemo(
@@ -334,7 +334,6 @@ export default function LocationMap({ project }: LocationMapProps) {
       window.setTimeout(() => openMarkerPopup(markerItem.marker), 120);
     }
   }
-
   return (
     <section id="location" className="scroll-mt-20">
       <div className="container mx-auto px-1 sm:px-4 lg:px-3">
@@ -396,7 +395,9 @@ export default function LocationMap({ project }: LocationMapProps) {
                         </span>
                         <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
                           <span className="truncate font-medium text-slate-950">{place.name}</span>
-                          <span className="shrink-0 font-semibold text-slate-700">({place.distanceText})</span>
+                          {place.distanceText ? (
+                            <span className="shrink-0 font-semibold text-slate-700">({place.distanceText})</span>
+                          ) : null}
                         </span>
                       </div>
                     ))}
