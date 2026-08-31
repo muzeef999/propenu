@@ -1,7 +1,7 @@
 // src/routes/featurePropertiesRoute.ts
 import express, { Request, Response } from "express";
 import multer from "multer";
-import { createFeatureProperties, deleteFeatureGalleryImage, deleteFeatureProperties, editFeatureProperties, getAllFeatureProperties, getCityFeatureProperties, getFeatureBySlug,getIndetailFeatureProperties, getSearchFeatureProperties, incrementFeatureClicks, getFeaturedLocationOptions,
+import { createFeatureProperties, deleteFeatureGalleryImage, deleteFeatureProperties, permanentlyDeleteFeatureProperties, editFeatureProperties, getAllFeatureProperties, getCityFeatureProperties, getFeatureBySlug,getIndetailFeatureProperties, getSearchFeatureProperties, incrementFeatureClicks, getFeaturedLocationOptions,
 } from "../controller/featurePropertiesController";
 import {
   CreateFeaturePropertySchema,
@@ -83,7 +83,8 @@ router.get("/slug/:slug", getFeatureBySlug);
 router.get("/:id", getIndetailFeatureProperties);
 router.post("/:id/click", incrementFeatureClicks);
 router.delete("/:id/gallery/:imageIndex", authMiddleware, deleteFeatureGalleryImage);
-router.delete("/:id", deleteFeatureProperties);
+router.delete("/:id/permanent", authMiddleware, permanentlyDeleteFeatureProperties);
+router.delete("/:id", authMiddleware, deleteFeatureProperties);
 
 
 router.patch("/:id/promote", authMiddleware, promoteProperty);

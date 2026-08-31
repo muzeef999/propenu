@@ -1013,6 +1013,11 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
         select: "name email phone roleId",
         populate: { path: "roleId", select: "name label" },
       })
+      .populate({
+        path: "followUpAssignedTo",
+        select: "name email phone roleId",
+        populate: { path: "roleId", select: "name label" },
+      })
       .lean();
 
     // Backfill exclusive follow-up owners for stuck onboarding users (one CCE only).
@@ -1027,9 +1032,13 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       const manager = user.managerId;
       const managerRole = manager?.roleId;
       const onboardedBy = user.onboardedBy;
-      const followUpAssignedTo = user.followUpAssignedTo
-        ? String(user.followUpAssignedTo)
-        : null;
+      const assignee = user.followUpAssignedTo;
+      const assigneeRole = assignee?.roleId;
+      const followUpAssignedTo = assignee?._id
+        ? String(assignee._id)
+        : assignee
+          ? String(assignee)
+          : null;
       const followUpWorkStatus = user.followUpWorkStatus || (followUpAssignedTo ? "assigned" : null);
 
       return {
@@ -1044,6 +1053,16 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
             : null,
         followUpAssignedTo,
         followUpWorkStatus,
+        followUpAssignee: assignee?._id
+          ? {
+              _id: String(assignee._id),
+              name: assignee.name || null,
+              email: assignee.email || null,
+              phone: assignee.phone || null,
+              roleName: assigneeRole?.name || null,
+              roleLabel: assigneeRole?.label || null,
+            }
+          : null,
         reportsTo: manager?._id
           ? {
               _id: String(manager._id),
@@ -1056,6 +1075,40 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
           : null,
       };
     });
+
+    // After backfill, some assignees are raw ObjectIds — hydrate names for UI.
+    const missingAssigneeIds = [
+      ...new Set(
+        formattedUsers
+          .filter((u: any) => u.followUpAssignedTo && !u.followUpAssignee)
+          .map((u: any) => String(u.followUpAssignedTo)),
+      ),
+    ].filter((id) => mongoose.Types.ObjectId.isValid(id));
+
+    if (missingAssigneeIds.length) {
+      const assigneeDocs = await User.find({ _id: { $in: missingAssigneeIds } })
+        .select("name email phone roleId")
+        .populate("roleId", "name label")
+        .lean();
+      const byId = new Map(
+        assigneeDocs.map((doc: any) => [
+          String(doc._id),
+          {
+            _id: String(doc._id),
+            name: doc.name || null,
+            email: doc.email || null,
+            phone: doc.phone || null,
+            roleName: doc.roleId?.name || null,
+            roleLabel: doc.roleId?.label || null,
+          },
+        ]),
+      );
+      for (const row of formattedUsers as any[]) {
+        if (row.followUpAssignee || !row.followUpAssignedTo) continue;
+        const hit = byId.get(String(row.followUpAssignedTo));
+        if (hit) row.followUpAssignee = hit;
+      }
+    }
 
     const actorRoleKey = String(actorRole || "")
       .trim()
@@ -2339,9 +2392,16 @@ export const updateUserProfileById = async (
     }
 
     if (updates.phone !== undefined) {
-      const phoneError = validatePhoneNumber(String(updates.phone));
-      if (phoneError) {
-        return res.status(400).json({ message: phoneError });
+      const phoneValue = String(updates.phone ?? "").trim();
+      // Empty phone is allowed (optional) — clears the number without OTP.
+      if (!phoneValue) {
+        updates.phone = "";
+      } else {
+        const phoneError = validatePhoneNumber(phoneValue);
+        if (phoneError) {
+          return res.status(400).json({ message: phoneError });
+        }
+        updates.phone = phoneValue;
       }
     }
 
@@ -2351,10 +2411,13 @@ export const updateUserProfileById = async (
       return res.status(404).json({ message: "User not found" });
     }
 
+    const nextPhone =
+      updates.phone !== undefined ? String(updates.phone || "") : String(user.phone || "");
     const phoneChanged =
-      updates.phone !== undefined && String(updates.phone) !== String(user.phone || "");
+      updates.phone !== undefined && nextPhone !== String(user.phone || "");
+    const clearingPhone = phoneChanged && !nextPhone;
 
-    if (phoneChanged) {
+    if (phoneChanged && !clearingPhone) {
       const phoneOtp = req.body.phoneOtp?.toString().trim();
 
       if (!phoneOtp) {
@@ -2386,7 +2449,7 @@ export const updateUserProfileById = async (
       }
     }
 
-    if (phoneChanged && user.phone) {
+    if (phoneChanged && user.phone && !clearingPhone) {
       user.phoneHistory = [
         ...((user.phoneHistory as any[]) || []),
         {
@@ -2397,8 +2460,29 @@ export const updateUserProfileById = async (
       ] as any;
     }
 
-    if (phoneChanged) {
+    if (clearingPhone && user.phone) {
+      user.phoneHistory = [
+        ...((user.phoneHistory as any[]) || []),
+        {
+          phone: user.phone,
+          changedAt: new Date(),
+          changedBy: new mongoose.Types.ObjectId(req.user.sub),
+        },
+      ] as any;
+      user.phoneVerified = false;
+    }
+
+    if (phoneChanged && !clearingPhone) {
       user.phoneVerified = true;
+    }
+
+    if (clearingPhone) {
+      delete updates.phone;
+      user.set("phone", undefined);
+      user.markModified("phone");
+    } else if (updates.phone === "") {
+      // Already empty — do not write "" (breaks unique/sparse + match).
+      delete updates.phone;
     }
 
     Object.assign(user, updates);

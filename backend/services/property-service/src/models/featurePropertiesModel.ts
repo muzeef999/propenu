@@ -454,6 +454,18 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
       updatedAt: Date,
     },
 
+    /** Soft-delete audit (Delete in admin = deactivate, status → inactive). */
+    deletedAt: { type: Date, index: true },
+    deletedBy: {
+      userId: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+      name: String,
+      email: String,
+      roleName: String,
+    },
+
     updateCount: {
       type: Number,
       default: 0,

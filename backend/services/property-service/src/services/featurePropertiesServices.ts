@@ -1536,16 +1536,22 @@ export const FeaturePropertyService = {
     // status=all → no status filter (admin dropdown "All Status").
     const filter: any = {};
     if (statusOpt === "all") {
-      /* intentionally no status filter */
+      /* intentionally no status filter — exclude soft-deleted from default board */
+      filter.status = { $ne: "inactive" };
     } else if (statusOpt) {
       if (
+        statusOpt === "deleted" ||
         statusOpt === "inactive" ||
+        statusOpt === "deactivated"
+      ) {
+        filter.status = "inactive";
+      } else if (
         statusOpt === "draft" ||
         statusOpt === "onboarding" ||
         statusOpt === "incomplete"
       ) {
         filter.status = {
-          $in: ["inactive", "draft", "onboarding", "incomplete"],
+          $in: ["draft", "onboarding", "incomplete"],
         };
       } else if (
         statusOpt === "approved" ||
@@ -1850,13 +1856,87 @@ export const FeaturePropertyService = {
     };
   },
 
-  async deleteFeatureProperty(id: string) {
+  /**
+   * Soft-delete (deactivate): keep media/docs; mark inactive and stamp who deleted.
+   */
+  async deleteFeatureProperty(
+    id: string,
+    actor?: {
+      id?: string;
+      name?: string;
+      email?: string;
+      roleName?: string;
+    } | null,
+  ) {
     if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
-    // fetch existing doc so we can remove stored S3 objects (plans, optional hero/gallery keys)
+
+    const existing = await FeaturedProject.findById(id).exec();
+    if (!existing) return null;
+
+    const now = new Date();
+    existing.status = "inactive";
+    (existing as any).deletedAt = now;
+    (existing as any).deletedBy = {
+      userId:
+        actor?.id && mongoose.Types.ObjectId.isValid(actor.id)
+          ? new mongoose.Types.ObjectId(actor.id)
+          : undefined,
+      name: actor?.name || "",
+      email: actor?.email || "",
+      roleName: actor?.roleName || "",
+    };
+    if (actor?.id && mongoose.Types.ObjectId.isValid(actor.id)) {
+      existing.updatedBy = new mongoose.Types.ObjectId(actor.id) as any;
+    }
+    (existing as any).lastUpdatedBy = {
+      userId:
+        actor?.id && mongoose.Types.ObjectId.isValid(actor.id)
+          ? new mongoose.Types.ObjectId(actor.id)
+          : undefined,
+      name: actor?.name || "",
+      email: actor?.email || "",
+      roleName: actor?.roleName || "",
+      updatedAt: now,
+    };
+
+    const history = Array.isArray((existing as any).updateHistory)
+      ? (existing as any).updateHistory
+      : [];
+    history.push({
+      userId:
+        actor?.id && mongoose.Types.ObjectId.isValid(actor.id)
+          ? new mongoose.Types.ObjectId(actor.id)
+          : undefined,
+      name: actor?.name || "",
+      email: actor?.email || "",
+      roleName: actor?.roleName || "",
+      updatedAt: now,
+      action: "deleted",
+    });
+    (existing as any).updateHistory = history;
+    (existing as any).updateCount = Number((existing as any).updateCount || 0) + 1;
+
+    await existing.save();
+    return existing.toObject();
+  },
+
+  /**
+   * Hard delete: remove DB row + best-effort S3 cleanup.
+   * Intended only after soft-delete (inactive), for privileged roles.
+   */
+  async permanentlyDeleteFeatureProperty(id: string) {
+    if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid id");
+
     const existing = await FeaturedProject.findById(id).lean();
     if (!existing) return null;
 
-    // delete BHK plan keys
+    const status = String((existing as any).status || "").toLowerCase();
+    if (status !== "inactive" && !(existing as any).deletedAt) {
+      throw new Error(
+        "Project must be deactivated first before permanent delete",
+      );
+    }
+
     const projectSummary =
       (existing as any).projectSummary ?? existing.bhkSummary;
     if (Array.isArray(projectSummary)) {
@@ -1869,7 +1949,6 @@ export const FeaturePropertyService = {
       }
     }
 
-    // delete gallery keys if present (optional)
     if (Array.isArray(existing.gallerySummary)) {
       for (const g of existing.gallerySummary) {
         if ((g as any)?.key) {
@@ -1877,6 +1956,12 @@ export const FeaturePropertyService = {
         }
       }
     }
+
+    const logoKey = (existing as any).logo?.key;
+    if (logoKey) await deleteS3ObjectIfExists(logoKey);
+
+    const brochureKey = (existing as any).brochure?.key;
+    if (brochureKey) await deleteS3ObjectIfExists(brochureKey);
 
     const deleted = await FeaturedProject.findByIdAndDelete(id).exec();
     return deleted;

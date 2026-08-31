@@ -449,16 +449,71 @@ export const editFeatureProperties = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteFeatureProperties = async (req: Request, res: Response) => {
+export const deleteFeatureProperties = async (
+  req: AuthRequest,
+  res: Response,
+) => {
   try {
     const { id } = req.params;
     if (!id) return res.status(400).json({ error: "Missing property ID" });
-    const deleted = await FeaturePropertyService.deleteFeatureProperty(id);
+    const deleted = await FeaturePropertyService.deleteFeatureProperty(id, {
+      id: req.user?.id,
+      name: req.user?.name,
+      email: req.user?.email,
+      roleName: req.user?.roleName,
+    });
     if (!deleted)
       return res.status(404).json({ error: "Feature property not found" });
-    return res.json({ data: deleted, message: "Deleted successfully" });
+    return res.json({
+      data: deleted,
+      message: "Project deactivated successfully",
+    });
   } catch (err: any) {
     console.error("deleteFeatureProperties:", err);
+    return res.status(400).json({ error: err.message || "Bad request" });
+  }
+};
+
+const PERMANENT_DELETE_ROLES = new Set([
+  "super_admin",
+  "business_development_head",
+]);
+
+const normalizeActorRole = (value?: string) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+/** Hard delete — Super Admin + BDH only; project must already be soft-deleted. */
+export const permanentlyDeleteFeatureProperties = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    const role = normalizeActorRole(req.user?.roleName);
+    if (!PERMANENT_DELETE_ROLES.has(role)) {
+      return res.status(403).json({
+        error:
+          "Only Super Admin or Business Development Head can permanently delete projects",
+      });
+    }
+
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ error: "Missing property ID" });
+
+    const deleted =
+      await FeaturePropertyService.permanentlyDeleteFeatureProperty(id);
+    if (!deleted)
+      return res.status(404).json({ error: "Feature property not found" });
+
+    return res.json({
+      data: deleted,
+      message: "Project permanently deleted",
+    });
+  } catch (err: any) {
+    console.error("permanentlyDeleteFeatureProperties:", err);
     return res.status(400).json({ error: err.message || "Bad request" });
   }
 };

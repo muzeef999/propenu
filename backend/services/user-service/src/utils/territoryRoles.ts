@@ -12,12 +12,13 @@ export const normalizeTerritoryRole = (value = "") =>
 
 /** Marketplace staff whose territories can be managed / seeded. */
 export const TERRITORY_TARGET_ROLES = new Set([
-  // Customer Care
+  // Customer Care / Support hierarchy
   "customer_care",
   "customer_care_executive",
   "customer_care_executives",
   "relationship_manager",
   "relationship_managers",
+  "customer_support_head",
   // BD / Sales hierarchy
   "operations_head",
   "operation_head",
