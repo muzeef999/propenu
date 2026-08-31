@@ -116,7 +116,7 @@ export function buildBuilderInviteEmailHtml(
     "https://www.facebook.com/profile.php?id=61584609591479";
   const safeTwitterUrl = twitterUrl || "https://x.com/propenu";
   const safeYoutubeUrl = youtubeUrl || "https://www.youtube.com/@Propenu";
-  const safeContactUrl = contactUrl || safeWebsiteUrl;
+  const safeHelpCenterUrl = contactUrl || `${safeWebsiteUrl}/help-center`;
   const safeTeamworksUrl = teamworksUrl || "https://www.eteamworks.com";
   const safeAslijobsUrl = aslijobsUrl || "https://www.aslijobs.com";
   const safeLinkedinIconUrl =
@@ -424,7 +424,7 @@ export function buildBuilderInviteEmailHtml(
                     <a href="${safePrivacyUrl}" style="color:#94a3b8;text-decoration:none;white-space:nowrap;">Privacy Policy</a>
                   </td>
                   <td width="33.33%" align="center" valign="middle" style="width:33.33%;padding:0 6px;font-size:11px;line-height:1.5;color:#94a3b8;">
-                    <a href="${safeContactUrl}" style="color:#94a3b8;text-decoration:none;white-space:nowrap;">Contact Us</a>
+                    <a href="${safeHelpCenterUrl}" style="color:#94a3b8;text-decoration:none;white-space:nowrap;">Help Center</a>
                   </td>
                 </tr>
               </table>

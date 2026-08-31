@@ -86,7 +86,7 @@ export function buildBuilderApprovalThankYouEmailHtml(
   const safeFacebookUrl = facebookUrl || safeWebsiteUrl;
   const safeTwitterUrl = twitterUrl || safeWebsiteUrl;
   const safeYoutubeUrl = youtubeUrl || safeWebsiteUrl;
-  const safeContactUrl = contactUrl || safeWebsiteUrl;
+  const safeHelpCenterUrl = contactUrl || `${safeWebsiteUrl}/help-center`;
   const safeTeamworksUrl = teamworksUrl || "https://www.eteamworks.com";
   const safeAslijobsUrl = aslijobsUrl || "https://www.aslijobs.com";
   const safeLinkedinIconUrl =
@@ -227,7 +227,7 @@ export function buildBuilderApprovalThankYouEmailHtml(
                     <a href="${safePrivacyUrl}" style="color:#94a3b8;text-decoration:none;">Privacy Policy</a>
                   </td>
                   <td align="right" style="font-size:11px;color:#94a3b8;">
-                    <a href="${safeContactUrl}" style="color:#94a3b8;text-decoration:none;">Contact Us</a>
+                    <a href="${safeHelpCenterUrl}" style="color:#94a3b8;text-decoration:none;">Help Center</a>
                   </td>
                 </tr>
               </table>

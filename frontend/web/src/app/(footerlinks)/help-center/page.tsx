@@ -10,6 +10,12 @@ import {
 } from "react-icons/io5";
 import Accordion, { AccordionItem } from "@/ui/Accordion";
 
+const SUPPORT_EMAIL = "support@propenu.com";
+const SUPPORT_PHONE = "+918185094463";
+const SUPPORT_WHATSAPP_MESSAGE = encodeURIComponent(
+    "Hello Propenu support, I need help with my account/listing.",
+);
+
 interface FaqQuestion {
     id: string;
     question: string;
@@ -652,18 +658,29 @@ const Page = () => {
                             These are the most commonly asked questions to us
                         </p>
                         <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-                            <button className="flex items-center gap-2 text-[#1f2d27] hover:opacity-80">
+                            <a
+                                href={`tel:${SUPPORT_PHONE}`}
+                                className="flex items-center gap-2 text-[#1f2d27] hover:opacity-80"
+                            >
                                 <IoCallOutline className="text-lg text-[#27AE60]" />
                                 <span className="text-sm font-medium">Contact Us</span>
-                            </button>
-                            <button className="flex items-center gap-2 text-[#1f2d27] hover:opacity-80">
+                            </a>
+                            <a
+                                href={`https://wa.me/${SUPPORT_PHONE.replace(/\D/g, "")}?text=${SUPPORT_WHATSAPP_MESSAGE}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 text-[#1f2d27] hover:opacity-80"
+                            >
                                 <IoLogoWhatsapp className="text-lg text-[#27AE60]" />
                                 <span className="text-sm font-medium">WhatsApp</span>
-                            </button>
-                            <button className="flex items-center gap-2 text-[#1f2d27] hover:opacity-80">
+                            </a>
+                            <a
+                                href={`mailto:${SUPPORT_EMAIL}`}
+                                className="flex items-center gap-2 text-[#1f2d27] hover:opacity-80"
+                            >
                                 <IoMailOutline className="text-lg text-[#27AE60]" />
-                                <span className="text-sm font-medium">contact@propenu.com</span>
-                            </button>
+                                <span className="text-sm font-medium">{SUPPORT_EMAIL}</span>
+                            </a>
                         </div>
                     </div>
                     <div className="mx-auto w-28 md:mx-0 md:w-40 lg:w-44">
