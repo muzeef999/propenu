@@ -64,7 +64,7 @@
     label: string;
     city: string;
     state: string;
-    coordinates: [number, number];
+    coordinates?: [number, number];
   };
 
   type CitySuggestion = {
@@ -79,6 +79,29 @@
   };
 
   type LocalityCache = Record<string, LocalitySuggestion[]>;
+
+  type DatabaseCityOption = {
+    city: string;
+    state: string;
+  };
+
+  type DatabaseLocalityOption = {
+    name: string;
+    city: string;
+    state: string;
+    location?: {
+      type?: "Point";
+      coordinates?: [number, number];
+    };
+  };
+
+  type LocationOptionsResponse = {
+    success?: boolean;
+    data?: {
+      cities?: DatabaseCityOption[];
+      localities?: DatabaseLocalityOption[];
+    };
+  };
 
   function getProjectBackendCategory(projectPropertyType?: string) {
     if (["apartment", "villa"].includes(projectPropertyType ?? "")) {
@@ -304,8 +327,141 @@
     }
   };
 
-  const buildLocalityCacheKey = (city?: string, state?: string) =>
-    `${normalizeComparisonValue(city || "")}|${normalizeComparisonValue(state || "")}`;
+  const buildLocalityCacheKey = (
+    city?: string,
+    state?: string,
+    searchText?: string,
+  ) =>
+    [
+      normalizeComparisonValue(city || ""),
+      normalizeComparisonValue(state || ""),
+      normalizeComparisonValue(searchText || ""),
+    ].join("|");
+
+  const getDatabaseLocationOptions = async (state?: string) => {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL;
+    if (!apiBase || !state?.trim()) {
+      return { cities: [], localities: [] };
+    }
+
+    try {
+      const params = new URLSearchParams({ state: state.trim() });
+      const res = await fetch(
+        `${apiBase}/api/properties/search/location-options?${params.toString()}`,
+        { cache: "no-store" },
+      );
+
+      if (!res.ok) {
+        console.error("Location options request failed:", res.status);
+        return { cities: [], localities: [] };
+      }
+
+      const payload = (await res.json()) as LocationOptionsResponse;
+      return {
+        cities: payload.data?.cities || [],
+        localities: payload.data?.localities || [],
+      };
+    } catch (error) {
+      console.error("Location options request error:", error);
+      return { cities: [], localities: [] };
+    }
+  };
+
+  const getDatabaseCitySuggestions = (
+    cities: DatabaseCityOption[],
+    stateName?: string,
+    query?: string,
+  ): CitySuggestion[] => {
+    if (!stateName) return [];
+
+    const selectedState = State.getStatesOfCountry("IN").find(
+      (state) =>
+        normalizeComparisonValue(state.name) === normalizeComparisonValue(stateName),
+    );
+
+    const fallbackStateCode = selectedState?.isoCode || "";
+
+    return cities
+      .filter(
+        (city) =>
+          normalizeComparisonValue(city.state) === normalizeComparisonValue(stateName),
+      )
+      .map((city) => ({
+        label: formatToTitleCase(city.city),
+        state: formatToTitleCase(city.state),
+        stateCode: fallbackStateCode,
+      }))
+      .filter((city) =>
+        query?.trim() ? matchesSearchPrefix(city.label, query) : true,
+      );
+  };
+
+  const mergeCitySuggestions = (
+    packageSuggestions: CitySuggestion[],
+    databaseSuggestions: CitySuggestion[],
+  ): CitySuggestion[] => {
+    const merged = [...databaseSuggestions, ...packageSuggestions];
+    const seen = new Set<string>();
+
+    return merged.filter((suggestion) => {
+      const key = normalizeComparisonValue(
+        `${suggestion.label}|${suggestion.state}`,
+      );
+
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+
+  const getDatabaseLocalitySuggestions = (
+    localities: DatabaseLocalityOption[],
+    city?: string,
+    state?: string,
+    searchText?: string,
+  ): LocalitySuggestion[] => {
+    const normalizedCity = normalizeComparisonValue(city || "");
+    const normalizedState = normalizeComparisonValue(state || "");
+
+    const matchesState = (locality: DatabaseLocalityOption) =>
+      !normalizedState ||
+      normalizeComparisonValue(locality.state) === normalizedState;
+
+    const matchesCity = (locality: DatabaseLocalityOption) => {
+      if (!normalizedCity) return true;
+
+      const localityCity = normalizeComparisonValue(locality.city);
+      return (
+        localityCity === normalizedCity ||
+        localityCity.startsWith(normalizedCity) ||
+        normalizedCity.startsWith(localityCity)
+      );
+    };
+
+    const exactCityMatches = localities.filter(
+      (locality) => matchesState(locality) && matchesCity(locality),
+    );
+
+    const scopedLocalities =
+      exactCityMatches.length > 0
+        ? exactCityMatches
+        : localities.filter((locality) => matchesState(locality));
+
+    return scopedLocalities
+      .map((locality) => ({
+        label: formatToTitleCase(locality.name),
+        city: formatToTitleCase(locality.city),
+        state: formatToTitleCase(locality.state),
+        coordinates:
+          Array.isArray(locality.location?.coordinates) &&
+          locality.location.coordinates.length === 2
+            ? locality.location.coordinates
+            : undefined,
+      }))
+      .filter((locality) =>
+        searchText?.trim() ? matchesSearchPrefix(locality.label, searchText) : true,
+      );
+  };
 
   const filterLocalitySuggestions = (
     suggestions: LocalitySuggestion[],
@@ -343,6 +499,8 @@
     const [isStateDropdownOpen, setIsStateDropdownOpen] = useState(false);
     const [isStateLoading, setIsStateLoading] = useState(false);
     const stateDropdownRef = useRef<HTMLDivElement>(null);
+    const [dbCities, setDbCities] = useState<DatabaseCityOption[]>([]);
+    const [dbLocalities, setDbLocalities] = useState<DatabaseLocalityOption[]>([]);
 
     // Close Photon dropdown on outside click
     useEffect(() => {
@@ -395,12 +553,46 @@
 
     // Debounced Photon search — runs in both pincode and no-pincode modes
     useEffect(() => {
+      let cancelled = false;
+
+      const loadLocationOptions = async () => {
+        if (!base.state) {
+          setDbCities([]);
+          setDbLocalities([]);
+          return;
+        }
+
+        const options = await getDatabaseLocationOptions(base.state);
+        if (cancelled) return;
+
+        setDbCities(options.cities);
+        setDbLocalities(options.localities);
+      };
+
+      void loadLocationOptions();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [base.state]);
+
+    useEffect(() => {
       const trimmed = localitySearchInput.trim();
       const lookupQuery = trimmed;
-      const localityCacheKey = buildLocalityCacheKey(base.city, base.state);
+      const localityCacheKey = buildLocalityCacheKey(
+        base.city,
+        base.state,
+        lookupQuery,
+      );
       const cachedSuggestions = localityCache[localityCacheKey] || [];
       const filteredCachedSuggestions = filterLocalitySuggestions(
         cachedSuggestions,
+        trimmed || undefined,
+      );
+      const databaseSuggestions = getDatabaseLocalitySuggestions(
+        dbLocalities,
+        base.city || undefined,
+        base.state || undefined,
         trimmed || undefined,
       );
 
@@ -412,12 +604,15 @@
       // Search localities only after the user types at least 2 letters,
       // and only when city context exists.
       if (!base.city || trimmed.length < 2 || !lookupQuery) {
-        setPhotonSuggestions([]);
+        setPhotonSuggestions(databaseSuggestions);
         return;
       }
 
       if (filteredCachedSuggestions.length > 0) {
         setPhotonSuggestions(filteredCachedSuggestions);
+        return;
+      } else if (databaseSuggestions.length > 0) {
+        setPhotonSuggestions(databaseSuggestions);
       }
 
       const controller = new AbortController();
@@ -433,27 +628,22 @@
           trimmed || undefined,
         );
         if (!cancelled) {
-          const nextCachedSuggestions =
-            trimmed.length < 3 && cachedSuggestions.length > 0
-              ? cachedSuggestions
-              : results;
-
-          if (
-            results.length > 0 &&
-            base.city &&
-            base.state
-          ) {
+          if (results.length > 0 && base.city && base.state) {
             setLocalityCache((prev) => ({
               ...prev,
               [localityCacheKey]: results,
             }));
           }
 
+          const nextCachedSuggestions = results.length > 0 ? results : cachedSuggestions;
+
           setPhotonSuggestions(
-            filterLocalitySuggestions(
-              nextCachedSuggestions,
-              trimmed || undefined,
-            ),
+            nextCachedSuggestions.length > 0
+              ? filterLocalitySuggestions(
+                  nextCachedSuggestions,
+                  trimmed || undefined,
+                )
+              : databaseSuggestions,
           );
           setIsPhotonLoading(false);
         }
@@ -469,7 +659,7 @@
       base.city,
       base.locality,
       base.state,
-      localityCache,
+      dbLocalities,
       isPhotonDropdownOpen,
       localitySearchInput,
     ]);
@@ -496,20 +686,38 @@
 
     useEffect(() => {
       const query = citySearchInput.trim();
+      const databaseSuggestions = getDatabaseCitySuggestions(
+        dbCities,
+        base.state || undefined,
+        query || undefined,
+      );
+      const packageSuggestions = getCitySuggestions(
+        base.state || undefined,
+        query || undefined,
+      );
 
       if (!isCityDropdownOpen) {
         setCitySuggestions([]);
         return;
       }
 
-      if (!base.state || (query.length > 0 && query.length < 2)) {
+      if (!base.state) {
         setCitySuggestions([]);
+        return;
+      }
+
+      if (query.length > 0 && query.length < 2) {
+        setCitySuggestions(
+          mergeCitySuggestions(packageSuggestions, databaseSuggestions),
+        );
         return;
       }
 
       const timeout = setTimeout(() => {
         setIsCityLoading(true);
-        setCitySuggestions(getCitySuggestions(base.state, query || undefined));
+        setCitySuggestions(
+          mergeCitySuggestions(packageSuggestions, databaseSuggestions),
+        );
         setIsCityLoading(false);
       }, 350);
 
@@ -517,7 +725,7 @@
         clearTimeout(timeout);
         setIsCityLoading(false);
       };
-    }, [base.state, citySearchInput, isCityDropdownOpen]);
+    }, [base.state, citySearchInput, isCityDropdownOpen, dbCities]);
 
     useEffect(() => {
       if (skipNextFieldGeocodeRef.current) {
@@ -674,7 +882,15 @@
             dispatch(
               setBaseField({
                 key: "address",
-                value: formatToTitleCase(value),
+                value,
+              }),
+            )
+          }
+          onBlur={() =>
+            dispatch(
+              setBaseField({
+                key: "address",
+                value: formatToTitleCase(base.address || ""),
               }),
             )
           }
@@ -1011,13 +1227,19 @@
                           if (suggestion.state) {
                             dispatch(setBaseField({ key: "state", value: suggestion.state }));
                           }
-                          skipNextFieldGeocodeRef.current = true;
-                          dispatch(
-                            setBaseField({
-                              key: "location",
-                              value: { type: "Point", coordinates: suggestion.coordinates },
-                            }),
-                          );
+                          if (
+                            suggestion.coordinates &&
+                            suggestion.coordinates.length === 2 &&
+                            !(suggestion.coordinates[0] === 0 && suggestion.coordinates[1] === 0)
+                          ) {
+                            skipNextFieldGeocodeRef.current = true;
+                            dispatch(
+                              setBaseField({
+                                key: "location",
+                                value: { type: "Point", coordinates: suggestion.coordinates },
+                              }),
+                            );
+                          }
                           setCitySearchInput("");
                           setLocalitySearchInput("");
                           setIsPhotonDropdownOpen(false);

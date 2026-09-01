@@ -1255,62 +1255,63 @@ export default function BasicDetailsStep() {
               </>
             )}
 
-            {/* Transaction Type */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-1">
-                <p className="text-sm font-medium text-gray-700">
-                  Sale Type
-                </p>
+            {base.listingType === "sale" && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <p className="text-sm font-medium text-gray-700">
+                    Sale Type
+                  </p>
 
-                <div className="relative group">
-                  <InfoIcon size={16} color="#9CA3AF" />
+                  <div className="relative group">
+                    <InfoIcon size={16} color="#9CA3AF" />
 
-                  <div className="absolute left-1/2 bottom-full z-50 mb-2 min-w-[205px] max-w-[320px] -translate-x-1/2 rounded-md bg-gray-900 px-3 py-2 text-xs text-white opacity-0 invisible transition-all duration-200 whitespace-normal wrap-break-word group-hover:opacity-100 group-hover:visible">
-                    Choose "New Sale" for a newly built property being sold for
-                    the first time, or "Resale" for a previously owned property.
+                    <div className="absolute left-1/2 bottom-full z-50 mb-2 min-w-[205px] max-w-[320px] -translate-x-1/2 rounded-md bg-gray-900 px-3 py-2 text-xs text-white opacity-0 invisible transition-all duration-200 whitespace-normal wrap-break-word group-hover:opacity-100 group-hover:visible">
+                      Choose "New Sale" for a newly built property being sold for
+                      the first time, or "Resale" for a previously owned property.
 
-                    <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                      <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex flex-wrap gap-3">
-                {[
-                  { label: "New Sale", value: "new-sale" },
-                  { label: "Resale", value: "resale" },
-                ].map((item) => {
-                  const active = profileData.transactionType === item.value;
+                <div className="flex flex-wrap gap-3">
+                  {[
+                    { label: "New Sale", value: "new-sale" },
+                    { label: "Resale", value: "resale" },
+                  ].map((item) => {
+                    const active = profileData.transactionType === item.value;
 
-                  return (
-                    <button
-                      key={item.value}
-                      type="button"
-                      onClick={() =>
-                        dispatch(
-                          setProfileField({
-                            propertyType,
-                            key: "transactionType",
-                            value: item.value,
-                          }),
-                        )
-                      }
-                      className={`px-6 py-2 rounded-md text-sm border transition
+                    return (
+                      <button
+                        key={item.value}
+                        type="button"
+                        onClick={() =>
+                          dispatch(
+                            setProfileField({
+                              propertyType,
+                              key: "transactionType",
+                              value: item.value,
+                            }),
+                          )
+                        }
+                        className={`px-6 py-2 rounded-md text-sm border transition
                 ${active
-                          ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                          : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                        }`}
-                    >
-                      {item.label}
-                    </button>
-                  );
-                })}
+                            ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                            : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                          }`}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {showErrors && fieldErrors.transactionType?.[0] && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {fieldErrors.transactionType[0]}
+                  </p>
+                )}
               </div>
-              {showErrors && fieldErrors.transactionType?.[0] && (
-                <p className="text-xs text-red-500 mt-1">
-                  {fieldErrors.transactionType[0]}
-                </p>
-              )}
-            </div>
+            )}
           </div>
         )}
 
@@ -1454,7 +1455,9 @@ export default function BasicDetailsStep() {
 
           if (!activeDraftId) {
             try {
-              const draftResponse = await createDraftApi(submitCategory);
+              const draftResponse = await createDraftApi(submitCategory, {
+                listingType: base.listingType,
+              });
               activeDraftId = draftResponse?.data?._id;
 
               if (activeDraftId) {

@@ -365,12 +365,21 @@ export const createResidentialDraft = async (
   res: Response,
 ) => {
   try {
+    const listingType =
+      req.body?.listingType === "rent" || req.body?.listingType === "lease"
+        ? req.body.listingType
+        : "sale";
+
     const existing = await Residential.findOne({
       createdBy: req.user!.id,
       status: "draft",
-    }).lean();
+    });
 
     if (existing) {
+      if (existing.listingType !== listingType) {
+        existing.listingType = listingType;
+        await existing.save();
+      }
       const populated = await populateListingAuditFields(Residential, existing._id);
       return res.status(200).json({ data: populated ?? existing });
     }
@@ -378,6 +387,7 @@ export const createResidentialDraft = async (
     const draft = await Residential.create({
       createdBy: req.user!.id,
       status: "draft",
+      listingType,
       title: "Draft Residential Property", // explicit
       completion: {
         percent: 0,

@@ -66,7 +66,7 @@ function getSubmitCategory(propertyType?: string, projectPropertyType?: string) 
 
 const CommercialProfile = () => {
   const router = useRouter();
-  const { commercial, project, draftId, propertyType } = useSelector(
+  const { commercial, project, draftId, propertyType, base } = useSelector(
     (state: any) => state.postProperty,
   );
   const dispatch = useAppDispatch();
@@ -823,7 +823,12 @@ const CommercialProfile = () => {
                 setFiles([]);
                 dispatch(resetPostProperty({ propertyType: submitCategory as any }));
                 dispatch(showAgentSubmissionSuccess());
-                dispatch(createDraftThunk(submitCategory))
+                dispatch(
+                  createDraftThunk({
+                    category: submitCategory,
+                    listingType: base?.listingType,
+                  }),
+                )
                   .unwrap()
                   .catch(() => {
                     toast.error("Property submitted, but new draft creation failed.");

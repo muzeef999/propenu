@@ -324,13 +324,21 @@ export const createAgriculturalDraft = async (
     const statusFilter = isDirectAgentRole(req.user?.roleName)
       ? "draft"
       : { $in: ["draft", "pending"] };
+    const listingType =
+      req.body?.listingType === "rent" || req.body?.listingType === "lease"
+        ? req.body.listingType
+        : "sale";
 
     const existing = await Agricultural.findOne({
       createdBy: req.user!.id,
       status: statusFilter,
-    }).lean();
+    });
 
     if (existing) {
+      if (existing.listingType !== listingType) {
+        existing.listingType = listingType;
+        await existing.save();
+      }
       const populated = await populateListingAuditFields(Agricultural, existing._id);
       return res.status(200).json({ data: populated ?? existing });
     }
@@ -338,6 +346,7 @@ export const createAgriculturalDraft = async (
     const draft = await Agricultural.create({
       createdBy: req.user!.id,
       status: "draft",
+      listingType,
       title: "Draft Agricultural Property", // explicit
       completion: {
         percent: 0,

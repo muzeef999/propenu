@@ -615,15 +615,14 @@ export function buildSearchParams(filters: FilterState) {
 
         if (normalized.stateRestrictions !== undefined) {
           if (typeof normalized.stateRestrictions === "boolean") {
-            normalized.statePurchaseRestrictions = normalized.stateRestrictions
-              ? "applicable"
-              : "not-applicable";
+            if (normalized.stateRestrictions) {
+              normalized.statePurchaseRestrictions = "applicable";
+            }
           } else {
             const token = String(normalized.stateRestrictions).trim().toLowerCase();
-            normalized.statePurchaseRestrictions =
-              token === "true" || token === "applicable"
-                ? "applicable"
-                : "not-applicable";
+            if (token === "true" || token === "applicable") {
+              normalized.statePurchaseRestrictions = "applicable";
+            }
           }
           delete normalized.stateRestrictions;
         }

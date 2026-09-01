@@ -62,7 +62,7 @@ const PLOT_SUBTYPES = [
 // use shared `AMENITIES` constant for options
 
 const LandProfile = () => {
-  const { land, draftId, propertyType } = useSelector((state: any) => state.postProperty); const [files, setFiles] = useState<UploadedFile[]>([]);
+  const { land, draftId, propertyType, base } = useSelector((state: any) => state.postProperty); const [files, setFiles] = useState<UploadedFile[]>([]);
   const router = useRouter();
   const [showErrors, setShowErrors] = useState(false);
   const [isListedSuccessfully, setIsListedSuccessfully] = useState(false);
@@ -529,7 +529,12 @@ const LandProfile = () => {
                 setFiles([]);
                 dispatch(resetPostProperty({ propertyType: submitCategory as any }));
                 dispatch(showAgentSubmissionSuccess());
-                dispatch(createDraftThunk(submitCategory))
+                dispatch(
+                  createDraftThunk({
+                    category: submitCategory,
+                    listingType: base?.listingType,
+                  }),
+                )
                   .unwrap()
                   .catch(() => {
                     toast.error("Property submitted, but new draft creation failed.");

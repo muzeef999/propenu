@@ -18,8 +18,12 @@ import {
 
 export const createDraftThunk = createAsyncThunk(
   "postProperty/createDraft",
-  async (category: string) => {
-    return await createDraftApi(category);
+  async (
+    arg: string | { category: string; listingType?: string },
+  ) => {
+    const category = typeof arg === "string" ? arg : arg.category;
+    const listingType = typeof arg === "string" ? undefined : arg.listingType;
+    return await createDraftApi(category, { listingType });
   },
 );
 

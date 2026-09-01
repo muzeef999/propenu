@@ -23,7 +23,7 @@ const MainContent = () => {
   const editId = searchParams.get("editId");
   const editCategory = searchParams.get("editCategory") as PropertyCategory | null;
 
-const { currentStep, propertyType, draftId, agentSubmissionSuccess } = useAppSelector(
+const { currentStep, propertyType, draftId, agentSubmissionSuccess, base } = useAppSelector(
   (state) => state.postProperty
 );
 const normalizedRoleName = roleName.replace(/[-\s]+/g, "_");
@@ -94,14 +94,24 @@ useEffect(() => {
     .then((res) => {
       // no draft found → create one
       if (!res) {
-        dispatch(createDraftThunk(propertyType));
+        dispatch(
+          createDraftThunk({
+            category: propertyType,
+            listingType: base.listingType,
+          }),
+        );
       }
     })
     .catch(() => {
       // 404 or error → create new draft
-      dispatch(createDraftThunk(propertyType));
+      dispatch(
+        createDraftThunk({
+          category: propertyType,
+          listingType: base.listingType,
+        }),
+      );
     });
-}, [dispatch, editId, isBootstrapped, propertyType]);
+}, [base.listingType, dispatch, editId, isBootstrapped, propertyType]);
 
 useEffect(() => {
   if (!isBootstrapped || typeof window === "undefined") return;

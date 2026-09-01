@@ -244,6 +244,7 @@ export async function getListingLocationOptions(state?: string) {
 
   const docs = (
     await Promise.all([
+      Location.find(match).select("city state localities").lean(),
       Residential.find(match).select("city state locality").lean(),
       Commercial.find(match).select("city state locality").lean(),
       LandPlot.find(match).select("city state locality").lean(),
@@ -255,7 +256,12 @@ export async function getListingLocationOptions(state?: string) {
   const cityMap = new Map<string, { city: string; state: string }>();
   const localityMap = new Map<
     string,
-    { name: string; city: string; state: string }
+    {
+      name: string;
+      city: string;
+      state: string;
+      location?: { type: "Point"; coordinates: [number, number] };
+    }
   >();
 
   for (const doc of docs as any[]) {
@@ -267,6 +273,36 @@ export async function getListingLocationOptions(state?: string) {
       cityMap.set(cityKey, { city, state: st });
     }
 
+    if (Array.isArray((doc as any)?.localities)) {
+      for (const localityItem of (doc as any).localities) {
+        const locality = String(localityItem?.name || "").trim();
+        if (!locality) continue;
+
+        const locKey = `${locality.toLowerCase()}|${cityKey}`;
+        if (!localityMap.has(locKey)) {
+          localityMap.set(locKey, {
+            name: toTitleCase(locality),
+            city,
+            state: st,
+            ...(Array.isArray(localityItem?.location?.coordinates) &&
+            localityItem.location.coordinates.length === 2
+              ? {
+                  location: {
+                    type: "Point" as const,
+                    coordinates: [
+                      Number(localityItem.location.coordinates[0]),
+                      Number(localityItem.location.coordinates[1]),
+                    ] as [number, number],
+                  },
+                }
+              : {}),
+          });
+        }
+      }
+
+      continue;
+    }
+
     const locality = String(doc?.locality || "").trim();
     if (!locality) continue;
     const locKey = `${locality.toLowerCase()}|${cityKey}`;
@@ -276,6 +312,23 @@ export async function getListingLocationOptions(state?: string) {
         city,
         state: st,
       });
+    } else {
+      const existing = localityMap.get(locKey);
+      const coordinates = Array.isArray((doc as any)?.location?.coordinates)
+        ? (doc as any).location.coordinates
+        : undefined;
+
+      if (
+        existing &&
+        !existing.location &&
+        Array.isArray(coordinates) &&
+        coordinates.length === 2
+      ) {
+        existing.location = {
+          type: "Point",
+          coordinates: [Number(coordinates[0]), Number(coordinates[1])],
+        };
+      }
     }
   }
 

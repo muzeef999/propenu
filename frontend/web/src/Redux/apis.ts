@@ -9,10 +9,17 @@ function authHeader() {
 
 /* ---------------- DRAFT ---------------- */
 
-export const createDraftApi = async (category: string) => {
+export const createDraftApi = async (
+  category: string,
+  data?: { listingType?: string },
+) => {
   const res = await fetch(`${url}/api/properties/${category}/draft`, {
     method: "POST",
-    headers: authHeader(),
+    headers: {
+      ...authHeader(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data ?? {}),
   });
 
   if (!res.ok) throw await res.json();

@@ -78,7 +78,7 @@ const CURRENT_CROP_OPTIONS = [
 ] as const;
 
 const AgriculturalProfile = () => {
-  const { agricultural, draftId, propertyType } = useSelector((state: any) => state.postProperty);
+  const { agricultural, draftId, propertyType, base } = useSelector((state: any) => state.postProperty);
   const dispatch = useAppDispatch();
   const [showErrors, setShowErrors] = useState(false);
   const [files, setFiles] = useState<UploadedFile[]>([]);
@@ -871,7 +871,12 @@ const AgriculturalProfile = () => {
                 setFiles([]);
                 dispatch(resetPostProperty({ propertyType }));
                 dispatch(showAgentSubmissionSuccess());
-                dispatch(createDraftThunk(propertyType))
+                dispatch(
+                  createDraftThunk({
+                    category: propertyType,
+                    listingType: base?.listingType,
+                  }),
+                )
                   .unwrap()
                   .catch(() => {
                     toast.error("Property submitted, but new draft creation failed.");

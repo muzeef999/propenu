@@ -58,7 +58,7 @@ export const ParkingTypes = ["open", "closed", "both"] as const;
 
 const ResidentialProfile = () => {
   const router = useRouter();
-  const { residential, draftId, propertyType } = useSelector(
+  const { residential, draftId, propertyType, base } = useSelector(
     (state: any) => state.postProperty,
   );
   const dispatch = useAppDispatch();
@@ -562,7 +562,12 @@ const ResidentialProfile = () => {
                 setFiles([]);
                 dispatch(resetPostProperty({ propertyType: submitCategory as any }));
                 dispatch(showAgentSubmissionSuccess());
-                dispatch(createDraftThunk(submitCategory))
+                dispatch(
+                  createDraftThunk({
+                    category: submitCategory,
+                    listingType: base?.listingType,
+                  }),
+                )
                   .unwrap()
                   .catch(() => {
                     toast.error("Property submitted, but new draft creation failed.");

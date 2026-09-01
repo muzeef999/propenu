@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { HiChevronDown, HiCheck } from 'react-icons/hi2';
+import { InfoIcon } from "@/icons/icons";
 
 interface DropdownOption {
   label: string;
@@ -13,6 +14,8 @@ interface DropdownProps {
   placeholder?: string;
   label: string;
   error?: string;
+  tooltip?: string;
+  tooltipPosition?: "start" | "center" | "end";
 }
 
 const Dropdownui: React.FC<DropdownProps> = ({ 
@@ -21,12 +24,36 @@ const Dropdownui: React.FC<DropdownProps> = ({
   onChange, 
   placeholder = 'Select an option',
   label,
-  error
+  error,
+  tooltip,
+  tooltipPosition = "center",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const selectedOption = options.find(option => option.value === value);
+
+  const getTooltipPosition = () => {
+    switch (tooltipPosition) {
+      case "start":
+        return "left-0";
+      case "end":
+        return "right-0";
+      default:
+        return "left-1/2 -translate-x-1/2";
+    }
+  };
+
+  const getArrowPosition = () => {
+    switch (tooltipPosition) {
+      case "start":
+        return "left-3";
+      case "end":
+        return "right-3";
+      default:
+        return "left-1/2 -translate-x-1/2";
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -40,9 +67,27 @@ const Dropdownui: React.FC<DropdownProps> = ({
 
   return (
     <div className="w-full font-poppins" ref={dropdownRef}>
-      <label className="mb-2 block text-sm font-medium text-gray-700">
-        {label}
-      </label>
+      <div className="mb-2 flex items-center gap-1">
+        <label className="block text-sm font-medium text-gray-700">
+          {label}
+        </label>
+
+        {tooltip && (
+          <div className="relative group">
+            <InfoIcon size={16} color="#9CA3AF" />
+
+            <div
+              className={`absolute ${getTooltipPosition()} bottom-full mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-md min-w-[205px] max-w-[400px] whitespace-normal break-words opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50`}
+            >
+              {tooltip}
+
+              <div
+                className={`absolute ${getArrowPosition()} top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900`}
+              ></div>
+            </div>
+          </div>
+        )}
+      </div>
       
       <div className="relative">
         <button
