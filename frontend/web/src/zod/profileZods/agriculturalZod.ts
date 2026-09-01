@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hasBlockedContentInDescription } from "@/utilies/stripPhoneFromDescription";
 
 /* ---------------- Reusable Schemas ---------------- */
 
@@ -80,7 +81,16 @@ export const agriculturalSchema = z
       ctx.addIssue({
         path: ["statePurchaseRestrictions"],
         code: z.ZodIssueCode.custom,
-        message: "State purchase restrictions are required",
+        message: "Select Applicable or Not Applicable",
+      });
+    } else if (
+      data.statePurchaseRestrictions !== "Applicable" &&
+      data.statePurchaseRestrictions !== "Not Applicable"
+    ) {
+      ctx.addIssue({
+        path: ["statePurchaseRestrictions"],
+        code: z.ZodIssueCode.custom,
+        message: "Select Applicable or Not Applicable",
       });
     }
 
@@ -89,6 +99,15 @@ export const agriculturalSchema = z
         path: ["images"],
         code: z.ZodIssueCode.custom,
         message: "Upload at least 5 images",
+      });
+    }
+
+    if (hasBlockedContentInDescription(data.description || "")) {
+      ctx.addIssue({
+        path: ["description"],
+        code: z.ZodIssueCode.custom,
+        message:
+          "Phone numbers, emails, and house addresses are not allowed in the description",
       });
     }
 

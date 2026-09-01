@@ -64,6 +64,11 @@ const ACCESS_ROAD_TYPES = [
   "earthen",
 ] as const;
 
+const STATE_PURCHASE_RESTRICTIONS = [
+  "Applicable",
+  "Not Applicable",
+] as const;
+
 const CURRENT_CROP_OPTIONS = [
   "Paddy",
   "Cotton",
@@ -577,12 +582,14 @@ const AgriculturalProfile = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* ================= STATE PURCHASE RESTRICTIONS ================= */}
           <div>
-            <InputField
+            <Dropdownui
               label="State Purchase Restrictions"
-              value={agricultural.statePurchaseRestrictions || ""}
-              placeholder="e.g. None, Restricted"
-              tooltip="Mention any state-specific rules or eligibility restrictions that apply to buying this agricultural land."
-              tooltipPosition="center"
+              value={agricultural.statePurchaseRestrictions || null}
+              placeholder="Select Applicable / Not Applicable"
+              options={STATE_PURCHASE_RESTRICTIONS.map((opt) => ({
+                value: opt,
+                label: opt,
+              }))}
               onChange={(value) =>
                 dispatch(
                   setProfileField({
@@ -592,23 +599,25 @@ const AgriculturalProfile = () => {
                   }),
                 )
               }
+              error={
+                showErrors
+                  ? fieldErrors?.statePurchaseRestrictions?.[0] ||
+                    fieldErrors?.statePurchaseRestrictions?._errors?.[0]
+                  : undefined
+              }
             />
-
-            {fieldErrors?.statePurchaseRestrictions?.[0] && (
-              <p className="text-red-500 text-xs mt-1">
-                {fieldErrors.statePurchaseRestrictions[0]}
-              </p>
-            )}
           </div>
 
           {/* ================= ACCESS ROAD TYPE ================= */}
           <div>
-            <InputField
+            <Dropdownui
               label="Access Road Type"
-              value={agricultural.accessRoadType || ""}
-              placeholder="e.g. Paved, Unpaved"
-              tooltip="Type of road to the property (Tar road, Mud road, Gravel road)"
-              tooltipPosition="center"
+              value={agricultural.accessRoadType || null}
+              placeholder="Select road type"
+              options={ACCESS_ROAD_TYPES.map((t) => ({
+                value: t,
+                label: t.replace("-", " "),
+              }))}
               onChange={(value) =>
                 dispatch(
                   setProfileField({
@@ -618,14 +627,13 @@ const AgriculturalProfile = () => {
                   }),
                 )
               }
+              error={
+                showErrors
+                  ? fieldErrors?.accessRoadType?._errors?.[0] ||
+                    fieldErrors?.accessRoadType?.[0]
+                  : undefined
+              }
             />
-
-            {fieldErrors?.accessRoadType?._errors?.[0] && (
-              <p className="text-red-500 text-xs mt-1">
-                {fieldErrors.accessRoadType._errors[0]}
-              </p>
-            )}
-
           </div>
         </div>
       </div>
@@ -788,6 +796,10 @@ const AgriculturalProfile = () => {
           value={agricultural.description || ""}
           maxLength={500}
           placeholder="e.g. The land has a gentle slope and is ideal for cultivating a variety of crops. It is well-connected to the main road and has access to electricity and water supply."
+          blockPhoneNumbers
+          onPhoneBlocked={() =>
+            toast.error("Phone numbers, emails, and house addresses are not allowed in the description")
+          }
           onChange={(value) =>
             dispatch(
               setProfileField({

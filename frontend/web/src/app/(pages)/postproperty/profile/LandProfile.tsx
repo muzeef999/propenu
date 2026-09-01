@@ -453,6 +453,10 @@ const LandProfile = () => {
           value={land.description || ""}
           placeholder="e.g. This plot is located in a prime area with easy access to main roads..."
           maxLength={500}
+          blockPhoneNumbers
+          onPhoneBlocked={() =>
+            toast.error("Phone numbers, emails, and house addresses are not allowed in the description")
+          }
           onChange={(value) =>
             dispatch(
               setProfileField({

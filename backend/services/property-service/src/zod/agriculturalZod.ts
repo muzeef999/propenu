@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AGRICULTURAL_PROPERTY_SUBTYPES, AGRICULTURAL_PROPERTY_TYPES } from "../types/agriculturalTypes";
+import { sanitizePropertyDescription } from "../utils/stripPhoneFromDescription";
 
 /* ----------------------
    Helpers
@@ -125,7 +126,7 @@ const BaseCreate = z.object({
 
   // listingType: normalize input then validate enum
   listingType: preprocessEnumString(["sale", "rent", "lease"]).optional().default("sale"),
-  description: z.string().optional(),
+  description: z.preprocess(sanitizePropertyDescription, z.string().optional()),
   createdBy: z.string().optional(),
   listingSource: z.string().optional(),
 
@@ -216,7 +217,20 @@ export const AgriculturalCreateSchema = BaseCreate.extend({
   // soilTestReport: accept JSON string -> FileMetaZ OR null
   soilTestReport: preprocessObjJsonOrValue(FileMetaZ).optional().nullable(),
 
-  statePurchaseRestrictions: z.string().optional(),
+  statePurchaseRestrictions: z.preprocess((v) => {
+    if (v === "" || v === null || typeof v === "undefined") return undefined;
+    if (typeof v !== "string") return v;
+    const normalized = v.trim().toLowerCase().replace(/[_-]+/g, " ");
+    if (normalized === "applicable") return "Applicable";
+    if (
+      normalized === "not applicable" ||
+      normalized === "notapplicable" ||
+      normalized === "na"
+    ) {
+      return "Not Applicable";
+    }
+    return v;
+  }, z.enum(["Applicable", "Not Applicable"]).optional()),
 
   // agriculturalUseCertificate: accept JSON string -> FileMetaZ OR null
   agriculturalUseCertificate: preprocessObjJsonOrValue(FileMetaZ).optional().nullable(),

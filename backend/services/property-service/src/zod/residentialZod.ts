@@ -1,6 +1,7 @@
 // src/zod/residentialValidation.ts
 import { z } from "zod";
 import { RESIDENTIAL_PROPERTY_TYPES } from "../types/residentialTypes";
+import { sanitizePropertyDescription } from "../utils/stripPhoneFromDescription";
 
 
 const FLOORING_TYPES = [
@@ -115,7 +116,7 @@ const BaseResidentialCreate = z.object({
   listingType: z.enum(["sale", "rent", "lease"]).optional().default("sale"),
   developer: z.string().optional(),
   address: z.string().min(1),
-  description: z.string().optional(),
+  description: z.preprocess(sanitizePropertyDescription, z.string().optional()),
   locality: z.string().min(1, "Locality is required"),
   city: z.string().optional(),
   state: z.string().optional(),

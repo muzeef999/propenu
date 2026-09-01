@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hasBlockedContentInDescription } from "@/utilies/stripPhoneFromDescription";
 
 export const residentialProfileSchema = z
   .object({
@@ -67,6 +68,15 @@ export const residentialProfileSchema = z
         path: ["floorNumber"],
         code: z.ZodIssueCode.custom,
         message: "Floor number cannot be greater than total floors",
+      });
+    }
+
+    if (hasBlockedContentInDescription(data.description || "")) {
+      ctx.addIssue({
+        path: ["description"],
+        code: z.ZodIssueCode.custom,
+        message:
+          "Phone numbers, emails, and house addresses are not allowed in the description",
       });
     }
   });

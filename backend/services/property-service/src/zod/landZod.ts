@@ -3,6 +3,7 @@ import {
   LAND_PROPERTY_SUBTYPES,
   LAND_PROPERTY_TYPES,
 } from "../types/landTypes";
+import { sanitizePropertyDescription } from "../utils/stripPhoneFromDescription";
 
 const coerceNumber = (schema: z.ZodNumber) =>
   z.preprocess((v) => {
@@ -107,7 +108,7 @@ const BaseCreate = z.object({
   state: z.string().optional(),
   locality: z.string().min(1, "Locality is required"),
   pincode: z.string().optional(),
-  description: z.string().optional(),
+  description: z.preprocess(sanitizePropertyDescription, z.string().optional()),
   landName: z.string().trim().optional(),
 
   location: z

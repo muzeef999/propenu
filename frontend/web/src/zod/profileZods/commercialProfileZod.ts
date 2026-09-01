@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hasBlockedContentInDescription } from "@/utilies/stripPhoneFromDescription";
 
 export const commercialProfileSchema = z.object({
   amenities: z.array(z.string()).optional(),
@@ -72,6 +73,15 @@ export const commercialProfileSchema = z.object({
     .max(500, "Description too long")
     .optional(),
   images: z.array(z.instanceof(File)).default([]),
+}).superRefine((data, ctx) => {
+  if (hasBlockedContentInDescription(data.description || "")) {
+    ctx.addIssue({
+      path: ["description"],
+      code: z.ZodIssueCode.custom,
+      message:
+        "Phone numbers, emails, and house addresses are not allowed in the description",
+    });
+  }
 });
 
 

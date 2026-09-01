@@ -734,6 +734,10 @@ const CommercialProfile = () => {
         value={commercial.description || ""}
         placeholder="e.g. Spacious 3 BHK apartment with east-facing balcony, covered parking, power backup, and close to IT parks."
         maxLength={500}
+        blockPhoneNumbers
+        onPhoneBlocked={() =>
+          toast.error("Phone numbers, emails, and house addresses are not allowed in the description")
+        }
         onChange={(value) =>
           dispatch(
             setProfileField({
