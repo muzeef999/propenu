@@ -110,7 +110,7 @@ export default function MobileBottomNav({
 
   return (
     <nav
-      className={`fixed inset-x-0 bottom-0 z-30 bg-white/96 backdrop-blur supports-backdrop-filter:bg-white/88 lg:hidden ${
+      className={`fixed inset-x-0 bottom-0 z-[45] bg-white/96 backdrop-blur supports-backdrop-filter:bg-white/88 lg:hidden ${
         isDialogOpen ? "pointer-events-none" : ""
       }`}
       aria-label="Mobile bottom navigation"
