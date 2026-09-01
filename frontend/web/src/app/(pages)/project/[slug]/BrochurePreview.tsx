@@ -42,12 +42,10 @@ export default function BrochurePreview({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const previewHeight = isFullscreen ? "calc(100vh - 40px)" : "min(500px, 70vh)";
   const isMobileViewport = pdfViewportWidth < 640;
-  const pdfRenderWidth =
-    isFullscreen && isMobileViewport
-      ? Math.max(220, pdfViewportWidth - 32)
-      : undefined;
-  const pdfRenderHeight =
-    isFullscreen && isMobileViewport ? undefined : pdfPageHeight;
+  const pdfRenderWidth = isMobileViewport
+    ? Math.max(220, pdfViewportWidth - (isFullscreen ? 32 : 24))
+    : undefined;
+  const pdfRenderHeight = isMobileViewport ? undefined : pdfPageHeight;
 
   const isPdf =
     brochure?.mimetype?.toLowerCase().includes("pdf") ||
@@ -386,7 +384,7 @@ export default function BrochurePreview({
                               (_, pageIndex) => (
                                 <div
                                   key={pageIndex + 1}
-                                  className={`flex shrink-0 items-center justify-center [scroll-snap-align:start] ${
+                                  className={`flex shrink-0 items-center justify-center overflow-hidden [scroll-snap-align:start] ${
                                     isFullscreen ? "px-6 py-4" : "px-4 py-4"
                                   }`}
                                   style={{
@@ -400,7 +398,7 @@ export default function BrochurePreview({
                                     height={pdfRenderHeight}
                                     renderAnnotationLayer={false}
                                     renderTextLayer={false}
-                                    className="overflow-hidden  bg-white shadow-md"
+                                    className="max-w-full overflow-hidden bg-white shadow-md"
                                     loading={
                                       <div
                                         className="flex items-center justify-center bg-white text-xs font-medium text-slate-500"
