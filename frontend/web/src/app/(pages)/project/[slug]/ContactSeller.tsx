@@ -477,11 +477,16 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
   const contactRole = isTopSellingPromotion ? "Seller" : "Builder";
   const submitButtonLabel = isNormalPromotion ? "Request Callback" : "Get Contact Details";
   const ownProjectLeadMessage = "You cannot submit a lead for your own project.";
+  const hasAuthToken = Boolean(Cookies.get("token"));
   const hasPrefilledUserDetails =
     Boolean(loggedInUser) &&
     Boolean(sanitizeNameInput(loggedInUser?.name || loggedInUser?.fullName || "").trim()) &&
     Boolean(loggedInUser?.phone && sanitizePhoneInput(loggedInUser.phone).trim()) &&
     Boolean(loggedInUser?.email?.trim());
+  const hasReadyContactDetails =
+    Boolean(sanitizeNameInput(form.name).trim()) &&
+    Boolean(sanitizePhoneInput(form.phone).trim());
+  const canSkipStandardLeadOtp = hasAuthToken && hasReadyContactDetails;
   const standardWrapperClassName = isModal
     ? "relative w-full rounded-md border border-slate-200 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.08)]"
     : "w-full rounded-md border border-slate-200 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.08)] lg:sticky lg:top-20 lg:max-w-[390px] lg:p-5";
@@ -533,10 +538,10 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
   useEffect(() => {
     if (isInviteMode) return;
 
-    if (hasPrefilledUserDetails) {
+    if (hasAuthToken && hasReadyContactDetails) {
       setTermsAccepted(true);
     }
-  }, [hasPrefilledUserDetails, isInviteMode]);
+  }, [hasAuthToken, hasReadyContactDetails, isInviteMode]);
 
   const updateIntentionAnswer = (question: string, answer: string) => {
     setIntentionAnswers((current) => {
@@ -637,6 +642,11 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
     setFormErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    if (canSkipStandardLeadOtp) {
+      finalizeStandardLeadSubmission();
       return;
     }
 
