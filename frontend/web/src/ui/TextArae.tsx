@@ -5,6 +5,7 @@ type TextAreaProps = {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onBlur?: React.FocusEventHandler<HTMLTextAreaElement>;
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
@@ -20,6 +21,7 @@ const TextArea = ({
   label,
   value,
   onChange,
+  onBlur,
   placeholder,
   required = false,
   disabled = false,
@@ -63,6 +65,7 @@ const TextArea = ({
           disabled={disabled}
           placeholder={placeholder}
           onChange={(e) => applyValue(e.target.value)}
+          onBlur={onBlur}
           onPaste={(e) => {
             if (!blockPhoneNumbers) return;
             e.preventDefault();
