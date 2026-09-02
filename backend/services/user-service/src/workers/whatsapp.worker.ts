@@ -5,6 +5,7 @@ import { Worker } from "bullmq";
 import { WhatsAppLog } from "../logs/whatsappLog.model";
 import { redisConnection } from "../lib/redis.connection";
 import { sendWhatsAppBulkMessages as sendWhatsAppMessage } from "../../../../shared/whatsapp/templates/whatsappTemplate.service";
+import { recordOutboundTemplateMessage } from "../../../../shared/whatsapp/inbox/whatsappInbox.service";
 import { connectDB } from "../config/db";
 
 interface WhatsAppJobData {
@@ -72,6 +73,16 @@ const startWorker = async () => {
               );
 
               console.log("✅ Updated log:", updated);
+
+              await recordOutboundTemplateMessage({
+                to: job.data.to,
+                templateName: job.data.templateName,
+                status: "sent",
+                logId: job.data.logId,
+                response: response?.data,
+              }).catch((inboxErr) => {
+                console.error("⚠️ Inbox record error:", inboxErr);
+              });
 
               if (!updated) {
                 console.log("❌ UPDATE FAILED → log not found");

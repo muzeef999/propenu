@@ -12,6 +12,7 @@ import userRoutes from "./routes/userRoutes";
 import { startNotificationJob } from "./jobs/notification.job";
 import emailRouter from "./routes/emailRoute";
 import whatsappRouter from "./routes/whatsappRoute";
+import conversationFlowRouter from "./routes/conversationFlowRoute";
 import builderAccessRoute from "./routes/builderAccessRoute";
 import builderProfileRoute from "./routes/builderProfileRoute";
 import { fieldMeetingRoute } from "./routes/fieldMeetingRoute";
@@ -104,6 +105,8 @@ async function start() {
     app.use("/api/users/notifications", userRoutes);
     app.use("/api/users/email", emailRouter);
     app.use("/api/users/whatsapp", whatsappRouter);
+    // Meta / Bizrow-style callback (same handlers as /api/users/whatsapp/flow/webhook)
+    app.use("/api/conversation-flow", conversationFlowRouter);
     
 
     app.listen(Number(port), "0.0.0.0", () => {

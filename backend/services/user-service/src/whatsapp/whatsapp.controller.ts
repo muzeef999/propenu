@@ -1,65 +1,37 @@
-// src/controllers/whatsapp.controller.ts
+// src/whatsapp/whatsapp.controller.ts
 
 import { Request, Response } from "express";
 import { whatsappConfig } from "./whatsapp.config";
+import { processWhatsAppWebhookPayload } from "../../../../shared/whatsapp/inbox/whatsappInbox.service";
 
-export const verifyWebhook = (
-  req: Request,
-  res: Response
-) => {
+export const verifyWebhook = (req: Request, res: Response) => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
 
-  console.log("Verification Request");
-  console.log(req.query);
+  console.log("Verification Request", req.query);
 
-  if (
-    mode === "subscribe" &&
-    token === whatsappConfig.verifyToken
-  ) {
+  if (mode === "subscribe" && token === whatsappConfig.verifyToken) {
     console.log("Webhook Verified Successfully");
-
     return res.status(200).send(challenge);
   }
 
   console.log("Webhook Verification Failed");
-
   return res.sendStatus(403);
 };
 
-export const receiveWebhook = (
-  req: Request,
-  res: Response
-) => {
-  console.log("=================================");
+export const receiveWebhook = async (req: Request, res: Response) => {
   console.log("📩 Incoming WhatsApp Webhook");
-  console.log("=================================");
-
-  console.log(
-    JSON.stringify(req.body, null, 2)
-  );
 
   try {
-    const message =
-      req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
-
-    if (!message) {
-      return res.sendStatus(200);
+    const result = await processWhatsAppWebhookPayload(req.body);
+    if (result.saved > 0) {
+      console.log(`WhatsApp inbox saved ${result.saved} message(s)`);
     }
-
-    const phone = message.from;
-
-    const text =
-      message.text?.body || "";
-
-    console.log("Phone :", phone);
-    console.log("Message :", text);
-
     return res.sendStatus(200);
   } catch (error) {
-    console.error(error);
-
-    return res.sendStatus(500);
+    console.error("WhatsApp webhook error:", error);
+    // Always 200 to Meta so they do not retry aggressively on our bugs
+    return res.sendStatus(200);
   }
 };

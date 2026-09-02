@@ -71,13 +71,14 @@ app.use("/api", globalApiLimiter);
 
 // ===================== PROXY HELPER =====================
 
-function proxy(serviceName: string, target: string) {
+function proxy(serviceName: string, target: string, extras: Record<string, unknown> = {}) {
   return createProxyMiddleware({
     target,
     changeOrigin: true,
     xfwd: true,
     proxyTimeout: 30000,
     timeout: 30000,
+    ...extras,
 
     // ✅ preserve full path like /api/users/location
     pathRewrite: (_path, req) => (req as any).originalUrl,
@@ -101,6 +102,15 @@ function proxy(serviceName: string, target: string) {
 }
 
 // ===================== MICROSERVICE ROUTES =====================
+
+// Long-lived SSE for WhatsApp inbox realtime
+app.use(
+  "/api/users/whatsapp/inbox/stream",
+  proxy("USER", USER_SERVICE_URL, { proxyTimeout: 0, timeout: 0 }),
+);
+
+// Meta webhook (Bizrow-compatible path → user-service)
+app.use("/api/conversation-flow", proxy("USER", USER_SERVICE_URL));
 
 app.use("/api/payments", proxy("PAYMENT", PAYMENT_SERVICE_URL));
 app.use("/api/properties", proxy("PROPERTY", PROPERTY_SERVICE_URL));
