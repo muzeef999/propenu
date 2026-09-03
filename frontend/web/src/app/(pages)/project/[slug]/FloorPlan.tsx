@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
-import { FiMinus, FiPlus } from "react-icons/fi";
+import { FiChevronLeft, FiChevronRight, FiMinus, FiPlus } from "react-icons/fi";
 import { FeaturedProject, IBhkUnit } from "@/types";
 
 type FloorPlanProps = {
@@ -166,6 +166,8 @@ function getPlanGroups(project: FeaturedProject): PlanGroup[] {
 export default function FloorPlan({ project }: FloorPlanProps) {
   const groups = useMemo(() => getPlanGroups(project), [project]);
   const planScrollRef = useRef<HTMLDivElement | null>(null);
+  const groupTabsScrollRef = useRef<HTMLDivElement | null>(null);
+  const groupTabsRef = useRef<Array<HTMLButtonElement | null>>([]);
   const dragStartRef = useRef({
     clientX: 0,
     clientY: 0,
@@ -176,6 +178,8 @@ export default function FloorPlan({ project }: FloorPlanProps) {
   const [activeUnitIndex, setActiveUnitIndex] = useState(0);
   const [planZoom, setPlanZoom] = useState(MIN_PLAN_ZOOM);
   const [isDraggingPlan, setIsDraggingPlan] = useState(false);
+  const [canScrollGroupTabsLeft, setCanScrollGroupTabsLeft] = useState(false);
+  const [canScrollGroupTabsRight, setCanScrollGroupTabsRight] = useState(false);
   const isLand = project.categoryType?.toLowerCase() === "land";
   const sectionTitle = isLand ? "Layout" : "Floor Plans";
 
@@ -196,6 +200,45 @@ export default function FloorPlan({ project }: FloorPlanProps) {
       planScrollRef.current.scrollTop = 0;
     }
   }, [activeGroupIndex, activeUnitIndex]);
+
+  useEffect(() => {
+    const activeTab = groupTabsRef.current[activeGroupIndex];
+    activeTab?.scrollIntoView({
+      behavior: "smooth",
+      inline: "center",
+      block: "nearest",
+    });
+  }, [activeGroupIndex]);
+
+  const updateGroupTabScrollState = () => {
+    const container = groupTabsScrollRef.current;
+    if (!container) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    const maxScrollLeft = Math.max(0, scrollWidth - clientWidth);
+
+    setCanScrollGroupTabsLeft(scrollLeft > 4);
+    setCanScrollGroupTabsRight(scrollLeft < maxScrollLeft - 4);
+  };
+
+  useEffect(() => {
+    updateGroupTabScrollState();
+
+    const container = groupTabsScrollRef.current;
+    if (!container) return;
+
+    container.addEventListener("scroll", updateGroupTabScrollState, { passive: true });
+    window.addEventListener("resize", updateGroupTabScrollState);
+
+    return () => {
+      container.removeEventListener("scroll", updateGroupTabScrollState);
+      window.removeEventListener("resize", updateGroupTabScrollState);
+    };
+  }, [groups.length]);
+
+  useEffect(() => {
+    updateGroupTabScrollState();
+  }, [activeGroupIndex]);
 
   const zoomPlan = (direction: "in" | "out") => {
     setPlanZoom((currentZoom) => {
@@ -238,6 +281,17 @@ export default function FloorPlan({ project }: FloorPlanProps) {
     setIsDraggingPlan(false);
   };
 
+  const scrollGroupTabs = (direction: "left" | "right") => {
+    const container = groupTabsScrollRef.current;
+    if (!container) return;
+
+    const scrollAmount = Math.max(container.clientWidth * 0.7, 180);
+    container.scrollBy({
+      left: direction === "right" ? scrollAmount : -scrollAmount,
+      behavior: "smooth",
+    });
+  };
+
   if (!groups.length) {
     return null;
   }
@@ -250,24 +304,81 @@ export default function FloorPlan({ project }: FloorPlanProps) {
           </h2>
 
           <div className="min-w-0 px-4 py-4 sm:px-5">
-            <div className="flex w-full min-w-0 max-w-full gap-2 overflow-x-auto whitespace-nowrap pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden">
-              {groups.map((group, index) => (
-                <button
-                  key={`${group.label}-${index}`}
-                  type="button"
-                  onClick={() => {
-                    setActiveGroupIndex(index);
-                    setActiveUnitIndex(0);
-                  }}
-                  className={`shrink-0 rounded-md px-4 py-2.5 text-xs font-medium transition sm:px-5 sm:py-3 sm:text-sm cursor-pointer ${
-                    activeGroupIndex === index
-                      ? "bg-emerald-50 text-slate-950"
-                      : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 sm:text-[15px]">
+                    Choose a floor plan
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {groups.length} options available
+                  </p>
+                </div>
+                {groups.length > 1 ? (
+                  <div className="flex items-center justify-between gap-2 sm:justify-end">
+                    <p className="text-[11px] font-medium text-slate-400 sm:hidden">
+                      Swipe to see more
+                    </p>
+                    <button
+                      type="button"
+                      aria-label="Scroll floor plan tabs left"
+                      onClick={() => scrollGroupTabs("left")}
+                      disabled={!canScrollGroupTabsLeft}
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-emerald-200 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-35 sm:h-9 sm:w-9"
+                    >
+                      <FiChevronLeft className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Scroll floor plan tabs right"
+                      onClick={() => scrollGroupTabs("right")}
+                      disabled={!canScrollGroupTabsRight}
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-emerald-200 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-35 sm:h-9 sm:w-9"
+                    >
+                      <FiChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="relative rounded-xl border border-slate-200 bg-slate-50/70 px-2 py-2 sm:px-2.5">
+                <div
+                  className={`pointer-events-none absolute inset-y-2 left-2 z-10 w-8 rounded-l-xl bg-gradient-to-r from-slate-50 to-transparent transition ${
+                    canScrollGroupTabsLeft ? "opacity-100" : "opacity-0"
                   }`}
+                />
+                <div
+                  className={`pointer-events-none absolute inset-y-2 right-2 z-10 w-8 rounded-r-xl bg-gradient-to-l from-slate-50 to-transparent transition ${
+                    canScrollGroupTabsRight ? "opacity-100" : "opacity-0"
+                  }`}
+                />
+                <div
+                  ref={groupTabsScrollRef}
+                  className="flex w-full min-w-0 max-w-full snap-x snap-mandatory gap-2 overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-2.5 [&::-webkit-scrollbar]:hidden"
                 >
-                  {group.label}
-                </button>
-              ))}
+                  {groups.map((group, index) => (
+                    <button
+                      key={`${group.label}-${index}`}
+                      ref={(element) => {
+                        groupTabsRef.current[index] = element;
+                      }}
+                      type="button"
+                      onClick={() => {
+                        setActiveGroupIndex(index);
+                        setActiveUnitIndex(0);
+                      }}
+                      className={`shrink-0 snap-start rounded-lg border px-3.5 py-2 text-xs font-semibold transition sm:px-4.5 sm:py-2.5 sm:text-sm cursor-pointer ${
+                        activeGroupIndex === index
+                          ? "border-emerald-200 bg-white text-emerald-700 shadow-sm"
+                          : "border-transparent bg-transparent text-slate-500 hover:border-slate-200 hover:bg-white hover:text-slate-700"
+                      }`}
+                      aria-pressed={activeGroupIndex === index}
+                    >
+                      {group.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className="no-scrollbar mt-4 flex w-full min-w-0 max-w-full overflow-x-auto border-b border-slate-200">

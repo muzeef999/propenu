@@ -1464,7 +1464,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
 
 export default ContactSeller;
 
-
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
 
 
 
