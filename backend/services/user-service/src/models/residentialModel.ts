@@ -49,7 +49,15 @@ const ResidentialSchema = new Schema<IResidential>(
       min: 0,
     },
 
-    transactionType: { type: String, enum: ["new-sale", "resale"] },
+    transactionType: {
+      type: String,
+      enum: ["new-sale", "resale"],
+      required: false,
+      set(v: unknown) {
+        if (v === "" || v === null || v === undefined) return undefined;
+        return v;
+      },
+    },
     title: { type: String, required: true, trim: true },
     flooringType: { type: String, enum: FLOORING_TYPES },
     kitchenType: { type: String, enum: KITCHEN_TYPES },

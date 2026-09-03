@@ -61,7 +61,15 @@ const ResidentialSchema = new Schema<IResidential>(
 
     builtUpArea: { type: Number,  min: 0, },
 
-    transactionType: { type: String, enum: ["new-sale", "resale"] },
+    transactionType: {
+      type: String,
+      enum: ["new-sale", "resale"],
+      required: false,
+      set(v: unknown) {
+        if (v === "" || v === null || v === undefined) return undefined;
+        return v;
+      },
+    },
     title: {
       type: String,
       trim: true,
@@ -160,6 +168,13 @@ ResidentialSchema.index({ slug: 1 }, { unique: true });
 
 ResidentialSchema.pre("validate", async function (next) {
   try {
+    // Optional for rent listings — empty string is not a valid enum value.
+    const tx = this.get("transactionType");
+    if (tx === "" || tx === null || tx === undefined) {
+      this.set("transactionType", undefined);
+      if (this._doc) delete this._doc.transactionType;
+    }
+
     // Always rebuild title
     this.title = buildResidentialTitle(this);
     if (!this.title) {

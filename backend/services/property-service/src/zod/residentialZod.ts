@@ -178,9 +178,12 @@ export const ResidentialCreateSchema = BaseResidentialCreate.extend({
   balconies: z.coerce.number().int().optional(),
   buildingName: z.string().optional(),
 
-  transactionType: z.enum(
-    ["new-sale", "resale", "pre-leased", "rent", "lease"] as const
-  ).optional(),
+  transactionType: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? undefined : v),
+    z
+      .enum(["new-sale", "resale", "pre-leased", "rent", "lease"] as const)
+      .optional(),
+  ),
 
   // areas & sizes
   carpetArea: z.coerce.number().optional(),
@@ -261,9 +264,12 @@ export const ResidentialUpdateSchema = z
     locality: z.string().min(1, "Locality is required"),
     city: z.string().optional(),
     isPriceNegotiable: (z.coerce.boolean()).optional(),
-    transactionType: z.enum(
-    ["new-sale", "resale", "pre-leased", "rent", "lease"] as const
-  ).optional(),
+    transactionType: z.preprocess(
+      (v) => (v === "" || v === null || v === undefined ? undefined : v),
+      z
+        .enum(["new-sale", "resale", "pre-leased", "rent", "lease"] as const)
+        .optional(),
+    ),
 
    propertyType: z.enum(
       RESIDENTIAL_PROPERTY_TYPES as readonly [string, ...string[]]

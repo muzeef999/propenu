@@ -24,8 +24,9 @@ function localityKey(locality: LocalityLike) {
 }
 
 function toTitleCase(value: string) {
-  return value
+  return String(value || "")
     .trim()
+    .replace(/\s+/g, " ")
     .toLowerCase()
     .replace(/\b[a-z]/g, (char) => char.toUpperCase());
 }

@@ -353,14 +353,26 @@ export const CreateCommercialSchema = BaseCreate.extend({
   conferenceRooms: coerceInt(z.number().int()).optional(),
   seats: coerceInt(z.number().int()).optional(),
 
-  // transaction type
-  transactionType: coerceEnum([
-    "new-sale",
-    "resale",
-    "pre-leased",
-    "rent",
-    "lease",
-  ] as const).optional(),
+  // transaction type (optional — not used for rent listings)
+  transactionType: z.preprocess(
+    (v) => {
+      if (v === "" || v === null || v === undefined) return undefined;
+      if (typeof v === "string") {
+        const t = v.trim();
+        return t || undefined;
+      }
+      return v;
+    },
+    z
+      .enum([
+        "new-sale",
+        "resale",
+        "pre-leased",
+        "rent",
+        "lease",
+      ] as const)
+      .optional(),
+  ),
 
   // pantry object − also may come as JSON string
   pantry: jsonObject(PantryZ).optional(),
@@ -456,13 +468,25 @@ export const UpdateCommercialSchema = z
     conferenceRooms: coerceInt(z.number().int()).optional(),
     seats: coerceInt(z.number().int()).optional(),
 
-    transactionType: coerceEnum([
-      "new-sale",
-      "resale",
-      "pre-leased",
-      "rent",
-      "lease",
-    ] as const).optional(),
+    transactionType: z.preprocess(
+      (v) => {
+        if (v === "" || v === null || v === undefined) return undefined;
+        if (typeof v === "string") {
+          const t = v.trim();
+          return t || undefined;
+        }
+        return v;
+      },
+      z
+        .enum([
+          "new-sale",
+          "resale",
+          "pre-leased",
+          "rent",
+          "lease",
+        ] as const)
+        .optional(),
+    ),
 
     pantry: jsonObject(PantryZ).optional(),
 

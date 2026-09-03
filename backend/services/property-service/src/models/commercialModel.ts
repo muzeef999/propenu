@@ -126,6 +126,11 @@ const CommercialSchema = new Schema<ICommercial>(
     transactionType: {
       type: String,
       enum: ["new-sale", "resale"],
+      required: false,
+      set(v: unknown) {
+        if (v === "" || v === null || v === undefined) return undefined;
+        return v;
+      },
     },
     pantry: PantrySchema,
   },
@@ -182,6 +187,13 @@ CommercialSchema.pre("save", async function (next) {
 
 CommercialSchema.pre("validate", async function (next) {
   try {
+    // Optional for rent listings — empty string is not a valid enum value.
+    const tx = this.get("transactionType");
+    if (tx === "" || tx === null || tx === undefined) {
+      this.set("transactionType", undefined);
+      if (this._doc) delete this._doc.transactionType;
+    }
+
     // Always rebuild title
     this.title = buildCommercialTitle(this);
 

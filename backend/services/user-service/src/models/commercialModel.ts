@@ -96,6 +96,11 @@ const CommercialSchema = new Schema<ICommercial>(
     transactionType: {
       type: String,
       enum: ["new-sale", "resale"],
+      required: false,
+      set(v: unknown) {
+        if (v === "" || v === null || v === undefined) return undefined;
+        return v;
+      },
     },
     pantry: PantrySchema,
   },

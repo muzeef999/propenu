@@ -54,7 +54,15 @@ const ResidentialSchema = new Schema<IResidential>(
 
     builtUpArea: { type: Number,  min: 0, },
 
-    transactionType: { type: String, enum: ["new-sale", "resale"] },
+    transactionType: {
+      type: String,
+      enum: ["new-sale", "resale"],
+      required: false,
+      set(v: unknown) {
+        if (v === "" || v === null || v === undefined) return undefined;
+        return v;
+      },
+    },
     title: {
       type: String,
       trim: true,
