@@ -211,6 +211,28 @@ export const verifyDirectBuilderOtp = async (req: AuthRequest, res: Response) =>
   }
 };
 
+/** Super Admin / BDH: create builder (name/email/phone) with no OTP and assign Created By */
+export const directCreateBuilder = async (req: AuthRequest, res: Response) => {
+  try {
+    const projectId = String(req.params.id || "");
+    const data = await BuilderOnboardingService.directCreateAndAssignBuilder(
+      projectId,
+      {
+        name: String(req.body?.name || ""),
+        email: req.body?.email ? String(req.body.email) : "",
+        phone: String(req.body?.phone || ""),
+        companyName: req.body?.companyName
+          ? String(req.body.companyName)
+          : undefined,
+      },
+      asStaff(req.user),
+    );
+    return res.status(200).json({ success: true, data });
+  } catch (err: any) {
+    return sendError(res, err);
+  }
+};
+
 export const saveProjectContacts = async (req: AuthRequest, res: Response) => {
   try {
     const projectId = String(req.params.id || "");

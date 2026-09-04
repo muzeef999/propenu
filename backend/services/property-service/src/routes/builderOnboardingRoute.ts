@@ -10,6 +10,7 @@ import {
   claimPublicInviteAfterSignup,
   completePublicInviteOnboarding,
   createProjectDraft,
+  directCreateBuilder,
   getBuilderOnboarding,
   getPublicBuilderInvite,
   lookupBuilder,
@@ -80,6 +81,12 @@ router.post(
   "/:id/builder/direct-otp/verify",
   ...staffAuth,
   verifyDirectBuilderOtp,
+);
+
+router.post(
+  "/:id/builder/direct-create",
+  ...staffAuth,
+  directCreateBuilder,
 );
 
 router.put("/:id/project-contacts", ...staffAuth, saveProjectContacts);

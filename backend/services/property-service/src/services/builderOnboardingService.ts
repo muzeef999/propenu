@@ -332,6 +332,50 @@ function ensureDraftProject(project: any) {
   }
 }
 
+/** Super Admin / BDH may re-assign Created By even on live projects. */
+function ensureProjectAllowsBuilderAssign(project: any, staff?: StaffUser) {
+  if (!project) {
+    const err: any = new Error("Project not found");
+    err.statusCode = 404;
+    throw err;
+  }
+  if (project.status === "draft") return;
+  const role = String(staff?.roleName || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_");
+  if (
+    role === "super_admin" ||
+    role === "admin" ||
+    role === "business_development_head"
+  ) {
+    return;
+  }
+  const err: any = new Error("Builder onboarding is only allowed on draft projects");
+  err.statusCode = 400;
+  throw err;
+}
+
+const DIRECT_CREATE_BUILDER_ROLES = new Set([
+  "super_admin",
+  "admin",
+  "business_development_head",
+]);
+
+function assertCanDirectCreateBuilder(staff?: StaffUser) {
+  const role = String(staff?.roleName || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_");
+  if (!DIRECT_CREATE_BUILDER_ROLES.has(role)) {
+    const err: any = new Error(
+      "Only Super Admin or Business Development Head can create a builder without OTP",
+    );
+    err.statusCode = 403;
+    throw err;
+  }
+}
+
 function syncProjectOnboardingFromInvite(project: any, invite: any) {
   project.builderOnboarding = project.builderOnboarding || {};
   project.builderOnboarding.enabled = true;
@@ -499,7 +543,7 @@ export const BuilderOnboardingService = {
     }
 
     const project = await FeaturedProject.findById(projectId);
-    ensureDraftProject(project);
+    ensureProjectAllowsBuilderAssign(project, staff);
 
     const builderRoleId = await getBuilderRoleId();
     const builder = await User.findOne({
@@ -1139,6 +1183,212 @@ export const BuilderOnboardingService = {
     };
   },
 
+  /**
+   * Super Admin / BDH: create builder account with name/email/phone (no OTP)
+   * and set as project Created By.
+   */
+  async directCreateAndAssignBuilder(
+    projectId: string,
+    input: {
+      name: string;
+      email: string;
+      phone: string;
+      companyName?: string;
+    },
+    staff?: StaffUser,
+  ) {
+    assertCanDirectCreateBuilder(staff);
+
+    const name = String(input.name || "").trim();
+    const email = normalizeEmail(input.email);
+    const phone = normalizePhone(input.phone);
+    const companyName =
+      String(input.companyName || "").trim() || name || "Builder";
+
+    if (!name) {
+      const err: any = new Error("Builder name is required");
+      err.statusCode = 400;
+      throw err;
+    }
+    if (email && !/^\S+@\S+\.\S+$/.test(email)) {
+      const err: any = new Error("Enter a valid email, or leave email empty");
+      err.statusCode = 400;
+      err.conflictField = "email";
+      throw err;
+    }
+    if (!phone || phone.replace(/\D/g, "").length < 10) {
+      const err: any = new Error("Valid 10-digit builder phone is required");
+      err.statusCode = 400;
+      err.conflictField = "phone";
+      throw err;
+    }
+
+    const project = await FeaturedProject.findById(projectId);
+    ensureProjectAllowsBuilderAssign(project, staff);
+
+    const phoneValues = phoneLookupValues(phone);
+    const [userByPhone, userByEmail] = await Promise.all([
+      phoneValues.length
+        ? User.findOne({ phone: { $in: phoneValues } })
+            .select("_id name email phone roleId")
+            .populate("roleId", "name label")
+            .lean()
+        : null,
+      email
+        ? User.findOne({ email })
+            .select("_id name email phone roleId")
+            .populate("roleId", "name label")
+            .lean()
+        : null,
+    ]);
+
+    if (userByPhone) {
+      const roleName = String(
+        (userByPhone as any)?.roleId?.name ||
+          (userByPhone as any)?.roleName ||
+          "",
+      )
+        .trim()
+        .toLowerCase();
+      const displayRole =
+        roleName === "builder"
+          ? "Builder"
+          : roleName === "user"
+            ? "User"
+            : roleName === "agent"
+              ? "Agent"
+              : roleName
+                ? roleName
+                    .split("_")
+                    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+                    .join(" ")
+                : "another account";
+      const err: any = new Error(
+        `Phone number already exists (${phone.replace(/^\+91/, "")}) — registered as ${displayRole}. Use Existing Builder, or enter a different phone.`,
+      );
+      err.statusCode = 409;
+      err.code = "PHONE_ALREADY_EXISTS";
+      err.conflictField = "phone";
+      err.conflictRole = roleName || "unknown";
+      err.conflictDisplayRole = displayRole;
+      err.conflictValue = phone;
+      throw err;
+    }
+
+    if (userByEmail) {
+      const roleName = String(
+        (userByEmail as any)?.roleId?.name ||
+          (userByEmail as any)?.roleName ||
+          "",
+      )
+        .trim()
+        .toLowerCase();
+      const displayRole =
+        roleName === "builder"
+          ? "Builder"
+          : roleName === "user"
+            ? "User"
+            : roleName === "agent"
+              ? "Agent"
+              : roleName
+                ? roleName
+                    .split("_")
+                    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+                    .join(" ")
+                : "another account";
+      const err: any = new Error(
+        `Email already exists (${email}) — registered as ${displayRole}. Use Existing Builder, or enter a different email.`,
+      );
+      err.statusCode = 409;
+      err.code = "EMAIL_ALREADY_EXISTS";
+      err.conflictField = "email";
+      err.conflictRole = roleName || "unknown";
+      err.conflictDisplayRole = displayRole;
+      err.conflictValue = email;
+      throw err;
+    }
+
+    await revokeActiveInvites(projectId);
+
+    const builder = await this.createOrGetBuilderUser({
+      name,
+      companyName,
+      email,
+      phone,
+    });
+
+    project!.createdBy = builder._id as any;
+    project!.builderOnboarding = {
+      enabled: true,
+      mode: "staff_direct_no_otp",
+      assignStatus: "verified",
+      inviteEmail: email,
+      invitePhone: phone,
+      emailStatus: "onboarded",
+      emailUiStatus: "onboarded",
+      verifiedAt: new Date(),
+      verifiedBy: staff?.id
+        ? new mongoose.Types.ObjectId(staff.id)
+        : undefined,
+      builderSnapshot: {
+        companyName,
+        contactName: name,
+        email,
+        phone,
+      },
+    } as any;
+
+    const existingContacts = Array.isArray((project as any).projectContacts)
+      ? (project as any).projectContacts
+      : [];
+    if (!existingContacts.length) {
+      (project as any).projectContacts = [
+        {
+          name: name || "Builder",
+          phone: phone || "0000000000",
+          email: email || undefined,
+          role: "builder",
+          isPrimary: true,
+        },
+      ];
+    }
+
+    const staffRole = staff?.roleName || "";
+    const canGoLiveDirectly =
+      Boolean(staffRole) && !projectRequiresApprovalOnCreate(staffRole);
+
+    if (canGoLiveDirectly && project!.status === "draft") {
+      project!.status = "active";
+      project!.approvalStatus = "approved";
+      (project as any).approvedAt = new Date();
+      if (staff?.id && mongoose.Types.ObjectId.isValid(staff.id)) {
+        (project as any).approvedBy = new mongoose.Types.ObjectId(staff.id);
+      }
+    }
+
+    await project!.save();
+
+    return {
+      message: builder.createdNew
+        ? "New builder created (no OTP) and assigned to project"
+        : "Builder account linked and assigned to project",
+      projectId,
+      builderId: String(builder._id),
+      assignStatus: "verified",
+      createdNewUser: Boolean(builder.createdNew),
+      status: project!.status,
+      approvalStatus: project!.approvalStatus,
+      wentLive: canGoLiveDirectly && project!.status === "active",
+      builder: {
+        _id: String(builder._id),
+        name: (builder as any).name || name,
+        email: (builder as any).email || email,
+        phone: (builder as any).phone || phone,
+        companyName: (builder as any).companyName || companyName,
+      },
+    };
+  },
+
   async saveProjectContacts(projectId: string, contacts: ProjectContactInput[]) {
     if (!Array.isArray(contacts) || contacts.length === 0) {
       const err: any = new Error("At least one project contact is required");
@@ -1678,12 +1928,12 @@ export const BuilderOnboardingService = {
   async createOrGetBuilderUser(input: {
     name: string;
     companyName: string;
-    email: string;
+    email?: string;
     phone: string;
   }) {
     const email = normalizeEmail(input.email);
     const phone = normalizePhone(input.phone);
-    await checkUserRoleEligibility(email, phone);
+    await checkUserRoleEligibility(email || undefined, phone);
 
     const phoneValues = phoneLookupValues(phone);
     const builderRoleId = await getBuilderRoleId();
@@ -1702,6 +1952,9 @@ export const BuilderOnboardingService = {
       if (!(user as any).companyName && input.companyName) {
         (user as any).companyName = input.companyName;
       }
+      if (email && !(user as any).email) {
+        (user as any).email = email;
+      }
       (user as any).phoneVerified = true;
       if ((user as any).accountStatus !== "active") {
         (user as any).accountStatus = "active";
@@ -1713,7 +1966,7 @@ export const BuilderOnboardingService = {
     user = await User.create({
       name: input.name.slice(0, 42),
       companyName: input.companyName.slice(0, 80),
-      email,
+      ...(email ? { email } : {}),
       phone,
       phoneVerified: true,
       accountStatus: "active",

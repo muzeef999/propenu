@@ -306,7 +306,13 @@ const FeaturePropertySchema = new Schema<IFeaturedProjectDocument>(
       enabled: { type: Boolean, default: false, index: true },
       mode: {
         type: String,
-        enum: ["existing_builder", "invite_link", "staff_direct", ""],
+        enum: [
+          "existing_builder",
+          "invite_link",
+          "staff_direct",
+          "staff_direct_no_otp",
+          "",
+        ],
         default: "",
       },
       assignStatus: {
