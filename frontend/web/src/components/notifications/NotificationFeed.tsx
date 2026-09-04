@@ -11,7 +11,16 @@ export type NotificationType =
   | "contact_requested"
   | "brochure_downloaded"
   | "high_time_spent"
-  | "ticket_created";
+  | "ticket_created"
+  | "ticket_assigned"
+  | "ticket_updated"
+  | "ticket_replied"
+  | "ticket_status_changed"
+  | "ticket_resolved"
+  | "ticket_closed"
+  | "ticket_reopened"
+  | "ticket_escalated"
+  | "ticket_priority_changed";
 
 type FilterType = "all" | NotificationType;
 type DateRangeFilter = "all" | "today" | "last_7_days" | "this_month";
@@ -62,12 +71,25 @@ interface NotificationFeedProps {
   title?: string;
 }
 
-const FILTERS: Array<{ id: FilterType; label: string }> = [
+const TICKET_NOTIFICATION_TYPES: NotificationType[] = [
+  "ticket_created",
+  "ticket_assigned",
+  "ticket_updated",
+  "ticket_replied",
+  "ticket_status_changed",
+  "ticket_resolved",
+  "ticket_closed",
+  "ticket_reopened",
+  "ticket_escalated",
+  "ticket_priority_changed",
+];
+
+const FILTERS: Array<{ id: FilterType | "tickets"; label: string }> = [
   { id: "all", label: "All" },
   { id: "project_shortlisted", label: "Project Shortlists" },
   { id: "property_shortlisted", label: "Property Shortlists" },
   { id: "contact_requested", label: "Contacts" },
-  { id: "ticket_created", label: "Tickets" },
+  { id: "tickets", label: "Tickets" },
   { id: "brochure_downloaded", label: "Brochure" },
   { id: "high_time_spent", label: "Time Spent" },
 ];
@@ -165,11 +187,23 @@ const getRoleLabel = (role?: string) => {
   return role || "User";
 };
 
+const isTicketNotification = (type: NotificationType) =>
+  TICKET_NOTIFICATION_TYPES.includes(type);
+
 const getNotificationAccentClasses = (type: NotificationType) => {
   switch (type) {
     case "brochure_downloaded":
       return "bg-violet-50 text-violet-700 ring-violet-100";
     case "ticket_created":
+    case "ticket_assigned":
+    case "ticket_updated":
+    case "ticket_replied":
+    case "ticket_status_changed":
+    case "ticket_resolved":
+    case "ticket_closed":
+    case "ticket_reopened":
+    case "ticket_escalated":
+    case "ticket_priority_changed":
       return "bg-orange-50 text-orange-700 ring-orange-100";
     case "high_time_spent":
       return "bg-amber-50 text-amber-700 ring-amber-100";
@@ -188,7 +222,25 @@ const getNotificationLabel = (type: NotificationType) => {
     case "brochure_downloaded":
       return "Brochure";
     case "ticket_created":
-      return "Ticket";
+      return "Ticket Created";
+    case "ticket_assigned":
+      return "Ticket Assigned";
+    case "ticket_updated":
+      return "Ticket Updated";
+    case "ticket_replied":
+      return "Ticket Replied";
+    case "ticket_status_changed":
+      return "Ticket Status Changed";
+    case "ticket_resolved":
+      return "Ticket Resolved";
+    case "ticket_closed":
+      return "Ticket Closed";
+    case "ticket_reopened":
+      return "Ticket Reopened";
+    case "ticket_escalated":
+      return "Ticket Escalated";
+    case "ticket_priority_changed":
+      return "Ticket Priority Changed";
     case "high_time_spent":
       return "Time Spent";
     case "contact_requested":
@@ -211,7 +263,7 @@ const NotificationFeed = ({
   summary,
   title = "Notifications",
 }: NotificationFeedProps) => {
-  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [activeFilter, setActiveFilter] = useState<FilterType | "tickets">("all");
   const [activeDateFilter, setActiveDateFilter] = useState<DateRangeFilter>("all");
   const [searchValue, setSearchValue] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -222,7 +274,9 @@ const NotificationFeed = ({
       FILTERS.filter(
         (filter) =>
           filter.id === "all" ||
-          notifications.some((item) => item.type === filter.id),
+          (filter.id === "tickets"
+            ? notifications.some((item) => isTicketNotification(item.type))
+            : notifications.some((item) => item.type === filter.id)),
       ),
     [notifications],
   );
@@ -247,7 +301,11 @@ const NotificationFeed = ({
       const projectTitle = item.project?.title || "";
       const message = item.message || "";
 
-      const matchesFilter = activeFilter === "all" || item.type === activeFilter;
+      const matchesFilter =
+        activeFilter === "all" ||
+        (activeFilter === "tickets"
+          ? isTicketNotification(item.type)
+          : item.type === activeFilter);
       const matchesDateRange = isWithinDateRange(item.createdAt, activeDateFilter);
       const matchesSearch =
         !query ||
@@ -292,7 +350,7 @@ const NotificationFeed = ({
       notifications.filter((item) => item.type === "contact_requested").length,
     tickets:
       summary?.tickets ??
-      notifications.filter((item) => item.type === "ticket_created").length,
+      notifications.filter((item) => isTicketNotification(item.type)).length,
     brochureDownloads:
       summary?.brochureDownloads ??
       notifications.filter((item) => item.type === "brochure_downloaded").length,

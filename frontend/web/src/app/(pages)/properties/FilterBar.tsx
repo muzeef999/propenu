@@ -68,6 +68,7 @@ type SearchSuggestion =
       city: string;
       state: string;
       locality: string;
+      promotionType?: string;
     };
 
 type RecentSearchItem = SearchSuggestion & {
@@ -81,6 +82,14 @@ type SearchCityContext = {
 
 function normalizeLocalityName(value: string) {
   return value.trim().replace(/\s+/g, " ");
+}
+
+function getProjectHref(
+  suggestion: Extract<SearchSuggestion, { kind: "project" }>,
+) {
+  return String(suggestion.promotionType || "").toLowerCase() === "prime"
+    ? `/prime/${suggestion.slug}`
+    : `/project/${suggestion.slug}`;
 }
 
 const FilterBar: React.FC = () => {
@@ -123,6 +132,7 @@ const FilterBar: React.FC = () => {
     Extract<SearchSuggestion, { kind: "project" }> | null
   >(null);
   const pendingInitialUrlCategoryRef = useRef<categoryOption | null>(null);
+  const isNavigatingToProjectRef = useRef(false);
 
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -362,6 +372,7 @@ const FilterBar: React.FC = () => {
 
   useEffect(() => {
     if (!hasRestoredCategory || !hasHydratedFromUrl) return;
+    if (isNavigatingToProjectRef.current) return;
 
     // Protect only the first hydration pass. After the initial URL category
     // has been respected once, user-driven category changes should update URL normally.
@@ -626,16 +637,6 @@ const FilterBar: React.FC = () => {
     }
 
     if (suggestion.kind === "project") {
-      saveRecentSearch(suggestion);
-      dispatch(setSearchText(""));
-      setSelectedProject(suggestion);
-      setIsCityChipDismissed(false);
-      setActiveSearchCity({
-        city: suggestion.city,
-        state: suggestion.state,
-      });
-      syncNavbarCity(suggestion.city, suggestion.state);
-      setSearchOpen(false);
       return;
     }
 
@@ -649,24 +650,30 @@ const FilterBar: React.FC = () => {
   };
 
   const handleSuggestionClick = (suggestion: SearchSuggestion) => {
-    handleSuggestionSelect(suggestion);
-
     if (suggestion.kind === "project") {
-      router.push(`/project/${suggestion.slug}`);
+      saveRecentSearch(suggestion);
+      setSelectedProject(suggestion);
+      setSearchOpen(false);
+      window.open(getProjectHref(suggestion), "_blank", "noopener,noreferrer");
+      return;
     }
+
+    handleSuggestionSelect(suggestion);
   };
 
   const handleSearchSubmit = () => {
     if (selectedProject) {
-      router.push(`/project/${selectedProject.slug}`);
+      window.open(getProjectHref(selectedProject), "_blank", "noopener,noreferrer");
       return;
     }
 
     const firstSuggestion = searchText.trim() ? searchSuggestions[0] : null;
     if (firstSuggestion) {
       if (firstSuggestion.kind === "project") {
-        handleSuggestionSelect(firstSuggestion);
-        router.push(`/project/${firstSuggestion.slug}`);
+        saveRecentSearch(firstSuggestion);
+        setSelectedProject(firstSuggestion);
+        setSearchOpen(false);
+        window.open(getProjectHref(firstSuggestion), "_blank", "noopener,noreferrer");
         return;
       }
 

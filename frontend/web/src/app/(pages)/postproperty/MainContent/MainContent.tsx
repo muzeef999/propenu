@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import StepRenderer from "./StepRenderer";
 import { useAppDispatch, useAppSelector } from "@/Redux/store";
 import {
@@ -12,12 +12,14 @@ import {
   type PropertyCategory,
 } from "@/Redux/slice/postPropertySlice";
 import AgentSubmissionSuccessDialog from "../components/AgentSubmissionSuccessDialog";
+import { useAuth } from "@/hooks/useAuth";
 
 
 const MainContent = () => {
-
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
+  const { role, isLoading: isAuthLoading } = useAuth();
   const [isBootstrapped, setIsBootstrapped] = useState(false);
   const [roleName, setRoleName] = useState("");
   const editId = searchParams.get("editId");
@@ -32,6 +34,14 @@ const maxStep =
     ? 3
     : 4;
 const safeCurrentStep = Math.min(Math.max(currentStep || 1, 1), maxStep);
+
+useEffect(() => {
+  if (isAuthLoading) return;
+
+  if (role === "builder" || role === "builder_staff") {
+    router.replace("/builder/create-property");
+  }
+}, [isAuthLoading, role, router]);
 
 useEffect(() => {
   if (typeof window === "undefined") return;
@@ -72,6 +82,7 @@ useEffect(() => {
 }, [editCategory]);
 
 useEffect(() => {
+  if (role === "builder" || role === "builder_staff") return;
   if (!isBootstrapped) return;
   // property type not selected yet
   if (!propertyType) return;
@@ -124,6 +135,10 @@ useEffect(() => {
     localStorage.setItem("postproperty:draftId", draftId);
   }
 }, [isBootstrapped, propertyType, draftId]);
+
+  if (isAuthLoading || role === "builder" || role === "builder_staff") {
+    return null;
+  }
 
 
   const STEP_TITLES: Record<number, string> = {
