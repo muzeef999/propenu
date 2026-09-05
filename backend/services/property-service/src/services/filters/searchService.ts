@@ -510,11 +510,26 @@ function getFeaturedProjectPipeline(filter: any) {
   return [
     { $match: buildFeaturedProjectMatch(filter) },
     {
+      $lookup: {
+        from: "users",
+        localField: "createdBy",
+        foreignField: "_id",
+        as: "createdByUser",
+      },
+    },
+    {
+      $unwind: {
+        path: "$createdByUser",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
       $project: {
         _id: 0,
         id: "$_id",
         type: { $literal: "FeaturedProject" },
         title: 1,
+        categoryType: 1,
         locality: 1,
         city: 1,
         listingType: { $literal: "sale" },
@@ -543,6 +558,16 @@ function getFeaturedProjectPipeline(filter: any) {
         bathrooms: { $literal: null },
         slug: 1,
         createdAt: 1,
+        createdBy: {
+          _id: "$createdByUser._id",
+          name: "$createdByUser.name",
+          fullName: "$createdByUser.fullName",
+          companyName: "$createdByUser.companyName",
+          email: "$createdByUser.email",
+          phone: "$createdByUser.phone",
+          role: "$createdByUser.role",
+          roleName: "$createdByUser.roleName",
+        },
         listingSource: { $literal: "featured" },
         promotion: 1,
       },

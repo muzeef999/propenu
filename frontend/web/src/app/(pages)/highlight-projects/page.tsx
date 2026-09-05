@@ -38,9 +38,29 @@ type SponsoredProperty = {
     title?: string;
     slug?: string;
     type?: string;
+    category?: string;
+    categoryType?: string;
     city?: string;
     buildingName?: string;
     heroImage?: string;
+    price?: number;
+    priceFrom?: number;
+    priceTo?: number;
+    locality?: string;
+    state?: string;
+    builderName?: string;
+    companyName?: string;
+    createdBy?: string | {
+        companyName?: string;
+        name?: string;
+        fullName?: string;
+    };
+    developer?: string | {
+        companyName?: string;
+        name?: string;
+        fullName?: string;
+    };
+    aboutSummary?: { builderName?: string }[] | { builderName?: string };
     gallery?: { url?: string }[];
     gallerySummary?: { url?: string }[];
     promotion?: { type?: string };
@@ -112,6 +132,81 @@ const getSponsoredPropertyHref = (property: SponsoredProperty) => {
             return "/";
     }
 };
+
+const formatSponsoredPrice = (property: SponsoredProperty) => {
+    const priceFrom = Number(property.priceFrom);
+    const priceTo = Number(property.priceTo);
+    const price = Number(property.price);
+
+    if (
+        Number.isFinite(priceFrom) &&
+        priceFrom > 0 &&
+        Number.isFinite(priceTo) &&
+        priceTo > 0 &&
+        priceFrom !== priceTo
+    ) {
+        return `${formatINR(priceFrom)} - ${formatINR(priceTo)}`;
+    }
+
+    if (Number.isFinite(priceFrom) && priceFrom > 0) {
+        return `From ${formatINR(priceFrom)}`;
+    }
+
+    if (Number.isFinite(priceTo) && priceTo > 0) {
+        return `Up to ${formatINR(priceTo)}`;
+    }
+
+    if (Number.isFinite(price) && price > 0) {
+        return formatINR(price);
+    }
+
+    return "Price on request";
+};
+
+const getSponsoredLocation = (property: SponsoredProperty) =>
+    [property.locality, property.city, property.state].filter(Boolean).join(", ");
+
+const getSponsoredDisplayCategory = (property: SponsoredProperty) => {
+    const type = String(property.type || "").toLowerCase();
+
+    if (type === "featuredproject" && (property.categoryType || property.category)) {
+        return String(property.categoryType || property.category);
+    }
+
+    return property.type || "";
+};
+
+const toTitleCase = (value?: string) => {
+    if (!value) return "";
+
+    return value.replace(/\b\w+/g, (word) =>
+        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    );
+};
+
+const getSponsoredBuilderName = (property: SponsoredProperty) => {
+    const createdBy = property.createdBy;
+    const developer = property.developer;
+    const aboutSummary = property.aboutSummary;
+    const aboutBuilderName = Array.isArray(aboutSummary)
+        ? aboutSummary[0]?.builderName
+        : aboutSummary?.builderName;
+    const rawContactName =
+        (typeof developer === "object" && developer !== null
+            ? developer.companyName || developer.name || developer.fullName
+            || (typeof createdBy === "object" && createdBy !== null
+                ? createdBy.name
+                : undefined)
+            : typeof createdBy === "object" && createdBy !== null
+                ? createdBy.name
+                : undefined) ||
+        aboutBuilderName ||
+        property.builderName ||
+        property.companyName;
+
+    return toTitleCase(rawContactName);
+};
+
 const ProjectCardActions = ({
     project,
     projectHref,
@@ -301,7 +396,10 @@ const HotspotsPage = () => {
         .map((property: SponsoredProperty) => ({
             id: property.id || property._id || "",
             title: property.title || "Sponsored Property",
-            description: property.buildingName || property.city,
+            description: undefined,
+            location: getSponsoredLocation(property),
+            priceLabel: formatSponsoredPrice(property),
+            builderName: getSponsoredBuilderName(property),
             imageUrl:
                 property.heroImage ||
                 property.gallery?.[0]?.url ||
@@ -310,7 +408,9 @@ const HotspotsPage = () => {
             ctaText: "View Details",
             ctaLink: getSponsoredPropertyHref(property),
             category: property.type || "Featured",
+            displayCategory: getSponsoredDisplayCategory(property),
             sponsored: true,
+            promotionType: property.promotion?.type,
         }))
         .filter((ad: Ad) => Boolean(ad.id));
 
@@ -760,7 +860,7 @@ const HotspotsPage = () => {
                                         <AdCard key={ad.id} ad={ad} onDismiss={handleDismissAd} />
                                     ))}
                                     {sidebarAds.length === 0 && (
-                                        <SponsoreCard />
+                                        <SponsoreCard target="project" promotionType="featured" />
                                     )}
                                 </div>
                             )}

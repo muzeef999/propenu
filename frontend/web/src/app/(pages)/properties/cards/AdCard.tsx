@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { MdClose, MdOpenInNew } from "react-icons/md";
+import { MdClose } from "react-icons/md";
 import { GoHeart, GoHeartFill } from "react-icons/go";
 import { useShortlist } from "@/hooks/useShortlist";
 
@@ -11,12 +11,17 @@ export interface Ad {
   id: string;
   title: string;
   description?: string;
+  location?: string;
+  priceLabel?: string;
+  builderName?: string;
   imageUrl: string;
   ctaText: string;
   ctaLink: string;
   category?: string;
+  displayCategory?: string;
   featured?: boolean;
   sponsored?: boolean;
+  promotionType?: "normal" | "featured" | "prime" | "sponsored" | string;
   expiryDate?: Date;
   isExpired?: boolean;
 }
@@ -59,6 +64,38 @@ function getShortlistPropertyType(
   }
 }
 
+function getPromotionBadge(ad: Ad) {
+  const promotionType = String(ad.promotionType || "").toLowerCase();
+
+  if (promotionType === "prime") return "Prime Project";
+  if (promotionType === "featured") return "Featured";
+  if (promotionType === "sponsored" || ad.sponsored) return "Sponsored";
+
+  return null;
+}
+
+function formatCategoryLabel(category?: string) {
+  const normalized = String(category || "").trim().toLowerCase();
+
+  switch (normalized) {
+    case "featuredproject":
+    case "featured project":
+    case "project":
+      return "Project";
+    case "landplot":
+    case "landplots":
+      return "Land";
+    case "residentials":
+      return "Residential";
+    case "commercials":
+      return "Commercial";
+    case "agriculturals":
+      return "Agricultural";
+    default:
+      return category || "";
+  }
+}
+
 const AdCard: React.FC<AdCardProps> = ({ ad, onDismiss }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
@@ -85,6 +122,8 @@ const AdCard: React.FC<AdCardProps> = ({ ad, onDismiss }) => {
     toggleShortlist();
   };
 
+  const promotionBadge = getPromotionBadge(ad);
+  const categoryLabel = formatCategoryLabel(ad.displayCategory || ad.category);
 
   return (
     <Link href={ad.ctaLink} target="_blank" rel="noopener noreferrer">
@@ -103,22 +142,22 @@ const AdCard: React.FC<AdCardProps> = ({ ad, onDismiss }) => {
             sizes="(max-width: 768px) 100vw, 300px"
           />
 
-          {/* Sponsored Badge */}
-          {ad.sponsored && (
+          {/* Promotion Badge */}
+          {promotionBadge && (
             <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2.5 py-1 rounded-md shadow-md">
-              Sponsored
+              {promotionBadge}
             </div>
           )}
 
           {/* Category Badge */}
-          {ad.category && !ad.sponsored && (
+          {ad.category && !promotionBadge && (
             <div className="absolute top-2 left-2 bg-[#27AE60]/90 text-white text-xs font-semibold px-2 py-1 rounded-md">
               {ad.category}
             </div>
           )}
 
           {/* Featured Badge */}
-          {ad.featured && (
+          {ad.featured && !promotionBadge && (
             <div className="absolute top-2 right-2 bg-yellow-500/90 text-white text-xs font-semibold px-2 py-1 rounded-md">
               Featured
             </div>
@@ -148,6 +187,12 @@ const AdCard: React.FC<AdCardProps> = ({ ad, onDismiss }) => {
         <div className="p-3 flex flex-col gap-2 h-[calc(100%-160px)] justify-between">
           {/* Title */}
           <div className="flex-1">
+            {categoryLabel && (
+              <span className="mb-2 inline-flex w-fit rounded-md bg-[#D1EFDD] px-2 py-0.5 text-[11px] font-semibold text-[#16884B]">
+                {categoryLabel}
+              </span>
+            )}
+
             <h3 className="font-semibold text-sm line-clamp-2 text-gray-800 group-hover:text-[#27AE60] transition-colors">
               {ad.title}
             </h3>
@@ -158,15 +203,24 @@ const AdCard: React.FC<AdCardProps> = ({ ad, onDismiss }) => {
                 {ad.description}
               </p>
             )}
+
+            {ad.location && (
+              <p className="mt-1 text-xs text-gray-500 line-clamp-1">
+                {ad.location}
+              </p>
+            )}
+
+            <p className="mt-2 text-sm font-semibold text-[#27AE60]">
+              {ad.priceLabel || "Price on request"}
+            </p>
+
+            {ad.builderName && (
+              <p className="mt-1 text-xs text-gray-500 line-clamp-1">
+                By <span className="font-medium text-gray-700">{ad.builderName}</span>
+              </p>
+            )}
           </div>
 
-          {/* CTA Button */}
-          <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-200">
-            <span className="text-xs font-medium text-[#27AE60]">
-              {ad.ctaText}
-            </span>
-            <MdOpenInNew className="h-4 w-4 text-[#27AE60] group-hover:translate-x-1 transition-transform" />
-          </div>
         </div>
 
         {/* Overlay on Hover */}

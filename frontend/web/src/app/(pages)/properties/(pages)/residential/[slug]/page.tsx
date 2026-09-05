@@ -76,6 +76,84 @@ function getPropertyLink(property: Property) {
   }
 }
 
+function getAdLocation(property: Property) {
+  return [property.locality, property.city, (property as any).state]
+    .filter(Boolean)
+    .join(", ");
+}
+
+function getAdDisplayCategory(property: Property) {
+  const type = String(property.type || "").toLowerCase();
+  const projectCategory = (property as any).categoryType || (property as any).category;
+
+  if (type === "featuredproject" && projectCategory) {
+    return String(projectCategory);
+  }
+
+  return property.type || "";
+}
+
+function getAdPriceLabel(property: Property) {
+  const priceFrom = Number(property.priceFrom);
+  const priceTo = Number(property.priceTo);
+  const price = Number(property.price);
+
+  if (
+    Number.isFinite(priceFrom) &&
+    priceFrom > 0 &&
+    Number.isFinite(priceTo) &&
+    priceTo > 0 &&
+    priceFrom !== priceTo
+  ) {
+    return `${formatINR(priceFrom)} - ${formatINR(priceTo)}`;
+  }
+
+  if (Number.isFinite(priceFrom) && priceFrom > 0) {
+    return `From ${formatINR(priceFrom)}`;
+  }
+
+  if (Number.isFinite(priceTo) && priceTo > 0) {
+    return `Up to ${formatINR(priceTo)}`;
+  }
+
+  if (Number.isFinite(price) && price > 0) {
+    return formatINR(price);
+  }
+
+  return "Price on request";
+}
+
+function toTitleCase(value?: string) {
+  if (!value) return "";
+
+  return value.replace(/\b\w+/g, (word) =>
+    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+  );
+}
+
+function getAdBuilderName(property: Property) {
+  const createdBy = (property as any).createdBy;
+  const developer = (property as any).developer;
+  const aboutSummary = (property as any).aboutSummary;
+  const aboutBuilderName = Array.isArray(aboutSummary)
+    ? aboutSummary[0]?.builderName
+    : aboutSummary?.builderName;
+  const rawContactName =
+    (typeof developer === "object" && developer !== null
+      ? developer.companyName || developer.name || developer.fullName
+      || (typeof createdBy === "object" && createdBy !== null
+        ? createdBy.name
+        : undefined)
+      : typeof createdBy === "object" && createdBy !== null
+        ? createdBy.name
+        : undefined) ||
+    aboutBuilderName ||
+    (property as any).builderName ||
+    (property as any).companyName;
+
+  return toTitleCase(rawContactName);
+}
+
 async function getSponsoredSidebarAds(project: IResidential): Promise<Ad[]> {
   if (!apiUrl) return [];
 
@@ -100,20 +178,30 @@ async function getSponsoredSidebarAds(project: IResidential): Promise<Ad[]> {
 
     return properties
       .filter((property) => (property.id || property._id) !== project._id)
-      .slice(0, 2)
+      .filter(
+        (property) =>
+          String(property.promotion?.type || "").toLowerCase() === "sponsored",
+      )
+      .slice(0, 10)
       .map((property) => ({
         id: property.id || property._id || "",
         title: property.title || "Featured Property",
-        description: property.buildingName,
+        description: undefined,
+        location: getAdLocation(property),
+        priceLabel: getAdPriceLabel(property),
+        builderName: getAdBuilderName(property),
         imageUrl:
+          (property as any).heroImage ||
           property.gallery?.[0]?.url ||
           property.gallerySummary?.[0]?.url ||
           "/images/spronsoreCard.png",
         ctaText: "View Details",
         ctaLink: getPropertyLink(property),
         category: property.type || "Residential",
+        displayCategory: getAdDisplayCategory(property),
         featured: property.promotion?.type === "featured",
         sponsored: true,
+        promotionType: property.promotion?.type,
       }));
   } catch (err) {
     console.error("Error fetching sponsored properties:", err);
@@ -574,7 +662,7 @@ export default async function Page({ params }: PageProps) {
               </div>
             </main>
             <aside className="w-full shrink-0 lg:w-[260px] sticky top-20 self-start">
-              <div className="space-y-4">
+              <div className="flex flex-col gap-6">
                 {sidebarAds.map((ad) => (
                   <AdCard key={ad.id} ad={ad} />
                 ))}

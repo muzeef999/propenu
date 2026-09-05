@@ -474,7 +474,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
     "sponsored",
   ].includes(promotionType);
   const isNormalPromotion = promotionType === "normal" && !isTopSellingPromotion;
-  const contactRole = isTopSellingPromotion ? "Seller" : "Builder";
+  const contactRole = "Builder";
   const submitButtonLabel = isNormalPromotion ? "Request Callback" : "Get Contact Details";
   const ownProjectLeadMessage = "You cannot submit a lead for your own project.";
   const hasAuthToken = Boolean(Cookies.get("token"));
@@ -1247,7 +1247,7 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
           {!isNormalPromotion && (
             <div className="bg-white p-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-900">
-                {contactRole === "Seller" ? "Contact seller" : "Contact builder"}
+                Contact builder
               </p>
               <div className="mt-3 flex items-center gap-3">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-white">

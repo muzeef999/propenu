@@ -24,6 +24,7 @@ import { buildSearchParams } from "./filters/buildSearchParams";
 import { injectSponsored } from "@/utilies/injectSponsored";
 import FilterDropdown from "@/ui/FilterDropdown";
 import { ArrowDropdownIcon } from "@/icons/icons";
+import formatINR from "@/utilies/PriceFormat";
 
 const propertySkeletonItems = Array.from({ length: 4 });
 
@@ -80,6 +81,106 @@ function isAgentProperty(property: Property) {
     .toLowerCase();
 
   return type !== "featuredproject" && listingSource === "agent";
+}
+
+function getPropertyId(property: Property) {
+  return property.id || property._id || "";
+}
+
+function isSponsoredPromotion(property: Property) {
+  const promotionType = String(property.promotion?.type || "").toLowerCase();
+
+  return promotionType === "sponsored";
+}
+
+function dedupePropertiesById(properties: Property[]) {
+  const seen = new Set<string>();
+
+  return properties.filter((property) => {
+    const id = getPropertyId(property);
+    if (!id || seen.has(id)) return false;
+
+    seen.add(id);
+    return true;
+  });
+}
+
+function getAdLocation(property: Property) {
+  return [property.locality, property.city, (property as any).state]
+    .filter(Boolean)
+    .join(", ");
+}
+
+function getAdDisplayCategory(property: Property) {
+  const type = String(property.type || "").toLowerCase();
+  const projectCategory = (property as any).categoryType || (property as any).category;
+
+  if (type === "featuredproject" && projectCategory) {
+    return String(projectCategory);
+  }
+
+  return property.type || "";
+}
+
+function getAdPriceLabel(property: Property) {
+  const priceFrom = Number(property.priceFrom);
+  const priceTo = Number(property.priceTo);
+  const price = Number(property.price);
+
+  if (
+    Number.isFinite(priceFrom) &&
+    priceFrom > 0 &&
+    Number.isFinite(priceTo) &&
+    priceTo > 0 &&
+    priceFrom !== priceTo
+  ) {
+    return `${formatINR(priceFrom)} - ${formatINR(priceTo)}`;
+  }
+
+  if (Number.isFinite(priceFrom) && priceFrom > 0) {
+    return `From ${formatINR(priceFrom)}`;
+  }
+
+  if (Number.isFinite(priceTo) && priceTo > 0) {
+    return `Up to ${formatINR(priceTo)}`;
+  }
+
+  if (Number.isFinite(price) && price > 0) {
+    return formatINR(price);
+  }
+
+  return "Price on request";
+}
+
+function toTitleCase(value?: string) {
+  if (!value) return "";
+
+  return value.replace(/\b\w+/g, (word) =>
+    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+  );
+}
+
+function getAdBuilderName(property: Property) {
+  const createdBy = (property as any).createdBy;
+  const developer = (property as any).developer;
+  const aboutSummary = (property as any).aboutSummary;
+  const aboutBuilderName = Array.isArray(aboutSummary)
+    ? aboutSummary[0]?.builderName
+    : aboutSummary?.builderName;
+  const rawContactName =
+    (typeof developer === "object" && developer !== null
+      ? developer.companyName || developer.name || developer.fullName
+      || (typeof createdBy === "object" && createdBy !== null
+        ? createdBy.name
+        : undefined)
+      : typeof createdBy === "object" && createdBy !== null
+        ? createdBy.name
+        : undefined) ||
+    aboutBuilderName ||
+    (property as any).builderName ||
+    (property as any).companyName;
+
+  return toTitleCase(rawContactName);
 }
 
 function toLocalityList(value: string | string[] | undefined | null): string[] {
@@ -179,7 +280,7 @@ const PropertiesPageContent: React.FC = () => {
     }),
     [filters, effectiveCity, effectiveState],
   );
-  const { items, sponsored, loading, total } = useStreamProperties(params);
+  const { items, sponsored, loading, total, meta } = useStreamProperties(params);
   const [sortBy, setSortBy] = React.useState("newest");
   const [sortDropdownOpen, setSortDropdownOpen] = React.useState(false);
   const [dismissedAds, setDismissedAds] = useState<Set<string>>(new Set());
@@ -326,25 +427,46 @@ const PropertiesPageContent: React.FC = () => {
     return injectSponsored(sortedItems, filteredSponsored, 5);
   }, [sortedItems, filteredSponsored]);
 
+  const sidebarPromotions = React.useMemo(() => {
+    return dedupePropertiesById([
+      ...filteredSponsored.filter(isSponsoredPromotion),
+      ...sortedItems.filter(isSponsoredPromotion),
+    ]);
+  }, [filteredSponsored, sortedItems]);
+
   const sidebarAds = React.useMemo(() => {
-    return filteredSponsored
-      .slice(0, 2)
-      .filter((ad) => !dismissedAds.has(ad.id || ad._id))
+    return sidebarPromotions
+      .slice(0, 10)
+      .filter((ad) => !dismissedAds.has(getPropertyId(ad)))
       .map((property) => ({
-        id: property.id || property._id || "",
+        id: getPropertyId(property),
         title: property.title || "Featured Property",
-        description: property.buildingName,
+        description: undefined,
+        location: getAdLocation(property),
+        priceLabel: getAdPriceLabel(property),
+        builderName: getAdBuilderName(property),
         imageUrl:
+          (property as any).heroImage ||
           property.gallery?.[0]?.url ||
           property.gallerySummary?.[0]?.url ||
           ad.src,
         ctaText: "View Details",
         ctaLink: getPropertyLink(property),
         category: property.type || "Featured",
+        displayCategory: getAdDisplayCategory(property),
         featured: property.promotion?.type === "featured",
         sponsored: true,
+        promotionType: property.promotion?.type,
       } as Ad));
-  }, [filteredSponsored, dismissedAds]);
+  }, [sidebarPromotions, dismissedAds]);
+
+  const sponsorCardTarget =
+    meta?.resultMode === "projects-only" ||
+    sidebarPromotions.some(
+      (property) => String(property.type || "").toLowerCase() === "featuredproject",
+    )
+      ? "project"
+      : "property";
 
   const handleDismissAd = (adId: string) => {
     setDismissedAds((prev) => new Set([...prev, adId]));
@@ -446,12 +568,12 @@ const PropertiesPageContent: React.FC = () => {
 
             <div className="sticky top-24">
 
-              <div className="space-y-4">
+              <div className="flex flex-col gap-6">
                 {sidebarAds.map((ad) => (
                   <AdCard key={ad.id} ad={ad} onDismiss={handleDismissAd} />
                 ))}
                 {sidebarAds.length === 0 && (
-                  <SponsoreCard />
+                  <SponsoreCard target={sponsorCardTarget} />
                 )}
               </div>
             </div>
