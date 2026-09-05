@@ -11,7 +11,7 @@ import {
 import Accordion, { AccordionItem } from "@/ui/Accordion";
 
 const SUPPORT_EMAIL = "support@propenu.com";
-const SUPPORT_PHONE = "+918185094463";
+const SUPPORT_PHONE = "+919182334233";
 const SUPPORT_WHATSAPP_MESSAGE = encodeURIComponent(
     "Hello Propenu support, I need help with my account/listing.",
 );

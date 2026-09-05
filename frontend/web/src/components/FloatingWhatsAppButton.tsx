@@ -1,6 +1,6 @@
 "use client";
 
-const SUPPORT_PHONE = "+918185094463";
+const SUPPORT_PHONE = "+91";
 const SUPPORT_WHATSAPP_MESSAGE =
   "Hello Propenu support, I need help with my account/listing.";
 

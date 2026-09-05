@@ -142,7 +142,7 @@ export default function ResponsesDrawer({ open, onClose, projectId }: Props) {
 
                   <div className="pt-3 mt-1 flex items-center justify-between border-t border-gray-50">
                     <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                      <span>{lead.phone ?? "+91-8185094463"}</span>
+                      <span>{lead.phone ?? "+91-9182334233"}</span>
                       {lead.phone && (
                         <a
                           href={`https://wa.me/${lead.phone.replace(/\D/g, "")}`}
