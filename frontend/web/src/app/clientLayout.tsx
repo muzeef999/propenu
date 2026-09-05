@@ -7,6 +7,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Provider } from "react-redux";
 import { Toaster } from "sonner";
 import Footer, { FooterLegalBar } from "@/components/Footer";
+import FloatingWhatsAppButton from "@/components/FloatingWhatsAppButton";
 import Navbar from "@/components/Navbar";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import { ModalProvider, useModal } from "@/app/context/ModalContext";
@@ -148,13 +149,16 @@ function ClientProvidersContent({
             isDialogOpen={hasOpenDialog}
           />
         )}
+        <FloatingWhatsAppButton />
         <Toaster
           position="top-right"
           richColors
           expand={true}
           duration={3000}
         />
-        {!hideLayout ? <Footer /> : <FooterLegalBar />}
+        <div className="hidden lg:block">
+          {!hideLayout ? <Footer /> : <FooterLegalBar />}
+        </div>
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>
     </Provider>
