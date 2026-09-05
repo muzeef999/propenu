@@ -161,6 +161,28 @@ const normalizeListingType = (listingType: any) => {
   return undefined;
 };
 
+const inferListingTypeFromTitle = (title: any) => {
+  const normalized = String(title ?? "").trim().toLowerCase();
+  if (/\bfor\s+(rent|lease)\b/.test(normalized)) return "rent";
+  if (/\bfor\s+sale\b/.test(normalized)) return "sale";
+  return undefined;
+};
+
+const getDraftListingType = (
+  draft: any,
+  state: PostPropertyState,
+  category?: PropertyCategory,
+) =>
+  normalizeListingType(draft?.listingType) ??
+  normalizeListingType(draft?.base?.listingType) ??
+  normalizeListingType(draft?.basicDetails?.listingType) ??
+  normalizeListingType(draft?.property?.listingType) ??
+  normalizeListingType(draft?.data?.listingType) ??
+  inferListingTypeFromTitle(draft?.title) ??
+  (category ? normalizeListingType(state[category]?.listingType) : undefined) ??
+  normalizeListingType(state.base.listingType) ??
+  DEFAULT_LISTING_TYPE;
+
 const normalizeTransactionType = (transactionType: any) => {
   const normalized = String(transactionType ?? "")
     .trim()
@@ -263,13 +285,15 @@ const postPropertySlice = createSlice({
     setPropertyType(state, action: PayloadAction<PropertyCategory>) {
       const next = action.payload;
       if (state.propertyType === next) return;
+      const listingType =
+        normalizeListingType(state.base.listingType) ?? DEFAULT_LISTING_TYPE;
 
       state.propertyType = next;
       state.draftId = null;
       state.currentStep = 1;
       state.progressPercent = 0;
       state.base = {
-        listingType: DEFAULT_LISTING_TYPE,
+        listingType,
         nearbyPlaces: [],
       };
 
@@ -325,10 +349,7 @@ const postPropertySlice = createSlice({
       state.propertyType = category;
 
       // base (shared fields)
-      const listingType =
-        normalizeListingType(draft.listingType) ??
-        state.base.listingType ??
-        DEFAULT_LISTING_TYPE;
+      const listingType = getDraftListingType(draft, state, category);
 
       state.base = {
         ...state.base,
@@ -595,15 +616,23 @@ const postPropertySlice = createSlice({
     ========================= */
 
     builder.addCase(createDraftThunk.fulfilled, (state, action) => {
-      const draft = action.payload?.data;
+      const draft = getResponseDraft(action.payload);
       if (!draft) return;
+      const requestedListingType =
+        typeof action.meta.arg === "string"
+          ? undefined
+          : normalizeListingType(action.meta.arg.listingType);
+      const currentListingType = normalizeListingType(state.base.listingType);
 
       state.draftId = draft._id;
       state.propertyType = detectCategoryFromDraft(draft, state.propertyType);
       state.base.listingType =
-        normalizeListingType(draft.listingType) ??
-        state.base.listingType ??
-        DEFAULT_LISTING_TYPE;
+        (currentListingType && currentListingType !== DEFAULT_LISTING_TYPE
+          ? currentListingType
+          : undefined) ??
+        requestedListingType ??
+        getDraftListingType(draft, state, state.propertyType);
+      state[state.propertyType].listingType = state.base.listingType;
       state.base.landName =
         draft.landName ?? draft.layoutName ?? state.base.landName;
       if (
@@ -621,17 +650,29 @@ const postPropertySlice = createSlice({
       const category = action.meta.arg?.category as PropertyCategory | undefined;
       const gallery = mapServerGallery(draft?.gallery);
 
-      if (!category || gallery.length === 0) return;
+      if (!category) return;
 
-      state[category].gallery = gallery;
-      state.base.galleryFiles = gallery.map((img: any) => ({
-        name: img.filename ?? "",
-        source: "server",
-        preview: img.url,
-      }));
+      state.base.listingType = getDraftListingType(draft, state, category);
+      state[category].listingType = state.base.listingType;
+
+      if (gallery.length > 0) {
+        state[category].gallery = gallery;
+        state.base.galleryFiles = gallery.map((img: any) => ({
+          name: img.filename ?? "",
+          source: "server",
+          preview: img.url,
+        }));
+      }
 
       if (draft?.completion?.percent !== undefined) {
         state.progressPercent = draft.completion.percent;
+      }
+
+      if (draft?.completion?.step !== undefined) {
+        state.currentStep = Math.min(
+          Math.max(draft.completion.step, MIN_STEP),
+          MAX_STEP,
+        );
       }
     });
   },

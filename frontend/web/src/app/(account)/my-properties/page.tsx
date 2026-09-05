@@ -53,6 +53,7 @@ const TAB_KEY_MAP: Record<string, string> = {
 };
 
 const categoriesDropdown = [
+  { label: "All", value: "all" },
   { label: "Buy", value: "sale" },
   { label: "Rent / Lease", value: "other" },
 ];
@@ -103,8 +104,10 @@ const Page = () => {
   const [status, setStatus] = useState<
     "All" | "Active" | "Draft" | "Deactivated"
   >("All");
-  const [listingTypeFilter, setListingTypeFilter] = useState<"sale" | "other">(
-    "sale"
+  const [listingTypeFilter, setListingTypeFilter] = useState<
+    "all" | "sale" | "other"
+  >(
+    "all"
   );
   const [isListingTypeOpen, setIsListingTypeOpen] = useState(false);
   const listingTypeRef = useRef<HTMLDivElement | null>(null);
@@ -114,6 +117,9 @@ const Page = () => {
   const { data, isLoading, refetch } = useQuery<any>({
     queryKey: ["myProperties"],
     queryFn: getMyProperties,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   const shouldShowCategory = useMemo(() => {
@@ -158,8 +164,10 @@ const Page = () => {
 
     if (listingTypeFilter === "sale") {
       list = list.filter((p) => String(p.listingType ?? "").toLowerCase() === "sale");
-    } else {
-      list = list.filter((p) => String(p.listingType ?? "").toLowerCase() !== "sale");
+    } else if (listingTypeFilter === "other") {
+      list = list.filter((p) =>
+        ["rent", "lease"].includes(String(p.listingType ?? "").toLowerCase()),
+      );
     }
 
     if (search.trim()) {
@@ -287,7 +295,9 @@ const Page = () => {
                     active={listingTypeFilter === item.value}
                     selectionType="single"
                     onClick={() => {
-                      setListingTypeFilter(item.value as "sale" | "other");
+                      setListingTypeFilter(
+                        item.value as "all" | "sale" | "other",
+                      );
                       setIsListingTypeOpen(false);
                     }}
                     className="w-full justify-start px-3 py-2 text-xs"
@@ -465,11 +475,21 @@ const Page = () => {
                           type="button"
                           onClick={() => {
                             const category = getCategoryForTab(activeTab);
+                            const params = new URLSearchParams({
+                              editCategory: category,
+                              editId: property._id,
+                            });
+                            const listingType = String(
+                              property.listingType ?? "",
+                            ).trim();
+
+                            if (listingType) {
+                              params.set("listingType", listingType);
+                            }
+
                             dispatch(setPropertyType(category));
                             setOpenMenuId(null);
-                            router.push(
-                              `/postproperty?editCategory=${category}&editId=${property._id}`,
-                            );
+                            router.push(`/postproperty?${params.toString()}`);
                           }}
                           className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
                         >

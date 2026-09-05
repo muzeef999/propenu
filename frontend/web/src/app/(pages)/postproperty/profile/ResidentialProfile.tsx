@@ -551,7 +551,10 @@ const ResidentialProfile = () => {
             submitDetailsThunk({
               category: submitCategory,
               id: draftId,
-              payload: residential,
+              payload: {
+                ...residential,
+                listingType: base?.listingType,
+              },
             }),
           )
             .unwrap()
@@ -575,7 +578,12 @@ const ResidentialProfile = () => {
                 return;
               }
 
-              await dispatch(getMyDraftThunk(submitCategory)).unwrap();
+              await dispatch(
+                getMyDraftThunk({
+                  category: submitCategory,
+                  id: draftId,
+                }),
+              ).unwrap();
               dispatch(nextStep());
             })
             .catch((error: any) => {

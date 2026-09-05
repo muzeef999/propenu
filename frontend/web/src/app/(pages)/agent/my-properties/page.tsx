@@ -23,7 +23,7 @@ import {
 interface Property {
   _id: string;
   title?: string;
-  listingType?: "sale" | "rent";
+  listingType?: "sale" | "rent" | "lease";
   address?: string;
   price?: number;
   builtUpArea?: number;
@@ -56,8 +56,9 @@ const TAB_KEY_MAP: Record<string, string> = {
 const categories = ["Residential", "Commercial", "Open Plot", "Agriculture Land"];
 
 const listingTypeOptions = [
+  { label: "All", value: "all" },
   { label: "Buy", value: "sale" },
-  { label: "Rent", value: "rent" },
+  { label: "Rent / Lease", value: "rent" },
 ];
 const getCategoryForTab = (tab: string): PropertyCategory => {
   const category = TAB_KEY_MAP[tab];
@@ -103,7 +104,7 @@ const Page = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [search, setSearch] = useState("");
-  const [listingType, setListingType] = useState("sale");
+  const [listingType, setListingType] = useState("all");
   const [isListingTypeOpen, setIsListingTypeOpen] = useState(false);
   const listingTypeRef = useRef<HTMLDivElement | null>(null);
   const [status, setStatus] = useState<"All" | "Active" | "Pending" | "Draft">("All");
@@ -112,6 +113,9 @@ const Page = () => {
   const { data, isLoading } = useQuery<any>({
     queryKey: ["myProperties"],
     queryFn: getMyProperties,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   const shouldShowCategory = useMemo(() => {
@@ -131,8 +135,10 @@ const Page = () => {
 
     let list: Property[] = data[TAB_KEY_MAP[activeTab]] ?? [];
 
-    if (listingType) {
-      list = list.filter((p) => p.listingType === listingType);
+    if (listingType === "sale") {
+      list = list.filter((p) => p.listingType === "sale");
+    } else if (listingType === "rent") {
+      list = list.filter((p) => p.listingType === "rent" || p.listingType === "lease");
     }
 
     if (search.trim()) {
@@ -441,11 +447,21 @@ const Page = () => {
                           type="button"
                           onClick={() => {
                             const category = getCategoryForTab(activeTab);
+                            const params = new URLSearchParams({
+                              editCategory: category,
+                              editId: property._id,
+                            });
+                            const listingType = String(
+                              property.listingType ?? "",
+                            ).trim();
+
+                            if (listingType) {
+                              params.set("listingType", listingType);
+                            }
+
                             dispatch(setPropertyType(category));
                             setOpenMenuId(null);
-                            router.push(
-                              `/postproperty?editCategory=${category}&editId=${property._id}`,
-                            );
+                            router.push(`/postproperty?${params.toString()}`);
                           }}
                           className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
                         >

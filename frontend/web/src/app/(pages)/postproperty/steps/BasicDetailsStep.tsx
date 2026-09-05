@@ -143,6 +143,12 @@ export default function BasicDetailsStep() {
     { label: "Sale", value: "sale" },
     { label: "Rent / Lease", value: "rent" },
   ];
+  const savedListingType = String(base.listingType ?? "").trim().toLowerCase();
+  const normalizedListingType =
+    savedListingType === "lease" ? "rent" : savedListingType;
+  const visibleListingOptions = isEditMode
+    ? listingOptions.filter((option) => option.value === normalizedListingType)
+    : listingOptions;
 
   // Get the current category state
   const categoryState =
@@ -189,8 +195,9 @@ export default function BasicDetailsStep() {
   const validationResult = propertyType
     ? validateBasicDetails(
       {
-        ...base,
         ...profileData,
+        ...base,
+        listingType: base.listingType,
         propertyType: profileData?.propertyType || base.propertyType,
       },
       propertyType,
@@ -201,7 +208,6 @@ export default function BasicDetailsStep() {
     };
 
   const isFormValid = validationResult?.success === true;
-
   const fieldErrors =
     showErrors && !validationResult.success && validationResult.error
       ? validationResult.error.flatten().fieldErrors
@@ -209,6 +215,37 @@ export default function BasicDetailsStep() {
 
   const handleSelect = (type: any) => {
     dispatch(setPropertyType(type));
+  };
+
+  const handleListingTypeSelect = (listingType: string) => {
+    if (isEditMode) return;
+
+    dispatch(
+      setBaseField({
+        key: "listingType",
+        value: listingType,
+      }),
+    );
+
+    if (propertyType) {
+      dispatch(
+        setProfileField({
+          propertyType,
+          key: "listingType",
+          value: listingType,
+        }),
+      );
+    }
+
+    if (listingType !== "sale" && propertyType) {
+      dispatch(
+        setProfileField({
+          propertyType,
+          key: "transactionType",
+          value: undefined,
+        }),
+      );
+    }
   };
 
   const subTypes =
@@ -273,21 +310,17 @@ export default function BasicDetailsStep() {
       <p className="text-sm font-medium text-gray-700">Listing type</p>
 
       <div className="flex flex-wrap gap-3">
-        {listingOptions.map((option) => {
-          const isActive = base.listingType === option.value;
+        {visibleListingOptions.map((option) => {
+          const isActive = normalizedListingType === option.value;
 
           return (
             <SelectableButton
               key={option.value}
               label={option.label}
               active={isActive}
+              disabled={isEditMode}
               onClick={() =>
-                dispatch(
-                  setBaseField({
-                    key: "listingType",
-                    value: option.value,
-                  }),
-                )
+                handleListingTypeSelect(option.value)
               }
             />
           );
@@ -1394,8 +1427,9 @@ export default function BasicDetailsStep() {
                     : project;
 
           const basicPayload: Record<string, any> = {
-            ...base,
             ...profileData,
+            ...base,
+            listingType: base.listingType,
           };
           const submitCategory =
             propertyType === "project"
@@ -1406,6 +1440,10 @@ export default function BasicDetailsStep() {
             basicPayload.propertyType = normalizeProjectPropertyTypeForBackend(
               project.propertyType,
             );
+          }
+
+          if (base.listingType !== "sale") {
+            delete basicPayload.transactionType;
           }
 
           if (

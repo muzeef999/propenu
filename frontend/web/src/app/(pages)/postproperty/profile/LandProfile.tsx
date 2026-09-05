@@ -518,7 +518,10 @@ const LandProfile = () => {
             submitDetailsThunk({
               category: submitCategory,
               id: draftId,
-              payload: land, // backend/thunk will format this
+              payload: {
+                ...land,
+                listingType: base?.listingType,
+              }, // backend/thunk will format this
             }),
           )
             .unwrap()

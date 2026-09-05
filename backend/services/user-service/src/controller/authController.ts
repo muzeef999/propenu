@@ -1530,7 +1530,8 @@ export const createRequestOtp = async (req: Request, res: Response) => {
   try {
     let { phone, email } = req.body;
     phone = phone?.trim();
-    const normalizedPhone = getPhoneLookupValues(phone).find(
+    const phoneValues = getPhoneLookupValues(phone);
+    const normalizedPhone = phoneValues.find(
       (value) => value.length === 10,
     );
     email = email?.trim()?.toLowerCase();
@@ -1539,6 +1540,27 @@ export const createRequestOtp = async (req: Request, res: Response) => {
     if (!phone && !email) {
       return res.status(400).json({
         message: "Either phone or email is required",
+      });
+    }
+
+    const existingUser = await User.findOne({
+      $or: [
+        ...(email ? [{ email }] : []),
+        ...(phoneValues.length ? [{ phone: { $in: phoneValues } }] : []),
+      ],
+    }).select("_id");
+
+    if (existingUser) {
+      return res.status(409).json({
+        message: "Account already exists. Please log in.",
+        code: "ACCOUNT_EXISTS",
+      });
+    }
+
+    const deletedAccount = await findDeletedAccount({ email, phone });
+    if (deletedAccount) {
+      return res.status(403).json({
+        message: deletedAccountMessage,
       });
     }
 

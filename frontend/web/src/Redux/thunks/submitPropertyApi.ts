@@ -12,6 +12,13 @@ import {
   updateLocationApi,
 } from "../apis";
 
+const normalizeListingTypeForSubmit = (listingType: any) => {
+  const normalized = String(listingType ?? "").trim().toLowerCase();
+  if (normalized === "rent" || normalized === "lease") return "rent";
+  if (normalized === "sale" || normalized === "buy") return "sale";
+  return undefined;
+};
+
 /* =========================================================
    CREATE DRAFT
 ========================================================= */
@@ -99,6 +106,7 @@ export const submitDetailsThunk = createAsyncThunk(
 
     const safePayload = {
       ...detailsPayload,
+      listingType: normalizeListingTypeForSubmit(detailsPayload.listingType),
       totalArea: detailsPayload.totalArea
         ? {
             value: Number(detailsPayload.totalArea.value),

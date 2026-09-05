@@ -83,6 +83,7 @@ export const basicDetailsSchema = z
       commercialSubType,
       cabins,
       seats,
+      listingType,
     } = data;
     const isProjectResidential =
       category === "project" &&
@@ -365,6 +366,7 @@ export const basicDetailsSchema = z
 
     /* ================= TRANSACTION TYPE ================= */
     if (
+      listingType === "sale" &&
       (category === "residential" ||
         category === "commercial" ||
         isProjectResidential ||

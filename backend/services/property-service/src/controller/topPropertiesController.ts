@@ -166,7 +166,11 @@ export const myProperties = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const userId = req.user.sub;
+    const userId = req.user.id ?? req.user.sub;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
 
     const [
       residential,

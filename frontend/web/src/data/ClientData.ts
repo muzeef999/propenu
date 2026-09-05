@@ -607,7 +607,7 @@ export const getMyProperties = async () => {
       Authorization: `Bearer ${token}`,
     },
   });
-  return res.data;
+  return res.data?.data ?? res.data;
 };
 
 export const getPlans = async ({

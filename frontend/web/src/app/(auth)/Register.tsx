@@ -5,6 +5,7 @@ import {
   createVerifyOtp,
   me,
 } from "@/data/ClientData";
+import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -66,6 +67,8 @@ const RegisterDialog = ({
   onSwitchToLogin,
 }: RegisterDialogProps) => {
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [existingAccountMessage, setExistingAccountMessage] = useState("");
+  const [otpRequested, setOtpRequested] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<string | undefined>(
     "IN",
   );
@@ -85,10 +88,11 @@ const RegisterDialog = ({
 
   const otp = otpDigits.join("");
   const isPhoneValid = isValidPhoneNumber(phoneNumber);
-  const shouldShowOtpInputs = isPhoneValid && !isOtpVerified;
+  const shouldShowOtpInputs = isPhoneValid && otpRequested && !isOtpVerified;
 
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const lastOtpRequestedPhoneRef = useRef("");
+  const lastOtpAttemptedPhoneRef = useRef("");
   const verifiedPhoneRef = useRef("");
 
   useBodyScrollLock(open);
@@ -127,6 +131,7 @@ const RegisterDialog = ({
 
     if (isOtpVerified || isPreviouslyVerifiedPhone(phoneNumber)) {
       setIsOtpVerified(true);
+      setOtpRequested(false);
       return;
     }
 
@@ -139,13 +144,16 @@ const RegisterDialog = ({
 
     setLoading(true);
     setErrors((prev) => ({ ...prev, phone: undefined, otp: undefined }));
+    setExistingAccountMessage("");
 
     try {
+      lastOtpAttemptedPhoneRef.current = validation.data.phone;
       await createRequestOtp({
         phone: validation.data.phone,
       });
 
       lastOtpRequestedPhoneRef.current = validation.data.phone;
+      setOtpRequested(true);
       setOtpDigits(Array(OTP_LENGTH).fill(""));
       setResendCooldown(RESEND_OTP_SECONDS);
       toast.success(
@@ -154,8 +162,32 @@ const RegisterDialog = ({
           : "OTP sent to your WhatsApp number",
       );
       inputsRef.current[0]?.focus();
-    } catch {
-      toast.error("Account already exists or something went wrong");
+    } catch (err) {
+      const backendMessage = axios.isAxiosError(err)
+        ? err.response?.data?.message ||
+          err.response?.data?.error ||
+          err.response?.data
+        : null;
+      const resolvedMessage =
+        typeof backendMessage === "string" && backendMessage.trim()
+          ? backendMessage
+          : "Something went wrong while requesting OTP";
+      setOtpRequested(false);
+      setOtpDigits(Array(OTP_LENGTH).fill(""));
+      setResendCooldown(0);
+      if (
+        axios.isAxiosError(err) &&
+        (err.response?.status === 409 ||
+          err.response?.data?.code === "ACCOUNT_EXISTS")
+      ) {
+        setExistingAccountMessage(resolvedMessage);
+        setErrors((prev) => ({
+          ...prev,
+          phone: resolvedMessage,
+        }));
+      }
+
+      toast.error(resolvedMessage);
     } finally {
       setLoading(false);
     }
@@ -311,9 +343,12 @@ const RegisterDialog = ({
 
   function handleClose() {
     setPhoneNumber("");
+    setExistingAccountMessage("");
+    setOtpRequested(false);
     setIsOtpVerified(false);
     setResendCooldown(0);
     lastOtpRequestedPhoneRef.current = "";
+    lastOtpAttemptedPhoneRef.current = "";
     verifiedPhoneRef.current = "";
     setFormData({
       name: "",
@@ -342,6 +377,7 @@ const RegisterDialog = ({
     if (isOtpVerified || isPreviouslyVerifiedPhone(phoneNumber)) return;
     if (loading) return;
     if (phoneNumber === lastOtpRequestedPhoneRef.current) return;
+    if (phoneNumber === lastOtpAttemptedPhoneRef.current) return;
 
     handleRegisterRequest();
   }, [isPhoneValid, isOtpVerified, phoneNumber, loading]);
@@ -370,6 +406,8 @@ const RegisterDialog = ({
         }));
 
         setIsOtpVerified(Boolean(user.phoneVerified));
+        setExistingAccountMessage("");
+        setOtpRequested(false);
       } catch {
         console.log("Failed to fetch user");
       }
@@ -384,7 +422,9 @@ const RegisterDialog = ({
     if (!open) return;
     if (initialStep !== "location") return;
 
+    setExistingAccountMessage("");
     setIsOtpVerified(true);
+    setOtpRequested(false);
   }, [initialStep, open]);
 
   if (!open) return null;
@@ -557,6 +597,9 @@ const RegisterDialog = ({
                         isPreviouslyVerifiedPhone(nextPhone);
 
                       setPhoneNumber(nextPhone);
+                      setExistingAccountMessage("");
+                      setOtpRequested(false);
+                      lastOtpAttemptedPhoneRef.current = "";
                       setErrors((prev) => ({
                         ...prev,
                         phone: undefined,
@@ -577,6 +620,21 @@ const RegisterDialog = ({
               {errors.phone && (
                 <p className="mt-1 text-xs text-red-600">{errors.phone}</p>
               )}
+              {/* {existingAccountMessage && (
+                <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+              
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onSwitchToLogin();
+                    }}
+                    className="mt-2 text-xs font-semibold text-[#28b463] hover:underline"
+                  >
+                    Go to Login
+                  </button>
+                </div>
+              )} */}
 
               {shouldShowOtpInputs && (
                 <div className="mt-3">
@@ -649,7 +707,7 @@ const RegisterDialog = ({
             </div>
 
             <button
-              disabled={loading}
+              disabled={loading || Boolean(existingAccountMessage)}
               onClick={handlePersonalStepNext}
               className="btn-primary w-full rounded-lg py-2.5 text-base font-semibold text-white shadow-lg transition-all disabled:cursor-not-allowed disabled:opacity-70"
             >

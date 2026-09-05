@@ -812,7 +812,10 @@ const CommercialProfile = () => {
             submitDetailsThunk({
               category: submitCategory,
               id: draftId,
-              payload: commercial, // backend/thunk will format this
+              payload: {
+                ...commercial,
+                listingType: base?.listingType,
+              }, // backend/thunk will format this
             }),
           )
             .unwrap()

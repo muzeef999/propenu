@@ -860,7 +860,10 @@ const AgriculturalProfile = () => {
             submitDetailsThunk({
               category: propertyType,
               id: draftId,
-              payload: agricultural, // backend/thunk will format this
+              payload: {
+                ...agricultural,
+                listingType: base?.listingType,
+              }, // backend/thunk will format this
             }),
           )
             .unwrap()
