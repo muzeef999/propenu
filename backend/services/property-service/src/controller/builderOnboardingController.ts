@@ -215,16 +215,22 @@ export const verifyDirectBuilderOtp = async (req: AuthRequest, res: Response) =>
 export const directCreateBuilder = async (req: AuthRequest, res: Response) => {
   try {
     const projectId = String(req.params.id || "");
+    const builderInput: {
+      name: string;
+      email: string;
+      phone: string;
+      companyName?: string;
+    } = {
+      name: String(req.body?.name || ""),
+      email: req.body?.email ? String(req.body.email) : "",
+      phone: String(req.body?.phone || ""),
+    };
+    if (req.body?.companyName) {
+      builderInput.companyName = String(req.body.companyName);
+    }
     const data = await BuilderOnboardingService.directCreateAndAssignBuilder(
       projectId,
-      {
-        name: String(req.body?.name || ""),
-        email: req.body?.email ? String(req.body.email) : "",
-        phone: String(req.body?.phone || ""),
-        companyName: req.body?.companyName
-          ? String(req.body.companyName)
-          : undefined,
-      },
+      builderInput,
       asStaff(req.user),
     );
     return res.status(200).json({ success: true, data });

@@ -81,6 +81,7 @@ export interface IRoadWidth {
 }
 export interface IAgricultural extends IListingAuditFields {
   title?: string;
+  listingType?: "sale" | "rent" | "lease";
   completion?: ICompletion;
   promotion?: IPromotion;
   verificationDocuments?: IVerificationDoc[];

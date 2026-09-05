@@ -26,20 +26,61 @@ dotenv.config({ quiet: true });
 
 const CREATED_BY_USER_FIELDS =
   "name email phone city state locality pincode companyName role roleName roleId";
-const AUDIT_USER_FIELDS = "name email phone role roleName roleId";
+const AUDIT_USER_FIELDS =
+  "name email phone role roleName roleId managerId";
+
+/** Nested staff manager populate: SE → RM → BDH → Ops → Super (up to 4 levels). */
+function staffManagerPopulate(depth: number): any[] {
+  const rolePop = { path: "roleId", select: "name label" };
+  if (depth <= 0) return [rolePop];
+  return [
+    rolePop,
+    {
+      path: "managerId",
+      select: AUDIT_USER_FIELDS,
+      populate: staffManagerPopulate(depth - 1),
+    },
+  ];
+}
 
 /** Populate owner + poster + RM so API returns user details (not bare ObjectIds). */
 function applyFeaturedUserPopulates(query: any) {
+  const withRoleAndManager = {
+    select: AUDIT_USER_FIELDS,
+    populate: staffManagerPopulate(4),
+  };
+
   return query
-    .populate("createdBy", CREATED_BY_USER_FIELDS)
-    .populate("createdBy.roleId", "name label")
-    .populate("relationshipManagerId", AUDIT_USER_FIELDS)
-    .populate("relationshipManager.userId", AUDIT_USER_FIELDS)
-    .populate("postedBy.userId", AUDIT_USER_FIELDS)
-    .populate("approvedBy", AUDIT_USER_FIELDS)
-    .populate("approvedBy.roleId", "name label")
-    .populate("lastUpdatedBy.userId", AUDIT_USER_FIELDS)
-    .populate("updateHistory.userId", AUDIT_USER_FIELDS);
+    .populate({
+      path: "createdBy",
+      select: CREATED_BY_USER_FIELDS,
+      populate: { path: "roleId", select: "name label" },
+    })
+    .populate({
+      path: "relationshipManagerId",
+      ...withRoleAndManager,
+    })
+    .populate({
+      path: "relationshipManager.userId",
+      ...withRoleAndManager,
+    })
+    .populate({
+      path: "postedBy.userId",
+      ...withRoleAndManager,
+    })
+    .populate({
+      path: "approvedBy",
+      select: AUDIT_USER_FIELDS,
+      populate: staffManagerPopulate(2),
+    })
+    .populate({
+      path: "lastUpdatedBy.userId",
+      ...withRoleAndManager,
+    })
+    .populate({
+      path: "updateHistory.userId",
+      ...withRoleAndManager,
+    });
 }
 
 async function loadFeaturedWithUsers(id: string) {

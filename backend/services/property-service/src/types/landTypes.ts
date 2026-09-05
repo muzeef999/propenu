@@ -52,6 +52,7 @@ export interface IImage {
 
 export interface ILand extends IListingAuditFields {
    title?: string;
+  listingType?: "sale" | "rent" | "lease";
   dimensions: {
     length: { type: Number; required: true }; // e.g., 40
     width: { type: Number; required: true }; // e.g., 60

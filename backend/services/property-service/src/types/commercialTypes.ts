@@ -103,6 +103,7 @@ export interface ICompletion {
 
 export interface ICommercial extends IListingAuditFields {
   title: string;
+  listingType?: "sale" | "rent" | "lease";
   slug: string;
   propertyCode?: string;
   floorNumber?: number;

@@ -188,10 +188,11 @@ CommercialSchema.pre("save", async function (next) {
 CommercialSchema.pre("validate", async function (next) {
   try {
     // Optional for rent listings — empty string is not a valid enum value.
-    const tx = this.get("transactionType");
+    const tx: unknown = this.get("transactionType");
     if (tx === "" || tx === null || tx === undefined) {
       this.set("transactionType", undefined);
-      if (this._doc) delete this._doc.transactionType;
+      const rawDoc = (this as any)._doc;
+      if (rawDoc) delete rawDoc.transactionType;
     }
 
     // Always rebuild title

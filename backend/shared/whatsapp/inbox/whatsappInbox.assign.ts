@@ -62,7 +62,9 @@ const ROLE_SEARCH_ALIASES: Record<string, string[]> = {
 };
 
 /** Stable colors for role chips / searchable dropdown. */
-const ROLE_COLOR_PALETTE = [
+type RoleColor = { bg: string; text: string; border: string; accent: string };
+
+const ROLE_COLOR_PALETTE: RoleColor[] = [
   { bg: "#ECFDF5", text: "#047857", border: "#6EE7B7", accent: "#10B981" },
   { bg: "#EFF6FF", text: "#1D4ED8", border: "#93C5FD", accent: "#3B82F6" },
   { bg: "#FFF7ED", text: "#C2410C", border: "#FDBA74", accent: "#F97316" },
@@ -75,45 +77,49 @@ const ROLE_COLOR_PALETTE = [
   { bg: "#EEF2FF", text: "#4338CA", border: "#A5B4FC", accent: "#6366F1" },
 ];
 
-const ROLE_COLOR_BY_NAME: Record<string, (typeof ROLE_COLOR_PALETTE)[number]> = {
-  super_admin: ROLE_COLOR_PALETTE[9],
-  admin: ROLE_COLOR_PALETTE[9],
-  ceo: ROLE_COLOR_PALETTE[8],
-  operations_head: ROLE_COLOR_PALETTE[1],
-  operation_head: ROLE_COLOR_PALETTE[1],
-  business_development_head: ROLE_COLOR_PALETTE[2],
-  regional_manager: ROLE_COLOR_PALETTE[2],
-  business_development_manager: ROLE_COLOR_PALETTE[2],
-  sales_manager: ROLE_COLOR_PALETTE[5],
-  sales_agent: ROLE_COLOR_PALETTE[5],
-  sales_executive: ROLE_COLOR_PALETTE[5],
-  customer_support_head: ROLE_COLOR_PALETTE[0],
-  customer_support_team_lead: ROLE_COLOR_PALETTE[0],
-  team_lead: ROLE_COLOR_PALETTE[0],
-  customer_care: ROLE_COLOR_PALETTE[0],
-  customer_care_executive: ROLE_COLOR_PALETTE[0],
-  relationship_manager: ROLE_COLOR_PALETTE[6],
-  marketing_head: ROLE_COLOR_PALETTE[3],
-  digital_marketing: ROLE_COLOR_PALETTE[3],
-  social_media: ROLE_COLOR_PALETTE[4],
-  content_team: ROLE_COLOR_PALETTE[3],
-  creative_team: ROLE_COLOR_PALETTE[4],
-  performance_marketing: ROLE_COLOR_PALETTE[3],
-  accounts: ROLE_COLOR_PALETTE[5],
-  legal_compliance: ROLE_COLOR_PALETTE[8],
-  hr_administration: ROLE_COLOR_PALETTE[4],
-  technical_support_head: ROLE_COLOR_PALETTE[1],
-  technical_support_team: ROLE_COLOR_PALETTE[1],
+const pickRoleColor = (index: number): RoleColor =>
+  ROLE_COLOR_PALETTE[index] ?? ROLE_COLOR_PALETTE[0]!;
+
+const ROLE_COLOR_BY_NAME: Record<string, RoleColor> = {
+  super_admin: pickRoleColor(9),
+  admin: pickRoleColor(9),
+  ceo: pickRoleColor(8),
+  operations_head: pickRoleColor(1),
+  operation_head: pickRoleColor(1),
+  business_development_head: pickRoleColor(2),
+  regional_manager: pickRoleColor(2),
+  business_development_manager: pickRoleColor(2),
+  sales_manager: pickRoleColor(5),
+  sales_agent: pickRoleColor(5),
+  sales_executive: pickRoleColor(5),
+  customer_support_head: pickRoleColor(0),
+  customer_support_team_lead: pickRoleColor(0),
+  team_lead: pickRoleColor(0),
+  customer_care: pickRoleColor(0),
+  customer_care_executive: pickRoleColor(0),
+  relationship_manager: pickRoleColor(6),
+  marketing_head: pickRoleColor(3),
+  digital_marketing: pickRoleColor(3),
+  social_media: pickRoleColor(4),
+  content_team: pickRoleColor(3),
+  creative_team: pickRoleColor(4),
+  performance_marketing: pickRoleColor(3),
+  accounts: pickRoleColor(5),
+  legal_compliance: pickRoleColor(8),
+  hr_administration: pickRoleColor(4),
+  technical_support_head: pickRoleColor(1),
+  technical_support_team: pickRoleColor(1),
 };
 
-export const getInboxRoleColor = (roleName?: string) => {
+export const getInboxRoleColor = (roleName?: string): RoleColor => {
   const key = normalizeInboxRole(roleName);
-  if (ROLE_COLOR_BY_NAME[key]) return ROLE_COLOR_BY_NAME[key];
+  const named = ROLE_COLOR_BY_NAME[key];
+  if (named) return named;
   let hash = 0;
   for (let i = 0; i < key.length; i += 1) {
     hash = (hash + key.charCodeAt(i) * (i + 1)) % ROLE_COLOR_PALETTE.length;
   }
-  return ROLE_COLOR_PALETTE[hash];
+  return pickRoleColor(hash);
 };
 
 export const formatInboxRoleLabel = (roleName?: string, label?: string) => {

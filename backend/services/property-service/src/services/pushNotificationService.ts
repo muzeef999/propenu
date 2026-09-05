@@ -140,41 +140,41 @@ export const notifyOwnerAndAdmins = async ({
   }
 };
 
-// export const notifyProjectBrochureDownload = async ({
-//   projectId,
-//   userId,
-// }: {
-//   projectId: string;
-//   userId: string;
-// }) => {
-//   const [project, user] = await Promise.all([
-//     FeaturedProject.findById(projectId)
-//       .select("title projectName createdBy")
-//       .lean(),
-//     User.findById(userId).select("name phone email").lean(),
-//   ]);
+export const notifyProjectBrochureDownload = async ({
+  projectId,
+  userId,
+}: {
+  projectId: string;
+  userId: string;
+}) => {
+  const [project, user] = await Promise.all([
+    FeaturedProject.findById(projectId)
+      .select("title projectName createdBy")
+      .lean(),
+    User.findById(userId).select("name phone email").lean(),
+  ]);
 
-//   if (!project) return;
+  if (!project) return;
 
-//   const projectTitle =
-//     project.title || (project as any).projectName || "your project";
-//   const userName = user?.name || "A user";
+  const projectTitle =
+    project.title || (project as any).projectName || "your project";
+  const userName = user?.name || "A user";
 
-//   if (!project.createdBy) return;
+  if (!project.createdBy) return;
 
-//   await notifyOwnerAndAdmins({
-//     type: "brochure_downloaded",
-//     title: "Brochure Downloaded",
-//     body: `${userName} downloaded the brochure for ${projectTitle}.`,
-//     actorUserId: userId,
-//     ownerId: project.createdBy,
-//     projectId,
-//     propertyType: "featuredprojects",
-//     metadata: {
-//       projectTitle,
-//       userName,
-//       userPhone: user?.phone || "",
-//       userEmail: user?.email || "",
-//     },
-//   });
-// };
+  await notifyOwnerAndAdmins({
+    type: "brochure_downloaded",
+    title: "Brochure Downloaded",
+    body: `${userName} downloaded the brochure for ${projectTitle}.`,
+    actorUserId: userId,
+    ownerId: project.createdBy,
+    projectId,
+    propertyType: "featuredprojects",
+    metadata: {
+      projectTitle,
+      userName,
+      userPhone: user?.phone || "",
+      userEmail: user?.email || "",
+    },
+  });
+};

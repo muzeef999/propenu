@@ -151,18 +151,67 @@ function getRoleNameFromUser(user: any) {
   );
 }
 
+function flattenStaffManager(manager: any) {
+  if (!manager) return null;
+  if (typeof manager !== "object") {
+    const id = manager?.toString?.() ?? manager;
+    return id ? { _id: String(id) } : null;
+  }
+  return {
+    _id: manager._id?.toString?.() ?? manager._id ?? manager.id,
+    name: manager.name ?? null,
+    email: manager.email ?? null,
+    phone: manager.phone ?? null,
+    roleName: getRoleNameFromUser(manager) ?? null,
+  };
+}
+
+/** Walk populated managerId chain (staff reporting line only). */
+function buildStaffReportsToChain(startManager: any, maxDepth = 5) {
+  const chain: any[] = [];
+  const seen = new Set<string>();
+  let current = startManager;
+  let depth = 0;
+
+  while (current && depth < maxDepth) {
+    if (typeof current !== "object") break;
+    const flat = flattenStaffManager(current);
+    const id = flat?._id ? String(flat._id) : "";
+    if (!id || seen.has(id)) break;
+    seen.add(id);
+    if (flat?.name || flat?.roleName) chain.push(flat);
+    current = current.managerId;
+    depth += 1;
+  }
+
+  return chain;
+}
+
+/**
+ * Flatten populated audit.userId onto the audit entry for the admin UI.
+ * Keep staff managerId / reportsTo / reportsToChain (SE → RM → BDH → Ops → Super).
+ * Never invent builder onboardedBy / builder.managerId here.
+ */
 function flattenAuditUser(entry: any) {
   if (!entry?.userId || typeof entry.userId !== "object") {
     return entry;
   }
 
   const user = entry.userId;
+  const staffManager = flattenStaffManager(user.managerId);
+  const reportsToChain = buildStaffReportsToChain(user.managerId, 5);
+
   return {
     ...entry,
     userId: user._id?.toString?.() ?? user._id,
     name: entry.name ?? user.name,
     email: entry.email ?? user.email,
+    phone: entry.phone ?? user.phone,
     roleName: entry.roleName ?? getRoleNameFromUser(user),
+    // Staff reporting line only (Sales Executive → heads above).
+    managerId: staffManager?._id ?? null,
+    reportsTo: staffManager?.name ? staffManager : entry.reportsTo ?? null,
+    reportsToChain,
   };
 }
 

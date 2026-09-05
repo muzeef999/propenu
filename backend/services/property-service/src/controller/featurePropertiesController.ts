@@ -456,12 +456,20 @@ export const deleteFeatureProperties = async (
   try {
     const { id } = req.params;
     if (!id) return res.status(400).json({ error: "Missing property ID" });
-    const deleted = await FeaturePropertyService.deleteFeatureProperty(id, {
-      id: req.user?.id,
-      name: req.user?.name,
-      email: req.user?.email,
-      roleName: req.user?.roleName,
-    });
+    const actor: {
+      id?: string;
+      name?: string;
+      email?: string;
+      roleName?: string;
+    } = {};
+    if (req.user?.id) actor.id = req.user.id;
+    if (req.user?.name) actor.name = req.user.name;
+    if (req.user?.email) actor.email = req.user.email;
+    if (req.user?.roleName) actor.roleName = req.user.roleName;
+    const deleted = await FeaturePropertyService.deleteFeatureProperty(
+      id,
+      Object.keys(actor).length ? actor : null,
+    );
     if (!deleted)
       return res.status(404).json({ error: "Feature property not found" });
     return res.json({
