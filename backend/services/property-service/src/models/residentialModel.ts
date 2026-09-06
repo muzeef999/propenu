@@ -7,7 +7,7 @@ import {
   PROPERTY_AGE_BUCKETS,
   RESIDENTIAL_PROPERTY_TYPES,
 } from "../types/residentialTypes";
-import { BaseFields, FileRefSchema, PromotionSchema } from "./sharedSchemas";
+import { BaseFields, FileRefSchema, PromotionSchema, ListingPromotionMetaFields } from "./sharedSchemas";
 import { TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
 import { generatePropertyCode } from "../utils/generatePropertyCode";
@@ -46,6 +46,7 @@ const ResidentialSchema = new Schema<IResidential>(
     source: "subscription"
   })
 },
+    ...ListingPromotionMetaFields,
 
     carpetArea: {
       type: Number,

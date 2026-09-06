@@ -70,6 +70,12 @@ router.post("/",  uploadMedia, parseJsonFields(jsonKeys), authMiddleware, requir
   createFeatureProperties
 );
 
+// Promotion lifecycle MUST stay before generic PATCH /:id
+router.patch("/:id/promote", authMiddleware, promoteProperty);
+router.patch("/:id/renew", authMiddleware, renewPromotion);
+router.patch("/:id/expire", authMiddleware, expirePromotion);
+router.patch("/:id/reset", authMiddleware, resetPromotion);
+
 router.patch("/:id", uploadMedia, parseJsonFields(jsonKeys), authMiddleware, requirePermission("project:edit", ["builder", "sales_manager"]), fallbackCoerceDefault, validateBody(UpdateFeaturePropertySchema),
 editFeatureProperties
 );
@@ -85,14 +91,5 @@ router.post("/:id/click", incrementFeatureClicks);
 router.delete("/:id/gallery/:imageIndex", authMiddleware, deleteFeatureGalleryImage);
 router.delete("/:id/permanent", authMiddleware, permanentlyDeleteFeatureProperties);
 router.delete("/:id", authMiddleware, deleteFeatureProperties);
-
-
-router.patch("/:id/promote", authMiddleware, promoteProperty);
-router.patch("/:id/renew", authMiddleware, renewPromotion);
-router.patch("/:id/expire", authMiddleware, expirePromotion);
-router.patch("/:id/reset", authMiddleware, resetPromotion);
-
-
-
 
 export default router;

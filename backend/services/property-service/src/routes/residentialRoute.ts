@@ -10,8 +10,10 @@ import { requireActiveSubscription } from "../middlewares/requireActiveSubscript
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 import { uploadMedia } from "../middlewares/multer";
 import { requirePermission } from "../middlewares/requirePermission";
+import { createListingPromotionHandlers } from "../controller/listingPromotionController";
 
 const router = express.Router();
+const listingPromo = createListingPromotionHandlers("residential");
 
 /** json keys that arrive as JSON strings and need parsing */
 const jsonKeys = [
@@ -42,6 +44,11 @@ router.patch("/:id/location", authMiddleware, parseJsonFields(jsonKeys), updateL
 router.patch("/:id/details", authMiddleware, uploadMedia, parseJsonFields(jsonKeys), updateDetailsStep);
 router.patch("/:id/verification", authMiddleware, uploadMedia, parseJsonFields(jsonKeys), finalizeResidential);
 router.patch("/:id/verify-document", authMiddleware, requirePermission("residential:verify_document"), verifyResidentialDocument);
+
+router.patch("/:id/promote", authMiddleware, listingPromo.promote);
+router.patch("/:id/renew", authMiddleware, listingPromo.renew);
+router.patch("/:id/expire", authMiddleware, listingPromo.expire);
+router.patch("/:id/reset", authMiddleware, listingPromo.reset);
 
 router.post("/:id/approve",  approveProperty);
 router.post("/:id/deactive", authMiddleware, deactivateProperty );

@@ -9,6 +9,7 @@ import residentialRoute from "./routes/residentialRoute";
 import commercialRoutes from "./routes/commercialRoute";
 import landRoutes from "./routes/landRoute";
 import agriculturalRoutes from "./routes/agriculturalRoute";
+import listingPromotionRoute from "./routes/listingPromotionRoute";
 import searchRoute from "./routes/searchRoute";
 import leadRoute from "./routes/leadRoute";
 import "./models"; 
@@ -71,6 +72,10 @@ async function start() {
     app.use("/api/properties/public", builderOnboardingPublicRouter);
     app.use("/api/properties/owners-properties", popularOwnerPropertiesRoute);
     app.use("/api/properties/highlight-projects", highlightProjectsRoute);
+
+    // Listing promote/renew/expire/reset — mount before category routers
+    // so PATCH /api/properties/{category}/:id/promote always resolves.
+    app.use("/api/properties", listingPromotionRoute);
 
     app.use("/api/properties/residential", residentialRoute);
     app.use("/api/properties/commercial", commercialRoutes);

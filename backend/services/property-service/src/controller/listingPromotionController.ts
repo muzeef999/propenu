@@ -1,9 +1,12 @@
 import { Response } from "express";
-import mongoose from "mongoose";
-import FeaturedProject from "../models/featurePropertiesModel";
+import mongoose, { Model } from "mongoose";
 import { buildManualPromotion } from "../services/promotionService";
 import { IPromotion } from "../models/sharedSchemas";
 import { AuthRequest } from "../middlewares/authMiddleware";
+import Residential from "../models/residentialModel";
+import Commercial from "../models/commercialModel";
+import LandPlot from "../models/landModel";
+import Agricultural from "../models/agriculturalModel";
 
 type PromotionType = "normal" | "featured" | "sponsored" | "prime";
 
@@ -13,6 +16,13 @@ const ALLOWED_TYPES: PromotionType[] = [
   "sponsored",
   "prime",
 ];
+
+const CATEGORY_MODELS: Record<string, Model<any>> = {
+  residential: Residential as Model<any>,
+  commercial: Commercial as Model<any>,
+  land: LandPlot as Model<any>,
+  agricultural: Agricultural as Model<any>,
+};
 
 function appendPromotionHistory(
   property: any,
@@ -57,7 +67,37 @@ function appendPromotionHistory(
   });
 }
 
-export const promoteProperty = async (req: AuthRequest, res: Response) => {
+function resolveModel(req: AuthRequest): Model<any> | null {
+  const category = String(
+    (req as any).params?.category ||
+      (req as any).listingCategory ||
+      "",
+  )
+    .trim()
+    .toLowerCase();
+  return CATEGORY_MODELS[category] || null;
+}
+
+/** Bind handlers to a fixed category (used from category routers). */
+export function createListingPromotionHandlers(category: keyof typeof CATEGORY_MODELS) {
+  const Model = CATEGORY_MODELS[category];
+  if (!Model) {
+    throw new Error(`Unknown listing category: ${category}`);
+  }
+
+  const withModel = (handler: (req: AuthRequest, res: Response, Model: Model<any>) => Promise<any>) => {
+    return (req: AuthRequest, res: Response) => handler(req, res, Model);
+  };
+
+  return {
+    promote: withModel(promoteListing),
+    renew: withModel(renewListing),
+    expire: withModel(expireListing),
+    reset: withModel(resetListing),
+  };
+}
+
+async function promoteListing(req: AuthRequest, res: Response, Model: Model<any>) {
   try {
     const { type, days, visibleLeadLimit } = req.body;
 
@@ -68,8 +108,7 @@ export const promoteProperty = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const property = await FeaturedProject.findById(req.params.id);
-
+    const property = await Model.findById(req.params.id);
     if (!property) {
       return res.status(404).json({
         success: false,
@@ -79,14 +118,21 @@ export const promoteProperty = async (req: AuthRequest, res: Response) => {
 
     const promotion: IPromotion = buildManualPromotion(type);
 
-    if (days && typeof days === "number") {
-      promotion.boostExpiry = new Date(
-        Date.now() + days * 24 * 60 * 60 * 1000,
-      );
+    if (days != null && days !== "") {
+      const n = Number(days);
+      if (Number.isFinite(n) && n > 0) {
+        promotion.boostExpiry = new Date(
+          Date.now() + Math.trunc(n) * 24 * 60 * 60 * 1000,
+        );
+      }
     }
 
     const parsedLeadLimit = (() => {
-      if (visibleLeadLimit === null || visibleLeadLimit === undefined || visibleLeadLimit === "") {
+      if (
+        visibleLeadLimit === null ||
+        visibleLeadLimit === undefined ||
+        visibleLeadLimit === ""
+      ) {
         return null;
       }
       const n = Number(visibleLeadLimit);
@@ -108,27 +154,7 @@ export const promoteProperty = async (req: AuthRequest, res: Response) => {
     );
 
     property.promotion = promotion as any;
-    // Ensure nested numeric field is persisted even if previously null
     property.markModified("promotion");
-
-    // Place at end of target type list inside promote (no separate edit call).
-    if (type !== "normal") {
-      try {
-        const top = await FeaturedProject.findOne({
-          _id: { $ne: property._id },
-          "promotion.type": type,
-          status: { $ne: "inactive" },
-        })
-          .sort({ rank: -1 })
-          .select("rank")
-          .lean();
-        const maxRank = Number(top?.rank) || 0;
-        property.rank = maxRank + 1;
-      } catch (rankErr) {
-        console.warn("promoteProperty: rank placement skipped", rankErr);
-      }
-    }
-
     await property.save();
 
     return res.status(200).json({
@@ -137,15 +163,15 @@ export const promoteProperty = async (req: AuthRequest, res: Response) => {
       data: property,
     });
   } catch (err) {
-    console.error("promoteProperty error:", err);
+    console.error("promoteListing error:", err);
     return res.status(500).json({
       success: false,
       message: "Promotion failed",
     });
   }
-};
+}
 
-export const renewPromotion = async (req: AuthRequest, res: Response) => {
+async function renewListing(req: AuthRequest, res: Response, Model: Model<any>) {
   try {
     const { type, days, visibleLeadLimit } = req.body;
     const renewalDays = typeof days === "number" ? days : 10;
@@ -164,8 +190,7 @@ export const renewPromotion = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const property = await FeaturedProject.findById(req.params.id);
-
+    const property = await Model.findById(req.params.id);
     if (!property) {
       return res.status(404).json({
         success: false,
@@ -203,7 +228,11 @@ export const renewPromotion = async (req: AuthRequest, res: Response) => {
 
     if (typeof visibleLeadLimit === "number" && visibleLeadLimit >= 0) {
       promotion.visibleLeadLimit = visibleLeadLimit;
-    } else if (visibleLeadLimit !== undefined && visibleLeadLimit !== null && visibleLeadLimit !== "") {
+    } else if (
+      visibleLeadLimit !== undefined &&
+      visibleLeadLimit !== null &&
+      visibleLeadLimit !== ""
+    ) {
       const parsed = Number(visibleLeadLimit);
       if (Number.isFinite(parsed) && parsed >= 0) {
         promotion.visibleLeadLimit = Math.trunc(parsed);
@@ -222,7 +251,7 @@ export const renewPromotion = async (req: AuthRequest, res: Response) => {
     );
 
     property.promotion = promotion as any;
-
+    property.markModified("promotion");
     await property.save();
 
     return res.status(200).json({
@@ -231,18 +260,17 @@ export const renewPromotion = async (req: AuthRequest, res: Response) => {
       data: property,
     });
   } catch (err) {
-    console.error("renewPromotion error:", err);
+    console.error("renewListing error:", err);
     return res.status(500).json({
       success: false,
       message: "Promotion renewal failed",
     });
   }
-};
+}
 
-export const expirePromotion = async (req: AuthRequest, res: Response) => {
+async function expireListing(req: AuthRequest, res: Response, Model: Model<any>) {
   try {
-    const property = await FeaturedProject.findById(req.params.id);
-
+    const property = await Model.findById(req.params.id);
     if (!property) {
       return res.status(404).json({ message: "Property not found" });
     }
@@ -262,25 +290,24 @@ export const expirePromotion = async (req: AuthRequest, res: Response) => {
     } as IPromotion;
 
     appendPromotionHistory(property, req, promotion, "Promotion expired manually");
-
     property.promotion = promotion as any;
-
+    property.markModified("promotion");
     await property.save();
 
     return res.json({
       success: true,
       message: "Promotion expired and reset to normal",
+      data: property,
     });
   } catch (err) {
-    console.error("expirePromotion error:", err);
-    res.status(500).json({ message: "Expire failed" });
+    console.error("expireListing error:", err);
+    return res.status(500).json({ message: "Expire failed" });
   }
-};
+}
 
-export const resetPromotion = async (req: AuthRequest, res: Response) => {
+async function resetListing(req: AuthRequest, res: Response, Model: Model<any>) {
   try {
-    const property = await FeaturedProject.findById(req.params.id);
-
+    const property = await Model.findById(req.params.id);
     if (!property) {
       return res.status(404).json({ message: "Property not found" });
     }
@@ -294,13 +321,18 @@ export const resetPromotion = async (req: AuthRequest, res: Response) => {
     } as IPromotion;
 
     appendPromotionHistory(property, req, promotion, "Promotion reset to normal");
-
-    property.promotion = promotion;
-
+    property.promotion = promotion as any;
+    property.markModified("promotion");
     await property.save();
 
-    res.json({ success: true, message: "Reset to normal" });
+    return res.json({
+      success: true,
+      message: "Reset to normal",
+      data: property,
+    });
   } catch (err) {
-    res.status(500).json({ message: "Reset failed" });
+    return res.status(500).json({ message: "Reset failed" });
   }
-};
+}
+
+export { resolveModel, CATEGORY_MODELS };

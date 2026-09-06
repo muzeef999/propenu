@@ -4,7 +4,7 @@ import {
   AGRICULTURAL_PROPERTY_TYPES,
   IAgricultural,
 } from "../types/agriculturalTypes";
-import { BaseFields, FileRefSchema, PromotionSchema } from "./sharedSchemas";
+import { BaseFields, FileRefSchema, PromotionSchema, ListingPromotionMetaFields } from "./sharedSchemas";
 import { TEXT_INDEX_FIELDS } from "../types/sharedTypes";
 import { generateUniqueSlug, slugify } from "../utils/generateUniqueSlug";
 import { generatePropertyCode } from "../utils/generatePropertyCode";
@@ -35,6 +35,7 @@ const AgriculturalSchema = new Schema<IAgricultural>(
         source: "subscription",
       }),
     },
+    ...ListingPromotionMetaFields,
 
     roadWidth: {
       value: Number, // 40

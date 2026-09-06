@@ -234,6 +234,51 @@ export const PromotionSchema = new Schema(
   { _id: false }
 );
 
+/** Same history shape as featured projects — used by listing promotions. */
+export const PromotionHistorySchema = new Schema(
+  {
+    fromType: {
+      type: String,
+      enum: ["normal", "featured", "prime", "sponsored"],
+    },
+    toType: {
+      type: String,
+      enum: ["normal", "featured", "prime", "sponsored"],
+      required: true,
+    },
+    source: {
+      type: String,
+      enum: ["manual", "subscription", "system"],
+      default: "manual",
+    },
+    changedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    changedByRole: { type: String },
+    reason: { type: String },
+    startedAt: { type: Date },
+    endedAt: { type: Date, default: null },
+    expiresAt: { type: Date, default: null },
+    metadata: {
+      previousPriority: { type: Number },
+      newPriority: { type: Number },
+    },
+  },
+  { _id: false },
+);
+
+export const ListingPromotionMetaFields = {
+  promotionHistory: {
+    type: [PromotionHistorySchema],
+    default: [],
+  },
+  lastPromotionType: {
+    type: String,
+    enum: ["normal", "featured", "prime", "sponsored"],
+  },
+};
+
 /* -------------------------   BASE FIELDS (reused in each model)------------------------- */
 export const BaseFields = {
   title: {

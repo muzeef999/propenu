@@ -1,6 +1,6 @@
 // src/models/property/commercial.model.ts
 import mongoose, { Schema, Document, Model, Types } from "mongoose";
-import { BaseFields, PromotionSchema } from "./sharedSchemas";
+import { BaseFields, PromotionSchema, ListingPromotionMetaFields } from "./sharedSchemas";
 import {
   COMMERCIAL_PROPERTY_SUBTYPES,
   COMMERCIAL_PROPERTY_TYPES,
@@ -83,6 +83,7 @@ const CommercialSchema = new Schema<ICommercial>(
         source: "subscription",
       }),
     },
+    ...ListingPromotionMetaFields,
     propertyAge: { type: String, enum: PROPERTY_AGE_BUCKETS },
 
     constructionStatus: {

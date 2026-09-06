@@ -26,9 +26,16 @@ import { requireActiveSubscription } from "../middlewares/requireActiveSubscript
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 import { uploadMedia } from "../middlewares/multer";
 import { requirePermission } from "../middlewares/requirePermission";
+import { createListingPromotionHandlers } from "../controller/listingPromotionController";
 
 /** POST */
+const listingPromo = createListingPromotionHandlers("commercial");
+
 router.post("/", authMiddleware, uploadMedia,  parseJsonFields(jsonKeys), fallbackCoerceDefault, createCommercial,  requireActiveSubscription);
+router.patch("/:id/promote", authMiddleware, listingPromo.promote);
+router.patch("/:id/renew", authMiddleware, listingPromo.renew);
+router.patch("/:id/expire", authMiddleware, listingPromo.expire);
+router.patch("/:id/reset", authMiddleware, listingPromo.reset);
 router.patch("/:id", uploadMedia, parseJsonFields(jsonKeys), fallbackCoerceDefault, editCommercial);
 router.get("/draft/all", getAllCommercialDraftsForAdmin);
 router.get("/draft/me", authMiddleware, getMyCommercialDraft);

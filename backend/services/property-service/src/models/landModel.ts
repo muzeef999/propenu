@@ -1,6 +1,6 @@
 // src/models/property/land.model.ts
 import mongoose, { Schema, Document, Model, Types } from "mongoose";
-import { BaseFields, FileRefSchema, PromotionSchema } from "./sharedSchemas";
+import { BaseFields, FileRefSchema, PromotionSchema, ListingPromotionMetaFields } from "./sharedSchemas";
 import {
   ILand,
   LAND_PROPERTY_SUBTYPES,
@@ -48,6 +48,7 @@ const LandSchema = new Schema<ILand>(
     source: "subscription"
   })
 },
+    ...ListingPromotionMetaFields,
 
     conversionCertificateFile: FileRefSchema,
     encumbranceCertificateFile: FileRefSchema,

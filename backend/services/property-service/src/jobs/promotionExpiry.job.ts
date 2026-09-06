@@ -1,12 +1,13 @@
 import FeaturedProject from "../models/featurePropertiesModel";
+import { CATEGORY_MODELS } from "../controller/listingPromotionController";
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const PROMOTED_TYPES = ["featured", "sponsored", "prime"];
 
-export async function resetExpiredPromotions() {
+async function resetExpiredOnModel(Model: any, label: string) {
   const now = new Date();
 
-  const expiredProjects = await FeaturedProject.find({
+  const expiredDocs = await Model.find({
     "promotion.type": { $in: PROMOTED_TYPES },
     $or: [
       { "promotion.boostExpiry": { $lte: now } },
@@ -15,11 +16,11 @@ export async function resetExpiredPromotions() {
     ],
   });
 
-  for (const project of expiredProjects) {
-    const projectAny = project as any;
-    const previousPromotion = projectAny.promotion || {};
-    const history = Array.isArray(projectAny.promotionHistory)
-      ? projectAny.promotionHistory
+  for (const doc of expiredDocs) {
+    const docAny = doc as any;
+    const previousPromotion = docAny.promotion || {};
+    const history = Array.isArray(docAny.promotionHistory)
+      ? docAny.promotionHistory
       : [];
     const lastHistory = history[history.length - 1];
 
@@ -27,9 +28,9 @@ export async function resetExpiredPromotions() {
       lastHistory.endedAt = now;
     }
 
-    projectAny.promotionHistory = history;
-    projectAny.lastPromotionType = previousPromotion.type || "normal";
-    projectAny.promotionHistory.push({
+    docAny.promotionHistory = history;
+    docAny.lastPromotionType = previousPromotion.type || "normal";
+    docAny.promotionHistory.push({
       fromType: previousPromotion.type || "normal",
       toType: "normal",
       source: "system",
@@ -43,19 +44,36 @@ export async function resetExpiredPromotions() {
       },
     });
 
-    projectAny.promotion = {
+    docAny.promotion = {
       type: "normal",
       priority: 0,
       source: "manual",
       startDate: now,
+      visibleLeadLimit: 0,
     };
+    docAny.markModified?.("promotion");
 
-    await project.save();
+    await doc.save();
   }
 
-  if (expiredProjects.length > 0) {
-    console.log(`Reset ${expiredProjects.length} expired promotions to normal`);
+  if (expiredDocs.length > 0) {
+    console.log(
+      `Reset ${expiredDocs.length} expired ${label} promotions to normal`,
+    );
   }
+
+  return expiredDocs.length;
+}
+
+export async function resetExpiredPromotions() {
+  let total = 0;
+  total += await resetExpiredOnModel(FeaturedProject, "project");
+
+  for (const [category, Model] of Object.entries(CATEGORY_MODELS)) {
+    total += await resetExpiredOnModel(Model, category);
+  }
+
+  return total;
 }
 
 export function startPromotionExpiryJob() {
