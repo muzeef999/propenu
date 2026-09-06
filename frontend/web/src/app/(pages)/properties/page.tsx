@@ -27,6 +27,7 @@ import { ArrowDropdownIcon } from "@/icons/icons";
 import formatINR from "@/utilies/PriceFormat";
 
 const propertySkeletonItems = Array.from({ length: 4 });
+const sponsoredSkeletonItems = Array.from({ length: 2 });
 
 const sortOptions = [
   { value: "newest", label: "Newest" },
@@ -264,6 +265,40 @@ function PropertiesListSkeleton() {
   );
 }
 
+function SponsoredCardsSkeleton() {
+  return (
+    <>
+      {sponsoredSkeletonItems.map((_, index) => (
+        <div
+          key={`sponsored-skeleton-${index}`}
+          className="overflow-hidden rounded-2xl bg-white shadow-md"
+        >
+          <div className="relative h-40 w-full overflow-hidden bg-linear-to-br from-gray-100 to-gray-200">
+            <div className="absolute left-2 top-2 h-7 w-24 animate-pulse rounded-md bg-gray-300" />
+            <div className="absolute bottom-2 right-2 h-9 w-9 animate-pulse rounded-full bg-white shadow-md" />
+            <div className="grid h-full grid-cols-2 gap-4 p-6">
+              {Array.from({ length: 4 }).map((__, imageIndex) => (
+                <div
+                  key={`sponsored-image-skeleton-${index}-${imageIndex}`}
+                  className="animate-pulse rounded-lg bg-gray-200"
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3 p-3">
+            <div className="h-6 w-24 animate-pulse rounded-md bg-[#D1EFDD]" />
+            <div className="h-4 w-3/4 animate-pulse rounded bg-gray-200" />
+            <div className="h-3 w-2/3 animate-pulse rounded bg-gray-200" />
+            <div className="h-4 w-20 animate-pulse rounded bg-[#27AE60]/20" />
+            <div className="h-3 w-28 animate-pulse rounded bg-gray-200" />
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
 const PropertiesPageContent: React.FC = () => {
   const filters = useAppSelector((s) => s.filters);
   const cityData = useAppSelector(selectCityWithLocalities);
@@ -423,16 +458,20 @@ const PropertiesPageContent: React.FC = () => {
     return sponsored;
   }, [sponsored, isOwnerFilterActive, isAgentFilterActive]);
 
-  const finalList = React.useMemo(() => {
-    return injectSponsored(sortedItems, filteredSponsored, 5);
-  }, [sortedItems, filteredSponsored]);
-
   const sidebarPromotions = React.useMemo(() => {
     return dedupePropertiesById([
       ...filteredSponsored.filter(isSponsoredPromotion),
       ...sortedItems.filter(isSponsoredPromotion),
     ]);
   }, [filteredSponsored, sortedItems]);
+
+  const organicItems = React.useMemo(() => {
+    return sortedItems.filter((property) => !isSponsoredPromotion(property));
+  }, [sortedItems]);
+
+  const finalList = React.useMemo(() => {
+    return injectSponsored(organicItems, sidebarPromotions, 5);
+  }, [organicItems, sidebarPromotions]);
 
   const sidebarAds = React.useMemo(() => {
     return sidebarPromotions
@@ -569,11 +608,17 @@ const PropertiesPageContent: React.FC = () => {
             <div className="sticky top-24">
 
               <div className="flex flex-col gap-6">
-                {sidebarAds.map((ad) => (
-                  <AdCard key={ad.id} ad={ad} onDismiss={handleDismissAd} />
-                ))}
-                {sidebarAds.length === 0 && (
-                  <SponsoreCard target={sponsorCardTarget} />
+                {loading ? (
+                  <SponsoredCardsSkeleton />
+                ) : (
+                  <>
+                    {sidebarAds.map((ad) => (
+                      <AdCard key={ad.id} ad={ad} onDismiss={handleDismissAd} />
+                    ))}
+                    {sidebarAds.length === 0 && (
+                      <SponsoreCard target={sponsorCardTarget} />
+                    )}
+                  </>
                 )}
               </div>
             </div>

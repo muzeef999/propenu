@@ -16,6 +16,23 @@ export type LeadStatus =
   | "site_visit"
   | "sale";
 
+export interface LeadPropertySnapshot {
+  title?: string;
+  code?: string;
+  category?: string;
+  state?: string;
+  city?: string;
+  locality?: string;
+  slug?: string;
+  heroImage?: string;
+  price?: number | null;
+  priceFrom?: number | null;
+  priceTo?: number | null;
+  listingType?: "sale" | "rent" | "lease" | string;
+  promotionType?: string;
+  status?: string;
+}
+
 /* ✅ FULL SCHEMA SHAPE (IMPORTANT) */
 export interface LeadSchemaShape {
   name: string;
@@ -34,6 +51,7 @@ export interface LeadSchemaShape {
   propertyType: LeadPropertyType;
   propertyModel: string;
   projectId: Types.ObjectId;
+  propertySnapshot?: LeadPropertySnapshot;
 
   status: LeadStatus;
   assignedTo?: Types.ObjectId | null;

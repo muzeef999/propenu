@@ -2,6 +2,26 @@ import mongoose, { Schema, Document } from "mongoose";
 import { LEAD_STATUSES } from "../zod/leadZod";
 import { LeadPropertyType, LeadStatus } from "../types/leadTypes";
 
+const PropertySnapshotSchema = new Schema(
+  {
+    title: { type: String, trim: true },
+    code: { type: String, trim: true },
+    category: { type: String, trim: true },
+    state: { type: String, trim: true },
+    city: { type: String, trim: true },
+    locality: { type: String, trim: true },
+    slug: { type: String, trim: true },
+    heroImage: { type: String, trim: true },
+    price: { type: Number, default: null },
+    priceFrom: { type: Number, default: null },
+    priceTo: { type: Number, default: null },
+    listingType: { type: String, trim: true },
+    promotionType: { type: String, trim: true },
+    status: { type: String, trim: true },
+  },
+  { _id: false },
+);
+
 export interface IPublicLead extends Document {
   projectId: mongoose.Types.ObjectId;
   ownerId?: mongoose.Types.ObjectId;
@@ -17,6 +37,22 @@ export interface IPublicLead extends Document {
   budgetRange?: string;
   propertyType?: LeadPropertyType;
   propertyModel?: string;
+  propertySnapshot?: {
+    title?: string;
+    code?: string;
+    category?: string;
+    state?: string;
+    city?: string;
+    locality?: string;
+    slug?: string;
+    heroImage?: string;
+    price?: number | null;
+    priceFrom?: number | null;
+    priceTo?: number | null;
+    listingType?: "sale" | "rent" | "lease" | string;
+    promotionType?: string;
+    status?: string;
+  };
   listingType?: "sale" | "rent" | "lease";
   intention?: {
     question: string;
@@ -66,6 +102,10 @@ const PublicLeadSchema = new Schema<IPublicLead>(
     propertyModel: {
       type: String,
       enum: ["featuredProject", "FeaturedProject", "Residential", "Commercial", "Agricultural", "LandPlot"],
+    },
+    propertySnapshot: {
+      type: PropertySnapshotSchema,
+      default: undefined,
     },
     listingType: {
       type: String,

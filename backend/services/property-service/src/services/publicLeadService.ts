@@ -7,6 +7,7 @@ import Residential from "../models/residentialModel";
 import Commercial from "../models/commercialModel";
 import Agricultural from "../models/agriculturalModel";
 import LandPlot from "../models/landModel";
+import { buildLeadPropertySnapshot } from "../utils/leadPropertySnapshot";
 
 const PROPERTY_MODEL_MAP: Record<string, any> = {
   featuredprojects: FeaturedProject,
@@ -110,7 +111,12 @@ export const createPublicLead = async (
   }
 
   // 4️⃣ Save lead
-  const lead = await PublicLead.create(data);
+  const lead = await PublicLead.create({
+    ...data,
+    propertyType: data.propertyType || "featuredprojects",
+    propertyModel: (project as any).constructor?.modelName || FeaturedProject.modelName,
+    propertySnapshot: buildLeadPropertySnapshot(project, "featuredprojects"),
+  });
   const projectTitle =
     project.title || (project as any).projectName || "your project";
 
@@ -210,6 +216,10 @@ export const createPublicPropertyLead = async (
     ownerId: ownerId || undefined,
     propertyModel: PropertyModel.modelName,
     listingType,
+    propertySnapshot: {
+      ...buildLeadPropertySnapshot(property, propertyType),
+      listingType,
+    },
   });
 
   const propertyTitle =

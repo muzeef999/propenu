@@ -724,7 +724,7 @@ export default function TicketSupportHub({ role }: { role: Role }) {
   };
 
   return (
-    <div className="no-scrollbar flex h-[calc(100vh-80px)] flex-col overflow-y-auto rounded-lg bg-[#F7FCF9] p-4 sm:p-6">
+    <div className="no-scrollbar flex h-[calc(100vh-80px)] flex-col overflow-y-auto">
       <section className="space-y-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>

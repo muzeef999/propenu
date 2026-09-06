@@ -88,6 +88,24 @@ export const LeadDbSchema = LeadCreateSchema.extend({
   _id: objectIdSchema,
 
   propertyModel: z.enum(LEAD_PROPERTY_MODELS),
+  propertySnapshot: z
+    .object({
+      title: z.string().optional(),
+      code: z.string().optional(),
+      category: z.string().optional(),
+      state: z.string().optional(),
+      city: z.string().optional(),
+      locality: z.string().optional(),
+      slug: z.string().optional(),
+      heroImage: z.string().optional(),
+      price: z.number().nullable().optional(),
+      priceFrom: z.number().nullable().optional(),
+      priceTo: z.number().nullable().optional(),
+      listingType: z.string().optional(),
+      promotionType: z.string().optional(),
+      status: z.string().optional(),
+    })
+    .optional(),
 
   status: z.enum(LEAD_STATUSES),
   assignedTo: objectIdSchema.nullable(),

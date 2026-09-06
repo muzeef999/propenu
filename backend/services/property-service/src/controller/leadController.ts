@@ -35,6 +35,7 @@ import {
   saveLeadOtp,
   verifyLeadOtp,
 } from "../utils/leadOtp";
+import { buildLeadPropertySnapshot } from "../utils/leadPropertySnapshot";
 
 
 const DEFAULT_VISIBLE_LEAD_LIMIT = 5;
@@ -2006,7 +2007,7 @@ export const importProjectLeadsCSVController = async (
     }
 
     const project = await FeaturedProject.findById(projectId)
-      .select("createdBy")
+      .select("createdBy title projectName buildingName propertyCode state city locality slug heroImage gallery price priceFrom priceTo listingType promotion status")
       .lean();
 
     if (!project) {
@@ -2140,7 +2141,12 @@ export const importProjectLeadsCSVController = async (
       if (!existingPhones.has(row.phone)) return true;
       errors.push({ row: 0, message: `Skipped existing phone ${row.phone}` });
       return false;
-    });
+    }).map((row: NormalizedLeadRow) => ({
+      ...row,
+      propertyType: "featuredprojects",
+      propertyModel: FeaturedProject.modelName,
+      propertySnapshot: buildLeadPropertySnapshot(project, "featuredprojects"),
+    }));
 
     if (leadsToInsert.length) {
       await PublicLead.insertMany(leadsToInsert, { ordered: false });

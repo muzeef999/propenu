@@ -1,6 +1,6 @@
 "use client";
 
-const SUPPORT_PHONE = "+91";
+const SUPPORT_PHONE = "+919182334233";
 const SUPPORT_WHATSAPP_MESSAGE =
   "Hello Propenu support, I need help with my account/listing.";
 
@@ -15,7 +15,7 @@ export default function FloatingWhatsAppButton() {
       rel="noopener noreferrer"
       aria-label="Chat with Propenu on WhatsApp"
       title="Chat on WhatsApp"
-      className="fixed bottom-24 right-4 z-[60] flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] shadow-[0_10px_24px_rgba(37,211,102,0.35)] ring-1 ring-[#128C7E]/20 transition hover:-translate-y-0.5 hover:bg-[#1EBE5D] hover:shadow-[0_14px_30px_rgba(37,211,102,0.42)] focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2 sm:bottom-8 sm:right-6 lg:bottom-8 lg:right-8"
+      className="fixed bottom-24 right-4 z-60 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] shadow-[0_10px_24px_rgba(37,211,102,0.35)] ring-1 ring-[#128C7E]/20 transition hover:-translate-y-0.5 hover:bg-[#1EBE5D] hover:shadow-[0_14px_30px_rgba(37,211,102,0.42)] focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2 sm:bottom-8 sm:right-6 lg:bottom-8 lg:right-8"
     >
       <svg
         viewBox="0 0 32 32"

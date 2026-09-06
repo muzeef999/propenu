@@ -10,6 +10,7 @@ import FeaturedProject from "../models/featurePropertiesModel";
 import PublicLead from "../models/PublicLead";
 import User from "../models/userModel";
 import { notifyOwnerAndAdmins } from "./pushNotificationService";
+import { buildLeadPropertySnapshot } from "../utils/leadPropertySnapshot";
 
 const PROPERTY_MODEL_MAP: Record<string, any> = {
   featuredprojects: FeaturedProject,
@@ -149,6 +150,7 @@ export const createLead = async (
       createdBy: userId,
       ownerId,
       listingType,
+      propertySnapshot: buildLeadPropertySnapshot(property, propertyType),
     });
 
     await notifyLeadCreated({ lead, property, userId });
@@ -167,6 +169,7 @@ export const createLead = async (
       createdBy: userId,
       ownerId,
       listingType,
+      propertySnapshot: buildLeadPropertySnapshot(property, propertyType),
     });
 
     await notifyLeadCreated({ lead, property, userId });
@@ -215,6 +218,7 @@ export const createLead = async (
     createdBy: userId,
     ownerId,
     listingType,
+    propertySnapshot: buildLeadPropertySnapshot(property, propertyType),
   });
 
   viewerSub.usage.contactUsed += 1;

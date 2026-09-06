@@ -26,12 +26,13 @@ const STATUS_RANK: Record<string, number> = {
 };
 
 const leadCategory = (lead: any): Category => {
-  if (lead.source === "site" || lead.source === "imported") return "featured";
   const value = String(lead.propertyType || lead.propertyModel || "").toLowerCase();
+  if (value.includes("featured")) return "featured";
   if (value.includes("residential")) return "residential";
   if (value.includes("commercial")) return "commercial";
   if (value.includes("agricultural")) return "agricultural";
   if (value.includes("land")) return "land";
+  if (lead.source === "site" || lead.source === "imported") return "featured";
   return "featured";
 };
 
@@ -305,12 +306,17 @@ export const getAdminLeadDashboard = async (
 
   const normalized = raw.map((row: any) => {
     const property: any = properties.get(String(row.projectId)) || {};
+    const snapshot: any = row.propertySnapshot || {};
+    const hasLiveProperty = Boolean(property._id);
     const heroImage =
       property.heroImage?.url ||
       property.heroImage ||
       property.gallery?.[0]?.url ||
       property.gallery?.[0] ||
+      snapshot.heroImage ||
       "";
+    const category = leadCategory(row);
+
     return {
       _id: row._id,
       name: row.name,
@@ -321,7 +327,7 @@ export const getAdminLeadDashboard = async (
       message: row.message || row.remarks || "",
       purchaseTimeline: row.purchaseTimeline || "",
       budgetRange: row.budgetRange || "",
-      listingType: row.listingType || property.listingType || "",
+      listingType: row.listingType || property.listingType || snapshot.listingType || "",
       createdAt: row.createdAt,
       customer:
         row.createdBy && typeof row.createdBy === "object" ? row.createdBy : null,
@@ -331,22 +337,24 @@ export const getAdminLeadDashboard = async (
           property.title ||
           property.projectName ||
           property.buildingName ||
-          "Untitled property",
-        code: property.propertyCode || "",
-        category: leadCategory(row),
-        state: property.state || "",
-        city: property.city || "",
-        locality: property.locality || "",
+          snapshot.title ||
+          (hasLiveProperty ? "Untitled property" : "Deleted property"),
+        code: property.propertyCode || snapshot.code || "",
+        category: snapshot.category || category,
+        state: property.state || snapshot.state || "",
+        city: property.city || snapshot.city || "",
+        locality: property.locality || snapshot.locality || "",
         createdBy: ownerId(property.createdBy),
         postedBy: ownerId(property.postedBy?.userId ?? property.postedBy),
-        slug: property.slug || "",
+        slug: property.slug || snapshot.slug || "",
         heroImage,
-        price: property.price ?? null,
-        priceFrom: property.priceFrom ?? null,
-        priceTo: property.priceTo ?? null,
-        listingType: property.listingType || row.listingType || "",
-        promotionType: property.promotion?.type || "",
-        status: property.status || "",
+        price: property.price ?? snapshot.price ?? null,
+        priceFrom: property.priceFrom ?? snapshot.priceFrom ?? null,
+        priceTo: property.priceTo ?? snapshot.priceTo ?? null,
+        listingType: property.listingType || row.listingType || snapshot.listingType || "",
+        promotionType: property.promotion?.type || snapshot.promotionType || "",
+        status: property.status || snapshot.status || (hasLiveProperty ? "" : "deleted"),
+        isDeleted: !hasLiveProperty,
       },
     };
   });
@@ -422,12 +430,6 @@ export const getAdminLeadDashboard = async (
   );
   delete counts.dailyTrend;
 
-  const projects = [
-    ...new Map(
-      normalized.map((row) => [String(row.project._id), row.project]),
-    ).values(),
-  ].sort((a, b) => a.title.localeCompare(b.title));
-
   const facets = {
     states: [
       ...new Set(normalized.map((row) => row.project.state).filter(Boolean)),
@@ -471,7 +473,6 @@ export const getAdminLeadDashboard = async (
       ...counts,
       dailyTrend,
     },
-    projects,
     facets,
   };
 };
