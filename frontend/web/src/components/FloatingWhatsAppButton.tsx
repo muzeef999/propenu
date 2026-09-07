@@ -1,16 +1,14 @@
 "use client";
 
 const SUPPORT_PHONE = "+919182334233";
-const SUPPORT_WHATSAPP_MESSAGE =
-  "Hello Propenu support, I need help with my account/listing.";
+
 
 export default function FloatingWhatsAppButton() {
   const phone = SUPPORT_PHONE.replace(/\D/g, "");
-  const message = encodeURIComponent(SUPPORT_WHATSAPP_MESSAGE);
 
   return (
     <a
-      href={`https://wa.me/${phone}?text=${message}`}
+      href={`https://wa.me/${phone}?`}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat with Propenu on WhatsApp"
