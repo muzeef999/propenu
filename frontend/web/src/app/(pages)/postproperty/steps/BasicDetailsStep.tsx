@@ -1238,7 +1238,7 @@ export default function BasicDetailsStep() {
                         { value: "0-1-year", label: "0-1 Year" },
                         { value: "1-5-years", label: "1-5 Years" },
                         { value: "5-10-years", label: "5-10 Years" },
-                        { value: "10-plus-years", label: "10+ Years" },
+                        { value: "20-plus-years", label: "10+ Years" },
                       ].map((item) => {
                         const active = profileData.propertyAge === item.value;
 

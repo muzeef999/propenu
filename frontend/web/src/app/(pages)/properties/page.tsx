@@ -94,6 +94,10 @@ function isSponsoredPromotion(property: Property) {
   return promotionType === "sponsored";
 }
 
+function isFeaturedProject(property: Property) {
+  return String(property.type || "").toLowerCase() === "featuredproject";
+}
+
 function dedupePropertiesById(properties: Property[]) {
   const seen = new Set<string>();
 
@@ -103,6 +107,17 @@ function dedupePropertiesById(properties: Property[]) {
 
     seen.add(id);
     return true;
+  });
+}
+
+function orderProjectsBeforeProperties(properties: Property[]) {
+  return [...properties].sort((a, b) => {
+    const aIsProject = isFeaturedProject(a);
+    const bIsProject = isFeaturedProject(b);
+
+    if (aIsProject === bIsProject) return 0;
+
+    return aIsProject ? -1 : 1;
   });
 }
 
@@ -161,27 +176,57 @@ function toTitleCase(value?: string) {
   );
 }
 
+function readName(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function readObjectName(value: unknown) {
+  if (!value || typeof value !== "object") return "";
+
+  const source = value as {
+    builderName?: string;
+    companyName?: string;
+    name?: string;
+    fullName?: string;
+  };
+
+  return (
+    readName(source.builderName) ||
+    readName(source.companyName) ||
+    readName(source.name) ||
+    readName(source.fullName)
+  );
+}
+
+function getAboutSummaryBuilderName(aboutSummary: unknown): string {
+  if (Array.isArray(aboutSummary)) {
+    return aboutSummary.map(readObjectName).find(Boolean) || "";
+  }
+
+  if (aboutSummary && typeof aboutSummary === "object") {
+    const payload = aboutSummary as { aboutSummary?: unknown };
+    return readObjectName(aboutSummary) || getAboutSummaryBuilderName(payload.aboutSummary);
+  }
+
+  return "";
+}
+
 function getAdBuilderName(property: Property) {
-  const createdBy = (property as any).createdBy;
-  const developer = (property as any).developer;
   const aboutSummary = (property as any).aboutSummary;
-  const aboutBuilderName = Array.isArray(aboutSummary)
-    ? aboutSummary[0]?.builderName
-    : aboutSummary?.builderName;
+  const aboutBuilderName = getAboutSummaryBuilderName(aboutSummary);
+
   const rawContactName =
-    (typeof developer === "object" && developer !== null
-      ? developer.companyName || developer.name || developer.fullName
-      || (typeof createdBy === "object" && createdBy !== null
-        ? createdBy.name
-        : undefined)
-      : typeof createdBy === "object" && createdBy !== null
-        ? createdBy.name
-        : undefined) ||
     aboutBuilderName ||
-    (property as any).builderName ||
-    (property as any).companyName;
+    readName((property as any).builderName) ||
+    readName((property as any).companyName);
 
   return toTitleCase(rawContactName);
+}
+
+function getAdBuilderLabel(property: Property) {
+  const type = String(property.type || "").toLowerCase();
+
+  return type === "featuredproject" ? "Marketed by" : "By";
 }
 
 function toLocalityList(value: string | string[] | undefined | null): string[] {
@@ -459,11 +504,10 @@ const PropertiesPageContent: React.FC = () => {
   }, [sponsored, isOwnerFilterActive, isAgentFilterActive]);
 
   const sidebarPromotions = React.useMemo(() => {
-    return dedupePropertiesById([
-      ...filteredSponsored.filter(isSponsoredPromotion),
-      ...sortedItems.filter(isSponsoredPromotion),
-    ]);
-  }, [filteredSponsored, sortedItems]);
+    return orderProjectsBeforeProperties(
+      dedupePropertiesById(filteredSponsored.filter(isSponsoredPromotion)),
+    );
+  }, [filteredSponsored]);
 
   const organicItems = React.useMemo(() => {
     return sortedItems.filter((property) => !isSponsoredPromotion(property));
@@ -484,6 +528,7 @@ const PropertiesPageContent: React.FC = () => {
         location: getAdLocation(property),
         priceLabel: getAdPriceLabel(property),
         builderName: getAdBuilderName(property),
+        builderLabel: getAdBuilderLabel(property),
         imageUrl:
           (property as any).heroImage ||
           property.gallery?.[0]?.url ||
@@ -501,9 +546,7 @@ const PropertiesPageContent: React.FC = () => {
 
   const sponsorCardTarget =
     meta?.resultMode === "projects-only" ||
-    sidebarPromotions.some(
-      (property) => String(property.type || "").toLowerCase() === "featuredproject",
-    )
+    sidebarPromotions.some(isFeaturedProject)
       ? "project"
       : "property";
 
@@ -604,23 +647,19 @@ const PropertiesPageContent: React.FC = () => {
           </div>
 
           <div className="w-full lg:w-[20%]">
-
-            <div className="sticky top-24">
-
-              <div className="flex flex-col gap-6">
-                {loading ? (
-                  <SponsoredCardsSkeleton />
-                ) : (
-                  <>
-                    {sidebarAds.map((ad) => (
-                      <AdCard key={ad.id} ad={ad} onDismiss={handleDismissAd} />
-                    ))}
-                    {sidebarAds.length === 0 && (
-                      <SponsoreCard target={sponsorCardTarget} />
-                    )}
-                  </>
-                )}
-              </div>
+            <div className="flex flex-col gap-6">
+              {loading ? (
+                <SponsoredCardsSkeleton />
+              ) : (
+                <>
+                  {sidebarAds.map((ad) => (
+                    <AdCard key={ad.id} ad={ad} onDismiss={handleDismissAd} />
+                  ))}
+                  {sidebarAds.length === 0 && (
+                    <SponsoreCard target={sponsorCardTarget} />
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>

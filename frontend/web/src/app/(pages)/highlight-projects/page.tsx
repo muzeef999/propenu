@@ -184,25 +184,48 @@ const toTitleCase = (value?: string) => {
     );
 };
 
+const readName = (value: unknown) =>
+    typeof value === "string" ? value.trim() : "";
+
+const readObjectName = (value: unknown) => {
+    if (!value || typeof value !== "object") return "";
+
+    const source = value as {
+        builderName?: string;
+        companyName?: string;
+        name?: string;
+        fullName?: string;
+    };
+
+    return (
+        readName(source.builderName) ||
+        readName(source.companyName) ||
+        readName(source.name) ||
+        readName(source.fullName)
+    );
+};
+
+const getAboutSummaryBuilderName = (aboutSummary: unknown): string => {
+    if (Array.isArray(aboutSummary)) {
+        return aboutSummary.map(readObjectName).find(Boolean) || "";
+    }
+
+    if (aboutSummary && typeof aboutSummary === "object") {
+        const payload = aboutSummary as { aboutSummary?: unknown };
+        return readObjectName(aboutSummary) || getAboutSummaryBuilderName(payload.aboutSummary);
+    }
+
+    return "";
+};
+
 const getSponsoredBuilderName = (property: SponsoredProperty) => {
-    const createdBy = property.createdBy;
-    const developer = property.developer;
     const aboutSummary = property.aboutSummary;
-    const aboutBuilderName = Array.isArray(aboutSummary)
-        ? aboutSummary[0]?.builderName
-        : aboutSummary?.builderName;
+    const aboutBuilderName = getAboutSummaryBuilderName(aboutSummary);
+
     const rawContactName =
-        (typeof developer === "object" && developer !== null
-            ? developer.companyName || developer.name || developer.fullName
-            || (typeof createdBy === "object" && createdBy !== null
-                ? createdBy.name
-                : undefined)
-            : typeof createdBy === "object" && createdBy !== null
-                ? createdBy.name
-                : undefined) ||
         aboutBuilderName ||
-        property.builderName ||
-        property.companyName;
+        readName(property.builderName) ||
+        readName(property.companyName);
 
     return toTitleCase(rawContactName);
 };

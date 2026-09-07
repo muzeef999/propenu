@@ -5,10 +5,75 @@ import LandPlot from "../../models/landModel";
 import Residential from "../../models/residentialModel";
 
 function attachType(data: any[], type: string) {
-  return data.map((item) => ({
-    ...item.toObject?.() || item,
-    type
-  }));
+  return data.map((item) => withSponsoredDisplayFields(item, type));
+}
+
+function readName(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function readObjectName(value: unknown) {
+  if (!value || typeof value !== "object") return "";
+
+  const source = value as {
+    builderName?: string;
+    companyName?: string;
+    name?: string;
+    fullName?: string;
+  };
+
+  return (
+    readName(source.builderName) ||
+    readName(source.companyName) ||
+    readName(source.name) ||
+    readName(source.fullName)
+  );
+}
+
+function getAboutSummaryBuilderName(aboutSummary: unknown): string {
+  if (Array.isArray(aboutSummary)) {
+    return aboutSummary.map(readObjectName).find(Boolean) || "";
+  }
+
+  if (aboutSummary && typeof aboutSummary === "object") {
+    const payload = aboutSummary as { aboutSummary?: unknown };
+    return readObjectName(aboutSummary) || getAboutSummaryBuilderName(payload.aboutSummary);
+  }
+
+  return "";
+}
+
+function withSponsoredDisplayFields(item: any, type: string) {
+  const property = {
+    ...(item.toObject?.() || item),
+    type,
+  };
+
+  const builderName =
+    getAboutSummaryBuilderName(property.aboutSummary) ||
+    readObjectName(property.developer) ||
+    readObjectName(property.createdBy) ||
+    readObjectName(property.postedBy) ||
+    readName(property.builderName) ||
+    readName(property.companyName);
+
+  if (!builderName) {
+    return property;
+  }
+
+  const aboutSummary = Array.isArray(property.aboutSummary)
+    ? property.aboutSummary
+    : [];
+
+  return {
+    ...property,
+    aboutSummary:
+      aboutSummary.length > 0
+        ? aboutSummary.map((about: any, index: number) =>
+            index === 0 ? { ...about, builderName: about.builderName || builderName } : about,
+          )
+        : [{ builderName }],
+  };
 }
 
 function findSponsored(model: any, filter: any, limit = 10) {
@@ -19,53 +84,132 @@ function findSponsored(model: any, filter: any, limit = 10) {
     .limit(limit);
 }
 
-export const getSponsoredProperties = async (filters: any) => {
-  const baseFilter: any = {
+function shuffleItems<T>(items: T[]) {
+  const shuffled = [...items];
+
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const current = shuffled[i] as T;
+    const replacement = shuffled[j] as T;
+    shuffled[i] = replacement;
+    shuffled[j] = current;
+  }
+
+  return shuffled;
+}
+
+function buildBaseSponsoredFilter(filters: any) {
+  const filter: any = {
     status: "active",
     "promotion.type": "sponsored",
     $or: [
       { "promotion.boostExpiry": { $gt: new Date() } },
-      { "promotion.boostExpiry": { $exists: false } }
-    ]
+      { "promotion.boostExpiry": { $exists: false } },
+    ],
   };
 
-  if (filters.city) baseFilter.city = filters.city;
-  if (filters.listingType) baseFilter.listingType = filters.listingType;
+  if (filters.city) filter.city = filters.city;
+  if (filters.state) filter.state = filters.state;
+  if (filters.locality) filter.locality = filters.locality;
+
+  return filter;
+}
+
+function buildListingSponsoredFilter(filters: any) {
+  const filter = buildBaseSponsoredFilter(filters);
+
+  if (filters.listingType) filter.listingType = filters.listingType;
+
+  return filter;
+}
+
+function buildProjectSponsoredFilter(filters: any, categoryType?: string) {
+  const filter = buildBaseSponsoredFilter(filters);
+
+  if (categoryType) filter.categoryType = categoryType;
+
+  return filter;
+}
+
+async function findSponsoredListingsAndProjects(
+  model: any,
+  filters: any,
+  listingType: string,
+  projectCategoryType: string,
+) {
+  const listingFilter = buildListingSponsoredFilter(filters);
+  const projectFilter = buildProjectSponsoredFilter(filters, projectCategoryType);
+  const shouldIncludeProjects =
+    !filters.listingType || String(filters.listingType).toLowerCase() === "sale";
+
+  const [listings, projects] = await Promise.all([
+    findSponsored(model, listingFilter),
+    shouldIncludeProjects ? findSponsored(FeaturedProject, projectFilter) : Promise.resolve([]),
+  ]);
+
+  return [
+    ...shuffleItems(attachType(projects, "featuredproject")),
+    ...shuffleItems(attachType(listings, listingType)),
+  ];
+}
+
+export const getSponsoredProperties = async (filters: any) => {
+  const listingFilter = buildListingSponsoredFilter(filters);
+  const projectFilter = buildProjectSponsoredFilter(filters);
 
   let data: any[] = [];
 
   switch (filters.category?.toLowerCase()) {
     case "residential":
-      data = attachType(await findSponsored(Residential, baseFilter), "residential");
+      data = await findSponsoredListingsAndProjects(
+        Residential,
+        filters,
+        "residential",
+        "residential",
+      );
       break;
     case "commercial":
-      data = attachType(await findSponsored(Commercial, baseFilter), "commercial");
+      data = await findSponsoredListingsAndProjects(
+        Commercial,
+        filters,
+        "commercial",
+        "commercial",
+      );
       break;
     case "land":
-      data = attachType(await findSponsored(LandPlot, baseFilter), "land");
+      data = await findSponsoredListingsAndProjects(LandPlot, filters, "land", "land");
       break;
     case "agricultural":
-      data = attachType(await findSponsored(Agricultural, baseFilter), "agricultural");
+      data = await findSponsoredListingsAndProjects(
+        Agricultural,
+        filters,
+        "agricultural",
+        "agricultural",
+      );
       break;
     case "featuredproject":
     case "featured-project":
     case "project":
-      data = attachType(await findSponsored(FeaturedProject, baseFilter), "featuredproject");
+      data = shuffleItems(
+        attachType(await findSponsored(FeaturedProject, projectFilter), "featuredproject"),
+      );
       break;
     default:
       const [res, com, land, agri, projects] = await Promise.all([
-        findSponsored(Residential, baseFilter),
-        findSponsored(Commercial, baseFilter),
-        findSponsored(LandPlot, baseFilter),
-        findSponsored(Agricultural, baseFilter),
-        findSponsored(FeaturedProject, baseFilter)
+        findSponsored(Residential, listingFilter),
+        findSponsored(Commercial, listingFilter),
+        findSponsored(LandPlot, listingFilter),
+        findSponsored(Agricultural, listingFilter),
+        findSponsored(FeaturedProject, projectFilter)
       ]);
       data = [
-        ...attachType(res, "residential"),
-        ...attachType(com, "commercial"),
-        ...attachType(land, "land"),
-        ...attachType(agri, "agricultural"),
-        ...attachType(projects, "featuredproject")
+        ...shuffleItems(attachType(projects, "featuredproject")),
+        ...shuffleItems([
+          ...attachType(res, "residential"),
+          ...attachType(com, "commercial"),
+          ...attachType(land, "land"),
+          ...attachType(agri, "agricultural"),
+        ]),
       ];
   }
 

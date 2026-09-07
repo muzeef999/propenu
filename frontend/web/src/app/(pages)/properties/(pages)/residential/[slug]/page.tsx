@@ -131,25 +131,48 @@ function toTitleCase(value?: string) {
   );
 }
 
+function readName(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function readObjectName(value: unknown) {
+  if (!value || typeof value !== "object") return "";
+
+  const source = value as {
+    builderName?: string;
+    companyName?: string;
+    name?: string;
+    fullName?: string;
+  };
+
+  return (
+    readName(source.builderName) ||
+    readName(source.companyName) ||
+    readName(source.name) ||
+    readName(source.fullName)
+  );
+}
+
+function getAboutSummaryBuilderName(aboutSummary: unknown): string {
+  if (Array.isArray(aboutSummary)) {
+    return aboutSummary.map(readObjectName).find(Boolean) || "";
+  }
+
+  if (aboutSummary && typeof aboutSummary === "object") {
+    const payload = aboutSummary as { aboutSummary?: unknown };
+    return readObjectName(aboutSummary) || getAboutSummaryBuilderName(payload.aboutSummary);
+  }
+
+  return "";
+}
+
 function getAdBuilderName(property: Property) {
-  const createdBy = (property as any).createdBy;
-  const developer = (property as any).developer;
   const aboutSummary = (property as any).aboutSummary;
-  const aboutBuilderName = Array.isArray(aboutSummary)
-    ? aboutSummary[0]?.builderName
-    : aboutSummary?.builderName;
+  const aboutBuilderName = getAboutSummaryBuilderName(aboutSummary);
   const rawContactName =
-    (typeof developer === "object" && developer !== null
-      ? developer.companyName || developer.name || developer.fullName
-      || (typeof createdBy === "object" && createdBy !== null
-        ? createdBy.name
-        : undefined)
-      : typeof createdBy === "object" && createdBy !== null
-        ? createdBy.name
-        : undefined) ||
     aboutBuilderName ||
-    (property as any).builderName ||
-    (property as any).companyName;
+    readName((property as any).builderName) ||
+    readName((property as any).companyName);
 
   return toTitleCase(rawContactName);
 }

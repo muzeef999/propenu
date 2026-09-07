@@ -85,6 +85,7 @@ function normalizePayload(obj: any) {
   if (!obj) return obj;
   if (typeof obj.title === "string") obj.title = obj.title.trim();
   if (obj.price === "") obj.price = undefined;
+  if (obj.propertyAge === "10-plus-years") obj.propertyAge = "20-plus-years";
   if (obj.createdBy) obj.createdBy = String(obj.createdBy);
   if (Array.isArray(obj.amenities))
     obj.amenities = normalizeAmenitiesInput(obj.amenities);

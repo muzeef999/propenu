@@ -87,6 +87,9 @@ function sanitizeStepPayload(payload: any) {
   for (const field of SERVER_MANAGED_STEP_FIELDS) {
     delete sanitized[field];
   }
+  if (sanitized.propertyAge === "10-plus-years") {
+    sanitized.propertyAge = "20-plus-years";
+  }
   return sanitized;
 }
 

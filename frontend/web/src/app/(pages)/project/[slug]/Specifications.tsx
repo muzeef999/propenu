@@ -46,7 +46,7 @@ export default function Specifications({ project }: SpecificationsProps) {
   if (!specifications.length || !descriptions.length) {
     return null;
   }
-
+  console.log("project", project);
   return (
     <section id="specifications">
       <div className="container mx-auto px-1 sm:px-4 lg:px-3">

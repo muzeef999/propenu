@@ -358,7 +358,8 @@ export default function HeroSection({ project }: HeroSectionProps) {
         (Array.isArray(project.aboutSummary)
             ? project.aboutSummary[0]?.builderName
             : (project.aboutSummary as any)?.builderName)?.trim();
-
+    
+            console.log()
     return (
         <>
             <section className="bg-white">

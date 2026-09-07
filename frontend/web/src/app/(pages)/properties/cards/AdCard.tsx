@@ -14,6 +14,7 @@ export interface Ad {
   location?: string;
   priceLabel?: string;
   builderName?: string;
+  builderLabel?: string;
   imageUrl: string;
   ctaText: string;
   ctaLink: string;
@@ -124,6 +125,11 @@ const AdCard: React.FC<AdCardProps> = ({ ad, onDismiss }) => {
 
   const promotionBadge = getPromotionBadge(ad);
   const categoryLabel = formatCategoryLabel(ad.displayCategory || ad.category);
+  const builderLabel =
+    ad.builderLabel ||
+    (getShortlistPropertyType(ad.category) === "FeaturedProject"
+      ? "Marketed by"
+      : "By");
 
   return (
     <Link href={ad.ctaLink} target="_blank" rel="noopener noreferrer">
@@ -216,7 +222,7 @@ const AdCard: React.FC<AdCardProps> = ({ ad, onDismiss }) => {
 
             {ad.builderName && (
               <p className="mt-1 text-xs text-gray-500 line-clamp-1">
-                By <span className="font-medium text-gray-700">{ad.builderName}</span>
+                {builderLabel} <span className="font-medium text-gray-700">{ad.builderName}</span>
               </p>
             )}
           </div>
