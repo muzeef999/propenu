@@ -11,7 +11,7 @@ import { Balconies, Bath, Bhk } from "@/icons/icons";
 import ContactOwnerButton from "@/components/ContactOwnerButton";
 import PropertyViewDurationTracker from "@/components/PropertyViewDurationTracker";
 import PublicViewTracker from "@/components/tracking/PublicViewTracker";
-import Image from "next/image";
+import AmenityIconImage from "@/components/AmenityIconImage";
 import RelatedPropertiesCarousel from "./RelatedPropertiesCarousel";
 import ResidentialNearbySection from "./ResidentialNearbySection";
 import { RESIDENTIAL_AMENITIES } from "@/app/(pages)/postproperty/constants/amenities";
@@ -20,6 +20,7 @@ import AdCard, { type Ad } from "../../../cards/AdCard";
 import { buildPropertyMetadata } from "@/utilies/propertyOpenGraph";
 import { listingSourceToOwnershipLabel } from "@/utilies/resolveListingSource";
 import { buildListingStructuredData } from "@/utilies/structuredData";
+import { amenityTitleToIconPath } from "@/lib/amenityIcons";
 
 import { GiKnifeFork, GiMoneyStack } from "react-icons/gi";
 import { RiCarLine } from "react-icons/ri";
@@ -613,7 +614,8 @@ export default async function Page({ params }: PageProps) {
                             (() => {
                               const icon =
                                 amenityIconByKey.get(i.key) ??
-                                amenityIconByTitle.get(i.title);
+                                amenityIconByTitle.get(i.title) ??
+                                amenityTitleToIconPath(i.key ?? i.title);
 
                               return (
                                 <div
@@ -621,11 +623,9 @@ export default async function Page({ params }: PageProps) {
                                   className="flex items-center gap-1.5 rounded-md border border-gray-100 px-1.5 py-0.5"
                                 >
                                   {typeof icon === "string" ? (
-                                    <Image
+                                    <AmenityIconImage
                                       src={icon.trim()}
                                       alt={`${i.title} icon`}
-                                      width={14}
-                                      height={14}
                                       className="h-4 w-4 opacity-75"
                                     />
                                   ) : icon ? (

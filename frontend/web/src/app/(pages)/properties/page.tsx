@@ -374,6 +374,7 @@ const PropertiesPageContent: React.FC = () => {
     sortOptions.find((option) => option.value === sortBy) ?? sortOptions[0];
 
   const renderPropertyCard = (p: Property, index: number) => {
+    const cardKey = getPropertyId(p) || p.slug || `property-${index}`;
     const propertyForCard = {
       ...p,
       listingType: p.listingType || params.listingType,
@@ -383,12 +384,12 @@ const PropertiesPageContent: React.FC = () => {
 
     switch (type) {
       case "featuredproject":
-        return <FeaturedPropertyCard key={p.id} p={propertyForCard} />;
+        return <FeaturedPropertyCard key={cardKey} p={propertyForCard} />;
 
       case "residential":
         return (
           <ResidentialCard
-            key={p.id}
+            key={cardKey}
             p={propertyForCard as IResidential}
             isSponsored={isSponsored}
           />
@@ -397,7 +398,7 @@ const PropertiesPageContent: React.FC = () => {
       case "commercial":
         return (
           <CommercialCard
-            key={p.id}
+            key={cardKey}
             p={propertyForCard as unknown as ICommercial} // safe after type check
             isSponsored={isSponsored}
           />
@@ -405,7 +406,7 @@ const PropertiesPageContent: React.FC = () => {
       case "land":
         return (
           <LandCard
-            key={p.id}
+            key={cardKey}
             p={propertyForCard as ILand}
             isSponsored={isSponsored}
           />
@@ -414,7 +415,7 @@ const PropertiesPageContent: React.FC = () => {
       case "agricultural":
         return (
           <AgriculturalCard
-            key={p.id}
+            key={cardKey}
             p={propertyForCard as IAgricultural}
             isSponsored={isSponsored}
           />

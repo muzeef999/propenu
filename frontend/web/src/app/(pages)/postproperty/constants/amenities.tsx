@@ -18,7 +18,7 @@ export const RESIDENTIAL_AMENITIES = [
     key: "gym",
     title: "Gym",
     category: "Sports",
-    icon: "/icons/amenities/Gym.svg",
+    icon: "/icons/amenities/gym.svg",
   },
   {
     key: "swimming_pool",
@@ -30,7 +30,7 @@ export const RESIDENTIAL_AMENITIES = [
     key: "jogging_track",
     title: "Jogging Track",
     category: "Sports",
-    icon: "/icons/amenities/jogging_track.svg",
+    icon: "/icons/amenities/Jogging.svg",
   },
   {
     key: "children_play",
@@ -44,7 +44,7 @@ export const RESIDENTIAL_AMENITIES = [
     key: "elevator/lift",
     title: "Elevator / Lift",
     category: "Convenience",
-    icon: "/icons/amenities/elevator.svg ",
+    icon: "/icons/amenities/elevator.svg",
   },
   {
     key: "power_backup",
