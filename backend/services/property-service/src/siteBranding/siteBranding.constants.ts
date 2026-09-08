@@ -2,7 +2,7 @@ export const BANNER_SLOTS = {
   desktop: { width: 1920, height: 600, label: "Desktop" },
   laptop: { width: 1440, height: 500, label: "Laptop" },
   tablet: { width: 1536, height: 768, label: "Tablet" },
-  mobile: { width: 1080, height: 1350, label: "Mobile" },
+  mobile: { width: 1080, height: 900, label: "Mobile" },
 } as const;
 
 export type BannerSlot = keyof typeof BANNER_SLOTS;

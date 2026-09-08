@@ -9,7 +9,7 @@ const banners = [
   { name: "banner-desktop-1920x600.webp", w: 1920, h: 600, rgb: "39,174,96" },
   { name: "banner-laptop-1440x500.webp", w: 1440, h: 500, rgb: "46,134,193" },
   { name: "banner-tablet-1536x768.webp", w: 1536, h: 768, rgb: "142,68,173" },
-  { name: "banner-mobile-1080x1350.webp", w: 1080, h: 1350, rgb: "230,126,34" },
+  { name: "banner-mobile-1080x900.webp", w: 1080, h: 900, rgb: "230,126,34" },
 ];
 
 async function makeBanner({ name, w, h, rgb }) {
