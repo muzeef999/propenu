@@ -14,13 +14,6 @@ export interface JwtUserPayload extends JwtPayload {
   name: string;
   phone?: string;
   roleId?: string | undefined; 
-  roleName:
-    | "buyer"
-    | "builder"
-    | "agent"
-    | "user"
-    | "admin"
-    | "super_admin"
-    | "regional_manager";
+  roleName: string;
   permissions: string[];
 }

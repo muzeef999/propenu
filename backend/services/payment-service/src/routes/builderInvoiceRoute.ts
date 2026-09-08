@@ -8,15 +8,15 @@ import {
   updateBuilderInvoice,
 } from "../controller/builderInvoice";
 import { authMiddleware } from "../middlewares/authMiddleware";
-import { adminOnly } from "../middlewares/adminOnly";
+import { requirePermission } from "../middlewares/requirePermission";
 
 const router = Router();
 
-router.get("/", authMiddleware, getBuilderInvoices);
-router.get("/:id/pdf", authMiddleware, getBuilderInvoicePdf);
-router.get("/:id", authMiddleware, getBuilderInvoiceById);
-router.post("/", authMiddleware, adminOnly, createBuilderInvoice);
-router.patch("/:id", authMiddleware, adminOnly, updateBuilderInvoice);
-router.delete("/:id", authMiddleware, adminOnly, deleteBuilderInvoice);
+router.get("/", authMiddleware, requirePermission("builder_invoice:view"), getBuilderInvoices);
+router.get("/:id/pdf", authMiddleware, requirePermission("builder_invoice:view"), getBuilderInvoicePdf);
+router.get("/:id", authMiddleware, requirePermission("builder_invoice:view"), getBuilderInvoiceById);
+router.post("/", authMiddleware, requirePermission("builder_invoice:create"), createBuilderInvoice);
+router.patch("/:id", authMiddleware, requirePermission("builder_invoice:update"), updateBuilderInvoice);
+router.delete("/:id", authMiddleware, requirePermission("builder_invoice:delete"), deleteBuilderInvoice);
 
 export default router;

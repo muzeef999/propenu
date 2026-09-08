@@ -6,15 +6,15 @@ import {
   getBuilderPlans,
   updateBuilderPlan,
 } from "../controller/builderPlan";
-import { adminOnly } from "../middlewares/adminOnly";
 import { authMiddleware } from "../middlewares/authMiddleware";
+import { requirePermission } from "../middlewares/requirePermission";
 
 const router = Router();
 
 router.get("/", getBuilderPlans);
 router.get("/:id", getBuilderPlanById);
-router.post("/", authMiddleware, adminOnly, createBuilderPlan);
-router.patch("/:id", authMiddleware, adminOnly, updateBuilderPlan);
-router.delete("/:id", authMiddleware, adminOnly, deleteBuilderPlan);
+router.post("/", authMiddleware, requirePermission("plan:create"), createBuilderPlan);
+router.patch("/:id", authMiddleware, requirePermission("plan:update"), updateBuilderPlan);
+router.delete("/:id", authMiddleware, requirePermission("plan:delete"), deleteBuilderPlan);
 
 export default router;
