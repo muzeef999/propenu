@@ -68,15 +68,15 @@ const canWriteLogo = requireAnyPermission([
   "site_banner:create",
 ]);
 
-// Logo
+// Logo — GET is public (no token)
 router.get("/logo", getLogo);
 router.post("/logo", authMiddleware, canWriteLogo, handleLogoUpload, upsertLogo);
 router.patch("/logo", authMiddleware, canWriteLogo, handleLogoUpload, upsertLogo);
 
-// Banners
+// Banners — all GET endpoints are public (no token)
 router.get("/banners/resolve", resolveBanners);
-router.get("/banners", authMiddleware, requirePermission("site_banner:view"), listBanners);
-router.get("/banners/:id", authMiddleware, requirePermission("site_banner:view"), getBanner);
+router.get("/banners", listBanners);
+router.get("/banners/:id", getBanner);
 
 router.post(
   "/banners",
