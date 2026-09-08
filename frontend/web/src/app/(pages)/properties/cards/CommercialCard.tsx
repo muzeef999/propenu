@@ -286,12 +286,11 @@ const CommercialCard: React.FC<Props> = ({
           <div
             className={`hidden ${vertical ? "" : "md:flex"} flex-wrap gap-2 mt-3`}
           >
-            <span className="text-xs font-normal px-2 py-1 text-primary">
-              RERA Approved
-            </span>
-            <span className="text-xs font-normal px-2 py-1 text-primary">
-              Premium
-            </span>
+            {(p as any)?.reraNumber && (
+              <span className="text-xs font-normal px-2 py-1 text-primary">
+                RERA Approved
+              </span>
+            )}
             <span className="text-xs font-normal px-2 py-1 text-primary">
               Zero Brokerage
             </span>

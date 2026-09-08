@@ -343,6 +343,21 @@ function getFeaturedProjectHref(property: Property) {
     : `/project/${property.slug}`;
 }
 
+function hasUpcomingPossessionDate(property: Property) {
+  const possessionDateValue = (property as { possessionDate?: string | Date })
+    .possessionDate;
+  if (!possessionDateValue) return false;
+
+  const possessionDate = new Date(possessionDateValue);
+  if (Number.isNaN(possessionDate.getTime())) return false;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  possessionDate.setHours(0, 0, 0, 0);
+
+  return possessionDate >= today;
+}
+
 
 
 const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
@@ -386,6 +401,7 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
   const propertyHref = getFeaturedProjectHref(p);
   const pricePerSqftLabel = getPricePerSqftLabel(p);
   const priceLabel = getPriceLabel(p);
+  const showNewLaunchBadge = hasUpcomingPossessionDate(p);
 
   const shareProperty = async () => {
     const href =
@@ -474,12 +490,16 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
           <div
             className={`hidden ${vertical ? "" : "md:flex"} flex-wrap gap-2 mt-3`}
           >
-            <span className="text-xs font-normal px-2 py-1 text-primary">
-              RERA Approved
-            </span>
-            <span className="text-xs font-normal px-2 py-1 text-primary">
-              New Launch
-            </span>
+            {(p as any)?.reraNumber && (
+              <span className="text-xs font-normal px-2 py-1 text-primary">
+                RERA Approved
+              </span>
+            )}
+            {showNewLaunchBadge && (
+              <span className="text-xs font-normal px-2 py-1 text-primary">
+                New Launch
+              </span>
+            )}
             <span className="text-xs font-normal px-2 py-1 text-primary">
               Builder Project
             </span>

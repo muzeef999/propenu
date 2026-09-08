@@ -20,6 +20,14 @@ import { IoMdShareAlt } from "react-icons/io";
 import { RATE_LIMIT_RECOVERED_EVENT } from "@/utilies/requestMonitor";
 import { trackInteraction } from "@/services/trackingService";
 
+const sortProjectsByRank = (projects: FeaturedProject[]) =>
+  [...projects].sort((a, b) => {
+    const rankA = a.rank ?? Number.MAX_SAFE_INTEGER;
+    const rankB = b.rank ?? Number.MAX_SAFE_INTEGER;
+
+    return rankA - rankB;
+  });
+
 function PrimeProjectCard({ project }: { project: FeaturedProject }) {
   const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(
     project._id,
@@ -173,7 +181,10 @@ export default function FeaturedProjectsClient() {
     city: selectedCity?.city,
   });
   const [items, setItems] = useState<FeaturedProject[]>(
-    () => getHomeSectionCache<FeaturedProject[]>(cacheKey) ?? [],
+    () =>
+      sortProjectsByRank(
+        getHomeSectionCache<FeaturedProject[]>(cacheKey) ?? [],
+      ),
   );
   const [loading, setLoading] = useState(() => !getHomeSectionCache(cacheKey));
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -191,7 +202,7 @@ export default function FeaturedProjectsClient() {
 
     const cachedItems = getHomeSectionCache<FeaturedProject[]>(cacheKey);
     if (cachedItems) {
-      setItems(cachedItems);
+      setItems(sortProjectsByRank(cachedItems));
       setLoading(false);
       return;
     }
@@ -211,7 +222,7 @@ export default function FeaturedProjectsClient() {
       .then(([res]) => {
         if (!isActive) return;
 
-        const nextItems = res.items || [];
+        const nextItems = sortProjectsByRank(res.items || []);
         setHomeSectionCache(cacheKey, nextItems);
         setItems(nextItems);
       })
