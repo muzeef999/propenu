@@ -46,6 +46,12 @@ export async function generateMetadata({ params }: PageProps) {
   });
 }
 
+function getListingTypeGroup(listingType?: string | null) {
+  const normalized = String(listingType ?? "").toLowerCase();
+
+  return ["rent", "lease"].includes(normalized) ? "rent" : "sale";
+}
+
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
 
@@ -69,6 +75,11 @@ export default async function Page({ params }: PageProps) {
     notFound();
   }
   const priceLabel = formatINR(project?.price);
+  const listingTypeGroup = getListingTypeGroup(project.listingType);
+  const relatedProjects = (project.relatedProjects ?? []).filter(
+    (relatedProject) =>
+      getListingTypeGroup(relatedProject.listingType) === listingTypeGroup,
+  );
   const nearbyLandmarks = (project.nearbyPlaces ?? [])
     .slice()
     .sort(
@@ -105,7 +116,7 @@ export default async function Page({ params }: PageProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
       <div
-        className="min-h-screen py-6 overflow-hidden"
+        className="min-h-screen py-6 overflow-x-hidden"
       >
         <PublicViewTracker
           entityType="property"
@@ -394,10 +405,9 @@ export default async function Page({ params }: PageProps) {
                       <h2 className="mb-1 text-xl font-semibold text-gray-900">
                         More Similar Properties for you
                       </h2>
-                      {project.relatedProjects &&
-                        project.relatedProjects.length > 0 ? (
+                      {relatedProjects.length > 0 ? (
                         <RelatedAgriculturalCarousel
-                          projects={project.relatedProjects}
+                          projects={relatedProjects}
                         />
                       ) : (
                         <p className="text-sm text-gray-500">

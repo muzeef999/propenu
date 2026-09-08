@@ -227,7 +227,7 @@ const Navbar = () => {
         className="relative z-50 w-full border-b border-gray-200 bg-white"
         aria-label="Main navigation"
       >
-        <div className="border-b border-[#cfead8] bg-[linear-gradient(135deg,#f4fff7_0%,#e1f7e8_30%,#caecd7_68%,#eefaf2_100%)] lg:hidden">
+        <div className="border-b border-[#cfead8] bg-[linear-gradient(135deg,#f4fff7_0%,#e1f7e8_30%,#caecd7_68%,#eefaf2_100%)] md:hidden">
           <div className="container mx-auto px-2 py-2.5">
             <div className="flex items-center gap-2">
               {/* <button
@@ -296,7 +296,7 @@ const Navbar = () => {
                   router.push(notificationRoute);
                 }}
                 aria-label={isAuthenticated ? "Open notifications" : "Login to view notifications"}
-                className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-[#d6ebdb] bg-white text-[#1b1b1b]"
+                className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#d6ebdb] bg-white text-[#1b1b1b]"
               >
                 <IoNotificationsOutline className="h-[18px] w-[18px]" />
                 {notificationCount > 0 && (
@@ -310,7 +310,7 @@ const Navbar = () => {
             {!hideMobileNavSearchRow && (
               <div className="mt-2 grid grid-cols-[128px_minmax(0,1fr)] gap-2">
                 <div ref={mobileDropdownRef} className="relative">
-                  <div className="w-full rounded-[8px] border border-[#d6ebdb] bg-white px-3 py-[11px]">
+                  <div className="w-full rounded-lg border border-[#d6ebdb] bg-white px-3 py-[11px]">
                     <FilterDropdown
                       open={mobileOpen_city}
                       onOpenChange={(next) => setMobileOpen_city(next)}
@@ -382,7 +382,7 @@ const Navbar = () => {
                 <button
                   type="button"
                   onClick={handleMobileSearchClick}
-                  className="flex h-[46px] items-center gap-2 rounded-[8px] border border-[#d6ebdb] bg-white px-3 text-left"
+                  className="flex h-[46px] items-center gap-2 rounded-lg border border-[#d6ebdb] bg-white px-3 text-left"
                   aria-label="Search properties"
                 >
                   <IoSearchOutline className="h-[18px] w-[18px] shrink-0 text-[#8a8a8a]" />
@@ -395,7 +395,7 @@ const Navbar = () => {
           </div>
         </div>
 
-        <div className="container mx-auto hidden px-1 sm:px-4 lg:block lg:px-3">
+        <div className="container mx-auto hidden px-1 sm:px-4 md:block lg:px-3">
           <div className="flex h-14 items-center justify-between sm:h-16">
             {/* LEFT */}
             <div className="flex items-center gap-2 sm:gap-4 min-w-0">
@@ -404,7 +404,7 @@ const Navbar = () => {
                 aria-expanded={mobileOpen}
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
                 onClick={() => setMobileOpen((s) => !s)}
-                className="lg:hidden inline-flex items-center justify-center sm:p-2 rounded-md hover:bg-gray-100 shrink-0"
+                className="hidden items-center justify-center sm:p-2 rounded-md hover:bg-gray-100 shrink-0"
               >
                 <svg
                   className="w-5 sm:w-6 h-5 sm:h-6"
@@ -448,7 +448,7 @@ const Navbar = () => {
               {/* City (desktop & tablet) */}
               <div
                 aria-hidden="true"
-                className="hidden lg:flex items-center ml-2"
+                className="hidden md:flex items-center ml-2"
                 ref={rootRef}
               >
                 <div className="relative w-full lg:w-auto">
@@ -535,7 +535,7 @@ const Navbar = () => {
             </div>
 
             {/* RIGHT - desktop */}
-            <div className="hidden lg:flex items-center gap-4 lg:gap-6 text-[#1A1A1A] shrink-0">
+            <div className="hidden md:flex items-center gap-4 lg:gap-6 text-[#1A1A1A] shrink-0">
               <>
                 {!isAuthenticated ? (
                   <button
@@ -568,7 +568,7 @@ const Navbar = () => {
       </nav>
 
       {mobileSearchOpen && (
-        <div className="fixed inset-0 z-[70] bg-[#f4fbf6] lg:hidden">
+        <div className="fixed inset-0 z-[70] bg-[#f4fbf6] md:hidden">
           <div className="flex items-center gap-3 border-b border-[#dfe9e2] bg-white px-3 py-3">
             <button
               type="button"
@@ -603,14 +603,14 @@ const Navbar = () => {
       <>
         {mobileOpen && (
           <div
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-200"
+            className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-200"
             onClick={() => setMobileOpen(false)}
             aria-hidden="true"
           />
         )}
 
         <div
-          className={`fixed top-0 left-0 h-[120vh] w-75 max-w-[90vw] bg-white shadow-lg lg:hidden transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${mobileOpen ? "translate-x-0" : "-translate-x-full"
+          className={`fixed top-0 left-0 h-[120vh] w-75 max-w-[90vw] bg-white shadow-lg md:hidden transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${mobileOpen ? "translate-x-0" : "-translate-x-full"
             }`}
           aria-hidden={!mobileOpen}
           role="dialog"

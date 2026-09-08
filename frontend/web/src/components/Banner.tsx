@@ -29,18 +29,18 @@ const Banner = () => {
   return (
     <section className="relative w-full overflow-visible">
       {/* ================= DESKTOP ================= */}
-      <div className="hidden md:block w-full relative">
+      <div className="hidden md:block w-full relative md:h-[260px] xl:h-auto">
         <Image
           src={heroBannerwebp}
           alt="Propenu hero banner"
           priority
           sizes="100vw"
-          className="w-full h-auto object-cover"
+          className="h-full w-full object-cover xl:h-auto"
         />
 
         {/* Overlay */}
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full md:w-[65%]  px-6 md:px-14 py-10 space-y-4">
+          <div className="w-full md:w-[66%] px-6 py-6 md:px-10 lg:px-14 xl:py-10 space-y-2.5 xl:space-y-4">
             {/* <div
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur-lg border border-[#27AE60]/30shadow-[0_8px_30px_rgba(39,174,96,0.18)]"
             >
@@ -50,18 +50,18 @@ const Banner = () => {
               </span>
             </div> */}
 
-            <h1 className="text-neutral-600 font-bold text-4xl">
+            <h1 className="text-2xl font-bold leading-tight text-neutral-600 lg:text-3xl xl:text-4xl">
               Are you looking for a happy home, <br />
               just like we did?
             </h1>
-            <h3 className="text-neutral-600 font-normal text-xl">
+            <h3 className="text-base font-normal text-neutral-600 lg:text-lg xl:text-xl">
               Tired of fake listings and spam calls?
             </h3>
 
-            <div className="h-[3.2rem] flex items-center gap-3 overflow-hidden">
+            <div className="flex h-10 items-center gap-2 overflow-hidden xl:h-[3.2rem] xl:gap-3">
               {/* check icon */}
 
-              <p className="text-slate-600 text-lg whitespace-nowrap">
+              <p className="whitespace-nowrap text-sm text-slate-600 lg:text-base xl:text-lg">
                 Introducing <span className="highlight-name-logo">PROPENU</span>
                 .
               </p>
@@ -72,7 +72,7 @@ const Banner = () => {
               />
               <p
                 key={index}
-                className="text-emerald-700 font-semibold tracking-wide text-lg w-[230px] final-text-line animate-fadeSlide"
+                className="final-text-line w-[190px] font-semibold tracking-wide text-emerald-700 animate-fadeSlide xl:w-[230px]"
               >
                 {TEXTS[index]}
               </p>

@@ -374,7 +374,8 @@ const PropertiesPageContent: React.FC = () => {
     sortOptions.find((option) => option.value === sortBy) ?? sortOptions[0];
 
   const renderPropertyCard = (p: Property, index: number) => {
-    const cardKey = getPropertyId(p) || p.slug || `property-${index}`;
+    const baseCardKey = getPropertyId(p) || p.slug || "property";
+    const cardKey = `${String(p.type || "property").toLowerCase()}-${baseCardKey}-${index}`;
     const propertyForCard = {
       ...p,
       listingType: p.listingType || params.listingType,
@@ -511,7 +512,9 @@ const PropertiesPageContent: React.FC = () => {
   }, [filteredSponsored]);
 
   const organicItems = React.useMemo(() => {
-    return sortedItems.filter((property) => !isSponsoredPromotion(property));
+    return dedupePropertiesById(
+      sortedItems.filter((property) => !isSponsoredPromotion(property)),
+    );
   }, [sortedItems]);
 
   const finalList = React.useMemo(() => {

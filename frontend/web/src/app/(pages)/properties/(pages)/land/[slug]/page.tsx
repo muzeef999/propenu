@@ -86,6 +86,12 @@ function calculatePricePerPlotUnit(
   return numericFallback > 0 ? Math.round(numericFallback * sqftPerUnit) : 0;
 }
 
+function getListingTypeGroup(listingType?: string | null) {
+  const normalized = String(listingType ?? "").toLowerCase();
+
+  return ["rent", "lease"].includes(normalized) ? "rent" : "sale";
+}
+
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
 
@@ -107,6 +113,11 @@ export default async function Page({ params }: PageProps) {
   }
 
   const priceLabel = formatINR(project?.price);
+  const listingTypeGroup = getListingTypeGroup(project.listingType);
+  const relatedProjects = (project.relatedProjects ?? []).filter(
+    (relatedProject) =>
+      getListingTypeGroup(relatedProject.listingType) === listingTypeGroup,
+  );
   const plotAreaUnit = formatAreaUnit((project as any)?.plotAreaUnit);
   const pricePerArea = calculatePricePerPlotUnit(
     project?.price,
@@ -186,7 +197,7 @@ export default async function Page({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <div className="min-h-screen overflow-hidden py-6">
+      <div className="min-h-screen overflow-x-hidden py-6">
         <PublicViewTracker
           entityType="property"
           entityId={String(project._id)}
@@ -456,8 +467,8 @@ export default async function Page({ params }: PageProps) {
                         More Similar Properties for you
                       </h2>
 
-                      {project.relatedProjects && project.relatedProjects.length > 0 ? (
-                        <RelatedLandCarousel projects={project.relatedProjects} />
+                      {relatedProjects.length > 0 ? (
+                        <RelatedLandCarousel projects={relatedProjects} />
                       ) : (
                         <p className="text-sm text-gray-500">
                           No similar properties available.

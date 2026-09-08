@@ -46,7 +46,12 @@ const AgriculturalCard: React.FC<Props> = ({
     (p as any)?.pricePerSqft ??
     Math.round((p?.price ?? 0) / (p as any)?.builtUpArea || 0);
   const displayLandName = (p as any)?.landName || (p as any)?.title || "Land";
-  const isRentListing = p?.listingType?.toLowerCase() === "rent";
+  const isRentListing = ["rent", "lease"].includes(
+    String(p?.listingType ?? "").toLowerCase(),
+  );
+  const displayTitle = isRentListing
+    ? p.title?.replace(/\bfor\s+sale\b/i, "for rent")
+    : p.title;
   const resolvedListingSource = resolveListingSource(
     p?.listingSource,
     (p as any)?.createdBy,
@@ -249,7 +254,7 @@ const AgriculturalCard: React.FC<Props> = ({
               className={`font-semibold leading-snug line-clamp-2 capitalize ${vertical ? "text-base max-w-[250px] truncate" : "text-lg md:text-md max-w-[600px]"
                 }`}
             >
-              {p.title}
+              {displayTitle}
             </h3>
             <p className="mt-1 flex min-w-0 items-center gap-2 text-sm text-gray-500">
               <BiBuildingHouse className="h-4 w-4 shrink-0" />
@@ -363,7 +368,7 @@ const AgriculturalCard: React.FC<Props> = ({
           </div>
 
           <div className="text-xs text-gray-600">
-            ₹ {(p as any)?.pricePerSqft}/sqft
+            {isRentListing ? "Price per month" : `₹ ${(p as any)?.pricePerSqft}/sqft`}
           </div>
         </div>
 

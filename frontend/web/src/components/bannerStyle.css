@@ -101,7 +101,8 @@
   position: relative;
   display: inline-block;
   z-index: 1;
-  font-size: 30px;
+  font-size: clamp(1.35rem, 2.4vw, 1.875rem);
+  line-height: 1.2;
 }
 
 .highlight-name-logo {

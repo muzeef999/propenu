@@ -154,6 +154,31 @@ const FilterBar: React.FC = () => {
     useAppSelector((s) => s.filters);
   const cityData = useAppSelector(selectCityWithLocalities);
   const allLocations = useAppSelector(selectAllCitiesWithLocalities);
+
+  const handleListingOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (nextOpen) {
+      setCategoryOpen(false);
+      setSearchOpen(false);
+    }
+  };
+
+  const handleCategoryOpenChange = (nextOpen: boolean) => {
+    setCategoryOpen(nextOpen);
+    if (nextOpen) {
+      setOpen(false);
+      setSearchOpen(false);
+    }
+  };
+
+  const handleSearchOpenChange = (nextOpen: boolean) => {
+    setSearchOpen(nextOpen);
+    if (nextOpen) {
+      setOpen(false);
+      setCategoryOpen(false);
+    }
+  };
+
   const effectiveSearchContext = useMemo(() => {
     const city =
       activeSearchCity?.city?.trim() ||
@@ -816,7 +841,7 @@ const FilterBar: React.FC = () => {
           <div className="flex items-center gap-2">
             <FilterDropdown
               open={open}
-              onOpenChange={setOpen}
+              onOpenChange={handleListingOpenChange}
               triggerLabel={
                 <button
                   type="button"
@@ -835,13 +860,10 @@ const FilterBar: React.FC = () => {
 
 
               }
-              width="w-56"
+              width="w-36"
               align="left"
               renderContent={(close) => (
                 <div>
-                  <h4 className="mb-2 text-sm font-semibold">
-                    Listing Type
-                  </h4>
                   <div className="flex flex-wrap gap-2">
                     {listingOptions.map((l) => (
                       <button
@@ -872,7 +894,7 @@ const FilterBar: React.FC = () => {
           {/* Category */}
           <FilterDropdown
             open={categoryOpen}
-            onOpenChange={setCategoryOpen}
+            onOpenChange={handleCategoryOpenChange}
             triggerLabel={
               <button
                 type="button"
@@ -894,7 +916,6 @@ const FilterBar: React.FC = () => {
             align="left"
             renderContent={(close) => (
               <div>
-                <h4 className="mb-2 text-sm font-semibold">Category</h4>
                 <div className="flex flex-col gap-1">
                   {categoryOptions.map((type) => (
                     <button
@@ -925,7 +946,7 @@ const FilterBar: React.FC = () => {
           <div className="hidden md:block md:min-w-0 md:flex-1 lg:flex-none">
             <FilterDropdown
               open={searchOpen}
-              onOpenChange={setSearchOpen}
+              onOpenChange={handleSearchOpenChange}
               align="left"
               width="w-[360px] lg:w-[520px] max-w-[94vw]"
               showArrow={false}

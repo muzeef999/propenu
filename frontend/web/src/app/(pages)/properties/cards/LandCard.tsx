@@ -98,7 +98,12 @@ export const LandCard: React.FC<Props> = ({
   const pricePerUnitLabel = pricePerPlotUnit
     ? `\u20b9 ${pricePerPlotUnit.toLocaleString("en-IN")}${plotAreaUnit ? `/${plotAreaUnit}` : ""}`
     : "-";
-  const isRentListing = p?.listingType?.toLowerCase() === "rent";
+  const isRentListing = ["rent", "lease"].includes(
+    String(p?.listingType ?? "").toLowerCase(),
+  );
+  const displayTitle = isRentListing
+    ? p.title?.replace(/\bfor\s+sale\b/i, "for rent")
+    : p.title;
   const resolvedListingSource = resolveListingSource(
     p?.listingSource,
     (p as any)?.createdBy,
@@ -309,7 +314,7 @@ export const LandCard: React.FC<Props> = ({
                   : "text-lg md:text-md max-w-[600px]"
               }`}
             >
-              {p.title}
+              {displayTitle}
             </h3>
 
             <p className="mt-1 flex min-w-0 items-center gap-2 text-sm text-gray-500">
@@ -414,7 +419,9 @@ export const LandCard: React.FC<Props> = ({
             )}
           </div>
 
-          <div className="text-xs text-gray-600">{pricePerUnitLabel}</div>
+          <div className="text-xs text-gray-600">
+            {isRentListing ? "Price per month" : pricePerUnitLabel}
+          </div>
         </div>
 
         {/* BUTTON */}

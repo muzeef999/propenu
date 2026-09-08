@@ -131,6 +131,8 @@ const SearchBox = ({
         searchShellRef.current &&
         !searchShellRef.current.contains(event.target as Node)
       ) {
+        setOpen(false);
+        setCategoryOpen(false);
         setSearchOpen(false);
       }
     };
@@ -637,7 +639,14 @@ const SearchBox = ({
                 )}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setOpen((prev) => !prev);
+                  setOpen((prev) => {
+                    const nextOpen = !prev;
+                    if (nextOpen) {
+                      setCategoryOpen(false);
+                      setSearchOpen(false);
+                    }
+                    return nextOpen;
+                  });
                 }}
               >
                 <span className="leading-none">{listingTypeLabel}</span>
@@ -656,7 +665,14 @@ const SearchBox = ({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setCategoryOpen((prev) => !prev);
+                    setCategoryOpen((prev) => {
+                      const nextOpen = !prev;
+                      if (nextOpen) {
+                        setOpen(false);
+                        setSearchOpen(false);
+                      }
+                      return nextOpen;
+                    });
                   }}
                   className={clsx(
                     "flex cursor-pointer items-center bg-transparent text-gray-900",
@@ -683,7 +699,6 @@ const SearchBox = ({
                     <div className="absolute -top-2 left-6 pointer-events-none">
                       <div className="h-3 w-3 rotate-45 bg-white border-l border-t border-gray-200" />
                     </div>
-                    <h4 className="mb-2 text-sm font-semibold">Category</h4>
                     <div className="flex flex-col">
                       {categoryOptions.map(({ label, value }) => (
                         <button
@@ -788,8 +803,16 @@ const SearchBox = ({
                 ref={inputRef}
                 type="text"
                 value={searchText}
-                onFocus={() => setSearchOpen(true)}
-                onClick={() => setSearchOpen(true)}
+                onFocus={() => {
+                  setOpen(false);
+                  setCategoryOpen(false);
+                  setSearchOpen(true);
+                }}
+                onClick={() => {
+                  setOpen(false);
+                  setCategoryOpen(false);
+                  setSearchOpen(true);
+                }}
                 onChange={(e) => {
                   setSelectedProject(null);
                   dispatch(setSearchText(e.target.value));
@@ -999,7 +1022,6 @@ const SearchBox = ({
             className="absolute left-2 top-[calc(100%+8px)] z-60 w-38 rounded-lg border border-gray-200 bg-white p-3 shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <h4 className="mb-2 text-sm font-semibold">Listing Type</h4>
             <div className="flex flex-wrap gap-2">
               {listingOptions.map((l) => (
                 <button

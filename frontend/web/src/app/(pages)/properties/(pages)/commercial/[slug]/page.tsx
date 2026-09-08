@@ -99,6 +99,12 @@ const formatTenantRent = (rent?: unknown) => {
   return `₹ ${compact}/month`;
 };
 
+function getListingTypeGroup(listingType?: string | null) {
+  const normalized = String(listingType ?? "").toLowerCase();
+
+  return ["rent", "lease"].includes(normalized) ? "rent" : "sale";
+}
+
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
 
@@ -143,6 +149,11 @@ export default async function Page({ params }: PageProps) {
   );
 
   const priceLabel = formatINR(project.price);
+  const listingTypeGroup = getListingTypeGroup(project.listingType);
+  const relatedProjects = (project.relatedProjects ?? []).filter(
+    (relatedProject) =>
+      getListingTypeGroup(relatedProject.listingType) === listingTypeGroup,
+  );
   const nearbyLandmarks = (project.nearbyPlaces ?? [])
     .slice()
     .sort(
@@ -200,7 +211,7 @@ export default async function Page({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <div className="min-h-screen py-6 overflow-hidden">
+      <div className="min-h-screen py-6 overflow-x-hidden">
         <PublicViewTracker
           entityType="property"
           entityId={String(project._id)}
@@ -550,10 +561,9 @@ export default async function Page({ params }: PageProps) {
                         More Similar Properties for you
                       </h2>
 
-                      {project.relatedProjects &&
-                        project.relatedProjects.length > 0 ? (
+                      {relatedProjects.length > 0 ? (
                         <RelatedCommercialCarousel
-                          projects={project.relatedProjects}
+                          projects={relatedProjects}
                         />
                       ) : (
                         <p className="text-sm text-gray-500">
