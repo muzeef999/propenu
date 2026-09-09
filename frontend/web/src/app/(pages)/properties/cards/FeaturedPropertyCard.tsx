@@ -601,7 +601,7 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
 
       {showContactDialog && typeof document !== "undefined"
         ? createPortal(
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+            <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 p-4">
               <div className="w-full max-w-md">
                 <ContactSeller
                   project={p as unknown as FeaturedProject}

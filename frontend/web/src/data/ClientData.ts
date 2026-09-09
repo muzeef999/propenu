@@ -1704,3 +1704,82 @@ export const deleteTicket = async (ticketId: string) => {
   return res.data;
 };
 
+export interface SiteLogoData {
+  _id?: string;
+  logoUrl?: string;
+  updatedBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SiteLogoResponse {
+  success: boolean;
+  data: SiteLogoData;
+}
+
+export interface BannerDeviceConfig {
+  image?: string;
+  clickUrl?: string;
+  heading?: {
+    enabled: boolean;
+    html: string;
+  };
+  subheading?: {
+    enabled: boolean;
+    html: string;
+  };
+  location?: {
+    state?: string;
+    city?: string;
+    locality?: string;
+    subLocality?: string;
+  };
+}
+
+export interface SiteBannerItem {
+  _id: string;
+  title?: string;
+  priority?: number;
+  devices?: {
+    desktop?: BannerDeviceConfig;
+    laptop?: BannerDeviceConfig;
+    tablet?: BannerDeviceConfig;
+    mobile?: BannerDeviceConfig;
+  };
+  createdBy?: string;
+  updatedBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  savedDevices?: string[];
+}
+
+export interface SiteBannersResponse {
+  success: boolean;
+  data: SiteBannerItem[];
+}
+
+export const getSiteLogo = async (): Promise<SiteLogoResponse | null> => {
+  try {
+    const res = await fetch(`${url}/api/properties/site-branding/logo`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (error) {
+    console.error("Error fetching site logo:", error);
+    return null;
+  }
+};
+
+export const getSiteBanners = async (): Promise<SiteBannersResponse | null> => {
+  try {
+    const res = await fetch(`${url}/api/properties/site-branding/banners`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (error) {
+    console.error("Error fetching site banners:", error);
+    return null;
+  }
+};

@@ -21,9 +21,7 @@ export default function Home() {
   return (
     <div>
       <Banner />
-      <br />
-      <br />
-      <div className="container mx-auto  space-y-10">
+      <div className="container mx-auto space-y-10">
         <FeaturedProjectsClient />
         <HighlightProjectsClient />
         <PopularOwnerPropertiesClient />

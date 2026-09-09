@@ -9,7 +9,7 @@ import Link from "next/link";
 import LoginDialog from "@/app/(auth)/Login";
 import RegisterDialog from "@/app/(auth)/Register";
 import Cookies from "js-cookie";
-import { getUserNotificationSummary, me } from "@/data/ClientData";
+import { getSiteLogo, getUserNotificationSummary, me } from "@/data/ClientData";
 import UserGreeting, { getOptionsForRole } from "@/app/(auth)/UserGreeting";
 import FilterDropdown from "@/ui/FilterDropdown";
 import { useCity } from "@/hooks/useCity";
@@ -74,6 +74,13 @@ const Navbar = () => {
     enabled: isAuthenticated && !isBuilder && user?.user?.roleName !== "agent",
     staleTime: 60_000,
   });
+
+  const { data: siteLogoData } = useQuery({
+    queryKey: ["site-branding-logo"],
+    queryFn: getSiteLogo,
+    staleTime: 1000 * 60 * 30, // 30 minutes
+  });
+  const logoUrl = siteLogoData?.data?.logoUrl;
   const notificationCount = notificationSummary?.summary?.unread ?? 0;
 
   useEffect(() => {
@@ -259,18 +266,30 @@ const Navbar = () => {
 
               <Link
                 href="/"
-                className="flex min-w-0 flex-1 select-none items-center gap-0.5" aria-label="Go to homepage"
+                className="flex min-w-0 flex-1 select-none items-center gap-1" aria-label="Go to homepage"
               >
-                <div className="w-5 h-5 shrink-0 sm:w-7 sm:h-7">
-                  <Logo />
+                <div className="h-6 sm:h-7 shrink-0 flex items-center">
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt="Propenu Logo"
+                      className="h-6 sm:h-7 w-auto object-contain"
+                    />
+                  ) : (
+                    <div className="w-5 h-5 sm:w-7 sm:h-7">
+                      <Logo />
+                    </div>
+                  )}
                 </div>
 
-                <span className="truncate text-base font-semibold tracking-tight text-primary sm:text-lg lg:text-xl">
-                  PROPENU
-                  <sup className="ml-0.5 align-super text-[8px] sm:text-[10px] font-normal text-[#646464]">
-                    TM
-                  </sup>
-                </span>
+                {!logoUrl && (
+                  <span className="truncate text-base font-semibold tracking-tight text-primary sm:text-lg lg:text-xl">
+                    PROPENU
+                    <sup className="ml-0.5 align-super text-[8px] sm:text-[10px] font-normal text-[#646464]">
+                      TM
+                    </sup>
+                  </span>
+                )}
               </Link>
 
               {!isBuilder && (
@@ -432,17 +451,29 @@ const Navbar = () => {
                 className="flex items-center sm:gap-1 select-none shrink-0"
                 aria-label="Go to homepage"
               >
-                <div className="w-6 sm:w-7 h-6 sm:h-7 shrink-0">
-                  <Logo />
+                <div className="h-8 sm:h-9 shrink-0 flex items-center">
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt="Propenu Logo"
+                      className="h-8 sm:h-9 w-auto object-contain"
+                    />
+                  ) : (
+                    <div className="w-6 sm:w-7 h-6 sm:h-7 shrink-0">
+                      <Logo />
+                    </div>
+                  )}
                 </div>
-                <div className="">
-                  <span className="text-base sm:text-lg lg:text-xl font-semibold text-primary tracking-tight">
-                    PROPENU
-                    <sup className="ml-1 text-[8px] sm:text-[10px] font-normal align-super text-[#646464]">
-                      TM
-                    </sup>
-                  </span>
-                </div>
+                {!logoUrl && (
+                  <div>
+                    <span className="text-base sm:text-lg lg:text-xl font-semibold text-primary tracking-tight">
+                      PROPENU
+                      <sup className="ml-1 text-[8px] sm:text-[10px] font-normal align-super text-[#646464]">
+                        TM
+                      </sup>
+                    </span>
+                  </div>
+                )}
               </Link>
 
               {/* City (desktop & tablet) */}

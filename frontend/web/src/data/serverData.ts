@@ -277,3 +277,85 @@ export async function getAgentDetails({ slug }: { slug: string }) {
   const json = await res.json();
   return json.data;
 }
+
+export interface SiteLogoData {
+  _id?: string;
+  logoUrl?: string;
+  updatedBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SiteLogoResponse {
+  success: boolean;
+  data: SiteLogoData | null;
+}
+
+export interface BannerDeviceConfig {
+  image?: string;
+  clickUrl?: string;
+  heading?: {
+    enabled: boolean;
+    html: string;
+  };
+  subheading?: {
+    enabled: boolean;
+    html: string;
+  };
+  location?: {
+    state?: string;
+    city?: string;
+    locality?: string;
+    subLocality?: string;
+  };
+}
+
+export interface SiteBannerItem {
+  _id: string;
+  title?: string;
+  priority?: number;
+  devices?: {
+    desktop?: BannerDeviceConfig;
+    laptop?: BannerDeviceConfig;
+    tablet?: BannerDeviceConfig;
+    mobile?: BannerDeviceConfig;
+  };
+  createdBy?: string;
+  updatedBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  savedDevices?: string[];
+}
+
+export interface SiteBannersResponse {
+  success: boolean;
+  data: SiteBannerItem[];
+}
+
+export async function getSiteLogoServer(): Promise<SiteLogoResponse | null> {
+  try {
+    const res = await fetch(`${url}/api/properties/site-branding/logo`, {
+      next: { revalidate: 600 },
+    });
+
+    if (!res.ok) return null;
+    return res.json();
+  } catch (error) {
+    console.error("Error fetching site logo:", error);
+    return null;
+  }
+}
+
+export async function getSiteBannersServer(): Promise<SiteBannersResponse | null> {
+  try {
+    const res = await fetch(`${url}/api/properties/site-branding/banners`, {
+      next: { revalidate: 600 },
+    });
+
+    if (!res.ok) return null;
+    return res.json();
+  } catch (error) {
+    console.error("Error fetching site banners:", error);
+    return null;
+  }
+}

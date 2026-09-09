@@ -610,7 +610,7 @@ const SearchBox = ({
     <div
       className={clsx(
         "relative w-full",
-        mobileMode ? "max-w-none" : "max-w-2xl",
+        !mobileMode && !className?.includes("max-w-") && "max-w-2xl",
         hideOnMobile ? "hidden md:block" : "block",
         className,
       )}
