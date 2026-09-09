@@ -182,6 +182,11 @@ export interface IPromotion {
   visibleLeadLimit?: number;
   enquiryLimit?: number;
   enquiriesUsed?: number;
+  /**
+   * Nested location coverage for where this promotion shows / notifies:
+   * { [state]: { [city]: string[] localities } }
+   */
+  sponsoredAd?: Record<string, Record<string, string[]>>;
   features?: {
     emailPromotion?: boolean;
     whatsappPromotion?: boolean;
@@ -229,7 +234,21 @@ export const PromotionSchema = new Schema(
     enquiriesUsed: {
       type: Number,
       default: 0
-    }
+    },
+
+    /**
+     * Nested coverage: { State: { City: ["Locality", ...] } }
+     * Empty object = all India.
+     */
+    sponsoredAd: {
+      type: Schema.Types.Mixed,
+      default: {},
+    },
+
+    features: {
+      emailPromotion: { type: Boolean, default: false },
+      whatsappPromotion: { type: Boolean, default: false },
+    },
   },
   { _id: false }
 );

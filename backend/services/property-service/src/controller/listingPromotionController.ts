@@ -1,6 +1,6 @@
 import { Response } from "express";
 import mongoose, { Model } from "mongoose";
-import { buildManualPromotion } from "../services/promotionService";
+import { buildManualPromotion, normalizeSponsoredAd } from "../services/promotionService";
 import { IPromotion } from "../models/sharedSchemas";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import Residential from "../models/residentialModel";
@@ -99,7 +99,7 @@ export function createListingPromotionHandlers(category: keyof typeof CATEGORY_M
 
 async function promoteListing(req: AuthRequest, res: Response, Model: Model<any>) {
   try {
-    const { type, days, visibleLeadLimit } = req.body;
+    const { type, days, visibleLeadLimit, sponsoredAd } = req.body;
 
     if (!type || !ALLOWED_TYPES.includes(type)) {
       return res.status(400).json({
@@ -142,8 +142,15 @@ async function promoteListing(req: AuthRequest, res: Response, Model: Model<any>
 
     if (type === "normal") {
       promotion.visibleLeadLimit = 0;
+      promotion.sponsoredAd = {};
     } else if (parsedLeadLimit !== null) {
       promotion.visibleLeadLimit = parsedLeadLimit;
+    }
+
+    if (type !== "normal") {
+      // Location coverage is only used for Sponsored promotions
+      promotion.sponsoredAd =
+        type === "sponsored" ? normalizeSponsoredAd(sponsoredAd) : {};
     }
 
     appendPromotionHistory(

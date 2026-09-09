@@ -7,6 +7,43 @@ const PRIORITY: Record<PromotionType, number> = {
   prime: 3,
 };
 
+/** Normalize nested sponsoredAd: { state: { city: string[] } } */
+export function normalizeSponsoredAd(
+  raw: unknown,
+): Record<string, Record<string, string[]>> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out: Record<string, Record<string, string[]>> = {};
+  for (const [stateRaw, citiesRaw] of Object.entries(
+    raw as Record<string, unknown>,
+  )) {
+    const state = String(stateRaw || "").trim();
+    if (!state || !citiesRaw || typeof citiesRaw !== "object" || Array.isArray(citiesRaw)) {
+      continue;
+    }
+    const cityMap: Record<string, string[]> = {};
+    for (const [cityRaw, locsRaw] of Object.entries(
+      citiesRaw as Record<string, unknown>,
+    )) {
+      const city = String(cityRaw || "").trim();
+      if (!city) continue;
+      const locs = Array.isArray(locsRaw)
+        ? [
+            ...new Set(
+              locsRaw
+                .map((l) => String(l || "").trim())
+                .filter(Boolean),
+            ),
+          ]
+        : [];
+      cityMap[city] = locs;
+    }
+    if (Object.keys(cityMap).length) {
+      out[state] = cityMap;
+    }
+  }
+  return out;
+}
+
 export function buildManualPromotion(type: PromotionType) {
   return {
     type,
@@ -14,6 +51,7 @@ export function buildManualPromotion(type: PromotionType) {
     source: "manual" as const,
     startDate: new Date(),
     boostExpiry: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+    sponsoredAd: {} as Record<string, Record<string, string[]>>,
   };
 }
 
