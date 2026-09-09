@@ -12,6 +12,80 @@ function readName(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function readFilterValues(value: unknown) {
+  const rawValues = Array.isArray(value) ? value : [value];
+
+  return [
+    ...new Set(
+      rawValues
+        .flatMap((item) => String(item ?? "").split(","))
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  ];
+}
+
+function buildSponsoredAdTargetFilter(filters: any) {
+  const state = readName(filters.state);
+  const city = readName(filters.city);
+  const localities = readFilterValues(filters.locality);
+
+  if (!state || !city) return undefined;
+
+  const cityTargetExpr = {
+    $let: {
+      vars: {
+        stateTarget: {
+          $getField: {
+            field: state,
+            input: "$promotion.sponsoredAd",
+          },
+        },
+      },
+      in: {
+        $getField: {
+          field: city,
+          input: "$$stateTarget",
+        },
+      },
+    },
+  };
+
+  if (localities.length === 0) {
+    return {
+      $expr: {
+        $isArray: cityTargetExpr,
+      },
+    };
+  }
+
+  return {
+    $expr: {
+      $let: {
+        vars: {
+          cityTarget: cityTargetExpr,
+        },
+        in: {
+          $and: [
+            { $isArray: "$$cityTarget" },
+            {
+              $or: [
+                { $eq: [{ $size: "$$cityTarget" }, 0] },
+                {
+                  $gt: [
+                    { $size: { $setIntersection: ["$$cityTarget", localities] } },
+                    0,
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      },
+    },
+  };
+}
+
 function readObjectName(value: unknown) {
   if (!value || typeof value !== "object") return "";
 
@@ -108,9 +182,10 @@ function buildBaseSponsoredFilter(filters: any) {
     ],
   };
 
-  if (filters.city) filter.city = filters.city;
-  if (filters.state) filter.state = filters.state;
-  if (filters.locality) filter.locality = filters.locality;
+  const sponsoredAdTargetFilter = buildSponsoredAdTargetFilter(filters);
+  if (sponsoredAdTargetFilter) {
+    filter.$and = [sponsoredAdTargetFilter];
+  }
 
   return filter;
 }

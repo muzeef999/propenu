@@ -350,15 +350,22 @@ const PropertiesPageContent: React.FC = () => {
   const searchParams = useSearchParams();
   const urlCity = searchParams.get("city")?.trim() || undefined;
   const urlState = searchParams.get("state")?.trim() || undefined;
+  const urlLocality = searchParams.get("locality")?.trim() || undefined;
   const effectiveCity = urlCity ?? cityData?.city;
   const effectiveState = urlState ?? cityData?.state;
   const params = React.useMemo(
-    () => ({
-      ...buildSearchParams(filters),
-      city: effectiveCity,
-      state: effectiveState,
-    }),
-    [filters, effectiveCity, effectiveState],
+    () => {
+      const builtParams = buildSearchParams(filters);
+      const filterLocality = (builtParams as { locality?: unknown }).locality;
+
+      return {
+        ...builtParams,
+        city: effectiveCity,
+        state: effectiveState,
+        locality: filterLocality ?? urlLocality,
+      };
+    },
+    [filters, effectiveCity, effectiveState, urlLocality],
   );
   const { items, sponsored, loading, total, meta } = useStreamProperties(params);
   const [sortBy, setSortBy] = React.useState("newest");

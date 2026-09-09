@@ -1783,3 +1783,36 @@ export const getSiteBanners = async (): Promise<SiteBannersResponse | null> => {
     return null;
   }
 };
+
+export const getResolvedSiteBanners = async (params?: {
+  state?: string;
+  city?: string;
+  locality?: string;
+  subLocality?: string;
+  device?: string;
+}): Promise<SiteBannersResponse | null> => {
+  try {
+    const query = new URLSearchParams();
+
+    Object.entries(params || {}).forEach(([key, value]) => {
+      const cleanedValue = String(value || "").trim();
+      if (cleanedValue) query.set(key, cleanedValue);
+    });
+
+    const queryString = query.toString();
+    const res = await fetch(
+      `${url}/api/properties/site-branding/banners/resolve${
+        queryString ? `?${queryString}` : ""
+      }`,
+      {
+        cache: "no-store",
+      },
+    );
+
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (error) {
+    console.error("Error fetching resolved site banners:", error);
+    return null;
+  }
+};

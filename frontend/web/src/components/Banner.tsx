@@ -6,10 +6,14 @@ import heroBannerwebp from "@/asserts/propenu-hero-web-banner.jpeg";
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./bannerStyle.css";
 import SearchBox from "./SearchBox";
-import { IoMdCheckmarkCircleOutline } from "react-icons/io";
 import { HiChevronLeft, HiChevronRight } from "react-icons/hi2";
 import { useQuery } from "@tanstack/react-query";
-import { getSiteBanners, SiteBannerItem, BannerDeviceConfig } from "@/data/ClientData";
+import {
+  getResolvedSiteBanners,
+  SiteBannerItem,
+  BannerDeviceConfig,
+} from "@/data/ClientData";
+import { useCity } from "@/hooks/useCity";
 
 const TEXTS = [
   " Verified properties.",
@@ -24,6 +28,7 @@ const Banner = () => {
   const [previousBannerIdx, setPreviousBannerIdx] = useState<number | null>(null);
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTransitioningRef = useRef(false);
+  const { selectedCity } = useCity();
 
   // Rotating trust tagline
   useEffect(() => {
@@ -35,8 +40,17 @@ const Banner = () => {
 
   // Fetch site branding banners
   const { data: bannersData } = useQuery({
-    queryKey: ["site-branding-banners"],
-    queryFn: getSiteBanners,
+    queryKey: [
+      "site-branding-banners",
+      selectedCity?.state || "",
+      selectedCity?.city || "",
+    ],
+    queryFn: () =>
+      getResolvedSiteBanners({
+        state: selectedCity?.state,
+        city: selectedCity?.city,
+      }),
+    enabled: Boolean(selectedCity?.state && selectedCity?.city),
     staleTime: 1000 * 60 * 15, // 15 minutes
   });
 
@@ -44,8 +58,32 @@ const Banner = () => {
     if (!bannersData?.data || !Array.isArray(bannersData.data) || bannersData.data.length === 0) {
       return [];
     }
-    return [...bannersData.data].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
-  }, [bannersData]);
+
+    const sortByPriority = (items: SiteBannerItem[]) =>
+      [...items].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+
+    const selectedState = selectedCity?.state?.trim().toLowerCase();
+    const selectedCityName = selectedCity?.city?.trim().toLowerCase();
+
+    if (!selectedState || !selectedCityName) return [];
+
+    const matchesSelectedCity = (config?: BannerDeviceConfig) => {
+      const location = config?.location;
+      const bannerState = location?.state?.trim().toLowerCase();
+      const bannerCity = location?.city?.trim().toLowerCase();
+
+      return bannerState === selectedState && bannerCity === selectedCityName;
+    };
+
+    const devicesOf = (banner: SiteBannerItem) =>
+      Object.values(banner.devices || {}) as BannerDeviceConfig[];
+
+    const cityBanners = bannersData.data.filter((banner) =>
+      devicesOf(banner).some(matchesSelectedCity),
+    );
+
+    return sortByPriority(cityBanners);
+  }, [bannersData, selectedCity?.state, selectedCity?.city]);
 
   const currentBanner = bannerList[activeBannerIdx] || bannerList[0];
   const activeBannerKey = currentBanner?._id || `fallback-${activeBannerIdx}`;
@@ -83,6 +121,12 @@ const Banner = () => {
       isTransitioningRef.current = false;
     }
   }, [activeBannerIdx, bannerList.length]);
+
+  useEffect(() => {
+    setActiveBannerIdx(0);
+    setPreviousBannerIdx(null);
+    isTransitioningRef.current = false;
+  }, [selectedCity?.state, selectedCity?.city]);
 
   useEffect(() => {
     return () => {

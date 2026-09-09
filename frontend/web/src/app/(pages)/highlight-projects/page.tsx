@@ -404,12 +404,18 @@ const HotspotsPage = () => {
     }, [items, localitySearch]);
 
     const { data: sponsoredData, isLoading: isSponsoredLoading } = useQuery({
-        queryKey: ["highlight-sponsored", selectedCity?.state, selectedCity?.city],
+        queryKey: [
+            "highlight-sponsored",
+            selectedCity?.state,
+            selectedCity?.city,
+            selectedLocality,
+        ],
         enabled: Boolean(selectedCity),
         queryFn: () =>
             getSponsored({
                 state: selectedCity?.state,
                 city: selectedCity?.city,
+                ...(selectedLocality ? { locality: selectedLocality } : {}),
             }),
     });
 
