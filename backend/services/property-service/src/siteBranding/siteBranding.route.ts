@@ -18,6 +18,7 @@ import {
   upsertLogo,
 } from "./siteBranding.controller";
 import { BANNER_MAX_BYTES, LOGO_MAX_BYTES } from "./siteBranding.constants";
+import { isAllowedLogoFile } from "./siteBranding.validation";
 
 const router = express.Router();
 
@@ -37,11 +38,12 @@ const logoUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: LOGO_MAX_BYTES, files: 1 },
   fileFilter: (_req, file, cb) => {
-    const name = String(file.originalname || "").toLowerCase();
-    if (file.mimetype === "image/gif" || name.endsWith(".gif")) {
+    if (isAllowedLogoFile(file)) {
       return cb(null, true);
     }
-    return cb(new Error("Only GIF files are allowed for logo"));
+    return cb(
+      new Error("Logo: allowed formats are PNG, SVG, GIF, WebP, MP4, WebM"),
+    );
   },
 });
 

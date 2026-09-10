@@ -178,47 +178,82 @@ const migrateLegacyTeamLeadRole = async (): Promise<void> => {
 
 /**
  * Creates missing hierarchy roles and wires parentRoleId from the canonical map.
- * Safe to call on every assignable/team-directory load (upsert + parent link only).
+ * Throttled — safe to call on assignable/team-directory loads without hammering Mongo.
  */
+let ensureHierarchyRolesInFlight: Promise<void> | null = null;
+let ensureHierarchyRolesLastRunAt = 0;
+const ENSURE_HIERARCHY_ROLES_TTL_MS = 10 * 60 * 1000;
+
 export const ensureCanonicalHierarchyRoles = async (): Promise<void> => {
-  for (const def of HIERARCHY_ROLE_DEFS) {
-    await Role.findOneAndUpdate(
-      { name: def.name },
-      {
-        $setOnInsert: {
-          name: def.name,
-          permissions: [],
-          roleType: "system",
-          isProtected: false,
-          isActive: true,
-        },
-        $set: {
-          label: def.label,
-          // Do not force isActive — Super Admin deactivate must stick.
-        },
-      },
-      { upsert: true, setDefaultsOnInsert: true },
-    );
+  const now = Date.now();
+  if (
+    ensureHierarchyRolesLastRunAt &&
+    now - ensureHierarchyRolesLastRunAt < ENSURE_HIERARCHY_ROLES_TTL_MS
+  ) {
+    return;
+  }
+  if (ensureHierarchyRolesInFlight) {
+    await ensureHierarchyRolesInFlight;
+    return;
   }
 
-  await migrateLegacyTeamLeadRole();
+  ensureHierarchyRolesInFlight = (async () => {
+    for (const def of HIERARCHY_ROLE_DEFS) {
+      await Role.findOneAndUpdate(
+        { name: def.name },
+        {
+          $setOnInsert: {
+            name: def.name,
+            permissions: [],
+            roleType: "system",
+            isProtected: false,
+            isActive: true,
+          },
+          $set: {
+            label: def.label,
+            // Do not force isActive — Super Admin deactivate must stick.
+          },
+        },
+        { upsert: true, setDefaultsOnInsert: true },
+      );
+    }
 
-  const names = [
-    "super_admin",
-    ...HIERARCHY_ROLE_DEFS.map((def) => def.name),
-    ...Object.keys(CANONICAL_PARENT_BY_ROLE),
-    ...Object.values(CANONICAL_PARENT_BY_ROLE),
-    "team_lead",
-    "team_leads",
-  ];
-  const roles = await Role.find({ name: { $in: [...new Set(names)] } }).select("_id name").lean();
-  const idByName = new Map(roles.map((role) => [role.name, role._id]));
+    await migrateLegacyTeamLeadRole();
 
-  for (const [childName, parentName] of Object.entries(CANONICAL_PARENT_BY_ROLE)) {
-    const childId = idByName.get(canonicalName(childName)) || idByName.get(childName);
-    const parentId = idByName.get(canonicalName(parentName)) || idByName.get(parentName);
-    if (!childId || !parentId) continue;
-    await Role.updateOne({ _id: childId }, { $set: { parentRoleId: parentId } });
+    const names = [
+      "super_admin",
+      ...HIERARCHY_ROLE_DEFS.map((def) => def.name),
+      ...Object.keys(CANONICAL_PARENT_BY_ROLE),
+      ...Object.values(CANONICAL_PARENT_BY_ROLE),
+      "team_lead",
+      "team_leads",
+    ];
+    const roles = await Role.find({ name: { $in: [...new Set(names)] } })
+      .select("_id name")
+      .lean();
+    const idByName = new Map(roles.map((role) => [role.name, role._id]));
+
+    const parentWrites = Object.entries(CANONICAL_PARENT_BY_ROLE).map(
+      async ([childName, parentName]) => {
+        const childId =
+          idByName.get(canonicalName(childName)) || idByName.get(childName);
+        const parentId =
+          idByName.get(canonicalName(parentName)) || idByName.get(parentName);
+        if (!childId || !parentId) return;
+        await Role.updateOne(
+          { _id: childId },
+          { $set: { parentRoleId: parentId } },
+        );
+      },
+    );
+    await Promise.all(parentWrites);
+    ensureHierarchyRolesLastRunAt = Date.now();
+  })();
+
+  try {
+    await ensureHierarchyRolesInFlight;
+  } finally {
+    ensureHierarchyRolesInFlight = null;
   }
 };
 

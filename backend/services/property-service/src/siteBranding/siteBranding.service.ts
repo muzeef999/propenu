@@ -9,13 +9,15 @@ import {
 } from "./siteBranding.constants";
 import {
   assertBannerDimensions,
-  assertGifFile,
   assertLogoAspectRatio,
+  assertLogoFile,
   assertWebpFile,
+  isLogoVideoFile,
   normalizeClickUrl,
   normalizeLocation,
   normalizePriority,
   normalizeTextBlock,
+  resolveLogoMimeType,
 } from "./siteBranding.validation";
 
 type MulterFiles = {
@@ -112,13 +114,31 @@ export async function upsertSiteLogo(
   file: Express.Multer.File,
   userId?: string,
 ): Promise<{ data: any; created: boolean }> {
-  assertGifFile(file);
-  await assertLogoAspectRatio(file.buffer);
+  assertLogoFile(file);
 
+  // Images: exact GIF sizes (220×80 / 300×120 / 500×165) or ~3.34:1; videos skip.
+  if (!isLogoVideoFile(file)) {
+    try {
+      await assertLogoAspectRatio(file.buffer);
+    } catch (error: any) {
+      // SVG without intrinsic size: allow if sharp cannot read dimensions.
+      const msg = String(error?.message || "");
+      const isSvg =
+        resolveLogoMimeType(file) === "image/svg+xml" ||
+        String(file.originalname || "")
+          .toLowerCase()
+          .endsWith(".svg");
+      if (!(isSvg && /could not read image dimensions/i.test(msg))) {
+        throw error;
+      }
+    }
+  }
+
+  const mimetype = resolveLogoMimeType(file);
   const uploaded = await uploadFile({
     buffer: file.buffer,
-    originalName: file.originalname || "logo.gif",
-    mimetype: "image/gif",
+    originalName: file.originalname || `logo${getLogoExtensionSafe(file)}`,
+    mimetype,
     folder: "site/logo",
   });
 
@@ -137,6 +157,18 @@ export async function upsertSiteLogo(
     updatedBy,
   });
   return { data: created.toObject(), created: true };
+}
+
+function getLogoExtensionSafe(file: Express.Multer.File) {
+  const name = String(file.originalname || "").toLowerCase();
+  const match = name.match(/(\.[a-z0-9]+)$/);
+  if (match) return match[1];
+  if (mimetypeLooksVideo(file.mimetype)) return ".mp4";
+  return ".png";
+}
+
+function mimetypeLooksVideo(mime?: string) {
+  return String(mime || "").toLowerCase().startsWith("video/");
 }
 
 export async function listSiteBanners() {

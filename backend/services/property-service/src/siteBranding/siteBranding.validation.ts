@@ -4,9 +4,14 @@ import {
   BANNER_SIZE_TOLERANCE_PX,
   BANNER_SLOTS,
   BannerSlot,
+  LOGO_ALLOWED_EXTENSIONS,
+  LOGO_ALLOWED_MIME_TYPES,
+  LOGO_ALLOWED_PIXEL_SIZES,
   LOGO_ASPECT_RATIO,
   LOGO_ASPECT_TOLERANCE,
   LOGO_MAX_BYTES,
+  LOGO_SIZE_TOLERANCE_PX,
+  LOGO_VIDEO_EXTENSIONS,
 } from "./siteBranding.constants";
 
 export function assertWebpFile(file: Express.Multer.File, slotLabel: string) {
@@ -21,15 +26,69 @@ export function assertWebpFile(file: Express.Multer.File, slotLabel: string) {
   }
 }
 
-export function assertGifFile(file: Express.Multer.File) {
-  const name = String(file.originalname || "").toLowerCase();
-  const isGif = file.mimetype === "image/gif" || name.endsWith(".gif");
-  if (!isGif) {
-    throw new Error("Logo: only GIF files are allowed");
+function logoFileName(file: Express.Multer.File) {
+  return String(file.originalname || "").toLowerCase();
+}
+
+export function getLogoExtension(file: Express.Multer.File): string {
+  const name = logoFileName(file);
+  const match = name.match(/(\.[a-z0-9]+)$/);
+  return match?.[1] || "";
+}
+
+export function isLogoVideoFile(file: Express.Multer.File): boolean {
+  const mime = String(file.mimetype || "").toLowerCase();
+  const ext = getLogoExtension(file);
+  return (
+    mime.startsWith("video/") ||
+    (LOGO_VIDEO_EXTENSIONS as readonly string[]).includes(ext)
+  );
+}
+
+export function resolveLogoMimeType(file: Express.Multer.File): string {
+  const mime = String(file.mimetype || "").toLowerCase();
+  if (LOGO_ALLOWED_MIME_TYPES.has(mime)) return mime;
+  const ext = getLogoExtension(file);
+  switch (ext) {
+    case ".png":
+      return "image/png";
+    case ".svg":
+      return "image/svg+xml";
+    case ".gif":
+      return "image/gif";
+    case ".webp":
+      return "image/webp";
+    case ".mp4":
+      return "video/mp4";
+    case ".webm":
+      return "video/webm";
+    default:
+      return mime || "application/octet-stream";
+  }
+}
+
+export function isAllowedLogoFile(file: Express.Multer.File): boolean {
+  const mime = String(file.mimetype || "").toLowerCase();
+  const ext = getLogoExtension(file);
+  if (LOGO_ALLOWED_MIME_TYPES.has(mime)) return true;
+  return (LOGO_ALLOWED_EXTENSIONS as readonly string[]).includes(ext);
+}
+
+/** Accept PNG / SVG / GIF / WebP / MP4 / WebM under 4 MB. */
+export function assertLogoFile(file: Express.Multer.File) {
+  if (!isAllowedLogoFile(file)) {
+    throw new Error(
+      "Logo: allowed formats are PNG, SVG, GIF, WebP, MP4, WebM",
+    );
   }
   if (file.size > LOGO_MAX_BYTES) {
-    throw new Error("Logo: file must be below 1 MB");
+    throw new Error("Logo: file must be below 4 MB");
   }
+}
+
+/** @deprecated use assertLogoFile */
+export function assertGifFile(file: Express.Multer.File) {
+  assertLogoFile(file);
 }
 
 export async function assertBannerDimensions(
@@ -50,16 +109,27 @@ export async function assertBannerDimensions(
 }
 
 export async function assertLogoAspectRatio(buffer: Buffer) {
-  const meta = await sharp(buffer).metadata();
+  const meta = await sharp(buffer, { failOn: "none" }).metadata();
   const width = meta.width || 0;
   const height = meta.height || 0;
   if (!width || !height) {
     throw new Error("Logo: could not read image dimensions");
   }
+
+  const matchesAllowedSize = LOGO_ALLOWED_PIXEL_SIZES.some(
+    (size) =>
+      Math.abs(width - size.width) <= LOGO_SIZE_TOLERANCE_PX &&
+      Math.abs(height - size.height) <= LOGO_SIZE_TOLERANCE_PX,
+  );
+  if (matchesAllowedSize) return;
+
   const ratio = width / height;
   if (Math.abs(ratio - LOGO_ASPECT_RATIO) > LOGO_ASPECT_TOLERANCE) {
+    const sizeList = LOGO_ALLOWED_PIXEL_SIZES.map(
+      (s) => `${s.width}×${s.height}`,
+    ).join(", ");
     throw new Error(
-      `Logo: expected ~3.34:1 ratio (e.g. 167×50). Got ${width}×${height} (${ratio.toFixed(2)}:1)`,
+      `Logo: use GIF/image sizes ${sizeList} (or ~3.34:1). Got ${width}×${height}`,
     );
   }
 }

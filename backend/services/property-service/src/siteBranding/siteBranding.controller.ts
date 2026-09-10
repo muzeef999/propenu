@@ -7,7 +7,7 @@ function userIdOf(req: AuthRequest) {
 }
 
 function clientError(message = "") {
-  return /required|only|below|expected|must|when|invalid|too long/i.test(message);
+  return /required|only|below|expected|must|when|invalid|too long|allowed formats/i.test(message);
 }
 
 export async function getLogo(_req: Request, res: Response) {
@@ -28,7 +28,7 @@ export async function upsertLogo(req: AuthRequest, res: Response) {
     if (!file) {
       return res.status(400).json({
         success: false,
-        message: "GIF logo file is required",
+        message: "Logo file is required (PNG, SVG, GIF, WebP, MP4, or WebM)",
       });
     }
     const { data, created } = await service.upsertSiteLogo(file, userIdOf(req));

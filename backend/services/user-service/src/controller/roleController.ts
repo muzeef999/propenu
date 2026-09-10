@@ -86,6 +86,22 @@ export const getPermissionCatalog = async (_req: AuthRequest, res: Response) =>
     modules: PERMISSION_CATALOG,
   });
 
+const attachAssignedUserCounts = async (roles: any[]) => {
+  if (!roles.length) return roles;
+  const roleIds = roles.map((role) => role._id).filter(Boolean);
+  const assignmentCounts = await User.aggregate([
+    { $match: { roleId: { $in: roleIds } } },
+    { $group: { _id: "$roleId", count: { $sum: 1 } } },
+  ]);
+  const countsByRole = new Map(
+    assignmentCounts.map((item) => [String(item._id), item.count as number]),
+  );
+  return roles.map((role) => ({
+    ...role,
+    assignedUserCount: countsByRole.get(String(role._id)) || 0,
+  }));
+};
+
 export const getAssignableRoles = async (req: AuthRequest, res: Response) => {
   try {
     // Ensure Legal, HR, Support, Marketing, Tech, etc. exist under Operations Head tree.
@@ -116,7 +132,8 @@ export const getAssignableRoles = async (req: AuthRequest, res: Response) => {
       .populate("parentRoleId", "name label")
       .sort({ label: 1 })
       .lean();
-    return res.json({ success: true, roles });
+    const rolesWithUsage = await attachAssignedUserCounts(roles);
+    return res.json({ success: true, roles: rolesWithUsage });
   } catch (err: any) {
     return res.status(500).json({ message: "Failed to fetch assignable roles", error: err.message });
   }
@@ -151,7 +168,9 @@ export const getTeamDirectoryRoles = async (req: AuthRequest, res: Response) => 
       .sort({ label: 1 })
       .lean();
 
-    const hierarchyRoles = roles.map((role: any) => ({
+    const rolesWithUsage = await attachAssignedUserCounts(roles);
+
+    const hierarchyRoles = rolesWithUsage.map((role: any) => ({
       ...role,
       isCurrentRole: !!actorRoleId && String(role._id) === String(actorRoleId),
       effectiveParentRoleId:
@@ -161,7 +180,7 @@ export const getTeamDirectoryRoles = async (req: AuthRequest, res: Response) => 
               ? String(role.parentRoleId)
               : (() => {
                   const canonicalParentName = getCanonicalParentRoleName(role.name);
-                  const canonicalParent = roles.find((candidate: any) => candidate.name === canonicalParentName);
+                  const canonicalParent = rolesWithUsage.find((candidate: any) => candidate.name === canonicalParentName);
                   return canonicalParent ? String(canonicalParent._id) : null;
                 })(),
     }));
@@ -305,18 +324,7 @@ export const getAllRoles = async (req: AuthRequest, res: Response) => {
       filter._id = { $in: descendantRoleIds };
     }
     const roles = await Role.find(filter).populate("parentRoleId", "name label").sort({ createdAt: -1 }).lean();
-    const roleIds = roles.map((role) => role._id);
-    const assignmentCounts = await User.aggregate([
-      { $match: { roleId: { $in: roleIds } } },
-      { $group: { _id: "$roleId", count: { $sum: 1 } } },
-    ]);
-    const countsByRole = new Map(
-      assignmentCounts.map((item) => [String(item._id), item.count]),
-    );
-    const rolesWithUsage = roles.map((role) => ({
-      ...role,
-      assignedUserCount: countsByRole.get(String(role._id)) || 0,
-    }));
+    const rolesWithUsage = await attachAssignedUserCounts(roles);
 
     return res.json({
       success: true,

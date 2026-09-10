@@ -1000,31 +1000,44 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       userFilter.onboardedBy = new mongoose.Types.ObjectId(onboardedByQuery);
     }
 
-    const users = await User.find(userFilter)
-      .select("-token")
-      .populate("roleId", "name label")
-      .populate({
-        path: "managerId",
-        select: "name email phone roleId",
-        populate: { path: "roleId", select: "name label" },
-      })
-      .populate({
-        path: "onboardedBy",
-        select: "name email phone roleId",
-        populate: { path: "roleId", select: "name label" },
-      })
-      .populate({
-        path: "followUpAssignedTo",
-        select: "name email phone roleId",
-        populate: { path: "roleId", select: "name label" },
-      })
-      .lean();
+    const leanTeamDirectory = scope === "team_directory";
 
-    // Backfill exclusive follow-up owners for stuck onboarding users (one CCE only).
-    try {
-      await ensureFollowUpAssigneesForUsers(users);
-    } catch {
-      /* non-blocking */
+    let usersQuery = User.find(userFilter)
+      .select(
+        leanTeamDirectory
+          ? "name email phone roleId isActive accountStatus locality city state pincode lastLogin createdAt"
+          : "-token",
+      )
+      .populate("roleId", "name label");
+
+    if (!leanTeamDirectory) {
+      usersQuery = usersQuery
+        .populate({
+          path: "managerId",
+          select: "name email phone roleId",
+          populate: { path: "roleId", select: "name label" },
+        })
+        .populate({
+          path: "onboardedBy",
+          select: "name email phone roleId",
+          populate: { path: "roleId", select: "name label" },
+        })
+        .populate({
+          path: "followUpAssignedTo",
+          select: "name email phone roleId",
+          populate: { path: "roleId", select: "name label" },
+        });
+    }
+
+    const users = await usersQuery.lean();
+
+    // Follow-up assignee backfill is for CCE queues — skip on team directory (access control).
+    if (!leanTeamDirectory) {
+      try {
+        await ensureFollowUpAssigneesForUsers(users);
+      } catch {
+        /* non-blocking */
+      }
     }
 
     const formattedUsers = users.map((user: any) => {
@@ -1077,13 +1090,15 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
     });
 
     // After backfill, some assignees are raw ObjectIds — hydrate names for UI.
-    const missingAssigneeIds = [
-      ...new Set(
-        formattedUsers
-          .filter((u: any) => u.followUpAssignedTo && !u.followUpAssignee)
-          .map((u: any) => String(u.followUpAssignedTo)),
-      ),
-    ].filter((id) => mongoose.Types.ObjectId.isValid(id));
+    const missingAssigneeIds = leanTeamDirectory
+      ? []
+      : [
+          ...new Set(
+            formattedUsers
+              .filter((u: any) => u.followUpAssignedTo && !u.followUpAssignee)
+              .map((u: any) => String(u.followUpAssignedTo)),
+          ),
+        ].filter((id) => mongoose.Types.ObjectId.isValid(id));
 
     if (missingAssigneeIds.length) {
       const assigneeDocs = await User.find({ _id: { $in: missingAssigneeIds } })
@@ -2431,6 +2446,35 @@ export const updateUserProfileById = async (
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
+    }
+
+    if (updates.email !== undefined) {
+      const nextEmail = String(updates.email || "")
+        .trim()
+        .toLowerCase();
+
+      if (!nextEmail) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      if (!/^\S+@\S+\.\S+$/.test(nextEmail)) {
+        return res.status(400).json({ message: "Invalid email" });
+      }
+
+      updates.email = nextEmail;
+
+      if (nextEmail !== String(user.email || "").trim().toLowerCase()) {
+        const existingEmailUser = await User.findOne({
+          email: nextEmail,
+          _id: { $ne: user._id },
+        }).select("_id");
+
+        if (existingEmailUser) {
+          return res.status(409).json({
+            message: "Email already exists. Please use a different email.",
+          });
+        }
+      }
     }
 
     const nextPhone =
