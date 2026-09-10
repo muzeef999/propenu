@@ -465,7 +465,7 @@ const Navbar = () => {
                     <img
                       src={logoUrl}
                       alt="Propenu Logo"
-                      className="h-8 sm:h-9 w-auto object-contain"
+                      className="h-8 sm:h-12 w-auto object-fit"
                     />
                   ) : (
                     <div className="w-6 sm:w-7 h-6 sm:h-7 shrink-0">

@@ -555,18 +555,29 @@ const AgentService = {
       existing.slug = newSlug;
     }
 
-    if (agentPayload.reraAgentId !== undefined) {
-      existing.rera = {
-        ...(existing.rera || {}),
-        reraAgentId: agentPayload.reraAgentId,
-      };
-      delete agentPayload.reraAgentId;
-    } else if (agentPayload.rera) {
-      existing.rera = {
-        ...(existing.rera || {}),
-        ...agentPayload.rera,
-      };
+    const reraUpdates: Record<string, any> = {};
+
+    if (agentPayload.rera) {
+      Object.assign(reraUpdates, agentPayload.rera);
       delete agentPayload.rera;
+    }
+
+    if (agentPayload.reraAgentId !== undefined) {
+      reraUpdates.reraAgentId = agentPayload.reraAgentId;
+      delete agentPayload.reraAgentId;
+    }
+
+    if (Object.keys(reraUpdates).length > 0) {
+      const existingRera = existing.rera
+        ? (typeof (existing.rera as any).toObject === "function"
+            ? (existing.rera as any).toObject()
+            : existing.rera)
+        : {};
+
+      existing.rera = {
+        ...existingRera,
+        ...reraUpdates,
+      };
     }
 
     Object.assign(existing, agentPayload);
