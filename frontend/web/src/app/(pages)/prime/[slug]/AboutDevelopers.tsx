@@ -30,7 +30,7 @@ function stripHtml(text?: string) {
   return text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function isValidDeveloperName(name?: string | null): boolean {
+function isValidDeveloperName(name?: string | null): name is string {
   if (!name || typeof name !== "string") return false;
   const trimmed = name.trim();
   if (!trimmed) return false;
