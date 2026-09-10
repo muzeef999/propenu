@@ -24,6 +24,11 @@ import { ArrowDropdownIcon } from "@/icons/icons";
 import SelectableButton from "@/ui/SelectableButton";
 import { FiCheck, FiPlus, FiX } from "react-icons/fi";
 import { formatLabel } from "@/utilies/formatLabel";
+import {
+  areFilterValuesEqual,
+  toggleFilterArrayValue,
+  uniqueFilterValues,
+} from "./filterValueUtils";
 
 function normalizeLocalityName(value: string) {
   return value.trim().replace(/\s+/g, " ");
@@ -194,7 +199,7 @@ const LandFilters = () => {
     "priceNegotiable",
   ]);
   const selectedLandTypes = Array.isArray(land.landType)
-    ? land.landType
+    ? uniqueFilterValues("landType", land.landType)
     : [];
 
   const landTypeLabel =
@@ -207,35 +212,48 @@ const LandFilters = () => {
     landMoreFilterSections.find(
       (section) => section.key === "Land Type"
     )?.options ?? [];
-  const appliedFilterChips = [
-    ...(selectedLandTypes.length
-      ? selectedLandTypes.map((value) => `Type: ${formatLabel(value)}`)
-      : []),
-    ...(Array.isArray(land.landSubType) && land.landSubType.length
-      ? land.landSubType.map((value) => `Sub type: ${formatLabel(value)}`)
-      : []),
-    ...(land.plotArea?.min || land.plotArea?.max
-      ? [
-          `Plot: ${land.plotArea?.min ?? CARPET_MIN}-${land.plotArea?.max ?? CARPET_MAX} sqft`,
-        ]
-      : []),
-    ...(Array.isArray(land.facing) && land.facing.length
-      ? land.facing.map((value) => `Facing: ${formatLabel(value)}`)
-      : []),
-    ...(Array.isArray(land.roadWidth) && land.roadWidth.length
-      ? [`Road width: ${land.roadWidth.join(", ")}`]
-      : []),
-    ...(land.cornerPlot ? ["Corner plot"] : []),
-    ...(land.readyToConstruct ? ["Ready to construct"] : []),
-    ...(land.postedSince ? [`Posted: ${formatLabel(land.postedSince)}`] : []),
-    ...(land.createdByRole ? [`By: ${formatLabel(land.createdByRole)}`] : []),
-    ...(selectedLocalities.length
-      ? selectedLocalities.map((value) => `Locality: ${value}`)
-      : []),
-    ...(minPrice != null || maxPrice != null
-      ? [`Budget: ${budgetLabel}`]
-      : []),
-  ];
+  const appliedFilterChips = Array.from(
+    new Set([
+      ...(selectedLandTypes.length
+        ? selectedLandTypes.map((value) => `Type: ${formatLabel(value)}`)
+        : []),
+      ...(Array.isArray(land.landSubType) && land.landSubType.length
+        ? uniqueFilterValues("landSubType", land.landSubType).map(
+            (value) => `Sub type: ${formatLabel(value)}`,
+          )
+        : []),
+      ...(land.plotArea?.min || land.plotArea?.max
+        ? [
+            `Plot: ${land.plotArea?.min ?? CARPET_MIN}-${land.plotArea?.max ?? CARPET_MAX} sqft`,
+          ]
+        : []),
+      ...(Array.isArray(land.facing) && land.facing.length
+        ? uniqueFilterValues("facing", land.facing).map(
+            (value) => `Facing: ${formatLabel(value)}`,
+          )
+        : []),
+      ...(Array.isArray(land.roadWidth) && land.roadWidth.length
+        ? uniqueFilterValues("roadWidth", land.roadWidth).map(
+            (value) => `Road width: ${value}`,
+          )
+        : []),
+      ...(land.cornerPlot ? ["Corner plot"] : []),
+      ...(land.readyToConstruct ? ["Ready to construct"] : []),
+      ...(Array.isArray(land.amenities) && land.amenities.length
+        ? uniqueFilterValues("amenities", land.amenities).map(
+            (value) => `Amenity: ${formatLabel(value)}`,
+          )
+        : []),
+      ...(land.postedSince ? [`Posted: ${formatLabel(land.postedSince)}`] : []),
+      ...(land.createdByRole ? [`By: ${formatLabel(land.createdByRole)}`] : []),
+      ...(selectedLocalities.length
+        ? selectedLocalities.map((value) => `Locality: ${value}`)
+        : []),
+      ...(minPrice != null || maxPrice != null
+        ? [`Budget: ${budgetLabel}`]
+        : []),
+    ]),
+  );
   const visibleAppliedFilterChips = appliedFilterChips.slice(0, 4);
 
   const updatePlotArea = (next: [number, number]) => {
@@ -659,8 +677,9 @@ const LandFilters = () => {
 
             <div className="flex flex-wrap gap-2">
               {landTypeOptions.map((option) => {
-                const isActive =
-                  selectedLandTypes.includes(option);
+                const isActive = selectedLandTypes.some((item) =>
+                  areFilterValuesEqual("landType", item, option)
+                );
 
                 return (
                   <button
@@ -669,7 +688,8 @@ const LandFilters = () => {
                       dispatch(
                         setLandFilter({
                           key: "landType",
-                          value: toggleArrayValue(
+                          value: toggleFilterArrayValue(
+                            "landType",
                             selectedLandTypes,
                             option
                           ),
@@ -754,9 +774,9 @@ const LandFilters = () => {
                 <div className="mt-2 flex flex-wrap gap-2">
                   {visibleAppliedFilterChips.length > 0 ? (
                     <>
-                      {visibleAppliedFilterChips.map((chip) => (
+                      {visibleAppliedFilterChips.map((chip, index) => (
                         <span
-                          key={chip}
+                          key={`${chip}-${index}`}
                           className="rounded-full border border-green-200 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-green-700"
                         >
                           {chip}
@@ -986,26 +1006,29 @@ const LandFilters = () => {
                             ? postedByLabelMap[opt as PostedByOption] ?? opt
                             : opt;
                           const selectedValues = Array.isArray(currentValue)
-                            ? (currentValue as string[])
+                            ? uniqueFilterValues(mappedKey, currentValue as string[])
                             : [];
                           const isActive =
                             isBooleanFilter
                               ? Boolean(currentValue)
                               : isPostedByFilter
-                                ? Array.isArray(currentValue)
-                                  ? selectedValues.includes(postedByValue)
-                                  : currentValue === postedByValue
+                                ? isCreatedByRoleSelected(postedByValue)
                                 : section.selectionType === "multiple"
-                                  ? Array.isArray(currentValue) &&
-                                    selectedValues.includes(opt)
-                                  : currentValue === opt;
+                                  ? selectedValues.some((item) =>
+                                      areFilterValuesEqual(mappedKey, item, opt)
+                                    )
+                                  : currentValue != null && currentValue !== ""
+                                    ? areFilterValuesEqual(mappedKey, String(currentValue), opt)
+                                    : false;
 
                           return (
                             <SelectableButton
                               key={opt}
                               label={
                                 isPostedByFilter
-                                  ? postedByValue
+                                  ? postedByValue.toLowerCase() === "user"
+                                    ? "Owner"
+                                    : postedByValue
                                   : formatLabel(opt)
                               }
                               active={isActive}
@@ -1020,11 +1043,14 @@ const LandFilters = () => {
                                         ? ""
                                         : postedByValue
                                       : section.selectionType === "multiple"
-                                        ? toggleArrayValue(
-                                          selectedValues,
-                                          opt
-                                        )
-                                        : opt;
+                                        ? toggleFilterArrayValue(
+                                            mappedKey,
+                                            selectedValues,
+                                            opt
+                                          )
+                                        : isActive
+                                          ? ""
+                                          : opt;
                                 dispatch(
                                   setLandFilter({
                                     key: mappedKey,

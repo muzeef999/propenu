@@ -443,16 +443,19 @@ const FilterBar: React.FC = () => {
 
     const isOwner = postedBy === "owner" || postedBy === "owners" || postedBy === "user";
     const isAgent = postedBy === "agent" || postedBy === "agents";
+    const isBuilder = postedBy === "builder" || postedBy === "builders";
 
-    if (!isOwner && !isAgent) {
+    if (!isOwner && !isAgent && !isBuilder) {
       return;
     }
+
+    const roleValue = isOwner ? "user" : isAgent ? "agent" : "builder";
 
     if (category === "Residential") {
       dispatch(
         setResidentialFilter({
           key: "createdByRole",
-          value: isAgent ? "agent" : "user",
+          value: roleValue,
         }),
       );
       return;
@@ -462,7 +465,7 @@ const FilterBar: React.FC = () => {
       dispatch(
         setCommercialFilter({
           key: "createdByRole",
-          value: isAgent ? "agent" : "user",
+          value: roleValue,
         }),
       );
       return;
@@ -470,7 +473,7 @@ const FilterBar: React.FC = () => {
 
     if (category === "Land") {
       dispatch(
-        setLandFilter({ key: "createdByRole", value: isAgent ? "agent" : "user" }),
+        setLandFilter({ key: "createdByRole", value: roleValue }),
       );
       return;
     }
@@ -479,7 +482,7 @@ const FilterBar: React.FC = () => {
       dispatch(
         setAgriculturalFilter({
           key: "createdByRole",
-          value: isAgent ? "agent" : "user",
+          value: roleValue,
         }),
       );
     }

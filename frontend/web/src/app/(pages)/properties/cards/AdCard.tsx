@@ -150,21 +150,21 @@ const AdCard: React.FC<AdCardProps> = ({ ad, onDismiss }) => {
 
           {/* Promotion Badge */}
           {promotionBadge && (
-            <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2.5 py-1 rounded-md shadow-md">
+            <div className="absolute left-2 top-2 rounded bg-black/50 px-1.5 py-0.5 text-[10px] font-medium leading-4 text-white shadow-sm">
               {promotionBadge}
             </div>
           )}
 
           {/* Category Badge */}
           {ad.category && !promotionBadge && (
-            <div className="absolute top-2 left-2 bg-[#27AE60]/90 text-white text-xs font-semibold px-2 py-1 rounded-md">
+            <div className="absolute left-2 top-2 rounded bg-[#27AE60]/90 px-1.5 py-0.5 text-[10px] font-medium leading-4 text-white">
               {ad.category}
             </div>
           )}
 
           {/* Featured Badge */}
           {ad.featured && !promotionBadge && (
-            <div className="absolute top-2 right-2 bg-yellow-500/90 text-white text-xs font-semibold px-2 py-1 rounded-md">
+            <div className="absolute right-2 top-2 rounded bg-yellow-500/90 px-1.5 py-0.5 text-[10px] font-medium leading-4 text-white">
               Featured
             </div>
           )}

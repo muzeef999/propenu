@@ -1,6 +1,6 @@
 import { getAgriculturalSlugProjects } from "@/data/serverData";
 import { hexToRGBA } from "@/ui/hexToRGBA";
-import formatINR from "@/utilies/PriceFormat";
+import formatINR, { formatFullINR } from "@/utilies/PriceFormat";
 import { minDelay } from "@/utilies/minDelay";
 import { notFound } from "next/navigation";
 import Script from "next/script";
@@ -75,6 +75,10 @@ export default async function Page({ params }: PageProps) {
     notFound();
   }
   const priceLabel = formatINR(project?.price);
+  const fullPriceLabel = formatFullINR(project?.price);
+  const isRentListing = ["rent", "lease"].includes(
+    String(project?.listingType ?? "").toLowerCase(),
+  );
   const listingTypeGroup = getListingTypeGroup(project.listingType);
   const relatedProjects = (project.relatedProjects ?? []).filter(
     (relatedProject) =>
@@ -159,36 +163,21 @@ export default async function Page({ params }: PageProps) {
                     {/* PART 1 */}
                     <div className="grid grid-cols-2 gap-8 pl-1">
 
+                      <div className="flex flex-col gap-1 rounded-lg border border-green-100 bg-green-50/70 px-3 py-2">
+                        <span className="text-xs sm:text-sm text-green-700 font-medium">
+                          {isRentListing ? "Price per month" : "Price"}
+                        </span>
+                        <span className="text-base sm:text-lg font-semibold text-green-700">
+                          {fullPriceLabel}
+                        </span>
+                      </div>
+
                       <div className="flex flex-col gap-1">
                         <span className="text-xs sm:text-sm text-gray-500 font-medium">
                           Total Area
                         </span>
                         <span className="text-sm sm:text-base font-semibold text-gray-900">
                           {project?.totalArea?.value} {project?.totalArea?.unit}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
-                          Price Per{" "}
-                          {project?.totalArea?.unit
-                            ? String(project.totalArea.unit).toUpperCase()
-                            : "SQFT"}
-                        </span>
-                        <span className="text-sm sm:text-base font-semibold text-gray-900">
-                          ₹ {project?.pricePerSqft}/
-                          {project?.totalArea?.unit
-                            ? String(project.totalArea.unit).toLowerCase()
-                            : "sqft"}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
-                          Listed Type
-                        </span>
-                        <span className="text-sm sm:text-base font-semibold text-orange-600">
-                          {project?.listingType ?? "—"}
                         </span>
                       </div>
 
@@ -265,15 +254,6 @@ export default async function Page({ params }: PageProps) {
                             Price Breakup
                           </p>
                           <p className="text-gray-500">₹{project?.price}</p>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                          <p className="font-medium text-gray-900">
-                            Property Ownership
-                          </p>
-                          <p className="text-gray-500">
-                            {project?.listingSource}
-                          </p>
                         </div>
 
                         <div className="flex flex-col gap-1">

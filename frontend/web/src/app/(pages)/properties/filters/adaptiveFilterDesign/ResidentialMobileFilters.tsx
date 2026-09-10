@@ -56,6 +56,7 @@ const POSTED_BY_MAP: Record<(typeof POSTED_BY_OPTIONS)[number], string> = {
   Agents: "Agent",
   Builders: "Builder",
 };
+const MOBILE_MENU_STATE_EVENT = "propenu:mobile-menu-state";
 
 const getCategoryLabel = (value: categoryOption) =>
   value === "Land" ? "Plots" : value;
@@ -108,6 +109,22 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
     residential.coveredArea?.min ?? CARPET_MIN,
     residential.coveredArea?.max ?? CARPET_MAX,
   ]);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(MOBILE_MENU_STATE_EVENT, {
+        detail: { open },
+      }),
+    );
+
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent(MOBILE_MENU_STATE_EVENT, {
+          detail: { open: false },
+        }),
+      );
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -213,6 +230,56 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
   const toggleArrayValue = (arr: string[] = [], value: string) =>
     arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
 
+  const normalizeResidentialOptionValue = (
+    key: keyof ResidentialFilters,
+    value: string,
+  ) => {
+    if (key === "furnishing") {
+      return value.trim().toLowerCase().replace(/\s+/g, "-");
+    }
+
+    if (key === "facing") {
+      return value.trim().toLowerCase().replace(/[\s_-]+/g, "");
+    }
+
+    return value;
+  };
+
+  const areResidentialOptionValuesEqual = (
+    key: keyof ResidentialFilters,
+    left: string,
+    right: string,
+  ) =>
+    normalizeResidentialOptionValue(key, left) ===
+    normalizeResidentialOptionValue(key, right);
+
+  const toggleResidentialArrayValue = (
+    key: keyof ResidentialFilters,
+    arr: string[] = [],
+    value: string,
+  ) => {
+    const normalizedValue = normalizeResidentialOptionValue(key, value);
+    const hasValue = arr.some((item) =>
+      areResidentialOptionValuesEqual(key, item, normalizedValue),
+    );
+
+    if (hasValue) {
+      return arr.filter(
+        (item) => !areResidentialOptionValuesEqual(key, item, normalizedValue),
+      );
+    }
+
+    return [
+      ...arr.filter(
+        (item, index, source) =>
+          source.findIndex((candidate) =>
+            areResidentialOptionValuesEqual(key, candidate, item),
+          ) === index,
+      ),
+      normalizedValue,
+    ];
+  };
+
   const handleLocalitySelect = (name: string) => {
     dispatch(
       setResidentialFilter({
@@ -242,8 +309,8 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#f5f6f5] lg:hidden">
-      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-2 py-5">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#f5f6f5] lg:hidden">
+      <div className="shrink-0 flex items-center justify-between border-b border-gray-200 bg-white px-2 py-5">
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -265,7 +332,7 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
       </div>
 
 
-      <div className="h-[calc(100vh-180px)] space-y-5 overflow-y-auto px-4 py-4 pb-28">
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4 pb-6">
         <div>
           <h3 className="mb-3 text-lg font-semibold">Listing Type</h3>
           <div className="flex gap-3">
@@ -447,6 +514,7 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
                   {...props}
                   className="h-1 w-full rounded"
                   style={{
+                    ...props.style,
                     background: getTrackBackground({
                       values: [
                         budgetRange[0] ?? BUDGET_MIN,
@@ -649,19 +717,33 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
                     const filterValue =
                       isPostedByFilter
                         ? POSTED_BY_MAP[opt as (typeof POSTED_BY_OPTIONS)[number]] ?? opt
-                        : opt;
+                        : normalizeResidentialOptionValue(mappedKey, opt);
                     const isActive = isPostedByFilter
-                      ? currentValues.includes(filterValue)
+                      ? isPostedBySelected(filterValue)
                       : isMulti
-                        ? currentValues.includes(filterValue)
-                        : currentValue === filterValue;
+                        ? currentValues.some((value) =>
+                            areResidentialOptionValuesEqual(
+                              mappedKey,
+                              value,
+                              filterValue,
+                            ),
+                          )
+                        : currentValue
+                          ? areResidentialOptionValuesEqual(
+                              mappedKey,
+                              String(currentValue),
+                              filterValue,
+                            )
+                          : false;
 
                               return (
                                 <SelectableButton
                                   key={opt}
                                   label={
                                     isPostedByFilter
-                                      ? filterValue
+                                      ? filterValue.toLowerCase() === "user"
+                                        ? "Owner"
+                                        : filterValue
                                       : formatLabel(opt)
                                   }
                                   active={isActive}
@@ -675,8 +757,14 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
                             ? ""
                             : filterValue
                           : isMulti
-                            ? toggleArrayValue(currentValues, filterValue)
-                            : filterValue,
+                            ? toggleResidentialArrayValue(
+                                mappedKey,
+                                currentValues,
+                                filterValue,
+                              )
+                            : isActive
+                              ? ""
+                              : filterValue,
                       }),
                     )
                   }
@@ -695,7 +783,7 @@ const ResidentialMobileFilters: React.FC<ResidentialMobileFiltersProps> = ({
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 flex items-center gap-3 border-t border-gray-200 bg-white px-3 py-3 sm:px-4">
+      <div className="shrink-0 flex items-center gap-3 border-t border-gray-200 bg-white px-3 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] sm:px-4">
         <button
           type="button"
           className="flex-1 rounded-lg border border-green-600 px-3 py-2 text-base font-semibold text-green-600 sm:text-lg"

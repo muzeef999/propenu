@@ -31,10 +31,13 @@ const RelatedLandCarousel = ({ projects }: RelatedLandCarouselProps) => {
       </button>
       <div
         ref={sliderRef}
-        className="flex gap-4 h-[485px] overflow-x-auto scroll-smooth no-scrollbar px-1 py-2 snap-x snap-mandatory scroll-px-1 w-full"
+        className="flex gap-4 h-auto overflow-x-auto scroll-smooth no-scrollbar px-1 py-2 snap-x snap-mandatory scroll-px-1 w-full"
       >
         {projects.map((relatedProject) => (
-          <div key={relatedProject._id} className="lg:snap-start snap-center shrink-0">
+          <div
+            key={relatedProject._id}
+            className="w-[calc(100vw-4rem)] max-w-[330px] sm:w-auto sm:max-w-none lg:snap-start snap-center shrink-0"
+          >
             <LandCard p={relatedProject} vertical={true} />
           </div>
         ))}

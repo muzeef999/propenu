@@ -1,6 +1,6 @@
 import { getLandSlugProjects } from "@/data/serverData";
 import { hexToRGBA } from "@/ui/hexToRGBA";
-import formatINR from "@/utilies/PriceFormat";
+import formatINR, { formatFullINR } from "@/utilies/PriceFormat";
 import { minDelay } from "@/utilies/minDelay";
 import { notFound } from "next/navigation";
 import Script from "next/script";
@@ -67,25 +67,6 @@ function formatAreaUnit(unit?: string) {
   return SQFT_PER_LAND_UNIT[normalized] ? normalized : "sqft";
 }
 
-function calculatePricePerPlotUnit(
-  price?: number,
-  area?: number | string,
-  unit = "sqft",
-  fallbackPricePerSqft?: number,
-) {
-  const numericPrice = Number(price);
-  const numericArea = Number(area);
-
-  if (numericPrice > 0 && numericArea > 0) {
-    return Math.round(numericPrice / numericArea);
-  }
-
-  const numericFallback = Number(fallbackPricePerSqft);
-  const sqftPerUnit = SQFT_PER_LAND_UNIT[unit] ?? 1;
-
-  return numericFallback > 0 ? Math.round(numericFallback * sqftPerUnit) : 0;
-}
-
 function getListingTypeGroup(listingType?: string | null) {
   const normalized = String(listingType ?? "").toLowerCase();
 
@@ -113,18 +94,16 @@ export default async function Page({ params }: PageProps) {
   }
 
   const priceLabel = formatINR(project?.price);
+  const fullPriceLabel = formatFullINR(project?.price);
+  const isRentListing = ["rent", "lease"].includes(
+    String(project?.listingType ?? "").toLowerCase(),
+  );
   const listingTypeGroup = getListingTypeGroup(project.listingType);
   const relatedProjects = (project.relatedProjects ?? []).filter(
     (relatedProject) =>
       getListingTypeGroup(relatedProject.listingType) === listingTypeGroup,
   );
   const plotAreaUnit = formatAreaUnit((project as any)?.plotAreaUnit);
-  const pricePerArea = calculatePricePerPlotUnit(
-    project?.price,
-    project?.plotArea,
-    plotAreaUnit,
-    project?.pricePerSqft,
-  );
   const resolvedListingSource = resolveListingSource(
     project?.listingSource,
     project?.createdBy as any,
@@ -233,30 +212,21 @@ export default async function Page({ params }: PageProps) {
                 <div className="flex min-h-0 flex-1 self-stretch">
                   <div className="flex h-full flex-1 flex-col justify-between gap-8 p-4 sm:p-2">
                     <div className="grid grid-cols-2 gap-8 pl-1">
+                      <div className="flex flex-col gap-1 rounded-lg border border-green-100 bg-green-50/70 px-3 py-2">
+                        <span className="text-xs font-medium text-green-700 sm:text-sm">
+                          {isRentListing ? "Price per month" : "Price"}
+                        </span>
+                        <span className="text-base font-semibold text-green-700 sm:text-lg">
+                          {fullPriceLabel}
+                        </span>
+                      </div>
+
                       <div className="flex flex-col gap-1">
                         <span className="text-xs font-medium text-gray-500 sm:text-sm">
                           Plot Area
                         </span>
                         <span className="text-sm font-semibold text-gray-900 sm:text-base">
                           {project?.plotArea ?? "—"} {plotAreaUnit}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs font-medium text-gray-500 sm:text-sm">
-                          Price Per {plotAreaUnit}
-                        </span>
-                        <span className="text-sm font-semibold text-gray-900 sm:text-base">
-                          ₹ {pricePerArea ? pricePerArea.toLocaleString("en-IN") : "—"}/{plotAreaUnit}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs font-medium text-gray-500 sm:text-sm">
-                          Sale Type
-                        </span>
-                        <span className="text-sm font-semibold capitalize text-gray-900 sm:text-base">
-                          {project?.listingType ?? "—"}
                         </span>
                       </div>
 

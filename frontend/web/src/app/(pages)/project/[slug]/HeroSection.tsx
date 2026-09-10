@@ -364,9 +364,9 @@ export default function HeroSection({ project }: HeroSectionProps) {
         <>
             <section className="bg-white">
                 <div className="container mx-auto mt-5 px-1 sm:px-4 lg:px-3">
-                    <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0">
-                            <h1 className="truncate text-2xl font-semibold text-slate-950 sm:text-3xl">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+                        <div className="min-w-0 flex-1">
+                            <h1 className="text-2xl font-semibold text-slate-950 sm:text-3xl">
                                 {project.title}
                             </h1>
 
@@ -379,54 +379,59 @@ export default function HeroSection({ project }: HeroSectionProps) {
                             {locationText && (
                                 <p className="mt-1 flex items-center gap-1.5 text-xs text-[#6C6F79] sm:text-sm">
                                     <FiMapPin className="h-3.5 w-3.5 shrink-0" />
-                                    <span className="truncate">{locationText}</span>
+                                    <span>{locationText}</span>
                                 </p>
                             )}
 
                             {project.reraNumber && (
-                                <div className="mt-2 inline-flex items-center gap-1.5 rounded-sm bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700">
-                                    <FiCheckCircle className="h-3.5 w-3.5" />
-                                    RERA ID : {project.reraNumber}
+                                <div className="mt-2 inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-sm bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700">
+                                    <FiCheckCircle className="h-3.5 w-3.5 shrink-0" />
+                                    <span className="break-all sm:break-normal">RERA ID : {project.reraNumber}</span>
                                 </div>
                             )}
                         </div>
 
-                        <div className="shrink-0 text-right">
+                        <div className="flex shrink-0 flex-row flex-wrap items-center justify-between gap-3 sm:flex-col sm:items-end sm:justify-start sm:text-right">
                             {project.logo?.url && (
                                 <img
                                     src={project.logo.url}
                                     alt={`${project.title} logo`}
-                                    className="ml-auto h-12 max-w-40 object-contain sm:h-18 sm:max-w-48 border border-gray-200 rounded-md p-1"
+                                    className="h-10 max-w-32 object-contain sm:ml-auto sm:h-18 sm:max-w-48 border border-gray-200 rounded-md p-1"
                                 />
                             )}
-                            <p className="mt-2 text-md font-bold  text-[#6C6F79] sm:text-xl">
-                                {pricePerUnitLabel}
-                            </p>
-                            {hasDisplayPrice ? (
-                                <p className="mt-1 text-xs font-medium text-[#4bbb7b] sm:text-sm">
-                                    {priceRangeLabel}
-                                </p>
-                            ) : (
-                                <div className="mt-1">
-                                    <p className="text-xs font-medium text-[#4bbb7b] lg:text-[21px]">
+                            <div className="text-left sm:text-right">
+                                {pricePerUnitLabel ? (
+                                    <p className="text-sm font-bold text-[#6C6F79] sm:mt-2 sm:text-xl">
+                                        {pricePerUnitLabel}
+                                    </p>
+                                ) : null}
+                                {hasDisplayPrice ? (
+                                    <p className="mt-0.5 text-xs font-medium text-[#4bbb7b] sm:mt-1 sm:text-sm">
+                                        {priceRangeLabel}
+                                    </p>
+                                ) : (
+                                    <p className="text-xs font-medium text-[#4bbb7b] sm:mt-1 sm:text-sm lg:text-[21px]">
                                         Price on Request
                                     </p>
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsContactDialogOpen(true)}
-                                        className="mt-4 inline-flex min-w-[120px] items-center justify-center gap-2 rounded-md bg-[#27AE60] px-3 py-3 text-white shadow-sm transition hover:bg-[#15803D] sm:min-w-5"
-                                    >
-                                        <FiPhone className="h-4 w-4 lg:h-5 lg:w-5" />
-                                        <span className="text-xs font-medium lg:text-base">
-                                            Contact Builder
-                                        </span>
-                                    </button>
-                                </div>
-                            )}
-                            {hasDisplayPrice && (
-                                <p className="mt-0.5 text-[10px] font-medium text-[#8A8D96] sm:text-xs">
-                                    Govt Charges &amp; Tax (Negotiable)
-                                </p>
+                                )}
+                                {hasDisplayPrice && (
+                                    <p className="mt-0.5 text-[10px] font-medium text-[#8A8D96] sm:text-xs">
+                                        Govt Charges &amp; Tax (Negotiable)
+                                    </p>
+                                )}
+                            </div>
+
+                            {!hasDisplayPrice && (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsContactDialogOpen(true)}
+                                    className="inline-flex items-center justify-center gap-2 rounded-md bg-[#27AE60] px-4 py-2 text-white shadow-sm transition hover:bg-[#15803D] sm:mt-4 sm:min-w-[120px] sm:px-3 sm:py-3"
+                                >
+                                    <FiPhone className="h-4 w-4 lg:h-5 lg:w-5" />
+                                    <span className="text-xs font-medium lg:text-base">
+                                        Contact Builder
+                                    </span>
+                                </button>
                             )}
                         </div>
                     </div>

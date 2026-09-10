@@ -29,6 +29,12 @@ import { toast } from "sonner";
 import SelectableButton from "@/ui/SelectableButton";
 import { formatLabel } from "@/utilies/formatLabel";
 import SearchBox from "@/components/SearchBox";
+import {
+  areFilterValuesEqual,
+  normalizeFilterValue,
+  toggleFilterArrayValue,
+  uniqueFilterValues,
+} from "../filterValueUtils";
 
 function normalizeLocalityName(value: string) {
   return value.trim().replace(/\s+/g, " ");
@@ -79,6 +85,7 @@ const postedByLabelMap: Record<PostedByOption, string> = {
   Agents: "Agent",
   Builders: "Builder",
 };
+const MOBILE_MENU_STATE_EVENT = "propenu:mobile-menu-state";
 
 const booleanLandKeys = new Set([
   "cornerPlot",
@@ -110,9 +117,29 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
     land.plotArea?.max ?? PLOT_AREA_MAX,
   ]);
 
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(MOBILE_MENU_STATE_EVENT, {
+        detail: { open },
+      }),
+    );
+
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent(MOBILE_MENU_STATE_EVENT, {
+          detail: { open: false },
+        }),
+      );
+    };
+  }, [open]);
+
   const selectedLocalities = Array.isArray(land.locality) ? land.locality : [];
-  const selectedLandTypes = Array.isArray(land.landType) ? land.landType : [];
-  const selectedLandSubTypes = Array.isArray(land.landSubType) ? land.landSubType : [];
+  const selectedLandTypes = Array.isArray(land.landType)
+    ? uniqueFilterValues("landType", land.landType)
+    : [];
+  const selectedLandSubTypes = Array.isArray(land.landSubType)
+    ? uniqueFilterValues("landSubType", land.landSubType)
+    : [];
   const normalizePostedByRole = (value: string) => {
     const normalized = value.trim().toLowerCase();
     if (normalized === "owners" || normalized === "owner") return "user";
@@ -239,8 +266,8 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#f5f6f5] lg:hidden">
-      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-2 py-5">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#f5f6f5] lg:hidden">
+      <div className="shrink-0 flex items-center justify-between border-b border-gray-200 bg-white px-2 py-5">
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -261,7 +288,7 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
         </button>
       </div>
 
-      <div className="h-[calc(100vh-180px)] space-y-5 overflow-y-auto px-4 py-4 pb-28">
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4 pb-6">
         <div>
           <h3 className="mb-3 text-lg font-semibold">Listing Type</h3>
           <div className="flex gap-3">
@@ -426,6 +453,7 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                     {...restProps}
                     className="h-1 w-full rounded"
                     style={{
+                      ...restProps.style,
                       background: getTrackBackground({
                         values: [budgetRange[0] ?? BUDGET_MIN, budgetRange[1] ?? BUDGET_MAX],
                         colors: ["#E5E7EB", "#16A34A", "#E5E7EB"],
@@ -468,7 +496,9 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
             {(landMoreFilterSections.find((section) => section.key === "Land Type")
               ?.options ?? []
             ).map((option) => {
-              const active = selectedLandTypes.includes(option);
+              const active = selectedLandTypes.some((value) =>
+                areFilterValuesEqual("landType", value, option),
+              );
 
               return (
                 <button
@@ -478,7 +508,11 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                     dispatch(
                       setLandFilter({
                         key: "landType",
-                        value: toggleArrayValue(selectedLandTypes, option),
+                        value: toggleFilterArrayValue(
+                          "landType",
+                          selectedLandTypes,
+                          option,
+                        ),
                       }),
                     )
                   }
@@ -500,7 +534,9 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
             {(landMoreFilterSections.find((section) => section.key === "Land Sub Type")
               ?.options ?? []
             ).map((option) => {
-              const active = selectedLandSubTypes.includes(option);
+              const active = selectedLandSubTypes.some((value) =>
+                areFilterValuesEqual("landSubType", value, option),
+              );
 
               return (
                 <button
@@ -510,7 +546,11 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                     dispatch(
                       setLandFilter({
                         key: "landSubType",
-                        value: toggleArrayValue(selectedLandSubTypes, option),
+                        value: toggleFilterArrayValue(
+                          "landSubType",
+                          selectedLandSubTypes,
+                          option,
+                        ),
                       }),
                     )
                   }
@@ -745,7 +785,7 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                                 const isBooleanFilter = booleanLandKeys.has(mappedKey);
                                 const postedByValue = isPostedByFilter
                                   ? postedByLabelMap[opt as PostedByOption] ?? opt
-                                  : opt;
+                                  : normalizeFilterValue(String(mappedKey), opt);
                                 const selectedValues = Array.isArray(currentValue)
                                   ? (currentValue as string[])
                                   : currentValue
@@ -754,17 +794,31 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                                 const active = isBooleanFilter
                                   ? Boolean(currentValue)
                                   : isPostedByFilter
-                                    ? selectedValues.includes(postedByValue)
+                                    ? isPostedBySelected(postedByValue)
                                     : section.selectionType === "multiple"
-                                      ? selectedValues.includes(opt)
-                                      : currentValue === opt;
+                                      ? selectedValues.some((value) =>
+                                          areFilterValuesEqual(
+                                            String(mappedKey),
+                                            value,
+                                            postedByValue,
+                                          ),
+                                        )
+                                      : currentValue
+                                        ? areFilterValuesEqual(
+                                            String(mappedKey),
+                                            String(currentValue),
+                                            postedByValue,
+                                          )
+                                        : false;
 
                                 return (
                                   <SelectableButton
                                     key={opt}
                                     label={
                                       isPostedByFilter
-                                        ? postedByValue
+                                        ? postedByValue.toLowerCase() === "user"
+                                          ? "Owner"
+                                          : postedByValue
                                         : formatLabel(opt)
                                     }
                                     active={active}
@@ -781,11 +835,14 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
                                                 ? ""
                                                 : postedByValue
                                             : section.selectionType === "multiple"
-                                              ? toggleArrayValue(
+                                              ? toggleFilterArrayValue(
+                                                String(mappedKey),
                                                 selectedValues,
-                                                opt,
+                                                postedByValue,
                                               )
-                                              : opt,
+                                              : active
+                                                ? ""
+                                                : postedByValue,
                                         }),
                                       )
                                     }
@@ -804,7 +861,7 @@ const LandMobileFilter: React.FC<LandMobileFilterProps> = ({
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 flex items-center gap-3 border-t border-gray-200 bg-white px-3 py-3 sm:px-4">
+      <div className="shrink-0 flex items-center gap-3 border-t border-gray-200 bg-white px-3 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] sm:px-4">
         <button
           type="button"
           className="flex-1 rounded-lg border border-green-600 px-3 py-2 text-base font-semibold text-green-600 sm:text-lg"

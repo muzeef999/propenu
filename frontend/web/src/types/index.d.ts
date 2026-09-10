@@ -417,6 +417,7 @@ export type CommercialFilterKey =
   | "Banks Approved"
   | "Verified Properties"
   | "Price Negotiable"
+  | "Amenities"
   | "Posted Since"
   | "Posted By";
 
@@ -437,6 +438,7 @@ export type LandFilterKey =
   | "Banks Approved"
   | "Price Negotiable"
   | "Verified Properties"
+  | "Amenities"
   | "Posted Since"
   | "Posted By";
 
@@ -458,6 +460,7 @@ export type AgriculturalFilterKey =
   | "State Restrictions"
   | "Price Negotiable"
   | "Verified Properties"
+  | "Amenities"
   | "Posted Since"
   | "Posted By";
 

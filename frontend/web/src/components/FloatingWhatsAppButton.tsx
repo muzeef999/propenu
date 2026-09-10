@@ -1,10 +1,29 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 const SUPPORT_PHONE = "+919182334233";
+const MOBILE_MENU_STATE_EVENT = "propenu:mobile-menu-state";
 
 
 export default function FloatingWhatsAppButton() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const phone = SUPPORT_PHONE.replace(/\D/g, "");
+
+  useEffect(() => {
+    const handleMobileMenuState = (event: Event) => {
+      const { open } = (event as CustomEvent<{ open?: boolean }>).detail ?? {};
+      setIsMobileMenuOpen(Boolean(open));
+    };
+
+    window.addEventListener(MOBILE_MENU_STATE_EVENT, handleMobileMenuState);
+
+    return () => {
+      window.removeEventListener(MOBILE_MENU_STATE_EVENT, handleMobileMenuState);
+    };
+  }, []);
+
+  if (isMobileMenuOpen) return null;
 
   return (
     <a
@@ -13,7 +32,7 @@ export default function FloatingWhatsAppButton() {
       rel="noopener noreferrer"
       aria-label="Chat with Propenu on WhatsApp"
       title="Chat on WhatsApp"
-      className="fixed bottom-24 right-4 z-60 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] shadow-[0_10px_24px_rgba(37,211,102,0.35)] ring-1 ring-[#128C7E]/20 transition hover:-translate-y-0.5 hover:bg-[#1EBE5D] hover:shadow-[0_14px_30px_rgba(37,211,102,0.42)] focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2 sm:bottom-8 sm:right-6 lg:bottom-8 lg:right-8"
+      className="fixed bottom-24 right-4 z-[44] flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] shadow-[0_10px_24px_rgba(37,211,102,0.35)] ring-1 ring-[#128C7E]/20 transition hover:-translate-y-0.5 hover:bg-[#1EBE5D] hover:shadow-[0_14px_30px_rgba(37,211,102,0.42)] focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2 sm:bottom-8 sm:right-6 lg:bottom-8 lg:right-8 lg:z-60"
     >
       <svg
         viewBox="0 0 32 32"

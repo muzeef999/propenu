@@ -74,10 +74,11 @@ function normalizeCommercialFlooringToken(token: string) {
 }
 
 function normalizeCommercialWallFinishToken(token: string) {
-  const normalized = token.trim().toLowerCase();
-  if (normalized === "bare") return "no-partitions";
-  if (normalized === "painted") return "plastered-walls";
-  if (normalized === "finished") return "plastered-walls";
+  const compact = token.trim().toLowerCase().replace(/[\s_-]+/g, "");
+  if (compact === "nopartitions" || compact === "bare") return "no-partitions";
+  if (compact === "brickwalls" || compact === "brick") return "brick-walls";
+  if (compact === "cementblockwalls" || compact === "cementblock") return "cement-block-walls";
+  if (compact === "plasteredwalls" || compact === "plastered") return "plastered-walls";
   return normalizeCommercialLabelToken(token);
 }
 
@@ -299,7 +300,6 @@ export function buildSearchParams(filters: FilterState) {
           if (parkingValues.length > 0) {
             normalized.minFourWheeler = Math.min(...parkingValues);
           }
-          delete normalized.parking;
         }
 
         if (normalized.furnishing !== undefined) {
@@ -371,7 +371,6 @@ export function buildSearchParams(filters: FilterState) {
           if (powerValues.length > 0) {
             normalized.minPowerCapacityKw = Math.min(...powerValues);
           }
-          delete normalized.powerCapacity;
         }
 
         if (normalized.parking !== undefined) {
@@ -470,7 +469,6 @@ export function buildSearchParams(filters: FilterState) {
           if (minRoadWidth !== undefined) {
             normalized.minRoadWidthFt = minRoadWidth;
           }
-          delete normalized.roadWidth;
         }
 
         if (normalized.createdByRole !== undefined) {
@@ -602,7 +600,6 @@ export function buildSearchParams(filters: FilterState) {
           if (minPlantationAge !== undefined) {
             normalized.minPlantationAge = minPlantationAge;
           }
-          delete normalized.plantationAge;
         }
 
         if (normalized.roadWidth !== undefined) {
@@ -610,7 +607,6 @@ export function buildSearchParams(filters: FilterState) {
           if (minRoadWidth !== undefined) {
             normalized.minRoadWidthFt = minRoadWidth;
           }
-          delete normalized.roadWidth;
         }
 
         if (normalized.stateRestrictions !== undefined) {

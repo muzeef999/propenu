@@ -22,6 +22,7 @@ import { getTrackBackground, Range } from "react-range";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import { FiCheck, FiPlus, FiX } from "react-icons/fi";
+import { getSelectedMoreFiltersCount } from "../count-helper/ResSelectedMoreFiltersCount";
 import {
   agriculturalMoreFilterSections,
   BUDGET_MAX,
@@ -33,8 +34,12 @@ import {
   carpetOptions,
   formatBudget,
 } from "../constants/constants";
-import { getSelectedMoreFiltersCount } from "../count-helper/ResSelectedMoreFiltersCount";
 import { formatLabel } from "@/utilies/formatLabel";
+import {
+  areFilterValuesEqual,
+  toggleFilterArrayValue,
+  uniqueFilterValues,
+} from "./filterValueUtils";
 
 const MULTI_SELECT_KEYS = new Set([
   "agriculturalType",
@@ -47,6 +52,7 @@ const MULTI_SELECT_KEYS = new Set([
   "plantationAge",
   "roadWidth",
   "accessRoadType",
+  "amenities",
 ]);
 
 const BOOLEAN_KEYS = new Set([
@@ -163,48 +169,63 @@ const AgriculturalFilters = () => {
   agriculturalMoreFilterSections.find(
     (section) => section.key === "Agricultural Type"
   )?.options ?? [];
-  const selectedAgriculturalTypes =
-  agricultural.agriculturalType ?? [];
-  const appliedFilterChips = [
-    ...(selectedAgriculturalTypes.length
-      ? selectedAgriculturalTypes.map((value) => `Type: ${formatLabel(value)}`)
-      : []),
-    ...(Array.isArray(agricultural.agriculturalSubType) &&
-    agricultural.agriculturalSubType.length
-      ? agricultural.agriculturalSubType.map(
-          (value) => `Sub type: ${formatLabel(value)}`,
-        )
-      : []),
-    ...(agricultural.totalArea?.min || agricultural.totalArea?.max
-      ? [
-          `Area: ${agricultural.totalArea?.min ?? CARPET_MIN}-${agricultural.totalArea?.max ?? CARPET_MAX} sqft`,
-        ]
-      : []),
-    ...(Array.isArray(agricultural.soilType) && agricultural.soilType.length
-      ? agricultural.soilType.map((value) => `Soil: ${formatLabel(value)}`)
-      : []),
-    ...(Array.isArray(agricultural.waterSource) &&
-    agricultural.waterSource.length
-      ? agricultural.waterSource.map(
-          (value) => `Water: ${formatLabel(value)}`,
-        )
-      : []),
-    ...(Array.isArray(agricultural.currentCrop) && agricultural.currentCrop.length
-      ? agricultural.currentCrop.map((value) => `Crop: ${formatLabel(value)}`)
-      : []),
-    ...(agricultural.postedSince
-      ? [`Posted: ${formatLabel(agricultural.postedSince)}`]
-      : []),
-    ...(agricultural.createdByRole
-      ? [`By: ${formatLabel(agricultural.createdByRole)}`]
-      : []),
-    ...(selectedLocalities.length
-      ? selectedLocalities.map((value) => `Locality: ${value}`)
-      : []),
-    ...(minPrice != null || maxPrice != null
-      ? [`Budget: ${budgetLabel}`]
-      : []),
-  ];
+  const selectedAgriculturalTypes = Array.isArray(agricultural.agriculturalType)
+    ? uniqueFilterValues("agriculturalType", agricultural.agriculturalType)
+    : [];
+  const appliedFilterChips = Array.from(
+    new Set([
+      ...(selectedAgriculturalTypes.length
+        ? selectedAgriculturalTypes.map((value) => `Type: ${formatLabel(value)}`)
+        : []),
+      ...(Array.isArray(agricultural.agriculturalSubType) &&
+      agricultural.agriculturalSubType.length
+        ? uniqueFilterValues(
+            "agriculturalSubType",
+            agricultural.agriculturalSubType,
+          ).map((value) => `Sub type: ${formatLabel(value)}`)
+        : []),
+      ...(agricultural.totalArea?.min || agricultural.totalArea?.max
+        ? [
+            `Area: ${agricultural.totalArea?.min ?? CARPET_MIN}-${agricultural.totalArea?.max ?? CARPET_MAX} sqft`,
+          ]
+        : []),
+      ...(Array.isArray(agricultural.soilType) && agricultural.soilType.length
+        ? uniqueFilterValues("soilType", agricultural.soilType).map(
+            (value) => `Soil: ${formatLabel(value)}`,
+          )
+        : []),
+      ...(Array.isArray(agricultural.waterSource) &&
+      agricultural.waterSource.length
+        ? uniqueFilterValues("waterSource", agricultural.waterSource).map(
+            (value) => `Water: ${formatLabel(value)}`,
+          )
+        : []),
+      ...(Array.isArray(agricultural.currentCrop) &&
+      agricultural.currentCrop.length
+        ? uniqueFilterValues("currentCrop", agricultural.currentCrop).map(
+            (value) => `Crop: ${formatLabel(value)}`,
+          )
+        : []),
+      ...(Array.isArray(agricultural.amenities) &&
+      agricultural.amenities.length
+        ? uniqueFilterValues("amenities", agricultural.amenities).map(
+            (value) => `Amenity: ${formatLabel(value)}`,
+          )
+        : []),
+      ...(agricultural.postedSince
+        ? [`Posted: ${formatLabel(agricultural.postedSince)}`]
+        : []),
+      ...(agricultural.createdByRole
+        ? [`By: ${formatLabel(agricultural.createdByRole)}`]
+        : []),
+      ...(selectedLocalities.length
+        ? selectedLocalities.map((value) => `Locality: ${value}`)
+        : []),
+      ...(minPrice != null || maxPrice != null
+        ? [`Budget: ${budgetLabel}`]
+        : []),
+    ]),
+  );
   const visibleAppliedFilterChips = appliedFilterChips.slice(0, 4);
   const propertyTypeLabel =
   selectedAgriculturalTypes.length === 0
@@ -617,8 +638,9 @@ const AgriculturalFilters = () => {
 
       <div className="flex flex-wrap gap-2">
         {agriculturalTypeOptions.map((option) => {
-          const isActive =
-            selectedAgriculturalTypes.includes(option);
+          const isActive = selectedAgriculturalTypes.some((item) =>
+            areFilterValuesEqual("agriculturalType", item, option)
+          );
 
           return (
             <button
@@ -627,7 +649,8 @@ const AgriculturalFilters = () => {
                 dispatch(
                   setAgriculturalFilter({
                     key: "agriculturalType",
-                    value: toggleArrayValue(
+                    value: toggleFilterArrayValue(
+                      "agriculturalType",
                       selectedAgriculturalTypes,
                       option
                     ),
@@ -709,9 +732,9 @@ const AgriculturalFilters = () => {
                 <div className="mt-2 flex flex-wrap gap-2">
                   {visibleAppliedFilterChips.length > 0 ? (
                     <>
-                      {visibleAppliedFilterChips.map((chip) => (
+                      {visibleAppliedFilterChips.map((chip, index) => (
                         <span
-                          key={chip}
+                          key={`${chip}-${index}`}
                           className="rounded-full border border-green-200 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-green-700"
                         >
                           {chip}
@@ -882,28 +905,31 @@ const AgriculturalFilters = () => {
                             ? postedByLabelMap[opt as PostedByOption] ?? opt
                             : opt;
                           const selectedValues = Array.isArray(currentValue)
-                            ? (currentValue as string[])
+                            ? uniqueFilterValues(mappedKey, currentValue as string[])
                             : [];
 
                           const isActive = isStateRestrictions
                             ? currentValue === stateRestrictionValue
                             : isPostedByFilter
-                              ? Array.isArray(currentValue)
-                                ? selectedValues.includes(postedByValue)
-                                : currentValue === postedByValue
+                              ? isCreatedByRoleSelected(postedByValue)
                               : isBooleanFilter
                                 ? Boolean(currentValue)
                                 : isMultiSelect
-                                  ? Array.isArray(currentValue) &&
-                                    selectedValues.includes(opt)
-                                  : currentValue === opt;
+                                  ? selectedValues.some((item) =>
+                                      areFilterValuesEqual(mappedKey, item, opt)
+                                    )
+                                  : currentValue != null && currentValue !== ""
+                                    ? areFilterValuesEqual(mappedKey, String(currentValue), opt)
+                                    : false;
 
                           return (
                             <SelectableButton
                               key={opt}
                               label={
                                 isPostedByFilter
-                                  ? postedByValue
+                                  ? postedByValue.toLowerCase() === "user"
+                                    ? "Owner"
+                                    : postedByValue
                                   : formatLabel(opt)
                               }
                               active={isActive}
@@ -919,11 +945,14 @@ const AgriculturalFilters = () => {
                                     : isBooleanFilter
                                       ? !Boolean(currentValue)
                                       : isMultiSelect
-                                        ? toggleArrayValue(
-                                          selectedValues,
-                                          opt
-                                        )
-                                        : opt;
+                                        ? toggleFilterArrayValue(
+                                            mappedKey,
+                                            selectedValues,
+                                            opt
+                                          )
+                                        : isActive
+                                          ? ""
+                                          : opt;
                                 dispatch(
                                   setAgriculturalFilter({
                                     key: mappedKey,

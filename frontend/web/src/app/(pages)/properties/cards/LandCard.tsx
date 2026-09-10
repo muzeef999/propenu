@@ -217,7 +217,7 @@ export const LandCard: React.FC<Props> = ({
   return (
     <div
       className={`card p-2 h-auto flex overflow-hidden ${
-        vertical ? "w-[min(100vw-2rem,360px)] flex-col" : "flex-col md:flex-row md:h-[220px]"
+        vertical ? "w-full max-w-[330px] sm:max-w-[360px] flex-col" : "flex-col md:flex-row md:h-[220px]"
       }`}
     >
       <Link
@@ -242,7 +242,7 @@ export const LandCard: React.FC<Props> = ({
         {/* Left: image */}
         <div
           className={`rounded-xl relative shrink-0 ${
-            vertical ? "w-full h-48" : "w-full h-48 md:w-56 md:h-full"
+            vertical ? "w-full h-40 sm:h-48" : "w-full h-48 md:w-56 md:h-full"
           }`}
         >
           <ImageAutoCarousel
@@ -305,12 +305,16 @@ export const LandCard: React.FC<Props> = ({
         </div>
 
         {/* Middle: content */}
-        <div className="flex-1 min-w-0 p-4 md:p-4 flex flex-col justify-between h-auto md:h-full">
+        <div
+          className={`flex-1 min-w-0 flex flex-col justify-between h-auto md:h-full ${
+            vertical ? "p-3 sm:p-4" : "p-4 md:p-4"
+          }`}
+        >
           <div className={`min-w-0 flex ${vertical ? "flex-col gap-1" : "flex-col"}`}>
             <h3
               className={`font-semibold leading-snug line-clamp-2 capitalize ${
                 vertical
-                  ? "text-base max-w-[250px] truncate"
+                  ? "text-sm sm:text-base max-w-full truncate"
                   : "text-lg md:text-md max-w-[600px]"
               }`}
             >
@@ -343,7 +347,7 @@ export const LandCard: React.FC<Props> = ({
           <div
             className={`mt-4 text-xs text-gray-600 border-t pt-4 border-gray-200 ${
               vertical
-                ? "grid grid-cols-2 gap-4"
+                ? "grid grid-cols-2 gap-x-2 gap-y-3 text-[11px] sm:text-xs"
                 : "grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6"
             }`}
           >
@@ -392,7 +396,7 @@ export const LandCard: React.FC<Props> = ({
       <aside
         className={`rounded-xl ${
           vertical
-            ? "w-full px-3 py-2 flex items-center justify-between gap-3"
+            ? "w-full px-2.5 sm:px-3 py-2 flex items-center justify-between gap-2"
             : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:mt-0"
         }`}
         style={{ backgroundColor: bgPriceColor }}
@@ -401,14 +405,14 @@ export const LandCard: React.FC<Props> = ({
         <div
           className={`${
             vertical
-              ? "flex flex-col"
+              ? "flex min-w-0 flex-col"
               : "flex flex-col md:items-center md:text-center"
           }`}
         >
           <div
             className={`text-green-700 font-semibold ${
               vertical
-                ? "text-lg leading-tight"
+                ? "text-base sm:text-lg leading-tight"
                 : "text-lg leading-tight md:text-2xl"
             }`}
           >
@@ -445,7 +449,7 @@ export const LandCard: React.FC<Props> = ({
             propertyLabel={p?.title}
             className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${
               vertical
-                ? "px-4 py-1.5 text-sm"
+                ? "px-3 sm:px-4 py-1.5 text-xs sm:text-sm"
                 : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base "
             }`}
           />

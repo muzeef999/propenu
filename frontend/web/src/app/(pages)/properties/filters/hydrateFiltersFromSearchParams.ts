@@ -6,6 +6,7 @@ import type {
   ResidentialFilters,
 } from "@/types/sharedTypes";
 import type { categoryOption } from "@/Redux/slice/filterSlice";
+import { normalizeFilterValue } from "./filterValueUtils";
 
 type HydratedFilters = {
   category?: categoryOption;
@@ -32,6 +33,40 @@ function getCsv(params: URLSearchParams, key: string) {
     .map((item) => item.trim())
     .filter(Boolean);
   return items.length > 0 ? items : undefined;
+}
+
+function uniqueValues(values: string[] | undefined) {
+  if (!values) return undefined;
+
+  const unique = values.filter(
+    (value, index, source) => source.indexOf(value) === index,
+  );
+
+  return unique.length > 0 ? unique : undefined;
+}
+
+function normalizeResidentialFurnishingValue(value: string | undefined) {
+  return value?.trim().toLowerCase().replace(/\s+/g, "-");
+}
+
+function normalizeResidentialFacingValues(values: string[] | undefined) {
+  return uniqueValues(
+    values
+      ?.map((value) => value.trim().toLowerCase().replace(/[\s_-]+/g, ""))
+      .filter(Boolean),
+  );
+}
+
+function normalizeFilterValues(key: string, values: string[] | undefined) {
+  return uniqueValues(
+    values
+      ?.map((value) => normalizeFilterValue(key, value))
+      .filter(Boolean),
+  );
+}
+
+function normalizeFilterString(key: string, value: string | undefined) {
+  return value ? normalizeFilterValue(key, value) : undefined;
 }
 
 function getNumber(params: URLSearchParams, key: string) {
@@ -118,14 +153,16 @@ export function hydrateFiltersFromSearchParams(
   residential.propertyType = getCsv(params, "propertyType");
   residential.transactionType = getString(params, "transactionType");
   residential.constructionStatus = getString(params, "constructionStatus");
-  residential.furnishing = getString(params, "furnishing");
+  residential.furnishing = normalizeResidentialFurnishingValue(
+    getString(params, "furnishing"),
+  );
   residential.postedSince = getString(params, "postedSince");
   residential.listingSource = listingSource;
   residential.createdByRole = createdByRole;
   residential.bathroom = getCsv(params, "bathrooms");
   residential.balcony = getCsv(params, "balconies");
   residential.amenities = getCsv(params, "amenities");
-  residential.facing = getCsv(params, "facing");
+  residential.facing = normalizeResidentialFacingValues(getCsv(params, "facing"));
   residential.locality = locality;
   residential.bedrooms = getBedroomValues(params);
   residential.verifiedOnly = getBoolean(params, "verifiedOnly");
@@ -140,28 +177,52 @@ export function hydrateFiltersFromSearchParams(
   }
 
   const minResidentialParking = getNumber(params, "minFourWheeler");
-  if (minResidentialParking !== undefined) {
-    residential.parking = [String(minResidentialParking)];
-  }
+  residential.parking =
+    getCsv(params, "parking") ??
+    (minResidentialParking !== undefined ? [String(minResidentialParking)] : undefined);
 
-  commercial.commercialType = getCsv(params, "propertyType");
-  commercial.commercialSubType = getCsv(params, "propertySubType");
-  commercial.transactionType = getString(params, "transactionType");
-  commercial.constructionStatus = getString(params, "constructionStatus");
+  commercial.commercialType = normalizeFilterValues(
+    "commercialType",
+    getCsv(params, "propertyType"),
+  );
+  commercial.commercialSubType = normalizeFilterValues(
+    "commercialSubType",
+    getCsv(params, "propertySubType"),
+  );
+  commercial.transactionType = normalizeFilterString(
+    "transactionType",
+    getString(params, "transactionType"),
+  );
+  commercial.constructionStatus = normalizeFilterString(
+    "constructionStatus",
+    getString(params, "constructionStatus"),
+  );
   commercial.floorNumber = getCsv(params, "floorNumber");
   commercial.totalFloors = getCsv(params, "totalFloors");
-  commercial.furnishingStatus = getString(params, "furnishedStatus");
-  commercial.pantry = getString(params, "pantry");
-  commercial.parking = getString(params, "parking");
-  commercial.fireSafety = getCsv(params, "fireSafety");
-  commercial.flooringType = getCsv(params, "flooringType");
-  commercial.wallFinish = getCsv(params, "wallFinishStatus");
+  commercial.furnishingStatus = normalizeFilterString(
+    "furnishingStatus",
+    getString(params, "furnishedStatus"),
+  );
+  commercial.pantry = normalizeFilterString("pantry", getString(params, "pantry"));
+  commercial.parking =
+    getCsv(params, "parking") ??
+    normalizeFilterString("parking", getString(params, "parking"));
+  commercial.fireSafety = normalizeFilterValues("fireSafety", getCsv(params, "fireSafety"));
+  commercial.flooringType = normalizeFilterValues(
+    "flooringType",
+    getCsv(params, "flooringType"),
+  );
+  commercial.wallFinish = normalizeFilterValues(
+    "wallFinish",
+    getCsv(params, "wallFinishStatus"),
+  );
   commercial.tenantAvailable =
     getBoolean(params, "tenantAvailable") === true ? "true" : undefined;
   commercial.banksApproved = getCsv(params, "banksApproved");
   commercial.priceNegotiable =
     getBoolean(params, "negotiable") === true ? "true" : undefined;
   commercial.verifiedProperties = getBoolean(params, "verifiedProperties");
+  commercial.amenities = getCsv(params, "amenities");
   commercial.postedSince = getString(params, "postedSince");
   commercial.listingSource = listingSource;
   commercial.createdByRole = createdByRole;
@@ -186,18 +247,27 @@ export function hydrateFiltersFromSearchParams(
   }
 
   const minPowerCapacityKw = getNumber(params, "minPowerCapacityKw");
-  if (minPowerCapacityKw !== undefined) {
-    commercial.powerCapacity = [String(minPowerCapacityKw)];
-  }
+  commercial.powerCapacity =
+    normalizeFilterValues("powerCapacity", getCsv(params, "powerCapacity")) ??
+    (minPowerCapacityKw !== undefined
+      ? [normalizeFilterValue("powerCapacity", String(minPowerCapacityKw))]
+      : undefined);
 
-  land.landType = getCsv(params, "propertyType");
-  land.landSubType = getCsv(params, "propertySubType");
-  land.plotAreaUnit = getCsv(params, "plotAreaUnit") as LandFilters["plotAreaUnit"];
+  land.landType = normalizeFilterValues("landType", getCsv(params, "propertyType"));
+  land.landSubType = normalizeFilterValues(
+    "landSubType",
+    getCsv(params, "propertySubType"),
+  );
+  land.plotAreaUnit = normalizeFilterValues(
+    "plotAreaUnit",
+    getCsv(params, "plotAreaUnit"),
+  ) as LandFilters["plotAreaUnit"];
   land.roadWidth =
-    getNumber(params, "minRoadWidthFt") !== undefined
-      ? [String(getNumber(params, "minRoadWidthFt"))]
-      : undefined;
-  land.facing = getCsv(params, "facing");
+    normalizeFilterValues("roadWidth", getCsv(params, "roadWidth")) ??
+    (getNumber(params, "minRoadWidthFt") !== undefined
+      ? [normalizeFilterValue("roadWidth", String(getNumber(params, "minRoadWidthFt")))]
+      : undefined);
+  land.facing = normalizeFilterValues("facing", getCsv(params, "facing"));
   land.cornerPlot = getBoolean(params, "cornerPlot");
   land.readyToConstruct = getBoolean(params, "readyToConstruct");
   land.waterConnection = getBoolean(params, "waterConnection");
@@ -207,6 +277,7 @@ export function hydrateFiltersFromSearchParams(
   land.banksApproved = getCsv(params, "banksApproved");
   land.priceNegotiable = getBoolean(params, "negotiable");
   land.verifiedProperties = getBoolean(params, "verifiedProperties");
+  land.amenities = getCsv(params, "amenities");
   land.postedSince = getString(params, "postedSince");
   land.createdByRole = createdByRole;
   land.locality = locality;
@@ -229,28 +300,55 @@ export function hydrateFiltersFromSearchParams(
     };
   }
 
-  agricultural.agriculturalType = getCsv(params, "propertyType");
-  agricultural.agriculturalSubType = getCsv(params, "propertySubType");
-  agricultural.areaUnit = getString(params, "areaUnit") as AgriculturalFilters["areaUnit"];
-  agricultural.soilType = getCsv(params, "soilType");
-  agricultural.irrigationType = getCsv(params, "irrigationType");
-  agricultural.waterSource = getCsv(params, "waterSource");
-  agricultural.borewellCount = getCsv(params, "borewellCount");
+  agricultural.agriculturalType = normalizeFilterValues(
+    "agriculturalType",
+    getCsv(params, "propertyType"),
+  );
+  agricultural.agriculturalSubType = normalizeFilterValues(
+    "agriculturalSubType",
+    getCsv(params, "propertySubType"),
+  );
+  agricultural.areaUnit = normalizeFilterString(
+    "areaUnit",
+    getString(params, "areaUnit"),
+  ) as AgriculturalFilters["areaUnit"];
+  agricultural.soilType = normalizeFilterValues("soilType", getCsv(params, "soilType"));
+  agricultural.irrigationType = normalizeFilterValues(
+    "irrigationType",
+    getCsv(params, "irrigationType"),
+  );
+  agricultural.waterSource = normalizeFilterValues(
+    "waterSource",
+    getCsv(params, "waterSource"),
+  );
+  agricultural.borewellCount = normalizeFilterValues(
+    "borewellCount",
+    getCsv(params, "borewellCount"),
+  );
   agricultural.electricityConnection = getBoolean(params, "electricityConnection");
   agricultural.roadWidth =
-    getNumber(params, "minRoadWidthFt") !== undefined
+    normalizeFilterValues("roadWidth", getCsv(params, "roadWidth")) ??
+    (getNumber(params, "minRoadWidthFt") !== undefined
       ? [String(getNumber(params, "minRoadWidthFt"))]
-      : undefined;
-  agricultural.accessRoadType = getCsv(params, "accessRoadType");
+      : undefined);
+  agricultural.accessRoadType = normalizeFilterValues(
+    "accessRoadType",
+    getCsv(params, "accessRoadType"),
+  );
   agricultural.boundaryWall = getBoolean(params, "boundaryWall");
-  agricultural.currentCrop = getCsv(params, "currentCrop");
+  agricultural.currentCrop = normalizeFilterValues(
+    "currentCrop",
+    getCsv(params, "currentCrop"),
+  );
   agricultural.plantationAge =
-    getNumber(params, "minPlantationAge") !== undefined
-      ? [String(getNumber(params, "minPlantationAge"))]
-      : undefined;
+    normalizeFilterValues("plantationAge", getCsv(params, "plantationAge")) ??
+    (getNumber(params, "minPlantationAge") !== undefined
+      ? [normalizeFilterValue("plantationAge", String(getNumber(params, "minPlantationAge")))]
+      : undefined);
   agricultural.stateRestrictions = getString(params, "statePurchaseRestrictions") === "applicable";
   agricultural.priceNegotiable = getBoolean(params, "negotiable");
   agricultural.verifiedProperties = getBoolean(params, "verifiedProperties");
+  agricultural.amenities = getCsv(params, "amenities");
   agricultural.postedSince = getString(params, "postedSince");
   agricultural.createdByRole = createdByRole;
   agricultural.locality = locality;

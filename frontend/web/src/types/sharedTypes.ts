@@ -106,7 +106,7 @@ export interface CommercialFilters {
   furnishingStatus?: string;
   pantry?: string;
   powerCapacity?: string[];
-  parking?: string;
+  parking?: string[] | string;
   fireSafety?: string[];
   flooringType?: string[];
   wallFinish?: string[];
@@ -114,6 +114,7 @@ export interface CommercialFilters {
   banksApproved?: string[];
   priceNegotiable?: string;
   verifiedProperties?: boolean;
+  amenities?: string[];
   postedSince?: string;
   listingSource?: string;
   createdByRole?: string;
@@ -146,6 +147,7 @@ export interface LandFilters {
   banksApproved?: string[];
   priceNegotiable?: boolean;
   verifiedProperties?: boolean;
+  amenities?: string[];
 
   postedSince?: string;
   postedBy?: string[];
@@ -177,6 +179,7 @@ export interface AgriculturalFilters {
   stateRestrictions?: boolean;
   priceNegotiable?: boolean;
   verifiedProperties?: boolean;
+  amenities?: string[];
 
   postedSince?: string;
   postedBy?: string[];

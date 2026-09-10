@@ -14,6 +14,7 @@ import {
 } from "react-icons/io5";
 
 const OPEN_MOBILE_MENU_EVENT = "propenu:open-mobile-menu";
+const MOBILE_MENU_STATE_EVENT = "propenu:mobile-menu-state";
 const OPEN_AUTH_LOGIN_EVENT = "propenu:open-auth-login";
 
 type NavItem = {
@@ -34,9 +35,23 @@ export default function MobileBottomNav({
 }) {
   const pathname = usePathname() || "/";
   const [roleName, setRoleName] = useState("");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setRoleName(String(localStorage.getItem("role") ?? "").toLowerCase());
+  }, []);
+
+  useEffect(() => {
+    const handleMobileMenuState = (event: Event) => {
+      const { open } = (event as CustomEvent<{ open?: boolean }>).detail ?? {};
+      setIsMobileMenuOpen(Boolean(open));
+    };
+
+    window.addEventListener(MOBILE_MENU_STATE_EVENT, handleMobileMenuState);
+
+    return () => {
+      window.removeEventListener(MOBILE_MENU_STATE_EVENT, handleMobileMenuState);
+    };
   }, []);
 
   const isBuilderUser =
@@ -107,6 +122,8 @@ export default function MobileBottomNav({
       },
     },
   ];
+
+  if (isMobileMenuOpen) return null;
 
   return (
     <nav

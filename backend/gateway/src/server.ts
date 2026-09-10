@@ -9,7 +9,6 @@ import {
   chatbotLimiter,
   globalApiLimiter,
   paymentLimiter,
-  propertySearchLimiter,
 } from "./middleware/rateLimiter";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env"), quiet: true });
@@ -65,7 +64,6 @@ app.use(morgan("dev"));
 // ===================== RATE LIMITS =====================
 
 app.use("/api/chatbot", chatbotLimiter);
-app.use("/api/properties/search", propertySearchLimiter);
 app.use("/api/payments", paymentLimiter);
 app.use("/api", globalApiLimiter);
 

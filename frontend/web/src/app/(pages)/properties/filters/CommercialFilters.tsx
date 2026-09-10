@@ -26,6 +26,11 @@ import { toast } from "sonner";
 import SelectableButton from "@/ui/SelectableButton";
 import { FiCheck, FiPlus, FiX } from "react-icons/fi";
 import { formatLabel } from "@/utilies/formatLabel";
+import {
+  areFilterValuesEqual,
+  toggleFilterArrayValue,
+  uniqueFilterValues,
+} from "./filterValueUtils";
 
 const BUDGET_MIN = 5;
 const BUDGET_MAX = 5000;
@@ -44,15 +49,15 @@ const carpetOptions = [
 ];
 
 const COMMERCIAL_SUBTYPE_MAP: Record<string, string[]> = {
-  office: ["BARE SHELL", "WARM SHELL", "BUSINESS CENTER"],
-  retail: ["HIGH STREET-SHOP", "MALL SHOP", "KIOSK", "FOOD COURT-UNIT"],
-  shop: ["HIGH STREET-SHOP", "SHUTTER SHOP", "MALL SHOP"],
-  showroom: ["HIGH STREET-SHOP", "SHOWROOM SPACE"],
-  warehouse: ["WAREHOUSE GODOWN", "LOGISTICS HUB", "COLD STORAGE"],
-  industrial: ["INDUSTRIAL SHED"],
-  coworking: ["COWORKING DEDICATED-DESK", "COWORKING HOT-DESK"],
-  restaurant: ["FOOD COURT-UNIT"],
-  clinic: ["CLINIC SPACE"],
+  office: ["bare-shell", "warm-shell", "business-center"],
+  retail: ["high-street-shop", "mall-shop", "kiosk", "food-court-unit"],
+  shop: ["high-street-shop", "shutter-shop", "mall-shop"],
+  showroom: ["high-street-shop", "showroom-space"],
+  warehouse: ["warehouse-godown", "logistics-hub", "cold-storage"],
+  industrial: ["industrial-shed"],
+  coworking: ["coworking-dedicated-desk", "coworking-hot-desk"],
+  restaurant: ["food-court-unit"],
+  clinic: ["clinic-space"],
 };
 
 const normalizeCommercialTypeToken = (value: string) =>
@@ -177,17 +182,20 @@ const CommercialFilters = () => {
     selectedMoreFiltersCount + localityCount + listingTypeCount;
 
   const selectedCommercialTypes = Array.isArray(commercial.commercialType)
-    ? commercial.commercialType
+    ? uniqueFilterValues("commercialType", commercial.commercialType)
     : [];
 
-  const commercialSubTypeOptions = Array.from(
-    selectedCommercialTypes.reduce((acc, type) => {
-      const token = normalizeCommercialTypeToken(type);
-      const options = COMMERCIAL_SUBTYPE_MAP[token] ?? [];
-      options.forEach((opt) => acc.add(opt));
-      return acc;
-    }, new Set<string>())
-  );
+  const commercialSubTypeOptions =
+    selectedCommercialTypes.length === 0
+      ? Array.from(new Set(Object.values(COMMERCIAL_SUBTYPE_MAP).flat()))
+      : Array.from(
+          selectedCommercialTypes.reduce((acc, type) => {
+            const token = normalizeCommercialTypeToken(type);
+            const options = COMMERCIAL_SUBTYPE_MAP[token] ?? [];
+            options.forEach((opt) => acc.add(opt));
+            return acc;
+          }, new Set<string>())
+        );
 
   const dynamicCommercialSections: MoreFilterSectionCom[] =
     commercialMoreFilterSections.map((section) =>
@@ -195,56 +203,94 @@ const CommercialFilters = () => {
         ? { ...section, options: commercialSubTypeOptions }
         : section
     );
-  const appliedFilterChips = [
-    ...(selectedCommercialTypes.length
-      ? selectedCommercialTypes.map((value) => `Type: ${formatLabel(value)}`)
-      : []),
-    ...(Array.isArray(commercial.commercialSubType) &&
-    commercial.commercialSubType.length
-      ? commercial.commercialSubType.map(
-          (value) => `Sub type: ${formatLabel(value)}`,
-        )
-      : []),
-    ...(commercial.transactionType
-      ? [`Sale: ${formatLabel(commercial.transactionType)}`]
-      : []),
-    ...(commercial.constructionStatus
-      ? [`Status: ${formatLabel(commercial.constructionStatus)}`]
-      : []),
-    ...(commercial.builtUpArea?.min || commercial.builtUpArea?.max
-      ? [
-          `Built-up: ${commercial.builtUpArea?.min ?? CARPET_MIN}-${commercial.builtUpArea?.max ?? CARPET_MAX} sqft`,
-        ]
-      : []),
-    ...(commercial.carpetArea?.min || commercial.carpetArea?.max
-      ? [
-          `Carpet: ${commercial.carpetArea?.min ?? CARPET_MIN}-${commercial.carpetArea?.max ?? CARPET_MAX} sqft`,
-        ]
-      : []),
-    ...(Array.isArray(commercial.floorNumber) && commercial.floorNumber.length
-      ? [`Floor: ${commercial.floorNumber.join(", ")}`]
-      : []),
-    ...(Array.isArray(commercial.totalFloors) && commercial.totalFloors.length
-      ? [`Total floors: ${commercial.totalFloors.join(", ")}`]
-      : []),
-    ...(commercial.furnishingStatus
-      ? [`Furnishing: ${formatLabel(commercial.furnishingStatus)}`]
-      : []),
-    ...(commercial.postedSince
-      ? [`Posted: ${formatLabel(commercial.postedSince)}`]
-      : []),
-    ...(Array.isArray(commercial.createdByRole)
-      ? commercial.createdByRole.map((value) => `By: ${formatLabel(value)}`)
-      : commercial.createdByRole
-        ? [`By: ${formatLabel(commercial.createdByRole)}`]
+  const appliedFilterChips = Array.from(
+    new Set([
+      ...(selectedCommercialTypes.length
+        ? selectedCommercialTypes.map((value) => `Type: ${formatLabel(value)}`)
         : []),
-    ...(localityList.length
-      ? localityList.map((value) => `Locality: ${value}`)
-      : []),
-    ...(minPrice != null || maxPrice != null
-      ? [`Budget: ${budgetLabel}`]
-      : []),
-  ];
+      ...(Array.isArray(commercial.commercialSubType) &&
+      commercial.commercialSubType.length
+        ? uniqueFilterValues(
+            "commercialSubType",
+            commercial.commercialSubType,
+          ).map((value) => `Sub type: ${formatLabel(value)}`)
+        : []),
+      ...(commercial.transactionType
+        ? [`Sale: ${formatLabel(commercial.transactionType)}`]
+        : []),
+      ...(commercial.constructionStatus
+        ? [`Status: ${formatLabel(commercial.constructionStatus)}`]
+        : []),
+      ...(commercial.builtUpArea?.min || commercial.builtUpArea?.max
+        ? [
+            `Built-up: ${commercial.builtUpArea?.min ?? CARPET_MIN}-${commercial.builtUpArea?.max ?? CARPET_MAX} sqft`,
+          ]
+        : []),
+      ...(commercial.carpetArea?.min || commercial.carpetArea?.max
+        ? [
+            `Carpet: ${commercial.carpetArea?.min ?? CARPET_MIN}-${commercial.carpetArea?.max ?? CARPET_MAX} sqft`,
+          ]
+        : []),
+      ...(Array.isArray(commercial.floorNumber) && commercial.floorNumber.length
+        ? [`Floor: ${commercial.floorNumber.join(", ")}`]
+        : []),
+      ...(Array.isArray(commercial.totalFloors) && commercial.totalFloors.length
+        ? [`Total floors: ${commercial.totalFloors.join(", ")}`]
+        : []),
+      ...(commercial.furnishingStatus
+        ? [`Furnishing: ${formatLabel(commercial.furnishingStatus)}`]
+        : []),
+      ...(Array.isArray(commercial.parking) && commercial.parking.length
+        ? uniqueFilterValues("parking", commercial.parking).map(
+            (value) => `Parking: ${formatLabel(value)}`,
+          )
+        : typeof commercial.parking === "string" && commercial.parking
+          ? [`Parking: ${formatLabel(commercial.parking)}`]
+          : []),
+      ...(Array.isArray(commercial.fireSafety) && commercial.fireSafety.length
+        ? uniqueFilterValues("fireSafety", commercial.fireSafety).map(
+            (value) => `Fire Safety: ${formatLabel(value)}`,
+          )
+        : []),
+      ...(commercial.tenantAvailable &&
+      ["yes", "true", "1"].includes(String(commercial.tenantAvailable).toLowerCase())
+        ? ["Tenant Available"]
+        : []),
+      ...(commercial.priceNegotiable &&
+      ["yes", "true", "1"].includes(String(commercial.priceNegotiable).toLowerCase())
+        ? ["Price Negotiable"]
+        : []),
+      ...(Array.isArray(commercial.wallFinish) && commercial.wallFinish.length
+        ? uniqueFilterValues("wallFinish", commercial.wallFinish).map(
+            (value) => `Wall: ${formatLabel(value)}`,
+          )
+        : []),
+      ...(Array.isArray(commercial.flooringType) && commercial.flooringType.length
+        ? uniqueFilterValues("flooringType", commercial.flooringType).map(
+            (value) => `Flooring: ${formatLabel(value)}`,
+          )
+        : []),
+      ...(Array.isArray(commercial.amenities) && commercial.amenities.length
+        ? uniqueFilterValues("amenities", commercial.amenities).map(
+            (value) => `Amenity: ${formatLabel(value)}`,
+          )
+        : []),
+      ...(commercial.postedSince
+        ? [`Posted: ${formatLabel(commercial.postedSince)}`]
+        : []),
+      ...(Array.isArray(commercial.createdByRole)
+        ? commercial.createdByRole.map((value) => `By: ${formatLabel(value)}`)
+        : commercial.createdByRole
+          ? [`By: ${formatLabel(commercial.createdByRole)}`]
+          : []),
+      ...(localityList.length
+        ? localityList.map((value) => `Locality: ${value}`)
+        : []),
+      ...(minPrice != null || maxPrice != null
+        ? [`Budget: ${budgetLabel}`]
+        : []),
+    ]),
+  );
   const visibleAppliedFilterChips = appliedFilterChips.slice(0, 4);
 
   const commercialTypeLabel =
@@ -318,9 +364,10 @@ const CommercialFilters = () => {
 
     if (currentSubTypes.length === 0) return;
 
-    const validSubTypes = new Set(commercialSubTypeOptions);
     const nextSubTypes = currentSubTypes.filter((subType) =>
-      validSubTypes.has(subType)
+      commercialSubTypeOptions.some((opt) =>
+        areFilterValuesEqual("commercialSubType", opt, subType)
+      )
     );
 
     if (nextSubTypes.length !== currentSubTypes.length) {
@@ -700,8 +747,9 @@ const CommercialFilters = () => {
 
             <div className="flex flex-wrap gap-2">
               {commercialTypeOptions.map((option) => {
-                const isActive =
-                  selectedCommercialTypes.includes(option);
+                const isActive = selectedCommercialTypes.some((item) =>
+                  areFilterValuesEqual("commercialType", item, option)
+                );
 
                 return (
                   <button
@@ -710,7 +758,8 @@ const CommercialFilters = () => {
                       dispatch(
                         setCommercialFilter({
                           key: "commercialType",
-                          value: toggleArrayValue(
+                          value: toggleFilterArrayValue(
+                            "commercialType",
                             selectedCommercialTypes,
                             option
                           ),
@@ -796,9 +845,9 @@ const CommercialFilters = () => {
                 <div className="mt-2 flex flex-wrap gap-2">
                   {visibleAppliedFilterChips.length > 0 ? (
                     <>
-                      {visibleAppliedFilterChips.map((chip) => (
+                      {visibleAppliedFilterChips.map((chip, index) => (
                         <span
-                          key={chip}
+                          key={`${chip}-${index}`}
                           className="rounded-full border border-green-200 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-green-700"
                         >
                           {chip}
@@ -1022,41 +1071,45 @@ const CommercialFilters = () => {
                               ? postedByLabelMap[opt as CommercialPostedByOption] ?? opt
                               : opt;
                           const selectedValues = Array.isArray(currentValue)
-                            ? (currentValue as string[])
+                            ? uniqueFilterValues(mappedKey, currentValue as string[])
                             : [];
                           const isActive =
                             mappedKey === "createdByRole"
-                              ? Array.isArray(currentValue)
-                                ? selectedValues.includes(postedByValue)
-                                : currentValue === postedByValue
+                              ? isCreatedByRoleSelected(postedByValue)
                               : section.selectionType === "multiple"
-                                ? Array.isArray(currentValue) &&
-                                  selectedValues.includes(opt)
-                                : currentValue === opt;
+                                ? selectedValues.some((item) =>
+                                    areFilterValuesEqual(mappedKey, item, opt)
+                                  )
+                                : currentValue != null && currentValue !== ""
+                                  ? areFilterValuesEqual(mappedKey, String(currentValue), opt)
+                                  : false;
 
                           return (
                             <SelectableButton
                               key={opt}
                               label={
                                 mappedKey === "createdByRole"
-                                  ? postedByValue
+                                  ? postedByValue.toLowerCase() === "user"
+                                    ? "Owner"
+                                    : postedByValue
                                   : formatLabel(opt)
                               }
                               active={isActive}
                               selectionType={section.selectionType ?? "single"}
                               onClick={() => {
                                 const nextValue =
-                                  mappedKey === "createdByRole" && isActive
-                                    ? ""
+                                  mappedKey === "createdByRole"
+                                    ? isActive
+                                      ? ""
+                                      : postedByValue
                                     : section.selectionType === "multiple"
-                                      ? toggleArrayValue(
-                                        Array.isArray(currentValue)
-                                          ? currentValue
-                                          : [],
-                                        opt
-                                      )
-                                      : mappedKey === "createdByRole"
-                                        ? postedByValue
+                                      ? toggleFilterArrayValue(
+                                          mappedKey,
+                                          selectedValues,
+                                          opt
+                                        )
+                                      : isActive
+                                        ? ""
                                         : opt;
                                 dispatch(
                                   setCommercialFilter({

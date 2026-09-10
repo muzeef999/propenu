@@ -29,6 +29,7 @@ import { IoArrowBack, IoNotificationsOutline, IoSearchOutline } from "react-icon
 
 type AuthMode = "login" | "register" | null;
 const OPEN_MOBILE_MENU_EVENT = "propenu:open-mobile-menu";
+const MOBILE_MENU_STATE_EVENT = "propenu:mobile-menu-state";
 const OPEN_AUTH_LOGIN_EVENT = "propenu:open-auth-login";
 
 const Dropdown = dynamic<DropdownProps>(() => import("@/ui/SingleDropDown"), {
@@ -94,6 +95,14 @@ const Navbar = () => {
       document.body.classList.remove("overflow-hidden");
     };
   }, [mobileOpen, mobileSearchOpen]);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(MOBILE_MENU_STATE_EVENT, {
+        detail: { open: mobileOpen },
+      }),
+    );
+  }, [mobileOpen]);
 
   useEffect(() => {
     async function fetchUser() {

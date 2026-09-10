@@ -1,6 +1,6 @@
 import { getCommercialSlugProjects } from "@/data/serverData";
 import { hexToRGBA } from "@/ui/hexToRGBA";
-import formatINR from "@/utilies/PriceFormat";
+import formatINR, { formatFullINR } from "@/utilies/PriceFormat";
 import { minDelay } from "@/utilies/minDelay";
 import { notFound } from "next/navigation";
 import Script from "next/script";
@@ -32,7 +32,6 @@ import {
 import { RiCarLine } from "react-icons/ri";
 import { GiMoneyStack } from "react-icons/gi";
 import { TilesIcons } from "../../MoreDetailsIcons";
-import { HiOutlineUser } from "react-icons/hi2";
 import CommercialNearbySection from "./CommercialNearbySection";
 import { buildPropertyMetadata } from "@/utilies/propertyOpenGraph";
 import { buildListingStructuredData } from "@/utilies/structuredData";
@@ -49,6 +48,20 @@ const amenityIconByKey = new Map(
 const amenityIconByTitle = new Map(
   COMMERCIAL_AMENITIES.map((amenity) => [amenity.title, amenity.icon]),
 );
+
+function toTitleCase(value?: string) {
+  if (!value) return "";
+
+  return value.replace(/\b\w+/g, (word) =>
+    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+  );
+}
+
+function formatDetailValue(value?: string | null) {
+  if (!value) return "—";
+
+  return toTitleCase(value.replace(/[-_]+/g, " "));
+}
 
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params;
@@ -149,6 +162,10 @@ export default async function Page({ params }: PageProps) {
   );
 
   const priceLabel = formatINR(project.price);
+  const fullPriceLabel = formatFullINR(project.price);
+  const isRentListing = ["rent", "lease"].includes(
+    String(project?.listingType ?? "").toLowerCase(),
+  );
   const listingTypeGroup = getListingTypeGroup(project.listingType);
   const relatedProjects = (project.relatedProjects ?? []).filter(
     (relatedProject) =>
@@ -162,11 +179,6 @@ export default async function Page({ params }: PageProps) {
         (b.order ?? Number.MAX_SAFE_INTEGER),
     );
   const detailsItems = [
-    {
-      label: "Listing Source",
-      value: project?.listingSource,
-      icon: HiOutlineUser,
-    },
     {
       label: "Negotiable",
       value: project.isPriceNegotiable ? "Yes" : "No",
@@ -251,12 +263,12 @@ export default async function Page({ params }: PageProps) {
                   <div className="flex h-full min-w-0 flex-1 flex-col justify-between gap-8 p-4 sm:p-2">
                     {/* PART 1 */}
                     <div className="grid grid-cols-2 gap-8 pl-1">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
-                          Built Up Area
+                      <div className="flex flex-col gap-1 rounded-lg border border-green-100 bg-green-50/70 px-3 py-2">
+                        <span className="text-xs sm:text-sm text-green-700 font-medium">
+                          {isRentListing ? "Price per month" : "Price"}
                         </span>
-                        <span className="text-sm sm:text-base font-semibold text-gray-900">
-                          ₹ {project?.pricePerSqft ?? 0}/sqft
+                        <span className="text-base sm:text-lg font-semibold text-green-700">
+                          {fullPriceLabel}
                         </span>
                       </div>
 
@@ -271,19 +283,10 @@ export default async function Page({ params }: PageProps) {
 
                       <div className="flex flex-col gap-1">
                         <span className="text-xs sm:text-sm text-gray-500 font-medium">
-                          Sale Type
-                        </span>
-                        <span className="capitalize text-sm sm:text-base font-semibold text-gray-900">
-                          {project?.transactionType ?? "—"}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs sm:text-sm text-gray-500 font-medium">
                           Availability Status
                         </span>
-                        <span className="capitalize text-sm sm:text-base font-semibold text-gray-900">
-                          {project?.constructionStatus}
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          {formatDetailValue(project?.constructionStatus)}
                         </span>
                       </div>
 
@@ -291,8 +294,8 @@ export default async function Page({ params }: PageProps) {
                         <span className="text-xs sm:text-sm text-gray-500 font-medium">
                           Furnishing Status
                         </span>
-                        <span className="text-sm sm:text-base font-semibold text-gray-900 capitalize">
-                          {project?.furnishedStatus ?? "—"}
+                        <span className="text-sm sm:text-base font-semibold text-gray-900">
+                          {formatDetailValue(project?.furnishedStatus)}
                         </span>
                       </div>
 

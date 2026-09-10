@@ -3,6 +3,7 @@
 import Stepper from "./Stepper";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { prevStep } from "@/Redux/slice/postPropertySlice";
 
@@ -11,6 +12,7 @@ const VERIFICATION_STEP_PROGRESS = 90;
 
 export default function Sidebar() {
   const dispatch = useDispatch();
+  const router = useRouter();
   const [roleName, setRoleName] = useState("");
 
   useEffect(() => {
@@ -29,6 +31,14 @@ export default function Sidebar() {
   const progressPercent =
     safeCurrentStep === safeTotalSteps ? VERIFICATION_STEP_PROGRESS : baseProgress;
 
+  const handleBackClick = () => {
+    if (safeCurrentStep === 1) {
+      router.back();
+      return;
+    }
+
+    dispatch(prevStep());
+  };
 
   return (
     <>
@@ -41,12 +51,8 @@ export default function Sidebar() {
 
           {/* 🔙 Back Button */}
           <button
-            disabled={safeCurrentStep === 1}
-            onClick={() => dispatch(prevStep())}
-            className={`flex items-center text-sm transition ${safeCurrentStep === 1
-                ? "text-gray-300 cursor-not-allowed"
-                : "text-gray-600 active:scale-95"
-              }`}
+            onClick={handleBackClick}
+            className="flex items-center text-sm text-gray-600 active:scale-95 transition"
           >
             <ArrowDropdownIcon
               size={16}
@@ -91,12 +97,8 @@ export default function Sidebar() {
         >
           {/* 🔙 Go Back */}
           <button
-            disabled={safeCurrentStep === 1}
-            onClick={() => dispatch(prevStep())}
-            className={`flex items-center text-sm py-1.5 transition ${safeCurrentStep === 1
-                ? "text-gray-300 cursor-not-allowed"
-                : "text-[#8F8F8F] hover:text-gray-700 cursor-pointer"
-              }`}
+            onClick={handleBackClick}
+            className="flex items-center text-sm py-1.5 text-[#8F8F8F] hover:text-gray-700 cursor-pointer transition"
           >
             <ArrowDropdownIcon
               size={12}

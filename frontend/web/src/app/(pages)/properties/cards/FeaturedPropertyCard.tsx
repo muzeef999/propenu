@@ -389,7 +389,7 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
       className: "bg-black/50",
     },
     featured: {
-      label: "Featured",
+      label: "Top Selling",
       className: "bg-black/50",
     },
     prime: {
@@ -450,13 +450,7 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
             onToggleShortlist={toggleShortlist}
           />
 
-          {promotionBadge && (
-            <div
-              className={`absolute left-2 top-2 rounded-md px-2 py-1 text-xs text-white ${promotionBadge.className}`}
-            >
-              {promotionBadge.label}
-            </div>
-          )}
+      
 
           <div className="absolute left-2 bottom-2 flex items-center gap-2 text-xs text-white">
             <div className="bg-black/60 px-2 py-1 rounded-md flex items-center gap-1">
@@ -545,54 +539,64 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
         </div>
       </Link>
 
+      {/* Right: price card */}
       <aside
-        className={`rounded-xl ${vertical
-          ? "w-full px-3 py-2 flex items-center justify-between gap-3"
-          : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-60 md:p-3 md:flex-col md:justify-center md:mt-0"
-          }`}
+        className={`rounded-xl ${
+          vertical
+            ? "w-full px-3 py-2 flex items-center justify-between gap-3"
+            : "w-full mt-3 px-3 py-2 flex items-center justify-between gap-3 md:w-52 md:p-3 md:flex-col md:justify-center md:gap-2.5 md:mt-0"
+        }`}
         style={{ backgroundColor: bgPriceColor }}
       >
+        {/* PRICE / RATE */}
         <div
-          className={`${vertical
-            ? "flex min-w-0 flex-col gap-1"
-            : "flex min-w-0 flex-col gap-2 md:w-full md:items-center md:text-center"
-            }`}
+          className={`${
+            vertical
+              ? "flex min-w-0 flex-col gap-1"
+              : "flex min-w-0 flex-col gap-2 md:w-full md:items-center md:text-center"
+          }`}
         >
-          <div
-            className={`hidden items-center justify-center rounded-lg bg-[#BEf4d4] px-4 py-2 min-w-[190px] text-center font-semibold text-gray-800 shadow-sm ring-1 ring-green-200/80 sm:inline-flex
-      ${vertical
-                ? "self-start text-base"
-                : "self-start md:self-center md:text-lg"
+          {pricePerSqftLabel && pricePerSqftLabel !== "Price on request" ? (
+            <div
+              className={`inline-flex items-center justify-center rounded-lg bg-[#BEf4d4] px-3 py-1 text-center font-semibold text-gray-900 shadow-sm md:w-[90%] md:px-3 md:py-1.5 ${
+                vertical
+                  ? "self-start text-xs sm:text-sm"
+                  : "self-start text-xs sm:text-sm md:self-center md:text-base"
               }`}
-          hidden={pricePerSqftLabel === "Price on request"}
-          >
-            <span className="truncate whitespace-nowrap">
-              {pricePerSqftLabel}
-            </span>
-          </div>
+            >
+              <span className="truncate whitespace-nowrap">
+                {pricePerSqftLabel}
+              </span>
+            </div>
+          ) : null}
+
           <div
-            className={`whitespace-nowrap font-medium text-green-700 ${vertical
-              ? "text-lg leading-tight"
-              : "text-lg leading-tight md:text-xl"
-              }`}
+            className={`whitespace-nowrap font-semibold text-green-700 ${
+              vertical
+                ? "text-base leading-tight"
+                : "text-base leading-tight md:text-lg"
+            }`}
           >
             {priceLabel}
           </div>
         </div>
 
+        {/* BUTTON */}
         <div
-          className={`${vertical
-            ? "shrink-0"
-            : "shrink-0 md:w-full md:mt-4 flex justify-center"
-            }`}
+          className={`${
+            vertical
+              ? "shrink-0"
+              : "shrink-0 md:w-full md:mt-2 flex justify-center"
+          }`}
         >
           <button
             type="button"
             onClick={() => setShowContactDialog(true)}
-            className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${vertical
-              ? "px-4 py-1.5 text-sm"
-              : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base"
-              }`}
+            className={`btn-primary text-white rounded-md shadow-sm transition font-medium whitespace-nowrap ${
+              vertical
+                ? "px-4 py-1.5 text-sm"
+                : "px-4 py-1.5 text-sm md:w-[90%] md:py-2 md:text-base"
+            }`}
           >
             Contact Builder
           </button>

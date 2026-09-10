@@ -143,6 +143,7 @@ export const commercialKeyMapping: Record<
   "Banks Approved": "banksApproved",
   "Price Negotiable": "priceNegotiable",
   "Verified Properties": "verifiedProperties",
+  Amenities: "amenities",
   "Posted Since": "postedSince",
   "Posted By": "createdByRole",
 };

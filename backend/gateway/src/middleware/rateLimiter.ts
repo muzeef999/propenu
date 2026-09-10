@@ -39,15 +39,6 @@ export const chatbotLimiter = rateLimit({
   },
 });
 
-export const propertySearchLimiter = rateLimit({
-  ...commonOptions,
-  windowMs: 5 * 60 * 1000,
-  max: 120,
-  message: {
-    success: false,
-    message: "Too many property searches. Please wait a moment and try again.",
-  },
-});
 
 export const paymentLimiter = rateLimit({
   ...commonOptions,

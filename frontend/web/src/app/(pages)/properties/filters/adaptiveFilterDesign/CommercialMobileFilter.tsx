@@ -22,7 +22,6 @@ import {
 } from "@/Redux/slice/filterSlice";
 import { CommercialFilterKey, MoreFilterSectionCom } from "@/types";
 import { commercialKeyMapping } from "@/types/commercial";
-import { PostedByOption } from "@/types/residential";
 import {
   commercialMoreFilterSections,
   formatBudget,
@@ -31,6 +30,12 @@ import Toggle from "@/ui/ToggleSwitch";
 import { toast } from "sonner";
 import SelectableButton from "@/ui/SelectableButton";
 import SearchBox from "@/components/SearchBox";
+import { formatLabel } from "@/utilies/formatLabel";
+import {
+  areFilterValuesEqual,
+  toggleFilterArrayValue,
+  uniqueFilterValues,
+} from "../filterValueUtils";
 
 type ListingOption = {
   label: "Buy" | "Rent";
@@ -43,6 +48,8 @@ type CommercialMobileFilterProps = {
   listingOptions: readonly ListingOption[];
   categoryOptions: readonly categoryOption[];
 };
+
+type CommercialPostedByOption = "Owners" | "Agents";
 
 const BUDGET_MIN = 5;
 const BUDGET_MAX = 5000;
@@ -62,23 +69,23 @@ const carpetOptions = [
 const getCategoryLabel = (value: categoryOption) =>
   value === "Land" ? "Plots" : value;
 
-const postedByOptions: PostedByOption[] = ["Owners", "Agents", "Builders"];
-const postedByLabelMap: Record<PostedByOption, string> = {
+const postedByOptions: CommercialPostedByOption[] = ["Owners", "Agents"];
+const postedByLabelMap: Record<CommercialPostedByOption, string> = {
   Owners: "User",
   Agents: "Agent",
-  Builders: "Builder",
 };
+const MOBILE_MENU_STATE_EVENT = "propenu:mobile-menu-state";
 
 const COMMERCIAL_SUBTYPE_MAP: Record<string, string[]> = {
-  office: ["BARE SHELL", "WARM SHELL", "BUSINESS CENTER"],
-  retail: ["HIGH STREET-SHOP", "MALL SHOP", "KIOSK", "FOOD COURT-UNIT"],
-  shop: ["HIGH STREET-SHOP", "SHUTTER SHOP", "MALL SHOP"],
-  showroom: ["HIGH STREET-SHOP", "SHOWROOM SPACE"],
-  warehouse: ["WAREHOUSE GODOWN", "LOGISTICS HUB", "COLD STORAGE"],
-  industrial: ["INDUSTRIAL SHED"],
-  coworking: ["COWORKING DEDICATED-DESK", "COWORKING HOT-DESK"],
-  restaurant: ["FOOD COURT-UNIT"],
-  clinic: ["CLINIC SPACE"],
+  office: ["bare-shell", "warm-shell", "business-center"],
+  retail: ["high-street-shop", "mall-shop", "kiosk", "food-court-unit"],
+  shop: ["high-street-shop", "shutter-shop", "mall-shop"],
+  showroom: ["high-street-shop", "showroom-space"],
+  warehouse: ["warehouse-godown", "logistics-hub", "cold-storage"],
+  industrial: ["industrial-shed"],
+  coworking: ["coworking-dedicated-desk", "coworking-hot-desk"],
+  restaurant: ["food-court-unit"],
+  clinic: ["clinic-space"],
 };
 
 const normalizeCommercialTypeToken = (value: string) =>
@@ -107,6 +114,22 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
     commercial.carpetArea?.max ?? CARPET_MAX,
   ]);
 
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(MOBILE_MENU_STATE_EVENT, {
+        detail: { open },
+      }),
+    );
+
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent(MOBILE_MENU_STATE_EVENT, {
+          detail: { open: false },
+        }),
+      );
+    };
+  }, [open]);
+
   const selectedLocalities = Array.isArray(commercial.locality)
     ? commercial.locality
     : commercial.locality
@@ -114,27 +137,26 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
       : [];
 
   const selectedCommercialTypes = Array.isArray(commercial.commercialType)
-    ? commercial.commercialType
+    ? uniqueFilterValues("commercialType", commercial.commercialType)
     : [];
 
-  const commercialSubTypeOptions = useMemo(
-    () =>
-      Array.from(
-        selectedCommercialTypes.reduce((acc, type) => {
-          const token = normalizeCommercialTypeToken(type);
-          const options = COMMERCIAL_SUBTYPE_MAP[token] ?? [];
-          options.forEach((opt) => acc.add(opt));
-          return acc;
-        }, new Set<string>()),
-      ),
-    [selectedCommercialTypes],
-  );
+  const commercialSubTypeOptions =
+    selectedCommercialTypes.length === 0
+      ? Array.from(new Set(Object.values(COMMERCIAL_SUBTYPE_MAP).flat()))
+      : Array.from(
+          selectedCommercialTypes.reduce((acc, type) => {
+            const token = normalizeCommercialTypeToken(type);
+            const options = COMMERCIAL_SUBTYPE_MAP[token] ?? [];
+            options.forEach((opt) => acc.add(opt));
+            return acc;
+          }, new Set<string>())
+        );
 
   const dynamicCommercialSections: MoreFilterSectionCom[] =
     commercialMoreFilterSections.map((section) =>
       section.key === "Commercial Sub Type"
         ? { ...section, options: commercialSubTypeOptions }
-        : section,
+        : section
     );
 
   useEffect(() => {
@@ -189,9 +211,10 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
 
     if (currentSubTypes.length === 0) return;
 
-    const validSubTypes = new Set(commercialSubTypeOptions);
     const nextSubTypes = currentSubTypes.filter((subType) =>
-      validSubTypes.has(subType),
+      commercialSubTypeOptions.some((opt) =>
+        areFilterValuesEqual("commercialSubType", opt, subType)
+      )
     );
 
     if (nextSubTypes.length !== currentSubTypes.length) {
@@ -231,25 +254,14 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
     return normalized;
   };
 
-  const selectedPostedByValue = useMemo(() => {
-    const source = commercial.createdByRole;
-    return Array.isArray(source)
-      ? source[0] ?? ""
-      : source
-        ? String(source).split(",")[0]?.trim() ?? ""
-        : "";
-  }, [commercial.createdByRole]);
+  const selectedCreatedByRole = Array.isArray(commercial.createdByRole)
+    ? commercial.createdByRole[0] ?? ""
+    : commercial.createdByRole
+      ? String(commercial.createdByRole).split(",")[0]?.trim() ?? ""
+      : "";
 
-  const isPostedBySelected = (value: string) =>
-    normalizePostedByRole(selectedPostedByValue) === normalizePostedByRole(value);
-
-  const selectedPostedBy = useMemo(
-    () =>
-      postedByOptions.filter((option) =>
-        isPostedBySelected(postedByLabelMap[option]),
-      ),
-    [selectedPostedByValue],
-  );
+  const isCreatedByRoleSelected = (value: string) =>
+    normalizePostedByRole(selectedCreatedByRole) === normalizePostedByRole(value);
 
   const toggleArrayValue = (arr: string[] = [], value: string) =>
     arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
@@ -283,8 +295,8 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#f5f6f5] lg:hidden">
-      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-2 py-5">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#f5f6f5] lg:hidden">
+      <div className="shrink-0 flex items-center justify-between border-b border-gray-200 bg-white px-2 py-5">
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -305,7 +317,7 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
         </button>
       </div>
 
-      <div className="h-[calc(100vh-180px)] space-y-5 overflow-y-auto px-4 py-4 pb-28">
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4 pb-6">
         <div>
           <h3 className="mb-3 text-lg font-semibold">Listing Type</h3>
           <div className="flex gap-3">
@@ -484,6 +496,7 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
                     {...restProps}
                     className="h-1 w-full rounded"
                     style={{
+                      ...restProps.style,
                       background: getTrackBackground({
                         values: [
                           budgetRange[0] ?? BUDGET_MIN,
@@ -531,7 +544,9 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
               (section) => section.key === "Commercial Type",
             )?.options ?? []
             ).map((option) => {
-              const active = selectedCommercialTypes.includes(option);
+              const active = selectedCommercialTypes.some((value) =>
+                areFilterValuesEqual("commercialType", value, option),
+              );
 
               return (
                 <button
@@ -541,7 +556,11 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
                     dispatch(
                       setCommercialFilter({
                         key: "commercialType",
-                        value: toggleArrayValue(selectedCommercialTypes, option),
+                        value: toggleFilterArrayValue(
+                          "commercialType",
+                          selectedCommercialTypes,
+                          option,
+                        ),
                       }),
                     )
                   }
@@ -561,27 +580,32 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
         <div>
           <h3 className="mb-3 text-lg font-semibold">Posted By</h3>
           <div className="flex flex-wrap gap-3">
-            {postedByOptions.map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() =>
-                  dispatch(
-                    setCommercialFilter({
-                      key: "createdByRole",
-                      value: isPostedBySelected(postedByLabelMap[option]) ? "" : postedByLabelMap[option],
-                    }),
-                  )
-                }
-                className={`rounded-xl border px-3 py-2 text-sm ${
-                  selectedPostedBy.includes(option)
-                    ? "border-green-600 bg-[#d8ece0] text-green-700"
-                    : "border-gray-300 bg-white"
-                }`}
-              >
-                {option}
-              </button>
-            ))}
+            {postedByOptions.map((option) => {
+              const postedByValue = postedByLabelMap[option];
+              const isSelected = isCreatedByRoleSelected(postedByValue);
+
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() =>
+                    dispatch(
+                      setCommercialFilter({
+                        key: "createdByRole",
+                        value: isSelected ? "" : postedByValue,
+                      }),
+                    )
+                  }
+                  className={`rounded-xl border px-3 py-2 text-sm ${
+                    isSelected
+                      ? "border-green-600 bg-[#d8ece0] text-green-700 font-semibold"
+                      : "border-gray-300 bg-white text-gray-700"
+                  }`}
+                >
+                  {option}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -729,45 +753,64 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
                               {section.options?.map((opt) => {
                                 const postedByValue =
                                   mappedKey === "createdByRole"
-                                    ? postedByLabelMap[opt as PostedByOption] ?? opt
+                                    ? postedByLabelMap[opt as CommercialPostedByOption] ?? opt
                                     : opt;
-                                const currentValues = Array.isArray(currentValue)
-                                  ? currentValue
-                                  : currentValue
-                                    ? [String(currentValue)]
-                                    : [];
+                                const selectedValues = Array.isArray(currentValue)
+                                  ? uniqueFilterValues(mappedKey, currentValue as string[])
+                                  : [];
                                 const active =
                                   mappedKey === "createdByRole"
-                                    ? currentValues.includes(postedByValue)
+                                    ? isCreatedByRoleSelected(postedByValue)
                                     : isMulti
-                                      ? currentValues.includes(opt)
-                                      : currentValue === opt;
+                                      ? selectedValues.some((item) =>
+                                          areFilterValuesEqual(
+                                            mappedKey,
+                                            item,
+                                            opt,
+                                          ),
+                                        )
+                                      : currentValue != null && currentValue !== ""
+                                        ? areFilterValuesEqual(
+                                            mappedKey,
+                                            String(currentValue),
+                                            opt,
+                                          )
+                                        : false;
 
                                 return (
                                   <SelectableButton
                                     key={opt}
                                     label={
                                       mappedKey === "createdByRole"
-                                        ? postedByValue
-                                        : opt
+                                        ? postedByValue.toLowerCase() === "user"
+                                          ? "Owner"
+                                          : postedByValue
+                                        : formatLabel(opt)
                                     }
                                     active={active}
                                     selectionType={section.selectionType ?? "single"}
-                                    onClick={() =>
+                                    onClick={() => {
+                                      const nextValue =
+                                        mappedKey === "createdByRole"
+                                          ? active
+                                            ? ""
+                                            : postedByValue
+                                          : isMulti
+                                            ? toggleFilterArrayValue(
+                                                mappedKey,
+                                                selectedValues,
+                                                opt,
+                                              )
+                                            : active
+                                              ? ""
+                                              : opt;
                                       dispatch(
                                         setCommercialFilter({
                                           key: mappedKey,
-                                          value:
-                                            mappedKey === "createdByRole"
-                                              ? active
-                                                ? ""
-                                                : postedByValue
-                                              : isMulti
-                                                ? toggleArrayValue(currentValues, opt)
-                                                : opt,
+                                          value: nextValue,
                                         }),
-                                      )
-                                    }
+                                      );
+                                    }}
                                   />
                                 );
                               })}
@@ -783,7 +826,7 @@ const CommercialMobileFilter: React.FC<CommercialMobileFilterProps> = ({
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 flex items-center gap-3 border-t border-gray-200 bg-white px-3 py-3 sm:px-4">
+      <div className="shrink-0 flex items-center gap-3 border-t border-gray-200 bg-white px-3 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] sm:px-4">
         <button
           type="button"
           className="flex-1 rounded-lg border border-green-600 px-3 py-2 text-base font-semibold text-green-600 sm:text-lg"

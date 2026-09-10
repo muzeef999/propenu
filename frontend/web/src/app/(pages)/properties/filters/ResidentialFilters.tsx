@@ -219,6 +219,89 @@ const ResidentialFilters = () => {
       : [...arr, value];
   };
 
+  const normalizeResidentialOptionValue = (
+    key: keyof typeof residential,
+    value: string,
+  ) => {
+    if (key === "furnishing") {
+      return value.trim().toLowerCase().replace(/\s+/g, "-");
+    }
+
+    if (key === "facing") {
+      return value.trim().toLowerCase().replace(/[\s_-]+/g, "");
+    }
+
+    return value;
+  };
+
+  const areResidentialOptionValuesEqual = (
+    key: keyof typeof residential,
+    left: string,
+    right: string,
+  ) =>
+    normalizeResidentialOptionValue(key, left) ===
+    normalizeResidentialOptionValue(key, right);
+
+  const toggleResidentialArrayValue = (
+    key: keyof typeof residential,
+    arr: string[] = [],
+    value: string,
+  ) => {
+    const normalizedValue = normalizeResidentialOptionValue(key, value);
+    const hasValue = arr.some((item) =>
+      areResidentialOptionValuesEqual(key, item, normalizedValue),
+    );
+
+    if (hasValue) {
+      return arr.filter(
+        (item) => !areResidentialOptionValuesEqual(key, item, normalizedValue),
+      );
+    }
+
+    return [
+      ...arr.filter(
+        (item, index, source) =>
+          source.findIndex((candidate) =>
+            areResidentialOptionValuesEqual(key, candidate, item),
+          ) === index,
+      ),
+      normalizedValue,
+    ];
+  };
+
+  const getUniqueResidentialValues = (
+    key: keyof typeof residential,
+    values: string[] = [],
+  ) =>
+    values.filter(
+      (value, index, source) =>
+        source.findIndex((candidate) =>
+          areResidentialOptionValuesEqual(key, candidate, value),
+        ) === index,
+    );
+
+  const formatResidentialFilterValue = (
+    key: keyof typeof residential,
+    value: string,
+  ) => {
+    if (key === "facing") {
+      const labelMap: Record<string, string> = {
+        east: "East",
+        west: "West",
+        north: "North",
+        south: "South",
+        northeast: "North East",
+        northwest: "North West",
+        southeast: "South East",
+        southwest: "South West",
+      };
+
+      return labelMap[normalizeResidentialOptionValue(key, value)] ?? formatLabel(value);
+    }
+
+    return formatLabel(value);
+  };
+
   const selectedMoreFiltersCount = getSelectedMoreFiltersCount(
     residential,
     residentialKeyMapping,
@@ -227,53 +310,57 @@ const ResidentialFilters = () => {
   const listingTypeCount = listingTypeValue ? 1 : 0;
   const moreFiltersBadgeCount =
     selectedMoreFiltersCount + localityCount + listingTypeCount;
-  const appliedFilterChips = [
-    ...(Array.isArray(residential.propertyType) && residential.propertyType.length
-      ? residential.propertyType.map((value) => `Type: ${formatLabel(value)}`)
-      : []),
-    ...(residential.transactionType
-      ? [`Sale: ${formatLabel(residential.transactionType)}`]
-      : []),
-    ...(residential.constructionStatus
-      ? [`Status: ${formatLabel(residential.constructionStatus)}`]
-      : []),
-    ...(selectedBedrooms.length
-      ? [`BHK: ${selectedBedrooms.map(formatBedroomValue).join(", ")}`]
-      : []),
-    ...(residential.coveredArea?.min || residential.coveredArea?.max
-      ? [
-          `Area: ${residential.coveredArea?.min ?? CARPET_MIN}-${residential.coveredArea?.max ?? CARPET_MAX} sqft`,
-        ]
-      : []),
-    ...(Array.isArray(residential.bathroom) && residential.bathroom.length
-      ? [`Bath: ${residential.bathroom.join(", ")}`]
-      : []),
-    ...(Array.isArray(residential.balcony) && residential.balcony.length
-      ? [`Balcony: ${residential.balcony.join(", ")}`]
-      : []),
-    ...(Array.isArray(residential.parking) && residential.parking.length
-      ? [`Parking: ${residential.parking.join(", ")}`]
-      : []),
-    ...(residential.furnishing
-      ? [`Furnishing: ${formatLabel(residential.furnishing)}`]
-      : []),
-    ...(Array.isArray(residential.amenities) && residential.amenities.length
-      ? residential.amenities.map((value) => `Amenity: ${formatLabel(value)}`)
-      : []),
-    ...(Array.isArray(residential.facing) && residential.facing.length
-      ? residential.facing.map((value) => `Facing: ${formatLabel(value)}`)
-      : []),
-    ...(residential.postedSince
-      ? [`Posted: ${formatLabel(residential.postedSince)}`]
-      : []),
-    ...(selectedCreatedByRole ? [`By: ${formatLabel(selectedCreatedByRole)}`] : []),
-    ...(Array.isArray(locality) && locality.length
-      ? locality.map((value) => `Locality: ${value}`)
-      : []),
-    ...(minPrice != null || maxPrice != null
-      ? [`Budget: ${budgetLabel}`]
-      : []),
-  ];
+  const appliedFilterChips = Array.from(
+    new Set([
+      ...(Array.isArray(residential.propertyType) && residential.propertyType.length
+        ? residential.propertyType.map((value) => `Type: ${formatLabel(value)}`)
+        : []),
+      ...(residential.transactionType
+        ? [`Sale: ${formatLabel(residential.transactionType)}`]
+        : []),
+      ...(residential.constructionStatus
+        ? [`Status: ${formatLabel(residential.constructionStatus)}`]
+        : []),
+      ...(selectedBedrooms.length
+        ? [`BHK: ${selectedBedrooms.map(formatBedroomValue).join(", ")}`]
+        : []),
+      ...(residential.coveredArea?.min || residential.coveredArea?.max
+        ? [
+            `Area: ${residential.coveredArea?.min ?? CARPET_MIN}-${residential.coveredArea?.max ?? CARPET_MAX} sqft`,
+          ]
+        : []),
+      ...(Array.isArray(residential.bathroom) && residential.bathroom.length
+        ? residential.bathroom.map((val) => `Bath: ${val}`)
+        : []),
+      ...(Array.isArray(residential.balcony) && residential.balcony.length
+        ? residential.balcony.map((val) => `Balcony: ${val}`)
+        : []),
+      ...(Array.isArray(residential.parking) && residential.parking.length
+        ? residential.parking.map((val) => `Parking: ${val}`)
+        : []),
+      ...(residential.furnishing
+        ? [`Furnishing: ${formatResidentialFilterValue("furnishing", residential.furnishing)}`]
+        : []),
+      ...(Array.isArray(residential.amenities) && residential.amenities.length
+        ? residential.amenities.map((value) => `Amenity: ${formatLabel(value)}`)
+        : []),
+      ...(Array.isArray(residential.facing) && residential.facing.length
+        ? getUniqueResidentialValues("facing", residential.facing).map(
+            (value) => `Facing: ${formatResidentialFilterValue("facing", value)}`,
+          )
+        : []),
+      ...(residential.postedSince
+        ? [`Posted: ${formatLabel(residential.postedSince)}`]
+        : []),
+      ...(selectedCreatedByRole ? [`By: ${formatLabel(selectedCreatedByRole)}`] : []),
+      ...(Array.isArray(locality) && locality.length
+        ? locality.map((value) => `Locality: ${value}`)
+        : []),
+      ...(minPrice != null || maxPrice != null
+        ? [`Budget: ${budgetLabel}`]
+        : []),
+    ]),
+  );
   const visibleAppliedFilterChips = appliedFilterChips.slice(0, 4);
   /* -------------------- MORE FILTER CONFIG -------------------- */
 
@@ -714,9 +801,9 @@ const ResidentialFilters = () => {
                   <div className="mt-2 flex flex-wrap gap-2">
                     {visibleAppliedFilterChips.length > 0 ? (
                       <>
-                        {visibleAppliedFilterChips.map((chip) => (
+                        {visibleAppliedFilterChips.map((chip, index) => (
                           <span
-                            key={chip}
+                            key={`${chip}-${index}`}
                             className="rounded-full border border-green-200 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-green-700"
                           >
                             {chip}
@@ -770,7 +857,6 @@ const ResidentialFilters = () => {
                 ))}
               </div>
 
-              {/* Right panel */}
               {/* Right panel */}
               <div
                 ref={rightPanelRef}
@@ -881,18 +967,35 @@ const ResidentialFilters = () => {
                           const filterValue =
                             mappedKey === "createdByRole"
                               ? POSTED_BY_MAP[opt as PostedByOption] ?? opt
-                              : opt;
-
+                              : normalizeResidentialOptionValue(mappedKey, opt);
                           const isActive =
-                            section.selectionType === "multiple"
-                              ? currentValues.includes(filterValue)
-                              : currentValue === filterValue;
+                            mappedKey === "createdByRole"
+                              ? isCreatedByRoleSelected(filterValue)
+                              : section.selectionType === "multiple"
+                                ? currentValues.some((value) =>
+                                    areResidentialOptionValuesEqual(
+                                      mappedKey,
+                                      value,
+                                      filterValue,
+                                    ),
+                                  )
+                                : currentValue
+                                  ? areResidentialOptionValuesEqual(
+                                      mappedKey,
+                                      String(currentValue),
+                                      filterValue,
+                                    )
+                                  : false;
 
                           return (
                             <SelectableButton
                               key={opt}
                               label={
-                                mappedKey === "createdByRole" ? opt : formatLabel(opt)
+                                mappedKey === "createdByRole"
+                                  ? opt === "Owners" || filterValue.toLowerCase() === "user"
+                                    ? "Owner"
+                                    : opt
+                                  : formatLabel(opt)
                               }
                               active={isActive}
                               selectionType={section.selectionType ?? "single"}
@@ -901,9 +1004,19 @@ const ResidentialFilters = () => {
                                   setResidentialFilter({
                                     key: mappedKey,
                                     value:
-                                      section.selectionType === "multiple"
-                                        ? toggleArrayValue(currentValues, filterValue)
-                                        : filterValue,
+                                      mappedKey === "createdByRole"
+                                        ? isActive
+                                          ? ""
+                                          : filterValue
+                                        : section.selectionType === "multiple"
+                                          ? toggleResidentialArrayValue(
+                                              mappedKey,
+                                              currentValues,
+                                              filterValue,
+                                            )
+                                          : isActive
+                                            ? ""
+                                            : filterValue,
                                   }),
                                 );
                               }}
@@ -915,7 +1028,7 @@ const ResidentialFilters = () => {
                   </div>
                 ))}
               </div>
-              </div>
+            </div>
             </div>
           )}
         />
