@@ -529,6 +529,7 @@ const AgentProfilePage = () => {
       verificationStatus: agent.verificationStatus ?? "",
       areasServed: agent.areasServed ?? [],
       languages: agent.languages ?? [],
+      reraAgentId: agent.rera?.reraAgentId ?? "",
     });
   }, [agent, handleEditStart]);
 
@@ -628,8 +629,9 @@ const AgentProfilePage = () => {
           <DetailRow label="License No" value={agent.licenseNumber} />
           <DetailRow
             label="Valid Till"
-            value={new Date(agent.licenseValidTill).toLocaleDateString()}
+            value={agent.licenseValidTill ? new Date(agent.licenseValidTill).toLocaleDateString() : "-"}
           />
+          <DetailRow label="RERA Agent ID" value={agent.rera?.reraAgentId || "-"} />
           <div className="flex items-center justify-between py-3">
             <span className="text-sm text-gray-500">Verification</span>
             <VerificationStatusBadge status={agent.verificationStatus} />

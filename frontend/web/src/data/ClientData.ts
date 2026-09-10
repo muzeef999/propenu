@@ -1007,6 +1007,7 @@ export const updateAgentProfileByPhone = async (
     experienceYears: number;
     licenseNumber: string;
     licenseValidTill: string;
+    reraAgentId?: string;
     avatar?: File;
     coverImage?: File;
   }>

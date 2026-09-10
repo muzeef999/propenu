@@ -203,12 +203,15 @@ function SwitchToggle({
       role="switch"
       aria-checked={active}
       disabled={disabled}
-      onClick={onClick}
-      className="inline-flex h-6 w-11 items-center rounded-full p-0.5 transition disabled:cursor-not-allowed disabled:opacity-30"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className="inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full p-0.5 transition-colors duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-30 touch-manipulation focus:outline-none"
       style={{ backgroundColor: active ? "#16A34A" : "#D1D5DB" }}
     >
       <span
-        className={`h-5 w-5 rounded-full bg-white shadow-sm transition ${
+        className={`h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out ${
           active ? "translate-x-5" : "translate-x-0"
         }`}
       />
@@ -695,19 +698,52 @@ export default function BuilderRolesPage() {
       </div>
 
       <div className="bg-white md:sticky md:top-0 md:z-30">
-        <div className="grid gap-2 rounded-md bg-white sm:gap-3 md:grid-cols-3">
-          <div className={`rounded-md border border-[#E2F0E6] px-4 py-3 transition sm:px-5 sm:py-4 ${activeStep === 1 ? "bg-[#F4FCF6] shadow-[0_8px_18px_rgba(39,174,96,0.08)]" : "bg-[#F8FCF9]"}`}>
-            <p className={`text-xs font-semibold uppercase tracking-wide ${activeStep === 1 ? "text-gray-500" : "text-gray-400"}`}>Step 1</p>
-            <p className={`mt-2 text-base leading-6 sm:mt-3 sm:text-[1.1rem] ${activeStep === 1 ? "font-semibold text-gray-950" : "font-medium text-gray-400"}`}>Create Roles &amp; Permissions</p>
-          </div>
-          <div className={`rounded-md border border-[#E2F0E6] px-4 py-3 transition sm:px-5 sm:py-4 ${activeStep === 2 ? "bg-[#F4FCF6] shadow-[0_8px_18px_rgba(39,174,96,0.08)]" : "bg-[#F8FCF9]"}`}>
-            <p className={`text-xs font-semibold uppercase tracking-wide ${activeStep === 2 ? "text-gray-500" : "text-gray-400"}`}>Step 2</p>
-            <p className={`mt-2 text-base leading-6 sm:mt-3 sm:text-[1.1rem] ${activeStep === 2 ? "font-semibold text-gray-950" : "font-medium text-gray-400"}`}>Add Team Member</p>
-          </div>
-          <div className={`rounded-md border border-[#E2F0E6] px-4 py-3 transition sm:px-5 sm:py-4 ${activeStep === 3 ? "bg-[#F4FCF6] shadow-[0_8px_18px_rgba(39,174,96,0.08)]" : "bg-[#F8FCF9]"}`}>
-            <p className={`text-xs font-semibold uppercase tracking-wide ${activeStep === 3 ? "text-gray-500" : "text-gray-400"}`}>Step 3</p>
-            <p className={`mt-2 text-base leading-6 sm:mt-3 sm:text-[1.1rem] ${activeStep === 3 ? "font-semibold text-gray-950" : "font-medium text-gray-400"}`}>Assign Project</p>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-md bg-white sm:gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveStep(1);
+              roleEditorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            className={`text-left rounded-md border border-[#E2F0E6] px-4 py-3 transition cursor-pointer sm:px-5 sm:py-4 ${
+              activeStep === 1
+                ? "bg-[#F4FCF6] shadow-[0_8px_18px_rgba(39,174,96,0.08)] border-[#16A34A]"
+                : "bg-[#F8FCF9] hover:bg-gray-50"
+            }`}
+          >
+            <p className={`text-xs font-semibold uppercase tracking-wide ${activeStep === 1 ? "text-green-700 font-bold" : "text-gray-400"}`}>Step 1</p>
+            <p className={`mt-1 sm:mt-2 text-sm sm:text-[1.1rem] leading-snug sm:leading-6 font-semibold ${activeStep === 1 ? "text-gray-950" : "text-gray-500"}`}>Create Roles &amp; Permissions</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveStep(2);
+              memberEditorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            className={`text-left rounded-md border border-[#E2F0E6] px-4 py-3 transition cursor-pointer sm:px-5 sm:py-4 ${
+              activeStep === 2
+                ? "bg-[#F4FCF6] shadow-[0_8px_18px_rgba(39,174,96,0.08)] border-[#16A34A]"
+                : "bg-[#F8FCF9] hover:bg-gray-50"
+            }`}
+          >
+            <p className={`text-xs font-semibold uppercase tracking-wide ${activeStep === 2 ? "text-green-700 font-bold" : "text-gray-400"}`}>Step 2</p>
+            <p className={`mt-1 sm:mt-2 text-sm sm:text-[1.1rem] leading-snug sm:leading-6 font-semibold ${activeStep === 2 ? "text-gray-950" : "text-gray-500"}`}>Add Team Member</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveStep(3);
+              assignProjectRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            className={`text-left rounded-md border border-[#E2F0E6] px-4 py-3 transition cursor-pointer sm:px-5 sm:py-4 ${
+              activeStep === 3
+                ? "bg-[#F4FCF6] shadow-[0_8px_18px_rgba(39,174,96,0.08)] border-[#16A34A]"
+                : "bg-[#F8FCF9] hover:bg-gray-50"
+            }`}
+          >
+            <p className={`text-xs font-semibold uppercase tracking-wide ${activeStep === 3 ? "text-green-700 font-bold" : "text-gray-400"}`}>Step 3</p>
+            <p className={`mt-1 sm:mt-2 text-sm sm:text-[1.1rem] leading-snug sm:leading-6 font-semibold ${activeStep === 3 ? "text-gray-950" : "text-gray-500"}`}>Assign Project</p>
+          </button>
         </div>
       </div>
 
@@ -765,16 +801,16 @@ export default function BuilderRolesPage() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-md border border-[#E3E3E3]">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-left text-sm">
-                <thead className="bg-[#F4FCF6] text-[1rem] text-[#6B7280]">
+          <div className="overflow-hidden rounded-md border border-[#E3E3E3] bg-white shadow-xs">
+            <div className="overflow-x-auto touch-pan-x overscroll-x-contain pb-2 scrollbar-thin">
+              <table className="w-full min-w-[640px] sm:min-w-[760px] text-left text-sm">
+                <thead className="bg-[#F4FCF6] text-[0.95rem] text-[#6B7280]">
                   <tr>
-                    <th className="sticky left-0 z-10 w-44 bg-[#F4FCF6] px-4 py-3 font-semibold">
+                    <th className="sticky left-0 z-20 w-32 sm:w-44 bg-[#F4FCF6] px-3 sm:px-4 py-3 font-semibold shadow-[2px_0_6px_-2px_rgba(0,0,0,0.06)]">
                       Module
                     </th>
                     {permissionActions.map((action) => (
-                      <th key={action} className="px-4 py-3 text-center font-semibold">
+                      <th key={action} className="px-3 sm:px-4 py-3 text-center font-semibold min-w-[84px] sm:min-w-[100px]">
                         {actionLabels[action] ?? action}
                       </th>
                     ))}
@@ -782,9 +818,9 @@ export default function BuilderRolesPage() {
                 </thead>
                 <tbody className="divide-y divide-[#EFEFEF] bg-white">
                   {permissionModules.map((module) => (
-                    <tr key={module}>
-                      <td className="sticky left-0 z-10 bg-white px-4 py-6">
-                        <p className="text-[1rem] font-medium text-gray-900">
+                    <tr key={module} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="sticky left-0 z-20 bg-white px-3 sm:px-4 py-4 sm:py-6 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.06)]">
+                        <p className="text-sm sm:text-[1rem] font-medium text-gray-900">
                           {groupLabels[module] ?? module}
                         </p>
                       </td>
@@ -794,7 +830,13 @@ export default function BuilderRolesPage() {
                         const active = selectedPermissions.includes(permission);
 
                         return (
-                          <td key={permission} className="px-4 py-6 text-center">
+                          <td
+                            key={permission}
+                            className={`px-3 sm:px-4 py-4 sm:py-6 text-center ${exists ? "cursor-pointer select-none" : ""}`}
+                            onClick={() => {
+                              if (exists) togglePermission(permission);
+                            }}
+                          >
                             {exists ? (
                               <SwitchToggle
                                 active={active}
@@ -810,6 +852,9 @@ export default function BuilderRolesPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+            <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50/80 border-t border-gray-100 text-xs text-gray-500 sm:hidden">
+              <span>Swipe left &amp; right to view all permission toggles &rarr;</span>
             </div>
           </div>
         </section>

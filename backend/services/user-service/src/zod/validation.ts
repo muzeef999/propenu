@@ -64,6 +64,7 @@ export const createAgentSchema = z
 
     verificationDocuments: z.array(VerificationDocumentSchema).optional(),
 
+    reraAgentId: z.string().optional(),
     rera: z
       .object({
         reraAgentId: z.string().optional(),

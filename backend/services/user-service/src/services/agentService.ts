@@ -552,15 +552,21 @@ const AgentService = {
         .replace(/[^a-z0-9]+/g, "-");
 
       const conflict = await Agent.findOne({ slug: newSlug });
-      if (conflict && conflict._id.toString() !== existing._id.toString()) {
-        return {
-  success: false,
-  status: 400,
-  message: "Slug already used",
-};
-      }
-
       existing.slug = newSlug;
+    }
+
+    if (agentPayload.reraAgentId !== undefined) {
+      existing.rera = {
+        ...(existing.rera || {}),
+        reraAgentId: agentPayload.reraAgentId,
+      };
+      delete agentPayload.reraAgentId;
+    } else if (agentPayload.rera) {
+      existing.rera = {
+        ...(existing.rera || {}),
+        ...agentPayload.rera,
+      };
+      delete agentPayload.rera;
     }
 
     Object.assign(existing, agentPayload);

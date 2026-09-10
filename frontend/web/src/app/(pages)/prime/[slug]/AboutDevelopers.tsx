@@ -30,6 +30,16 @@ function stripHtml(text?: string) {
   return text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function isValidDeveloperName(name?: string | null): boolean {
+  if (!name || typeof name !== "string") return false;
+  const trimmed = name.trim();
+  if (!trimmed) return false;
+  // If it's a 24-character hexadecimal MongoDB ObjectId, don't show it as developer name
+  if (/^[a-fA-F0-9]{24}$/.test(trimmed)) return false;
+  if (trimmed.toLowerCase() === "undefined" || trimmed.toLowerCase() === "null") return false;
+  return true;
+}
+
 export default function AboutDevelopers({
   logoUrl,
   developer,
@@ -40,7 +50,7 @@ export default function AboutDevelopers({
 }: Props) {
   const [expanded, setExpanded] = React.useState(false);
 
-  const developerName =
+  const rawDeveloperName =
     (isContactObject(developer)
       ? developer.companyName || developer.name || developer.fullName
       : typeof developer === "string"
@@ -50,8 +60,15 @@ export default function AboutDevelopers({
       ? createdBy.companyName || createdBy.name || createdBy.fullName
       : typeof createdBy === "string"
         ? createdBy
-        : "") ||
-    "Propenu pvt.ltd";
+        : "");
+
+  const developerName = isValidDeveloperName(rawDeveloperName)
+    ? rawDeveloperName.trim()
+    : "";
+
+  const title = developerName
+    ? `About the Developers - ${developerName}`
+    : "About the Developers";
 
   const rawDescription =
     description ||
@@ -69,28 +86,31 @@ export default function AboutDevelopers({
   const accentColor = color?.trim() || "#F59E0B";
 
   return (
-    <section className="w-full">
-      <div style={{ color: accentColor, borderLeft: `5px solid ${accentColor}` }}>
-        <div className="ml-2">
-          <h1 className="text-[20px] font-bold lg:text-2xl md:text-4xl">
-            About the Developers - {developerName}
-          </h1>
-         
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="mb-6 flex items-start justify-between gap-6">
+        <div style={{ color: accentColor, borderLeft: `5px solid ${accentColor}` }}>
+          <div className="ml-2">
+            <h1 className="text-[20px] font-bold lg:text-2xl md:text-4xl">
+              {title}
+            </h1>
+            <p className="headingDesc text-xs lg:text-base md:text-lg">
+              The visionary team behind the project
+            </p>
+          </div>
         </div>
       </div>
-      <br />
 
       <div className="mt-6 flex w-full flex-col items-start gap-5 sm:flex-row sm:items-start sm:gap-8">
         <div className="flex h-14 w-28 shrink-0 items-center justify-start sm:h-16 sm:w-32">
           {logoUrl ? (
             <img
               src={logoUrl}
-              alt={`${developerName} logo`}
+              alt={`${developerName || "Developer"} logo`}
               className="h-full w-full object-contain object-left"
             />
           ) : (
             <span className="text-sm font-semibold text-sky-600">
-              {developerName.charAt(0)}
+              {(developerName || "P").charAt(0)}
             </span>
           )}
         </div>

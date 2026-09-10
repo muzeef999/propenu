@@ -253,14 +253,16 @@ export default async function Page({ params }: PageProps) {
           <div id="about-us" className="scroll-mt-20">
             <AboutUS aboutSummary={aboutSummary} />
           </div>
-          <AboutDevelopers
-            logoUrl={project?.logo?.url}
-            developer={project?.developer as any}
-            createdBy={project?.createdBy as any}
-            description={project?.heroDescription}
-            aboutSummary={project?.aboutSummary}
-            color={project?.color?.trim()}
-          />
+          <div id="about-developers" className="scroll-mt-20">
+            <AboutDevelopers
+              logoUrl={project?.logo?.url}
+              developer={project?.developer as any}
+              createdBy={project?.createdBy as any}
+              description={project?.heroDescription}
+              aboutSummary={project?.aboutSummary}
+              color={project?.color?.trim()}
+            />
+          </div>
           <div id="brochure-preview" className="scroll-mt-20">
             <BrochurePreview project={project} />
           </div>
