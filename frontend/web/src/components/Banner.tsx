@@ -37,7 +37,10 @@ const Banner = () => {
   const isTransitioningRef = useRef(false);
   const { selectedCity } = useCity();
 
-  const { data: bannersData } = useQuery({
+  const {
+    data: bannersData,
+    isFetched: hasFetchedBanners,
+  } = useQuery({
     queryKey: [
       "site-branding-banners-resolve",
       selectedCity?.state || "",
@@ -73,6 +76,9 @@ const Banner = () => {
       ),
     [deviceImages],
   );
+
+  const hasSelectedCity = Boolean(selectedCity?.state && selectedCity?.city);
+  const canShowFallbackBanner = hasSelectedCity && hasFetchedBanners;
 
   const showBanner = (nextIndex: number) => {
     if (
@@ -230,7 +236,7 @@ const Banner = () => {
               alt="Propenu desktop banner"
               className="banner-hero-image w-full h-full object-cover"
             />
-          ) : (
+          ) : canShowFallbackBanner ? (
             <Image
               src={heroBannerwebp}
               alt="Propenu hero banner"
@@ -238,7 +244,7 @@ const Banner = () => {
               sizes="100vw"
               className="banner-hero-image h-full w-full object-cover"
             />
-          )}
+          ) : null}
 
           <div className="absolute inset-0 flex items-center pointer-events-none pb-12">
             <div className="w-full md:w-[66%] px-6 py-6 md:px-10 lg:px-14 xl:py-10 pointer-events-auto space-y-4">
@@ -254,7 +260,7 @@ const Banner = () => {
               alt="Propenu laptop banner"
               className="banner-hero-image w-full h-full object-cover"
             />
-          ) : (
+          ) : canShowFallbackBanner ? (
             <Image
               src={heroBannerwebp}
               alt="Propenu hero banner"
@@ -262,7 +268,7 @@ const Banner = () => {
               sizes="100vw"
               className="banner-hero-image h-full w-full object-cover"
             />
-          )}
+          ) : null}
 
           <div className="absolute inset-0 flex items-center pointer-events-none pb-12">
             <div className="w-full md:w-[70%] px-8 py-6 pointer-events-auto space-y-3">
@@ -278,7 +284,7 @@ const Banner = () => {
               alt="Propenu tablet banner"
               className="banner-hero-image w-full h-full object-cover"
             />
-          ) : (
+          ) : canShowFallbackBanner ? (
             <Image
               src={heroBannerwebp}
               alt="Propenu hero banner"
@@ -286,7 +292,7 @@ const Banner = () => {
               sizes="100vw"
               className="banner-hero-image h-full w-full object-cover"
             />
-          )}
+          ) : null}
 
           <div className="absolute inset-0 flex items-center pointer-events-none pb-12">
             <div className="w-full md:w-[80%] px-6 py-5 pointer-events-auto space-y-3">
@@ -302,7 +308,7 @@ const Banner = () => {
               alt="Propenu mobile banner"
               className="banner-hero-image w-full h-full object-cover"
             />
-          ) : (
+          ) : canShowFallbackBanner ? (
             <Image
               src={heroBannerMobile}
               alt="Propenu hero banner mobile"
@@ -310,7 +316,7 @@ const Banner = () => {
               sizes="100vw"
               className="banner-hero-image w-full h-full object-cover"
             />
-          )}
+          ) : null}
 
           <div className="absolute inset-0 flex items-start pointer-events-none pb-8">
             <div className="w-full px-5 py-6 space-y-3 pointer-events-auto">
