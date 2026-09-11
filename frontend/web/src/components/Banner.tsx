@@ -228,7 +228,7 @@ const Banner = () => {
             <img
               src={desktopConfig.image}
               alt="Propenu desktop banner"
-              className="w-full h-full object-cover"
+              className="banner-hero-image w-full h-full object-cover"
             />
           ) : (
             <Image
@@ -236,7 +236,7 @@ const Banner = () => {
               alt="Propenu hero banner"
               priority
               sizes="100vw"
-              className="h-full w-full object-cover"
+              className="banner-hero-image h-full w-full object-cover"
             />
           )}
 
@@ -252,7 +252,7 @@ const Banner = () => {
             <img
               src={laptopConfig.image}
               alt="Propenu laptop banner"
-              className="w-full h-full object-cover"
+              className="banner-hero-image w-full h-full object-cover"
             />
           ) : (
             <Image
@@ -260,7 +260,7 @@ const Banner = () => {
               alt="Propenu hero banner"
               priority
               sizes="100vw"
-              className="h-full w-full object-cover"
+              className="banner-hero-image h-full w-full object-cover"
             />
           )}
 
@@ -276,7 +276,7 @@ const Banner = () => {
             <img
               src={tabletConfig.image}
               alt="Propenu tablet banner"
-              className="w-full h-full object-cover"
+              className="banner-hero-image w-full h-full object-cover"
             />
           ) : (
             <Image
@@ -284,7 +284,7 @@ const Banner = () => {
               alt="Propenu hero banner"
               priority
               sizes="100vw"
-              className="h-full w-full object-cover"
+              className="banner-hero-image h-full w-full object-cover"
             />
           )}
 
@@ -300,7 +300,7 @@ const Banner = () => {
             <img
               src={mobileConfig.image}
               alt="Propenu mobile banner"
-              className="w-full h-full object-cover"
+              className="banner-hero-image w-full h-full object-cover"
             />
           ) : (
             <Image
@@ -308,7 +308,7 @@ const Banner = () => {
               alt="Propenu hero banner mobile"
               priority
               sizes="100vw"
-              className="w-full h-full object-cover"
+              className="banner-hero-image w-full h-full object-cover"
             />
           )}
 

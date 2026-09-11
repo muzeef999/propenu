@@ -28,9 +28,17 @@ import { RATE_LIMIT_RECOVERED_EVENT } from "@/utilies/requestMonitor";
 type OwnerCardItem = PopularOwnerProperty & {
   id?: string;
   _id?: string;
+  rank?: number;
   type?: string;
 };
 
+const sortOwnerPropertiesByRank = (properties: OwnerCardItem[]) =>
+  [...properties].sort((a, b) => {
+    const rankA = a.rank ?? Number.MAX_SAFE_INTEGER;
+    const rankB = b.rank ?? Number.MAX_SAFE_INTEGER;
+
+    return rankA - rankB;
+  });
 
 const PopularOwnerPropertiesClient = () => {
   const sliderRef = useRef<HTMLDivElement | null>(null);
@@ -40,7 +48,10 @@ const PopularOwnerPropertiesClient = () => {
     city: selectedCity?.city,
   });
   const [items, setItems] = useState<OwnerCardItem[]>(
-    () => getHomeSectionCache<OwnerCardItem[]>(cacheKey) ?? [],
+    () =>
+      sortOwnerPropertiesByRank(
+        getHomeSectionCache<OwnerCardItem[]>(cacheKey) ?? [],
+      ),
   );
   const [loading, setLoading] = useState(() => !getHomeSectionCache(cacheKey));
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -59,7 +70,7 @@ const PopularOwnerPropertiesClient = () => {
 
     const cachedItems = getHomeSectionCache<OwnerCardItem[]>(cacheKey);
     if (cachedItems) {
-      setItems(cachedItems);
+      setItems(sortOwnerPropertiesByRank(cachedItems));
       setLoading(false);
       return;
     }
@@ -80,10 +91,12 @@ const PopularOwnerPropertiesClient = () => {
         if (!isActive) return;
 
         const source = res.items ?? res.properties ?? [];
-        const normalized = source.map((item: OwnerCardItem) => ({
-          ...item,
-          id: item.id ?? item._id,
-        }));
+        const normalized = sortOwnerPropertiesByRank(
+          source.map((item: OwnerCardItem) => ({
+            ...item,
+            id: item.id ?? item._id,
+          })),
+        );
         setHomeSectionCache(cacheKey, normalized);
         setItems(normalized);
       })

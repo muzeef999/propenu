@@ -41,6 +41,10 @@
   background: #f4f4f0;
 }
 
+.banner-hero-image {
+  object-position: center top;
+}
+
 .banner-device-mobile {
   aspect-ratio: 4 / 3;
   min-height: 300px;
