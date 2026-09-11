@@ -53,6 +53,12 @@ export function normalizeBannerDoc(raw: any) {
           city: String(d.location?.city || ""),
           locality: String(d.location?.locality || ""),
           subLocality: String(d.location?.subLocality || ""),
+          coverage:
+            d.location?.coverage &&
+            typeof d.location.coverage === "object" &&
+            !Array.isArray(d.location.coverage)
+              ? d.location.coverage
+              : {},
         },
       };
     }
@@ -79,6 +85,12 @@ export function normalizeBannerDoc(raw: any) {
     city: String(obj.location?.city || ""),
     locality: String(obj.location?.locality || ""),
     subLocality: String(obj.location?.subLocality || ""),
+    coverage:
+      obj.location?.coverage &&
+      typeof obj.location.coverage === "object" &&
+      !Array.isArray(obj.location.coverage)
+        ? obj.location.coverage
+        : {},
   };
   for (const slot of BANNER_SLOT_KEYS) {
     const image = String(obj.images?.[slot] || "");
@@ -183,7 +195,13 @@ export async function getSiteBannerById(id: string) {
 }
 
 function deviceMatchesLocation(
-  location: { state?: string; city?: string; locality?: string; subLocality?: string },
+  location: {
+    state?: string;
+    city?: string;
+    locality?: string;
+    subLocality?: string;
+    coverage?: Record<string, Record<string, string[]>>;
+  },
   query: {
     state?: string;
     city?: string;
@@ -191,14 +209,44 @@ function deviceMatchesLocation(
     subLocality?: string;
   },
 ) {
-  const bState = String(location?.state || "").trim().toLowerCase();
-  const bCity = String(location?.city || "").trim().toLowerCase();
-  const bLocality = String(location?.locality || "").trim().toLowerCase();
-  const bSub = String(location?.subLocality || "").trim().toLowerCase();
+  const coverage =
+    location?.coverage &&
+    typeof location.coverage === "object" &&
+    !Array.isArray(location.coverage)
+      ? location.coverage
+      : {};
+  const coverageStates = Object.keys(coverage);
+
   const state = String(query.state || "").trim().toLowerCase();
   const city = String(query.city || "").trim().toLowerCase();
   const locality = String(query.locality || "").trim().toLowerCase();
   const subLocality = String(query.subLocality || "").trim().toLowerCase();
+
+  // Sponsored-style multi location coverage
+  if (coverageStates.length) {
+    if (!state || !city) return false;
+    for (const [st, cities] of Object.entries(coverage)) {
+      if (String(st || "").trim().toLowerCase() !== state) continue;
+      if (!cities || typeof cities !== "object") continue;
+      for (const [c, locs] of Object.entries(cities)) {
+        if (String(c || "").trim().toLowerCase() !== city) continue;
+        const locList = Array.isArray(locs) ? locs : [];
+        // Empty localities = whole city selected
+        if (!locList.length) return true;
+        if (!locality) return true;
+        return locList.some(
+          (l) => String(l || "").trim().toLowerCase() === locality,
+        );
+      }
+    }
+    return false;
+  }
+
+  // Legacy single flat location
+  const bState = String(location?.state || "").trim().toLowerCase();
+  const bCity = String(location?.city || "").trim().toLowerCase();
+  const bLocality = String(location?.locality || "").trim().toLowerCase();
+  const bSub = String(location?.subLocality || "").trim().toLowerCase();
 
   if (!bState && !bCity && !bLocality && !bSub) return true;
   if (bState && state && bState !== state) return false;
@@ -333,6 +381,10 @@ export async function upsertBannerDevice(
       body.subLocality !== undefined || body.sub_locality !== undefined
         ? body.subLocality ?? body.sub_locality
         : current.location?.subLocality,
+    coverage:
+      body.coverage !== undefined
+        ? body.coverage
+        : current.location?.coverage || {},
   });
   const heading = normalizeTextBlock(body, "heading", current.heading);
   const subheading = normalizeTextBlock(body, "subheading", current.subheading);

@@ -1734,6 +1734,8 @@ export interface BannerDeviceConfig {
     city?: string;
     locality?: string;
     subLocality?: string;
+    /** Sponsored-style: { [state]: { [city]: localities[] } } */
+    coverage?: Record<string, Record<string, string[]>>;
   };
 }
 

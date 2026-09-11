@@ -159,6 +159,7 @@ export function normalizeLocation(body: Record<string, unknown>) {
   const city = String(body.city || "").trim();
   const locality = String(body.locality || "").trim();
   const subLocality = String(body.subLocality || body.sub_locality || "").trim();
+  const coverage = normalizeLocationCoverage(body.coverage);
 
   if (city && !state) {
     throw new Error("State is required when City is set");
@@ -166,11 +167,73 @@ export function normalizeLocation(body: Record<string, unknown>) {
   if (locality && !city) {
     throw new Error("City is required when Locality is set");
   }
-  if (subLocality && !locality) {
+  // Sub-locality is optional/manual — allow without locality when using coverage.
+  if (subLocality && !locality && !Object.keys(coverage).length) {
     throw new Error("Locality is required when Sub-locality is set");
   }
 
-  return { state, city, locality, subLocality };
+  // Prefer coverage for targeting; keep flat fields as a light summary for older UIs.
+  let flatState = state;
+  let flatCity = city;
+  let flatLocality = locality;
+  if (Object.keys(coverage).length) {
+    const firstState = Object.keys(coverage)[0];
+    const firstCity = Object.keys(coverage[firstState] || {})[0] || "";
+    const firstLocs = coverage[firstState]?.[firstCity] || [];
+    flatState = firstState || "";
+    flatCity = firstCity || "";
+    flatLocality = firstLocs[0] || "";
+  }
+
+  return {
+    state: flatState,
+    city: flatCity,
+    locality: flatLocality,
+    subLocality,
+    coverage,
+  };
+}
+
+/** Same nested shape as sponsoredAd: { [state]: { [city]: string[] } } */
+export function normalizeLocationCoverage(raw: unknown): Record<
+  string,
+  Record<string, string[]>
+> {
+  let src: unknown = raw;
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (!trimmed) return {};
+    try {
+      src = JSON.parse(trimmed);
+    } catch {
+      throw new Error("Location coverage must be valid JSON");
+    }
+  }
+  if (!src || typeof src !== "object" || Array.isArray(src)) return {};
+
+  const out: Record<string, Record<string, string[]>> = {};
+  for (const [state, cities] of Object.entries(src as Record<string, unknown>)) {
+    const st = String(state || "").trim();
+    if (!st || !cities || typeof cities !== "object" || Array.isArray(cities)) {
+      continue;
+    }
+    out[st] = {};
+    for (const [city, locs] of Object.entries(cities as Record<string, unknown>)) {
+      const c = String(city || "").trim();
+      if (!c) continue;
+      out[st][c] = Array.isArray(locs)
+        ? [
+            ...new Set(
+              locs
+                .map((l) => String(l || "").trim())
+                .filter(Boolean),
+            ),
+          ]
+        : [];
+    }
+    if (!Object.keys(out[st]).length) delete out[st];
+  }
+  return out;
 }
 
 export function normalizePriority(raw: unknown): number {

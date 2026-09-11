@@ -69,9 +69,27 @@ const Banner = () => {
 
     const matchesSelectedCity = (config?: BannerDeviceConfig) => {
       const location = config?.location;
+      const coverage = location?.coverage;
+      const hasCoverage =
+        coverage &&
+        typeof coverage === "object" &&
+        !Array.isArray(coverage) &&
+        Object.keys(coverage).length > 0;
+
+      if (hasCoverage) {
+        for (const [st, cities] of Object.entries(coverage)) {
+          if (st.trim().toLowerCase() !== selectedState) continue;
+          if (!cities || typeof cities !== "object") continue;
+          for (const cityName of Object.keys(cities)) {
+            if (cityName.trim().toLowerCase() === selectedCityName) return true;
+          }
+        }
+        return false;
+      }
+
       const bannerState = location?.state?.trim().toLowerCase();
       const bannerCity = location?.city?.trim().toLowerCase();
-
+      if (!bannerState && !bannerCity) return true;
       return bannerState === selectedState && bannerCity === selectedCityName;
     };
 

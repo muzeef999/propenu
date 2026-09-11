@@ -8,6 +8,8 @@ export type SiteBannerLocation = {
   city?: string;
   locality?: string;
   subLocality?: string;
+  /** Sponsored-style map: { [state]: { [city]: localities[] } }. Empty = all India. */
+  coverage?: Record<string, Record<string, string[]>>;
 };
 
 export type SiteBannerTextBlock = {
@@ -42,6 +44,8 @@ const locationSchema = new Schema(
     city: { type: String, default: "", trim: true },
     locality: { type: String, default: "", trim: true },
     subLocality: { type: String, default: "", trim: true },
+    // Same nested shape as promotion.sponsoredAd
+    coverage: { type: Schema.Types.Mixed, default: () => ({}) },
   },
   { _id: false },
 );
@@ -83,7 +87,13 @@ function emptyDevices() {
         clickUrl: "",
         heading: { enabled: true, html: "" },
         subheading: { enabled: true, html: "" },
-        location: { state: "", city: "", locality: "", subLocality: "" },
+        location: {
+          state: "",
+          city: "",
+          locality: "",
+          subLocality: "",
+          coverage: {},
+        },
       },
     ]),
   );
