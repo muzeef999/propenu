@@ -316,6 +316,13 @@ export interface SiteBannerItem {
   _id: string;
   title?: string;
   priority?: number;
+  location?: {
+    state?: string;
+    city?: string;
+    locality?: string;
+    subLocality?: string;
+    coverage?: Record<string, Record<string, string[]>>;
+  };
   devices?: {
     desktop?: BannerDeviceConfig;
     laptop?: BannerDeviceConfig;

@@ -177,9 +177,12 @@ export function normalizeLocation(body: Record<string, unknown>) {
   let flatCity = city;
   let flatLocality = locality;
   if (Object.keys(coverage).length) {
-    const firstState = Object.keys(coverage)[0];
-    const firstCity = Object.keys(coverage[firstState] || {})[0] || "";
-    const firstLocs = coverage[firstState]?.[firstCity] || [];
+    const firstState = Object.keys(coverage)[0] || "";
+    const firstCity = firstState
+      ? Object.keys(coverage[firstState] || {})[0] || ""
+      : "";
+    const firstLocs =
+      firstState && firstCity ? coverage[firstState]?.[firstCity] || [] : [];
     flatState = firstState || "";
     flatCity = firstCity || "";
     flatLocality = firstLocs[0] || "";

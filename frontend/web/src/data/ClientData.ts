@@ -1743,6 +1743,13 @@ export interface SiteBannerItem {
   _id: string;
   title?: string;
   priority?: number;
+  location?: {
+    state?: string;
+    city?: string;
+    locality?: string;
+    subLocality?: string;
+    coverage?: Record<string, Record<string, string[]>>;
+  };
   devices?: {
     desktop?: BannerDeviceConfig;
     laptop?: BannerDeviceConfig;
@@ -1759,6 +1766,39 @@ export interface SiteBannerItem {
 export interface SiteBannersResponse {
   success: boolean;
   data: SiteBannerItem[];
+}
+
+/** Public resolve GET — slim image items only */
+export interface ResolvedBannerImage {
+  priority: number;
+  image: string;
+  heading: {
+    enabled: boolean;
+    html: string;
+  };
+}
+
+export interface ResolvedBannerDeviceBucket {
+  images: ResolvedBannerImage[];
+}
+
+export interface ResolvedSiteBannersData {
+  query: {
+    device: string;
+    state: string;
+    city: string;
+    locality: string;
+    subLocality: string;
+  };
+  desktop?: ResolvedBannerDeviceBucket;
+  laptop?: ResolvedBannerDeviceBucket;
+  tablet?: ResolvedBannerDeviceBucket;
+  mobile?: ResolvedBannerDeviceBucket;
+}
+
+export interface ResolvedSiteBannersResponse {
+  success: boolean;
+  data: ResolvedSiteBannersData;
 }
 
 export const getSiteLogo = async (): Promise<SiteLogoResponse | null> => {
@@ -1793,7 +1833,7 @@ export const getResolvedSiteBanners = async (params?: {
   locality?: string;
   subLocality?: string;
   device?: string;
-}): Promise<SiteBannersResponse | null> => {
+}): Promise<ResolvedSiteBannersResponse | null> => {
   try {
     const query = new URLSearchParams();
 

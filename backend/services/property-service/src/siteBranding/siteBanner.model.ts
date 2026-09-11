@@ -17,13 +17,12 @@ export type SiteBannerTextBlock = {
   html: string;
 };
 
-/** One device creative — fully separate from other sizes. */
+/** One device creative — image/text only (location is banner-level). */
 export type SiteBannerDevice = {
   image: string;
   clickUrl: string;
   heading: SiteBannerTextBlock;
   subheading: SiteBannerTextBlock;
-  location: SiteBannerLocation;
 };
 
 export type SiteBannerDevices = Record<BannerSlot, SiteBannerDevice>;
@@ -31,6 +30,8 @@ export type SiteBannerDevices = Record<BannerSlot, SiteBannerDevice>;
 export interface ISiteBanner extends Document {
   title: string;
   priority: number;
+  /** Shared by all 4 device creatives */
+  location: SiteBannerLocation;
   devices: SiteBannerDevices;
   createdBy?: mongoose.Types.ObjectId;
   updatedBy?: mongoose.Types.ObjectId;
@@ -44,7 +45,6 @@ const locationSchema = new Schema(
     city: { type: String, default: "", trim: true },
     locality: { type: String, default: "", trim: true },
     subLocality: { type: String, default: "", trim: true },
-    // Same nested shape as promotion.sponsoredAd
     coverage: { type: Schema.Types.Mixed, default: () => ({}) },
   },
   { _id: false },
@@ -70,13 +70,19 @@ const deviceSchema = new Schema(
       type: textBlockSchema,
       default: () => ({ enabled: true, html: "" }),
     },
-    location: {
-      type: locationSchema,
-      default: () => ({}),
-    },
   },
   { _id: false },
 );
+
+export function emptyLocation(): SiteBannerLocation {
+  return {
+    state: "",
+    city: "",
+    locality: "",
+    subLocality: "",
+    coverage: {},
+  };
+}
 
 function emptyDevices() {
   return Object.fromEntries(
@@ -87,13 +93,6 @@ function emptyDevices() {
         clickUrl: "",
         heading: { enabled: true, html: "" },
         subheading: { enabled: true, html: "" },
-        location: {
-          state: "",
-          city: "",
-          locality: "",
-          subLocality: "",
-          coverage: {},
-        },
       },
     ]),
   );
@@ -123,6 +122,10 @@ const siteBannerSchema = new Schema<ISiteBanner>(
       min: 0,
       max: 9999,
     },
+    location: {
+      type: locationSchema,
+      default: emptyLocation,
+    },
     devices: {
       type: devicesSchema,
       default: emptyDevices,
@@ -135,8 +138,17 @@ const siteBannerSchema = new Schema<ISiteBanner>(
 
 siteBannerSchema.index({ priority: -1, updatedAt: -1 });
 
-export const SiteBanner: Model<ISiteBanner> =
-  mongoose.models.SiteBanner ||
-  mongoose.model<ISiteBanner>("SiteBanner", siteBannerSchema);
+// Re-register so banner-level `location` is always on the schema (avoids stale model cache).
+if (mongoose.models.SiteBanner) {
+  delete mongoose.models.SiteBanner;
+}
+if ((mongoose as any).modelSchemas?.SiteBanner) {
+  delete (mongoose as any).modelSchemas.SiteBanner;
+}
+
+export const SiteBanner: Model<ISiteBanner> = mongoose.model<ISiteBanner>(
+  "SiteBanner",
+  siteBannerSchema,
+);
 
 export { emptyDevices };

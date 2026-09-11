@@ -1,6 +1,12 @@
 import { Types } from "mongoose";
 import { uploadFile } from "../utils/uploadFile";
-import { SiteBanner, emptyDevices, ISiteBanner } from "./siteBanner.model";
+import {
+  SiteBanner,
+  emptyDevices,
+  emptyLocation,
+  ISiteBanner,
+  SiteBannerLocation,
+} from "./siteBanner.model";
 import { SiteLogo } from "./siteLogo.model";
 import {
   BANNER_SLOT_KEYS,
@@ -15,26 +21,91 @@ import {
   isLogoVideoFile,
   normalizeClickUrl,
   normalizeLocation,
+  normalizeLocationCoverage,
   normalizePriority,
   normalizeTextBlock,
   resolveLogoMimeType,
 } from "./siteBranding.validation";
 
-type MulterFiles = {
-  [fieldname: string]: Express.Multer.File[];
-};
-
 function isBannerSlot(value: string): value is BannerSlot {
   return (BANNER_SLOT_KEYS as string[]).includes(value);
 }
 
-/** Normalize legacy flat banners → devices shape for API responses. */
+function toPlainCoverage(raw: unknown): Record<string, Record<string, string[]>> {
+  if (!raw) return {};
+  if (typeof raw === "string") {
+    try {
+      return toPlainCoverage(JSON.parse(raw));
+    } catch {
+      return {};
+    }
+  }
+  // Mongoose Map
+  if (typeof (raw as any)?.toObject === "function") {
+    return toPlainCoverage((raw as any).toObject());
+  }
+  if (raw instanceof Map) {
+    const obj: Record<string, unknown> = {};
+    raw.forEach((v, k) => {
+      obj[String(k)] = v;
+    });
+    return toPlainCoverage(obj);
+  }
+  if (typeof raw !== "object" || Array.isArray(raw)) return {};
+  return normalizeLocationCoverage(raw);
+}
+
+function pickBannerLocation(obj: any): SiteBannerLocation {
+  const top = obj?.location;
+  const topCoverage = toPlainCoverage(top?.coverage);
+  if (
+    top &&
+    (top.state ||
+      top.city ||
+      top.locality ||
+      top.subLocality ||
+      Object.keys(topCoverage).length)
+  ) {
+    return normalizeLocation({
+      state: top.state,
+      city: top.city,
+      locality: top.locality,
+      subLocality: top.subLocality,
+      coverage: topCoverage,
+    });
+  }
+
+  for (const slot of BANNER_SLOT_KEYS) {
+    const loc = obj?.devices?.[slot]?.location;
+    if (!loc) continue;
+    const coverage = toPlainCoverage(loc.coverage);
+    const has =
+      loc.state ||
+      loc.city ||
+      loc.locality ||
+      loc.subLocality ||
+      Object.keys(coverage).length;
+    if (!has) continue;
+    return normalizeLocation({
+      state: loc.state,
+      city: loc.city,
+      locality: loc.locality,
+      subLocality: loc.subLocality,
+      coverage,
+    });
+  }
+
+  return emptyLocation();
+}
+
+/** Normalize banners → shared location + devices without per-device location. */
 export function normalizeBannerDoc(raw: any) {
   if (!raw) return null;
   const obj = typeof raw.toObject === "function" ? raw.toObject() : { ...raw };
+  const location = pickBannerLocation(obj);
+  const devices = emptyDevices();
 
   if (obj.devices && typeof obj.devices === "object") {
-    const devices = emptyDevices();
     for (const slot of BANNER_SLOT_KEYS) {
       const d = obj.devices[slot] || {};
       devices[slot] = {
@@ -48,66 +119,36 @@ export function normalizeBannerDoc(raw: any) {
           enabled: d.subheading?.enabled !== false,
           html: String(d.subheading?.html || ""),
         },
-        location: {
-          state: String(d.location?.state || ""),
-          city: String(d.location?.city || ""),
-          locality: String(d.location?.locality || ""),
-          subLocality: String(d.location?.subLocality || ""),
-          coverage:
-            d.location?.coverage &&
-            typeof d.location.coverage === "object" &&
-            !Array.isArray(d.location.coverage)
-              ? d.location.coverage
-              : {},
-        },
       };
     }
-    return {
-      ...obj,
-      devices,
-      savedDevices: BANNER_SLOT_KEYS.filter((s) => Boolean(devices[s]?.image)),
+  } else {
+    // Legacy: images + shared heading/clickUrl
+    const sharedClick = String(obj.clickUrl || "");
+    const sharedHeading = {
+      enabled: obj.heading?.enabled !== false,
+      html: String(obj.heading?.html || ""),
     };
-  }
-
-  // Legacy: images + shared heading/location/clickUrl
-  const devices = emptyDevices();
-  const sharedClick = String(obj.clickUrl || "");
-  const sharedHeading = {
-    enabled: obj.heading?.enabled !== false,
-    html: String(obj.heading?.html || ""),
-  };
-  const sharedSub = {
-    enabled: obj.subheading?.enabled !== false,
-    html: String(obj.subheading?.html || ""),
-  };
-  const sharedLoc = {
-    state: String(obj.location?.state || ""),
-    city: String(obj.location?.city || ""),
-    locality: String(obj.location?.locality || ""),
-    subLocality: String(obj.location?.subLocality || ""),
-    coverage:
-      obj.location?.coverage &&
-      typeof obj.location.coverage === "object" &&
-      !Array.isArray(obj.location.coverage)
-        ? obj.location.coverage
-        : {},
-  };
-  for (const slot of BANNER_SLOT_KEYS) {
-    const image = String(obj.images?.[slot] || "");
-    if (!image) continue;
-    devices[slot] = {
-      image,
-      clickUrl: sharedClick,
-      heading: { ...sharedHeading },
-      subheading: { ...sharedSub },
-      location: { ...sharedLoc },
+    const sharedSub = {
+      enabled: obj.subheading?.enabled !== false,
+      html: String(obj.subheading?.html || ""),
     };
+    for (const slot of BANNER_SLOT_KEYS) {
+      const image = String(obj.images?.[slot] || "");
+      if (!image) continue;
+      devices[slot] = {
+        image,
+        clickUrl: sharedClick,
+        heading: { ...sharedHeading },
+        subheading: { ...sharedSub },
+      };
+    }
   }
 
   return {
     _id: obj._id,
     title: obj.title,
     priority: obj.priority ?? 0,
+    location,
     devices,
     savedDevices: BANNER_SLOT_KEYS.filter((s) => Boolean(devices[s]?.image)),
     createdAt: obj.createdAt,
@@ -268,27 +309,72 @@ export async function resolveSiteBanners(query: {
   device?: string;
 }) {
   const banners = await listSiteBanners();
-  const device = String(query.device || "").toLowerCase();
-  const slots = isBannerSlot(device) ? [device] : BANNER_SLOT_KEYS;
+  const deviceRaw = String(query.device || "").trim().toLowerCase();
+  const deviceFilter = isBannerSlot(deviceRaw) ? deviceRaw : "";
+  const slots = deviceFilter ? [deviceFilter] : BANNER_SLOT_KEYS;
 
-  return banners
-    .map((banner) => {
-      const matched: Partial<Record<BannerSlot, any>> = {};
-      for (const slot of slots) {
-        const block = banner?.devices?.[slot];
-        if (!block?.image) continue;
-        if (!deviceMatchesLocation(block.location, query)) continue;
-        matched[slot] = block;
-      }
-      if (!Object.keys(matched).length) return null;
-      return {
-        _id: banner._id,
-        title: banner.title,
-        priority: banner.priority,
-        devices: matched,
-      };
-    })
-    .filter(Boolean);
+  type ResolveImage = {
+    priority: number;
+    image: string;
+    heading: { enabled: boolean; html: string };
+  };
+
+  const byDevice: Record<BannerSlot, ResolveImage[]> = {
+    desktop: [],
+    laptop: [],
+    tablet: [],
+    mobile: [],
+  };
+
+  for (const banner of banners) {
+    if (!banner) continue;
+    if (!deviceMatchesLocation(banner.location || emptyLocation(), query)) {
+      continue;
+    }
+    const priority = Number(banner.priority ?? 0) || 0;
+    for (const slot of slots) {
+      const block = banner.devices?.[slot];
+      const image = String(block?.image || "").trim();
+      if (!image) continue;
+      byDevice[slot].push({
+        priority,
+        image,
+        heading: {
+          enabled: block?.heading?.enabled !== false,
+          html: String(block?.heading?.html || ""),
+        },
+      });
+    }
+  }
+
+  for (const slot of BANNER_SLOT_KEYS) {
+    byDevice[slot].sort((a, b) => b.priority - a.priority);
+  }
+
+  const queryEcho = {
+    device: deviceFilter,
+    state: String(query.state || "").trim(),
+    city: String(query.city || "").trim(),
+    locality: String(query.locality || "").trim(),
+    subLocality: String(query.subLocality || "").trim(),
+  };
+
+  if (deviceFilter) {
+    return {
+      query: queryEcho,
+      [deviceFilter]: {
+        images: byDevice[deviceFilter],
+      },
+    };
+  }
+
+  return {
+    query: queryEcho,
+    desktop: { images: byDevice.desktop },
+    laptop: { images: byDevice.laptop },
+    tablet: { images: byDevice.tablet },
+    mobile: { images: byDevice.mobile },
+  };
 }
 
 export async function createSiteBanner(
@@ -298,10 +384,27 @@ export async function createSiteBanner(
   const title = String(body.title || "").trim();
   if (!title) throw new Error("Title is required");
   const priority = normalizePriority(body.priority);
+  const location =
+    body.location && typeof body.location === "object"
+      ? normalizeLocation({
+          ...(body.location as Record<string, unknown>),
+          coverage:
+            (body.location as Record<string, unknown>).coverage ??
+            body.coverage ??
+            {},
+        })
+      : normalizeLocation({
+          state: body.state,
+          city: body.city,
+          locality: body.locality,
+          subLocality: body.subLocality ?? body.sub_locality,
+          coverage: body.coverage,
+        });
 
   const doc = await SiteBanner.create({
     title,
     priority,
+    location,
     devices: emptyDevices(),
     createdBy: userId ? new Types.ObjectId(userId) : undefined,
     updatedBy: userId ? new Types.ObjectId(userId) : undefined,
@@ -326,6 +429,57 @@ export async function updateSiteBannerMeta(
   if (body.priority !== undefined) {
     existing.priority = normalizePriority(body.priority);
   }
+
+  const hasLocationPatch =
+    body.coverage !== undefined ||
+    body.location !== undefined ||
+    body.state !== undefined ||
+    body.city !== undefined ||
+    body.locality !== undefined ||
+    body.subLocality !== undefined ||
+    body.sub_locality !== undefined;
+
+  if (hasLocationPatch) {
+    // Full replace when `location` object is sent (edit add/remove must persist).
+    let nextLocation: SiteBannerLocation;
+    if (body.location !== undefined && typeof body.location === "object") {
+      const locSrc = body.location as Record<string, unknown>;
+      nextLocation = normalizeLocation({
+        state: locSrc.state ?? "",
+        city: locSrc.city ?? "",
+        locality: locSrc.locality ?? "",
+        subLocality: locSrc.subLocality ?? locSrc.sub_locality ?? "",
+        coverage: locSrc.coverage ?? {},
+      });
+    } else {
+      const current = existing.location || emptyLocation();
+      nextLocation = normalizeLocation({
+        state: body.state !== undefined ? body.state : current.state,
+        city: body.city !== undefined ? body.city : current.city,
+        locality:
+          body.locality !== undefined ? body.locality : current.locality,
+        subLocality:
+          body.subLocality !== undefined || body.sub_locality !== undefined
+            ? body.subLocality ?? body.sub_locality
+            : current.subLocality,
+        coverage:
+          body.coverage !== undefined
+            ? body.coverage
+            : current.coverage || {},
+      });
+    }
+    // Plain object + markModified so Mixed `coverage` always persists.
+    existing.set("location", {
+      state: nextLocation.state || "",
+      city: nextLocation.city || "",
+      locality: nextLocation.locality || "",
+      subLocality: nextLocation.subLocality || "",
+      coverage: nextLocation.coverage || {},
+    });
+    existing.markModified("location");
+    existing.markModified("location.coverage");
+  }
+
   if (userId) existing.updatedBy = new Types.ObjectId(userId);
   await existing.save();
   return normalizeBannerDoc(existing);
@@ -372,29 +526,15 @@ export async function upsertBannerDevice(
   const clickUrl = normalizeClickUrl(body.clickUrl ?? current.clickUrl, {
     optional: true,
   });
-  const location = normalizeLocation({
-    state: body.state !== undefined ? body.state : current.location?.state,
-    city: body.city !== undefined ? body.city : current.location?.city,
-    locality:
-      body.locality !== undefined ? body.locality : current.location?.locality,
-    subLocality:
-      body.subLocality !== undefined || body.sub_locality !== undefined
-        ? body.subLocality ?? body.sub_locality
-        : current.location?.subLocality,
-    coverage:
-      body.coverage !== undefined
-        ? body.coverage
-        : current.location?.coverage || {},
-  });
   const heading = normalizeTextBlock(body, "heading", current.heading);
   const subheading = normalizeTextBlock(body, "subheading", current.subheading);
 
+  // Device creatives only — location lives on the banner once.
   (existing.devices as any)[slot] = {
     image: imageUrl,
     clickUrl,
     heading,
     subheading,
-    location,
   };
   existing.markModified("devices");
   if (userId) existing.updatedBy = new Types.ObjectId(userId);
