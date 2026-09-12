@@ -30,12 +30,23 @@ const pickSlide = (
   return images[index] || images[0];
 };
 
+const BANNER_CACHE_PREFIX = "propenu-site-banners";
+
+const getBannerCacheKey = (state?: string, city?: string) => {
+  const cleanState = String(state || "").trim().toLowerCase();
+  const cleanCity = String(city || "").trim().toLowerCase();
+  if (!cleanState || !cleanCity) return "";
+  return `${BANNER_CACHE_PREFIX}:${cleanState}:${cleanCity}`;
+};
+
 const Banner = () => {
   const [activeBannerIdx, setActiveBannerIdx] = useState(0);
   const [previousBannerIdx, setPreviousBannerIdx] = useState<number | null>(null);
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTransitioningRef = useRef(false);
   const { selectedCity } = useCity();
+  const hasSelectedCity = Boolean(selectedCity?.state && selectedCity?.city);
+  const bannerCacheKey = getBannerCacheKey(selectedCity?.state, selectedCity?.city);
 
   const {
     data: bannersData,
@@ -51,8 +62,17 @@ const Banner = () => {
         state: selectedCity?.state,
         city: selectedCity?.city,
       }),
-    enabled: Boolean(selectedCity?.state && selectedCity?.city),
+    enabled: hasSelectedCity,
     staleTime: 1000 * 60 * 15,
+    placeholderData: () => {
+      if (!bannerCacheKey || typeof window === "undefined") return undefined;
+      try {
+        const cached = window.localStorage.getItem(bannerCacheKey);
+        return cached ? JSON.parse(cached) : undefined;
+      } catch {
+        return undefined;
+      }
+    },
   });
 
   const deviceImages = useMemo(() => {
@@ -77,8 +97,16 @@ const Banner = () => {
     [deviceImages],
   );
 
-  const hasSelectedCity = Boolean(selectedCity?.state && selectedCity?.city);
   const canShowFallbackBanner = hasSelectedCity && hasFetchedBanners;
+
+  useEffect(() => {
+    if (!bannerCacheKey || !bannersData?.success) return;
+    try {
+      window.localStorage.setItem(bannerCacheKey, JSON.stringify(bannersData));
+    } catch {
+      // Cache is best-effort only.
+    }
+  }, [bannerCacheKey, bannersData]);
 
   const showBanner = (nextIndex: number) => {
     if (
