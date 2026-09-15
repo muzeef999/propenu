@@ -50,6 +50,7 @@ const DEFAULT_FALLBACK_CITY: LocationItem = {
   _id: "default-hyderabad",
   city: "Hyderabad",
   state: "Telangana",
+  category: "popular",
   localities: [],
 };
 

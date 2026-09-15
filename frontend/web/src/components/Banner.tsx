@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "./bannerStyle.css";
 import SearchBox from "./SearchBox";
 import { HiChevronLeft, HiChevronRight } from "react-icons/hi2";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getResolvedSiteBanners,
   ResolvedBannerImage,
@@ -40,6 +40,7 @@ const getBannerCacheKey = (state?: string, city?: string) => {
 };
 
 const Banner = () => {
+  const queryClient = useQueryClient();
   const [activeBannerIdx, setActiveBannerIdx] = useState(0);
   const [previousBannerIdx, setPreviousBannerIdx] = useState<number | null>(null);
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -47,16 +48,17 @@ const Banner = () => {
   const { selectedCity } = useCity();
   const hasSelectedCity = Boolean(selectedCity?.state && selectedCity?.city);
   const bannerCacheKey = getBannerCacheKey(selectedCity?.state, selectedCity?.city);
-
-  const {
-    data: bannersData,
-    isFetched: hasFetchedBanners,
-  } = useQuery({
-    queryKey: [
+  const bannerQueryKey = useMemo(
+    () => [
       "site-branding-banners-resolve",
       selectedCity?.state || "",
       selectedCity?.city || "",
     ],
+    [selectedCity?.city, selectedCity?.state],
+  );
+
+  const { data: bannersData } = useQuery({
+    queryKey: bannerQueryKey,
     queryFn: () =>
       getResolvedSiteBanners({
         state: selectedCity?.state,
@@ -64,21 +66,19 @@ const Banner = () => {
       }),
     enabled: hasSelectedCity,
     staleTime: 1000 * 60 * 15,
-    // Read the banner cache synchronously so isFetched = true on the very
-    // first render — prevents the blank-banner flash while waiting for the
-    // network response. TanStack Query will still refetch in the background
-    // when the data is stale.
-    initialData: () => {
-      if (!bannerCacheKey || typeof window === "undefined") return undefined;
-      try {
-        const cached = window.localStorage.getItem(bannerCacheKey);
-        return cached ? JSON.parse(cached) : undefined;
-      } catch {
-        return undefined;
-      }
-    },
-    initialDataUpdatedAt: 0, // treat as stale so background refetch always runs
   });
+
+  useEffect(() => {
+    if (!bannerCacheKey || !hasSelectedCity) return;
+
+    try {
+      const cached = window.localStorage.getItem(bannerCacheKey);
+      if (!cached) return;
+      queryClient.setQueryData(bannerQueryKey, JSON.parse(cached));
+    } catch {
+      // Ignore malformed cache.
+    }
+  }, [bannerCacheKey, bannerQueryKey, hasSelectedCity, queryClient]);
 
   const deviceImages = useMemo(() => {
     const data = bannersData?.data;
@@ -102,7 +102,7 @@ const Banner = () => {
     [deviceImages],
   );
 
-  const canShowFallbackBanner = hasSelectedCity && hasFetchedBanners;
+  const canShowFallbackBanner = false;
 
   useEffect(() => {
     if (!bannerCacheKey || !bannersData?.success) return;

@@ -240,7 +240,7 @@ const Navbar = () => {
   return (
     <header>
       <nav
-        className="relative z-50 w-full border-b border-gray-200 bg-white"
+        className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white"
         aria-label="Main navigation"
       >
         <div className="border-b border-[#cfead8] bg-[linear-gradient(135deg,#f4fff7_0%,#e1f7e8_30%,#caecd7_68%,#eefaf2_100%)] md:hidden">
