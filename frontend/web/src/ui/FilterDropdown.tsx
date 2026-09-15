@@ -1,7 +1,7 @@
 // components/FilterDropdown.tsx
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 export type Align = "left" | "center" | "right";
@@ -33,7 +33,11 @@ export default function FilterDropdown({
 }: FilterDropdownProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const ref = useRef<HTMLDivElement | null>(null);
+  const [panelStyle, setPanelStyle] = useState<React.CSSProperties>({});
+  const triggerRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  // Wrap both refs so click-outside can check both
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const openState =
     typeof controlledOpen === "boolean" ? controlledOpen : internalOpen;
@@ -47,12 +51,46 @@ export default function FilterDropdown({
     setMounted(true);
   }, []);
 
-  // Close on click outside or Escape key
+  /* ---- Position the portaled panel below the trigger ---- */
+  const updatePosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const style: React.CSSProperties = {
+      position: "fixed",
+      top: rect.bottom + 8,
+      zIndex: 9999,
+    };
+    if (align === "right") {
+      style.right = window.innerWidth - rect.right;
+    } else if (align === "center") {
+      style.left = rect.left + rect.width / 2;
+      style.transform = "translateX(-50%)";
+    } else {
+      style.left = rect.left;
+    }
+    setPanelStyle(style);
+  }, [align]);
+
+  useEffect(() => {
+    if (!openState) return;
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [openState, updatePosition]);
+
+  // Close on click outside (trigger or panel) or Escape key
   useEffect(() => {
     if (!openState) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const inTrigger = triggerRef.current?.contains(target);
+      const inPanel = panelRef.current?.contains(target);
+      if (!inTrigger && !inPanel) {
         setOpen(false);
       }
     };
@@ -68,14 +106,6 @@ export default function FilterDropdown({
     };
   }, [openState]);
 
-  /* ---------------- Alignment ---------------- */
-  const alignClass =
-    align === "left"
-      ? "left-0"
-      : align === "center"
-      ? "left-1/2 -translate-x-1/2"
-      : "right-0";
-
   const arrowAlignClass =
     align === "left"
       ? "left-6"
@@ -84,9 +114,10 @@ export default function FilterDropdown({
       : "right-6";
 
   return (
-    <div ref={ref} className={`relative inline-block ${className ?? ""}`}>
+    <div ref={containerRef} className={`relative inline-block ${className ?? ""}`}>
       {/* Trigger */}
       <div
+        ref={triggerRef}
         onClick={() => setOpen(!openState)}
         aria-haspopup="menu"
         aria-expanded={openState}
@@ -105,36 +136,39 @@ export default function FilterDropdown({
       </div>
 
       {/* ================= OPEN STATE ================= */}
-      {openState && (
+      {openState && mounted && (
         <>
           {/* Backdrop (visual only) */}
-          {mounted &&
-            createPortal(
-              <div
-                className={backdropClassName}
-                onClick={() => setOpen(false)}
-              />,
-              document.body,
-            )}
-
-          {/* Dropdown Panel */}
-          <div className={`absolute z-60 mt-2 ${alignClass}`}>
+          {createPortal(
             <div
-              className={`${width} bg-white rounded-xl border border-gray-200 shadow-lg p-3 relative`}
+              className={backdropClassName}
+              onClick={() => setOpen(false)}
+            />,
+            document.body,
+          )}
+
+          {/* Dropdown Panel – portaled to body to escape any stacking context */}
+          {createPortal(
+            <div
+              ref={panelRef}
+              style={panelStyle}
             >
-              {showArrow && (
-                <div
-                  className={`absolute -top-2 ${arrowAlignClass} pointer-events-none`}
-                >
-                  <div className="w-3 h-3 bg-white rotate-45 border-t border-l border-gray-200" />
-                </div>
-              )}
+              <div
+                className={`${width} bg-white rounded-xl border border-gray-200 shadow-lg p-3 relative`}
+              >
+                {showArrow && (
+                  <div
+                    className={`absolute -top-2 ${arrowAlignClass} pointer-events-none`}
+                  >
+                    <div className="w-3 h-3 bg-white rotate-45 border-t border-l border-gray-200" />
+                  </div>
+                )}
 
-              {renderContent(() => setOpen(false))}
-
-              
-            </div>
-          </div>
+                {renderContent(() => setOpen(false))}
+              </div>
+            </div>,
+            document.body,
+          )}
         </>
       )}
     </div>

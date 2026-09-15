@@ -839,7 +839,7 @@ const FilterBar: React.FC = () => {
   );
 
   return (
-    <div className="sticky top-[60px] z-40 w-full bg-[#D1EFDD] px-3 shadow-sm md:top-16">
+    <div className="sticky top-[60px] z-50 w-full bg-[#D1EFDD] px-3 shadow-sm md:top-16">
       <div className="mx-auto flex h-14 items-center gap-4 px-4 container">
         {/* Listing Type + Category + Search */}
         <div className="flex items-center gap-3 rounded-xl bg-white px-4 py-2 shadow-sm md:w-full md:min-w-0 lg:w-auto lg:min-w-fit">
