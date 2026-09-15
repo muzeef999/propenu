@@ -8,6 +8,7 @@ import {
   fetchLocations,
   fetchSearchableLocations,
   setCityId,
+  setDetectedCity,
   clearCity,
   selectSelectedCity,
   selectLocalitiesByCity,
@@ -37,12 +38,19 @@ export function useCity() {
 
   function selectCity(city: LocationItem) {
     dispatch(setCityId(city._id));
-    localStorage.setItem("selectedCityId", city._id);
+    dispatch(setDetectedCity(city));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("selectedCityId", city._id);
+      localStorage.setItem("selectedCityData", JSON.stringify(city));
+    }
   }
 
   function clearSelectedCity() {
     dispatch(clearCity());
-    localStorage.removeItem("selectedCityId");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("selectedCityId");
+      localStorage.removeItem("selectedCityData");
+    }
     hasAttemptedAutoDetect.current = false;
   }
 
@@ -62,13 +70,6 @@ export function useCity() {
   }, [dispatch]);
 
   useEffect(() => {
-    const savedCityId = localStorage.getItem("selectedCityId");
-    if (savedCityId && !selectedCity) {
-      dispatch(setCityId(savedCityId));
-    }
-  }, [dispatch, selectedCity]);
-
-  useEffect(() => {
     if (!locations.length || hasAttemptedAutoDetect.current) {
       return;
     }
@@ -80,15 +81,20 @@ export function useCity() {
     const setSavedCity = () => {
       if (!savedCityId) return false;
 
-      const savedCityExists = resolvedLocations.current.some(
+      const savedCity = resolvedLocations.current.find(
         (city) => city._id === savedCityId,
       );
-      if (!savedCityExists) {
-        localStorage.removeItem("selectedCityId");
+      if (!savedCity) {
+        if (resolvedLocations.current.length > 0) {
+          localStorage.removeItem("selectedCityId");
+          localStorage.removeItem("selectedCityData");
+        }
         return false;
       }
 
       dispatch(setCityId(savedCityId));
+      dispatch(setDetectedCity(savedCity));
+      localStorage.setItem("selectedCityData", JSON.stringify(savedCity));
       return true;
     };
 
@@ -107,7 +113,9 @@ export function useCity() {
       if (!matchedCity) return false;
 
       dispatch(setCityId(matchedCity._id));
+      dispatch(setDetectedCity(matchedCity));
       localStorage.setItem("selectedCityId", matchedCity._id);
+      localStorage.setItem("selectedCityData", JSON.stringify(matchedCity));
       return true;
     };
 
@@ -120,7 +128,9 @@ export function useCity() {
       if (!defaultCity) return;
 
       dispatch(setCityId(defaultCity._id));
+      dispatch(setDetectedCity(defaultCity));
       localStorage.setItem("selectedCityId", defaultCity._id);
+      localStorage.setItem("selectedCityData", JSON.stringify(defaultCity));
     };
 
     const reverseGeocodeCurrentCity = async (

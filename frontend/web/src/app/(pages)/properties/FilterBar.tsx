@@ -10,6 +10,7 @@ import {
   selectAllCitiesWithLocalities,
   selectCityWithLocalities,
   setCityId,
+  setDetectedCity,
 } from "@/Redux/slice/citySlice";
 import {
   categoryOption,
@@ -533,9 +534,11 @@ const FilterBar: React.FC = () => {
     if (!matchedLocation?._id) return;
 
     dispatch(setCityId(matchedLocation._id));
+    dispatch(setDetectedCity(matchedLocation));
 
     if (typeof window !== "undefined") {
       window.localStorage.setItem("selectedCityId", matchedLocation._id);
+      window.localStorage.setItem("selectedCityData", JSON.stringify(matchedLocation));
     }
   };
 

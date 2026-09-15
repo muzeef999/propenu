@@ -347,7 +347,7 @@ const Navbar = () => {
                         <div className="flex min-w-0 items-center gap-1.5">
                           <LocationIcon size={14} color="#1b1b1b" />
                           <span className="truncate text-left text-[13px] font-medium text-[#2c2c2c]">
-                            {selectedCity?.city ?? "Select city"}
+                            {selectedCity?.city ?? "Hyderabad"}
                           </span>
                           <ArrowDropdownIcon
                             size={10}
@@ -500,7 +500,7 @@ const Navbar = () => {
                       <div className="flex gap-1 items-center justify-center">
                         <LocationIcon size={18} color="#27AE60" />
                         <span className="min-w-[90px] text-primary text-left truncate">
-                          {selectedCity?.city ?? "Select City"}
+                          {selectedCity?.city ?? "Hyderabad"}
                         </span>
                         <ArrowDropdownIcon
                           size={12}

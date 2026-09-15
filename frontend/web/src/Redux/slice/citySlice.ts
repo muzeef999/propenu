@@ -46,11 +46,18 @@ interface CityState {
   searchableStatus: "idle" | "loading" | "succeeded" | "failed";
 }
 
+const DEFAULT_FALLBACK_CITY: LocationItem = {
+  _id: "default-hyderabad",
+  city: "Hyderabad",
+  state: "Telangana",
+  localities: [],
+};
+
 const initialState: CityState = {
   locations: [],
   searchableLocations: [],
   selectedCityId: null,
-  detectedCity: null,
+  detectedCity: DEFAULT_FALLBACK_CITY,
   status: "idle",
   searchableStatus: "idle",
 };
@@ -143,7 +150,15 @@ export const selectSelectedCity = createSelector(
   selectCityState,
   (resolvedCities, { selectedCityId, detectedCity }) => {
     const city =
-      resolvedCities.find((item) => item._id === selectedCityId) ?? detectedCity;
+      resolvedCities.find((item) => item._id === selectedCityId) ??
+      (detectedCity?.city
+        ? resolvedCities.find(
+            (item) =>
+              item.city?.trim().toLowerCase() ===
+              detectedCity.city.trim().toLowerCase(),
+          )
+        : null) ??
+      detectedCity;
     if (!city) return null;
 
     return normalizeCity(city);

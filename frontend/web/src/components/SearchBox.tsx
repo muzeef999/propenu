@@ -18,6 +18,7 @@ import {
   selectAllCitiesWithLocalities,
   selectCityWithLocalities,
   setCityId,
+  setDetectedCity,
 } from "@/Redux/slice/citySlice";
 import { useRouter } from "next/navigation";
 import { ArrowDropdownIcon } from "@/icons/icons";
@@ -215,9 +216,11 @@ const SearchBox = ({
     if (!matchedLocation?._id) return;
 
     dispatch(setCityId(matchedLocation._id));
+    dispatch(setDetectedCity(matchedLocation));
 
     if (typeof window !== "undefined") {
       window.localStorage.setItem("selectedCityId", matchedLocation._id);
+      window.localStorage.setItem("selectedCityData", JSON.stringify(matchedLocation));
     }
   };
 
@@ -606,13 +609,25 @@ const SearchBox = ({
     onNavigate?.();
   };
 
+  // Split className: layout tokens (max-w-*, hidden, block) stay on the outer
+  // wrapper; visual tokens (shadow-*) move to the inner rounded shell so
+  // shadows respect the border-radius and don't bleed as a square layer.
+  const shadowFromClassName = className
+    ?.split(" ")
+    .filter((c) => c.startsWith("shadow"))
+    .join(" ");
+  const outerClassName = className
+    ?.split(" ")
+    .filter((c) => !c.startsWith("shadow"))
+    .join(" ");
+
   return (
     <div
       className={clsx(
         "relative w-full",
         !mobileMode && !className?.includes("max-w-") && "max-w-2xl",
         hideOnMobile ? "hidden md:block" : "block",
-        className,
+        outerClassName,
       )}
     >
       <div
@@ -626,6 +641,7 @@ const SearchBox = ({
             : mobileMode
               ? "rounded-lg p-1.5 shadow-lg"
               : "rounded-xl p-2 shadow-lg",
+          shadowFromClassName,
         )}
       >
         <div className={clsx("flex items-center", mobileMode ? "gap-1.5" : "gap-2")}>

@@ -64,7 +64,11 @@ const Banner = () => {
       }),
     enabled: hasSelectedCity,
     staleTime: 1000 * 60 * 15,
-    placeholderData: () => {
+    // Read the banner cache synchronously so isFetched = true on the very
+    // first render — prevents the blank-banner flash while waiting for the
+    // network response. TanStack Query will still refetch in the background
+    // when the data is stale.
+    initialData: () => {
       if (!bannerCacheKey || typeof window === "undefined") return undefined;
       try {
         const cached = window.localStorage.getItem(bannerCacheKey);
@@ -73,6 +77,7 @@ const Banner = () => {
         return undefined;
       }
     },
+    initialDataUpdatedAt: 0, // treat as stale so background refetch always runs
   });
 
   const deviceImages = useMemo(() => {
