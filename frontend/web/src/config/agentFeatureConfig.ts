@@ -3,7 +3,7 @@ import { Plan } from "@/types";
 export const agentFeatures = [
   {
     label: "Price",
-    render: (plan: Plan) => `₹${plan.price}/month`,
+    render: (plan: Plan) => `Rs.${plan.price}/month`,
   },
 
   {
@@ -12,8 +12,8 @@ export const agentFeatures = [
       plan.category === "both"
         ? "Sell + Rent"
         : plan.category === "rent"
-        ? "Rent"
-        : "Sell",
+          ? "Rent"
+          : "Sell",
   },
 
   {
@@ -21,7 +21,7 @@ export const agentFeatures = [
     render: (plan: Plan) =>
       plan.features?.PROPERTY_LISTING_LIMIT
         ? `Up to ${plan.features.PROPERTY_LISTING_LIMIT} listings`
-        : "—",
+        : "-",
   },
 
   {
@@ -29,22 +29,26 @@ export const agentFeatures = [
     render: (plan: Plan) => {
       const v = plan.features?.BUYER_REACH_PERCENT;
       if (!v) return "Limited";
-      return v === 100
-        ? "Unlimited (100% Buyers)"
-        : `${v}% Buyers`;
+      return v === 100 ? "Unlimited (100% Buyers)" : `${v}% Buyers`;
     },
   },
 
   {
-    label: "Buyer Access",
+    label: "Owner Contacts",
     render: (plan: Plan) =>
-      plan.features?.BUYER_ACCESS ? "✓" : "—",
+      plan.features?.CONTACT_LIMIT
+        ? `Up to ${plan.features.CONTACT_LIMIT} contacts`
+        : "-",
+  },
+
+  {
+    label: "Buyer Access",
+    render: (plan: Plan) => (plan.features?.BUYER_ACCESS ? "Yes" : "-"),
   },
 
   {
     label: "Lead Management Dashboard",
-    render: (plan: Plan) =>
-      plan.features?.LEAD_DASHBOARD ? "✓" : "—",
+    render: (plan: Plan) => (plan.features?.LEAD_DASHBOARD ? "Yes" : "-"),
   },
 
   {
@@ -52,6 +56,6 @@ export const agentFeatures = [
     render: (plan: Plan) =>
       plan.features?.TEAM_MEMBERS
         ? `Add up to ${plan.features.TEAM_MEMBERS} team members`
-        : "—",
+        : "-",
   },
 ];

@@ -54,6 +54,24 @@ function getRedirectAfterPlan(plan: Plan, user: any) {
   return "/membership";
 }
 
+function formatRupees(value: number) {
+  return `₹${Math.round(value).toLocaleString("en-IN")}`;
+}
+
+function getCheckoutDescription(plan: Plan, order: any, userType: Props["userType"]) {
+  if (
+    order?.paymentType === "upgrade" &&
+    typeof order.creditAdjusted === "number" &&
+    typeof order.finalPayable === "number"
+  ) {
+    return `Upgrade: ${formatRupees(plan.price)} - existing ${formatRupees(
+      order.creditAdjusted,
+    )} = ${formatRupees(order.finalPayable)}`;
+  }
+
+  return `${plan.name} Plan Subscription (${userType})`;
+}
+
 export default function PricingComparisonTable({
   plans,
   features,
@@ -123,7 +141,7 @@ export default function PricingComparisonTable({
         currency: order.currency,
         order_id: order.orderId,
         name: "Propenu",
-        description: `${plan.name} Plan Subscription (${userType})`,
+        description: getCheckoutDescription(plan, order, userType),
 
         prefill: {
           name: user?.user.fullName || "",
@@ -137,15 +155,7 @@ export default function PricingComparisonTable({
             razorpay_signature: response.razorpay_signature,
           });
 
-          const redirectMap: Record<string, string> = {
-            agent: "/agent/my-plan",
-            buyer: "/membership",
-            owner: "/membership",
-            builder: "/builder/my-plan",
-          };
-
-          const roleName = user?.user.roleName?.toLowerCase();
-          router.replace(redirectMap[roleName ?? ""] || "/postproperty");
+          router.replace(getRedirectAfterPlan(plan, user.user));
         },
 
         theme: { color: "#27AE60" },

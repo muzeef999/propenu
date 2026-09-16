@@ -15,6 +15,7 @@ type VerifyPaymentResult = {
   success: true;
   alreadyPaid?: boolean;
   subscriptionName?: string;
+  subscriptionUserType?: string;
   invoiceUrl?: string;
   message?: string;
 };
@@ -23,6 +24,21 @@ type InvoiceCustomer = {
   name?: string | undefined;
   phone?: string | undefined;
 };
+
+const GST_RATE = 0.18;
+
+function roundCurrency(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+function getContactLimitFromPlan(plan: any) {
+  const limit =
+    typeof plan?.features?.get === "function"
+      ? plan.features.get("CONTACT_OWNER_LIMIT") ?? plan.features.get("CONTACT_LIMIT")
+      : plan?.features?.CONTACT_OWNER_LIMIT ?? plan?.features?.CONTACT_LIMIT;
+
+  return typeof limit === "number" ? limit : undefined;
+}
 
 /* ======================================================
    CREATE PAYMENT ORDER
@@ -73,29 +89,8 @@ export async function createPaymentOrder(
         paymentType = "upgrade";
 
         oldPlanCode = oldPlan.code;
-
-        const totalDays = plan.durationDays || 30;
-
-        const usedMilliseconds =
-          Date.now() - new Date(activeSubscription.startDate!).getTime();
-
-        const usedDays = Math.floor(usedMilliseconds / (1000 * 60 * 60 * 24));
-
-        remainingDays = totalDays - usedDays;
-
-        if (remainingDays < 0) {
-          remainingDays = 0;
-        }
-
-        const oldDailyPrice = oldPlan.price / totalDays;
-
-        creditAdjusted = oldDailyPrice * remainingDays;
-
-        const newDailyPrice = plan.price / totalDays;
-
-        const remainingNewCost = newDailyPrice * remainingDays;
-
-        finalPayable = Math.max(remainingNewCost - creditAdjusted, 0);
+        creditAdjusted = oldPlan.price;
+        finalPayable = Math.max(plan.price - oldPlan.price, 0);
       }
 
       if (newRank < oldRank) {
@@ -161,6 +156,7 @@ export async function createPaymentOrder(
       usage: {
         contactUsed: 0,
         enquiryUsed: 0,
+        contactLimit: getContactLimitFromPlan(plan),
       },
     });
 
@@ -175,14 +171,20 @@ export async function createPaymentOrder(
      PAID PLAN → CREATE RAZORPAY ORDER
   ====================================================== */
 
+  const gstAmount = roundCurrency(finalPayable * GST_RATE);
+  const totalPayable = roundCurrency(finalPayable + gstAmount);
+
   const order = await razorpay.orders.create({
-    amount: Math.round(finalPayable * 100),
+    amount: Math.round(totalPayable * 100),
     currency: "INR",
     receipt: `pl_${plan._id.toString().slice(-6)}_${Date.now()}`,
     notes: {
       planId: plan._id.toString(),
       userId,
       userType: plan.userType,
+      baseAmount: String(finalPayable),
+      gstRate: String(GST_RATE * 100),
+      gstAmount: String(gstAmount),
     },
   });
 
@@ -193,7 +195,7 @@ export async function createPaymentOrder(
     userType,
     planId: plan._id,
     orderNumber,
-    amount: finalPayable,
+    amount: totalPayable,
     paymentType,
     oldPlanCode,
     newPlanCode: plan.code,
@@ -213,6 +215,9 @@ export async function createPaymentOrder(
     creditAdjusted,
     remainingDays,
     finalPayable,
+    gstRate: GST_RATE * 100,
+    gstAmount,
+    totalPayable,
     key: process.env.RAZORPAY_KEY_ID!,
   };
 }
@@ -256,6 +261,7 @@ export async function verifyPaymentAndActivate(
       success: true,
       alreadyPaid: true,
       ...(resolvedName && { subscriptionName: resolvedName }),
+      ...(existingPlan?.userType && { subscriptionUserType: existingPlan.userType }),
       message: "Payment already verified",
     };
   }
@@ -272,6 +278,31 @@ export async function verifyPaymentAndActivate(
   if (!plan) {
     throw new Error("Plan not found");
   }
+
+  const activeSubscription = await Subscription.findOne({
+    userId: payment.userId,
+    category: plan.category,
+    status: "active",
+  });
+
+  const baseContactLimit = getContactLimitFromPlan(plan);
+  let carryForwardContacts = 0;
+
+  if (
+    payment.paymentType === "renewal" &&
+    typeof baseContactLimit === "number" &&
+    activeSubscription
+  ) {
+    const currentLimit =
+      (activeSubscription as any).usage?.contactLimit ?? baseContactLimit;
+    const currentUsed = (activeSubscription as any).usage?.contactUsed ?? 0;
+    carryForwardContacts = Math.max(currentLimit - currentUsed, 0);
+  }
+
+  const totalContactLimit =
+    typeof baseContactLimit === "number"
+      ? baseContactLimit + carryForwardContacts
+      : undefined;
 
   /* ======================================================
      EXPIRE OLD SUBSCRIPTIONS
@@ -306,7 +337,7 @@ export async function verifyPaymentAndActivate(
       payment.userId.toString(),
     userPhone: invoiceCustomer?.phone || user?.phone,
     planName: plan.name || plan.code,
-    amount: plan.price,
+    amount: payment.finalPayable || plan.price,
     date: new Date().toISOString().split("T")[0] || "",
   });
 
@@ -339,6 +370,7 @@ export async function verifyPaymentAndActivate(
     usage: {
       contactUsed: 0,
       enquiryUsed: 0,
+      contactLimit: totalContactLimit,
     },
   });
 
@@ -372,6 +404,7 @@ export async function verifyPaymentAndActivate(
   return {
     success: true,
     subscriptionName: plan.name || plan.code,
+    subscriptionUserType: plan.userType,
     invoiceUrl,
     message: "Payment verified & subscription activated",
   };

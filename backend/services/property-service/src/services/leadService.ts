@@ -201,7 +201,10 @@ export const createLead = async (
     throw new Error("Invalid buyer subscription plan");
   }
 
-  const contactLimit = viewerPlan.features?.get("CONTACT_OWNER_LIMIT");
+  const contactLimit =
+    viewerSub.usage?.contactLimit ??
+    viewerPlan.features?.get("CONTACT_OWNER_LIMIT") ??
+    viewerPlan.features?.get("CONTACT_LIMIT");
   if (
     typeof contactLimit === "number" &&
     viewerSub.usage.contactUsed >= contactLimit

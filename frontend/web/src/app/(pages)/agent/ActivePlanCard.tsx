@@ -197,16 +197,7 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
               {/* Upgrade button */}
               <button
                 onClick={() => {
-
-                  const route = getPlanRoute(role, plan.category);
-
-                  if (route) {
-                    router.push(route);
-                  } else {
-                    document
-                      .getElementById("pricing-table")
-                      ?.scrollIntoView({ behavior: "smooth" });
-                  }
+                  router.push("/plans/pricing/agent-plan");
                 }}
                 className="mt-4 w-full rounded-md bg-[#27AE60] py-2 text-sm font-semibold text-white hover:bg-green-700 transition cursor-pointer"
               >

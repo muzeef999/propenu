@@ -250,7 +250,7 @@ export default function BrochurePreview({
               {isPdf ? (
                 <div
                   className={`overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm ${
-                    isFullscreen ? "fixed inset-0 z-50 border-0 bg-[#252525] p-0 shadow-none" : ""
+                    isFullscreen ? "fixed inset-0 z-[9999] border-0 bg-[#252525] p-0 shadow-none" : ""
                   }`}
                 >
                  

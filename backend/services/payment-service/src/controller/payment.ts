@@ -16,7 +16,7 @@ const isAgentRole = (roleName?: string) =>
 
 async function sendSubscriptionWhatsAppNotification(
   userId: string,
-  roleName: string | undefined,
+  subscriptionUserType: string | undefined,
   subscriptionName: string,
 ) {
   try {
@@ -28,7 +28,7 @@ async function sendSubscriptionWhatsAppNotification(
 
     const parameters = [user.name.trim() || "Customer", subscriptionName];
 
-    if (isAgentRole(roleName)) {
+    if (isAgentRole(subscriptionUserType)) {
       await sendSubscriptionActivated(user.phone, parameters);
     } else {
       await sendPaymentSuccess(user.phone, parameters);
@@ -38,7 +38,7 @@ async function sendSubscriptionWhatsAppNotification(
   } catch (whatsAppError: any) {
     console.error("[payment] failed to send subscription activation WhatsApp", {
       userId,
-      roleName,
+      subscriptionUserType,
       subscriptionName,
       error: whatsAppError?.message,
       response: whatsAppError?.response,
@@ -81,7 +81,7 @@ export async function createPayment(req: AuthRequest, res: Response) {
     ) {
       whatsappSent = await sendSubscriptionWhatsAppNotification(
         req.user.id,
-        req.user.roleName,
+        userType,
         result.subscriptionName,
       );
     }
@@ -131,7 +131,7 @@ export async function verifyPayment(req: AuthRequest, res: Response) {
           req.user.name?.trim() || "Customer",
           result.subscriptionName,
           {
-            roleName: req.user.roleName,
+            roleName: result.subscriptionUserType,
             invoiceLink: result.invoiceUrl,
           },
         );
@@ -153,7 +153,7 @@ export async function verifyPayment(req: AuthRequest, res: Response) {
     if (!result.alreadyPaid && result.subscriptionName && req.user?.id) {
       whatsappSent = await sendSubscriptionWhatsAppNotification(
         req.user.id,
-        req.user.roleName,
+        result.subscriptionUserType,
         result.subscriptionName,
       );
     }

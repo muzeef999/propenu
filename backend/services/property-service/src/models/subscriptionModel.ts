@@ -19,6 +19,7 @@ const SubscriptionSchema = new Schema(
   usage: {
     contactUsed: { type: Number, default: 0 },
     enquiryUsed: { type: Number, default: 0 },
+    contactLimit: { type: Number },
   },
 
     startDate: Date,

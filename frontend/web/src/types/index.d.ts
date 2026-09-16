@@ -525,6 +525,7 @@ type Plan = {
     TEAM_MEMBERS?: number;
 
     CONTACT_OWNER_LIMIT?: number;
+    CONTACT_LIMIT?: number;
 
     PROPERTY_COMPARISON?: boolean;
     ENQUIRY_LIMIT?: number;

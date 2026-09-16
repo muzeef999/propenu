@@ -75,8 +75,9 @@ export async function getMySubscription(req: AuthRequest, res: Response) {
 }
 
     // 👤 BUYER → CONTACT PLANS
-    if (plan.features?.CONTACT_OWNER_LIMIT) {
-      total = plan.features.CONTACT_OWNER_LIMIT;
+    const contactLimit = plan.features?.CONTACT_OWNER_LIMIT ?? plan.features?.CONTACT_LIMIT;
+    if (contactLimit) {
+      total = (sub as any).usage?.contactLimit ?? contactLimit;
       used = (sub as any).usage?.contactUsed || 0;
       unit = "contacts";
     }

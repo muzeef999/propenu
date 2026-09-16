@@ -89,6 +89,8 @@ const formatVerificationStatus = (status?: string) => {
   return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
 };
 
+const onlyDigits = (value: string) => value.replace(/\D/g, "");
+
 const VerificationStatusBadge = ({ status }: { status?: string }) => {
   const normalized = (status || "pending").toLowerCase();
 
@@ -292,9 +294,15 @@ const EditModal = ({
             />
             <InputField
               label="Experience (Years)"
-              type="number"
+              type="tel"
               value={editFormData.experienceYears ?? ""}
-              onChange={(v) => updateField("experienceYears", Number(v))}
+              onChange={(v) => {
+                const digits = onlyDigits(v);
+                updateField(
+                  "experienceYears",
+                  digits === "" ? undefined : Number(digits),
+                );
+              }}
             />
           </div>
         </section>

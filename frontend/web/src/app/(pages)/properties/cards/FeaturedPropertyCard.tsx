@@ -558,7 +558,7 @@ const FeaturedPropertyCard: React.FC<{ p: Property; vertical?: boolean }> = ({
         >
           {pricePerSqftLabel && pricePerSqftLabel !== "Price on request" ? (
             <div
-              className={`inline-flex items-center justify-center rounded-lg bg-[#BEf4d4] px-3 py-1 text-center font-semibold text-gray-900 shadow-sm md:w-[90%] md:px-3 md:py-1.5 ${
+              className={`hidden items-center justify-center rounded-lg bg-[#BEf4d4] px-3 py-1 text-center font-semibold text-gray-900 shadow-sm md:inline-flex md:w-[90%] md:px-3 md:py-1.5 ${
                 vertical
                   ? "self-start text-xs sm:text-sm"
                   : "self-start text-xs sm:text-sm md:self-center md:text-base"

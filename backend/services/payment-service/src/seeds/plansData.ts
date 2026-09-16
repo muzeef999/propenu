@@ -232,6 +232,7 @@ export const plans = [
     durationDays: 30,
     features: {
       PROPERTY_LISTING_LIMIT: 20,
+      CONTACT_LIMIT: 2,
       BUYER_REACH_PERCENT: 50,
       ENQUIRY_LIMIT: 30,
       TOP_LISTING_DAYS: 0,
@@ -249,6 +250,7 @@ export const plans = [
     durationDays: 30,
     features: {
       PROPERTY_LISTING_LIMIT: 40,
+      CONTACT_LIMIT: 4,
       BUYER_REACH_PERCENT: 100,
       ENQUIRY_LIMIT: 50,
       TOP_LISTING_DAYS: 5,
@@ -266,6 +268,7 @@ export const plans = [
     durationDays: 40,
     features: {
       PROPERTY_LISTING_LIMIT: 40,
+      CONTACT_LIMIT: 10,
       BUYER_REACH_PERCENT: 100,
       ENQUIRY_LIMIT: 50,
       TOP_LISTING_DAYS: 5,
@@ -283,6 +286,7 @@ export const plans = [
     durationDays: 120,
     features: {
       PROPERTY_LISTING_LIMIT: 80,
+      CONTACT_LIMIT: 20,
       BUYER_REACH_PERCENT: 100,
       ENQUIRY_LIMIT: 100,
       TOP_LISTING_DAYS: 20,

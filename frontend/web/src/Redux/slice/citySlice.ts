@@ -183,8 +183,9 @@ export const selectAllCitiesWithLocalities = createSelector(
 );
 
 // Combined helper
-export const selectCityWithLocalities = (state: RootState) => {
-  const city = selectSelectedCity(state);
+export const selectCityWithLocalities = createSelector(
+  selectSelectedCity,
+  (city) => {
   if (!city) return null;
 
   return {
@@ -192,7 +193,8 @@ export const selectCityWithLocalities = (state: RootState) => {
     state: city.state,
     localities: city.localities,
   };
-};
+  },
+);
 
 export const { setCityId, setDetectedCity, clearCity } = citySlice.actions;
 export default citySlice.reducer;

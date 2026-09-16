@@ -18,6 +18,7 @@ type Props = {
 const VISITOR_ID_KEY = "propenu_public_visitor_id";
 const LAST_VIEW_PREFIX = "propenu_public_view_last";
 const THIRTY_MINUTES_MS = 30 * 60 * 1000;
+const VIEW_COUNT_ROLES = new Set(["owner", "user", "agent", "builder"]);
 
 function getVisitorId() {
   const existing = window.localStorage.getItem(VISITOR_ID_KEY);
@@ -28,6 +29,11 @@ function getVisitorId() {
   return visitorId;
 }
 
+function canCountViewForCurrentRole() {
+  const role = window.localStorage.getItem("role")?.trim().toLowerCase();
+  return Boolean(role && VIEW_COUNT_ROLES.has(role));
+}
+
 export default function PublicViewTracker({
   entityType,
   entityId,
@@ -35,6 +41,7 @@ export default function PublicViewTracker({
 }: Props) {
   useEffect(() => {
     if (!entityId || typeof window === "undefined") return;
+    if (!canCountViewForCurrentRole()) return;
 
     const storageKey = `${LAST_VIEW_PREFIX}:${entityType}:${entityId}`;
     const now = Date.now();

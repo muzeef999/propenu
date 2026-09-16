@@ -47,10 +47,13 @@ export const requireContactOwnerLimit = async (
     }
 
     // 3️⃣ check contact limit
-    const limit =
+    const planLimit =
       typeof plan.features?.get("CONTACT_OWNER_LIMIT") === "number"
         ? plan.features.get("CONTACT_OWNER_LIMIT")
-        : undefined;
+        : typeof plan.features?.get("CONTACT_LIMIT") === "number"
+          ? plan.features.get("CONTACT_LIMIT")
+          : undefined;
+    const limit = subscription.usage?.contactLimit ?? planLimit;
 
     if (typeof limit === "number") {
       // IMPORTANT: change field if your Lead schema different
