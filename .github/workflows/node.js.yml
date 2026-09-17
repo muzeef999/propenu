@@ -1,58 +1,82 @@
-name:  Backend CI/CD 24
+name: Backend CI/CD
 
 on:
   push:
-    branches: ["deploy"]
+    branches:
+      - deploy
+    paths:
+      - "backend/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/node.js.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-production
+  cancel-in-progress: true
+
 jobs:
-  build:
+  build-and-deploy:
+    name: Build and deploy backend
     runs-on: self-hosted
+    timeout-minutes: 20
 
     steps:
-      # 1) Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
 
-      # 2) Use Node
-      - name: Check Node version
+      - name: Create service environment files
+        shell: bash
+        env:
+          GATEWAY_ENV: ${{ secrets.PRPPENU_GATEWAY_ENV }}
+          PAYMENT_ENV: ${{ secrets.PRPPENU_PAYMENT_ENV }}
+          PROPERTY_ENV: ${{ secrets.PRPPENU_PROPERTY_ENV }}
+          USER_ENV: ${{ secrets.PRPPENU_USER_ENV }}
+          TICKET_ENV: ${{ secrets.PRPPENU_TICKET_ENV }}
         run: |
-          export PATH=/usr/bin:$PATH
-          node -v
-          npm -v
-          which node
+          for variable in GATEWAY_ENV PAYMENT_ENV PROPERTY_ENV USER_ENV TICKET_ENV; do
+            if [ -z "${!variable}" ]; then
+              echo "::error::Required GitHub secret for ${variable} is empty or missing."
+              exit 1
+            fi
+          done
 
-      # 3) Create .env files for each service
-      - name: Create environment files
-        run: |
-          echo "${{ secrets.PRPPENU_GATEWAY_ENV }}" > backend/gateway/.env
-          echo "${{ secrets.PRPPENU_PAYMENT_ENV }}" > backend/services/payment-service/.env
-          echo "${{ secrets.PRPPENU_PROPERTY_ENV }}" > backend/services/property-service/.env
-          echo "${{ secrets.PRPPENU_USER_ENV }}" > backend/services/user-service/.env
-          echo "${{ secrets.PRPPENU_TICKET_ENV }}" > backend/services/ticket-service/.env
+          umask 077
+          printf '%s\n' "$GATEWAY_ENV" > backend/gateway/.env
+          printf '%s\n' "$PAYMENT_ENV" > backend/services/payment-service/.env
+          printf '%s\n' "$PROPERTY_ENV" > backend/services/property-service/.env
+          printf '%s\n' "$USER_ENV" > backend/services/user-service/.env
+          printf '%s\n' "$TICKET_ENV" > backend/services/ticket-service/.env
 
-      # 4) Install root dependencies (monorepo)
       - name: Install dependencies
-        run: npm ci 
+        run: npm ci --include=dev --no-audit --no-fund
 
-      # 5) Build all backend services (from your root package.json)
-      - name: Build all services
+      - name: Build backend services
         run: npm run build:backend
 
-      # 6) Test each service (optional)
-      # - name: Run tests
-      #   run: npm test
-
-      # 7) Upload build artifacts (optional but useful)
-      # You can download these on your server during deployment
       - name: Upload build output
         uses: actions/upload-artifact@v4
         with:
-          name: backend-build
+          name: backend-build-${{ github.sha }}
+          retention-days: 3
+          if-no-files-found: error
           path: |
             backend/gateway/dist
+            backend/services/ai-service/dist
             backend/services/payment-service/dist
             backend/services/property-service/dist
             backend/services/user-service/dist
             backend/services/ticket-service/dist
+
+      - name: Reload backend services
+        run: npm run reload:pm2

@@ -18,6 +18,7 @@ import builderProfileRoute from "./routes/builderProfileRoute";
 import { fieldMeetingRoute } from "./routes/fieldMeetingRoute";
 import { cleanupDuplicateLocalities } from "./services/locationService";
 import Role from "./models/roleModel";
+import { startWhatsAppWorker } from "./workers/whatsapp.worker";
 
 dotenv.config({ path: path.resolve(process.cwd(), ".env"), quiet: true });
 
@@ -110,8 +111,8 @@ async function start() {
     
 
     process.env.WHATSAPP_WORKER_EMBEDDED = "1";
-    import("./workers/whatsapp.worker")
-      .then(({ startWhatsAppWorker }) => startWhatsAppWorker())
+    Promise.resolve()
+      .then(() => startWhatsAppWorker())
       .then(() => console.log("✅ WhatsApp campaign worker started"))
       .catch((error) => {
         console.error("WhatsApp worker failed to start:", error);

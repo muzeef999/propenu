@@ -53,13 +53,17 @@ const startWorker = async () => {
 
         try {
           // 🔥 SEND MESSAGE
-          const response = await sendWhatsAppMessage({
+          const messageInput = {
             to: job.data.to,
             templateName: job.data.templateName,
             variables: job.data.variables || [],
-            language: job.data.language,
-            headerImageUrl: job.data.headerImageUrl,
-          });
+            ...(job.data.language ? { language: job.data.language } : {}),
+            ...(job.data.headerImageUrl
+              ? { headerImageUrl: job.data.headerImageUrl }
+              : {}),
+          };
+
+          const response = await sendWhatsAppMessage(messageInput);
 
           console.log("📬 Meta response:", response?.data);
           console.log("✅ WhatsApp sent:", job.data.to);

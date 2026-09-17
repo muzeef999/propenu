@@ -127,7 +127,7 @@ router.post(
         });
 
         log.status = "pending";
-        log.error = undefined;
+        log.error = null;
         await log.save();
 
         retried++;

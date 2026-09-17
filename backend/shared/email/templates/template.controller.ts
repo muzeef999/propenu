@@ -627,6 +627,16 @@ export const sendWhatsAppCSV = async (req: Request, res: Response) => {
       const formattedPhone = phone.startsWith("91") ? phone : `91${phone}`;
       const variables = buildCsvVariables(row, expectedVars);
 
+      const whatsappPayload = {
+        to: formattedPhone,
+        templateName: metaTemplate.name,
+        variables,
+        language,
+        ...(headerImageUrl ? { headerImageUrl } : {}),
+        logId: "",
+        campaignId,
+      };
+
       const log = await WhatsAppLog.create({
         to: formattedPhone,
         templateName: metaTemplate.name,
@@ -635,20 +645,14 @@ export const sendWhatsAppCSV = async (req: Request, res: Response) => {
         variables,
         language,
         category,
-        headerImageUrl: headerImageUrl || undefined,
+        ...(headerImageUrl ? { headerImageUrl } : {}),
       });
+
+      whatsappPayload.logId = String(log._id);
 
       await whatsappQueue.add(
         "send-message",
-        {
-          to: formattedPhone,
-          templateName: metaTemplate.name,
-          variables,
-          language,
-          headerImageUrl: headerImageUrl || undefined,
-          logId: String(log._id),
-          campaignId,
-        },
+        whatsappPayload,
         {
           attempts: 3,
           backoff: { type: "exponential", delay: 5000 },

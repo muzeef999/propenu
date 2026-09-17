@@ -16,6 +16,6 @@
     "esModuleInterop": true,
     "moduleResolution": "node16"
   },
-  "include": ["src/**/*", "../../shared"],
+  "include": ["src/**/*", "src/workers/**/*", "src/queues/**/*", "../../shared"],
   "exclude": ["node_modules", "dist"]
 }
