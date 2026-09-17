@@ -1,21 +1,17 @@
 import { Queue } from "bullmq";
 import { redisConnection } from "../lib/redis.connection";
 
-// ✅ Job Data Type
 export interface WhatsAppJobData {
-  to: string;                    // phone number
-  templateName: string;          // meta template name
-  variables: string[];           // template variables
-  
-  recordId?: string;             // optional (CRM record)
-  logId?: string;                // optional (logging)
-  campaignId?: string;           // optional (bulk campaign)
+  to: string;
+  templateName: string;
+  variables: string[];
+  language?: string;
+  headerImageUrl?: string;
+  recordId?: string;
+  logId?: string;
+  campaignId?: string;
 }
 
-// ✅ Queue Instance
-export const whatsappQueue = new Queue<WhatsAppJobData>(
-  "whatsapp-queue",
-  {
-    connection: redisConnection,
-  }
-);
+export const whatsappQueue = new Queue<WhatsAppJobData>("whatsapp-queue", {
+  connection: redisConnection,
+});

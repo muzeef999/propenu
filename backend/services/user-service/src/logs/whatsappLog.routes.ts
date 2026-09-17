@@ -95,35 +95,39 @@ router.post(
         return res.status(400).json({ message: "campaignId required" });
       }
 
-      const failedLogs = await WhatsAppLog.find({
+      // Stuck campaigns are still "pending" (worker never sent them).
+      // Retry those as well as Meta failures.
+      const retryLogs = await WhatsAppLog.find({
         campaignId,
-        status: "failed",
+        status: { $in: ["failed", "pending"] },
       });
 
       let retried = 0;
 
-      for (const log of failedLogs) {
+      for (const log of retryLogs) {
         const to = log.to;
         const templateName = log.templateName;
-
-        // ⚠️ variables not stored → skip if missing
-        // 👉 BEST: store variables in DB (future improvement)
+        const variables = Array.isArray((log as any).variables)
+          ? (log as any).variables
+          : [];
 
         if (!to || !templateName) {
           console.log("⚠️ Skipping invalid log:", log._id);
           continue;
         }
 
-        // ⚠️ fallback empty variables (or store in DB)
         await whatsappQueue.add("send-message", {
           to,
           templateName,
-          variables: [], // ⚠️ improve later
+          variables,
+          language: (log as any).language,
+          headerImageUrl: (log as any).headerImageUrl,
           logId: String(log._id),
           campaignId,
         });
 
         log.status = "pending";
+        log.error = undefined;
         await log.save();
 
         retried++;

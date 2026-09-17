@@ -109,6 +109,14 @@ async function start() {
     app.use("/api/conversation-flow", conversationFlowRouter);
     
 
+    process.env.WHATSAPP_WORKER_EMBEDDED = "1";
+    import("./workers/whatsapp.worker")
+      .then(({ startWhatsAppWorker }) => startWhatsAppWorker())
+      .then(() => console.log("✅ WhatsApp campaign worker started"))
+      .catch((error) => {
+        console.error("WhatsApp worker failed to start:", error);
+      });
+
     app.listen(Number(port), "0.0.0.0", () => {
       console.log(`user service running on 0.0.0.0:${port}`);
       // startNotificationJob();

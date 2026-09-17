@@ -6,9 +6,8 @@ import { whatsappQueue } from "../../../services/user-service/src/queues";
 import User from "../../../services/user-service/src/models/userModel";
 import { WhatsAppLog } from "../../../services/user-service/src/logs/whatsappLog.model";
 
-const BASE_URL = "https://graph.facebook.com/v19.0";
-
-const TOKEN ="EAAXhIccvVfgBQvEc8BR5zh8DSyeEfvY9ZCoQHrIG7a8zRBHkN2kfKuUHujlpo31J1oZBfwCNM9DlXpXhQuoubdcAhLmhahYj2LdgQ8iTYytWMK6HMghwHZCxaNSLEhZBrvD3r9ZA6ZCRnJmStnLhoflMLt2szXvyW3fmC507UKfLFX3RCvSbFpAjYut2Avw1rQUgZDZD";
+const TOKEN =
+  "EAAXhIccvVfgBQvEc8BR5zh8DSyeEfvY9ZCoQHrIG7a8zRBHkN2kfKuUHujlpo31J1oZBfwCNM9DlXpXhQuoubdcAhLmhahYj2LdgQ8iTYytWMK6HMghwHZCxaNSLEhZBrvD3r9ZA6ZCRnJmStnLhoflMLt2szXvyW3fmC507UKfLFX3RCvSbFpAjYut2Avw1rQUgZDZD";
 const BUSINESS_ID = "1519313212465013";
 const PHONE_ID = "935750846293139";
 
@@ -18,16 +17,67 @@ interface SendWhatsAppInput {
   to: string;
   templateName: string;
   variables: string[];
+  language?: string;
+  headerImageUrl?: string;
+}
+
+function resolveMetaAuth() {
+  return {
+    token: process.env.WHATSAPP_TOKEN || TOKEN,
+    phoneId: process.env.WHATSAPP_PHONE_NUMBER_ID || PHONE_ID,
+    businessId: process.env.WHATSAPP_BUSINESS_ACCOUNT_ID || BUSINESS_ID,
+    apiVersion: process.env.WHATSAPP_API_VERSION || "v19.0",
+  };
+}
+
+function templateLanguageCode(template: any, fallback = "en"): string {
+  const raw = template?.language;
+  if (typeof raw === "string" && raw.trim()) return raw.trim();
+  if (raw?.code) return String(raw.code).trim();
+  return fallback;
+}
+
+function alignVariables(variables: string[] = [], count: number): string[] {
+  if (count <= 0) return [];
+  return Array.from({ length: count }, (_, i) => {
+    const v = variables[i];
+    const text = v != null ? String(v).trim() : "";
+    return text || `Customer`;
+  });
+}
+
+async function resolveTemplateForSend(templateName: string) {
+  const templatesRes = await getTemplatesService();
+  const templates = templatesRes?.data || [];
+  const template = templates.find(
+    (t: any) =>
+      String(t.name || "")
+        .toLowerCase()
+        .trim() === String(templateName).toLowerCase().trim(),
+  );
+  if (!template) {
+    throw new Error(
+      `Template "${templateName}" was not found on Meta. Check the name in WhatsApp Manager.`,
+    );
+  }
+  const status = String(template.status || "").toUpperCase();
+  if (status && status !== "APPROVED") {
+    throw new Error(
+      `Template "${template.name}" is ${status}. Only APPROVED templates can be sent.`,
+    );
+  }
+  return template;
 }
 
 // CREATE TEMPLATE
 export const createTemplateService = async (data: any) => {
+  const { token, businessId, apiVersion } = resolveMetaAuth();
   const res = await axios.post(
-    `${BASE_URL}/${BUSINESS_ID}/message_templates`,
+    `https://graph.facebook.com/${apiVersion}/${businessId}/message_templates`,
     data,
     {
       headers: {
-        Authorization: `Bearer ${TOKEN}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     },
@@ -38,22 +88,32 @@ export const createTemplateService = async (data: any) => {
 
 // GET ALL TEMPLATES
 export const getTemplatesService = async () => {
-  const res = await axios.get(`${BASE_URL}/${BUSINESS_ID}/message_templates`, {
-    headers: {
-      Authorization: `Bearer ${TOKEN}`,
+  const { token, businessId, apiVersion } = resolveMetaAuth();
+  const res = await axios.get(
+    `https://graph.facebook.com/${apiVersion}/${businessId}/message_templates`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params: {
+        fields: "name,status,category,language,components",
+        limit: 250,
+      },
     },
-  });
+  );
   return res.data;
 };
 
 // DELETE TEMPLATE
 export const deleteTemplateService = async (name: string) => {
+  const { token, businessId, apiVersion } = resolveMetaAuth();
   const res = await axios.delete(
-    `${BASE_URL}/${BUSINESS_ID}/message_templates?name=${encodeURIComponent(name)}`,
+    `https://graph.facebook.com/${apiVersion}/${businessId}/message_templates`,
     {
       headers: {
-        Authorization: `Bearer ${TOKEN}`,
+        Authorization: `Bearer ${token}`,
       },
+      params: { name },
     },
   );
 
@@ -163,6 +223,10 @@ export const sendWhatsAppCampaignDynamic = async (
             to: user.phone,
             templateName,
             variables,
+            language:
+              typeof template.language === "string"
+                ? template.language
+                : template.language?.code || "en",
             logId: log._id.toString(),
           },
           {
@@ -198,22 +262,77 @@ export const sendWhatsAppBulkMessages = async ({
   to,
   templateName,
   variables,
+  language,
+  headerImageUrl,
 }: SendWhatsAppInput) => {
   try {
-    
     if (!to || !templateName) {
       throw new Error("Missing required fields");
     }
 
-    // ✅ Normalize phone
+    const { token, phoneId, apiVersion } = resolveMetaAuth();
+    if (!token || !phoneId) {
+      throw new Error(
+        "WhatsApp credentials missing (WHATSAPP_TOKEN / WHATSAPP_PHONE_NUMBER_ID)",
+      );
+    }
+
     const cleanPhone = String(to).replace(/\D/g, "");
     const formattedPhone = cleanPhone.startsWith("91")
       ? cleanPhone
       : `91${cleanPhone}`;
 
-    // ✅ Validate variables
+    if (formattedPhone.length < 12) {
+      throw new Error(`Invalid phone number: ${to}`);
+    }
+
     if (!Array.isArray(variables)) {
       throw new Error("Variables must be an array");
+    }
+
+    const template = await resolveTemplateForSend(templateName);
+    const lang = templateLanguageCode(template, language || "en");
+
+    const bodyComponent = template.components?.find(
+      (c: any) => String(c.type || "").toUpperCase() === "BODY",
+    );
+    const headerComponent = template.components?.find(
+      (c: any) => String(c.type || "").toUpperCase() === "HEADER",
+    );
+
+    const variableCount = getVariableCount(bodyComponent?.text || "");
+    const alignedVars = alignVariables(variables, variableCount);
+
+    const components: any[] = [];
+    const headerFormat = String(headerComponent?.format || "").toUpperCase();
+
+    if (["IMAGE", "VIDEO", "DOCUMENT"].includes(headerFormat)) {
+      const link = String(headerImageUrl || "").trim();
+      if (!link.startsWith("http")) {
+        throw new Error(
+          `Template "${template.name}" needs a public ${headerFormat} header URL (S3/CDN). Local uploads cannot be sent to Meta.`,
+        );
+      }
+      const mediaKey = headerFormat.toLowerCase();
+      components.push({
+        type: "header",
+        parameters: [
+          {
+            type: mediaKey,
+            [mediaKey]: { link },
+          },
+        ],
+      });
+    }
+
+    if (variableCount > 0) {
+      components.push({
+        type: "body",
+        parameters: alignedVars.map((v) => ({
+          type: "text",
+          text: v,
+        })),
+      });
     }
 
     const payload = {
@@ -221,17 +340,9 @@ export const sendWhatsAppBulkMessages = async ({
       to: formattedPhone,
       type: "template",
       template: {
-        name: templateName,
-        language: { code: "en" },
-        components: [
-          {
-            type: "body",
-            parameters: variables.map((v) => ({
-              type: "text",
-              text: String(v),
-            })),
-          },
-        ],
+        name: template.name,
+        language: { code: lang },
+        ...(components.length ? { components } : {}),
       },
     };
 
@@ -239,22 +350,26 @@ export const sendWhatsAppBulkMessages = async ({
     console.log("📦 Payload:", JSON.stringify(payload, null, 2));
 
     const response = await axios.post(
-      `https://graph.facebook.com/v18.0/${PHONE_ID}/messages`,
+      `https://graph.facebook.com/${apiVersion}/${phoneId}/messages`,
       payload,
       {
         headers: {
-          Authorization: `Bearer ${TOKEN}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       },
     );
 
     console.log("✅ Sent:", response.data);
-
     return response.data;
   } catch (err: any) {
     console.error("❌ WhatsApp Error:", err.response?.data || err.message);
 
-    throw new Error(err.response?.data?.error?.message || "WhatsApp failed");
+    const meta =
+      err.response?.data?.error?.error_user_msg ||
+      err.response?.data?.error?.message ||
+      err.message ||
+      "WhatsApp failed";
+    throw new Error(meta);
   }
 };

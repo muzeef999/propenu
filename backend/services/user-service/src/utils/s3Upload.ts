@@ -12,7 +12,6 @@ export const uploadToS3 = async ({
   const bucket = process.env.AWS_S3_BUCKET;
   const region = process.env.AWS_REGION;
 
-  // ✅ HARD FAIL (so you know immediately)
   if (!bucket) {
     throw new Error("❌ AWS_S3_BUCKET is missing in .env");
   }
@@ -21,22 +20,39 @@ export const uploadToS3 = async ({
     throw new Error("❌ AWS_REGION is missing in .env");
   }
 
-  console.log("✅ Bucket:", bucket); // debug
-  console.log("✅ Region:", region); // debug
+  const params: {
+    Bucket: string;
+    Key: string;
+    Body: Buffer;
+    ContentType: string;
+    ACL?: string;
+  } = {
+    Bucket: bucket,
+    Key: key,
+    Body: buffer,
+    ContentType: mimetype,
+  };
 
-  await s3
-    .upload({
-      Bucket: bucket, // 🔥 THIS WAS UNDEFINED BEFORE
-      Key: key,
-      Body: buffer,
-      ContentType: mimetype,
-    })
-    .promise();
+  // Optional ACL — many buckets use policy instead of object ACL
+  if (
+    ["1", "true", "yes"].includes(
+      String(process.env.AWS_S3_PUBLIC_READ || "")
+        .toLowerCase()
+        .trim(),
+    )
+  ) {
+    params.ACL = "public-read";
+  }
+
+  await s3.upload(params).promise();
+
+  const safePath = key
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/");
 
   return {
     key,
-    url: `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(
-      key
-    )}`,
+    url: `https://${bucket}.s3.${region}.amazonaws.com/${safePath}`,
   };
 };

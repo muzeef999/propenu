@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 
 const schema = new mongoose.Schema(
-
   {
     to: { type: String, required: true },
     templateName: { type: String, required: true },
@@ -15,13 +14,18 @@ const schema = new mongoose.Schema(
 
     error: String,
 
-    response: mongoose.Schema.Types.Mixed, // 🔥 store meta response
+    response: mongoose.Schema.Types.Mixed,
+
+    /** Body variables used for this send — required for retry */
+    variables: { type: [String], default: undefined },
+    language: { type: String },
+    category: { type: String },
+    headerImageUrl: { type: String },
 
     recordId: String,
     campaignId: { type: String, index: true },
-
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export const WhatsAppLog = mongoose.model("WhatsAppLog", schema);

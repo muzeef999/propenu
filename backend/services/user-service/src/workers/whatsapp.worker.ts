@@ -12,6 +12,8 @@ interface WhatsAppJobData {
   to: string;
   templateName: string;
   variables: string[];
+  language?: string;
+  headerImageUrl?: string;
   recordId?: string;
   logId?: string;
   campaignId?: string;
@@ -54,7 +56,9 @@ const startWorker = async () => {
           const response = await sendWhatsAppMessage({
             to: job.data.to,
             templateName: job.data.templateName,
-            variables: job.data.variables,
+            variables: job.data.variables || [],
+            language: job.data.language,
+            headerImageUrl: job.data.headerImageUrl,
           });
 
           console.log("📬 Meta response:", response?.data);
@@ -98,7 +102,10 @@ const startWorker = async () => {
           if (job.data.logId) {
             await WhatsAppLog.findByIdAndUpdate(job.data.logId, {
               status: "failed",
-              error: err?.response?.data || err.message,
+              error:
+                typeof err?.message === "string"
+                  ? err.message
+                  : JSON.stringify(err?.response?.data || err || "failed"),
             });
           }
 
@@ -112,8 +119,13 @@ const startWorker = async () => {
     );
   } catch (err) {
     console.error("❌ Worker startup failed:", err);
+    if (process.env.WHATSAPP_WORKER_EMBEDDED === "1") return;
     process.exit(1);
   }
 };
 
-startWorker();
+export { startWorker as startWhatsAppWorker };
+
+if (process.env.WHATSAPP_WORKER_EMBEDDED !== "1") {
+  startWorker();
+}

@@ -11,17 +11,27 @@ export const upload = multer({
   },
 
   fileFilter: (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
-    const isCSV =
+    const isContactFile =
+      file.originalname.toLowerCase().endsWith(".csv") ||
+      file.originalname.toLowerCase().endsWith(".xlsx") ||
+      file.originalname.toLowerCase().endsWith(".xls") ||
+      file.originalname.toLowerCase().endsWith(".xlsm") ||
+      file.originalname.toLowerCase().endsWith(".tsv") ||
+      file.originalname.toLowerCase().endsWith(".txt") ||
+      file.originalname.toLowerCase().endsWith(".ods") ||
       file.mimetype === "text/csv" ||
+      file.mimetype === "text/plain" ||
       file.mimetype === "application/vnd.ms-excel" ||
-      file.originalname.toLowerCase().endsWith(".csv");
+      file.mimetype ===
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+      file.mimetype === "application/vnd.oasis.opendocument.spreadsheet";
 
     const isImage = file.mimetype.startsWith("image/");
 
-    if (isCSV || isImage) {
+    if (isContactFile || isImage) {
       cb(null, true);
     } else {
-      cb(new Error("Only CSV and image files are allowed"));
+      cb(new Error("Upload CSV, Excel, TSV, TXT, ODS, or an image"));
     }
   },
 });

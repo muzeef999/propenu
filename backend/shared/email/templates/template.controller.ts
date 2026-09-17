@@ -9,6 +9,83 @@ import csv from "csv-parser";
 import { parseTemplate } from "../../../services/user-service/src/utils/parseTemplate";
 import { Readable } from "stream";
 import { whatsappQueue } from "../../../services/user-service/src/queues";
+import { WhatsAppLog } from "../../../services/user-service/src/logs/whatsappLog.model";
+import { getTemplatesService } from "../../whatsapp/templates/whatsappTemplate.service";
+
+function getCsvUploadFile(req: Request): Express.Multer.File | undefined {
+  const files = req.files as
+    | { [fieldname: string]: Express.Multer.File[] }
+    | Express.Multer.File[]
+    | undefined;
+
+  if (Array.isArray(files)) return files[0];
+  if (files && typeof files === "object") {
+    return files.file?.[0] || files.csv?.[0];
+  }
+  return req.file;
+}
+
+function pickPhone(row: Record<string, string>): string {
+  const keys = Object.keys(row);
+  const phoneKey = keys.find((k) =>
+    /^(phone|mobile|whatsapp|wa[_-]?id|msisdn)$/i.test(k.trim()),
+  );
+  return String(phoneKey ? row[phoneKey] : "").trim();
+}
+
+function countTemplateVars(text = ""): number {
+  const matches = String(text).match(/\{\{\d+\}\}/g);
+  return matches ? matches.length : 0;
+}
+
+/** Map CSV row → template body variables ({{1}}, {{2}}, …). */
+function buildCsvVariables(
+  row: Record<string, string>,
+  expectedCount?: number,
+): string[] {
+  const numbered: string[] = [];
+  for (let i = 1; i <= 15; i++) {
+    const key = Object.keys(row).find((k) =>
+      new RegExp(`^(var\\s*${i}|\\{\\{${i}\\}\\}|param\\s*${i})$`, "i").test(
+        k.trim(),
+      ),
+    );
+    if (!key) break;
+    numbered.push(String(row[key] ?? "").trim() || `Customer`);
+  }
+
+  let values = numbered;
+  if (!values.length) {
+    const skip = /^(phone|mobile|whatsapp|wa[_-]?id|msisdn|email)$/i;
+    values = [];
+    for (const [k, v] of Object.entries(row)) {
+      if (skip.test(k.trim())) continue;
+      const text = String(v ?? "").trim();
+      if (text) values.push(text);
+    }
+  }
+
+  if (typeof expectedCount === "number" && expectedCount >= 0) {
+    if (expectedCount === 0) return [];
+    return Array.from({ length: expectedCount }, (_, i) => {
+      const v = values[i];
+      return v != null && String(v).trim() ? String(v).trim() : "Customer";
+    });
+  }
+
+  return values.length ? values : ["Customer"];
+}
+
+function parseCsvBuffer(buffer: Buffer): Promise<Record<string, string>[]> {
+  return new Promise((resolve, reject) => {
+    const rows: Record<string, string>[] = [];
+    Readable.from(buffer)
+      .pipe(csv())
+      .on("data", (data: Record<string, string>) => rows.push(data))
+      .on("end", () => resolve(rows))
+      .on("error", reject);
+  });
+}
 
 // ---------------- CREATE ----------------
 export const createEmailTemplate = async (req: Request, res: Response) => {
@@ -443,67 +520,171 @@ export const sendCsvBulkEmail = async (
 // ---------------- SEND BULK WHATSAPP ----------------
 export const sendWhatsAppCSV = async (req: Request, res: Response) => {
   try {
-    const file = req.file;
+    const file = getCsvUploadFile(req);
 
-    if (!file) {
+    if (!file?.buffer) {
       return res.status(400).json({
         success: false,
         message: "CSV file is required",
       });
     }
 
-    const results: any[] = [];
+    const templateName = String(req.body?.templateName || "").trim();
+    if (!templateName) {
+      return res.status(400).json({
+        success: false,
+        message: "templateName is required",
+      });
+    }
 
-    // ✅ Convert buffer → stream (IMPORTANT FIX)
-    const stream = Readable.from(file.buffer);
+    const sendMode = String(req.body?.sendMode || "now").toLowerCase();
+    const scheduleAtRaw = req.body?.scheduleAt
+      ? new Date(req.body.scheduleAt)
+      : null;
+    const scheduleValid =
+      scheduleAtRaw instanceof Date && !Number.isNaN(scheduleAtRaw.getTime());
+    const baseDelayMs =
+      sendMode === "schedule" && scheduleValid
+        ? Math.max(0, scheduleAtRaw!.getTime() - Date.now())
+        : 0;
 
-    stream
-      .pipe(csv())
-      .on("data", (data) => results.push(data))
-      .on("end", async () => {
-        console.log("📄 CSV parsed:", results.length);
+    const results = await parseCsvBuffer(file.buffer);
+    console.log("📄 CSV parsed:", results.length);
 
-        let total = 0;
+    if (!results.length) {
+      return res.status(400).json({
+        success: false,
+        message: "CSV has no data rows",
+      });
+    }
 
-        for (const row of results) {
-          if (!row.phone) continue;
+    // Resolve Meta template once — language + exact body var count
+    const templatesRes = await getTemplatesService();
+    const metaTemplate = (templatesRes?.data || []).find(
+      (t: any) =>
+        String(t.name || "")
+          .toLowerCase()
+          .trim() === templateName.toLowerCase(),
+    );
 
-          const phone = row.phone.replace(/\D/g, "");
+    if (!metaTemplate) {
+      return res.status(404).json({
+        success: false,
+        message: `Template "${templateName}" not found on Meta`,
+      });
+    }
 
-          const formattedPhone = phone.startsWith("91")
-            ? phone
-            : `91${phone}`;
+    const templateStatus = String(metaTemplate.status || "").toUpperCase();
+    if (templateStatus && templateStatus !== "APPROVED") {
+      return res.status(400).json({
+        success: false,
+        message: `Template "${metaTemplate.name}" is ${templateStatus}. Only APPROVED templates can be sent.`,
+      });
+    }
 
-          const variables = [
-            row.name || "User",
-            row.property || "Property",
-            row.refId || "REF123",
-          ];
+    const bodyComp = (metaTemplate.components || []).find(
+      (c: any) => String(c.type || "").toUpperCase() === "BODY",
+    );
+    const headerComp = (metaTemplate.components || []).find(
+      (c: any) => String(c.type || "").toUpperCase() === "HEADER",
+    );
+    const expectedVars = countTemplateVars(bodyComp?.text || "");
+    const language =
+      typeof metaTemplate.language === "string"
+        ? metaTemplate.language
+        : metaTemplate.language?.code || "en";
+    const category = String(metaTemplate.category || "MARKETING").toUpperCase();
+    const headerFormat = String(headerComp?.format || "").toUpperCase();
+    const headerImageUrl = String(req.body?.headerImageUrl || "").trim();
 
-          await whatsappQueue.add("send-message", {
-            to: formattedPhone,
-            templateName: req.body.templateName,
-            variables,
-          });
+    if (
+      ["IMAGE", "VIDEO", "DOCUMENT"].includes(headerFormat) &&
+      !headerImageUrl.startsWith("http")
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: `Template "${metaTemplate.name}" requires a public ${headerFormat} header URL (S3/CDN). Local image upload is preview-only.`,
+      });
+    }
 
-          total++;
+    const campaignId = `wa_csv_${Date.now()}`;
+    let total = 0;
+    let skipped = 0;
 
-          await new Promise((r) => setTimeout(r, 300));
-        }
+    for (const row of results) {
+      const phoneRaw = pickPhone(row);
+      if (!phoneRaw) {
+        skipped += 1;
+        continue;
+      }
 
-        return res.json({
-          success: true,
-          total,
-          message: "CSV WhatsApp campaign queued",
-        });
+      const phone = phoneRaw.replace(/\D/g, "");
+      if (phone.length < 10) {
+        skipped += 1;
+        continue;
+      }
+
+      const formattedPhone = phone.startsWith("91") ? phone : `91${phone}`;
+      const variables = buildCsvVariables(row, expectedVars);
+
+      const log = await WhatsAppLog.create({
+        to: formattedPhone,
+        templateName: metaTemplate.name,
+        status: "pending",
+        campaignId,
+        variables,
+        language,
+        category,
+        headerImageUrl: headerImageUrl || undefined,
       });
 
+      await whatsappQueue.add(
+        "send-message",
+        {
+          to: formattedPhone,
+          templateName: metaTemplate.name,
+          variables,
+          language,
+          headerImageUrl: headerImageUrl || undefined,
+          logId: String(log._id),
+          campaignId,
+        },
+        {
+          attempts: 3,
+          backoff: { type: "exponential", delay: 5000 },
+          delay: baseDelayMs + total * 300,
+        },
+      );
+
+      total += 1;
+    }
+
+    if (!total) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "No valid phone numbers found. Include a phone/mobile column in the CSV.",
+        skipped,
+        campaignId,
+      });
+    }
+
+    return res.json({
+      success: true,
+      total,
+      skipped,
+      campaignId,
+      message:
+        sendMode === "schedule"
+          ? "CSV WhatsApp campaign scheduled"
+          : "CSV WhatsApp campaign queued",
+    });
   } catch (error: any) {
     console.error("❌ CSV Error:", error);
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: error?.message || "CSV WhatsApp campaign failed",
     });
   }
 };
