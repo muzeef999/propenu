@@ -206,7 +206,7 @@ export default function AvailableProperties({ bhk }: Props) {
     }
   }
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <section className="max-w-7xl mx-auto px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
 
       <div style={{ color: color, borderLeft: `5px solid ${color}` }}>
         <div className="ml-2">
@@ -218,11 +218,11 @@ export default function AvailableProperties({ bhk }: Props) {
           </p>
         </div>
       </div>
-      <br />
+      <div className="h-3 sm:h-5" />
 
-      <div className="bg-white rounded-lg shadow-sm p-4" style={{ backgroundColor: hexToRGBA(color, 0.1), }}>
+      <div className="rounded-lg bg-white p-2.5 shadow-sm sm:p-4" style={{ backgroundColor: hexToRGBA(color, 0.1), }}>
         {/* Top row: BHK tabs */}
-        <div className="mb-4 flex items-center gap-2 overflow-x-auto pb-2 sm:gap-3 lg:flex-wrap lg:overflow-visible lg:pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mb-2.5 flex items-center gap-1.5 overflow-x-auto pb-1.5 sm:mb-4 sm:gap-3 sm:pb-2 lg:flex-wrap lg:overflow-visible lg:pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {items.length === 0 ? (
             <div className="text-sm text-gray-500">No BHK data available</div>
           ) : (
@@ -231,7 +231,7 @@ export default function AvailableProperties({ bhk }: Props) {
                 key={`${b.bhk}-${i}`}
                 onClick={() => setActiveBhkIndex(i)}
                 aria-pressed={i === activeBhkIndex}
-                className="h-8 shrink-0 px-2.5 py-1.5 rounded-md text-xs font-medium transition-shadow inline-flex items-center gap-1.5 shadow cursor-pointer sm:h-9 sm:px-3 sm:py-2 sm:text-sm sm:gap-2 md:h-10 lg:h-auto lg:px-3 lg:py-2 lg:text-sm"
+                className="inline-flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium shadow transition-shadow sm:h-9 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm md:h-10 lg:h-auto lg:px-3 lg:py-2 lg:text-sm"
                 style={
                   i === activeBhkIndex
                     ? { backgroundColor: color, color: "#FFF" } // active state
@@ -252,7 +252,7 @@ export default function AvailableProperties({ bhk }: Props) {
         </div>
 
         {/* Sqft chips */}
-        <div className="mb-6 flex gap-2 overflow-x-auto pb-3 sm:gap-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1.5 sm:mb-6 sm:gap-3 sm:pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {sqftLabels.length === 0 ? (
             <div className="text-sm text-gray-500">No units found</div>
           ) : (
@@ -260,7 +260,7 @@ export default function AvailableProperties({ bhk }: Props) {
               <button
                 key={`${label}-${idx}`}
                 onClick={() => setActiveUnitIndex(idx)}
-                className="h-8 shrink-0 whitespace-nowrap px-2.5 py-1.5 rounded-md text-xs border transition cursor-pointer sm:h-9 sm:px-3 sm:py-2 sm:text-sm md:h-10 lg:h-auto lg:px-3 lg:py-2 lg:text-sm"
+                className="h-7 shrink-0 cursor-pointer whitespace-nowrap rounded-md border px-2 py-1 text-[11px] transition sm:h-9 sm:px-3 sm:py-2 sm:text-sm md:h-10 lg:h-auto lg:px-3 lg:py-2 lg:text-sm"
                 style={
                   idx === activeUnitIndex
                     ? { borderColor: color, backgroundColor: '#FFF', color: color } // sky-600
@@ -279,10 +279,10 @@ export default function AvailableProperties({ bhk }: Props) {
         </div>
 
         {/* Main grid: large image left, details right */}
-        <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-12 lg:gap-6 lg:items-start">
+        <div className="grid grid-cols-1 gap-3 md:gap-5 lg:grid-cols-12 lg:items-start lg:gap-6">
           {/* Left: image / plan */}
           <div id="layout-section" className="lg:col-span-8 scroll-mt-24">
-            <div className="bg-gray-50 rounded-md p-2 sm:p-3 lg:p-4 flex items-center justify-center">
+            <div className="flex items-center justify-center rounded-md bg-gray-50 p-1.5 sm:p-3 lg:p-4">
               {/* image container keeps aspect and responsiveness */}
               <div className="relative w-full max-h-[520px] rounded-md overflow-hidden bg-white">
                 {activeUnit?.plan?.url ?? DEV_PLAN_URL ? (
@@ -294,7 +294,7 @@ export default function AvailableProperties({ bhk }: Props) {
                       onPointerUp={stopPlanDrag}
                       onPointerCancel={stopPlanDrag}
                       onPointerLeave={stopPlanDrag}
-                      className={`h-[240px] overflow-auto select-none sm:h-[300px] md:h-[360px] lg:h-[420px] ${canDragPlan
+                      className={`h-[200px] overflow-auto select-none sm:h-[300px] md:h-[360px] lg:h-[420px] ${canDragPlan
                           ? isDraggingPlan
                             ? "cursor-grabbing"
                             : "cursor-grab"
@@ -314,13 +314,13 @@ export default function AvailableProperties({ bhk }: Props) {
                       />
                     </div>
 
-                    <div className="absolute right-2 top-2 flex items-center gap-1 rounded-md border border-gray-200 bg-white/95 p-1 shadow-sm sm:right-3 sm:top-3">
+                    <div className="absolute right-1.5 top-1.5 flex items-center gap-0.5 rounded-md border border-gray-200 bg-white/95 p-0.5 shadow-sm sm:right-3 sm:top-3 sm:gap-1 sm:p-1">
                       <button
                         type="button"
                         aria-label="Zoom out plan"
                         onClick={() => zoomPlan("out")}
                         disabled={!canZoomOut}
-                        className="flex h-7 w-7 items-center justify-center rounded text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300 sm:h-8 sm:w-8"
+                        className="flex h-6 w-6 items-center justify-center rounded text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300 sm:h-8 sm:w-8"
                       >
                         <FiMinus className="h-4 w-4" />
                       </button>
@@ -328,7 +328,7 @@ export default function AvailableProperties({ bhk }: Props) {
                         type="button"
                         aria-label="Reset plan zoom"
                         onClick={() => setPlanZoom(MIN_PLAN_ZOOM)}
-                        className="h-7 min-w-10 rounded px-1.5 text-[11px] font-semibold text-gray-700 transition hover:bg-gray-100 sm:h-8 sm:min-w-12 sm:px-2 sm:text-xs"
+                        className="h-6 min-w-9 rounded px-1 text-[10px] font-semibold text-gray-700 transition hover:bg-gray-100 sm:h-8 sm:min-w-12 sm:px-2 sm:text-xs"
                       >
                         {Math.round(planZoom * 100)}%
                       </button>
@@ -337,14 +337,14 @@ export default function AvailableProperties({ bhk }: Props) {
                         aria-label="Zoom in plan"
                         onClick={() => zoomPlan("in")}
                         disabled={!canZoomIn}
-                        className="flex h-7 w-7 items-center justify-center rounded text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300 sm:h-8 sm:w-8"
+                        className="flex h-6 w-6 items-center justify-center rounded text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300 sm:h-8 sm:w-8"
                       >
                         <FiPlus className="h-4 w-4" />
                       </button>
                     </div>
                   </>
                 ) : (
-                  <div className="flex h-[240px] items-center justify-center text-gray-400 sm:h-[300px] md:h-[360px] lg:h-[420px]">
+                  <div className="flex h-[200px] items-center justify-center text-sm text-gray-400 sm:h-[300px] md:h-[360px] lg:h-[420px]">
                     No plan available
                   </div>
                 )}
@@ -352,17 +352,17 @@ export default function AvailableProperties({ bhk }: Props) {
             </div>
 
             {/* On small screens show summary under image */}
-            <div className="mt-4 lg:hidden">
-              <div className="grid grid-cols-2 gap-3 rounded-md bg-white/70 p-3 sm:flex sm:items-center sm:gap-5">
+            <div className="mt-2.5 lg:hidden">
+              <div className="grid grid-cols-2 gap-2 rounded-md bg-white/70 p-2.5 sm:flex sm:items-center sm:gap-5 sm:p-3">
                 <div>
                   <div className="text-xs text-gray-500">Price</div>
-                  <div className="text-sm font-medium sm:text-base text-green-700">
+                  <div className="text-xs font-medium text-green-700 sm:text-base">
                     {formatINR(activeUnit?.maxPrice)}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-gray-500">Area</div>
-                  <div className="text-sm font-medium sm:text-base text-green-700">
+                  <div className="text-xs font-medium text-green-700 sm:text-base">
                     {formatAreaUnit(activeUnit, isLand)}
                   </div>
                 </div>
@@ -382,59 +382,59 @@ export default function AvailableProperties({ bhk }: Props) {
 
           {/* Right: details */}
           <aside className="lg:col-span-4">
-            <div className="p-4 rounded-md">
+            <div className="rounded-md p-2.5 sm:p-4">
               <div className="flex items-center justify-between">
                 <button
                   type="button"
                   onClick={scrollToHero}
                   style={{ backgroundColor: color }}
-                  className="w-full inline-flex justify-center items-center px-4 py-2 rounded-md text-white font-semibold hover:brightness-95 transition cursor-pointer"
+                  className="inline-flex w-full cursor-pointer items-center justify-center rounded-md px-3 py-1.5 text-sm font-semibold text-white transition hover:brightness-95 sm:px-4 sm:py-2 sm:text-base"
                 >
                   Price on Request
                 </button>
               </div>
 
-              <ul className="mt-6 space-y-3 text-gray-700">
-                <li className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Unit</span>
-                  <span className="font-medium">
+              <ul className="mt-3 space-y-2 text-sm text-gray-700 sm:mt-6 sm:space-y-3 sm:text-base">
+                <li className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-gray-500 sm:text-sm">Unit</span>
+                  <span className="text-right font-medium">
                     {activeBhk?.label ??
                       activeBhk?.bhkLabel ??
                       (activeBhk?.bhk ? `${activeBhk.bhk} BHK` : "—")}
                   </span>
                 </li>
 
-                <li className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Area</span>
-                  <span className="font-medium">
+                <li className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-gray-500 sm:text-sm">Area</span>
+                  <span className="text-right font-medium">
                     {formatAreaUnit(activeUnit, isLand)}
                   </span>
                 </li>
 
-                <li className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">RERA Number</span>
-                  <span className="font-medium">{reraNumber}</span>
+                <li className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-gray-500 sm:text-sm">RERA Number</span>
+                  <span className="text-right font-medium">{reraNumber}</span>
                 </li>
 
 
 
-                <li className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Parking</span>
-                  <span className="font-medium">Available</span>
+                <li className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-gray-500 sm:text-sm">Parking</span>
+                  <span className="text-right font-medium">Available</span>
                 </li>
 
-                <li className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Possession</span>
-                  <div className="font-medium mt-1">Dec. 2025</div>
+                <li className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-gray-500 sm:text-sm">Possession</span>
+                  <div className="mt-0 text-right font-medium sm:mt-1">Dec. 2025</div>
                 </li>
               </ul>
 
-              <div className="mt-6">
+              <div className="mt-3 sm:mt-6">
                 <button
                   type="button"
                   onClick={scrollToHero}
                   style={{ backgroundColor: color }}
-                  className="w-full inline-flex justify-center items-center px-4 py-2 rounded-md text-white font-semibold hover:brightness-95 transition cursor-pointer"
+                  className="inline-flex w-full cursor-pointer items-center justify-center rounded-md px-3 py-1.5 text-sm font-semibold text-white transition hover:brightness-95 sm:px-4 sm:py-2 sm:text-base"
                 >
                   Book a Consultation
                 </button>

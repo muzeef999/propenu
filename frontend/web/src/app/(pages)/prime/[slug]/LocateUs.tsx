@@ -1,6 +1,7 @@
 "use client";
 
 import { LOCATION_ICON_PATH, LOCATION_ICON_VIEWBOX } from "@/icons/icons";
+import { getMapplsGlobal, loadMapplsScript } from "@/lib/mappls";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FiCheck } from "react-icons/fi";
 
@@ -77,59 +78,6 @@ type MapplsMarkerInstance = {
   addListener?: (event: string, cb: () => void) => void;
   openPopup?: () => void;
 };
-
-function getMapplsGlobal() {
-  const win = window as unknown as { mappls?: MapplsGlobal; Mappls?: MapplsGlobal };
-  return win.mappls ?? win.Mappls;
-}
-
-function loadMapplsScript(apiKey: string) {
-  return new Promise<void>((resolve, reject) => {
-    if (getMapplsGlobal()) {
-      resolve();
-      return;
-    }
-
-    const existingScript = document.querySelector<HTMLScriptElement>("script[data-mappls-sdk='true']");
-    if (existingScript) {
-      existingScript.addEventListener(
-        "load",
-        () => {
-          if (getMapplsGlobal()) resolve();
-          else reject(new Error("Mappls SDK loaded but global object was not found."));
-        },
-        { once: true }
-      );
-      existingScript.addEventListener("error", () => reject(new Error("Failed to load Mappls SDK")), { once: true });
-      return;
-    }
-
-    const callbackName = `__mapplsInit_${Date.now()}`;
-    const windowWithCallback = window as unknown as Record<string, unknown>;
-    windowWithCallback[callbackName] = () => {
-      delete windowWithCallback[callbackName];
-      resolve();
-    };
-
-    const script = document.createElement("script");
-    script.src = `https://apis.mappls.com/advancedmaps/api/${apiKey}/map_sdk?layer=vector&v=3.0&callback=${callbackName}`;
-    script.async = true;
-    script.defer = true;
-    script.dataset.mapplsSdk = "true";
-    script.onload = () => {
-      if (getMapplsGlobal()) {
-        delete windowWithCallback[callbackName];
-        resolve();
-      }
-    };
-    script.onerror = () => {
-      delete windowWithCallback[callbackName];
-      reject(new Error("Failed to load Mappls SDK script."));
-    };
-
-    document.head.appendChild(script);
-  });
-}
 
 function haversine([lng1, lat1]: [number, number], [lng2, lat2]: [number, number]) {
   const toRad = (deg: number) => (deg * Math.PI) / 180;
@@ -303,7 +251,7 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
         await loadMapplsScript(apiKey);
         if (isCancelled) return;
 
-        const mapplsSdk = getMapplsGlobal();
+        const mapplsSdk = getMapplsGlobal<MapplsGlobal>();
         if (!mapplsSdk || !mapRef.current || mapInstanceRef.current) {
           throw new Error("Mappls SDK loaded but API object is unavailable.");
         }
@@ -467,7 +415,7 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
               return (
                 <li
                   key={`${p.name ?? "place"}-${idx}`}
-                  className={`rounded-lg border bg-white px-3.5 py-2.5 transition ${
+                  className={`rounded-md border bg-white px-2.5 py-2 transition sm:rounded-lg sm:px-3.5 sm:py-2.5 ${
                     active ? "ring-1 ring-offset-1" : ""
                   }`}
                   style={{
@@ -475,21 +423,21 @@ export default function LocateUs({ nearbyPlaces: raw, primaryColor, location: ex
                     boxShadow: active ? `0 4px 12px ${color}1f` : undefined,
                   } as React.CSSProperties}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex min-w-0 items-center gap-2">
+                  <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+                    <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
                       <span
-                        className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border"
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border sm:h-[22px] sm:w-[22px]"
                         style={{ borderColor: color, color }}
                       >
-                        <FiCheck className="h-3.5 w-3.5" />
+                        <FiCheck className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                       </span>
 
-                      <div className="truncate text-sm font-semibold text-slate-950">
+                      <div className="truncate text-xs font-semibold text-slate-950 sm:text-sm">
                         {p.name?.split(",")[0] ?? "Nearby place"}
                       </div>
                     </div>
 
-                    <span className="shrink-0 text-sm font-semibold text-slate-600">
+                    <span className="shrink-0 text-xs font-semibold text-slate-600 sm:text-sm">
                       ({distanceText ?? p.distanceText ?? "-"})
                     </span>
                   </div>

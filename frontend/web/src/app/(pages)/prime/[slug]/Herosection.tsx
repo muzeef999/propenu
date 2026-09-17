@@ -551,7 +551,7 @@ export default function HeroSection({ hero }: Props) {
             <div className={`w-full lg:ml-auto ${
               showSubmittedStep
                 ? "max-w-sm rounded-xl border border-white/30 bg-white/20 p-2 text-slate-950 shadow-2xl shadow-black/20 backdrop-blur-xl"
-                : "max-w-md rounded-xl border border-white/20 bg-white/10 p-6 backdrop-blur-lg"
+                : "max-w-md rounded-xl border border-white/20 bg-white/10 p-3 backdrop-blur-lg sm:p-6"
             }`}>
               {showSubmittedStep ? (
                 <div className="overflow-hidden rounded-lg shadow-[0_14px_38px_rgba(15,23,42,0.16)]">
@@ -610,11 +610,11 @@ export default function HeroSection({ hero }: Props) {
                 </div>
               ) : (
                 <>
-                  <h3 className="mb-4 text-lg font-semibold text-white">
+                  <h3 className="mb-2 text-base font-semibold text-white sm:mb-4 sm:text-lg">
                     Enquiry Now
                   </h3>
 
-                  <form onSubmit={handleSubmit} className="space-y-3">
+                  <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-3">
                     {!hasPrefilledUserDetails ? (
                       <>
                         <input
@@ -628,7 +628,7 @@ export default function HeroSection({ hero }: Props) {
                           title="Name should contain letters only"
                           placeholder="Your Name"
                           required
-                          className="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder-white/70 focus:ring-2 focus:ring-yellow-400"
+                          className="w-full rounded-md border border-white/20 bg-white/10 px-2.5 py-1.5 text-xs text-white outline-none placeholder-white/70 focus:ring-2 focus:ring-yellow-400 sm:px-3 sm:py-2 sm:text-sm"
                         />
 
                         <input
@@ -644,7 +644,7 @@ export default function HeroSection({ hero }: Props) {
                           title="Please enter a valid phone number"
                           placeholder="Your Mobile Number"
                           required
-                          className="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder-white/70 focus:ring-2 focus:ring-yellow-400"
+                          className="w-full rounded-md border border-white/20 bg-white/10 px-2.5 py-1.5 text-xs text-white outline-none placeholder-white/70 focus:ring-2 focus:ring-yellow-400 sm:px-3 sm:py-2 sm:text-sm"
                         />
 
                         <input
@@ -659,10 +659,10 @@ export default function HeroSection({ hero }: Props) {
                           title="Please enter a valid email address"
                           placeholder="Your Email"
                           required
-                          className="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder-white/70 focus:ring-2 focus:ring-yellow-400"
+                          className="w-full rounded-md border border-white/20 bg-white/10 px-2.5 py-1.5 text-xs text-white outline-none placeholder-white/70 focus:ring-2 focus:ring-yellow-400 sm:px-3 sm:py-2 sm:text-sm"
                         />
 
-                        <label className="flex items-start gap-2 text-xs text-white/80">
+                        <label className="flex items-start gap-1.5 text-[11px] text-white/80 sm:gap-2 sm:text-xs">
                           <input
                             name="terms"
                             type="checkbox"
@@ -681,13 +681,13 @@ export default function HeroSection({ hero }: Props) {
                           />
                           <span
                             aria-hidden="true"
-                            className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-white/40 bg-white/10 transition peer-checked:border-[#27AE60] peer-checked:bg-[#27AE60] peer-focus-visible:ring-2 peer-focus-visible:ring-[#27AE60]/25"
+                            className="mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border border-white/40 bg-white/10 transition peer-checked:border-[#27AE60] peer-checked:bg-[#27AE60] peer-focus-visible:ring-2 peer-focus-visible:ring-[#27AE60]/25 sm:h-4 sm:w-4"
                           >
                             {termsAccepted ? (
                               <span className="h-2 w-1 rotate-45 border-b-2 border-r-2 border-white" />
                             ) : null}
                           </span>
-                          <span className="leading-5">
+                          <span className="leading-4 sm:leading-5">
                             I agree to Propenu's{" "}
                             <Link
                               href="/terms"
@@ -705,7 +705,7 @@ export default function HeroSection({ hero }: Props) {
                       type="submit"
                       disabled={leadsMutation.isPending}
                       style={{ backgroundColor: h.color || "#27AE60" }}
-                      className="w-full cursor-pointer rounded-md py-2 font-bold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-70"
+                      className="w-full cursor-pointer rounded-md py-1.5 text-sm font-bold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-70 sm:py-2 sm:text-base"
                     >
                       {leadsMutation.isPending ? "Submitting..." : "Get Contact Details"}
                     </button>

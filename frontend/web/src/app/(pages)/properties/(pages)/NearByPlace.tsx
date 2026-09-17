@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LOCATION_ICON_PATH, LOCATION_ICON_VIEWBOX } from "@/icons/icons";
+import { getMapplsGlobal, loadMapplsScript } from "@/lib/mappls";
 
 interface Location {
   type: "Point";
@@ -94,11 +95,6 @@ function buildNearbyPopupHtml(place: NearbyPlace) {
   return `<div><b>${name}</b><br/>${type}<br/>${distance}</div>`;
 }
 
-function getMapplsGlobal() {
-  const win = window as unknown as { mappls?: MapplsGlobal; Mappls?: MapplsGlobal };
-  return win.mappls ?? win.Mappls;
-}
-
 function cleanupMapInstance(map: MapplsInstance | null) {
   try {
     map?.remove?.();
@@ -115,55 +111,6 @@ function cleanupMarkerInstances(markers: MapplsMarkerInstance[]) {
     } catch {
       // Ignore SDK cleanup issues; we fully rebuild markers after data changes.
     }
-  });
-}
-
-function loadMapplsScript(apiKey: string) {
-  return new Promise<void>((resolve, reject) => {
-    if (getMapplsGlobal()) {
-      resolve();
-      return;
-    }
-
-    const existingScript = document.querySelector<HTMLScriptElement>("script[data-mappls-sdk='true']");
-    if (existingScript) {
-      existingScript.addEventListener(
-        "load",
-        () => {
-          if (getMapplsGlobal()) resolve();
-          else reject(new Error("Mappls SDK loaded but global object was not found."));
-        },
-        { once: true }
-      );
-      existingScript.addEventListener("error", () => reject(new Error("Failed to load Mappls SDK")), {
-        once: true,
-      });
-      return;
-    }
-
-    const callbackName = `__mapplsInit_${Date.now()}`;
-    const windowWithCallback = window as unknown as Record<string, unknown>;
-    windowWithCallback[callbackName] = () => {
-      delete windowWithCallback[callbackName];
-      resolve();
-    };
-
-    const script = document.createElement("script");
-    script.src = `https://apis.mappls.com/advancedmaps/api/${apiKey}/map_sdk?layer=vector&v=3.0&callback=${callbackName}`;
-    script.async = true;
-    script.defer = true;
-    script.dataset.mapplsSdk = "true";
-    script.onload = () => {
-      if (getMapplsGlobal()) {
-        delete windowWithCallback[callbackName];
-        resolve();
-      }
-    };
-    script.onerror = () => {
-      delete windowWithCallback[callbackName];
-      reject(new Error("Failed to load Mappls SDK script."));
-    };
-    document.head.appendChild(script);
   });
 }
 
@@ -218,7 +165,7 @@ const NearByPlace: React.FC<Props> = ({
         setMapError(null);
         await loadMapplsScript(apiKey);
 
-        const mapplsSdk = getMapplsGlobal();
+        const mapplsSdk = getMapplsGlobal<MapplsGlobal>();
         if (isCancelled || !mapplsSdk || !mapContainerRef.current || mapInstanceRef.current) {
           return;
         }
@@ -260,7 +207,7 @@ const NearByPlace: React.FC<Props> = ({
 
   useEffect(() => {
     const map = mapInstanceRef.current;
-    const mapplsSdk = getMapplsGlobal();
+    const mapplsSdk = getMapplsGlobal<MapplsGlobal>();
     if (!mapReady || !map || !mapplsSdk) return;
 
     cleanupMarkerInstances(markerInstancesRef.current);

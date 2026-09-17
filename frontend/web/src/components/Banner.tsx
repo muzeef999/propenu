@@ -401,9 +401,9 @@ const Banner = () => {
         </>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 translate-y-1/2 z-20 px-4 sm:px-6 lg:px-8 flex justify-center pointer-events-auto">
+      <div className="absolute bottom-0 left-0 right-0 z-20 hidden translate-y-1/2 justify-center px-4 pointer-events-auto md:flex sm:px-6 lg:px-8">
         <div className="w-full max-w-3xl xl:max-w-4xl">
-          <SearchBox hideOnMobile={false} className="max-w-none shadow-xl" />
+          <SearchBox hideOnMobile={true} className="max-w-none shadow-xl" />
         </div>
       </div>
     </section>

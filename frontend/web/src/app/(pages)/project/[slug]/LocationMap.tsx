@@ -1,6 +1,7 @@
 "use client";
 
 import { LOCATION_ICON_PATH, LOCATION_ICON_VIEWBOX } from "@/icons/icons";
+import { getMapplsGlobal, loadMapplsScript } from "@/lib/mappls";
 import { FeaturedProject } from "@/types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FiCheck, FiMapPin } from "react-icons/fi";
@@ -51,46 +52,6 @@ type MapplsMarkerInstance = {
   on?: (event: string, cb: () => void) => void;
   addListener?: (event: string, cb: () => void) => void;
 };
-
-function getMapplsGlobal() {
-  const win = window as unknown as { mappls?: MapplsGlobal; Mappls?: MapplsGlobal };
-  return win.mappls ?? win.Mappls;
-}
-
-function loadMapplsScript(apiKey: string) {
-  return new Promise<void>((resolve, reject) => {
-    if (getMapplsGlobal()) {
-      resolve();
-      return;
-    }
-
-    const existingScript = document.querySelector<HTMLScriptElement>("script[data-mappls-sdk='true']");
-    if (existingScript) {
-      existingScript.addEventListener("load", () => resolve(), { once: true });
-      existingScript.addEventListener("error", () => reject(new Error("Failed to load Mappls SDK")), { once: true });
-      return;
-    }
-
-    const callbackName = `__mapplsInit_${Date.now()}`;
-    const windowWithCallback = window as unknown as Record<string, unknown>;
-    windowWithCallback[callbackName] = () => {
-      delete windowWithCallback[callbackName];
-      resolve();
-    };
-
-    const script = document.createElement("script");
-    script.src = `https://apis.mappls.com/advancedmaps/api/${apiKey}/map_sdk?layer=vector&v=3.0&callback=${callbackName}`;
-    script.async = true;
-    script.defer = true;
-    script.dataset.mapplsSdk = "true";
-    script.onerror = () => {
-      delete windowWithCallback[callbackName];
-      reject(new Error("Failed to load Mappls SDK script."));
-    };
-
-    document.head.appendChild(script);
-  });
-}
 
 function normalizeCoords(coords?: [number, number] | number[]): [number, number] | undefined {
   if (!Array.isArray(coords) || coords.length < 2) return undefined;
@@ -250,7 +211,7 @@ export default function LocationMap({ project }: LocationMapProps) {
         await loadMapplsScript(apiKey);
         if (isCancelled) return;
 
-        const mapplsSdk = getMapplsGlobal();
+        const mapplsSdk = getMapplsGlobal<MapplsGlobal>();
         if (!mapplsSdk || !mapRef.current) {
           throw new Error("Mappls SDK loaded but API object is unavailable.");
         }
