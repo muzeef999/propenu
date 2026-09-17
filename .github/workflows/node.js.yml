@@ -19,8 +19,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
-    name: Build and deploy backend
+  build:
+    name: Install packages and build
     runs-on: self-hosted
     timeout-minutes: 20
 
@@ -34,6 +34,52 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: package-lock.json
+
+      - name: Install build dependencies
+        run: npm ci --include=dev --no-audit --no-fund
+
+      - name: Build backend services
+        run: npm run build:backend
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-build-${{ github.sha }}
+          retention-days: 3
+          if-no-files-found: error
+          path: |
+            backend/gateway/dist
+            backend/services/ai-service/dist
+            backend/services/payment-service/dist
+            backend/services/property-service/dist
+            backend/services/user-service/dist
+            backend/services/ticket-service/dist
+
+  deploy:
+    name: Deploy and restart services
+    needs: build
+    runs-on: self-hosted
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install deployment dependencies
+        run: npm ci --include=dev --no-audit --no-fund
+
+      - name: Download verified build
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-build-${{ github.sha }}
+          path: backend
 
       - name: Create service environment files
         shell: bash
@@ -58,25 +104,20 @@ jobs:
           printf '%s\n' "$USER_ENV" > backend/services/user-service/.env
           printf '%s\n' "$TICKET_ENV" > backend/services/ticket-service/.env
 
-      - name: Install dependencies
-        run: npm ci --include=dev --no-audit --no-fund
+      - name: Verify Firebase credentials
+        shell: bash
+        run: |
+          test -r /home/ubuntu/firebase-service-account.json || {
+            echo "::error::Firebase credentials are missing or unreadable."
+            exit 1
+          }
 
-      - name: Build backend services
-        run: npm run build:backend
-
-      - name: Upload build output
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-build-${{ github.sha }}
-          retention-days: 3
-          if-no-files-found: error
-          path: |
-            backend/gateway/dist
-            backend/services/ai-service/dist
-            backend/services/payment-service/dist
-            backend/services/property-service/dist
-            backend/services/user-service/dist
-            backend/services/ticket-service/dist
-
-      - name: Reload backend services
-        run: npm run reload:pm2
+      - name: Restart services with PM2
+        shell: bash
+        run: |
+          command -v pm2 >/dev/null || {
+            echo "::error::PM2 is not installed or is not available in PATH."
+            exit 1
+          }
+          npm run reload:pm2
+          pm2 status
