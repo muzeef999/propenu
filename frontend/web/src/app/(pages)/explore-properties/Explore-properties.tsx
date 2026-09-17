@@ -78,9 +78,9 @@ export function PropertyCard({ item }: { item: (typeof CATEGORIES)[number] }) {
         <h3 className="text-2xl font-semibold">
           {item.title}
         </h3>
-        <p className="mt-2 text-base">
+        {/* <p className="mt-2 text-base">
           {item.countText}
-        </p>
+        </p> */}
       </div>
     </Link>
 

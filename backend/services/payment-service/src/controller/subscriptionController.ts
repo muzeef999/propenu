@@ -13,8 +13,8 @@ export async function getMySubscription(req: AuthRequest, res: Response) {
   let userId = req.user!.id;
 
   if (req.user?.roleName === "super_admin" && req.query.userId) {
-  userId = req.query.userId as string;
- }
+    userId = req.query.userId as string;
+  }
 
   const subscriptions = await Subscription.find({
     userId,
@@ -50,35 +50,86 @@ export async function getMySubscription(req: AuthRequest, res: Response) {
     const plan: any = planMap.get(sub.planCode);
     if (!plan) return null;
 
+    const getFeature = (key: string) => {
+      if (typeof plan.features?.get === "function") {
+        return plan.features.get(key);
+      }
+      return plan.features?.[key];
+    };
+
+    // 🏠 PROPERTY LIMIT
+    const rawPropertyLimit =
+      getFeature("PROPERTY_LISTING_LIMIT") ??
+      getFeature("propertyListingLimit") ??
+      getFeature("property_listing_limit") ??
+      getFeature("listingLimit");
+
+    const parsedProperty =
+      rawPropertyLimit !== undefined && rawPropertyLimit !== null && rawPropertyLimit !== ""
+        ? Number(rawPropertyLimit)
+        : NaN;
+
+    const propertyLimit =
+      (plan.userType === "owner" || plan.userType === "agent") && !isNaN(parsedProperty)
+        ? parsedProperty
+        : undefined;
+
+    let propertyUsed = 0;
+    if (propertyLimit !== undefined) {
+      if (plan.userType === "owner") {
+        propertyUsed = sub.category === "sell" ? sellCount : rentCount;
+      } else if (plan.userType === "agent") {
+        propertyUsed = sellCount + rentCount;
+      }
+    }
+
+    // 👤 CONTACT LIMIT
+    const rawContactLimit =
+      (sub as any).usage?.contactLimit ??
+      getFeature("CONTACT_OWNER_LIMIT") ??
+      getFeature("CONTACT_LIMIT") ??
+      getFeature("contactLimit") ??
+      getFeature("contact_limit") ??
+      getFeature("contactOwnerLimit");
+
+    const parsedContact =
+      rawContactLimit !== undefined && rawContactLimit !== null && rawContactLimit !== ""
+        ? Number(rawContactLimit)
+        : NaN;
+
+    const contactLimit = !isNaN(parsedContact) ? parsedContact : undefined;
+    const contactUsed = Number((sub as any).usage?.contactUsed || 0);
+
+    const propertyUsage =
+      propertyLimit !== undefined
+        ? {
+            total: propertyLimit,
+            used: propertyUsed,
+            remaining: Math.max(propertyLimit - propertyUsed, 0),
+          }
+        : undefined;
+
+    const contactUsage =
+      contactLimit !== undefined
+        ? {
+            total: contactLimit,
+            used: contactUsed,
+            remaining: Math.max(contactLimit - contactUsed, 0),
+          }
+        : undefined;
+
+    // Fallback single metric for backward compatibility (pure buyers / pure owners)
     let total = 0;
     let used = 0;
-    let unit = "features";
+    let unit: "properties" | "contacts" = "properties";
 
-    // 🏠 OWNER → PROPERTY PLANS
-    if (
-  (plan.userType === "owner" || plan.userType === "agent") &&
-  typeof plan.features?.PROPERTY_LISTING_LIMIT === "number"
-) {
-  total = plan.features.PROPERTY_LISTING_LIMIT;
-
-  // ⭐ OWNER → based on category
-  if (plan.userType === "owner") {
-    used = sub.category === "sell" ? sellCount : rentCount;
-  }
-
-  // ⭐ AGENT → total properties (sell + rent)
-  if (plan.userType === "agent") {
-    used = sellCount + rentCount;
-  }
-
-  unit = "properties";
-}
-
-    // 👤 BUYER → CONTACT PLANS
-    const contactLimit = plan.features?.CONTACT_OWNER_LIMIT ?? plan.features?.CONTACT_LIMIT;
-    if (contactLimit) {
-      total = (sub as any).usage?.contactLimit ?? contactLimit;
-      used = (sub as any).usage?.contactUsed || 0;
+    if (propertyLimit !== undefined) {
+      total = propertyLimit;
+      used = propertyUsed;
+      unit = "properties";
+    } else if (contactLimit !== undefined) {
+      total = contactLimit;
+      used = contactUsed;
       unit = "contacts";
     }
 
@@ -92,6 +143,8 @@ export async function getMySubscription(req: AuthRequest, res: Response) {
       used,
       remaining: Math.max(total - used, 0),
       unit,
+      propertyUsage,
+      contactUsage,
       startDate: sub.startDate,
       endDate: sub.endDate,
     };

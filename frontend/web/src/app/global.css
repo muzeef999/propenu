@@ -29,6 +29,12 @@ html, body {
   font-family: var(--font-poppins);
 }
 
+body.project-modal-open .propenu-site-navbar {
+  filter: brightness(0.9) saturate(0.95);
+  pointer-events: none;
+  transition: filter 150ms ease;
+}
+
 @layer base {
   :where(
     a[href],

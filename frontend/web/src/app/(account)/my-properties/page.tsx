@@ -214,19 +214,19 @@ const Page = () => {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
-      <div className="rounded-2xl border border-green-100 bg-linear-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
-        <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">
+    <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
+      <div className="rounded-xl border border-green-100 bg-linear-to-r from-green-50 via-white to-emerald-50 px-4 py-4 sm:rounded-2xl sm:px-5 sm:py-6">
+        <h1 className="text-xl font-semibold text-gray-900 sm:text-2xl md:text-3xl">
           My Properties
         </h1>
-        <p className="mt-2 text-sm text-gray-600 md:text-base">
+        <p className="mt-1.5 text-xs leading-5 text-gray-600 sm:mt-2 sm:text-sm md:text-base">
           Manage your listed properties, track responses, and keep an eye on
           their status in one place.
         </p>
       </div>
 
       {/* ================= TABS ================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">        {/* Tabs */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">        {/* Tabs */}
         <ActiveTabs
           categories={categories}
           activeTab={activeTab}
@@ -235,26 +235,26 @@ const Page = () => {
         />
 
         {/* Filtered count */}
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">
+        <div className="flex items-center gap-2 px-1">
+          <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 sm:px-3">
             {filteredProperties.length}
           </span>
-          <span className="text-sm text-gray-600">properties found</span>
+          <span className="text-xs text-gray-500 sm:text-sm sm:text-gray-600">properties found</span>
         </div>
       </div>
 
       {/* ================= FILTER BAR ================= */}
-      <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-4">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-4">
         {/* Search */}
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Enter locality"
-          className="h-9 w-full lg:w-56 rounded-md border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus:border-green-500"
+          className="h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus:border-green-500 lg:w-56"
         />
 
         {/* Status Filters */}
-        <div className="flex flex-wrap gap-2 lg:ml-auto">
+        <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1 lg:ml-auto lg:flex-wrap lg:overflow-visible lg:pb-0">
           {[
             "All",
             "Active",
@@ -267,13 +267,13 @@ const Page = () => {
               active={status === item}
               selectionType="single"
               onClick={() => setStatus(item as any)}
-              className="px-3 py-1 text-xs"
+              className="shrink-0 px-2.5 py-1 text-xs sm:px-3"
             />
           ))}
         </div>
 
         {/* Listing Type Dropdown */}
-        <div ref={listingTypeRef} className="relative w-full lg:w-44 shrink-0">
+        <div ref={listingTypeRef} className="relative w-full shrink-0 lg:w-44">
           <button
             type="button"
             onClick={() => setIsListingTypeOpen((prev) => !prev)}
@@ -310,7 +310,7 @@ const Page = () => {
       </div>
 
       {/* ================= LIST ================= */}
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {filteredProperties.length ? (
           filteredProperties.map((property) => {
             const image = property.gallery?.[0]?.url || "/placeholder.jpg";
@@ -337,10 +337,10 @@ const Page = () => {
                     dispatch(setPropertyType(getCategoryForTab(activeTab)));
                   }
                 }}
-                className="card group flex flex-col md:flex-row items-start md:items-center gap-1.5 sm:gap-2.5 md:gap-4 border border-gray-200 p-1.5 sm:p-2 md:p-3 rounded-lg md:rounded-2xl bg-white hover:shadow-md transition-all duration-300 w-full max-w-[330px] sm:max-w-none mx-auto sm:mx-0"
+                className="group relative mx-auto flex w-full flex-col gap-2 rounded-lg border border-gray-200 bg-white p-2 transition-all duration-300 hover:shadow-md sm:mx-0 sm:max-w-none sm:gap-3 sm:p-3 md:flex-row md:items-center md:gap-4 md:rounded-2xl"
               >
                 {/* Image */}
-                <div className="w-full h-50 md:w-40  lg:w-48  md:h-48 lg:h-45 shrink-0 overflow-hidden rounded-md md:rounded-lg bg-gray-100">
+                <div className="aspect-[16/9] w-full shrink-0 overflow-hidden rounded-md bg-gray-100 sm:h-50 md:h-44 md:w-40 md:rounded-lg lg:h-45 lg:w-48">
                   <img
                     src={image}
                     alt={property.title}
@@ -352,15 +352,15 @@ const Page = () => {
                 <div className="flex min-w-0 flex-1 flex-col">
 
                   {/* Title + Status */}
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
 
                     {/* Left */}
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-base sm:text-base md:text-lg font-semibold text-gray-900 line-clamp-2">
+                      <h3 className="line-clamp-2 text-base font-semibold leading-snug text-gray-900 md:text-lg">
                         {property.title ?? "Untitled Property"}
                       </h3>
 
-                      <div className="mt-1 flex items-center gap-1 text-sm sm:text-sm text-gray-500">
+                      <div className="mt-1 flex items-center gap-1 text-xs text-gray-500 sm:text-sm">
                         <HiOutlineMapPin className="h-4 w-4 text-green-600 shrink-0" />
                         <span className="truncate">
                           {property.address ?? "Location not specified"}
@@ -385,23 +385,23 @@ const Page = () => {
 
 
                   {/* Property Details */}
-                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-xs sm:text-sm text-gray-600">
+                  <div className="mt-3 grid grid-cols-1 gap-y-1.5 text-xs text-gray-600 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-2 sm:text-sm">
 
-                    <p className="flex justify-between sm:block">
+                    <p className="flex justify-between gap-3 sm:block">
                       <span className="text-gray-500">Price:</span>{" "}
                       <span className="font-medium text-gray-800">
                         {formatPropertyPrice(property.price)}
                       </span>
                     </p>
 
-                    <p className="flex justify-between sm:block">
+                    <p className="flex justify-between gap-3 sm:block">
                       <span className="text-gray-500">Property ID:</span>{" "}
                       <span className="font-medium text-gray-800">
                         {property._id.slice(-8).toUpperCase()}
                       </span>
                     </p>
 
-                    <p className="flex justify-between sm:block">
+                    <p className="flex justify-between gap-3 sm:block">
                       <span className="text-gray-500">Carpet Area:</span>{" "}
                       <span className="font-medium text-gray-800">
                         {property.carpetArea
@@ -410,7 +410,7 @@ const Page = () => {
                       </span>
                     </p>
 
-                    <p className="flex justify-between sm:block">
+                    <p className="flex justify-between gap-3 sm:block">
                       <span className="text-gray-500">Posted On:</span>{" "}
                       <span className="font-medium text-gray-800">
                         {property.createdAt
@@ -429,15 +429,15 @@ const Page = () => {
                   {!isActive && (
                     <div className="mt-3">
                       {isDraft ? (
-                        <span className="inline-block rounded-md bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 border border-amber-200">
+                        <span className="inline-block rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 sm:px-3 sm:py-1.5">
                           Draft — Complete listing
                         </span>
                       ) : isPending ? (
-                        <span className="inline-block rounded-md bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 border border-blue-200">
+                        <span className="inline-block rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 sm:px-3 sm:py-1.5">
                           Under Review — Pending
                         </span>
                       ) : (
-                        <span className="inline-block rounded-md bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200">
+                        <span className="inline-block rounded-md border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 sm:px-3 sm:py-1.5">
                           Listing Inactive
                         </span>
                       )}
@@ -446,10 +446,10 @@ const Page = () => {
                 </div>
 
                 {/* Right Column */}
-                <div className="mt-3 md:mt-0 w-full md:w-32 flex flex-row md:flex-col items-center md:items-end justify-between gap-3">
+                <div className="mt-2 flex w-full flex-row items-center justify-between gap-3 border-t border-gray-100 pt-2 md:mt-0 md:w-32 md:flex-col md:items-end md:border-t-0 md:pt-0">
 
                   {/* Menu Button */}
-                  <div className="absolute top-3 right-3">
+                  <div className="absolute right-2 top-2 sm:right-3 sm:top-3">
                     <button
                       onClick={(e) => {
                         e.preventDefault();
@@ -524,7 +524,7 @@ const Page = () => {
 
                   {/* Stats Section (only for Active properties) */}
                   {isActive && (
-                    <div className="text-xs sm:text-sm text-gray-600 text-left md:text-right space-y-1 md:pr-2">
+                    <div className="flex gap-3 text-left text-xs text-gray-600 md:block md:space-y-1 md:pr-2 md:text-right">
                       <p>
                         Views:{" "}
                         <span className="font-medium text-gray-800">

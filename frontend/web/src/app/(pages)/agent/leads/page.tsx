@@ -43,6 +43,8 @@ const formatLeadStatus = (status?: string) =>
 const TAB_KEY_MAP: Record<string, string> = {
     Residential: "residential",
     Commercial: "commercial",
+    "Open Plot": "land",
+    "Agriculture Land": "agricultural",
     Plot: "land",
     Agriculture: "agricultural",
 };
@@ -117,6 +119,11 @@ const LeadsPage = () => {
         );
     }, [leadsData, activeStatus]);
 
+    const selectedProperty = useMemo(
+        () => properties.find((property: any) => property._id === selectedPropertyId),
+        [properties, selectedPropertyId],
+    );
+
     if (propertiesLoading) {
         return (
             <div className="flex h-64 items-center justify-center text-gray-500">
@@ -125,87 +132,111 @@ const LeadsPage = () => {
         );
     }
     return (
-        <div className="space-y-5 sm:space-y-6">
+        <div className="space-y-4 sm:space-y-6">
             {/* HEADER */}
-            <div className="rounded-2xl border border-green-100 bg-gradient-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
-                <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">
+            <div className="rounded-xl border border-green-100 bg-linear-to-r from-green-50 via-white to-emerald-50 px-4 py-4 sm:rounded-2xl sm:px-5 sm:py-6">
+                <h1 className="text-xl font-semibold text-gray-900 sm:text-2xl md:text-3xl">
                     My Leads
                 </h1>
-                <p className="mt-2 text-sm text-gray-600 md:text-base">
+                <p className="mt-1.5 text-xs leading-5 text-gray-600 sm:mt-2 sm:text-sm md:text-base">
                     View enquiries received on your properties and keep track of
                     buyer activity in one place.
                 </p>
             </div>
 
             {/* TABS */}
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                 <ActiveTabs
                     categories={categories}
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
                 />
-                <span className="text-sm text-gray-600">
+                <span className="px-1 text-xs font-medium text-gray-500 sm:text-sm sm:text-gray-600">
                     Showing {properties.length} Properties
                 </span>
             </div>
 
             {/* MAIN LAYOUT */}
-            <div>
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:gap-4">
                 {/* LEFT – PROPERTY LIST */}
-                <div className="lg:col-span-4 space-y-2 max-h-[60vh] overflow-y-auto pr-1">
-                    {properties.map((property: any) => {
-                        const image = property.gallery?.[0]?.url || "/placeholder.jpg";
-                        const active = property._id === selectedPropertyId;
+                <div className="lg:col-span-4">
+                    <div className="mb-2 flex items-center justify-between lg:hidden">
+                        <p className="text-sm font-semibold text-gray-900">Properties</p>
+                        <p className="text-xs text-gray-500">
+                            {selectedProperty ? "Swipe to switch" : "No active properties"}
+                        </p>
+                    </div>
 
-                        return (
-                            <button
-                                key={property._id}
-                                onClick={() => setSelectedPropertyId(property._id)}
-                                className={`w-full flex flex-col gap-3 rounded-lg border p-2 text-left transition sm:flex-row
-                  ${active
-                                        ? "border-green-500 bg-green-50"
-                                        : "border-gray-200 bg-white hover:bg-gray-50"
-                                    }`}
-                            >
-                                <div className="h-36 w-full rounded-md overflow-hidden bg-gray-100 sm:h-16 sm:w-20 sm:shrink-0">
-                                    <img
-                                        src={image}
-                                        alt={property.title}
-                                        className="w-full h-full object-cover"
-                                    />
-                                </div>
+                    {properties.length ? (
+                        <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1 lg:block lg:max-h-[60vh] lg:space-y-2 lg:overflow-y-auto lg:pr-1">
+                            {properties.map((property: any) => {
+                                const image = property.gallery?.[0]?.url || "/placeholder.jpg";
+                                const active = property._id === selectedPropertyId;
 
-                                <div className="min-w-0">
-                                    <h3 className="text-sm font-semibold truncate">
-                                        {property.title}
-                                    </h3>
-                                    <p className="text-xs text-gray-500 truncate">
-                                        {property.locality}, {property.city}
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                        Carpet Area: {property.carpetArea} sq.ft.
-                                    </p>
-                                    <p className="text-sm font-semibold text-green-600">
-                                        {formatPrice(property.price)}
-                                    </p>
-                                </div>
-                            </button>
-                        );
-                    })}
+                                return (
+                                    <button
+                                        key={property._id}
+                                        onClick={() => setSelectedPropertyId(property._id)}
+                                        className={`flex w-[236px] shrink-0 gap-2 rounded-lg border p-2 text-left transition lg:w-full lg:flex-row
+                      ${active
+                                                ? "border-green-500 bg-green-50 shadow-sm"
+                                                : "border-gray-200 bg-white hover:bg-gray-50"
+                                            }`}
+                                    >
+                                        <div className="h-16 w-20 shrink-0 overflow-hidden rounded-md bg-gray-100">
+                                            <img
+                                                src={image}
+                                                alt={property.title}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        </div>
+
+                                        <div className="min-w-0 flex-1">
+                                            <h3 className="truncate text-xs font-semibold text-gray-900 sm:text-sm">
+                                                {property.title}
+                                            </h3>
+                                            <p className="truncate text-[11px] text-gray-500">
+                                                {[property.locality, property.city].filter(Boolean).join(", ")}
+                                            </p>
+                                            <p className="truncate text-[11px] text-gray-500">
+                                                Area: {property.carpetArea ?? property.plotArea ?? "—"} sq.ft.
+                                            </p>
+                                            <p className="mt-0.5 text-xs font-semibold text-green-600 sm:text-sm">
+                                                {formatPrice(property.price)}
+                                            </p>
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="rounded-lg border border-dashed border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500">
+                            No active properties in this category.
+                        </div>
+                    )}
                 </div>
 
                 {/* RIGHT – LEADS */}
-                <div className="lg:col-span-8 bg-green-50/60 rounded-lg p-3 sm:p-4">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                            <h2 className="text-lg sm:text-xl font-semibold text-green-700">Leads</h2>
-                            <div className="h-1 w-10 rounded-full bg-green-500/70" />
+                <div className="rounded-lg bg-green-50/60 p-3 sm:p-4 lg:col-span-8">
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                                <h2 className="text-base font-semibold text-green-700 sm:text-xl">Leads</h2>
+                                <div className="h-1 w-8 rounded-full bg-green-500/70 sm:w-10" />
+                            </div>
+                            {selectedProperty ? (
+                                <p className="mt-1 truncate text-xs text-gray-500">
+                                    {selectedProperty.title}
+                                </p>
+                            ) : null}
+                        </div>
+                        <div className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-green-700 shadow-sm">
+                            {filteredLeads.length}
                         </div>
                     </div>
 
                     {/* STATUS TABS */}
-                    <div className="flex flex-wrap gap-2 mb-4">
+                    <div className="no-scrollbar mb-3 flex gap-1.5 overflow-x-auto pb-1 sm:mb-4 sm:flex-wrap sm:gap-2">
                         {LEAD_STATUSES.map((status) => {
                             const active = activeStatus === status;
 
@@ -213,9 +244,9 @@ const LeadsPage = () => {
                                 <button
                                     key={status}
                                     onClick={() => setActiveStatus(status)}
-                                    className={`px-3 py-1.5 rounded-md text-xs transition
+                                    className={`shrink-0 rounded-full px-2.5 py-1.5 text-[11px] transition sm:rounded-md sm:px-3 sm:text-xs
           ${active
-                                            ? "bg-green-100 text-gray-700 font-medium"
+                                            ? "bg-green-600 text-white font-medium shadow-sm"
                                             : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
                                         }
         `}
@@ -228,18 +259,17 @@ const LeadsPage = () => {
 
                     {/* TABLE */}
                     {leadsLoading ? (
-                        <div className="text-center py-20 text-gray-500">
+                        <div className="py-14 text-center text-sm text-gray-500 sm:py-20">
                             Loading leads…
                         </div>
                     ) : filteredLeads.length ? (
                         <LeadsTable leads={filteredLeads} />
                     ) : (
-                        <div className="text-center py-20 text-gray-500">
+                        <div className="rounded-lg border border-dashed border-green-100 bg-white/80 px-4 py-12 text-center text-sm text-gray-500 sm:py-20">
                             No <b>{activeStatus}</b> leads for this property
                         </div>
                     )}
                 </div>
-            </div>
             </div>
         </div>
     );
@@ -275,23 +305,30 @@ const LeadsTable = ({ leads }: any) => {
     return (
         <>
             {/* Mobile Cards */}
-            <div className="md:hidden space-y-3">
+            <div className="space-y-2 md:hidden">
                 {leads.map((lead: any, idx: number) => (
-                    <div key={idx} className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
-                        <div className="flex items-start justify-between gap-3">
-                            <p className="font-medium text-gray-800">{lead.name}</p>
+                    <div key={idx} className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+                        <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-gray-900">{lead.name}</p>
+                                <p className="mt-0.5 text-xs text-gray-500">
+                                    {new Date(lead.createdAt).toLocaleDateString("en-IN")}
+                                </p>
+                            </div>
                             <span
-                                className={`px-2.5 py-1 text-xs rounded-full border font-medium ${getStatusStyle(
+                                className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium ${getStatusStyle(
                                     lead.status
                                 )}`}
                             >
                                 {formatLeadStatus(lead.status)}
                             </span>
                         </div>
-                        <p className="text-sm text-gray-500">
-                            {new Date(lead.createdAt).toLocaleDateString("en-IN")}
-                        </p>
-                        <p className="text-sm text-gray-600">{lead.phone}</p>
+                        <a
+                            href={`tel:${lead.phone}`}
+                            className="mt-2 inline-flex text-sm font-medium text-gray-700"
+                        >
+                            {lead.phone}
+                        </a>
                     </div>
                 ))}
             </div>

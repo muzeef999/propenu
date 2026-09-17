@@ -377,13 +377,13 @@ const NotificationFeed = ({
 
   if (!notifications.length) {
     return (
-      <div className={`mx-auto max-w-7xl space-y-6 ${containerClassName ?? ""}`.trim()}>
-        <div className="rounded-2xl border border-green-100 bg-linear-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
-          <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">{title}</h1>
-          <p className="mt-2 max-w-3xl text-sm text-gray-600 md:text-base">{description}</p>
+      <div className={`mx-auto max-w-7xl space-y-4 sm:space-y-6 ${containerClassName ?? ""}`.trim()}>
+        <div className="rounded-xl border border-green-100 bg-linear-to-r from-green-50 via-white to-emerald-50 px-4 py-4 sm:rounded-2xl sm:px-5 sm:py-6">
+          <h1 className="text-xl font-semibold text-gray-900 sm:text-2xl md:text-3xl">{title}</h1>
+          <p className="mt-1.5 max-w-3xl text-xs leading-5 text-gray-600 sm:mt-2 sm:text-sm md:text-base">{description}</p>
         </div>
 
-        <div className="rounded-2xl border border-[#E4ECE7] bg-white py-14 text-center text-gray-500">
+        <div className="rounded-xl border border-[#E4ECE7] bg-white py-10 text-center text-gray-500 sm:rounded-2xl sm:py-14">
           <div className="flex justify-center">
             <NopropertiesSvg />
           </div>
@@ -396,54 +396,54 @@ const NotificationFeed = ({
   }
 
   return (
-    <div className={`mx-auto min-w-0 max-w-7xl space-y-6 ${containerClassName ?? ""}`.trim()}>
-      <div className="rounded-2xl border border-green-100 bg-linear-to-r from-green-50 via-white to-emerald-50 px-4 py-5 sm:px-5 sm:py-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className={`mx-auto min-w-0 max-w-7xl space-y-4 sm:space-y-6 ${containerClassName ?? ""}`.trim()}>
+      <div className="rounded-xl border border-green-100 bg-linear-to-r from-green-50 via-white to-emerald-50 px-4 py-4 sm:rounded-2xl sm:px-5 sm:py-6">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">{title}</h1>
-            <p className="mt-2 max-w-3xl text-sm text-gray-600 md:text-base">{description}</p>
+            <h1 className="text-xl font-semibold text-gray-900 sm:text-2xl md:text-3xl">{title}</h1>
+            <p className="mt-1.5 max-w-3xl text-xs leading-5 text-gray-600 sm:mt-2 sm:text-sm md:text-base">{description}</p>
           </div>
 
-          <div className="inline-flex w-fit items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-medium text-[#21884B]">
+          <div className="inline-flex w-fit items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-[#21884B] sm:px-4 sm:py-2 sm:text-sm">
             <FiBell className="h-4 w-4" />
             <span>{resolvedSummary.total} notifications</span>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-6 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <div className={`${SUMMARY_CARD_LAYOUTS[0]} rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm sm:px-5 sm:py-4 xl:col-span-1`}>
+      <div className="grid grid-cols-6 gap-2 sm:gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className={`${SUMMARY_CARD_LAYOUTS[0]} rounded-xl border border-gray-100 bg-white px-3 py-2.5 shadow-sm sm:rounded-2xl sm:px-5 sm:py-4 xl:col-span-1`}>
           <p className="text-xs font-medium leading-tight text-gray-500 sm:text-sm">All Notifications</p>
-          <p className="mt-2 text-2xl font-semibold text-gray-900">{resolvedSummary.total}</p>
+          <p className="mt-1 text-xl font-semibold text-gray-900 sm:mt-2 sm:text-2xl">{resolvedSummary.total}</p>
         </div>
-        <div className={`${SUMMARY_CARD_LAYOUTS[1]} rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm sm:px-5 sm:py-4 xl:col-span-1`}>
+        <div className={`${SUMMARY_CARD_LAYOUTS[1]} rounded-xl border border-gray-100 bg-white px-3 py-2.5 shadow-sm sm:rounded-2xl sm:px-5 sm:py-4 xl:col-span-1`}>
           <p className="text-xs font-medium leading-tight text-gray-500 sm:text-sm">Shortlists</p>
-          <p className="mt-2 text-2xl font-semibold text-gray-900">{resolvedSummary.shortlists}</p>
+          <p className="mt-1 text-xl font-semibold text-gray-900 sm:mt-2 sm:text-2xl">{resolvedSummary.shortlists}</p>
         </div>
-        <div className={`${SUMMARY_CARD_LAYOUTS[2]} rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm sm:px-5 sm:py-4 xl:col-span-1`}>
+        <div className={`${SUMMARY_CARD_LAYOUTS[2]} rounded-xl border border-gray-100 bg-white px-3 py-2.5 shadow-sm sm:rounded-2xl sm:px-5 sm:py-4 xl:col-span-1`}>
           <p className="text-xs font-medium leading-tight text-gray-500 sm:text-sm">Contacts</p>
-          <p className="mt-2 text-2xl font-semibold text-gray-900">{resolvedSummary.contacts}</p>
+          <p className="mt-1 text-xl font-semibold text-gray-900 sm:mt-2 sm:text-2xl">{resolvedSummary.contacts}</p>
         </div>
-        <div className={`${SUMMARY_CARD_LAYOUTS[3]} rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm sm:px-5 sm:py-4 xl:col-span-1`}>
+        <div className={`${SUMMARY_CARD_LAYOUTS[3]} rounded-xl border border-gray-100 bg-white px-3 py-2.5 shadow-sm sm:rounded-2xl sm:px-5 sm:py-4 xl:col-span-1`}>
           <p className="text-xs font-medium leading-tight text-gray-500 sm:text-sm">Tickets</p>
-          <p className="mt-2 text-2xl font-semibold text-gray-900">
+          <p className="mt-1 text-xl font-semibold text-gray-900 sm:mt-2 sm:text-2xl">
             {resolvedSummary.tickets}
           </p>
         </div>
-        <div className={`${SUMMARY_CARD_LAYOUTS[4]} rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm sm:px-5 sm:py-4 xl:col-span-1`}>
+        <div className={`${SUMMARY_CARD_LAYOUTS[4]} rounded-xl border border-gray-100 bg-white px-3 py-2.5 shadow-sm sm:rounded-2xl sm:px-5 sm:py-4 xl:col-span-1`}>
           <p className="text-xs font-medium leading-tight text-gray-500 sm:text-sm">Brochure / Time</p>
-          <p className="mt-2 text-2xl font-semibold text-gray-900">
+          <p className="mt-1 text-xl font-semibold text-gray-900 sm:mt-2 sm:text-2xl">
             {resolvedSummary.brochureDownloads + resolvedSummary.timeSpent}
           </p>
         </div>
       </div>
 
-      <div className="min-w-0 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-        <div className="flex flex-col gap-4 border-b border-gray-100 px-4 py-4 sm:px-5">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-            <div className="min-w-0 space-y-3">
+      <div className="min-w-0 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm sm:rounded-2xl">
+        <div className="flex flex-col gap-3 border-b border-gray-100 px-3 py-3 sm:gap-4 sm:px-5 sm:py-4">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+            <div className="min-w-0 space-y-2 sm:space-y-3">
               <div className="-mx-1 overflow-x-auto px-1 pb-1 sm:mx-0 sm:overflow-visible sm:px-0">
-                <div className="flex w-max min-w-full gap-2 sm:min-w-0 sm:flex-wrap">
+                <div className="flex w-max min-w-full gap-1.5 sm:min-w-0 sm:flex-wrap sm:gap-2">
                   {availableFilters.map((filter) => {
                     const isActive = activeFilter === filter.id;
 
@@ -452,7 +452,7 @@ const NotificationFeed = ({
                         key={filter.id}
                         type="button"
                         onClick={() => setActiveFilter(filter.id)}
-                        className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition ${
+                        className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition sm:px-4 sm:py-2 sm:text-sm ${
                           isActive
                             ? "bg-[#26ad5f] text-white"
                             : "bg-[#F6FBF8] text-gray-600 hover:bg-[#EAF6EE]"
@@ -466,7 +466,7 @@ const NotificationFeed = ({
               </div>
 
               <div className="-mx-1 overflow-x-auto px-1 pb-1 sm:mx-0 sm:overflow-visible sm:px-0">
-                <div className="flex w-max min-w-full gap-2 sm:min-w-0 sm:flex-wrap">
+                <div className="flex w-max min-w-full gap-1.5 sm:min-w-0 sm:flex-wrap sm:gap-2">
                   {DATE_FILTERS.map((filter) => {
                     const isActive = activeDateFilter === filter.id;
 
@@ -475,7 +475,7 @@ const NotificationFeed = ({
                         key={filter.id}
                         type="button"
                         onClick={() => setActiveDateFilter(filter.id)}
-                        className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition ${
+                        className={`shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-medium whitespace-nowrap transition sm:px-3.5 sm:text-xs ${
                           isActive
                             ? "border-[#26ad5f] bg-[#EAF6EE] text-[#21884B]"
                             : "border-gray-200 bg-white text-gray-600 hover:border-[#BFE5CB] hover:bg-[#F6FBF8]"
@@ -489,18 +489,18 @@ const NotificationFeed = ({
               </div>
             </div>
 
-            <div className="flex w-full flex-col gap-3 sm:flex-row xl:w-auto xl:min-w-[22rem]">
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:gap-3 xl:w-auto xl:min-w-[22rem]">
               <div className="relative min-w-0 flex-1 xl:w-80">
                 <FiSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
                   value={searchValue}
                   onChange={(event) => setSearchValue(event.target.value)}
                   placeholder="Search user, phone, code, property..."
-                  className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 outline-none transition focus:border-[#26ad5f]"
+                  className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-700 outline-none transition focus:border-[#26ad5f] sm:rounded-xl sm:py-2.5 sm:pl-10 sm:pr-4"
                 />
               </div>
 
-              <div className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 py-2.5 text-center text-sm text-gray-500 sm:justify-start">
+              <div className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-center text-xs text-gray-500 sm:justify-start sm:rounded-xl sm:px-4 sm:py-2.5 sm:text-sm">
                 <FiFilter className="h-4 w-4" />
                 <span>
                   {filteredNotifications.length} shown · Page {currentPage} of {totalPages}
@@ -514,66 +514,68 @@ const NotificationFeed = ({
           {paginatedNotifications.map((item, index) => (
             <article
               key={`${item.id}-${item.createdAt ?? "unknown"}-${index}`}
-              className="space-y-4 px-4 py-4"
+              className="space-y-2.5 px-3 py-3"
             >
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-gray-900">
+                  <p className="truncate text-sm font-semibold text-gray-900">
                     {item.user?.name || "You"}
                   </p>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-0.5 text-[11px] text-gray-500">
                     {item.user?.userCode || "No code"}
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="text-xs font-medium text-gray-700">{formatDate(item.createdAt)}</p>
-                  <p className="mt-1 text-[11px] text-gray-400">{formatTime(item.createdAt)}</p>
+                  <p className="text-[11px] font-medium text-gray-700">{formatDate(item.createdAt)}</p>
+                  <p className="mt-0.5 text-[10px] text-gray-400">{formatTime(item.createdAt)}</p>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <span
-                  className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${getNotificationAccentClasses(
+                  className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${getNotificationAccentClasses(
                     item.type,
                   )}`}
                 >
                   {getNotificationLabel(item.type)}
                 </span>
-                <span className="rounded-full bg-[#F3FBF6] px-3 py-1 text-[11px] font-semibold text-[#21884B]">
+                <span className="rounded-full bg-[#F3FBF6] px-2 py-0.5 text-[10px] font-semibold text-[#21884B]">
                   {getRoleLabel(item.user?.role)}
                 </span>
                 {item.type === "high_time_spent" &&
                 item.timeSpentMinutes &&
                 item.timeSpentMinutes > 0 ? (
-                  <span className="inline-flex rounded-full bg-[#F6FBF8] px-2.5 py-1 text-[11px] font-semibold text-[#21884B]">
+                  <span className="inline-flex rounded-full bg-[#F6FBF8] px-2 py-0.5 text-[10px] font-semibold text-[#21884B]">
                     {formatMinutes(item.timeSpentMinutes)}
                   </span>
                 ) : null}
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+              <div className="grid gap-2">
+                <div className="grid grid-cols-[64px_1fr] gap-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
                     Contact
                   </p>
-                  <p className="text-sm text-gray-700">{item.user?.email || "No email"}</p>
-                  <p className="text-sm text-gray-700">{item.user?.phone || "No phone"}</p>
+                  <div className="min-w-0 text-right">
+                    <p className="truncate text-xs text-gray-700">{item.user?.email || "No email"}</p>
+                    <p className="text-xs text-gray-700">{item.user?.phone || "No phone"}</p>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                <div className="grid grid-cols-[64px_1fr] gap-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
                     Project
                   </p>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="truncate text-right text-xs font-medium text-gray-900">
                     {item.project?.title || "Untitled Project"}
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+              <div className="space-y-0.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
                   Message
                 </p>
-                <p className="text-sm leading-6 text-gray-800">
+                <p className="text-xs leading-5 text-gray-800">
                   {item.message || "No message"}
                 </p>
               </div>
@@ -665,19 +667,19 @@ const NotificationFeed = ({
         </div>
 
         {filteredNotifications.length > 0 ? (
-          <div className="flex flex-col gap-3 border-t border-gray-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            <p className="text-sm text-gray-500">
+          <div className="flex flex-col gap-3 border-t border-gray-100 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
+            <p className="text-xs text-gray-500 sm:text-sm">
               Showing {(currentPage - 1) * pageSize + 1} to{" "}
               {Math.min(currentPage * pageSize, filteredNotifications.length)} of{" "}
               {filteredNotifications.length} notifications
             </p>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <button
                 type="button"
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-[#F6FBF8] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-md border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-[#F6FBF8] disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-lg sm:px-3 sm:py-2 sm:text-sm"
               >
                 Previous
               </button>
@@ -689,7 +691,7 @@ const NotificationFeed = ({
                     key={page}
                     type="button"
                     onClick={() => setCurrentPage(page)}
-                    className={`min-w-10 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                    className={`min-w-8 rounded-md px-2.5 py-1.5 text-xs font-medium transition sm:min-w-10 sm:rounded-lg sm:px-3 sm:py-2 sm:text-sm ${
                       currentPage === page
                         ? "bg-[#26ad5f] text-white"
                         : "border border-gray-200 text-gray-600 hover:bg-[#F6FBF8]"
@@ -703,7 +705,7 @@ const NotificationFeed = ({
                 type="button"
                 onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-[#F6FBF8] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-md border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-[#F6FBF8] disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-lg sm:px-3 sm:py-2 sm:text-sm"
               >
                 Next
               </button>

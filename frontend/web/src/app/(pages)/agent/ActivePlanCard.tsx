@@ -10,18 +10,26 @@ import {
 import PromoBanner from "@/components/PromoBanner";
 import { useRouter } from "next/navigation";
 
+type UsageMetric = {
+  total: number;
+  used: number;
+  remaining: number;
+};
+
 type Plan = {
   userType: string;
   category: string;
   code: string;
   tier: string;
-  planName: String;
+  planName: string;
   total: number;
   used: number;
   remaining: number;
   unit: "properties" | "contacts";
   startDate: string;
   endDate: string;
+  propertyUsage?: UsageMetric;
+  contactUsage?: UsageMetric;
 };
 
 type ActivePlanCardProps = {
@@ -33,19 +41,16 @@ type ActivePlanCardProps = {
     | undefined;
 };
 
-
 export const PLAN_ROUTE_MAP: Record<string, string> = {
   agent_plan: "/plans/pricing/agent-plan",
   buy: "/plans/pricing/buy-view",
   rent_view: "/plans/pricing/rent-view",
   sell: "/plans/pricing/owner-sell",
   rent: "/plans/pricing/owner-rent",
-
   both: "/plans/pricing/agent-plan",
 };
 
 const getPlanRoute = (role: string | null, category: string) => {
-
   // AGENT PLAN (handles "both")
   if (category === "both") {
     return "/plans/pricing/agent-plan";
@@ -76,20 +81,19 @@ const getPlanRoute = (role: string | null, category: string) => {
 
   return "/plans/pricing";
 };
+
 /* ================= COMPONENT ================= */
 
 const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
   const router = useRouter();
 
-
   const role =
-  typeof window !== "undefined"
-    ? localStorage.getItem("role")
-    : null;
+    typeof window !== "undefined" ? localStorage.getItem("role") : null;
 
   const categoryLabelMap: Record<string, string> = {
     buy: "Buy view",
     rent_view: "Rent view",
+    both: "Sell + Rent",
   };
 
   if (!my_subscription?.active || !my_subscription.plans?.length) {
@@ -106,6 +110,7 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
       </div>
     );
   }
+
   const formatDate = (date: string) =>
     new Date(date).toLocaleDateString("en-IN", {
       day: "2-digit",
@@ -144,11 +149,13 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
     const isExpiringSoon = !isExpired && remainingDays <= 7;
 
     const isPropertyPlan = plan.unit === "properties";
+    const hasGranularUsage =
+      Boolean(plan.propertyUsage) || Boolean(plan.contactUsage);
 
     return (
       <div
         key={plan.code}
-        className="relative  rounded-md border border-green-100 bg-white p-5 shadow-sm"
+        className="relative rounded-md border border-green-100 bg-white p-5 shadow-sm"
       >
         {/* Status Badge */}
         <div className="absolute right-4 top-2 z-10">
@@ -189,6 +196,7 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
                   </p>
                 </div>
               </div>
+
               {/* Purchased date */}
               <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-500 justify-center">
                 <span>Purchased on {formatDate(plan.startDate)}</span>
@@ -197,7 +205,7 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
               {/* Upgrade button */}
               <button
                 onClick={() => {
-                  router.push("/plans/pricing/agent-plan");
+                  router.push(getPlanRoute(role, plan.category));
                 }}
                 className="mt-4 w-full rounded-md bg-[#27AE60] py-2 text-sm font-semibold text-white hover:bg-green-700 transition cursor-pointer"
               >
@@ -206,14 +214,12 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
             </div>
           </div>
 
-          {/* RIGHT — SINGLE HIGHLIGHTED PANEL */}
+          {/* RIGHT — HIGHLIGHTED USAGE PANEL */}
           <div className="relative flex flex-1 items-center rounded-md bg-[#f4fbf6] p-4">
-            {/* Status Badge */}
-
             <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              {/* Progress */}
-              <div className="flex w-full flex-col gap-3 ">
-                {/* Plan duration */}
+              {/* Progress items */}
+              <div className="flex w-full flex-col gap-3">
+                {/* 1. Plan duration */}
                 <div>
                   <div className="mb-1 flex justify-between text-xs text-gray-600">
                     <span className="flex items-center gap-1">
@@ -233,59 +239,128 @@ const ActivePlanCard = ({ my_subscription }: ActivePlanCardProps) => {
                   </div>
                 </div>
 
-                {/* Usage */}
-                <div>
-                  <div className="mb-1 flex justify-between text-xs text-gray-600">
-                    <span className="flex items-center gap-1">
-                      {isPropertyPlan ? (
-                        <MdOutlineHomeWork />
-                      ) : (
-                        <MdOutlinePhoneInTalk />
-                      )}
-                      {isPropertyPlan ? "Property listings" : "Owner contacts"}
-                    </span>
-                    <span className="font-medium">
-                      {plan.used}/{plan.total}
-                    </span>
-                  </div>
+                {/* 2. Granular Usage Metrics (if provided by API) */}
+                {hasGranularUsage ? (
+                  <>
+                    {/* Property listings progress bar */}
+                    {plan.propertyUsage && (
+                      <div>
+                        <div className="mb-1 flex justify-between text-xs text-gray-600">
+                          <span className="flex items-center gap-1">
+                            <MdOutlineHomeWork className="text-[#27AE60]" />
+                            Property listings
+                          </span>
+                          <span className="font-medium">
+                            {plan.propertyUsage.used}/{plan.propertyUsage.total}
+                          </span>
+                        </div>
 
-                  <div className="h-1.5 w-full rounded-full bg-gray-200">
-                    <div
-                      className={`h-1.5 rounded-full ${
-                        usageProgress >= 100 ? "bg-red-500" : "bg-[#2ecc71]"
-                      }`}
-                      style={{ width: `${usageProgress}%` }}
-                    />
-                  </div>
+                        <div className="h-1.5 w-full rounded-full bg-gray-200">
+                          <div
+                            className={`h-1.5 rounded-full ${
+                              plan.propertyUsage.total > 0 &&
+                              plan.propertyUsage.used >=
+                                plan.propertyUsage.total
+                                ? "bg-red-500"
+                                : "bg-[#2ecc71]"
+                            }`}
+                            style={{
+                              width: `${
+                                plan.propertyUsage.total > 0
+                                  ? Math.min(
+                                      (plan.propertyUsage.used /
+                                        plan.propertyUsage.total) *
+                                        100,
+                                      100,
+                                    )
+                                  : 0
+                              }%`,
+                            }}
+                          />
+                        </div>
 
-                  <p className="mt-1 text-[11px] text-gray-500">
-                    {plan.remaining} remaining {plan.unit}
-                  </p>
-                </div>
+                        <p className="mt-1 text-[11px] text-gray-500">
+                          {plan.propertyUsage.remaining} remaining properties
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Contact limits progress bar */}
+                    {plan.contactUsage && (
+                      <div>
+                        <div className="mb-1 flex justify-between text-xs text-gray-600">
+                          <span className="flex items-center gap-1">
+                            <MdOutlinePhoneInTalk className="text-[#27AE60]" />
+                            Contact limits
+                          </span>
+                          <span className="font-medium">
+                            {plan.contactUsage.used}/{plan.contactUsage.total}
+                          </span>
+                        </div>
+
+                        <div className="h-1.5 w-full rounded-full bg-gray-200">
+                          <div
+                            className={`h-1.5 rounded-full ${
+                              plan.contactUsage.total > 0 &&
+                              plan.contactUsage.used >= plan.contactUsage.total
+                                ? "bg-red-500"
+                                : "bg-[#2ecc71]"
+                            }`}
+                            style={{
+                              width: `${
+                                plan.contactUsage.total > 0
+                                  ? Math.min(
+                                      (plan.contactUsage.used /
+                                        plan.contactUsage.total) *
+                                        100,
+                                      100,
+                                    )
+                                  : 0
+                              }%`,
+                            }}
+                          />
+                        </div>
+
+                        <p className="mt-1 text-[11px] text-gray-500">
+                          {plan.contactUsage.remaining} remaining contacts
+                        </p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  /* Fallback single usage bar for legacy API responses */
+                  <div>
+                    <div className="mb-1 flex justify-between text-xs text-gray-600">
+                      <span className="flex items-center gap-1">
+                        {isPropertyPlan ? (
+                          <MdOutlineHomeWork className="text-[#27AE60]" />
+                        ) : (
+                          <MdOutlinePhoneInTalk className="text-[#27AE60]" />
+                        )}
+                        {isPropertyPlan
+                          ? "Property listings"
+                          : "Contact limits"}
+                      </span>
+                      <span className="font-medium">
+                        {plan.used}/{plan.total}
+                      </span>
+                    </div>
+
+                    <div className="h-1.5 w-full rounded-full bg-gray-200">
+                      <div
+                        className={`h-1.5 rounded-full ${
+                          usageProgress >= 100 ? "bg-red-500" : "bg-[#2ecc71]"
+                        }`}
+                        style={{ width: `${usageProgress}%` }}
+                      />
+                    </div>
+
+                    <p className="mt-1 text-[11px] text-gray-500">
+                      {plan.remaining} remaining {plan.unit}
+                    </p>
+                  </div>
+                )}
               </div>
-
-              {/* Actions */}
-              {/* <div className="relative flex w-full flex-col items-end gap-2 lg:w-[32%]">
-
-                <button className="w-full rounded-md border border-[#27AE60] px-3 py-2 text-sm font-medium text-[#27AE60] hover:bg-[#eaf7ef]">
-                  Manage Membership
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (plan.category === "buy") {
-                      router.push("/plans/pricing/buy-view");
-                    } else {
-                      document
-                        .getElementById("pricing-table")
-                        ?.scrollIntoView({ behavior: "smooth" });
-                    }
-                  }}
-                  className="w-full rounded-md bg-[#27AE60] px-3 py-2 text-sm font-semibold text-white hover:bg-green-700"
-                >
-                  Upgrade Plan
-                </button>
-              </div> */}
             </div>
           </div>
         </div>

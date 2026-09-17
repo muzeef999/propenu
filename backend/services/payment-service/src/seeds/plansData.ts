@@ -131,7 +131,7 @@ export const plans = [
       PROPERTY_LISTING_LIMIT: 10,
       ENQUIRY_LIMIT: 10,
       TOP_LISTING_DAYS: 5,
-        PROMOTION_TYPE: "featured"
+      PROMOTION_TYPE: "featured",
     },
   },
   {
@@ -146,8 +146,7 @@ export const plans = [
       PROPERTY_LISTING_LIMIT: 15,
       ENQUIRY_LIMIT: 15,
       TOP_LISTING_DAYS: 10,
-          PROMOTION_TYPE: "sponsored" // 🔥 ADD THIS
-
+      PROMOTION_TYPE: "sponsored",
     },
   },
   {
@@ -233,7 +232,10 @@ export const plans = [
     features: {
       PROPERTY_LISTING_LIMIT: 20,
       CONTACT_LIMIT: 2,
+      CONTACT_OWNER_LIMIT: 2,
       BUYER_REACH_PERCENT: 50,
+      BUYER_ACCESS: true,
+      LEAD_DASHBOARD: true,
       ENQUIRY_LIMIT: 30,
       TOP_LISTING_DAYS: 0,
       TEAM_MEMBERS: 0,
@@ -251,7 +253,10 @@ export const plans = [
     features: {
       PROPERTY_LISTING_LIMIT: 40,
       CONTACT_LIMIT: 4,
+      CONTACT_OWNER_LIMIT: 4,
       BUYER_REACH_PERCENT: 100,
+      BUYER_ACCESS: true,
+      LEAD_DASHBOARD: true,
       ENQUIRY_LIMIT: 50,
       TOP_LISTING_DAYS: 5,
       TEAM_MEMBERS: 1,
@@ -269,7 +274,10 @@ export const plans = [
     features: {
       PROPERTY_LISTING_LIMIT: 40,
       CONTACT_LIMIT: 10,
+      CONTACT_OWNER_LIMIT: 10,
       BUYER_REACH_PERCENT: 100,
+      BUYER_ACCESS: true,
+      LEAD_DASHBOARD: true,
       ENQUIRY_LIMIT: 50,
       TOP_LISTING_DAYS: 5,
       TEAM_MEMBERS: 1,
@@ -287,7 +295,10 @@ export const plans = [
     features: {
       PROPERTY_LISTING_LIMIT: 80,
       CONTACT_LIMIT: 20,
+      CONTACT_OWNER_LIMIT: 20,
       BUYER_REACH_PERCENT: 100,
+      BUYER_ACCESS: true,
+      LEAD_DASHBOARD: true,
       ENQUIRY_LIMIT: 100,
       TOP_LISTING_DAYS: 20,
       TEAM_MEMBERS: 5,

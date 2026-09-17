@@ -299,18 +299,18 @@ export default function LocationMap({ project }: LocationMapProps) {
     <section id="location" className="scroll-mt-20">
       <div className="container mx-auto px-1 sm:px-4 lg:px-3">
         <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
-          <h2 className="border-b border-slate-200 px-4 py-4 text-lg font-medium text-slate-950 sm:px-5 sm:py-5 sm:text-xl">
+          <h2 className="border-b border-slate-200 px-3 py-3 text-base font-medium text-slate-950 sm:px-5 sm:py-5 sm:text-xl">
             Location Advantages
           </h2>
-          <div className="p-3 sm:p-5">
-            <div className="space-y-4 sm:space-y-5">
+          <div className="p-2.5 sm:p-5">
+            <div className="space-y-3 sm:space-y-5">
               <div className="relative overflow-hidden rounded-md border border-slate-100 shadow-sm contain-paint isolate">
                 {mapError ? (
-                  <div className="flex h-[260px] w-full items-center justify-center px-4 text-center text-sm text-slate-500 sm:h-[420px]">
+                  <div className="flex h-[220px] w-full items-center justify-center px-3 text-center text-xs text-slate-500 sm:h-[420px] sm:px-4 sm:text-sm">
                     {mapError}
                   </div>
                 ) : (
-                  <div id={mapContainerId} ref={mapRef} className="h-[260px] w-full overflow-hidden sm:h-[420px]" />
+                  <div id={mapContainerId} ref={mapRef} className="h-[220px] w-full overflow-hidden sm:h-[420px]" />
                 )}
               </div>
 
@@ -341,20 +341,20 @@ export default function LocationMap({ project }: LocationMapProps) {
               </div>
 
               {nearbyLocations.length > 0 && (
-                <div className="rounded-md border border-slate-200 bg-slate-50 p-3 sm:p-4">
-                  <div className="grid gap-2 sm:grid-cols-2">
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-2 sm:p-4">
+                  <div className="grid gap-1.5 sm:grid-cols-2 sm:gap-2">
                     {visibleNearbyLocations.map((place, index) => (
                       <div
                         key={`${place.name}-${index}`}
-                        className="flex min-w-0 items-center gap-2 rounded-md border border-slate-100 bg-white px-3 py-2.5 text-sm text-slate-900"
+                        className="flex min-w-0 items-center gap-1.5 rounded-md border border-slate-100 bg-white px-2.5 py-2 text-xs text-slate-900 sm:gap-2 sm:px-3 sm:py-2.5 sm:text-sm"
                       >
                         <span
-                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border"
+                          className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border sm:h-5 sm:w-5"
                           style={{ backgroundColor: `${color}10`, borderColor: color, color }}
                         >
-                          <FiCheck className="h-3 w-3" />
+                          <FiCheck className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                         </span>
-                        <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                        <span className="flex min-w-0 flex-1 items-center justify-between gap-2 sm:gap-3">
                           <span className="truncate font-medium text-slate-950">{place.name}</span>
                           {place.distanceText ? (
                             <span className="shrink-0 font-semibold text-slate-700">({place.distanceText})</span>
@@ -368,7 +368,7 @@ export default function LocationMap({ project }: LocationMapProps) {
                     <button
                       type="button"
                       onClick={() => setShowAllNearby((prev) => !prev)}
-                      className="mt-3 text-sm font-semibold transition hover:opacity-80"
+                      className="mt-2 text-xs font-semibold transition hover:opacity-80 sm:mt-3 sm:text-sm"
                       style={{ color }}
                     >
                       {showAllNearby ? "View less" : `View more (${remainingNearbyCount})`}

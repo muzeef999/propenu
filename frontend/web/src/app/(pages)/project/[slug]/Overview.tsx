@@ -129,15 +129,15 @@ export default function Overview({ project }: OverviewProps) {
     <section id="overview">
       <div className="container mx-auto px-1 sm:px-4 lg:px-3">
         <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
-          <h2 className="border-b border-slate-200 px-4 py-4 text-lg font-medium text-slate-950 sm:px-5 sm:py-5 sm:text-xl">
+          <h2 className="border-b border-slate-200 px-3 py-3 text-base font-medium text-slate-950 sm:px-5 sm:py-5 sm:text-xl">
             Overview
           </h2>
 
-          <div className="grid grid-cols-2 gap-x-4 gap-y-5 px-4 py-5 sm:gap-x-12 sm:gap-y-7 sm:px-5 sm:py-6 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-3 px-3 py-3.5 sm:gap-x-12 sm:gap-y-7 sm:px-5 sm:py-6 lg:grid-cols-3">
             {items.map((item, index) => (
               <div key={`${item.label}-${index}`} className="min-w-0">
-                <p className="text-sm font-medium text-slate-950">{item.label}</p>
-                <p className="mt-1 wrap-break-word text-sm text-slate-500 capitalize sm:truncate">
+                <p className="text-xs font-medium text-slate-950 sm:text-sm">{item.label}</p>
+                <p className="mt-0.5 wrap-break-word text-xs text-slate-500 capitalize sm:mt-1 sm:truncate sm:text-sm">
                   {item.value}
                 </p>
               </div>

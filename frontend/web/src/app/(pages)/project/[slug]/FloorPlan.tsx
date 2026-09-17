@@ -299,23 +299,23 @@ export default function FloorPlan({ project }: FloorPlanProps) {
     <section id="floor-plans" className="min-w-0">
       <div className="container mx-auto min-w-0 px-1 sm:px-4 lg:px-3">
         <div className="w-full min-w-0 overflow-hidden rounded-md border border-slate-200 bg-white">
-          <h2 className="border-b border-slate-200 px-4 py-4 text-lg font-medium text-slate-950 sm:px-5 sm:py-5 sm:text-xl">
+          <h2 className="border-b border-slate-200 px-3 py-3 text-base font-medium text-slate-950 sm:px-5 sm:py-5 sm:text-xl">
             {project.title} {sectionTitle}
           </h2>
 
-          <div className="min-w-0 px-4 py-4 sm:px-5">
-            <div className="space-y-3 sm:space-y-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <div className="min-w-0 px-3 py-3 sm:px-5 sm:py-4">
+            <div className="space-y-2.5 sm:space-y-4">
+              <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-900 sm:text-[15px]">
+                  <p className="text-xs font-semibold text-slate-900 sm:text-[15px]">
                     Choose a floor plan
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-[11px] text-slate-500 sm:text-xs">
                     {groups.length} options available
                   </p>
                 </div>
                 {groups.length > 1 ? (
-                  <div className="flex items-center justify-between gap-2 sm:justify-end">
+                  <div className="flex items-center justify-between gap-1.5 sm:justify-end sm:gap-2">
                     <p className="text-[11px] font-medium text-slate-400 sm:hidden">
                       Swipe to see more
                     </p>
@@ -324,7 +324,7 @@ export default function FloorPlan({ project }: FloorPlanProps) {
                       aria-label="Scroll floor plan tabs left"
                       onClick={() => scrollGroupTabs("left")}
                       disabled={!canScrollGroupTabsLeft}
-                      className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-emerald-200 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-35 sm:h-9 sm:w-9"
+                      className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-emerald-200 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-35 sm:h-9 sm:w-9"
                     >
                       <FiChevronLeft className="h-4 w-4" />
                     </button>
@@ -333,7 +333,7 @@ export default function FloorPlan({ project }: FloorPlanProps) {
                       aria-label="Scroll floor plan tabs right"
                       onClick={() => scrollGroupTabs("right")}
                       disabled={!canScrollGroupTabsRight}
-                      className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-emerald-200 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-35 sm:h-9 sm:w-9"
+                      className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-emerald-200 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-35 sm:h-9 sm:w-9"
                     >
                       <FiChevronRight className="h-4 w-4" />
                     </button>
@@ -341,7 +341,7 @@ export default function FloorPlan({ project }: FloorPlanProps) {
                 ) : null}
               </div>
 
-              <div className="relative rounded-xl border border-slate-200 bg-slate-50/70 px-2 py-2 sm:px-2.5">
+              <div className="relative rounded-lg border border-slate-200 bg-slate-50/70 px-1.5 py-1.5 sm:rounded-xl sm:px-2.5 sm:py-2">
                 <div
                   className={`pointer-events-none absolute inset-y-2 left-2 z-10 w-8 rounded-l-xl bg-gradient-to-r from-slate-50 to-transparent transition ${
                     canScrollGroupTabsLeft ? "opacity-100" : "opacity-0"
@@ -367,7 +367,7 @@ export default function FloorPlan({ project }: FloorPlanProps) {
                         setActiveGroupIndex(index);
                         setActiveUnitIndex(0);
                       }}
-                      className={`shrink-0 snap-start rounded-lg border px-3.5 py-2 text-xs font-semibold transition sm:px-4.5 sm:py-2.5 sm:text-sm cursor-pointer ${
+                      className={`shrink-0 snap-start cursor-pointer rounded-md border px-2.5 py-1.5 text-[11px] font-semibold transition sm:rounded-lg sm:px-4.5 sm:py-2.5 sm:text-sm ${
                         activeGroupIndex === index
                           ? "border-emerald-200 bg-white text-emerald-700 shadow-sm"
                           : "border-transparent bg-transparent text-slate-500 hover:border-slate-200 hover:bg-white hover:text-slate-700"
@@ -381,20 +381,20 @@ export default function FloorPlan({ project }: FloorPlanProps) {
               </div>
             </div>
 
-            <div className="no-scrollbar mt-4 flex w-full min-w-0 max-w-full overflow-x-auto border-b border-slate-200">
+            <div className="no-scrollbar mt-3 flex w-full min-w-0 max-w-full overflow-x-auto border-b border-slate-200 sm:mt-4">
               {activeGroup.units.map((unit, index) => (
                 <button
                   key={`${unit.minSqft}-${unit.price}-${index}`}
                   type="button"
                   onClick={() => setActiveUnitIndex(index)}
-                  className={`shrink-0 border-b-2 px-5 pb-3 text-center transition sm:px-8 cursor-pointer ${
+                  className={`shrink-0 cursor-pointer border-b-2 px-3 pb-2 text-center transition sm:px-8 sm:pb-3 ${
                     activeUnitIndex === index
                       ? "border-emerald-500"
                       : "border-transparent hover:border-slate-300"
                   }`}
                 >
                   <span
-                    className={`block whitespace-nowrap text-xs font-medium ${
+                    className={`block whitespace-nowrap text-[11px] font-medium sm:text-xs ${
                       activeUnitIndex === index ? "text-slate-900" : "text-slate-400"
                     }`}
                   >
@@ -404,7 +404,7 @@ export default function FloorPlan({ project }: FloorPlanProps) {
               ))}
             </div>
 
-            <div className="mt-4 min-w-0 rounded-md p-1">
+            <div className="mt-3 min-w-0 rounded-md p-0.5 sm:mt-4 sm:p-1">
               {planImage ? (
                 <div className="relative overflow-hidden rounded-md border border-slate-200 bg-white">
                   <div
@@ -414,7 +414,7 @@ export default function FloorPlan({ project }: FloorPlanProps) {
                     onPointerUp={stopPlanDrag}
                     onPointerCancel={stopPlanDrag}
                     onPointerLeave={stopPlanDrag}
-                    className={`flex h-[260px] items-center justify-center overflow-auto select-none sm:h-[420px] ${
+                    className={`flex h-[210px] items-center justify-center overflow-auto select-none sm:h-[420px] ${
                       canDragPlan
                         ? isDraggingPlan
                           ? "cursor-grabbing"
@@ -434,13 +434,13 @@ export default function FloorPlan({ project }: FloorPlanProps) {
                     />
                   </div>
 
-                  <div className="absolute right-3 top-3 flex items-center gap-1 rounded-md border border-slate-200 bg-white/95 p-1 shadow-sm">
+                  <div className="absolute right-1.5 top-1.5 flex items-center gap-0.5 rounded-md border border-slate-200 bg-white/95 p-0.5 shadow-sm sm:right-3 sm:top-3 sm:gap-1 sm:p-1">
                     <button
                       type="button"
                       aria-label="Zoom out plan"
                       onClick={() => zoomPlan("out")}
                       disabled={!canZoomOut}
-                      className="flex h-8 w-8 items-center justify-center rounded text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+                      className="flex h-6 w-6 items-center justify-center rounded text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300 sm:h-8 sm:w-8"
                     >
                       <FiMinus className="h-4 w-4" />
                     </button>
@@ -448,7 +448,7 @@ export default function FloorPlan({ project }: FloorPlanProps) {
                       type="button"
                       aria-label="Reset plan zoom"
                       onClick={() => setPlanZoom(MIN_PLAN_ZOOM)}
-                      className="h-8 min-w-12 rounded px-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+                      className="h-6 min-w-9 rounded px-1 text-[10px] font-semibold text-slate-700 transition hover:bg-slate-100 sm:h-8 sm:min-w-12 sm:px-2 sm:text-xs"
                     >
                       {Math.round(planZoom * 100)}%
                     </button>
@@ -457,30 +457,30 @@ export default function FloorPlan({ project }: FloorPlanProps) {
                       aria-label="Zoom in plan"
                       onClick={() => zoomPlan("in")}
                       disabled={!canZoomIn}
-                      className="flex h-8 w-8 items-center justify-center rounded text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+                      className="flex h-6 w-6 items-center justify-center rounded text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300 sm:h-8 sm:w-8"
                     >
                       <FiPlus className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="flex min-h-[260px] items-center justify-center rounded-md border border-dashed border-slate-300 bg-white px-4 text-center sm:min-h-[420px]">
-                  <p className="text-sm font-medium text-slate-500">
+                <div className="flex min-h-[210px] items-center justify-center rounded-md border border-dashed border-slate-300 bg-white px-3 text-center sm:min-h-[420px] sm:px-4">
+                  <p className="text-xs font-medium text-slate-500 sm:text-sm">
                     Floor plan image coming soon
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
               <div>
-                <h3 className="text-sm font-medium text-slate-950 sm:text-base">
+                <h3 className="text-xs font-medium text-slate-950 sm:text-base">
                   {activeGroup.bhkLabel} {sqftLabel}
                 </h3>
-                <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
-                  <p className="text-lg font-semibold text-emerald-600 sm:text-xl">{priceLabel}</p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 sm:mt-3 sm:gap-x-5 sm:gap-y-2">
+                  <p className="text-base font-semibold text-emerald-600 sm:text-xl">{priceLabel}</p>
                   {pricePerUnitLabel && (
-                    <p className="text-sm font-semibold text-slate-600 sm:text-base">{pricePerUnitLabel}</p>
+                    <p className="text-xs font-semibold text-slate-600 sm:text-base">{pricePerUnitLabel}</p>
                   )}
                 </div>
               </div>

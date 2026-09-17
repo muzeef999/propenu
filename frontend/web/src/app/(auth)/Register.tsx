@@ -431,7 +431,7 @@ const RegisterDialog = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-3 sm:px-4"
       role="dialog"
       aria-modal="true"
       aria-label="Register dialog"
@@ -442,32 +442,32 @@ const RegisterDialog = ({
         aria-hidden="true"
       />
 
-      <div className="relative z-50 max-h-[calc(100vh-2rem)] w-full max-w-[440px] overflow-y-auto rounded-xl bg-[#f2fcf6] shadow-2xl">
+      <div className="relative z-50 max-h-[calc(100vh-1rem)] w-full max-w-[440px] overflow-y-auto rounded-lg bg-[#f2fcf6] shadow-2xl sm:max-h-[calc(100vh-2rem)] sm:rounded-xl">
         <button
           onClick={handleClose}
-          className="absolute right-5 top-5 cursor-pointer rounded-full p-1 text-[#8d908e] transition-colors hover:text-[#5e635f]"
+          className="absolute right-4 top-4 cursor-pointer rounded-full p-1 text-[#8d908e] transition-colors hover:text-[#5e635f] sm:right-5 sm:top-5"
           aria-label="Close"
         >
           <MdClose size={22} />
         </button>
 
-        <div className="p-6 pb-3">
-          <h2 className="pr-10 text-2xl font-medium leading-none text-[#28b463]">
+        <div className="p-4 pb-2 sm:p-6 sm:pb-3">
+          <h2 className="pr-10 text-xl font-medium leading-none text-[#28b463] sm:text-2xl">
             Create an Account
           </h2>
-          <p className="mt-2 text-sm leading-5 text-[#7f8481]">
+          <p className="mt-1.5 text-xs leading-5 text-[#7f8481] sm:mt-2 sm:text-sm">
             Provide your personal details to create your account
           </p>
         </div>
 
-        <div className="rounded-t-[26px] bg-[#ffffff] px-6 py-6 shadow-[0_-6px_20px_rgba(0,0,0,0.1)]">
-          <div className="space-y-4">
+        <div className="rounded-t-[18px] bg-[#ffffff] px-4 py-4 shadow-[0_-6px_20px_rgba(0,0,0,0.1)] sm:rounded-t-[26px] sm:px-6 sm:py-6">
+          <div className="space-y-3 sm:space-y-4">
             <div>
-              <label className="mb-2 block font-normal text-[#1e1e1e]">
+              <label className="mb-1.5 block text-sm font-normal text-[#1e1e1e] sm:mb-2 sm:text-base">
                 Are you
               </label>
 
-              <div className="grid grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5">
                 {[
                   {
                     value: "user",
@@ -494,13 +494,13 @@ const RegisterDialog = ({
                           companyName: undefined,
                         }));
                       }}
-                      className={`flex min-h-[46px] items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition ${
+                      className={`flex min-h-[40px] items-center justify-center gap-1.5 rounded-md border px-1.5 py-2 text-xs transition sm:min-h-[46px] sm:gap-2 sm:px-3 sm:text-sm ${
                         isActive
                           ? "border-[#28b463] bg-[#f2fcf6] text-[#28b463]"
                           : "border-transparent bg-[#f2fcf6] text-[#8a8d8b]"
                       }`}
                     >
-                      <Icon size={20} />
+                      <Icon size={18} />
                       <span>{label}</span>
                     </button>
                   );
@@ -512,8 +512,8 @@ const RegisterDialog = ({
             </div>
 
             <div>
-              <label className="font-normal text-[#1e1e1e]">Full Name</label>
-              <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-2.5">
+              <label className="text-sm font-normal text-[#1e1e1e] sm:text-base">Full Name</label>
+              <div className="mt-1.5 rounded-md bg-[#f2fcf6] px-3 py-2 sm:mt-2 sm:px-4 sm:py-2.5">
                 <input
                   type="text"
                   value={formData.name}
@@ -531,7 +531,7 @@ const RegisterDialog = ({
                     }));
                   }}
                   placeholder="Enter your full name"
-                  className="w-full border-none bg-transparent text-base text-[#1f1f1f] outline-none placeholder:text-[#a0a3a0]"
+                  className="w-full border-none bg-transparent text-sm text-[#1f1f1f] outline-none placeholder:text-[#a0a3a0] sm:text-base"
                 />
               </div>
               {errors.name && (
@@ -541,10 +541,10 @@ const RegisterDialog = ({
 
             {formData.role === "builder" && (
               <div>
-                <label className="font-normal text-[#1e1e1e]">
+                <label className="text-sm font-normal text-[#1e1e1e] sm:text-base">
                   Company Name
                 </label>
-                <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-2.5">
+                <div className="mt-1.5 rounded-md bg-[#f2fcf6] px-3 py-2 sm:mt-2 sm:px-4 sm:py-2.5">
                   <input
                     type="text"
                     value={formData.companyName}
@@ -560,7 +560,7 @@ const RegisterDialog = ({
                       }));
                     }}
                     placeholder="Enter your company name"
-                    className="w-full border-none bg-transparent text-base text-[#1f1f1f] outline-none placeholder:text-[#a0a3a0]"
+                    className="w-full border-none bg-transparent text-sm text-[#1f1f1f] outline-none placeholder:text-[#a0a3a0] sm:text-base"
                   />
                 </div>
                 {errors.companyName && (
@@ -572,9 +572,9 @@ const RegisterDialog = ({
             )}
 
             <div>
-              <label className="font-normal text-[#1e1e1e]">Mobile</label>
+              <label className="text-sm font-normal text-[#1e1e1e] sm:text-base">Mobile</label>
 
-              <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-0.5">
+              <div className="mt-1.5 rounded-md bg-[#f2fcf6] px-3 py-0.5 sm:mt-2 sm:px-4">
                 <div className="phone-material flex items-center gap-3">
                   <PhoneInput
                     international
@@ -637,11 +637,11 @@ const RegisterDialog = ({
               )} */}
 
               {shouldShowOtpInputs && (
-                <div className="mt-3">
-                  <p className="mb-2 font-normal text-[#1e1e1e]">
+                <div className="mt-2.5 sm:mt-3">
+                  <p className="mb-2 text-sm font-normal text-[#1e1e1e] sm:text-base">
                     Enter WhatsApp OTP
                   </p>
-                  <div className="flex gap-3" onPaste={handleOtpPaste}>
+                  <div className="flex gap-2.5 sm:gap-3" onPaste={handleOtpPaste}>
                     {otpDigits.map((digit, index) => (
                       <input
                         key={index}
@@ -657,7 +657,7 @@ const RegisterDialog = ({
                           handleOtpChange(e.target.value, index)
                         }
                         onKeyDown={(e) => handleOtpKeyDown(e, index)}
-                        className="h-10 w-10 rounded-md border border-[#d8ded9] bg-white text-center text-lg font-semibold text-[#1f1f1f] outline-none transition focus:border-[#28b463] focus:ring-2 focus:ring-[#cfead8]"
+                        className="h-9 w-9 rounded-md border border-[#d8ded9] bg-white text-center text-base font-semibold text-[#1f1f1f] outline-none transition focus:border-[#28b463] focus:ring-2 focus:ring-[#cfead8] sm:h-10 sm:w-10 sm:text-lg"
                       />
                     ))}
                   </div>
@@ -685,8 +685,8 @@ const RegisterDialog = ({
             </div>
 
             <div>
-              <label className="font-normal text-[#1e1e1e]">Mail ID</label>
-              <div className="mt-2 rounded-md bg-[#f2fcf6] px-4 py-2.5">
+              <label className="text-sm font-normal text-[#1e1e1e] sm:text-base">Mail ID</label>
+              <div className="mt-1.5 rounded-md bg-[#f2fcf6] px-3 py-2 sm:mt-2 sm:px-4 sm:py-2.5">
                 <input
                   type="email"
                   value={formData.email}
@@ -698,7 +698,7 @@ const RegisterDialog = ({
                     setErrors((prev) => ({ ...prev, email: undefined }));
                   }}
                   placeholder="Enter your mail id"
-                  className="w-full border-none bg-transparent text-base text-[#1f1f1f] outline-none placeholder:text-[#a0a3a0]"
+                  className="w-full border-none bg-transparent text-sm text-[#1f1f1f] outline-none placeholder:text-[#a0a3a0] sm:text-base"
                 />
               </div>
               {errors.email && (
@@ -709,7 +709,7 @@ const RegisterDialog = ({
             <button
               disabled={loading || Boolean(existingAccountMessage)}
               onClick={handlePersonalStepNext}
-              className="btn-primary w-full rounded-lg py-2.5 text-base font-semibold text-white shadow-lg transition-all disabled:cursor-not-allowed disabled:opacity-70"
+              className="btn-primary w-full rounded-md py-2 text-sm font-semibold text-white shadow-lg transition-all disabled:cursor-not-allowed disabled:opacity-70 sm:rounded-lg sm:py-2.5 sm:text-base"
             >
               {loading ? "Verifying..." : "Create Account"}
             </button>

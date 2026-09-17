@@ -41,11 +41,11 @@ export default function Amenities({ project }: AmenitiesProps) {
     <section id="amenities">
       <div className="container mx-auto px-1 sm:px-4 lg:px-3">
         <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
-          <h2 className="border-b border-slate-200 px-4 py-4 text-lg font-medium text-slate-950 sm:px-5 sm:py-5 sm:text-xl">
+          <h2 className="border-b border-slate-200 px-3 py-3 text-base font-medium text-slate-950 sm:px-5 sm:py-5 sm:text-xl">
             Amenities
           </h2>
 
-          <div className="grid grid-cols-3 gap-x-2 gap-y-5 px-3 py-5 sm:grid-cols-3 sm:gap-x-4 sm:gap-y-8 sm:px-5 sm:py-8 md:grid-cols-4 lg:grid-cols-6">
+          <div className="grid grid-cols-3 gap-x-1.5 gap-y-3 px-2.5 py-3.5 sm:grid-cols-3 sm:gap-x-4 sm:gap-y-8 sm:px-5 sm:py-8 md:grid-cols-4 lg:grid-cols-6">
             {visibleAmenities.map((amenity, index) => {
               const title = getAmenityTitle(amenity);
               const iconSrc = getAmenityIcon(amenity);
@@ -53,18 +53,18 @@ export default function Amenities({ project }: AmenitiesProps) {
               return (
                 <div
                   key={`${amenity.key ?? title}-${index}`}
-                  className="flex min-h-16 flex-col items-center justify-start text-center sm:min-h-14"
+                  className="flex min-h-12 flex-col items-center justify-start text-center sm:min-h-14"
                 >
                   <img
                     src={iconSrc}
                     alt=""
-                    className="h-5 w-5 shrink-0 object-contain"
+                    className="h-4 w-4 shrink-0 object-contain sm:h-5 sm:w-5"
                     onError={(event) => {
                       event.currentTarget.onerror = null;
                       event.currentTarget.src = "/icons/amenities/default.svg";
                     }}
                   />
-                  <p className="mt-2 max-w-20 wrap-break-word text-[11px] font-medium leading-4 text-slate-950 sm:max-w-28 sm:text-sm sm:leading-5">
+                  <p className="mt-1.5 max-w-20 wrap-break-word text-[10px] font-medium leading-[14px] text-slate-950 sm:mt-2 sm:max-w-28 sm:text-sm sm:leading-5">
                     {title}
                   </p>
                 </div>
@@ -75,7 +75,7 @@ export default function Amenities({ project }: AmenitiesProps) {
               <button
                 type="button"
                 onClick={() => setShowAll((value) => !value)}
-                className="flex min-h-16 flex-col items-center justify-center rounded-md bg-emerald-50 px-2 text-xs font-medium text-emerald-600 transition hover:bg-emerald-100 sm:min-h-20 sm:px-4 sm:text-sm cursor-pointer"
+                className="flex min-h-12 cursor-pointer flex-col items-center justify-center rounded-md bg-emerald-50 px-1.5 text-[11px] font-medium text-emerald-600 transition hover:bg-emerald-100 sm:min-h-20 sm:px-4 sm:text-sm"
               >
                 <span>{showAll ? "Show" : `+${hiddenCount}`}</span>
                 <span className="mt-1 inline-flex items-center gap-1">

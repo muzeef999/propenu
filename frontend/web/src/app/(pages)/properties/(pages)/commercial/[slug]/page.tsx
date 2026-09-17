@@ -352,24 +352,24 @@ export default async function Page({ params }: PageProps) {
               <br />
 
               <div className="min-w-0 w-full">
-                <div className="grid gap-4">
-                  <section className="min-w-0 space-y-4">
-                    <section className="rounded-lg p-6 shadow-sm bg-[#f7f9fa]">
-                      <h2 className="mb-5 text-xl font-semibold text-gray-900">
+                <div className="grid gap-3">
+                  <section className="min-w-0 space-y-3">
+                    <section className="rounded-md bg-[#f7f9fa] p-4 shadow-sm sm:p-5">
+                      <h2 className="mb-4 text-lg font-semibold text-gray-900">
                         More Details
                       </h2>
 
-                      <div className="grid grid-cols-2 gap-4 text-sm xl:grid-cols-4">
+                      <div className="grid grid-cols-2 gap-3 text-sm xl:grid-cols-4">
                         {detailsItems.map((item) => {
                           const Icon = item.icon;
                           return (
                             <div
                               key={item.label}
-                              className="grid grid-cols-[32px_1fr] grid-rows-2 gap-x-3 items-center"
+                              className="grid grid-cols-[28px_1fr] grid-rows-2 gap-x-2.5 items-center"
                             >
                               {/* Icon (center between label and value) */}
                               <div className="row-span-2 flex items-center justify-center text-gray-500">
-                                <Icon size={25} />
+                                <Icon size={22} />
                               </div>
 
                               {/* Label */}
@@ -386,14 +386,14 @@ export default async function Page({ params }: PageProps) {
                         })}
                       </div>
 
-                      <div className="mt-8">
+                      <div className="mt-5">
                         <p className="font-medium text-gray-900">Address</p>
                         <p className="text-gray-500 mt-1 leading-relaxed">
                           {project.address}
                         </p>
                       </div>
 
-                      <div className="mt-6">
+                      <div className="mt-4">
                         <p className="font-medium text-gray-900">
                           Description:
                         </p>
@@ -403,8 +403,8 @@ export default async function Page({ params }: PageProps) {
                       </div>
 
                       {(project as any)?.createdBy?.name && (
-                        <div className="mt-6 inline-flex w-fit items-center gap-3 rounded-lg border border-gray-200 bg-gray-50/80 px-4 py-2.5 shadow-2xs">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white shadow-2xs">
+                        <div className="mt-4 inline-flex w-fit items-center gap-2.5 rounded-md border border-gray-200 bg-gray-50/80 px-3 py-2 shadow-2xs">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-[11px] font-bold text-white shadow-2xs">
                             {(project as any)?.createdBy?.name.charAt(0).toUpperCase()}
                           </div>
                           <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1.5">
@@ -418,7 +418,7 @@ export default async function Page({ params }: PageProps) {
                         </div>
                       )}
 
-                      <div className="mt-8">
+                      <div className="mt-5">
                         <ContactOwnerButton
                           listingType={project.listingType}
                           projectId={project._id}
@@ -437,12 +437,12 @@ export default async function Page({ params }: PageProps) {
                       </div>
                     </section>
 
-                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa]">
-                      <h2 className="mb-3 text-xl font-semibold text-gray-900">
+                    <section className="rounded-md bg-[#f7f9fa] p-3 shadow-sm sm:p-4">
+                      <h2 className="mb-2.5 text-lg font-semibold text-gray-900">
                         Tenant information
                       </h2>
                       {project.tenantInfo && project.tenantInfo.length > 0 ? (
-                        <div className="grid gap-3 sm:grid-cols-3">
+                        <div className="grid gap-2.5 sm:grid-cols-3">
                           {project.tenantInfo.map((tenant, index) => {
                             const tenantName =
                               tenant.currentTenant?.trim() || "Tenant";
@@ -460,20 +460,20 @@ export default async function Page({ params }: PageProps) {
                             return (
                               <div
                                 key={`${tenant.currentTenant ?? "tenant"}-${index}`}
-                                className="rounded-md bg-[#ececec] p-4"
+                                className="rounded-md bg-[#ececec] p-3"
                               >
-                                <p className="text-base leading-none text-[#22a85b]">
+                                <p className="text-sm leading-none text-[#22a85b]">
                                   {rent ?? "Rent not available"}
                                 </p>
-                                <div className="mt-4 flex items-center gap-3">
-                                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#dce9df] text-2xl leading-none text-[#22a85b]">
+                                <div className="mt-3 flex items-center gap-2.5">
+                                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#dce9df] text-xl leading-none text-[#22a85b]">
                                     {tenantInitial}
                                   </div>
                                   <div className="min-w-0">
-                                    <p className="truncate text-base font-medium text-gray-900">
+                                    <p className="truncate text-sm font-medium text-gray-900">
                                       {tenantName}
                                     </p>
-                                    <p className="text-base text-gray-500">
+                                    <p className="text-sm text-gray-500">
                                       {leaseStart && leaseEnd
                                         ? `${leaseStart} - ${leaseEnd}`
                                         : leaseStart
@@ -496,12 +496,12 @@ export default async function Page({ params }: PageProps) {
                     </section>
 
                     {/* Amenities */}
-                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa]">
-                      <h2 className="mb-3 text-xl font-semibold text-gray-900">
+                    <section className="rounded-md bg-[#f7f9fa] p-3 shadow-sm sm:p-4">
+                      <h2 className="mb-2.5 text-lg font-semibold text-gray-900">
                         Amenities
                       </h2>
                       {project.amenities && project.amenities.length > 0 ? (
-                        <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 sm:grid-cols-3">
+                        <div className="grid grid-cols-2 gap-1.5 text-xs text-gray-700 sm:grid-cols-3">
                           {project.amenities.map((i, index) =>
                             (() => {
                               const icon =
@@ -512,13 +512,13 @@ export default async function Page({ params }: PageProps) {
                               return (
                                 <div
                                   key={i.key ?? `${i.title}-${index}`}
-                                  className="flex items-center gap-1.5 rounded-md border border-gray-100 px-1.5 py-0.5"
+                                  className="flex items-center gap-1.5 rounded border border-gray-100 px-1.5 py-0.5"
                                 >
                                   {typeof icon === "string" ? (
                                     <AmenityIconImage
                                       src={icon.trim()}
                                       alt={`${i.title} icon`}
-                                      className="h-4 w-4 opacity-75"
+                                      className="h-3.5 w-3.5 opacity-75"
                                     />
                                   ) : icon ? (
                                     <span className="text-gray-600 [&>svg]:h-3.5 [&>svg]:w-3.5">
@@ -541,8 +541,8 @@ export default async function Page({ params }: PageProps) {
                     </section>
 
                     {/* Nearby */}
-                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa]">
-                      <h2 className="mb-3 text-xl font-semibold text-gray-900">
+                    <section className="rounded-md bg-[#f7f9fa] p-3 shadow-sm sm:p-4">
+                      <h2 className="mb-2.5 text-lg font-semibold text-gray-900">
                         Popular Landmarks Nearby
                       </h2>
                       {project.location ? (
@@ -559,8 +559,8 @@ export default async function Page({ params }: PageProps) {
                     </section>
 
                     {/* Related */}
-                    <section className="rounded-lg p-4 shadow-sm bg-[#f7f9fa]">
-                      <h2 className="mb-1 text-xl font-semibold text-gray-900">
+                    <section className="rounded-md bg-[#f7f9fa] p-3 shadow-sm sm:p-4">
+                      <h2 className="mb-1 text-lg font-semibold text-gray-900">
                         More Similar Properties for you
                       </h2>
 

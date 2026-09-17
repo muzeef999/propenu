@@ -109,18 +109,18 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
     <section id="gallery" className="scroll-mt-20">
       <div className="container mx-auto px-1 sm:px-4 lg:px-3">
         <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
-          <h2 className="border-b border-slate-200 px-4 py-4 text-lg font-medium text-slate-950 sm:px-5 sm:py-5 sm:text-xl">
+          <h2 className="border-b border-slate-200 px-3 py-3 text-base font-medium text-slate-950 sm:px-5 sm:py-5 sm:text-xl">
             Gallery
           </h2>
 
-          <div className="relative grid grid-cols-2 gap-2 p-3 sm:grid-cols-2 sm:gap-3 sm:p-5 lg:grid-cols-3">
+          <div className="relative grid grid-cols-2 gap-1.5 p-2.5 sm:grid-cols-2 sm:gap-3 sm:p-5 lg:grid-cols-3">
             <button
               type="button"
               onClick={() => setOpenIndex(0)}
-              className="absolute bottom-5 right-5 z-10 flex h-8 items-center gap-1.5 rounded-lg border border-white/70 bg-white/95 px-2.5 text-[11px] font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-emerald-600 sm:bottom-8 sm:right-8 sm:h-9 sm:gap-2 sm:px-3 sm:text-xs"
+              className="absolute bottom-4 right-4 z-10 flex h-7 items-center gap-1 rounded-md border border-white/70 bg-white/95 px-2 text-[10px] font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-emerald-600 sm:bottom-8 sm:right-8 sm:h-9 sm:gap-2 sm:rounded-lg sm:px-3 sm:text-xs"
               aria-label={`Open all ${images.length} project images`}
             >
-              <HiPhoto className="h-4 w-4" />
+              <HiPhoto className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span>{images.length} Photos</span>
             </button>
 
@@ -132,7 +132,7 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
                   key={`${image.url}-${index}`}
                   type="button"
                   onClick={() => setOpenIndex(index)}
-                  className={`group overflow-hidden rounded-xl text-left shadow-sm cursor-pointer ${
+                  className={`group cursor-pointer overflow-hidden rounded-md text-left shadow-sm sm:rounded-xl ${
                     isMainImage ? "col-span-2 sm:col-span-1 sm:row-span-2" : ""
                   }`}
                   aria-label={`Open ${image.title || "project image"} preview`}
@@ -141,7 +141,7 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
                     src={image.url}
                     alt={image.title || `${project.title} image ${index + 1}`}
                     className={`w-full object-cover transition-transform duration-300 group-hover:scale-105 ${
-                      isMainImage ? "h-[220px] sm:h-full lg:h-[310px]" : "h-[120px] sm:h-[150px]"
+                      isMainImage ? "h-[170px] sm:h-full lg:h-[310px]" : "h-[92px] sm:h-[150px]"
                     }`}
                   />
                 </button>
@@ -153,7 +153,7 @@ export default function ProjectImages({ project }: ProjectImagesProps) {
 
       {openIndex !== null && activeImage && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-3 backdrop-blur-sm md:p-6"
+          className="fixed inset-0 z-99 flex items-center justify-center bg-black/90 p-3 backdrop-blur-sm md:p-6"
           onClick={() => setOpenIndex(null)}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}

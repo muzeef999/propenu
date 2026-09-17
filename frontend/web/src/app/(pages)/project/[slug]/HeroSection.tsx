@@ -6,7 +6,8 @@ import ContactSeller from "./ContactSeller";
 import { trackProjectBrochureDownload } from "@/data/ClientData";
 import { FeaturedProject } from "@/types";
 import { useShortlist } from "@/hooks/useShortlist";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { FiCheckCircle, FiDownload, FiHeart, FiMapPin, FiPhone } from "react-icons/fi";
 import { HiChevronLeft, HiChevronRight, HiPhoto, HiXMark } from "react-icons/hi2";
 import { IoIosShareAlt } from "react-icons/io";
@@ -18,6 +19,27 @@ type AuthMode = "login" | "register" | null;
 type HeroSectionProps = {
     project: FeaturedProject;
 };
+
+const PROJECT_NAV_OFFSET_MOBILE = 118;
+const PROJECT_NAV_OFFSET_DESKTOP = 64;
+const PROJECT_SECTION_NAV_HEIGHT = 56;
+
+function getProjectNavOffset() {
+    if (typeof window === "undefined") return PROJECT_NAV_OFFSET_DESKTOP;
+    return window.innerWidth >= 768 ? PROJECT_NAV_OFFSET_DESKTOP : PROJECT_NAV_OFFSET_MOBILE;
+}
+
+function OverlayPortal({ children }: { children: ReactNode }) {
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) return null;
+
+    return createPortal(children, document.body);
+}
 
 function toTitleCase(str?: string) {
     if (!str) return "";
@@ -180,16 +202,19 @@ export default function HeroSection({ project }: HeroSectionProps) {
     const startX = useRef<number | null>(null);
     const originalBodyOverflowRef = useRef<string | null>(null);
     const activeImage = openIndex !== null ? galleryImages[openIndex] : null;
+    const hasProjectOverlayOpen = openIndex !== null || isContactDialogOpen;
 
     useEffect(() => {
-        if (openIndex !== null) {
+        if (hasProjectOverlayOpen) {
             if (originalBodyOverflowRef.current === null) {
                 originalBodyOverflowRef.current = document.body.style.overflow;
             }
             document.body.style.overflow = "hidden";
+            document.body.classList.add("project-modal-open");
         } else if (originalBodyOverflowRef.current !== null) {
             document.body.style.overflow = originalBodyOverflowRef.current;
             originalBodyOverflowRef.current = null;
+            document.body.classList.remove("project-modal-open");
         }
 
         return () => {
@@ -197,8 +222,9 @@ export default function HeroSection({ project }: HeroSectionProps) {
                 document.body.style.overflow = originalBodyOverflowRef.current;
                 originalBodyOverflowRef.current = null;
             }
+            document.body.classList.remove("project-modal-open");
         };
-    }, [openIndex]);
+    }, [hasProjectOverlayOpen]);
 
     useEffect(() => {
         function onKey(event: KeyboardEvent) {
@@ -214,7 +240,8 @@ export default function HeroSection({ project }: HeroSectionProps) {
 
     useEffect(() => {
         function updateActiveTab() {
-            const scrollPosition = window.scrollY + 120;
+            const scrollPosition =
+                window.scrollY + getProjectNavOffset() + PROJECT_SECTION_NAV_HEIGHT + 16;
             let currentTab = tabs[0].href;
 
             for (const tab of tabs) {
@@ -348,7 +375,12 @@ export default function HeroSection({ project }: HeroSectionProps) {
         const section = document.getElementById(href.slice(1));
         if (!section) return;
 
-        const top = section.getBoundingClientRect().top + window.scrollY - 72;
+        const top =
+            section.getBoundingClientRect().top +
+            window.scrollY -
+            getProjectNavOffset() -
+            PROJECT_SECTION_NAV_HEIGHT -
+            12;
         window.scrollTo({ top, behavior: "smooth" });
         window.history.pushState(null, "", href);
         setActiveTab(href);
@@ -504,7 +536,7 @@ export default function HeroSection({ project }: HeroSectionProps) {
             </section>
 
             <div className="h-5 bg-white" />
-            <nav className="sticky top-0 z-40 border-y border-slate-200 bg-white">
+            <nav className="propenu-site-navbar sticky top-[115px] z-40 border-y border-slate-200 bg-white md:top-16">
                 <div
                     ref={navRef}
                     className="no-scrollbar flex w-full justify-start overflow-x-auto scroll-smooth px-3 sm:px-5 lg:px-8 xl:justify-center xl:px-12 2xl:px-16"
@@ -535,86 +567,88 @@ export default function HeroSection({ project }: HeroSectionProps) {
             </nav>
 
             {openIndex !== null && activeImage && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm md:p-6"
-                    onClick={() => setOpenIndex(null)}
-                    onTouchStart={onTouchStart}
-                    onTouchEnd={onTouchEnd}
-                >
+                <OverlayPortal>
                     <div
-                        className="relative w-full max-w-6xl"
-                        onClick={(event) => event.stopPropagation()}
-                        role="dialog"
-                        aria-modal="true"
+                        className="fixed inset-0 z-[999] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm md:p-6"
+                        onClick={() => setOpenIndex(null)}
+                        onTouchStart={onTouchStart}
+                        onTouchEnd={onTouchEnd}
                     >
-                        <button
-                            type="button"
-                            onClick={() => setOpenIndex(null)}
-                            className="absolute right-0 top-0 z-30 flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/70"
-                            aria-label="Close gallery"
+                        <div
+                            className="relative w-full max-w-6xl"
+                            onClick={(event) => event.stopPropagation()}
+                            role="dialog"
+                            aria-modal="true"
                         >
-                            <HiXMark size={24} />
-                        </button>
+                            <button
+                                type="button"
+                                onClick={() => setOpenIndex(null)}
+                                className="absolute right-0 top-0 z-30 flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/70"
+                                aria-label="Close gallery"
+                            >
+                                <HiXMark size={24} />
+                            </button>
 
-                        <div className="relative overflow-hidden rounded-2xl bg-black pt-12 shadow-2xl md:pt-0">
+                            <div className="relative overflow-hidden rounded-2xl bg-black pt-12 shadow-2xl md:pt-0">
+                                {galleryImages.length > 1 && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={prevPreview}
+                                            className="absolute left-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md transition hover:bg-black/65 md:left-5"
+                                            aria-label="Previous image"
+                                        >
+                                            <HiChevronLeft size={22} />
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={nextPreview}
+                                            className="absolute right-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md transition hover:bg-black/65 md:right-5"
+                                            aria-label="Next image"
+                                        >
+                                            <HiChevronRight size={22} />
+                                        </button>
+                                    </>
+                                )}
+
+                                <img
+                                    src={activeImage.url}
+                                    alt={activeImage.title || `${project.title} image`}
+                                    className="max-h-[75vh] w-full object-contain"
+                                />
+
+                                {activeImage.category && (
+                                    <div className="absolute bottom-0 w-full bg-linear-to-t from-black/80 to-transparent p-6 text-white">
+                                        <div className="text-sm text-white/70">{activeImage.category}</div>
+                                    </div>
+                                )}
+                            </div>
+
                             {galleryImages.length > 1 && (
-                                <>
-                                    <button
-                                        type="button"
-                                        onClick={prevPreview}
-                                        className="absolute left-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md transition hover:bg-black/65 md:left-5"
-                                        aria-label="Previous image"
-                                    >
-                                        <HiChevronLeft size={22} />
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={nextPreview}
-                                        className="absolute right-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md transition hover:bg-black/65 md:right-5"
-                                        aria-label="Next image"
-                                    >
-                                        <HiChevronRight size={22} />
-                                    </button>
-                                </>
-                            )}
-
-                            <img
-                                src={activeImage.url}
-                                alt={activeImage.title || `${project.title} image`}
-                                className="max-h-[75vh] w-full object-contain"
-                            />
-
-                            {activeImage.category && (
-                                <div className="absolute bottom-0 w-full bg-linear-to-t from-black/80 to-transparent p-6 text-white">
-                                    <div className="text-sm text-white/70">{activeImage.category}</div>
+                                <div className="mt-6 flex gap-3 overflow-x-auto pb-2">
+                                    {galleryImages.map((image, index) => (
+                                        <button
+                                            key={`${image.url}-hero-thumb-${index}`}
+                                            type="button"
+                                            onClick={() => setOpenIndex(index)}
+                                            className={`shrink-0 overflow-hidden rounded-lg transition ${openIndex === index ? "scale-90 ring-2 ring-white" : "opacity-70 hover:opacity-100"
+                                                }`}
+                                            style={{ width: 110 }}
+                                            aria-label={`Open thumbnail ${index + 1}`}
+                                        >
+                                            <img
+                                                src={image.url}
+                                                alt={image.title || `${project.title} thumbnail ${index + 1}`}
+                                                className="h-16 w-full object-cover"
+                                            />
+                                        </button>
+                                    ))}
                                 </div>
                             )}
                         </div>
-
-                        {galleryImages.length > 1 && (
-                            <div className="mt-6 flex gap-3 overflow-x-auto pb-2">
-                                {galleryImages.map((image, index) => (
-                                    <button
-                                        key={`${image.url}-hero-thumb-${index}`}
-                                        type="button"
-                                        onClick={() => setOpenIndex(index)}
-                                        className={`shrink-0 overflow-hidden rounded-lg transition ${openIndex === index ? "scale-90 ring-2 ring-white" : "opacity-70 hover:opacity-100"
-                                            }`}
-                                        style={{ width: 110 }}
-                                        aria-label={`Open thumbnail ${index + 1}`}
-                                    >
-                                        <img
-                                            src={image.url}
-                                            alt={image.title || `${project.title} thumbnail ${index + 1}`}
-                                            className="h-16 w-full object-cover"
-                                        />
-                                    </button>
-                                ))}
-                            </div>
-                        )}
                     </div>
-                </div>
+                </OverlayPortal>
             )}
 
             {isAuthDialogOpen && authMode === "login" && (
@@ -638,26 +672,28 @@ export default function HeroSection({ project }: HeroSectionProps) {
             )}
 
             {isContactDialogOpen && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-                    onClick={() => setIsContactDialogOpen(false)}
-                >
+                <OverlayPortal>
                     <div
-                        className="relative w-full max-w-[420px] overflow-visible"
-                        onClick={(event) => event.stopPropagation()}
-                        role="dialog"
-                        aria-modal="true"
-                        aria-label="Contact seller"
+                        className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40 px-4"
+                        onClick={() => setIsContactDialogOpen(false)}
                     >
-                        <div className="max-h-[90vh] overflow-y-auto rounded-md bg-white shadow-2xl">
-                    <ContactSeller
-                      project={project}
-                      isModal
-                      onClose={() => setIsContactDialogOpen(false)}
-                    />
+                        <div
+                            className="relative w-full max-w-[420px] overflow-visible"
+                            onClick={(event) => event.stopPropagation()}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label="Contact seller"
+                        >
+                            <div className="max-h-[90vh] overflow-y-auto rounded-md bg-white shadow-2xl">
+                                <ContactSeller
+                                    project={project}
+                                    isModal
+                                    onClose={() => setIsContactDialogOpen(false)}
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
+                </OverlayPortal>
             )}
         </>
     );

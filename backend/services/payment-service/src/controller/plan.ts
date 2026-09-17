@@ -13,7 +13,7 @@ export async function getPlans(req: Request, res: Response) {
     if (userType) filter.userType = userType;
     if (category) filter.category = category;
 
-    const plans = await Plan.find(filter).sort({ price: 1 });
+    const plans = await Plan.find(filter).sort({ price: 1 }).lean();
     res.json(plans);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch plans" });

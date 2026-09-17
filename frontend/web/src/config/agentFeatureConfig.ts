@@ -18,10 +18,12 @@ export const agentFeatures = [
 
   {
     label: "No. of Property Listings",
-    render: (plan: Plan) =>
-      plan.features?.PROPERTY_LISTING_LIMIT
-        ? `Up to ${plan.features.PROPERTY_LISTING_LIMIT} listings`
-        : "-",
+    render: (plan: Plan) => {
+      const limit =
+        plan.features?.PROPERTY_LISTING_LIMIT ??
+        (plan.features as any)?.propertyListingLimit;
+      return limit ? `Up to ${limit} listings` : "-";
+    },
   },
 
   {
@@ -34,11 +36,14 @@ export const agentFeatures = [
   },
 
   {
-    label: "Owner Contacts",
-    render: (plan: Plan) =>
-      plan.features?.CONTACT_LIMIT
-        ? `Up to ${plan.features.CONTACT_LIMIT} contacts`
-        : "-",
+    label: "Contact Limits",
+    render: (plan: Plan) => {
+      const limit =
+        plan.features?.CONTACT_LIMIT ??
+        plan.features?.CONTACT_OWNER_LIMIT ??
+        (plan.features as any)?.contactLimit;
+      return limit ? `Up to ${limit} contacts` : "-";
+    },
   },
 
   {
@@ -53,9 +58,9 @@ export const agentFeatures = [
 
   {
     label: "Agent Account Access",
-    render: (plan: Plan) =>
-      plan.features?.TEAM_MEMBERS
-        ? `Add up to ${plan.features.TEAM_MEMBERS} team members`
-        : "-",
+    render: (plan: Plan) => {
+      const members = plan.features?.TEAM_MEMBERS;
+      return members ? `Add up to ${members} team members` : "-";
+    },
   },
 ];

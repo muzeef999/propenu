@@ -119,6 +119,16 @@ export default function BrochurePreview({ project }: BrochurePreviewProps) {
   }, [isFullscreen]);
 
   useEffect(() => {
+    if (!showContactDialog) return;
+
+    document.body.classList.add("project-modal-open");
+
+    return () => {
+      document.body.classList.remove("project-modal-open");
+    };
+  }, [showContactDialog]);
+
+  useEffect(() => {
     const scroller = pdfScrollerRef.current;
     if (!scroller || !numPages) return;
 
@@ -486,7 +496,7 @@ export default function BrochurePreview({ project }: BrochurePreviewProps) {
 
       {showContactDialog ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 px-4"
           onClick={() => setShowContactDialog(false)}
         >
           <div

@@ -164,7 +164,7 @@ export default function MicroSiteNavbar({
 
   return (
     <>
-      <header className={`bg-white shadow-md border-b border-gray-200 sticky top-0 z-9999 ${isGalleryOpen ? "hidden" : ""}`}>
+      <header className={`propenu-site-navbar bg-white shadow-md border-b border-gray-200 sticky top-0 z-9999 ${isGalleryOpen ? "hidden" : ""}`}>
         <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="h-14 flex items-center justify-between">
           <div className="flex min-w-0 items-center gap-3">

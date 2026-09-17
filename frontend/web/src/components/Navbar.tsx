@@ -239,7 +239,7 @@ const Navbar = () => {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-[90] isolate bg-white">
+      <header className="propenu-site-navbar fixed inset-x-0 top-0 z-[90] isolate bg-white">
         <nav
           className="w-full border-b border-gray-200 bg-white"
           aria-label="Main navigation"
