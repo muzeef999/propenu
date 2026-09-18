@@ -188,6 +188,7 @@ export const getAllFeatureProperties = async (req: Request, res: Response) => {
       page,
       limit,
       q,
+      search,
       status,
       sortBy,
       sortOrder,
@@ -209,7 +210,11 @@ export const getAllFeatureProperties = async (req: Request, res: Response) => {
     const options: any = {};
     if (typeof page === "string") options.page = Number(page);
     if (typeof limit === "string") options.limit = Number(limit);
-    if (typeof q === "string") options.q = q;
+    const queryText =
+      (typeof q === "string" && q.trim()) ||
+      (typeof search === "string" && search.trim()) ||
+      "";
+    if (queryText) options.q = queryText;
     if (typeof status === "string") options.status = status;
     if (typeof sortBy === "string") options.sortBy = sortBy;
     options.sortOrder = sortOrder === "asc" ? "asc" : "desc";

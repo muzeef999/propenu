@@ -7,17 +7,42 @@ type SpecificationsProps = {
   project: FeaturedProject;
 };
 
-type Specification = NonNullable<FeaturedProject["specifications"]>[number];
 type SpecificationItem = {
   title: string;
   description: string;
 };
 
+function looksLikeHtml(value = "") {
+  return /<\/?[a-z][\s\S]*>/i.test(String(value || ""));
+}
+
+function sanitizeStyleAttribute(styles: string) {
+  const textAlign = styles.match(
+    /(?:^|;)\s*text-align\s*:\s*(left|right|center|justify)\s*;?/i,
+  );
+  return textAlign ? ` style="text-align: ${textAlign[1].toLowerCase()};"` : "";
+}
+
+function sanitizeRichText(value?: string) {
+  if (!value) return "";
+  return value
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+    .replace(/\son\w+\s*=\s*(["']).*?\1/gi, "")
+    .replace(/\s(?:href|src)\s*=\s*(["'])\s*javascript:[\s\S]*?\1/gi, "")
+    .replace(/\sstyle\s*=\s*(["'])(.*?)\1/gi, (_, __, styles) =>
+      sanitizeStyleAttribute(styles),
+    )
+    .trim();
+}
+
 function formatSpecificationDescription(description: string) {
   return description
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
-    .replace(/\s*(?=(?:Structure|Super structure|Plastering|Painting|Flooring|Doors|Windows|Kitchen|Toilets|Electrical system|Common Area|Railings|Bedroom and kitchen|Utility \/ Wash Area|Ceiling|Internal|External|Main Door|Internal Door|Windows frame and shutter|Utility areas|Drawing, Dinning, living and foyer|Balcony|Staircase):)/g, "\n")
+    .replace(
+      /\s*(?=(?:Structure|Super structure|Plastering|Painting|Flooring|Doors|Windows|Kitchen|Toilets|Electrical system|Common Area|Railings|Bedroom and kitchen|Utility \/ Wash Area|Ceiling|Internal|External|Main Door|Internal Door|Windows frame and shutter|Utility areas|Drawing, Dinning, living and foyer|Balcony|Staircase):)/g,
+      "\n",
+    )
     .replace(/\n{2,}/g, "\n")
     .trim();
 }
@@ -34,12 +59,23 @@ export default function Specifications({ project }: SpecificationsProps) {
     () =>
       specifications
         .flatMap((spec) => spec.items ?? [])
-        .map((item) =>
-          formatSpecificationDescription(
-            (item as SpecificationItem).description?.trim() ?? "",
-          ),
-        )
-        .filter((description): description is string => Boolean(description)),
+        .map((item) => {
+          const raw = (item as SpecificationItem).description?.trim() ?? "";
+          if (!raw) return null;
+          if (looksLikeHtml(raw)) {
+            return { kind: "html" as const, value: sanitizeRichText(raw) };
+          }
+          return {
+            kind: "text" as const,
+            value: formatSpecificationDescription(raw),
+          };
+        })
+        .filter(
+          (
+            row,
+          ): row is { kind: "html" | "text"; value: string } =>
+            Boolean(row?.value),
+        ),
     [specifications],
   );
 
@@ -56,14 +92,22 @@ export default function Specifications({ project }: SpecificationsProps) {
 
           <div className="px-4 py-4 sm:px-5">
             <div className="max-h-[420px] overflow-y-auto rounded-md border border-slate-200 bg-white p-4 sm:max-h-[460px] sm:p-5">
-              {descriptions.map((description, index) => (
-                <p
-                  key={`${description.slice(0, 40)}-${index}`}
-                  className="mb-3 whitespace-pre-line text-sm leading-7 text-slate-600 last:mb-0 sm:text-base sm:leading-8"
-                >
-                  {description}
-                </p>
-              ))}
+              {descriptions.map((row, index) =>
+                row.kind === "html" ? (
+                  <div
+                    key={`html-${index}`}
+                    className="prose prose-sm mb-3 max-w-none text-slate-600 last:mb-0 sm:prose-base prose-p:my-2 prose-ul:my-2 prose-ol:my-2"
+                    dangerouslySetInnerHTML={{ __html: row.value }}
+                  />
+                ) : (
+                  <p
+                    key={`text-${index}`}
+                    className="mb-3 whitespace-pre-line text-sm leading-7 text-slate-600 last:mb-0 sm:text-base sm:leading-8"
+                  >
+                    {row.value}
+                  </p>
+                ),
+              )}
             </div>
           </div>
         </div>

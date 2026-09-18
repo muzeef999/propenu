@@ -103,8 +103,23 @@ const Specification = ({ specifications }: Props) => {
             key={i}
             className="p-5  bg-white shadow-sm rounded-md hover:shadow-md transition"
           >
-            <p className="font-semibold text-gray-800">{item.title}</p>
-            <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+            {item.title ? (
+              <p className="font-semibold text-gray-800">{item.title}</p>
+            ) : null}
+            {item.description && /<\/?[a-z][\s\S]*>/i.test(item.description) ? (
+              <div
+                className="prose prose-sm mt-1 max-w-none text-gray-600"
+                dangerouslySetInnerHTML={{
+                  __html: String(item.description)
+                    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+                    .replace(/\son\w+\s*=\s*(["']).*?\1/gi, ""),
+                }}
+              />
+            ) : (
+              <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">
+                {item.description}
+              </p>
+            )}
           </div>
         ))}
       </div>

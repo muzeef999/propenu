@@ -562,7 +562,10 @@ export const projectAnalytics = async (
 
       {
         $group: {
-          _id: "$city",
+          _id: {
+            state: "$state",
+            city: "$city",
+          },
 
           total: {
             $sum: 1,
@@ -620,6 +623,19 @@ export const projectAnalytics = async (
               ],
             },
           },
+        },
+      },
+
+      {
+        $project: {
+          _id: "$_id.city",
+          state: "$_id.state",
+          total: 1,
+          active: 1,
+          normal: 1,
+          featured: 1,
+          prime: 1,
+          sponsored: 1,
         },
       },
 
@@ -643,7 +659,11 @@ export const projectAnalytics = async (
 
       {
         $group: {
-          _id: "$locality",
+          _id: {
+            state: "$state",
+            city: "$city",
+            locality: "$locality",
+          },
 
           total: {
             $sum: 1,
@@ -701,6 +721,20 @@ export const projectAnalytics = async (
               ],
             },
           },
+        },
+      },
+
+      {
+        $project: {
+          _id: "$_id.locality",
+          state: "$_id.state",
+          city: "$_id.city",
+          total: 1,
+          active: 1,
+          normal: 1,
+          featured: 1,
+          prime: 1,
+          sponsored: 1,
         },
       },
 
