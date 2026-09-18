@@ -28,7 +28,7 @@ export function normalizeWebsiteUrl(raw: unknown): string | undefined {
   const dottedProto = s.match(
     /^(https?)\.([a-z0-9.-]+\.[a-z]{2,}(?:[/:?#].*)?)$/i,
   );
-  if (dottedProto) {
+  if (dottedProto?.[1] && dottedProto?.[2]) {
     s = `${dottedProto[1].toLowerCase()}://${dottedProto[2]}`;
   }
 
