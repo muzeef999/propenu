@@ -15,6 +15,50 @@ const AreaUnitZ = z.enum([
   "kanal",
 ]);
 
+/**
+ * Accepts loose website inputs (https.propenu.com, propenu.com, https://…)
+ * and returns a normalized absolute URL, or undefined for empty/invalid.
+ */
+export function normalizeWebsiteUrl(raw: unknown): string | undefined {
+  if (raw == null) return undefined;
+  let s = String(raw).trim();
+  if (!s) return undefined;
+
+  // https.propenu.com / http.example.com → https://propenu.com
+  const dottedProto = s.match(
+    /^(https?)\.([a-z0-9.-]+\.[a-z]{2,}(?:[/:?#].*)?)$/i,
+  );
+  if (dottedProto) {
+    s = `${dottedProto[1].toLowerCase()}://${dottedProto[2]}`;
+  }
+
+  // https:/example.com → https://example.com
+  s = s.replace(/^(https?):\/(?!\/)/i, "$1://");
+
+  // Bare domain without scheme
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(s)) {
+    s = `https://${s.replace(/^\/+/, "")}`;
+  }
+
+  // Collapse accidental https:///
+  s = s.replace(/^(https?:)\/{3,}/i, "$1//");
+
+  try {
+    const url = new URL(s);
+    if (!url.hostname) return undefined;
+    return url.href;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Empty / null → undefined; otherwise normalize then validate as URL. */
+const OptionalWebsiteUrlZ = z.preprocess((val) => {
+  if (val === "" || val === null || val === undefined) return undefined;
+  const normalized = normalizeWebsiteUrl(val);
+  return normalized ?? String(val).trim();
+}, z.string().url("Invalid URL").optional());
+
 const AreaSchemaZ = z.object({
   value: z.number().nonnegative(),
   unit: AreaUnitZ,
@@ -31,7 +75,7 @@ export const UnitZ = z.object({
   area: AreaSchemaZ.optional(),
   planFileName: z.string().optional(),
   planUrl: z.string().url().optional(),
-  redirectUrl: z.string().url().optional(),
+  redirectUrl: OptionalWebsiteUrlZ,
   plan: z
     .object({
       url: z.string().optional(),
@@ -61,8 +105,13 @@ export const BrochureSchema = z
 export const AboutSummaryZ = z.object({
   builderName: z.string().optional(),
   aboutDescription: z.string().optional(),
-  url: z.string().url("Invalid URL format").optional(),
-  rightContent: z.string().min(1, "Right content is required"),
+  url: z
+    .union([OptionalWebsiteUrlZ, z.literal(""), z.null()])
+    .optional(),
+  rightContent: z.string().optional().default(""),
+  key: z.string().optional(),
+  filename: z.string().optional(),
+  mimetype: z.string().optional(),
 });
 
 const GallerySummarySchema = z.object({
@@ -91,11 +140,30 @@ const SpecificationSchema = z.object({
   order: z.number().int().optional().default(0),
 });
 
+const coerceCoord = (value: unknown) => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const n = Number(value);
+    if (Number.isFinite(n)) return n;
+  }
+  return 0;
+};
+
 const NearbyPlaceSchema = z.object({
   name: z.string().optional(),
   type: z.string().optional(),
   distanceText: z.string().optional(),
-  coordinates: z.tuple([z.number(), z.number()]).optional(),
+  fullAddress: z.string().optional(),
+  locality: z.string().optional(),
+  city: z.string().optional(),
+  latitude: z.union([z.string(), z.number()]).optional(),
+  longitude: z.union([z.string(), z.number()]).optional(),
+  coordinates: z
+    .preprocess((value) => {
+      if (!Array.isArray(value) || value.length < 2) return [0, 0];
+      return [coerceCoord(value[0]), coerceCoord(value[1])];
+    }, z.tuple([z.number(), z.number()]))
+    .optional(),
   order: z.number().int().optional().default(0),
 });
 
@@ -130,7 +198,7 @@ export const CreateFeaturePropertySchema = z.object({
   city: z.string().optional(),
   locality: z.string().optional(),
   state: z.string().optional(),
-  redirectUrl: z.string().url().optional(),
+  redirectUrl: OptionalWebsiteUrlZ,
   youtubeVideos: z.array(YoutubeVideoSchema).optional(),
   location: z
     .object({
@@ -139,7 +207,7 @@ export const CreateFeaturePropertySchema = z.object({
     })
     .optional(),
 
-  mapEmbedUrl: z.string().url().optional(),
+  mapEmbedUrl: OptionalWebsiteUrlZ,
   currency: z.string().optional().default("INR"),
   priceFrom: z.number().optional(),
   priceTo: z.number().optional(),
@@ -240,7 +308,7 @@ export const UpdateFeaturePropertySchema = z
     city: z.string().optional(),
     state: z.string().optional(),
     locality: z.string().optional(),
-    redirectUrl: z.string().url().optional(),
+    redirectUrl: OptionalWebsiteUrlZ,
     youtubeVideos: z.array(YoutubeVideoSchema).optional(),
 
     status: z
@@ -261,7 +329,7 @@ export const UpdateFeaturePropertySchema = z
         coordinates: z.tuple([z.number(), z.number()]).optional(),
       })
       .optional(),
-    mapEmbedUrl: z.string().url().optional(),
+    mapEmbedUrl: OptionalWebsiteUrlZ,
     currency: z.string().optional(),
     priceFrom: z.number().optional(),
     priceTo: z.number().optional(),

@@ -111,16 +111,28 @@ authRoute.post(
   claimSeClient,
 );
 authRoute.get("/manager-team-details/:id", authMiddleware, requirePermission("team:view", ["regional_manager", "sales_manager"]), getManagerTeamDetails);
+const HIERARCHY_STAFF_LIFECYCLE_ROLES = [
+  "super_admin",
+  "admin",
+  "business_development_head",
+  "customer_support_head",
+  "customer_support_team_lead",
+  "team_lead",
+  "team_leads",
+  "operations_head",
+  "operation_head",
+];
+
 authRoute.post(
   "/:id/profile/phone/request-otp",
   authMiddleware,
-  requireAdminOrSuperAdmin,
+  requirePermission("user:update", HIERARCHY_STAFF_LIFECYCLE_ROLES),
   requestAdminUserPhoneChangeOtp
 );
 authRoute.patch(
   "/:id/profile",
   authMiddleware,
-  requireAdminOrSuperAdmin,
+  requirePermission("user:update", HIERARCHY_STAFF_LIFECYCLE_ROLES),
   updateUserProfileById
 );
  
@@ -151,14 +163,14 @@ authRoute.patch("/:id/role", authMiddleware, requireRoleTransferAccess,
 authRoute.patch(
   "/:id/status",
   authMiddleware,
-  requirePermission("user:activate", ["super_admin", "business_development_head"]),
+  requirePermission("user:activate", HIERARCHY_STAFF_LIFECYCLE_ROLES),
   adminSetUserActive,
 );
 
 authRoute.delete(
   "/:id",
   authMiddleware,
-  requirePermission("user:delete", ["super_admin", "business_development_head"]),
+  requirePermission("user:delete", HIERARCHY_STAFF_LIFECYCLE_ROLES),
   adminDeleteUser,
 );
 

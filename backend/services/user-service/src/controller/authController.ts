@@ -889,7 +889,15 @@ export const adminDeleteUser = async (req: AuthRequest, res: Response) => {
     const deletedBy =
       actorRole === "business_development_head"
         ? "Deleted by Business Development Head"
-        : "Deleted by Super Admin";
+        : actorRole === "customer_support_head"
+          ? "Deleted by Customer Support Head from Team directory"
+          : actorRole === "customer_support_team_lead" ||
+              actorRole === "team_lead" ||
+              actorRole === "team_leads"
+            ? "Deleted by Customer Support Team Lead from Team directory"
+            : actorRole === "operations_head" || actorRole === "operation_head"
+              ? "Deleted by Operations Head from Team directory"
+              : "Deleted by Super Admin";
 
     await DeletedAccount.create({
       userId: user._id,
@@ -1005,12 +1013,19 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
     let usersQuery = User.find(userFilter)
       .select(
         leanTeamDirectory
-          ? "name email phone roleId isActive accountStatus locality city state pincode lastLogin createdAt"
+          ? // managerId required — reporting-tree scope + "Reports to" on cards
+            "name email phone roleId managerId isActive accountStatus locality city state pincode lastLogin createdAt"
           : "-token",
       )
       .populate("roleId", "name label");
 
-    if (!leanTeamDirectory) {
+    if (leanTeamDirectory) {
+      usersQuery = usersQuery.populate({
+        path: "managerId",
+        select: "name email phone roleId",
+        populate: { path: "roleId", select: "name label" },
+      });
+    } else {
       usersQuery = usersQuery
         .populate({
           path: "managerId",
@@ -1129,12 +1144,18 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "_");
-    const scopedUsers =
+    // Prefer people in the actor's reports-to tree. If manager links are missing
+    // (legacy credentials), fall back to all staff in descendant roles so the
+    // Team directory is not empty for CSH / Team Lead / RM.
+    let scopedUsers = formattedUsers;
+    if (
       scope === "team_directory" &&
       actorRoleKey !== "super_admin" &&
       actorRoleKey !== "admin"
-        ? filterUsersInReportingTree(formattedUsers, req.user?.sub)
-        : formattedUsers;
+    ) {
+      const inTree = filterUsersInReportingTree(formattedUsers, req.user?.sub);
+      scopedUsers = inTree.length > 0 ? inTree : formattedUsers;
+    }
 
     res.json(scopedUsers);
   } catch (err) {
@@ -2320,12 +2341,6 @@ export const requestAdminUserPhoneChangeOtp = async (
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    if (!["admin", "super_admin"].includes(req.user.roleName || "")) {
-      return res.status(403).json({
-        message: "Forbidden: only admin/super_admin can update user profiles",
-      });
-    }
-
     const { id } = req.params;
     const phone = req.body.phone?.toString().trim();
 
@@ -2338,10 +2353,22 @@ export const requestAdminUserPhoneChangeOtp = async (
       return res.status(400).json({ message: phoneError });
     }
 
-    const user = await User.findById(id).select("_id phone");
+    const user = await User.findById(id)
+      .select("_id phone roleId")
+      .populate("roleId", "name label");
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
+    }
+
+    const gate = assertCanManageUserLifecycle({
+      actorRoleName: req.user?.roleName ?? null,
+      targetRoleName: String((user.roleId as any)?.name || ""),
+      actorUserId: req.user?.sub ?? null,
+      targetUserId: id,
+    });
+    if (!gate.ok) {
+      return res.status(gate.status).json({ message: gate.message });
     }
 
     if (getPhoneLookupValues(phone).includes(String(user.phone || ""))) {
@@ -2389,16 +2416,26 @@ export const updateUserProfileById = async (
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    if (!["admin", "super_admin"].includes(req.user.roleName || "")) {
-      return res.status(403).json({
-        message: "Forbidden: only admin/super_admin can update user profiles",
-      });
-    }
-
     const { id } = req.params;
 
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid user id" });
+    }
+
+    const existing = await User.findById(id).populate("roleId", "name label");
+    if (!existing) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const targetRoleName = String((existing.roleId as any)?.name || "").toLowerCase();
+    const gate = assertCanManageUserLifecycle({
+      actorRoleName: req.user?.roleName ?? null,
+      targetRoleName,
+      actorUserId: req.user?.sub ?? null,
+      targetUserId: id,
+    });
+    if (!gate.ok) {
+      return res.status(gate.status).json({ message: gate.message });
     }
 
     const updates: Record<string, unknown> = {};
@@ -2442,11 +2479,7 @@ export const updateUserProfileById = async (
       }
     }
 
-    const user = await User.findById(id).populate("roleId");
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    const user = existing;
 
     if (updates.email !== undefined) {
       const nextEmail = String(updates.email || "")

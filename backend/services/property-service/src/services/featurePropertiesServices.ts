@@ -1623,19 +1623,42 @@ export const FeaturePropertyService = {
       filter.createdAt = createdAt;
     }
 
-    // 🔍 SEARCH
+    // Title / location / code search. Token regex so "morton villas" matches
+    // title "Morton Villas" even when the row is not in the loaded page set.
+    // $text is not used here — it misses partial titles and fails if the
+    // text index is unavailable.
     if (options?.q) {
-      andFilters.push({
-        $or: [
-          { $text: { $search: options.q } },
-          {
-            propertyCode: {
-              $regex: escapeRegex(options.q.trim()),
-              $options: "i",
-            },
-          },
-        ],
-      });
+      const tokens = String(options.q)
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 8);
+      if (tokens.length) {
+        andFilters.push({
+          $and: tokens.map((token) => {
+            const pattern = escapeRegex(token);
+            return {
+              $or: [
+                { title: { $regex: pattern, $options: "i" } },
+                { slug: { $regex: pattern, $options: "i" } },
+                { address: { $regex: pattern, $options: "i" } },
+                { city: { $regex: pattern, $options: "i" } },
+                { locality: { $regex: pattern, $options: "i" } },
+                { state: { $regex: pattern, $options: "i" } },
+                { propertyCode: { $regex: pattern, $options: "i" } },
+                { heroTagline: { $regex: pattern, $options: "i" } },
+                { metaTitle: { $regex: pattern, $options: "i" } },
+                { "about.builderName": { $regex: pattern, $options: "i" } },
+                { "aboutSummary.builderName": { $regex: pattern, $options: "i" } },
+                { builderName: { $regex: pattern, $options: "i" } },
+                { "createdBy.name": { $regex: pattern, $options: "i" } },
+                { "createdBy.fullName": { $regex: pattern, $options: "i" } },
+                { "createdBy.companyName": { $regex: pattern, $options: "i" } },
+              ],
+            };
+          }),
+        });
+      }
     }
 
     // 🔥 PROMOTION TYPE FILTER

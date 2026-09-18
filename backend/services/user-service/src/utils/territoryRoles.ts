@@ -18,6 +18,10 @@ export const TERRITORY_TARGET_ROLES = new Set([
   "customer_care_executives",
   "relationship_manager",
   "relationship_managers",
+  "customer_support_team_lead",
+  "customer_support_team_leads",
+  "team_lead",
+  "team_leads",
   "customer_support_head",
   // BD / Sales hierarchy
   "operations_head",

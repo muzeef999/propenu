@@ -159,7 +159,9 @@ export const getTeamDirectoryRoles = async (req: AuthRequest, res: Response) => 
 
     if (actorRoleKey !== "super_admin" && actorRoleKey !== "admin") {
       const descendantRoleIds = actorRoleId ? await getDescendantRoleIds(actorRoleId) : [];
-      roleFilter._id = { $in: descendantRoleIds };
+      // Always return the known support-branch role docs even when empty,
+      // so the Role filter still shows Team Lead / CCE / RM for CSH.
+      roleFilter._id = { $in: descendantRoleIds.length ? descendantRoleIds : [] };
     }
 
     const roles = await Role.find(roleFilter)
