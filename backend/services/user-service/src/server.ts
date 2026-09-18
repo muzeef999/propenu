@@ -18,9 +18,11 @@ import builderProfileRoute from "./routes/builderProfileRoute";
 import { fieldMeetingRoute } from "./routes/fieldMeetingRoute";
 import { cleanupDuplicateLocalities } from "./services/locationService";
 import Role from "./models/roleModel";
-import { startWhatsAppWorker } from "./workers/whatsapp.worker";
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env"), quiet: true });
+dotenv.config({
+  path: path.resolve(process.cwd(), process.env.ENV_FILE || ".env"),
+  quiet: true,
+});
 
 const app = express();
 app.use(express.json());
@@ -110,12 +112,22 @@ async function start() {
     app.use("/api/conversation-flow", conversationFlowRouter);
     
 
+    process.env.EMAIL_WORKER_EMBEDDED = "1";
     process.env.WHATSAPP_WORKER_EMBEDDED = "1";
     Promise.resolve()
-      .then(() => startWhatsAppWorker())
-      .then(() => console.log("✅ WhatsApp campaign worker started"))
+      .then(async () => {
+        const { startEmailWorker } = require(
+          "./workers/email.worker",
+        ) as typeof import("./workers/email.worker");
+        const { startWhatsAppWorker } = require(
+          "./workers/whatsapp.worker",
+        ) as typeof import("./workers/whatsapp.worker");
+
+        await Promise.all([startEmailWorker(), startWhatsAppWorker()]);
+      })
+      .then(() => console.log("Email and WhatsApp campaign workers started"))
       .catch((error) => {
-        console.error("WhatsApp worker failed to start:", error);
+        console.error("Campaign workers failed to start:", error);
       });
 
     app.listen(Number(port), "0.0.0.0", () => {

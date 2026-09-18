@@ -18,7 +18,7 @@ interface EmailJobData {
 const startWorker = async () => {
   try {
     
-    connectDB();
+    await connectDB();
     
     console.log("✅ MongoDB connected in worker");
     
@@ -99,4 +99,8 @@ const startWorker = async () => {
   }
 };
 
-startWorker();
+export { startWorker as startEmailWorker };
+
+if (process.env.EMAIL_WORKER_EMBEDDED !== "1") {
+  startWorker();
+}

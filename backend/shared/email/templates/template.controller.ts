@@ -11,6 +11,7 @@ import { Readable } from "stream";
 import { whatsappQueue } from "../../../services/user-service/src/queues";
 import { WhatsAppLog } from "../../../services/user-service/src/logs/whatsappLog.model";
 import { getTemplatesService } from "../../whatsapp/templates/whatsappTemplate.service";
+import * as XLSX from "xlsx";
 
 function getCsvUploadFile(req: Request): Express.Multer.File | undefined {
   const files = req.files as
@@ -76,15 +77,46 @@ function buildCsvVariables(
   return values.length ? values : ["Customer"];
 }
 
-function parseCsvBuffer(buffer: Buffer): Promise<Record<string, string>[]> {
+function parseDelimitedBuffer(
+  buffer: Buffer,
+  separator = ",",
+): Promise<Record<string, string>[]> {
   return new Promise((resolve, reject) => {
     const rows: Record<string, string>[] = [];
     Readable.from(buffer)
-      .pipe(csv())
+      .pipe(csv({ separator }))
       .on("data", (data: Record<string, string>) => rows.push(data))
       .on("end", () => resolve(rows))
       .on("error", reject);
   });
+}
+
+async function parseContactFile(
+  file: Express.Multer.File,
+): Promise<Record<string, string>[]> {
+  const extension = file.originalname.toLowerCase().split(".").pop();
+
+  if (["xlsx", "xls", "xlsm", "ods"].includes(extension || "")) {
+    const workbook = XLSX.read(file.buffer, { type: "buffer" });
+    const firstSheetName = workbook.SheetNames[0];
+    if (!firstSheetName) return [];
+
+    const sheet = workbook.Sheets[firstSheetName];
+    if (!sheet) return [];
+
+    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+      defval: "",
+      raw: false,
+    });
+
+    return rows.map((row) =>
+      Object.fromEntries(
+        Object.entries(row).map(([key, value]) => [key.trim(), String(value)]),
+      ),
+    );
+  }
+
+  return parseDelimitedBuffer(file.buffer, extension === "tsv" ? "\t" : ",");
 }
 
 // ---------------- CREATE ----------------
@@ -443,70 +475,54 @@ export const sendCsvBulkEmail = async (
       return res.status(404).json({ message: "Template not found" });
     }
 
-    let jobCount = 0;
-
-    // ✅ create one campaignId for entire CSV
+    // Create one campaign ID for the entire upload.
     const campaignId = "csv_" + Date.now();
+    const rows = await parseContactFile(req.file);
+    let jobCount = 0;
+    let skipped = 0;
 
-    // ✅ FIX: buffer → stream
-    const stream = Readable.from(req.file.buffer).pipe(csv());
+    for (const row of rows) {
+      const emailKey = Object.keys(row).find(
+        (key) => key.trim().toLowerCase() === "email",
+      );
+      const email = String(emailKey ? row[emailKey] : "").trim();
 
-    // ⚠️ IMPORTANT: async handler
-    stream.on("data", async (row: Record<string, string>) => {
-      try {
-        const email = row.email;
+      if (!email) {
+        skipped += 1;
+        continue;
+      }
 
-        if (!email) return;
+      const subject = parseTemplate(template.subject || "", row);
+      const html = parseTemplate(template.content || "", row);
+      const log = await EmailLog.create({
+        to: email,
+        subject,
+        html,
+        status: "pending",
+        campaignId,
+      });
 
-        const subject = parseTemplate(template.subject || "", row);
-        const html = parseTemplate(template.content || "", row);
-
-        // ✅ STEP 1: create log (pending)
-        const log = await EmailLog.create({
+      await emailQueue.add(
+        "send-email",
+        {
           to: email,
           subject,
           html,
-          status: "pending",
+          logId: String(log._id),
           campaignId,
-        });
+        },
+        { delay: jobCount * 2000 },
+      );
 
-        // ✅ STEP 2: add to queue WITH logId
-        await emailQueue.add(
-          "send-email",
-          {
-            to: email,
-            subject,
-            html,
-            logId: String(log._id), // 🔥 REQUIRED for worker
-            campaignId,
-          },
-          {
-            delay: jobCount * 2000,
-          },
-        );
+      jobCount += 1;
+    }
 
-        jobCount++;
-      } catch (err) {
-        console.error("Row processing error:", err);
-      }
+    return res.status(200).json({
+      message: "Email campaign queued successfully",
+      totalJobs: jobCount,
+      skipped,
+      campaignId,
     });
-
-    stream.on("end", () => {
-      return res.status(200).json({
-        message: "✅ CSV bulk queued successfully",
-        totalJobs: jobCount,
-        campaignId,
-      });
-    });
-
-    stream.on("error", (err: Error) => {
-      return res.status(500).json({
-        message: "CSV processing failed",
-        error: err.message,
-      });
-    });
-
-    return res;
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
 
@@ -548,7 +564,7 @@ export const sendWhatsAppCSV = async (req: Request, res: Response) => {
         ? Math.max(0, scheduleAtRaw!.getTime() - Date.now())
         : 0;
 
-    const results = await parseCsvBuffer(file.buffer);
+    const results = await parseContactFile(file);
     console.log("📄 CSV parsed:", results.length);
 
     if (!results.length) {

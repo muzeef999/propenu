@@ -13,7 +13,10 @@ module.exports = {
       cwd: __dirname + '/services/user-service',
       script: "dist/services/user-service/src/server.js",
       instances: 1,
-      exec_mode: 'cluster'
+      exec_mode: 'cluster',
+      env: {
+        ENV_FILE: 'production.env'
+      }
     },
     // {
     //   name: "email-worker",
