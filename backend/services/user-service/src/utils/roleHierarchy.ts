@@ -258,12 +258,16 @@ export const ensureCanonicalHierarchyRoles = async (): Promise<void> => {
 };
 
 const STRICT_BRANCH_ROLES: Record<string, Set<string>> = {
+  // CSH only manages the support branch (not Ops Head / Sales / Marketing siblings).
   customer_support_head: new Set([
     "customer_support_team_lead",
     "customer_care_executive",
     "relationship_manager",
   ]),
-  customer_support_team_lead: new Set(["customer_care_executive", "relationship_manager"]),
+  customer_support_team_lead: new Set([
+    "customer_care_executive",
+    "relationship_manager",
+  ]),
 };
 
 /** Platform end-users shown on User Management for Customer Care / support. */
