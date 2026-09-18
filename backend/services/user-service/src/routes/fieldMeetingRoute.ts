@@ -6,6 +6,8 @@ import {
   getFieldMeetingById,
   getFieldMeetingTeamSummary,
   getFieldMeetingTerritory,
+  joinFieldMeeting,
+  leaveFieldMeeting,
   listFieldMeetings,
   searchFieldMeetingContacts,
   updateFieldMeeting,
@@ -22,6 +24,8 @@ fieldMeetingRoute.get("/territory", getFieldMeetingTerritory);
 fieldMeetingRoute.get("/contacts/search", searchFieldMeetingContacts);
 fieldMeetingRoute.get("/:id", getFieldMeetingById);
 fieldMeetingRoute.post("/", createFieldMeeting);
+fieldMeetingRoute.post("/:id/join", joinFieldMeeting);
+fieldMeetingRoute.post("/:id/leave", leaveFieldMeeting);
 fieldMeetingRoute.patch("/:id", updateFieldMeeting);
 fieldMeetingRoute.patch("/:id/prep/:taskId", updatePrepTask);
 fieldMeetingRoute.patch("/:id/next-action", completeFieldMeetingNextAction);

@@ -150,6 +150,35 @@ export const FIELD_MEETING_NEXT_ACTION_STATUSES = [
   "skipped",
 ] as const;
 
+/** How a manager (RM/BDM/…) joins an SE-owned field visit */
+export const FIELD_MEETING_JOIN_ROLES = [
+  "co_attendee",
+  "observer",
+] as const;
+
+export type FieldMeetingJoinRole = (typeof FIELD_MEETING_JOIN_ROLES)[number];
+
+const StaffJoinerSchema = new Schema(
+  {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    name: { type: String, trim: true, default: "" },
+    roleName: { type: String, trim: true, default: "" },
+    joinRole: {
+      type: String,
+      enum: FIELD_MEETING_JOIN_ROLES,
+      default: "co_attendee",
+    },
+    note: { type: String, trim: true, default: "" },
+    joinedAt: { type: Date, default: Date.now },
+  },
+  { _id: true },
+);
+
 const NextActionSchema = new Schema(
   {
     title: {
@@ -249,6 +278,11 @@ const fieldMeetingSchema = new Schema(
     client: { type: PersonSnapshotSchema, default: () => ({}) },
     /** All people met in this meeting (CEO, managers, heads, …) */
     people: { type: [PersonSnapshotSchema], default: [] },
+    /**
+     * Staff who joined mid-meeting (RM / BDM / SM / BDH ride-along).
+     * Owner stays ownerUserId; joiners are co-participants only.
+     */
+    staffJoiners: { type: [StaffJoinerSchema], default: [] },
     location: { type: LocationSchema, default: () => ({}) },
     linkedProperty: { type: LinkedPropertySchema, default: null },
     objective: { type: String, trim: true, default: "" },

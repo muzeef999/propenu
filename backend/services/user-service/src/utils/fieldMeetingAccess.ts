@@ -37,6 +37,24 @@ export const FIELD_MEETING_GLOBAL_ROLES = new Set([
   "business_development_head",
 ]);
 
+/** Roles that may Join an SE-owned meeting as co-attendee / observer. */
+export const FIELD_MEETING_CAN_JOIN_ROLES = new Set([
+  "sales_manager",
+  "business_development_manager",
+  "regional_manager",
+  "business_development_head",
+  "operations_head",
+  "admin",
+  "super_admin",
+]);
+
+/** Meeting statuses where Join is still allowed. */
+export const FIELD_MEETING_JOINABLE_STATUSES = new Set([
+  "planned",
+  "prep_pending",
+  "confirmed",
+]);
+
 const asId = (value: any): string => {
   if (!value) return "";
   if (typeof value === "string") return value;
@@ -91,6 +109,71 @@ export async function actorCanAccessMeeting(
   const visible = await getVisibleOwnerIds(actorId, actorRoleRaw);
   if (visible === "all") return true;
   return visible.includes(String(ownerUserId));
+}
+
+/**
+ * Whether actor may Join this meeting as staff co-participant.
+ * Hierarchy-gated (must already see owner); not allowed on own meeting;
+ * blocked after punch-out / completed / cancelled.
+ */
+export async function actorCanJoinMeeting(params: {
+  actorId: string;
+  actorRoleRaw?: string;
+  ownerUserId: string;
+  status?: string;
+  punchOutAt?: Date | string | null;
+  alreadyJoined?: boolean;
+}): Promise<{ ok: boolean; reason?: string }> {
+  const {
+    actorId,
+    actorRoleRaw,
+    ownerUserId,
+    status,
+    punchOutAt,
+    alreadyJoined,
+  } = params;
+
+  if (!actorId) return { ok: false, reason: "Not authenticated" };
+
+  const role = canonicalFieldMeetingRole(actorRoleRaw);
+  if (!FIELD_MEETING_CAN_JOIN_ROLES.has(role)) {
+    return {
+      ok: false,
+      reason: "Only managers (RM / BDM / SM / BDH) can join team meetings",
+    };
+  }
+
+  if (String(actorId) === String(ownerUserId)) {
+    return { ok: false, reason: "You already own this meeting" };
+  }
+
+  if (alreadyJoined) {
+    return { ok: false, reason: "You already joined this meeting" };
+  }
+
+  const st = String(status || "").toLowerCase();
+  if (st === "completed" || st === "cancelled" || punchOutAt) {
+    return {
+      ok: false,
+      reason: "Meeting is closed — join is not available",
+    };
+  }
+  if (!FIELD_MEETING_JOINABLE_STATUSES.has(st)) {
+    return {
+      ok: false,
+      reason: "Join is only available while the visit is planned or in progress",
+    };
+  }
+
+  const visible = await actorCanAccessMeeting(actorId, actorRoleRaw, ownerUserId);
+  if (!visible) {
+    return {
+      ok: false,
+      reason: "You can only join meetings for staff in your reporting tree",
+    };
+  }
+
+  return { ok: true };
 }
 
 /** Walk manager chain upward for visibility label. */

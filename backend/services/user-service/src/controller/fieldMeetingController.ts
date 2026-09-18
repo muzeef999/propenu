@@ -2,6 +2,7 @@ import { Response } from "express";
 import mongoose from "mongoose";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import FieldMeeting, {
+  FIELD_MEETING_JOIN_ROLES,
   FIELD_MEETING_LOGGING_MODES,
   FIELD_MEETING_PUNCH_OUT_WAIT_MINUTES,
   FIELD_MEETING_STATUSES,
@@ -12,6 +13,7 @@ import FieldMeetingContact from "../models/fieldMeetingContactModel";
 import User from "../models/userModel";
 import {
   actorCanAccessMeeting,
+  actorCanJoinMeeting,
   buildVisibilityChain,
   canonicalFieldMeetingRole,
   defaultPrepTasks,
@@ -195,10 +197,51 @@ const serializePunchProgress = (o: any) => {
   };
 };
 
-const serializeMeeting = (doc: any) => {
+const serializeStaffJoiners = (joiners: any[]) =>
+  (Array.isArray(joiners) ? joiners : []).map((j: any) => ({
+    id: asId(j._id) || asId(j.userId) || "",
+    userId: asId(j.userId) || "",
+    name: j.name || "",
+    roleName: j.roleName || "",
+    joinRole: j.joinRole || "co_attendee",
+    note: j.note || "",
+    joinedAt: j.joinedAt || null,
+  }));
+
+type SerializeActor = { id: string; roleName?: string };
+
+const serializeMeeting = (doc: any, actor?: SerializeActor) => {
   const o = typeof doc.toObject === "function" ? doc.toObject() : doc;
   const prepTasks = Array.isArray(o.prepTasks) ? o.prepTasks : [];
   const prepDone = prepTasks.filter((t: any) => t.completed).length;
+  const staffJoiners = serializeStaffJoiners(o.staffJoiners);
+  const actorId = actor?.id ? String(actor.id) : "";
+  const hasJoined = Boolean(
+    actorId && staffJoiners.some((j) => j.userId === actorId),
+  );
+  const ownerId = asId(o.ownerUserId);
+  // Sync-friendly flags for UI (hierarchy already applied by list/get ACL)
+  let canJoin = false;
+  if (actorId && actor?.roleName) {
+    const role = canonicalFieldMeetingRole(actor.roleName);
+    const st = String(o.status || "").toLowerCase();
+    const joinRoles = new Set([
+      "sales_manager",
+      "business_development_manager",
+      "regional_manager",
+      "business_development_head",
+      "operations_head",
+      "admin",
+      "super_admin",
+    ]);
+    const joinable = new Set(["planned", "prep_pending", "confirmed"]);
+    canJoin =
+      joinRoles.has(role) &&
+      actorId !== ownerId &&
+      !hasJoined &&
+      !o.punchOutAt &&
+      joinable.has(st);
+  }
   return {
     id: String(o._id),
     _id: String(o._id),
@@ -209,7 +252,7 @@ const serializeMeeting = (doc: any) => {
     status: o.status,
     scheduledStart: o.scheduledStart,
     scheduledEnd: o.scheduledEnd,
-    ownerUserId: asId(o.ownerUserId),
+    ownerUserId: ownerId,
     createdBy: asId(o.createdBy),
     client: {
       id: asId(o.client?.contactId) || asId(o.client?.userId) || null,
@@ -238,6 +281,9 @@ const serializeMeeting = (doc: any) => {
       createdInline: Boolean(p.createdInline),
       source: p.source || (p.contactId ? "meeting_contact" : "platform_user"),
     })),
+    staffJoiners,
+    hasJoined,
+    canJoin,
     location: {
       state: o.location?.state || "",
       city: o.location?.city || "",
@@ -272,6 +318,11 @@ const serializeMeeting = (doc: any) => {
     updatedAt: o.updatedAt,
   };
 };
+
+const actorFromReq = (req: AuthRequest): SerializeActor => ({
+  id: String(req.user?.sub || req.user?.id || ""),
+  roleName: req.user?.roleName,
+});
 
 const resolveOwnerId = async (req: AuthRequest, bodyOwner?: string) => {
   const actorId = String(req.user?.sub || req.user?.id || "");
@@ -480,11 +531,12 @@ export const listFieldMeetings = async (req: AuthRequest, res: Response) => {
       })),
     );
 
+    const actor = actorFromReq(req);
     return res.json({
       success: true,
       data: {
-        meetings: rows.map(serializeMeeting),
-        todayMeetings: todayMeetings.map(serializeMeeting),
+        meetings: rows.map((m) => serializeMeeting(m, actor)),
+        todayMeetings: todayMeetings.map((m) => serializeMeeting(m, actor)),
         prepTasks,
         pagination: {
           page,
@@ -520,7 +572,7 @@ export const getFieldMeetingById = async (req: AuthRequest, res: Response) => {
     );
     if (!ok) return res.status(403).json({ message: "Forbidden" });
 
-    return res.json({ success: true, data: serializeMeeting(meeting) });
+    return res.json({ success: true, data: serializeMeeting(meeting, actorFromReq(req)) });
   } catch (error: any) {
     return res.status(500).json({ message: error.message });
   }
@@ -930,7 +982,7 @@ export const createFieldMeeting = async (req: AuthRequest, res: Response) => {
     return res.status(201).json({
       success: true,
       message: successMessage,
-      data: serializeMeeting(meeting),
+      data: serializeMeeting(meeting, actorFromReq(req)),
     });
   } catch (error: any) {
     return res.status(400).json({
@@ -1042,10 +1094,118 @@ export const updateFieldMeeting = async (req: AuthRequest, res: Response) => {
     return res.json({
       success: true,
       message: "Meeting updated",
-      data: serializeMeeting(meeting),
+      data: serializeMeeting(meeting, actorFromReq(req)),
     });
   } catch (error: any) {
     return res.status(400).json({ message: error.message });
+  }
+};
+
+/**
+ * RM / BDM / SM / BDH join an SE-owned meeting mid-stream as co-attendee or observer.
+ * Does not transfer ownership; punch / follow-up stay on the meeting owner.
+ */
+export const joinFieldMeeting = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!assertStaff(req)) return res.status(403).json({ message: "Forbidden" });
+    const id = String(req.params.id || "");
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid meeting id" });
+    }
+    const meeting = await FieldMeeting.findById(id);
+    if (!meeting) return res.status(404).json({ message: "Meeting not found" });
+
+    const actorId = String(req.user?.sub || req.user?.id || "");
+    const ownerId = asId(meeting.ownerUserId);
+    const alreadyJoined = (meeting.staffJoiners || []).some(
+      (j: any) => asId(j.userId) === actorId,
+    );
+
+    const gate = await actorCanJoinMeeting({
+      actorId,
+      actorRoleRaw: req.user?.roleName,
+      ownerUserId: ownerId,
+      status: meeting.status,
+      punchOutAt: meeting.punchOutAt,
+      alreadyJoined,
+    });
+    if (!gate.ok) {
+      return res.status(403).json({ message: gate.reason || "Cannot join this meeting" });
+    }
+
+    const body = req.body || {};
+    let joinRole = String(body.joinRole || "co_attendee").toLowerCase();
+    if (!(FIELD_MEETING_JOIN_ROLES as readonly string[]).includes(joinRole)) {
+      joinRole = "co_attendee";
+    }
+    const note = String(body.note || "").trim().slice(0, 500);
+
+    const user = await User.findById(actorId)
+      .select("name roleId")
+      .populate("roleId", "name label")
+      .lean();
+    const roleName =
+      canonicalFieldMeetingRole(
+        (user?.roleId as any)?.name || req.user?.roleName || "",
+      ) || "";
+    const name = String(user?.name || "Manager").trim();
+
+    meeting.staffJoiners = meeting.staffJoiners || [];
+    (meeting.staffJoiners as any).push({
+      userId: new mongoose.Types.ObjectId(actorId),
+      name,
+      roleName,
+      joinRole,
+      note,
+      joinedAt: new Date(),
+    });
+
+    await meeting.save();
+    return res.json({
+      success: true,
+      message: "Joined meeting",
+      data: serializeMeeting(meeting, actorFromReq(req)),
+    });
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message || "Failed to join meeting" });
+  }
+};
+
+/** Remove self from staffJoiners (optional leave). */
+export const leaveFieldMeeting = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!assertStaff(req)) return res.status(403).json({ message: "Forbidden" });
+    const id = String(req.params.id || "");
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid meeting id" });
+    }
+    const meeting = await FieldMeeting.findById(id);
+    if (!meeting) return res.status(404).json({ message: "Meeting not found" });
+
+    const actorId = String(req.user?.sub || req.user?.id || "");
+    const ok = await actorCanAccessMeeting(
+      actorId,
+      req.user?.roleName,
+      asId(meeting.ownerUserId),
+    );
+    if (!ok) return res.status(403).json({ message: "Forbidden" });
+
+    const before = (meeting.staffJoiners || []).length;
+    meeting.staffJoiners = (meeting.staffJoiners || []).filter(
+      (j: any) => asId(j.userId) !== actorId,
+    ) as any;
+    if (meeting.staffJoiners.length === before) {
+      return res.status(400).json({ message: "You have not joined this meeting" });
+    }
+
+    await meeting.save();
+    return res.json({
+      success: true,
+      message: "Left meeting",
+      data: serializeMeeting(meeting, actorFromReq(req)),
+    });
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message || "Failed to leave meeting" });
   }
 };
 
@@ -1100,7 +1260,7 @@ export const completeFieldMeetingNextAction = async (
         finalStatus === "skipped"
           ? "Next action skipped"
           : "Next action completed",
-      data: serializeMeeting(meeting),
+      data: serializeMeeting(meeting, actorFromReq(req)),
     });
   } catch (error: any) {
     return res.status(400).json({ message: error.message });
@@ -1145,7 +1305,7 @@ export const updatePrepTask = async (req: AuthRequest, res: Response) => {
     }
 
     await meeting.save();
-    return res.json({ success: true, data: serializeMeeting(meeting) });
+    return res.json({ success: true, data: serializeMeeting(meeting, actorFromReq(req)) });
   } catch (error: any) {
     return res.status(400).json({ message: error.message });
   }
