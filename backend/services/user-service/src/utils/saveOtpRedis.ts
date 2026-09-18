@@ -24,6 +24,7 @@ function hashOtp(otp: string): string {
 /** Save hashed OTP with TTL */
 export async function saveOtpToRedis(key: string, otp: string): Promise<void> {
   const redisKey = otpKey(key);
+    // console.log(`OTP for ${key}: ${otp}`);
   const hashed = hashOtp(otp);
   await redis.set(redisKey, hashed, { ex: OTP_TTL_SECONDS });
   console.log(`✅ OTP saved to Redis: ${redisKey} (ttl ${OTP_TTL_SECONDS}s)`);

@@ -48,6 +48,31 @@ const getExistingLeadWithDialogDetails = async (lead: any) => {
   return getLeadWithDialogDetails(lead._id);
 };
 
+function isAgentRole(value?: string | null) {
+  return String(value || "").trim().toLowerCase() === "agent";
+}
+
+const isAgentListedProperty = async (property: any, listingSource?: string) => {
+  if (isAgentRole(listingSource)) return true;
+  if (isAgentRole(property?.listingSource)) return true;
+
+  const ownerId = property?.createdBy;
+  if (!ownerId) return false;
+
+  const owner = await User.findById(ownerId)
+    .select("roleName role roleId")
+    .populate("roleId", "name label")
+    .lean();
+  const roleDoc = (owner as any)?.roleId;
+
+  return (
+    isAgentRole((owner as any)?.roleName) ||
+    isAgentRole((owner as any)?.role) ||
+    isAgentRole(roleDoc?.name) ||
+    isAgentRole(roleDoc?.label)
+  );
+};
+
 const notifyLeadCreated = async ({
   lead,
   property,
@@ -161,6 +186,22 @@ export const createLead = async (
   const actorRole = String(actorRoleName || "").toLowerCase();
 
   if (actorRole === "builder") {
+    const { listingType: _ignore, ...safeData } = data;
+
+    const lead = await Lead.create({
+      ...safeData,
+      propertyModel: PropertyModel.modelName,
+      createdBy: userId,
+      ownerId,
+      listingType,
+      propertySnapshot: buildLeadPropertySnapshot(property, propertyType),
+    });
+
+    await notifyLeadCreated({ lead, property, userId });
+    return getLeadWithDialogDetails(lead._id);
+  }
+
+  if (await isAgentListedProperty(property, data?.listingSource)) {
     const { listingType: _ignore, ...safeData } = data;
 
     const lead = await Lead.create({

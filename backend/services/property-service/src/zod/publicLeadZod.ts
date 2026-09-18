@@ -27,5 +27,6 @@ export const PublicPropertyLeadSchemaZ = z.object({
   email: optionalString.pipe(z.string().email().optional()),
   remarks: optionalString,
   listingType: z.enum(["sale", "rent", "lease"]).optional(),
+  listingSource: optionalString,
   status: z.enum(LEAD_STATUSES).optional(),
 });

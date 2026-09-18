@@ -63,6 +63,7 @@ export const LeadCreateSchema = z.object({
   projectId: objectIdSchema,
 
   propertyType: z.enum(LEAD_PROPERTY_TYPES),
+  listingSource: optionalString(),
 
   remarks: optionalString().refine(
     (val) => !val || val.length <= 2000,

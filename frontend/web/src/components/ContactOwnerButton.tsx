@@ -150,6 +150,10 @@ function isPlanRestrictionError(statusCode?: number, message?: string) {
   return statusCode === 402 || hasPlanRestrictionMessage;
 }
 
+function isAgentListing(value?: string) {
+  return String(value || "").trim().toLowerCase() === "agent";
+}
+
 const contactOwnerFormSchema = z.object({
   name: z
     .string()
@@ -278,7 +282,7 @@ export default function ContactOwnerButton({
     isLeadReady &&
     Boolean(form.name.trim()) &&
     Boolean(sanitizePhoneInput(form.phone));
-  const canBypassOtpForLoggedInUser = hasAuthToken;
+  const canBypassOtpForLoggedInUser = Boolean(user);
 
   const isOwnLeadForUser = (currentUser?: any) => {
     const currentUserId = getEntityId(currentUser);
@@ -407,6 +411,12 @@ export default function ContactOwnerButton({
       "Failed to contact owner";
     const currentRole = String(user?.roleName || user?.role || "").toLowerCase();
     const isBuilderUser = currentRole === "builder";
+    const isContactingAgent = isAgentListing(listingSource);
+
+    if (isContactingAgent && isPlanRestrictionError(statusCode, apiMessage)) {
+      toast.error("Unable to submit your contact request. Please try again.");
+      return;
+    }
 
     if (!isBuilderUser && isPlanRestrictionError(statusCode, apiMessage)) {
       toast.error(apiMessage);
@@ -451,8 +461,8 @@ export default function ContactOwnerButton({
     name: string;
     phone: string;
     email?: string;
-  }, currentUser?: any) => {
-    if (isOwnLeadForUser(currentUser || user)) {
+  }, currentUser?: any, options?: { forcePublicLead?: boolean }) => {
+    if (!options?.forcePublicLead && isOwnLeadForUser(currentUser || user)) {
       toast.error(ownPropertyLeadMessage);
       return;
     }
@@ -484,10 +494,11 @@ export default function ContactOwnerButton({
       projectId,
       propertyType,
       listingType: resolvedListingType,
+      listingSource,
       remarks: "Interested in this property",
     };
 
-    if (currentUser) {
+    if (currentUser && !options?.forcePublicLead) {
       const response = await postAuthenticatedLead(leadPayload);
       toast.success(response?.message || "Lead submitted successfully");
       trackInteraction({
@@ -583,11 +594,15 @@ export default function ContactOwnerButton({
       toast.success("Phone number verified successfully");
 
       let authenticatedUser = user;
+      const shouldSubmitAsGuestLead = !user;
+
       if (!authenticatedUser && verificationResponse.token) {
         saveAuthToken(verificationResponse.token);
         await syncLocalShortlistIfNeeded();
         notifyAuthChanged();
-        authenticatedUser = await getAuthenticatedUserWithRetry();
+        authenticatedUser = shouldSubmitAsGuestLead
+          ? undefined
+          : await getAuthenticatedUserWithRetry();
       }
 
       await submitLead(
@@ -597,6 +612,7 @@ export default function ContactOwnerButton({
           email: form.email.trim() || undefined,
         },
         authenticatedUser,
+        { forcePublicLead: shouldSubmitAsGuestLead },
       );
       setContactLeadStep("form");
       setContactLeadOtp("");
@@ -648,12 +664,6 @@ export default function ContactOwnerButton({
 
     if (canBypassOtpForLoggedInUser) {
       let authenticatedUser = user;
-
-      if (!authenticatedUser && hasAuthToken) {
-        authenticatedUser =
-          (await getAuthenticatedUserWithRetry(1, 0)) ??
-          { _id: "authenticated-user" };
-      }
 
       setContactLeadStep("form");
       setContactLeadOtp("");

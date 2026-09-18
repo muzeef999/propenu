@@ -7,6 +7,7 @@ import Residential from "../models/residentialModel";
 import Commercial from "../models/commercialModel";
 import Agricultural from "../models/agriculturalModel";
 import LandPlot from "../models/landModel";
+import User from "../models/userModel";
 import { buildLeadPropertySnapshot } from "../utils/leadPropertySnapshot";
 
 const PROPERTY_MODEL_MAP: Record<string, any> = {
@@ -42,6 +43,41 @@ const maskEmail = (email?: string | null) => {
 
   const visibleName = name.length <= 2 ? name.slice(0, 1) : name.slice(0, 2);
   return `${visibleName}***@${domain}`;
+};
+
+function isAgentRole(value?: string | null) {
+  return String(value || "").trim().toLowerCase() === "agent";
+}
+
+const isAgentListedProperty = async (property: any, listingSource?: string) => {
+  if (isAgentRole(listingSource)) return true;
+  if (isAgentRole(property?.listingSource)) return true;
+
+  const createdBy = property?.createdBy;
+  if (
+    isAgentRole(createdBy?.roleName) ||
+    isAgentRole(createdBy?.role) ||
+    isAgentRole(createdBy?.roleId?.name) ||
+    isAgentRole(createdBy?.roleId?.label)
+  ) {
+    return true;
+  }
+
+  const ownerId = String(createdBy?._id || createdBy || "").trim();
+  if (!ownerId) return false;
+
+  const owner = await User.findById(ownerId)
+    .select("roleName role roleId")
+    .populate("roleId", "name label")
+    .lean();
+  const roleDoc = (owner as any)?.roleId;
+
+  return (
+    isAgentRole((owner as any)?.roleName) ||
+    isAgentRole((owner as any)?.role) ||
+    isAgentRole(roleDoc?.name) ||
+    isAgentRole(roleDoc?.label)
+  );
 };
 
 const getGuestFreePlanCodeForListingType = (listingType: string) => {
@@ -203,11 +239,19 @@ export const createPublicPropertyLead = async (
     throw new Error("Invalid listing type for property");
   }
 
-  const guestContactLimit = await getGuestContactOwnerLimit(listingType);
-  const priorGuestLeadCount = await PublicLead.countDocuments({
-    phone: submittedPhone,
-    source: "site",
-  });
+  const isContactingAgent = await isAgentListedProperty(
+    property,
+    data?.listingSource,
+  );
+  const guestContactLimit = isContactingAgent
+    ? Number.POSITIVE_INFINITY
+    : await getGuestContactOwnerLimit(listingType);
+  const priorGuestLeadCount = isContactingAgent
+    ? 0
+    : await PublicLead.countDocuments({
+        phone: submittedPhone,
+        source: "site",
+      });
   const shouldMaskGuestContactDetails =
     !actorUserId && priorGuestLeadCount >= guestContactLimit;
 
