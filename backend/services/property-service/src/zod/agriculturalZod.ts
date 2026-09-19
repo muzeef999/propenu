@@ -219,7 +219,7 @@ export const AgriculturalCreateSchema = BaseCreate.extend({
 
   statePurchaseRestrictions: z.preprocess((v) => {
     if (v === "" || v === null || typeof v === "undefined") return undefined;
-    if (typeof v !== "string") return v;
+    if (typeof v !== "string") return undefined;
     const normalized = v.trim().toLowerCase().replace(/[_-]+/g, " ");
     if (normalized === "applicable") return "Applicable";
     if (
@@ -229,7 +229,8 @@ export const AgriculturalCreateSchema = BaseCreate.extend({
     ) {
       return "Not Applicable";
     }
-    return v;
+    // Drop garbage / free-text from older edit forms so PATCH does not fail
+    return undefined;
   }, z.enum(["Applicable", "Not Applicable"]).optional()),
 
   // agriculturalUseCertificate: accept JSON string -> FileMetaZ OR null

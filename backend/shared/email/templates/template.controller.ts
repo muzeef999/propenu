@@ -26,7 +26,16 @@ function getCsvUploadFile(req: Request): Express.Multer.File | undefined {
   return req.file;
 }
 
-function pickPhone(row: Record<string, string>): string {
+function pickPhone(
+  row: Record<string, string>,
+  phoneField?: string,
+): string {
+  if (phoneField) {
+    const exact = Object.keys(row).find(
+      (k) => k.trim().toLowerCase() === phoneField.trim().toLowerCase(),
+    );
+    if (exact) return String(row[exact] ?? "").trim();
+  }
   const keys = Object.keys(row);
   const phoneKey = keys.find((k) =>
     /^(phone|mobile|whatsapp|wa[_-]?id|msisdn)$/i.test(k.trim()),
@@ -35,15 +44,45 @@ function pickPhone(row: Record<string, string>): string {
 }
 
 function countTemplateVars(text = ""): number {
-  const matches = String(text).match(/\{\{\d+\}\}/g);
-  return matches ? matches.length : 0;
+  const matches = String(text).match(/\{\{\d+\}\}/g) || [];
+  const nums = matches.map((x) => parseInt(x.replace(/[{}]/g, ""), 10));
+  return nums.length ? Math.max(...nums) : 0;
 }
 
-/** Map CSV row → template body variables ({{1}}, {{2}}, …). */
+/**
+ * Map CSV row → template body variables ({{1}}, {{2}}, …).
+ * When fieldMapping is provided ({ "1": "Name", "2": "City" }), use those columns.
+ */
 function buildCsvVariables(
   row: Record<string, string>,
   expectedCount?: number,
+  fieldMapping?: Record<string, string> | null,
 ): string[] {
+  const resolveColumn = (header: string) => {
+    const key = Object.keys(row).find(
+      (k) => k.trim().toLowerCase() === String(header || "").trim().toLowerCase(),
+    );
+    return key ? String(row[key] ?? "").trim() : "";
+  };
+
+  if (fieldMapping && typeof fieldMapping === "object") {
+    const count =
+      typeof expectedCount === "number" && expectedCount > 0
+        ? expectedCount
+        : Math.max(
+            0,
+            ...Object.keys(fieldMapping)
+              .map((k) => parseInt(k, 10))
+              .filter((n) => !Number.isNaN(n)),
+          );
+    if (count <= 0) return [];
+    return Array.from({ length: count }, (_, i) => {
+      const mappedHeader = fieldMapping[String(i + 1)] || fieldMapping[i + 1 as any];
+      const value = mappedHeader ? resolveColumn(mappedHeader) : "";
+      return value || "Customer";
+    });
+  }
+
   const numbered: string[] = [];
   for (let i = 1; i <= 15; i++) {
     const key = Object.keys(row).find((k) =>
@@ -75,6 +114,26 @@ function buildCsvVariables(
   }
 
   return values.length ? values : ["Customer"];
+}
+
+function parseFieldMapping(raw: unknown): Record<string, string> | null {
+  if (!raw) return null;
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return null;
+    }
+    const out: Record<string, string> = {};
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      const n = parseInt(String(key), 10);
+      if (Number.isNaN(n) || n < 1) continue;
+      const header = String(value ?? "").trim();
+      if (header) out[String(n)] = header;
+    }
+    return Object.keys(out).length ? out : null;
+  } catch {
+    return null;
+  }
 }
 
 function parseDelimitedBuffer(
@@ -623,12 +682,15 @@ export const sendWhatsAppCSV = async (req: Request, res: Response) => {
       });
     }
 
+    const fieldMapping = parseFieldMapping(req.body?.fieldMapping);
+    const phoneField = String(req.body?.phoneField || "").trim();
+
     const campaignId = `wa_csv_${Date.now()}`;
     let total = 0;
     let skipped = 0;
 
     for (const row of results) {
-      const phoneRaw = pickPhone(row);
+      const phoneRaw = pickPhone(row, phoneField || undefined);
       if (!phoneRaw) {
         skipped += 1;
         continue;
@@ -641,7 +703,7 @@ export const sendWhatsAppCSV = async (req: Request, res: Response) => {
       }
 
       const formattedPhone = phone.startsWith("91") ? phone : `91${phone}`;
-      const variables = buildCsvVariables(row, expectedVars);
+      const variables = buildCsvVariables(row, expectedVars, fieldMapping);
 
       const whatsappPayload = {
         to: formattedPhone,
@@ -683,7 +745,9 @@ export const sendWhatsAppCSV = async (req: Request, res: Response) => {
       return res.status(400).json({
         success: false,
         message:
-          "No valid phone numbers found. Include a phone/mobile column in the CSV.",
+          phoneField
+            ? `No valid numbers in column "${phoneField}". Check the Select number field mapping.`
+            : "No valid phone numbers found. Select a phone column or include phone/mobile in the file.",
         skipped,
         campaignId,
       });
