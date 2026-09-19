@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
   if (!["http:", "https:"].includes(parsedUrl.protocol)) {
     return NextResponse.json(
-      { message: "Unsupported PDF URL." },
+      { message: "Unsupported PDF URL..." },
       { status: 400 }
     );
   }
