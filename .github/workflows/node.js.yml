@@ -119,5 +119,27 @@ jobs:
             echo "::error::PM2 is not installed or is not available in PATH."
             exit 1
           }
-          npm run reload:pm2
+
+          echo "Restarting PM2 as $(whoami) with PM2_HOME=${PM2_HOME:-$HOME/.pm2}"
+          pm2 startOrReload backend/ecosystem.config.cjs --update-env
           pm2 status
+
+          for service in gateway user-service property-service payment-service ai-service ticket-service; do
+            status="$(pm2 jlist | node -e '
+              let input = "";
+              process.stdin.on("data", chunk => input += chunk);
+              process.stdin.on("end", () => {
+                const name = process.argv[1];
+                const app = JSON.parse(input).find(item => item.name === name);
+                process.stdout.write(app?.pm2_env?.status || "missing");
+              });
+            ' "$service")"
+
+            if [ "$status" != "online" ]; then
+              echo "::error::PM2 service $service is $status after deployment."
+              pm2 logs "$service" --lines 50 --nostream
+              exit 1
+            fi
+          done
+
+          pm2 save

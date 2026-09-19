@@ -15,7 +15,7 @@ module.exports = {
       instances: 1,
       exec_mode: 'cluster',
       env: {
-        ENV_FILE: 'production.env'
+        ENV_FILE: '.env'
       }
     },
     // {
