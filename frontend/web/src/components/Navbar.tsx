@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Logo from "@/animations/Logo";
 import { ArrowDropdownIcon, LocationIcon } from "@/icons/icons";
 import type { DropdownProps } from "@/ui/SingleDropDown";
@@ -41,7 +41,6 @@ const BRAND_GREEN = "#27AE60";
 const Navbar = () => {
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -146,7 +145,9 @@ const Navbar = () => {
     dispatch(setSearchText(""));
 
     if (pathname.startsWith("/properties")) {
-      const nextParams = new URLSearchParams(searchParams.toString());
+      const nextParams = new URLSearchParams(
+        typeof window !== "undefined" ? window.location.search : "",
+      );
 
       nextParams.set("city", item.city);
       nextParams.set("state", item.state);
