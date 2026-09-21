@@ -1,6 +1,7 @@
 import express from "express";
 import { adminCreateRequestOtp, adminCreateUpdateLocation, adminCreateVerifyOtp, adminDeleteUser, adminSetUserActive, assignManager, assignReportsTo, claimSeClient, createRequestOtp,  createVerifyOtp, deleteMyAccount, getAllUsers, getEligibleReportsTo, getManagerTeamDetails, getRoleHierarchyGuide, me, requestAdminUserPhoneChangeOtp, requestOTP, searchUsers, updateLocationOtp, updateUser, updateUserProfileById, updateUserRole, verifyOtp } from "../controller/authController";
 import { updateFollowUpWorkStatus } from "../controller/followUpWorkController";
+import { getClientProgressQueue } from "../controller/clientProgressQueueController";
 import { pingPresence } from "../controller/presenceController";
 import { getUserWorkingLocations, updateUserWorkingLocations } from "../controller/workingLocationsController";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
@@ -137,6 +138,12 @@ authRoute.patch(
 );
  
 authRoute.get("/all-users", authMiddleware, requirePermission("user:view"), getAllUsers);
+authRoute.get(
+  "/client-progress-queue",
+  authMiddleware,
+  requirePermission("user:view"),
+  getClientProgressQueue,
+);
 
 authRoute.patch(
   "/:id/follow-up-work-status",
