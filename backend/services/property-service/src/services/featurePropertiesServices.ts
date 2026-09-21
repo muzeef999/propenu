@@ -83,6 +83,44 @@ function applyFeaturedUserPopulates(query: any) {
     });
 }
 
+/**
+ * Lightweight list populate — skips updateHistory + deep manager chains.
+ * Full populate made status=draft&limit=100 ~1.8MB and timed out in production admin.
+ */
+function applyFeaturedListPopulates(query: any) {
+  return query
+    .select("-updateHistory -youtubeVideos")
+    .populate({
+      path: "createdBy",
+      select: CREATED_BY_USER_FIELDS,
+      populate: { path: "roleId", select: "name label" },
+    })
+    .populate({
+      path: "relationshipManagerId",
+      select: AUDIT_USER_FIELDS,
+      populate: { path: "roleId", select: "name label" },
+    })
+    .populate({
+      path: "relationshipManager.userId",
+      select: AUDIT_USER_FIELDS,
+      populate: { path: "roleId", select: "name label" },
+    })
+    .populate({
+      path: "postedBy.userId",
+      select: AUDIT_USER_FIELDS,
+      populate: { path: "roleId", select: "name label" },
+    })
+    .populate({
+      path: "approvedBy",
+      select: "name email phone roleName roleId",
+      populate: { path: "roleId", select: "name label" },
+    })
+    .populate({
+      path: "lastUpdatedBy.userId",
+      select: "name email roleName",
+    });
+}
+
 async function loadFeaturedWithUsers(id: string) {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error("Invalid id");
@@ -1696,7 +1734,11 @@ export const FeaturePropertyService = {
     }
 
     // 🔥 EXCLUDE EXPIRED PROMOTIONS
-    const promotionStatus = options?.promotionStatus || "active";
+    // Admin status filters (draft/pending/all/…) must not inherit public
+    // "active promotion only" default — that hid drafts in production.
+    const promotionStatus =
+      options?.promotionStatus ||
+      (statusOpt && statusOpt !== "active" ? "all" : "active");
     const now = new Date();
 
     if (promotionStatus === "expired") {
@@ -1755,7 +1797,7 @@ export const FeaturePropertyService = {
     }
 
     const [items, total, promotionCounts] = await Promise.all([
-      applyFeaturedUserPopulates(
+      applyFeaturedListPopulates(
         FeaturedProject.find(filter).sort(sort).skip(skip).limit(limit),
       )
         .lean()
