@@ -70,6 +70,87 @@ const buildCreatedAtQueryFilter = (query: Record<string, any> = {}) => {
   return Object.keys(createdAt).length ? createdAt : null;
 };
 
+const escapeRegex = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const pushAndClause = (filter: Record<string, any>, clause: Record<string, any>) => {
+  if (!filter.$and) filter.$and = [];
+  filter.$and.push(clause);
+};
+
+/** Shallow-clone a Mongo filter without JSON.stringify (keeps ObjectIds intact). */
+const cloneUserFilter = (filter: Record<string, any>) => {
+  const out: Record<string, any> = { ...filter };
+  if (filter.roleId && typeof filter.roleId === "object") {
+    out.roleId = { ...filter.roleId };
+    if (Array.isArray(filter.roleId.$in)) out.roleId.$in = [...filter.roleId.$in];
+    if (Array.isArray(filter.roleId.$nin)) out.roleId.$nin = [...filter.roleId.$nin];
+  }
+  if (Array.isArray(filter.$and)) out.$and = [...filter.$and];
+  if (filter.createdAt && typeof filter.createdAt === "object") {
+    out.createdAt = { ...filter.createdAt };
+  }
+  return out;
+};
+
+/** Intersect an existing roleId constraint with a new $in list. */
+const applyRoleIdIn = (
+  filter: Record<string, any>,
+  roleIds: mongoose.Types.ObjectId[],
+) => {
+  if (filter.roleId?.$in) {
+    const allowed = new Set(
+      (filter.roleId.$in as mongoose.Types.ObjectId[]).map(String),
+    );
+    filter.roleId = {
+      $in: roleIds.filter((id) => allowed.has(String(id))),
+    };
+    return;
+  }
+  if (filter.roleId?.$nin) {
+    pushAndClause(filter, { roleId: { $nin: filter.roleId.$nin } });
+    filter.roleId = { $in: roleIds };
+    return;
+  }
+  if (filter.roleId != null) {
+    pushAndClause(filter, { roleId: filter.roleId });
+    filter.roleId = { $in: roleIds };
+    return;
+  }
+  filter.roleId = { $in: roleIds };
+};
+
+const resolvePlatformRoleNamesForQuery = (roleRaw: string): string[] | null => {
+  const role = String(roleRaw || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_");
+  if (!role || role === "all") {
+    return [...PLATFORM_END_USER_ROLE_NAMES];
+  }
+  if (role === "user" || role === "users" || role === "owner" || role === "owners") {
+    return ["user"];
+  }
+  if (role === "agent" || role === "agents") return ["agent"];
+  if (role === "builder" || role === "builders") return ["builder"];
+  if (role === "builder_staff" || role === "builderstaff") return ["builder_staff"];
+  return [role];
+};
+
+const istTodayBounds = () => {
+  const now = new Date();
+  const ist = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+  const y = ist.getUTCFullYear();
+  const m = String(ist.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(ist.getUTCDate()).padStart(2, "0");
+  const day = `${y}-${m}-${d}`;
+  return {
+    day,
+    start: new Date(`${day}T00:00:00.000+05:30`),
+    end: new Date(`${day}T23:59:59.999+05:30`),
+  };
+};
+
 const deletedAccountMessage =
   "This account has been deleted. Please create a new account.";
 const ADMIN_CREATE_ROLES = new Set([
@@ -935,6 +1016,21 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
     const userFilter: any = {};
     const actorRole = req.user?.roleName || "";
     const scope = req.query.scope?.toString().trim().toLowerCase();
+    const query = req.query as Record<string, any>;
+
+    const pageRaw = query.page;
+    const limitRaw = query.limit ?? query.pageSize;
+    const wantsPagination =
+      pageRaw != null ||
+      limitRaw != null ||
+      String(query.paginated || "").trim() === "1";
+    const wantsExport = String(query.export || "").trim() === "1";
+    const page = Math.max(1, Number(pageRaw) || 1);
+    const maxLimit = wantsExport ? 5000 : 100;
+    const limit = Math.min(
+      maxLimit,
+      Math.max(1, Number(limitRaw) || 20),
+    );
 
     if (scope === "ticket_requesters") {
       const requesterRoleNames = ["user", "agent", "builder", "builder_staff"];
@@ -994,128 +1090,228 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    const createdAtFilter = buildCreatedAtQueryFilter(req.query as Record<string, any>);
+    // Snapshot visibility filter before list-only filters (stats / role tabs).
+    const visibilityFilter = cloneUserFilter(userFilter);
+
+    const platformOnly =
+      String(query.platformOnly || "").trim() === "1" ||
+      String(query.platform || "").trim() === "1";
+    const roleQuery = String(query.role || "").trim();
+    if (platformOnly || (roleQuery && roleQuery.toLowerCase() !== "all")) {
+      const roleNames = resolvePlatformRoleNamesForQuery(
+        platformOnly && (!roleQuery || roleQuery.toLowerCase() === "all")
+          ? "all"
+          : roleQuery || "all",
+      );
+      if (roleNames?.length) {
+        const roles = await Role.find({ name: { $in: roleNames } })
+          .select("_id")
+          .lean();
+        applyRoleIdIn(
+          userFilter,
+          roles.map((role) => role._id as mongoose.Types.ObjectId),
+        );
+      }
+    }
+
+    const createdAtFilter = buildCreatedAtQueryFilter(query);
     if (createdAtFilter) {
       userFilter.createdAt = createdAtFilter;
     }
 
-    const managerIdQuery = String(req.query.managerId || "").trim();
+    const managerIdQuery = String(query.managerId || "").trim();
     if (managerIdQuery && mongoose.Types.ObjectId.isValid(managerIdQuery)) {
       userFilter.managerId = new mongoose.Types.ObjectId(managerIdQuery);
     }
-    const onboardedByQuery = String(req.query.onboardedBy || "").trim();
+    const onboardedByQuery = String(query.onboardedBy || "").trim();
     if (onboardedByQuery && mongoose.Types.ObjectId.isValid(onboardedByQuery)) {
       userFilter.onboardedBy = new mongoose.Types.ObjectId(onboardedByQuery);
     }
 
-    const leanTeamDirectory = scope === "team_directory";
+    const q = String(query.q || query.search || "").trim();
+    if (q) {
+      const rx = new RegExp(escapeRegex(q), "i");
+      const or: Record<string, any>[] = [
+        { name: rx },
+        { email: rx },
+        { phone: rx },
+      ];
+      if (mongoose.Types.ObjectId.isValid(q)) {
+        or.push({ _id: new mongoose.Types.ObjectId(q) });
+      }
+      pushAndClause(userFilter, { $or: or });
+    }
 
-    let usersQuery = User.find(userFilter)
-      .select(
-        leanTeamDirectory
-          ? // managerId required — reporting-tree scope + "Reports to" on cards
-            "name email phone roleId managerId isActive accountStatus locality city state pincode lastLogin createdAt"
-          : "-token",
-      )
-      .populate("roleId", "name label");
-
-    if (leanTeamDirectory) {
-      usersQuery = usersQuery.populate({
-        path: "managerId",
-        select: "name email phone roleId",
-        populate: { path: "roleId", select: "name label" },
+    const location = String(query.location || "").trim();
+    if (location) {
+      const rx = new RegExp(escapeRegex(location), "i");
+      pushAndClause(userFilter, {
+        $or: [
+          { locality: rx },
+          { city: rx },
+          { state: rx },
+          { pincode: rx },
+        ],
       });
-    } else {
-      usersQuery = usersQuery
-        .populate({
+    }
+
+    const statusRaw = String(
+      query.status || query.accountStatus || "",
+    )
+      .trim()
+      .toLowerCase();
+    const filterFlag = String(query.filter || "")
+      .trim()
+      .toLowerCase();
+    if (filterFlag === "onboarding" || statusRaw === "onboarding") {
+      userFilter.accountStatus = {
+        $in: ["location_pending", "kyc_pending", "pending", "incomplete"],
+      };
+    } else if (statusRaw === "inactive") {
+      pushAndClause(userFilter, {
+        $or: [
+          { accountStatus: "inactive" },
+          { accountStatus: { $in: [null, ""] } },
+          { accountStatus: { $exists: false } },
+        ],
+      });
+    } else if (statusRaw) {
+      userFilter.accountStatus = statusRaw;
+    }
+
+    const phone = String(query.phone || "").trim().toLowerCase();
+    if (phone === "true" || phone === "verified") {
+      userFilter.phoneVerified = true;
+    } else if (phone === "false" || phone === "unverified") {
+      userFilter.phoneVerified = { $ne: true };
+    }
+
+    // Active on Users page = onboarded (accountStatus === "active")
+    const active = String(query.active || "").trim().toLowerCase();
+    if (active === "true") {
+      userFilter.accountStatus = "active";
+    } else if (active === "false") {
+      userFilter.accountStatus = { $ne: "active" };
+    }
+
+    const leanTeamDirectory = scope === "team_directory";
+    const actorRoleKey = String(actorRole || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_");
+    const needsReportingTreeFilter =
+      leanTeamDirectory &&
+      actorRoleKey !== "super_admin" &&
+      actorRoleKey !== "admin";
+
+    const buildUsersQuery = (filter: Record<string, any>) => {
+      let usersQuery = User.find(filter)
+        .select(
+          leanTeamDirectory
+            ? // managerId required — reporting-tree scope + "Reports to" on cards
+              "name email phone roleId managerId isActive accountStatus locality city state pincode lastLogin createdAt"
+            : "-token",
+        )
+        .populate("roleId", "name label");
+
+      if (leanTeamDirectory) {
+        usersQuery = usersQuery.populate({
           path: "managerId",
           select: "name email phone roleId",
           populate: { path: "roleId", select: "name label" },
-        })
-        .populate({
-          path: "onboardedBy",
-          select: "name email phone roleId",
-          populate: { path: "roleId", select: "name label" },
-        })
-        .populate({
-          path: "followUpAssignedTo",
-          select: "name email phone roleId",
-          populate: { path: "roleId", select: "name label" },
         });
-    }
-
-    const users = await usersQuery.lean();
-
-    // Follow-up assignee backfill is for CCE queues — skip on team directory (access control).
-    if (!leanTeamDirectory) {
-      try {
-        await ensureFollowUpAssigneesForUsers(users);
-      } catch {
-        /* non-blocking */
+      } else {
+        usersQuery = usersQuery
+          .populate({
+            path: "managerId",
+            select: "name email phone roleId",
+            populate: { path: "roleId", select: "name label" },
+          })
+          .populate({
+            path: "onboardedBy",
+            select: "name email phone roleId",
+            populate: { path: "roleId", select: "name label" },
+          })
+          .populate({
+            path: "followUpAssignedTo",
+            select: "name email phone roleId",
+            populate: { path: "roleId", select: "name label" },
+          });
       }
-    }
+      return usersQuery;
+    };
 
-    const formattedUsers = users.map((user: any) => {
-      const role = user.roleId;
-      const manager = user.managerId;
-      const managerRole = manager?.roleId;
-      const onboardedBy = user.onboardedBy;
-      const assignee = user.followUpAssignedTo;
-      const assigneeRole = assignee?.roleId;
-      const followUpAssignedTo = assignee?._id
-        ? String(assignee._id)
-        : assignee
-          ? String(assignee)
-          : null;
-      const followUpWorkStatus = user.followUpWorkStatus || (followUpAssignedTo ? "assigned" : null);
+    const formatUsers = (users: any[]) =>
+      users.map((user: any) => {
+        const role = user.roleId;
+        const manager = user.managerId;
+        const managerRole = manager?.roleId;
+        const onboardedBy = user.onboardedBy;
+        const assignee = user.followUpAssignedTo;
+        const assigneeRole = assignee?.roleId;
+        const followUpAssignedTo = assignee?._id
+          ? String(assignee._id)
+          : assignee
+            ? String(assignee)
+            : null;
+        const followUpWorkStatus =
+          user.followUpWorkStatus || (followUpAssignedTo ? "assigned" : null);
 
-      return {
-        ...user,
-        roleId: role?._id ? String(role._id) : user.roleId ? String(user.roleId) : null,
-        roleName: role?.name || null,
-        managerId: manager?._id ? String(manager._id) : manager ? String(manager) : null,
-        onboardedBy: onboardedBy?._id
-          ? String(onboardedBy._id)
-          : onboardedBy
-            ? String(onboardedBy)
+        return {
+          ...user,
+          roleId: role?._id
+            ? String(role._id)
+            : user.roleId
+              ? String(user.roleId)
+              : null,
+          roleName: role?.name || null,
+          managerId: manager?._id
+            ? String(manager._id)
+            : manager
+              ? String(manager)
+              : null,
+          onboardedBy: onboardedBy?._id
+            ? String(onboardedBy._id)
+            : onboardedBy
+              ? String(onboardedBy)
+              : null,
+          followUpAssignedTo,
+          followUpWorkStatus,
+          followUpAssignee: assignee?._id
+            ? {
+                _id: String(assignee._id),
+                name: assignee.name || null,
+                email: assignee.email || null,
+                phone: assignee.phone || null,
+                roleName: assigneeRole?.name || null,
+                roleLabel: assigneeRole?.label || null,
+              }
             : null,
-        followUpAssignedTo,
-        followUpWorkStatus,
-        followUpAssignee: assignee?._id
-          ? {
-              _id: String(assignee._id),
-              name: assignee.name || null,
-              email: assignee.email || null,
-              phone: assignee.phone || null,
-              roleName: assigneeRole?.name || null,
-              roleLabel: assigneeRole?.label || null,
-            }
-          : null,
-        reportsTo: manager?._id
-          ? {
-              _id: String(manager._id),
-              name: manager.name || null,
-              email: manager.email || null,
-              phone: manager.phone || null,
-              roleName: managerRole?.name || null,
-              roleLabel: managerRole?.label || null,
-            }
-          : null,
-      };
-    });
+          reportsTo: manager?._id
+            ? {
+                _id: String(manager._id),
+                name: manager.name || null,
+                email: manager.email || null,
+                phone: manager.phone || null,
+                roleName: managerRole?.name || null,
+                roleLabel: managerRole?.label || null,
+              }
+            : null,
+        };
+      });
 
-    // After backfill, some assignees are raw ObjectIds — hydrate names for UI.
-    const missingAssigneeIds = leanTeamDirectory
-      ? []
-      : [
-          ...new Set(
-            formattedUsers
-              .filter((u: any) => u.followUpAssignedTo && !u.followUpAssignee)
-              .map((u: any) => String(u.followUpAssignedTo)),
-          ),
-        ].filter((id) => mongoose.Types.ObjectId.isValid(id));
+    const hydrateMissingAssignees = async (formattedUsers: any[]) => {
+      if (leanTeamDirectory) return;
+      const missingAssigneeIds = [
+        ...new Set(
+          formattedUsers
+            .filter((u: any) => u.followUpAssignedTo && !u.followUpAssignee)
+            .map((u: any) => String(u.followUpAssignedTo)),
+        ),
+      ].filter((id) => mongoose.Types.ObjectId.isValid(id));
 
-    if (missingAssigneeIds.length) {
+      if (!missingAssigneeIds.length) return;
+
       const assigneeDocs = await User.find({ _id: { $in: missingAssigneeIds } })
         .select("name email phone roleId")
         .populate("roleId", "name label")
@@ -1133,31 +1329,185 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
           },
         ]),
       );
-      for (const row of formattedUsers as any[]) {
+      for (const row of formattedUsers) {
         if (row.followUpAssignee || !row.followUpAssignedTo) continue;
         const hit = byId.get(String(row.followUpAssignedTo));
         if (hit) row.followUpAssignee = hit;
       }
-    }
+    };
 
-    const actorRoleKey = String(actorRole || "")
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_");
-    // Prefer people in the actor's reports-to tree. If manager links are missing
-    // (legacy credentials), fall back to all staff in descendant roles so the
-    // Team directory is not empty for CSH / Team Lead / RM.
-    let scopedUsers = formattedUsers;
-    if (
-      scope === "team_directory" &&
-      actorRoleKey !== "super_admin" &&
-      actorRoleKey !== "admin"
-    ) {
+    const applyReportingTree = (formattedUsers: any[]) => {
+      if (!needsReportingTreeFilter) return formattedUsers;
       const inTree = filterUsersInReportingTree(formattedUsers, req.user?.sub);
-      scopedUsers = inTree.length > 0 ? inTree : formattedUsers;
+      return inTree.length > 0 ? inTree : formattedUsers;
+    };
+
+    // Legacy callers (dashboards, badges): bare array, no pagination.
+    if (!wantsPagination) {
+      const users = await buildUsersQuery(userFilter).lean();
+      if (!leanTeamDirectory) {
+        try {
+          await ensureFollowUpAssigneesForUsers(users);
+        } catch {
+          /* non-blocking */
+        }
+      }
+      const formattedUsers = formatUsers(users);
+      await hydrateMissingAssignees(formattedUsers);
+      return res.json(applyReportingTree(formattedUsers));
     }
 
-    res.json(scopedUsers);
+    // Paginated path — server skip/limit when reporting-tree post-filter is not required.
+    let scopedUsers: any[] = [];
+    let total = 0;
+
+    if (needsReportingTreeFilter) {
+      const users = await buildUsersQuery(userFilter)
+        .sort({ createdAt: -1 })
+        .lean();
+      if (!leanTeamDirectory) {
+        try {
+          await ensureFollowUpAssigneesForUsers(users);
+        } catch {
+          /* non-blocking */
+        }
+      }
+      const formattedUsers = formatUsers(users);
+      await hydrateMissingAssignees(formattedUsers);
+      const allScoped = applyReportingTree(formattedUsers);
+      total = allScoped.length;
+      const start = (page - 1) * limit;
+      scopedUsers = allScoped.slice(start, start + limit);
+    } else {
+      total = await User.countDocuments(userFilter);
+      const users = await buildUsersQuery(userFilter)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean();
+      if (!leanTeamDirectory) {
+        try {
+          await ensureFollowUpAssigneesForUsers(users);
+        } catch {
+          /* non-blocking */
+        }
+      }
+      scopedUsers = formatUsers(users);
+      await hydrateMissingAssignees(scopedUsers);
+    }
+
+    // Stats + role tab counts over platform end-users (visibility only; not list filters).
+    let stats = {
+      total: 0,
+      active: 0,
+      kycVerified: 0,
+      phoneVerified: 0,
+      locPending: 0,
+      joinedToday: 0,
+    };
+    let roleCounts = {
+      all: 0,
+      user: 0,
+      builder: 0,
+      builder_staff: 0,
+      agent: 0,
+    };
+
+    try {
+      const platformRoles = await Role.find({
+        name: { $in: [...PLATFORM_END_USER_ROLE_NAMES] },
+      })
+        .select("_id name")
+        .lean();
+      const platformIds = platformRoles.map(
+        (r) => r._id as mongoose.Types.ObjectId,
+      );
+      const statsFilter: Record<string, any> = cloneUserFilter(visibilityFilter);
+      applyRoleIdIn(statsFilter, platformIds);
+
+      const { start: todayStart, end: todayEnd } = istTodayBounds();
+      const roleIdByName = new Map(
+        platformRoles.map((r: any) => [String(r.name), r._id]),
+      );
+
+      const [
+        statsTotal,
+        statsActive,
+        statsPhone,
+        statsLoc,
+        statsToday,
+        countUser,
+        countBuilder,
+        countBuilderStaff,
+        countAgent,
+      ] = await Promise.all([
+        User.countDocuments(statsFilter),
+        User.countDocuments({ ...statsFilter, accountStatus: "active" }),
+        User.countDocuments({ ...statsFilter, phoneVerified: true }),
+        User.countDocuments({
+          ...statsFilter,
+          accountStatus: "location_pending",
+        }),
+        User.countDocuments({
+          ...statsFilter,
+          createdAt: { $gte: todayStart, $lte: todayEnd },
+        }),
+        roleIdByName.get("user")
+          ? User.countDocuments({
+              ...statsFilter,
+              roleId: roleIdByName.get("user"),
+            })
+          : Promise.resolve(0),
+        roleIdByName.get("builder")
+          ? User.countDocuments({
+              ...statsFilter,
+              roleId: roleIdByName.get("builder"),
+            })
+          : Promise.resolve(0),
+        roleIdByName.get("builder_staff")
+          ? User.countDocuments({
+              ...statsFilter,
+              roleId: roleIdByName.get("builder_staff"),
+            })
+          : Promise.resolve(0),
+        roleIdByName.get("agent")
+          ? User.countDocuments({
+              ...statsFilter,
+              roleId: roleIdByName.get("agent"),
+            })
+          : Promise.resolve(0),
+      ]);
+
+      stats = {
+        total: statsTotal,
+        active: statsActive,
+        kycVerified: 0,
+        phoneVerified: statsPhone,
+        locPending: statsLoc,
+        joinedToday: statsToday,
+      };
+      roleCounts = {
+        all: statsTotal,
+        user: countUser,
+        builder: countBuilder,
+        builder_staff: countBuilderStaff,
+        agent: countAgent,
+      };
+    } catch {
+      /* stats best-effort */
+    }
+
+    return res.json({
+      data: scopedUsers,
+      meta: {
+        total,
+        page,
+        limit,
+        pages: Math.max(1, Math.ceil(total / limit) || 1),
+      },
+      stats,
+      roleCounts,
+    });
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch users" });
   }
@@ -1330,8 +1680,17 @@ export const claimSeClient = async (req: AuthRequest, res: Response) => {
 
 export const searchUsers = async (req: AuthRequest, res: Response) => {
   try {
-    const query = req.query.q?.toString().trim();
+    const queryRaw = req.query.q?.toString().trim() || "";
+    const query = queryRaw ? escapeRegex(queryRaw) : "";
     const roleFilterRaw = req.query.role?.toString().trim() || "";
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const maxLimit = String(req.query.export || "").trim() === "1" ? 500 : 100;
+    const limit = Math.min(
+      maxLimit,
+      Math.max(1, Number(req.query.limit ?? req.query.pageSize) || 20),
+    );
+    const skip = (page - 1) * limit;
+
     const ROLE_SEARCH_ALIASES: Record<string, string[]> = {
       sales_agent: ["sales_agent", "sales_executive", "sales_executives"],
       sales_executive: ["sales_agent", "sales_executive", "sales_executives"],
@@ -1368,7 +1727,7 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
       ),
     ];
 
-    if (!query && !roleFilters.length) {
+    if (!queryRaw && !roleFilters.length) {
       return res.status(400).json({
         message: "Search query 'q' or role is required",
       });
@@ -1376,7 +1735,7 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
 
     const match: any = {};
 
-    if (query) {
+    if (queryRaw) {
       match.$or = [
         { name: { $regex: query, $options: "i" } },
         { companyName: { $regex: query, $options: "i" } },
@@ -1471,8 +1830,78 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    if (query) {
+    if (queryRaw) {
       pipeline.push({ $match: match });
+    }
+
+    // Prefer stronger matches when searching by text (name / company / code first).
+    if (queryRaw) {
+      pipeline.push({
+        $addFields: {
+          _searchRank: {
+            $switch: {
+              branches: [
+                {
+                  case: {
+                    $regexMatch: {
+                      input: { $ifNull: ["$name", ""] },
+                      regex: query,
+                      options: "i",
+                    },
+                  },
+                  then: 0,
+                },
+                {
+                  case: {
+                    $regexMatch: {
+                      input: { $ifNull: ["$companyName", ""] },
+                      regex: query,
+                      options: "i",
+                    },
+                  },
+                  then: 1,
+                },
+                {
+                  case: {
+                    $regexMatch: {
+                      input: { $ifNull: ["$userCode", ""] },
+                      regex: query,
+                      options: "i",
+                    },
+                  },
+                  then: 2,
+                },
+                {
+                  case: {
+                    $regexMatch: {
+                      input: { $ifNull: ["$email", ""] },
+                      regex: query,
+                      options: "i",
+                    },
+                  },
+                  then: 3,
+                },
+                {
+                  case: {
+                    $regexMatch: {
+                      input: { $ifNull: ["$phone", ""] },
+                      regex: query,
+                      options: "i",
+                    },
+                  },
+                  then: 4,
+                },
+              ],
+              default: 9,
+            },
+          },
+        },
+      });
+      pipeline.push({
+        $sort: { _searchRank: 1, createdAt: -1, name: 1 },
+      });
+    } else {
+      pipeline.push({ $sort: { createdAt: -1, name: 1 } });
     }
 
     pipeline.push({
@@ -1550,11 +1979,29 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    const users = await User.aggregate(pipeline);
+    pipeline.push({
+      $facet: {
+        meta: [{ $count: "total" }],
+        results: [{ $skip: skip }, { $limit: limit }],
+      },
+    });
+
+    const [facet] = await User.aggregate(pipeline);
+    const total = Number(facet?.meta?.[0]?.total || 0);
+    const users = Array.isArray(facet?.results) ? facet.results : [];
+    const pages = Math.max(1, Math.ceil(total / limit) || 1);
 
     res.json({
       results: users,
+      data: users,
       count: users.length,
+      meta: {
+        total,
+        page,
+        limit,
+        pages,
+        hasMore: page * limit < total,
+      },
     });
   } catch (err) {
     console.error(err);
