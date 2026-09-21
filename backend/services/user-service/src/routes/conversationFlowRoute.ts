@@ -12,10 +12,21 @@ const router = Router();
 
 function assertWebhookSlug(req: any, res: any, next: any) {
   const slug = String(req.params.slug || "").trim().toLowerCase();
-  const expected = String(whatsappConfig.webhookSlug || "tyent")
+  const primary = String(whatsappConfig.webhookSlug || "tyent")
     .trim()
     .toLowerCase();
-  if (!slug || (expected && slug !== expected)) {
+  // Accept env slug + common aliases (Meta may still use /propenu from Bizrow era)
+  const allowed = new Set(
+    [primary, "tyent", "propenu"]
+      .concat(
+        String(process.env.WHATSAPP_WEBHOOK_SLUG_ALIASES || "")
+          .split(",")
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean),
+      )
+      .filter(Boolean),
+  );
+  if (!slug || !allowed.has(slug)) {
     return res.status(404).json({
       success: false,
       message: "Unknown WhatsApp webhook slug",

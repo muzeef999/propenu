@@ -1020,7 +1020,12 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
 
     const pageRaw = query.page;
     const limitRaw = query.limit ?? query.pageSize;
+    const platformOnly =
+      String(query.platformOnly || "").trim() === "1" ||
+      String(query.platform || "").trim() === "1";
+    // Users admin board always paginates (prod-safe). Other callers opt in via page/limit.
     const wantsPagination =
+      platformOnly ||
       pageRaw != null ||
       limitRaw != null ||
       String(query.paginated || "").trim() === "1";
@@ -1093,9 +1098,6 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
     // Snapshot visibility filter before list-only filters (stats / role tabs).
     const visibilityFilter = cloneUserFilter(userFilter);
 
-    const platformOnly =
-      String(query.platformOnly || "").trim() === "1" ||
-      String(query.platform || "").trim() === "1";
     const roleQuery = String(query.role || "").trim();
     if (platformOnly || (roleQuery && roleQuery.toLowerCase() !== "all")) {
       const roleNames = resolvePlatformRoleNamesForQuery(
@@ -1195,6 +1197,8 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
     }
 
     const leanTeamDirectory = scope === "team_directory";
+    // Users board list: lean columns only (prod timeout-safe).
+    const leanPlatformBoard = Boolean(platformOnly && wantsPagination);
     const actorRoleKey = String(actorRole || "")
       .trim()
       .toLowerCase()
@@ -1204,13 +1208,18 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       actorRoleKey !== "super_admin" &&
       actorRoleKey !== "admin";
 
+    const USERS_BOARD_SELECT =
+      "name email phone roleId isActive accountStatus phoneVerified locality city state pincode createdAt lastLoginAt";
+
     const buildUsersQuery = (filter: Record<string, any>) => {
       let usersQuery = User.find(filter)
         .select(
           leanTeamDirectory
             ? // managerId required — reporting-tree scope + "Reports to" on cards
               "name email phone roleId managerId isActive accountStatus locality city state pincode lastLogin createdAt"
-            : "-token",
+            : leanPlatformBoard
+              ? USERS_BOARD_SELECT
+              : "-token",
         )
         .populate("roleId", "name label");
 
@@ -1220,7 +1229,7 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
           select: "name email phone roleId",
           populate: { path: "roleId", select: "name label" },
         });
-      } else {
+      } else if (!leanPlatformBoard) {
         usersQuery = usersQuery
           .populate({
             path: "managerId",
@@ -1301,7 +1310,7 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       });
 
     const hydrateMissingAssignees = async (formattedUsers: any[]) => {
-      if (leanTeamDirectory) return;
+      if (leanTeamDirectory || leanPlatformBoard) return;
       const missingAssigneeIds = [
         ...new Set(
           formattedUsers
@@ -1344,7 +1353,9 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
 
     // Legacy callers (dashboards, badges): bare array, no pagination.
     if (!wantsPagination) {
-      const users = await buildUsersQuery(userFilter).lean();
+      const users = await buildUsersQuery(userFilter)
+        .maxTimeMS(20000)
+        .lean();
       if (!leanTeamDirectory) {
         try {
           await ensureFollowUpAssigneesForUsers(users);
@@ -1357,35 +1368,146 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       return res.json(applyReportingTree(formattedUsers));
     }
 
-    // Paginated path — server skip/limit when reporting-tree post-filter is not required.
+    // Stats + role tabs — single $facet (runs in parallel with list below).
+    const loadBoardStats = async () => {
+      const empty = {
+        stats: {
+          total: 0,
+          active: 0,
+          kycVerified: 0,
+          phoneVerified: 0,
+          locPending: 0,
+          joinedToday: 0,
+        },
+        roleCounts: {
+          all: 0,
+          user: 0,
+          builder: 0,
+          builder_staff: 0,
+          agent: 0,
+        },
+      };
+      try {
+        const platformRoles = await Role.find({
+          name: { $in: [...PLATFORM_END_USER_ROLE_NAMES] },
+        })
+          .select("_id name")
+          .lean();
+        const platformIds = platformRoles.map(
+          (r) => r._id as mongoose.Types.ObjectId,
+        );
+        const statsFilter: Record<string, any> =
+          cloneUserFilter(visibilityFilter);
+        applyRoleIdIn(statsFilter, platformIds);
+
+        const { start: todayStart, end: todayEnd } = istTodayBounds();
+        const roleIdByName = new Map(
+          platformRoles.map((r: any) => [String(r.name), String(r._id)]),
+        );
+
+        const [facet] = await User.aggregate([
+          { $match: statsFilter },
+          {
+            $facet: {
+              total: [{ $count: "n" }],
+              active: [
+                { $match: { accountStatus: "active" } },
+                { $count: "n" },
+              ],
+              phone: [{ $match: { phoneVerified: true } }, { $count: "n" }],
+              loc: [
+                { $match: { accountStatus: "location_pending" } },
+                { $count: "n" },
+              ],
+              today: [
+                {
+                  $match: {
+                    createdAt: { $gte: todayStart, $lte: todayEnd },
+                  },
+                },
+                { $count: "n" },
+              ],
+              byRole: [
+                {
+                  $group: {
+                    _id: "$roleId",
+                    n: { $sum: 1 },
+                  },
+                },
+              ],
+            },
+          },
+        ]).option({ maxTimeMS: 12000 });
+
+        const nOf = (rows: any[]) => Number(rows?.[0]?.n || 0);
+        const byRoleCount = new Map(
+          (facet?.byRole || []).map((row: any) => [
+            String(row._id),
+            Number(row.n || 0),
+          ]),
+        );
+        const roleN = (name: string) => {
+          const id = roleIdByName.get(name);
+          return id ? byRoleCount.get(id) || 0 : 0;
+        };
+
+        const stats = {
+          total: nOf(facet?.total),
+          active: nOf(facet?.active),
+          kycVerified: 0,
+          phoneVerified: nOf(facet?.phone),
+          locPending: nOf(facet?.loc),
+          joinedToday: nOf(facet?.today),
+        };
+        return {
+          stats,
+          roleCounts: {
+            all: stats.total,
+            user: roleN("user"),
+            builder: roleN("builder"),
+            builder_staff: roleN("builder_staff"),
+            agent: roleN("agent"),
+          },
+        };
+      } catch {
+        return empty;
+      }
+    };
+
+    // Paginated path — list + stats in parallel (prod latency pattern).
     let scopedUsers: any[] = [];
     let total = 0;
+    let statsBundle: Awaited<ReturnType<typeof loadBoardStats>>;
 
     if (needsReportingTreeFilter) {
-      const users = await buildUsersQuery(userFilter)
-        .sort({ createdAt: -1 })
-        .lean();
-      if (!leanTeamDirectory) {
-        try {
-          await ensureFollowUpAssigneesForUsers(users);
-        } catch {
-          /* non-blocking */
-        }
-      }
+      const [users, boardStats] = await Promise.all([
+        buildUsersQuery(userFilter)
+          .sort({ createdAt: -1 })
+          .maxTimeMS(20000)
+          .lean(),
+        loadBoardStats(),
+      ]);
+      statsBundle = boardStats;
       const formattedUsers = formatUsers(users);
-      await hydrateMissingAssignees(formattedUsers);
       const allScoped = applyReportingTree(formattedUsers);
       total = allScoped.length;
       const start = (page - 1) * limit;
       scopedUsers = allScoped.slice(start, start + limit);
     } else {
-      total = await User.countDocuments(userFilter);
-      const users = await buildUsersQuery(userFilter)
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .lean();
-      if (!leanTeamDirectory) {
+      const [counted, users, boardStats] = await Promise.all([
+        User.countDocuments(userFilter).maxTimeMS(12000),
+        buildUsersQuery(userFilter)
+          .sort({ createdAt: -1 })
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .maxTimeMS(12000)
+          .lean(),
+        loadBoardStats(),
+      ]);
+      statsBundle = boardStats;
+      total = counted;
+      // Skip follow-up backfill on Users board — keeps prod under client timeout.
+      if (!leanPlatformBoard && !leanTeamDirectory) {
         try {
           await ensureFollowUpAssigneesForUsers(users);
         } catch {
@@ -1396,107 +1518,6 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       await hydrateMissingAssignees(scopedUsers);
     }
 
-    // Stats + role tab counts over platform end-users (visibility only; not list filters).
-    let stats = {
-      total: 0,
-      active: 0,
-      kycVerified: 0,
-      phoneVerified: 0,
-      locPending: 0,
-      joinedToday: 0,
-    };
-    let roleCounts = {
-      all: 0,
-      user: 0,
-      builder: 0,
-      builder_staff: 0,
-      agent: 0,
-    };
-
-    try {
-      const platformRoles = await Role.find({
-        name: { $in: [...PLATFORM_END_USER_ROLE_NAMES] },
-      })
-        .select("_id name")
-        .lean();
-      const platformIds = platformRoles.map(
-        (r) => r._id as mongoose.Types.ObjectId,
-      );
-      const statsFilter: Record<string, any> = cloneUserFilter(visibilityFilter);
-      applyRoleIdIn(statsFilter, platformIds);
-
-      const { start: todayStart, end: todayEnd } = istTodayBounds();
-      const roleIdByName = new Map(
-        platformRoles.map((r: any) => [String(r.name), r._id]),
-      );
-
-      const [
-        statsTotal,
-        statsActive,
-        statsPhone,
-        statsLoc,
-        statsToday,
-        countUser,
-        countBuilder,
-        countBuilderStaff,
-        countAgent,
-      ] = await Promise.all([
-        User.countDocuments(statsFilter),
-        User.countDocuments({ ...statsFilter, accountStatus: "active" }),
-        User.countDocuments({ ...statsFilter, phoneVerified: true }),
-        User.countDocuments({
-          ...statsFilter,
-          accountStatus: "location_pending",
-        }),
-        User.countDocuments({
-          ...statsFilter,
-          createdAt: { $gte: todayStart, $lte: todayEnd },
-        }),
-        roleIdByName.get("user")
-          ? User.countDocuments({
-              ...statsFilter,
-              roleId: roleIdByName.get("user"),
-            })
-          : Promise.resolve(0),
-        roleIdByName.get("builder")
-          ? User.countDocuments({
-              ...statsFilter,
-              roleId: roleIdByName.get("builder"),
-            })
-          : Promise.resolve(0),
-        roleIdByName.get("builder_staff")
-          ? User.countDocuments({
-              ...statsFilter,
-              roleId: roleIdByName.get("builder_staff"),
-            })
-          : Promise.resolve(0),
-        roleIdByName.get("agent")
-          ? User.countDocuments({
-              ...statsFilter,
-              roleId: roleIdByName.get("agent"),
-            })
-          : Promise.resolve(0),
-      ]);
-
-      stats = {
-        total: statsTotal,
-        active: statsActive,
-        kycVerified: 0,
-        phoneVerified: statsPhone,
-        locPending: statsLoc,
-        joinedToday: statsToday,
-      };
-      roleCounts = {
-        all: statsTotal,
-        user: countUser,
-        builder: countBuilder,
-        builder_staff: countBuilderStaff,
-        agent: countAgent,
-      };
-    } catch {
-      /* stats best-effort */
-    }
-
     return res.json({
       data: scopedUsers,
       meta: {
@@ -1505,10 +1526,11 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
         limit,
         pages: Math.max(1, Math.ceil(total / limit) || 1),
       },
-      stats,
-      roleCounts,
+      stats: statsBundle.stats,
+      roleCounts: statsBundle.roleCounts,
     });
   } catch (err) {
+    console.error("getAllUsers failed:", err);
     res.status(500).json({ message: "Failed to fetch users" });
   }
 };

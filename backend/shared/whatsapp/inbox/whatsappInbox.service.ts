@@ -956,6 +956,72 @@ export async function sendInboxTextMessage(
   }
 }
 
+/** Normalize webhook URLs for equality checks (trim, strip trailing slash). */
+function normalizeWebhookUrl(url: string) {
+  return String(url || "")
+    .trim()
+    .replace(/\/+$/, "")
+    .toLowerCase();
+}
+
+/** Env-based expected Meta callback for this deployment. */
+export function resolveExpectedWhatsAppWebhookUrl() {
+  const slug = process.env.WHATSAPP_WEBHOOK_SLUG || "tyent";
+  const webhookPath = `/api/conversation-flow/webhook/${slug}`;
+  const configuredCallback = String(
+    process.env.WHATSAPP_WEBHOOK_CALLBACK_URL || "",
+  )
+    .trim()
+    .replace(/\/+$/, "");
+  const publicBase = String(process.env.WHATSAPP_PUBLIC_BASE_URL || "")
+    .trim()
+    .replace(/\/+$/, "");
+
+  if (configuredCallback) {
+    return {
+      webhookPath,
+      expectedPublicWebhook: configuredCallback,
+      configuredCallback,
+      publicBase: publicBase || null,
+      webhookSlug: slug,
+    };
+  }
+  if (publicBase) {
+    return {
+      webhookPath,
+      expectedPublicWebhook: `${publicBase}${webhookPath}`,
+      configuredCallback: null,
+      publicBase,
+      webhookSlug: slug,
+    };
+  }
+  return {
+    webhookPath,
+    expectedPublicWebhook: null as string | null,
+    configuredCallback: null,
+    publicBase: null,
+    webhookSlug: slug,
+  };
+}
+
+function isInboundWebhookReady(
+  metaWebhookUrl: string,
+  expectedPublicWebhook: string | null,
+) {
+  const meta = normalizeWebhookUrl(metaWebhookUrl);
+  if (!meta) return false;
+  if (expectedPublicWebhook) {
+    return meta === normalizeWebhookUrl(expectedPublicWebhook);
+  }
+  // No env URL: accept any Propenu conversation-flow webhook (not Bizrow).
+  return (
+    !/bizrow\.app/i.test(meta) &&
+    meta.includes("/api/conversation-flow/webhook/")
+  );
+}
+
+let webhookSyncAttempted = false;
+
 /** Verify WHATSAPP_* env credentials against Meta Graph API. */
 export async function checkWhatsAppCloudHealth() {
   const { token, phoneNumberId, businessAccountId, appId } = getCredentials();
@@ -964,17 +1030,12 @@ export async function checkWhatsAppCloudHealth() {
     !phoneNumberId && "WHATSAPP_PHONE_NUMBER_ID",
   ].filter(Boolean) as string[];
 
-  const webhookPath = `/api/conversation-flow/webhook/${
-    process.env.WHATSAPP_WEBHOOK_SLUG || "tyent"
-  }`;
-  const configuredCallback =
-    process.env.WHATSAPP_WEBHOOK_CALLBACK_URL || null;
-  const publicBase = String(process.env.WHATSAPP_PUBLIC_BASE_URL || "")
-    .trim()
-    .replace(/\/+$/, "");
-  const expectedPublicWebhook = publicBase
-    ? `${publicBase}${webhookPath}`
-    : null;
+  const {
+    webhookPath,
+    expectedPublicWebhook,
+    configuredCallback,
+    webhookSlug,
+  } = resolveExpectedWhatsAppWebhookUrl();
 
   if (missing.length) {
     return {
@@ -996,17 +1057,58 @@ export async function checkWhatsAppCloudHealth() {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    const metaWebhookUrl = String(
-      response.data?.webhook_configuration?.application || "",
+    const webhookCfg = response.data?.webhook_configuration || {};
+    // WABA override (subscribed_apps override_callback_uri) is what inbound uses.
+    // `application` can still show the app default (e.g. Bizrow) even after override.
+    let metaWebhookUrl = String(
+      webhookCfg.whatsapp_business_account ||
+        webhookCfg.application ||
+        "",
     ).trim();
-    const inboundReady = Boolean(
-      metaWebhookUrl &&
-        (expectedPublicWebhook
-          ? metaWebhookUrl.replace(/\/+$/, "") ===
-            expectedPublicWebhook.replace(/\/+$/, "")
-          : !/bizrow\.app/i.test(metaWebhookUrl) &&
-            metaWebhookUrl.includes("/api/conversation-flow/webhook/")),
+    let inboundReady = isInboundWebhookReady(
+      metaWebhookUrl,
+      expectedPublicWebhook,
     );
+    let webhookSynced = false;
+    let webhookSyncError: string | null = null;
+
+    const autoSync = ["1", "true", "yes", ""].includes(
+      String(process.env.WHATSAPP_AUTO_SYNC_WEBHOOK ?? "1")
+        .toLowerCase()
+        .trim(),
+    );
+
+    // Env-based: if Meta still points at Bizrow/old URL, point it at this server once.
+    if (
+      !inboundReady &&
+      expectedPublicWebhook &&
+      autoSync &&
+      !webhookSyncAttempted
+    ) {
+      webhookSyncAttempted = true;
+      try {
+        await registerWhatsAppWebhookOverride(expectedPublicWebhook);
+        webhookSynced = true;
+        const refresh = await axios.get(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const refreshedCfg = refresh.data?.webhook_configuration || {};
+        metaWebhookUrl = String(
+          refreshedCfg.whatsapp_business_account ||
+            refreshedCfg.application ||
+            metaWebhookUrl,
+        ).trim();
+        inboundReady = isInboundWebhookReady(
+          metaWebhookUrl,
+          expectedPublicWebhook,
+        );
+      } catch (syncErr: any) {
+        webhookSyncError =
+          syncErr?.response?.data?.error?.message ||
+          syncErr?.message ||
+          "Failed to sync Meta webhook from env";
+      }
+    }
 
     return {
       ok: true,
@@ -1018,10 +1120,15 @@ export async function checkWhatsAppCloudHealth() {
       qualityRating: response.data?.quality_rating || null,
       webhookPath,
       webhookCallbackUrl: configuredCallback,
-      webhookSlug: process.env.WHATSAPP_WEBHOOK_SLUG || "tyent",
+      webhookSlug,
       metaWebhookUrl: metaWebhookUrl || null,
+      metaWebhookApplication: String(webhookCfg.application || "").trim() || null,
+      metaWebhookWaba:
+        String(webhookCfg.whatsapp_business_account || "").trim() || null,
       expectedPublicWebhook,
       inboundReady,
+      webhookSynced,
+      webhookSyncError,
       verifyTokenConfigured: Boolean(process.env.WHATSAPP_VERIFY_TOKEN),
       autoReplyEnabled: ["1", "true", "yes"].includes(
         String(process.env.WHATSAPP_AUTO_REPLY_ENABLED || "")
@@ -1029,9 +1136,11 @@ export async function checkWhatsAppCloudHealth() {
           .trim(),
       ),
       message: inboundReady
-        ? "WhatsApp Cloud API credentials are valid — inbound webhook ready"
+        ? webhookSynced
+          ? "WhatsApp Cloud API ready — inbound webhook synced from env"
+          : "WhatsApp Cloud API credentials are valid — inbound webhook ready"
         : metaWebhookUrl
-          ? `Inbound messages go to Meta webhook (${metaWebhookUrl}), not this Propenu server — received chats will not appear until you point Meta to your public Propenu webhook`
+          ? `Inbound messages go to Meta webhook (${metaWebhookUrl}), not this Propenu server — received chats will not appear until Meta points to ${expectedPublicWebhook || "your public Propenu webhook"}`
           : "WhatsApp credentials valid, but Meta webhook URL could not be read",
     };
   } catch (err: any) {

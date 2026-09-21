@@ -21,12 +21,12 @@ export const verifyWebhook = (req: Request, res: Response) => {
 };
 
 export const receiveWebhook = async (req: Request, res: Response) => {
-  console.log("📩 Incoming WhatsApp Webhook");
-
   try {
     const result = await processWhatsAppWebhookPayload(req.body);
-    if (result.saved > 0) {
-      console.log(`WhatsApp inbox saved ${result.saved} message(s)`);
+    if (result.saved > 0 || result.statusUpdates > 0) {
+      console.log(
+        `📩 WhatsApp webhook: saved=${result.saved} statusUpdates=${result.statusUpdates}`,
+      );
     }
     return res.sendStatus(200);
   } catch (error) {
