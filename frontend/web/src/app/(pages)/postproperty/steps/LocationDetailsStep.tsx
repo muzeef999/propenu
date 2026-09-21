@@ -912,7 +912,17 @@
               dispatch(
                 setBaseField({
                   key: isLandOrAgri ? "landName" : "buildingName",
-                  value: formatToTitleCase(value),
+                  value,
+                }),
+              )
+            }
+            onBlur={() =>
+              dispatch(
+                setBaseField({
+                  key: isLandOrAgri ? "landName" : "buildingName",
+                  value: formatToTitleCase(
+                    isLandOrAgri ? base.landName || "" : base.buildingName || "",
+                  ),
                 }),
               )
             }

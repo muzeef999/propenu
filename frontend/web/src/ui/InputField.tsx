@@ -5,6 +5,7 @@ type InputFieldProps = {
   label: string;
   value: string | number;
   onChange?: (value: string) => void;
+  onBlur?: () => void;
   placeholder?: string;
   type?: "text" | "number" | "email" | "date" | "tel";
   required?: boolean;
@@ -19,6 +20,7 @@ const InputField = ({
   label,
   value,
   onChange,
+  onBlur,
   placeholder,
   type = "text",
   required = false,
@@ -82,6 +84,7 @@ const InputField = ({
         disabled={disabled}
         placeholder={placeholder}
         onChange={(e) => onChange?.(e.target.value)}
+        onBlur={onBlur}
         className={`w-full px-3 py-2 border rounded-md text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 ${error ? "border-red-500" : "border-gray-300"
           } ${disabled ? "cursor-not-allowed text-gray-500" : "bg-white"}`}
       />
