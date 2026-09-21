@@ -1615,15 +1615,14 @@ export const FeaturePropertyService = {
     // status=all → no status filter (admin dropdown "All Status").
     const filter: any = {};
     if (statusOpt === "all") {
-      /* intentionally no status filter — exclude soft-deleted from default board */
-      filter.status = { $ne: "inactive" };
+      /* Admin "All Status" — every project including inactive/rejected/archived */
     } else if (statusOpt) {
       if (
         statusOpt === "deleted" ||
         statusOpt === "inactive" ||
         statusOpt === "deactivated"
       ) {
-        filter.status = "inactive";
+        filter.status = { $in: ["inactive", "archived"] };
       } else if (
         statusOpt === "draft" ||
         statusOpt === "onboarding" ||
@@ -1640,6 +1639,10 @@ export const FeaturePropertyService = {
         filter.status = "active";
       } else if (statusOpt === "pending") {
         filter.status = "pending";
+      } else if (statusOpt === "rejected") {
+        filter.status = "rejected";
+      } else if (statusOpt === "archived") {
+        filter.status = "archived";
       } else {
         filter.status = statusOpt;
       }

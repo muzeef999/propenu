@@ -397,6 +397,12 @@ export const projectAnalytics = async (
             },
           },
 
+          archivedProjects: {
+            $sum: {
+              $cond: [{ $eq: ["$status", "archived"] }, 1, 0],
+            },
+          },
+
           normalProjects: {
             $sum: {
               $cond: [
