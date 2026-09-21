@@ -375,16 +375,7 @@ export const projectAnalytics = async (
 
           inactiveProjects: {
             $sum: {
-              $cond: [
-                {
-                  $in: [
-                    "$status",
-                    ["inactive", "draft", "onboarding", "incomplete"],
-                  ],
-                },
-                1,
-                0,
-              ],
+              $cond: [{ $eq: ["$status", "inactive"] }, 1, 0],
             },
           },
 
