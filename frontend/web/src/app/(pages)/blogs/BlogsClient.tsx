@@ -222,7 +222,7 @@ export default function BlogsClient({
         </div>
       )}
 
-      {categories.length > 1 && (
+      {/* {categories.length > 1 && (
         <div
           className={
             isPage
@@ -250,7 +250,7 @@ export default function BlogsClient({
             );
           })}
         </div>
-      )}
+      )} */}
 
       <div className={isPage ? "relative" : "relative mt-3 sm:mt-6"}>
         {!isPage && (
