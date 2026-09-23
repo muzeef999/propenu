@@ -14,10 +14,13 @@ import mongoose from "mongoose";
 import { deleteS3ObjectIfExists } from "../utils/s3Helpers";
 import {
   sendListingApprovedAgent,
+  sendListingApprovedOwner,
   sendListingSubmittedVerification,
 } from "../../../../shared/whatsapp/whatsapp.helper";
 import {
   sendListingApprovedEmail,
+  sendListingDeactivatedEmail,
+  sendListingRejectedEmail,
   sendListingSubmittedEmail,
 } from "../../../../shared/email/email.helper";
 import { sendTemplateNotification } from "../../../../shared/notifications/push.service";
@@ -835,11 +838,16 @@ export const verifyCommercialDocument = async (
     if (existingProperty?.status !== "active" && updated.status === "active") {
       try {
         const userId = (updated as any).createdBy || (updated as any).ownerId;
-        const user = await User.findById(userId).lean();
+        const user = await User.findById(userId).populate("roleId").lean();
         const propertyTitle = (updated as any).title || "Property";
         const propertyLocation =
           (updated as any).city || (updated as any).locality || "your area";
-        const propertiesLink = `${process.env.FRONTEND_URL || "https://propenu.com"}/agent/my-properties`;
+        const userRole =
+          (user as any)?.roleId?.name || (user as any)?.roleName || "";
+        const isAgent = isDirectAgentRole(userRole);
+        const propertiesLink = isAgent
+          ? `${process.env.FRONTEND_URL || "https://propenu.com"}/agent/my-properties`
+          : `${process.env.FRONTEND_URL || "https://propenu.com"}/my-properties`;
 
         if (user?.email && user?.name) {
           await sendListingApprovedEmail(
@@ -847,7 +855,7 @@ export const verifyCommercialDocument = async (
             user.name,
             propertyTitle,
             {
-              roleName: "sales_agent",
+              roleName: isAgent ? "sales_agent" : "owner",
               location: propertyLocation,
               link: propertiesLink,
             },
@@ -856,7 +864,11 @@ export const verifyCommercialDocument = async (
         }
 
         if (user?.phone && user?.name) {
-          await sendListingApprovedAgent(user.phone, [user.name, propertyTitle]);
+          if (isAgent) {
+            await sendListingApprovedAgent(user.phone, [user.name, propertyTitle]);
+          } else {
+            await sendListingApprovedOwner(user.phone, [user.name, propertyTitle]);
+          }
           notificationStatus.whatsapp = true;
         }
 
@@ -877,21 +889,49 @@ export const verifyCommercialDocument = async (
     }
 
     if (status === "rejected") {
-      const userId = (updated as any).createdBy || (updated as any).ownerId;
-      const user = await User.findById(userId).lean();
-      const propertyTitle = (updated as any).title || "Property";
-      const reason = (updated as any).rejectedReason || "";
+      try {
+        const userId = (updated as any).createdBy || (updated as any).ownerId;
+        const user = await User.findById(userId).populate("roleId").lean();
+        const propertyTitle = (updated as any).title || "Property";
+        const propertyLocation =
+          (updated as any).city || (updated as any).locality || "your area";
+        const reason = (updated as any).rejectedReason || rejectedReason || "";
+        const userRole =
+          (user as any)?.roleId?.name || (user as any)?.roleName || "";
+        const isAgent = isDirectAgentRole(userRole);
+        const propertiesLink = isAgent
+          ? `${process.env.FRONTEND_URL || "https://propenu.com"}/agent/my-properties`
+          : `${process.env.FRONTEND_URL || "https://propenu.com"}/my-properties`;
 
-      if (user?.fcmToken) {
-        await sendTemplateNotification({
-          token: user.fcmToken,
-          templateKey: "PROPERTY_REJECTED",
-          data: {
-            name: user.name || "User",
+        if (user?.email && user?.name && !(user as any)?.isUnsubscribedToEmail) {
+          await sendListingRejectedEmail(
+            user.email,
+            user.name,
             propertyTitle,
-            rejectedReason: reason,
-          },
-        });
+            {
+              roleName: isAgent ? "sales_agent" : "owner",
+              location: propertyLocation,
+              reason,
+              link: propertiesLink,
+            },
+          );
+          notificationStatus.email = true;
+        }
+
+        if (user?.fcmToken) {
+          await sendTemplateNotification({
+            token: user.fcmToken,
+            templateKey: "PROPERTY_REJECTED",
+            data: {
+              name: user.name || "User",
+              propertyTitle,
+              rejectedReason: reason,
+            },
+          });
+          notificationStatus.push = true;
+        }
+      } catch (notifyError) {
+        console.error("Rejection notification error:", notifyError);
       }
     }
 
@@ -944,10 +984,15 @@ export const approveCommercialProperty = async (
     };
 
     try {
-      const agent = await User.findById(property.createdBy).lean();
+      const agent = await User.findById(property.createdBy).populate("roleId").lean();
       const propertyTitle = property.title || "Property";
       const propertyLocation = property.city || property.locality || "your area";
-      const propertiesLink = `${process.env.FRONTEND_URL || "https://propenu.com"}/agent/my-properties`;
+      const agentRole =
+        (agent as any)?.roleId?.name || (agent as any)?.roleName || "";
+      const isAgent = isDirectAgentRole(agentRole);
+      const propertiesLink = isAgent
+        ? `${process.env.FRONTEND_URL || "https://propenu.com"}/agent/my-properties`
+        : `${process.env.FRONTEND_URL || "https://propenu.com"}/my-properties`;
 
       if (agent?.email && agent?.name) {
         await sendListingApprovedEmail(
@@ -955,7 +1000,7 @@ export const approveCommercialProperty = async (
           agent.name,
           propertyTitle,
           {
-            roleName: "sales_agent",
+            roleName: isAgent ? "sales_agent" : "owner",
             location: propertyLocation,
             link: propertiesLink,
           },
@@ -964,10 +1009,17 @@ export const approveCommercialProperty = async (
       }
 
       if (agent?.phone && agent?.name) {
-        await sendListingApprovedAgent(agent.phone, [
-          agent.name,
-          propertyTitle,
-        ]);
+        if (isAgent) {
+          await sendListingApprovedAgent(agent.phone, [
+            agent.name,
+            propertyTitle,
+          ]);
+        } else {
+          await sendListingApprovedOwner(agent.phone, [
+            agent.name,
+            propertyTitle,
+          ]);
+        }
         notificationStatus.whatsapp = true;
       }
 
@@ -1014,6 +1066,32 @@ export const deactivateCommercialProperty = async (
     property.isPublished = false;
     property.updatedBy = new mongoose.Types.ObjectId(req.user!.id);
     await property.save();
+
+    try {
+      const ownerId = property.createdBy || (property as any).ownerId;
+      const owner = await User.findById(ownerId).populate("roleId").lean();
+      if (owner?.email && owner?.name && !(owner as any)?.isUnsubscribedToEmail) {
+        const userRole = (owner as any)?.roleId?.name || (owner as any)?.roleName || "";
+        const isAgent = isDirectAgentRole(userRole);
+        const propertyLocation =
+          property.city ||
+          property.locality ||
+          (property as any).address ||
+          (typeof (property as any).location === "object" && (property as any).location?.city) ||
+          "your area";
+        await sendListingDeactivatedEmail(
+          owner.email,
+          owner.name,
+          property.title || (property as any).buildingName || "Your Property",
+          {
+            roleName: isAgent ? "sales_agent" : "owner",
+            location: propertyLocation,
+          },
+        );
+      }
+    } catch (emailErr) {
+      console.error("[deactivateCommercialProperty] email error:", emailErr);
+    }
 
     res.json({
       success: true,

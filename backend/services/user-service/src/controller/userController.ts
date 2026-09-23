@@ -6,6 +6,8 @@ import { sendBulkPush } from "../../../../shared/notifications/push.service";
 import { HydratedDocument } from "mongoose";
 import Role from "../models/roleModel";
 import { uploadToS3 } from "../utils/s3Upload";
+import { verifyAndConsumeOtpWithReason } from "../utils/saveOtpRedis";
+import { decodeUnsubscribeToken } from "../utils/unsubscribeToken";
 
 const isAdminRole = (roleName?: string) =>
   roleName === "admin" || roleName === "super_admin";
@@ -385,6 +387,81 @@ export const sendCustomNotification = async (req: Request, res: Response) => {
       message: "Error sending notification",
       error: error.message,
     });
+  }
+};
+
+export const unsubscribeFromEmail = async (req: Request, res: Response) => {
+  try {
+    const body = req.body || {};
+    const query = req.query || {};
+
+    const rawEmail = (body.email || query.email) as string | undefined;
+    const rawPhone = (body.phone || query.phone) as string | undefined;
+    const rawToken = (body.token || query.token) as string | undefined;
+
+    let identifier = rawEmail || rawPhone;
+
+    if (rawToken && !identifier) {
+      identifier = decodeUnsubscribeToken(rawToken) || undefined;
+    }
+
+    // If identifier doesn't have '@' or phone format, it could be a base64url encoded token
+    if (
+      identifier &&
+      !identifier.includes("@") &&
+      !/^\+?\d{7,15}$/.test(identifier.trim())
+    ) {
+      const decoded = decodeUnsubscribeToken(identifier);
+      if (decoded) {
+        identifier = decoded;
+      }
+    }
+
+    // If GET request with no identifier, redirect to frontend unsubscribe page
+    if (req.method === "GET" && !identifier) {
+      const frontendUrl =
+        process.env.FRONTEND_URL?.replace(/\/$/, "") || "https://propenu.com";
+      return res.redirect(`${frontendUrl}/unsubscribe`);
+    }
+
+    if (!identifier) {
+      return res.status(400).json({
+        message: "Either email or phone is required",
+      });
+    }
+
+    const trimmed = identifier.trim();
+    const isEmail = trimmed.includes("@");
+
+    const updated = await User.findOneAndUpdate(
+      isEmail ? { email: trimmed.toLowerCase() } : { phone: trimmed },
+      { $set: { isUnsubscribedToEmail: true } },
+      { new: true },
+    );
+
+    if (req.method === "GET") {
+      const frontendUrl =
+        process.env.FRONTEND_URL?.replace(/\/$/, "") || "https://propenu.com";
+      return res.redirect(
+        `${frontendUrl}/unsubscribe?${isEmail ? "email" : "phone"}=${encodeURIComponent(
+          trimmed,
+        )}&success=true`,
+      );
+    }
+
+    if (!updated) {
+      // Return success anyway to avoid leaking whether email exists
+      return res.status(200).json({
+        message: "If that account exists, you have been unsubscribed.",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Successfully unsubscribed from email notifications.",
+    });
+  } catch (error: any) {
+    console.error("Unsubscribe from email error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 

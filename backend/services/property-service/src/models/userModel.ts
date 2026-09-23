@@ -158,6 +158,10 @@ const UserSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    isUnsubscribedToEmail: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true, // automatically adds createdAt & updatedAt

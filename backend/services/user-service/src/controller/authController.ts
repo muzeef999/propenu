@@ -10,7 +10,7 @@ import { generateToken } from "../utils/jwt";
 import { Request, Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { sendOtpWhatsApp } from "../utils/whatsapp";
-import { sendOtpEmail } from "../utils/email";
+import { sendOtpEmail, sendSignupEmailByRole } from "../utils/email";
 import { getOtpLoginRestrictionMessage } from "../utils/accessPolicy";
 import mongoose from "mongoose";
 import DeletedAccount from "../models/deletedAccountModel";
@@ -2311,7 +2311,7 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       phone: normalizedPhone || phone,
       roleId: roleDoc._id,
       phoneVerified: true,
-      accountStatus: "location_pending",
+      accountStatus: "active",
       ...(tempLocation
         ? {
             tempCity: tempLocation.tempCity,
@@ -2344,6 +2344,20 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       if (didAssign) await user.save();
     } catch {
       /* non-blocking */
+    }
+
+    if (user.email && user.name) {
+      sendSignupEmailByRole(
+        user.email,
+        user.name,
+        roleDoc.name || "user",
+      )
+        .then(() => {
+          User.findByIdAndUpdate(user._id, { welcomeEmailSent: true }).catch(() => {});
+        })
+        .catch((emailError) => {
+          console.error("Failed to send welcome email on signup:", emailError);
+        });
     }
 
     const token = await createAuthToken({ user, roleDoc });
@@ -2569,7 +2583,7 @@ export const adminCreateVerifyOtp = async (req: AuthRequest, res: Response) => {
       email,
       roleId: roleDoc._id,
       ...(managerId ? { managerId } : {}),
-      accountStatus: "location_pending",
+      accountStatus: "active",
     });
 
     if (roleDoc.name === "agent") {
@@ -2581,7 +2595,7 @@ export const adminCreateVerifyOtp = async (req: AuthRequest, res: Response) => {
     return res.status(201).json({
       message: "Account created. Continue signup.",
       token,
-      nextStep: "location",
+      nextStep: "complete",
       role: { _id: String(roleDoc._id), name: roleDoc.name, label: roleDoc.label },
       reportsTo: reportsToUser,
       hierarchy: describeRoleHierarchy(roleDoc.name),
@@ -2687,6 +2701,19 @@ export const adminCreateUpdateLocation = async (
 
     await user.save();
 
+    if (user.email && user.name) {
+      sendSignupEmailByRole(
+        user.email,
+        user.name,
+        roleDoc.name || "user",
+      ).catch((emailError) => {
+        console.error(
+          "Failed to send welcome email on admin create location update:",
+          emailError,
+        );
+      });
+    }
+
     // create fresh token
     const token = await createAuthToken({
       user,
@@ -2753,6 +2780,7 @@ export const updateLocationOtp = async (req: AuthRequest, res: Response) => {
         ? populatedUser.roleId.name
         : undefined;
 
+    const wasAlreadyActive = updatedUser.accountStatus === "active";
     updatedUser.accountStatus = "active";
 
     // Keep same CCE if they still cover final location; otherwise remove + reassign.
@@ -2763,6 +2791,23 @@ export const updateLocationOtp = async (req: AuthRequest, res: Response) => {
     }
 
     await updatedUser.save();
+
+    if (!wasAlreadyActive && !updatedUser.welcomeEmailSent && updatedUser.email && updatedUser.name) {
+      sendSignupEmailByRole(
+        updatedUser.email,
+        updatedUser.name,
+        String(roleName || "user"),
+      )
+        .then(() => {
+          User.findByIdAndUpdate(updatedUser._id, { welcomeEmailSent: true }).catch(() => {});
+        })
+        .catch((emailError) => {
+          console.error(
+            "Failed to send welcome email on location update:",
+            emailError,
+          );
+        });
+    }
 
     const roleDoc: any = updatedUser.roleId;
     const token = generateToken({

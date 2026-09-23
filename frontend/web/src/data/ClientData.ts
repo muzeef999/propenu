@@ -199,6 +199,14 @@ export const requestOtp = async (payload: RequestOtpPayload) => {
   return res.data;
 };
 
+export const unsubscribeFromEmail = async (payload: { email?: string; phone?: string }) => {
+  const res = await axiosInstance.post<{ message: string }>(
+    `${url}/api/users/unsubscribe-email`,
+    payload,
+  );
+  return res.data;
+};
+
 export const verifyOtp = async (payload: VerifyOtpPayload) => {
   const res = await axiosInstance.post<VerifyOtpResponse>(
     `${url}/api/users/auth/verify-otp`,

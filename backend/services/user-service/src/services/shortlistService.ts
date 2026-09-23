@@ -6,6 +6,7 @@ import Commercial from "../models/commercialModel";
 import LandPlot from "../models/landModel";
 import Agricultural from "../models/agriculturalModel";
 import User from "../models/userModel";
+import { sendShortlistedPropertyEmail } from "../../../../shared/email/email.helper";
 
 const SHORTLIST_MODEL_MAP: Record<string, any> = {
   Residential,
@@ -61,7 +62,7 @@ export const addToShortlistService = async (
   }
 
   const property = await PropertyModel.findById(propertyObjectId)
-    .select("createdBy")
+    .select("createdBy title projectName buildingName location")
     .lean();
 
   if (!property) {
@@ -72,11 +73,49 @@ export const addToShortlistService = async (
     throw new Error("This is your own property");
   }
 
-  return await (Shortlist.findOneAndUpdate as any)(
+  const existing = await (Shortlist.findOne as any)({
+    userId,
+    propertyId: propertyObjectId,
+  }).lean();
+
+  const result = await (Shortlist.findOneAndUpdate as any)(
     { userId, propertyId: propertyObjectId },
     { $set: { propertyType } },
     { upsert: true, new: true },
   );
+
+  if (!existing && (property as any).createdBy) {
+    Promise.all([
+      User.findById(userId).select("name").lean(),
+      User.findById((property as any).createdBy).select("name email").lean(),
+    ])
+      .then(([buyer, owner]) => {
+        if (owner?.email) {
+          const propertyTitle =
+            (property as any).title ||
+            (property as any).projectName ||
+            (property as any).buildingName ||
+            "your property";
+          const location =
+            (property as any).location?.city ||
+            (property as any).city ||
+            (property as any).location?.address ||
+            "your area";
+          const link = `${process.env.FRONTEND_URL || "https://propenu.com"}/my-properties`;
+          sendShortlistedPropertyEmail(
+            owner.email,
+            owner.name || "Owner",
+            buyer?.name || "A potential buyer",
+            propertyTitle,
+            location,
+            link,
+          ).catch((err) => console.error("Error sending shortlist email:", err));
+        }
+      })
+      .catch((err) => console.error("Error triggering shortlist email:", err));
+  }
+
+  return result;
 };
 
 export const removeFromShortlistService = async (

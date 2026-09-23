@@ -18,6 +18,7 @@ export interface IUser extends mongoose.Document {
   pincode?: string;
   address?: string;
   phoneVerified?: boolean;
+  welcomeEmailSent?: boolean;
   /** Extended org profile for builder accounts (RERA, GST, media, etc.). */
   builderProfile?: {
     bio?: string;
@@ -34,10 +35,7 @@ export interface IUser extends mongoose.Document {
       providerResponse?: any;
     };
   };
-  accountStatus?:
-    | "pending"
-    | "location_pending"
-    | "active";
+  accountStatus?: "pending" | "location_pending" | "active";
   builderId?: Types.ObjectId;
   userCode: string;
   roleId?: Types.ObjectId;
@@ -86,7 +84,9 @@ const getCityCode = (city?: string) => {
   const normalizedCity = city?.replace(/[^a-zA-Z0-9]/g, "").toUpperCase() ?? "";
 
   if (normalizedCity.length < 3) {
-    throw new Error("City must contain at least 3 letters to generate userCode");
+    throw new Error(
+      "City must contain at least 3 letters to generate userCode",
+    );
   }
 
   return normalizedCity.slice(0, 3);
@@ -111,8 +111,11 @@ const getEntityCode = async (roleId?: Types.ObjectId | null) => {
   return "USR";
 };
 
-const getCounterKey = (entityCode: string, cityCode: string, yearCode: string) =>
-  `${entityCode}_${cityCode}_${yearCode}`;
+const getCounterKey = (
+  entityCode: string,
+  cityCode: string,
+  yearCode: string,
+) => `${entityCode}_${cityCode}_${yearCode}`;
 
 const UserSchema = new mongoose.Schema(
   {
@@ -205,11 +208,16 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    welcomeEmailSent: {
+      type: Boolean,
+      default: false,
+    },
     accountStatus: {
       type: String,
       enum: ["pending", "location_pending", "active"],
-      default: "location_pending",
+      default: "active",
     },
+    isUnsubscribedToEmail: Boolean,
     address: {
       type: String,
       trim: true,
@@ -374,7 +382,7 @@ UserSchema.pre("save", async function (next) {
         new: true,
         upsert: true,
         setDefaultsOnInsert: true,
-      }
+      },
     );
 
     this.userCode = `P${yearCode}${cityCode}${entityCode}${String(counter.seq).padStart(6, "0")}`;

@@ -9,6 +9,10 @@ import Agricultural from "../models/agriculturalModel";
 import LandPlot from "../models/landModel";
 import User from "../models/userModel";
 import { buildLeadPropertySnapshot } from "../utils/leadPropertySnapshot";
+import {
+  sendUserContactingEmail,
+  sendCallbackRequestEmail,
+} from "../../../../shared/email/email.helper";
 
 const PROPERTY_MODEL_MAP: Record<string, any> = {
   featuredprojects: FeaturedProject,
@@ -113,7 +117,7 @@ export const createPublicLead = async (
   // 2️⃣ Check project exists
   const project = await FeaturedProject.findById(projectId).populate(
     "createdBy",
-    "phone email",
+    "name phone email",
   );
   if (!project) {
     throw new Error("Featured project not found");
@@ -176,6 +180,20 @@ export const createPublicLead = async (
       source: lead.source || "site",
     },
   });
+
+  if (ownerEmail) {
+    const ownerName = (project as any)?.createdBy?.name || "Owner";
+    const location = (project as any)?.location?.city || (project as any)?.city || "your area";
+    const targetLink = `${process.env.FRONTEND_URL || "https://propenu.com"}/my-properties`;
+    const isCallback = data.contactPreference === "callback" || data.type === "callback" || data.source === "callback";
+    if (isCallback) {
+      sendCallbackRequestEmail(ownerEmail, ownerName, lead.name, projectTitle, location, targetLink)
+        .catch((err) => console.error("Error sending project callback email:", err));
+    } else {
+      sendUserContactingEmail(ownerEmail, ownerName, lead.name, projectTitle, location, targetLink)
+        .catch((err) => console.error("Error sending project contact email:", err));
+    }
+  }
 
   return lead;
 };
@@ -289,6 +307,43 @@ export const createPublicPropertyLead = async (
         source: lead.source || "site",
       },
     });
+
+    if (ownerEmail) {
+      const ownerName = (property as any)?.createdBy?.name || "Owner";
+      const location =
+        (property as any)?.location?.city ||
+        (property as any)?.city ||
+        (property as any)?.location?.address ||
+        "your area";
+      const targetLink = `${process.env.FRONTEND_URL || "https://propenu.com"}/my-properties`;
+      const isCallback =
+        data.contactPreference === "callback" ||
+        data.type === "callback" ||
+        data.source === "callback";
+      if (isCallback) {
+        sendCallbackRequestEmail(
+          ownerEmail,
+          ownerName,
+          lead.name,
+          propertyTitle,
+          location,
+          targetLink,
+        ).catch((err) =>
+          console.error("Error sending property callback email:", err),
+        );
+      } else {
+        sendUserContactingEmail(
+          ownerEmail,
+          ownerName,
+          lead.name,
+          propertyTitle,
+          location,
+          targetLink,
+        ).catch((err) =>
+          console.error("Error sending property contact email:", err),
+        );
+      }
+    }
   }
 
   return {
