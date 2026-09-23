@@ -45,7 +45,6 @@ import {
 import { activateSubscription } from "../../../payment-service/src/services/subscriptionService";
 
 const PLATFORM_END_USER_ROLE_SET = new Set<string>(PLATFORM_END_USER_ROLE_NAMES);
-import { ALL_PERMISSIONS } from "../constants/permissionCatalog";
 
 /** Optional day range from query: createdFrom/createdTo (aliases: from/to). YYYY-MM-DD.
  *  Day bounds use India time (IST, +05:30) so "today" matches admin UI local dates.
@@ -371,9 +370,11 @@ const findDeletedAccount = async ({
   email?: string;
   phone?: string;
 }) => {
+  const normalizedEmail = email ? String(email).trim().toLowerCase() : "";
+  const phoneValues = getPhoneLookupValues(phone);
   const lookup = [
-    ...(email ? [{ email }] : []),
-    ...(phone ? [{ phone }] : []),
+    ...(normalizedEmail ? [{ email: normalizedEmail }] : []),
+    ...phoneValues.map((value) => ({ phone: value })),
   ];
 
   if (!lookup.length) {
@@ -383,7 +384,8 @@ const findDeletedAccount = async ({
   return DeletedAccount.findOne({ $or: lookup }).select("_id").lean();
 };
 
-/** Super Admin / Create Credentials may rehire the same email after permanent delete. */
+/** Super Admin / Create Credentials may rehire the same email after permanent delete.
+ *  Public propenu.com signup also clears phone/email tombstones before a fresh account. */
 const clearDeletedAccountTombstones = async ({
   email,
   phone,
@@ -421,7 +423,6 @@ const createAuthToken = async ({
     companyName: user.companyName,
     roleId: roleDoc ? String(roleDoc._id) : undefined,
     roleName: roleDoc?.name,
-    permissions: roleDoc?.name === "super_admin" ? ALL_PERMISSIONS : roleDoc?.permissions ?? [],
     builderAccess,
     accountStatus: user.accountStatus,
   };
@@ -629,9 +630,6 @@ export const me = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.split(" ")[1] || null;
-
     // 2️⃣ load user
     const user = await User.findById(req.user.sub).populate("roleId").lean();
 
@@ -657,10 +655,10 @@ export const me = async (req: AuthRequest, res: Response) => {
     const locationCompleted =
       !!user.locality && !!user.city && !!user.state && !!user.pincode;
 
+    const isSuperAdmin = role?.name === "super_admin";
+
     return res.status(200).json({
       message: "Authenticated user",
-      token,
-
       user: {
         id: user._id,
         name: user.name,
@@ -676,9 +674,8 @@ export const me = async (req: AuthRequest, res: Response) => {
         phoneVerified: user.phoneVerified,
         roleId: role ? String(role._id) : null,
         roleName: role ? role.name : null,
-        permissions: role?.name === "super_admin" ? ALL_PERMISSIONS : role?.permissions || [],
+        permissions: isSuperAdmin ? ["*"] : role?.permissions || [],
         builderAccess,
-
       },
     });
   } catch (err: any) {
@@ -1011,6 +1008,63 @@ export const adminDeleteUser = async (req: AuthRequest, res: Response) => {
   }
 };
 
+/** Super Admin only — list tombstones from deletedaccounts collection. */
+export const listDeletedAccounts = async (req: AuthRequest, res: Response) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+    const q = String(req.query.q || req.query.search || "").trim();
+
+    const filter: Record<string, unknown> = {};
+    if (q) {
+      const rx = new RegExp(escapeRegex(q), "i");
+      filter.$or = [{ name: rx }, { email: rx }, { phone: rx }];
+    }
+
+    const [total, rows] = await Promise.all([
+      DeletedAccount.countDocuments(filter),
+      DeletedAccount.find(filter)
+        .sort({ deletedAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .populate("roleId", "name label")
+        .lean(),
+    ]);
+
+    const data = rows.map((row: any) => ({
+      _id: row._id,
+      userId: row.userId,
+      name: row.name || "—",
+      email: row.email || null,
+      phone: row.phone || null,
+      roleName: row.roleId?.name || null,
+      roleLabel: row.roleId?.label || row.roleId?.name || null,
+      deletedAt: row.deletedAt || row.createdAt || null,
+      deletionReason: row.deletionReason || null,
+      deletionFeedback: row.deletionFeedback || null,
+    }));
+
+    const pages = Math.max(1, Math.ceil(total / limit) || 1);
+
+    return res.json({
+      success: true,
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        pages,
+      },
+    });
+  } catch (error: any) {
+    console.error("listDeletedAccounts error", error);
+    return res.status(500).json({
+      message: "Failed to load deleted accounts",
+      error: error.message,
+    });
+  }
+};
+
 export const getAllUsers = async (req: AuthRequest, res: Response) => {
   try {
     const userFilter: any = {};
@@ -1155,6 +1209,20 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
           { pincode: rx },
         ],
       });
+    }
+
+    // Exact geo filters (campaign / audience targeting) — case-insensitive.
+    const stateExact = String(query.state || "").trim();
+    if (stateExact) {
+      userFilter.state = new RegExp(`^${escapeRegex(stateExact)}$`, "i");
+    }
+    const cityExact = String(query.city || "").trim();
+    if (cityExact) {
+      userFilter.city = new RegExp(`^${escapeRegex(cityExact)}$`, "i");
+    }
+    const localityExact = String(query.locality || "").trim();
+    if (localityExact) {
+      userFilter.locality = new RegExp(`^${escapeRegex(localityExact)}$`, "i");
     }
 
     const statusRaw = String(
@@ -2062,12 +2130,9 @@ export const createRequestOtp = async (req: Request, res: Response) => {
       });
     }
 
-    const deletedAccount = await findDeletedAccount({ email, phone });
-    if (deletedAccount) {
-      return res.status(403).json({
-        message: deletedAccountMessage,
-      });
-    }
+    // Previously deleted phone/email: allow fresh public signup.
+    // Clear tombstone(s), then send OTP and create a new users row on verify.
+    await clearDeletedAccountTombstones({ email, phone });
 
     const otp = genOtp();
     
@@ -2235,6 +2300,9 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
         message: "Invalid role",
       });
     }
+
+    // Safety: ensure no leftover deleted-account block for this phone/email.
+    await clearDeletedAccountTombstones({ email, phone });
 
     user = await User.create({
       name,

@@ -1,12 +1,22 @@
 import axios from "axios";
 
+/** Meta Cloud API expects international number digits only (no + / spaces). */
+function toWhatsAppRecipient(phone: string) {
+  return String(phone || "").replace(/\D/g, "");
+}
+
 export async function sendOtpWhatsApp(phone: string, otp: string) {
   try {
+    const to = toWhatsAppRecipient(phone);
+    if (!to || to.length < 10) {
+      throw new Error("Invalid WhatsApp recipient phone");
+    }
+
     const url = `https://graph.facebook.com/v20.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
     
     const payload = {
       messaging_product: "whatsapp",
-      to: phone,
+      to,
       type: "template",
       template: {
         name: "auth_otp",
@@ -48,7 +58,11 @@ export async function sendOtpWhatsApp(phone: string, otp: string) {
 
   } catch (err: any) {
     console.error("❌ WhatsApp FULL error:");
-    console.error(JSON.stringify(err?.response?.data, null, 2));
-    throw new Error("WhatsApp OTP failed");
+    console.error(JSON.stringify(err?.response?.data || err?.message, null, 2));
+    throw new Error(
+      err?.response?.data?.error?.message ||
+        err?.message ||
+        "WhatsApp OTP failed",
+    );
   }
 }

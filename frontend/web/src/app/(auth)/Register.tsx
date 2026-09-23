@@ -171,7 +171,11 @@ const RegisterDialog = ({
       const resolvedMessage =
         typeof backendMessage === "string" && backendMessage.trim()
           ? backendMessage
-          : "Something went wrong while requesting OTP";
+          : axios.isAxiosError(err) && !err.response
+            ? "Cannot reach API. Check network/CORS and that the backend is running."
+            : "Something went wrong while requesting OTP";
+      // Allow retry for the same phone after a failed attempt.
+      lastOtpAttemptedPhoneRef.current = "";
       setOtpRequested(false);
       setOtpDigits(Array(OTP_LENGTH).fill(""));
       setResendCooldown(0);

@@ -38,15 +38,31 @@ const allowed = (process.env.ALLOWED_ORIGINS || "")
   .map((s) => s.trim().replace(/\/+$/, ""))
   .filter(Boolean);
 
+const isLocalDevOrigin = (origin: string) => {
+  try {
+    const u = new URL(origin);
+    const host = u.hostname.toLowerCase();
+    return (
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "::1" ||
+      /^192\.168\.\d{1,3}\.\d{1,3}$/.test(host) ||
+      /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)
+    );
+  } catch {
+    return false;
+  }
+};
+
 app.use(
   cors({
     origin(origin, callback) {
       if (!origin) return callback(null, true); // Postman / curl
       const clean = origin.replace(/\/+$/, "");
-      if (!allowed.length || allowed.includes(clean)) {
+      if (!allowed.length || allowed.includes(clean) || isLocalDevOrigin(clean)) {
         return callback(null, true);
       }
-      return callback(null, false);
+      return callback(new Error(`CORS blocked for origin: ${clean}`));
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],

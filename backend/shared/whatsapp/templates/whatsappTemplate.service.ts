@@ -4,6 +4,7 @@ import { Types } from "mongoose";
 
 import { whatsappQueue } from "../../../services/user-service/src/queues";
 import User from "../../../services/user-service/src/models/userModel";
+import Role from "../../../services/user-service/src/models/roleModel";
 import { WhatsAppLog } from "../../../services/user-service/src/logs/whatsappLog.model";
 
 const TOKEN =
@@ -132,7 +133,16 @@ export const sendWhatsAppCampaignDynamic = async (
   try {
     const { v4: uuidv4 } = await import("uuid");
     const campaignId = uuidv4();
-    const { templateName, city, state, roleId } = req.body;
+    const {
+      templateName,
+      city,
+      state,
+      locality,
+      roleId,
+      roleName,
+      module: moduleId,
+      recipientField,
+    } = req.body;
 
     if (!templateName) {
       return res.status(400).json({
@@ -165,18 +175,50 @@ export const sendWhatsAppCampaignDynamic = async (
     const templateText = bodyComponent?.text || "";
     const variableCount = getVariableCount(templateText);
 
+    // Map user-collection modules → role names
+    const MODULE_ROLE: Record<string, string> = {
+      users: "user",
+      agents: "agent",
+      builders: "builder",
+      builder_staff: "builder_staff",
+    };
+    const resolvedRoleName = String(
+      roleName || MODULE_ROLE[String(moduleId || "").trim()] || "",
+    )
+      .trim()
+      .toLowerCase();
+
     // ✅ 3. Build filter
     const filter: any = {
       isActive: true,
       phone: { $exists: true, $ne: null },
     };
 
-    if (city) filter.city = city;
-    if (state) filter.state = state;
+    const escapeRegex = (value: string) =>
+      String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const exactCi = (value: unknown) => {
+      const v = String(value || "").trim();
+      return v ? new RegExp(`^${escapeRegex(v)}$`, "i") : null;
+    };
+    const stateRx = exactCi(state);
+    const cityRx = exactCi(city);
+    const localityRx = exactCi(locality);
+    if (stateRx) filter.state = stateRx;
+    if (cityRx) filter.city = cityRx;
+    if (localityRx) filter.locality = localityRx;
 
     if (roleId && Types.ObjectId.isValid(roleId)) {
       filter.roleId = new Types.ObjectId(roleId);
+    } else if (resolvedRoleName) {
+      const roleDoc = await Role.findOne({ name: resolvedRoleName })
+        .select("_id")
+        .lean();
+      if (roleDoc?._id) {
+        filter.roleId = roleDoc._id;
+      }
     }
+
+    const phoneKey = String(recipientField || "phone").trim() || "phone";
 
     // ✅ 4. Pagination (same as email)
     const batchSize = 100;
@@ -185,20 +227,26 @@ export const sendWhatsAppCampaignDynamic = async (
 
     while (true) {
       const users = await User.find(filter)
-        .select("name phone city state")
+        .select("name phone email city state locality")
         .skip(page * batchSize)
         .limit(batchSize)
         .lean();
       if (!users.length) break;
-      
-      for (const user of users) {
-        if (!user.phone) continue;
 
-        // ✅ 5. Prepare variables (SAFE mapping)
+      for (const user of users) {
+        const phoneRaw =
+          phoneKey === "phone"
+            ? user.phone
+            : (user as any)[phoneKey] || user.phone;
+        if (!phoneRaw) continue;
+
+        // ✅ 5. Prepare variables (SAFE mapping — profile order)
         const data = {
           name: user.name || "User",
           city: user.city || "",
           state: user.state || "",
+          locality: (user as any).locality || "",
+          email: (user as any).email || "",
         };
 
         const variables = Object.values(data).slice(0, variableCount);
@@ -206,11 +254,11 @@ export const sendWhatsAppCampaignDynamic = async (
         if (variables.length !== variableCount) continue;
 
         const log = await WhatsAppLog.create({
-          to: user.phone,
+          to: phoneRaw,
           templateName,
           status: "pending",
           campaignId,
-          variables, // optional but recommended
+          variables,
         });
 
         console.log("🧾 Log created:", log._id);
@@ -220,7 +268,7 @@ export const sendWhatsAppCampaignDynamic = async (
           "send-message",
           {
             campaignId,
-            to: user.phone,
+            to: phoneRaw,
             templateName,
             variables,
             language:

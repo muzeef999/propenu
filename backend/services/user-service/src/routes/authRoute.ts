@@ -1,11 +1,12 @@
 import express from "express";
-import { adminCreateRequestOtp, adminCreateUpdateLocation, adminCreateVerifyOtp, adminDeleteUser, adminSetUserActive, assignManager, assignReportsTo, claimSeClient, createRequestOtp,  createVerifyOtp, deleteMyAccount, getAllUsers, getEligibleReportsTo, getManagerTeamDetails, getRoleHierarchyGuide, me, requestAdminUserPhoneChangeOtp, requestOTP, searchUsers, updateLocationOtp, updateUser, updateUserProfileById, updateUserRole, verifyOtp } from "../controller/authController";
+import { adminCreateRequestOtp, adminCreateUpdateLocation, adminCreateVerifyOtp, adminDeleteUser, adminSetUserActive, assignManager, assignReportsTo, claimSeClient, createRequestOtp,  createVerifyOtp, deleteMyAccount, getAllUsers, getEligibleReportsTo, getManagerTeamDetails, getRoleHierarchyGuide, listDeletedAccounts, me, requestAdminUserPhoneChangeOtp, requestOTP, searchUsers, updateLocationOtp, updateUser, updateUserProfileById, updateUserRole, verifyOtp } from "../controller/authController";
 import { updateFollowUpWorkStatus } from "../controller/followUpWorkController";
 import { getClientProgressQueue } from "../controller/clientProgressQueueController";
 import { pingPresence } from "../controller/presenceController";
 import { getUserWorkingLocations, updateUserWorkingLocations } from "../controller/workingLocationsController";
 import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware";
 import { requirePermission } from "../middlewares/requirePermission";
+import { superAdminOnly } from "../middlewares/superAdminOnly";
 
 
 const authRoute = express.Router();
@@ -138,6 +139,12 @@ authRoute.patch(
 );
  
 authRoute.get("/all-users", authMiddleware, requirePermission("user:view"), getAllUsers);
+authRoute.get(
+  "/deleted-accounts",
+  authMiddleware,
+  superAdminOnly,
+  listDeletedAccounts,
+);
 authRoute.get(
   "/client-progress-queue",
   authMiddleware,
