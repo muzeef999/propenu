@@ -4,6 +4,7 @@ import {
   markAdminNotificationsSeen,
   saveFcmToken,
   sendCustomNotification,
+  unsubscribeFromEmail,
 } from "../controller/userController";
 import { uploadNotificationImage } from "../middlewares/upload";
 import { authMiddleware } from "../middlewares/authMiddleware";
@@ -20,6 +21,8 @@ router.post(
   sendCustomNotification,
 );
 
+router.post("/unsubscribe-email", unsubscribeFromEmail);
+router.get("/unsubscribe-email", unsubscribeFromEmail);
 
 
 export default router;

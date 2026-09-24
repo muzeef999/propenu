@@ -10,6 +10,7 @@ import shortlistRoutes from "./routes/shortlistRoute";
 import roleRoute from "./routes/roleRoute";
 import userRoutes from "./routes/userRoutes";
 import { startNotificationJob } from "./jobs/notification.job";
+import { startEmailJob } from "./jobs/email.job";
 import emailRouter from "./routes/emailRoute";
 import whatsappRouter from "./routes/whatsappRoute";
 import conversationFlowRouter from "./routes/conversationFlowRoute";
@@ -106,6 +107,7 @@ async function start() {
     app.use("/api/users/roles", roleRoute);
     app.use("/api/users/builder-access", builderAccessRoute);
     app.use("/api/users/notifications", userRoutes);
+    app.use("/api/users", userRoutes);
     app.use("/api/users/email", emailRouter);
     app.use("/api/users/whatsapp", whatsappRouter);
     // Meta / Bizrow-style callback (same handlers as /api/users/whatsapp/flow/webhook)
@@ -135,10 +137,11 @@ async function start() {
         console.error("Campaign workers failed to start:", error);
       });
 
-    app.listen(Number(port), "0.0.0.0", () => {
-      console.log(`user service running on 0.0.0.0:${port}`);
-      // startNotificationJob();
-    });
+      app.listen(Number(port), "0.0.0.0", () => {
+        console.log(`user service running on 0.0.0.0:${port}`);
+        // startNotificationJob();
+        startEmailJob();
+      });
     
   } catch (err) {
     console.error("Failed to start server", err);
