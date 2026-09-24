@@ -32,9 +32,18 @@ const buildRedisConnection = (): RedisOptions => {
     };
   }
 
+  const configuredHost = process.env.REDIS_HOST?.trim() || "127.0.0.1";
+  const parsedHost = new URL(`redis://${configuredHost}`);
+  const configuredPort = process.env.REDIS_PORT?.trim() || parsedHost.port || "6379";
+  const port = Number(configuredPort);
+
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error("REDIS_PORT must be a valid TCP port");
+  }
+
   return {
-    host: process.env.REDIS_HOST || "127.0.0.1",
-    port: Number(process.env.REDIS_PORT || 6379),
+    host: parsedHost.hostname,
+    port,
     maxRetriesPerRequest: null,
     ...(process.env.REDIS_USERNAME
       ? { username: process.env.REDIS_USERNAME }

@@ -112,6 +112,8 @@ export async function processWhatsAppWebhookPayload(body: any) {
 
   const entries = Array.isArray(body?.entry) ? body.entry : [];
   let saved = 0;
+  let inboundSaved = 0;
+  let inboundReceived = 0;
   let statusUpdates = 0;
 
   for (const entry of entries) {
@@ -130,6 +132,7 @@ export async function processWhatsAppWebhookPayload(body: any) {
 
       // Customer → business
       const messages = Array.isArray(value.messages) ? value.messages : [];
+      inboundReceived += messages.length;
       for (const message of messages) {
         const fromWaId = normalizeWaId(message?.from);
         const profileName = nameByWaId.get(fromWaId);
@@ -142,6 +145,7 @@ export async function processWhatsAppWebhookPayload(body: any) {
         });
         if (created) {
           saved += 1;
+          inboundSaved += 1;
           // Fire-and-forget welcome (Bizrow-style conversation flow)
           void maybeSendWelcomeAutoReply(fromWaId);
         }
@@ -202,7 +206,54 @@ export async function processWhatsAppWebhookPayload(body: any) {
     }
   }
 
-  return { saved, statusUpdates };
+  const flowForwarded =
+    inboundReceived > 0 ? await forwardToConversationFlow(body) : false;
+
+  return {
+    saved,
+    inboundSaved,
+    inboundReceived,
+    statusUpdates,
+    flowForwarded,
+  };
+}
+
+/**
+ * Meta supports one webhook callback per app. Relay new inbound events to the
+ * external flow engine so it can resolve list row IDs and execute next nodes.
+ */
+async function forwardToConversationFlow(body: any) {
+  const forwardUrl = String(
+    process.env.WHATSAPP_FLOW_FORWARD_URL || "",
+  ).trim();
+  if (!forwardUrl) return false;
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(forwardUrl);
+  } catch {
+    console.error("WHATSAPP_FLOW_FORWARD_URL is not a valid URL");
+    return false;
+  }
+
+  if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+    console.error("WHATSAPP_FLOW_FORWARD_URL must use http or https");
+    return false;
+  }
+
+  try {
+    await axios.post(parsedUrl.toString(), body, {
+      headers: { "Content-Type": "application/json" },
+      timeout: 10_000,
+    });
+    return true;
+  } catch (error: any) {
+    console.error(
+      "WhatsApp flow webhook forwarding failed:",
+      error?.response?.data?.message || error?.message || error,
+    );
+    return false;
+  }
 }
 
 async function persistCloudMessage(params: {

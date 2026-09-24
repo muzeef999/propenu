@@ -28,6 +28,12 @@ export const receiveWebhook = async (req: Request, res: Response) => {
     if (result.saved > 0) {
       console.log(`WhatsApp inbox saved ${result.saved} message(s)`);
     }
+    if (result.inboundReceived > 0 && !result.flowForwarded) {
+      console.error(
+        "WhatsApp inbound message was saved, but the flow engine did not receive it; requesting a Meta retry",
+      );
+      return res.sendStatus(503);
+    }
     return res.sendStatus(200);
   } catch (error) {
     console.error("WhatsApp webhook error:", error);

@@ -10,6 +10,8 @@ export const whatsappConfig = {
   /** Public Meta callback URL (must hit this app for live inbound chat) */
   webhookCallbackUrl: process.env.WHATSAPP_WEBHOOK_CALLBACK_URL || "",
   webhookSlug: process.env.WHATSAPP_WEBHOOK_SLUG || "tyent",
+  /** External builder runtime that executes dynamic menu branches. */
+  flowForwardUrl: process.env.WHATSAPP_FLOW_FORWARD_URL || "",
   autoReplyEnabled: ["1", "true", "yes"].includes(
     String(process.env.WHATSAPP_AUTO_REPLY_ENABLED || "")
       .toLowerCase()
