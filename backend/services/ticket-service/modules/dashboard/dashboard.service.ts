@@ -1,16 +1,23 @@
 import type { PipelineStage } from "mongoose";
 import { Ticket } from "../ticket";
 
-const parseDate = (value: unknown) => {
-  if (typeof value !== "string") return undefined;
-  const date = new Date(value);
+const parseDate = (value: unknown, endOfDay = false) => {
+  if (typeof value !== "string" || !value.trim()) return undefined;
+  const raw = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const date = new Date(
+      `${raw}T${endOfDay ? "23:59:59.999" : "00:00:00.000"}+05:30`,
+    );
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }
+  const date = new Date(raw);
   return Number.isNaN(date.getTime()) ? undefined : date;
 };
 
 export class DashboardService {
   static async overview(query: Record<string, unknown>) {
-    const from = parseDate(query.from);
-    const to = parseDate(query.to);
+    const from = parseDate(query.from || query.startDate, false);
+    const to = parseDate(query.to || query.endDate, true);
     const dateMatch: Record<string, unknown> = {};
 
     if (from || to) {
@@ -48,6 +55,15 @@ export class DashboardService {
       ],
     };
 
+    const currentStatusMatch: Record<string, unknown> = {
+      status: { $in: openStatuses },
+    };
+    if (dateMatch.$or) currentStatusMatch.$or = dateMatch.$or;
+    else if (dateMatch["assignedTo.userId"]) {
+      currentStatusMatch["assignedTo.userId"] = dateMatch["assignedTo.userId"];
+    }
+    if (dateMatch.department) currentStatusMatch.department = dateMatch.department;
+
     const [
       totals,
       byStatus,
@@ -59,6 +75,10 @@ export class DashboardService {
       reassigned,
       sla,
       recent,
+      openNow,
+      overdueNow,
+      unassignedNow,
+      byStatusNow,
     ] = await Promise.all([
       Ticket.countDocuments(dateMatch),
       Ticket.aggregate([{ $match: dateMatch }, { $group: { _id: "$status", count: { $sum: 1 } } }]),
@@ -98,16 +118,35 @@ export class DashboardService {
           },
         },
       ]),
-      Ticket.find(dateMatch).sort({ updatedAt: -1 }).limit(10).select("title status priority department assignedTo dueAt updatedAt").lean(),
+      Ticket.find(dateMatch).sort({ updatedAt: -1, _id: -1 }).limit(10).select("title status priority department assignedTo dueAt updatedAt").lean(),
+      Ticket.countDocuments(currentStatusMatch),
+      Ticket.countDocuments({ ...currentStatusMatch, dueAt: { $lt: now } }),
+      Ticket.countDocuments({
+        ...currentStatusMatch,
+        $or: [
+          { assignedTo: { $exists: false } },
+          { "assignedTo.userId": { $exists: false } },
+          { "assignedTo.userId": null },
+          { "assignedTo.userId": "" },
+        ],
+      }),
+      Ticket.aggregate([
+        { $match: currentStatusMatch },
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]),
     ]);
 
     return {
       totals,
       open: byStatus.filter((item) => openStatuses.includes(item._id)).reduce((sum, item) => sum + item.count, 0),
+      openNow,
       overdue,
+      overdueNow,
       unassigned,
+      unassignedNow,
       reassigned,
       byStatus,
+      byStatusNow,
       byPriority,
       byDepartment,
       assignmentLoad,

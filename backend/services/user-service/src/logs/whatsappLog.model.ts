@@ -21,6 +21,7 @@ const schema = new mongoose.Schema(
     language: { type: String },
     category: { type: String },
     headerImageUrl: { type: String },
+    headerMediaId: { type: String },
 
     recordId: String,
     campaignId: { type: String, index: true },

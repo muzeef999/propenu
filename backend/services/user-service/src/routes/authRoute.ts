@@ -1,5 +1,6 @@
 import express from "express";
 import { adminCreateRequestOtp, adminCreateUpdateLocation, adminCreateVerifyOtp, adminDeleteUser, adminSetUserActive, assignManager, assignReportsTo, claimSeClient, createRequestOtp,  createVerifyOtp, deleteMyAccount, getAllUsers, getEligibleReportsTo, getManagerTeamDetails, getRoleHierarchyGuide, listDeletedAccounts, me, requestAdminUserPhoneChangeOtp, requestOTP, searchUsers, updateLocationOtp, updateUser, updateUserProfileById, updateUserRole, verifyOtp } from "../controller/authController";
+import { getDashboardUserCounts, getSidebarUserCounts } from "../controller/dashboardCounts.controller";
 import { updateFollowUpWorkStatus } from "../controller/followUpWorkController";
 import { getClientProgressQueue } from "../controller/clientProgressQueueController";
 import { pingPresence } from "../controller/presenceController";
@@ -139,6 +140,18 @@ authRoute.patch(
 );
  
 authRoute.get("/all-users", authMiddleware, requirePermission("user:view"), getAllUsers);
+authRoute.get(
+  "/dashboard-counts",
+  authMiddleware,
+  requirePermission("user:view"),
+  getDashboardUserCounts,
+);
+authRoute.get(
+  "/sidebar-counts",
+  authMiddleware,
+  requirePermission("user:view"),
+  getSidebarUserCounts,
+);
 authRoute.get(
   "/deleted-accounts",
   authMiddleware,

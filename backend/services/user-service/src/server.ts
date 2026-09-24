@@ -116,6 +116,11 @@ async function start() {
     process.env.WHATSAPP_WORKER_EMBEDDED = "1";
     Promise.resolve()
       .then(async () => {
+        const { describeRedisTarget } = require(
+          "./lib/redis.connection",
+        ) as typeof import("./lib/redis.connection");
+        console.log("🔗 Campaign Redis:", describeRedisTarget());
+
         const { startEmailWorker } = require(
           "./workers/email.worker",
         ) as typeof import("./workers/email.worker");

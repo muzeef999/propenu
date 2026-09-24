@@ -9,6 +9,7 @@ import Agricultural from "../models/agriculturalModel";
 import User from "../models/userModel";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import FeaturedProject from "../models/featurePropertiesModel";
+import { listAdminProperties } from "../services/adminPropertyListService";
 
 /* =====================================================
    HELPER
@@ -16,6 +17,30 @@ import FeaturedProject from "../models/featurePropertiesModel";
 
 
 
+
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+const parseIstDayBound = (value: unknown, endOfDay = false) => {
+  if (typeof value !== "string" || !value.trim()) return undefined;
+  const raw = value.trim();
+  if (ISO_DAY.test(raw)) {
+    const date = new Date(
+      `${raw}T${endOfDay ? "23:59:59.999" : "00:00:00.000"}+05:30`,
+    );
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+};
+
+const applyCreatedAtRange = (matchFilter: Record<string, any>, query: Record<string, any>) => {
+  const from = parseIstDayBound(query.from || query.startDate || query.createdFrom, false);
+  const to = parseIstDayBound(query.to || query.endDate || query.createdTo, true);
+  if (!from && !to) return;
+  matchFilter.createdAt = {};
+  if (from) matchFilter.createdAt.$gte = from;
+  if (to) matchFilter.createdAt.$lte = to;
+};
 
 const zeroPropertyOverview = {
   totalProperties: 0,
@@ -206,11 +231,7 @@ export const propertyAnalytics = async (
     if (state) matchFilter.state = state;
     if (city) matchFilter.city = city;
     if (locality) matchFilter.locality = locality;
-    if (from || to) {
-      matchFilter.createdAt = {};
-      if (from) matchFilter.createdAt.$gte = new Date(`${from}T00:00:00.000Z`);
-      if (to) matchFilter.createdAt.$lte = new Date(`${to}T23:59:59.999Z`);
-    }
+    applyCreatedAtRange(matchFilter, req.query as Record<string, any>);
     if (creatorIds.length) matchFilter.createdBy = { $in: creatorIds.map((id) => new mongoose.Types.ObjectId(id)) };
 
     const propertyModels = [
@@ -260,6 +281,39 @@ export const propertyAnalytics = async (
     res.status(500).json({
       success: false,
       message: "Failed to fetch property analytics",
+    });
+  }
+};
+
+export const propertyListings = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const result = await listAdminProperties(req.query as Record<string, any>);
+    res.status(200).json({
+      success: true,
+      items: result.items,
+      data: result.items,
+      meta: result.meta,
+      pagination: {
+        page: result.meta.page,
+        pageSize: result.meta.limit,
+        total: result.meta.total,
+        totalPages: result.meta.pages,
+        hasNextPage: result.meta.hasNextPage,
+        hasPreviousPage: result.meta.hasPreviousPage,
+      },
+      facets: result.facets,
+    });
+  } catch (error: any) {
+    const status = Number(error?.statusCode) || 500;
+    res.status(status).json({
+      success: false,
+      message:
+        status === 400
+          ? error.message || "Invalid listings request"
+          : "Failed to fetch property listings",
     });
   }
 };
@@ -335,11 +389,7 @@ export const projectAnalytics = async (
     if (locality) {
       matchFilter.locality = locality;
     }
-    if (from || to) {
-      matchFilter.createdAt = {};
-      if (from) matchFilter.createdAt.$gte = new Date(`${from}T00:00:00.000Z`);
-      if (to) matchFilter.createdAt.$lte = new Date(`${to}T23:59:59.999Z`);
-    }
+    applyCreatedAtRange(matchFilter, req.query as Record<string, any>);
     if (creatorIds.length) matchFilter.createdBy = { $in: creatorIds.map((id) => new mongoose.Types.ObjectId(id)) };
 
     /**

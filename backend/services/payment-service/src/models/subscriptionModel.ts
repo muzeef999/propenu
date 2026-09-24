@@ -61,4 +61,6 @@ const SubscriptionSchema = new Schema(
   { timestamps: true },
 );
 
+SubscriptionSchema.index({ status: 1, createdAt: -1 });
+
 export const Subscription = model("Subscription", SubscriptionSchema);

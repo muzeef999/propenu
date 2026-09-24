@@ -90,8 +90,8 @@ function proxy(serviceName: string, target: string, extras: Record<string, unkno
     target,
     changeOrigin: true,
     xfwd: true,
-    proxyTimeout: 30000,
-    timeout: 30000,
+    proxyTimeout: 120000,
+    timeout: 120000,
     ...extras,
 
     // ✅ preserve full path like /api/users/location
@@ -116,6 +116,16 @@ function proxy(serviceName: string, target: string, extras: Record<string, unkno
 }
 
 // ===================== MICROSERVICE ROUTES =====================
+
+// Long WhatsApp campaign / media routes (accept is fast; keep headroom for Meta validate)
+app.use(
+  "/api/users/whatsapp/send-whatsapp",
+  proxy("USER", USER_SERVICE_URL, { proxyTimeout: 180000, timeout: 180000 }),
+);
+app.use(
+  "/api/users/whatsapp/send-csv-bulk-whatsapp",
+  proxy("USER", USER_SERVICE_URL, { proxyTimeout: 180000, timeout: 180000 }),
+);
 
 // Long-lived SSE for WhatsApp inbox realtime
 app.use(

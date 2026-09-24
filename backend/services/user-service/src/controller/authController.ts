@@ -1175,6 +1175,14 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       userFilter.createdAt = createdAtFilter;
     }
 
+    const lastLoginFilter = buildCreatedAtQueryFilter({
+      createdFrom: query.lastLoginFrom || query.loginFrom,
+      createdTo: query.lastLoginTo || query.loginTo,
+    });
+    if (lastLoginFilter) {
+      userFilter.lastLoginAt = lastLoginFilter;
+    }
+
     const managerIdQuery = String(query.managerId || "").trim();
     if (managerIdQuery && mongoose.Types.ObjectId.isValid(managerIdQuery)) {
       userFilter.managerId = new mongoose.Types.ObjectId(managerIdQuery);

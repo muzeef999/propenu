@@ -1,100 +1,104 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import { Worker } from "bullmq";
+import { Worker, Job } from "bullmq";
 import { WhatsAppLog } from "../logs/whatsappLog.model";
-import { redisConnection } from "../lib/redis.connection";
-import { sendWhatsAppBulkMessages as sendWhatsAppMessage } from "../../../../shared/whatsapp/templates/whatsappTemplate.service";
+import {
+  redisConnection,
+  describeRedisTarget,
+} from "../lib/redis.connection";
+import {
+  sendWhatsAppBulkMessages as sendWhatsAppMessage,
+  processCrmCampaignFanout,
+  processCsvCampaignFanout,
+} from "../../../../shared/whatsapp/templates/whatsappTemplate.service";
 import { recordOutboundTemplateMessage } from "../../../../shared/whatsapp/inbox/whatsappInbox.service";
 import { connectDB } from "../config/db";
-
-interface WhatsAppJobData {
-  to: string;
-  templateName: string;
-  variables: string[];
-  language?: string;
-  headerImageUrl?: string;
-  recordId?: string;
-  logId?: string;
-  campaignId?: string;
-}
+import type {
+  WhatsAppSendJobData,
+  WhatsAppCrmFanoutJobData,
+  WhatsAppCsvFanoutJobData,
+} from "../queues/whatsapp.queue";
 
 const startWorker = async () => {
   try {
-    // ✅ CONNECT DB (MOST IMPORTANT)
     await connectDB();
     console.log("✅ MongoDB connected in WhatsApp worker");
+    console.log("🔗 Redis target:", describeRedisTarget());
 
-    new Worker<WhatsAppJobData>(
+    new Worker(
       "whatsapp-queue",
-      async (job) => {
+      async (job: Job) => {
         console.log("━━━━━━━━━━━━━━━━━━━━━━━");
-        console.log("📦 Processing job:", job.id);
-        console.log("📱 Phone:", job.data.to);
-        console.log("🧾 logId:", job.data.logId);
+        console.log("📦 Processing job:", job.id, "name:", job.name);
 
-        // 🔍 CHECK LOG EXISTS
-        if (job.data.logId) {
-          const existing = await WhatsAppLog.findById(job.data.logId);
-          console.log("🔍 Existing log:", existing);
+        if (job.name === "fanout-crm-campaign") {
+          const data = job.data as WhatsAppCrmFanoutJobData;
+          console.log("🚀 CRM fan-out:", data.campaignId);
+          return processCrmCampaignFanout(data);
+        }
 
-          if (!existing) {
-            console.log("❌ LOG NOT FOUND IN DB");
-          }
+        if (job.name === "fanout-csv-campaign") {
+          const data = job.data as WhatsAppCsvFanoutJobData;
+          console.log(
+            "🚀 CSV fan-out:",
+            data.campaignId,
+            "rows:",
+            data.rows?.length || 0,
+          );
+          return processCsvCampaignFanout(data);
+        }
 
-          // 🛑 prevent duplicate send
+        const data = job.data as WhatsAppSendJobData;
+        console.log("📱 Phone:", data.to);
+        console.log("🧾 logId:", data.logId);
+
+        if (data.logId) {
+          const existing = await WhatsAppLog.findById(data.logId);
           if (existing?.status === "success") {
-            console.log("⚠️ Already sent, skipping:", job.data.to);
+            console.log("⚠️ Already sent, skipping:", data.to);
             return;
           }
-        } else {
-          console.log("❌ logId is missing!");
         }
 
         try {
-          // 🔥 SEND MESSAGE
           const messageInput = {
-            to: job.data.to,
-            templateName: job.data.templateName,
-            variables: job.data.variables || [],
-            ...(job.data.language ? { language: job.data.language } : {}),
-            ...(job.data.headerImageUrl
-              ? { headerImageUrl: job.data.headerImageUrl }
+            to: data.to,
+            templateName: data.templateName,
+            variables: data.variables || [],
+            ...(data.language ? { language: data.language } : {}),
+            ...(data.headerFormat ? { headerFormat: data.headerFormat } : {}),
+            ...(data.headerMediaId
+              ? { headerMediaId: data.headerMediaId }
+              : {}),
+            ...(data.headerImageUrl
+              ? { headerImageUrl: data.headerImageUrl }
               : {}),
           };
 
           const response = await sendWhatsAppMessage(messageInput);
+          console.log("✅ WhatsApp sent:", data.to);
 
-          console.log("📬 Meta response:", response?.data);
-          console.log("✅ WhatsApp sent:", job.data.to);
-
-          // ✅ UPDATE LOG SUCCESS
-          if (job.data.logId) {
+          if (data.logId) {
             try {
-              const updated = await WhatsAppLog.findByIdAndUpdate(
-                job.data.logId,
+              await WhatsAppLog.findByIdAndUpdate(
+                data.logId,
                 {
                   status: "success",
-                  response: response?.data,
+                  response: response?.data ?? response,
                 },
-                { new: true }
+                { new: true },
               );
 
-              console.log("✅ Updated log:", updated);
-
               await recordOutboundTemplateMessage({
-                to: job.data.to,
-                templateName: job.data.templateName,
+                to: data.to,
+                templateName: data.templateName,
                 status: "sent",
-                logId: job.data.logId,
-                response: response?.data,
+                logId: data.logId,
+                response: response?.data ?? response,
               }).catch((inboxErr) => {
                 console.error("⚠️ Inbox record error:", inboxErr);
               });
-
-              if (!updated) {
-                console.log("❌ UPDATE FAILED → log not found");
-              }
             } catch (dbError) {
               console.error("⚠️ DB update error:", dbError);
             }
@@ -102,9 +106,8 @@ const startWorker = async () => {
         } catch (err: any) {
           console.error("❌ WhatsApp failed:", err?.message);
 
-          // ❌ UPDATE LOG FAILED
-          if (job.data.logId) {
-            await WhatsAppLog.findByIdAndUpdate(job.data.logId, {
+          if (data.logId) {
+            await WhatsAppLog.findByIdAndUpdate(data.logId, {
               status: "failed",
               error:
                 typeof err?.message === "string"
@@ -113,14 +116,18 @@ const startWorker = async () => {
             });
           }
 
-          throw err; // 🔥 required for retry
+          throw err;
         }
       },
       {
         connection: redisConnection,
-        concurrency: 3, // reduce for stability
-      }
+        concurrency: 5,
+        lockDuration: 120000,
+        stalledInterval: 60000,
+      },
     );
+
+    console.log("✅ WhatsApp campaign worker listening on whatsapp-queue");
   } catch (err) {
     console.error("❌ Worker startup failed:", err);
     if (process.env.WHATSAPP_WORKER_EMBEDDED === "1") return;

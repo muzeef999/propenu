@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { whatsappQueue } from "../queues/whatsapp.queue";
 import { WhatsAppLog } from "./whatsappLog.model";
+import { WhatsAppCampaignRun } from "./whatsappCampaignRun.model";
 const router = Router();
 
 /**
@@ -51,30 +52,38 @@ router.get("/campaign/:campaignId", async (req: Request, res: Response) => {
       return res.status(400).json({ message: "campaignId required" });
     }
 
-    const total = await WhatsAppLog.countDocuments({ campaignId });
+    const [run, total, success, failed, pending] = await Promise.all([
+      WhatsAppCampaignRun.findOne({ campaignId }).lean(),
+      WhatsAppLog.countDocuments({ campaignId }),
+      WhatsAppLog.countDocuments({ campaignId, status: "success" }),
+      WhatsAppLog.countDocuments({ campaignId, status: "failed" }),
+      WhatsAppLog.countDocuments({ campaignId, status: "pending" }),
+    ]);
 
-    const success = await WhatsAppLog.countDocuments({
-      campaignId,
-      status: "success",
-    });
-
-    const failed = await WhatsAppLog.countDocuments({
-      campaignId,
-      status: "failed",
-    });
-
-    const pending = await WhatsAppLog.countDocuments({
-      campaignId,
-      status: "pending",
-    });
+    const status =
+      run?.status ||
+      (total === 0
+        ? "accepted"
+        : pending > 0
+          ? "sending"
+          : failed === total
+            ? "failed"
+            : "completed");
 
     res.json({
+      success: true,
       campaignId,
+      status,
+      run: run || null,
+      estimatedRecipients: run?.estimatedRecipients ?? total,
+      queued: run?.queued ?? total,
+      skipped: run?.skipped ?? 0,
       total,
-      success,
+      successCount: success,
       failed,
       pending,
-      progress: `${success}/${total}`,
+      progress: total ? `${success}/${total}` : "0/0",
+      error: run?.error || undefined,
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -122,6 +131,8 @@ router.post(
           variables,
           language: (log as any).language,
           headerImageUrl: (log as any).headerImageUrl,
+          headerMediaId: (log as any).headerMediaId,
+          headerFormat: (log as any).headerFormat || undefined,
           logId: String(log._id),
           campaignId,
         });
