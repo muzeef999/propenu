@@ -54,3 +54,32 @@ export const whatsappQueue = new Queue<WhatsAppJobData>("whatsapp-queue", {
     backoff: { type: "exponential", delay: 5000 },
   },
 });
+
+/**
+ * With maxRetriesPerRequest: null, queue.add waits forever while Redis is
+ * unreachable, and nginx returns 504 at 60s. Fail fast instead.
+ */
+export async function addWhatsAppJobWithTimeout(
+  ...args: Parameters<typeof whatsappQueue.add>
+) {
+  const timeoutMs = Number(process.env.QUEUE_ADD_TIMEOUT_MS || 10000);
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    return await Promise.race([
+      whatsappQueue.add(...args),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () =>
+            reject(
+              new Error(
+                `Redis did not respond within ${timeoutMs / 1000}s — check REDIS_URL and that Redis is reachable from this server`,
+              ),
+            ),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}

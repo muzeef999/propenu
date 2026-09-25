@@ -13,6 +13,8 @@ import PublicPageView, {
 import Residential from "../models/residentialModel";
 import UserInteraction, { INTERACTION_EVENT_TYPES, InteractionPromotionType } from "../models/userInteractionModel";
 import User from "../models/userModel";
+import { USER_ACTIVITY_PAGE_SIZE } from "../models/userActivityModel";
+import { appendUserAction, listUserActions } from "../services/userActivityService";
 
 const promotionTypes = new Set(["normal", "sponsored", "featured", "prime"]);
 const eventTypes = new Set<string>(INTERACTION_EVENT_TYPES);
@@ -219,28 +221,11 @@ export async function captureInteraction(req: AuthRequest, res: Response) {
 
     const projectId = safeString(body.projectId, 64);
     const propertyId = safeString(body.propertyId, 64);
-    if (deduplicatedEventTypes.has(body.eventType)) {
-      const duplicate = await UserInteraction.exists({
-        userId: new mongoose.Types.ObjectId(req.user.id),
-        sessionId: body.sessionId.trim(),
-        eventType: body.eventType,
-        pageUrl: body.pageUrl.trim(),
-        ...(projectId ? { projectId: new mongoose.Types.ObjectId(projectId) } : {}),
-        ...(propertyId ? { propertyId: new mongoose.Types.ObjectId(propertyId) } : {}),
-        serverTimestamp: { $gte: new Date(Date.now() - 2_000) },
-      });
-      if (duplicate) return res.status(200).json({ success: true, duplicate: true });
-    }
     const promotion = await resolvePromotion(body.entityType, projectId, propertyId);
     const requestedPromotion = promotionTypes.has(body.promotionType) ? body.promotionType : "normal";
-    const forwardedFor = safeString(req.headers["x-forwarded-for"], 256)?.split(",")[0]?.trim();
-    const ip = forwardedFor || req.ip;
-    const ipHash = ip ? crypto.createHash("sha256").update(ip).digest("hex") : undefined;
-
-    const interaction = await UserInteraction.create({
-      userId: new mongoose.Types.ObjectId(req.user.id),
+    const serverTimestamp = new Date();
+    const action = {
       sessionId: body.sessionId.trim(),
-      ...(safeString(body.anonymousId, 128) ? { anonymousId: body.anonymousId.trim() } : {}),
       eventType: body.eventType,
       eventCategory: body.eventCategory.trim(),
       ...(body.entityType ? { entityType: body.entityType } : {}),
@@ -249,26 +234,34 @@ export async function captureInteraction(req: AuthRequest, res: Response) {
       ...(body.plotId ? { plotId: new mongoose.Types.ObjectId(body.plotId) } : {}),
       promotionType: promotion.verified ? promotion.type : requestedPromotion,
       ...(body.promotionId ? { promotionId: new mongoose.Types.ObjectId(body.promotionId) } : {}),
-      promotionVerified: promotion.verified && promotion.type === requestedPromotion,
-      ...(promotion.snapshot ? { promotionSnapshot: promotion.snapshot } : {}),
       source: body.source.trim(),
-      ...(safeString(body.placement, 120) ? { placement: body.placement.trim() } : {}),
-      ...(Number.isFinite(body.position) ? { position: body.position } : {}),
-      ...(safeString(body.searchId, 128) ? { searchId: body.searchId.trim() } : {}),
-      ...(searchContext ? { searchContext } : {}),
       pageUrl: body.pageUrl.trim(),
       ...(safeString(body.previousPageUrl, 2048) ? { previousPageUrl: body.previousPageUrl.trim() } : {}),
       ...(metadata ? { metadata } : {}),
+      ...(searchContext ? { searchContext } : {}),
       clientTimestamp,
-      serverTimestamp: new Date(),
-      ...(safeString(req.headers["user-agent"], 512) ? { userAgent: req.headers["user-agent"] } : {}),
-      ...(ipHash ? { ipHash } : {}),
-    });
+      serverTimestamp,
+    };
+
+    const stored = await appendUserAction(req.user.id, action);
+    if (stored.duplicate) {
+      return res.status(200).json({
+        success: true,
+        duplicate: true,
+        data: { eventId: stored.actionId, sessionId: action.sessionId, capturedAt: serverTimestamp },
+      });
+    }
 
     return res.status(201).json({
       success: true,
       message: "Interaction captured successfully",
-      data: { eventId: interaction._id, sessionId: interaction.sessionId, capturedAt: interaction.serverTimestamp, promotionType: interaction.promotionType, promotionVerified: interaction.promotionVerified },
+      data: {
+        eventId: stored.actionId,
+        sessionId: action.sessionId,
+        capturedAt: serverTimestamp,
+        promotionType: action.promotionType,
+        promotionVerified: promotion.verified && promotion.type === requestedPromotion,
+      },
     });
   } catch (error) {
     console.error("captureInteraction failed", error);
@@ -373,49 +366,134 @@ export async function capturePublicView(req: Request, res: Response) {
 export async function getUserJourney(req: AuthRequest, res: Response) {
   try {
     const { userId } = req.params;
-    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) return res.status(400).json({ success: false, message: "Invalid userId" });
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: "Invalid userId" });
+    }
     const days = Math.min(90, Math.max(1, Number(req.query.days) || 30));
-    const limit = Math.min(1000, Math.max(1, Number(req.query.limit) || 500));
-    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    const events = await UserInteraction.find({ userId, serverTimestamp: { $gte: since } }).sort({ serverTimestamp: -1 }).limit(limit).lean();
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(
+      USER_ACTIVITY_PAGE_SIZE,
+      Math.max(1, Number(req.query.limit) || USER_ACTIVITY_PAGE_SIZE),
+    );
+    const window = resolveAssignedActivityWindow({
+      range: days <= 7 ? "7d" : days <= 30 ? "30d" : "90d",
+    });
+    const since = window.since;
+    const until = window.until;
+
+    const listed = await listUserActions(userId, { since, until, page, limit });
+    const untilMs = until?.getTime() || Date.now();
+    const allActions = (listed.doc?.actions || []).filter((event: any) => {
+      if (["session_heartbeat", "page_exit"].includes(String(event.eventType))) return false;
+      const t = new Date(event.serverTimestamp || 0).getTime();
+      return t >= since.getTime() && t <= untilMs;
+    });
+    const events = listed.items;
+    const newest = allActions[0] || null;
     const sessions = new Map<string, { sessionId: string; startedAt: Date; lastActiveAt: Date; eventCount: number; lastEvent: string }>();
     const sessionEvents = new Map<string, Date[]>();
-    const promotions: Record<string, { impressions: number; clicks: number }> = { normal: { impressions: 0, clicks: 0 }, sponsored: { impressions: 0, clicks: 0 }, featured: { impressions: 0, clicks: 0 }, prime: { impressions: 0, clicks: 0 } };
-    for (const event of [...events].reverse()) {
+    const promotions: Record<string, { impressions: number; clicks: number }> = {
+      normal: { impressions: 0, clicks: 0 },
+      sponsored: { impressions: 0, clicks: 0 },
+      featured: { impressions: 0, clicks: 0 },
+      prime: { impressions: 0, clicks: 0 },
+    };
+    for (const event of [...allActions].reverse()) {
       const current = sessions.get(event.sessionId);
-      sessions.set(event.sessionId, { sessionId: event.sessionId, startedAt: current?.startedAt ?? event.serverTimestamp, lastActiveAt: event.serverTimestamp, eventCount: (current?.eventCount ?? 0) + 1, lastEvent: event.eventType });
-      sessionEvents.set(event.sessionId, [...(sessionEvents.get(event.sessionId) || []), event.serverTimestamp]);
-      const bucket = promotions[event.promotionType];
+      const stamp = event.serverTimestamp;
+      sessions.set(event.sessionId, {
+        sessionId: event.sessionId,
+        startedAt: current?.startedAt ?? stamp,
+        lastActiveAt: stamp,
+        eventCount: (current?.eventCount ?? 0) + 1,
+        lastEvent: event.eventType,
+      });
+      sessionEvents.set(event.sessionId, [...(sessionEvents.get(event.sessionId) || []), stamp]);
+      const bucket = promotions[String(event.promotionType || "normal")];
       if (bucket) {
-        if (event.eventType.includes("impression")) bucket.impressions += 1;
-        if (event.eventType.includes("click") || event.eventType.endsWith("_view")) bucket.clicks += 1;
+        if (String(event.eventType).includes("impression")) bucket.impressions += 1;
+        if (String(event.eventType).includes("click") || String(event.eventType).endsWith("_view")) {
+          bucket.clicks += 1;
+        }
       }
     }
-    const [entities, listingActivity] = await Promise.all([loadJourneyEntities(events), loadOwnedListingActivity(userId, since)]);
+    const [entities, listingActivity] = await Promise.all([
+      loadJourneyEntities(allActions.slice(0, 24)),
+      loadOwnedListingActivity(userId, since),
+    ]);
     const entityMap = new Map(entities.map((entity: any) => [entity.id, entity]));
-    const entitySlugMap = new Map(entities.filter((entity: any) => entity.slug).map((entity: any) => [entity.slug, entity]));
-    const enrichedEvents = events.map(event => {
+    const entitySlugMap = new Map(
+      entities.filter((entity: any) => entity.slug).map((entity: any) => [entity.slug, entity]),
+    );
+    const enrichedEvents = events.map((event: any) => {
       const slug = String(event.pageUrl || "").match(/^\/(?:project|prime)\/([^/?#]+)/i)?.[1];
-      return { ...event, entity: entityMap.get(String(event.propertyId || event.plotId || event.projectId)) || (slug ? entitySlugMap.get(decodeURIComponent(slug)) : null) || null };
+      return {
+        ...event,
+        entity:
+          entityMap.get(String(event.propertyId || event.plotId || event.projectId)) ||
+          (slug ? entitySlugMap.get(decodeURIComponent(slug)) : null) ||
+          null,
+      };
     });
-    const latest = enrichedEvents[0];
+    const latest = newest
+      ? {
+          ...newest,
+          entity:
+            entityMap.get(String(newest.propertyId || newest.plotId || newest.projectId)) ||
+            null,
+        }
+      : enrichedEvents[0] || null;
     const engagedMs = [...sessionEvents.values()].reduce((total, timestamps) => {
-      const ordered = timestamps.sort((a, b) => a.getTime() - b.getTime());
-      return total + ordered.slice(1).reduce((sessionTotal, timestamp, index) => {
-        const gap = timestamp.getTime() - ordered[index]!.getTime();
-        return sessionTotal + (gap > 0 && gap <= 5 * 60_000 ? gap : 0);
-      }, 0);
+      const ordered = timestamps
+        .map((value) => new Date(value).getTime())
+        .sort((a, b) => a - b);
+      return (
+        total +
+        ordered.slice(1).reduce((sessionTotal, timestamp, index) => {
+          const gap = timestamp - ordered[index]!;
+          return sessionTotal + (gap > 0 && gap <= 5 * 60_000 ? gap : 0);
+        }, 0)
+      );
     }, 0);
-    return res.json({ success: true, data: {
-      summary: { totalEvents: events.length, totalSessions: sessions.size, projectsViewed: new Set(events.filter(e => e.projectId).map(e => String(e.projectId))).size, propertiesViewed: new Set(events.filter(e => e.propertyId).map(e => String(e.propertyId))).size, engagedMs, lastActiveAt: latest?.serverTimestamp ?? null },
-      currentContext: latest ? { sessionId: latest.sessionId, eventType: latest.eventType, pageUrl: latest.pageUrl, projectId: latest.projectId, propertyId: latest.propertyId, promotionType: latest.promotionType, lastActiveAt: latest.serverTimestamp } : null,
-      stoppingPoint: latest && !["session_heartbeat", "page_exit"].includes(latest.eventType) ? { eventType: latest.eventType, pageUrl: latest.pageUrl, capturedAt: latest.serverTimestamp } : null,
-      promotionPerformance: promotions,
-      listingActivity,
-      sessions: [...sessions.values()].sort((a, b) => b.lastActiveAt.getTime() - a.lastActiveAt.getTime()),
-      entities,
-      events: enrichedEvents,
-    }});
+    return res.json({
+      success: true,
+      data: {
+        summary: {
+          totalEvents: listed.pagination.total,
+          totalSessions: sessions.size,
+          projectsViewed: new Set(allActions.filter((e: any) => e.projectId).map((e: any) => String(e.projectId))).size,
+          propertiesViewed: new Set(allActions.filter((e: any) => e.propertyId).map((e: any) => String(e.propertyId))).size,
+          shortlisted: allActions.filter((e: any) => /shortlist|favorite|saved/i.test(String(e.eventType))).length,
+          leads: allActions.filter((e: any) => /lead|contact|enquiry|whatsapp/i.test(String(e.eventType))).length,
+          siteVisits: allActions.filter((e: any) => /site_visit|visit_book/i.test(String(e.eventType))).length,
+          engagedMs,
+          lastActiveAt: newest?.serverTimestamp ?? listed.doc?.lastEventAt ?? null,
+        },
+        currentContext: latest
+          ? {
+              sessionId: latest.sessionId,
+              eventType: latest.eventType,
+              pageUrl: latest.pageUrl,
+              projectId: latest.projectId,
+              propertyId: latest.propertyId,
+              promotionType: latest.promotionType,
+              lastActiveAt: latest.serverTimestamp,
+            }
+          : null,
+        stoppingPoint:
+          latest && !["session_heartbeat", "page_exit"].includes(latest.eventType)
+            ? { eventType: latest.eventType, pageUrl: latest.pageUrl, capturedAt: latest.serverTimestamp }
+            : null,
+        promotionPerformance: promotions,
+        listingActivity,
+        sessions: [...sessions.values()]
+          .sort((a, b) => new Date(b.lastActiveAt).getTime() - new Date(a.lastActiveAt).getTime())
+          .slice(0, 12),
+        entities,
+        events: enrichedEvents,
+        pagination: listed.pagination,
+      },
+    });
   } catch (error) {
     console.error("getUserJourney failed", error);
     return res.status(500).json({ success: false, message: "Unable to load user journey" });
@@ -425,9 +503,28 @@ export async function getUserJourney(req: AuthRequest, res: Response) {
 export async function getUserSession(req: AuthRequest, res: Response) {
   try {
     const { userId, sessionId } = req.params;
-    if (!userId || !mongoose.Types.ObjectId.isValid(userId) || !sessionId) return res.status(400).json({ success: false, message: "Invalid user or session" });
-    const events = await UserInteraction.find({ userId, sessionId }).sort({ serverTimestamp: 1 }).limit(2000).lean();
-    return res.json({ success: true, data: { sessionId, eventCount: events.length, startedAt: events[0]?.serverTimestamp ?? null, lastActiveAt: events[events.length - 1]?.serverTimestamp ?? null, events } });
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId) || !sessionId) {
+      return res.status(400).json({ success: false, message: "Invalid user or session" });
+    }
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const listed = await listUserActions(userId, {
+      sessionId,
+      page,
+      limit: USER_ACTIVITY_PAGE_SIZE,
+      includeNoise: true,
+    });
+    const events = listed.items;
+    return res.json({
+      success: true,
+      data: {
+        sessionId,
+        eventCount: listed.pagination.total,
+        startedAt: events[events.length - 1]?.serverTimestamp ?? null,
+        lastActiveAt: events[0]?.serverTimestamp ?? null,
+        events,
+        pagination: listed.pagination,
+      },
+    });
   } catch (error) {
     console.error("getUserSession failed", error);
     return res.status(500).json({ success: false, message: "Unable to load session" });
@@ -830,9 +927,7 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
     const timeMatch: Record<string, unknown> = until
       ? { $gte: since, $lte: until }
       : { $gte: since };
-    const timeClause = {
-      $or: [{ serverTimestamp: timeMatch }, { clientTimestamp: timeMatch }],
-    };
+    const timeClause = { serverTimestamp: timeMatch };
 
     const actionEventTypes = ACTION_GROUPS[action] || [];
     const contactEventTypes = ACTION_GROUPS.contacts || [];
@@ -890,6 +985,7 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
 
     const skip = (page - 1) * pageSize;
     const take = includeCount ? pageSize : pageSize + 1;
+    const needsRoleLookup = role !== "all" || Boolean(q);
 
     const userLookup = {
       $lookup: {
@@ -970,20 +1066,24 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
           actionCount: { $sum: 1 },
         },
       },
-      userLookup,
-      { $addFields: { user: { $arrayElemAt: ["$userDoc", 0] } } },
-      {
-        $addFields: {
-          roleKey: {
-            $toLower: {
-              $ifNull: ["$user.roleName", { $ifNull: ["$user.role", "user"] }],
+    ];
+    if (needsRoleLookup) {
+      userFeedPipeline.push(
+        userLookup,
+        { $addFields: { user: { $arrayElemAt: ["$userDoc", 0] } } },
+        {
+          $addFields: {
+            roleKey: {
+              $toLower: {
+                $ifNull: ["$user.roleName", { $ifNull: ["$user.role", "user"] }],
+              },
             },
           },
         },
-      },
-      roleMatch,
-    ];
-    if (searchMatch) userFeedPipeline.push(searchMatch);
+        roleMatch,
+      );
+      if (searchMatch) userFeedPipeline.push(searchMatch);
+    }
     userFeedPipeline.push({ $sort: { "last.serverTimestamp": -1, _id: -1 } });
     userFeedPipeline.push({
       $facet: {
@@ -991,6 +1091,47 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
         ...(includeCount ? { total: [{ $count: "n" }] } : {}),
       },
     });
+
+    const fifteenAgo = new Date(Date.now() - 15 * 60_000);
+    const summaryPromise = includeSummary
+      ? Promise.all([
+          UserInteraction.aggregate([
+            { $match: typeCountMatch },
+            { $group: { _id: "$eventType", count: { $sum: 1 } } },
+          ]).option({ maxTimeMS: 12000 }),
+          db
+            ? db.collection("brochuredownloads").countDocuments(brochureMatch).catch(() => 0)
+            : Promise.resolve(0),
+          db
+            ? db.collection("propertyleads").countDocuments(leadMatch).catch(() => 0)
+            : Promise.resolve(0),
+          db
+            ? db
+                .collection("propertyleads")
+                .countDocuments({
+                  ...leadMatch,
+                  status: { $in: [null, "", "new", "open", "new_lead"] },
+                })
+                .catch(() => 0)
+            : Promise.resolve(0),
+          UserInteraction.aggregate([
+            {
+              $match: {
+                serverTimestamp: { $gte: fifteenAgo },
+                eventType: { $nin: [...NOISE_EVENTS] },
+              },
+            },
+            { $group: { _id: "$userId" } },
+            { $count: "n" },
+          ]).option({ maxTimeMS: 8000 }),
+          UserInteraction.aggregate([
+            { $match: baseMatch },
+            { $group: { _id: "$userId", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 5 },
+          ]).option({ maxTimeMS: 8000 }),
+        ])
+      : Promise.resolve(null);
 
     const [facet] = groupBy === "event"
       ? [null]
@@ -1039,29 +1180,6 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
       .filter((id) => mongoose.Types.ObjectId.isValid(id))
       .map((id) => new mongoose.Types.ObjectId(id));
 
-    const recentByUser = new Map<string, any[]>();
-    if (groupBy !== "event" && pageUserObjectIds.length) {
-      const recentRows = await UserInteraction.aggregate([
-        { $match: { ...baseMatch, userId: { $in: pageUserObjectIds } } },
-        { $sort: { serverTimestamp: -1, _id: -1 } },
-        { $group: { _id: "$userId", recent: { $push: "$$ROOT" } } },
-        { $project: { recent: { $slice: ["$recent", 8] } } },
-      ]).option({ maxTimeMS: 10000 });
-      for (const row of recentRows || []) {
-        recentByUser.set(String(row._id), row.recent || []);
-      }
-    }
-
-    const hydrateEvents = [
-      ...pageEvents,
-      ...[...recentByUser.values()].flat(),
-    ];
-    const users =
-      pageUserIds.length && db ? await loadUsersByIds(db, pageUserIds) : [];
-    const userMap = new Map((users || []).map((u: any) => [String(u._id), u]));
-    const entities = await loadJourneyEntities(hydrateEvents);
-    const entityMap = new Map(entities.map((entity: any) => [entity.id, entity]));
-
     const pageLeadMatch: Record<string, unknown> = { createdAt: createdAtMatch };
     if (pageUserIds.length) {
       pageLeadMatch.$or = pageUserIds.flatMap((id) => {
@@ -1072,9 +1190,11 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
         return row;
       });
     }
-    const pageLeads =
+    const [users, entities, pageLeads] = await Promise.all([
+      pageUserIds.length && db ? loadUsersByIds(db, pageUserIds) : Promise.resolve([]),
+      loadJourneyEntities(pageEvents),
       db && pageUserIds.length
-        ? await db
+        ? db
             .collection("propertyleads")
             .find(pageLeadMatch)
             .project({ _id: 1, createdBy: 1, projectId: 1, status: 1, createdAt: 1 })
@@ -1082,11 +1202,37 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
             .limit(48)
             .toArray()
             .catch(() => [])
-        : [];
+        : Promise.resolve([]),
+    ]);
+    const userMap = new Map((users || []).map((u: any) => [String(u._id), u]));
+    const entityMap = new Map(entities.map((entity: any) => [entity.id, entity]));
     const leadsByUserProject = new Map<string, any>();
     for (const lead of pageLeads || []) {
       const key = `${lead.createdBy}:${lead.projectId || ""}`;
       if (!leadsByUserProject.has(key)) leadsByUserProject.set(key, lead);
+    }
+
+    const RECENT_PER_USER = 8;
+    const recentByUser = new Map<string, any[]>();
+    if (groupBy !== "event" && pageUserIds.length) {
+      const recentDocs: any[] = await UserInteraction.find({
+        $and: [
+          baseMatch,
+          { userId: { $in: [...pageUserIds, ...pageUserObjectIds] } },
+        ],
+      })
+        .sort({ serverTimestamp: -1, _id: -1 })
+        .limit(pageUserIds.length * RECENT_PER_USER)
+        .lean()
+        .catch(() => []);
+      for (const doc of recentDocs) {
+        const key = String(doc.userId || "");
+        const list = recentByUser.get(key) || [];
+        if (list.length < RECENT_PER_USER) {
+          list.push(doc);
+          recentByUser.set(key, list);
+        }
+      }
     }
 
     const toItem = (event: any, userOverride?: any, actionCount = 1, recentEvents: any[] = []) => {
@@ -1290,7 +1436,7 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
         range,
         hours,
         groupBy,
-        ...summary,
+        ...(includeSummary ? summary : {}),
         items,
         pagination: {
           page,

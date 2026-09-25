@@ -144,11 +144,75 @@ function formatCreatedBy(user: any) {
 
 function getRoleNameFromUser(user: any) {
   return (
-    user?.roleName ??
-    user?.role ??
+    user?.roleId?.label ??
     user?.roleId?.name ??
-    user?.roleId?.label
+    user?.roleName ??
+    user?.role
   );
+}
+
+/** Live createdBy user + exact role for admin list cards (same source as details). */
+export async function attachCreatedByProfiles(Model: any, items: any[]) {
+  if (!Array.isArray(items) || items.length === 0) return items;
+
+  const UserModel = Model.db.model("User");
+  const rawIds = items.map((item) => toObjectId(item?.createdBy)).filter(Boolean);
+  const uniqueIds = [
+    ...new Map(rawIds.map((id) => [String(id), id])).values(),
+  ];
+  if (!uniqueIds.length) return items;
+
+  const users: any[] = await UserModel.find({ _id: { $in: uniqueIds } })
+    .select("name companyName email phone role roleName roleId")
+    .populate("roleId", "name label")
+    .lean();
+  const userById = new Map<string, any>(
+    users.map((user: any) => [String(user._id), user]),
+  );
+
+  const missingIds = uniqueIds.filter((id) => !userById.has(String(id)));
+  if (missingIds.length) {
+    const agentProfiles: any[] = await Model.db.collection("agents")
+      .find(
+        { _id: { $in: missingIds } },
+        { projection: { user: 1 } },
+      )
+      .toArray();
+    const agentUserIds = agentProfiles
+      .map((profile) => profile?.user)
+      .filter(Boolean);
+    if (agentUserIds.length) {
+      const agentUsers: any[] = await UserModel.find({ _id: { $in: agentUserIds } })
+        .select("name companyName email phone role roleName roleId")
+        .populate("roleId", "name label")
+        .lean();
+      const agentUserById = new Map<string, any>(
+        agentUsers.map((user: any) => [String(user._id), user]),
+      );
+      for (const profile of agentProfiles) {
+        const user = agentUserById.get(String(profile.user));
+        if (user) userById.set(String(profile._id), user);
+      }
+    }
+  }
+
+  return items.map((item) => {
+    const createdById = toObjectId(item?.createdBy);
+    const user = createdById ? userById.get(String(createdById)) : null;
+    if (!user) return item;
+    return {
+      ...item,
+      createdBy: {
+        _id: user._id,
+        name: user.name,
+        companyName: user.companyName,
+        email: user.email,
+        phone: user.phone,
+        roleName: getRoleNameFromUser(user),
+        roleId: user.roleId,
+      },
+    };
+  });
 }
 
 function flattenStaffManager(manager: any) {

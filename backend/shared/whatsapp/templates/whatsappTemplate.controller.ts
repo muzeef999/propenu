@@ -3,6 +3,7 @@ import {
   createTemplateService,
   getTemplatesService,
   deleteTemplateService,
+  resolveTemplateHeaderMediaUrl,
 } from "./whatsappTemplate.service";
 
 // CREATE
@@ -70,10 +71,11 @@ export const createWhatsAppTemplate = async (req: Request, res: Response) => {
 export const getWhatsAppTemplates = async (_: Request, res: Response) => {
   try {
     const result = await getTemplatesService();
+    const data = enrichTemplatesWithPreview(result);
 
     res.json({
       success: true,
-      data: result,
+      data,
     });
   } catch (error: any) {
     res.status(500).json({
@@ -82,6 +84,31 @@ export const getWhatsAppTemplates = async (_: Request, res: Response) => {
     });
   }
 };
+
+/** Attach samplePreviewUrl (https) on each template for admin campaign UI. */
+function enrichTemplatesWithPreview(result: any) {
+  const list = Array.isArray(result?.data)
+    ? result.data
+    : Array.isArray(result)
+      ? result
+      : [];
+
+  const enriched = list.map((tpl: any) => {
+    const preview = resolveTemplateHeaderMediaUrl(tpl);
+    if (!preview) return tpl;
+    return {
+      ...tpl,
+      samplePreviewUrl: preview,
+      headerImageUrl: preview,
+    };
+  });
+
+  if (Array.isArray(result?.data)) {
+    return { ...result, data: enriched };
+  }
+  if (Array.isArray(result)) return enriched;
+  return result;
+}
 
 // DELETE
 export const deleteWhatsAppTemplate = async (req: Request, res: Response) => {

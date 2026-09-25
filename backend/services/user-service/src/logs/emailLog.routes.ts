@@ -4,6 +4,33 @@ import { emailQueue } from "../queues/email.queue";
 
 const router = Router();
 
+/** Progress = messages already attempted (sent + failed) / total. Pending absorbs any gap. */
+function campaignProgress(
+  totalRaw: number,
+  successRaw: number,
+  failedRaw: number,
+  pendingRaw: number,
+) {
+  const success = Number(successRaw || 0);
+  const failed = Number(failedRaw || 0);
+  const pending = Number(pendingRaw || 0);
+  const known = success + failed + pending;
+  const total = Math.max(Number(totalRaw || 0), known);
+  const pendingAll = pending + Math.max(0, total - known);
+  const processed = success + failed;
+  const progressPercent = total ? Math.round((processed / total) * 100) : 0;
+  return {
+    total,
+    success,
+    sent: success,
+    failed,
+    pending: pendingAll,
+    processed,
+    progress: `${processed}/${total}`,
+    progressPercent,
+  };
+}
+
 /**
  * 🔥 GLOBAL STATS
  */
@@ -52,31 +79,19 @@ router.get("/campaigns", async (_req: Request, res: Response) => {
               $cond: [{ $eq: ["$status", "pending"] }, 1, 0],
             },
           },
+          latest: { $max: "$createdAt" },
         },
       },
-
-      // 🔥 Format output
-      {
-        $project: {
-          _id: 0,
-          campaignId: "$_id",
-          total: 1,
-          success: 1,
-          failed: 1,
-          pending: 1,
-          progress: {
-            $concat: [{ $toString: "$success" }, "/", { $toString: "$total" }],
-          },
-        },
-      },
-
-      // 🔥 Sort latest first (optional)
-      {
-        $sort: { campaignId: -1 },
-      },
+      { $sort: { latest: -1 } },
     ]);
 
-    res.json(campaigns);
+    res.json(
+      campaigns.map((row: any) => ({
+        campaignId: row._id,
+        latest: row.latest,
+        ...campaignProgress(row.total, row.success, row.failed, row.pending),
+      })),
+    );
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -113,10 +128,11 @@ router.get("/campaign-running", async (_req: Request, res: Response) => {
         },
       },
 
-      // 🔥 ONLY RUNNING
+      // 🔥 ONLY RUNNING (pending logs older than the window are abandoned, not running)
       {
         $match: {
           pending: { $gt: 0 },
+          latest: { $gte: new Date(Date.now() - 45 * 60 * 1000) },
         },
       },
 
@@ -130,23 +146,19 @@ router.get("/campaign-running", async (_req: Request, res: Response) => {
         $limit: 1,
       },
 
-      // 🔥 FORMAT
-      {
-        $project: {
-          _id: 0,
-          campaignId: "$_id",
-          total: 1,
-          success: 1,
-          failed: 1,
-          pending: 1,
-          progress: {
-            $concat: [{ $toString: "$success" }, "/", { $toString: "$total" }],
-          },
-        },
-      },
+      { $project: { _id: 0, campaignId: "$_id", total: 1, success: 1, failed: 1, pending: 1, latest: 1 } },
     ]);
 
-    res.json(campaigns[0] || null);
+    const row = campaigns[0];
+    res.json(
+      row
+        ? {
+            campaignId: row.campaignId,
+            latest: row.latest,
+            ...campaignProgress(row.total, row.success, row.failed, row.pending),
+          }
+        : null,
+    );
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -183,11 +195,7 @@ router.get("/campaign/:campaignId", async (req: Request, res: Response) => {
 
     res.json({
       campaignId,
-      total,
-      success,
-      failed,
-      pending,
-      progress: `${success}/${total}`,
+      ...campaignProgress(total, success, failed, pending),
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

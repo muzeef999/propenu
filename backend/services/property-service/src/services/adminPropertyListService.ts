@@ -3,6 +3,7 @@ import Residential from "../models/residentialModel";
 import Commercial from "../models/commercialModel";
 import LandPlot from "../models/landModel";
 import Agricultural from "../models/agriculturalModel";
+import { attachCreatedByProfiles } from "../utils/agentSubmission";
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 const ALLOWED_SORT = new Set(["newest", "oldest"]);
@@ -40,6 +41,15 @@ const BOOSTED = ["prime", "featured", "sponsored"];
  *   { status: 1, createdAt: -1, _id: -1 }
  */
 
+const toObjectIdOrNull = (input: unknown) => ({
+  $convert: {
+    input,
+    to: "objectId",
+    onError: null,
+    onNull: null,
+  },
+});
+
 const CARD_PROJECT = {
   title: 1,
   buildingName: 1,
@@ -65,6 +75,7 @@ const CARD_PROJECT = {
   images: { $slice: ["$images", 1] },
   createdBy: 1,
   postedBy: 1,
+  listingSource: 1,
   slug: 1,
   meta: 1,
   completion: 1,
@@ -326,28 +337,165 @@ export const listAdminProperties = async (query: Record<string, any> = {}) => {
     { $limit: limit },
     { $project: CARD_PROJECT },
     {
+      $addFields: {
+        _createdById: toObjectIdOrNull({
+          $cond: [
+            { $eq: [{ $type: "$createdBy" }, "object"] },
+            { $ifNull: ["$createdBy._id", "$createdBy.id"] },
+            "$createdBy",
+          ],
+        }),
+      },
+    },
+    {
       $lookup: {
         from: "users",
-        localField: "createdBy",
+        localField: "_createdById",
         foreignField: "_id",
         as: "createdByDoc",
-        pipeline: [{ $project: { name: 1, email: 1 } }],
+        pipeline: [
+          {
+            $project: {
+              name: 1,
+              companyName: 1,
+              email: 1,
+              phone: 1,
+              role: 1,
+              roleName: 1,
+              roleId: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "roles",
+        localField: "createdByDoc.roleId",
+        foreignField: "_id",
+        as: "createdByRoleDoc",
+        pipeline: [{ $project: { name: 1, label: 1 } }],
       },
     },
     {
       $addFields: {
         createdBy: {
-          $cond: [
-            { $eq: [{ $type: "$createdBy" }, "objectId"] },
-            {
-              $ifNull: [{ $arrayElemAt: ["$createdByDoc", 0] }, "$createdBy"],
+          $let: {
+            vars: {
+              userDoc: { $arrayElemAt: ["$createdByDoc", 0] },
+              roleDoc: { $arrayElemAt: ["$createdByRoleDoc", 0] },
+              existing: "$createdBy",
             },
-            "$createdBy",
-          ],
+            in: {
+              _id: {
+                $ifNull: ["$$userDoc._id", "$_createdById"],
+              },
+              name: {
+                $ifNull: [
+                  "$$userDoc.name",
+                  {
+                    $ifNull: [
+                      {
+                        $cond: [
+                          { $eq: [{ $type: "$$existing" }, "object"] },
+                          "$$existing.name",
+                          null,
+                        ],
+                      },
+                      "$$userDoc.companyName",
+                    ],
+                  },
+                ],
+              },
+              companyName: {
+                $ifNull: [
+                  "$$userDoc.companyName",
+                  {
+                    $cond: [
+                      { $eq: [{ $type: "$$existing" }, "object"] },
+                      "$$existing.companyName",
+                      null,
+                    ],
+                  },
+                ],
+              },
+              email: {
+                $ifNull: [
+                  "$$userDoc.email",
+                  {
+                    $cond: [
+                      { $eq: [{ $type: "$$existing" }, "object"] },
+                      "$$existing.email",
+                      null,
+                    ],
+                  },
+                ],
+              },
+              phone: {
+                $ifNull: [
+                  "$$userDoc.phone",
+                  {
+                    $cond: [
+                      { $eq: [{ $type: "$$existing" }, "object"] },
+                      "$$existing.phone",
+                      null,
+                    ],
+                  },
+                ],
+              },
+              role: "$$userDoc.role",
+              roleName: {
+                $ifNull: [
+                  "$$userDoc.roleName",
+                  {
+                    $ifNull: [
+                      "$$roleDoc.label",
+                      {
+                        $ifNull: [
+                          "$$roleDoc.name",
+                          {
+                            $ifNull: [
+                              "$$userDoc.role",
+                              {
+                                $cond: [
+                                  {
+                                    $eq: [{ $type: "$$existing" }, "object"],
+                                  },
+                                  "$$existing.roleName",
+                                  null,
+                                ],
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+              roleId: {
+                $cond: [
+                  { $ifNull: ["$$roleDoc", false] },
+                  {
+                    _id: "$$roleDoc._id",
+                    name: "$$roleDoc.name",
+                    label: "$$roleDoc.label",
+                  },
+                  "$$userDoc.roleId",
+                ],
+              },
+            },
+          },
         },
       },
     },
-    { $project: { createdByDoc: 0 } },
+    {
+      $project: {
+        createdByDoc: 0,
+        createdByRoleDoc: 0,
+        _createdById: 0,
+      },
+    },
   ];
 
   if (!includeFacets) {
@@ -370,7 +518,7 @@ export const listAdminProperties = async (query: Record<string, any> = {}) => {
       ? Math.max(1, Math.ceil(total / limit) || 1)
       : 0;
     return {
-      items: facet?.items || [],
+      items: await attachCreatedByProfiles(primary.model, facet?.items || []),
       meta: {
         total,
         page,
@@ -510,7 +658,7 @@ export const listAdminProperties = async (query: Record<string, any> = {}) => {
   }
 
   return {
-    items: facet?.items || [],
+    items: await attachCreatedByProfiles(primary.model, facet?.items || []),
     meta: {
       total,
       page,

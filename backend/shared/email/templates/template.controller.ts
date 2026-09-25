@@ -8,7 +8,10 @@ import { EmailLog } from "../../../services/user-service/src/logs/emailLog.model
 import csv from "csv-parser";
 import { parseTemplate } from "../../../services/user-service/src/utils/parseTemplate";
 import { Readable } from "stream";
-import { whatsappQueue } from "../../../services/user-service/src/queues";
+import {
+  whatsappQueue,
+  addWhatsAppJobWithTimeout,
+} from "../../../services/user-service/src/queues";
 import { getTemplatesService } from "../../whatsapp/templates/whatsappTemplate.service";
 import { WhatsAppCampaignRun } from "../../../services/user-service/src/logs/whatsappCampaignRun.model";
 import * as XLSX from "xlsx";
@@ -798,7 +801,7 @@ export const sendWhatsAppCSV = async (req: Request, res: Response) => {
     });
 
     try {
-      await whatsappQueue.add(
+      await addWhatsAppJobWithTimeout(
         "fanout-csv-campaign",
         {
           campaignId,

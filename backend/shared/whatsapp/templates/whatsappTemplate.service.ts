@@ -2,7 +2,10 @@ import axios from "axios";
 import { Request, Response } from "express";
 import { Types } from "mongoose";
 
-import { whatsappQueue } from "../../../services/user-service/src/queues";
+import {
+  whatsappQueue,
+  addWhatsAppJobWithTimeout,
+} from "../../../services/user-service/src/queues";
 import User from "../../../services/user-service/src/models/userModel";
 import Role from "../../../services/user-service/src/models/roleModel";
 import { WhatsAppLog } from "../../../services/user-service/src/logs/whatsappLog.model";
@@ -146,7 +149,7 @@ function resolveHeaderFormat(template: any): string {
  * On GET templates that is often an https://scontent.whatsapp.net preview URL —
  * good for UI preview, NOT valid as Messages API image.link (Meta returns 131053/403).
  */
-function resolveTemplateHeaderMediaUrl(template: any): string {
+export function resolveTemplateHeaderMediaUrl(template: any): string {
   const header = (template?.components || []).find(
     (c: any) => String(c.type || "").toUpperCase() === "HEADER",
   );
@@ -556,7 +559,7 @@ export const sendWhatsAppCampaignDynamic = async (
     });
 
     try {
-      await whatsappQueue.add(
+      await addWhatsAppJobWithTimeout(
         "fanout-crm-campaign",
         {
           campaignId,
