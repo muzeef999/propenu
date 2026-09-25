@@ -8,6 +8,7 @@ import {
   ServiceHomeLoan,
   ServiceInteriorDesigner,
 } from "@/icons/icons";
+import { PiBuildingsFill } from "react-icons/pi";
 
 /**
  * ExploreOurServices
@@ -19,20 +20,30 @@ const data = [
   {
     href: "/home-loans",
     icon: <ServiceHomeLoan />,
+    iconBg: "#FFEAF8",
     title: "Easy Home Loans & Expert Support",
     desc: "Quick approvals, low interest, zero hassle.",
   },
   {
-    href: "/home-care",
-    icon: <ServiceHomeCare />,
-    title: "Professional Home Care",
-    desc: "Reliable cleaning, repairs, and maintenance.",
+    href: "/construction-services",
+    icon: <PiBuildingsFill size={24} color="#6EE7FD" />,
+    iconBg: "#E3FFFA",
+    title: "Construction Services",
+    desc: "From planning to project completion ",
   },
   {
     href: "/interior-designer",
     icon: <ServiceInteriorDesigner />,
+    iconBg: "#F6EFFF",
     title: "Modern Interior Designers",
     desc: "Transforming your space with expert creativity.",
+  },
+  {
+    href: "/home-care",
+    icon: <ServiceHomeCare />,
+    iconBg: "#FFF6E3",
+    title: "Professional Home Care",
+    desc: "Reliable cleaning, repairs, and maintenance.",
   },
 ];
 
@@ -59,7 +70,8 @@ export default function ExploreOurServices() {
             <div className="card p-4 flex flex-col sm:flex-row items-start gap-3 sm:gap-0">
               {/* Icon badge */}
               <div
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-indigo-50 ring-1 ring-indigo-100 shrink-0"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center ring-1 ring-indigo-100 shrink-0"
+                style={{ backgroundColor: c.iconBg }}
                 aria-hidden>
                 {c.icon}
               </div>
