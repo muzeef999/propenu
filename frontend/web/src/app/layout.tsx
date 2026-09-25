@@ -32,6 +32,10 @@ export default function RootLayout({
           name="msvalidate.01"
           content="45124C07DE0224D7D653C8D2B5EDA257"
         />
+        <meta
+          name="p:domain_verify"
+          content="f80dc643708108d5908cbac2e3da68d4"
+        />
 
         <Script id="google-tag-manager" strategy="beforeInteractive">
           {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { closedTicketStatuses } from "./ticket.constants";
 import { TicketRepository } from "./ticket.repository";
 import {
@@ -7,6 +8,8 @@ import {
   lookupRequesterLocation,
 } from "./roundRobinAssign.service";
 import { sendEmail } from "../../../../shared/email/email.service";
+import { sendBulkPush } from "../../../../shared/notifications/push.service";
+import { getActiveDeviceTokensForUsers } from "../../../../shared/notifications/deviceTokens";
 import {
   ticketAdditionalInformationReceivedSubject,
   ticketAdditionalInformationReceivedTemplate,
@@ -65,6 +68,7 @@ import type {
   TicketActor,
   TicketAttachment,
   TicketActivity,
+  TicketDocument,
   TicketListQuery,
   TicketPriority,
   TicketStatus,
@@ -183,9 +187,76 @@ const buildTicketTemplateBase = (
   return base;
 };
 
+const displayTicketId = (ticket: { _id: unknown; ticketCode?: string }) =>
+  ticket.ticketCode || String(ticket._id);
+
+type TicketPushType =
+  | "ticket_created"
+  | "ticket_assigned"
+  | "ticket_updated"
+  | "ticket_replied"
+  | "ticket_status_changed"
+  | "ticket_resolved"
+  | "ticket_closed"
+  | "ticket_reopened"
+  | "ticket_escalated"
+  | "ticket_priority_changed";
+
+const getUserTokens = async (userIds: string[]) => {
+  const validIds = Array.from(
+    new Set(userIds.map((id) => String(id || "").trim()).filter(Boolean)),
+  );
+
+  return getActiveDeviceTokensForUsers(validIds);
+};
+
+const sendTicketPush = async ({
+  ticket,
+  type,
+  title,
+  body,
+  userIds,
+  audience,
+}: {
+  ticket: TicketDocument;
+  type: TicketPushType;
+  title: string;
+  body: string;
+  userIds: string[];
+  audience: "requester" | "assignee";
+}) => {
+  try {
+    const tokens = await getUserTokens(userIds);
+    if (!tokens.length) return;
+
+    await sendBulkPush({
+      tokens,
+      title,
+      body,
+      data: {
+        type,
+        audience,
+        ticketId: String(ticket._id),
+        ticketCode: displayTicketId(ticket),
+        status: ticket.status,
+      },
+    });
+  } catch (error) {
+    console.error("ticket push notification failed:", error);
+  }
+};
+
+const getStatusPushType = (status: TicketStatus): TicketPushType => {
+  if (status === "resolved") return "ticket_resolved";
+  if (status === "closed") return "ticket_closed";
+  if (status === "reopened") return "ticket_reopened";
+  if (status === "escalated") return "ticket_escalated";
+  return "ticket_status_changed";
+};
+
 export class TicketService {
   private static displayTicketId(ticket: { _id: unknown; ticketCode?: string }) {
-    return ticket.ticketCode || String(ticket._id);
+    return displayTicketId(ticket);
   }
 
   static async createTicket(input: CreateTicketInput) {
@@ -318,6 +389,29 @@ export class TicketService {
       }
     }
 
+    await Promise.all([
+      ticket.requester.userId
+        ? sendTicketPush({
+            ticket,
+            type: "ticket_created",
+            title: "Ticket Created",
+            body: `Ticket ${TicketService.displayTicketId(ticket)} was created for ${ticket.title}.`,
+            userIds: [ticket.requester.userId],
+            audience: "requester",
+          })
+        : Promise.resolve(),
+      ticket.assignedTo?.userId
+        ? sendTicketPush({
+            ticket,
+            type: "ticket_assigned",
+            title: "Ticket Assigned",
+            body: `Ticket ${TicketService.displayTicketId(ticket)} was assigned to you.`,
+            userIds: [ticket.assignedTo.userId],
+            audience: "assignee",
+          })
+        : Promise.resolve(),
+    ]);
+
     return ticket;
   }
 
@@ -380,7 +474,7 @@ export class TicketService {
         ? "relationship-manager"
         : "customer-care";
 
-    return TicketRepository.create({
+    const ticket = await TicketRepository.create({
       ticketCode,
       title: `Request a Call - ${input.category}`,
       description: input.subject,
@@ -427,6 +521,31 @@ export class TicketService {
       attachments: [],
       activities,
     });
+
+    await Promise.all([
+      ticket.requester.userId
+        ? sendTicketPush({
+            ticket,
+            type: "ticket_created",
+            title: "Call Request Created",
+            body: `Ticket ${TicketService.displayTicketId(ticket)} was created for your call request.`,
+            userIds: [ticket.requester.userId],
+            audience: "requester",
+          })
+        : Promise.resolve(),
+      ticket.assignedTo?.userId
+        ? sendTicketPush({
+            ticket,
+            type: "ticket_assigned",
+            title: "Ticket Assigned",
+            body: `Ticket ${TicketService.displayTicketId(ticket)} was assigned to you.`,
+            userIds: [ticket.assignedTo.userId],
+            audience: "assignee",
+          })
+        : Promise.resolve(),
+    ]);
+
+    return ticket;
   }
 
   static listTickets(query: TicketListQuery) {
@@ -707,6 +826,17 @@ export class TicketService {
       } catch (error) {
         console.error("ticket feedback request email failed:", error);
       }
+    }
+
+    if (ticket.requester.userId) {
+      await sendTicketPush({
+        ticket,
+        type: "ticket_updated",
+        title: "Ticket Updated",
+        body: `Ticket ${TicketService.displayTicketId(ticket)} was updated.`,
+        userIds: [ticket.requester.userId],
+        audience: "requester",
+      });
     }
 
     return ticket;
@@ -1000,6 +1130,18 @@ export class TicketService {
       }
     }
 
+    if (ticket.requester.userId) {
+      const statusLabel = toTitleCase(ticket.status);
+      await sendTicketPush({
+        ticket,
+        type: getStatusPushType(status),
+        title: `Ticket ${statusLabel}`,
+        body: reason || `Ticket ${TicketService.displayTicketId(ticket)} is now ${statusLabel}.`,
+        userIds: [ticket.requester.userId],
+        audience: "requester",
+      });
+    }
+
     return ticket;
   }
 
@@ -1070,16 +1212,39 @@ export class TicketService {
       }
     }
 
+    await Promise.all([
+      ticket.requester.userId
+        ? sendTicketPush({
+            ticket,
+            type: "ticket_assigned",
+            title: "Ticket Assigned",
+            body: `Ticket ${TicketService.displayTicketId(ticket)} was assigned to ${assignedTo.name || "the support team"}.`,
+            userIds: [ticket.requester.userId],
+            audience: "requester",
+          })
+        : Promise.resolve(),
+      assignedTo.userId
+        ? sendTicketPush({
+            ticket,
+            type: "ticket_assigned",
+            title: "Ticket Assigned",
+            body: `Ticket ${TicketService.displayTicketId(ticket)} was assigned to you.`,
+            userIds: [assignedTo.userId],
+            audience: "assignee",
+          })
+        : Promise.resolve(),
+    ]);
+
     return ticket;
   }
 
-  static setPriority(
+  static async setPriority(
     id: string,
     priority: TicketPriority,
     actor?: TicketActor,
     reason?: string,
   ) {
-    return TicketRepository.updateById(id, {
+    const ticket = await TicketRepository.updateById(id, {
       priority,
       $push: {
         activities: activity(
@@ -1089,6 +1254,19 @@ export class TicketService {
         ),
       },
     });
+
+    if (ticket?.requester.userId) {
+      await sendTicketPush({
+        ticket,
+        type: "ticket_priority_changed",
+        title: "Ticket Priority Updated",
+        body: reason || `Ticket ${TicketService.displayTicketId(ticket)} priority changed to ${priority}.`,
+        userIds: [ticket.requester.userId],
+        audience: "requester",
+      });
+    }
+
+    return ticket;
   }
 
   static addComment(
@@ -1184,6 +1362,24 @@ export class TicketService {
           } catch (error) {
             console.error("ticket user reply received email failed:", error);
           }
+        }
+      }
+
+      if (ticket && visibility === "public") {
+        const isRequesterTarget = isSupportActor(author);
+        const targetUserId = isRequesterTarget
+          ? ticket.requester.userId
+          : ticket.assignedTo?.userId;
+
+        if (targetUserId) {
+          await sendTicketPush({
+            ticket,
+            type: "ticket_replied",
+            title: "New Ticket Reply",
+            body: `Ticket ${TicketService.displayTicketId(ticket)} has a new reply.`,
+            userIds: [targetUserId],
+            audience: isRequesterTarget ? "requester" : "assignee",
+          });
         }
       }
 

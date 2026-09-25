@@ -1546,10 +1546,34 @@ export const updateLocation = async (payload:any) => {
 
 
 
-export const sendTokenToBackend = async (userId: string, token: string) => {
-  await axios.post(`${url}/api/users/notifications/save-fcm-token`, {
-    userId,
+export const sendTokenToBackend = async (
+  tokenOrUserId: string,
+  maybeTokenOrPlatform?: string,
+  maybePlatformOrDeviceId?: string,
+  maybeDeviceId?: string,
+) => {
+  let token = tokenOrUserId;
+  let platform: "android" | "ios" | "web" = "web";
+  let deviceId: string | undefined = undefined;
+
+  if (maybeTokenOrPlatform && !["web", "android", "ios"].includes(maybeTokenOrPlatform)) {
+    token = maybeTokenOrPlatform;
+    if (maybePlatformOrDeviceId && ["web", "android", "ios"].includes(maybePlatformOrDeviceId)) {
+      platform = maybePlatformOrDeviceId as any;
+    }
+    deviceId = maybeDeviceId;
+  } else {
+    token = tokenOrUserId;
+    if (maybeTokenOrPlatform && ["web", "android", "ios"].includes(maybeTokenOrPlatform)) {
+      platform = maybeTokenOrPlatform as any;
+    }
+    deviceId = maybePlatformOrDeviceId;
+  }
+
+  await axiosInstance.post(`${url}/api/users/notifications/save-fcm-token`, {
     token,
+    platform,
+    deviceId,
   });
 };
 

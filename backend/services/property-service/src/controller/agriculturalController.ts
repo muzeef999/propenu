@@ -869,15 +869,16 @@ export const verifyAgricultiralDocument = async (
           notificationStatus.whatsapp = true;
         }
 
-        if (user?.fcmToken) {
-          await sendTemplateNotification({
-            token: user.fcmToken,
-            templateKey: "PROPERTY_APPROVED",
-            data: {
-              name: user.name || "User",
-              propertyTitle,
-            },
-          });
+        const pushResult = await sendTemplateNotification({
+          userId,
+          token: user?.fcmToken || undefined,
+          templateKey: "PROPERTY_APPROVED",
+          data: {
+            name: user?.name || "User",
+            propertyTitle,
+          },
+        });
+        if ((pushResult?.successCount ?? 0) > 0) {
           notificationStatus.push = true;
         }
       } catch (notifyError) {
@@ -915,16 +916,17 @@ export const verifyAgricultiralDocument = async (
           notificationStatus.email = true;
         }
 
-        if (user?.fcmToken) {
-          await sendTemplateNotification({
-            token: user.fcmToken,
-            templateKey: "PROPERTY_REJECTED",
-            data: {
-              name: user.name || "User",
-              propertyTitle,
-              rejectedReason: reason,
-            },
-          });
+        const pushResult = await sendTemplateNotification({
+          userId,
+          token: user?.fcmToken || undefined,
+          templateKey: "PROPERTY_REJECTED",
+          data: {
+            name: user?.name || "User",
+            propertyTitle,
+            rejectedReason: reason,
+          },
+        });
+        if ((pushResult?.successCount ?? 0) > 0) {
           notificationStatus.push = true;
         }
       } catch (notifyError) {
@@ -1016,15 +1018,16 @@ export const approveAgriculturalProperty = async (
         notificationStatus.whatsapp = true;
       }
 
-      if (agent?.fcmToken) {
-        await sendTemplateNotification({
-          token: agent.fcmToken,
-          templateKey: "PROPERTY_APPROVED",
-          data: {
-            name: agent.name || "User",
-            propertyTitle,
-          },
-        });
+      const pushResult = await sendTemplateNotification({
+        userId: (agent as any)?._id,
+        token: agent?.fcmToken || undefined,
+        templateKey: "PROPERTY_APPROVED",
+        data: {
+          name: agent?.name || "User",
+          propertyTitle,
+        },
+      });
+      if ((pushResult?.successCount ?? 0) > 0) {
         notificationStatus.push = true;
       }
     } catch (err) {
