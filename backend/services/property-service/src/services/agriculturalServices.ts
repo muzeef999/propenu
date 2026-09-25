@@ -29,6 +29,7 @@ import {
   stampListingApproved,
   stampListingRejected,
 } from "../utils/agentSubmission";
+import { applyOwnerUserFilter, ownerListLimit } from "../utils/ownerUserFilter";
 import { findRankedRelatedProperties } from "./relatedPropertyUtils";
 
 dotenv.config({ quiet: true });
@@ -507,18 +508,23 @@ export const AgriculturalService = {
     sortOrder?: "asc" | "desc";      
   }) {
     const page = Math.max(1, options?.page ?? 1);
-    const limit = Math.min(100, options?.limit ?? 20);
+    const ownerUserId = (options as any)?.ownerUserId as string | undefined;
+    const limit = ownerListLimit({ ownerUserId, limit: options?.limit });
     const skip = (page - 1) * limit;
     const filter: any = {};
     if (options?.q) filter.$text = { $search: options.q };
     if (options?.city) filter.city = options.city;
     const statusOpt = String(options?.status || "").trim().toLowerCase();
     if (statusOpt && statusOpt !== "all") filter.status = statusOpt;
-    if (options?.createdBy) {
-      filter.createdBy = new mongoose.Types.ObjectId(options.createdBy);
-    }
-    if (options?.postedBy) {
-      filter["postedBy.userId"] = new mongoose.Types.ObjectId(options.postedBy);
+    if (ownerUserId) {
+      applyOwnerUserFilter(filter, ownerUserId);
+    } else {
+      if (options?.createdBy) {
+        filter.createdBy = new mongoose.Types.ObjectId(options.createdBy);
+      }
+      if (options?.postedBy) {
+        filter["postedBy.userId"] = new mongoose.Types.ObjectId(options.postedBy);
+      }
     }
 
       const sort: any = {};

@@ -16,6 +16,7 @@ import User from "../models/userModel";
 import { syncListingFollowUpAfterLocation } from "../utils/listingFollowUpAssign";
 import { sendManagerApprovalMail } from "../utils/sendManagerMail";
 import mongoose from "mongoose";
+import { readOwnerUserId } from "../utils/ownerUserFilter";
 import { deleteS3ObjectIfExists } from "../utils/s3Helpers";
 import {
   sendListingApprovedAgent,
@@ -163,6 +164,9 @@ export const getAllAgricultural = async (req: Request, res: Response) => {
     if (typeof sortBy === "string") options.sortBy = sortBy;
     if (typeof sortOrder === "string")
       options.sortOrder = sortOrder === "asc" ? "asc" : "desc";
+    const owner = readOwnerUserId(req.query as Record<string, any>);
+    if (owner.error) return res.status(400).json({ error: owner.error });
+    if (owner.ownerUserId) options.ownerUserId = owner.ownerUserId;
     if (typeof createdBy === "string") {
       if (!mongoose.Types.ObjectId.isValid(createdBy)) {
         return res.status(400).json({ error: "Invalid createdBy" });

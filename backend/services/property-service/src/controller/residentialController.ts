@@ -40,6 +40,7 @@ import {
   submitAgentListingForReview,
 } from "../utils/agentSubmission";
 import { assertCanApproveListing } from "../utils/listingApprovalGuard";
+import { readOwnerUserId } from "../utils/ownerUserFilter";
 
 /** Helper: parse values that might be JSON strings (multipart sends arrays/objects as strings). */
 function parseMaybeJSON<T = any>(value: any): T | undefined {
@@ -193,6 +194,9 @@ export const getAllResidential = async (req: Request, res: Response) => {
     if (typeof near === "string") options.near = near;
     if (typeof maxDistance === "string")
       options.maxDistance = Number(maxDistance);
+    const owner = readOwnerUserId(req.query as Record<string, any>);
+    if (owner.error) return res.status(400).json({ error: owner.error });
+    if (owner.ownerUserId) options.ownerUserId = owner.ownerUserId;
     if (typeof createdBy === "string") {
       if (!mongoose.Types.ObjectId.isValid(createdBy)) {
         return res.status(400).json({ error: "Invalid createdBy" });

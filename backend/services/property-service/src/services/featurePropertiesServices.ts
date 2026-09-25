@@ -21,6 +21,7 @@ import {
   normalizeListingAuditFields,
   restoreCreatedById,
 } from "../utils/agentSubmission";
+import { applyOwnerUserFilter, ownerListLimit } from "../utils/ownerUserFilter";
 
 dotenv.config({ quiet: true });
 
@@ -1605,7 +1606,8 @@ export const FeaturePropertyService = {
     to?: string;
   }) {
     const page = Math.max(1, options?.page ?? 1);
-    const limit = Math.min(100, options?.limit ?? 20);
+    const ownerUserId = (options as any)?.ownerUserId as string | undefined;
+    const limit = ownerListLimit({ ownerUserId, limit: options?.limit });
     const skip = (page - 1) * limit;
 
     const statusOpt = String(options?.status || "").trim().toLowerCase();
@@ -1726,14 +1728,17 @@ export const FeaturePropertyService = {
         $options: "i",
       };
     }
-    if ((options as any)?.createdBy) {
-      filter.createdBy = new mongoose.Types.ObjectId((options as any).createdBy);
-    }
-    // Sales Executive / staff poster — ownership stays on builder (createdBy)
-    if ((options as any)?.postedBy) {
-      filter["postedBy.userId"] = new mongoose.Types.ObjectId(
-        (options as any).postedBy,
-      );
+    if ((options as any)?.ownerUserId) {
+      applyOwnerUserFilter(filter, (options as any).ownerUserId);
+    } else {
+      if ((options as any)?.createdBy) {
+        filter.createdBy = new mongoose.Types.ObjectId((options as any).createdBy);
+      }
+      if ((options as any)?.postedBy) {
+        filter["postedBy.userId"] = new mongoose.Types.ObjectId(
+          (options as any).postedBy,
+        );
+      }
     }
 
     // 🔥 EXCLUDE EXPIRED PROMOTIONS
@@ -1785,7 +1790,7 @@ export const FeaturePropertyService = {
     }
 
     if (andFilters.length > 0) {
-      filter.$and = andFilters;
+      filter.$and = [...(filter.$and || []), ...andFilters];
     }
 
     // 🥇 SORT
@@ -1808,7 +1813,7 @@ export const FeaturePropertyService = {
 
       FeaturedProject.countDocuments(filter),
 
-      (options as any)?.createdBy
+      (options as any)?.createdBy || (options as any)?.ownerUserId
         ? countPromotionTypes(filter)
         : Promise.resolve(undefined),
     ]);

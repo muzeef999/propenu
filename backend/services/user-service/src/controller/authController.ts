@@ -1170,6 +1170,14 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       }
     }
 
+    const lookupUserId = String(query.userId || query.id || "").trim();
+    if (lookupUserId) {
+      if (!mongoose.Types.ObjectId.isValid(lookupUserId)) {
+        return res.status(400).json({ message: "Invalid userId" });
+      }
+      userFilter._id = new mongoose.Types.ObjectId(lookupUserId);
+    }
+
     const createdAtFilter = buildCreatedAtQueryFilter(query);
     if (createdAtFilter) {
       userFilter.createdAt = createdAtFilter;
