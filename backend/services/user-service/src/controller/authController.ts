@@ -2085,10 +2085,97 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
       },
     });
 
+    const stateQ = String(req.query.state || "").trim();
+    const cityQ = String(req.query.city || "").trim();
+    const localityQ = String(req.query.locality || "").trim();
+    const pincodeQ = String(req.query.pincode || "").trim();
+    const exact = (value: string) => new RegExp(`^${escapeRegex(value)}$`, "i");
+    const locationMatch: Record<string, any> = {};
+    if (stateQ) locationMatch.state = exact(stateQ);
+    if (cityQ) locationMatch.city = exact(cityQ);
+    if (localityQ) locationMatch.locality = exact(localityQ);
+    if (pincodeQ) {
+      locationMatch.pincode = { $regex: escapeRegex(pincodeQ), $options: "i" };
+    }
+    const locStage = Object.keys(locationMatch).length
+      ? [{ $match: locationMatch }]
+      : [];
+    const statusQ = String(
+      req.query.verificationStatus || req.query.status || "",
+    )
+      .trim()
+      .toLowerCase();
+    const statusMatch: Record<string, any> = {};
+    if (statusQ === "pending") {
+      statusMatch.$or = [
+        { verificationStatus: { $in: [null, ""] } },
+        { verificationStatus: { $regex: /^pending$/i } },
+      ];
+    } else if (statusQ === "approved" || statusQ === "rejected") {
+      statusMatch.verificationStatus = exact(statusQ);
+    }
+    const resultMatchParts = [
+      ...(Object.keys(locationMatch).length ? [locationMatch] : []),
+      ...(Object.keys(statusMatch).length ? [statusMatch] : []),
+    ];
+    const resultStage = resultMatchParts.length
+      ? [
+          {
+            $match:
+              resultMatchParts.length === 1
+                ? resultMatchParts[0]
+                : { $and: resultMatchParts },
+          },
+        ]
+      : [];
+    const uniqueValues = (
+      field: string,
+      extraMatch: Record<string, any> = {},
+    ) => [
+      ...(Object.keys(extraMatch).length ? [{ $match: extraMatch }] : []),
+      { $group: { _id: `$${field}` } },
+      { $match: { _id: { $nin: [null, ""] } } },
+      { $sort: { _id: 1 as const } },
+      { $limit: 200 },
+    ];
+
     pipeline.push({
       $facet: {
-        meta: [{ $count: "total" }],
-        results: [{ $skip: skip }, { $limit: limit }],
+        meta: [...resultStage, { $count: "total" }],
+        results: [...resultStage, { $skip: skip }, { $limit: limit }],
+        states: uniqueValues("state"),
+        cities: uniqueValues("city", stateQ ? { state: exact(stateQ) } : {}),
+        localities: uniqueValues("locality", {
+          ...(stateQ ? { state: exact(stateQ) } : {}),
+          ...(cityQ ? { city: exact(cityQ) } : {}),
+        }),
+        statusCounts: [
+          ...locStage,
+          {
+            $group: {
+              _id: {
+                $toLower: {
+                  $ifNull: [
+                    {
+                      $cond: [
+                        {
+                          $or: [
+                            { $eq: ["$verificationStatus", null] },
+                            { $eq: ["$verificationStatus", ""] },
+                          ],
+                        },
+                        "pending",
+                        "$verificationStatus",
+                      ],
+                    },
+                    "pending",
+                  ],
+                },
+              },
+              n: { $sum: 1 },
+            },
+          },
+        ],
       },
     });
 
@@ -2096,6 +2183,10 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
     const total = Number(facet?.meta?.[0]?.total || 0);
     const users = Array.isArray(facet?.results) ? facet.results : [];
     const pages = Math.max(1, Math.ceil(total / limit) || 1);
+    const pickIds = (rows: any[]) =>
+      (Array.isArray(rows) ? rows : [])
+        .map((row) => row?._id)
+        .filter((value) => typeof value === "string" && value.trim());
 
     res.json({
       results: users,
@@ -2106,7 +2197,21 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
         page,
         limit,
         pages,
-        hasMore: page * limit < total,
+        hasMore: page < pages,
+        hasNextPage: page < pages,
+        hasPreviousPage: page > 1,
+        rangeStart: total === 0 ? 0 : skip + 1,
+        rangeEnd: Math.min(skip + users.length, total),
+      },
+      facets: {
+        states: pickIds(facet?.states),
+        cities: pickIds(facet?.cities),
+        localities: pickIds(facet?.localities),
+        statusCounts: Object.fromEntries(
+          (Array.isArray(facet?.statusCounts) ? facet.statusCounts : [])
+            .filter((row: any) => row?._id)
+            .map((row: any) => [String(row._id), Number(row.n) || 0]),
+        ),
       },
     });
   } catch (err) {
