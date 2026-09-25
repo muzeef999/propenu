@@ -369,9 +369,38 @@ export const listAdminProperties = async (query: Record<string, any> = {}) => {
       },
     },
     {
+      $addFields: {
+        _createdByRoleId: toObjectIdOrNull({
+          $let: {
+            vars: {
+              rid: {
+                $ifNull: [
+                  { $arrayElemAt: ["$createdByDoc.roleId", 0] },
+                  {
+                    $cond: [
+                      { $eq: [{ $type: "$createdBy" }, "object"] },
+                      "$createdBy.roleId",
+                      null,
+                    ],
+                  },
+                ],
+              },
+            },
+            in: {
+              $cond: [
+                { $eq: [{ $type: "$$rid" }, "object"] },
+                { $ifNull: ["$$rid._id", "$$rid"] },
+                "$$rid",
+              ],
+            },
+          },
+        }),
+      },
+    },
+    {
       $lookup: {
         from: "roles",
-        localField: "createdByDoc.roleId",
+        localField: "_createdByRoleId",
         foreignField: "_id",
         as: "createdByRoleDoc",
         pipeline: [{ $project: { name: 1, label: 1 } }],
@@ -457,12 +486,17 @@ export const listAdminProperties = async (query: Record<string, any> = {}) => {
                             $ifNull: [
                               "$$userDoc.role",
                               {
-                                $cond: [
+                                $ifNull: [
                                   {
-                                    $eq: [{ $type: "$$existing" }, "object"],
+                                    $cond: [
+                                      {
+                                        $eq: [{ $type: "$$existing" }, "object"],
+                                      },
+                                      "$$existing.roleName",
+                                      null,
+                                    ],
                                   },
-                                  "$$existing.roleName",
-                                  null,
+                                  "$listingSource",
                                 ],
                               },
                             ],
@@ -494,6 +528,7 @@ export const listAdminProperties = async (query: Record<string, any> = {}) => {
         createdByDoc: 0,
         createdByRoleDoc: 0,
         _createdById: 0,
+        _createdByRoleId: 0,
       },
     },
   ];

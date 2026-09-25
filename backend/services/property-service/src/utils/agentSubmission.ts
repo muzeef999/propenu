@@ -199,17 +199,28 @@ export async function attachCreatedByProfiles(Model: any, items: any[]) {
   return items.map((item) => {
     const createdById = toObjectId(item?.createdBy);
     const user = createdById ? userById.get(String(createdById)) : null;
-    if (!user) return item;
+    const existing =
+      item?.createdBy && typeof item.createdBy === "object" ? item.createdBy : {};
+    const roleName =
+      getRoleNameFromUser(user) ||
+      existing.roleName ||
+      existing.role ||
+      existing.roleId?.label ||
+      existing.roleId?.name ||
+      item?.listingSource ||
+      item?.postedBy?.roleName ||
+      "";
+    if (!user && !roleName && !existing.name) return item;
     return {
       ...item,
       createdBy: {
-        _id: user._id,
-        name: user.name,
-        companyName: user.companyName,
-        email: user.email,
-        phone: user.phone,
-        roleName: getRoleNameFromUser(user),
-        roleId: user.roleId,
+        _id: user?._id || existing._id || createdById,
+        name: user?.name || existing.name || "",
+        companyName: user?.companyName || existing.companyName,
+        email: user?.email || existing.email,
+        phone: user?.phone || existing.phone,
+        roleName: roleName || undefined,
+        roleId: user?.roleId || existing.roleId,
       },
     };
   });
