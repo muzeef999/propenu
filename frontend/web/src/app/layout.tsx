@@ -28,6 +28,10 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+          name="msvalidate.01"
+          content="45124C07DE0224D7D653C8D2B5EDA257"
+        />
 
         <Script id="google-tag-manager" strategy="beforeInteractive">
           {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
