@@ -8,6 +8,7 @@ import Role from "../models/roleModel";
 import { uploadToS3 } from "../utils/s3Upload";
 import { verifyAndConsumeOtpWithReason } from "../utils/saveOtpRedis";
 import { decodeUnsubscribeToken } from "../utils/unsubscribeToken";
+import { upsertDeviceToken } from "../../../../shared/notifications/deviceTokens";
 
 const isAdminRole = (roleName?: string) =>
   roleName === "admin" || roleName === "super_admin";
@@ -71,17 +72,34 @@ const getRoleIdsForAudience = async (audience?: string, role?: string) => {
 
 export const saveFcmToken = async (req: Request, res: Response) => {
   try {
-    const { userId, token } = req.body;
+    const authUser = (req as any).user;
+    const userId = authUser?.sub || authUser?.id || authUser?._id;
+    const { token, platform, deviceId } = req.body;
 
-    if (!userId || !token) {
-      return res.status(400).json({ message: "Missing fields" });
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
-    await User.findByIdAndUpdate(userId, {
-      fcmToken: token,
+    if (!token) {
+      return res.status(400).json({ message: "Token is required" });
+    }
+
+    const saved = await upsertDeviceToken({
+      userId,
+      token,
+      platform,
+      deviceId,
     });
 
-    res.json({ message: "Token saved" });
+    await User.findByIdAndUpdate(userId, {
+      fcmToken: saved.token,
+    });
+
+    res.json({
+      message: "Token saved",
+      platform: saved.platform,
+      deviceId: saved.deviceId,
+    });
   } catch (error) {
     console.error("Save FCM Token Error:", error);
     res.status(500).json({ message: "Internal server error" });

@@ -86,7 +86,7 @@ function ClientProvidersContent({
       const token = await getFcmToken();
       if (!token) return;
 
-      await sendTokenToBackend(user.user.id, token);
+      await sendTokenToBackend(token, "web");
     };
 
     initPush();

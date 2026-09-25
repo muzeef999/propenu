@@ -11,7 +11,7 @@ import { authMiddleware } from "../middlewares/authMiddleware";
 
 const router = express.Router();
 
-router.post("/save-fcm-token", saveFcmToken);
+router.post("/save-fcm-token", authMiddleware, saveFcmToken);
 router.get("/admin/feed", authMiddleware, getAdminNotifications);
 router.post("/admin/feed/seen", authMiddleware, markAdminNotificationsSeen);
 router.post(
