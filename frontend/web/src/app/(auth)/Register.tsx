@@ -6,9 +6,11 @@ import {
   me,
 } from "@/data/ClientData";
 import axios from "axios";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
+  MdCheck,
   MdCheckCircle,
   MdClose,
   MdOutlineBadge,
@@ -85,6 +87,7 @@ const RegisterDialog = ({
   const [resendCooldown, setResendCooldown] = useState(0);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const otp = otpDigits.join("");
   const isPhoneValid = isValidPhoneNumber(phoneNumber);
@@ -211,14 +214,18 @@ const RegisterDialog = ({
   async function handlePersonalStepNext() {
     const accountValidation = accountSchema.safeParse(formData);
     const nameError = validateFullName(formData.name, formData.role);
+    const termsError = termsAccepted
+      ? ""
+      : "Please accept the Terms & Conditions to continue";
 
-    if (!accountValidation.success || nameError) {
+    if (!accountValidation.success || nameError || termsError) {
       setErrors((prev) => ({
         ...prev,
         ...(accountValidation.success
           ? {}
           : mapAuthZodErrors(accountValidation.error)),
         ...(nameError ? { name: nameError } : {}),
+        ...(termsError ? { termsAccepted: termsError } : {}),
       }));
       return;
     }
@@ -237,11 +244,15 @@ const RegisterDialog = ({
     const phoneValidation = phoneSchema.safeParse({ phone: phoneNumber });
     const accountValidation = accountSchema.safeParse(formData);
     const otpValidation = otpSchema.safeParse(otpToSubmit);
+    const termsError = termsAccepted
+      ? ""
+      : "Please accept the Terms & Conditions to continue";
 
     if (
       !phoneValidation.success ||
       !accountValidation.success ||
-      !otpValidation.success
+      !otpValidation.success ||
+      termsError
     ) {
       setErrors((prev) => ({
         ...prev,
@@ -254,6 +265,7 @@ const RegisterDialog = ({
         ...(otpValidation.success
           ? {}
           : { otp: otpValidation.error.issues[0]?.message }),
+        ...(termsError ? { termsAccepted: termsError } : {}),
       }));
       return;
     }
@@ -360,6 +372,7 @@ const RegisterDialog = ({
       email: "",
       role: "user",
     });
+    setTermsAccepted(false);
     setOtpDigits(Array(OTP_LENGTH).fill(""));
     setErrors({});
     onClose();
@@ -707,6 +720,49 @@ const RegisterDialog = ({
               </div>
               {errors.email && (
                 <p className="mt-1 text-xs text-red-600">{errors.email}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="flex items-start gap-2.5 text-xs leading-5 text-[#5f6662]">
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(e) => {
+                    setTermsAccepted(e.target.checked);
+                    setErrors((prev) => ({
+                      ...prev,
+                      termsAccepted: undefined,
+                    }));
+                  }}
+                  className="peer sr-only"
+                />
+                <span className="mt-1 flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded-[3px] border border-[#b8d8c5] bg-white text-white transition peer-checked:border-[#28b463] peer-checked:bg-[#28b463]">
+                  <MdCheck size={13} strokeWidth={3} />
+                </span>
+                <span>
+                  I agree to Propenu's{" "}
+                  <Link
+                    href="/terms"
+                    target="_blank"
+                    className="font-medium text-[#28b463] hover:underline"
+                  >
+                    Terms & Conditions
+                  </Link>{" "}
+                  and{" "}
+                  <Link
+                    href="/privacy"
+                    target="_blank"
+                    className="font-medium text-[#28b463] hover:underline"
+                  >
+                    Privacy Policy
+                  </Link>
+                </span>
+              </label>
+              {errors.termsAccepted && (
+                <p className="mt-1 text-xs text-red-600">
+                  {errors.termsAccepted}
+                </p>
               )}
             </div>
 

@@ -71,6 +71,7 @@ export type FormErrors = {
   city?: string;
   state?: string;
   otp?: string;
+  termsAccepted?: string;
 };
 
 export function mapAuthZodErrors(error: z.ZodError): FormErrors {
