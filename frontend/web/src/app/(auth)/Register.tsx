@@ -97,6 +97,7 @@ const RegisterDialog = ({
   const lastOtpRequestedPhoneRef = useRef("");
   const lastOtpAttemptedPhoneRef = useRef("");
   const verifiedPhoneRef = useRef("");
+  const otpRequestInFlightRef = useRef(false);
 
   useBodyScrollLock(open);
 
@@ -131,6 +132,7 @@ const RegisterDialog = ({
 
   async function handleRegisterRequest(isResend = false) {
     if (isResend && resendCooldown > 0) return;
+    if (otpRequestInFlightRef.current) return;
 
     if (isOtpVerified || isPreviouslyVerifiedPhone(phoneNumber)) {
       setIsOtpVerified(true);
@@ -146,6 +148,7 @@ const RegisterDialog = ({
     }
 
     setLoading(true);
+    otpRequestInFlightRef.current = true;
     setErrors((prev) => ({ ...prev, phone: undefined, otp: undefined }));
     setExistingAccountMessage("");
 
@@ -177,8 +180,7 @@ const RegisterDialog = ({
           : axios.isAxiosError(err) && !err.response
             ? "Cannot reach API. Check network/CORS and that the backend is running."
             : "Something went wrong while requesting OTP";
-      // Allow retry for the same phone after a failed attempt.
-      lastOtpAttemptedPhoneRef.current = "";
+      lastOtpAttemptedPhoneRef.current = validation.data.phone;
       setOtpRequested(false);
       setOtpDigits(Array(OTP_LENGTH).fill(""));
       setResendCooldown(0);
@@ -196,6 +198,7 @@ const RegisterDialog = ({
 
       toast.error(resolvedMessage);
     } finally {
+      otpRequestInFlightRef.current = false;
       setLoading(false);
     }
   }
@@ -366,6 +369,7 @@ const RegisterDialog = ({
     lastOtpRequestedPhoneRef.current = "";
     lastOtpAttemptedPhoneRef.current = "";
     verifiedPhoneRef.current = "";
+    otpRequestInFlightRef.current = false;
     setFormData({
       name: "",
       companyName: "",
