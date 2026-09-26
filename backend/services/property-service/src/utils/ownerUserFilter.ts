@@ -24,8 +24,8 @@ export const applyOwnerUserFilter = (
 };
 
 export const ownerListLimit = (options?: {
-  ownerUserId?: string;
-  limit?: number;
+  ownerUserId?: string | undefined;
+  limit?: number | undefined;
 }) => {
   const scoped = Boolean(options?.ownerUserId);
   const cap = scoped ? 12 : 100;

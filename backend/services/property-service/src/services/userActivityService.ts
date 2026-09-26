@@ -159,9 +159,9 @@ export const hydrateUserActivity = async (userId: string) => {
     const group = actionGroupFor(String(action.eventType));
     counters[group] = (counters[group] || 0) + 1;
     const day = istDayKey(new Date(action.serverTimestamp));
-    daily[day] = daily[day] || { actions: 0 };
-    daily[day].actions += 1;
-    daily[day][group] = (daily[day][group] || 0) + 1;
+    const bucket = (daily[day] ||= { actions: 0 });
+    bucket.actions = (bucket.actions || 0) + 1;
+    bucket[group] = (bucket[group] || 0) + 1;
   }
 
   const doc = await UserActivity.findOneAndUpdate(
