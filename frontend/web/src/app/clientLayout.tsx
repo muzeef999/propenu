@@ -14,12 +14,21 @@ import { ModalProvider, useModal } from "@/app/context/ModalContext";
 import { me, sendTokenToBackend } from "@/data/ClientData";
 import { store } from "@/Redux/store";
 import { getFcmToken } from "@/utilies/getFcmToken";
+import { absoluteSiteUrl, normalizeCanonicalPath } from "@/utilies/siteUrl";
 
 const HIDE_LAYOUT_ROUTES = [
   "/prime",
   "/postproperty",
   "/builder/onboard",
   "/builder/invite",
+];
+
+const SKIP_CANONICAL_ROUTES = [
+  "/admin",
+  "/account",
+  "/approve",
+  "/builder/invite",
+  "/unsubscribe",
 ];
 
 export default function ClientProviders({
@@ -49,6 +58,29 @@ function ClientProvidersContent({
   const hideLayout = HIDE_LAYOUT_ROUTES.some((route) =>
     pathname?.startsWith(route),
   );
+
+  useEffect(() => {
+    const canonicalPath = normalizeCanonicalPath(pathname);
+    const shouldSkipCanonical = SKIP_CANONICAL_ROUTES.some((route) =>
+      canonicalPath === route || canonicalPath.startsWith(`${route}/`),
+    );
+
+    if (shouldSkipCanonical) {
+      return;
+    }
+
+    let canonicalLink = document.querySelector<HTMLLinkElement>(
+      'link[rel="canonical"]',
+    );
+
+    if (!canonicalLink) {
+      canonicalLink = document.createElement("link");
+      canonicalLink.rel = "canonical";
+      document.head.appendChild(canonicalLink);
+    }
+
+    canonicalLink.href = absoluteSiteUrl(canonicalPath);
+  }, [pathname]);
 
   useEffect(() => {
     async function fetchUser() {

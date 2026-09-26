@@ -5,9 +5,11 @@ import ClientProviders from "@/app/clientLayout"; // client component – used i
 import Script from "next/script";
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import UserJourneyTracker from "@/components/tracking/UserJourneyTracker";
+import { absoluteSiteUrl, DEFAULT_OG_IMAGE, SITE_URL } from "@/utilies/siteUrl";
 
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "Propenu | Smart, Trusted & Verified Real Estate Platform",
   description:
     "Post your property on Propenu and sell smarter. Verified listings, genuine buyers, and a completely spam-free experience.",
@@ -19,6 +21,29 @@ export const metadata: Metadata = {
     "Lease Management",
     "Real Estate Dashboard",
   ],
+  openGraph: {
+    title: "Propenu | Smart, Trusted & Verified Real Estate Platform",
+    description:
+      "Post your property on Propenu and sell smarter. Verified listings, genuine buyers, and a completely spam-free experience.",
+    url: absoluteSiteUrl("/"),
+    siteName: "Propenu",
+    type: "website",
+    images: [
+      {
+        url: absoluteSiteUrl(DEFAULT_OG_IMAGE),
+        width: 1200,
+        height: 630,
+        alt: "Propenu real estate platform",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Propenu | Smart, Trusted & Verified Real Estate Platform",
+    description:
+      "Post your property on Propenu and sell smarter. Verified listings, genuine buyers, and a completely spam-free experience.",
+    images: [absoluteSiteUrl(DEFAULT_OG_IMAGE)],
+  },
 };
 
 export default function RootLayout({

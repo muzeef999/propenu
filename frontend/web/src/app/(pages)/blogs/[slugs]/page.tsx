@@ -17,6 +17,7 @@ import {
   getBlogBySlug,
 } from "@/data/serverData";
 import { buildBlogPostingStructuredData } from "@/utilies/structuredData";
+import { absoluteSiteUrl, DEFAULT_OG_IMAGE } from "@/utilies/siteUrl";
 import BlogActions from "./BlogActions";
 
 type PageProps = {
@@ -190,11 +191,33 @@ export async function generateMetadata({ params }: PageProps) {
     title: blog.metaTitle || blog.title,
     description: blog.metaDescription || blog.excerpt,
     keywords: blog.metaKeywords,
-    alternates: blog.canonicalUrl
-      ? {
-        canonical: blog.canonicalUrl,
-      }
-      : undefined,
+    alternates: {
+      canonical: blog.canonicalUrl || absoluteSiteUrl(`/blogs/${slugs}`),
+    },
+    openGraph: {
+      title: blog.metaTitle || blog.title,
+      description: blog.metaDescription || blog.excerpt,
+      url: blog.canonicalUrl || absoluteSiteUrl(`/blogs/${slugs}`),
+      siteName: "Propenu",
+      type: "article",
+      publishedTime: blog.publishedAt || blog.createdAt,
+      authors: blog.author?.name ? [blog.author.name] : undefined,
+      tags: blog.tags,
+      images: [
+        {
+          url: absoluteSiteUrl(blog.featuredImage || DEFAULT_OG_IMAGE),
+          width: 1200,
+          height: 630,
+          alt: blog.imageAlt || blog.title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: blog.metaTitle || blog.title,
+      description: blog.metaDescription || blog.excerpt,
+      images: [absoluteSiteUrl(blog.featuredImage || DEFAULT_OG_IMAGE)],
+    },
   };
 }
 
