@@ -37,6 +37,14 @@ const Dropdown = dynamic<DropdownProps>(() => import("@/ui/SingleDropDown"), {
 });
 
 const BRAND_GREEN = "#27AE60";
+const LOGO_SLOT_CLASS =
+  "relative flex h-10 w-[150px] shrink-0 items-center sm:h-12 sm:w-[140px]";
+const MOBILE_LOGO_SLOT_CLASS =
+  "relative flex h-9 w-[140px] shrink-0 items-center sm:h-10 sm:w-[150px]";
+const LOGO_SKELETON_CLASS =
+  "h-full w-full rounded-md bg-gray-100 animate-pulse";
+const LOGO_FALLBACK_CLASS =
+  "flex h-full w-full items-center gap-1 overflow-hidden text-primary";
 
 const Navbar = () => {
   const pathname = usePathname();
@@ -76,7 +84,7 @@ const Navbar = () => {
     staleTime: 60_000,
   });
 
-  const { data: siteLogoData } = useQuery({
+  const { data: siteLogoData, isLoading: isLogoLoading } = useQuery({
     queryKey: ["site-branding-logo"],
     queryFn: getSiteLogo,
     staleTime: 1000 * 60 * 30, // 30 minutes
@@ -292,30 +300,29 @@ const Navbar = () => {
 
                 <Link
                   href="/"
-                  className="flex min-w-0 flex-1 select-none items-center gap-1" aria-label="Go to homepage"
+                  className="flex min-w-0 flex-1 select-none items-center gap-1"
+                  aria-label="Go to homepage"
                 >
-                  <div className="h-6 sm:h-7 shrink-0 flex items-center">
+                  <div className={MOBILE_LOGO_SLOT_CLASS}>
                     {logoUrl ? (
                       <img
                         src={logoUrl}
                         alt="Propenu Logo"
-                        className="h-10 sm:h-7 w-auto object-contain"
+                        className="h-full w-full object-contain object-left"
                       />
+                    ) : isLogoLoading ? (
+                      <div className={LOGO_SKELETON_CLASS} />
                     ) : (
-                      <div className="w-5 h-5 sm:w-7 sm:h-7">
-                        <Logo />
+                      <div className={LOGO_FALLBACK_CLASS}>
+                        <span className="h-8 w-8 shrink-0 sm:h-9 sm:w-9">
+                          <Logo />
+                        </span>
+                        <span className="truncate text-xl font-semibold leading-none tracking-normal sm:text-2xl">
+                          Propenu
+                        </span>
                       </div>
                     )}
                   </div>
-
-                  {!logoUrl && (
-                    <span className="truncate text-base font-semibold tracking-tight text-primary sm:text-lg lg:text-xl">
-                      PROPENU
-                      <sup className="ml-0.5 align-super text-[8px] sm:text-[10px] font-normal text-[#646464]">
-                        TM
-                      </sup>
-                    </span>
-                  )}
                 </Link>
 
                 {!isBuilder && (
@@ -477,29 +484,26 @@ const Navbar = () => {
                   className="flex items-center sm:gap-1 select-none shrink-0"
                   aria-label="Go to homepage"
                 >
-                  <div className="h-10 sm:h-12 shrink-0 flex items-center">
+                  <div className={LOGO_SLOT_CLASS}>
                     {logoUrl ? (
                       <img
                         src={logoUrl}
                         alt="Propenu Logo"
-                        className="max-h-10 sm:max-h-12 w-auto object-contain"
+                        className="h-full w-full object-contain object-left"
                       />
+                    ) : isLogoLoading ? (
+                      <div className={LOGO_SKELETON_CLASS} />
                     ) : (
-                      <div className="w-6 sm:w-7 h-6 sm:h-7 shrink-0">
-                        <Logo />
+                      <div className={LOGO_FALLBACK_CLASS}>
+                        <span className="h-9 w-9 shrink-0 sm:h-10 sm:w-10">
+                          <Logo />
+                        </span>
+                        <span className="truncate text-2xl font-semibold leading-none tracking-normal">
+                          Propenu
+                        </span>
                       </div>
                     )}
                   </div>
-                  {!logoUrl && (
-                    <div>
-                      <span className="text-base sm:text-lg lg:text-xl font-semibold text-primary tracking-tight">
-                        PROPENU
-                        <sup className="ml-1 text-[8px] sm:text-[10px] font-normal align-super text-[#646464]">
-                          TM
-                        </sup>
-                      </span>
-                    </div>
-                  )}
                 </Link>
 
                 {/* City (desktop & tablet) */}

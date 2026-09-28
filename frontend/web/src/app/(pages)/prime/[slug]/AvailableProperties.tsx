@@ -384,14 +384,14 @@ export default function AvailableProperties({ bhk }: Props) {
           <aside className="lg:col-span-4">
             <div className="rounded-md p-2.5 sm:p-4">
               <div className="flex items-center justify-between">
-                <button
+                {/* <button
                   type="button"
                   onClick={scrollToHero}
                   style={{ backgroundColor: color }}
                   className="inline-flex w-full cursor-pointer items-center justify-center rounded-md px-3 py-1.5 text-sm font-semibold text-white transition hover:brightness-95 sm:px-4 sm:py-2 sm:text-base"
                 >
                   Price on Request
-                </button>
+                </button> */}
               </div>
 
               <ul className="mt-3 space-y-2 text-sm text-gray-700 sm:mt-6 sm:space-y-3 sm:text-base">
