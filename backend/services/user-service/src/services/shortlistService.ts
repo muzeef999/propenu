@@ -6,6 +6,9 @@ import Commercial from "../models/commercialModel";
 import LandPlot from "../models/landModel";
 import Agricultural from "../models/agriculturalModel";
 import User from "../models/userModel";
+import { sendShortlistedPropertyEmail } from "../../../../shared/email/email.helper";
+import { sendBulkPush } from "../../../../shared/notifications/push.service";
+import { getActiveDeviceTokensForUsers } from "../../../../shared/notifications/deviceTokens";
 
 const SHORTLIST_MODEL_MAP: Record<string, any> = {
   Residential,
@@ -28,6 +31,53 @@ const toTitleCase = (value?: string | null) =>
     .trim()
     .toLowerCase()
     .replace(/\b[a-z]/g, (char) => char.toUpperCase());
+
+const sendShortlistPush = async ({
+  ownerId,
+  actorUserId,
+  propertyId,
+  propertyTitle,
+  propertyType,
+}: {
+  ownerId: string | Types.ObjectId;
+  actorUserId: Types.ObjectId;
+  propertyId: string;
+  propertyTitle: string;
+  propertyType: string;
+}) => {
+  try {
+    const [buyer, ownerTokens] = await Promise.all([
+      User.findById(actorUserId).select("name").lean(),
+      getActiveDeviceTokensForUsers([ownerId]),
+    ]);
+
+    if (!ownerTokens.length) return;
+
+    const buyerName = buyer?.name || "A user";
+    const type =
+      propertyType === "FeaturedProject"
+        ? "project_shortlisted"
+        : "property_shortlisted";
+
+    await sendBulkPush({
+      tokens: ownerTokens,
+      title:
+        propertyType === "FeaturedProject"
+          ? "Project Shortlisted"
+          : "Property Shortlisted",
+      body: `${buyerName} shortlisted ${propertyTitle}.`,
+      data: {
+        type,
+        audience: propertyType === "FeaturedProject" ? "builder" : "owner",
+        projectId: propertyId,
+        propertyType,
+        actorUserId: String(actorUserId),
+      },
+    });
+  } catch (error) {
+    console.error("Error sending shortlist push:", error);
+  }
+};
 
 const getBuilderFromDate = (range: string) => {
   const now = new Date();
@@ -61,7 +111,7 @@ export const addToShortlistService = async (
   }
 
   const property = await PropertyModel.findById(propertyObjectId)
-    .select("createdBy")
+    .select("createdBy title projectName buildingName location")
     .lean();
 
   if (!property) {
@@ -72,11 +122,58 @@ export const addToShortlistService = async (
     throw new Error("This is your own property");
   }
 
-  return await (Shortlist.findOneAndUpdate as any)(
+  const existing = await (Shortlist.findOne as any)({
+    userId,
+    propertyId: propertyObjectId,
+  }).lean();
+
+  const result = await (Shortlist.findOneAndUpdate as any)(
     { userId, propertyId: propertyObjectId },
     { $set: { propertyType } },
     { upsert: true, new: true },
   );
+
+  if (!existing && (property as any).createdBy) {
+    const propertyTitle =
+      (property as any).title ||
+      (property as any).projectName ||
+      (property as any).buildingName ||
+      "your property";
+
+    sendShortlistPush({
+      ownerId: (property as any).createdBy,
+      actorUserId: userId,
+      propertyId,
+      propertyTitle,
+      propertyType,
+    });
+
+    Promise.all([
+      User.findById(userId).select("name").lean(),
+      User.findById((property as any).createdBy).select("name email").lean(),
+    ])
+      .then(([buyer, owner]) => {
+        if (owner?.email) {
+          const location =
+            (property as any).location?.city ||
+            (property as any).city ||
+            (property as any).location?.address ||
+            "your area";
+          const link = `${process.env.FRONTEND_URL || "https://propenu.com"}/my-properties`;
+          sendShortlistedPropertyEmail(
+            owner.email,
+            owner.name || "Owner",
+            buyer?.name || "A potential buyer",
+            propertyTitle,
+            location,
+            link,
+          ).catch((err) => console.error("Error sending shortlist email:", err));
+        }
+      })
+      .catch((err) => console.error("Error triggering shortlist email:", err));
+  }
+
+  return result;
 };
 
 export const removeFromShortlistService = async (

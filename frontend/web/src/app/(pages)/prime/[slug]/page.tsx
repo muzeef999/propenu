@@ -16,6 +16,7 @@ import ProjectViewDurationTracker from "./ProjectViewDurationTracker";
 import ProjectViewTracker from "@/components/tracking/ProjectViewTracker";
 import PublicViewTracker from "@/components/tracking/PublicViewTracker";
 import { buildListingStructuredData } from "@/utilies/structuredData";
+import { absoluteSiteUrl, DEFAULT_OG_IMAGE } from "@/utilies/siteUrl";
 
 export const dynamic = "force-dynamic";
 
@@ -36,9 +37,45 @@ export async function generateMetadata({ params }: PageProps) {
   }
 
   return {
-    title: project.metaTitle,
-    description: project.metaDescription,
-    keywords: project.metaKeywords
+    title: project.metaTitle || project.title,
+    description: project.metaDescription || project.heroDescription,
+    keywords: project.metaKeywords,
+    alternates: {
+      canonical: absoluteSiteUrl(`/prime/${slug}`),
+    },
+    openGraph: {
+      title: project.metaTitle || project.title,
+      description: project.metaDescription || project.heroDescription,
+      url: absoluteSiteUrl(`/prime/${slug}`),
+      siteName: "Propenu",
+      type: "website",
+      images: [
+        {
+          url: absoluteSiteUrl(
+            project.heroImage ||
+              project.gallerySummary?.[0]?.url ||
+              project.logo?.url ||
+              DEFAULT_OG_IMAGE,
+          ),
+          width: 1200,
+          height: 630,
+          alt: project.title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: project.metaTitle || project.title,
+      description: project.metaDescription || project.heroDescription,
+      images: [
+        absoluteSiteUrl(
+          project.heroImage ||
+            project.gallerySummary?.[0]?.url ||
+            project.logo?.url ||
+            DEFAULT_OG_IMAGE,
+        ),
+      ],
+    },
   };
 }
 

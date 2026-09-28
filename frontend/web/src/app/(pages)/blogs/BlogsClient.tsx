@@ -55,13 +55,13 @@ function BlogCard({ post }: { post: BlogPost }) {
         rel="noopener noreferrer"
         className="flex h-full w-full flex-col"
       >
-        <div className="relative aspect-[25/12] w-full shrink-0 overflow-hidden bg-white">
+        <div className="relative aspect-[2/1] w-full shrink-0 overflow-hidden bg-gray-50">
           <Image
             src={post.featuredImage || fallbackImage}
             alt={post.imageAlt || post.title}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-            className="object-contain object-center transition-transform duration-500 group-hover:scale-[1.02]"
+            className="object-cover object-center transition-transform duration-500 group-hover:scale-[1.02]"
           />
         </div>
 
@@ -206,7 +206,7 @@ export default function BlogsClient({
               Property Blogs
             </h1>
             <p className="mt-0.5 text-xs text-gray-500 sm:mt-1 sm:text-base">
-              Fresh real estate insights for {selectedCity?.city ?? "Hyderabad"}
+              Explore the latest insights on property
             </p>
           </div>
 
@@ -222,7 +222,7 @@ export default function BlogsClient({
         </div>
       )}
 
-      {categories.length > 1 && (
+      {/* {categories.length > 1 && (
         <div
           className={
             isPage
@@ -250,7 +250,7 @@ export default function BlogsClient({
             );
           })}
         </div>
-      )}
+      )} */}
 
       <div className={isPage ? "relative" : "relative mt-3 sm:mt-6"}>
         {!isPage && (

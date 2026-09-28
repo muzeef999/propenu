@@ -3,6 +3,7 @@ import {
   createTemplateService,
   getTemplatesService,
   deleteTemplateService,
+  resolveTemplateHeaderMediaUrl,
 } from "./whatsappTemplate.service";
 
 // CREATE
@@ -16,6 +17,30 @@ export const createWhatsAppTemplate = async (req: Request, res: Response) => {
         success: false,
         message: "name, category, components are required",
       });
+    }
+
+    // Guard: Meta rejects public URLs in HEADER example.header_handle
+    const comps = Array.isArray(components) ? components : [];
+    for (const c of comps) {
+      const type = String(c?.type || "").toUpperCase();
+      const format = String(c?.format || "").toUpperCase();
+      if (type !== "HEADER" || !["IMAGE", "VIDEO", "DOCUMENT"].includes(format)) {
+        continue;
+      }
+      const handle = String(c?.example?.header_handle?.[0] || "").trim();
+      if (!handle) {
+        return res.status(400).json({
+          success: false,
+          message: `Templates with ${format} header type need an example/sample. Upload a media sample first.`,
+        });
+      }
+      if (/^https?:\/\//i.test(handle)) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid media sample: Meta does not accept S3/CDN URLs as header_handle. Re-upload the image so the server can create a Meta media handle.",
+        });
+      }
     }
 
     const payload = {
@@ -46,10 +71,11 @@ export const createWhatsAppTemplate = async (req: Request, res: Response) => {
 export const getWhatsAppTemplates = async (_: Request, res: Response) => {
   try {
     const result = await getTemplatesService();
+    const data = enrichTemplatesWithPreview(result);
 
     res.json({
       success: true,
-      data: result,
+      data,
     });
   } catch (error: any) {
     res.status(500).json({
@@ -58,6 +84,31 @@ export const getWhatsAppTemplates = async (_: Request, res: Response) => {
     });
   }
 };
+
+/** Attach samplePreviewUrl (https) on each template for admin campaign UI. */
+function enrichTemplatesWithPreview(result: any) {
+  const list = Array.isArray(result?.data)
+    ? result.data
+    : Array.isArray(result)
+      ? result
+      : [];
+
+  const enriched = list.map((tpl: any) => {
+    const preview = resolveTemplateHeaderMediaUrl(tpl);
+    if (!preview) return tpl;
+    return {
+      ...tpl,
+      samplePreviewUrl: preview,
+      headerImageUrl: preview,
+    };
+  });
+
+  if (Array.isArray(result?.data)) {
+    return { ...result, data: enriched };
+  }
+  if (Array.isArray(result)) return enriched;
+  return result;
+}
 
 // DELETE
 export const deleteWhatsAppTemplate = async (req: Request, res: Response) => {

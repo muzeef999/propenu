@@ -41,11 +41,6 @@ function OverlayPortal({ children }: { children: ReactNode }) {
     return createPortal(children, document.body);
 }
 
-function toTitleCase(str?: string) {
-    if (!str) return "";
-    return str.replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
-}
-
 function formatCompactPrice(price?: number) {
     if (typeof price !== "number" || !Number.isFinite(price) || price <= 0) {
         return null;
@@ -390,7 +385,8 @@ export default function HeroSection({ project }: HeroSectionProps) {
         (Array.isArray(project.aboutSummary)
             ? project.aboutSummary[0]?.builderName
             : (project.aboutSummary as any)?.builderName)?.trim();
-    
+
+    console.log("title", project.title);
     return (
         <>
             <section className="bg-white">
@@ -403,7 +399,7 @@ export default function HeroSection({ project }: HeroSectionProps) {
 
                             {builderName && (
                                 <p className="mt-0.5 text-sm font-medium text-slate-600 sm:text-base">
-                                    By <span className="font-semibold text-[#4bbb7b]">{toTitleCase(builderName)}</span>
+                                    By <span className="font-semibold text-[#4bbb7b]">{builderName}</span>
                                 </p>
                             )}
 
@@ -437,11 +433,11 @@ export default function HeroSection({ project }: HeroSectionProps) {
                                     </p>
                                 ) : null}
                                 {hasDisplayPrice ? (
-                                    <p className="mt-0.5 text-xs font-medium text-[#4bbb7b] sm:mt-1 sm:text-sm">
+                                    <p className="mt-0.5 text-base font-semibold text-[#4bbb7b] sm:mt-1 sm:text-lg lg:text-xl">
                                         {priceRangeLabel}
                                     </p>
                                 ) : (
-                                    <p className="text-xs font-medium text-[#4bbb7b] sm:mt-1 sm:text-sm lg:text-[21px]">
+                                    <p className="text-base font-semibold text-[#4bbb7b] sm:mt-1 sm:text-lg lg:text-xl">
                                         Price on Request
                                     </p>
                                 )}

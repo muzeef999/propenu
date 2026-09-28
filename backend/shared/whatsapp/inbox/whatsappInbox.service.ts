@@ -27,6 +27,35 @@ export function normalizeWaId(phone: string) {
   return digits;
 }
 
+/** Meta delivery ladder — never let a late "delivered" overwrite "read". */
+const STATUS_RANK: Record<string, number> = {
+  pending: 0,
+  sent: 1,
+  delivered: 2,
+  read: 3,
+  failed: 4,
+};
+
+export function shouldApplyStatus(current?: string, next?: string) {
+  const cur = String(current || "pending").toLowerCase();
+  const nxt = String(next || "").toLowerCase();
+  if (!nxt) return false;
+  if (cur === "failed") return nxt === "failed";
+  if (nxt === "failed") return true;
+  return (STATUS_RANK[nxt] ?? -1) >= (STATUS_RANK[cur] ?? -1);
+}
+
+/** Pull Meta Cloud API message id from Graph send response / log.response. */
+export function extractMetaMessageId(response: unknown): string {
+  const r = response as any;
+  const id =
+    r?.messages?.[0]?.id ||
+    r?.data?.messages?.[0]?.id ||
+    r?.response?.messages?.[0]?.id ||
+    "";
+  return String(id || "").trim();
+}
+
 function previewFromBody(body: string, max = 80) {
   const text = String(body || "").trim().replace(/\s+/g, " ");
   if (text.length <= max) return text;
@@ -75,6 +104,19 @@ function extractInboundText(message: any): { type: string; body: string } {
     const lng = message?.location?.longitude;
     return { type, body: lat && lng ? `📍 ${lat}, ${lng}` : "[Location]" };
   }
+  if (type === "contacts") {
+    const name =
+      message?.contacts?.[0]?.name?.formatted_name ||
+      message?.contacts?.[0]?.name?.first_name ||
+      "";
+    return { type, body: name ? `Contact: ${name}` : "[Contact]" };
+  }
+  if (type === "sticker") return { type, body: "[Sticker]" };
+  if (type === "reaction") {
+    const emoji = message?.reaction?.emoji || "";
+    return { type, body: emoji ? `Reacted ${emoji}` : "[Reaction]" };
+  }
+  if (type === "order") return { type, body: "[Order]" };
   return { type, body: `[${type}]` };
 }
 
@@ -176,11 +218,27 @@ export async function processWhatsAppWebhookPayload(body: any) {
         if (!wamid || !status) continue;
         if (!["sent", "delivered", "read", "failed"].includes(status)) continue;
 
+        // Match by Meta wamid, or campaign rows that stored Graph id only in raw.response
+        let existing = await WhatsAppMessage.findOne({ wamid }).lean();
+        if (!existing) {
+          existing = await WhatsAppMessage.findOne({
+            $or: [
+              { "raw.response.messages.0.id": wamid },
+              { "raw.response.data.messages.0.id": wamid },
+              { "raw.messages.0.id": wamid },
+            ],
+          }).lean();
+        }
+        if (!existing) continue;
+        if (!shouldApplyStatus(existing.status, status)) continue;
+
         const updated = await WhatsAppMessage.findOneAndUpdate(
-          { wamid },
+          { _id: existing._id },
           {
             $set: {
               status,
+              // Promote log:* placeholders to real Meta id so future statuses match
+              ...(existing.wamid !== wamid ? { wamid } : {}),
               ...(status === "failed"
                 ? {
                     error:
@@ -194,12 +252,13 @@ export async function processWhatsAppWebhookPayload(body: any) {
           { new: true },
         );
 
+        if (!updated) continue;
         statusUpdates += 1;
         const statusWaId = recipientId || updated?.waId;
         whatsappInboxBus.publish({
           type: "status",
           ...(statusWaId ? { waId: statusWaId } : {}),
-          wamid,
+          wamid: updated.wamid || wamid,
           status,
         });
       }
@@ -481,7 +540,13 @@ export async function syncInboxFromWhatsAppLogs() {
     if (!waId) continue;
 
     const sourceId = `log:${String(log._id)}`;
-    const already = await WhatsAppMessage.findOne({ wamid: sourceId })
+    const metaWamid = extractMetaMessageId(log.response);
+    const already = await WhatsAppMessage.findOne({
+      $or: [
+        { wamid: sourceId },
+        ...(metaWamid ? [{ wamid: metaWamid }] : []),
+      ],
+    })
       .select("_id")
       .lean();
     if (already) continue;
@@ -540,7 +605,7 @@ export async function syncInboxFromWhatsAppLogs() {
       direction: "outbound",
       type: "template",
       body,
-      wamid: sourceId,
+      wamid: metaWamid || sourceId,
       status,
       error: typeof log.error === "string" ? log.error : undefined,
       raw: { fromLog: true, logId: String(log._id), response: log.response },
@@ -566,10 +631,33 @@ export async function recordOutboundTemplateMessage(params: {
   const waId = normalizeWaId(params.to);
   if (!waId) return null;
 
-  const sourceId = params.logId ? `log:${params.logId}` : undefined;
-  if (sourceId) {
-    const existing = await WhatsAppMessage.findOne({ wamid: sourceId }).lean();
-    if (existing) return existing;
+  const metaWamid = extractMetaMessageId(params.response);
+  const logSourceId = params.logId ? `log:${params.logId}` : undefined;
+  // Prefer Meta message id so delivery/read webhooks can update ticks
+  const wamid = metaWamid || logSourceId;
+
+  if (metaWamid) {
+    const byMeta = await WhatsAppMessage.findOne({ wamid: metaWamid }).lean();
+    if (byMeta) return byMeta;
+  }
+  if (logSourceId) {
+    const byLog = await WhatsAppMessage.findOne({ wamid: logSourceId }).lean();
+    if (byLog) {
+      // Upgrade older campaign rows to Meta wamid when we learn it
+      if (metaWamid && byLog.wamid !== metaWamid) {
+        await WhatsAppMessage.updateOne(
+          { _id: byLog._id },
+          {
+            $set: {
+              wamid: metaWamid,
+              status: params.status || byLog.status || "sent",
+              "raw.response": params.response,
+            },
+          },
+        );
+      }
+      return byLog;
+    }
   }
 
   const body = `Template: ${params.templateName || "message"}`;
@@ -597,10 +685,14 @@ export async function recordOutboundTemplateMessage(params: {
     direction: "outbound",
     type: "template",
     body,
-    wamid: sourceId,
+    wamid,
     status: params.status || "sent",
     error: params.error,
-    raw: { fromCampaign: true, response: params.response },
+    raw: {
+      fromCampaign: true,
+      logId: params.logId ? String(params.logId) : undefined,
+      response: params.response,
+    },
     createdAt: at,
     updatedAt: at,
   });
@@ -638,11 +730,50 @@ export async function getConversationMessages(
 export async function markConversationRead(waIdRaw: string) {
   const waId = normalizeWaId(waIdRaw);
   if (!waId) throw new Error("Invalid WhatsApp id");
-  return WhatsAppConversation.findOneAndUpdate(
+
+  const conversation = await WhatsAppConversation.findOneAndUpdate(
     { waId },
     { $set: { unreadCount: 0 } },
     { new: true },
   ).lean();
+
+  // Industry-standard: tell Meta the agent opened the chat → customer sees blue ticks
+  // on their last inbound message (best-effort; never block inbox open).
+  try {
+    const { token, phoneNumberId } = getCredentials();
+    if (token && phoneNumberId) {
+      const lastInbound = await WhatsAppMessage.findOne({
+        waId,
+        direction: "inbound",
+        wamid: { $exists: true, $nin: [null, ""] },
+      })
+        .sort({ createdAt: -1 })
+        .select("wamid")
+        .lean();
+      const messageId = String(lastInbound?.wamid || "");
+      if (messageId && !messageId.startsWith("log:")) {
+        await axios.post(
+          `https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`,
+          {
+            messaging_product: "whatsapp",
+            status: "read",
+            message_id: messageId,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            timeout: 8000,
+          },
+        );
+      }
+    }
+  } catch {
+    // ignore Meta mark-read failures
+  }
+
+  return conversation;
 }
 
 /** Send a free-form text reply via Cloud API and store it.
@@ -876,6 +1007,72 @@ export async function sendInboxTextMessage(
   }
 }
 
+/** Normalize webhook URLs for equality checks (trim, strip trailing slash). */
+function normalizeWebhookUrl(url: string) {
+  return String(url || "")
+    .trim()
+    .replace(/\/+$/, "")
+    .toLowerCase();
+}
+
+/** Env-based expected Meta callback for this deployment. */
+export function resolveExpectedWhatsAppWebhookUrl() {
+  const slug = process.env.WHATSAPP_WEBHOOK_SLUG || "tyent";
+  const webhookPath = `/api/conversation-flow/webhook/${slug}`;
+  const configuredCallback = String(
+    process.env.WHATSAPP_WEBHOOK_CALLBACK_URL || "",
+  )
+    .trim()
+    .replace(/\/+$/, "");
+  const publicBase = String(process.env.WHATSAPP_PUBLIC_BASE_URL || "")
+    .trim()
+    .replace(/\/+$/, "");
+
+  if (configuredCallback) {
+    return {
+      webhookPath,
+      expectedPublicWebhook: configuredCallback,
+      configuredCallback,
+      publicBase: publicBase || null,
+      webhookSlug: slug,
+    };
+  }
+  if (publicBase) {
+    return {
+      webhookPath,
+      expectedPublicWebhook: `${publicBase}${webhookPath}`,
+      configuredCallback: null,
+      publicBase,
+      webhookSlug: slug,
+    };
+  }
+  return {
+    webhookPath,
+    expectedPublicWebhook: null as string | null,
+    configuredCallback: null,
+    publicBase: null,
+    webhookSlug: slug,
+  };
+}
+
+function isInboundWebhookReady(
+  metaWebhookUrl: string,
+  expectedPublicWebhook: string | null,
+) {
+  const meta = normalizeWebhookUrl(metaWebhookUrl);
+  if (!meta) return false;
+  if (expectedPublicWebhook) {
+    return meta === normalizeWebhookUrl(expectedPublicWebhook);
+  }
+  // No env URL: accept any Propenu conversation-flow webhook (not Bizrow).
+  return (
+    !/bizrow\.app/i.test(meta) &&
+    meta.includes("/api/conversation-flow/webhook/")
+  );
+}
+
+let webhookSyncAttempted = false;
+
 /** Verify WHATSAPP_* env credentials against Meta Graph API. */
 export async function checkWhatsAppCloudHealth() {
   const { token, phoneNumberId, businessAccountId, appId } = getCredentials();
@@ -884,17 +1081,12 @@ export async function checkWhatsAppCloudHealth() {
     !phoneNumberId && "WHATSAPP_PHONE_NUMBER_ID",
   ].filter(Boolean) as string[];
 
-  const webhookPath = `/api/conversation-flow/webhook/${
-    process.env.WHATSAPP_WEBHOOK_SLUG || "tyent"
-  }`;
-  const configuredCallback =
-    process.env.WHATSAPP_WEBHOOK_CALLBACK_URL || null;
-  const publicBase = String(process.env.WHATSAPP_PUBLIC_BASE_URL || "")
-    .trim()
-    .replace(/\/+$/, "");
-  const expectedPublicWebhook = publicBase
-    ? `${publicBase}${webhookPath}`
-    : null;
+  const {
+    webhookPath,
+    expectedPublicWebhook,
+    configuredCallback,
+    webhookSlug,
+  } = resolveExpectedWhatsAppWebhookUrl();
 
   if (missing.length) {
     return {
@@ -916,17 +1108,58 @@ export async function checkWhatsAppCloudHealth() {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    const metaWebhookUrl = String(
-      response.data?.webhook_configuration?.application || "",
+    const webhookCfg = response.data?.webhook_configuration || {};
+    // WABA override (subscribed_apps override_callback_uri) is what inbound uses.
+    // `application` can still show the app default (e.g. Bizrow) even after override.
+    let metaWebhookUrl = String(
+      webhookCfg.whatsapp_business_account ||
+        webhookCfg.application ||
+        "",
     ).trim();
-    const inboundReady = Boolean(
-      metaWebhookUrl &&
-        (expectedPublicWebhook
-          ? metaWebhookUrl.replace(/\/+$/, "") ===
-            expectedPublicWebhook.replace(/\/+$/, "")
-          : !/bizrow\.app/i.test(metaWebhookUrl) &&
-            metaWebhookUrl.includes("/api/conversation-flow/webhook/")),
+    let inboundReady = isInboundWebhookReady(
+      metaWebhookUrl,
+      expectedPublicWebhook,
     );
+    let webhookSynced = false;
+    let webhookSyncError: string | null = null;
+
+    const autoSync = ["1", "true", "yes", ""].includes(
+      String(process.env.WHATSAPP_AUTO_SYNC_WEBHOOK ?? "1")
+        .toLowerCase()
+        .trim(),
+    );
+
+    // Env-based: if Meta still points at Bizrow/old URL, point it at this server once.
+    if (
+      !inboundReady &&
+      expectedPublicWebhook &&
+      autoSync &&
+      !webhookSyncAttempted
+    ) {
+      webhookSyncAttempted = true;
+      try {
+        await registerWhatsAppWebhookOverride(expectedPublicWebhook);
+        webhookSynced = true;
+        const refresh = await axios.get(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const refreshedCfg = refresh.data?.webhook_configuration || {};
+        metaWebhookUrl = String(
+          refreshedCfg.whatsapp_business_account ||
+            refreshedCfg.application ||
+            metaWebhookUrl,
+        ).trim();
+        inboundReady = isInboundWebhookReady(
+          metaWebhookUrl,
+          expectedPublicWebhook,
+        );
+      } catch (syncErr: any) {
+        webhookSyncError =
+          syncErr?.response?.data?.error?.message ||
+          syncErr?.message ||
+          "Failed to sync Meta webhook from env";
+      }
+    }
 
     return {
       ok: true,
@@ -938,10 +1171,15 @@ export async function checkWhatsAppCloudHealth() {
       qualityRating: response.data?.quality_rating || null,
       webhookPath,
       webhookCallbackUrl: configuredCallback,
-      webhookSlug: process.env.WHATSAPP_WEBHOOK_SLUG || "tyent",
+      webhookSlug,
       metaWebhookUrl: metaWebhookUrl || null,
+      metaWebhookApplication: String(webhookCfg.application || "").trim() || null,
+      metaWebhookWaba:
+        String(webhookCfg.whatsapp_business_account || "").trim() || null,
       expectedPublicWebhook,
       inboundReady,
+      webhookSynced,
+      webhookSyncError,
       verifyTokenConfigured: Boolean(process.env.WHATSAPP_VERIFY_TOKEN),
       autoReplyEnabled: ["1", "true", "yes"].includes(
         String(process.env.WHATSAPP_AUTO_REPLY_ENABLED || "")
@@ -949,9 +1187,11 @@ export async function checkWhatsAppCloudHealth() {
           .trim(),
       ),
       message: inboundReady
-        ? "WhatsApp Cloud API credentials are valid — inbound webhook ready"
+        ? webhookSynced
+          ? "WhatsApp Cloud API ready — inbound webhook synced from env"
+          : "WhatsApp Cloud API credentials are valid — inbound webhook ready"
         : metaWebhookUrl
-          ? `Inbound messages go to Meta webhook (${metaWebhookUrl}), not this Propenu server — received chats will not appear until you point Meta to your public Propenu webhook`
+          ? `Inbound messages go to Meta webhook (${metaWebhookUrl}), not this Propenu server — received chats will not appear until Meta points to ${expectedPublicWebhook || "your public Propenu webhook"}`
           : "WhatsApp credentials valid, but Meta webhook URL could not be read",
     };
   } catch (err: any) {

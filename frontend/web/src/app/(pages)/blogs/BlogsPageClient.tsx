@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { PointerEvent } from "react";
 import { FiArrowRight, FiClock, FiSearch } from "react-icons/fi";
 import { getBlogs } from "@/data/ClientData";
 
@@ -45,16 +46,16 @@ function BlogCard({ post, priority = false }: { post: BlogPost; priority?: boole
   const date = formatDate(post.publishedAt ?? post.createdAt);
 
   return (
-    <article className="group h-[500px] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-green-100 hover:shadow-lg">
+    <article className="group h-[500px] overflow-hidden rounded-md border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-green-100 hover:shadow-lg">
       <Link href={`/blogs/${post.slug}`} className="flex h-full w-full flex-col">
-        <div className="relative aspect-16/10 w-full overflow-hidden bg-white">
+        <div className="relative aspect-[2/1] w-full overflow-hidden bg-gray-50">
           <Image
             src={post.featuredImage || fallbackImage}
             alt={post.imageAlt || post.title}
             fill
             priority={priority}
             sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-            className="object-contain object-center transition-transform duration-500 group-hover:scale-[1.02]"
+            className="object-cover object-center transition-transform duration-500 group-hover:scale-[1.02]"
           />
         </div>
 
@@ -103,7 +104,7 @@ function BlogCard({ post, priority = false }: { post: BlogPost; priority?: boole
 function BlogSkeleton() {
   return (
     <div className="h-[500px] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-      <div className="aspect-16/10 animate-pulse bg-gray-100" />
+      <div className="aspect-[2/1] animate-pulse bg-gray-100" />
       <div className="space-y-3 p-4 sm:p-5">
         <div className="h-5 w-24 animate-pulse rounded-full bg-gray-100" />
         <div className="h-5 w-full animate-pulse rounded bg-gray-100" />
@@ -116,6 +117,13 @@ function BlogSkeleton() {
 }
 
 export default function BlogsPageClient() {
+  const categoryScrollRef = useRef<HTMLDivElement | null>(null);
+  const categoryDragRef = useRef({
+    isDragging: false,
+    moved: false,
+    scrollLeft: 0,
+    startX: 0,
+  });
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [categories, setCategories] = useState(["All"]);
   const [activeCategory, setActiveCategory] = useState("All");
@@ -170,6 +178,46 @@ export default function BlogsPageClient() {
     );
   }, [posts, query]);
 
+  const handleCategoryPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch") return;
+
+    const element = categoryScrollRef.current;
+    if (!element) return;
+
+    categoryDragRef.current = {
+      isDragging: true,
+      moved: false,
+      scrollLeft: element.scrollLeft,
+      startX: event.clientX,
+    };
+    element.setPointerCapture(event.pointerId);
+  };
+
+  const handleCategoryPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const element = categoryScrollRef.current;
+    const dragState = categoryDragRef.current;
+    if (!element || !dragState.isDragging) return;
+
+    const dragDistance = event.clientX - dragState.startX;
+    if (Math.abs(dragDistance) > 4) {
+      dragState.moved = true;
+    }
+
+    element.scrollLeft = dragState.scrollLeft - dragDistance;
+  };
+
+  const handleCategoryPointerEnd = (event: PointerEvent<HTMLDivElement>) => {
+    const element = categoryScrollRef.current;
+    if (!element || !categoryDragRef.current.isDragging) return;
+
+    categoryDragRef.current.isDragging = false;
+    element.releasePointerCapture(event.pointerId);
+
+    window.setTimeout(() => {
+      categoryDragRef.current.moved = false;
+    }, 0);
+  };
+
   return (
     <main className="min-h-screen bg-[#F8FBF9]">
       <section className="border-b border-gray-100 bg-white">
@@ -200,7 +248,14 @@ export default function BlogsPageClient() {
             </div>
           </div>
 
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 no-scrollbar sm:mx-0 sm:px-0">
+          <div
+            ref={categoryScrollRef}
+            onPointerDown={handleCategoryPointerDown}
+            onPointerMove={handleCategoryPointerMove}
+            onPointerUp={handleCategoryPointerEnd}
+            onPointerCancel={handleCategoryPointerEnd}
+            className="-mx-4 flex cursor-grab select-none gap-2 overflow-x-auto px-4 pb-1 no-scrollbar active:cursor-grabbing sm:mx-0 sm:px-0"
+          >
             {categories.map((category) => {
               const isActiveCategory = activeCategory === category;
 
@@ -208,7 +263,10 @@ export default function BlogsPageClient() {
                 <button
                   key={category}
                   type="button"
-                  onClick={() => setActiveCategory(category)}
+                  onClick={() => {
+                    if (categoryDragRef.current.moved) return;
+                    setActiveCategory(category);
+                  }}
                   className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition ${
                     isActiveCategory
                       ? "border-[#26ad5f] bg-[#26ad5f] text-white shadow-sm"

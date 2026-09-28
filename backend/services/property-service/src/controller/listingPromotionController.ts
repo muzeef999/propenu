@@ -7,6 +7,8 @@ import Residential from "../models/residentialModel";
 import Commercial from "../models/commercialModel";
 import LandPlot from "../models/landModel";
 import Agricultural from "../models/agriculturalModel";
+import User from "../models/userModel";
+import { sendBoostActivatedEmail } from "../../../../shared/email/email.helper";
 
 type PromotionType = "normal" | "featured" | "sponsored" | "prime";
 
@@ -163,6 +165,37 @@ async function promoteListing(req: AuthRequest, res: Response, Model: Model<any>
     property.promotion = promotion as any;
     property.markModified("promotion");
     await property.save();
+
+    if (type !== "normal" && property.createdBy) {
+      User.findById(property.createdBy)
+        .select("name email")
+        .lean()
+        .then((owner) => {
+          if (owner?.email) {
+            const propertyName =
+              (property as any).title ||
+              (property as any).projectName ||
+              (property as any).buildingName ||
+              "your property";
+            const location =
+              (property as any).city ||
+              (property as any).locality ||
+              (property as any).address ||
+              ((property as any).location && typeof (property as any).location === "object" && (property as any).location.city) ||
+              "your area";
+            const invoiceLink = `${process.env.FRONTEND_URL || "https://propenu.com"}/settings`;
+            sendBoostActivatedEmail(
+              owner.email,
+              owner.name || "User",
+              propertyName,
+              location,
+              `${type.toUpperCase()} Boost`,
+              invoiceLink,
+            ).catch((err) => console.error("Error sending boost email:", err));
+          }
+        })
+        .catch((err) => console.error("Error fetching owner for boost email:", err));
+    }
 
     return res.status(200).json({
       success: true,

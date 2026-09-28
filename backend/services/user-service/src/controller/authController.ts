@@ -10,7 +10,7 @@ import { generateToken } from "../utils/jwt";
 import { Request, Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import { sendOtpWhatsApp } from "../utils/whatsapp";
-import { sendOtpEmail } from "../utils/email";
+import { sendOtpEmail, sendSignupEmailByRole } from "../utils/email";
 import { getOtpLoginRestrictionMessage } from "../utils/accessPolicy";
 import mongoose from "mongoose";
 import DeletedAccount from "../models/deletedAccountModel";
@@ -45,7 +45,6 @@ import {
 import { activateSubscription } from "../../../payment-service/src/services/subscriptionService";
 
 const PLATFORM_END_USER_ROLE_SET = new Set<string>(PLATFORM_END_USER_ROLE_NAMES);
-import { ALL_PERMISSIONS } from "../constants/permissionCatalog";
 
 /** Optional day range from query: createdFrom/createdTo (aliases: from/to). YYYY-MM-DD.
  *  Day bounds use India time (IST, +05:30) so "today" matches admin UI local dates.
@@ -68,6 +67,87 @@ const buildCreatedAtQueryFilter = (query: Record<string, any> = {}) => {
   }
 
   return Object.keys(createdAt).length ? createdAt : null;
+};
+
+const escapeRegex = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const pushAndClause = (filter: Record<string, any>, clause: Record<string, any>) => {
+  if (!filter.$and) filter.$and = [];
+  filter.$and.push(clause);
+};
+
+/** Shallow-clone a Mongo filter without JSON.stringify (keeps ObjectIds intact). */
+const cloneUserFilter = (filter: Record<string, any>) => {
+  const out: Record<string, any> = { ...filter };
+  if (filter.roleId && typeof filter.roleId === "object") {
+    out.roleId = { ...filter.roleId };
+    if (Array.isArray(filter.roleId.$in)) out.roleId.$in = [...filter.roleId.$in];
+    if (Array.isArray(filter.roleId.$nin)) out.roleId.$nin = [...filter.roleId.$nin];
+  }
+  if (Array.isArray(filter.$and)) out.$and = [...filter.$and];
+  if (filter.createdAt && typeof filter.createdAt === "object") {
+    out.createdAt = { ...filter.createdAt };
+  }
+  return out;
+};
+
+/** Intersect an existing roleId constraint with a new $in list. */
+const applyRoleIdIn = (
+  filter: Record<string, any>,
+  roleIds: mongoose.Types.ObjectId[],
+) => {
+  if (filter.roleId?.$in) {
+    const allowed = new Set(
+      (filter.roleId.$in as mongoose.Types.ObjectId[]).map(String),
+    );
+    filter.roleId = {
+      $in: roleIds.filter((id) => allowed.has(String(id))),
+    };
+    return;
+  }
+  if (filter.roleId?.$nin) {
+    pushAndClause(filter, { roleId: { $nin: filter.roleId.$nin } });
+    filter.roleId = { $in: roleIds };
+    return;
+  }
+  if (filter.roleId != null) {
+    pushAndClause(filter, { roleId: filter.roleId });
+    filter.roleId = { $in: roleIds };
+    return;
+  }
+  filter.roleId = { $in: roleIds };
+};
+
+const resolvePlatformRoleNamesForQuery = (roleRaw: string): string[] | null => {
+  const role = String(roleRaw || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_");
+  if (!role || role === "all") {
+    return [...PLATFORM_END_USER_ROLE_NAMES];
+  }
+  if (role === "user" || role === "users" || role === "owner" || role === "owners") {
+    return ["user"];
+  }
+  if (role === "agent" || role === "agents") return ["agent"];
+  if (role === "builder" || role === "builders") return ["builder"];
+  if (role === "builder_staff" || role === "builderstaff") return ["builder_staff"];
+  return [role];
+};
+
+const istTodayBounds = () => {
+  const now = new Date();
+  const ist = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+  const y = ist.getUTCFullYear();
+  const m = String(ist.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(ist.getUTCDate()).padStart(2, "0");
+  const day = `${y}-${m}-${d}`;
+  return {
+    day,
+    start: new Date(`${day}T00:00:00.000+05:30`),
+    end: new Date(`${day}T23:59:59.999+05:30`),
+  };
 };
 
 const deletedAccountMessage =
@@ -290,9 +370,11 @@ const findDeletedAccount = async ({
   email?: string;
   phone?: string;
 }) => {
+  const normalizedEmail = email ? String(email).trim().toLowerCase() : "";
+  const phoneValues = getPhoneLookupValues(phone);
   const lookup = [
-    ...(email ? [{ email }] : []),
-    ...(phone ? [{ phone }] : []),
+    ...(normalizedEmail ? [{ email: normalizedEmail }] : []),
+    ...phoneValues.map((value) => ({ phone: value })),
   ];
 
   if (!lookup.length) {
@@ -302,7 +384,8 @@ const findDeletedAccount = async ({
   return DeletedAccount.findOne({ $or: lookup }).select("_id").lean();
 };
 
-/** Super Admin / Create Credentials may rehire the same email after permanent delete. */
+/** Super Admin / Create Credentials may rehire the same email after permanent delete.
+ *  Public propenu.com signup also clears phone/email tombstones before a fresh account. */
 const clearDeletedAccountTombstones = async ({
   email,
   phone,
@@ -340,7 +423,6 @@ const createAuthToken = async ({
     companyName: user.companyName,
     roleId: roleDoc ? String(roleDoc._id) : undefined,
     roleName: roleDoc?.name,
-    permissions: roleDoc?.name === "super_admin" ? ALL_PERMISSIONS : roleDoc?.permissions ?? [],
     builderAccess,
     accountStatus: user.accountStatus,
   };
@@ -548,9 +630,6 @@ export const me = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.split(" ")[1] || null;
-
     // 2️⃣ load user
     const user = await User.findById(req.user.sub).populate("roleId").lean();
 
@@ -576,10 +655,10 @@ export const me = async (req: AuthRequest, res: Response) => {
     const locationCompleted =
       !!user.locality && !!user.city && !!user.state && !!user.pincode;
 
+    const isSuperAdmin = role?.name === "super_admin";
+
     return res.status(200).json({
       message: "Authenticated user",
-      token,
-
       user: {
         id: user._id,
         name: user.name,
@@ -595,9 +674,8 @@ export const me = async (req: AuthRequest, res: Response) => {
         phoneVerified: user.phoneVerified,
         roleId: role ? String(role._id) : null,
         roleName: role ? role.name : null,
-        permissions: role?.name === "super_admin" ? ALL_PERMISSIONS : role?.permissions || [],
+        permissions: isSuperAdmin ? ["*"] : role?.permissions || [],
         builderAccess,
-
       },
     });
   } catch (err: any) {
@@ -930,11 +1008,88 @@ export const adminDeleteUser = async (req: AuthRequest, res: Response) => {
   }
 };
 
+/** Super Admin only — list tombstones from deletedaccounts collection. */
+export const listDeletedAccounts = async (req: AuthRequest, res: Response) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+    const q = String(req.query.q || req.query.search || "").trim();
+
+    const filter: Record<string, unknown> = {};
+    if (q) {
+      const rx = new RegExp(escapeRegex(q), "i");
+      filter.$or = [{ name: rx }, { email: rx }, { phone: rx }];
+    }
+
+    const [total, rows] = await Promise.all([
+      DeletedAccount.countDocuments(filter),
+      DeletedAccount.find(filter)
+        .sort({ deletedAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .populate("roleId", "name label")
+        .lean(),
+    ]);
+
+    const data = rows.map((row: any) => ({
+      _id: row._id,
+      userId: row.userId,
+      name: row.name || "—",
+      email: row.email || null,
+      phone: row.phone || null,
+      roleName: row.roleId?.name || null,
+      roleLabel: row.roleId?.label || row.roleId?.name || null,
+      deletedAt: row.deletedAt || row.createdAt || null,
+      deletionReason: row.deletionReason || null,
+      deletionFeedback: row.deletionFeedback || null,
+    }));
+
+    const pages = Math.max(1, Math.ceil(total / limit) || 1);
+
+    return res.json({
+      success: true,
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        pages,
+      },
+    });
+  } catch (error: any) {
+    console.error("listDeletedAccounts error", error);
+    return res.status(500).json({
+      message: "Failed to load deleted accounts",
+      error: error.message,
+    });
+  }
+};
+
 export const getAllUsers = async (req: AuthRequest, res: Response) => {
   try {
     const userFilter: any = {};
     const actorRole = req.user?.roleName || "";
     const scope = req.query.scope?.toString().trim().toLowerCase();
+    const query = req.query as Record<string, any>;
+
+    const pageRaw = query.page;
+    const limitRaw = query.limit ?? query.pageSize;
+    const platformOnly =
+      String(query.platformOnly || "").trim() === "1" ||
+      String(query.platform || "").trim() === "1";
+    // Users admin board always paginates (prod-safe). Other callers opt in via page/limit.
+    const wantsPagination =
+      platformOnly ||
+      pageRaw != null ||
+      limitRaw != null ||
+      String(query.paginated || "").trim() === "1";
+    const wantsExport = String(query.export || "").trim() === "1";
+    const page = Math.max(1, Number(pageRaw) || 1);
+    const maxLimit = wantsExport ? 5000 : 100;
+    const limit = Math.min(
+      maxLimit,
+      Math.max(1, Number(limitRaw) || 20),
+    );
 
     if (scope === "ticket_requesters") {
       const requesterRoleNames = ["user", "agent", "builder", "builder_staff"];
@@ -994,128 +1149,262 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    const createdAtFilter = buildCreatedAtQueryFilter(req.query as Record<string, any>);
+    // Snapshot visibility filter before list-only filters (stats / role tabs).
+    const visibilityFilter = cloneUserFilter(userFilter);
+
+    const roleQuery = String(query.role || "").trim();
+    if (platformOnly || (roleQuery && roleQuery.toLowerCase() !== "all")) {
+      const roleNames = resolvePlatformRoleNamesForQuery(
+        platformOnly && (!roleQuery || roleQuery.toLowerCase() === "all")
+          ? "all"
+          : roleQuery || "all",
+      );
+      if (roleNames?.length) {
+        const roles = await Role.find({ name: { $in: roleNames } })
+          .select("_id")
+          .lean();
+        applyRoleIdIn(
+          userFilter,
+          roles.map((role) => role._id as mongoose.Types.ObjectId),
+        );
+      }
+    }
+
+    const lookupUserId = String(query.userId || query.id || "").trim();
+    if (lookupUserId) {
+      if (!mongoose.Types.ObjectId.isValid(lookupUserId)) {
+        return res.status(400).json({ message: "Invalid userId" });
+      }
+      userFilter._id = new mongoose.Types.ObjectId(lookupUserId);
+    }
+
+    const createdAtFilter = buildCreatedAtQueryFilter(query);
     if (createdAtFilter) {
       userFilter.createdAt = createdAtFilter;
     }
 
-    const managerIdQuery = String(req.query.managerId || "").trim();
+    const lastLoginFilter = buildCreatedAtQueryFilter({
+      createdFrom: query.lastLoginFrom || query.loginFrom,
+      createdTo: query.lastLoginTo || query.loginTo,
+    });
+    if (lastLoginFilter) {
+      userFilter.lastLoginAt = lastLoginFilter;
+    }
+
+    const managerIdQuery = String(query.managerId || "").trim();
     if (managerIdQuery && mongoose.Types.ObjectId.isValid(managerIdQuery)) {
       userFilter.managerId = new mongoose.Types.ObjectId(managerIdQuery);
     }
-    const onboardedByQuery = String(req.query.onboardedBy || "").trim();
+    const onboardedByQuery = String(query.onboardedBy || "").trim();
     if (onboardedByQuery && mongoose.Types.ObjectId.isValid(onboardedByQuery)) {
       userFilter.onboardedBy = new mongoose.Types.ObjectId(onboardedByQuery);
     }
 
-    const leanTeamDirectory = scope === "team_directory";
+    const q = String(query.q || query.search || "").trim();
+    if (q) {
+      const rx = new RegExp(escapeRegex(q), "i");
+      const or: Record<string, any>[] = [
+        { name: rx },
+        { email: rx },
+        { phone: rx },
+      ];
+      if (mongoose.Types.ObjectId.isValid(q)) {
+        or.push({ _id: new mongoose.Types.ObjectId(q) });
+      }
+      pushAndClause(userFilter, { $or: or });
+    }
 
-    let usersQuery = User.find(userFilter)
-      .select(
-        leanTeamDirectory
-          ? // managerId required — reporting-tree scope + "Reports to" on cards
-            "name email phone roleId managerId isActive accountStatus locality city state pincode lastLogin createdAt"
-          : "-token",
-      )
-      .populate("roleId", "name label");
-
-    if (leanTeamDirectory) {
-      usersQuery = usersQuery.populate({
-        path: "managerId",
-        select: "name email phone roleId",
-        populate: { path: "roleId", select: "name label" },
+    const location = String(query.location || "").trim();
+    if (location) {
+      const rx = new RegExp(escapeRegex(location), "i");
+      pushAndClause(userFilter, {
+        $or: [
+          { locality: rx },
+          { city: rx },
+          { state: rx },
+          { pincode: rx },
+        ],
       });
-    } else {
-      usersQuery = usersQuery
-        .populate({
+    }
+
+    // Exact geo filters (campaign / audience targeting) — case-insensitive.
+    const stateExact = String(query.state || "").trim();
+    if (stateExact) {
+      userFilter.state = new RegExp(`^${escapeRegex(stateExact)}$`, "i");
+    }
+    const cityExact = String(query.city || "").trim();
+    if (cityExact) {
+      userFilter.city = new RegExp(`^${escapeRegex(cityExact)}$`, "i");
+    }
+    const localityExact = String(query.locality || "").trim();
+    if (localityExact) {
+      userFilter.locality = new RegExp(`^${escapeRegex(localityExact)}$`, "i");
+    }
+
+    const statusRaw = String(
+      query.status || query.accountStatus || "",
+    )
+      .trim()
+      .toLowerCase();
+    const filterFlag = String(query.filter || "")
+      .trim()
+      .toLowerCase();
+    if (filterFlag === "onboarding" || statusRaw === "onboarding") {
+      userFilter.accountStatus = {
+        $in: ["location_pending", "kyc_pending", "pending", "incomplete"],
+      };
+    } else if (statusRaw === "inactive") {
+      pushAndClause(userFilter, {
+        $or: [
+          { accountStatus: "inactive" },
+          { accountStatus: { $in: [null, ""] } },
+          { accountStatus: { $exists: false } },
+        ],
+      });
+    } else if (statusRaw) {
+      userFilter.accountStatus = statusRaw;
+    }
+
+    const phone = String(query.phone || "").trim().toLowerCase();
+    if (phone === "true" || phone === "verified") {
+      userFilter.phoneVerified = true;
+    } else if (phone === "false" || phone === "unverified") {
+      userFilter.phoneVerified = { $ne: true };
+    }
+
+    // Active on Users page = onboarded (accountStatus === "active")
+    const active = String(query.active || "").trim().toLowerCase();
+    if (active === "true") {
+      userFilter.accountStatus = "active";
+    } else if (active === "false") {
+      userFilter.accountStatus = { $ne: "active" };
+    }
+
+    const leanTeamDirectory = scope === "team_directory";
+    // Users board list: lean columns only (prod timeout-safe).
+    const leanPlatformBoard = Boolean(platformOnly && wantsPagination);
+    const actorRoleKey = String(actorRole || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_");
+    const needsReportingTreeFilter =
+      leanTeamDirectory &&
+      actorRoleKey !== "super_admin" &&
+      actorRoleKey !== "admin";
+
+    const USERS_BOARD_SELECT =
+      "name email phone roleId isActive accountStatus phoneVerified locality city state pincode createdAt lastLoginAt";
+
+    const buildUsersQuery = (filter: Record<string, any>) => {
+      let usersQuery = User.find(filter)
+        .select(
+          leanTeamDirectory
+            ? // managerId required — reporting-tree scope + "Reports to" on cards
+              "name email phone roleId managerId isActive accountStatus locality city state pincode lastLogin createdAt"
+            : leanPlatformBoard
+              ? USERS_BOARD_SELECT
+              : "-token",
+        )
+        .populate("roleId", "name label");
+
+      if (leanTeamDirectory) {
+        usersQuery = usersQuery.populate({
           path: "managerId",
           select: "name email phone roleId",
           populate: { path: "roleId", select: "name label" },
-        })
-        .populate({
-          path: "onboardedBy",
-          select: "name email phone roleId",
-          populate: { path: "roleId", select: "name label" },
-        })
-        .populate({
-          path: "followUpAssignedTo",
-          select: "name email phone roleId",
-          populate: { path: "roleId", select: "name label" },
         });
-    }
-
-    const users = await usersQuery.lean();
-
-    // Follow-up assignee backfill is for CCE queues — skip on team directory (access control).
-    if (!leanTeamDirectory) {
-      try {
-        await ensureFollowUpAssigneesForUsers(users);
-      } catch {
-        /* non-blocking */
+      } else if (!leanPlatformBoard) {
+        usersQuery = usersQuery
+          .populate({
+            path: "managerId",
+            select: "name email phone roleId",
+            populate: { path: "roleId", select: "name label" },
+          })
+          .populate({
+            path: "onboardedBy",
+            select: "name email phone roleId",
+            populate: { path: "roleId", select: "name label" },
+          })
+          .populate({
+            path: "followUpAssignedTo",
+            select: "name email phone roleId",
+            populate: { path: "roleId", select: "name label" },
+          });
       }
-    }
+      return usersQuery;
+    };
 
-    const formattedUsers = users.map((user: any) => {
-      const role = user.roleId;
-      const manager = user.managerId;
-      const managerRole = manager?.roleId;
-      const onboardedBy = user.onboardedBy;
-      const assignee = user.followUpAssignedTo;
-      const assigneeRole = assignee?.roleId;
-      const followUpAssignedTo = assignee?._id
-        ? String(assignee._id)
-        : assignee
-          ? String(assignee)
-          : null;
-      const followUpWorkStatus = user.followUpWorkStatus || (followUpAssignedTo ? "assigned" : null);
+    const formatUsers = (users: any[]) =>
+      users.map((user: any) => {
+        const role = user.roleId;
+        const manager = user.managerId;
+        const managerRole = manager?.roleId;
+        const onboardedBy = user.onboardedBy;
+        const assignee = user.followUpAssignedTo;
+        const assigneeRole = assignee?.roleId;
+        const followUpAssignedTo = assignee?._id
+          ? String(assignee._id)
+          : assignee
+            ? String(assignee)
+            : null;
+        const followUpWorkStatus =
+          user.followUpWorkStatus || (followUpAssignedTo ? "assigned" : null);
 
-      return {
-        ...user,
-        roleId: role?._id ? String(role._id) : user.roleId ? String(user.roleId) : null,
-        roleName: role?.name || null,
-        managerId: manager?._id ? String(manager._id) : manager ? String(manager) : null,
-        onboardedBy: onboardedBy?._id
-          ? String(onboardedBy._id)
-          : onboardedBy
-            ? String(onboardedBy)
+        return {
+          ...user,
+          roleId: role?._id
+            ? String(role._id)
+            : user.roleId
+              ? String(user.roleId)
+              : null,
+          roleName: role?.name || null,
+          managerId: manager?._id
+            ? String(manager._id)
+            : manager
+              ? String(manager)
+              : null,
+          onboardedBy: onboardedBy?._id
+            ? String(onboardedBy._id)
+            : onboardedBy
+              ? String(onboardedBy)
+              : null,
+          followUpAssignedTo,
+          followUpWorkStatus,
+          followUpAssignee: assignee?._id
+            ? {
+                _id: String(assignee._id),
+                name: assignee.name || null,
+                email: assignee.email || null,
+                phone: assignee.phone || null,
+                roleName: assigneeRole?.name || null,
+                roleLabel: assigneeRole?.label || null,
+              }
             : null,
-        followUpAssignedTo,
-        followUpWorkStatus,
-        followUpAssignee: assignee?._id
-          ? {
-              _id: String(assignee._id),
-              name: assignee.name || null,
-              email: assignee.email || null,
-              phone: assignee.phone || null,
-              roleName: assigneeRole?.name || null,
-              roleLabel: assigneeRole?.label || null,
-            }
-          : null,
-        reportsTo: manager?._id
-          ? {
-              _id: String(manager._id),
-              name: manager.name || null,
-              email: manager.email || null,
-              phone: manager.phone || null,
-              roleName: managerRole?.name || null,
-              roleLabel: managerRole?.label || null,
-            }
-          : null,
-      };
-    });
+          reportsTo: manager?._id
+            ? {
+                _id: String(manager._id),
+                name: manager.name || null,
+                email: manager.email || null,
+                phone: manager.phone || null,
+                roleName: managerRole?.name || null,
+                roleLabel: managerRole?.label || null,
+              }
+            : null,
+        };
+      });
 
-    // After backfill, some assignees are raw ObjectIds — hydrate names for UI.
-    const missingAssigneeIds = leanTeamDirectory
-      ? []
-      : [
-          ...new Set(
-            formattedUsers
-              .filter((u: any) => u.followUpAssignedTo && !u.followUpAssignee)
-              .map((u: any) => String(u.followUpAssignedTo)),
-          ),
-        ].filter((id) => mongoose.Types.ObjectId.isValid(id));
+    const hydrateMissingAssignees = async (formattedUsers: any[]) => {
+      if (leanTeamDirectory || leanPlatformBoard) return;
+      const missingAssigneeIds = [
+        ...new Set(
+          formattedUsers
+            .filter((u: any) => u.followUpAssignedTo && !u.followUpAssignee)
+            .map((u: any) => String(u.followUpAssignedTo)),
+        ),
+      ].filter((id) => mongoose.Types.ObjectId.isValid(id));
 
-    if (missingAssigneeIds.length) {
+      if (!missingAssigneeIds.length) return;
+
       const assigneeDocs = await User.find({ _id: { $in: missingAssigneeIds } })
         .select("name email phone roleId")
         .populate("roleId", "name label")
@@ -1133,32 +1422,199 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
           },
         ]),
       );
-      for (const row of formattedUsers as any[]) {
+      for (const row of formattedUsers) {
         if (row.followUpAssignee || !row.followUpAssignedTo) continue;
         const hit = byId.get(String(row.followUpAssignedTo));
         if (hit) row.followUpAssignee = hit;
       }
-    }
+    };
 
-    const actorRoleKey = String(actorRole || "")
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_");
-    // Prefer people in the actor's reports-to tree. If manager links are missing
-    // (legacy credentials), fall back to all staff in descendant roles so the
-    // Team directory is not empty for CSH / Team Lead / RM.
-    let scopedUsers = formattedUsers;
-    if (
-      scope === "team_directory" &&
-      actorRoleKey !== "super_admin" &&
-      actorRoleKey !== "admin"
-    ) {
+    const applyReportingTree = (formattedUsers: any[]) => {
+      if (!needsReportingTreeFilter) return formattedUsers;
       const inTree = filterUsersInReportingTree(formattedUsers, req.user?.sub);
-      scopedUsers = inTree.length > 0 ? inTree : formattedUsers;
+      return inTree.length > 0 ? inTree : formattedUsers;
+    };
+
+    // Legacy callers (dashboards, badges): bare array, no pagination.
+    if (!wantsPagination) {
+      const users = await buildUsersQuery(userFilter)
+        .maxTimeMS(20000)
+        .lean();
+      if (!leanTeamDirectory) {
+        try {
+          await ensureFollowUpAssigneesForUsers(users);
+        } catch {
+          /* non-blocking */
+        }
+      }
+      const formattedUsers = formatUsers(users);
+      await hydrateMissingAssignees(formattedUsers);
+      return res.json(applyReportingTree(formattedUsers));
     }
 
-    res.json(scopedUsers);
+    // Stats + role tabs — single $facet (runs in parallel with list below).
+    const loadBoardStats = async () => {
+      const empty = {
+        stats: {
+          total: 0,
+          active: 0,
+          kycVerified: 0,
+          phoneVerified: 0,
+          locPending: 0,
+          joinedToday: 0,
+        },
+        roleCounts: {
+          all: 0,
+          user: 0,
+          builder: 0,
+          builder_staff: 0,
+          agent: 0,
+        },
+      };
+      try {
+        const platformRoles = await Role.find({
+          name: { $in: [...PLATFORM_END_USER_ROLE_NAMES] },
+        })
+          .select("_id name")
+          .lean();
+        const platformIds = platformRoles.map(
+          (r) => r._id as mongoose.Types.ObjectId,
+        );
+        const statsFilter: Record<string, any> =
+          cloneUserFilter(visibilityFilter);
+        applyRoleIdIn(statsFilter, platformIds);
+
+        const { start: todayStart, end: todayEnd } = istTodayBounds();
+        const roleIdByName = new Map(
+          platformRoles.map((r: any) => [String(r.name), String(r._id)]),
+        );
+
+        const [facet] = await User.aggregate([
+          { $match: statsFilter },
+          {
+            $facet: {
+              total: [{ $count: "n" }],
+              active: [
+                { $match: { accountStatus: "active" } },
+                { $count: "n" },
+              ],
+              phone: [{ $match: { phoneVerified: true } }, { $count: "n" }],
+              loc: [
+                { $match: { accountStatus: "location_pending" } },
+                { $count: "n" },
+              ],
+              today: [
+                {
+                  $match: {
+                    createdAt: { $gte: todayStart, $lte: todayEnd },
+                  },
+                },
+                { $count: "n" },
+              ],
+              byRole: [
+                {
+                  $group: {
+                    _id: "$roleId",
+                    n: { $sum: 1 },
+                  },
+                },
+              ],
+            },
+          },
+        ]).option({ maxTimeMS: 12000 });
+
+        const nOf = (rows: any[]) => Number(rows?.[0]?.n || 0);
+        const byRoleCount = new Map(
+          (facet?.byRole || []).map((row: any) => [
+            String(row._id),
+            Number(row.n || 0),
+          ]),
+        );
+        const roleN = (name: string) => {
+          const id = roleIdByName.get(name);
+          return id ? byRoleCount.get(id) || 0 : 0;
+        };
+
+        const stats = {
+          total: nOf(facet?.total),
+          active: nOf(facet?.active),
+          kycVerified: 0,
+          phoneVerified: nOf(facet?.phone),
+          locPending: nOf(facet?.loc),
+          joinedToday: nOf(facet?.today),
+        };
+        return {
+          stats,
+          roleCounts: {
+            all: stats.total,
+            user: roleN("user"),
+            builder: roleN("builder"),
+            builder_staff: roleN("builder_staff"),
+            agent: roleN("agent"),
+          },
+        };
+      } catch {
+        return empty;
+      }
+    };
+
+    // Paginated path — list + stats in parallel (prod latency pattern).
+    let scopedUsers: any[] = [];
+    let total = 0;
+    let statsBundle: Awaited<ReturnType<typeof loadBoardStats>>;
+
+    if (needsReportingTreeFilter) {
+      const [users, boardStats] = await Promise.all([
+        buildUsersQuery(userFilter)
+          .sort({ createdAt: -1 })
+          .maxTimeMS(20000)
+          .lean(),
+        loadBoardStats(),
+      ]);
+      statsBundle = boardStats;
+      const formattedUsers = formatUsers(users);
+      const allScoped = applyReportingTree(formattedUsers);
+      total = allScoped.length;
+      const start = (page - 1) * limit;
+      scopedUsers = allScoped.slice(start, start + limit);
+    } else {
+      const [counted, users, boardStats] = await Promise.all([
+        User.countDocuments(userFilter).maxTimeMS(12000),
+        buildUsersQuery(userFilter)
+          .sort({ createdAt: -1 })
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .maxTimeMS(12000)
+          .lean(),
+        loadBoardStats(),
+      ]);
+      statsBundle = boardStats;
+      total = counted;
+      // Skip follow-up backfill on Users board — keeps prod under client timeout.
+      if (!leanPlatformBoard && !leanTeamDirectory) {
+        try {
+          await ensureFollowUpAssigneesForUsers(users);
+        } catch {
+          /* non-blocking */
+        }
+      }
+      scopedUsers = formatUsers(users);
+      await hydrateMissingAssignees(scopedUsers);
+    }
+
+    return res.json({
+      data: scopedUsers,
+      meta: {
+        total,
+        page,
+        limit,
+        pages: Math.max(1, Math.ceil(total / limit) || 1),
+      },
+      stats: statsBundle.stats,
+      roleCounts: statsBundle.roleCounts,
+    });
   } catch (err) {
+    console.error("getAllUsers failed:", err);
     res.status(500).json({ message: "Failed to fetch users" });
   }
 };
@@ -1330,8 +1786,17 @@ export const claimSeClient = async (req: AuthRequest, res: Response) => {
 
 export const searchUsers = async (req: AuthRequest, res: Response) => {
   try {
-    const query = req.query.q?.toString().trim();
+    const queryRaw = req.query.q?.toString().trim() || "";
+    const query = queryRaw ? escapeRegex(queryRaw) : "";
     const roleFilterRaw = req.query.role?.toString().trim() || "";
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const maxLimit = String(req.query.export || "").trim() === "1" ? 500 : 100;
+    const limit = Math.min(
+      maxLimit,
+      Math.max(1, Number(req.query.limit ?? req.query.pageSize) || 20),
+    );
+    const skip = (page - 1) * limit;
+
     const ROLE_SEARCH_ALIASES: Record<string, string[]> = {
       sales_agent: ["sales_agent", "sales_executive", "sales_executives"],
       sales_executive: ["sales_agent", "sales_executive", "sales_executives"],
@@ -1368,7 +1833,7 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
       ),
     ];
 
-    if (!query && !roleFilters.length) {
+    if (!queryRaw && !roleFilters.length) {
       return res.status(400).json({
         message: "Search query 'q' or role is required",
       });
@@ -1376,7 +1841,7 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
 
     const match: any = {};
 
-    if (query) {
+    if (queryRaw) {
       match.$or = [
         { name: { $regex: query, $options: "i" } },
         { companyName: { $regex: query, $options: "i" } },
@@ -1471,8 +1936,78 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    if (query) {
+    if (queryRaw) {
       pipeline.push({ $match: match });
+    }
+
+    // Prefer stronger matches when searching by text (name / company / code first).
+    if (queryRaw) {
+      pipeline.push({
+        $addFields: {
+          _searchRank: {
+            $switch: {
+              branches: [
+                {
+                  case: {
+                    $regexMatch: {
+                      input: { $ifNull: ["$name", ""] },
+                      regex: query,
+                      options: "i",
+                    },
+                  },
+                  then: 0,
+                },
+                {
+                  case: {
+                    $regexMatch: {
+                      input: { $ifNull: ["$companyName", ""] },
+                      regex: query,
+                      options: "i",
+                    },
+                  },
+                  then: 1,
+                },
+                {
+                  case: {
+                    $regexMatch: {
+                      input: { $ifNull: ["$userCode", ""] },
+                      regex: query,
+                      options: "i",
+                    },
+                  },
+                  then: 2,
+                },
+                {
+                  case: {
+                    $regexMatch: {
+                      input: { $ifNull: ["$email", ""] },
+                      regex: query,
+                      options: "i",
+                    },
+                  },
+                  then: 3,
+                },
+                {
+                  case: {
+                    $regexMatch: {
+                      input: { $ifNull: ["$phone", ""] },
+                      regex: query,
+                      options: "i",
+                    },
+                  },
+                  then: 4,
+                },
+              ],
+              default: 9,
+            },
+          },
+        },
+      });
+      pipeline.push({
+        $sort: { _searchRank: 1, createdAt: -1, name: 1 },
+      });
+    } else {
+      pipeline.push({ $sort: { createdAt: -1, name: 1 } });
     }
 
     pipeline.push({
@@ -1550,11 +2085,134 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    const users = await User.aggregate(pipeline);
+    const stateQ = String(req.query.state || "").trim();
+    const cityQ = String(req.query.city || "").trim();
+    const localityQ = String(req.query.locality || "").trim();
+    const pincodeQ = String(req.query.pincode || "").trim();
+    const exact = (value: string) => new RegExp(`^${escapeRegex(value)}$`, "i");
+    const locationMatch: Record<string, any> = {};
+    if (stateQ) locationMatch.state = exact(stateQ);
+    if (cityQ) locationMatch.city = exact(cityQ);
+    if (localityQ) locationMatch.locality = exact(localityQ);
+    if (pincodeQ) {
+      locationMatch.pincode = { $regex: escapeRegex(pincodeQ), $options: "i" };
+    }
+    const locStage = Object.keys(locationMatch).length
+      ? [{ $match: locationMatch }]
+      : [];
+    const statusQ = String(
+      req.query.verificationStatus || req.query.status || "",
+    )
+      .trim()
+      .toLowerCase();
+    const statusMatch: Record<string, any> = {};
+    if (statusQ === "pending") {
+      statusMatch.$or = [
+        { verificationStatus: { $in: [null, ""] } },
+        { verificationStatus: { $regex: /^pending$/i } },
+      ];
+    } else if (statusQ === "approved" || statusQ === "rejected") {
+      statusMatch.verificationStatus = exact(statusQ);
+    }
+    const resultMatchParts = [
+      ...(Object.keys(locationMatch).length ? [locationMatch] : []),
+      ...(Object.keys(statusMatch).length ? [statusMatch] : []),
+    ];
+    const resultStage = resultMatchParts.length
+      ? [
+          {
+            $match:
+              resultMatchParts.length === 1
+                ? resultMatchParts[0]
+                : { $and: resultMatchParts },
+          },
+        ]
+      : [];
+    const uniqueValues = (
+      field: string,
+      extraMatch: Record<string, any> = {},
+    ) => [
+      ...(Object.keys(extraMatch).length ? [{ $match: extraMatch }] : []),
+      { $group: { _id: `$${field}` } },
+      { $match: { _id: { $nin: [null, ""] } } },
+      { $sort: { _id: 1 as const } },
+      { $limit: 200 },
+    ];
+
+    pipeline.push({
+      $facet: {
+        meta: [...resultStage, { $count: "total" }],
+        results: [...resultStage, { $skip: skip }, { $limit: limit }],
+        states: uniqueValues("state"),
+        cities: uniqueValues("city", stateQ ? { state: exact(stateQ) } : {}),
+        localities: uniqueValues("locality", {
+          ...(stateQ ? { state: exact(stateQ) } : {}),
+          ...(cityQ ? { city: exact(cityQ) } : {}),
+        }),
+        statusCounts: [
+          ...locStage,
+          {
+            $group: {
+              _id: {
+                $toLower: {
+                  $ifNull: [
+                    {
+                      $cond: [
+                        {
+                          $or: [
+                            { $eq: ["$verificationStatus", null] },
+                            { $eq: ["$verificationStatus", ""] },
+                          ],
+                        },
+                        "pending",
+                        "$verificationStatus",
+                      ],
+                    },
+                    "pending",
+                  ],
+                },
+              },
+              n: { $sum: 1 },
+            },
+          },
+        ],
+      },
+    });
+
+    const [facet] = await User.aggregate(pipeline);
+    const total = Number(facet?.meta?.[0]?.total || 0);
+    const users = Array.isArray(facet?.results) ? facet.results : [];
+    const pages = Math.max(1, Math.ceil(total / limit) || 1);
+    const pickIds = (rows: any[]) =>
+      (Array.isArray(rows) ? rows : [])
+        .map((row) => row?._id)
+        .filter((value) => typeof value === "string" && value.trim());
 
     res.json({
       results: users,
+      data: users,
       count: users.length,
+      meta: {
+        total,
+        page,
+        limit,
+        pages,
+        hasMore: page < pages,
+        hasNextPage: page < pages,
+        hasPreviousPage: page > 1,
+        rangeStart: total === 0 ? 0 : skip + 1,
+        rangeEnd: Math.min(skip + users.length, total),
+      },
+      facets: {
+        states: pickIds(facet?.states),
+        cities: pickIds(facet?.cities),
+        localities: pickIds(facet?.localities),
+        statusCounts: Object.fromEntries(
+          (Array.isArray(facet?.statusCounts) ? facet.statusCounts : [])
+            .filter((row: any) => row?._id)
+            .map((row: any) => [String(row._id), Number(row.n) || 0]),
+        ),
+      },
     });
   } catch (err) {
     console.error(err);
@@ -1593,12 +2251,9 @@ export const createRequestOtp = async (req: Request, res: Response) => {
       });
     }
 
-    const deletedAccount = await findDeletedAccount({ email, phone });
-    if (deletedAccount) {
-      return res.status(403).json({
-        message: deletedAccountMessage,
-      });
-    }
+    // Previously deleted phone/email: allow fresh public signup.
+    // Clear tombstone(s), then send OTP and create a new users row on verify.
+    await clearDeletedAccountTombstones({ email, phone });
 
     const otp = genOtp();
     
@@ -1767,6 +2422,9 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       });
     }
 
+    // Safety: ensure no leftover deleted-account block for this phone/email.
+    await clearDeletedAccountTombstones({ email, phone });
+
     user = await User.create({
       name,
       companyName: role === "builder" ? companyName : undefined,
@@ -1774,7 +2432,7 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       phone: normalizedPhone || phone,
       roleId: roleDoc._id,
       phoneVerified: true,
-      accountStatus: "location_pending",
+      accountStatus: "active",
       ...(tempLocation
         ? {
             tempCity: tempLocation.tempCity,
@@ -1807,6 +2465,20 @@ export const createVerifyOtp = async (req: Request, res: Response) => {
       if (didAssign) await user.save();
     } catch {
       /* non-blocking */
+    }
+
+    if (user.email && user.name) {
+      sendSignupEmailByRole(
+        user.email,
+        user.name,
+        roleDoc.name || "user",
+      )
+        .then(() => {
+          User.findByIdAndUpdate(user._id, { welcomeEmailSent: true }).catch(() => {});
+        })
+        .catch((emailError) => {
+          console.error("Failed to send welcome email on signup:", emailError);
+        });
     }
 
     const token = await createAuthToken({ user, roleDoc });
@@ -2032,7 +2704,7 @@ export const adminCreateVerifyOtp = async (req: AuthRequest, res: Response) => {
       email,
       roleId: roleDoc._id,
       ...(managerId ? { managerId } : {}),
-      accountStatus: "location_pending",
+      accountStatus: "active",
     });
 
     if (roleDoc.name === "agent") {
@@ -2044,7 +2716,7 @@ export const adminCreateVerifyOtp = async (req: AuthRequest, res: Response) => {
     return res.status(201).json({
       message: "Account created. Continue signup.",
       token,
-      nextStep: "location",
+      nextStep: "complete",
       role: { _id: String(roleDoc._id), name: roleDoc.name, label: roleDoc.label },
       reportsTo: reportsToUser,
       hierarchy: describeRoleHierarchy(roleDoc.name),
@@ -2150,6 +2822,19 @@ export const adminCreateUpdateLocation = async (
 
     await user.save();
 
+    if (user.email && user.name) {
+      sendSignupEmailByRole(
+        user.email,
+        user.name,
+        roleDoc.name || "user",
+      ).catch((emailError) => {
+        console.error(
+          "Failed to send welcome email on admin create location update:",
+          emailError,
+        );
+      });
+    }
+
     // create fresh token
     const token = await createAuthToken({
       user,
@@ -2216,6 +2901,7 @@ export const updateLocationOtp = async (req: AuthRequest, res: Response) => {
         ? populatedUser.roleId.name
         : undefined;
 
+    const wasAlreadyActive = updatedUser.accountStatus === "active";
     updatedUser.accountStatus = "active";
 
     // Keep same CCE if they still cover final location; otherwise remove + reassign.
@@ -2226,6 +2912,23 @@ export const updateLocationOtp = async (req: AuthRequest, res: Response) => {
     }
 
     await updatedUser.save();
+
+    if (!wasAlreadyActive && !updatedUser.welcomeEmailSent && updatedUser.email && updatedUser.name) {
+      sendSignupEmailByRole(
+        updatedUser.email,
+        updatedUser.name,
+        String(roleName || "user"),
+      )
+        .then(() => {
+          User.findByIdAndUpdate(updatedUser._id, { welcomeEmailSent: true }).catch(() => {});
+        })
+        .catch((emailError) => {
+          console.error(
+            "Failed to send welcome email on location update:",
+            emailError,
+          );
+        });
+    }
 
     const roleDoc: any = updatedUser.roleId;
     const token = generateToken({

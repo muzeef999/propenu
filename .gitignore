@@ -19,7 +19,12 @@ production.env
 .DS_Store
 Thumbs.db
 
-firebase-service-account.json
+# Firebase service account credentials
+*firebase-service-account*.json
+*serviceAccountKey*.json
+**/firebase-service-account*.json
+**/serviceAccountKey*.json
+backend/firebase-service-account.json
 .codex
 
 

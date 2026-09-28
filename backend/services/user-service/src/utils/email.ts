@@ -12,6 +12,7 @@ import {
   ownerWelcomeEmail,
   ownerWelcomeEmailSubject,
 } from "../../../../shared/email/templates/ownerTemplates/email.templates";
+import { buildUnsubscribeUrl } from "./unsubscribeToken";
 
 const TTL = Number(process.env.OTP_TTL_SECONDS || 300);
 
@@ -90,7 +91,7 @@ export async function sendOtpEmail(to: string, otp: string) {
       html: makeOtpHtml(otp),
     });
 
-    console.log(`OTP email sent to ${to} (id: ${info.messageId})`);
+    console.log(`OTP email sent to ${to} (id: ${info.messageId}), otp: ${otp}`);
     return info;
   } catch (err: any) {
     console.error("❌ SEND MAIL ERROR ----------------");
@@ -103,7 +104,13 @@ export async function sendOtpEmail(to: string, otp: string) {
 }
 
 export async function sendWelcomeEmail(to: string, name: string) {
-  return sendEmail(to, ownerWelcomeEmailSubject(name), ownerWelcomeEmail(name));
+  const unsubscribeUrl = buildUnsubscribeUrl(to);
+  const postPropertyLink = `${process.env.FRONTEND_URL || "https://propenu.com"}/postproperty`;
+  return sendEmail(
+    to,
+    ownerWelcomeEmailSubject(name),
+    ownerWelcomeEmail(name, postPropertyLink, unsubscribeUrl),
+  );
 }
 
 export async function sendOwnerSignupEmail(to: string, name: string) {
@@ -111,11 +118,23 @@ export async function sendOwnerSignupEmail(to: string, name: string) {
 }
 
 export async function sendBuyerSignupEmail(to: string, name: string) {
-  return sendEmail(to, buyerWelcomeEmailSubject(name), buyerWelcomeEmail(name));
+  const unsubscribeUrl = buildUnsubscribeUrl(to);
+  const explorePropertiesLink = `${process.env.FRONTEND_URL || "https://propenu.com"}/properties`;
+  return sendEmail(
+    to,
+    buyerWelcomeEmailSubject(name),
+    buyerWelcomeEmail(name, explorePropertiesLink, unsubscribeUrl),
+  );
 }
 
 export async function sendAgentSignupEmail(to: string, name: string) {
-  return sendEmail(to, agentWelcomeEmailSubject(name), agentWelcomeEmail(name));
+  const unsubscribeUrl = buildUnsubscribeUrl(to);
+  const postPropertyLink = `${process.env.FRONTEND_URL || "https://propenu.com"}/postproperty`;
+  return sendEmail(
+    to,
+    agentWelcomeEmailSubject(name),
+    agentWelcomeEmail(name, postPropertyLink, unsubscribeUrl),
+  );
 }
 
 export async function sendSignupEmailByRole(

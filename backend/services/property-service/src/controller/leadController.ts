@@ -25,7 +25,11 @@ import User from "../models/userModel";
 import Role from "../models/roleModel";
 import * as XLSX from "xlsx";
 import { getAdminLeadDashboard } from "../services/adminLeadService";
-import { notifyProjectBrochureDownload } from "../services/pushNotificationService";
+import {
+  notifyOwnerAndAdmins,
+  notifyProjectBrochureDownload,
+  shouldSendHighTimeSpentPush,
+} from "../services/pushNotificationService";
 import { generateToken, verifyToken } from "../utils/jwt";
 import { sendOtpWhatsApp } from "../utils/whatsapp";
 import {
@@ -39,6 +43,7 @@ import { buildLeadPropertySnapshot } from "../utils/leadPropertySnapshot";
 
 
 const DEFAULT_VISIBLE_LEAD_LIMIT = 5;
+const HIGH_TIME_SPENT_PUSH_THRESHOLD_MS = 60 * 1000;
 
 const toNonNegativeInt = (value: unknown): number | null => {
   if (value === null || value === undefined || value === "") return null;
@@ -1704,6 +1709,41 @@ export const trackProjectViewDurationController = async (
       updatedAt: new Date(),
     });
 
+    if (durationMs >= HIGH_TIME_SPENT_PUSH_THRESHOLD_MS) {
+      const allowed = await shouldSendHighTimeSpentPush({
+        userId,
+        projectId,
+      });
+
+      if (allowed) {
+        const [viewer, fullProject] = await Promise.all([
+          User.findById(userId).select("name phone email").lean(),
+          FeaturedProject.findById(projectId).select("title projectName").lean(),
+        ]);
+        const projectTitle =
+          fullProject?.title || (fullProject as any)?.projectName || "your project";
+        const viewerName = viewer?.name || "A user";
+        const minutes = Number((durationMs / 60000).toFixed(1));
+
+        await notifyOwnerAndAdmins({
+          type: "high_time_spent",
+          title: "High Time Spent",
+          body: `${viewerName} spent ${minutes} min on ${projectTitle}.`,
+          actorUserId: userId,
+          ownerId: project.createdBy,
+          projectId,
+          propertyType: "featuredprojects",
+          metadata: {
+            projectTitle,
+            userName: viewerName,
+            userPhone: viewer?.phone || "",
+            userEmail: viewer?.email || "",
+            durationMinutes: minutes,
+          },
+        });
+      }
+    }
+
     return res.status(201).json({
       success: true,
       message: "Project view duration tracked",
@@ -1793,6 +1833,46 @@ export const trackPropertyViewDurationController = async (
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+
+    if (durationMs >= HIGH_TIME_SPENT_PUSH_THRESHOLD_MS) {
+      const allowed = await shouldSendHighTimeSpentPush({
+        userId,
+        projectId,
+      });
+
+      if (allowed) {
+        const [viewer, fullProperty] = await Promise.all([
+          User.findById(userId).select("name phone email").lean(),
+          PropertyModel.findById(projectId)
+            .select("title projectName buildingName")
+            .lean(),
+        ]);
+        const propertyTitle =
+          (fullProperty as any)?.title ||
+          (fullProperty as any)?.projectName ||
+          (fullProperty as any)?.buildingName ||
+          "your property";
+        const viewerName = viewer?.name || "A user";
+        const minutes = Number((durationMs / 60000).toFixed(1));
+
+        await notifyOwnerAndAdmins({
+          type: "high_time_spent",
+          title: "High Time Spent",
+          body: `${viewerName} spent ${minutes} min on ${propertyTitle}.`,
+          actorUserId: userId,
+          ownerId: property.createdBy,
+          projectId,
+          propertyType,
+          metadata: {
+            propertyTitle,
+            userName: viewerName,
+            userPhone: viewer?.phone || "",
+            userEmail: viewer?.email || "",
+            durationMinutes: minutes,
+          },
+        });
+      }
+    }
 
     return res.status(201).json({
       success: true,

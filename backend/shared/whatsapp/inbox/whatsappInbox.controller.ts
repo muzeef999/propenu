@@ -7,6 +7,7 @@ import {
   normalizeWaId,
   processWhatsAppWebhookPayload,
   registerWhatsAppWebhookOverride,
+  resolveExpectedWhatsAppWebhookUrl,
   sendInboxTextMessage,
   startConversation,
   syncInboxFromWhatsAppLogs,
@@ -132,17 +133,8 @@ export async function getCloudHealth(_req: Request, res: Response) {
 export async function postRegisterWebhook(req: Request, res: Response) {
   try {
     const fromBody = String(req.body?.callbackUrl || "").trim();
-    const publicBase = String(
-      process.env.WHATSAPP_PUBLIC_BASE_URL || "",
-    )
-      .trim()
-      .replace(/\/+$/, "");
-    const slug = process.env.WHATSAPP_WEBHOOK_SLUG || "tyent";
-    const callbackUrl =
-      fromBody ||
-      (publicBase
-        ? `${publicBase}/api/conversation-flow/webhook/${slug}`
-        : "");
+    const { expectedPublicWebhook } = resolveExpectedWhatsAppWebhookUrl();
+    const callbackUrl = fromBody || expectedPublicWebhook || "";
 
     const data = await registerWhatsAppWebhookOverride(callbackUrl);
     return res.json({ success: true, data });

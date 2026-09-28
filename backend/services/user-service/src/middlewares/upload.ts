@@ -3,7 +3,6 @@ import multer, { FileFilterCallback } from "multer";
 import { Request } from "express";
 
 export const upload = multer({
-
   storage: multer.memoryStorage(),
 
   limits: {
@@ -48,5 +47,29 @@ export const uploadNotificationImage = multer({
     } else {
       cb(new Error("Only image files are allowed"));
     }
+  },
+});
+
+/** Template header samples for Meta create (IMAGE ≤5MB, VIDEO ≤16MB, DOCUMENT ≤100MB). */
+export const uploadWhatsAppTemplateMediaMulter = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 100 * 1024 * 1024,
+  },
+  fileFilter: (
+    req: Request,
+    file: Express.Multer.File,
+    cb: FileFilterCallback,
+  ) => {
+    const mime = String(file.mimetype || "").toLowerCase();
+    const ok =
+      mime.startsWith("image/") ||
+      mime.startsWith("video/") ||
+      mime === "application/pdf" ||
+      mime === "application/msword" ||
+      mime ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    if (ok) cb(null, true);
+    else cb(new Error("Only image, video, or document files are allowed"));
   },
 });

@@ -13,6 +13,8 @@ import PublicPageView, {
 import Residential from "../models/residentialModel";
 import UserInteraction, { INTERACTION_EVENT_TYPES, InteractionPromotionType } from "../models/userInteractionModel";
 import User from "../models/userModel";
+import { USER_ACTIVITY_PAGE_SIZE } from "../models/userActivityModel";
+import { appendUserAction, listUserActions } from "../services/userActivityService";
 
 const promotionTypes = new Set(["normal", "sponsored", "featured", "prime"]);
 const eventTypes = new Set<string>(INTERACTION_EVENT_TYPES);
@@ -219,28 +221,11 @@ export async function captureInteraction(req: AuthRequest, res: Response) {
 
     const projectId = safeString(body.projectId, 64);
     const propertyId = safeString(body.propertyId, 64);
-    if (deduplicatedEventTypes.has(body.eventType)) {
-      const duplicate = await UserInteraction.exists({
-        userId: new mongoose.Types.ObjectId(req.user.id),
-        sessionId: body.sessionId.trim(),
-        eventType: body.eventType,
-        pageUrl: body.pageUrl.trim(),
-        ...(projectId ? { projectId: new mongoose.Types.ObjectId(projectId) } : {}),
-        ...(propertyId ? { propertyId: new mongoose.Types.ObjectId(propertyId) } : {}),
-        serverTimestamp: { $gte: new Date(Date.now() - 2_000) },
-      });
-      if (duplicate) return res.status(200).json({ success: true, duplicate: true });
-    }
     const promotion = await resolvePromotion(body.entityType, projectId, propertyId);
     const requestedPromotion = promotionTypes.has(body.promotionType) ? body.promotionType : "normal";
-    const forwardedFor = safeString(req.headers["x-forwarded-for"], 256)?.split(",")[0]?.trim();
-    const ip = forwardedFor || req.ip;
-    const ipHash = ip ? crypto.createHash("sha256").update(ip).digest("hex") : undefined;
-
-    const interaction = await UserInteraction.create({
-      userId: new mongoose.Types.ObjectId(req.user.id),
+    const serverTimestamp = new Date();
+    const action = {
       sessionId: body.sessionId.trim(),
-      ...(safeString(body.anonymousId, 128) ? { anonymousId: body.anonymousId.trim() } : {}),
       eventType: body.eventType,
       eventCategory: body.eventCategory.trim(),
       ...(body.entityType ? { entityType: body.entityType } : {}),
@@ -249,26 +234,34 @@ export async function captureInteraction(req: AuthRequest, res: Response) {
       ...(body.plotId ? { plotId: new mongoose.Types.ObjectId(body.plotId) } : {}),
       promotionType: promotion.verified ? promotion.type : requestedPromotion,
       ...(body.promotionId ? { promotionId: new mongoose.Types.ObjectId(body.promotionId) } : {}),
-      promotionVerified: promotion.verified && promotion.type === requestedPromotion,
-      ...(promotion.snapshot ? { promotionSnapshot: promotion.snapshot } : {}),
       source: body.source.trim(),
-      ...(safeString(body.placement, 120) ? { placement: body.placement.trim() } : {}),
-      ...(Number.isFinite(body.position) ? { position: body.position } : {}),
-      ...(safeString(body.searchId, 128) ? { searchId: body.searchId.trim() } : {}),
-      ...(searchContext ? { searchContext } : {}),
       pageUrl: body.pageUrl.trim(),
       ...(safeString(body.previousPageUrl, 2048) ? { previousPageUrl: body.previousPageUrl.trim() } : {}),
       ...(metadata ? { metadata } : {}),
+      ...(searchContext ? { searchContext } : {}),
       clientTimestamp,
-      serverTimestamp: new Date(),
-      ...(safeString(req.headers["user-agent"], 512) ? { userAgent: req.headers["user-agent"] } : {}),
-      ...(ipHash ? { ipHash } : {}),
-    });
+      serverTimestamp,
+    };
+
+    const stored = await appendUserAction(req.user.id, action);
+    if (stored.duplicate) {
+      return res.status(200).json({
+        success: true,
+        duplicate: true,
+        data: { eventId: stored.actionId, sessionId: action.sessionId, capturedAt: serverTimestamp },
+      });
+    }
 
     return res.status(201).json({
       success: true,
       message: "Interaction captured successfully",
-      data: { eventId: interaction._id, sessionId: interaction.sessionId, capturedAt: interaction.serverTimestamp, promotionType: interaction.promotionType, promotionVerified: interaction.promotionVerified },
+      data: {
+        eventId: stored.actionId,
+        sessionId: action.sessionId,
+        capturedAt: serverTimestamp,
+        promotionType: action.promotionType,
+        promotionVerified: promotion.verified && promotion.type === requestedPromotion,
+      },
     });
   } catch (error) {
     console.error("captureInteraction failed", error);
@@ -373,49 +366,134 @@ export async function capturePublicView(req: Request, res: Response) {
 export async function getUserJourney(req: AuthRequest, res: Response) {
   try {
     const { userId } = req.params;
-    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) return res.status(400).json({ success: false, message: "Invalid userId" });
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: "Invalid userId" });
+    }
     const days = Math.min(90, Math.max(1, Number(req.query.days) || 30));
-    const limit = Math.min(1000, Math.max(1, Number(req.query.limit) || 500));
-    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    const events = await UserInteraction.find({ userId, serverTimestamp: { $gte: since } }).sort({ serverTimestamp: -1 }).limit(limit).lean();
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(
+      USER_ACTIVITY_PAGE_SIZE,
+      Math.max(1, Number(req.query.limit) || USER_ACTIVITY_PAGE_SIZE),
+    );
+    const window = resolveAssignedActivityWindow({
+      range: days <= 7 ? "7d" : days <= 30 ? "30d" : "90d",
+    });
+    const since = window.since;
+    const until = window.until;
+
+    const listed = await listUserActions(userId, { since, until, page, limit });
+    const untilMs = until?.getTime() || Date.now();
+    const allActions = (listed.doc?.actions || []).filter((event: any) => {
+      if (["session_heartbeat", "page_exit"].includes(String(event.eventType))) return false;
+      const t = new Date(event.serverTimestamp || 0).getTime();
+      return t >= since.getTime() && t <= untilMs;
+    });
+    const events = listed.items;
+    const newest = allActions[0] || null;
     const sessions = new Map<string, { sessionId: string; startedAt: Date; lastActiveAt: Date; eventCount: number; lastEvent: string }>();
     const sessionEvents = new Map<string, Date[]>();
-    const promotions: Record<string, { impressions: number; clicks: number }> = { normal: { impressions: 0, clicks: 0 }, sponsored: { impressions: 0, clicks: 0 }, featured: { impressions: 0, clicks: 0 }, prime: { impressions: 0, clicks: 0 } };
-    for (const event of [...events].reverse()) {
+    const promotions: Record<string, { impressions: number; clicks: number }> = {
+      normal: { impressions: 0, clicks: 0 },
+      sponsored: { impressions: 0, clicks: 0 },
+      featured: { impressions: 0, clicks: 0 },
+      prime: { impressions: 0, clicks: 0 },
+    };
+    for (const event of [...allActions].reverse()) {
       const current = sessions.get(event.sessionId);
-      sessions.set(event.sessionId, { sessionId: event.sessionId, startedAt: current?.startedAt ?? event.serverTimestamp, lastActiveAt: event.serverTimestamp, eventCount: (current?.eventCount ?? 0) + 1, lastEvent: event.eventType });
-      sessionEvents.set(event.sessionId, [...(sessionEvents.get(event.sessionId) || []), event.serverTimestamp]);
-      const bucket = promotions[event.promotionType];
+      const stamp = event.serverTimestamp;
+      sessions.set(event.sessionId, {
+        sessionId: event.sessionId,
+        startedAt: current?.startedAt ?? stamp,
+        lastActiveAt: stamp,
+        eventCount: (current?.eventCount ?? 0) + 1,
+        lastEvent: event.eventType,
+      });
+      sessionEvents.set(event.sessionId, [...(sessionEvents.get(event.sessionId) || []), stamp]);
+      const bucket = promotions[String(event.promotionType || "normal")];
       if (bucket) {
-        if (event.eventType.includes("impression")) bucket.impressions += 1;
-        if (event.eventType.includes("click") || event.eventType.endsWith("_view")) bucket.clicks += 1;
+        if (String(event.eventType).includes("impression")) bucket.impressions += 1;
+        if (String(event.eventType).includes("click") || String(event.eventType).endsWith("_view")) {
+          bucket.clicks += 1;
+        }
       }
     }
-    const [entities, listingActivity] = await Promise.all([loadJourneyEntities(events), loadOwnedListingActivity(userId, since)]);
+    const [entities, listingActivity] = await Promise.all([
+      loadJourneyEntities(allActions.slice(0, 24)),
+      loadOwnedListingActivity(userId, since),
+    ]);
     const entityMap = new Map(entities.map((entity: any) => [entity.id, entity]));
-    const entitySlugMap = new Map(entities.filter((entity: any) => entity.slug).map((entity: any) => [entity.slug, entity]));
-    const enrichedEvents = events.map(event => {
+    const entitySlugMap = new Map(
+      entities.filter((entity: any) => entity.slug).map((entity: any) => [entity.slug, entity]),
+    );
+    const enrichedEvents = events.map((event: any) => {
       const slug = String(event.pageUrl || "").match(/^\/(?:project|prime)\/([^/?#]+)/i)?.[1];
-      return { ...event, entity: entityMap.get(String(event.propertyId || event.plotId || event.projectId)) || (slug ? entitySlugMap.get(decodeURIComponent(slug)) : null) || null };
+      return {
+        ...event,
+        entity:
+          entityMap.get(String(event.propertyId || event.plotId || event.projectId)) ||
+          (slug ? entitySlugMap.get(decodeURIComponent(slug)) : null) ||
+          null,
+      };
     });
-    const latest = enrichedEvents[0];
+    const latest = newest
+      ? {
+          ...newest,
+          entity:
+            entityMap.get(String(newest.propertyId || newest.plotId || newest.projectId)) ||
+            null,
+        }
+      : enrichedEvents[0] || null;
     const engagedMs = [...sessionEvents.values()].reduce((total, timestamps) => {
-      const ordered = timestamps.sort((a, b) => a.getTime() - b.getTime());
-      return total + ordered.slice(1).reduce((sessionTotal, timestamp, index) => {
-        const gap = timestamp.getTime() - ordered[index]!.getTime();
-        return sessionTotal + (gap > 0 && gap <= 5 * 60_000 ? gap : 0);
-      }, 0);
+      const ordered = timestamps
+        .map((value) => new Date(value).getTime())
+        .sort((a, b) => a - b);
+      return (
+        total +
+        ordered.slice(1).reduce((sessionTotal, timestamp, index) => {
+          const gap = timestamp - ordered[index]!;
+          return sessionTotal + (gap > 0 && gap <= 5 * 60_000 ? gap : 0);
+        }, 0)
+      );
     }, 0);
-    return res.json({ success: true, data: {
-      summary: { totalEvents: events.length, totalSessions: sessions.size, projectsViewed: new Set(events.filter(e => e.projectId).map(e => String(e.projectId))).size, propertiesViewed: new Set(events.filter(e => e.propertyId).map(e => String(e.propertyId))).size, engagedMs, lastActiveAt: latest?.serverTimestamp ?? null },
-      currentContext: latest ? { sessionId: latest.sessionId, eventType: latest.eventType, pageUrl: latest.pageUrl, projectId: latest.projectId, propertyId: latest.propertyId, promotionType: latest.promotionType, lastActiveAt: latest.serverTimestamp } : null,
-      stoppingPoint: latest && !["session_heartbeat", "page_exit"].includes(latest.eventType) ? { eventType: latest.eventType, pageUrl: latest.pageUrl, capturedAt: latest.serverTimestamp } : null,
-      promotionPerformance: promotions,
-      listingActivity,
-      sessions: [...sessions.values()].sort((a, b) => b.lastActiveAt.getTime() - a.lastActiveAt.getTime()),
-      entities,
-      events: enrichedEvents,
-    }});
+    return res.json({
+      success: true,
+      data: {
+        summary: {
+          totalEvents: listed.pagination.total,
+          totalSessions: sessions.size,
+          projectsViewed: new Set(allActions.filter((e: any) => e.projectId).map((e: any) => String(e.projectId))).size,
+          propertiesViewed: new Set(allActions.filter((e: any) => e.propertyId).map((e: any) => String(e.propertyId))).size,
+          shortlisted: allActions.filter((e: any) => /shortlist|favorite|saved/i.test(String(e.eventType))).length,
+          leads: allActions.filter((e: any) => /lead|contact|enquiry|whatsapp/i.test(String(e.eventType))).length,
+          siteVisits: allActions.filter((e: any) => /site_visit|visit_book/i.test(String(e.eventType))).length,
+          engagedMs,
+          lastActiveAt: newest?.serverTimestamp ?? listed.doc?.lastEventAt ?? null,
+        },
+        currentContext: latest
+          ? {
+              sessionId: latest.sessionId,
+              eventType: latest.eventType,
+              pageUrl: latest.pageUrl,
+              projectId: latest.projectId,
+              propertyId: latest.propertyId,
+              promotionType: latest.promotionType,
+              lastActiveAt: latest.serverTimestamp,
+            }
+          : null,
+        stoppingPoint:
+          latest && !["session_heartbeat", "page_exit"].includes(latest.eventType)
+            ? { eventType: latest.eventType, pageUrl: latest.pageUrl, capturedAt: latest.serverTimestamp }
+            : null,
+        promotionPerformance: promotions,
+        listingActivity,
+        sessions: [...sessions.values()]
+          .sort((a, b) => new Date(b.lastActiveAt).getTime() - new Date(a.lastActiveAt).getTime())
+          .slice(0, 12),
+        entities,
+        events: enrichedEvents,
+        pagination: listed.pagination,
+      },
+    });
   } catch (error) {
     console.error("getUserJourney failed", error);
     return res.status(500).json({ success: false, message: "Unable to load user journey" });
@@ -425,9 +503,28 @@ export async function getUserJourney(req: AuthRequest, res: Response) {
 export async function getUserSession(req: AuthRequest, res: Response) {
   try {
     const { userId, sessionId } = req.params;
-    if (!userId || !mongoose.Types.ObjectId.isValid(userId) || !sessionId) return res.status(400).json({ success: false, message: "Invalid user or session" });
-    const events = await UserInteraction.find({ userId, sessionId }).sort({ serverTimestamp: 1 }).limit(2000).lean();
-    return res.json({ success: true, data: { sessionId, eventCount: events.length, startedAt: events[0]?.serverTimestamp ?? null, lastActiveAt: events[events.length - 1]?.serverTimestamp ?? null, events } });
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId) || !sessionId) {
+      return res.status(400).json({ success: false, message: "Invalid user or session" });
+    }
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const listed = await listUserActions(userId, {
+      sessionId,
+      page,
+      limit: USER_ACTIVITY_PAGE_SIZE,
+      includeNoise: true,
+    });
+    const events = listed.items;
+    return res.json({
+      success: true,
+      data: {
+        sessionId,
+        eventCount: listed.pagination.total,
+        startedAt: events[events.length - 1]?.serverTimestamp ?? null,
+        lastActiveAt: events[0]?.serverTimestamp ?? null,
+        events,
+        pagination: listed.pagination,
+      },
+    });
   } catch (error) {
     console.error("getUserSession failed", error);
     return res.status(500).json({ success: false, message: "Unable to load session" });
@@ -719,69 +816,118 @@ const istDayBounds = (offsetDays = 0) => {
   return { since, until };
 };
 
+/** IST calendar window ending today (inclusive), spanning `days` days. */
+const istRollingDayBounds = (days: number) => {
+  const end = istDayBounds(0);
+  const startDay = istDayBounds(-(Math.max(1, days) - 1));
+  return { since: startDay.since, until: end.until };
+};
+
+const resolveAssignedActivityWindow = (query: Record<string, unknown>) => {
+  const range = String(query.range || "today").toLowerCase();
+  const fromRaw = String(query.from || "").trim();
+  const toRaw = String(query.to || "").trim();
+
+  if (fromRaw && toRaw) {
+    const fromDate = new Date(fromRaw.includes("T") ? fromRaw : `${fromRaw}T00:00:00+05:30`);
+    const toDate = new Date(toRaw.includes("T") ? toRaw : `${toRaw}T23:59:59.999+05:30`);
+    if (!Number.isNaN(fromDate.getTime()) && !Number.isNaN(toDate.getTime()) && fromDate <= toDate) {
+      return {
+        since: fromDate,
+        until: toDate,
+        range: range === "custom" ? "custom" : range || "custom",
+      };
+    }
+  }
+  if (range === "yesterday") {
+    const bounds = istDayBounds(-1);
+    return { ...bounds, range: "yesterday" };
+  }
+  if (range === "7d" || range === "7days") {
+    return { ...istRollingDayBounds(7), range: "7d" };
+  }
+  if (range === "30d" || range === "month") {
+    return { ...istRollingDayBounds(30), range: "30d" };
+  }
+  if (range === "90d" || range === "quarter") {
+    return { ...istRollingDayBounds(90), range: "90d" };
+  }
+  if (range === "12mo" || range === "year" || range === "365d" || range === "all") {
+    return { ...istRollingDayBounds(90), range: range === "all" ? "all" : "12mo" };
+  }
+  const bounds = istDayBounds(0);
+  return { ...bounds, range: "today" };
+};
+
+const ACTIVITY_PAGE_SIZE = 12;
+const PLATFORM_ACTIVITY_ROLES = ["user", "owner", "agent", "builder", "builder_staff"];
+const ACTIVITY_ROLE_ALIASES: Record<string, string[]> = {
+  owner: ["user", "owner"],
+  user: ["user", "owner"],
+  agent: ["agent"],
+  builder: ["builder"],
+  builder_staff: ["builder_staff"],
+};
+
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const emptyActivitySummary = () => ({
+  kpis: {
+    activeNow: 0,
+    actionsToday: 0,
+    leadsGot: 0,
+    visitsGot: 0,
+    brochuresGot: 0,
+    contactsGot: 0,
+    shortlistsGot: 0,
+  },
+  sidebar: [] as Array<{ key: string; label: string; count: number }>,
+  needsAttention: [] as Array<{ text: string; tone: string }>,
+  topActive: [] as Array<{ userId: string; name: string; role: string; count: number }>,
+});
+
 export async function getAllUsersActivity(req: AuthRequest, res: Response) {
   try {
     const page = Math.max(1, Number(req.query.page) || 1);
-    const pageSize = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
-    const groupBy = String(req.query.groupBy || "user").toLowerCase(); // user | event
-    // Larger pool when grouping by user so unique-user pages stay accurate at scale
-    const poolLimit =
-      groupBy === "user"
-        ? Math.min(8000, Math.max(800, page * pageSize * 40))
-        : Math.min(1000, Math.max(300, page * pageSize * 3));
+    const groupBy = String(req.query.groupBy || "user").toLowerCase();
+    const pageSize =
+      groupBy === "event"
+        ? Math.min(40, Math.max(1, Number(req.query.limit) || 40))
+        : ACTIVITY_PAGE_SIZE;
+    const includeSummary = !["0", "false"].includes(
+      String(req.query.includeSummary ?? (page === 1 ? "1" : "0")).toLowerCase(),
+    );
+    const includeCount = !["0", "false"].includes(
+      String(req.query.includeCount ?? (includeSummary ? "1" : "0")).toLowerCase(),
+    );
     const action = String(req.query.action || "all").toLowerCase();
     const role = String(req.query.role || "all").toLowerCase();
     const q = String(req.query.q || "").trim().toLowerCase();
     const userIdFilter = String(req.query.userId || "").trim();
     const projectIdFilter = String(req.query.projectId || "").trim();
     const includeNoise = String(req.query.includeNoise || "") === "1";
-    const range = String(req.query.range || "").toLowerCase();
-    const fromRaw = String(req.query.from || "").trim();
-    const toRaw = String(req.query.to || "").trim();
     const projectObjectId =
       projectIdFilter && mongoose.Types.ObjectId.isValid(projectIdFilter)
         ? new mongoose.Types.ObjectId(projectIdFilter)
         : null;
 
-    let since: Date;
-    let until: Date | null = null;
-    let hours = Math.min(24 * 30, Math.max(1, Number(req.query.hours) || 24));
-
-    if (fromRaw && toRaw) {
-      const fromDate = new Date(fromRaw);
-      const toDate = new Date(toRaw);
-      if (!Number.isNaN(fromDate.getTime()) && !Number.isNaN(toDate.getTime()) && fromDate <= toDate) {
-        since = fromDate;
-        until = toDate;
-        hours = Math.max(1, Math.ceil((toDate.getTime() - fromDate.getTime()) / 3_600_000));
-      } else {
-        since = new Date(Date.now() - hours * 60 * 60 * 1000);
-      }
-    } else if (range === "yesterday") {
-      ({ since, until } = istDayBounds(-1));
-      hours = 24;
-    } else if (range === "today") {
-      ({ since, until } = istDayBounds(0));
-      hours = 24;
-    } else if (range === "7d" || range === "7days") {
-      since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      hours = 168;
-    } else if (range === "30d" || range === "month") {
-      since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      hours = 720;
-    } else if (range === "90d" || range === "quarter") {
-      since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-      hours = 24 * 90;
-    } else if (range === "12mo" || range === "year" || range === "365d" || range === "all") {
-      since = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-      hours = 24 * 365;
-    } else {
-      since = new Date(Date.now() - hours * 60 * 60 * 1000);
-    }
+    const window = resolveAssignedActivityWindow({
+      range: req.query.range || (req.query.from && req.query.to ? "custom" : "today"),
+      from: req.query.from,
+      to: req.query.to,
+    });
+    const since = window.since;
+    const until = window.until;
+    const range = window.range;
+    const hours = Math.max(
+      1,
+      Math.ceil(((until?.getTime() || Date.now()) - since.getTime()) / 3_600_000),
+    );
 
     const timeMatch: Record<string, unknown> = until
       ? { $gte: since, $lte: until }
       : { $gte: since };
+    const timeClause = { serverTimestamp: timeMatch };
 
     const actionEventTypes = ACTION_GROUPS[action] || [];
     const contactEventTypes = ACTION_GROUPS.contacts || [];
@@ -797,7 +943,7 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
           : {};
 
     const baseMatch: Record<string, unknown> = {
-      serverTimestamp: timeMatch,
+      ...timeClause,
       ...eventTypeFilter,
     };
     if (userIdFilter && mongoose.Types.ObjectId.isValid(userIdFilter)) {
@@ -824,7 +970,7 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
     }
 
     const typeCountMatch: Record<string, unknown> = {
-      serverTimestamp: timeMatch,
+      ...timeClause,
       ...(userIdFilter && mongoose.Types.ObjectId.isValid(userIdFilter)
         ? { userId: new mongoose.Types.ObjectId(userIdFilter) }
         : {}),
@@ -832,117 +978,274 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
     };
 
     const db = mongoose.connection?.db;
-    const [rawEvents, brochureDocs, leadDocs, typeCounts] = await Promise.all([
-      UserInteraction.find(baseMatch).sort({ serverTimestamp: -1 }).limit(poolLimit).lean(),
-      db
-        ? db
-            .collection("brochuredownloads")
-            .find(brochureMatch)
-            .sort({ createdAt: -1 })
-            .limit(userIdFilter || projectObjectId ? 200 : 100)
-            .toArray()
-            .catch(() => [])
-        : Promise.resolve([]),
-      db
-        ? db
-            .collection("propertyleads")
-            .find(leadMatch)
-            .project({ _id: 1, createdBy: 1, projectId: 1, status: 1, name: 1, createdAt: 1 })
-            .sort({ createdAt: -1 })
-            .limit(200)
-            .toArray()
-            .catch(() => [])
-        : Promise.resolve([]),
-      UserInteraction.aggregate([
-        { $match: typeCountMatch },
-        { $group: { _id: "$eventType", count: { $sum: 1 } } },
-      ]),
-    ]);
+    const allowedRoleKeys =
+      role !== "all" && ACTIVITY_ROLE_ALIASES[role]
+        ? ACTIVITY_ROLE_ALIASES[role]
+        : PLATFORM_ACTIVITY_ROLES;
 
-    // Synthetic brochure rows if interaction event missing but collection has download
-    const interactionBrochureKeys = new Set(
-      rawEvents
-        .filter((e) => e.eventType === "brochure_downloaded")
-        .map((e) => `${e.userId}:${e.projectId || ""}`),
-    );
-    const syntheticBrochures = (brochureDocs || [])
-      .filter((doc: any) => !interactionBrochureKeys.has(`${doc.userId}:${doc.projectId || ""}`))
-      .map((doc: any) => ({
-        _id: doc._id,
-        userId: doc.userId,
-        projectId: doc.projectId,
-        eventType: "brochure_downloaded",
-        eventCategory: "conversion",
-        pageUrl: "/brochure",
-        source: "brochure_download",
-        serverTimestamp: doc.createdAt || doc.updatedAt,
-        clientTimestamp: doc.createdAt || doc.updatedAt,
-        sessionId: `brochure-${doc._id}`,
-        promotionType: "normal",
-        __synthetic: true,
-      }));
+    const skip = (page - 1) * pageSize;
+    const take = includeCount ? pageSize : pageSize + 1;
+    const needsRoleLookup = role !== "all" || Boolean(q);
 
-    const combined = [...rawEvents, ...syntheticBrochures].sort(
-      (a: any, b: any) =>
-        new Date(b.serverTimestamp || 0).getTime() - new Date(a.serverTimestamp || 0).getTime(),
-    ).slice(0, poolLimit);
-
-    const userIds = [...new Set(combined.map((e: any) => String(e.userId || "")).filter(Boolean))];
-    const users = userIds.length && db ? await loadUsersByIds(db, userIds) : [];
-    const userMap = new Map((users || []).map((u: any) => [String(u._id), u]));
-
-    // Resolve role names when aggregate fallback only returned roleId
-    const missingRoleIds = [
-      ...new Set(
-        (users || [])
-          .filter((u: any) => !u.roleName && u.roleId)
-          .map((u: any) => String(u.roleId)),
-      ),
-    ].filter(
-      (id): id is string =>
-        typeof id === "string" && mongoose.Types.ObjectId.isValid(id),
-    );
-    if (db && missingRoleIds.length) {
-      const roleDocs = await db
-        .collection("roles")
-        .find({
-          _id: {
-            $in: missingRoleIds.map((id) => new mongoose.Types.ObjectId(id)),
+    const userLookup = {
+      $lookup: {
+        from: "users",
+        localField: "_id",
+        foreignField: "_id",
+        as: "userDoc",
+        pipeline: [
+          {
+            $lookup: {
+              from: "roles",
+              localField: "roleId",
+              foreignField: "_id",
+              as: "roleDoc",
+            },
           },
-        })
-        .project({ name: 1 })
-        .toArray()
-        .catch(() => []);
-      const roleNameById = new Map(
-        (roleDocs || []).map((r: any) => [String(r._id), String(r.name || "")]),
-      );
-      for (const user of users || []) {
-        if (!user.roleName && user.roleId) {
-          user.roleName = roleNameById.get(String(user.roleId)) || "";
+          {
+            $project: {
+              name: 1,
+              companyName: 1,
+              email: 1,
+              phone: 1,
+              city: 1,
+              state: 1,
+              avatar: 1,
+              profileImage: 1,
+              photo: 1,
+              role: 1,
+              roleName: {
+                $ifNull: [
+                  { $arrayElemAt: ["$roleDoc.name", 0] },
+                  { $ifNull: ["$role", ""] },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    };
+
+    const roleMatch = {
+      $match: {
+        $or: [
+          { user: { $in: [null] } },
+          { roleKey: { $in: allowedRoleKeys } },
+          { roleKey: "" },
+        ],
+      },
+    };
+
+    const searchMatch = q
+      ? {
+          $match: {
+            $or: [
+              ...(mongoose.Types.ObjectId.isValid(q)
+                ? [{ _id: new mongoose.Types.ObjectId(q) }]
+                : []),
+              { "user.name": { $regex: escapeRegex(q), $options: "i" } },
+              { "user.companyName": { $regex: escapeRegex(q), $options: "i" } },
+              { "user.email": { $regex: escapeRegex(q), $options: "i" } },
+              { "user.phone": { $regex: escapeRegex(q), $options: "i" } },
+              { "user.city": { $regex: escapeRegex(q), $options: "i" } },
+              { "user.state": { $regex: escapeRegex(q), $options: "i" } },
+              { "last.pageUrl": { $regex: escapeRegex(q), $options: "i" } },
+              { "last.eventType": { $regex: escapeRegex(q), $options: "i" } },
+            ],
+          },
         }
-      }
+      : null;
+
+    const userFeedPipeline: Record<string, unknown>[] = [
+      { $match: baseMatch },
+      { $sort: { serverTimestamp: -1, _id: -1 } },
+      {
+        $group: {
+          _id: "$userId",
+          last: { $first: "$$ROOT" },
+          actionCount: { $sum: 1 },
+        },
+      },
+    ];
+    if (needsRoleLookup) {
+      userFeedPipeline.push(
+        userLookup,
+        { $addFields: { user: { $arrayElemAt: ["$userDoc", 0] } } },
+        {
+          $addFields: {
+            roleKey: {
+              $toLower: {
+                $ifNull: ["$user.roleName", { $ifNull: ["$user.role", "user"] }],
+              },
+            },
+          },
+        },
+        roleMatch,
+      );
+      if (searchMatch) userFeedPipeline.push(searchMatch);
+    }
+    userFeedPipeline.push({ $sort: { "last.serverTimestamp": -1, _id: -1 } });
+    userFeedPipeline.push({
+      $facet: {
+        items: [{ $skip: skip }, { $limit: take }],
+        ...(includeCount ? { total: [{ $count: "n" }] } : {}),
+      },
+    });
+
+    const fifteenAgo = new Date(Date.now() - 15 * 60_000);
+    const summaryPromise = includeSummary
+      ? Promise.all([
+          UserInteraction.aggregate([
+            { $match: typeCountMatch },
+            { $group: { _id: "$eventType", count: { $sum: 1 } } },
+          ]).option({ maxTimeMS: 12000 }),
+          db
+            ? db.collection("brochuredownloads").countDocuments(brochureMatch).catch(() => 0)
+            : Promise.resolve(0),
+          db
+            ? db.collection("propertyleads").countDocuments(leadMatch).catch(() => 0)
+            : Promise.resolve(0),
+          db
+            ? db
+                .collection("propertyleads")
+                .countDocuments({
+                  ...leadMatch,
+                  status: { $in: [null, "", "new", "open", "new_lead"] },
+                })
+                .catch(() => 0)
+            : Promise.resolve(0),
+          UserInteraction.aggregate([
+            {
+              $match: {
+                serverTimestamp: { $gte: fifteenAgo },
+                eventType: { $nin: [...NOISE_EVENTS] },
+              },
+            },
+            { $group: { _id: "$userId" } },
+            { $count: "n" },
+          ]).option({ maxTimeMS: 8000 }),
+          UserInteraction.aggregate([
+            { $match: baseMatch },
+            { $group: { _id: "$userId", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 5 },
+          ]).option({ maxTimeMS: 8000 }),
+        ])
+      : Promise.resolve(null);
+
+    const [facet] = groupBy === "event"
+      ? [null]
+      : await UserInteraction.aggregate(userFeedPipeline as any)
+          .option({ maxTimeMS: 20000, allowDiskUse: true });
+
+    let rawPage: any[] = [];
+    let total = 0;
+    let hasNextPage = false;
+
+    if (groupBy === "event") {
+      const eventQuery = UserInteraction.find(baseMatch).sort({
+        serverTimestamp: -1,
+        _id: -1,
+      });
+      const [eventDocs, eventTotal] = await Promise.all([
+        eventQuery.skip(skip).limit(take).lean(),
+        includeCount ? UserInteraction.countDocuments(baseMatch) : Promise.resolve(0),
+      ]);
+      hasNextPage = includeCount
+        ? skip + pageSize < Number(eventTotal || 0)
+        : eventDocs.length > pageSize;
+      rawPage = hasNextPage && !includeCount ? eventDocs.slice(0, pageSize) : eventDocs;
+      total = includeCount ? Number(eventTotal || 0) : 0;
+    } else {
+      const grouped = facet?.items || [];
+      hasNextPage = includeCount
+        ? skip + pageSize < Number(facet?.total?.[0]?.n || 0)
+        : grouped.length > pageSize;
+      rawPage = hasNextPage && !includeCount ? grouped.slice(0, pageSize) : grouped;
+      total = includeCount ? Number(facet?.total?.[0]?.n || 0) : 0;
     }
 
-    const entities = await loadJourneyEntities(combined);
-    const entityMap = new Map(entities.map((entity: any) => [entity.id, entity]));
+    const pageEvents =
+      groupBy === "event"
+        ? rawPage
+        : rawPage.map((row) => row.last).filter(Boolean);
+    const pageUserIds = [
+      ...new Set(
+        (groupBy === "event" ? pageEvents : rawPage)
+          .map((row: any) => String(row.userId || row._id || row.last?.userId || ""))
+          .filter(Boolean),
+      ),
+    ];
+    const pageUserObjectIds = pageUserIds
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
 
+    const pageLeadMatch: Record<string, unknown> = { createdAt: createdAtMatch };
+    if (pageUserIds.length) {
+      pageLeadMatch.$or = pageUserIds.flatMap((id) => {
+        const row: Record<string, unknown>[] = [{ createdBy: id }];
+        if (mongoose.Types.ObjectId.isValid(id)) {
+          row.push({ createdBy: new mongoose.Types.ObjectId(id) });
+        }
+        return row;
+      });
+    }
+    const [users, entities, pageLeads] = await Promise.all([
+      pageUserIds.length && db ? loadUsersByIds(db, pageUserIds) : Promise.resolve([]),
+      loadJourneyEntities(pageEvents),
+      db && pageUserIds.length
+        ? db
+            .collection("propertyleads")
+            .find(pageLeadMatch)
+            .project({ _id: 1, createdBy: 1, projectId: 1, status: 1, createdAt: 1 })
+            .sort({ createdAt: -1 })
+            .limit(48)
+            .toArray()
+            .catch(() => [])
+        : Promise.resolve([]),
+    ]);
+    const userMap = new Map((users || []).map((u: any) => [String(u._id), u]));
+    const entityMap = new Map(entities.map((entity: any) => [entity.id, entity]));
     const leadsByUserProject = new Map<string, any>();
-    for (const lead of leadDocs || []) {
+    for (const lead of pageLeads || []) {
       const key = `${lead.createdBy}:${lead.projectId || ""}`;
       if (!leadsByUserProject.has(key)) leadsByUserProject.set(key, lead);
     }
 
-    const allowedRoles = new Set(["user", "owner", "agent", "builder", "builder_staff"]);
-    let items = combined.map((event: any) => {
+    const RECENT_PER_USER = 8;
+    const recentByUser = new Map<string, any[]>();
+    if (groupBy !== "event" && pageUserIds.length) {
+      const recentDocs: any[] = await UserInteraction.find({
+        $and: [
+          baseMatch,
+          { userId: { $in: [...pageUserIds, ...pageUserObjectIds] } },
+        ],
+      })
+        .sort({ serverTimestamp: -1, _id: -1 })
+        .limit(pageUserIds.length * RECENT_PER_USER)
+        .lean()
+        .catch(() => []);
+      for (const doc of recentDocs) {
+        const key = String(doc.userId || "");
+        const list = recentByUser.get(key) || [];
+        if (list.length < RECENT_PER_USER) {
+          list.push(doc);
+          recentByUser.set(key, list);
+        }
+      }
+    }
+
+    const toItem = (event: any, userOverride?: any, actionCount = 1, recentEvents: any[] = []) => {
       const userId = String(event.userId || "");
-      const user: any = userMap.get(userId) || null;
+      const user: any = userOverride || userMap.get(userId) || null;
       const entity =
-        entityMap.get(String(event.propertyId || event.plotId || event.projectId || "")) || null;
+        entityMap.get(String(event.propertyId || event.plotId || event.projectId || "")) ||
+        null;
       const lead = leadsByUserProject.get(`${event.userId}:${event.projectId || ""}`);
       const group = actionGroupFor(event.eventType);
       const got = describeGot(event.eventType, lead);
       const roleKey = resolveRoleKey(user) || "user";
-      return {
+      const item = {
         id: String(event._id),
         actionKey: group === "contacts" && got.type === "lead" ? "leads" : group,
         eventType: event.eventType,
@@ -966,152 +1269,163 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
           : null,
         pageUrl: event.pageUrl || null,
         source: event.source || null,
+        actionCount,
       };
-    });
-
-    // Keep platform end-users; also keep unresolved ids (deleted accounts) so history is not hidden
-    items = items.filter(
-      (item) =>
-        allowedRoles.has(item.who.roleKey) ||
-        item.who.roleKey === "owner" ||
-        !item.who.resolved,
-    );
-    if (role !== "all") {
-      const roleAliases: Record<string, string[]> = {
-        owner: ["user", "owner"],
-        user: ["user", "owner"],
-        agent: ["agent"],
-        builder: ["builder"],
-        builder_staff: ["builder_staff"],
-      };
-      const aliases = roleAliases[role] || [role];
-      items = items.filter((item) => aliases.includes(item.who.roleKey));
-    }
-    if (q) {
-      items = items.filter((item) =>
-        [
-          item.who?.name,
-          item.who?.userId,
-          item.who?.email,
-          item.who?.phone,
-          item.who?.city,
-          item.who?.state,
-          item.what,
-          item.entity?.title,
-          item.entity?.id,
-          item.entity?.location,
-          item.got?.label,
-          item.got?.id,
-          item.pageUrl,
-          item.eventType,
-        ]
-          .filter(Boolean)
-          .some((v) => String(v).toLowerCase().includes(q)),
-      );
-    }
-    if (action === "leads") {
-      items = items.filter(
-        (item) =>
-          item.got?.type === "lead" ||
-          item.actionKey === "leads" ||
-          item.actionKey === "contacts",
-      );
-    } else if (action !== "all" && actionEventTypes.length) {
-      items = items.filter(
-        (item) =>
-          item.actionKey === action || actionEventTypes.includes(item.eventType),
-      );
-    }
-
-    const countMap: Record<string, number> = {};
-    for (const row of typeCounts || []) {
-      countMap[String(row._id)] = Number(row.count || 0);
-    }
-    const groupCount = (key: string) =>
-      (ACTION_GROUPS[key] || []).reduce((sum, type) => sum + (countMap[type] || 0), 0);
-
-    const brochureExtra = (brochureDocs || []).length;
-    const sidebar = [
-      { key: "all", label: "All activity", count: Object.values(countMap).reduce((a, b) => a + b, 0) + brochureExtra },
-      { key: "browsing", label: "Browsing", count: groupCount("browsing") },
-      { key: "searches", label: "Searches", count: groupCount("searches") },
-      { key: "views", label: "Views", count: groupCount("views") },
-      { key: "gallery", label: "Gallery / Map / EMI", count: groupCount("gallery") },
-      { key: "shortlists", label: "Shortlists", count: groupCount("shortlists") },
-      { key: "brochures", label: "Brochure downloads", count: groupCount("brochures") + brochureExtra },
-      { key: "contacts", label: "Contacts", count: groupCount("contacts") },
-      { key: "leads", label: "Leads got", count: (leadDocs || []).length },
-      { key: "visits", label: "Site visits", count: groupCount("visits") },
-    ];
-
-    const activeUserIds = new Set(
-      combined
-        .filter((e: any) => new Date(e.serverTimestamp).getTime() >= Date.now() - 15 * 60_000)
-        .map((e: any) => String(e.userId)),
-    );
-
-    // Count top active from flat event list before collapsing duplicates
-    const topActiveMap = new Map<string, { userId: string; name: string; role: string; count: number }>();
-    for (const item of items) {
-      const cur = topActiveMap.get(item.who.userId) || {
-        userId: item.who.userId,
-        name: item.who.name,
-        role: item.who.role,
-        count: 0,
-      };
-      cur.count += 1;
-      topActiveMap.set(item.who.userId, cur);
-    }
-
-    // Collapse duplicate WHO rows: one card per user with latest action + count
-    let feedItems: any[] = items;
-    if (groupBy === "user") {
-      const byUser = new Map<string, any>();
-      for (const item of items) {
-        const key = item.who.userId || item.id;
-        const existing = byUser.get(key);
-        if (!existing) {
-          byUser.set(key, {
-            ...item,
-            id: `user-${key}`,
-            actionCount: 1,
-            recentActions: [
-              {
-                id: item.id,
-                what: item.what,
-                when: item.when,
-                got: item.got,
-                eventType: item.eventType,
-                entity: item.entity,
-                pageUrl: item.pageUrl,
-                source: item.source,
-              },
-            ],
-          });
-          continue;
-        }
-        existing.actionCount += 1;
-        if (existing.recentActions.length < 8) {
-          existing.recentActions.push({
-            id: item.id,
-            what: item.what,
-            when: item.when,
-            got: item.got,
-            eventType: item.eventType,
-            entity: item.entity,
-            pageUrl: item.pageUrl,
-            source: item.source,
-          });
-        }
+      if (recentEvents.length) {
+        (item as any).recentActions = recentEvents.map((recent) => {
+          const recentEntity =
+            entityMap.get(
+              String(recent.propertyId || recent.plotId || recent.projectId || ""),
+            ) || null;
+          const recentLead = leadsByUserProject.get(
+            `${recent.userId}:${recent.projectId || ""}`,
+          );
+          return {
+            id: String(recent._id),
+            what: describeWhat(recent, recentEntity?.title),
+            when: recent.serverTimestamp || recent.clientTimestamp,
+            got: describeGot(recent.eventType, recentLead),
+            eventType: recent.eventType,
+            entity: recentEntity
+              ? {
+                  id: recentEntity.id,
+                  title: recentEntity.title,
+                  kind: recentEntity.kind,
+                  location: recentEntity.location,
+                }
+              : null,
+            pageUrl: recent.pageUrl || null,
+            source: recent.source || null,
+          };
+        });
       }
-      feedItems = [...byUser.values()];
+      return item;
+    };
+
+    const items =
+      groupBy === "event"
+        ? rawPage.map((event) => toItem(event))
+        : rawPage.map((row) => {
+            const userId = String(row._id || row.last?.userId || "");
+            const last = row.last;
+            if (!last) return null;
+            return toItem(
+              last,
+              row.user || userMap.get(userId),
+              Number(row.actionCount || 1),
+              recentByUser.get(userId) || [last],
+            );
+          }).filter(Boolean);
+
+    for (const item of items as any[]) {
+      if (groupBy !== "event") item.id = `user-${item.who.userId}`;
     }
 
-    const total = feedItems.length;
-    const totalPages = Math.max(1, Math.ceil(total / pageSize));
-    const safePage = Math.min(page, totalPages);
-    const start = (safePage - 1) * pageSize;
-    const pagedItems = feedItems.slice(start, start + pageSize);
+    let summary = emptyActivitySummary();
+    if (includeSummary) {
+      const fifteenAgo = new Date(Date.now() - 15 * 60_000);
+      const [typeCounts, brochureCount, leadCount, newLeadCount, activeNowRows, topActiveRows] =
+        await Promise.all([
+          UserInteraction.aggregate([
+            { $match: typeCountMatch },
+            { $group: { _id: "$eventType", count: { $sum: 1 } } },
+          ]).option({ maxTimeMS: 12000 }),
+          db
+            ? db.collection("brochuredownloads").countDocuments(brochureMatch).catch(() => 0)
+            : Promise.resolve(0),
+          db
+            ? db.collection("propertyleads").countDocuments(leadMatch).catch(() => 0)
+            : Promise.resolve(0),
+          db
+            ? db
+                .collection("propertyleads")
+                .countDocuments({
+                  ...leadMatch,
+                  status: { $in: [null, "", "new", "open", "new_lead"] },
+                })
+                .catch(() => 0)
+            : Promise.resolve(0),
+          UserInteraction.aggregate([
+            {
+              $match: {
+                serverTimestamp: { $gte: fifteenAgo },
+                eventType: { $nin: [...NOISE_EVENTS] },
+              },
+            },
+            { $group: { _id: "$userId" } },
+            { $count: "n" },
+          ]).option({ maxTimeMS: 8000 }),
+          UserInteraction.aggregate([
+            { $match: baseMatch },
+            { $group: { _id: "$userId", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 5 },
+          ]).option({ maxTimeMS: 8000 }),
+        ]);
+
+      const countMap: Record<string, number> = {};
+      for (const row of typeCounts || []) {
+        countMap[String(row._id)] = Number(row.count || 0);
+      }
+      const groupCount = (key: string) =>
+        (ACTION_GROUPS[key] || []).reduce((sum, type) => sum + (countMap[type] || 0), 0);
+      const brochureExtra = Number(brochureCount || 0);
+      const actionsToday =
+        Object.values(countMap).reduce((a, b) => a + b, 0) + brochureExtra;
+      summary.sidebar = [
+        { key: "all", label: "All activity", count: actionsToday },
+        { key: "browsing", label: "Browsing", count: groupCount("browsing") },
+        { key: "searches", label: "Searches", count: groupCount("searches") },
+        { key: "views", label: "Views", count: groupCount("views") },
+        { key: "gallery", label: "Gallery / Map / EMI", count: groupCount("gallery") },
+        { key: "shortlists", label: "Shortlists", count: groupCount("shortlists") },
+        {
+          key: "brochures",
+          label: "Brochure downloads",
+          count: groupCount("brochures") + brochureExtra,
+        },
+        { key: "contacts", label: "Contacts", count: groupCount("contacts") },
+        { key: "leads", label: "Leads got", count: Number(leadCount || 0) },
+        { key: "visits", label: "Site visits", count: groupCount("visits") },
+      ];
+      summary.kpis = {
+        activeNow: Number(activeNowRows?.[0]?.n || 0),
+        actionsToday,
+        leadsGot: Number(leadCount || 0),
+        visitsGot: groupCount("visits"),
+        brochuresGot: groupCount("brochures") + brochureExtra,
+        contactsGot: groupCount("contacts"),
+        shortlistsGot: groupCount("shortlists"),
+      };
+      const openLeads = Number(newLeadCount || 0);
+      summary.needsAttention = [
+        openLeads
+          ? { text: `${openLeads} new leads in period`, tone: "amber" }
+          : null,
+        groupCount("contacts") > 20
+          ? { text: "Contact activity is high — review unassigned follow-ups", tone: "green" }
+          : null,
+      ].filter(Boolean) as Array<{ text: string; tone: string }>;
+
+      const topIds = (topActiveRows || []).map((row: any) => String(row._id || "")).filter(Boolean);
+      const topUsers = topIds.length && db ? await loadUsersByIds(db, topIds) : [];
+      const topUserMap = new Map((topUsers || []).map((u: any) => [String(u._id), u]));
+      summary.topActive = (topActiveRows || []).map((row: any) => {
+        const userId = String(row._id || "");
+        const user = topUserMap.get(userId);
+        const roleKey = resolveRoleKey(user) || "user";
+        return {
+          userId,
+          name: resolveDisplayName(user, userId),
+          role: roleLabel(roleKey),
+          count: Number(row.count || 0),
+        };
+      });
+    }
+
+    const pages = includeCount ? Math.max(1, Math.ceil(total / pageSize) || 1) : Math.max(1, page);
+    const rangeStart = items.length === 0 ? 0 : skip + 1;
+    const rangeEnd = skip + items.length;
 
     return res.json({
       success: true,
@@ -1119,39 +1433,21 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
         generatedAt: new Date(),
         since,
         until,
-        range: range || (fromRaw && toRaw ? "custom" : "hours"),
+        range,
         hours,
         groupBy,
-        kpis: {
-          activeNow: activeUserIds.size,
-          actionsToday: sidebar.find((s) => s.key === "all")?.count || 0,
-          leadsGot: (leadDocs || []).length,
-          visitsGot: groupCount("visits"),
-          brochuresGot: groupCount("brochures") + brochureExtra,
-          contactsGot: groupCount("contacts"),
-          shortlistsGot: groupCount("shortlists"),
-        },
-        sidebar,
-        needsAttention: [
-          (leadDocs || []).filter((l: any) => !l.status || l.status === "new" || l.status === "open").length
-            ? {
-                text: `${(leadDocs || []).filter((l: any) => !l.status || l.status === "new" || l.status === "open").length} new leads in period`,
-                tone: "amber",
-              }
-            : null,
-          groupCount("contacts") > 20
-            ? { text: "Contact activity is high — review unassigned follow-ups", tone: "green" }
-            : null,
-        ].filter(Boolean),
-        topActive: [...topActiveMap.values()].sort((a, b) => b.count - a.count).slice(0, 5),
-        items: pagedItems,
+        ...(includeSummary ? summary : {}),
+        items,
         pagination: {
-          page: safePage,
+          page,
           pageSize,
           total,
-          totalPages,
-          rangeStart: total === 0 ? 0 : start + 1,
-          rangeEnd: Math.min(start + pageSize, total),
+          totalPages: pages,
+          rangeStart,
+          rangeEnd,
+          hasNextPage: includeCount ? page < pages : hasNextPage,
+          hasPreviousPage: page > 1,
+          counted: includeCount,
           mode: groupBy === "user" ? "users" : "events",
         },
       },
@@ -1161,6 +1457,7 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
     return res.status(500).json({ success: false, message: "Unable to load all-users activity" });
   }
 }
+
 
 const normalizeActorRole = (value = "") =>
   String(value || "")
@@ -1178,51 +1475,6 @@ const isOversightActorRole = (roleName = "") => {
     key.includes("team_lead") ||
     key.includes("support_head")
   );
-};
-
-/** IST calendar window ending today (inclusive), spanning `days` days. */
-const istRollingDayBounds = (days: number) => {
-  const end = istDayBounds(0);
-  const startDay = istDayBounds(-(Math.max(1, days) - 1));
-  return { since: startDay.since, until: end.until };
-};
-
-const resolveAssignedActivityWindow = (query: Record<string, unknown>) => {
-  const range = String(query.range || "today").toLowerCase();
-  const fromRaw = String(query.from || "").trim();
-  const toRaw = String(query.to || "").trim();
-
-  // Prefer explicit from/to from UI for every preset (keeps click ranges exact).
-  if (fromRaw && toRaw) {
-    const fromDate = new Date(fromRaw.includes("T") ? fromRaw : `${fromRaw}T00:00:00+05:30`);
-    const toDate = new Date(toRaw.includes("T") ? toRaw : `${toRaw}T23:59:59.999+05:30`);
-    if (!Number.isNaN(fromDate.getTime()) && !Number.isNaN(toDate.getTime()) && fromDate <= toDate) {
-      return {
-        since: fromDate,
-        until: toDate,
-        range: range === "custom" ? "custom" : range || "custom",
-      };
-    }
-  }
-  if (range === "yesterday") {
-    const bounds = istDayBounds(-1);
-    return { ...bounds, range: "yesterday" };
-  }
-  if (range === "7d" || range === "7days") {
-    return { ...istRollingDayBounds(7), range: "7d" };
-  }
-  if (range === "30d" || range === "month") {
-    return { ...istRollingDayBounds(30), range: "30d" };
-  }
-  if (range === "90d" || range === "quarter") {
-    return { ...istRollingDayBounds(90), range: "90d" };
-  }
-  if (range === "12mo" || range === "year" || range === "365d" || range === "all") {
-    // Interaction retention is ~90 days; cap "all" to retained window.
-    return { ...istRollingDayBounds(90), range: range === "all" ? "all" : "12mo" };
-  }
-  const bounds = istDayBounds(0);
-  return { ...bounds, range: "today" };
 };
 
 const CLICK_EVENT_TYPES = new Set([

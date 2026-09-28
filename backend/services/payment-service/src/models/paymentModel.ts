@@ -54,4 +54,6 @@ const PaymentSchema = new Schema(
   { timestamps: true },
 );
 
+PaymentSchema.index({ status: 1, createdAt: -1 });
+
 export const Payment = model("Payment", PaymentSchema);

@@ -37,6 +37,22 @@ const Dropdown = dynamic<DropdownProps>(() => import("@/ui/SingleDropDown"), {
 });
 
 const BRAND_GREEN = "#27AE60";
+const LOGO_SLOT_CLASS =
+  "relative flex h-10 w-[150px] shrink-0 items-center sm:h-12 sm:w-[140px]";
+const MOBILE_LOGO_SLOT_CLASS =
+  "relative flex h-9 w-[140px] shrink-0 items-center sm:h-10 sm:w-[150px]";
+const LOGO_SKELETON_CLASS =
+  "h-full w-full rounded-md bg-gray-100 animate-pulse";
+const LOGO_FALLBACK_CLASS =
+  "flex h-full w-full items-center gap-1 overflow-hidden text-primary";
+
+function getSafeRedirect(value: string | null) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/";
+  }
+
+  return value;
+}
 
 const Navbar = () => {
   const pathname = usePathname();
@@ -46,6 +62,7 @@ const Navbar = () => {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>(null);
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false); // Separate state for auth dialog
+  const [loginRedirect, setLoginRedirect] = useState("/");
   const [cityDropdownOpen, setCityDropdownOpen] = useState(false); // Separate state for city dropdown
   const [mobileOpen_city, setMobileOpen_city] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -76,7 +93,7 @@ const Navbar = () => {
     staleTime: 60_000,
   });
 
-  const { data: siteLogoData } = useQuery({
+  const { data: siteLogoData, isLoading: isLogoLoading } = useQuery({
     queryKey: ["site-branding-logo"],
     queryFn: getSiteLogo,
     staleTime: 1000 * 60 * 30, // 30 minutes
@@ -143,6 +160,22 @@ const Navbar = () => {
     dispatch(setLandFilter({ key: "locality", value: "" }));
     dispatch(setAgriculturalFilter({ key: "locality", value: "" }));
     dispatch(setSearchText(""));
+
+    if (pathname.startsWith("/properties")) {
+      const nextParams = new URLSearchParams(
+        typeof window !== "undefined" ? window.location.search : "",
+      );
+
+      nextParams.set("city", item.city);
+      nextParams.set("state", item.state);
+      nextParams.delete("locality");
+      nextParams.delete("search");
+      nextParams.delete("q");
+      nextParams.delete("focus");
+
+      router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
+    }
+
     setCityDropdownOpen(false);
     setMobileOpen_city(false);
     btnRef.current?.focus();
@@ -198,19 +231,99 @@ const Navbar = () => {
   }, []);
 
   useEffect(() => {
+    const openAuthFromUrl = () => {
+      const params = new URLSearchParams(window.location.search);
+
+      const authParam = params.get("auth");
+
+      if (authParam !== "login" && authParam !== "register") return;
+
+      const redirectTo = getSafeRedirect(params.get("redirect"));
+
+      if (isAuthenticated && authParam === "login") {
+        router.replace(redirectTo, { scroll: false });
+        return;
+      }
+
+      setLoginRedirect(redirectTo);
+      setAuthMode(authParam);
+      setIsAuthDialogOpen(true);
+    };
+
+    openAuthFromUrl();
+    window.addEventListener("popstate", openAuthFromUrl);
+
+    return () => {
+      window.removeEventListener("popstate", openAuthFromUrl);
+    };
+  }, [isAuthenticated, pathname, router]);
+
+  useEffect(() => {
     setMobileSearchOpen(false);
   }, [pathname]);
 
   // Function to open login dialog
   const openLoginDialog = () => {
+    const url = new URL(window.location.href);
+    const currentPath = `${url.pathname}${url.search}`;
+    const redirectTo = currentPath.includes("auth=login") ? "/" : currentPath;
+
+    url.searchParams.set("auth", "login");
+    url.searchParams.set("redirect", redirectTo);
+
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+    setLoginRedirect(getSafeRedirect(redirectTo));
     setIsAuthDialogOpen(true);
     setAuthMode("login");
   };
 
   // Function to close auth dialog
   const closeAuthDialog = () => {
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+
+      if (url.searchParams.has("auth")) {
+        url.searchParams.delete("auth");
+        url.searchParams.delete("redirect");
+        router.replace(`${url.pathname}${url.search}${url.hash}`, {
+          scroll: false,
+        });
+      }
+    }
+
     setIsAuthDialogOpen(false);
     setAuthMode(null);
+  };
+
+  const setAuthUrlMode = (mode: "login" | "register") => {
+    if (typeof window === "undefined") return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("auth", mode);
+
+    if (!url.searchParams.has("redirect")) {
+      url.searchParams.set("redirect", loginRedirect);
+    }
+
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  };
+
+  const switchToRegisterDialog = () => {
+    setAuthUrlMode("register");
+    setAuthMode("register");
+  };
+
+  const switchToLoginDialog = () => {
+    setAuthUrlMode("login");
+    setAuthMode("login");
+  };
+
+  const handleLoginSuccess = () => {
+    setIsAuthDialogOpen(false);
+    setAuthMode(null);
+    window.dispatchEvent(new Event("auth-changed"));
+    router.replace(loginRedirect, { scroll: false });
+    router.refresh();
   };
 
   const getInitial = (name?: string) => {
@@ -276,30 +389,29 @@ const Navbar = () => {
 
                 <Link
                   href="/"
-                  className="flex min-w-0 flex-1 select-none items-center gap-1" aria-label="Go to homepage"
+                  className="flex min-w-0 flex-1 select-none items-center gap-1"
+                  aria-label="Go to homepage"
                 >
-                  <div className="h-6 sm:h-7 shrink-0 flex items-center">
+                  <div className={MOBILE_LOGO_SLOT_CLASS}>
                     {logoUrl ? (
                       <img
                         src={logoUrl}
                         alt="Propenu Logo"
-                        className="h-10 sm:h-7 w-auto object-contain"
+                        className="h-full w-full object-contain object-left"
                       />
+                    ) : isLogoLoading ? (
+                      <div className={LOGO_SKELETON_CLASS} />
                     ) : (
-                      <div className="w-5 h-5 sm:w-7 sm:h-7">
-                        <Logo />
+                      <div className={LOGO_FALLBACK_CLASS}>
+                        <span className="h-8 w-8 shrink-0 sm:h-9 sm:w-9">
+                          <Logo />
+                        </span>
+                        <span className="truncate text-xl font-semibold leading-none tracking-normal sm:text-2xl">
+                          Propenu
+                        </span>
                       </div>
                     )}
                   </div>
-
-                  {!logoUrl && (
-                    <span className="truncate text-base font-semibold tracking-tight text-primary sm:text-lg lg:text-xl">
-                      PROPENU
-                      <sup className="ml-0.5 align-super text-[8px] sm:text-[10px] font-normal text-[#646464]">
-                        TM
-                      </sup>
-                    </span>
-                  )}
                 </Link>
 
                 {!isBuilder && (
@@ -461,29 +573,26 @@ const Navbar = () => {
                   className="flex items-center sm:gap-1 select-none shrink-0"
                   aria-label="Go to homepage"
                 >
-                  <div className="h-10 sm:h-12 shrink-0 flex items-center">
+                  <div className={LOGO_SLOT_CLASS}>
                     {logoUrl ? (
                       <img
                         src={logoUrl}
                         alt="Propenu Logo"
-                        className="max-h-10 sm:max-h-12 w-auto object-contain"
+                        className="h-full w-full object-contain object-left"
                       />
+                    ) : isLogoLoading ? (
+                      <div className={LOGO_SKELETON_CLASS} />
                     ) : (
-                      <div className="w-6 sm:w-7 h-6 sm:h-7 shrink-0">
-                        <Logo />
+                      <div className={LOGO_FALLBACK_CLASS}>
+                        <span className="h-9 w-9 shrink-0 sm:h-10 sm:w-10">
+                          <Logo />
+                        </span>
+                        <span className="truncate text-2xl font-semibold leading-none tracking-normal">
+                          Propenu
+                        </span>
                       </div>
                     )}
                   </div>
-                  {!logoUrl && (
-                    <div>
-                      <span className="text-base sm:text-lg lg:text-xl font-semibold text-primary tracking-tight">
-                        PROPENU
-                        <sup className="ml-1 text-[8px] sm:text-[10px] font-normal align-super text-[#646464]">
-                          TM
-                        </sup>
-                      </span>
-                    </div>
-                  )}
                 </Link>
 
                 {/* City (desktop & tablet) */}
@@ -845,9 +954,8 @@ const Navbar = () => {
           <LoginDialog
             open={isAuthDialogOpen}
             onClose={closeAuthDialog}
-            onSwitchToRegister={() => {
-              setAuthMode("register");
-            }}
+            onLoginSuccess={handleLoginSuccess}
+            onSwitchToRegister={switchToRegisterDialog}
           />
         )}
 
@@ -856,9 +964,7 @@ const Navbar = () => {
             open={isAuthDialogOpen}
             initialStep={registerStep}
             onClose={closeAuthDialog}
-            onSwitchToLogin={() => {
-              setAuthMode("login");
-            }}
+            onSwitchToLogin={switchToLoginDialog}
           />
         )}
       </header>

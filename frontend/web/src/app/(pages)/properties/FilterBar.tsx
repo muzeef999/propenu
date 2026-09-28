@@ -76,11 +76,6 @@ type RecentSearchItem = SearchSuggestion & {
   savedAt: number;
 };
 
-type SearchCityContext = {
-  city: string;
-  state: string;
-};
-
 function normalizeLocalityName(value: string) {
   return value.trim().replace(/\s+/g, " ");
 }
@@ -127,8 +122,7 @@ const FilterBar: React.FC = () => {
   const [hasHydratedFromUrl, setHasHydratedFromUrl] = useState(false);
   const [typedSuggestions, setTypedSuggestions] = useState<SearchSuggestion[]>([]);
   const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
-  const [activeSearchCity, setActiveSearchCity] = useState<SearchCityContext | null>(null);
-  const [isCityChipDismissed, setIsCityChipDismissed] = useState(false);
+  const [dismissedCityKey, setDismissedCityKey] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<
     Extract<SearchSuggestion, { kind: "project" }> | null
   >(null);
@@ -181,13 +175,20 @@ const FilterBar: React.FC = () => {
   };
 
   const effectiveSearchContext = useMemo(() => {
+    const urlCity = (searchParams.get("city") ?? "").trim();
+    const urlState = (searchParams.get("state") ?? "").trim();
+    const urlCityKey = `${urlCity}|${urlState}`;
+    const selectedCityKey = `${cityData?.city ?? ""}|${cityData?.state ?? ""}`;
+    const shouldUseUrlCity = Boolean(urlCity) && dismissedCityKey !== urlCityKey;
+    const shouldUseSelectedCity =
+      Boolean(cityData?.city?.trim()) && dismissedCityKey !== selectedCityKey;
     const city =
-      activeSearchCity?.city?.trim() ||
-      (!isCityChipDismissed ? cityData?.city?.trim() : "") ||
+      (shouldUseUrlCity ? urlCity : "") ||
+      (shouldUseSelectedCity ? cityData?.city?.trim() : "") ||
       "";
     const state =
-      activeSearchCity?.state?.trim() ||
-      (!isCityChipDismissed ? cityData?.state?.trim() : "") ||
+      (shouldUseUrlCity ? urlState : "") ||
+      (shouldUseSelectedCity ? cityData?.state?.trim() : "") ||
       "";
 
     const matchedLocation = city
@@ -212,12 +213,11 @@ const FilterBar: React.FC = () => {
       cityId: matchedLocation?._id,
     };
   }, [
-    activeSearchCity?.city,
-    activeSearchCity?.state,
     allLocations,
     cityData?.city,
     cityData?.state,
-    isCityChipDismissed,
+    dismissedCityKey,
+    searchParams,
   ]);
   const explicitSearchCity = effectiveSearchContext.city;
   const explicitSearchState = effectiveSearchContext.state;
@@ -376,22 +376,6 @@ const FilterBar: React.FC = () => {
   }, [searchParams, dispatch]);
 
   useEffect(() => {
-    const city = (searchParams.get("city") ?? "").trim();
-    const state = (searchParams.get("state") ?? "").trim();
-
-    if (city) {
-      setIsCityChipDismissed(false);
-      setActiveSearchCity({
-        city,
-        state,
-      });
-      return;
-    }
-
-    setActiveSearchCity(null);
-  }, [searchParams]);
-
-  useEffect(() => {
     if (!hasHydratedFromUrl) return;
     pendingInitialUrlCategoryRef.current = hydratedUrlCategory ?? null;
   }, [hasHydratedFromUrl, hydratedUrlCategory]);
@@ -516,6 +500,26 @@ const FilterBar: React.FC = () => {
     selectedLocalities.length > 0
       ? "Add More"
       : "Enter locality or projects";
+
+  const clearLocalityFilters = () => {
+    if (category === "Residential") {
+      dispatch(setResidentialFilter({ key: "locality", value: [] }));
+    } else if (category === "Commercial") {
+      dispatch(setCommercialFilter({ key: "locality", value: [] }));
+    } else if (category === "Land") {
+      dispatch(setLandFilter({ key: "locality", value: [] }));
+    } else {
+      dispatch(setAgriculturalFilter({ key: "locality", value: [] }));
+    }
+  };
+
+  const handleRemoveCity = () => {
+    setDismissedCityKey(`${explicitSearchCity}|${explicitSearchState}`);
+    clearLocalityFilters();
+    dispatch(setSearchText(""));
+    setSelectedProject(null);
+  };
+
   const syncNavbarCity = (city?: string | null, state?: string | null) => {
     const normalizedCity = city?.trim().toLowerCase();
     const normalizedState = state?.trim().toLowerCase();
@@ -533,6 +537,7 @@ const FilterBar: React.FC = () => {
 
     if (!matchedLocation?._id) return;
 
+    setDismissedCityKey(null);
     dispatch(setCityId(matchedLocation._id));
     dispatch(setDetectedCity(matchedLocation));
 
@@ -590,11 +595,6 @@ const FilterBar: React.FC = () => {
       dispatch(setSearchText(""));
     }
     if (city) {
-      setIsCityChipDismissed(false);
-      setActiveSearchCity({
-        city,
-        state: state ?? "",
-      });
       syncNavbarCity(city, state);
     }
     setSelectedProject(null);
@@ -640,22 +640,9 @@ const FilterBar: React.FC = () => {
   const handleCitySelect = (suggestion: Extract<SearchSuggestion, { kind: "city" }>) => {
     saveRecentSearch(suggestion);
     setSelectedProject(null);
-    setIsCityChipDismissed(false);
-    setActiveSearchCity({
-      city: suggestion.city,
-      state: suggestion.state,
-    });
     syncNavbarCity(suggestion.city, suggestion.state);
 
-    if (category === "Residential") {
-      dispatch(setResidentialFilter({ key: "locality", value: [] }));
-    } else if (category === "Commercial") {
-      dispatch(setCommercialFilter({ key: "locality", value: [] }));
-    } else if (category === "Land") {
-      dispatch(setLandFilter({ key: "locality", value: [] }));
-    } else {
-      dispatch(setAgriculturalFilter({ key: "locality", value: [] }));
-    }
+    clearLocalityFilters();
 
     dispatch(setSearchText(""));
     setSearchOpen(false);
@@ -959,6 +946,23 @@ const FilterBar: React.FC = () => {
               triggerLabel={
                 <div className="flex w-full min-w-0 max-w-full items-center cursor-text lg:w-[360px] lg:max-w-[360px]">
                   <IoIosSearch className="mr-2 text-lg text-gray-500" />
+
+                  {visibleSearchCity && (
+                    <span className="mr-2 flex max-w-32 shrink-0 items-center gap-2 rounded-full bg-[#D1EFDD] px-3 py-1 text-sm font-medium text-[#15803D] md:max-w-36">
+                      <span className="truncate">{visibleSearchCity}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveCity();
+                        }}
+                        className="shrink-0 text-[#15803D] transition-colors hover:text-[#0f5f2d]"
+                        aria-label={`Remove ${visibleSearchCity} city filter`}
+                      >
+                        <IoCloseCircleOutline className="h-4 w-4" />
+                      </button>
+                    </span>
+                  )}
 
                   {selectedLocalities.length > 0 && (
                     <div className="mr-2 flex items-center gap-2 overflow-hidden">

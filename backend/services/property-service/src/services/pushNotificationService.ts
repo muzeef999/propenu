@@ -1,10 +1,12 @@
 import { Types } from "mongoose";
 import { sendBulkPush } from "../../../../shared/notifications/push.service";
+import { getActiveDeviceTokensForUsers } from "../../../../shared/notifications/deviceTokens";
 import FeaturedProject from "../models/featurePropertiesModel";
 import Role from "../models/roleModel";
 import User from "../models/userModel";
+import HighTimeSpentNotification from "../models/highTimeSpentNotificationModel";
 
-type NotifyInput = {
+export type NotifyInput = {
   type: string;
   title: string;
   body: string;
@@ -16,6 +18,8 @@ type NotifyInput = {
 };
 
 const ADMIN_ROLE_NAMES = ["admin", "super_admin"];
+export const HIGH_TIME_SPENT_COOLDOWN_HOURS =
+  Number(process.env.HIGH_TIME_SPENT_COOLDOWN_HOURS) || 6;
 
 const stringifyData = (data: Record<string, unknown> = {}) =>
   Object.entries(data).reduce<Record<string, string>>((result, [key, value]) => {
@@ -41,7 +45,7 @@ const sendToTokens = async (
   });
 };
 
-const getAdminUsersWithTokens = async () => {
+const getAdminUsers = async () => {
   const roles = await Role.find({ name: { $in: ADMIN_ROLE_NAMES } })
     .select("_id")
     .lean();
@@ -51,11 +55,71 @@ const getAdminUsersWithTokens = async () => {
 
   return User.find({
     roleId: { $in: roleIds },
-    fcmToken: { $nin: [null, ""] },
     isActive: { $ne: false },
   })
-    .select("_id fcmToken")
+    .select("_id")
     .lean();
+};
+
+export const shouldSendHighTimeSpentPush = async ({
+  userId,
+  projectId,
+  cooldownHours = HIGH_TIME_SPENT_COOLDOWN_HOURS,
+}: {
+  userId: string | Types.ObjectId;
+  projectId: string | Types.ObjectId;
+  cooldownHours?: number;
+}): Promise<boolean> => {
+  try {
+    const userStr = String(userId || "").trim();
+    const projStr = String(projectId || "").trim();
+
+    if (!Types.ObjectId.isValid(userStr) || !Types.ObjectId.isValid(projStr)) {
+      return false;
+    }
+
+    const cutoff = new Date(Date.now() - cooldownHours * 60 * 60 * 1000);
+    const existing = await HighTimeSpentNotification.findOne({
+      userId: new Types.ObjectId(userStr),
+      projectId: new Types.ObjectId(projStr),
+      sentAt: { $gte: cutoff },
+    })
+      .select("_id")
+      .lean();
+
+    return !existing;
+  } catch (error) {
+    console.error("Error checking high time spent cooldown:", error);
+    return true;
+  }
+};
+
+export const recordHighTimeSpentNotification = async ({
+  ownerId,
+  userId,
+  projectId,
+  propertyType,
+}: {
+  ownerId?: string | Types.ObjectId | null | undefined;
+  userId: string | Types.ObjectId;
+  projectId: string | Types.ObjectId;
+  propertyType?: string | null | undefined;
+}) => {
+  try {
+    const userStr = String(userId || "").trim();
+    const projStr = String(projectId || "").trim();
+    const ownerStr = String(ownerId || "").trim();
+
+    await HighTimeSpentNotification.create({
+      ownerId: ownerStr && Types.ObjectId.isValid(ownerStr) ? new Types.ObjectId(ownerStr) : null,
+      userId: new Types.ObjectId(userStr),
+      projectId: new Types.ObjectId(projStr),
+      propertyType: propertyType || null,
+      sentAt: new Date(),
+    });
+  } catch (error) {
+    console.error("Failed to record high time spent notification:", error);
+  }
 };
 
 export const createPlatformNotification = async ({
@@ -68,7 +132,8 @@ export const createPlatformNotification = async ({
   propertyType,
   metadata = {},
 }: NotifyInput) => {
-  const adminUsers = await getAdminUsersWithTokens();
+  const adminUsers = await getAdminUsers();
+  const adminUserIds = adminUsers.map((user) => user._id);
   const now = new Date();
 
   await User.db.collection("platformnotifications").insertOne({
@@ -86,18 +151,21 @@ export const createPlatformNotification = async ({
       ? new Types.ObjectId(String(projectId))
       : null,
     propertyType: propertyType || null,
-    recipientUserIds: adminUsers.map((user) => user._id),
+    recipientUserIds: adminUserIds,
     metadata,
     createdAt: now,
     updatedAt: now,
   });
 
-  await sendToTokens(
-    adminUsers.map((user) => String(user.fcmToken || "")),
-    title,
-    body,
-    { type, audience: "admin", projectId: projectId ? String(projectId) : "" },
-  );
+  if (adminUserIds.length) {
+    const adminTokens = await getActiveDeviceTokensForUsers(adminUserIds);
+    await sendToTokens(
+      adminTokens,
+      title,
+      body,
+      { type, audience: "admin", projectId: projectId ? String(projectId) : "" },
+    );
+  }
 };
 
 export const notifyOwnerAndAdmins = async ({
@@ -111,14 +179,35 @@ export const notifyOwnerAndAdmins = async ({
   metadata,
 }: NotifyInput) => {
   try {
-    const owner =
+    if (type === "high_time_spent" && actorUserId && projectId) {
+      const allowed = await shouldSendHighTimeSpentPush({
+        userId: actorUserId,
+        projectId,
+      });
+
+      if (!allowed) {
+        console.log(
+          `[Cooldown] High time spent push suppressed for user ${actorUserId} and project ${projectId} (cooldown: ${HIGH_TIME_SPENT_COOLDOWN_HOURS}h)`,
+        );
+        return;
+      }
+
+      await recordHighTimeSpentNotification({
+        ownerId,
+        userId: actorUserId,
+        projectId,
+        propertyType,
+      });
+    }
+
+    const ownerTokens =
       ownerId && Types.ObjectId.isValid(String(ownerId))
-        ? await User.findById(ownerId).select("fcmToken").lean()
-        : null;
+        ? await getActiveDeviceTokensForUsers([ownerId])
+        : [];
 
     await Promise.all([
-      owner?.fcmToken
-        ? sendToTokens([String(owner.fcmToken)], title, body, {
+      ownerTokens.length
+        ? sendToTokens(ownerTokens, title, body, {
             type,
             audience: "owner",
             projectId: projectId ? String(projectId) : "",

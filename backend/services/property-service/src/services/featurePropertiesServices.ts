@@ -21,6 +21,7 @@ import {
   normalizeListingAuditFields,
   restoreCreatedById,
 } from "../utils/agentSubmission";
+import { applyOwnerUserFilter, ownerListLimit } from "../utils/ownerUserFilter";
 
 dotenv.config({ quiet: true });
 
@@ -80,6 +81,44 @@ function applyFeaturedUserPopulates(query: any) {
     .populate({
       path: "updateHistory.userId",
       ...withRoleAndManager,
+    });
+}
+
+/**
+ * Lightweight list populate — skips updateHistory + deep manager chains.
+ * Full populate made status=draft&limit=100 ~1.8MB and timed out in production admin.
+ */
+function applyFeaturedListPopulates(query: any) {
+  return query
+    .select("-updateHistory -youtubeVideos")
+    .populate({
+      path: "createdBy",
+      select: CREATED_BY_USER_FIELDS,
+      populate: { path: "roleId", select: "name label" },
+    })
+    .populate({
+      path: "relationshipManagerId",
+      select: AUDIT_USER_FIELDS,
+      populate: { path: "roleId", select: "name label" },
+    })
+    .populate({
+      path: "relationshipManager.userId",
+      select: AUDIT_USER_FIELDS,
+      populate: { path: "roleId", select: "name label" },
+    })
+    .populate({
+      path: "postedBy.userId",
+      select: AUDIT_USER_FIELDS,
+      populate: { path: "roleId", select: "name label" },
+    })
+    .populate({
+      path: "approvedBy",
+      select: "name email phone roleName roleId",
+      populate: { path: "roleId", select: "name label" },
+    })
+    .populate({
+      path: "lastUpdatedBy.userId",
+      select: "name email roleName",
     });
 }
 
@@ -1567,7 +1606,8 @@ export const FeaturePropertyService = {
     to?: string;
   }) {
     const page = Math.max(1, options?.page ?? 1);
-    const limit = Math.min(100, options?.limit ?? 20);
+    const ownerUserId = (options as any)?.ownerUserId as string | undefined;
+    const limit = ownerListLimit({ ownerUserId, limit: options?.limit });
     const skip = (page - 1) * limit;
 
     const statusOpt = String(options?.status || "").trim().toLowerCase();
@@ -1577,15 +1617,14 @@ export const FeaturePropertyService = {
     // status=all → no status filter (admin dropdown "All Status").
     const filter: any = {};
     if (statusOpt === "all") {
-      /* intentionally no status filter — exclude soft-deleted from default board */
-      filter.status = { $ne: "inactive" };
+      /* Admin "All Status" — every project including inactive/rejected/archived */
     } else if (statusOpt) {
       if (
         statusOpt === "deleted" ||
         statusOpt === "inactive" ||
         statusOpt === "deactivated"
       ) {
-        filter.status = "inactive";
+        filter.status = { $in: ["inactive", "archived"] };
       } else if (
         statusOpt === "draft" ||
         statusOpt === "onboarding" ||
@@ -1602,6 +1641,10 @@ export const FeaturePropertyService = {
         filter.status = "active";
       } else if (statusOpt === "pending") {
         filter.status = "pending";
+      } else if (statusOpt === "rejected") {
+        filter.status = "rejected";
+      } else if (statusOpt === "archived") {
+        filter.status = "archived";
       } else {
         filter.status = statusOpt;
       }
@@ -1685,18 +1728,25 @@ export const FeaturePropertyService = {
         $options: "i",
       };
     }
-    if ((options as any)?.createdBy) {
-      filter.createdBy = new mongoose.Types.ObjectId((options as any).createdBy);
-    }
-    // Sales Executive / staff poster — ownership stays on builder (createdBy)
-    if ((options as any)?.postedBy) {
-      filter["postedBy.userId"] = new mongoose.Types.ObjectId(
-        (options as any).postedBy,
-      );
+    if ((options as any)?.ownerUserId) {
+      applyOwnerUserFilter(filter, (options as any).ownerUserId);
+    } else {
+      if ((options as any)?.createdBy) {
+        filter.createdBy = new mongoose.Types.ObjectId((options as any).createdBy);
+      }
+      if ((options as any)?.postedBy) {
+        filter["postedBy.userId"] = new mongoose.Types.ObjectId(
+          (options as any).postedBy,
+        );
+      }
     }
 
     // 🔥 EXCLUDE EXPIRED PROMOTIONS
-    const promotionStatus = options?.promotionStatus || "active";
+    // Admin status filters (draft/pending/all/…) must not inherit public
+    // "active promotion only" default — that hid drafts in production.
+    const promotionStatus =
+      options?.promotionStatus ||
+      (statusOpt && statusOpt !== "active" ? "all" : "active");
     const now = new Date();
 
     if (promotionStatus === "expired") {
@@ -1740,7 +1790,7 @@ export const FeaturePropertyService = {
     }
 
     if (andFilters.length > 0) {
-      filter.$and = andFilters;
+      filter.$and = [...(filter.$and || []), ...andFilters];
     }
 
     // 🥇 SORT
@@ -1755,7 +1805,7 @@ export const FeaturePropertyService = {
     }
 
     const [items, total, promotionCounts] = await Promise.all([
-      applyFeaturedUserPopulates(
+      applyFeaturedListPopulates(
         FeaturedProject.find(filter).sort(sort).skip(skip).limit(limit),
       )
         .lean()
@@ -1763,7 +1813,7 @@ export const FeaturePropertyService = {
 
       FeaturedProject.countDocuments(filter),
 
-      (options as any)?.createdBy
+      (options as any)?.createdBy || (options as any)?.ownerUserId
         ? countPromotionTypes(filter)
         : Promise.resolve(undefined),
     ]);

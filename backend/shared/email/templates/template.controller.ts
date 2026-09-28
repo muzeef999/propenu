@@ -8,9 +8,12 @@ import { EmailLog } from "../../../services/user-service/src/logs/emailLog.model
 import csv from "csv-parser";
 import { parseTemplate } from "../../../services/user-service/src/utils/parseTemplate";
 import { Readable } from "stream";
-import { whatsappQueue } from "../../../services/user-service/src/queues";
-import { WhatsAppLog } from "../../../services/user-service/src/logs/whatsappLog.model";
+import {
+  whatsappQueue,
+  addWhatsAppJobWithTimeout,
+} from "../../../services/user-service/src/queues";
 import { getTemplatesService } from "../../whatsapp/templates/whatsappTemplate.service";
+import { WhatsAppCampaignRun } from "../../../services/user-service/src/logs/whatsappCampaignRun.model";
 import * as XLSX from "xlsx";
 
 function getCsvUploadFile(req: Request): Express.Multer.File | undefined {
@@ -26,7 +29,16 @@ function getCsvUploadFile(req: Request): Express.Multer.File | undefined {
   return req.file;
 }
 
-function pickPhone(row: Record<string, string>): string {
+function pickPhone(
+  row: Record<string, string>,
+  phoneField?: string,
+): string {
+  if (phoneField) {
+    const exact = Object.keys(row).find(
+      (k) => k.trim().toLowerCase() === phoneField.trim().toLowerCase(),
+    );
+    if (exact) return String(row[exact] ?? "").trim();
+  }
   const keys = Object.keys(row);
   const phoneKey = keys.find((k) =>
     /^(phone|mobile|whatsapp|wa[_-]?id|msisdn)$/i.test(k.trim()),
@@ -34,16 +46,101 @@ function pickPhone(row: Record<string, string>): string {
   return String(phoneKey ? row[phoneKey] : "").trim();
 }
 
-function countTemplateVars(text = ""): number {
-  const matches = String(text).match(/\{\{\d+\}\}/g);
-  return matches ? matches.length : 0;
+/** Stricter WhatsApp phone check (India-first). Returns normalized digits or "". */
+function normalizeValidWhatsAppPhone(raw: string): string {
+  const trimmed = String(raw || "").trim();
+  if (!trimmed) return "";
+  let digits = trimmed.replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.length === 10) digits = `91${digits}`;
+  if (digits.length === 11 && digits.startsWith("0")) {
+    digits = `91${digits.slice(1)}`;
+  }
+  if (digits.length < 10 || digits.length > 15) return "";
+  if (/^0+$/.test(digits) || digits === "1234567890") return "";
+  if (digits.startsWith("91") && digits.length === 12) {
+    const local = digits.slice(2);
+    if (!/^[6-9]\d{9}$/.test(local)) return "";
+  }
+  return digits;
 }
 
-/** Map CSV row → template body variables ({{1}}, {{2}}, …). */
+function isTruthyOptOut(value: unknown): boolean {
+  const v = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  return [
+    "1",
+    "true",
+    "yes",
+    "y",
+    "opted out",
+    "opt-out",
+    "optout",
+    "unsubscribe",
+    "unsubscribed",
+    "stop",
+    "stopped",
+    "blocked",
+  ].includes(v);
+}
+
+function rowIsOptedOut(row: Record<string, string>): boolean {
+  for (const [key, value] of Object.entries(row)) {
+    if (/opt.?out|unsubscribe/i.test(key) && isTruthyOptOut(value)) {
+      return true;
+    }
+    if (
+      /^(status|consent)$/i.test(key.trim()) &&
+      /opt.?out|unsub|stop|block/i.test(String(value ?? ""))
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function countTemplateVars(text = ""): number {
+  const matches = String(text).match(/\{\{\d+\}\}/g) || [];
+  const nums = matches.map((x) => parseInt(x.replace(/[{}]/g, ""), 10));
+  return nums.length ? Math.max(...nums) : 0;
+}
+
+/**
+ * Map CSV row → template body variables ({{1}}, {{2}}, …).
+ * When fieldMapping is provided ({ "1": "Name", "2": "City" }), use those columns.
+ */
 function buildCsvVariables(
   row: Record<string, string>,
   expectedCount?: number,
+  fieldMapping?: Record<string, string> | null,
 ): string[] {
+  const resolveColumn = (header: string) => {
+    const key = Object.keys(row).find(
+      (k) => k.trim().toLowerCase() === String(header || "").trim().toLowerCase(),
+    );
+    return key ? String(row[key] ?? "").trim() : "";
+  };
+
+  if (fieldMapping && typeof fieldMapping === "object") {
+    const count =
+      typeof expectedCount === "number" && expectedCount > 0
+        ? expectedCount
+        : Math.max(
+            0,
+            ...Object.keys(fieldMapping)
+              .map((k) => parseInt(k, 10))
+              .filter((n) => !Number.isNaN(n)),
+          );
+    if (count <= 0) return [];
+    return Array.from({ length: count }, (_, i) => {
+      const mappedHeader = fieldMapping[String(i + 1)] || fieldMapping[i + 1 as any];
+      const value = mappedHeader ? resolveColumn(mappedHeader) : "";
+      return value || "Customer";
+    });
+  }
+
   const numbered: string[] = [];
   for (let i = 1; i <= 15; i++) {
     const key = Object.keys(row).find((k) =>
@@ -75,6 +172,26 @@ function buildCsvVariables(
   }
 
   return values.length ? values : ["Customer"];
+}
+
+function parseFieldMapping(raw: unknown): Record<string, string> | null {
+  if (!raw) return null;
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return null;
+    }
+    const out: Record<string, string> = {};
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      const n = parseInt(String(key), 10);
+      if (Number.isNaN(n) || n < 1) continue;
+      const header = String(value ?? "").trim();
+      if (header) out[String(n)] = header;
+    }
+    return Object.keys(out).length ? out : null;
+  } catch {
+    return null;
+  }
 }
 
 function parseDelimitedBuffer(
@@ -611,93 +728,137 @@ export const sendWhatsAppCSV = async (req: Request, res: Response) => {
         : metaTemplate.language?.code || "en";
     const category = String(metaTemplate.category || "MARKETING").toUpperCase();
     const headerFormat = String(headerComp?.format || "").toUpperCase();
-    const headerImageUrl = String(req.body?.headerImageUrl || "").trim();
+    const requestedHeaderUrl = String(req.body?.headerImageUrl || "").trim();
 
-    if (
-      ["IMAGE", "VIDEO", "DOCUMENT"].includes(headerFormat) &&
-      !headerImageUrl.startsWith("http")
-    ) {
+    if (["IMAGE", "VIDEO", "DOCUMENT"].includes(headerFormat)) {
+      const sampleUrl = String(
+        headerComp?.example?.header_handle?.[0] ||
+          headerComp?.example?.header_url?.[0] ||
+          "",
+      ).trim();
+      const hasSample =
+        /^https?:\/\//i.test(sampleUrl) ||
+        requestedHeaderUrl.startsWith("http");
+      if (!hasSample) {
+        return res.status(400).json({
+          success: false,
+          message: `Template "${metaTemplate.name}" requires a public ${headerFormat} header URL. Upload/paste an S3/CDN image or use a template with Meta sample media.`,
+        });
+      }
+    }
+
+    const fieldMapping = parseFieldMapping(req.body?.fieldMapping);
+    const phoneField = String(req.body?.phoneField || "").trim();
+
+    // Quick valid-recipient estimate (stricter phone + opt-out + de-dupe)
+    let estimatedRecipients = 0;
+    let skippedInvalid = 0;
+    let skippedOptOut = 0;
+    let skippedDuplicate = 0;
+    const seenPhones = new Set<string>();
+
+    for (const row of results) {
+      if (rowIsOptedOut(row)) {
+        skippedOptOut += 1;
+        continue;
+      }
+      const phoneRaw = pickPhone(row, phoneField || undefined);
+      const normalized = normalizeValidWhatsAppPhone(phoneRaw);
+      if (!normalized) {
+        skippedInvalid += 1;
+        continue;
+      }
+      if (seenPhones.has(normalized)) {
+        skippedDuplicate += 1;
+        continue;
+      }
+      seenPhones.add(normalized);
+      estimatedRecipients += 1;
+    }
+
+    if (!estimatedRecipients) {
       return res.status(400).json({
         success: false,
-        message: `Template "${metaTemplate.name}" requires a public ${headerFormat} header URL (S3/CDN). Local image upload is preview-only.`,
+        message: phoneField
+          ? `No valid numbers in column "${phoneField}". Invalid/opted-out/duplicate rows were excluded.`
+          : "No valid phone numbers found. Fix invalid numbers, opt-outs, or select the correct phone column.",
+        skippedInvalid,
+        skippedOptOut,
+        skippedDuplicate,
+        campaignId: `wa_csv_${Date.now()}`,
       });
     }
 
     const campaignId = `wa_csv_${Date.now()}`;
-    let total = 0;
-    let skipped = 0;
 
-    for (const row of results) {
-      const phoneRaw = pickPhone(row);
-      if (!phoneRaw) {
-        skipped += 1;
-        continue;
-      }
+    await WhatsAppCampaignRun.create({
+      campaignId,
+      source: "csv",
+      templateName: metaTemplate.name,
+      status: "accepted",
+      estimatedRecipients,
+      headerImageUrl: requestedHeaderUrl || undefined,
+    });
 
-      const phone = phoneRaw.replace(/\D/g, "");
-      if (phone.length < 10) {
-        skipped += 1;
-        continue;
-      }
-
-      const formattedPhone = phone.startsWith("91") ? phone : `91${phone}`;
-      const variables = buildCsvVariables(row, expectedVars);
-
-      const whatsappPayload = {
-        to: formattedPhone,
-        templateName: metaTemplate.name,
-        variables,
-        language,
-        ...(headerImageUrl ? { headerImageUrl } : {}),
-        logId: "",
-        campaignId,
-      };
-
-      const log = await WhatsAppLog.create({
-        to: formattedPhone,
-        templateName: metaTemplate.name,
-        status: "pending",
-        campaignId,
-        variables,
-        language,
-        category,
-        ...(headerImageUrl ? { headerImageUrl } : {}),
-      });
-
-      whatsappPayload.logId = String(log._id);
-
-      await whatsappQueue.add(
-        "send-message",
-        whatsappPayload,
+    try {
+      await addWhatsAppJobWithTimeout(
+        "fanout-csv-campaign",
         {
-          attempts: 3,
-          backoff: { type: "exponential", delay: 5000 },
-          delay: baseDelayMs + total * 300,
+          campaignId,
+          templateName: metaTemplate.name,
+          language,
+          category,
+          expectedVars,
+          fieldMapping: fieldMapping || {},
+          phoneField,
+          baseDelayMs,
+          rows: results,
+          ...(requestedHeaderUrl ? { requestedHeaderImageUrl: requestedHeaderUrl } : {}),
+        },
+        {
+          attempts: 2,
+          backoff: { type: "exponential", delay: 8000 },
+          removeOnComplete: 50,
+          removeOnFail: 100,
         },
       );
-
-      total += 1;
-    }
-
-    if (!total) {
-      return res.status(400).json({
+    } catch (queueErr: any) {
+      await WhatsAppCampaignRun.findOneAndUpdate(
+        { campaignId },
+        {
+          status: "failed",
+          error:
+            queueErr?.message ||
+            "Could not queue campaign (is Redis running?)",
+        },
+      ).catch(() => undefined);
+      return res.status(503).json({
         success: false,
         message:
-          "No valid phone numbers found. Include a phone/mobile column in the CSV.",
-        skipped,
+          "Could not accept CSV WhatsApp campaign. Check that Redis is running.",
+        error: queueErr?.message,
         campaignId,
       });
     }
 
-    return res.json({
+    return res.status(202).json({
       success: true,
-      total,
-      skipped,
+      accepted: true,
+      status: "accepted",
       campaignId,
+      estimatedRecipients,
+      skippedInvalid,
+      skippedOptOut,
+      skippedDuplicate,
+      templateName: metaTemplate.name,
       message:
         sendMode === "schedule"
-          ? "CSV WhatsApp campaign scheduled"
-          : "CSV WhatsApp campaign queued",
+          ? `Campaign scheduled for ~${estimatedRecipients} recipient(s). Queuing runs in the background.`
+          : `Campaign accepted for ~${estimatedRecipients} recipient(s)${
+              skippedInvalid + skippedOptOut + skippedDuplicate
+                ? ` (${skippedInvalid + skippedOptOut + skippedDuplicate} row(s) skipped)`
+                : ""
+            }. Messages are being queued in the background.`,
     });
   } catch (error: any) {
     console.error("❌ CSV Error:", error);
