@@ -46,6 +46,14 @@ const LOGO_SKELETON_CLASS =
 const LOGO_FALLBACK_CLASS =
   "flex h-full w-full items-center gap-1 overflow-hidden text-primary";
 
+function getSafeRedirect(value: string | null) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/";
+  }
+
+  return value;
+}
+
 const Navbar = () => {
   const pathname = usePathname();
   const router = useRouter();
@@ -54,6 +62,7 @@ const Navbar = () => {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>(null);
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false); // Separate state for auth dialog
+  const [loginRedirect, setLoginRedirect] = useState("/");
   const [cityDropdownOpen, setCityDropdownOpen] = useState(false); // Separate state for city dropdown
   const [mobileOpen_city, setMobileOpen_city] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -222,19 +231,99 @@ const Navbar = () => {
   }, []);
 
   useEffect(() => {
+    const openAuthFromUrl = () => {
+      const params = new URLSearchParams(window.location.search);
+
+      const authParam = params.get("auth");
+
+      if (authParam !== "login" && authParam !== "register") return;
+
+      const redirectTo = getSafeRedirect(params.get("redirect"));
+
+      if (isAuthenticated && authParam === "login") {
+        router.replace(redirectTo, { scroll: false });
+        return;
+      }
+
+      setLoginRedirect(redirectTo);
+      setAuthMode(authParam);
+      setIsAuthDialogOpen(true);
+    };
+
+    openAuthFromUrl();
+    window.addEventListener("popstate", openAuthFromUrl);
+
+    return () => {
+      window.removeEventListener("popstate", openAuthFromUrl);
+    };
+  }, [isAuthenticated, pathname, router]);
+
+  useEffect(() => {
     setMobileSearchOpen(false);
   }, [pathname]);
 
   // Function to open login dialog
   const openLoginDialog = () => {
+    const url = new URL(window.location.href);
+    const currentPath = `${url.pathname}${url.search}`;
+    const redirectTo = currentPath.includes("auth=login") ? "/" : currentPath;
+
+    url.searchParams.set("auth", "login");
+    url.searchParams.set("redirect", redirectTo);
+
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+    setLoginRedirect(getSafeRedirect(redirectTo));
     setIsAuthDialogOpen(true);
     setAuthMode("login");
   };
 
   // Function to close auth dialog
   const closeAuthDialog = () => {
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+
+      if (url.searchParams.has("auth")) {
+        url.searchParams.delete("auth");
+        url.searchParams.delete("redirect");
+        router.replace(`${url.pathname}${url.search}${url.hash}`, {
+          scroll: false,
+        });
+      }
+    }
+
     setIsAuthDialogOpen(false);
     setAuthMode(null);
+  };
+
+  const setAuthUrlMode = (mode: "login" | "register") => {
+    if (typeof window === "undefined") return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("auth", mode);
+
+    if (!url.searchParams.has("redirect")) {
+      url.searchParams.set("redirect", loginRedirect);
+    }
+
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  };
+
+  const switchToRegisterDialog = () => {
+    setAuthUrlMode("register");
+    setAuthMode("register");
+  };
+
+  const switchToLoginDialog = () => {
+    setAuthUrlMode("login");
+    setAuthMode("login");
+  };
+
+  const handleLoginSuccess = () => {
+    setIsAuthDialogOpen(false);
+    setAuthMode(null);
+    window.dispatchEvent(new Event("auth-changed"));
+    router.replace(loginRedirect, { scroll: false });
+    router.refresh();
   };
 
   const getInitial = (name?: string) => {
@@ -865,9 +954,8 @@ const Navbar = () => {
           <LoginDialog
             open={isAuthDialogOpen}
             onClose={closeAuthDialog}
-            onSwitchToRegister={() => {
-              setAuthMode("register");
-            }}
+            onLoginSuccess={handleLoginSuccess}
+            onSwitchToRegister={switchToRegisterDialog}
           />
         )}
 
@@ -876,9 +964,7 @@ const Navbar = () => {
             open={isAuthDialogOpen}
             initialStep={registerStep}
             onClose={closeAuthDialog}
-            onSwitchToLogin={() => {
-              setAuthMode("login");
-            }}
+            onSwitchToLogin={switchToLoginDialog}
           />
         )}
       </header>

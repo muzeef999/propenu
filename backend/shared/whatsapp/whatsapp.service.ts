@@ -19,6 +19,8 @@ dotenv.config({ path: envPath });
 
 const PHONE_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
 const TOKEN = process.env.WHATSAPP_TOKEN;
+const TEMPLATE_LANGUAGE = process.env.WHATSAPP_TEMPLATE_LANGUAGE || "en";
+const DEFAULT_COUNTRY_CODE = process.env.WHATSAPP_DEFAULT_COUNTRY_CODE || "91";
 
 
 if (!PHONE_ID || !TOKEN) {
@@ -43,13 +45,21 @@ export type WhatsAppMessageResult =
   | WhatsAppError;
 
 function normalizePhone(phone: string) {
-  return phone.replace(/\D/g, "");
+  const digits = String(phone || "").replace(/\D/g, "");
+
+  if (digits.length === 10) {
+    return `${DEFAULT_COUNTRY_CODE}${digits}`;
+  }
+
+  return digits;
 }
 
 function validateParameters(parameters: string[]) {
   return parameters.every(
     (parameter) =>
-      typeof parameter === "string" && parameter.trim().length > 0,
+      parameter !== undefined &&
+      parameter !== null &&
+      String(parameter).trim().length > 0,
   );
 }
 
@@ -124,13 +134,13 @@ export async function sendTemplateMessage(
     type: "template",
     template: {
       name: template,
-      language: { code: "en" },
+      language: { code: TEMPLATE_LANGUAGE },
       components: [
         {
           type: "body",
           parameters: params.map((p) => ({
             type: "text",
-            text: p,
+            text: String(p),
           })),
         },
       ],
@@ -155,6 +165,12 @@ export async function sendWhatsAppEventMessage(
   const preparedMessage = prepareTemplateMessage(event, phone, parameters);
 
   if (preparedMessage.status === "error") {
+    console.error("WhatsApp template validation failed:", {
+      event,
+      phone,
+      reason: preparedMessage.reason,
+    });
+
     return preparedMessage;
   }
 

@@ -16,6 +16,7 @@ interface LoginDialogProps {
   open: boolean;
   onClose: () => void;
   onSwitchToRegister: () => void;
+  onLoginSuccess?: () => void;
 }
 
 const OTP_LENGTH = 4;
@@ -37,6 +38,7 @@ const LoginDialog = ({
   open,
   onClose,
   onSwitchToRegister,
+  onLoginSuccess,
 }: LoginDialogProps) => {
   const [step, setStep] = useState<"request" | "verify">("request");
   const [otpDigits, setOtpDigits] = useState<string[]>(
@@ -114,9 +116,17 @@ if (localShortlist.length > 0) {
 
       toast.success("Logged in successfully!");
 
-      setTimeout(handleClose, 800);
-      
-      window.location.reload();
+      setTimeout(() => {
+        resetForm();
+
+        if (onLoginSuccess) {
+          onLoginSuccess();
+          return;
+        }
+
+        onClose();
+        window.location.reload();
+      }, 800);
     } catch (err) {
       const backendMessage = axios.isAxiosError(err)
         ? err.response?.data?.message ||
@@ -198,12 +208,16 @@ if (localShortlist.length > 0) {
     }
   }
 
-  function handleClose() {
+  function resetForm() {
     setStep("request");
     setPhone(INDIA_COUNTRY_CODE);
     setOtpDigits(Array(OTP_LENGTH).fill(""));
     setResendCooldown(0);
     setError(null);
+  }
+
+  function handleClose() {
+    resetForm();
     onClose();
   }
 
