@@ -394,16 +394,6 @@ const RegisterDialog = ({
   }, [open, resendCooldown, shouldShowOtpInputs]);
 
   useEffect(() => {
-    if (!isPhoneValid) return;
-    if (isOtpVerified || isPreviouslyVerifiedPhone(phoneNumber)) return;
-    if (loading) return;
-    if (phoneNumber === lastOtpRequestedPhoneRef.current) return;
-    if (phoneNumber === lastOtpAttemptedPhoneRef.current) return;
-
-    handleRegisterRequest();
-  }, [isPhoneValid, isOtpVerified, phoneNumber, loading]);
-
-  useEffect(() => {
     async function fetchUser() {
       try {
         const data = await me();
@@ -633,8 +623,21 @@ const RegisterDialog = ({
                     placeholder="Enter your mobile number"
                     className="w-full"
                   />
-                  {isOtpVerified && (
+                  {isOtpVerified ? (
                     <MdCheckCircle className="shrink-0 text-[1.6rem] text-[#28b463]" />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleRegisterRequest()}
+                      disabled={
+                        loading ||
+                        !isPhoneValid ||
+                        phoneNumber === lastOtpRequestedPhoneRef.current
+                      }
+                      className="shrink-0 rounded-md bg-[#28b463] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#219653] disabled:cursor-not-allowed disabled:bg-[#b8dcc8]"
+                    >
+                      {loading ? "Sending" : "Send Otp"}
+                    </button>
                   )}
                 </div>
               </div>

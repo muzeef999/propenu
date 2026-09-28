@@ -5,6 +5,7 @@ import { FeaturedProject } from "@/types";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import { useCity } from "@/hooks/useCity";
 import Image from "next/image";
+import Link from "next/link";
 import formatINR from "@/utilies/PriceFormat";
 import { getFeaturedProjects } from "@/data/ClientData";
 import { minDelay } from "@/utilies/minDelay";
@@ -17,6 +18,7 @@ import {
 import { useShortlist } from "@/hooks/useShortlist";
 import { GoHeart, GoHeartFill } from "react-icons/go";
 import { IoMdShareAlt } from "react-icons/io";
+import { RiArrowRightSLine } from "react-icons/ri";
 import { RATE_LIMIT_RECOVERED_EVENT } from "@/utilies/requestMonitor";
 import { trackInteraction } from "@/services/trackingService";
 
@@ -313,6 +315,13 @@ export default function FeaturedProjectsClient() {
             Stand out for the lifestyle they offer in {selectedCity?.city ?? "Hyderabad"}
           </p>
         </div>
+        <Link
+          href="/prime"
+          aria-label="View all prime projects"
+          className="flex shrink-0 items-center gap-1 whitespace-nowrap text-sm font-medium text-green-600 hover:text-green-700 sm:text-base"
+        >
+          View All <RiArrowRightSLine size={18} />
+        </Link>
       </div>
 
       {/* Slider area — own relative wrapper so arrow top-1/2 is scoped here */}

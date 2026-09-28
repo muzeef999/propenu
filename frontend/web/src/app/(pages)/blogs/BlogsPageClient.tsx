@@ -46,16 +46,16 @@ function BlogCard({ post, priority = false }: { post: BlogPost; priority?: boole
   const date = formatDate(post.publishedAt ?? post.createdAt);
 
   return (
-    <article className="group h-[500px] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-green-100 hover:shadow-lg">
+    <article className="group h-[500px] overflow-hidden rounded-md border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-green-100 hover:shadow-lg">
       <Link href={`/blogs/${post.slug}`} className="flex h-full w-full flex-col">
-        <div className="relative aspect-16/10 w-full overflow-hidden bg-white">
+        <div className="relative aspect-[2/1] w-full overflow-hidden bg-gray-50">
           <Image
             src={post.featuredImage || fallbackImage}
             alt={post.imageAlt || post.title}
             fill
             priority={priority}
             sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-            className="object-contain object-center transition-transform duration-500 group-hover:scale-[1.02]"
+            className="object-cover object-center transition-transform duration-500 group-hover:scale-[1.02]"
           />
         </div>
 
@@ -104,7 +104,7 @@ function BlogCard({ post, priority = false }: { post: BlogPost; priority?: boole
 function BlogSkeleton() {
   return (
     <div className="h-[500px] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-      <div className="aspect-16/10 animate-pulse bg-gray-100" />
+      <div className="aspect-[2/1] animate-pulse bg-gray-100" />
       <div className="space-y-3 p-4 sm:p-5">
         <div className="h-5 w-24 animate-pulse rounded-full bg-gray-100" />
         <div className="h-5 w-full animate-pulse rounded bg-gray-100" />
