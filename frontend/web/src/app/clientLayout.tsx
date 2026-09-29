@@ -11,9 +11,9 @@ import FloatingWhatsAppButton from "@/components/FloatingWhatsAppButton";
 import Navbar from "@/components/Navbar";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import { ModalProvider, useModal } from "@/app/context/ModalContext";
-import { me, sendTokenToBackend } from "@/data/ClientData";
+import { me } from "@/data/ClientData";
 import { store } from "@/Redux/store";
-import { getFcmToken } from "@/utilies/getFcmToken";
+import { initWebPushToken } from "@/utilies/initWebPush";
 import { absoluteSiteUrl, normalizeCanonicalPath } from "@/utilies/siteUrl";
 
 const HIDE_LAYOUT_ROUTES = [
@@ -112,13 +112,15 @@ function ClientProvidersContent({
   }, []);
 
   useEffect(() => {
-    if (!user?.user?.id) return;
+    const userId = user?.user?.id || user?.user?._id;
+    if (!userId) return;
 
     const initPush = async () => {
-      const token = await getFcmToken();
-      if (!token) return;
-
-      await sendTokenToBackend(token, "web");
+      try {
+        await initWebPushToken();
+      } catch (error) {
+        console.error("Push notification setup failed:", error);
+      }
     };
 
     initPush();

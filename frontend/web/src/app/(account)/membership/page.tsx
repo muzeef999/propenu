@@ -76,10 +76,12 @@ export const BuyView = () => {
 };
 
 const Page = () => {
-  const { data: my_subscription } = useQuery({
+  const { data: my_subscription, isLoading } = useQuery({
     queryKey: ["my-subscription"],
     queryFn: useMySubscription,
   });
+
+  if (isLoading) return <MembershipPageSkeleton />;
 
   return (
     <div className="space-y-6">
@@ -97,5 +99,70 @@ const Page = () => {
     </div>
   );
 };
+
+function SkeletonBlock({ className }: { className: string }) {
+  return (
+    <div className={`animate-pulse rounded-sm bg-green-100 ${className}`} />
+  );
+}
+
+function MembershipPageSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-green-100 bg-linear-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
+        <SkeletonBlock className="h-8 w-48 md:h-9" />
+        <SkeletonBlock className="mt-3 h-4 w-full max-w-xl" />
+        <SkeletonBlock className="mt-2 h-4 w-4/5 max-w-lg" />
+      </div>
+
+      <div className="space-y-6">
+        {Array.from({ length: 2 }).map((_, index) => (
+          <div
+            key={index}
+            className="relative rounded-md border border-green-100 bg-white p-5 shadow-sm"
+          >
+            <div className="absolute right-4 top-2">
+              <SkeletonBlock className="h-5 w-16 rounded-full" />
+            </div>
+
+            <div className="flex flex-col gap-4 pt-4 lg:flex-row lg:items-center">
+              <div className="flex">
+                <div className="flex w-full flex-col gap-1">
+                  <div className="flex items-center gap-3">
+                    <SkeletonBlock className="h-14 w-14 rounded-lg" />
+                    <div>
+                      <SkeletonBlock className="h-4 w-36" />
+                      <SkeletonBlock className="mt-2 h-3 w-28" />
+                    </div>
+                  </div>
+
+                  <SkeletonBlock className="mt-3 h-3 w-40" />
+                  <SkeletonBlock className="mt-4 h-10 w-full min-w-44 rounded-md" />
+                </div>
+              </div>
+
+              <div className="relative flex flex-1 items-center rounded-md bg-[#f4fbf6] p-4">
+                <div className="flex w-full flex-col gap-4">
+                  {Array.from({ length: 3 }).map((_, itemIndex) => (
+                    <div key={itemIndex}>
+                      <div className="mb-2 flex justify-between gap-4">
+                        <SkeletonBlock className="h-3 w-32" />
+                        <SkeletonBlock className="h-3 w-20" />
+                      </div>
+                      <SkeletonBlock className="h-1.5 w-full rounded-full" />
+                      {itemIndex > 0 && (
+                        <SkeletonBlock className="mt-2 h-3 w-36" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default Page;

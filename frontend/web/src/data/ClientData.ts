@@ -1552,6 +1552,9 @@ export const sendTokenToBackend = async (
   maybePlatformOrDeviceId?: string,
   maybeDeviceId?: string,
 ) => {
+  const authToken = Cookies.get("token");
+  if (!authToken) return null;
+
   let token = tokenOrUserId;
   let platform: "android" | "ios" | "web" = "web";
   let deviceId: string | undefined = undefined;
@@ -1570,11 +1573,21 @@ export const sendTokenToBackend = async (
     deviceId = maybePlatformOrDeviceId;
   }
 
-  await axiosInstance.post(`${url}/api/users/notifications/save-fcm-token`, {
-    token,
-    platform,
-    deviceId,
-  });
+  const res = await axiosInstance.post(
+    `${url}/api/users/notifications/save-fcm-token`,
+    {
+      token,
+      platform,
+      deviceId,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    },
+  );
+
+  return res.data;
 };
 
 // chatbot related APIs

@@ -254,11 +254,7 @@ const Page = () => {
     setPage(1);
   };
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64 text-gray-500">
-        Loading shortlisted properties...
-      </div>
-    );
+    return <ShortlistedPropertiesSkeleton />;
   }
 
   if (isError) {
@@ -503,6 +499,65 @@ function Pagination({
         >
           <FiChevronRight className="h-4 w-4" />
         </button>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonBlock({ className }: { className: string }) {
+  return (
+    <div className={`animate-pulse rounded-sm bg-green-100 ${className}`} />
+  );
+}
+
+function ShortlistedPropertyCardSkeleton() {
+  return (
+    <article className="group flex min-h-[145px] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div className="relative w-[34%] min-w-[120px] shrink-0 bg-gray-100">
+        <SkeletonBlock className="h-full w-full rounded-none bg-gray-200" />
+        <SkeletonBlock className="absolute left-2 top-2 h-7 w-7 rounded-full bg-white/80" />
+        <SkeletonBlock className="absolute right-2 top-2 h-7 w-7 rounded-full bg-white/80" />
+      </div>
+
+      <div className="flex min-w-0 flex-1 flex-col justify-between p-3">
+        <div className="min-w-0">
+          <SkeletonBlock className="h-4 w-28" />
+          <SkeletonBlock className="mt-3 h-4 w-4/5" />
+          <SkeletonBlock className="mt-2 h-4 w-2/3" />
+          <SkeletonBlock className="mt-5 h-3 w-1/2" />
+        </div>
+
+        <div className="mt-2 flex items-center justify-between gap-3 rounded-md bg-gray-50 px-3 py-2">
+          <SkeletonBlock className="h-3 w-36" />
+          <SkeletonBlock className="h-6 w-16 rounded-full" />
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function ShortlistedPropertiesSkeleton() {
+  return (
+    <div className="max-w-7xl mx-auto space-y-6">
+      <div className="rounded-2xl border border-green-100 bg-linear-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
+        <SkeletonBlock className="h-8 w-72 md:h-9" />
+        <SkeletonBlock className="mt-3 h-4 w-full max-w-2xl" />
+        <SkeletonBlock className="mt-2 h-4 w-4/5 max-w-xl" />
+      </div>
+
+      <div className="flex gap-2 overflow-hidden">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <SkeletonBlock
+            key={index}
+            className="h-10 w-32 shrink-0 rounded-md"
+          />
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {Array.from({ length: PAGE_SIZE }).map((_, index) => (
+          <ShortlistedPropertyCardSkeleton key={index} />
+        ))}
       </div>
     </div>
   );

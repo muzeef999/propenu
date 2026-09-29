@@ -9,6 +9,7 @@ export async function sendOtpWhatsApp(phone: string, otp: string) {
       console.log(`[WhatsApp OTP] Env missing. OTP for ${phone}: ${otp}`);
       return null;
     }
+    console.log(`[WhatsApp OTP] Sending OTP for ${phone}: ${otp}`);
 
     const cleanPhone = phone.replace(/\D/g, "");
     const url = `https://graph.facebook.com/v20.0/${phoneId}/messages`;

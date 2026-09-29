@@ -11,6 +11,7 @@ import { MdClose, MdOutlineWhatsapp } from "react-icons/md";
 import PhoneInput from "react-phone-number-input";
 import { z } from "zod";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { initWebPushToken } from "@/utilies/initWebPush";
 import "react-phone-number-input/style.css";
 interface LoginDialogProps {
   open: boolean;
@@ -100,9 +101,13 @@ const LoginDialog = ({
 
       Cookies.set("token", res.token, {
         path: "/",          // ✅ VERY IMPORTANT
-        secure: true,
-        sameSite: "Strict",
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "Lax",
         expires: 30,
+      });
+      window.dispatchEvent(new Event("auth-changed"));
+      void initWebPushToken().catch((pushError) => {
+        console.error("Push notification setup failed after login:", pushError);
       });
 
       const localShortlist = JSON.parse(
