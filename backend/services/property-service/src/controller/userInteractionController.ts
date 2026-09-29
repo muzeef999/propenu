@@ -11,10 +11,15 @@ import PublicPageView, {
   PublicViewPropertyType,
 } from "../models/publicPageViewModel";
 import Residential from "../models/residentialModel";
-import UserInteraction, { INTERACTION_EVENT_TYPES, InteractionPromotionType } from "../models/userInteractionModel";
+import { INTERACTION_EVENT_TYPES, InteractionPromotionType } from "../models/userInteractionModel";
 import User from "../models/userModel";
 import { USER_ACTIVITY_PAGE_SIZE } from "../models/userActivityModel";
 import { appendUserAction, listUserActions } from "../services/userActivityService";
+import {
+  aggregateInteractionEvents,
+  countInteractionEvents,
+  queryInteractionEvents,
+} from "../services/interactionEvents";
 
 const promotionTypes = new Set(["normal", "sponsored", "featured", "prime"]);
 const eventTypes = new Set<string>(INTERACTION_EVENT_TYPES);
@@ -145,10 +150,10 @@ async function loadOwnedListingActivity(userId: string, since: Date) {
   };
   const canQueryInteractions = entityFilter.$or.length > 0;
   const [trackedViews, trackedClicks, trackedInquiries, trackedSiteVisits] = canQueryInteractions ? await Promise.all([
-    UserInteraction.countDocuments({ ...entityFilter, eventType: /view|impression/i }),
-    UserInteraction.countDocuments({ ...entityFilter, eventType: /click/i }),
-    UserInteraction.countDocuments({ ...entityFilter, eventType: /enquir|lead|contact|whatsapp|phone|form/i }),
-    UserInteraction.countDocuments({ ...entityFilter, eventType: /site_visit|visit_book/i }),
+    countInteractionEvents({ ...entityFilter, eventType: /view|impression/i }),
+    countInteractionEvents({ ...entityFilter, eventType: /click/i }),
+    countInteractionEvents({ ...entityFilter, eventType: /enquir|lead|contact|whatsapp|phone|form/i }),
+    countInteractionEvents({ ...entityFilter, eventType: /site_visit|visit_book/i }),
   ]) : [0, 0, 0, 0];
   const published = listings.filter(item => item.isPublished || item.status === "active" || item.approvalStatus === "approved").length;
   const storedViews = listings.reduce((sum, item) => sum + Number(item.meta?.views || 0), 0);
@@ -1095,7 +1100,7 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
     const fifteenAgo = new Date(Date.now() - 15 * 60_000);
     const summaryPromise = includeSummary
       ? Promise.all([
-          UserInteraction.aggregate([
+          aggregateInteractionEvents([
             { $match: typeCountMatch },
             { $group: { _id: "$eventType", count: { $sum: 1 } } },
           ]).option({ maxTimeMS: 12000 }),
@@ -1114,7 +1119,7 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
                 })
                 .catch(() => 0)
             : Promise.resolve(0),
-          UserInteraction.aggregate([
+          aggregateInteractionEvents([
             {
               $match: {
                 serverTimestamp: { $gte: fifteenAgo },
@@ -1124,7 +1129,7 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
             { $group: { _id: "$userId" } },
             { $count: "n" },
           ]).option({ maxTimeMS: 8000 }),
-          UserInteraction.aggregate([
+          aggregateInteractionEvents([
             { $match: baseMatch },
             { $group: { _id: "$userId", count: { $sum: 1 } } },
             { $sort: { count: -1 } },
@@ -1135,7 +1140,7 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
 
     const [facet] = groupBy === "event"
       ? [null]
-      : await UserInteraction.aggregate(userFeedPipeline as any)
+      : await aggregateInteractionEvents(userFeedPipeline as any)
           .option({ maxTimeMS: 20000, allowDiskUse: true });
 
     let rawPage: any[] = [];
@@ -1143,13 +1148,9 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
     let hasNextPage = false;
 
     if (groupBy === "event") {
-      const eventQuery = UserInteraction.find(baseMatch).sort({
-        serverTimestamp: -1,
-        _id: -1,
-      });
       const [eventDocs, eventTotal] = await Promise.all([
-        eventQuery.skip(skip).limit(take).lean(),
-        includeCount ? UserInteraction.countDocuments(baseMatch) : Promise.resolve(0),
+        queryInteractionEvents(baseMatch, { skip, limit: take }),
+        includeCount ? countInteractionEvents(baseMatch) : Promise.resolve(0),
       ]);
       hasNextPage = includeCount
         ? skip + pageSize < Number(eventTotal || 0)
@@ -1215,16 +1216,15 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
     const RECENT_PER_USER = 8;
     const recentByUser = new Map<string, any[]>();
     if (groupBy !== "event" && pageUserIds.length) {
-      const recentDocs: any[] = await UserInteraction.find({
-        $and: [
-          baseMatch,
-          { userId: { $in: [...pageUserIds, ...pageUserObjectIds] } },
-        ],
-      })
-        .sort({ serverTimestamp: -1, _id: -1 })
-        .limit(pageUserIds.length * RECENT_PER_USER)
-        .lean()
-        .catch(() => []);
+      const recentDocs: any[] = await queryInteractionEvents(
+        {
+          $and: [
+            baseMatch,
+            { userId: { $in: [...pageUserIds, ...pageUserObjectIds] } },
+          ],
+        },
+        { limit: pageUserIds.length * RECENT_PER_USER },
+      ).catch(() => []);
       for (const doc of recentDocs) {
         const key = String(doc.userId || "");
         const list = recentByUser.get(key) || [];
@@ -1326,7 +1326,7 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
       const fifteenAgo = new Date(Date.now() - 15 * 60_000);
       const [typeCounts, brochureCount, leadCount, newLeadCount, activeNowRows, topActiveRows] =
         await Promise.all([
-          UserInteraction.aggregate([
+          aggregateInteractionEvents([
             { $match: typeCountMatch },
             { $group: { _id: "$eventType", count: { $sum: 1 } } },
           ]).option({ maxTimeMS: 12000 }),
@@ -1345,7 +1345,7 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
                 })
                 .catch(() => 0)
             : Promise.resolve(0),
-          UserInteraction.aggregate([
+          aggregateInteractionEvents([
             {
               $match: {
                 serverTimestamp: { $gte: fifteenAgo },
@@ -1355,7 +1355,7 @@ export async function getAllUsersActivity(req: AuthRequest, res: Response) {
             { $group: { _id: "$userId" } },
             { $count: "n" },
           ]).option({ maxTimeMS: 8000 }),
-          UserInteraction.aggregate([
+          aggregateInteractionEvents([
             { $match: baseMatch },
             { $group: { _id: "$userId", count: { $sum: 1 } } },
             { $sort: { count: -1 } },
@@ -1566,7 +1566,7 @@ export async function getPlatformEngagement(req: AuthRequest, res: Response) {
     };
 
     const dayFormat = useHourly ? "%Y-%m-%dT%H" : "%Y-%m-%d";
-    const rows = await UserInteraction.aggregate([
+    const rows = await aggregateInteractionEvents([
       { $match: match },
       {
         $group: {
@@ -1805,10 +1805,7 @@ export async function getAssignedUserActivity(req: AuthRequest, res: Response) {
 
     const db = mongoose.connection?.db;
     const [rawEvents, brochureDocs, leadDocs] = await Promise.all([
-      UserInteraction.find(match)
-        .sort({ serverTimestamp: -1 })
-        .limit(500)
-        .lean(),
+      queryInteractionEvents(match, { limit: 500 }),
       db
         ? db
             .collection("brochuredownloads")

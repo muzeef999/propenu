@@ -12,7 +12,10 @@ import {
   whatsappQueue,
   addWhatsAppJobWithTimeout,
 } from "../../../services/user-service/src/queues";
-import { getTemplatesService } from "../../whatsapp/templates/whatsappTemplate.service";
+import {
+  getTemplatesService,
+  resolveCarouselCards,
+} from "../../whatsapp/templates/whatsappTemplate.service";
 import { WhatsAppCampaignRun } from "../../../services/user-service/src/logs/whatsappCampaignRun.model";
 import * as XLSX from "xlsx";
 
@@ -747,6 +750,21 @@ export const sendWhatsAppCSV = async (req: Request, res: Response) => {
       }
     }
 
+    const carouselCards = await resolveCarouselCards(
+      metaTemplate,
+      req.body?.carouselCards,
+    );
+    const isCarousel = (metaTemplate.components || []).some(
+      (component: any) => String(component.type || "").toUpperCase() === "CAROUSEL",
+    );
+    if (isCarousel && !carouselCards.length) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "This carousel template needs active projects or properties with a public photo. None were found.",
+      });
+    }
+
     const fieldMapping = parseFieldMapping(req.body?.fieldMapping);
     const phoneField = String(req.body?.phoneField || "").trim();
 
@@ -814,6 +832,7 @@ export const sendWhatsAppCSV = async (req: Request, res: Response) => {
           baseDelayMs,
           rows: results,
           ...(requestedHeaderUrl ? { requestedHeaderImageUrl: requestedHeaderUrl } : {}),
+          ...(carouselCards.length ? { carouselCards } : {}),
         },
         {
           attempts: 2,

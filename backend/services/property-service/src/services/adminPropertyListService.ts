@@ -3,6 +3,7 @@ import Residential from "../models/residentialModel";
 import Commercial from "../models/commercialModel";
 import LandPlot from "../models/landModel";
 import Agricultural from "../models/agriculturalModel";
+import User from "../models/userModel";
 import { attachCreatedByProfiles } from "../utils/agentSubmission";
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -100,6 +101,59 @@ const parseIstDay = (value: unknown, endOfDay = false) => {
 const escapeRegex = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+const exactCi = (value: string) =>
+  new RegExp(`^${escapeRegex(value)}$`, "i");
+
+const findListingPeopleIds = async (rawQ: string) => {
+  if (!rawQ) return [];
+  const safe = escapeRegex(rawQ);
+  const rx = new RegExp(safe, "i");
+  const digits = rawQ.replace(/\D/g, "");
+  const userOr: Record<string, any>[] = [
+    { name: rx },
+    { companyName: rx },
+    { email: rx },
+    { phone: rx },
+  ];
+  if (digits.length >= 6) {
+    userOr.push({ phone: new RegExp(`${escapeRegex(digits)}$`) });
+    userOr.push({ phone: new RegExp(escapeRegex(digits)) });
+  }
+  const [users, agents] = await Promise.all([
+    User.find({ $or: userOr }).select("_id").limit(80).lean(),
+    mongoose.connection
+      .collection("agents")
+      .find(
+        {
+          $or: [
+            { name: rx },
+            { agencyName: rx },
+            { email: rx },
+            { phone: rx },
+            ...(digits.length >= 6
+              ? [{ phone: new RegExp(escapeRegex(digits)) }]
+              : []),
+          ],
+        },
+        { projection: { _id: 1, user: 1 } },
+      )
+      .limit(40)
+      .toArray(),
+  ]);
+  const ids = new Set<string>();
+  for (const user of users) {
+    if (user?._id) ids.add(String(user._id));
+  }
+  for (const agent of agents || []) {
+    if (agent?._id) ids.add(String(agent._id));
+    const userId = agent?.user?._id || agent?.user;
+    if (userId) ids.add(String(userId));
+  }
+  return [...ids]
+    .filter((id) => mongoose.Types.ObjectId.isValid(id) && id.length === 24)
+    .map((id) => new mongoose.Types.ObjectId(id));
+};
+
 const CATEGORY_MODELS = [
   { category: "residential", model: Residential },
   { category: "commercial", model: Commercial },
@@ -121,10 +175,15 @@ const andOr = (match: Record<string, any>, clause: Record<string, any>[]) => {
 
 const buildMatch = (
   query: Record<string, any>,
-  options: { includePromotion?: boolean; includeTracking?: boolean } = {},
+  options: {
+    includePromotion?: boolean;
+    includeTracking?: boolean;
+    peopleIds?: mongoose.Types.ObjectId[];
+  } = {},
 ) => {
   const includePromotion = options.includePromotion !== false;
   const includeTracking = options.includeTracking !== false;
+  const peopleIds = options.peopleIds || [];
   const match: Record<string, any> = {};
 
   const status = String(query.status || "").trim().toLowerCase();
@@ -143,16 +202,22 @@ const buildMatch = (
     if (!ALLOWED_LISTING.has(listingType)) throw invalid("Invalid listingType");
     match.listingType =
       listingType === "rent" || listingType === "lease"
-        ? { $in: ["rent", "lease"] }
-        : listingType;
+        ? { $regex: /^(rent|lease)$/i }
+        : { $regex: /^sale$/i };
   }
 
   const state = String(query.state || "").trim();
   const city = String(query.city || "").trim();
   const locality = String(query.locality || "").trim();
-  if (state) match.state = state;
-  if (city) match.city = city;
-  if (locality) match.locality = locality;
+  if (state) match.state = exactCi(state);
+  if (city) match.city = exactCi(city);
+  if (locality) match.locality = exactCi(locality);
+
+  const locationQ = String(query.locationQ || query.locationSearch || "").trim();
+  if (locationQ && !state && !city && !locality) {
+    const locRx = new RegExp(escapeRegex(locationQ), "i");
+    andOr(match, [{ state: locRx }, { city: locRx }, { locality: locRx }, { pincode: locRx }]);
+  }
 
   const from = parseIstDay(
     query.from || query.startDate || query.createdFrom,
@@ -210,7 +275,7 @@ const buildMatch = (
     }
   }
 
-  const rawQ = String(query.q || query.search || "").trim().slice(0, 80);
+  const rawQ = String(query.q || query.search || "").trim().slice(0, 120);
   if (rawQ) {
     const safe = escapeRegex(rawQ);
     const rx = new RegExp(safe, "i");
@@ -221,13 +286,35 @@ const buildMatch = (
       { locality: rx },
       { city: rx },
       { state: rx },
+      { address: rx },
+      { pincode: rx },
       { propertyCode: rx },
+      { propertyType: rx },
+      { listingType: rx },
       { slug: rx },
       { "postedBy.name": rx },
+      { "postedBy.email": rx },
+      { "postedBy.roleName": rx },
+      { "lastUpdatedBy.name": rx },
+      { "lastUpdatedBy.email": rx },
       { "createdBy.name": rx },
     ];
+    if (peopleIds.length) {
+      searchOr.push(
+        { createdBy: { $in: peopleIds } },
+        { "postedBy.userId": { $in: peopleIds } },
+        { approvedBy: { $in: peopleIds } },
+        { "approval.approvedByManager": { $in: peopleIds } },
+        { ownerId: { $in: peopleIds } },
+      );
+    }
     if (mongoose.Types.ObjectId.isValid(rawQ) && rawQ.length === 24) {
-      searchOr.push({ _id: new mongoose.Types.ObjectId(rawQ) });
+      const asId = new mongoose.Types.ObjectId(rawQ);
+      searchOr.push(
+        { _id: asId },
+        { createdBy: asId },
+        { "postedBy.userId": asId },
+      );
     }
     andOr(match, searchOr);
   }
@@ -291,19 +378,28 @@ export const listAdminProperties = async (query: Record<string, any> = {}) => {
     throw invalid("Invalid tracking filter");
   }
 
+  const peopleIds = await findListingPeopleIds(
+    String(query.q || query.search || "").trim().slice(0, 120),
+  );
+
+  const matchOptions = { peopleIds };
   const baseMatch = buildMatch(query, {
+    ...matchOptions,
     includePromotion: false,
     includeTracking: false,
   });
   const listMatch = buildMatch(query, {
+    ...matchOptions,
     includePromotion: true,
     includeTracking: true,
   });
   const promoFacetMatch = buildMatch(query, {
+    ...matchOptions,
     includePromotion: false,
     includeTracking: true,
   });
   const trackingFacetMatch = buildMatch(query, {
+    ...matchOptions,
     includePromotion: true,
     includeTracking: false,
   });

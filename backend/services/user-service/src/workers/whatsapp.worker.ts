@@ -6,6 +6,7 @@ import { WhatsAppLog } from "../logs/whatsappLog.model";
 import {
   redisConnection,
   describeRedisTarget,
+  bindRedisErrors,
 } from "../lib/redis.connection";
 import {
   sendWhatsAppBulkMessages as sendWhatsAppMessage,
@@ -26,7 +27,7 @@ const startWorker = async () => {
     console.log("✅ MongoDB connected in WhatsApp worker");
     console.log("🔗 Redis target:", describeRedisTarget());
 
-    new Worker(
+    const worker = new Worker(
       "whatsapp-queue",
       async (job: Job) => {
         console.log("━━━━━━━━━━━━━━━━━━━━━━━");
@@ -73,6 +74,9 @@ const startWorker = async () => {
               : {}),
             ...(data.headerImageUrl
               ? { headerImageUrl: data.headerImageUrl }
+              : {}),
+            ...(data.carouselCards?.length
+              ? { carouselCards: data.carouselCards }
               : {}),
           };
 
@@ -126,6 +130,8 @@ const startWorker = async () => {
         stalledInterval: 60000,
       },
     );
+
+    bindRedisErrors(worker);
 
     console.log("✅ WhatsApp campaign worker listening on whatsapp-queue");
   } catch (err) {

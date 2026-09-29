@@ -16,6 +16,7 @@ import {
   ownerIncompleteListingEmailSubject,
 } from "../../../../shared/email/templates/ownerTemplates/email.templates";
 import { buildUnsubscribeUrl } from "../utils/unsubscribeToken";
+import { startSearchResultEmailJob } from "./searchResultEmail.job";
 
 // ─── ENV HELPERS ─────────────────────────────────────────────────────────────
 
@@ -708,6 +709,7 @@ export function startEmailJob() {
   cron.schedule(schedules.reactivateListing, runReactivateListingJob, {
     timezone: timezone,
   });
+  startSearchResultEmailJob();
 
   console.log("✅ Email cron jobs registered:");
   for (const [name, expr] of Object.entries(schedules)) {

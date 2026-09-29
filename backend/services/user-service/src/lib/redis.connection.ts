@@ -15,6 +15,44 @@ function wantsTls(hostname: string, protocol: string): boolean {
   return host.includes("upstash.io") || host.includes("redis.cloud");
 }
 
+const QUOTA_RETRY_MS = 5 * 60 * 1000;
+let quotaPaused = false;
+let lastQuotaLogAt = 0;
+
+function isQuotaError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err || "");
+  return message.includes("max requests limit");
+}
+
+/** One line, then wait. Stops the reconnect loop from dumping the BullMQ script. */
+export function noteRedisError(err: unknown) {
+  if (!isQuotaError(err)) {
+    const message = err instanceof Error ? err.message : String(err || "Redis error");
+    console.error("Redis error:", message);
+    return;
+  }
+  quotaPaused = true;
+  const now = Date.now();
+  if (now - lastQuotaLogAt < QUOTA_RETRY_MS) return;
+  lastQuotaLogAt = now;
+  console.warn(
+    "Redis paused: Upstash monthly request limit is used up. Workers will retry in 5 minutes.",
+  );
+}
+
+export function bindRedisErrors(client: {
+  on(event: "error", listener: (err: Error) => void): void;
+}) {
+  client.on("error", (err) => noteRedisError(err));
+}
+
+function retryStrategy(times: number): number {
+  if (quotaPaused || times > 2) return QUOTA_RETRY_MS;
+  return Math.min(times * 1000, 5000);
+}
+
+// Local campaigns use REDIS_URL. Upstash queue traffic stays off while that database is over its monthly limit.
+
 /** BullMQ requires maxRetriesPerRequest: null or the worker exits on start. */
 const buildRedisConnection = (): RedisOptions => {
   const redisUrl = process.env.REDIS_URL?.trim();
@@ -35,6 +73,7 @@ const buildRedisConnection = (): RedisOptions => {
       enableReadyCheck: false,
       connectTimeout: 15000,
       keepAlive: 10000,
+      retryStrategy,
       ...(parsed.username
         ? { username: decodeURIComponent(parsed.username) }
         : {}),
@@ -57,6 +96,7 @@ const buildRedisConnection = (): RedisOptions => {
     enableReadyCheck: false,
     connectTimeout: 15000,
     keepAlive: 10000,
+    retryStrategy,
     ...(process.env.REDIS_USERNAME
       ? { username: process.env.REDIS_USERNAME }
       : {}),

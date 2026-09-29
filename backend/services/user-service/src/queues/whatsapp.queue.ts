@@ -1,5 +1,5 @@
 import { Queue } from "bullmq";
-import { redisConnection } from "../lib/redis.connection";
+import { bindRedisErrors, redisConnection } from "../lib/redis.connection";
 
 /** Per-recipient Meta send */
 export interface WhatsAppSendJobData {
@@ -13,6 +13,12 @@ export interface WhatsAppSendJobData {
   recordId?: string;
   logId?: string;
   campaignId?: string;
+  carouselCards?: Array<{
+    imageUrl: string;
+    title: string;
+    details: string;
+    buttonSuffix: string;
+  }>;
 }
 
 /** CRM audience fan-out (runs once per campaign after 202 Accepted) */
@@ -24,6 +30,12 @@ export interface WhatsAppCrmFanoutJobData {
   phoneKey: string;
   filter: Record<string, unknown>;
   requestedHeaderImageUrl?: string;
+  carouselCards?: Array<{
+    imageUrl: string;
+    title: string;
+    details: string;
+    buttonSuffix: string;
+  }>;
 }
 
 /** CSV/XLSX fan-out */
@@ -38,6 +50,12 @@ export interface WhatsAppCsvFanoutJobData {
   baseDelayMs: number;
   requestedHeaderImageUrl?: string;
   rows: Record<string, string>[];
+  carouselCards?: Array<{
+    imageUrl: string;
+    title: string;
+    details: string;
+    buttonSuffix: string;
+  }>;
 }
 
 export type WhatsAppJobData =
@@ -54,6 +72,8 @@ export const whatsappQueue = new Queue<WhatsAppJobData>("whatsapp-queue", {
     backoff: { type: "exponential", delay: 5000 },
   },
 });
+
+bindRedisErrors(whatsappQueue);
 
 /**
  * With maxRetriesPerRequest: null, queue.add waits forever while Redis is
