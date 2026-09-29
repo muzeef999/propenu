@@ -1553,7 +1553,13 @@ export const sendTokenToBackend = async (
   maybeDeviceId?: string,
 ) => {
   const authToken = Cookies.get("token");
-  if (!authToken) return null;
+  console.info("[Login Push Debug] save FCM helper called", {
+    hasAuthToken: Boolean(authToken),
+  });
+
+  if (!authToken) {
+    return null;
+  }
 
   let token = tokenOrUserId;
   let platform: "android" | "ios" | "web" = "web";
@@ -1586,6 +1592,11 @@ export const sendTokenToBackend = async (
       },
     },
   );
+
+  console.info("[Login Push Debug] save FCM response", {
+    status: res.status,
+    data: res.data,
+  });
 
   return res.data;
 };

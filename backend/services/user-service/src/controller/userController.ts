@@ -8,7 +8,10 @@ import Role from "../models/roleModel";
 import { uploadToS3 } from "../utils/s3Upload";
 import { verifyAndConsumeOtpWithReason } from "../utils/saveOtpRedis";
 import { decodeUnsubscribeToken } from "../utils/unsubscribeToken";
-import { upsertDeviceToken } from "../../../../shared/notifications/deviceTokens";
+import {
+  getActiveDeviceTokenRowsForUsers,
+  upsertDeviceToken,
+} from "../../../../shared/notifications/deviceTokens";
 
 const isAdminRole = (roleName?: string) =>
   roleName === "admin" || roleName === "super_admin";
@@ -89,10 +92,6 @@ export const saveFcmToken = async (req: Request, res: Response) => {
       token,
       platform,
       deviceId,
-    });
-
-    await User.findByIdAndUpdate(userId, {
-      fcmToken: saved.token,
     });
 
     res.json({
@@ -245,9 +244,7 @@ export const sendCustomNotification = async (req: Request, res: Response) => {
       image = uploaded.url;
     }
 
-    // ✅ Base query
     const query: any = {
-      fcmToken: { $nin: [null, ""] },
       isActive: { $ne: false },
     };
 
@@ -291,13 +288,8 @@ export const sendCustomNotification = async (req: Request, res: Response) => {
       });
     }
 
-    // ✅ Map userId → token
-    const tokenUserMap = users
-      .filter((u) => u.fcmToken)
-      .map((u) => ({
-        userId: u._id,
-        token: u.fcmToken!,
-      }));
+    const recipientUserIds = users.map((u) => u._id);
+    const tokenUserMap = await getActiveDeviceTokenRowsForUsers(recipientUserIds);
 
     const tokens = tokenUserMap.map((t) => t.token);
 

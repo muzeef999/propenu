@@ -13,6 +13,7 @@ import {
   sendUserContactingEmail,
   sendCallbackRequestEmail,
 } from "../../../../shared/email/email.helper";
+import { sendLeadWhatsApp } from "../utils/whatsapp";
 
 const PROPERTY_MODEL_MAP: Record<string, any> = {
   featuredprojects: FeaturedProject,
@@ -164,6 +165,17 @@ export const createPublicLead = async (
     return lead;
   }
 
+  if (ownerPhone && (lead.source || "site") !== "imported") {
+    sendLeadWhatsApp(ownerPhone, {
+      name: lead.name,
+      leadPhone: lead.phone,
+      email: lead.email || "",
+      interestedIn: projectTitle,
+    }).catch((err) =>
+      console.error("Error sending project lead WhatsApp:", err),
+    );
+  }
+
   await notifyOwnerAndAdmins({
     type: "contact_requested",
     title: "New Project Lead",
@@ -291,6 +303,17 @@ export const createPublicPropertyLead = async (
     "your property";
 
   if (ownerId) {
+    if (ownerPhone && (lead.source || "site") !== "imported") {
+      sendLeadWhatsApp(ownerPhone, {
+        name: lead.name,
+        leadPhone: lead.phone,
+        email: lead.email || "",
+        interestedIn: propertyTitle,
+      }).catch((err) =>
+        console.error("Error sending property lead WhatsApp:", err),
+      );
+    }
+
     await notifyOwnerAndAdmins({
       type: "contact_requested",
       title: "New Contact Request",

@@ -11,6 +11,7 @@ import PublicLead from "../models/PublicLead";
 import User from "../models/userModel";
 import { notifyOwnerAndAdmins } from "./pushNotificationService";
 import { buildLeadPropertySnapshot } from "../utils/leadPropertySnapshot";
+import { sendLeadWhatsApp } from "../utils/whatsapp";
 
 const PROPERTY_MODEL_MAP: Record<string, any> = {
   featuredprojects: FeaturedProject,
@@ -82,7 +83,10 @@ const notifyLeadCreated = async ({
   property: any;
   userId: string;
 }) => {
-  const user = await User.findById(userId).select("name phone email").lean();
+  const [user, owner] = await Promise.all([
+    User.findById(userId).select("name phone email").lean(),
+    User.findById(lead.ownerId).select("phone").lean(),
+  ]);
   const propertyTitle =
     property?.title ||
     property?.projectName ||
@@ -106,6 +110,17 @@ const notifyLeadCreated = async ({
       userEmail: user?.email || lead?.email || "",
     },
   });
+
+  if (owner?.phone) {
+    sendLeadWhatsApp(owner.phone, {
+      name: userName,
+      leadPhone: user?.phone || lead?.phone || "",
+      email: user?.email || lead?.email || "",
+      interestedIn: propertyTitle,
+    }).catch((err) =>
+      console.error("Error sending lead WhatsApp:", err),
+    );
+  }
 };
 
 /** CREATE LEAD **/

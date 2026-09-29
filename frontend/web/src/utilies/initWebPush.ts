@@ -2,6 +2,7 @@ import { sendTokenToBackend } from "@/data/ClientData";
 import { getFcmToken } from "@/utilies/getFcmToken";
 
 const WEB_PUSH_DEVICE_ID_KEY = "propenu_web_push_device_id";
+let pushInitPromise: Promise<unknown> | null = null;
 
 const getWebPushDeviceId = () => {
   if (typeof window === "undefined") return undefined;
@@ -20,15 +21,22 @@ const getWebPushDeviceId = () => {
 
 export const initWebPushToken = async () => {
   if (typeof window === "undefined") return null;
+  if (pushInitPromise) return pushInitPromise;
 
   console.info("Push setup: starting");
-  const token = await getFcmToken();
+  pushInitPromise = (async () => {
+    const token = await getFcmToken();
 
-  if (!token) {
-    console.info("Push setup: no FCM token returned");
-    return null;
-  }
+    if (!token) {
+      console.info("Push setup: no FCM token returned");
+      return null;
+    }
 
-  console.info("Push setup: FCM token received, saving");
-  return sendTokenToBackend(token, "web", getWebPushDeviceId());
+    console.info("Push setup: FCM token received, saving");
+    return sendTokenToBackend(token, "web", getWebPushDeviceId());
+  })().finally(() => {
+    pushInitPromise = null;
+  });
+
+  return pushInitPromise;
 };

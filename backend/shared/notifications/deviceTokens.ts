@@ -83,33 +83,53 @@ export const getActiveDeviceTokensForUsers = async (
   const db = mongoose.connection.db;
   if (!db) return [];
 
-  const [deviceRows, legacyUsers] = await Promise.all([
-    db
-      .collection("devicetokens")
-      .find({
-        userId: { $in: objectIds },
-        token: { $nin: [null, ""] },
-        isActive: { $ne: false },
-      })
-      .project({ token: 1 })
-      .toArray(),
-    db
-      .collection("users")
-      .find({
-        _id: { $in: objectIds },
-        fcmToken: { $nin: [null, ""] },
-        isActive: { $ne: false },
-      })
-      .project({ fcmToken: 1 })
-      .toArray(),
-  ]);
+  const deviceRows = await db
+    .collection("devicetokens")
+    .find({
+      userId: { $in: objectIds },
+      token: { $nin: [null, ""] },
+      isActive: { $ne: false },
+    })
+    .project({ token: 1 })
+    .toArray();
 
   return Array.from(
-    new Set([
-      ...deviceRows.map((row) => String(row.token || "")),
-      ...legacyUsers.map((user) => String(user.fcmToken || "")),
-    ].filter(Boolean)),
+    new Set(deviceRows.map((row) => String(row.token || "")).filter(Boolean)),
   );
+};
+
+export const getActiveDeviceTokenRowsForUsers = async (
+  userIds: Array<string | Types.ObjectId>,
+): Promise<Array<{ userId: Types.ObjectId; token: string }>> => {
+  const objectIds = toObjectIds(userIds);
+  if (!objectIds.length) return [];
+
+  const db = mongoose.connection.db;
+  if (!db) return [];
+
+  const deviceRows = await db
+    .collection("devicetokens")
+    .find({
+      userId: { $in: objectIds },
+      token: { $nin: [null, ""] },
+      isActive: { $ne: false },
+    })
+    .project({ userId: 1, token: 1 })
+    .toArray();
+
+  const seenTokens = new Set<string>();
+  return deviceRows.flatMap((row) => {
+    const token = String(row.token || "").trim();
+    if (!token || seenTokens.has(token)) return [];
+
+    seenTokens.add(token);
+    return [
+      {
+        userId: row.userId as Types.ObjectId,
+        token,
+      },
+    ];
+  });
 };
 
 export const upsertDeviceToken = async ({

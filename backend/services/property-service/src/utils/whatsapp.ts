@@ -1,5 +1,86 @@
 import axios from "axios";
 
+const sendWhatsAppTemplate = async ({
+  phone,
+  templateName,
+  parameters,
+}: {
+  phone: string;
+  templateName: string;
+  parameters: string[];
+}) => {
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const token = process.env.WHATSAPP_TOKEN;
+  const cleanPhone = phone.replace(/\D/g, "");
+
+  if (!cleanPhone) {
+    return null;
+  }
+
+  if (!phoneId || !token) {
+    console.log(
+      `[WhatsApp Template] Env missing. Skipped ${templateName} for ${cleanPhone}`,
+    );
+    return null;
+  }
+
+  const url = `https://graph.facebook.com/v20.0/${phoneId}/messages`;
+  const payload = {
+    messaging_product: "whatsapp",
+    to: cleanPhone,
+    type: "template",
+    template: {
+      name: templateName,
+      language: { code: "en" },
+      components: [
+        {
+          type: "body",
+          parameters: parameters.map((text) => ({
+            type: "text",
+            text: String(text || "-"),
+          })),
+        },
+      ],
+    },
+  };
+
+  const res = await axios.post(url, payload, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  console.log(`[WhatsApp Template] Sent ${templateName} to ${cleanPhone}`);
+  return res.data;
+};
+
+export async function sendLeadWhatsApp(phone: string, params: {
+  name?: string;
+  leadPhone?: string;
+  email?: string;
+  interestedIn?: string;
+}) {
+  try {
+    return await sendWhatsAppTemplate({
+      phone,
+      templateName: "leads_template",
+      parameters: [
+        params.name || "-",
+        params.leadPhone || "-",
+        params.email || "-",
+        params.interestedIn || "-",
+      ],
+    });
+  } catch (err: any) {
+    console.error(
+      `[WhatsApp Lead] Failed for ${phone}:`,
+      err?.response?.data || err?.message,
+    );
+    return null;
+  }
+}
+
 export async function sendOtpWhatsApp(phone: string, otp: string) {
   try {
     const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;

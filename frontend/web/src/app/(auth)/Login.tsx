@@ -98,6 +98,9 @@ const LoginDialog = ({
         phone: normalizedPhone,
         otp: otpToSubmit,
       });
+      console.info("[Login Push Debug] OTP verified", {
+        hasToken: Boolean(res?.token),
+      });
 
       Cookies.set("token", res.token, {
         path: "/",          // ✅ VERY IMPORTANT
@@ -105,10 +108,24 @@ const LoginDialog = ({
         sameSite: "Lax",
         expires: 30,
       });
-      window.dispatchEvent(new Event("auth-changed"));
-      void initWebPushToken().catch((pushError) => {
-        console.error("Push notification setup failed after login:", pushError);
+      console.info("[Login Push Debug] Auth cookie saved", {
+        hasCookieToken: Boolean(Cookies.get("token")),
+        nodeEnv: process.env.NODE_ENV,
       });
+
+      window.dispatchEvent(new Event("auth-changed"));
+      console.info("[Login Push Debug] auth-changed event dispatched");
+
+      void initWebPushToken()
+        .then((pushResult) => {
+          console.info("[Login Push Debug] Push init completed", {
+            hasResult: Boolean(pushResult),
+            result: pushResult,
+          });
+        })
+        .catch((pushError) => {
+          console.error("[Login Push Debug] Push init failed", pushError);
+        });
 
       const localShortlist = JSON.parse(
       localStorage.getItem("shortlist") || "[]"

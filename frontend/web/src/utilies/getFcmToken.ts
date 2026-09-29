@@ -1,6 +1,8 @@
 import { getToken } from "firebase/messaging";
 import { getFirebaseMessaging } from "@/lib/firebase";
 
+const firebaseVapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+
 export const getFcmToken = async () => {
   try {
     if (typeof window === "undefined" || !("Notification" in window)) {
@@ -8,7 +10,11 @@ export const getFcmToken = async () => {
       return null;
     }
 
-    console.info("Push setup: current permission", Notification.permission);
+    console.info("Push setup: browser context", {
+      origin: window.location.origin,
+      isSecureContext: window.isSecureContext,
+      permission: Notification.permission,
+    });
     const permission = await Notification.requestPermission();
 
     if (permission !== "granted") {
@@ -22,6 +28,11 @@ export const getFcmToken = async () => {
       return null;
     }
 
+    if (!firebaseVapidKey) {
+      console.info("Push setup: NEXT_PUBLIC_FIREBASE_VAPID_KEY is missing.");
+      return null;
+    }
+
     const serviceWorkerRegistration =
       "serviceWorker" in navigator
         ? await navigator.serviceWorker.register("/firebase-messaging-sw.js")
@@ -29,7 +40,7 @@ export const getFcmToken = async () => {
 
     console.info("Push setup: service worker ready", Boolean(serviceWorkerRegistration));
     const token = await getToken(resolvedMessaging, {
-      vapidKey: "BMwMpBYVAffnc2b-1onDx32UcwXBTPumJLQO3SSKjsF0QXuBL7ltHsywuVGikJcAnPKTzgG-r-Ran1K2QMg6lBk",
+      vapidKey: firebaseVapidKey,
       serviceWorkerRegistration,
     });
 
