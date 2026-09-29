@@ -11,6 +11,7 @@ import { MdClose, MdOutlineWhatsapp } from "react-icons/md";
 import PhoneInput from "react-phone-number-input";
 import { z } from "zod";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { initWebPushToken } from "@/utilies/initWebPush";
 import "react-phone-number-input/style.css";
 interface LoginDialogProps {
   open: boolean;
@@ -97,13 +98,34 @@ const LoginDialog = ({
         phone: normalizedPhone,
         otp: otpToSubmit,
       });
+      console.info("[Login Push Debug] OTP verified", {
+        hasToken: Boolean(res?.token),
+      });
 
       Cookies.set("token", res.token, {
         path: "/",          // ✅ VERY IMPORTANT
-        secure: true,
-        sameSite: "Strict",
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "Lax",
         expires: 30,
       });
+      console.info("[Login Push Debug] Auth cookie saved", {
+        hasCookieToken: Boolean(Cookies.get("token")),
+        nodeEnv: process.env.NODE_ENV,
+      });
+
+      window.dispatchEvent(new Event("auth-changed"));
+      console.info("[Login Push Debug] auth-changed event dispatched");
+
+      void initWebPushToken()
+        .then((pushResult) => {
+          console.info("[Login Push Debug] Push init completed", {
+            hasResult: Boolean(pushResult),
+            result: pushResult,
+          });
+        })
+        .catch((pushError) => {
+          console.error("[Login Push Debug] Push init failed", pushError);
+        });
 
       const localShortlist = JSON.parse(
       localStorage.getItem("shortlist") || "[]"

@@ -723,6 +723,10 @@ export default function TicketSupportHub({ role }: { role: Role }) {
     }
   };
 
+  if (loading && tickets.length === 0) {
+    return <TicketSupportHubSkeleton />;
+  }
+
   return (
     <div className="no-scrollbar flex h-[calc(100vh-80px)] flex-col overflow-y-auto">
       <section className="space-y-5">
@@ -1225,21 +1229,29 @@ export default function TicketSupportHub({ role }: { role: Role }) {
             </div>
           </div>
           <div className="no-scrollbar min-h-0 flex-1 overflow-auto rounded-b-md">
-            {loading ? <EmptyText text="Loading tickets..." /> : tickets.length === 0 ? <EmptyText text="No tickets yet. Create your first ticket from the form above." /> : (
-              <table className="min-w-full text-left">
-                <thead className="sticky top-0 z-10 bg-[#F7FCF9] shadow-[0_1px_0_0_#EEF3EF]">
-                  <tr className="text-[13px] font-medium text-[#222]">
-                    <th className="px-4 py-3">Category</th>
-                    <th className="px-4 py-3">Priority</th>
-                    <th className="px-4 py-3">Project</th>
-                    <th className="px-4 py-3">Subject</th>
-                    <th className="px-4 py-3">Attachment</th>
-                    <th className="px-4 py-3">Raised On</th>
-                    <th className="px-4 py-3">Status</th>
+            <table className="min-w-full text-left">
+              <thead className="sticky top-0 z-10 bg-[#F7FCF9] shadow-[0_1px_0_0_#EEF3EF]">
+                <tr className="text-[13px] font-medium text-[#222]">
+                  <th className="px-4 py-3">Category</th>
+                  <th className="px-4 py-3">Priority</th>
+                  <th className="px-4 py-3">Project</th>
+                  <th className="px-4 py-3">Subject</th>
+                  <th className="px-4 py-3">Attachment</th>
+                  <th className="px-4 py-3">Raised On</th>
+                  <th className="px-4 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <TicketTableSkeleton />
+                ) : tickets.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="h-56 px-4 py-6">
+                      <EmptyText text="No tickets yet. Create your first ticket from the form above." />
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {tickets.map((ticket) => (
+                ) : (
+                  tickets.map((ticket) => (
                     <tr key={ticket._id} className="border-t border-[#EEF3EF] text-[13px] text-[#555]">
                       <td className="px-4 py-3">{ticket.category || "General"}</td>
                       <td className="px-4 py-3 capitalize">{ticket.priority}</td>
@@ -1267,10 +1279,10 @@ export default function TicketSupportHub({ role }: { role: Role }) {
                       <td className="px-4 py-3">{ticket.createdAt ? new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short" }).format(new Date(ticket.createdAt)) : "24 July"}</td>
                       <td className="px-4 py-3">{statusLabel[ticket.status]}</td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -1296,8 +1308,110 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <label className="mt-3 block text-xs font-medium text-gray-600">{label}{children}</label>;
 }
 
+function SkeletonBlock({ className }: { className: string }) {
+  return (
+    <div className={cx("animate-pulse rounded-sm bg-[#E8EFEA]", className)} />
+  );
+}
+
+function TicketSupportHubSkeleton() {
+  return (
+    <div className="no-scrollbar flex h-[calc(100vh-80px)] flex-col overflow-y-auto">
+      <section className="space-y-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="w-full max-w-3xl">
+            <SkeletonBlock className="h-3 w-40" />
+            <SkeletonBlock className="mt-3 h-7 w-56" />
+            <SkeletonBlock className="mt-4 h-4 w-full max-w-2xl" />
+            <SkeletonBlock className="mt-2 h-4 w-3/4 max-w-xl" />
+          </div>
+          <SkeletonBlock className="h-10 w-32 shrink-0" />
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div
+              key={index}
+              className="min-h-28 rounded-md border border-[#E8EFEA] bg-white p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="w-full">
+                  <SkeletonBlock className="h-4 w-24" />
+                  <SkeletonBlock className="mt-4 h-5 w-14" />
+                </div>
+                <SkeletonBlock className="h-5 w-5 shrink-0" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-1 flex min-h-0 flex-1 flex-col rounded-lg bg-transparent">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <SkeletonBlock className="h-8 w-56" />
+            <SkeletonBlock className="mt-3 h-3 w-72" />
+          </div>
+        </div>
+
+        <div className="mt-5 flex min-h-0 flex-1 flex-col rounded-md border border-[#E8EFEA] bg-white">
+          <div className="border-b border-[#EEF3EF] px-4 py-3">
+            <div className="grid gap-3 sm:grid-cols-[1fr_180px]">
+              <SkeletonBlock className="h-10 w-full" />
+              <SkeletonBlock className="h-10 w-full" />
+            </div>
+          </div>
+          <div className="no-scrollbar min-h-0 flex-1 overflow-auto rounded-b-md">
+            <table className="min-w-full text-left">
+              <thead className="sticky top-0 z-10 bg-[#F7FCF9] shadow-[0_1px_0_0_#EEF3EF]">
+                <tr>
+                  {["Category", "Priority", "Project", "Subject", "Attachment", "Raised On", "Status"].map((label) => (
+                    <th key={label} className="px-4 py-3">
+                      <SkeletonBlock className="h-3 w-20" />
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <TicketTableSkeleton />
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function TicketTableSkeleton() {
+  const widths = ["w-24", "w-20", "w-36", "w-56", "w-20", "w-20", "w-24"];
+
+  return (
+    <>
+      {Array.from({ length: 5 }).map((_, rowIndex) => (
+        <tr key={rowIndex} className="border-t border-[#EEF3EF]">
+          {widths.map((width, cellIndex) => (
+            <td key={cellIndex} className="px-4 py-4">
+              <div
+                className={cx(
+                  "h-3 animate-pulse rounded-sm bg-[#E8EFEA]",
+                  width,
+                )}
+              />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
+  );
+}
+
 function EmptyText({ text }: { text: string }) {
-  return <div className="p-6 text-sm text-gray-500">{text}</div>;
+  return (
+    <div className="flex h-full min-h-44 items-center justify-center text-center text-sm text-gray-500">
+      {text}
+    </div>
+  );
 }
 
 function Detail({ role, viewerRole, ticket, reply, note, submitting, setReply, setNote, sendComment, changeStatus }: {

@@ -1,24 +1,23 @@
 import cron from "node-cron";
 import User from "../models/userModel";
 import { sendBulkPush } from "../../../../shared/notifications/push.service";
+import { getActiveDeviceTokensForUsers } from "../../../../shared/notifications/deviceTokens";
 
 export const startNotificationJob = () => {
   
   cron.schedule("*/1 * * * *", async () => {
 
     try {
-      const users = await User.find({
-        fcmToken: { $ne: null },
-      }).populate("roleId");
+      const users = await User.find({ isActive: { $ne: false } }).populate("roleId");
 
       // 👉 filter only agents
       const agentUsers = users.filter(
         (u: any) => u.roleId?.name?.toLowerCase() === "agent"
       );
 
-      const tokens = agentUsers
-        .map((u) => u.fcmToken)
-        .filter((t): t is string => !!t);
+      const tokens = await getActiveDeviceTokensForUsers(
+        agentUsers.map((u: any) => u._id),
+      );
   
       if (!tokens.length) return;
 

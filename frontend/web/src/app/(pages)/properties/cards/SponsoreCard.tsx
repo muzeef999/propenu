@@ -24,7 +24,7 @@ const cardCopy: Record<
         lines: [string, string, string];
         highlight: string;
         href: string;
-        cta: string;
+        cta?: string;
       }
     >
   >
@@ -35,7 +35,6 @@ const cardCopy: Record<
       lines: ["The shortest distance", "between 'Listed' and 'Sold'", "is a"],
       highlight: "Sponsored Tag",
       href: "/postproperty",
-      cta: "Advertise here",
     },
     featured: {
       headline: "List Higher, Sell Faster",
@@ -143,13 +142,15 @@ const SponsoreCard = ({
           </p>
         </div>
 
-        <Link
-          href={copy.href}
-          className="mt-24 inline-flex h-11 w-full max-w-[235px] items-center justify-center gap-2 rounded-md bg-[#27AE60] text-base font-semibold text-white shadow-sm transition hover:bg-[#219653] focus:outline-none focus:ring-2 focus:ring-[#27AE60]/30"
-        >
-          {copy.cta}
-          <HiArrowRight className="h-5 w-5" />
-        </Link>
+        {copy.cta ? (
+          <Link
+            href={copy.href}
+            className="mt-24 inline-flex h-11 w-full max-w-[235px] items-center justify-center gap-2 rounded-md bg-[#27AE60] text-base font-semibold text-white shadow-sm transition hover:bg-[#219653] focus:outline-none focus:ring-2 focus:ring-[#27AE60]/30"
+          >
+            {copy.cta}
+            <HiArrowRight className="h-5 w-5" />
+          </Link>
+        ) : null}
 
         <div className="relative mt-auto h-36 w-[calc(100%+48px)]">
           <Image

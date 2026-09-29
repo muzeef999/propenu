@@ -8,6 +8,10 @@ import {
 } from "../../../services/user-service/src/queues";
 import User from "../../../services/user-service/src/models/userModel";
 import Role from "../../../services/user-service/src/models/roleModel";
+import Residential from "../../../services/user-service/src/models/residentialModel";
+import Commercial from "../../../services/user-service/src/models/commercialModel";
+import LandPlot from "../../../services/user-service/src/models/landModel";
+import Agricultural from "../../../services/user-service/src/models/agriculturalModel";
 import { WhatsAppLog } from "../../../services/user-service/src/logs/whatsappLog.model";
 import { WhatsAppCampaignRun } from "../../../services/user-service/src/logs/whatsappCampaignRun.model";
 
@@ -17,6 +21,14 @@ const BUSINESS_ID = "1519313212465013";
 const PHONE_ID = "935750846293139";
 
 
+
+export interface WhatsAppCarouselCardInput {
+  imageUrl: string;
+  title: string;
+  details: string;
+  /** Slug only. The template URL is already https://propenu.com/properties/{{1}} */
+  buttonSuffix: string;
+}
 
 interface SendWhatsAppInput {
   to: string;
@@ -29,6 +41,8 @@ interface SendWhatsAppInput {
   headerMediaId?: string;
   /** IMAGE | VIDEO | DOCUMENT — avoids Meta template list fetch per message */
   headerFormat?: string;
+  /** One entry per listing. carousel_for_flow has 10 cards; fewer listings are repeated to fill every card. */
+  carouselCards?: WhatsAppCarouselCardInput[];
 }
 
 function resolveMetaAuth() {
@@ -136,6 +150,218 @@ const getVariableCount = (text: string): number => {
   const matches = text.match(/{{\d+}}/g);
   return matches ? matches.length : 0;
 };
+
+export function parseWhatsAppCarouselCards(raw: unknown): WhatsAppCarouselCardInput[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item: any) => {
+      const suffixSource = String(
+        item?.buttonSuffix || item?.slug || item?.url || "",
+      ).trim();
+      const fromPath = suffixSource.match(/properties\/([^/?#]+)/i);
+      return {
+        imageUrl: String(item?.imageUrl || item?.image || "").trim(),
+        title: String(item?.title || "").trim(),
+        details: String(item?.details || item?.subtitle || "").trim(),
+        buttonSuffix:
+          decodeURIComponent(fromPath?.[1] || suffixSource)
+            .replace(/^\/+/, "")
+            .split(/[?#]/)[0] || "listing",
+      };
+    })
+    .filter((card) => card.imageUrl.startsWith("http") && card.title);
+}
+
+function listingImageUrl(item: any): string {
+  const candidates = [
+    item?.heroImage,
+    item?.coverImage,
+    item?.gallerySummary?.[0]?.url,
+    item?.gallery?.[0]?.url,
+    item?.gallery?.[0],
+    item?.images?.[0]?.url,
+    item?.images?.[0],
+  ];
+  for (const value of candidates) {
+    const url = typeof value === "string" ? value : value?.url;
+    if (typeof url === "string" && /^https?:\/\//i.test(url)) return url.trim();
+  }
+  return "";
+}
+
+function listingPriceLabel(amount: unknown): string {
+  const value = Number(amount || 0);
+  if (!Number.isFinite(value) || value <= 0) return "";
+  if (value >= 10000000) {
+    const crore = value / 10000000;
+    return `from ${crore >= 10 ? Math.round(crore) : crore.toFixed(1).replace(/\.0$/, "")} Cr`;
+  }
+  if (value >= 100000) return `from ${Math.round(value / 100000)} L`;
+  return `from ${Math.round(value)}`;
+}
+
+/** Used when the send screen does not pass carouselCards.
+ * Button URLs on carousel_for_flow are https://propenu.com/properties/{{1}},
+ * so the suffix is the site path after /properties/.
+ */
+export async function loadDefaultCarouselCards(): Promise<WhatsAppCarouselCardInput[]> {
+  const listingQuery = (Model: any) =>
+    Model.find({ status: "active" })
+      .select("title slug city locality price priceFrom bhk bedrooms gallery")
+      .sort({ updatedAt: -1 })
+      .limit(10)
+      .lean();
+
+  const [homes, shops, plots, farms] = await Promise.all([
+    listingQuery(Residential),
+    listingQuery(Commercial),
+    listingQuery(LandPlot),
+    listingQuery(Agricultural),
+  ]);
+  const groups: Array<{ path: string; rows: any[] }> = [
+    { path: "residential", rows: homes },
+    { path: "commercial", rows: shops },
+    { path: "land", rows: plots },
+    { path: "agricultural", rows: farms },
+  ];
+
+  const cards: WhatsAppCarouselCardInput[] = [];
+  for (const group of groups) {
+    for (const item of group.rows) {
+      const imageUrl = listingImageUrl(item);
+      const slug = String(item?.slug || "").trim();
+      const title = String(item?.title || "").trim();
+      if (!imageUrl || !slug || !title) continue;
+      const bhk = item?.bhk
+        ? `${item.bhk}BHK`
+        : item?.bedrooms
+          ? `${item.bedrooms}BHK`
+          : "";
+      const place = [item?.locality, item?.city].filter(Boolean).join(", ");
+      const details = [bhk, listingPriceLabel(item?.priceFrom || item?.price), place]
+        .filter(Boolean)
+        .join(" · ");
+      cards.push({
+        imageUrl,
+        title,
+        details: details || "View details on Propenu",
+        buttonSuffix: `${group.path}/${slug}`,
+      });
+      if (cards.length >= 10) return cards;
+    }
+  }
+  return cards;
+}
+
+export async function resolveCarouselCards(template: any, raw: unknown) {
+  const parsed = parseWhatsAppCarouselCards(raw);
+  if (!templateCarousel(template)) return parsed;
+  if (parsed.length) return parsed;
+  return loadDefaultCarouselCards();
+}
+
+function metaParamText(value: string, fallback: string): string {
+  const text = String(value || "")
+    .replace(/[\r\n\t]+/g, " ")
+    .replace(/ {2,}/g, " ")
+    .trim();
+  return (text || fallback).slice(0, 200);
+}
+
+function templateCarousel(template: any) {
+  return (template?.components || []).find(
+    (component: any) => String(component.type || "").toUpperCase() === "CAROUSEL",
+  );
+}
+
+async function buildCarouselSendComponent(
+  template: any,
+  cards: WhatsAppCarouselCardInput[],
+) {
+  const carousel = templateCarousel(template);
+  const templateCards = carousel?.cards || [];
+  if (!templateCards.length) return null;
+  if (!cards.length) {
+    throw new Error(
+      `Template "${template.name}" is a carousel. Send carouselCards with imageUrl, title, details, and buttonSuffix for each project or property.`,
+    );
+  }
+
+  const mediaCache = new Map<string, { id?: string; link?: string }>();
+  const sentCards = [];
+
+  for (let index = 0; index < templateCards.length; index += 1) {
+    const spec = templateCards[index];
+    const card = cards[index % cards.length];
+    if (!spec || !card) continue;
+    const components: any[] = [];
+    const header = (spec.components || []).find(
+      (component: any) => String(component.type || "").toUpperCase() === "HEADER",
+    );
+    const format = String(header?.format || "").toUpperCase();
+    if (["IMAGE", "VIDEO", "DOCUMENT"].includes(format)) {
+      const cacheKey = `${format}:${card.imageUrl}`;
+      let prepared = mediaCache.get(cacheKey);
+      if (!prepared) {
+        prepared = await prepareHeaderMediaForSend({
+          format,
+          url: card.imageUrl,
+        });
+        mediaCache.set(cacheKey, prepared);
+      }
+      const mediaKey = format.toLowerCase();
+      components.push({
+        type: "header",
+        parameters: [
+          {
+            type: mediaKey,
+            [mediaKey]: prepared.id ? { id: prepared.id } : { link: prepared.link },
+          },
+        ],
+      });
+    }
+
+    const body = (spec.components || []).find(
+      (component: any) => String(component.type || "").toUpperCase() === "BODY",
+    );
+    const bodyValues = alignVariables(
+      [
+        metaParamText(card.title, "Property"),
+        metaParamText(card.details, "View details on Propenu"),
+      ],
+      getVariableCount(body?.text || ""),
+    );
+    if (bodyValues.length) {
+      components.push({
+        type: "body",
+        parameters: bodyValues.map((text) => ({ type: "text", text })),
+      });
+    }
+
+    const buttonWrap = (spec.components || []).find(
+      (component: any) => String(component.type || "").toUpperCase() === "BUTTONS",
+    );
+    (buttonWrap?.buttons || []).forEach((button: any, buttonIndex: number) => {
+      if (String(button.type || "").toUpperCase() !== "URL") return;
+      if (!String(button.url || "").includes("{{")) return;
+      components.push({
+        type: "button",
+        sub_type: "url",
+        index: String(buttonIndex),
+        parameters: [
+          {
+            type: "text",
+            text: metaParamText(card.buttonSuffix, "listing"),
+          },
+        ],
+      });
+    });
+
+    sentCards.push({ card_index: index, components });
+  }
+
+  return { type: "carousel", cards: sentCards };
+}
 
 function resolveHeaderFormat(template: any): string {
   const header = (template?.components || []).find(
@@ -460,6 +686,15 @@ export const sendWhatsAppCampaignDynamic = async (
       }
     }
 
+    const carouselCards = await resolveCarouselCards(template, req.body?.carouselCards);
+    if (templateCarousel(template) && !carouselCards.length) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "This carousel template needs active projects or properties with a public photo. None were found.",
+      });
+    }
+
     const bodyComponent = template.components?.find(
       (c: any) => String(c.type || "").toUpperCase() === "BODY",
     );
@@ -571,6 +806,7 @@ export const sendWhatsAppCampaignDynamic = async (
           ...(requestedHeaderImageUrl
             ? { requestedHeaderImageUrl }
             : {}),
+          ...(carouselCards.length ? { carouselCards } : {}),
         },
         {
           attempts: 2,
@@ -626,6 +862,7 @@ export async function processCrmCampaignFanout(job: {
   phoneKey: string;
   filter: Record<string, unknown>;
   requestedHeaderImageUrl?: string;
+  carouselCards?: WhatsAppCarouselCardInput[];
 }) {
   const {
     campaignId,
@@ -634,6 +871,7 @@ export async function processCrmCampaignFanout(job: {
     variableCount,
     phoneKey,
     requestedHeaderImageUrl,
+    carouselCards,
   } = job;
 
   try {
@@ -747,6 +985,7 @@ export async function processCrmCampaignFanout(job: {
               : outboundHeaderUrl
                 ? { headerImageUrl: outboundHeaderUrl }
                 : {}),
+            ...(carouselCards?.length ? { carouselCards } : {}),
           },
           opts: {
             attempts: 3,
@@ -932,6 +1171,7 @@ export async function processCsvCampaignFanout(job: {
   baseDelayMs: number;
   requestedHeaderImageUrl?: string;
   rows: Record<string, string>[];
+  carouselCards?: WhatsAppCarouselCardInput[];
 }) {
   const {
     campaignId,
@@ -944,6 +1184,7 @@ export async function processCsvCampaignFanout(job: {
     baseDelayMs,
     requestedHeaderImageUrl,
     rows,
+    carouselCards,
   } = job;
 
   try {
@@ -1049,6 +1290,7 @@ export async function processCsvCampaignFanout(job: {
             : outboundHeaderUrl
               ? { headerImageUrl: outboundHeaderUrl }
               : {}),
+          ...(carouselCards?.length ? { carouselCards } : {}),
         },
         opts: {
           attempts: 3,
@@ -1105,6 +1347,7 @@ export const sendWhatsAppBulkMessages = async ({
   headerImageUrl,
   headerMediaId,
   headerFormat: headerFormatHint,
+  carouselCards,
 }: SendWhatsAppInput) => {
   try {
     if (!to || !templateName) {
@@ -1151,8 +1394,10 @@ export const sendWhatsAppBulkMessages = async ({
       v != null && String(v).trim() ? String(v).trim() : "Customer",
     );
 
-    if (!hasPreparedHeader || !headerFormat) {
+    let templateForCarousel: any = null;
+    if (!hasPreparedHeader || !headerFormat || (carouselCards && carouselCards.length)) {
       const template = await resolveTemplateForSend(templateName);
+      templateForCarousel = template;
       templateNameFinal = template.name || templateNameFinal;
       lang = templateLanguageCode(template, language || "en");
       headerFormat = resolveHeaderFormat(template) || headerFormat;
@@ -1164,8 +1409,21 @@ export const sendWhatsAppBulkMessages = async ({
     }
 
     const components: any[] = [];
+    let cardsForCarousel = carouselCards || [];
+    if (
+      templateForCarousel &&
+      templateCarousel(templateForCarousel) &&
+      !cardsForCarousel.length
+    ) {
+      cardsForCarousel = await loadDefaultCarouselCards();
+    }
+    const carouselComponent = templateForCarousel
+      ? await buildCarouselSendComponent(templateForCarousel, cardsForCarousel)
+      : null;
 
-    if (["IMAGE", "VIDEO", "DOCUMENT"].includes(headerFormat)) {
+    if (carouselComponent) {
+      components.push(carouselComponent);
+    } else if (["IMAGE", "VIDEO", "DOCUMENT"].includes(headerFormat)) {
       const prepared = await prepareHeaderMediaForSend({
         format: headerFormat,
         url: String(headerImageUrl || "").trim(),

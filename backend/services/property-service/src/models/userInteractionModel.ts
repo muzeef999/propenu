@@ -83,4 +83,58 @@ const UserInteraction: Model<IUserInteractionDocument> =
   (mongoose.models.UserInteraction as Model<IUserInteractionDocument>) ||
   mongoose.model<IUserInteractionDocument>("UserInteraction", UserInteractionSchema);
 
+/**
+ * One document per user in the same `userinteractions` collection.
+ * Each website action is an item in `actions`, not its own document.
+ * `kind: "account"` keeps these rows separate from older one-action documents.
+ */
+export interface IUserInteractionAccountDocument extends Document {
+  userId: Types.ObjectId;
+  kind: "account";
+  historyMerged: boolean;
+  eventCount: number;
+  lastEventAt?: Date;
+  lastEventType?: string;
+  lastPageUrl?: string;
+  lastSessionId?: string;
+  lastAction?: Record<string, unknown>;
+  counters: Record<string, number>;
+  daily: Record<string, Record<string, number>>;
+  actions: any;
+}
+
+const UserInteractionAccountSchema = new Schema<IUserInteractionAccountDocument>(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    kind: { type: String, required: true, default: "account" },
+    historyMerged: { type: Boolean, default: false },
+    eventCount: { type: Number, default: 0, min: 0 },
+    lastEventAt: { type: Date },
+    lastEventType: { type: String, trim: true, maxlength: 80 },
+    lastPageUrl: { type: String, trim: true, maxlength: 2048 },
+    lastSessionId: { type: String, trim: true, maxlength: 128 },
+    lastAction: { type: Schema.Types.Mixed },
+    counters: { type: Schema.Types.Mixed, default: {} },
+    daily: { type: Schema.Types.Mixed, default: {} },
+    actions: { type: Schema.Types.Mixed, default: [] },
+  },
+  {
+    collection: "userinteractions",
+    timestamps: true,
+    minimize: true,
+  },
+);
+
+UserInteractionAccountSchema.index(
+  { userId: 1 },
+  { unique: true, partialFilterExpression: { kind: "account" } },
+);
+
+export const UserInteractionAccount: Model<IUserInteractionAccountDocument> =
+  (mongoose.models.UserInteractionAccount as Model<IUserInteractionAccountDocument>) ||
+  mongoose.model<IUserInteractionAccountDocument>(
+    "UserInteractionAccount",
+    UserInteractionAccountSchema,
+  );
+
 export default UserInteraction;

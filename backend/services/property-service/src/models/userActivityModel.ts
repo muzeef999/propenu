@@ -1,7 +1,7 @@
 import mongoose, { Document, Model, Schema, Types } from "mongoose";
 
 /** Cap embedded actions so one user document stays well under Mongo's 16MB limit. */
-export const USER_ACTIVITY_MAX_ACTIONS = 400;
+export const USER_ACTIVITY_MAX_ACTIONS = 8000;
 export const USER_ACTIVITY_PAGE_SIZE = 12;
 
 export interface IUserActivityAction {

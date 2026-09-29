@@ -4,7 +4,7 @@ dotenv.config();
 import { Worker } from "bullmq";
 import { sendEmail } from "../../../../shared/email/email.service";
 import { EmailLog } from "../logs/emailLog.model";
-import { redisConnection } from "../lib/redis.connection";
+import { bindRedisErrors, redisConnection } from "../lib/redis.connection";
 import { connectDB } from "../config/db";
 
 interface EmailJobData {
@@ -22,7 +22,7 @@ const startWorker = async () => {
     
     console.log("✅ MongoDB connected in worker");
     
-    new Worker<EmailJobData>(
+    const worker = new Worker<EmailJobData>(
       "email-queue",
       async (job) => {
         // console.log("━━━━━━━━━━━━━━━━━━━━━━━");
@@ -93,6 +93,8 @@ const startWorker = async () => {
         },
       }
     );
+
+    bindRedisErrors(worker);
   } catch (err) {
     console.error("❌ Worker DB connection failed:", err);
     process.exit(1);

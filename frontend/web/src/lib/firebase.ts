@@ -13,13 +13,21 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 let messaging: any = null;
+let messagingPromise: Promise<any> | null = null;
 
-if (typeof window !== "undefined") {
-  isSupported().then((supported) => {
-    if (supported) {
+export const getFirebaseMessaging = async () => {
+  if (typeof window === "undefined") return null;
+  if (messaging) return messaging;
+
+  if (!messagingPromise) {
+    messagingPromise = isSupported().then((supported) => {
+      if (!supported) return null;
       messaging = getMessaging(app);
-    }
-  });
-}
+      return messaging;
+    });
+  }
+
+  return messagingPromise;
+};
 
 export { messaging };

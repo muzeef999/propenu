@@ -1,7 +1,7 @@
 // src/lib/queue/email.queue.ts
 
 import { Queue } from "bullmq";
-import { redisConnection } from "../lib/redis.connection";
+import { bindRedisErrors, redisConnection } from "../lib/redis.connection";
 
 export interface EmailJobData {
   to: string;
@@ -15,3 +15,5 @@ export interface EmailJobData {
 export const emailQueue = new Queue<EmailJobData>("email-queue", {
   connection: redisConnection,
 });
+
+bindRedisErrors(emailQueue);

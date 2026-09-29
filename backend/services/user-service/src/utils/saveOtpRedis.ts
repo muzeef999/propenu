@@ -21,30 +21,72 @@ function hashOtp(otp: string): string {
   return crypto.createHmac('sha256', OTP_HASH_SECRET).update(otp).digest('hex');
 }
 
+/** Used when Upstash rejects writes (monthly command limit). */
+const memoryOtps = new Map<string, { hash: string; expiresAt: number }>();
+
+function rememberOtp(redisKey: string, hashed: string) {
+  memoryOtps.set(redisKey, {
+    hash: hashed,
+    expiresAt: Date.now() + OTP_TTL_SECONDS * 1000,
+  });
+}
+
+function readMemoryOtp(redisKey: string): string | null {
+  const entry = memoryOtps.get(redisKey);
+  if (!entry) return null;
+  if (entry.expiresAt <= Date.now()) {
+    memoryOtps.delete(redisKey);
+    return null;
+  }
+  return entry.hash;
+}
+
 /** Save hashed OTP with TTL */
 export async function saveOtpToRedis(key: string, otp: string): Promise<void> {
   const redisKey = otpKey(key);
-    // console.log(`OTP for ${key}: ${otp}`);
   const hashed = hashOtp(otp);
-  await redis.set(redisKey, hashed, { ex: OTP_TTL_SECONDS });
-  console.log(`✅ OTP saved to Redis: ${redisKey} (ttl ${OTP_TTL_SECONDS}s)`);
+  if (key.includes("@")) {
+    console.log(`📧 Email OTP for ${key}: ${otp}`);
+  }
+  try {
+    await redis.set(redisKey, hashed, { ex: OTP_TTL_SECONDS });
+    memoryOtps.delete(redisKey);
+    console.log(`✅ OTP saved to Redis: ${redisKey} (ttl ${OTP_TTL_SECONDS}s)`);
+  } catch (err) {
+    rememberOtp(redisKey, hashed);
+    console.warn(
+      `⚠️ Redis OTP save failed. Kept in memory for ${OTP_TTL_SECONDS}s.`,
+      err instanceof Error ? err.message : err,
+    );
+  }
 }
 
 /** Get hashed OTP (internal use) */
 export async function getOtpHashFromRedis(key: string): Promise<string | null> {
   const redisKey = otpKey(key);
-  return (await redis.get<string | null>(redisKey)) ?? null;
+  const memoryHash = readMemoryOtp(redisKey);
+  if (memoryHash) return memoryHash;
+  try {
+    return (await redis.get<string | null>(redisKey)) ?? null;
+  } catch (err) {
+    console.warn(
+      `⚠️ Redis OTP read failed for ${redisKey}.`,
+      err instanceof Error ? err.message : err,
+    );
+    return readMemoryOtp(redisKey);
+  }
 }
 
 /** Delete OTP key (one-time use) */
 export async function deleteOtpFromRedis(key: string): Promise<boolean> {
   const redisKey = otpKey(key);
+  const hadMemory = memoryOtps.delete(redisKey);
   try {
     const result = await redis.del(redisKey);
-    return result > 0;
+    return result > 0 || hadMemory;
   } catch (err) {
     console.error(`Error deleting OTP for ${redisKey}`, err);
-    return false;
+    return hadMemory;
   }
 }
 

@@ -11,7 +11,7 @@ export function verifyToken(token: string): JwtUserPayload {
   const decoded = jwt.verify(token, JWT_SECRET);
 
   if (typeof decoded === "string") {
-    throw new Error("Invalid token payload");
+    throw new Error("Invalid token payload type");
   }
 
   return decoded as JwtUserPayload;

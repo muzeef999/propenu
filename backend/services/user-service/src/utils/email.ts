@@ -72,6 +72,7 @@ function makeOtpText(otp: string) {
 }
 
 export async function sendOtpEmail(to: string, otp: string) {
+  console.log(`📧 Email OTP for ${to}: ${otp}`);
   const transporter = createTransport();
 
   await transporter.verify().catch((e) => {

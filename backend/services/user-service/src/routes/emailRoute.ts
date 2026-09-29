@@ -12,6 +12,13 @@ import {
 
 import emailLogRoutes from "../logs/emailLog.routes";
 import { upload } from "../middlewares/upload";
+import { authMiddleware } from "../middlewares/authMiddleware";
+import { superAdminOnly } from "../middlewares/superAdminOnly";
+import {
+  getSearchResultEmailSchedule,
+  saveSearchResultEmailSchedule,
+  sendSearchResultEmailsNow,
+} from "../controller/searchResultEmail.controller";
 
 
 const emailRouter = express.Router();
@@ -19,6 +26,9 @@ const emailRouter = express.Router();
 //gmail template
 emailRouter.post("/", createEmailTemplate);
 emailRouter.get("/", getAllTemplates);
+emailRouter.get("/search-results/schedule", authMiddleware, superAdminOnly, getSearchResultEmailSchedule);
+emailRouter.put("/search-results/schedule", authMiddleware, superAdminOnly, saveSearchResultEmailSchedule);
+emailRouter.post("/search-results/send", authMiddleware, superAdminOnly, sendSearchResultEmailsNow);
 emailRouter.use("/email-logs", emailLogRoutes);
 emailRouter.post("/send-email", sendTemplateToUsers);
 emailRouter.get("/send-email-campaign-status", sendEmailCampaignStatus);

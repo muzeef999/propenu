@@ -180,7 +180,7 @@ const Page = () => {
   );
 
   if (isLoading) {
-    return <p className="p-6 text-center text-sm text-gray-500">Loading...</p>;
+    return <ContactedPropertiesSkeleton />;
   }
 
   return (
@@ -454,6 +454,83 @@ function Pagination({
         >
           <FiChevronRight className="h-4 w-4" />
         </button>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonBlock({ className }: { className: string }) {
+  return (
+    <div className={`animate-pulse rounded-sm bg-green-100 ${className}`} />
+  );
+}
+
+function ContactedPropertyCardSkeleton() {
+  return (
+    <article className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div className="flex min-h-[145px]">
+        <div className="relative w-[34%] min-w-[120px] bg-gray-100">
+          <SkeletonBlock className="h-full w-full rounded-none bg-gray-200" />
+          <SkeletonBlock className="absolute left-2 top-2 h-5 w-12" />
+          <SkeletonBlock className="absolute right-2 top-2 h-7 w-7 rounded-full bg-white/80" />
+          <div className="absolute inset-x-0 bottom-0 bg-black/10 px-3 py-2">
+            <SkeletonBlock className="h-5 w-28 bg-white/70" />
+          </div>
+        </div>
+
+        <div className="flex min-w-0 flex-1 flex-col justify-between p-3">
+          <div className="min-w-0">
+            <SkeletonBlock className="h-4 w-3/4" />
+            <div className="mt-2 flex items-center gap-2">
+              <SkeletonBlock className="h-4 w-4 rounded-full" />
+              <SkeletonBlock className="h-3 w-2/3" />
+            </div>
+          </div>
+
+          <div className="mt-2 rounded-md bg-gray-50 px-3 py-2">
+            <SkeletonBlock className="h-3 w-36" />
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <div className="flex items-center gap-2">
+                <SkeletonBlock className="h-3.5 w-3.5 rounded-full" />
+                <SkeletonBlock className="h-3 w-24" />
+              </div>
+              <div className="flex items-center gap-2">
+                <SkeletonBlock className="h-3.5 w-3.5 rounded-full" />
+                <SkeletonBlock className="h-3 w-28" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function ContactedPropertiesSkeleton() {
+  return (
+    <div className="mx-auto w-full space-y-4">
+      <div className="rounded-2xl border border-green-100 bg-linear-to-r from-green-50 via-white to-emerald-50 px-5 py-6">
+        <SkeletonBlock className="h-8 w-72 md:h-9" />
+        <SkeletonBlock className="mt-3 h-4 w-full max-w-2xl" />
+        <SkeletonBlock className="mt-2 h-4 w-4/5 max-w-xl" />
+      </div>
+
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex w-full gap-2 overflow-hidden md:w-auto">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <SkeletonBlock
+              key={index}
+              className="h-10 w-28 shrink-0 rounded-md"
+            />
+          ))}
+        </div>
+        <SkeletonBlock className="h-4 w-56 shrink-0" />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        {Array.from({ length: PAGE_SIZE }).map((_, index) => (
+          <ContactedPropertyCardSkeleton key={index} />
+        ))}
       </div>
     </div>
   );

@@ -3,7 +3,9 @@ import UserActivity, {
   USER_ACTIVITY_MAX_ACTIONS,
   USER_ACTIVITY_PAGE_SIZE,
 } from "../models/userActivityModel";
-import UserInteraction from "../models/userInteractionModel";
+import UserInteraction, {
+  UserInteractionAccount,
+} from "../models/userInteractionModel";
 
 const NOISE_EVENTS = new Set(["session_heartbeat", "page_exit"]);
 
@@ -63,7 +65,11 @@ export const appendUserAction = async (
   const group = actionGroupFor(eventType);
   const day = istDayKey(at);
 
-  const existing = await UserActivity.findOne({ userId: uid })
+  await ensureUserInteractionAccount(userId);
+  const existing = await UserInteractionAccount.findOne({
+    userId: uid,
+    kind: "account",
+  })
     .select("lastAction lastEventAt lastSessionId")
     .lean();
   const last = existing?.lastAction as any;
@@ -80,7 +86,7 @@ export const appendUserAction = async (
 
   const shouldStoreAction = !NOISE_EVENTS.has(eventType);
   const update: Record<string, unknown> = {
-    $setOnInsert: { userId: uid },
+    $setOnInsert: { userId: uid, kind: "account", historyMerged: true },
     $set: {
       lastEventAt: at,
       lastEventType: eventType,
@@ -105,11 +111,15 @@ export const appendUserAction = async (
     };
   }
 
-  const doc = await UserActivity.findOneAndUpdate({ userId: uid }, update, {
-    upsert: true,
-    new: true,
-    setDefaultsOnInsert: true,
-  }).select("_id lastAction eventCount");
+  const doc = await UserInteractionAccount.findOneAndUpdate(
+    { userId: uid, kind: "account" },
+    update,
+    {
+      upsert: true,
+      new: true,
+      setDefaultsOnInsert: true,
+    },
+  ).select("_id lastAction eventCount");
 
   return {
     duplicate: false,
@@ -137,38 +147,76 @@ const mapLegacyEvent = (event: any) => ({
   serverTimestamp: event.serverTimestamp,
 });
 
-/** One-time fill from the old per-event collection so history is not lost. */
-export const hydrateUserActivity = async (userId: string) => {
+async function markLegacyEventsSuperseded(uid: mongoose.Types.ObjectId) {
+  await UserInteraction.updateMany(
+    {
+      userId: uid,
+      kind: { $ne: "account" },
+      eventType: { $exists: true },
+      superseded: { $ne: true },
+    },
+    { $set: { superseded: true } },
+  );
+}
+
+/**
+ * One `userinteractions` document per user. Older one-action documents and
+ * `useractivities` rows are copied in once, then the old action documents are
+ * hidden from reads so the same click is not counted twice.
+ */
+export const ensureUserInteractionAccount = async (userId: string) => {
   const uid = toObjectId(userId);
-  const existing = await UserActivity.findOne({ userId: uid }).lean();
-  if (existing?.actions?.length) return existing;
+  const existing = await UserInteractionAccount.findOne({
+    userId: uid,
+    kind: "account",
+  }).lean();
+  if (existing?.historyMerged) return existing;
 
-  const events = await UserInteraction.find({ userId: uid })
-    .sort({ serverTimestamp: -1 })
-    .limit(USER_ACTIVITY_MAX_ACTIONS)
-    .lean();
-  if (!events.length) return existing || null;
+  if (existing) {
+    await UserInteractionAccount.updateOne(
+      { _id: existing._id },
+      { $set: { historyMerged: true } },
+    );
+    await markLegacyEventsSuperseded(uid);
+    return existing;
+  }
 
-  const actions = events
-    .filter((event) => !NOISE_EVENTS.has(String(event.eventType)))
-    .map(mapLegacyEvent);
-  const last = actions[0];
+  const activity = await UserActivity.findOne({ userId: uid }).lean();
+  let actions: any[] = Array.isArray(activity?.actions) ? activity.actions : [];
+  if (!actions.length) {
+    const events = await UserInteraction.find({
+      userId: uid,
+      kind: { $ne: "account" },
+      eventType: { $exists: true },
+      superseded: { $ne: true },
+    })
+      .sort({ serverTimestamp: -1 })
+      .limit(USER_ACTIVITY_MAX_ACTIONS)
+      .lean();
+    actions = events
+      .filter((event) => !NOISE_EVENTS.has(String(event.eventType)))
+      .map(mapLegacyEvent);
+  }
+
+  const last = actions[0] as any;
   const counters: Record<string, number> = {};
   const daily: Record<string, Record<string, number>> = {};
   for (const action of actions) {
-    const group = actionGroupFor(String(action.eventType));
+    const group = actionGroupFor(String((action as any).eventType));
     counters[group] = (counters[group] || 0) + 1;
-    const day = istDayKey(new Date(action.serverTimestamp));
+    const day = istDayKey(new Date((action as any).serverTimestamp));
     const bucket = (daily[day] ||= { actions: 0 });
     bucket.actions = (bucket.actions || 0) + 1;
     bucket[group] = (bucket[group] || 0) + 1;
   }
 
-  const doc = await UserActivity.findOneAndUpdate(
-    { userId: uid },
+  const doc = await UserInteractionAccount.findOneAndUpdate(
+    { userId: uid, kind: "account" },
     {
-      $setOnInsert: { userId: uid },
-      $set: {
+      $setOnInsert: {
+        userId: uid,
+        kind: "account",
+        historyMerged: true,
         actions,
         eventCount: actions.length,
         lastEventAt: last?.serverTimestamp,
@@ -176,14 +224,20 @@ export const hydrateUserActivity = async (userId: string) => {
         lastPageUrl: last?.pageUrl,
         lastSessionId: last?.sessionId,
         lastAction: last,
-        counters,
-        daily,
+        counters: activity?.counters || counters,
+        daily: activity?.daily || daily,
       },
     },
     { upsert: true, new: true, setDefaultsOnInsert: true },
   ).lean();
+
+  await markLegacyEventsSuperseded(uid);
   return doc;
 };
+
+/** One-time fill so a user's older actions stay inside their single document. */
+export const hydrateUserActivity = async (userId: string) =>
+  ensureUserInteractionAccount(userId);
 
 export const listUserActions = async (
   userId: string,
