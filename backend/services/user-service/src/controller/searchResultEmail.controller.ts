@@ -38,14 +38,14 @@ export async function sendSearchResultEmailsNow(_req: Request, res: Response) {
     const message = result.alreadyRunning
       ? "A send is already running. Wait for it to finish."
       : result.sent > 0
-        ? `Sent ${result.sent} email${result.sent === 1 ? "" : "s"}.`
-        : "No new emails. People who already received today's mail were skipped.";
+        ? `Sent ${result.sent} email${result.sent === 1 ? "" : "s"} and the same listings on WhatsApp.`
+        : "No new emails or WhatsApp. People who already received today's mail were skipped.";
     return res.json({ success: true, data: result, message });
   } catch (error) {
     console.error("[search-email] Manual send failed:", error instanceof Error ? error.message : error);
     return res.status(500).json({
       success: false,
-      message: "The search emails could not be sent.",
+      message: "The search emails and WhatsApp could not be sent.",
     });
   }
 }

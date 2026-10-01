@@ -216,6 +216,10 @@ export const loadLeadProjectAccess = (paramName = "id") => {
       .lean();
 
     if (!project) {
+      if (req.builderAccess.isGlobalScope) {
+        req.builderProjectId = projectId;
+        return next();
+      }
       return res.status(404).json({ message: "Project not found" });
     }
 

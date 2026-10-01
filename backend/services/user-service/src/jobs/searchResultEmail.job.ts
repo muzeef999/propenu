@@ -1,3 +1,4 @@
+import axios from "axios";
 import cron from "node-cron";
 import mongoose from "mongoose";
 import User from "../models/userModel";
@@ -70,6 +71,78 @@ function priceLabel(amount: unknown) {
   }
   if (value >= 100000) return `₹${Math.round(value / 100000)} L`;
   return `₹${Math.round(value)}`;
+}
+
+function whatsAppText(value: unknown, fallback: string) {
+  const text = String(value ?? "")
+    .replace(/[\n\r\t]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return text || fallback;
+}
+
+function propertyButtonSuffix(url: string) {
+  const path = url.replace(/^https?:\/\/[^/]+/i, "");
+  return whatsAppText(path.replace(/^\/properties\//, ""), "residential");
+}
+
+async function sendSuggestionWhatsApp(phone: string, name: string, card: MatchCard) {
+  const token = process.env.WHATSAPP_TOKEN;
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  if (!token || !phoneId || !card.imageUrl) return;
+
+  const digits = String(phone || "").replace(/\D/g, "");
+  const to = digits.length === 10 ? `91${digits}` : digits;
+  if (to.length < 12) return;
+
+  const isProject = card.kind === "Project";
+  const bodyValues = isProject
+    ? [whatsAppText(name, "there"), whatsAppText(card.title, "Project")]
+    : [
+        whatsAppText(name, "there"),
+        whatsAppText(card.title, "Property"),
+        whatsAppText(card.place, "your area"),
+      ];
+  const components: Array<Record<string, unknown>> = [
+    {
+      type: "header",
+      parameters: [{ type: "image", image: { link: card.imageUrl } }],
+    },
+    {
+      type: "body",
+      parameters: bodyValues.map((text) => ({ type: "text", text })),
+    },
+  ];
+  if (!isProject) {
+    components.push({
+      type: "button",
+      sub_type: "url",
+      index: "0",
+      parameters: [{ type: "text", text: propertyButtonSuffix(card.url) }],
+    });
+  }
+
+  const apiVersion = process.env.WHATSAPP_API_VERSION || "v19.0";
+  await axios.post(
+    `https://graph.facebook.com/${apiVersion}/${phoneId}/messages`,
+    {
+      messaging_product: "whatsapp",
+      to,
+      type: "template",
+      template: {
+        name: isProject ? "projects" : "my_proporties",
+        language: { code: "en" },
+        components,
+      },
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      timeout: 30000,
+    },
+  );
 }
 
 function httpUrl(value: unknown): string {
@@ -477,7 +550,7 @@ async function ensureIndex() {
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const AUDIENCE =
-  "Every end user, agent, builder, and builder staff who searched or opened a listing. One email a day, up to 4 cards, on propenu.com.";
+  "Every end user, agent, builder, and builder staff who searched or opened a listing. One email a day, up to 4 cards, on propenu.com, and the same listings on WhatsApp.";
 
 type RepeatMode = "once" | "minute" | "hourly" | "daily" | "weekly" | "monthly";
 type ScheduleView = {
@@ -761,7 +834,7 @@ export async function runSearchResultEmailJob() {
     isUnsubscribedToEmail: { $ne: true },
     isActive: { $ne: false },
   })
-    .select("name email")
+    .select("name email phone")
     .lean();
 
   const mailLog = mongoose.connection.collection("searchresultmails");
@@ -815,6 +888,17 @@ export async function runSearchResultEmailJob() {
       }
 
       await sendEmail(String(user.email), subject, html);
+      const phone = String((user as { phone?: string }).phone || "").trim();
+      if (phone) {
+        for (const card of cards) {
+          await sendSuggestionWhatsApp(phone, user.name || "there", card).catch((error: any) =>
+            console.error(
+              `[search-email] WhatsApp failed for ${userId}:`,
+              error?.response?.data?.error?.message || error?.message || error,
+            ),
+          );
+        }
+      }
       await mailLog.updateOne(
         { userId: user._id, sentOn },
         { $set: { status: "sent", sentAt: new Date(), listingKeys: cards.map((card) => card.key) } },
