@@ -147,7 +147,7 @@ export default async function Page({ params }: PageProps) {
               <BrochurePreview project={project} />
             </div>
 
-            <div className="w-full shrink-0 lg:sticky lg:top-20 lg:w-80 xl:w-[340px]">
+            <div className="w-full shrink-0 lg:sticky lg:top-38 lg:w-80 xl:w-[340px]">
               <ContactSeller project={project} />
             </div>
           </div>

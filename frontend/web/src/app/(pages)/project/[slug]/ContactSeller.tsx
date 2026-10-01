@@ -489,10 +489,10 @@ const ContactSeller = ({ project, isModal = false, onClose }: ContactSellerProps
   const canSkipStandardLeadOtp = hasAuthToken && hasReadyContactDetails;
   const standardWrapperClassName = isModal
     ? "relative w-full rounded-md border border-slate-200 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.08)]"
-    : "w-full rounded-md border border-slate-200 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.08)] lg:sticky lg:top-20 lg:max-w-[390px] lg:p-5";
+    : "w-full rounded-md border border-slate-200 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.08)] lg:sticky lg:top-32 lg:max-w-[390px] lg:p-5";
   const inviteWrapperClassName = isModal
     ? "relative w-full rounded-md border border-emerald-300 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.1)]"
-    : "w-full rounded-md border border-emerald-300 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.1)] lg:sticky lg:top-20 lg:max-w-[390px] lg:p-5";
+    : "w-full rounded-md border border-emerald-300 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.1)] lg:sticky lg:top-32 lg:max-w-[390px] lg:p-5";
   const selectedTimeline = intentionAnswers.find(
     (item) => item.question === BUY_TIMELINE_QUESTION,
   )?.answer;
