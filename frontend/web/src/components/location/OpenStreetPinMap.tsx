@@ -67,6 +67,28 @@ const MAPPLS_SCRIPT_ID = "mappls-sdk-script";
 const DEFAULT_POSITION: MapplsPosition = { lat: 12.9716, lng: 77.5946 }; // Bengaluru
 const AUTO_FOCUS_ZOOM = 13;
 
+function MapLoadingSkeleton() {
+  return (
+    <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-100">
+      <div className="w-full space-y-4 px-6">
+        <div className="grid grid-cols-4 gap-3">
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((item) => (
+            <div
+              key={item}
+              className="h-8 animate-pulse rounded bg-white/80"
+            />
+          ))}
+        </div>
+        <div className="mx-auto h-10 w-10 animate-pulse rounded-full bg-gray-300 ring-8 ring-white/70" />
+        <div className="space-y-2">
+          <div className="h-3 w-3/4 animate-pulse rounded bg-white/80" />
+          <div className="h-3 w-1/2 animate-pulse rounded bg-white/80" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function formatToTitleCase(str: string) {
   if (!str) return "";
   return str
@@ -389,18 +411,21 @@ const OpenStreetPinMap = ({
         Pin property location
       </label>
 
-      <div className="h-70 overflow-hidden border border-gray-500 rounded">
+      <div className="relative h-70 overflow-hidden border border-gray-500 rounded">
         {mapError ? (
           <div className="h-full w-full flex items-center justify-center text-gray-500 text-sm px-3 text-center">
             {mapError}
           </div>
         ) : (
-          <div
-            id={containerId}
-            key={containerId}
-            ref={mapContainerRef}
-            className="h-full w-full"
-          />
+          <>
+            {!mapReady && <MapLoadingSkeleton />}
+            <div
+              id={containerId}
+              key={containerId}
+              ref={mapContainerRef}
+              className="h-full w-full"
+            />
+          </>
         )}
       </div>
     </div>
